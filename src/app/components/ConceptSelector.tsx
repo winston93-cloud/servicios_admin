@@ -1,136 +1,136 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { Search } from 'lucide-react';
 
 interface Concept {
   id: string;
   name: string;
   price: number;
-  category: string;
+  category: 'desayuno' | 'bebida' | 'alimento' | 'restaurante';
+  available: boolean;
 }
-
-// Mock data - conceptos basados en el sistema original
-const mockConcepts: Concept[] = [
-  { id: 'dch', name: 'DCH', price: 0, category: 'general' },
-  { id: 'dg', name: 'DG', price: 0, category: 'general' },
-  { id: 'comida', name: 'COMIDA', price: 0, category: 'alimentos' },
-  { id: 'media', name: 'MEDIA', price: 0, category: 'alimentos' },
-  { id: 'estancia5', name: 'ESTANCIA 5', price: 112.00, category: 'estancias' },
-  { id: 'estancia7', name: 'ESTANCIA 7', price: 119.00, category: 'estancias' },
-  { id: 'tarea5', name: 'TAREA 5', price: 0, category: 'tareas' },
-  { id: 'tarea7', name: 'TAREA 7', price: 0, category: 'tareas' },
-  { id: 'estmes5', name: 'EST. MES 5', price: 119.00, category: 'mensual' },
-  { id: 'estmes7', name: 'EST. MES 7', price: 119.00, category: 'mensual' },
-  { id: 'desayuno_ch', name: 'Desayuno CH', price: 51.00, category: 'alimentos' },
-];
 
 interface ConceptSelectorProps {
-  onAddConcept?: (concept: Concept, quantity: number) => void;
+  onAddConcept: (concept: any) => void;
 }
 
-export default function ConceptSelector({ onAddConcept }: ConceptSelectorProps) {
-  const [selectedConcept, setSelectedConcept] = useState<Concept | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [showDropdown, setShowDropdown] = useState(false);
+// Datos de ejemplo de productos
+const mockConcepts: Concept[] = [
+  { id: '1', name: 'Desayuno QSF', price: 41.00, category: 'desayuno', available: true },
+  { id: '2', name: 'Desayuno Mediavno', price: 41.00, category: 'desayuno', available: true },
+  { id: '3', name: 'Desayuno Básico', price: 18.00, category: 'desayuno', available: true },
+  { id: '4', name: 'Café Americano', price: 18.00, category: 'bebida', available: true },
+  { id: '5', name: 'Jugo Natural', price: 25.00, category: 'bebida', available: true },
+  { id: '6', name: 'Sandwich', price: 35.00, category: 'alimento', available: true },
+  { id: '7', name: 'Ensalada', price: 28.00, category: 'alimento', available: true },
+  { id: '8', name: 'Comida Completa', price: 65.00, category: 'restaurante', available: true },
+];
 
-  const handleAddConcept = () => {
-    if (selectedConcept && onAddConcept) {
-      onAddConcept(selectedConcept, quantity);
-      setQuantity(1);
-    }
+const categories = [
+  { id: 'todos', label: 'Todos' },
+  { id: 'desayuno', label: 'Desayunos' },
+  { id: 'bebida', label: 'Bebidas' },
+  { id: 'alimento', label: 'Alimentos' },
+  { id: 'restaurante', label: 'Restaurante' },
+];
+
+const categoryStyles: Record<string, {bg: string, icon: JSX.Element}> = {
+  desayuno: { bg: '#fef9c3', icon: <span role="img" aria-label="Desayuno">🍳</span> },
+  bebida: { bg: '#bae6fd', icon: <span role="img" aria-label="Bebida">🥤</span> },
+  alimento: { bg: '#bbf7d0', icon: <span role="img" aria-label="Alimento">🥪</span> },
+  restaurante: { bg: '#fbcfe8', icon: <span role="img" aria-label="Restaurante">🍽️</span> },
+};
+
+export default function ConceptSelector({ onAddConcept }: ConceptSelectorProps) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('todos');
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+
+  // Filtrar conceptos
+  const filteredConcepts = useMemo(() => {
+    return mockConcepts.filter(concept => {
+      const matchesSearch = concept.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === 'todos' || concept.category === selectedCategory;
+      return matchesSearch && matchesCategory && concept.available;
+    });
+  }, [searchTerm, selectedCategory]);
+
+  const handleAddConcept = (concept: Concept) => {
+    setSelectedItems(prev => new Set(prev.add(concept.id)));
+    onAddConcept({
+      id: concept.id,
+      name: concept.name,
+      price: concept.price,
+      quantity: 1,
+      totalCost: concept.price,
+      category: concept.category
+    });
+    
+    // Remover selección después de un breve momento
+    setTimeout(() => {
+      setSelectedItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(concept.id);
+        return newSet;
+      });
+    }, 500);
   };
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold text-red-600 mb-4">Concepto</h2>
-      
-      {/* Concept Selector */}
-      <div className="relative">
-        <button
-          onClick={() => setShowDropdown(!showDropdown)}
-          className="w-full px-4 py-3 bg-yellow-400 border-2 border-yellow-500 rounded-lg focus:outline-none focus:border-yellow-600 text-left font-medium flex justify-between items-center"
-        >
-          {selectedConcept ? selectedConcept.name : 'Seleccionar concepto'}
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
-
-        {/* Dropdown */}
-        {showDropdown && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-            {mockConcepts.map((concept) => (
-              <button
-                key={concept.id}
-                onClick={() => {
-                  setSelectedConcept(concept);
-                  setShowDropdown(false);
-                }}
-                className="w-full px-4 py-3 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none border-b border-gray-100 last:border-b-0 flex justify-between items-center"
-              >
-                <div>
-                  <div className="font-medium text-gray-900">{concept.name}</div>
-                  <div className="text-sm text-gray-500 capitalize">{concept.category}</div>
-                </div>
-                {concept.price > 0 && (
-                  <div className="text-green-600 font-medium">
-                    ${concept.price.toFixed(2)}
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
+    <div>
+      {/* Búsqueda */}
+      <div className="products-search">
+        <Search className="products-search-icon" size={16} />
+        <input
+          type="text"
+          placeholder="Buscar productos..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="products-search-input"
+        />
       </div>
 
-      {/* Quantity and Add Section */}
-      {selectedConcept && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Cantidad
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-blue-500"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Descripción
-              </label>
-              <input
-                type="text"
-                value={selectedConcept.name}
-                readOnly
-                className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-600"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Costo
-              </label>
-              <input
-                type="text"
-                value={`$${selectedConcept.price.toFixed(2)}`}
-                readOnly
-                className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-600"
-              />
-            </div>
-          </div>
-
+      {/* Categorías */}
+      <div className="products-categories">
+        {categories.map(category => (
           <button
-            onClick={handleAddConcept}
-            className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+            key={category.id}
+            onClick={() => setSelectedCategory(category.id)}
+            className={`category-btn ${selectedCategory === category.id ? 'active' : ''}`}
           >
-            + Agregar al pedido
+            {category.label}
           </button>
+        ))}
+      </div>
+
+      {/* Grid de productos */}
+      <div className="products-grid">
+        {filteredConcepts.map(concept => {
+          const style = categoryStyles[concept.category] || { bg: '#f1f5f9', icon: <span>🍽️</span> };
+          return (
+            <div
+              key={concept.id}
+              className={`product-card ${selectedItems.has(concept.id) ? 'selected' : ''}`}
+              onClick={() => handleAddConcept(concept)}
+              style={{ background: style.bg }}
+            >
+              <div className="product-icon" style={{ background: style.bg, fontSize: 32 }}>
+                {style.icon}
+              </div>
+              <div className="product-name">{concept.name}</div>
+              <div className="product-price">${concept.price.toFixed(2)}</div>
+              <button className="product-add-btn">+</button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Estado vacío */}
+      {filteredConcepts.length === 0 && (
+        <div className="empty-state">
+          <div className="empty-state-icon">🔍</div>
+          <p>No se encontraron productos</p>
         </div>
       )}
     </div>

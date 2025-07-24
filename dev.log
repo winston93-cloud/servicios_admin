@@ -1,0 +1,220 @@
+/home/mario/Proyectos/linux/Cursor-0.48.8-x86_64.AppImage: no se tendrá en cuenta la entrada
+
+> desayunos@0.1.0 dev
+> next dev --turbopack
+
+ ⚠ Warning: Found multiple lockfiles. Selecting /home/mario/package-lock.json.
+   Consider removing the lockfiles at:
+   * /home/mario/Proyectos/desayunos/package-lock.json
+
+   ▲ Next.js 15.4.3 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.10:3000
+
+ ✓ Starting...
+ ✓ Ready in 1037ms
+ ○ Compiling / ...
+ ✓ Compiled / in 3.2s
+ HEAD / 200 in 2457ms
+ GET / 200 in 3654ms
+ ✓ Compiled /favicon.ico in 281ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 605ms
+ ✓ Compiled in 627ms
+ ✓ Compiled in 178ms
+ ✓ Compiled in 123ms
+ ⨯ ./src/app/globals.css
+Error evaluating Node.js code
+Error: It looks like you're trying to use `tailwindcss` directly as a PostCSS plugin. The PostCSS plugin has moved to a separate package, so to continue using Tailwind CSS with PostCSS you'll need to install `@tailwindcss/postcss` and update your PostCSS configuration.
+    [at We (/home/mario/Proyectos/desayunos/node_modules/tailwindcss/dist/lib.js:35:2121)]
+    [at eval (turbopack:///[turbopack-node]/transforms/postcss.ts:56:14)]
+    [at <anonymous>]
+    [at Module.init (turbopack:///[turbopack-node]/transforms/postcss.ts:43:33)]
+    [at run (turbopack:///[turbopack-node]/ipc/evaluate.ts:77:20)]
+
+Import trace:
+  ./src/app/globals.css [Client Component Browser]
+  ./src/app/layout.tsx [Server Component]
+
+
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 1503ms
+ GET / 500 in 1790ms
+ GET /favicon.ico 500 in 44ms
+ ⨯ ./src/app/globals.css
+Error evaluating Node.js code
+Error: It looks like you're trying to use `tailwindcss` directly as a PostCSS plugin. The PostCSS plugin has moved to a separate package, so to continue using Tailwind CSS with PostCSS you'll need to install `@tailwindcss/postcss` and update your PostCSS configuration.
+    [at We (/home/mario/Proyectos/desayunos/node_modules/tailwindcss/dist/lib.js:35:2121)]
+    [at eval (turbopack:///[turbopack-node]/transforms/postcss.ts:56:14)]
+    [at <anonymous>]
+    [at Module.init (turbopack:///[turbopack-node]/transforms/postcss.ts:43:33)]
+    [at run (turbopack:///[turbopack-node]/ipc/evaluate.ts:77:20)]
+
+Import trace:
+  ./src/app/globals.css [Client Component Browser]
+  ./src/app/layout.tsx [Server Component]
+
+
+ HEAD / 500 in 32ms
+ ⨯ ./src/app/globals.css
+Error evaluating Node.js code
+Error: It looks like you're trying to use `tailwindcss` directly as a PostCSS plugin. The PostCSS plugin has moved to a separate package, so to continue using Tailwind CSS with PostCSS you'll need to install `@tailwindcss/postcss` and update your PostCSS configuration.
+    [at We (/home/mario/Proyectos/desayunos/node_modules/tailwindcss/dist/lib.js:35:2121)]
+    [at eval (turbopack:///[turbopack-node]/transforms/postcss.ts:56:14)]
+    [at <anonymous>]
+    [at Module.init (turbopack:///[turbopack-node]/transforms/postcss.ts:43:33)]
+    [at run (turbopack:///[turbopack-node]/ipc/evaluate.ts:77:20)]
+
+Import trace:
+  ./src/app/globals.css [Client Component Browser]
+  ./src/app/layout.tsx [Server Component]
+
+
+ GET / 500 in 45ms
+ GET /favicon.ico 500 in 50ms
+ ⨯ ./src/app/globals.css
+Error evaluating Node.js code
+Error: It looks like you're trying to use `tailwindcss` directly as a PostCSS plugin. The PostCSS plugin has moved to a separate package, so to continue using Tailwind CSS with PostCSS you'll need to install `@tailwindcss/postcss` and update your PostCSS configuration.
+    [at We (/home/mario/Proyectos/desayunos/node_modules/tailwindcss/dist/lib.js:35:2121)]
+    [at eval (turbopack:///[turbopack-node]/transforms/postcss.ts:56:14)]
+    [at <anonymous>]
+    [at Module.init (turbopack:///[turbopack-node]/transforms/postcss.ts:43:33)]
+    [at run (turbopack:///[turbopack-node]/ipc/evaluate.ts:77:20)]
+
+Import trace:
+  ./src/app/globals.css [Client Component Browser]
+  ./src/app/layout.tsx [Server Component]
+
+
+ HEAD / 500 in 39ms
+ ⨯ ./src/app/globals.css
+Error evaluating Node.js code
+Error: It looks like you're trying to use `tailwindcss` directly as a PostCSS plugin. The PostCSS plugin has moved to a separate package, so to continue using Tailwind CSS with PostCSS you'll need to install `@tailwindcss/postcss` and update your PostCSS configuration.
+    [at We (/home/mario/Proyectos/desayunos/node_modules/tailwindcss/dist/lib.js:35:2121)]
+    [at eval (turbopack:///[turbopack-node]/transforms/postcss.ts:56:14)]
+    [at <anonymous>]
+    [at Module.init (turbopack:///[turbopack-node]/transforms/postcss.ts:43:33)]
+    [at run (turbopack:///[turbopack-node]/ipc/evaluate.ts:77:20)]
+
+Import trace:
+  ./src/app/globals.css [Client Component Browser]
+  ./src/app/layout.tsx [Server Component]
+
+
+ GET / 500 in 29ms
+ ⨯ ./src/app/globals.css
+Error evaluating Node.js code
+Error: It looks like you're trying to use `tailwindcss` directly as a PostCSS plugin. The PostCSS plugin has moved to a separate package, so to continue using Tailwind CSS with PostCSS you'll need to install `@tailwindcss/postcss` and update your PostCSS configuration.
+    [at We (/home/mario/Proyectos/desayunos/node_modules/tailwindcss/dist/lib.js:35:2121)]
+    [at eval (turbopack:///[turbopack-node]/transforms/postcss.ts:56:14)]
+    [at <anonymous>]
+    [at Module.init (turbopack:///[turbopack-node]/transforms/postcss.ts:43:33)]
+    [at run (turbopack:///[turbopack-node]/ipc/evaluate.ts:77:20)]
+
+Import trace:
+  ./src/app/globals.css [Client Component Browser]
+  ./src/app/layout.tsx [Server Component]
+
+
+ GET / 500 in 38ms
+ GET /favicon.ico 500 in 23ms
+ ✓ Compiled / in 6ms
+ GET / 200 in 400ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 259ms
+ ✓ Compiled in 157ms
+ ⨯ ./src/app/globals.css
+Error evaluating Node.js code
+Error: It looks like you're trying to use `tailwindcss` directly as a PostCSS plugin. The PostCSS plugin has moved to a separate package, so to continue using Tailwind CSS with PostCSS you'll need to install `@tailwindcss/postcss` and update your PostCSS configuration.
+    [at We (/home/mario/Proyectos/desayunos/node_modules/tailwindcss/dist/lib.js:35:2121)]
+    [at eval (turbopack:///[turbopack-node]/transforms/postcss.ts:56:14)]
+    [at <anonymous>]
+    [at Module.init (turbopack:///[turbopack-node]/transforms/postcss.ts:43:33)]
+    [at run (turbopack:///[turbopack-node]/ipc/evaluate.ts:77:20)]
+
+Import trace:
+  ./src/app/globals.css [Client Component Browser]
+  ./src/app/layout.tsx [Server Component]
+
+
+ HEAD / 500 in 40ms
+ ⨯ ./src/app/globals.css
+Error evaluating Node.js code
+Error: It looks like you're trying to use `tailwindcss` directly as a PostCSS plugin. The PostCSS plugin has moved to a separate package, so to continue using Tailwind CSS with PostCSS you'll need to install `@tailwindcss/postcss` and update your PostCSS configuration.
+    [at We (/home/mario/Proyectos/desayunos/node_modules/tailwindcss/dist/lib.js:35:2121)]
+    [at eval (turbopack:///[turbopack-node]/transforms/postcss.ts:56:14)]
+    [at <anonymous>]
+    [at Module.init (turbopack:///[turbopack-node]/transforms/postcss.ts:43:33)]
+    [at run (turbopack:///[turbopack-node]/ipc/evaluate.ts:77:20)]
+
+Import trace:
+  ./src/app/globals.css [Client Component Browser]
+  ./src/app/layout.tsx [Server Component]
+
+
+ GET / 500 in 46ms
+ GET /favicon.ico 500 in 18ms
+ ⨯ ./src/app/globals.css
+Error evaluating Node.js code
+Error: It looks like you're trying to use `tailwindcss` directly as a PostCSS plugin. The PostCSS plugin has moved to a separate package, so to continue using Tailwind CSS with PostCSS you'll need to install `@tailwindcss/postcss` and update your PostCSS configuration.
+    [at We (/home/mario/Proyectos/desayunos/node_modules/tailwindcss/dist/lib.js:35:2121)]
+    [at eval (turbopack:///[turbopack-node]/transforms/postcss.ts:56:14)]
+    [at <anonymous>]
+    [at Module.init (turbopack:///[turbopack-node]/transforms/postcss.ts:43:33)]
+    [at run (turbopack:///[turbopack-node]/ipc/evaluate.ts:77:20)]
+
+Import trace:
+  ./src/app/globals.css [Client Component Browser]
+  ./src/app/layout.tsx [Server Component]
+
+
+ GET / 500 in 34ms
+ GET /favicon.ico 500 in 17ms
+ ⨯ ./src/app/globals.css
+Error evaluating Node.js code
+Error: It looks like you're trying to use `tailwindcss` directly as a PostCSS plugin. The PostCSS plugin has moved to a separate package, so to continue using Tailwind CSS with PostCSS you'll need to install `@tailwindcss/postcss` and update your PostCSS configuration.
+    [at We (/home/mario/Proyectos/desayunos/node_modules/tailwindcss/dist/lib.js:35:2121)]
+    [at eval (turbopack:///[turbopack-node]/transforms/postcss.ts:56:14)]
+    [at <anonymous>]
+    [at Module.init (turbopack:///[turbopack-node]/transforms/postcss.ts:43:33)]
+    [at run (turbopack:///[turbopack-node]/ipc/evaluate.ts:77:20)]
+
+Import trace:
+  ./src/app/globals.css [Client Component Browser]
+  ./src/app/layout.tsx [Server Component]
+
+
+ HEAD / 500 in 131ms
+ ⨯ ./src/app/globals.css
+Error evaluating Node.js code
+Error: It looks like you're trying to use `tailwindcss` directly as a PostCSS plugin. The PostCSS plugin has moved to a separate package, so to continue using Tailwind CSS with PostCSS you'll need to install `@tailwindcss/postcss` and update your PostCSS configuration.
+    [at We (/home/mario/Proyectos/desayunos/node_modules/tailwindcss/dist/lib.js:35:2121)]
+    [at eval (turbopack:///[turbopack-node]/transforms/postcss.ts:56:14)]
+    [at <anonymous>]
+    [at Module.init (turbopack:///[turbopack-node]/transforms/postcss.ts:43:33)]
+    [at run (turbopack:///[turbopack-node]/ipc/evaluate.ts:77:20)]
+
+Import trace:
+  ./src/app/globals.css [Client Component Browser]
+  ./src/app/layout.tsx [Server Component]
+
+
+ GET / 500 in 39ms
+ GET /favicon.ico 500 in 40ms
+ ✓ Compiled / in 7ms
+ GET / 200 in 138ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 223ms
+ ✓ Compiled in 76ms
+ HEAD / 200 in 84ms
+ GET / 200 in 140ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 237ms
+ ✓ Compiled in 90ms
+ ✓ Compiled in 191ms
+ ✓ Compiled in 80ms
+ ✓ Compiled in 71ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 134ms
+ GET / 200 in 730ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 236ms
+ ✓ Compiled in 42ms
+ HEAD / 200 in 1426ms
+ GET / 200 in 265ms
+ GET /favicon.ico?favicon.45db1c09.ico 200 in 253ms

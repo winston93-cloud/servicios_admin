@@ -1,98 +1,118 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
-interface Employee {
+interface Student {
   id: string;
   name: string;
-  code: string;
+  group: string;
+  grade: string;
 }
 
-// Mock data - reemplazaremos con Supabase más tarde
-const mockEmployees: Employee[] = [
-  { id: '1', name: 'DEL ANGEL GONZALEZ DANIEL', code: '11918' },
-  { id: '2', name: 'GUZMAN CRUZ EVAN SANTIAGO', code: '11919' },
-  { id: '3', name: 'NOREÑA RAMIREZ MATEO', code: '11920' },
-  { id: '4', name: 'MARQUEZ PADRON EDUARDO EMANUEL', code: '11921' },
-  { id: '5', name: 'MAR CESPEDES RAUL', code: '11922' },
-  { id: '6', name: 'PEREZ RIVERA MARIA FERNANDA', code: '11923' },
+// Datos de alumnos simulados
+const mockStudents: Student[] = [
+  {
+    id: 'ALU001',
+    name: 'HERNANDEZ OSTOS LEONARDO',
+    group: 'DG',
+    grade: '3°A'
+  },
+  {
+    id: 'ALU002',
+    name: 'GARCIA MARTINEZ SOFIA',
+    group: 'ADMIN',
+    grade: '2°B'
+  },
+  {
+    id: 'ALU003',
+    name: 'RODRIGUEZ LOPEZ CARLOS',
+    group: 'IT',
+    grade: '1°C'
+  },
+  {
+    id: 'ALU004',
+    name: 'MARTINEZ GONZALEZ ANA',
+    group: 'RRHH',
+    grade: '3°B'
+  },
 ];
 
-export default function EmployeeSearch() {
+export default function StudentSearch() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
 
-  const filteredEmployees = mockEmployees.filter(employee =>
-    employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    employee.code.includes(searchTerm)
-  );
+  // Filtrar alumnos basado en el término de búsqueda
+  const filteredStudents = useMemo(() => {
+    if (!searchTerm.trim()) return [];
+    
+    return mockStudents.filter(student =>
+      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.group.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [searchTerm]);
 
-  const handleSelectEmployee = (employee: Employee) => {
-    setSelectedEmployee(employee);
-    setSearchTerm(employee.name);
-    setShowDropdown(false);
+  const handleSelectStudent = (student: Student) => {
+    setSelectedStudent(student);
+    setSearchTerm(student.name);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    if (!value.trim()) {
+      setSelectedStudent(null);
+    }
   };
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold text-red-600 mb-4">Búsqueda</h2>
-      
-      {/* Employee Search Input */}
-      <div className="relative">
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            setShowDropdown(true);
-          }}
-          onFocus={() => setShowDropdown(true)}
-          placeholder="Buscar empleado..."
-          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-lg"
-        />
-        
-        {/* Dropdown with filtered employees */}
-        {showDropdown && searchTerm && filteredEmployees.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-            {filteredEmployees.slice(0, 5).map((employee) => (
-              <button
-                key={employee.id}
-                onClick={() => handleSelectEmployee(employee)}
-                className="w-full px-4 py-3 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none border-b border-gray-100 last:border-b-0"
-              >
-                <div className="font-medium text-gray-900">{employee.name}</div>
-                <div className="text-sm text-gray-500">Código: {employee.code}</div>
-              </button>
-            ))}
+    <div>
+      {/* Campo de búsqueda */}
+      <input
+        type="text"
+        placeholder="Buscar alumno..."
+        value={searchTerm}
+        onChange={(e) => handleSearchChange(e.target.value)}
+        className="employee-search-input"
+      />
+
+      {/* Lista de alumnos filtrados */}
+      {searchTerm && !selectedStudent && filteredStudents.length > 0 && (
+        <div style={{ marginTop: '8px' }}>
+          {filteredStudents.map(student => (
+            <div
+              key={student.id}
+              className="employee-card"
+              onClick={() => handleSelectStudent(student)}
+            >
+              <div className="employee-avatar">
+                {student.name.split(' ')[0][0]}{student.name.split(' ')[1]?.[0]}
+              </div>
+              <div className="employee-info">
+                <div className="employee-name">{student.name}</div>
+                <div className="employee-id">{student.group} - {student.grade} - {student.id}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Alumno seleccionado */}
+      {selectedStudent && (
+        <div className="employee-card selected" style={{ marginTop: '12px' }}>
+          <div className="employee-avatar">
+            {selectedStudent.name.split(' ')[0][0]}{selectedStudent.name.split(' ')[1]?.[0]}
           </div>
-        )}
-      </div>
+          <div className="employee-info">
+            <div className="employee-name">{selectedStudent.name}</div>
+            <div className="employee-id">{selectedStudent.group} - {selectedStudent.grade} - {selectedStudent.id}</div>
+          </div>
+        </div>
+      )}
 
-      {/* Employee Code Input */}
-      <div>
-        <input
-          type="text"
-          value={selectedEmployee?.code || ''}
-          onChange={(e) => {
-            const code = e.target.value;
-            const employee = mockEmployees.find(emp => emp.code === code);
-            if (employee) {
-              setSelectedEmployee(employee);
-              setSearchTerm(employee.name);
-            }
-          }}
-          placeholder="Código del empleado"
-          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-lg"
-        />
-      </div>
-
-      {/* Selected Employee Display */}
-      {selectedEmployee && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-sm text-green-600 font-medium">Empleado seleccionado:</p>
-          <p className="font-bold text-green-800">{selectedEmployee.name}</p>
-          <p className="text-sm text-green-600">Código: {selectedEmployee.code}</p>
+      {/* Mensaje cuando no hay resultados */}
+      {searchTerm && !selectedStudent && filteredStudents.length === 0 && (
+        <div className="empty-state">
+          <p>No se encontró el alumno</p>
         </div>
       )}
     </div>
