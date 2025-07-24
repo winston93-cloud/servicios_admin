@@ -10,7 +10,7 @@
     },
     {
       "src": "api/index.ts",
-      "use": "@vercel/node@3.0.7"
+      "use": "@vercel/node"
     }
   ],
   "routes": [
