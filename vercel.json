@@ -16,7 +16,7 @@
   "functions": {
     "backend/src/index.ts": {
       "maxDuration": 30,
-      "runtime": "nodejs14.x"
+      "runtime": "@vercel/node@2.0.0" // Cambia a una versión válida de @vercel/node
     }
   }
 }
