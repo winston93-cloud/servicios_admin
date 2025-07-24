@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePOSStore } from '../../store/usePOSStore';
 import { Employee } from '../../types';
-import { fetchEmployees } from '../../services/api';
 import { Search, User, ChevronDown } from 'lucide-react';
 
 const EmployeeSearch: React.FC = () => {
