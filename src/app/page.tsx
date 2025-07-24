@@ -10,6 +10,7 @@ import StudentSearch from './components/EmployeeSearch';
 import ConceptSelector from './components/ConceptSelector';
 import OrderTable from './components/OrderTable';
 import PaymentCalculator from './components/PaymentCalculator';
+import type { Concept } from './components/ConceptSelector';
 
 // Tipos para el sistema POS
 interface OrderItem {
@@ -18,23 +19,24 @@ interface OrderItem {
   price: number;
   quantity: number;
   totalCost: number;
-  category?: 'desayuno' | 'alimentario' | 'estancia' | 'servicio';
+  category: 'desayuno' | 'bebida' | 'alimento' | 'restaurante';
+  available: boolean;
 }
 
 export default function Home() {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
 
-  const addToOrder = (item: OrderItem) => {
+  const addToOrder = (concept: Concept) => {
     setOrderItems(prevItems => {
-      const existingItem = prevItems.find(i => i.id === item.id);
+      const existingItem = prevItems.find(i => i.id === concept.id);
       if (existingItem) {
-        return prevItems.map(i => 
-          i.id === item.id 
+        return prevItems.map(i =>
+          i.id === concept.id
             ? { ...i, quantity: i.quantity + 1, totalCost: (i.quantity + 1) * i.price }
             : i
         );
       }
-      return [...prevItems, { ...item, quantity: 1, totalCost: item.price }];
+      return [...prevItems, { ...concept, quantity: 1, totalCost: concept.price }];
     });
   };
 

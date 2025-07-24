@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 
-interface Concept {
+export interface Concept {
   id: string;
   name: string;
   price: number;
@@ -12,7 +12,7 @@ interface Concept {
 }
 
 interface ConceptSelectorProps {
-  onAddConcept: (concept: any) => void;
+  onAddConcept: (concept: Concept) => void;
 }
 
 // Datos de ejemplo de productos
@@ -58,14 +58,7 @@ export default function ConceptSelector({ onAddConcept }: ConceptSelectorProps) 
 
   const handleAddConcept = (concept: Concept) => {
     setSelectedItems(prev => new Set(prev.add(concept.id)));
-    onAddConcept({
-      id: concept.id,
-      name: concept.name,
-      price: concept.price,
-      quantity: 1,
-      totalCost: concept.price,
-      category: concept.category
-    });
+    onAddConcept(concept);
     
     // Remover selección después de un breve momento
     setTimeout(() => {
