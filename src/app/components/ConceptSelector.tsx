@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import * as React from 'react';
+import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 
 export interface Concept {
@@ -35,7 +36,7 @@ const categories = [
   { id: 'restaurante', label: 'Restaurante' },
 ];
 
-const categoryStyles: Record<string, {bg: string, icon: JSX.Element}> = {
+const categoryStyles: Record<string, {bg: string, icon: React.ReactNode}> = {
   desayuno: { bg: '#fef9c3', icon: <span role="img" aria-label="Desayuno">🍳</span> },
   bebida: { bg: '#bae6fd', icon: <span role="img" aria-label="Bebida">🥤</span> },
   alimento: { bg: '#bbf7d0', icon: <span role="img" aria-label="Alimento">🥪</span> },
