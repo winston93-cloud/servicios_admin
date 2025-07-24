@@ -179,4 +179,4 @@ Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) par
 
 ## 🙋‍♂️ Soporte
 
-Si tienes preguntas o necesitas ayuda, por favor abre un [issue](https://github.com/tu-usuario/desayunos-pos/issues) en el repositorio. 
+Si tienes preguntas o necesitas ayuda, por favor abre un [issue](https://github.com/tu-usuario/desayunos-pos/issues) en el repositorio. # desayunos
