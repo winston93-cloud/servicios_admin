@@ -1,9 +1,22 @@
 {
   "version": 2,
+  "builds": [
+    {
+      "src": "api/index.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/backend/src/index.ts"
+      "dest": "/api"
     },
     {
       "src": "/(.*)",
@@ -12,11 +25,5 @@
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "backend/src/index.ts": {
-      "maxDuration": 30,
-      "runtime": "@vercel/node@2.1.1"
-    }
   }
 }
