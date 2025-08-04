@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ProductoSearchResult } from '@/lib/productoService';
+import DatePicker from './DatePicker';
 
 interface ProductTableProps {
   selectedProducts: ProductoSearchResult[];
@@ -9,16 +10,63 @@ interface ProductTableProps {
   onUpdateQuantity: (id: number, quantity: number) => void;
 }
 
+interface ProductWithDate extends ProductoSearchResult {
+  date?: Date;
+}
+
 export default function ProductTable({ selectedProducts, onRemoveProduct, onUpdateQuantity }: ProductTableProps) {
+  const [productsWithDates, setProductsWithDates] = useState<ProductWithDate[]>([]);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [selectedProductForDate, setSelectedProductForDate] = useState<number | null>(null);
+
+  // Sincronizar productos cuando cambian
+  useEffect(() => {
+    setProductsWithDates(prevProducts => {
+      const newProducts = selectedProducts.map(selectedProduct => {
+        // Buscar si el producto ya existe con una fecha personalizada
+        const existingProduct = prevProducts.find(p => p.id === selectedProduct.id);
+        
+        return {
+          ...selectedProduct,
+          date: existingProduct?.date || new Date()
+        };
+      });
+      
+      return newProducts;
+    });
+  }, [selectedProducts]);
+
   const formatDate = (date: Date) => {
     return date.toISOString().split('T')[0];
+  };
+
+  const handleDateClick = (productId: number) => {
+    setSelectedProductForDate(productId);
+    setDatePickerOpen(true);
+  };
+
+  const handleDateChange = (date: Date) => {
+    if (selectedProductForDate !== null) {
+      setProductsWithDates(prev => 
+        prev.map(product => 
+          product.id === selectedProductForDate 
+            ? { ...product, date } 
+            : product
+        )
+      );
+    }
+  };
+
+  const handleCloseDatePicker = () => {
+    setDatePickerOpen(false);
+    setSelectedProductForDate(null);
   };
 
   return (
     <div className="product-table-container">
       <h3 className="product-table-title">Productos Seleccionados</h3>
       
-      {selectedProducts.length === 0 ? (
+      {productsWithDates.length === 0 ? (
         <div className="empty-table">
           <p>No hay productos seleccionados</p>
         </div>
@@ -33,7 +81,7 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
           </div>
           
           <div className="table-body">
-            {selectedProducts.map((product) => (
+            {productsWithDates.map((product) => (
               <div key={product.id} className="table-row">
                 <div className="table-cell">
                   <input
@@ -50,8 +98,8 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
                 <div className="table-cell cost">
                   ${product.costo.toFixed(2)}
                 </div>
-                <div className="table-cell date">
-                  {formatDate(new Date())}
+                <div className="table-cell date clickable-date" onClick={() => handleDateClick(product.id)}>
+                  {formatDate(product.date || new Date())}
                 </div>
                 <div className="table-cell">
                   <button
@@ -67,13 +115,23 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
           </div>
         </div>
       )}
+
+      {/* DatePicker */}
+      {datePickerOpen && selectedProductForDate !== null && (
+        <DatePicker
+          selectedDate={productsWithDates.find(p => p.id === selectedProductForDate)?.date || new Date()}
+          onDateChange={handleDateChange}
+          onClose={handleCloseDatePicker}
+          isOpen={datePickerOpen}
+        />
+      )}
       
-      {selectedProducts.length > 0 && (
+      {productsWithDates.length > 0 && (
         <div className="table-summary">
           <div className="total-row">
             <span>Total:</span>
             <span className="total-amount">
-              ${selectedProducts.reduce((sum, product) => sum + (product.costo * (product.quantity || 1)), 0).toFixed(2)}
+              ${productsWithDates.reduce((sum, product) => sum + (product.costo * (product.quantity || 1)), 0).toFixed(2)}
             </span>
           </div>
         </div>
