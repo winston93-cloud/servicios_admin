@@ -167,7 +167,7 @@ const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onP
       <input
         ref={inputRef}
         type="text"
-        placeholder="Buscar producto..."
+        placeholder="Buscar producto... (DC, DG, C, M, E5, E7, T5, T7, EM5, EM7)"
         value={searchTerm}
         onChange={(e) => handleSearchChange(e.target.value)}
         onClick={handleInputClick}
@@ -219,6 +219,25 @@ const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onP
       {searchTerm && !selectedProducto && !isLoading && searchResults.length === 0 && !error && (
         <div className="empty-state">
           <p>No se encontró el producto</p>
+        </div>
+      )}
+
+      {/* Códigos de ayuda cuando no hay búsqueda */}
+      {!searchTerm && !selectedProducto && (
+        <div className="search-help">
+          <div className="help-title">Códigos rápidos:</div>
+          <div className="help-codes">
+            <span className="help-code" onClick={() => handleSearchChange('DC')}>DC</span>
+            <span className="help-code" onClick={() => handleSearchChange('DG')}>DG</span>
+            <span className="help-code" onClick={() => handleSearchChange('C')}>C</span>
+            <span className="help-code" onClick={() => handleSearchChange('M')}>M</span>
+            <span className="help-code" onClick={() => handleSearchChange('E5')}>E5</span>
+            <span className="help-code" onClick={() => handleSearchChange('E7')}>E7</span>
+            <span className="help-code" onClick={() => handleSearchChange('T5')}>T5</span>
+            <span className="help-code" onClick={() => handleSearchChange('T7')}>T7</span>
+            <span className="help-code" onClick={() => handleSearchChange('EM5')}>EM5</span>
+            <span className="help-code" onClick={() => handleSearchChange('EM7')}>EM7</span>
+          </div>
         </div>
       )}
     </div>
