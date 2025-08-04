@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
-import { searchProductos, ProductoSearchResult } from '@/lib/productoService';
+import { searchProductos, ProductoSearchResult, getAllProductos } from '@/lib/productoService';
 
 interface ProductoSearchProps {
   onProductSelect: (product: ProductoSearchResult) => void;
@@ -18,6 +18,7 @@ const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onP
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [allProductos, setAllProductos] = useState<ProductoSearchResult[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Exponer métodos al componente padre
@@ -66,6 +67,37 @@ const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onP
 
     return () => clearTimeout(timeoutId);
   }, [searchTerm, debouncedSearch]);
+
+  // Effect to auto-select product when exact match is found
+  useEffect(() => {
+    if (searchResults.length === 1 && searchTerm.length >= 2) {
+      const result = searchResults[0];
+      const searchUpper = searchTerm.toUpperCase();
+      
+      // Check if it's an exact match for a code (DC, DG, C, M, E5, E7, T5, T7, EM5, EM7)
+      const isExactCodeMatch = result.desayuno_abreviatura && 
+        result.desayuno_abreviatura.toUpperCase() === searchUpper;
+      
+      if (isExactCodeMatch) {
+        // Auto-select the product
+        handleSelectProducto(result);
+      }
+    }
+  }, [searchResults, searchTerm]);
+
+  // Effect to load all products for tooltips
+  useEffect(() => {
+    const loadProductos = async () => {
+      try {
+        const productos = await getAllProductos();
+        setAllProductos(productos);
+      } catch (err) {
+        console.error('Error loading productos for tooltips:', err);
+      }
+    };
+    
+    loadProductos();
+  }, []);
 
   // Effect to maintain focus on the input
   useEffect(() => {
@@ -142,7 +174,10 @@ const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onP
         break;
       case 'Enter':
         e.preventDefault();
-        if (highlightedIndex >= 0 && highlightedIndex < searchResults.length) {
+        // If there's exactly one result, select it automatically
+        if (searchResults.length === 1) {
+          handleSelectProducto(searchResults[0]);
+        } else if (highlightedIndex >= 0 && highlightedIndex < searchResults.length) {
           handleSelectProducto(searchResults[highlightedIndex]);
         }
         break;
@@ -159,6 +194,13 @@ const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onP
     return parts.length >= 2
       ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
       : parts[0]?.substring(0, 2).toUpperCase() || '';
+  };
+
+  const getTooltipForCode = (code: string): string => {
+    const producto = allProductos.find(p => 
+      p.desayuno_abreviatura && p.desayuno_abreviatura.toUpperCase() === code.toUpperCase()
+    );
+    return producto ? producto.desayuno_nombre : code;
   };
 
   return (
@@ -227,16 +269,56 @@ const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onP
         <div className="search-help">
           <div className="help-title">Códigos rápidos:</div>
           <div className="help-codes">
-            <span className="help-code" onClick={() => handleSearchChange('DC')}>DC</span>
-            <span className="help-code" onClick={() => handleSearchChange('DG')}>DG</span>
-            <span className="help-code" onClick={() => handleSearchChange('C')}>C</span>
-            <span className="help-code" onClick={() => handleSearchChange('M')}>M</span>
-            <span className="help-code" onClick={() => handleSearchChange('E5')}>E5</span>
-            <span className="help-code" onClick={() => handleSearchChange('E7')}>E7</span>
-            <span className="help-code" onClick={() => handleSearchChange('T5')}>T5</span>
-            <span className="help-code" onClick={() => handleSearchChange('T7')}>T7</span>
-            <span className="help-code" onClick={() => handleSearchChange('EM5')}>EM5</span>
-            <span className="help-code" onClick={() => handleSearchChange('EM7')}>EM7</span>
+            <span 
+              className="help-code" 
+              onClick={() => handleSearchChange('DC')}
+              title={getTooltipForCode('DC')}
+            >DC</span>
+            <span 
+              className="help-code" 
+              onClick={() => handleSearchChange('DG')}
+              title={getTooltipForCode('DG')}
+            >DG</span>
+            <span 
+              className="help-code" 
+              onClick={() => handleSearchChange('C')}
+              title={getTooltipForCode('C')}
+            >C</span>
+            <span 
+              className="help-code" 
+              onClick={() => handleSearchChange('M')}
+              title={getTooltipForCode('M')}
+            >M</span>
+            <span 
+              className="help-code" 
+              onClick={() => handleSearchChange('E5')}
+              title={getTooltipForCode('E5')}
+            >E5</span>
+            <span 
+              className="help-code" 
+              onClick={() => handleSearchChange('E7')}
+              title={getTooltipForCode('E7')}
+            >E7</span>
+            <span 
+              className="help-code" 
+              onClick={() => handleSearchChange('T5')}
+              title={getTooltipForCode('T5')}
+            >T5</span>
+            <span 
+              className="help-code" 
+              onClick={() => handleSearchChange('T7')}
+              title={getTooltipForCode('T7')}
+            >T7</span>
+            <span 
+              className="help-code" 
+              onClick={() => handleSearchChange('EM5')}
+              title={getTooltipForCode('EM5')}
+            >EM5</span>
+            <span 
+              className="help-code" 
+              onClick={() => handleSearchChange('EM7')}
+              title={getTooltipForCode('EM7')}
+            >EM7</span>
           </div>
         </div>
       )}

@@ -17,38 +17,32 @@ export default function AlumnoSearch({ onAlumnoSelect }: AlumnoSearchProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Función para buscar alumnos con debounce
-  const debouncedSearch = useCallback(
-    async (query: string) => {
-      if (!query || query.trim().length < 2) {
-        setSearchResults([]);
-        return;
-      }
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const results = await searchAlumnos(query);
-        setSearchResults(results);
-      } catch (err) {
-        console.error('Error searching alumnos:', err);
-        setError('Error al buscar alumnos');
-        setSearchResults([]);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    []
-  );
-
   // Efecto para manejar la búsqueda con debounce
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      debouncedSearch(searchTerm);
+    const timeoutId = setTimeout(async () => {
+      // Buscar si hay al menos 2 caracteres (incluyendo espacios)
+      if (searchTerm.length >= 2) {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+          const results = await searchAlumnos(searchTerm);
+          setSearchResults(results);
+        } catch (err) {
+          console.error('Error searching alumnos:', err);
+          setError('Error al buscar alumnos');
+          setSearchResults([]);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setSearchResults([]);
+        setError(null);
+      }
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm, debouncedSearch]);
+  }, [searchTerm]);
 
   // Efecto para mantener el foco en el input
   useEffect(() => {
@@ -78,7 +72,9 @@ export default function AlumnoSearch({ onAlumnoSelect }: AlumnoSearchProps) {
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setHighlightedIndex(-1); // Reset highlighted index when typing
-    if (!value.trim()) {
+    
+    // Solo limpiar resultados si la consulta está completamente vacía
+    if (!value) {
       setSelectedAlumno(null);
       setSearchResults([]);
     }

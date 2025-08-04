@@ -64,4 +64,21 @@ export async function searchProductos(query: string): Promise<ProductoSearchResu
     ...producto,
     display_name: producto.desayuno_nombre
   })) || []
+}
+
+export async function getAllProductos(): Promise<ProductoSearchResult[]> {
+  const { data, error } = await supabase
+    .from('concepto_desayunos')
+    .select('id, desayuno_nombre, desayuno_abreviatura, costo')
+    .order('desayuno_nombre')
+
+  if (error) {
+    console.error('Error getting all productos:', error)
+    return []
+  }
+
+  return data?.map(producto => ({
+    ...producto,
+    display_name: producto.desayuno_nombre
+  })) || []
 } 
