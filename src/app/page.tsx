@@ -1,18 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Search,
   ShoppingCart,
   Package
 } from 'lucide-react';
 import AlumnoSearch from './components/AlumnoSearch';
-import ProductoSearch from './components/ProductoSearch';
+import ProductoSearch, { ProductoSearchRef } from './components/ProductoSearch';
 import ProductTable from './components/ProductTable';
 import { ProductoSearchResult } from '@/lib/productoService';
 
 export default function Home() {
   const [selectedProducts, setSelectedProducts] = useState<ProductoSearchResult[]>([]);
+  const productoInputRef = useRef<ProductoSearchRef>(null);
 
   const handleProductSelect = (product: ProductoSearchResult) => {
     // Check if product already exists in the table
@@ -46,6 +47,15 @@ export default function Home() {
     );
   };
 
+  const handleAlumnoSelect = (alumno: any) => {
+    // Enfocar el input de productos después de seleccionar un alumno
+    setTimeout(() => {
+      if (productoInputRef.current) {
+        productoInputRef.current.focusInput();
+      }
+    }, 100);
+  };
+
   return (
     <div>
       {/* Header POS */}
@@ -72,11 +82,14 @@ export default function Home() {
             <div className="search-inputs-container">
               <div className="search-input-group">
                 <label className="search-label">Alumno</label>
-                <AlumnoSearch />
+                <AlumnoSearch onAlumnoSelect={handleAlumnoSelect} />
               </div>
               <div className="search-input-group">
                 <label className="search-label">Producto</label>
-                <ProductoSearch onProductSelect={handleProductSelect} />
+                <ProductoSearch 
+                  ref={productoInputRef}
+                  onProductSelect={handleProductSelect} 
+                />
               </div>
             </div>
           </div>

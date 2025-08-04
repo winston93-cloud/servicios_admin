@@ -1,13 +1,17 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
 import { searchProductos, ProductoSearchResult } from '@/lib/productoService';
 
 interface ProductoSearchProps {
   onProductSelect: (product: ProductoSearchResult) => void;
 }
 
-export default function ProductoSearch({ onProductSelect }: ProductoSearchProps) {
+export interface ProductoSearchRef {
+  focusInput: () => void;
+}
+
+const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onProductSelect }, ref) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProducto, setSelectedProducto] = useState<ProductoSearchResult | null>(null);
   const [searchResults, setSearchResults] = useState<ProductoSearchResult[]>([]);
@@ -15,6 +19,15 @@ export default function ProductoSearch({ onProductSelect }: ProductoSearchProps)
   const [error, setError] = useState<string | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Exponer métodos al componente padre
+  useImperativeHandle(ref, () => ({
+    focusInput: () => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }
+  }));
 
   // Function to search products with debounce
   const debouncedSearch = useCallback(
@@ -62,11 +75,12 @@ export default function ProductoSearch({ onProductSelect }: ProductoSearchProps)
   }, [searchResults, isLoading]);
 
   // Effect to focus the input on component load
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, []);
+  // Removed to let AlumnoSearch have priority
+  // useEffect(() => {
+  //   if (inputRef.current) {
+  //     inputRef.current.focus();
+  //   }
+  // }, []);
 
   const handleSelectProducto = (producto: ProductoSearchResult) => {
     // Add quantity to the product
@@ -209,4 +223,6 @@ export default function ProductoSearch({ onProductSelect }: ProductoSearchProps)
       )}
     </div>
   );
-} 
+});
+
+export default ProductoSearch;

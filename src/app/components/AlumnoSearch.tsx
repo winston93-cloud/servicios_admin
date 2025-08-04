@@ -3,7 +3,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { searchAlumnos, AlumnoSearchResult } from '@/lib/alumnoService';
 
-export default function AlumnoSearch() {
+interface AlumnoSearchProps {
+  onAlumnoSelect?: (alumno: AlumnoSearchResult) => void;
+}
+
+export default function AlumnoSearch({ onAlumnoSelect }: AlumnoSearchProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAlumno, setSelectedAlumno] = useState<AlumnoSearchResult | null>(null);
   const [searchResults, setSearchResults] = useState<AlumnoSearchResult[]>([]);
@@ -48,10 +52,10 @@ export default function AlumnoSearch() {
 
   // Efecto para mantener el foco en el input
   useEffect(() => {
-    if (inputRef.current && searchTerm.length >= 2) {
+    if (inputRef.current && searchTerm.length >= 2 && !selectedAlumno) {
       inputRef.current.focus();
     }
-  }, [searchResults, isLoading]);
+  }, [searchResults, isLoading, selectedAlumno]);
 
   // Efecto para enfocar el input al cargar el componente
   useEffect(() => {
@@ -64,12 +68,11 @@ export default function AlumnoSearch() {
     setSelectedAlumno(alumno);
     setSearchTerm(alumno.display_name);
     setSearchResults([]);
-    // Mantener el foco en el input después de seleccionar
-    setTimeout(() => {
-      if (inputRef.current) {
-        inputRef.current.focus();
-      }
-    }, 100);
+    
+    // Llamar al callback si existe
+    if (onAlumnoSelect) {
+      onAlumnoSelect(alumno);
+    }
   };
 
   const handleSearchChange = (value: string) => {
@@ -78,10 +81,6 @@ export default function AlumnoSearch() {
     if (!value.trim()) {
       setSelectedAlumno(null);
       setSearchResults([]);
-    }
-    // Mantener el foco en el input
-    if (inputRef.current) {
-      inputRef.current.focus();
     }
   };
 
