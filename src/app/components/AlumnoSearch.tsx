@@ -55,7 +55,7 @@ export default function AlumnoSearch({ onAlumnoSelect }: AlumnoSearchProps) {
     if (inputRef.current && searchTerm.length >= 2 && !selectedAlumno) {
       inputRef.current.focus();
     }
-  }, [searchResults, isLoading, selectedAlumno]);
+  }, [searchResults, isLoading, selectedAlumno, searchTerm.length]);
 
   // Efecto para enfocar el input al cargar el componente
   useEffect(() => {

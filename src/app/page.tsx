@@ -2,8 +2,6 @@
 
 import React, { useState, useRef } from 'react';
 import { 
-  Search,
-  ShoppingCart,
   Package
 } from 'lucide-react';
 import AlumnoSearch from './components/AlumnoSearch';
@@ -47,7 +45,7 @@ export default function Home() {
     );
   };
 
-  const handleAlumnoSelect = (alumno: any) => {
+  const handleAlumnoSelect = (alumno: unknown) => {
     // Enfocar el input de productos después de seleccionar un alumno
     setTimeout(() => {
       if (productoInputRef.current) {

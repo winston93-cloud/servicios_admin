@@ -72,7 +72,7 @@ const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onP
     if (inputRef.current && searchTerm.length >= 1) {
       inputRef.current.focus();
     }
-  }, [searchResults, isLoading]);
+  }, [searchResults, isLoading, searchTerm.length]);
 
   // Effect to focus the input on component load
   // Removed to let AlumnoSearch have priority
@@ -224,5 +224,7 @@ const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onP
     </div>
   );
 });
+
+ProductoSearch.displayName = 'ProductoSearch';
 
 export default ProductoSearch;
