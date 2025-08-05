@@ -67,18 +67,135 @@ export async function searchProductos(query: string): Promise<ProductoSearchResu
 }
 
 export async function getAllProductos(): Promise<ProductoSearchResult[]> {
-  const { data, error } = await supabase
-    .from('concepto_desayunos')
-    .select('id, desayuno_nombre, desayuno_abreviatura, costo')
-    .order('desayuno_nombre')
+  try {
+    console.log('Getting all productos...');
+    const { data, error } = await supabase
+      .from('concepto_desayunos')
+      .select('*')
+      .order('desayuno_nombre')
 
-  if (error) {
-    console.error('Error getting all productos:', error)
+    if (error) {
+      console.error('Error getting all productos:', error)
+      return []
+    }
+
+    console.log('All productos data:', data);
+    return data?.map(producto => ({
+      id: producto.id,
+      desayuno_nombre: producto.desayuno_nombre,
+      desayuno_abreviatura: producto.desayuno_abreviatura,
+      costo: producto.costo,
+      display_name: producto.desayuno_nombre
+    })) || []
+  } catch (error) {
+    console.error('Exception getting all productos:', error)
     return []
   }
+}
 
-  return data?.map(producto => ({
-    ...producto,
-    display_name: producto.desayuno_nombre
-  })) || []
+// Funciones CRUD para el modal de productos
+export interface ProductoFormData {
+  id?: number
+  desayuno_nombre: string
+  desayuno_abreviatura: string
+  costo: number
+}
+
+export async function createProducto(producto: Omit<ProductoFormData, 'id'>): Promise<ProductoFormData | null> {
+  try {
+    console.log('Creating producto:', producto);
+    
+    const { data, error } = await supabase
+      .from('concepto_desayunos')
+      .insert([{
+        desayuno_nombre: producto.desayuno_nombre,
+        desayuno_abreviatura: producto.desayuno_abreviatura,
+        costo: producto.costo
+      }])
+      .select('*')
+      .single()
+
+    if (error) {
+      console.error('Error creating producto:', error)
+      throw error
+    }
+
+    console.log('Producto created successfully:', data)
+    return data
+  } catch (error) {
+    console.error('Exception creating producto:', error)
+    throw error
+  }
+}
+
+export async function updateProducto(id: number, producto: Omit<ProductoFormData, 'id'>): Promise<ProductoFormData | null> {
+  try {
+    console.log('Updating producto:', { id, producto });
+    
+    // Primero verificamos que el producto existe
+    const { data: existingProduct, error: checkError } = await supabase
+      .from('concepto_desayunos')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (checkError) {
+      console.error('Error checking existing producto:', checkError)
+      throw checkError
+    }
+
+    console.log('Existing producto found:', existingProduct);
+
+    // Ahora actualizamos
+    const { data, error } = await supabase
+      .from('concepto_desayunos')
+      .update({
+        desayuno_nombre: producto.desayuno_nombre,
+        desayuno_abreviatura: producto.desayuno_abreviatura,
+        costo: producto.costo
+      })
+      .eq('id', id)
+      .select('*')
+      .single()
+
+    if (error) {
+      console.error('Error updating producto:', error)
+      throw error
+    }
+
+    console.log('Producto updated successfully:', data)
+    return data
+  } catch (error) {
+    console.error('Exception updating producto:', error)
+    throw error
+  }
+}
+
+export async function deleteProducto(id: number): Promise<boolean> {
+  const { error } = await supabase
+    .from('concepto_desayunos')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    console.error('Error deleting producto:', error)
+    return false
+  }
+
+  return true
+}
+
+export async function getProductoById(id: number): Promise<ProductoFormData | null> {
+  const { data, error } = await supabase
+    .from('concepto_desayunos')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error) {
+    console.error('Error getting producto by id:', error)
+    return null
+  }
+
+  return data
 } 

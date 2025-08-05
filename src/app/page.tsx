@@ -7,10 +7,12 @@ import {
 import AlumnoSearch from './components/AlumnoSearch';
 import ProductoSearch, { ProductoSearchRef } from './components/ProductoSearch';
 import ProductTable from './components/ProductTable';
+import ProductoModal from './components/ProductoModal';
 import { ProductoSearchResult } from '@/lib/productoService';
 
 export default function Home() {
   const [selectedProducts, setSelectedProducts] = useState<ProductoSearchResult[]>([]);
+  const [isProductoModalOpen, setIsProductoModalOpen] = useState(false);
   const productoInputRef = useRef<ProductoSearchRef>(null);
 
   const handleProductSelect = (product: ProductoSearchResult) => {
@@ -65,7 +67,12 @@ export default function Home() {
           </div>
           <nav className="pos-nav">
             <a href="#" className="pos-nav-item active">Punto de venta</a>
-            <a href="#" className="pos-nav-item">Órdenes</a>
+            <button 
+              onClick={() => setIsProductoModalOpen(true)}
+              className="pos-nav-item"
+            >
+              Productos
+            </button>
           </nav>
         </div>
       </header>
@@ -100,6 +107,12 @@ export default function Home() {
           />
         </div>
       </main>
+
+      {/* Modal de Productos */}
+      <ProductoModal 
+        isOpen={isProductoModalOpen}
+        onClose={() => setIsProductoModalOpen(false)}
+      />
     </div>
   );
 }
