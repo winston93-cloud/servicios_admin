@@ -5,13 +5,14 @@ import { searchProductos, ProductoSearchResult, getAllProductos } from '@/lib/pr
 
 interface ProductoSearchProps {
   onProductSelect: (product: ProductoSearchResult) => void;
+  refreshTrigger?: number; // Para forzar la recarga de productos
 }
 
 export interface ProductoSearchRef {
   focusInput: () => void;
 }
 
-const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onProductSelect }, ref) => {
+const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onProductSelect, refreshTrigger }, ref) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProducto, setSelectedProducto] = useState<ProductoSearchResult | null>(null);
   const [searchResults, setSearchResults] = useState<ProductoSearchResult[]>([]);
@@ -118,7 +119,7 @@ const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onP
     };
     
     loadProductos();
-  }, []);
+  }, [refreshTrigger]); // Recargar cuando cambie refreshTrigger
 
   // Effect to maintain focus on the input
   useEffect(() => {
@@ -203,13 +204,23 @@ const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onP
     return producto ? producto.desayuno_nombre : code;
   };
 
+  // Obtener códigos únicos de todos los productos
+  const getUniqueCodes = (): string[] => {
+    const codes = allProductos
+      .filter(p => p.desayuno_abreviatura && p.desayuno_abreviatura.trim() !== '')
+      .map(p => p.desayuno_abreviatura.toUpperCase())
+      .filter((code, index, arr) => arr.indexOf(code) === index); // Remover duplicados
+    
+    return codes.sort(); // Ordenar alfabéticamente
+  };
+
   return (
     <div className="relative">
       {/* Search input field */}
       <input
         ref={inputRef}
         type="text"
-        placeholder="Buscar producto... (DC, DG, C, M, E5, E7, T5, T7, EM5, EM7)"
+        placeholder={`Buscar producto... (${getUniqueCodes().slice(0, 5).join(', ')}...)`}
         value={searchTerm}
         onChange={(e) => handleSearchChange(e.target.value)}
         onClick={handleInputClick}
@@ -269,56 +280,16 @@ const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onP
         <div className="search-help">
           <div className="help-title">Códigos rápidos:</div>
           <div className="help-codes">
-            <span 
-              className="help-code" 
-              onClick={() => handleSearchChange('DC')}
-              title={getTooltipForCode('DC')}
-            >DC</span>
-            <span 
-              className="help-code" 
-              onClick={() => handleSearchChange('DG')}
-              title={getTooltipForCode('DG')}
-            >DG</span>
-            <span 
-              className="help-code" 
-              onClick={() => handleSearchChange('C')}
-              title={getTooltipForCode('C')}
-            >C</span>
-            <span 
-              className="help-code" 
-              onClick={() => handleSearchChange('M')}
-              title={getTooltipForCode('M')}
-            >M</span>
-            <span 
-              className="help-code" 
-              onClick={() => handleSearchChange('E5')}
-              title={getTooltipForCode('E5')}
-            >E5</span>
-            <span 
-              className="help-code" 
-              onClick={() => handleSearchChange('E7')}
-              title={getTooltipForCode('E7')}
-            >E7</span>
-            <span 
-              className="help-code" 
-              onClick={() => handleSearchChange('T5')}
-              title={getTooltipForCode('T5')}
-            >T5</span>
-            <span 
-              className="help-code" 
-              onClick={() => handleSearchChange('T7')}
-              title={getTooltipForCode('T7')}
-            >T7</span>
-            <span 
-              className="help-code" 
-              onClick={() => handleSearchChange('EM5')}
-              title={getTooltipForCode('EM5')}
-            >EM5</span>
-            <span 
-              className="help-code" 
-              onClick={() => handleSearchChange('EM7')}
-              title={getTooltipForCode('EM7')}
-            >EM7</span>
+            {getUniqueCodes().map((code) => (
+              <span 
+                key={code}
+                className="help-code" 
+                onClick={() => handleSearchChange(code)}
+                title={getTooltipForCode(code)}
+              >
+                {code}
+              </span>
+            ))}
           </div>
         </div>
       )}

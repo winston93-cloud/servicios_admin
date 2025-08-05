@@ -1,14 +1,26 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { saveVenta, VentaData } from '@/lib/ventaService';
+import SuccessModal from './SuccessModal';
 
 interface PaymentCalculatorProps {
   orderTotal: number;
+  selectedProducts?: any[];
+  selectedStudent?: any;
 }
 
-export default function PaymentCalculator({ orderTotal }: PaymentCalculatorProps) {
+export default function PaymentCalculator({ orderTotal, selectedProducts = [], selectedStudent }: PaymentCalculatorProps) {
   const [amountPaid, setAmountPaid] = useState<number>(0);
   const [change, setChange] = useState<number>(0);
+  const [amountInputValue, setAmountInputValue] = useState<string>('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Debug: verificar si el modal está abierto
+  useEffect(() => {
+    console.log('Modal state:', showSuccessModal);
+  }, [showSuccessModal]);
 
   // Calcular cambio cuando cambie el monto pagado o el total
   useEffect(() => {
@@ -17,12 +29,66 @@ export default function PaymentCalculator({ orderTotal }: PaymentCalculatorProps
   }, [amountPaid, orderTotal]);
 
   const handleAmountChange = (value: string) => {
+    // Verificar si contiene "P" o "p" y hay productos seleccionados
+    if ((value.toLowerCase().includes('p') || value.toUpperCase().includes('P')) && 
+        selectedProducts && selectedProducts.length > 0 && 
+        selectedStudent && amountPaid > 0) {
+      // Remover la "P" del valor antes de procesar
+      const cleanValue = value.replace(/[Pp]/g, '');
+      setAmountInputValue(cleanValue);
+      setAmountPaid(parseFloat(cleanValue) || 0);
+      saveSale();
+      return;
+    }
+    
+    setAmountInputValue(value);
     const numValue = parseFloat(value) || 0;
     setAmountPaid(numValue);
   };
 
   const handleQuickAmount = (amount: number) => {
     setAmountPaid(amount);
+    setAmountInputValue(amount.toString());
+  };
+
+  const saveSale = async () => {
+    if (!selectedProducts || selectedProducts.length === 0 || !selectedStudent) {
+      setSuccessMessage('Debe seleccionar productos y un estudiante antes de guardar la venta.');
+      setShowSuccessModal(true);
+      return;
+    }
+
+    try {
+      // Obtener el ID del estudiante
+      const studentId = selectedStudent.alumno_ref || selectedStudent.id || '0';
+      
+      // Guardar cada producto como un registro separado
+      for (const product of selectedProducts) {
+        const saleData: VentaData = {
+          pago_ref: studentId.toString(),
+          pago_descripcion: product.desayuno_nombre || 'Producto',
+          pago_costo: product.costo * (product.quantity || 1),
+          pago_fecha: product.date ? new Date(product.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          pago_cantidad: product.quantity || 1
+        };
+
+        // Guardar en Supabase
+        await saveVenta(saleData);
+      }
+      
+      setSuccessMessage(`Venta guardada exitosamente para el estudiante: ${studentId}. Se guardaron ${selectedProducts.length} partidas.`);
+      setShowSuccessModal(true);
+      
+      // Reiniciar la página después de 3 segundos (cuando se cierre el modal)
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Error al guardar la venta:', error);
+      setSuccessMessage('Error al guardar la venta. Por favor, intente de nuevo.');
+      setShowSuccessModal(true);
+    }
   };
 
   return (
@@ -41,11 +107,10 @@ export default function PaymentCalculator({ orderTotal }: PaymentCalculatorProps
               <span className="currency-symbol">$</span>
               <input
                 id="amount-paid"
-                type="number"
-                step="0.01"
-                value={amountPaid || ''}
+                type="text"
+                value={amountInputValue}
                 onChange={(e) => handleAmountChange(e.target.value)}
-                placeholder="0.00"
+                placeholder="0.00 (escriba P para guardar)"
                 className="payment-input"
               />
             </div>
@@ -88,6 +153,13 @@ export default function PaymentCalculator({ orderTotal }: PaymentCalculatorProps
           </div>
         </div>
       </div>
+      
+      {/* Modal de éxito */}
+      <SuccessModal 
+        isOpen={showSuccessModal}
+        message={successMessage}
+        onClose={() => setShowSuccessModal(false)}
+      />
     </div>
   );
 } 

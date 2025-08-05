@@ -10,6 +10,8 @@ interface ProductTableProps {
   onRemoveProduct: (id: number) => void;
   onUpdateQuantity: (id: number, quantity: number) => void;
   onAddProduct?: (product: ProductoSearchResult) => void;
+  onTotalChange?: (total: number) => void;
+  onProductsChange?: (products: ProductWithDate[]) => void;
 }
 
 interface ProductWithDate extends ProductoSearchResult {
@@ -17,7 +19,7 @@ interface ProductWithDate extends ProductoSearchResult {
   uniqueId?: string; // Para identificar partidas duplicadas
 }
 
-export default function ProductTable({ selectedProducts, onRemoveProduct, onUpdateQuantity, onAddProduct }: ProductTableProps) {
+export default function ProductTable({ selectedProducts, onRemoveProduct, onUpdateQuantity, onAddProduct, onTotalChange, onProductsChange }: ProductTableProps) {
   const [productsWithDates, setProductsWithDates] = useState<ProductWithDate[]>([]);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [selectedProductForDate, setSelectedProductForDate] = useState<number | null>(null);
@@ -29,6 +31,10 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
   // Sincronizar productos cuando cambian
   useEffect(() => {
     setProductsWithDates(prevProducts => {
+      // Mantener productos duplicados existentes (con uniqueId)
+      const existingDuplicates = prevProducts.filter(p => p.uniqueId);
+      
+      // Agregar productos nuevos del padre
       const newProducts = selectedProducts.map(selectedProduct => {
         // Buscar si el producto ya existe con una fecha personalizada
         const existingProduct = prevProducts.find(p => p.id === selectedProduct.id && !p.uniqueId);
@@ -40,9 +46,26 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
         };
       });
       
-      return newProducts;
+      // Combinar productos nuevos con duplicados existentes
+      return [...newProducts, ...existingDuplicates];
     });
   }, [selectedProducts]);
+
+  // Calcular y notificar el total cuando cambien los productos
+  useEffect(() => {
+    const total = productsWithDates.reduce((sum, product) => {
+      return sum + (product.costo * (product.quantity || 1));
+    }, 0);
+    
+    if (onTotalChange) {
+      onTotalChange(total);
+    }
+    
+    // Notificar sobre todos los productos en la tabla
+    if (onProductsChange) {
+      onProductsChange(productsWithDates);
+    }
+  }, [productsWithDates, onTotalChange, onProductsChange]);
 
   const formatDate = (date: Date) => {
     return date.toISOString().split('T')[0];

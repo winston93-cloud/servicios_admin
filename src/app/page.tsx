@@ -13,7 +13,9 @@ import { ProductoSearchResult } from '@/lib/productoService';
 
 export default function Home() {
   const [selectedProducts, setSelectedProducts] = useState<ProductoSearchResult[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [isProductoModalOpen, setIsProductoModalOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const productoInputRef = useRef<ProductoSearchRef>(null);
 
   const handleProductSelect = (product: ProductoSearchResult) => {
@@ -48,7 +50,8 @@ export default function Home() {
     );
   };
 
-  const handleAlumnoSelect = (_alumno: unknown) => {
+  const handleAlumnoSelect = (alumno: any) => {
+    setSelectedStudent(alumno);
     // Enfocar el input de productos después de seleccionar un alumno
     setTimeout(() => {
       if (productoInputRef.current) {
@@ -57,10 +60,9 @@ export default function Home() {
     }, 100);
   };
 
-  // Calcular el total de la orden
-  const orderTotal = selectedProducts.reduce((total, product) => {
-    return total + (product.costo * (product.quantity || 1));
-  }, 0);
+  // Calcular el total de la orden (esto será actualizado por ProductTable)
+  const [orderTotal, setOrderTotal] = useState(0);
+  const [allProductsInTable, setAllProductsInTable] = useState<any[]>([]);
 
   return (
     <div>
@@ -101,14 +103,19 @@ export default function Home() {
                   <label className="search-label">Producto</label>
                   <ProductoSearch 
                     ref={productoInputRef}
-                    onProductSelect={handleProductSelect} 
+                    onProductSelect={handleProductSelect}
+                    refreshTrigger={refreshTrigger}
                   />
                 </div>
               </div>
             </div>
 
             {/* Calculadora de pago */}
-            <PaymentCalculator orderTotal={orderTotal} />
+            <PaymentCalculator 
+              orderTotal={orderTotal} 
+              selectedProducts={allProductsInTable}
+              selectedStudent={selectedStudent}
+            />
           </div>
 
           {/* Tabla de productos seleccionados */}
@@ -117,6 +124,8 @@ export default function Home() {
             onRemoveProduct={handleRemoveProduct}
             onUpdateQuantity={handleUpdateQuantity}
             onAddProduct={handleProductSelect}
+            onTotalChange={setOrderTotal}
+            onProductsChange={setAllProductsInTable}
           />
         </div>
       </main>
@@ -124,7 +133,11 @@ export default function Home() {
       {/* Modal de Productos */}
       <ProductoModal 
         isOpen={isProductoModalOpen}
-        onClose={() => setIsProductoModalOpen(false)}
+        onClose={() => {
+          setIsProductoModalOpen(false);
+          // Incrementar el trigger para recargar productos
+          setRefreshTrigger(prev => prev + 1);
+        }}
       />
     </div>
   );
