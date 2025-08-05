@@ -236,7 +236,7 @@ export default function OrderTable({ items, onRemoveItem }: OrderTableProps) {
                       {editingItem === item.id ? (
                         <>
                           <button
-                            onClick={() => handleEditSave(item)}
+                            onClick={handleEditSave}
                             className="btn-modern btn-success p-2 text-xs"
                           >
                             <Check className="w-3 h-3" />

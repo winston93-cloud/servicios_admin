@@ -47,7 +47,7 @@ export default function Home() {
     );
   };
 
-  const handleAlumnoSelect = (alumno: unknown) => {
+  const handleAlumnoSelect = (_alumno: unknown) => {
     // Enfocar el input de productos después de seleccionar un alumno
     setTimeout(() => {
       if (productoInputRef.current) {

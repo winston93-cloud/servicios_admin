@@ -12,7 +12,7 @@ const paymentMethods = [
   { id: 'transferir', label: 'Transferir' },
 ];
 
-export default function PaymentCalculator({ orderTotal }: PaymentCalculatorProps) {
+export default function PaymentCalculator({ orderTotal: _orderTotal }: PaymentCalculatorProps) {
   const [selectedMethod, setSelectedMethod] = useState('efectivo');
 
   return (
