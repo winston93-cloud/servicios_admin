@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Edit, Trash2, Search, Save, RotateCcw } from 'lucide-react';
 import { 
   ProductoFormData, 
@@ -29,11 +29,19 @@ export default function ProductoModal({ isOpen, onClose }: ProductoModalProps) {
     costo: 0
   });
   const [loading, setLoading] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Cargar productos al abrir el modal
+  // Cargar productos al abrir el modal y enfocar el input de búsqueda
   useEffect(() => {
     if (isOpen) {
       loadProductos();
+      // Limpiar búsqueda y enfocar el input
+      setSearchTerm('');
+      setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      }, 100); // Pequeño delay para asegurar que el modal esté renderizado
     }
   }, [isOpen]);
 
@@ -178,6 +186,7 @@ export default function ProductoModal({ isOpen, onClose }: ProductoModalProps) {
                 <div className="search-input-wrapper">
                   <Search size={16} className="search-icon" />
                   <input
+                    ref={searchInputRef}
                     type="text"
                     placeholder="Buscar por nombre de producto..."
                     value={searchTerm}

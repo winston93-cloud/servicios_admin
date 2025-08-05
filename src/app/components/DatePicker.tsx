@@ -1,18 +1,30 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, X, Check } from 'lucide-react';
 
 interface DatePickerProps {
   selectedDate: Date;
   onDateChange: (date: Date) => void;
   onClose: () => void;
   isOpen: boolean;
+  multiSelect?: boolean;
+  onMultiDateChange?: (dates: Date[]) => void;
+  title?: string;
 }
 
-export default function DatePicker({ selectedDate, onDateChange, onClose, isOpen }: DatePickerProps) {
+export default function DatePicker({ 
+  selectedDate, 
+  onDateChange, 
+  onClose, 
+  isOpen, 
+  multiSelect = false,
+  onMultiDateChange,
+  title = "Seleccionar Fecha"
+}: DatePickerProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
   const [selectedDateState, setSelectedDateState] = useState(selectedDate);
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const calendarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,12 +90,52 @@ export default function DatePicker({ selectedDate, onDateChange, onClose, isOpen
   };
 
   const isSelected = (date: Date) => {
+    if (multiSelect) {
+      return selectedDates.some(selectedDate => formatDate(selectedDate) === formatDate(date));
+    }
     return formatDate(date) === formatDate(selectedDateState);
   };
 
   const handleDateClick = (date: Date) => {
-    setSelectedDateState(date);
-    onDateChange(date);
+    if (multiSelect) {
+      const dateStr = formatDate(date);
+      const isAlreadySelected = selectedDates.some(selectedDate => formatDate(selectedDate) === dateStr);
+      
+      if (isAlreadySelected) {
+        // Remover fecha si ya está seleccionada
+        const newSelectedDates = selectedDates.filter(selectedDate => formatDate(selectedDate) !== dateStr);
+        setSelectedDates(newSelectedDates);
+        
+        // Procesar inmediatamente las fechas restantes
+        if (onMultiDateChange) {
+          onMultiDateChange(newSelectedDates);
+        }
+      } else {
+        // Agregar fecha si no está seleccionada
+        const newSelectedDates = [...selectedDates, date];
+        setSelectedDates(newSelectedDates);
+        
+        // Solo procesar la nueva fecha
+        if (onMultiDateChange) {
+          onMultiDateChange([date]);
+        }
+      }
+    } else {
+      setSelectedDateState(date);
+      onDateChange(date);
+      onClose();
+    }
+  };
+
+  const handleConfirmMultiSelect = () => {
+    if (onMultiDateChange && selectedDates.length > 0) {
+      onMultiDateChange(selectedDates);
+      onClose();
+    }
+  };
+
+  const handleCancelMultiSelect = () => {
+    setSelectedDates([]);
     onClose();
   };
 
@@ -98,9 +150,17 @@ export default function DatePicker({ selectedDate, onDateChange, onClose, isOpen
   const goToToday = () => {
     const today = new Date();
     setCurrentMonth(today);
-    setSelectedDateState(today);
-    onDateChange(today);
-    onClose();
+    if (multiSelect) {
+      const newSelectedDates = [...selectedDates, today];
+      setSelectedDates(newSelectedDates);
+      if (onMultiDateChange) {
+        onMultiDateChange([today]);
+      }
+    } else {
+      setSelectedDateState(today);
+      onDateChange(today);
+      onClose();
+    }
   };
 
   const monthNames = [
@@ -121,7 +181,12 @@ export default function DatePicker({ selectedDate, onDateChange, onClose, isOpen
         <div className="calendar-header">
           <div className="calendar-title">
             <Calendar className="calendar-icon" />
-            <span>Seleccionar Fecha</span>
+            <span>{title}</span>
+            {multiSelect && (
+              <span className="text-xs text-white/60 ml-2">
+                ({selectedDates.length} seleccionadas)
+              </span>
+            )}
           </div>
           <button onClick={onClose} className="calendar-close-btn">
             <X size={16} />
@@ -164,11 +229,14 @@ export default function DatePicker({ selectedDate, onDateChange, onClose, isOpen
               disabled={!isCurrentMonth}
             >
               {date.getDate()}
+              {multiSelect && isSelected(date) && (
+                <Check className="w-3 h-3 absolute top-1 right-1" />
+              )}
             </button>
           ))}
         </div>
 
-        {/* Botón de hoy */}
+        {/* Footer con botones */}
         <div className="calendar-footer">
           <button onClick={goToToday} className="today-btn">
             Hoy

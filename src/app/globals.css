@@ -154,6 +154,9 @@ body {
   padding: 24px;
   margin-bottom: 24px;
   box-shadow: var(--shadow-lg);
+  width: 832px;
+  margin-left: 0;
+  flex: 1;
 }
 
 .search-header {
@@ -166,11 +169,19 @@ body {
   gap: 8px;
 }
 
+.search-and-calculator-container {
+  position: relative;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
 .search-inputs-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   align-items: start;
+  flex: 1;
+  width: 100%;
 }
 
 .search-input-group {
@@ -353,6 +364,8 @@ body {
   border-radius: 16px;
   padding: 24px;
   box-shadow: var(--shadow-lg);
+  width: 833px;
+  margin-left: 0;
 }
 
 .product-table-title {
@@ -936,6 +949,7 @@ body {
   font-weight: 700;
   transform: scale(1.1);
   box-shadow: var(--shadow-md);
+  position: relative;
 }
 
 .calendar-day:disabled {
@@ -1391,4 +1405,177 @@ body {
   .producto-actions {
     align-self: flex-end;
   }
+}
+
+/* Estilos para el botón de duplicar */
+.duplicate-btn {
+  background: none;
+  border: none;
+  color: var(--bg-accent);
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.duplicate-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--bg-accent);
+}
+
+/* Estilos para la calculadora de pago */
+.payment-calculator {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 250px;
+  position: absolute;
+  right: -225px;
+  top: 0;
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-lg);
+  z-index: 10;
+}
+
+.change-calculator {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.total-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.total-label {
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.total-amount {
+  color: white;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.payment-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.payment-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.payment-input-group label {
+  color: white;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.currency-symbol {
+  position: absolute;
+  left: 15px;
+  color: #888;
+  font-weight: 500;
+  z-index: 1;
+}
+
+.payment-input {
+  width: 100%;
+  padding: 8px 12px 8px 30px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.payment-input:focus {
+  outline: none;
+  border-color: #4ade80;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.1);
+}
+
+.payment-input::placeholder {
+  color: #888;
+}
+
+.quick-amounts {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.quick-amount-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.quick-amount-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+}
+
+.change-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.change-label {
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.change-amount {
+  font-size: 1.3rem;
+  font-weight: 700;
+  transition: all 0.3s ease;
+}
+
+.change-amount.positive {
+  color: #4ade80;
+  text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+}
+
+.change-amount.zero {
+  color: #888;
 }

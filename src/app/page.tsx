@@ -7,6 +7,7 @@ import {
 import AlumnoSearch from './components/AlumnoSearch';
 import ProductoSearch, { ProductoSearchRef } from './components/ProductoSearch';
 import ProductTable from './components/ProductTable';
+import PaymentCalculator from './components/PaymentCalculator';
 import ProductoModal from './components/ProductoModal';
 import { ProductoSearchResult } from '@/lib/productoService';
 
@@ -56,6 +57,11 @@ export default function Home() {
     }, 100);
   };
 
+  // Calcular el total de la orden
+  const orderTotal = selectedProducts.reduce((total, product) => {
+    return total + (product.costo * (product.quantity || 1));
+  }, 0);
+
   return (
     <div>
       {/* Header POS */}
@@ -81,22 +87,28 @@ export default function Home() {
       <main className="pos-main">
         {/* Contenido centrado */}
         <div className="pos-content">
-          {/* Sección de búsquedas */}
-          <div className="search-section">
-            <div className="search-header">Búsquedas</div>
-            <div className="search-inputs-container">
-              <div className="search-input-group">
-                <label className="search-label">Alumno</label>
-                <AlumnoSearch onAlumnoSelect={handleAlumnoSelect} />
-              </div>
-              <div className="search-input-group">
-                <label className="search-label">Producto</label>
-                <ProductoSearch 
-                  ref={productoInputRef}
-                  onProductSelect={handleProductSelect} 
-                />
+          {/* Contenedor de búsquedas y calculadora */}
+          <div className="search-and-calculator-container">
+            {/* Sección de búsquedas */}
+            <div className="search-section">
+              <div className="search-header">Búsquedas</div>
+              <div className="search-inputs-container">
+                <div className="search-input-group">
+                  <label className="search-label">Alumno</label>
+                  <AlumnoSearch onAlumnoSelect={handleAlumnoSelect} />
+                </div>
+                <div className="search-input-group">
+                  <label className="search-label">Producto</label>
+                  <ProductoSearch 
+                    ref={productoInputRef}
+                    onProductSelect={handleProductSelect} 
+                  />
+                </div>
               </div>
             </div>
+
+            {/* Calculadora de pago */}
+            <PaymentCalculator orderTotal={orderTotal} />
           </div>
 
           {/* Tabla de productos seleccionados */}
@@ -104,6 +116,7 @@ export default function Home() {
             selectedProducts={selectedProducts}
             onRemoveProduct={handleRemoveProduct}
             onUpdateQuantity={handleUpdateQuantity}
+            onAddProduct={handleProductSelect}
           />
         </div>
       </main>

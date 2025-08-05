@@ -3,32 +3,40 @@
 import React, { useState, useEffect } from 'react';
 import { ProductoSearchResult } from '@/lib/productoService';
 import DatePicker from './DatePicker';
+import { Plus, Calendar } from 'lucide-react';
 
 interface ProductTableProps {
   selectedProducts: ProductoSearchResult[];
   onRemoveProduct: (id: number) => void;
   onUpdateQuantity: (id: number, quantity: number) => void;
+  onAddProduct?: (product: ProductoSearchResult) => void;
 }
 
 interface ProductWithDate extends ProductoSearchResult {
   date?: Date;
+  uniqueId?: string; // Para identificar partidas duplicadas
 }
 
-export default function ProductTable({ selectedProducts, onRemoveProduct, onUpdateQuantity }: ProductTableProps) {
+export default function ProductTable({ selectedProducts, onRemoveProduct, onUpdateQuantity, onAddProduct }: ProductTableProps) {
   const [productsWithDates, setProductsWithDates] = useState<ProductWithDate[]>([]);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [selectedProductForDate, setSelectedProductForDate] = useState<number | null>(null);
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [currentProductForMultiSelect, setCurrentProductForMultiSelect] = useState<ProductWithDate | null>(null);
+  const [selectedDatesForMultiSelect, setSelectedDatesForMultiSelect] = useState<Date[]>([]);
+  const [hasFirstSelection, setHasFirstSelection] = useState(false);
 
   // Sincronizar productos cuando cambian
   useEffect(() => {
     setProductsWithDates(prevProducts => {
       const newProducts = selectedProducts.map(selectedProduct => {
         // Buscar si el producto ya existe con una fecha personalizada
-        const existingProduct = prevProducts.find(p => p.id === selectedProduct.id);
+        const existingProduct = prevProducts.find(p => p.id === selectedProduct.id && !p.uniqueId);
         
         return {
           ...selectedProduct,
-          date: existingProduct?.date || new Date()
+          date: existingProduct?.date || new Date(),
+          uniqueId: existingProduct?.uniqueId
         };
       });
       
@@ -42,6 +50,10 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
 
   const handleDateClick = (productId: number) => {
     setSelectedProductForDate(productId);
+    setMultiSelectMode(true);
+    setCurrentProductForMultiSelect(productsWithDates.find(p => p.id === productId) || null);
+    setSelectedDatesForMultiSelect([]);
+    setHasFirstSelection(false); // Reset para nueva partida
     setDatePickerOpen(true);
   };
 
@@ -57,9 +69,42 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
     }
   };
 
+  const handleMultiDateChange = (dates: Date[]) => {
+    if (currentProductForMultiSelect && dates.length > 0) {
+      const newDate = dates[0]; // Solo procesar la primera fecha
+      
+      if (!hasFirstSelection) {
+        // Primera selección: solo actualizar la partida actual
+        setProductsWithDates(prev => 
+          prev.map(product => 
+            (product.id === currentProductForMultiSelect.id && product.uniqueId === currentProductForMultiSelect.uniqueId) ||
+            (product.id === currentProductForMultiSelect.id && !product.uniqueId && !currentProductForMultiSelect.uniqueId)
+              ? { ...product, date: newDate }
+              : product
+          )
+        );
+        setHasFirstSelection(true);
+      } else {
+        // Segunda selección en adelante: crear nueva partida
+        const newProduct: ProductWithDate = {
+          ...currentProductForMultiSelect,
+          quantity: currentProductForMultiSelect.quantity || 1,
+          date: newDate,
+          uniqueId: `${currentProductForMultiSelect.id}-${Date.now()}-${Math.random()}`
+        };
+        
+        setProductsWithDates(prev => [...prev, newProduct]);
+      }
+    }
+  };
+
   const handleCloseDatePicker = () => {
     setDatePickerOpen(false);
     setSelectedProductForDate(null);
+    setMultiSelectMode(false);
+    setCurrentProductForMultiSelect(null);
+    setSelectedDatesForMultiSelect([]);
+    setHasFirstSelection(false);
   };
 
   return (
@@ -82,13 +127,28 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
           
           <div className="table-body">
             {productsWithDates.map((product) => (
-              <div key={product.id} className="table-row">
+              <div key={product.uniqueId || product.id} className="table-row">
                 <div className="table-cell">
                   <input
                     type="number"
                     min="1"
                     value={product.quantity || 1}
-                    onChange={(e) => onUpdateQuantity(product.id, parseInt(e.target.value) || 1)}
+                    onChange={(e) => {
+                      const newQuantity = parseInt(e.target.value) || 1;
+                      if (product.uniqueId) {
+                        // Si es un producto duplicado, actualizar en la tabla local
+                        setProductsWithDates(prev => 
+                          prev.map(p => 
+                            p.uniqueId === product.uniqueId 
+                              ? { ...p, quantity: newQuantity }
+                              : p
+                          )
+                        );
+                      } else {
+                        // Si es un producto original, usar la función del padre
+                        onUpdateQuantity(product.id, newQuantity);
+                      }
+                    }}
                     className="quantity-input"
                   />
                 </div>
@@ -103,7 +163,15 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
                 </div>
                 <div className="table-cell">
                   <button
-                    onClick={() => onRemoveProduct(product.id)}
+                    onClick={() => {
+                      if (product.uniqueId) {
+                        // Si es un producto duplicado, eliminarlo de la tabla local
+                        setProductsWithDates(prev => prev.filter(p => p.uniqueId !== product.uniqueId));
+                      } else {
+                        // Si es un producto original, usar la función del padre
+                        onRemoveProduct(product.id);
+                      }
+                    }}
                     className="remove-btn"
                     title="Eliminar producto"
                   >
@@ -116,26 +184,20 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
         </div>
       )}
 
-      {/* DatePicker */}
-      {datePickerOpen && selectedProductForDate !== null && (
+      {/* DatePicker para selección múltiple de fechas */}
+      {datePickerOpen && selectedProductForDate !== null && multiSelectMode && currentProductForMultiSelect && (
         <DatePicker
-          selectedDate={productsWithDates.find(p => p.id === selectedProductForDate)?.date || new Date()}
-          onDateChange={handleDateChange}
+          selectedDate={new Date()}
+          onDateChange={() => {}} // No usado en modo multiSelect
           onClose={handleCloseDatePicker}
           isOpen={datePickerOpen}
+          multiSelect={true}
+          onMultiDateChange={handleMultiDateChange}
+          title="Seleccionar fechas para múltiples partidas"
         />
       )}
       
-      {productsWithDates.length > 0 && (
-        <div className="table-summary">
-          <div className="total-row">
-            <span>Total:</span>
-            <span className="total-amount">
-              ${productsWithDates.reduce((sum, product) => sum + (product.costo * (product.quantity || 1)), 0).toFixed(2)}
-            </span>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 } 
