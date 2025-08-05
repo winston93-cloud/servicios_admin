@@ -59,6 +59,27 @@ const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onP
     []
   );
 
+  const handleSelectProducto = useCallback((producto: ProductoSearchResult) => {
+    // Add quantity to the product
+    const productWithQuantity = { ...producto, quantity: 1 };
+    
+    // Call the parent function to add to table
+    onProductSelect(productWithQuantity);
+    
+    // Clear the search
+    setSelectedProducto(null);
+    setSearchTerm('');
+    setSearchResults([]);
+    setHighlightedIndex(-1);
+    
+    // Maintain focus on the input after selecting
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 100);
+  }, [onProductSelect]);
+
   // Effect to handle search with debounce
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -83,7 +104,7 @@ const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onP
         handleSelectProducto(result);
       }
     }
-  }, [searchResults, searchTerm]);
+  }, [searchResults, searchTerm, handleSelectProducto]);
 
   // Effect to load all products for tooltips
   useEffect(() => {
@@ -113,27 +134,6 @@ const ProductoSearch = forwardRef<ProductoSearchRef, ProductoSearchProps>(({ onP
   //     inputRef.current.focus();
   //   }
   // }, []);
-
-  const handleSelectProducto = (producto: ProductoSearchResult) => {
-    // Add quantity to the product
-    const productWithQuantity = { ...producto, quantity: 1 };
-    
-    // Call the parent function to add to table
-    onProductSelect(productWithQuantity);
-    
-    // Clear the search
-    setSelectedProducto(null);
-    setSearchTerm('');
-    setSearchResults([]);
-    setHighlightedIndex(-1);
-    
-    // Maintain focus on the input after selecting
-    setTimeout(() => {
-      if (inputRef.current) {
-        inputRef.current.focus();
-      }
-    }, 100);
-  };
 
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);

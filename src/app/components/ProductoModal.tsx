@@ -7,7 +7,6 @@ import {
   createProducto, 
   updateProducto, 
   deleteProducto, 
-  getProductoById,
   getAllProductos 
 } from '@/lib/productoService';
 
@@ -292,7 +291,7 @@ export default function ProductoModal({ isOpen, onClose }: ProductoModalProps) {
             <div className="delete-confirmation">
               <div className="delete-message">
                 ¿Estás seguro de que quieres eliminar el producto:
-                <strong>"{selectedProducto.desayuno_nombre}"</strong>?
+                <strong>&quot;{selectedProducto.desayuno_nombre}&quot;</strong>?
               </div>
               <div className="delete-details">
                 <p>Abreviatura: {selectedProducto.desayuno_abreviatura}</p>

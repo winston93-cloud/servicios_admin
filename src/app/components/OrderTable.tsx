@@ -63,7 +63,7 @@ export default function OrderTable({ items, onRemoveItem }: OrderTableProps) {
     setTempQuantity(1);
   };
 
-  const handleEditSave = (_item: OrderItem) => {
+  const handleEditSave = () => {
     // Nota: Aquí actualizaríamos la cantidad si tuviéramos la función
     // Por ahora solo cancelamos la edición
     setEditingItem(null);
