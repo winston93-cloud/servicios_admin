@@ -12,6 +12,7 @@ interface ProductTableProps {
   onAddProduct?: (product: ProductoSearchResult) => void;
   onTotalChange?: (total: number) => void;
   onProductsChange?: (products: ProductWithDate[]) => void;
+  onFocusProductInput?: () => void;
 }
 
 interface ProductWithDate extends ProductoSearchResult {
@@ -19,7 +20,7 @@ interface ProductWithDate extends ProductoSearchResult {
   uniqueId?: string; // Para identificar partidas duplicadas
 }
 
-export default function ProductTable({ selectedProducts, onRemoveProduct, onUpdateQuantity, onTotalChange, onProductsChange }: ProductTableProps) {
+export default function ProductTable({ selectedProducts, onRemoveProduct, onUpdateQuantity, onTotalChange, onProductsChange, onFocusProductInput }: ProductTableProps) {
   const [productsWithDates, setProductsWithDates] = useState<ProductWithDate[]>([]);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [selectedProductForDate, setSelectedProductForDate] = useState<number | null>(null);
@@ -125,6 +126,13 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
     setMultiSelectMode(false);
     setCurrentProductForMultiSelect(null);
     setHasFirstSelection(false);
+    
+    // Enfocar el input de productos después de cerrar el calendario
+    if (onFocusProductInput) {
+      setTimeout(() => {
+        onFocusProductInput();
+      }, 100);
+    }
   };
 
   return (

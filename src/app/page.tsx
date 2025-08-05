@@ -137,6 +137,11 @@ export default function Home() {
             onAddProduct={handleProductSelect}
             onTotalChange={setOrderTotal}
             onProductsChange={setAllProductsInTable}
+            onFocusProductInput={() => {
+              if (productoInputRef.current) {
+                productoInputRef.current.focusInput();
+              }
+            }}
           />
         </div>
       </main>

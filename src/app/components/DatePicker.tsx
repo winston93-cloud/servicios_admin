@@ -34,12 +34,20 @@ export default function DatePicker({
       }
     };
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
 
@@ -89,6 +97,11 @@ export default function DatePicker({
     return formatDate(date) === formatDate(today);
   };
 
+  const isWeekend = (date: Date) => {
+    const day = date.getDay();
+    return day === 0 || day === 6; // 0 = Domingo, 6 = Sábado
+  };
+
   const isSelected = (date: Date) => {
     if (multiSelect) {
       return selectedDates.some(selectedDate => formatDate(selectedDate) === formatDate(date));
@@ -97,6 +110,11 @@ export default function DatePicker({
   };
 
   const handleDateClick = (date: Date) => {
+    // No permitir seleccionar fines de semana
+    if (isWeekend(date)) {
+      return;
+    }
+
     if (multiSelect) {
       const dateStr = formatDate(date);
       const isAlreadySelected = selectedDates.some(selectedDate => formatDate(selectedDate) === dateStr);
@@ -140,6 +158,12 @@ export default function DatePicker({
   const goToToday = () => {
     const today = new Date();
     setCurrentMonth(today);
+    
+    // No seleccionar hoy si es fin de semana
+    if (isWeekend(today)) {
+      return;
+    }
+    
     if (multiSelect) {
       const newSelectedDates = [...selectedDates, today];
       setSelectedDates(newSelectedDates);
@@ -215,8 +239,10 @@ export default function DatePicker({
                 isToday(date) ? 'today' : ''
               } ${
                 isSelected(date) ? 'selected' : ''
+              } ${
+                isWeekend(date) ? 'weekend' : ''
               }`}
-              disabled={!isCurrentMonth}
+              disabled={!isCurrentMonth || isWeekend(date)}
             >
               {date.getDate()}
               {multiSelect && isSelected(date) && (

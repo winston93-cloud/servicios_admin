@@ -154,8 +154,8 @@ body {
   padding: 24px;
   margin-bottom: 24px;
   box-shadow: var(--shadow-lg);
-  width: 832px;
-  margin-left: 0;
+  width: 1082px;
+  margin-left: -250px;
   flex: 1;
 }
 
@@ -364,8 +364,8 @@ body {
   border-radius: 16px;
   padding: 24px;
   box-shadow: var(--shadow-lg);
-  width: 833px;
-  margin-left: 0;
+  width: 1083px;
+  margin-left: -250px;
 }
 
 .product-table-title {
@@ -955,6 +955,16 @@ body {
 .calendar-day:disabled {
   cursor: not-allowed;
   opacity: 0.3;
+}
+
+.calendar-day.weekend {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.calendar-day.weekend:hover {
+  background: none;
+  cursor: not-allowed;
 }
 
 .calendar-footer {
