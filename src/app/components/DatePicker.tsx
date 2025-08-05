@@ -127,17 +127,7 @@ export default function DatePicker({
     }
   };
 
-  const handleConfirmMultiSelect = () => {
-    if (onMultiDateChange && selectedDates.length > 0) {
-      onMultiDateChange(selectedDates);
-      onClose();
-    }
-  };
 
-  const handleCancelMultiSelect = () => {
-    setSelectedDates([]);
-    onClose();
-  };
 
   const goToPreviousMonth = () => {
     setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));

@@ -2,12 +2,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { saveVenta, VentaData } from '@/lib/ventaService';
+import { ProductoSearchResult } from '@/lib/productoService';
 import SuccessModal from './SuccessModal';
+
+interface ProductWithDate extends ProductoSearchResult {
+  date?: Date;
+  quantity?: number;
+}
 
 interface PaymentCalculatorProps {
   orderTotal: number;
-  selectedProducts?: any[];
-  selectedStudent?: any;
+  selectedProducts?: ProductWithDate[];
+  selectedStudent?: {
+    alumno_ref?: string | number;
+    id?: string | number;
+  } | null;
 }
 
 export default function PaymentCalculator({ orderTotal, selectedProducts = [], selectedStudent }: PaymentCalculatorProps) {
@@ -17,10 +26,7 @@ export default function PaymentCalculator({ orderTotal, selectedProducts = [], s
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Debug: verificar si el modal está abierto
-  useEffect(() => {
-    console.log('Modal state:', showSuccessModal);
-  }, [showSuccessModal]);
+
 
   // Calcular cambio cuando cambie el monto pagado o el total
   useEffect(() => {

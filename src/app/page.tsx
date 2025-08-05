@@ -11,9 +11,17 @@ import PaymentCalculator from './components/PaymentCalculator';
 import ProductoModal from './components/ProductoModal';
 import { ProductoSearchResult } from '@/lib/productoService';
 
+interface ProductWithDate extends ProductoSearchResult {
+  date?: Date;
+  quantity?: number;
+}
+
 export default function Home() {
   const [selectedProducts, setSelectedProducts] = useState<ProductoSearchResult[]>([]);
-  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [selectedStudent, setSelectedStudent] = useState<{
+    alumno_ref?: string | number;
+    id?: string | number;
+  } | null>(null);
   const [isProductoModalOpen, setIsProductoModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const productoInputRef = useRef<ProductoSearchRef>(null);
@@ -50,7 +58,10 @@ export default function Home() {
     );
   };
 
-  const handleAlumnoSelect = (alumno: any) => {
+  const handleAlumnoSelect = (alumno: {
+    alumno_ref?: string | number;
+    id?: string | number;
+  }) => {
     setSelectedStudent(alumno);
     // Enfocar el input de productos después de seleccionar un alumno
     setTimeout(() => {
@@ -62,7 +73,7 @@ export default function Home() {
 
   // Calcular el total de la orden (esto será actualizado por ProductTable)
   const [orderTotal, setOrderTotal] = useState(0);
-  const [allProductsInTable, setAllProductsInTable] = useState<any[]>([]);
+  const [allProductsInTable, setAllProductsInTable] = useState<ProductWithDate[]>([]);
 
   return (
     <div>

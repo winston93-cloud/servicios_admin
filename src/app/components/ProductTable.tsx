@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ProductoSearchResult } from '@/lib/productoService';
 import DatePicker from './DatePicker';
-import { Plus, Calendar } from 'lucide-react';
+
 
 interface ProductTableProps {
   selectedProducts: ProductoSearchResult[];
@@ -19,13 +19,12 @@ interface ProductWithDate extends ProductoSearchResult {
   uniqueId?: string; // Para identificar partidas duplicadas
 }
 
-export default function ProductTable({ selectedProducts, onRemoveProduct, onUpdateQuantity, onAddProduct, onTotalChange, onProductsChange }: ProductTableProps) {
+export default function ProductTable({ selectedProducts, onRemoveProduct, onUpdateQuantity, onTotalChange, onProductsChange }: ProductTableProps) {
   const [productsWithDates, setProductsWithDates] = useState<ProductWithDate[]>([]);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [selectedProductForDate, setSelectedProductForDate] = useState<number | null>(null);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
   const [currentProductForMultiSelect, setCurrentProductForMultiSelect] = useState<ProductWithDate | null>(null);
-  const [selectedDatesForMultiSelect, setSelectedDatesForMultiSelect] = useState<Date[]>([]);
   const [hasFirstSelection, setHasFirstSelection] = useState(false);
 
   // Sincronizar productos cuando cambian
@@ -75,7 +74,6 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
     setSelectedProductForDate(productId);
     setMultiSelectMode(true);
     setCurrentProductForMultiSelect(productsWithDates.find(p => p.id === productId) || null);
-    setSelectedDatesForMultiSelect([]);
     setHasFirstSelection(false); // Reset para nueva partida
     setDatePickerOpen(true);
   };
@@ -126,7 +124,6 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
     setSelectedProductForDate(null);
     setMultiSelectMode(false);
     setCurrentProductForMultiSelect(null);
-    setSelectedDatesForMultiSelect([]);
     setHasFirstSelection(false);
   };
 
