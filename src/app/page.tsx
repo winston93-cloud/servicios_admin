@@ -5,6 +5,7 @@ import {
   Package
 } from 'lucide-react';
 import AlumnoSearch from './components/AlumnoSearch';
+import SimpleAlumnoInput from './components/SimpleAlumnoInput';
 import ProductoSearch, { ProductoSearchRef } from './components/ProductoSearch';
 import ProductTable from './components/ProductTable';
 import PaymentCalculator from './components/PaymentCalculator';
@@ -109,6 +110,10 @@ export default function Home() {
                 <div className="search-input-group">
                   <label className="search-label">Alumno</label>
                   <AlumnoSearch onAlumnoSelect={handleAlumnoSelect} />
+                </div>
+                <div className="search-input-group">
+                  <label className="search-label">Alumno (Input Sencillo)</label>
+                  <SimpleAlumnoInput onAlumnoSelect={handleAlumnoSelect} />
                 </div>
                 <div className="search-input-group">
                   <label className="search-label">Producto</label>

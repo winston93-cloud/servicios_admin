@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { searchAlumnos, AlumnoSearchResult } from '@/lib/alumnoService';
 
 interface AlumnoSearchProps {
@@ -9,46 +9,44 @@ interface AlumnoSearchProps {
 
 export default function AlumnoSearch({ onAlumnoSelect }: AlumnoSearchProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedAlumno, setSelectedAlumno] = useState<AlumnoSearchResult | null>(null);
   const [searchResults, setSearchResults] = useState<AlumnoSearchResult[]>([]);
+  const [selectedAlumno, setSelectedAlumno] = useState<AlumnoSearchResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Efecto para manejar la búsqueda con debounce
-  useEffect(() => {
-    const timeoutId = setTimeout(async () => {
-      // Buscar si hay al menos 2 caracteres (incluyendo espacios)
-      if (searchTerm.length >= 2) {
-        setIsLoading(true);
-        setError(null);
+  // Función de búsqueda optimizada con useCallback
+  const performSearch = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setSearchResults([]);
+      setError(null);
+      return;
+    }
 
-        try {
-          const results = await searchAlumnos(searchTerm);
-          setSearchResults(results);
-        } catch (err) {
-          console.error('Error searching alumnos:', err);
-          setError('Error al buscar alumnos');
-          setSearchResults([]);
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        setSearchResults([]);
-        setError(null);
-      }
-    }, 5); // Debounce de 5ms para máxima velocidad
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const results = await searchAlumnos(query);
+      setSearchResults(results);
+    } catch (err) {
+      console.error('Error searching alumnos:', err);
+      setError('Error al buscar alumnos');
+      setSearchResults([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Debounce optimizado
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      performSearch(searchTerm);
+    }, 100); // Debounce de 100ms para estabilidad
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
-
-  // Efecto para mantener el foco en el input
-  useEffect(() => {
-    if (inputRef.current && searchTerm.length >= 2 && !selectedAlumno) {
-      inputRef.current.focus();
-    }
-  }, [searchResults, isLoading, selectedAlumno, searchTerm.length]);
+  }, [searchTerm, performSearch]);
 
   // Efecto para enfocar el input al cargar el componente
   useEffect(() => {
