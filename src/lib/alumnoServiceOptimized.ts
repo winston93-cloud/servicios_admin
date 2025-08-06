@@ -12,6 +12,17 @@ export interface AlumnoSearchResult {
   similarity_score?: number;
 }
 
+// Interfaz para los datos que vienen de la base de datos
+interface AlumnoDB {
+  alumno_id: number;
+  alumno_ref: string;
+  alumno_app: string;
+  alumno_apm: string;
+  alumno_nombre: string;
+  alumno_nivel: string;
+  similarity_score?: number;
+}
+
 // Cache local para evitar consultas repetidas
 const searchCache = new Map<string, AlumnoSearchResult[]>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
@@ -53,7 +64,7 @@ export async function searchAlumnosOptimized(query: string): Promise<AlumnoSearc
   console.log(`📊 Resultados optimizados: ${data?.length || 0}`)
 
   // Crear nombres completos
-  const results = data?.map((alumno: any) => ({
+  const results = data?.map((alumno: AlumnoDB) => ({
     ...alumno,
     full_name: `${alumno.alumno_app} ${alumno.alumno_apm} ${alumno.alumno_nombre}`.trim(),
     display_name: `${alumno.alumno_app} ${alumno.alumno_apm} ${alumno.alumno_nombre}`.trim()
@@ -91,7 +102,7 @@ async function searchAlumnosFallback(searchTerm: string): Promise<AlumnoSearchRe
     return []
   }
 
-  return data?.map((alumno: any) => ({
+  return data?.map((alumno: AlumnoDB) => ({
     ...alumno,
     full_name: `${alumno.alumno_app} ${alumno.alumno_apm} ${alumno.alumno_nombre}`.trim(),
     display_name: `${alumno.alumno_app} ${alumno.alumno_apm} ${alumno.alumno_nombre}`.trim()
