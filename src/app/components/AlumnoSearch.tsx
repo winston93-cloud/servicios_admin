@@ -16,7 +16,6 @@ export default function AlumnoSearch({ onAlumnoSelect }: AlumnoSearchProps) {
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Función para buscar alumnos con debounce
   // Efecto para manejar la búsqueda con debounce
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
@@ -39,7 +38,7 @@ export default function AlumnoSearch({ onAlumnoSelect }: AlumnoSearchProps) {
         setSearchResults([]);
         setError(null);
       }
-    }, 300);
+    }, 5); // Debounce de 5ms para máxima velocidad
 
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
@@ -78,14 +77,6 @@ export default function AlumnoSearch({ onAlumnoSelect }: AlumnoSearchProps) {
       setSelectedAlumno(null);
       setSearchResults([]);
     }
-  };
-
-  const handleInputClick = () => {
-    // Limpiar el input cuando se hace clic
-    setSearchTerm('');
-    setSelectedAlumno(null);
-    setSearchResults([]);
-    setHighlightedIndex(-1);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -134,7 +125,6 @@ export default function AlumnoSearch({ onAlumnoSelect }: AlumnoSearchProps) {
         placeholder="Buscar alumno..."
         value={searchTerm}
         onChange={(e) => handleSearchChange(e.target.value)}
-        onClick={handleInputClick}
         onKeyDown={handleKeyDown}
         className="employee-search-input"
         disabled={isLoading}
