@@ -53,7 +53,7 @@ export async function searchAlumnosOptimized(query: string): Promise<AlumnoSearc
   console.log(`📊 Resultados optimizados: ${data?.length || 0}`)
 
   // Crear nombres completos
-  const results = data?.map(alumno => ({
+  const results = data?.map((alumno: any) => ({
     ...alumno,
     full_name: `${alumno.alumno_app} ${alumno.alumno_apm} ${alumno.alumno_nombre}`.trim(),
     display_name: `${alumno.alumno_app} ${alumno.alumno_apm} ${alumno.alumno_nombre}`.trim()
@@ -91,7 +91,7 @@ async function searchAlumnosFallback(searchTerm: string): Promise<AlumnoSearchRe
     return []
   }
 
-  return data?.map(alumno => ({
+  return data?.map((alumno: any) => ({
     ...alumno,
     full_name: `${alumno.alumno_app} ${alumno.alumno_apm} ${alumno.alumno_nombre}`.trim(),
     display_name: `${alumno.alumno_app} ${alumno.alumno_apm} ${alumno.alumno_nombre}`.trim()
