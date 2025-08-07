@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { searchAlumnos, AlumnoSearchResult } from '@/lib/alumnoService';
+import { searchAlumnosAndPersonal, CombinedSearchResult } from '@/lib/alumnoService';
 
 interface SimpleAlumnoInputProps {
-  onAlumnoSelect: (alumno: AlumnoSearchResult) => void;
+  onAlumnoSelect: (alumno: CombinedSearchResult) => void;
 }
 
 export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<AlumnoSearchResult[]>([]);
+  const [searchResults, setSearchResults] = useState<CombinedSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1); // Índice del elemento seleccionado con teclado
   const inputRef = useRef<HTMLInputElement>(null);
@@ -72,7 +72,7 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
 
       setIsLoading(true);
       try {
-        const results = await searchAlumnos(searchTerm);
+        const results = await searchAlumnosAndPersonal(searchTerm);
         setSearchResults(results);
       } catch (error) {
         console.error('Error buscando alumnos:', error);
@@ -128,7 +128,7 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
     }
   };
 
-  const handleSelectAlumno = (alumno: AlumnoSearchResult) => {
+  const handleSelectAlumno = (alumno: CombinedSearchResult) => {
     setSearchTerm(alumno.display_name);
     onAlumnoSelect(alumno);
     // No ocultamos los resultados para que el usuario pueda ver que se seleccionó correctamente
@@ -227,7 +227,11 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
                   opacity: 0.8
                 }}
               >
-                ID: {alumno.alumno_ref} | {getNivelText(alumno.alumno_nivel)} | {getGradoText(alumno.alumno_grado || '', alumno.alumno_nivel)} | {getGrupoText(alumno.alumno_grupo || '')}
+                {alumno.type === 'personal' ? (
+                  <>ID: {alumno.alumno_ref} | Personal | Externo</>
+                ) : (
+                  <>ID: {alumno.alumno_ref} | {getNivelText(alumno.alumno_nivel)} | {getGradoText(alumno.alumno_grado || '', alumno.alumno_nivel)} | {getGrupoText(alumno.alumno_grupo || '')}</>
+                )}
               </div>
             </div>
           ))}

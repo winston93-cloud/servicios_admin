@@ -10,8 +10,9 @@ import ProductTable from './components/ProductTable';
 import AgendaPostIt from './components/AgendaPostIt';
 import PaymentCalculator from './components/PaymentCalculator';
 import ProductoModal from './components/ProductoModal';
+import PersonalModal from './components/PersonalModal';
 import { ProductoSearchResult } from '@/lib/productoService';
-import { AlumnoSearchResult } from '@/lib/alumnoService';
+import { CombinedSearchResult } from '@/lib/alumnoService';
 
 interface ProductWithDate extends ProductoSearchResult {
   date?: Date;
@@ -25,6 +26,7 @@ export default function Home() {
     id?: string | number;
   } | null>(null);
   const [isProductoModalOpen, setIsProductoModalOpen] = useState(false);
+  const [isPersonalModalOpen, setIsPersonalModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const productoInputRef = useRef<ProductoSearchRef>(null);
 
@@ -60,7 +62,7 @@ export default function Home() {
     );
   };
 
-  const handleAlumnoSelect = (alumno: AlumnoSearchResult) => {
+  const handleAlumnoSelect = (alumno: CombinedSearchResult) => {
     setSelectedStudent({
       alumno_ref: alumno.alumno_ref,
       id: alumno.alumno_id
@@ -93,6 +95,15 @@ export default function Home() {
               className="pos-nav-item"
             >
               Productos
+            </button>
+            <button 
+              onClick={() => setIsPersonalModalOpen(true)}
+              className="pos-nav-item"
+            >
+              Externos
+            </button>
+            <button className="pos-nav-item">
+              Reportes
             </button>
           </nav>
         </div>
@@ -157,6 +168,12 @@ export default function Home() {
           // Incrementar el trigger para recargar productos
           setRefreshTrigger(prev => prev + 1);
         }}
+      />
+
+      {/* Modal de Personal */}
+      <PersonalModal 
+        isOpen={isPersonalModalOpen}
+        onClose={() => setIsPersonalModalOpen(false)}
       />
     </div>
   );
