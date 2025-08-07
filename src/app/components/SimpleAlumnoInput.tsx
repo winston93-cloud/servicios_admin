@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { searchAlumnos, AlumnoSearchResult } from '@/lib/alumnoService';
 
 interface SimpleAlumnoInputProps {
@@ -14,7 +13,6 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1); // Índice del elemento seleccionado con teclado
   const inputRef = useRef<HTMLInputElement>(null);
-  const [inputPosition, setInputPosition] = useState({ top: 0, left: 0, width: 0 });
 
   // Focus automático
   useEffect(() => {
@@ -23,25 +21,13 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
     }
   }, []);
 
-  // Actualizar posición del input cuando cambie
-  useEffect(() => {
-    if (inputRef.current) {
-      const rect = inputRef.current.getBoundingClientRect();
-      setInputPosition({
-        top: rect.bottom + window.scrollY,
-        left: rect.left + window.scrollX,
-        width: rect.width
-      });
-    }
-  }, [searchResults]);
-
   // Resetear índice seleccionado cuando cambien los resultados
   useEffect(() => {
     setSelectedIndex(-1);
   }, [searchResults]);
 
   const handleInputClick = () => {
-    setSearchTerm('');
+    // No limpiamos el searchTerm para mantener el alumno seleccionado visible
   };
 
   // Manejar navegación con teclado
@@ -71,6 +57,7 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
         e.preventDefault();
         setSearchResults([]);
         setSelectedIndex(-1);
+        setSearchTerm(''); // Limpiar también el searchTerm
         break;
     }
   };
@@ -144,7 +131,7 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
   const handleSelectAlumno = (alumno: AlumnoSearchResult) => {
     setSearchTerm(alumno.display_name);
     onAlumnoSelect(alumno);
-    setSearchResults([]);
+    // No ocultamos los resultados para que el usuario pueda ver que se seleccionó correctamente
     setSelectedIndex(-1);
   };
 
@@ -156,7 +143,13 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
         type="text"
         placeholder="Buscar alumno (nombre, apellido paterno, apellido materno)..."
         value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
+        onChange={(e) => {
+          setSearchTerm(e.target.value);
+          // Si el usuario empieza a escribir, mostrar resultados de búsqueda
+          if (e.target.value.trim().length >= 2) {
+            // Los resultados se cargarán automáticamente por el useEffect
+          }
+        }}
         onClick={handleInputClick}
         onKeyDown={handleKeyDown}
         className="w-full px-6 py-10 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -171,14 +164,14 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
         }}
       />
 
-      {/* Resultados de autocompletado usando Portal */}
-      {searchResults.length > 0 && createPortal(
+      {/* Resultados de autocompletado - Posicionamiento relativo */}
+      {searchResults.length > 0 && (
         <div 
           style={{
-            position: 'fixed',
-            top: inputPosition.top + 5,
-            left: inputPosition.left,
-            width: inputPosition.width,
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
             backgroundColor: '#0066CC',
             border: '2px solid #004499',
             boxShadow: '0 5px 15px rgba(0,0,0,0.2)',
@@ -186,7 +179,8 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
             borderRadius: '6px',
             padding: '0',
             maxHeight: '300px',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            marginTop: '5px'
           }}
         >
           {searchResults.map((alumno, index) => (
@@ -237,8 +231,7 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
               </div>
             </div>
           ))}
-        </div>,
-        document.body
+        </div>
       )}
 
       {/* Indicador de carga */}

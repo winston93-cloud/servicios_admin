@@ -794,9 +794,6 @@ body {
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   z-index: 1000;
   animation: fadeIn 0.3s ease-out;
 }
@@ -809,16 +806,23 @@ body {
   padding: 24px;
   box-shadow: var(--shadow-lg);
   min-width: 320px;
+  max-height: 70vh;
+  overflow-y: auto;
   animation: slideUp 0.3s ease-out;
+  position: fixed;
+  top: 0vh;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .calendar-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 20px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--glass-border);
+  min-height: 40px;
 }
 
 .calendar-title {
@@ -828,10 +832,19 @@ body {
   font-size: 18px;
   font-weight: 700;
   color: var(--text-primary);
+  flex-wrap: wrap;
+  min-height: 28px;
 }
 
 .calendar-icon {
   color: var(--bg-accent);
+}
+
+.calendar-title .text-xs {
+  font-size: 12px;
+  line-height: 1;
+  margin-left: 8px;
+  opacity: 0.8;
 }
 
 .calendar-close-btn {
@@ -1003,11 +1016,11 @@ body {
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1);
   }
 }
 
