@@ -99,6 +99,44 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
 
+  // Función para convertir nivel numérico a texto
+  const getNivelText = (nivel: number): string => {
+    switch (nivel) {
+      case 1: return 'Maternal';
+      case 2: return 'Kinder';
+      case 3: return 'Primaria';
+      case 4: return 'Secundaria';
+      default: return `Nivel ${nivel}`;
+    }
+  };
+
+  // Función para convertir grupo numérico a letra
+  const getGrupoText = (grupo: string | number): string => {
+    const grupoNum = typeof grupo === 'string' ? parseInt(grupo) : grupo;
+    switch (grupoNum) {
+      case 1: return 'A';
+      case 2: return 'B';
+      case 3: return 'C';
+      default: return grupo?.toString() || 'N/A';
+    }
+  };
+
+  // Función para convertir grado numérico a texto
+  const getGradoText = (grado: string | number, nivel: number): string => {
+    const gradoNum = typeof grado === 'string' ? parseInt(grado) : grado;
+    
+    if (nivel === 4) { // Secundaria
+      switch (gradoNum) {
+        case 1: return '7mo';
+        case 2: return '8vo';
+        case 3: return '9no';
+        default: return `${gradoNum}°`;
+      }
+    } else { // Otros niveles
+      return `${gradoNum}°`;
+    }
+  };
+
   const handleSelectAlumno = (alumno: AlumnoSearchResult) => {
     setSearchTerm(alumno.display_name);
     onAlumnoSelect(alumno);
@@ -191,7 +229,7 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
                   opacity: 0.8
                 }}
               >
-                ID: {alumno.alumno_ref} | Nivel: {alumno.alumno_nivel}
+                ID: {alumno.alumno_ref} | {getNivelText(alumno.alumno_nivel)} | {getGradoText(alumno.alumno_grado, alumno.alumno_nivel)} | {getGrupoText(alumno.alumno_grupo)}
               </div>
             </div>
           ))}

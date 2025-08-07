@@ -46,8 +46,13 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
         };
       });
       
-      // Combinar productos nuevos con duplicados existentes
-      return [...newProducts, ...existingDuplicates];
+      // Combinar productos nuevos con duplicados existentes y ordenar por fecha
+      const allProducts = [...newProducts, ...existingDuplicates];
+      return allProducts.sort((a, b) => {
+        const dateA = a.date || new Date();
+        const dateB = b.date || new Date();
+        return dateA.getTime() - dateB.getTime();
+      });
     });
   }, [selectedProducts]);
 
@@ -115,7 +120,15 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
           uniqueId: `${currentProductForMultiSelect.id}-${Date.now()}-${Math.random()}`
         };
         
-        setProductsWithDates(prev => [...prev, newProduct]);
+        setProductsWithDates(prev => {
+          const updatedProducts = [...prev, newProduct];
+          // Ordenar por fecha después de agregar el nuevo producto
+          return updatedProducts.sort((a, b) => {
+            const dateA = a.date || new Date();
+            const dateB = b.date || new Date();
+            return dateA.getTime() - dateB.getTime();
+          });
+        });
       }
     }
   };
@@ -154,7 +167,13 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
           </div>
           
           <div className="table-body">
-            {productsWithDates.map((product) => (
+            {productsWithDates
+              .sort((a, b) => {
+                const dateA = a.date || new Date();
+                const dateB = b.date || new Date();
+                return dateA.getTime() - dateB.getTime();
+              })
+              .map((product) => (
               <div key={product.uniqueId || product.id} className="table-row">
                 <div className="table-cell">
                   <input

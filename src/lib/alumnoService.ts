@@ -7,6 +7,8 @@ export interface AlumnoSearchResult {
   alumno_apm: string
   alumno_nombre: string
   alumno_nivel: number
+  alumno_grado?: string
+  alumno_grupo?: string
   alumno_nombre_completo: string
   full_name: string
   display_name: string
@@ -38,7 +40,7 @@ export async function searchAlumnos(query: string): Promise<AlumnoSearchResult[]
   // Búsqueda optimizada usando el campo alumno_nombre_completo
   const { data, error } = await supabase
     .from('alumno')
-    .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_nombre_completo')
+    .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_grado, alumno_grupo, alumno_nombre_completo')
     .eq('alumno_ciclo_escolar', '22')
     .eq('alumno_status', 1)
     .ilike('alumno_nombre_completo', `%${searchTerm}%`)

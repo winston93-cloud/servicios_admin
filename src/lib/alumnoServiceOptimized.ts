@@ -7,6 +7,8 @@ export interface AlumnoSearchResult {
   alumno_apm: string;
   alumno_nombre: string;
   alumno_nivel: string;
+  alumno_grado?: string;
+  alumno_grupo?: string;
   alumno_nombre_completo: string;
   full_name: string;
   display_name: string;
@@ -20,6 +22,8 @@ interface AlumnoDB {
   alumno_apm: string;
   alumno_nombre: string;
   alumno_nivel: string;
+  alumno_grado?: string;
+  alumno_grupo?: string;
   alumno_nombre_completo: string;
 }
 
@@ -90,7 +94,7 @@ async function searchAlumnosFallback(searchTerm: string): Promise<AlumnoSearchRe
   
   const { data, error } = await supabase
     .from('alumno')
-    .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_nombre_completo')
+    .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_grado, alumno_grupo, alumno_nombre_completo')
     .eq('alumno_ciclo_escolar', '22')
     .eq('alumno_status', 1)
     .ilike('alumno_nombre_completo', `%${searchTerm}%`)
