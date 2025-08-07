@@ -27,7 +27,10 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
   }, [searchResults]);
 
   const handleInputClick = () => {
-    // No limpiamos el searchTerm para mantener el alumno seleccionado visible
+    // Limpiar el campo al hacer clic para permitir nueva búsqueda
+    setSearchTerm('');
+    setSearchResults([]);
+    setSelectedIndex(-1);
   };
 
   // Manejar navegación con teclado
