@@ -7,6 +7,7 @@ import {
 import SimpleAlumnoInput from './components/SimpleAlumnoInput';
 import ProductoSearch, { ProductoSearchRef } from './components/ProductoSearch';
 import ProductTable from './components/ProductTable';
+import AgendaPostIt from './components/AgendaPostIt';
 import PaymentCalculator from './components/PaymentCalculator';
 import ProductoModal from './components/ProductoModal';
 import { ProductoSearchResult } from '@/lib/productoService';
@@ -128,6 +129,7 @@ export default function Home() {
               selectedProducts={allProductsInTable}
               selectedStudent={selectedStudent}
             />
+            <AgendaPostIt products={allProductsInTable} topOffsetPx={280} />
           </div>
 
           {/* Tabla de productos seleccionados */}
