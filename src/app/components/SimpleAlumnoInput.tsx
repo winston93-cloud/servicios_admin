@@ -112,18 +112,22 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
 
   // Función para convertir grupo numérico a letra
   const getGrupoText = (grupo: string | number): string => {
+    if (!grupo || grupo === '') return 'N/A';
     const grupoNum = typeof grupo === 'string' ? parseInt(grupo) : grupo;
+    if (isNaN(grupoNum)) return 'N/A';
     switch (grupoNum) {
       case 1: return 'A';
       case 2: return 'B';
       case 3: return 'C';
-      default: return grupo?.toString() || 'N/A';
+      default: return grupoNum.toString();
     }
   };
 
   // Función para convertir grado numérico a texto
   const getGradoText = (grado: string | number, nivel: number): string => {
+    if (!grado || grado === '') return 'N/A';
     const gradoNum = typeof grado === 'string' ? parseInt(grado) : grado;
+    if (isNaN(gradoNum)) return 'N/A';
     
     if (nivel === 4) { // Secundaria
       switch (gradoNum) {
@@ -229,7 +233,7 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
                   opacity: 0.8
                 }}
               >
-                ID: {alumno.alumno_ref} | {getNivelText(alumno.alumno_nivel)} | {getGradoText(alumno.alumno_grado, alumno.alumno_nivel)} | {getGrupoText(alumno.alumno_grupo)}
+                ID: {alumno.alumno_ref} | {getNivelText(alumno.alumno_nivel)} | {getGradoText(alumno.alumno_grado || '', alumno.alumno_nivel)} | {getGrupoText(alumno.alumno_grupo || '')}
               </div>
             </div>
           ))}
