@@ -23,9 +23,14 @@ La tabla `alumno` debe tener los siguientes campos:
 - `alumno_app` (text) - apellido paterno
 - `alumno_apm` (text) - apellido materno
 - `alumno_nombre` (text) - nombre
+- `alumno_nombre_completo` (text) - nombre completo concatenado
 - `alumno_nivel` (integer) - nivel/grado
 
-## Paso 4: Reiniciar el servidor
+## Paso 4: Ejecutar optimizaciones de base de datos
+
+Ejecuta el archivo `database_optimization.sql` en el SQL Editor de Supabase para crear los índices necesarios.
+
+## Paso 5: Reiniciar el servidor
 
 ```bash
 npm run dev
@@ -33,15 +38,17 @@ npm run dev
 
 ## Funcionalidades implementadas
 
-✅ Búsqueda autocompletada que concatena `alumno_nombre`, `alumno_app`, `alumno_apm`
+✅ Búsqueda autocompletada usando el campo `alumno_nombre_completo` directamente
 ✅ Debounce de 300ms para optimizar consultas
 ✅ Manejo de errores y estados de carga
 ✅ Interfaz consistente con el diseño existente
-✅ Límite de 10 resultados por búsqueda
+✅ Límite de 5 resultados por búsqueda
+✅ Índices optimizados para búsqueda rápida
 
 ## Notas importantes
 
 - La búsqueda se activa con mínimo 2 caracteres
 - Los resultados se muestran en tiempo real
 - Se incluye información adicional: referencia, nivel y ID formateado
-- El componente es completamente funcional con datos reales de Supabase 
+- El componente es completamente funcional con datos reales de Supabase
+- Ahora usa el campo `alumno_nombre_completo` pre-calculado en lugar de concatenar campos 

@@ -1,13 +1,4 @@
-import { supabase } from './supabase'
-
-export interface Alumno {
-  alumno_id: number
-  alumno_ref: string
-  alumno_app: string
-  alumno_apm: string
-  alumno_nombre: string
-  alumno_nivel: number
-}
+import { supabase } from './supabase';
 
 export interface AlumnoSearchResult {
   alumno_id: number
@@ -16,6 +7,7 @@ export interface AlumnoSearchResult {
   alumno_apm: string
   alumno_nombre: string
   alumno_nivel: number
+  alumno_nombre_completo: string
   full_name: string
   display_name: string
 }
@@ -43,15 +35,15 @@ export async function searchAlumnos(query: string): Promise<AlumnoSearchResult[]
   console.log('🔍 Iniciando búsqueda:', searchTerm)
   const startTime = Date.now()
 
-  // Búsqueda optimizada con índices - usar gin_trgm para búsqueda de texto
+  // Búsqueda optimizada usando el campo alumno_nombre_completo
   const { data, error } = await supabase
     .from('alumno')
-    .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel')
+    .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_nombre_completo')
     .eq('alumno_ciclo_escolar', '22')
     .eq('alumno_status', 1)
-    .or(`alumno_app.ilike.%${searchTerm}%,alumno_apm.ilike.%${searchTerm}%,alumno_nombre.ilike.%${searchTerm}%`)
+    .ilike('alumno_nombre_completo', `%${searchTerm}%`)
     .limit(5) // Solo 5 resultados más relevantes
-    .order('alumno_app', { ascending: true }) // Ordenar para mejor UX
+    .order('alumno_nombre_completo', { ascending: true }) // Ordenar por nombre completo
 
   const queryTime = Date.now() - startTime
   console.log(`⚡ Consulta completada en ${queryTime}ms`)
@@ -63,22 +55,15 @@ export async function searchAlumnos(query: string): Promise<AlumnoSearchResult[]
 
   console.log(`📊 Resultados de BD: ${data?.length || 0}`)
 
-  // Crear nombres completos y filtrar localmente
+  // Usar el campo alumno_nombre_completo directamente
   const results = data?.map(alumno => ({
     ...alumno,
-    full_name: `${alumno.alumno_app} ${alumno.alumno_apm} ${alumno.alumno_nombre}`.trim(),
-    display_name: `${alumno.alumno_app} ${alumno.alumno_apm} ${alumno.alumno_nombre}`.trim()
+    full_name: alumno.alumno_nombre_completo,
+    display_name: alumno.alumno_nombre_completo
   })) || []
 
-  // Filtrar localmente para mayor precisión
-  const filteredResults = results.filter(alumno => {
-    const fullName = alumno.display_name.toLowerCase();
-    const searchLower = searchTerm.toLowerCase();
-    return fullName.includes(searchLower);
-  });
-
   // Guardar en caché
-  searchCache.set(cacheKey, filteredResults);
+  searchCache.set(cacheKey, results);
   
   // Limpiar caché antiguo cada 5 minutos
   setTimeout(() => {
@@ -86,7 +71,7 @@ export async function searchAlumnos(query: string): Promise<AlumnoSearchResult[]
   }, CACHE_DURATION);
 
   const totalTime = Date.now() - startTime
-  console.log(`✅ Búsqueda completada en ${totalTime}ms - ${filteredResults.length} resultados`)
+  console.log(`✅ Búsqueda completada en ${totalTime}ms - ${results.length} resultados`)
 
-  return filteredResults.slice(0, 5); // Solo 5 resultados más relevantes
+  return results.slice(0, 5); // Solo 5 resultados más relevantes
 } 

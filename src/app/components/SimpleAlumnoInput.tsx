@@ -12,6 +12,7 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<AlumnoSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1); // Índice del elemento seleccionado con teclado
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputPosition, setInputPosition] = useState({ top: 0, left: 0, width: 0 });
 
@@ -34,8 +35,44 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
     }
   }, [searchResults]);
 
+  // Resetear índice seleccionado cuando cambien los resultados
+  useEffect(() => {
+    setSelectedIndex(-1);
+  }, [searchResults]);
+
   const handleInputClick = () => {
     setSearchTerm('');
+  };
+
+  // Manejar navegación con teclado
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (searchResults.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => 
+          prev < searchResults.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => 
+          prev > 0 ? prev - 1 : searchResults.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < searchResults.length) {
+          handleSelectAlumno(searchResults[selectedIndex]);
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setSearchResults([]);
+        setSelectedIndex(-1);
+        break;
+    }
   };
 
   // Búsqueda con debounce
@@ -58,7 +95,7 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
       }
     };
 
-    const timeoutId = setTimeout(searchAlumnosAsync, 300);
+    const timeoutId = setTimeout(searchAlumnosAsync, 100);
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
 
@@ -66,6 +103,7 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
     setSearchTerm(alumno.display_name);
     onAlumnoSelect(alumno);
     setSearchResults([]);
+    setSelectedIndex(-1);
   };
 
   return (
@@ -78,6 +116,7 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         onClick={handleInputClick}
+        onKeyDown={handleKeyDown}
         className="w-full px-6 py-10 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         style={{
           paddingTop: '15px',
@@ -98,8 +137,8 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
             top: inputPosition.top + 5,
             left: inputPosition.left,
             width: inputPosition.width,
-            backgroundColor: '#ffffff',
-            border: '2px solid #ff0000',
+            backgroundColor: '#0066CC',
+            border: '2px solid #004499',
             boxShadow: '0 5px 15px rgba(0,0,0,0.2)',
             zIndex: 9999999,
             borderRadius: '6px',
@@ -113,22 +152,26 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
               key={alumno.alumno_id}
               onClick={() => handleSelectAlumno(alumno)}
               style={{
-                backgroundColor: '#ffffff',
-                color: '#000000',
+                backgroundColor: index === selectedIndex ? '#1e3a8a' : '#0066CC',
+                color: index === selectedIndex ? '#ffffff' : '#ffffff',
                 fontSize: '14px',
                 fontWeight: 'bold',
-                borderBottom: index < searchResults.length - 1 ? '1px solid #ff0000' : 'none',
+                borderBottom: index < searchResults.length - 1 ? '1px solid #004499' : 'none',
                 padding: '10px 16px',
                 cursor: 'pointer',
                 transition: 'all 0.2s'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#1e3a8a';
-                e.currentTarget.style.color = '#ffffff';
+                if (index !== selectedIndex) {
+                  e.currentTarget.style.backgroundColor = '#1e3a8a';
+                  e.currentTarget.style.color = '#ffffff';
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#ffffff';
-                e.currentTarget.style.color = '#000000';
+                if (index !== selectedIndex) {
+                  e.currentTarget.style.backgroundColor = '#0066CC';
+                  e.currentTarget.style.color = '#ffffff';
+                }
               }}
             >
               <div 
@@ -143,12 +186,12 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
               </div>
               <div 
                 style={{
-                  color: 'inherit', 
+                  color: 'inherit',
                   fontSize: '12px',
-                  fontWeight: 'bold'
+                  opacity: 0.8
                 }}
               >
-                {alumno.alumno_ref} - {alumno.alumno_nivel}° - ALU{alumno.alumno_id.toString().padStart(3, '0')}
+                ID: {alumno.alumno_ref} | Nivel: {alumno.alumno_nivel}
               </div>
             </div>
           ))}

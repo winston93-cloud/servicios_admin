@@ -10,6 +10,7 @@ import ProductTable from './components/ProductTable';
 import PaymentCalculator from './components/PaymentCalculator';
 import ProductoModal from './components/ProductoModal';
 import { ProductoSearchResult } from '@/lib/productoService';
+import { AlumnoSearchResult } from '@/lib/alumnoService';
 
 interface ProductWithDate extends ProductoSearchResult {
   date?: Date;
@@ -58,11 +59,11 @@ export default function Home() {
     );
   };
 
-  const handleAlumnoSelect = (alumno: {
-    alumno_ref?: string | number;
-    id?: string | number;
-  }) => {
-    setSelectedStudent(alumno);
+  const handleAlumnoSelect = (alumno: AlumnoSearchResult) => {
+    setSelectedStudent({
+      alumno_ref: alumno.alumno_ref,
+      id: alumno.alumno_id
+    });
     // Enfocar el input de productos después de seleccionar un alumno
     setTimeout(() => {
       if (productoInputRef.current) {

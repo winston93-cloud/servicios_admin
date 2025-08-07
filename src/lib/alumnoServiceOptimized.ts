@@ -7,12 +7,12 @@ export interface AlumnoSearchResult {
   alumno_apm: string;
   alumno_nombre: string;
   alumno_nivel: string;
+  alumno_nombre_completo: string;
   full_name: string;
   display_name: string;
   similarity_score?: number;
 }
 
-// Interfaz para los datos que vienen de la base de datos
 interface AlumnoDB {
   alumno_id: number;
   alumno_ref: string;
@@ -20,7 +20,7 @@ interface AlumnoDB {
   alumno_apm: string;
   alumno_nombre: string;
   alumno_nivel: string;
-  similarity_score?: number;
+  alumno_nombre_completo: string;
 }
 
 // Cache local para evitar consultas repetidas
@@ -46,7 +46,7 @@ export async function searchAlumnosOptimized(query: string): Promise<AlumnoSearc
   console.log('🚀 Iniciando búsqueda optimizada:', searchTerm)
   const startTime = Date.now()
 
-  // Usar función SQL optimizada con índices GIN
+  // Usar función SQL optimizada con índices GIN para alumno_nombre_completo
   const { data, error } = await supabase
     .rpc('search_alumnos_optimized', {
       search_query: searchTerm
@@ -63,11 +63,11 @@ export async function searchAlumnosOptimized(query: string): Promise<AlumnoSearc
 
   console.log(`📊 Resultados optimizados: ${data?.length || 0}`)
 
-  // Crear nombres completos
+  // Usar el campo alumno_nombre_completo directamente
   const results = data?.map((alumno: AlumnoDB) => ({
     ...alumno,
-    full_name: `${alumno.alumno_app} ${alumno.alumno_apm} ${alumno.alumno_nombre}`.trim(),
-    display_name: `${alumno.alumno_app} ${alumno.alumno_apm} ${alumno.alumno_nombre}`.trim()
+    full_name: alumno.alumno_nombre_completo,
+    display_name: alumno.alumno_nombre_completo
   })) || []
 
   // Guardar en caché
@@ -90,12 +90,12 @@ async function searchAlumnosFallback(searchTerm: string): Promise<AlumnoSearchRe
   
   const { data, error } = await supabase
     .from('alumno')
-    .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel')
+    .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_nombre_completo')
     .eq('alumno_ciclo_escolar', '22')
     .eq('alumno_status', 1)
-    .or(`alumno_app.ilike.%${searchTerm}%,alumno_apm.ilike.%${searchTerm}%,alumno_nombre.ilike.%${searchTerm}%`)
+    .ilike('alumno_nombre_completo', `%${searchTerm}%`)
     .limit(5)
-    .order('alumno_app', { ascending: true })
+    .order('alumno_nombre_completo', { ascending: true })
 
   if (error) {
     console.error('❌ Error en fallback:', error)
@@ -104,7 +104,7 @@ async function searchAlumnosFallback(searchTerm: string): Promise<AlumnoSearchRe
 
   return data?.map((alumno: AlumnoDB) => ({
     ...alumno,
-    full_name: `${alumno.alumno_app} ${alumno.alumno_apm} ${alumno.alumno_nombre}`.trim(),
-    display_name: `${alumno.alumno_app} ${alumno.alumno_apm} ${alumno.alumno_nombre}`.trim()
+    full_name: alumno.alumno_nombre_completo,
+    display_name: alumno.alumno_nombre_completo
   })) || []
 }
