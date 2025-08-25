@@ -84,17 +84,17 @@ export default function ProductTable({ selectedProducts, onRemoveProduct, onUpda
     setDatePickerOpen(true);
   };
 
-  const handleDateChange = (date: Date) => {
-    if (selectedProductForDate !== null) {
-      setProductsWithDates(prev => 
-        prev.map(product => 
-          product.id === selectedProductForDate 
-            ? { ...product, date } 
-            : product
-        )
-      );
-    }
-  };
+  // const handleDateChange = (date: Date) => {
+  //   if (selectedProductForDate !== null) {
+  //     setProductsWithDates(prev => 
+  //       prev.map(product => 
+  //         product.id === selectedProductForDate 
+  //           ? { ...product, date } 
+  //           : product
+  //       )
+  //     );
+  //   }
+  // };
 
   const handleMultiDateChange = (dates: Date[]) => {
     if (currentProductForMultiSelect && dates.length > 0) {

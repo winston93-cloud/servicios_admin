@@ -32,7 +32,7 @@ export default function PersonalModal({ isOpen, onClose }: PersonalModalProps) {
     personal_apm: ''
   });
   const [loading, setLoading] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
+  // const [isSearching, setIsSearching] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Cargar personal al abrir el modal y enfocar el input de búsqueda
@@ -70,7 +70,7 @@ export default function PersonalModal({ isOpen, onClose }: PersonalModalProps) {
         return;
       }
 
-      setIsSearching(true);
+      // setIsSearching(true);
       try {
         const results = await searchPersonal(searchTerm);
         setSearchResults(results);
@@ -78,7 +78,7 @@ export default function PersonalModal({ isOpen, onClose }: PersonalModalProps) {
         console.error('Error searching personal:', error);
         setSearchResults([]);
       } finally {
-        setIsSearching(false);
+        // setIsSearching(false);
       }
     };
 

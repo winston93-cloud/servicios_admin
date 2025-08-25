@@ -43,7 +43,7 @@ export default function LoginPage() {
       } else {
         setError('Usuario o contraseña incorrectos')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error en login:', error)
       setError('Error al iniciar sesión. Intente nuevamente.')
     } finally {
@@ -53,7 +53,7 @@ export default function LoginPage() {
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleSubmit(e as any)
+      handleSubmit(e as React.FormEvent)
     }
   }
 
