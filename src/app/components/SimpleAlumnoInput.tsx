@@ -139,7 +139,7 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
   };
 
   return (
-    <div className="relative" style={{ position: 'relative', zIndex: 999999 }}>
+    <div style={{ position: 'relative', zIndex: 999999 }}>
       {/* Input sencillo */}
       <input
         ref={inputRef}
@@ -155,16 +155,7 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
         }}
         onClick={handleInputClick}
         onKeyDown={handleKeyDown}
-        className="w-full px-6 py-10 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        style={{
-          paddingTop: '15px',
-          paddingBottom: '15px',
-          paddingLeft: '20px',
-          paddingRight: '20px',
-          fontSize: '16px',
-          backgroundColor: '#ffffff',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        }}
+        className="alumno-search-input"
       />
 
       {/* Resultados de autocompletado - Posicionamiento relativo */}

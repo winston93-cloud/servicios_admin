@@ -2,7 +2,9 @@
 
 import React, { useState, useRef } from 'react';
 import { 
-  Package
+  Package,
+  LogOut,
+  User
 } from 'lucide-react';
 import SimpleAlumnoInput from './components/SimpleAlumnoInput';
 import ProductoSearch, { ProductoSearchRef } from './components/ProductoSearch';
@@ -11,8 +13,11 @@ import AgendaPostIt from './components/AgendaPostIt';
 import PaymentCalculator from './components/PaymentCalculator';
 import ProductoModal from './components/ProductoModal';
 import PersonalModal from './components/PersonalModal';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { ProductoSearchResult } from '@/lib/productoService';
 import { CombinedSearchResult } from '@/lib/alumnoService';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 interface ProductWithDate extends ProductoSearchResult {
   date?: Date;
@@ -20,6 +25,8 @@ interface ProductWithDate extends ProductoSearchResult {
 }
 
 export default function Home() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
   const [selectedProducts, setSelectedProducts] = useState<ProductoSearchResult[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<{
     alumno_ref?: string | number;
@@ -29,6 +36,11 @@ export default function Home() {
   const [isPersonalModalOpen, setIsPersonalModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const productoInputRef = useRef<ProductoSearchRef>(null);
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
 
   const handleProductSelect = (product: ProductoSearchResult) => {
     // Check if product already exists in the table
@@ -80,34 +92,49 @@ export default function Home() {
   const [allProductsInTable, setAllProductsInTable] = useState<ProductWithDate[]>([]);
 
   return (
-    <div>
-      {/* Header POS */}
-      <header className="pos-header">
-        <div className="pos-header-content">
-          <div className="pos-logo">
-            <Package />
-            Desayunos POS
+    <ProtectedRoute>
+      <div>
+        {/* Header POS */}
+        <header className="pos-header">
+          <div className="pos-header-content">
+            <div className="pos-logo">
+              <Package />
+              Desayunos POS
+            </div>
+            <nav className="pos-nav">
+              <a href="#" className="pos-nav-item active">Punto de venta</a>
+              <button 
+                onClick={() => setIsProductoModalOpen(true)}
+                className="pos-nav-item"
+              >
+                Productos
+              </button>
+              <button 
+                onClick={() => setIsPersonalModalOpen(true)}
+                className="pos-nav-item"
+              >
+                Externos
+              </button>
+              <button className="pos-nav-item">
+                Reportes
+              </button>
+            </nav>
+            {/* Usuario logueado y logout */}
+            <div className="pos-user-section">
+              <div className="pos-user-info">
+                <User className="w-4 h-4" />
+                <span className="pos-user-name">{user?.usuario_nombre_completo}</span>
+              </div>
+              <button 
+                onClick={handleLogout}
+                className="pos-logout-btn"
+                title="Cerrar Sesión"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          <nav className="pos-nav">
-            <a href="#" className="pos-nav-item active">Punto de venta</a>
-            <button 
-              onClick={() => setIsProductoModalOpen(true)}
-              className="pos-nav-item"
-            >
-              Productos
-            </button>
-            <button 
-              onClick={() => setIsPersonalModalOpen(true)}
-              className="pos-nav-item"
-            >
-              Externos
-            </button>
-            <button className="pos-nav-item">
-              Reportes
-            </button>
-          </nav>
-        </div>
-      </header>
+        </header>
 
       {/* Contenido principal */}
       <main className="pos-main">
@@ -170,11 +197,12 @@ export default function Home() {
         }}
       />
 
-      {/* Modal de Personal */}
-      <PersonalModal 
-        isOpen={isPersonalModalOpen}
-        onClose={() => setIsPersonalModalOpen(false)}
-      />
-    </div>
+        {/* Modal de Personal */}
+        <PersonalModal 
+          isOpen={isPersonalModalOpen}
+          onClose={() => setIsPersonalModalOpen(false)}
+        />
+      </div>
+    </ProtectedRoute>
   );
 }

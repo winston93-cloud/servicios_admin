@@ -1,7 +1,3 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* Variables para diseño POS moderno y fresco */
 :root {
   --bg-primary: #0f172a;
@@ -116,6 +112,59 @@ body {
   box-shadow: var(--shadow-md);
 }
 
+/* Sección de usuario */
+.pos-user-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pos-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.pos-user-name {
+  color: var(--text-primary);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pos-logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  color: var(--text-secondary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  width: 44px;
+  height: 44px;
+}
+
+.pos-logout-btn:hover {
+  background: var(--error);
+  color: white;
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
 /* Layout principal */
 .pos-main {
   display: flex;
@@ -177,7 +226,7 @@ body {
 
 .search-inputs-container {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 2.5fr 1fr;
   gap: 20px;
   align-items: start;
   flex: 1;
@@ -1772,4 +1821,225 @@ body {
 .success-close-btn:hover {
   background: var(--bg-secondary);
   color: var(--text-primary);
+}
+
+/* Estilos para la página de login */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  background: white;
+  border-radius: 24px 24px 16px 16px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.login-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 48px 32px;
+  text-align: center;
+  color: white;
+}
+
+.login-icon {
+  width: 80px;
+  height: 80px;
+  background: white;
+  border-radius: 16px;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.login-icon svg {
+  width: 40px;
+  height: 40px;
+  color: #667eea;
+}
+
+.login-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.login-subtitle {
+  font-size: 18px;
+  color: #fbbf24;
+  font-weight: 800;
+  text-shadow: 0 2px 8px rgba(251, 191, 36, 0.4);
+  letter-spacing: 1px;
+  margin-top: 12px;
+  white-space: nowrap;
+}
+
+.login-form {
+  padding: 32px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e7e5ff 100%);
+  border-top: 3px solid #6366f1;
+}
+
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #000000 !important;
+  margin-bottom: 14px;
+  text-shadow: none;
+  padding: 8px 0;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 8px;
+  padding-left: 12px;
+  border-left: 4px solid #6366f1;
+  border: 2px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-label svg {
+  width: 20px;
+  height: 20px;
+  color: #f59e0b;
+  filter: drop-shadow(0 1px 2px rgba(245, 158, 11, 0.3));
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px 18px;
+  border: 3px solid #667eea;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 500;
+  background: #ffffff;
+  color: #1e293b;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #f59e0b;
+  background: #fffbeb;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3), 0 4px 12px rgba(102, 126, 234, 0.3);
+  transform: translateY(-2px);
+}
+
+.form-input::placeholder {
+  color: #64748b;
+  font-weight: 400;
+}
+
+.form-input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.error-message {
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.login-button {
+  width: 100%;
+  background: linear-gradient(135deg, #f59e0b 0%, #f97316 50%, #dc2626 100%);
+  color: white;
+  padding: 16px 24px;
+  border: none;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.login-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f97316 0%, #dc2626 50%, #b91c1c 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(245, 158, 11, 0.6);
+}
+
+.login-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.login-footer {
+  text-align: center;
+  color: white;
+  font-size: 12px;
+  opacity: 0.8;
+  margin-top: 24px;
+  padding: 0 20px;
+}
+
+/* Input específico para búsqueda de alumno */
+.alumno-search-input {
+  width: 100%;
+  padding: 15px 20px;
+  border: 2px solid #d1d5db;
+  border-radius: 25px;
+  font-size: 16px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  outline: none;
+  color: #1f2937;
+}
+
+.alumno-search-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.alumno-search-input::placeholder {
+  color: #9ca3af;
 }
