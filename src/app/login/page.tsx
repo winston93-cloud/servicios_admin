@@ -39,7 +39,7 @@ export default function LoginPage() {
         login(user)
         
         // Redirigir al dashboard
-        router.push('/')
+        router.push('/dashboard')
       } else {
         setError('Usuario o contraseña incorrectos')
       }
