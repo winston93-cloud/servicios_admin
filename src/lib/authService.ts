@@ -1,13 +1,19 @@
 import { supabase } from './supabase'
+import { User, Session, AuthError } from '@supabase/supabase-js'
 
 export interface Usuario {
   usuario_id: number
+  perfil_id: number
   usuario_username: string
   usuario_password: string
   usuario_nombre: string
   usuario_app: string
   usuario_apm: string
-  usuario_nombre_completo: string
+  usuario_email: string
+  usuario_status: number
+  usuario_alta?: string
+  nivel: number
+  usuario_nombre_completo?: string
 }
 
 export interface LoginCredentials {
@@ -19,19 +25,207 @@ export interface AuthUser {
   usuario_id: number
   usuario_username: string
   usuario_nombre_completo: string
+  email?: string
 }
 
-// Función para realizar login
+// Dominio institucional permitido
+const ALLOWED_DOMAIN = 'winston93.edu.mx'
+
+// Función para verificar si el dominio del correo está permitido
+function isAllowedDomain(email: string): boolean {
+  return email.toLowerCase().endsWith(`@${ALLOWED_DOMAIN}`)
+}
+
+// Función para iniciar sesión con Google
+export async function signInWithGoogle(): Promise<{ url: string | null; error: AuthError | null }> {
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          hd: ALLOWED_DOMAIN, // Restringe a usuarios del dominio específico
+        }
+      }
+    })
+
+    return { url: data.url, error }
+  } catch (error) {
+    console.error('Error en signInWithGoogle:', error)
+    return { url: null, error: error as AuthError }
+  }
+}
+
+// Función para manejar el callback de autenticación
+export async function handleAuthCallback(): Promise<{ user: User | null; error: AuthError | null }> {
+  try {
+    const { data, error } = await supabase.auth.getSession()
+    
+    if (error) {
+      return { user: null, error }
+    }
+
+    if (data.session?.user) {
+      const user = data.session.user
+      
+      // Verificar que el correo sea del dominio permitido
+      if (user.email && !isAllowedDomain(user.email)) {
+        // Cerrar sesión si el dominio no está permitido
+        await supabase.auth.signOut()
+        return { 
+          user: null, 
+          error: { 
+            message: `Solo se permiten correos del dominio ${ALLOWED_DOMAIN}`,
+            status: 403
+          } as AuthError 
+        }
+      }
+
+      // Buscar o crear usuario en la tabla local
+      await syncUserWithDatabase(user)
+      
+      return { user, error: null }
+    }
+
+    return { user: null, error: null }
+  } catch (error) {
+    console.error('Error en handleAuthCallback:', error)
+    return { user: null, error: error as AuthError }
+  }
+}
+
+// Función para sincronizar usuario de Google con la base de datos local
+async function syncUserWithDatabase(googleUser: User): Promise<void> {
+  if (!googleUser.email) return
+
+  try {
+    // Buscar si el usuario ya existe en la tabla local
+    const { data: existingUser, error: searchError } = await supabase
+      .from('usuario')
+      .select('*')
+      .eq('usuario_email', googleUser.email)
+      .single()
+
+    if (searchError && searchError.code !== 'PGRST116') {
+      console.error('Error buscando usuario:', searchError)
+      return
+    }
+
+    if (!existingUser) {
+      console.log('Usuario no encontrado en BD local, pero continuando...')
+      // No vamos a crear usuarios automáticamente por ahora
+      // Solo log para debugging
+    } else {
+      console.log('Usuario encontrado en BD local:', existingUser)
+    }
+  } catch (error) {
+    console.error('Error sincronizando usuario:', error)
+    // Continuar sin fallar
+  }
+}
+
+// Función para obtener el usuario actual de la sesión
+export async function getCurrentUser(): Promise<User | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    return user
+  } catch (error) {
+    console.error('Error obteniendo usuario actual:', error)
+    return null
+  }
+}
+
+// Función para obtener la sesión actual
+export async function getCurrentSession(): Promise<Session | null> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    return session
+  } catch (error) {
+    console.error('Error obteniendo sesión actual:', error)
+    return null
+  }
+}
+
+// Función para cerrar sesión
+export async function signOut(): Promise<{ error: AuthError | null }> {
+  try {
+    const { error } = await supabase.auth.signOut()
+    return { error }
+  } catch (error) {
+    console.error('Error cerrando sesión:', error)
+    return { error: error as AuthError }
+  }
+}
+
+// Función para escuchar cambios en la autenticación
+export function onAuthStateChange(callback: (event: string, session: Session | null) => void) {
+  return supabase.auth.onAuthStateChange(callback)
+}
+
+// Función para obtener usuario de la base de datos local por email
+export async function getUserByEmail(email: string): Promise<AuthUser | null> {
+  try {
+    const { data, error } = await supabase
+      .from('usuario')
+      .select('usuario_id, usuario_username, usuario_nombre, usuario_app, usuario_apm, usuario_email')
+      .eq('usuario_email', email)
+      .single()
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error obteniendo usuario por email:', error)
+      return null
+    }
+
+    if (!data) {
+      // Si no existe en la BD local, crear un usuario virtual con datos de Google
+      console.log('Usuario no encontrado en BD local, creando usuario virtual')
+      return {
+        usuario_id: 0, // ID temporal
+        usuario_username: email.split('@')[0],
+        usuario_nombre_completo: email.split('@')[0], // Usar parte local del email
+        email: email
+      }
+    }
+
+    // Construir nombre completo de forma segura
+    const nombreParts = [
+      data.usuario_nombre || '',
+      data.usuario_app || '',
+      data.usuario_apm || ''
+    ].filter(part => part && part.trim() !== '')
+    
+    const usuario_nombre_completo = nombreParts.length > 0 
+      ? nombreParts.join(' ').trim()
+      : data.usuario_username || email.split('@')[0]
+
+    return {
+      usuario_id: data.usuario_id,
+      usuario_username: data.usuario_username,
+      usuario_nombre_completo,
+      email: data.usuario_email
+    }
+  } catch (error) {
+    console.error('Error en getUserByEmail:', error)
+    // En caso de error, crear usuario virtual
+    return {
+      usuario_id: 0,
+      usuario_username: email.split('@')[0],
+      usuario_nombre_completo: email.split('@')[0],
+      email: email
+    }
+  }
+}
+
+// Función para mantener compatibilidad con el sistema anterior
 export async function loginUser(credentials: LoginCredentials): Promise<AuthUser | null> {
   try {
     const { data, error } = await supabase
       .from('usuario')
-      .select('usuario_id, usuario_username, usuario_nombre, usuario_app, usuario_apm')
+      .select('usuario_id, usuario_username, usuario_password, usuario_nombre, usuario_app, usuario_apm')
       .eq('usuario_username', credentials.username)
       .eq('usuario_password', credentials.password)
       .single()
 
-    // Si hay un error pero es porque no encontró el registro, es credenciales incorrectas
     if (error && error.code !== 'PGRST116') {
       console.error('Error en login:', error)
       throw new Error('Error de conexión con la base de datos')
@@ -41,7 +235,6 @@ export async function loginUser(credentials: LoginCredentials): Promise<AuthUser
       return null
     }
 
-    // Crear nombre completo concatenando los campos
     const usuario_nombre_completo = `${data.usuario_nombre} ${data.usuario_app} ${data.usuario_apm}`.trim()
 
     return {
@@ -51,11 +244,11 @@ export async function loginUser(credentials: LoginCredentials): Promise<AuthUser
     }
   } catch (error) {
     console.error('Error en loginUser:', error)
-    throw error // Re-lanzar el error para que lo maneje el componente
+    throw error
   }
 }
 
-// Función para verificar si hay una sesión activa
+// Funciones de localStorage para mantener compatibilidad
 export function getStoredUser(): AuthUser | null {
   if (typeof window === 'undefined') return null
   
@@ -68,7 +261,6 @@ export function getStoredUser(): AuthUser | null {
   }
 }
 
-// Función para guardar usuario en localStorage
 export function storeUser(user: AuthUser): void {
   if (typeof window === 'undefined') return
   
@@ -79,7 +271,6 @@ export function storeUser(user: AuthUser): void {
   }
 }
 
-// Función para cerrar sesión
 export function logoutUser(): void {
   if (typeof window === 'undefined') return
   
