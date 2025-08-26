@@ -66,6 +66,18 @@ export async function signInWithGoogle(): Promise<{ url: string | null; error: A
     console.log('  - Supabase response URL:', data.url)
     console.log('  - Supabase error:', error)
 
+    // Verificar que la URL de redirección sea la correcta
+    if (data.url && !data.url.includes(redirectUrl)) {
+      console.warn('⚠️ Supabase está ignorando redirectTo, forzando URL correcta')
+      // Forzar la URL correcta si Supabase la ignora
+      const correctedUrl = data.url.replace(
+        /redirect_uri=[^&]+/,
+        `redirect_uri=${encodeURIComponent(redirectUrl)}`
+      )
+      console.log('  - URL corregida:', correctedUrl)
+      return { url: correctedUrl, error }
+    }
+
     return { url: data.url, error }
   } catch (error) {
     console.error('Error en signInWithGoogle:', error)
