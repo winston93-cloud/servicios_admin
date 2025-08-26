@@ -39,10 +39,15 @@ function isAllowedDomain(email: string): boolean {
 // Función para iniciar sesión con Google
 export async function signInWithGoogle(): Promise<{ url: string | null; error: AuthError | null }> {
   try {
+    // Determinar la URL de redirección basada en el entorno
+    const redirectUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://desayunos.vercel.app/auth/callback'
+      : `${window.location.origin}/auth/callback`
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: redirectUrl,
         queryParams: {
           hd: ALLOWED_DOMAIN, // Restringe a usuarios del dominio específico
         }
