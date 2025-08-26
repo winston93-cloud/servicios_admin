@@ -45,6 +45,13 @@ export async function signInWithGoogle(): Promise<{ url: string | null; error: A
       ? 'https://desayunos.vercel.app/auth/callback'
       : `${window.location.origin}/auth/callback`
 
+    // Debug logging
+    console.log('🔍 Google OAuth Debug:')
+    console.log('  - Hostname:', window.location.hostname)
+    console.log('  - Origin:', window.location.origin)
+    console.log('  - Is Vercel:', isVercel)
+    console.log('  - Redirect URL:', redirectUrl)
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -54,6 +61,10 @@ export async function signInWithGoogle(): Promise<{ url: string | null; error: A
         }
       }
     })
+
+    // Debug logging
+    console.log('  - Supabase response URL:', data.url)
+    console.log('  - Supabase error:', error)
 
     return { url: data.url, error }
   } catch (error) {
