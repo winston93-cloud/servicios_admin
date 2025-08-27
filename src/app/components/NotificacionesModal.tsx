@@ -46,7 +46,7 @@ export default function NotificacionesModal({ isOpen, onClose }: NotificacionesM
 
   const handleSelect = (item: AlumnoSearchResult) => {
     setSelected(item)
-    setQuery(item.alumno_nombre_completo)
+    setQuery('')  // Limpiar el query para evitar duplicación
     setResults([])
     setOpenDropdown(false)
   }
@@ -94,13 +94,17 @@ export default function NotificacionesModal({ isOpen, onClose }: NotificacionesM
                 <SearchIcon size={16} />
                 <input
                   value={query}
-                  onChange={(e) => { setQuery(e.target.value); setSelected(null) }}
+                  onChange={(e) => { 
+                    setQuery(e.target.value)
+                    if (selected) setSelected(null) // Solo limpiar si hay algo seleccionado
+                  }}
                   onFocus={() => setOpenDropdown(results.length > 0)}
-                  placeholder="Empieza a escribir el nombre completo"
+                  placeholder={selected ? "Alumno seleccionado" : "Empieza a escribir el nombre completo"}
                   className="notify-input"
                   aria-autocomplete="list"
                   aria-haspopup="listbox"
                   aria-controls="alumnos-dropdown"
+                  disabled={!!selected} // Deshabilitar input cuando hay selección
                 />
               </div>
               {openDropdown && results.length > 0 && (
@@ -122,6 +126,19 @@ export default function NotificacionesModal({ isOpen, onClose }: NotificacionesM
               {selected && (
                 <div className="notify-selected">
                   Seleccionado: <strong>{selected.alumno_nombre_completo}</strong> (ref: {selected.alumno_ref})
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setSelected(null)
+                      setQuery('')
+                      setResults([])
+                      setOpenDropdown(false)
+                    }}
+                    className="notify-clear-btn"
+                    title="Cambiar alumno"
+                  >
+                    ✕
+                  </button>
                 </div>
               )}
             </div>
