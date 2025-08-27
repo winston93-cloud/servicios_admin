@@ -2897,3 +2897,164 @@ body {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* ===================== Notificaciones Modal (UI moderna) ===================== */
+.notify-modal {
+  max-width: 720px;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.notify-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%);
+  color: white;
+}
+
+.notify-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.notify-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fbbf24;
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
+}
+
+.notify-body {
+  padding: 22px 26px;
+  background: rgba(30, 41, 59, 0.85);
+  backdrop-filter: blur(16px);
+}
+
+.notify-field { margin-bottom: 16px; }
+
+.notify-label {
+  display: block;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.6px;
+}
+
+.notify-input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.notify-input-with-icon svg {
+  position: absolute;
+  left: 14px;
+  color: #a5b4fc;
+}
+
+.notify-input,
+.notify-textarea {
+  width: 100%;
+  border: 2px solid rgba(99, 102, 241, 0.35);
+  background: rgba(2, 6, 23, 0.65);
+  color: #f8fafc;
+  border-radius: 12px;
+  padding: 12px 16px 12px 38px;
+  outline: none;
+  transition: all .2s ease;
+  box-shadow: 0 6px 16px rgba(0,0,0,.25);
+}
+
+.notify-input:focus,
+.notify-textarea:focus {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 4px rgba(167, 139, 250, 0.25);
+}
+
+.notify-textarea { padding-left: 16px; resize: vertical; }
+
+.notify-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: rgba(2, 6, 23, 0.9);
+  border: 2px solid rgba(99, 102, 241, 0.35);
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0,0,0,.45);
+  max-height: 220px;
+  overflow: auto;
+  z-index: 2000;
+}
+
+.notify-option {
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border: none;
+  background: transparent;
+  color: #e5e7eb;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+
+.notify-option:hover { background: rgba(99, 102, 241, 0.2); }
+
+.notify-option-name { font-weight: 700; color: #f8fafc; }
+.notify-option-meta { font-size: 12px; color: #a1a1aa; }
+
+.notify-selected {
+  margin-top: 8px;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px dashed rgba(167, 139, 250, 0.5);
+  color: #e9d5ff;
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
+.notify-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.notify-send-btn {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(34, 197, 94, .25);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.notify-send-btn:disabled { opacity: .6; cursor: not-allowed; }
+.notify-send-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(34, 197, 94, .35); }
+
+/* =========================================================================== */
+
+.dashboard-emoji {
+  font-size: 36px;
+  line-height: 1;
+}
+
+.notify-grid {
+  display: grid;
+  grid-template-columns: 1.8fr 0.6fr;
+  gap: 16px;
+  align-items: end;
+}

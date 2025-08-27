@@ -4,15 +4,22 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useState } from 'react'
+import NotificacionesModal from '@/app/components/NotificacionesModal'
 
 export default function DashboardPage() {
   const { user, logout } = useAuth()
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [openNotificaciones, setOpenNotificaciones] = useState(false)
 
   const handleDesayunosClick = () => {
     router.push('/pos')
     setIsMenuOpen(false)
+  }
+
+  const handleOpenNotificaciones = () => {
+    console.log('Abriendo modal de Notificaciones')
+    setOpenNotificaciones(true)
   }
 
   const handleLogout = () => {
@@ -80,6 +87,18 @@ export default function DashboardPage() {
                 Servicios de alimentación y cuidado<br />
                 escolar
               </p>
+            </div>
+          </div>
+
+          {/* Notificaciones Card */}
+          <div className="dashboard-card" onClick={handleOpenNotificaciones} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleOpenNotificaciones() }}>
+            <div className="dashboard-card-icon red">
+              <span className="dashboard-emoji" role="img" aria-label="campana">🔔</span>
+            </div>
+            
+            <div className="dashboard-card-content">
+              <h2 className="dashboard-card-title">Notificaciones</h2>
+              <p className="dashboard-card-subtitle">Enviar aviso a padres</p>
             </div>
           </div>
 
@@ -219,6 +238,9 @@ export default function DashboardPage() {
           Cerrar Sesión
         </button>
       </div>
+
+      {/* Modal Notificaciones */}
+      <NotificacionesModal isOpen={openNotificaciones} onClose={() => setOpenNotificaciones(false)} />
     </div>
     </ProtectedRoute>
   )

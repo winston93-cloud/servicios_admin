@@ -36,7 +36,7 @@ export type CombinedSearchResult = AlumnoSearchResult | PersonalAsAlumnoResult;
 const searchCache = new Map<string, AlumnoSearchResult[]>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
-export async function searchAlumnos(query: string): Promise<AlumnoSearchResult[]> {
+export async function searchAlumnos(query: string, ciclo: string = '22'): Promise<AlumnoSearchResult[]> {
   if (!query || query.trim().length < 2) {
     return []
   }
@@ -45,21 +45,21 @@ export async function searchAlumnos(query: string): Promise<AlumnoSearchResult[]
   const searchTerm = query.replace(/\s+/g, ' ').trim()
   
   // Verificar caché primero
-  const cacheKey = searchTerm.toLowerCase();
+  const cacheKey = `${ciclo}::${searchTerm.toLowerCase()}`;
   const cached = searchCache.get(cacheKey);
   if (cached) {
-    console.log('📋 Resultado desde caché:', searchTerm);
+    console.log('📋 Resultado desde caché:', searchTerm, 'ciclo:', ciclo);
     return cached;
   }
   
-  console.log('🔍 Iniciando búsqueda:', searchTerm)
+  console.log('🔍 Iniciando búsqueda:', searchTerm, 'ciclo:', ciclo)
   const startTime = Date.now()
 
   // Búsqueda optimizada usando el campo alumno_nombre_completo
   const { data, error } = await supabase
     .from('alumno')
     .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_grado, alumno_grupo, alumno_nombre_completo')
-    .eq('alumno_ciclo_escolar', '22')
+    .eq('alumno_ciclo_escolar', ciclo)
     .eq('alumno_status', 1)
     .ilike('alumno_nombre_completo', `%${searchTerm}%`)
     .limit(5) // Solo 5 resultados más relevantes
