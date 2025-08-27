@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { loginUser, signInWithGoogle } from '@/lib/authService'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -87,9 +88,11 @@ export default function LoginPage() {
         {/* Header con gradiente */}
         <div className="login-header">
           <div className="login-icon">
-            <img 
+            <Image 
               src="/logo.jpg" 
               alt="Logo Winston Churchill"
+              width={80}
+              height={80}
               className="login-logo"
             />
           </div>

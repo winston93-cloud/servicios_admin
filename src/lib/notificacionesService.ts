@@ -30,8 +30,9 @@ export async function crearNotificacion(payload: NuevaNotificacion): Promise<{ d
     }
 
     return { data: data as Notificacion, error: null }
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('Error inesperado creando notificación:', e)
-    return { data: null, error: e?.message ?? 'Error desconocido' }
+    const errorMessage = e instanceof Error ? e.message : 'Error desconocido'
+    return { data: null, error: errorMessage }
   }
 }

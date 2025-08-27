@@ -99,20 +99,22 @@ export default function NotificacionesModal({ isOpen, onClose }: NotificacionesM
                   placeholder="Empieza a escribir el nombre completo"
                   className="notify-input"
                   aria-autocomplete="list"
-                  aria-expanded={openDropdown}
+                  aria-haspopup="listbox"
+                  aria-controls="alumnos-dropdown"
                 />
               </div>
               {openDropdown && results.length > 0 && (
-                <div className="notify-dropdown" role="listbox">
-                  {results.map(item => (
+                <div id="alumnos-dropdown" className="notify-dropdown" role="listbox">
+                  {results.map((item) => (
                     <button
                       key={`${item.alumno_ref}`}
                       onClick={() => handleSelect(item)}
                       className="notify-option"
                       role="option"
+                      aria-selected={false}
                     >
                       <div className="notify-option-name">{item.alumno_nombre_completo}</div>
-                      <div className="notify-option-meta">ref: {item.alumno_ref}</div>
+                      <div className="option-meta">ref: {item.alumno_ref}</div>
                     </button>
                   ))}
                 </div>
