@@ -22,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [googleUser, setGoogleUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
     // Verificar autenticación de Google y sesión actual
@@ -73,6 +74,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Escuchar cambios en el estado de autenticación
     const { data: { subscription } } = onAuthStateChange(async (event, session) => {
+      // No procesar eventos si se está haciendo logout
+      if (isLoggingOut) {
+        console.log('Ignorando evento de autenticación durante logout:', event)
+        return
+      }
+
       console.log('Evento de autenticación:', event)
       
       if (event === 'SIGNED_IN' && session?.user) {
@@ -113,10 +120,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [isLoggingOut])
 
   // Verificar periódicamente si la sesión sigue siendo válida
   useEffect(() => {
+    // No verificar sesión si se está haciendo logout
+    if (isLoggingOut) {
+      return
+    }
+
     const checkSessionInterval = setInterval(async () => {
       try {
         const currentSession = await getCurrentSession()
@@ -140,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 60000) // Verificar cada minuto
 
     return () => clearInterval(checkSessionInterval)
-  }, [session, googleUser])
+  }, [session, googleUser, isLoggingOut])
 
   const login = (authUser: AuthUser) => {
     setUser(authUser)
@@ -150,14 +162,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       console.log('Cerrando sesión...')
+      setIsLoggingOut(true)
       
-      // Cerrar sesión de Google
-      const { error: googleError } = await signOut()
-      if (googleError) {
-        console.error('Error cerrando sesión de Google:', googleError)
-      }
-      
-      // Limpiar estado local
+      // Limpiar estado local primero para evitar redirecciones
       setUser(null)
       setGoogleUser(null)
       setSession(null)
@@ -165,9 +172,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Limpiar sistema anterior
       logoutUser()
       
+      // Cerrar sesión de Google después de limpiar el estado local
+      const { error: googleError } = await signOut()
+      if (googleError) {
+        console.error('Error cerrando sesión de Google:', googleError)
+      }
+      
       console.log('Sesión cerrada exitosamente')
     } catch (error) {
       console.error('Error cerrando sesión:', error)
+    } finally {
+      setIsLoggingOut(false)
     }
   }
 

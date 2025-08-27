@@ -22,9 +22,18 @@ export default function DashboardPage() {
     setOpenNotificaciones(true)
   }
 
-  const handleLogout = () => {
-    logout()
-    router.push('/login')
+  const handleLogout = async () => {
+    try {
+      console.log('Iniciando logout desde dashboard...')
+      await logout()
+      console.log('Logout completado, redirigiendo a login...')
+      // Usar replace para evitar que el usuario pueda volver atrás
+      router.replace('/login')
+    } catch (error) {
+      console.error('Error durante logout:', error)
+      // Si hay error, forzar la redirección
+      router.replace('/login')
+    }
   }
 
   const toggleMenu = () => {
