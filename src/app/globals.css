@@ -1757,8 +1757,7 @@ body {
   .pos-nav-item:hover,
   .btn-primary:hover,
   .btn-secondary:hover,
-  .login-button:hover,
-  .google-button:hover {
+  .login-button:hover {
     transform: none;
     box-shadow: none;
   }
@@ -1768,7 +1767,6 @@ body {
   .btn-primary,
   .btn-secondary,
   .login-button,
-  .google-button,
   .form-input,
   .search-input {
     min-height: 44px;
@@ -2148,8 +2146,7 @@ body {
     min-height: 44px; /* Tamaño mínimo para touch */
   }
   
-  .login-button,
-  .google-button {
+  .login-button {
     padding: 14px 20px;
     font-size: 16px;
     min-height: 48px; /* Tamaño mínimo para touch */
@@ -2191,8 +2188,7 @@ body {
     font-size: 16px;
   }
   
-  .login-button,
-  .google-button {
+  .login-button {
     padding: 12px 18px;
     font-size: 15px;
   }
@@ -2383,49 +2379,6 @@ body {
   background: linear-gradient(135deg, #f8fafc 0%, #e7e5ff 100%);
 }
 
-/* Botón de Google */
-.google-button {
-  width: 100%;
-  background: white;
-  color: #374151;
-  padding: 16px 24px;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  position: relative;
-  overflow: hidden;
-}
-
-.google-button:hover:not(:disabled) {
-  background: #f9fafb;
-  border-color: #d1d5db;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-}
-
-.google-button:active {
-  transform: translateY(0);
-}
-
-.google-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.google-icon {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-}
 
 .loading-spinner {
   width: 20px;
