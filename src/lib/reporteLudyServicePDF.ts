@@ -12,11 +12,11 @@ interface AlumnoVenta {
   es_personal: boolean;
 }
 
-// interface VentaDelDia {
-//   pago_ref: string;
-//   pago_descripcion: string;
-//   pago_fecha: string;
-// }
+interface VentaDelDia {
+  pago_ref: string;
+  pago_descripcion: string;
+  pago_fecha: string;
+}
 
 interface AlumnoVentaCompleta {
   alumno_nombre_completo: string;
@@ -423,7 +423,7 @@ export async function generarReporteLudy(): Promise<void> {
 }
 
 // Función para generar la primera página (Desayunos)
-function generarPaginaDesayunos(pdf: jsPDF, alumnosConVentas: AlumnoVenta[], ventasDelDia: unknown[]): void {
+function generarPaginaDesayunos(pdf: jsPDF, alumnosConVentas: AlumnoVenta[], ventasDelDia: VentaDelDia[]): void {
   const fecha = getFechaReporte().toUpperCase();
   
   // Calcular totales
