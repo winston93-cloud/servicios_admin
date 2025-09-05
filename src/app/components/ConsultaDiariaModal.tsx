@@ -670,6 +670,8 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
       // Extraer información del alumnoKey (formato: "nombre-servicio")
       const [nombreCompleto, servicio] = alumnoKey.split('-');
       
+      console.log(`🔍 DEBUG OSORIO: alumnoKey=${alumnoKey}, nombreCompleto=${nombreCompleto}, servicio=${servicio}`);
+      
       if (!nombreCompleto || !servicio) {
         console.error('❌ Formato de alumnoKey inválido:', alumnoKey);
         return;
@@ -691,10 +693,15 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
       // Si no se encontró en desayunos, buscar en otros servicios
       if (!alumnoEncontrado) {
         const todosLosServicios = [...ventasDelDia.estancias, ...ventasDelDia.comidas, ...ventasDelDia.tareas, ...ventasDelDia.media];
+        console.log(`🔍 DEBUG OSORIO: Buscando en otros servicios. Total: ${todosLosServicios.length}`);
+        console.log(`🔍 DEBUG OSORIO: Alumnos disponibles:`, todosLosServicios.map(a => `${a.alumno_nombre_completo} (Ref: ${a.pago_ref})`));
+        
         for (const alumno of todosLosServicios) {
+          console.log(`🔍 DEBUG OSORIO: Comparando "${alumno.alumno_nombre_completo}" vs "${nombreCompleto}"`);
           if (alumno.alumno_nombre_completo === nombreCompleto) {
             alumnoEncontrado = alumno;
             tipoServicio = servicio;
+            console.log(`✅ DEBUG OSORIO: Alumno encontrado en otros servicios:`, alumno);
             break;
           }
         }
@@ -726,13 +733,15 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
         return;
       }
       
-      console.log(`🔍 Buscando pago para: ${alumnoEncontrado.pago_ref} - Tipo: ${tipoServicio}`);
-      console.log(`📦 Pagos disponibles:`, pagosHoy?.length || 0);
+      console.log(`🔍 DEBUG OSORIO: Buscando pago para: ${alumnoEncontrado.pago_ref} - Tipo: ${tipoServicio}`);
+      console.log(`📦 DEBUG OSORIO: Pagos disponibles:`, pagosHoy?.length || 0);
+      console.log(`📦 DEBUG OSORIO: Todos los pagos:`, pagosHoy);
       
       // Buscar la referencia que coincida con el alumno y el servicio específico
       for (const pago of pagosHoy || []) {
-        console.log(`🔍 Comparando: ${pago.pago_ref} vs ${alumnoEncontrado.pago_ref}`);
+        console.log(`🔍 DEBUG OSORIO: Comparando pago_ref: "${pago.pago_ref}" vs "${alumnoEncontrado.pago_ref}"`);
         if (pago.pago_ref === alumnoEncontrado.pago_ref) {
+          console.log(`✅ DEBUG OSORIO: Referencia coincide! Pago:`, pago);
           // Verificar si el servicio específico coincide
           let servicioCoincide = false;
           
@@ -751,13 +760,15 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
             else if (tipoServicio === 'tarea7') servicioCoincide = pago.pago_descripcion.includes('Tarea 7') || pago.pago_descripcion.includes('Tareas 7');
             else if (tipoServicio === 'media') servicioCoincide = pago.pago_descripcion.includes('MEDIA') || pago.pago_descripcion.includes('Media');
             
-            console.log(`🔧 ${tipoServicio}: Coincide=${servicioCoincide}`);
+            console.log(`🔧 DEBUG OSORIO: ${tipoServicio}: Coincide=${servicioCoincide}, Descripción: "${pago.pago_descripcion}"`);
           }
           
           if (servicioCoincide) {
             pagoRef = pago.pago_ref;
-            console.log(`✅ Pago encontrado: ${pagoRef} - ${pago.pago_descripcion}`);
+            console.log(`✅ DEBUG OSORIO: Pago encontrado: ${pagoRef} - ${pago.pago_descripcion}`);
             break;
+          } else {
+            console.log(`❌ DEBUG OSORIO: Servicio no coincide para pago:`, pago);
           }
         }
       }
@@ -784,21 +795,24 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
       else if (tipoServicio === 'tarea7') descripcionServicio = 'Tareas 7'; // Usar plural como en BD
       else if (tipoServicio === 'media') descripcionServicio = 'MEDIA'; // Usar mayúsculas como en BD
       
-      console.log(`💾 Actualizando BD: Ref=${pagoRef}, Fecha=${hoy}, Desc=${descripcionServicio}, Estado=${nuevoEstado}`);
+      console.log(`💾 DEBUG OSORIO: Actualizando BD: Ref=${pagoRef}, Fecha=${hoy}, Desc=${descripcionServicio}, Estado=${nuevoEstado}`);
       
-      const { error: updateError } = await supabase
+      const { data: updateData, error: updateError } = await supabase
         .from('pago_desayunos')
         .update({ pago_pagado: nuevoEstado })
         .eq('pago_ref', pagoRef)
         .eq('pago_fecha', hoy)
-        .eq('pago_descripcion', descripcionServicio);
+        .eq('pago_descripcion', descripcionServicio)
+        .select();
+      
+      console.log(`🔍 DEBUG OSORIO: Resultado de actualización:`, { updateData, updateError });
       
       if (updateError) {
-        console.error('❌ Error actualizando estado de entrega:', updateError);
+        console.error('❌ DEBUG OSORIO: Error actualizando estado de entrega:', updateError);
         return;
       }
       
-      console.log('✅ Base de datos actualizada exitosamente');
+      console.log('✅ DEBUG OSORIO: Base de datos actualizada exitosamente. Filas afectadas:', updateData?.length || 0);
       
       // Actualizar el estado local de forma atómica
       if (isCurrentlyDelivered) {
