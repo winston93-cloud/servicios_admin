@@ -539,57 +539,53 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
         }
       }
       
-      // Procesar entregas para otros servicios
-      const todosLosServicios = [...datos.estancias, ...datos.comidas, ...datos.tareas, ...datos.media];
-      for (const alumno of todosLosServicios) {
-        console.log(`🔍 Procesando otros servicios: ${alumno.alumno_nombre_completo} - Servicios: ${alumno.servicios.join(', ')}`);
-        
-        // Procesar cada servicio individual del alumno
-        for (const servicio of alumno.servicios) {
-          let tipoServicio = '';
+      // Procesar entregas para otros servicios - agrupar por tipo como en el renderizado
+      const estancias5 = datos.estancias.filter(v => v.servicios.some(s => s.includes('Estancia 5') && !s.includes('Mes')));
+      const estancias7 = datos.estancias.filter(v => v.servicios.some(s => s.includes('Estancia 7') && !s.includes('Mes')));
+      const comidas = datos.comidas;
+      const tareas5 = datos.tareas.filter(v => v.servicios.some(s => s.includes('Tarea 5')));
+      const tareas7 = datos.tareas.filter(v => v.servicios.some(s => s.includes('Tarea 7')));
+      const media = datos.media;
+
+      const serviciosAgrupados = [
+        { datos: estancias5, key: 'estancia5' },
+        { datos: estancias7, key: 'estancia7' },
+        { datos: comidas, key: 'comida' },
+        { datos: tareas5, key: 'tarea5' },
+        { datos: tareas7, key: 'tarea7' },
+        { datos: media, key: 'media' }
+      ];
+
+      for (const servicioGrupo of serviciosAgrupados) {
+        for (const alumno of servicioGrupo.datos) {
+          console.log(`🔍 Procesando ${servicioGrupo.key}: ${alumno.alumno_nombre_completo} - Servicios: ${alumno.servicios.join(', ')}`);
           
-          if (servicio.includes('Estancia 5')) {
-            tipoServicio = 'estancia5';
-          } else if (servicio.includes('Estancia 7')) {
-            tipoServicio = 'estancia7';
-          } else if (servicio.includes('Comida')) {
-            tipoServicio = 'comida';
-          } else if (servicio.includes('Tarea 5')) {
-            tipoServicio = 'tarea5';
-          } else if (servicio.includes('Tarea 7')) {
-            tipoServicio = 'tarea7';
-          } else if (servicio.includes('Media')) {
-            tipoServicio = 'media';
-          }
-          
-          if (tipoServicio) {
-            // Buscar pagos entregados que coincidan específicamente con este alumno y servicio
-            let encontrado = false;
-            for (const pago of pagosEntregados || []) {
-              // Verificar que la pago_ref coincida exactamente
-              if (pago.pago_ref === alumno.pago_ref) {
-                // Verificar si el servicio específico coincide
-                let servicioCoincide = false;
-                if (tipoServicio === 'estancia5') servicioCoincide = pago.pago_descripcion.includes('Estancia 5');
-                else if (tipoServicio === 'estancia7') servicioCoincide = pago.pago_descripcion.includes('Estancia 7');
-                else if (tipoServicio === 'comida') servicioCoincide = pago.pago_descripcion.includes('Comida');
-                else if (tipoServicio === 'tarea5') servicioCoincide = pago.pago_descripcion.includes('Tarea 5') || pago.pago_descripcion.includes('Tareas 5');
-                else if (tipoServicio === 'tarea7') servicioCoincide = pago.pago_descripcion.includes('Tarea 7') || pago.pago_descripcion.includes('Tareas 7');
-                else if (tipoServicio === 'media') servicioCoincide = pago.pago_descripcion.includes('MEDIA') || pago.pago_descripcion.includes('Media');
-                
-                if (servicioCoincide) {
-                  console.log(`✅ Coincidencia encontrada (otros servicios): ${alumno.alumno_nombre_completo} - ${pago.pago_descripcion} (Ref: ${pago.pago_ref}) - Tipo: ${tipoServicio}`);
-                  // Usar el mismo formato que en el renderizado: alumno-servicioKey
-                  entregadosHoy.add(`${alumno.alumno_nombre_completo}-${tipoServicio}`);
-                  encontrado = true;
-                  break;
-                }
+          // Buscar pagos entregados que coincidan específicamente con este alumno y servicio
+          let encontrado = false;
+          for (const pago of pagosEntregados || []) {
+            // Verificar que la pago_ref coincida exactamente
+            if (pago.pago_ref === alumno.pago_ref) {
+              // Verificar si el servicio específico coincide según el tipo
+              let servicioCoincide = false;
+              if (servicioGrupo.key === 'estancia5') servicioCoincide = pago.pago_descripcion.includes('Estancia 5');
+              else if (servicioGrupo.key === 'estancia7') servicioCoincide = pago.pago_descripcion.includes('Estancia 7');
+              else if (servicioGrupo.key === 'comida') servicioCoincide = pago.pago_descripcion.includes('Comida');
+              else if (servicioGrupo.key === 'tarea5') servicioCoincide = pago.pago_descripcion.includes('Tarea 5') || pago.pago_descripcion.includes('Tareas 5');
+              else if (servicioGrupo.key === 'tarea7') servicioCoincide = pago.pago_descripcion.includes('Tarea 7') || pago.pago_descripcion.includes('Tareas 7');
+              else if (servicioGrupo.key === 'media') servicioCoincide = pago.pago_descripcion.includes('MEDIA') || pago.pago_descripcion.includes('Media');
+              
+              if (servicioCoincide) {
+                console.log(`✅ Coincidencia encontrada (${servicioGrupo.key}): ${alumno.alumno_nombre_completo} - ${pago.pago_descripcion} (Ref: ${pago.pago_ref})`);
+                // Usar el mismo formato que en el renderizado: alumno-servicioKey
+                entregadosHoy.add(`${alumno.alumno_nombre_completo}-${servicioGrupo.key}`);
+                encontrado = true;
+                break;
               }
             }
-            
-            if (!encontrado) {
-              console.log(`❌ No se encontró pago entregado para otros servicios: ${alumno.alumno_nombre_completo} - Servicio: ${servicio} - Tipo: ${tipoServicio}`);
-            }
+          }
+          
+          if (!encontrado) {
+            console.log(`❌ No se encontró pago entregado para ${servicioGrupo.key}: ${alumno.alumno_nombre_completo}`);
           }
         }
       }
