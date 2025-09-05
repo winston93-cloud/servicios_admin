@@ -579,6 +579,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
                 
                 if (servicioCoincide) {
                   console.log(`✅ Coincidencia encontrada (otros servicios): ${alumno.alumno_nombre_completo} - ${pago.pago_descripcion} (Ref: ${pago.pago_ref}) - Tipo: ${tipoServicio}`);
+                  // Usar el mismo formato que en el renderizado: alumno-servicioKey
                   entregadosHoy.add(`${alumno.alumno_nombre_completo}-${tipoServicio}`);
                   encontrado = true;
                   break;
