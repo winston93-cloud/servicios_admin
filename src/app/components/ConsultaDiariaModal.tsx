@@ -47,6 +47,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'desayunos' | 'otros'>('desayunos');
   const [processingToggles, setProcessingToggles] = useState<Set<string>>(new Set());
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const getFechaReporte = (): string => {
     const hoy = new Date();
@@ -606,10 +607,50 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
     }
   }, [isOpen, cargarDatos]);
 
+  // Recargar datos cuando la ventana vuelve a tener foco (para evitar problemas de estado)
+  useEffect(() => {
+    const handleFocus = async () => {
+      if (isOpen && !loading && !isRefreshing) {
+        console.log('🔄 Ventana recuperó foco, recargando datos del modal...');
+        setIsRefreshing(true);
+        await cargarDatos();
+        setIsRefreshing(false);
+      }
+    };
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && isOpen && !loading && !isRefreshing) {
+        console.log('🔄 Pestaña visible, recargando datos del modal...');
+        setIsRefreshing(true);
+        await cargarDatos();
+        setIsRefreshing(false);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isOpen, loading, isRefreshing, cargarDatos]);
+
   const toggleEntregado = async (alumnoKey: string) => {
     // Validar que el modal esté abierto y los datos estén cargados
     if (!isOpen || loading) {
       console.warn('⚠️ Modal cerrado o cargando, ignorando toggle');
+      return;
+    }
+
+    // Validar que tenemos datos cargados
+    if (ventasDelDia.desayunos.length === 0 && 
+        ventasDelDia.estancias.length === 0 && 
+        ventasDelDia.comidas.length === 0 && 
+        ventasDelDia.tareas.length === 0 && 
+        ventasDelDia.media.length === 0) {
+      console.warn('⚠️ No hay datos cargados, recargando...');
+      await cargarDatos();
       return;
     }
 
@@ -1063,10 +1104,13 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
             <button 
               onClick={cargarDatos}
               className="modern-btn-refresh"
-              disabled={loading}
+              disabled={loading || isRefreshing}
             >
-              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-5 h-5 ${loading || isRefreshing ? 'animate-spin' : ''}`} />
             </button>
+            {isRefreshing && (
+              <span className="modern-refresh-indicator">Sincronizando...</span>
+            )}
             <button 
               onClick={onClose}
               className="modern-btn-close"
