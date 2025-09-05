@@ -46,6 +46,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
   const [entregados, setEntregados] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'desayunos' | 'otros'>('desayunos');
+  const [processingToggles, setProcessingToggles] = useState<Set<string>>(new Set());
 
   const getFechaReporte = (): string => {
     const hoy = new Date();
@@ -606,12 +607,35 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
   }, [isOpen, cargarDatos]);
 
   const toggleEntregado = async (alumnoKey: string) => {
+    // Validar que el modal esté abierto y los datos estén cargados
+    if (!isOpen || loading) {
+      console.warn('⚠️ Modal cerrado o cargando, ignorando toggle');
+      return;
+    }
+
+    // Prevenir múltiples clics simultáneos en el mismo elemento
+    if (processingToggles.has(alumnoKey)) {
+      console.warn('⚠️ Toggle ya en proceso para:', alumnoKey);
+      return;
+    }
+
+    // Marcar como procesando
+    setProcessingToggles(prev => new Set(prev).add(alumnoKey));
+
+    // Crear una copia del estado actual para evitar mutaciones
     const nuevosEntregados = new Set(entregados);
     const isCurrentlyDelivered = nuevosEntregados.has(alumnoKey);
+    
+    console.log(`🔄 Toggle entregado para: ${alumnoKey}, Estado actual: ${isCurrentlyDelivered ? 'Entregado' : 'Pendiente'}`);
     
     try {
       // Extraer información del alumnoKey (formato: "nombre-servicio")
       const [nombreCompleto, servicio] = alumnoKey.split('-');
+      
+      if (!nombreCompleto || !servicio) {
+        console.error('❌ Formato de alumnoKey inválido:', alumnoKey);
+        return;
+      }
       
       // Buscar el alumno en los datos actuales
       let alumnoEncontrado = null;
@@ -640,8 +664,12 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
       
       if (!alumnoEncontrado) {
         console.error('❌ No se encontró el alumno:', nombreCompleto);
+        console.log('🔍 Alumnos disponibles en desayunos:', ventasDelDia.desayunos.map(a => a.alumno_nombre_completo));
+        console.log('🔍 Alumnos disponibles en otros servicios:', [...ventasDelDia.estancias, ...ventasDelDia.comidas, ...ventasDelDia.tareas, ...ventasDelDia.media].map(a => a.alumno_nombre_completo));
         return;
       }
+      
+      console.log(`✅ Alumno encontrado: ${alumnoEncontrado.alumno_nombre_completo}, Tipo: ${tipoServicio}, Ref: ${alumnoEncontrado.pago_ref}`);
       
       // Obtener la referencia del pago directamente desde los datos ya cargados
       const hoy = new Date().toISOString().split('T')[0];
@@ -660,8 +688,12 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
         return;
       }
       
+      console.log(`🔍 Buscando pago para: ${alumnoEncontrado.pago_ref} - Tipo: ${tipoServicio}`);
+      console.log(`📦 Pagos disponibles:`, pagosHoy?.length || 0);
+      
       // Buscar la referencia que coincida con el alumno y el servicio específico
       for (const pago of pagosHoy || []) {
+        console.log(`🔍 Comparando: ${pago.pago_ref} vs ${alumnoEncontrado.pago_ref}`);
         if (pago.pago_ref === alumnoEncontrado.pago_ref) {
           // Verificar si el servicio específico coincide
           let servicioCoincide = false;
@@ -671,6 +703,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
             const tieneDesayunoCH = alumnoEncontrado.servicios.includes('Desayuno CH') && pago.pago_descripcion.includes('Desayuno CH');
             const tieneDesayunoGDE = alumnoEncontrado.servicios.includes('Desayuno GDE') && pago.pago_descripcion.includes('Desayuno GDE');
             servicioCoincide = tieneDesayunoCH || tieneDesayunoGDE;
+            console.log(`🍳 Desayuno: CH=${tieneDesayunoCH}, GDE=${tieneDesayunoGDE}, Coincide=${servicioCoincide}`);
           } else {
             // Para otros servicios, verificar la descripción específica
             if (tipoServicio === 'estancia5') servicioCoincide = pago.pago_descripcion.includes('Estancia 5');
@@ -679,10 +712,13 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
             else if (tipoServicio === 'tarea5') servicioCoincide = pago.pago_descripcion.includes('Tarea 5') || pago.pago_descripcion.includes('Tareas 5');
             else if (tipoServicio === 'tarea7') servicioCoincide = pago.pago_descripcion.includes('Tarea 7') || pago.pago_descripcion.includes('Tareas 7');
             else if (tipoServicio === 'media') servicioCoincide = pago.pago_descripcion.includes('MEDIA') || pago.pago_descripcion.includes('Media');
+            
+            console.log(`🔧 ${tipoServicio}: Coincide=${servicioCoincide}`);
           }
           
           if (servicioCoincide) {
             pagoRef = pago.pago_ref;
+            console.log(`✅ Pago encontrado: ${pagoRef} - ${pago.pago_descripcion}`);
             break;
           }
         }
@@ -710,6 +746,8 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
       else if (tipoServicio === 'tarea7') descripcionServicio = 'Tarea 7';
       else if (tipoServicio === 'media') descripcionServicio = 'Media';
       
+      console.log(`💾 Actualizando BD: Ref=${pagoRef}, Fecha=${hoy}, Desc=${descripcionServicio}, Estado=${nuevoEstado}`);
+      
       const { error: updateError } = await supabase
         .from('pago_desayunos')
         .update({ pago_pagado: nuevoEstado })
@@ -722,18 +760,37 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
         return;
       }
       
-      // Actualizar el estado local
+      console.log('✅ Base de datos actualizada exitosamente');
+      
+      // Actualizar el estado local de forma atómica
       if (isCurrentlyDelivered) {
         nuevosEntregados.delete(alumnoKey);
       } else {
         nuevosEntregados.add(alumnoKey);
       }
-      setEntregados(nuevosEntregados);
+      
+      // Actualizar el estado de forma segura
+      setEntregados(prevEntregados => {
+        const newSet = new Set(prevEntregados);
+        if (isCurrentlyDelivered) {
+          newSet.delete(alumnoKey);
+        } else {
+          newSet.add(alumnoKey);
+        }
+        return newSet;
+      });
       
       console.log(`✅ Estado de entrega actualizado: ${nombreCompleto} - ${isCurrentlyDelivered ? 'No entregado' : 'Entregado'} (Ref: ${pagoRef})`);
       
     } catch (error) {
       console.error('❌ Error en toggleEntregado:', error);
+    } finally {
+      // Remover del estado de procesamiento
+      setProcessingToggles(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(alumnoKey);
+        return newSet;
+      });
     }
   };
 
@@ -784,7 +841,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
                     {gruposDesayunos[grado]?.map((alumno, index) => (
                       <div 
                         key={`${grado}-${index}`}
-                        className={`modern-student-card ${entregados.has(`${alumno.alumno_nombre_completo}-desayuno`) ? 'delivered' : ''}`}
+                        className={`modern-student-card ${entregados.has(`${alumno.alumno_nombre_completo}-desayuno`) ? 'delivered' : ''} ${processingToggles.has(`${alumno.alumno_nombre_completo}-desayuno`) ? 'processing' : ''}`}
                         onClick={() => toggleEntregado(`${alumno.alumno_nombre_completo}-desayuno`)}
                       >
                         <div className="modern-student-info">
@@ -835,7 +892,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
                   {gruposDesayunos[grado]?.map((alumno, index) => (
                     <div 
                       key={`${grado}-${index}`}
-                      className={`modern-student-card ${entregados.has(`${alumno.alumno_nombre_completo}-desayuno`) ? 'delivered' : ''}`}
+                      className={`modern-student-card ${entregados.has(`${alumno.alumno_nombre_completo}-desayuno`) ? 'delivered' : ''} ${processingToggles.has(`${alumno.alumno_nombre_completo}-desayuno`) ? 'processing' : ''}`}
                       onClick={() => toggleEntregado(`${alumno.alumno_nombre_completo}-desayuno`)}
                     >
                       <div className="modern-student-info">
@@ -953,7 +1010,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
                     servicio.datos.map((alumno, index) => (
                       <div 
                         key={`${servicio.key}-${index}`}
-                        className={`modern-servicio-item ${entregados.has(`${alumno.alumno_nombre_completo}-${servicio.key}`) ? 'delivered' : ''}`}
+                        className={`modern-servicio-item ${entregados.has(`${alumno.alumno_nombre_completo}-${servicio.key}`) ? 'delivered' : ''} ${processingToggles.has(`${alumno.alumno_nombre_completo}-${servicio.key}`) ? 'processing' : ''}`}
                         onClick={() => toggleEntregado(`${alumno.alumno_nombre_completo}-${servicio.key}`)}
                       >
                         <div className="modern-servicio-item-info">
