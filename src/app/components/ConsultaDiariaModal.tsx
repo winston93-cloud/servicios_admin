@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Check, Users, Coffee, Home, Utensils, BookOpen, Clock, ChefHat, Calendar, RefreshCw } from 'lucide-react';
+import { X, Check, Users, Coffee, Home, Utensils, BookOpen, Clock, ChefHat, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface AlumnoVenta {
@@ -545,26 +545,19 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
         // Procesar cada servicio individual del alumno
         for (const servicio of alumno.servicios) {
           let tipoServicio = '';
-          let descripcionServicio = '';
           
           if (servicio.includes('Estancia 5')) {
             tipoServicio = 'estancia5';
-            descripcionServicio = 'Estancia 5';
           } else if (servicio.includes('Estancia 7')) {
             tipoServicio = 'estancia7';
-            descripcionServicio = 'Estancia 7';
           } else if (servicio.includes('Comida')) {
             tipoServicio = 'comida';
-            descripcionServicio = 'Comida';
           } else if (servicio.includes('Tarea 5')) {
             tipoServicio = 'tarea5';
-            descripcionServicio = 'Tarea 5';
           } else if (servicio.includes('Tarea 7')) {
             tipoServicio = 'tarea7';
-            descripcionServicio = 'Tarea 7';
           } else if (servicio.includes('Media')) {
             tipoServicio = 'media';
-            descripcionServicio = 'Media';
           }
           
           if (tipoServicio) {
@@ -610,7 +603,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
     if (isOpen) {
       cargarDatos();
     }
-  }, [isOpen]);
+  }, [isOpen, cargarDatos]);
 
   const toggleEntregado = async (alumnoKey: string) => {
     const nuevosEntregados = new Set(entregados);

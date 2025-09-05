@@ -12,11 +12,11 @@ interface AlumnoVenta {
   es_personal: boolean;
 }
 
-interface VentaDelDia {
-  pago_ref: string;
-  pago_descripcion: string;
-  pago_fecha: string;
-}
+// interface VentaDelDia {
+//   pago_ref: string;
+//   pago_descripcion: string;
+//   pago_fecha: string;
+// }
 
 interface AlumnoVentaCompleta {
   alumno_nombre_completo: string;
@@ -354,7 +354,7 @@ export async function generarReporteLudy(): Promise<void> {
     
     // === SEGUNDA PÁGINA: ESTANCIAS, COMIDAS Y TAREAS ===
     pdf.addPage();
-    generarPaginaSegundaHoja(pdf, todasLasVentas, ventasDelDia || []);
+    generarPaginaSegundaHoja(pdf, todasLasVentas);
     
     // Generar el archivo y abrirlo en nueva pestaña
     const fecha = new Date();
@@ -423,7 +423,7 @@ export async function generarReporteLudy(): Promise<void> {
 }
 
 // Función para generar la primera página (Desayunos)
-function generarPaginaDesayunos(pdf: jsPDF, alumnosConVentas: AlumnoVenta[], ventasDelDia: any[]): void {
+function generarPaginaDesayunos(pdf: jsPDF, alumnosConVentas: AlumnoVenta[], ventasDelDia: unknown[]): void {
   const fecha = getFechaReporte().toUpperCase();
   
   // Calcular totales
@@ -567,7 +567,7 @@ function generarPaginaDesayunos(pdf: jsPDF, alumnosConVentas: AlumnoVenta[], ven
 }
 
 // Función para generar la segunda página
-function generarPaginaSegundaHoja(pdf: jsPDF, todasLasVentas: AlumnoVentaCompleta[], ventasDelDia: any[]): void {
+function generarPaginaSegundaHoja(pdf: jsPDF, todasLasVentas: AlumnoVentaCompleta[]): void {
   // Organizar alumnos por tipo de servicio
   const alumnosConServiciosSegundaHoja = todasLasVentas.filter(alumno => {
     return alumno.servicios.some(servicio => 

@@ -1,5 +1,5 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+// import jsPDF from 'jspdf';
+// import autoTable from 'jspdf-autotable';
 import { supabase } from './supabase';
 
 // Interfaces para los datos del reporte
@@ -315,7 +315,7 @@ export async function obtenerTodasLasVentasDelDia(): Promise<AlumnoVentaCompleta
 }
 
 // Función para crear la estructura exacta del reporte basada en la imagen
-export function crearEstructuraReporte(alumnosConVentas: AlumnoVenta[] = [], ventasDelDia: VentaDelDia[] = []): any[][] {
+export function crearEstructuraReporte(alumnosConVentas: AlumnoVenta[] = [], ventasDelDia: VentaDelDia[] = []): (string | number)[][] {
   const fecha = getFechaReporte().toUpperCase();
   
   // Calcular totales de cada producto (TODOS los conceptos)
@@ -489,8 +489,8 @@ export function crearEstructuraReporte(alumnosConVentas: AlumnoVenta[] = [], ven
 }
 
 // Función para crear la estructura de la segunda hoja (otros conceptos)
-export function crearEstructuraSegundaHoja(alumnosConVentas: AlumnoVentaCompleta[] = [], ventasDelDia: VentaDelDia[] = []): any[][] {
-  const fecha = getFechaReporte().toUpperCase();
+export function crearEstructuraSegundaHoja(alumnosConVentas: AlumnoVentaCompleta[] = [], ventasDelDia: VentaDelDia[] = []): (string | number)[][] {
+  // const fecha = getFechaReporte().toUpperCase();
   
   // Calcular totales de cada servicio para la segunda hoja
   const totales = {
@@ -659,7 +659,8 @@ export function crearEstructuraSegundaHoja(alumnosConVentas: AlumnoVentaCompleta
 }
 
 // Función principal para generar el reporte Excel de Ludy
-export async function generarReporteLudy(): Promise<void> {
+// COMENTADA TEMPORALMENTE - REQUIERE XLSX
+/* export async function generarReporteLudy(): Promise<void> {
   try {
     console.log('📊 Generando Reporte de Ludy combinado...');
     
@@ -686,8 +687,8 @@ export async function generarReporteLudy(): Promise<void> {
       console.log('📋 Generando reporte vacío (sin ventas del día)');
     }
     
-    // Crear nuevo workbook
-    const wb = XLSX.utils.book_new();
+    // Crear nuevo workbook - COMENTADO TEMPORALMENTE
+    // const wb = XLSX.utils.book_new();
     
     // === CREAR PRIMERA HOJA: DESAYUNOS ===
     const estructura = crearEstructuraReporte(alumnosConVentas, ventasDelDia || []);
@@ -1078,4 +1079,4 @@ export async function generarReporteLudy(): Promise<void> {
     console.error('❌ Error generando reporte de Ludy:', error);
     throw error;
   }
-}
+} */
