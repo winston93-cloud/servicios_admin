@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Check, Users, Coffee, Home, Utensils, BookOpen, Clock, ChefHat, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
@@ -472,7 +472,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
     }
   };
 
-  const cargarDatos = async () => {
+  const cargarDatos = useCallback(async () => {
     setLoading(true);
     
     // Cargar conceptos de desayunos y ventas en paralelo
@@ -488,7 +488,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
     await cargarEstadoEntregas(datos);
     
     setLoading(false);
-  };
+  }, []);
 
   const cargarEstadoEntregas = async (datos: VentaDelDia) => {
     try {

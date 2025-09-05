@@ -136,13 +136,13 @@ export async function obtenerVentasDelDia(): Promise<AlumnoVenta[]> {
         const personalId = ref.substring(1); // Quitar la P
         console.log('👩‍🏫 Buscando personal con ID:', personalId);
         
-        const { data: personal, error: personalError } = await supabase
+        const { data: personal } = await supabase
           .from('personal')
           .select('personal_nombre, personal_app')
           .eq('id', personalId)
           .single();
 
-        console.log('👩‍🏫 Resultado personal:', { personal, personalError });
+        console.log('👩‍🏫 Resultado personal:', { personal });
 
         if (personal) {
           const serviciosPersonal = ventas
@@ -174,13 +174,13 @@ export async function obtenerVentasDelDia(): Promise<AlumnoVenta[]> {
         // Es alumno
         console.log('👦 Buscando alumno con ref:', ref);
         
-        const { data: alumno, error: alumnoError } = await supabase
+        const { data: alumno } = await supabase
           .from('alumno')
           .select('alumno_nombre, alumno_app, alumno_nivel, alumno_grado, alumno_grupo')
           .eq('alumno_ref', ref)
           .single();
 
-        console.log('👦 Resultado alumno:', { alumno, alumnoError });
+        console.log('👦 Resultado alumno:', { alumno });
 
         if (alumno) {
           const serviciosAlumno = ventas
@@ -256,7 +256,7 @@ export async function obtenerTodasLasVentasDelDia(): Promise<AlumnoVentaCompleta
       if (ref.startsWith('P')) {
         // Es personal/maestro
         const personalId = ref.substring(1);
-        const { data: personal, error: personalError } = await supabase
+        const { data: personal } = await supabase
           .from('personal')
           .select('personal_nombre, personal_app')
           .eq('id', personalId)
@@ -279,7 +279,7 @@ export async function obtenerTodasLasVentasDelDia(): Promise<AlumnoVentaCompleta
         }
       } else {
         // Es alumno
-        const { data: alumno, error: alumnoError } = await supabase
+        const { data: alumno } = await supabase
           .from('alumno')
           .select('alumno_nombre, alumno_app, alumno_nivel, alumno_grado, alumno_grupo')
           .eq('alumno_ref', ref)
@@ -555,7 +555,7 @@ function generarPaginaDesayunos(pdf: jsPDF, alumnosConVentas: AlumnoVenta[], ven
   });
   
   // Agregar sección de NOTAS
-  const finalY = (pdf as any).lastAutoTable.finalY + 10;
+  const finalY = (pdf as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 10;
   pdf.setFontSize(12);
   pdf.setFont('helvetica', 'bold');
   pdf.text('NOTAS:', 10, finalY);
