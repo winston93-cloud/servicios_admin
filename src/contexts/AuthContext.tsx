@@ -1,7 +1,7 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
-import { AuthUser, getStoredUser, storeUser, logoutUser } from '@/lib/authService'
+import React, { createContext, useContext, useState } from 'react'
+import { AuthUser } from '@/lib/authService'
 
 interface AuthContextType {
   user: AuthUser | null
@@ -14,29 +14,22 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    // Verificar si hay un usuario almacenado
-    const storedUser = getStoredUser()
-    if (storedUser) {
-      console.log('Usuario encontrado en almacenamiento:', storedUser.usuario_nombre_completo)
-      setUser(storedUser)
-    }
-    setLoading(false)
-  }, [])
+  // Usuario por defecto para simular autenticación
+  const [user] = useState<AuthUser | null>({
+    usuario_id: 1,
+    usuario_username: 'admin',
+    usuario_nombre_completo: 'Administrador del Sistema'
+  })
+  const [loading] = useState(false)
 
   const login = (authUser: AuthUser) => {
-    setUser(authUser)
-    storeUser(authUser)
+    // No hacer nada, ya estamos "autenticados"
+    console.log('Login llamado:', authUser)
   }
 
   const logout = () => {
-    console.log('Cerrando sesión...')
-    setUser(null)
-    logoutUser()
-    console.log('Sesión cerrada exitosamente')
+    // No hacer nada, mantener siempre autenticado
+    console.log('Logout llamado - manteniendo sesión')
   }
 
   const value = {
@@ -44,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loading,
     login,
     logout,
-    isAuthenticated: !!user
+    isAuthenticated: true // Siempre autenticado
   }
 
   return (
