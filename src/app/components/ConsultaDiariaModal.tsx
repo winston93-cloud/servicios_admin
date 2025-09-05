@@ -772,7 +772,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
       // Actualizar el estado en la base de datos para el servicio específico
       const nuevoEstado = isCurrentlyDelivered ? 0 : 1;
       
-      // Determinar la descripción específica del servicio
+      // Determinar la descripción específica del servicio que coincida con la BD
       let descripcionServicio = '';
       if (tipoServicio === 'desayuno') {
         if (alumnoEncontrado.servicios.includes('Desayuno CH')) descripcionServicio = 'Desayuno CH';
@@ -780,9 +780,9 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
       } else if (tipoServicio === 'estancia5') descripcionServicio = 'Estancia 5';
       else if (tipoServicio === 'estancia7') descripcionServicio = 'Estancia 7';
       else if (tipoServicio === 'comida') descripcionServicio = 'Comida';
-      else if (tipoServicio === 'tarea5') descripcionServicio = 'Tarea 5';
-      else if (tipoServicio === 'tarea7') descripcionServicio = 'Tarea 7';
-      else if (tipoServicio === 'media') descripcionServicio = 'Media';
+      else if (tipoServicio === 'tarea5') descripcionServicio = 'Tareas 5'; // Usar plural como en BD
+      else if (tipoServicio === 'tarea7') descripcionServicio = 'Tareas 7'; // Usar plural como en BD
+      else if (tipoServicio === 'media') descripcionServicio = 'MEDIA'; // Usar mayúsculas como en BD
       
       console.log(`💾 Actualizando BD: Ref=${pagoRef}, Fecha=${hoy}, Desc=${descripcionServicio}, Estado=${nuevoEstado}`);
       
