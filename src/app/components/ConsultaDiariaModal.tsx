@@ -606,17 +606,12 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
   }, [isOpen, cargarDatos]);
 
   const toggleEntregado = async (alumnoKey: string) => {
-    console.log(`🔄 Toggle entregado para: ${alumnoKey}`);
-    console.log(`🌍 Entorno: ${process.env.NODE_ENV}`);
-    console.log(`🔗 URL actual: ${typeof window !== 'undefined' ? window.location.href : 'SSR'}`);
-    
     const nuevosEntregados = new Set(entregados);
     const isCurrentlyDelivered = nuevosEntregados.has(alumnoKey);
     
     try {
       // Extraer información del alumnoKey (formato: "nombre-servicio")
       const [nombreCompleto, servicio] = alumnoKey.split('-');
-      console.log(`👤 Procesando: ${nombreCompleto} - ${servicio}`);
       
       // Buscar el alumno en los datos actuales
       let alumnoEncontrado = null;
@@ -666,11 +661,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
       }
       
       // Buscar la referencia que coincida con el alumno y el servicio específico
-      console.log(`🔍 Buscando pago para: ${alumnoEncontrado.pago_ref} - Tipo: ${tipoServicio}`);
-      console.log(`📦 Pagos disponibles:`, pagosHoy);
-      
       for (const pago of pagosHoy || []) {
-        console.log(`🔍 Comparando: ${pago.pago_ref} vs ${alumnoEncontrado.pago_ref}`);
         if (pago.pago_ref === alumnoEncontrado.pago_ref) {
           // Verificar si el servicio específico coincide
           let servicioCoincide = false;
@@ -680,7 +671,6 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
             const tieneDesayunoCH = alumnoEncontrado.servicios.includes('Desayuno CH') && pago.pago_descripcion.includes('Desayuno CH');
             const tieneDesayunoGDE = alumnoEncontrado.servicios.includes('Desayuno GDE') && pago.pago_descripcion.includes('Desayuno GDE');
             servicioCoincide = tieneDesayunoCH || tieneDesayunoGDE;
-            console.log(`🍳 Desayuno: CH=${tieneDesayunoCH}, GDE=${tieneDesayunoGDE}, Coincide=${servicioCoincide}`);
           } else {
             // Para otros servicios, verificar la descripción específica
             if (tipoServicio === 'estancia5') servicioCoincide = pago.pago_descripcion.includes('Estancia 5');
@@ -689,12 +679,10 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
             else if (tipoServicio === 'tarea5') servicioCoincide = pago.pago_descripcion.includes('Tarea 5') || pago.pago_descripcion.includes('Tareas 5');
             else if (tipoServicio === 'tarea7') servicioCoincide = pago.pago_descripcion.includes('Tarea 7') || pago.pago_descripcion.includes('Tareas 7');
             else if (tipoServicio === 'media') servicioCoincide = pago.pago_descripcion.includes('MEDIA') || pago.pago_descripcion.includes('Media');
-            console.log(`🔧 ${tipoServicio}: Coincide=${servicioCoincide}`);
           }
           
           if (servicioCoincide) {
             pagoRef = pago.pago_ref;
-            console.log(`✅ Pago encontrado: ${pagoRef} - ${pago.pago_descripcion}`);
             break;
           }
         }
@@ -722,8 +710,6 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
       else if (tipoServicio === 'tarea7') descripcionServicio = 'Tarea 7';
       else if (tipoServicio === 'media') descripcionServicio = 'Media';
       
-      console.log(`💾 Actualizando BD: Ref=${pagoRef}, Fecha=${hoy}, Desc=${descripcionServicio}, Estado=${nuevoEstado}`);
-      
       const { error: updateError } = await supabase
         .from('pago_desayunos')
         .update({ pago_pagado: nuevoEstado })
@@ -735,8 +721,6 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
         console.error('❌ Error actualizando estado de entrega:', updateError);
         return;
       }
-      
-      console.log('✅ Base de datos actualizada exitosamente');
       
       // Actualizar el estado local
       if (isCurrentlyDelivered) {
