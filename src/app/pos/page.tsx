@@ -13,11 +13,13 @@ import AgendaPostIt from '../components/AgendaPostIt';
 import PaymentCalculator from '../components/PaymentCalculator';
 import ProductoModal from '../components/ProductoModal';
 import PersonalModal from '../components/PersonalModal';
+import ConsultaDiariaModal from '../components/ConsultaDiariaModal';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { ProductoSearchResult } from '@/lib/productoService';
 import { CombinedSearchResult } from '@/lib/alumnoService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { generarReporteLudy } from '@/lib/reporteLudyServicePDF';
 
 interface ProductWithDate extends ProductoSearchResult {
   date?: Date;
@@ -34,11 +36,22 @@ export default function Home() {
   } | null>(null);
   const [isProductoModalOpen, setIsProductoModalOpen] = useState(false);
   const [isPersonalModalOpen, setIsPersonalModalOpen] = useState(false);
+  const [isConsultaDiariaModalOpen, setIsConsultaDiariaModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const productoInputRef = useRef<ProductoSearchRef>(null);
 
   const handleBackToDashboard = () => {
     router.push('/dashboard');
+  };
+
+  const handleReporteLudy = async () => {
+    try {
+      console.log('📊 Generando Reporte de Ludy...');
+      await generarReporteLudy();
+      console.log('✅ Reporte de Ludy generado exitosamente');
+    } catch (error) {
+      console.error('❌ Error generando reporte de Ludy:', error);
+    }
   };
 
   const handleProductSelect = (product: ProductoSearchResult) => {
@@ -116,6 +129,18 @@ export default function Home() {
               </button>
               <button className="pos-nav-item">
                 Reportes
+              </button>
+              <button 
+                onClick={handleReporteLudy}
+                className="pos-nav-item"
+              >
+                Reporte Diario
+              </button>
+              <button 
+                onClick={() => setIsConsultaDiariaModalOpen(true)}
+                className="pos-nav-item"
+              >
+                Consulta diaria
               </button>
             </nav>
             {/* Usuario logueado y logout */}
@@ -200,6 +225,12 @@ export default function Home() {
         <PersonalModal 
           isOpen={isPersonalModalOpen}
           onClose={() => setIsPersonalModalOpen(false)}
+        />
+
+        {/* Modal de Consulta Diaria */}
+        <ConsultaDiariaModal 
+          isOpen={isConsultaDiariaModalOpen}
+          onClose={() => setIsConsultaDiariaModalOpen(false)}
         />
       </div>
     </ProtectedRoute>

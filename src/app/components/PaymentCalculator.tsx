@@ -52,10 +52,7 @@ export default function PaymentCalculator({ orderTotal, selectedProducts = [], s
     setAmountPaid(numValue);
   };
 
-  const handleQuickAmount = (amount: number) => {
-    setAmountPaid(amount);
-    setAmountInputValue(amount.toString());
-  };
+
 
   const saveSale = async () => {
     if (!selectedProducts || selectedProducts.length === 0 || !selectedStudent) {
@@ -122,33 +119,7 @@ export default function PaymentCalculator({ orderTotal, selectedProducts = [], s
             </div>
           </div>
 
-          {/* Botones de montos rápidos */}
-          <div className="quick-amounts">
-            <button 
-              onClick={() => handleQuickAmount(orderTotal)}
-              className="quick-amount-btn"
-            >
-              Total
-            </button>
-            <button 
-              onClick={() => handleQuickAmount(orderTotal + 50)}
-              className="quick-amount-btn"
-            >
-              +$50
-            </button>
-            <button 
-              onClick={() => handleQuickAmount(orderTotal + 100)}
-              className="quick-amount-btn"
-            >
-              +$100
-            </button>
-            <button 
-              onClick={() => handleQuickAmount(orderTotal + 200)}
-              className="quick-amount-btn"
-            >
-              +$200
-            </button>
-          </div>
+
         </div>
 
         {/* Cambio */}
