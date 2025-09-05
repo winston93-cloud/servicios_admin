@@ -681,29 +681,27 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
       let alumnoEncontrado = null;
       let tipoServicio = '';
       
-      // Buscar en desayunos
-      for (const alumno of ventasDelDia.desayunos) {
+      // Determinar el tipo de servicio basado en el servicio del alumnoKey
+      tipoServicio = servicio;
+      
+      // Buscar el alumno en todos los servicios disponibles
+      const todosLosServicios = [
+        ...ventasDelDia.desayunos.map(a => ({...a, categoria: 'desayuno'})),
+        ...ventasDelDia.estancias.map(a => ({...a, categoria: 'estancia'})),
+        ...ventasDelDia.comidas.map(a => ({...a, categoria: 'comida'})),
+        ...ventasDelDia.tareas.map(a => ({...a, categoria: 'tarea'})),
+        ...ventasDelDia.media.map(a => ({...a, categoria: 'media'}))
+      ];
+      
+      console.log(`🔍 DEBUG OSORIO: Buscando alumno "${nombreCompleto}" con tipo "${tipoServicio}"`);
+      console.log(`🔍 DEBUG OSORIO: Total servicios disponibles: ${todosLosServicios.length}`);
+      
+      for (const alumno of todosLosServicios) {
+        console.log(`🔍 DEBUG OSORIO: Comparando "${alumno.alumno_nombre_completo}" vs "${nombreCompleto}"`);
         if (alumno.alumno_nombre_completo === nombreCompleto) {
           alumnoEncontrado = alumno;
-          tipoServicio = 'desayuno';
+          console.log(`✅ DEBUG OSORIO: Alumno encontrado:`, alumno);
           break;
-        }
-      }
-      
-      // Si no se encontró en desayunos, buscar en otros servicios
-      if (!alumnoEncontrado) {
-        const todosLosServicios = [...ventasDelDia.estancias, ...ventasDelDia.comidas, ...ventasDelDia.tareas, ...ventasDelDia.media];
-        console.log(`🔍 DEBUG OSORIO: Buscando en otros servicios. Total: ${todosLosServicios.length}`);
-        console.log(`🔍 DEBUG OSORIO: Alumnos disponibles:`, todosLosServicios.map(a => `${a.alumno_nombre_completo} (Ref: ${a.pago_ref})`));
-        
-        for (const alumno of todosLosServicios) {
-          console.log(`🔍 DEBUG OSORIO: Comparando "${alumno.alumno_nombre_completo}" vs "${nombreCompleto}"`);
-          if (alumno.alumno_nombre_completo === nombreCompleto) {
-            alumnoEncontrado = alumno;
-            tipoServicio = servicio;
-            console.log(`✅ DEBUG OSORIO: Alumno encontrado en otros servicios:`, alumno);
-            break;
-          }
         }
       }
       
