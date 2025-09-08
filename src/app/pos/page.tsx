@@ -14,6 +14,7 @@ import PaymentCalculator from '../components/PaymentCalculator';
 import ProductoModal from '../components/ProductoModal';
 import PersonalModal from '../components/PersonalModal';
 import ConsultaDiariaModal from '../components/ConsultaDiariaModal';
+import ReporteContableModal from '../components/ReporteContableModal';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { ProductoSearchResult } from '@/lib/productoService';
 import { CombinedSearchResult } from '@/lib/alumnoService';
@@ -37,6 +38,8 @@ export default function Home() {
   const [isProductoModalOpen, setIsProductoModalOpen] = useState(false);
   const [isPersonalModalOpen, setIsPersonalModalOpen] = useState(false);
   const [isConsultaDiariaModalOpen, setIsConsultaDiariaModalOpen] = useState(false);
+  const [isReporteContableModalOpen, setIsReporteContableModalOpen] = useState(false);
+  
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const productoInputRef = useRef<ProductoSearchRef>(null);
 
@@ -127,8 +130,11 @@ export default function Home() {
               >
                 Externos
               </button>
-              <button className="pos-nav-item">
-                Reportes
+              <button 
+                onClick={() => setIsReporteContableModalOpen(true)}
+                className="pos-nav-item"
+              >
+                Reporte Contable
               </button>
               <button 
                 onClick={handleReporteLudy}
@@ -231,6 +237,12 @@ export default function Home() {
         <ConsultaDiariaModal 
           isOpen={isConsultaDiariaModalOpen}
           onClose={() => setIsConsultaDiariaModalOpen(false)}
+        />
+
+        {/* Modal de Reporte Contable */}
+        <ReporteContableModal 
+          isOpen={isReporteContableModalOpen}
+          onClose={() => setIsReporteContableModalOpen(false)}
         />
       </div>
     </ProtectedRoute>
