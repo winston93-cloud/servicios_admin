@@ -258,12 +258,12 @@ export default function ReporteContableModal({ isOpen, onClose }: ReporteContabl
                 <p>✅ Reporte generado exitosamente</p>
                 <p>📊 {resumenDias.length} días procesados</p>
                 <p>💰 Total vendido: ${totales.totalVendido.toLocaleString()}</p>
-                <p>📄 Haz clic en "Exportar Excel" para descargar el reporte completo</p>
+                <p>📄 Haz clic en &quot;Exportar Excel&quot; para descargar el reporte completo</p>
               </div>
             ) : (
               <div>
                 <p>📅 Selecciona el rango de fechas</p>
-                <p>🔍 Haz clic en "Generar reporte" para procesar los datos</p>
+                <p>🔍 Haz clic en &quot;Generar reporte&quot; para procesar los datos</p>
                 <p>📊 El reporte se exportará como Excel con la estructura original</p>
               </div>
             )}
