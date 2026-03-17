@@ -1,22 +1,80 @@
-/* Variables para diseño POS moderno y fresco */
+/* ─── Design Tokens — Light Mode (default) ─────────────────────────────── */
 :root {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-accent: #3b82f6;
-  --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --bg-gradient-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --border-light: #334155;
-  --border-medium: #475569;
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
-  --glass-bg: rgba(30, 41, 59, 0.8);
-  --glass-border: rgba(148, 163, 184, 0.2);
+  /* Backgrounds */
+  --bg-primary:   #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-card:      #ffffff;
+  --bg-subtle:    #f1f5f9;
+
+  /* Accent — Azul marino */
+  --bg-accent:         #1e3a5f;
+  --bg-accent-hover:   #162d4a;
+  --bg-accent-muted:   #dbeafe;
+  --bg-accent-border:  #bfdbfe;
+
+  /* Text */
+  --text-primary:   #0f172a;
+  --text-secondary: #475569;
+  --text-muted:     #94a3b8;
+  --text-on-accent: #ffffff;
+
+  /* Borders */
+  --border-light:  #e2e8f0;
+  --border-medium: #cbd5e1;
+
+  /* Shadows — sutiles, sin opacidad agresiva */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -1px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.10), 0 4px 6px -2px rgba(15, 23, 42, 0.06);
+
+  /* Estado */
+  --success: #059669;
+  --warning: #d97706;
+  --error:   #dc2626;
+  --info:    #1d4ed8;
+
+  /* Glass — para light mode */
+  --glass-bg:     rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(30, 58, 95, 0.12);
+
+  /* Gradients — elegantes, monocromáticos */
+  --bg-gradient:           linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+  --bg-gradient-secondary: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+}
+
+/* ─── Design Tokens — Dark Mode ─────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-primary:   #0c1628;
+    --bg-secondary: #111c33;
+    --bg-card:      #152240;
+    --bg-subtle:    #1a2a47;
+
+    --bg-accent:        #2563eb;
+    --bg-accent-hover:  #1d4ed8;
+    --bg-accent-muted:  #1e3a5f;
+    --bg-accent-border: #2d5282;
+
+    --text-primary:   #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted:     #64748b;
+    --text-on-accent: #ffffff;
+
+    --border-light:  #1e3a5f;
+    --border-medium: #2d5282;
+
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+
+    --glass-bg:     rgba(21, 34, 64, 0.85);
+    --glass-border: rgba(148, 163, 184, 0.12);
+  }
 }
 
 /* Reset y base */
@@ -31,16 +89,14 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-geist-sans), 'Inter', ui-sans-serif, system-ui, sans-serif;
   background: var(--bg-primary);
-  background-image: 
-    radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
   color: var(--text-primary);
   line-height: 1.6;
   font-size: 14px;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Header POS moderno */
@@ -70,11 +126,8 @@ body {
   gap: 12px;
   font-size: 20px;
   font-weight: 700;
-  background: var(--bg-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 .pos-nav {
@@ -89,7 +142,7 @@ body {
   border: 1px solid var(--glass-border);
   color: var(--text-secondary);
   text-decoration: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   font-size: 14px;
   font-weight: 500;
   backdrop-filter: blur(10px);
@@ -150,7 +203,7 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: 12px;
   color: var(--text-secondary);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   backdrop-filter: blur(10px);
   cursor: pointer;
   width: 44px;
@@ -186,7 +239,7 @@ body {
   border-radius: 16px;
   padding: 24px;
   box-shadow: var(--shadow-lg);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .glass-card:hover {
@@ -256,7 +309,7 @@ body {
   font-size: 14px;
   background: var(--bg-secondary);
   color: var(--text-primary);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   backdrop-filter: blur(10px);
   position: relative;
   z-index: 10;
@@ -290,7 +343,7 @@ body {
   align-items: center;
   gap: 16px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   width: 100%;
   position: relative;
   overflow: hidden;
@@ -462,7 +515,7 @@ body {
   display: grid;
   grid-template-columns: 80px 1fr 100px 120px 80px;
   border-bottom: 1px solid var(--border-light);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .table-row:hover {
@@ -481,7 +534,7 @@ body {
   justify-content: center;
   border-right: 1px solid var(--border-light);
   font-size: 14px;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .table-cell:last-child {
@@ -507,7 +560,7 @@ body {
 
 .clickable-date {
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   border-radius: 6px;
   padding: 8px 12px;
   position: relative;
@@ -544,7 +597,7 @@ body {
   font-size: 14px;
   background: var(--bg-secondary);
   color: var(--text-primary);
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .quantity-input:focus {
@@ -567,7 +620,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   box-shadow: var(--shadow-sm);
 }
 
@@ -703,7 +756,7 @@ body {
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   user-select: none;
 }
 
@@ -1048,7 +1101,7 @@ body {
   cursor: pointer;
   padding: 8px;
   border-radius: 8px;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .calendar-close-btn:hover {
@@ -1070,7 +1123,7 @@ body {
   padding: 8px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1121,7 +1174,7 @@ body {
   padding: 12px 8px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   font-size: 14px;
   font-weight: 500;
   display: flex;
@@ -1189,7 +1242,7 @@ body {
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .today-btn:hover {
@@ -1238,7 +1291,7 @@ body {
   padding: 12px 16px;
   cursor: pointer;
   border-bottom: 1px solid var(--glass-border);
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .search-result-item:hover {
@@ -1327,7 +1380,7 @@ body {
   cursor: pointer;
   padding: 8px;
   border-radius: 8px;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1379,7 +1432,7 @@ body {
   border-radius: 12px;
   color: var(--text-primary);
   font-size: 14px;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .search-input:focus {
@@ -1390,14 +1443,14 @@ body {
 
 /* Botones */
 .btn-primary {
-  background: var(--bg-gradient);
-  color: white;
+  background: var(--bg-accent);
+  color: var(--text-on-accent);
   border: none;
   padding: 12px 24px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1405,14 +1458,18 @@ body {
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  background: var(--bg-accent-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--bg-accent);
+  outline-offset: 2px;
 }
 
 .btn-primary:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
 }
 
 .btn-secondary {
@@ -1420,10 +1477,10 @@ body {
   color: var(--text-primary);
   border: 1px solid var(--border-medium);
   padding: 12px 24px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1431,19 +1488,24 @@ body {
 }
 
 .btn-secondary:hover {
-  background: var(--border-medium);
-  border-color: var(--border-light);
+  background: var(--bg-subtle);
+  border-color: var(--border-medium);
+}
+
+.btn-secondary:focus-visible {
+  outline: 2px solid var(--bg-accent);
+  outline-offset: 2px;
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: var(--error);
   color: white;
   border: none;
   padding: 12px 24px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1478,7 +1540,7 @@ body {
   background: var(--bg-secondary);
   border: 1px solid var(--border-medium);
   border-radius: 12px;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .producto-item:hover {
@@ -1531,7 +1593,7 @@ body {
   padding: 8px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1579,7 +1641,7 @@ body {
   border-radius: 12px;
   color: var(--text-primary);
   font-size: 14px;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .form-input:focus {
@@ -1788,7 +1850,7 @@ body {
   padding: 4px;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1927,7 +1989,7 @@ body {
   color: white;
   font-size: 1rem;
   font-weight: 500;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .payment-input:focus {
@@ -1956,7 +2018,7 @@ body {
   font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .quick-amount-btn:hover {
@@ -1984,7 +2046,7 @@ body {
 .change-amount {
   font-size: 1.3rem;
   font-weight: 700;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .change-amount.positive {
@@ -2061,7 +2123,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .success-close-btn:hover {
@@ -2075,16 +2137,17 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--bg-primary);
   padding: 20px;
 }
 
 .login-card {
   width: 100%;
   max-width: 400px;
-  background: white;
-  border-radius: 24px 24px 16px 16px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
@@ -2195,165 +2258,164 @@ body {
 }
 
 .login-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 48px 32px;
+  background: var(--bg-accent);
+  padding: 40px 32px;
   text-align: center;
-  color: white;
+  color: var(--text-on-accent);
 }
 
 .login-icon {
-  width: 80px;
-  height: 80px;
-  background: white;
-  border-radius: 16px;
-  margin: 0 auto 24px;
+  width: 72px;
+  height: 72px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-md);
+  margin: 0 auto 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
 .login-icon svg {
-  width: 40px;
-  height: 40px;
-  color: #667eea;
+  width: 36px;
+  height: 36px;
+  color: white;
 }
 
 .login-logo {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 16px;
+  border-radius: var(--radius-sm);
 }
 
 .login-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   line-height: 1.3;
+  color: white;
 }
 
 .login-subtitle {
-  font-size: 18px;
-  color: #fbbf24;
-  font-weight: 800;
-  text-shadow: 0 2px 8px rgba(251, 191, 36, 0.4);
-  letter-spacing: 1px;
-  margin-top: 12px;
-  white-space: nowrap;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  margin-top: 6px;
+  white-space: normal;
 }
 
 .login-form {
   padding: 32px;
-  background: linear-gradient(135deg, #f8fafc 0%, #e7e5ff 100%);
-  border-top: 3px solid #6366f1;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-light);
 }
 
 .form-group {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .form-label {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 16px;
-  font-weight: 700;
-  color: #000000 !important;
-  margin-bottom: 14px;
-  text-shadow: none;
-  padding: 8px 0;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border-radius: 8px;
-  padding-left: 12px;
-  border-left: 4px solid #6366f1;
-  border: 2px solid #e2e8f0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .form-label svg {
-  width: 20px;
-  height: 20px;
-  color: #f59e0b;
-  filter: drop-shadow(0 1px 2px rgba(245, 158, 11, 0.3));
+  width: 16px;
+  height: 16px;
+  color: var(--text-muted);
 }
 
 .form-input {
   width: 100%;
-  padding: 14px 18px;
-  border: 3px solid #667eea;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 500;
-  background: #ffffff;
-  color: #1e293b;
-  transition: all 0.3s ease;
+  padding: 11px 14px;
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 400;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
   box-sizing: border-box;
-  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
+  font-family: inherit;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #f59e0b;
-  background: #fffbeb;
-  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3), 0 4px 12px rgba(102, 126, 234, 0.3);
-  transform: translateY(-2px);
+  border-color: var(--bg-accent);
+  box-shadow: 0 0 0 3px var(--bg-accent-muted);
 }
 
 .form-input::placeholder {
-  color: #64748b;
+  color: var(--text-muted);
   font-weight: 400;
 }
 
 .form-input:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed;
+  background: var(--bg-subtle);
 }
 
 .error-message {
-  padding: 12px 16px;
+  padding: 10px 14px;
   background: #fef2f2;
   border: 1px solid #fca5a5;
-  border-radius: 8px;
-  color: #dc2626;
-  font-size: 14px;
+  border-radius: var(--radius-sm);
+  color: var(--error);
+  font-size: 13px;
   margin-bottom: 16px;
 }
 
 .login-button {
   width: 100%;
-  background: linear-gradient(135deg, #f59e0b 0%, #f97316 50%, #dc2626 100%);
-  color: white;
-  padding: 16px 24px;
+  background: var(--bg-accent);
+  color: var(--text-on-accent);
+  padding: 13px 24px;
   border: none;
-  border-radius: 12px;
-  font-size: 17px;
-  font-weight: 700;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  transition: all 0.3s ease;
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  gap: 8px;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+  font-family: inherit;
 }
 
 .login-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #f97316 0%, #dc2626 50%, #b91c1c 100%);
-  transform: translateY(-3px);
-  box-shadow: 0 12px 30px rgba(245, 158, 11, 0.6);
+  background: var(--bg-accent-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.login-button:focus-visible {
+  outline: 2px solid var(--bg-accent);
+  outline-offset: 2px;
 }
 
 .login-button:disabled {
-  opacity: 0.7;
+  opacity: 0.55;
   cursor: not-allowed;
-  transform: none;
 }
 
 .login-button svg {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
 }
 
 /* Separador entre botones */
@@ -2412,7 +2474,7 @@ body {
   font-size: 16px;
   background-color: #ffffff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   outline: none;
   color: #1f2937;
 }
@@ -2430,9 +2492,7 @@ body {
 /* Dashboard Styles */
 .dashboard-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 25%, #ec4899 50%, #f59e0b 75%, #10b981 100%);
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
+  background: var(--bg-primary);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -2482,53 +2542,46 @@ body {
   }
 }
 
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
 .dashboard-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 32px;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  padding: 16px 32px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
 }
 
 .dashboard-menu-icon {
-  width: 40px;
-  height: 40px;
-  color: white;
+  width: 36px;
+  height: 36px;
+  color: var(--text-secondary);
   cursor: pointer;
-  padding: 8px;
-  border-radius: 12px;
-  transition: all 0.3s ease;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.15s ease, color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .dashboard-menu-icon:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.1);
-  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.2);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
 }
 
 .dashboard-logo {
   display: flex;
   align-items: center;
+  gap: 10px;
 }
 
 .dashboard-logo-icon {
-  width: 40px;
-  height: 40px;
-  color: #fbbf24;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
+  width: 32px;
+  height: 32px;
+  color: var(--bg-accent);
+  background: var(--bg-accent-muted);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2537,51 +2590,50 @@ body {
 .dashboard-user-info {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .dashboard-welcome {
-  color: #1f2937;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 8px 16px;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 16px;
-  text-shadow: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 14px;
 }
 
 .dashboard-user-id {
-  color: white;
+  color: var(--text-secondary);
   font-weight: 500;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 4px 12px;
-  border-radius: 6px;
+  font-size: 13px;
+  background: var(--bg-subtle);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
 }
 
 .dashboard-logout-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #ef4444;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
+  gap: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-medium);
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
   font-weight: 500;
+  font-size: 13px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  font-family: inherit;
 }
 
 .dashboard-logout-btn:hover {
-  background: #dc2626;
-  transform: translateY(-1px);
+  background: #fef2f2;
+  color: var(--error);
+  border-color: #fca5a5;
 }
 
 .dashboard-logout-btn svg {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
 }
 
 .dashboard-main {
@@ -2589,167 +2641,101 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  text-align: center;
+  justify-content: flex-start;
+  padding: 48px 24px;
 }
 
 .dashboard-title {
-  color: white;
-  font-size: 48px;
-  font-weight: 800;
-  margin-bottom: 30px;
-  max-width: 900px;
-  line-height: 1.1;
-  white-space: nowrap;
-  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  letter-spacing: 2px;
-  background: linear-gradient(45deg, #ffffff, #f8fafc, #e2e8f0);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: titleGlow 3s ease-in-out infinite alternate;
-}
-
-@keyframes titleGlow {
-  0% { 
-    text-shadow: 0 4px 20px rgba(255, 255, 255, 0.3);
-    transform: scale(1);
-  }
-  100% { 
-    text-shadow: 0 8px 40px rgba(255, 255, 255, 0.5);
-    transform: scale(1.02);
-  }
+  color: var(--text-primary);
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 700;
+  margin-bottom: 8px;
+  max-width: 700px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  text-align: center;
 }
 
 .dashboard-star {
-  font-size: 40px;
-  margin-bottom: 40px;
-  animation: starSpin 4s linear infinite;
-  filter: drop-shadow(0 0 20px #fbbf24);
+  display: none;
 }
 
 .dashboard-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 30px;
-  max-width: 1200px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  max-width: 1100px;
   width: 100%;
-  margin: 0 auto;
-}
-
-@keyframes starSpin {
-  0% { transform: rotate(0deg) scale(1); }
-  25% { transform: rotate(90deg) scale(1.1); }
-  50% { transform: rotate(180deg) scale(1); }
-  75% { transform: rotate(270deg) scale(1.1); }
-  100% { transform: rotate(360deg) scale(1); }
+  margin: 32px auto 0;
 }
 
 .dashboard-card {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%);
-  border-radius: 24px;
-  padding: 35px;
-  box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(255, 255, 255, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 28px 24px;
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
   width: 100%;
-  min-height: 280px;
+  min-height: auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
+  align-items: flex-start;
+  text-align: left;
   position: relative;
-  overflow: hidden;
-}
-
-.dashboard-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  transition: left 0.6s;
-}
-
-.dashboard-card:hover::before {
-  left: 100%;
 }
 
 .dashboard-card:hover {
-  transform: translateY(-10px) scale(1.02);
-  box-shadow: 
-    0 35px 70px rgba(0, 0, 0, 0.15),
-    0 0 0 1px rgba(255, 255, 255, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 0 50px rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-md);
+  border-color: var(--bg-accent-border);
+  transform: translateY(-2px);
 }
 
 .dashboard-card-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   color: white;
-  box-shadow: 
-    0 15px 30px rgba(0, 0, 0, 0.2),
-    inset 0 2px 0 rgba(255, 255, 255, 0.3);
-  transition: all 0.3s ease;
-  animation: iconFloat 3s ease-in-out infinite;
+  transition: none;
 }
 
 .dashboard-card-icon.orange {
-  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #ff8c42 100%);
+  background: #ea580c;
 }
 
 .dashboard-card-icon.blue {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6366f1 100%);
+  background: var(--bg-accent);
 }
 
 .dashboard-card-icon.green {
-  background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+  background: #059669;
 }
 
 .dashboard-card-icon.purple {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%);
-}
-
-.dashboard-card:hover .dashboard-card-icon {
-  transform: scale(1.1) rotate(5deg);
-  box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.25),
-    inset 0 2px 0 rgba(255, 255, 255, 0.4);
-}
-
-@keyframes iconFloat {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
+  background: #7c3aed;
 }
 
 .dashboard-card-icon svg {
-  width: 40px;
-  height: 40px;
+  width: 24px;
+  height: 24px;
 }
 
 .dashboard-card-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 10px;
-  line-height: 1.3;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  line-height: 1.4;
 }
 
 .dashboard-card-subtitle {
-  font-size: 14px;
-  color: #6b7280;
+  font-size: 13px;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
@@ -2761,7 +2747,7 @@ body {
   height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #8b5a96 100%);
   padding: 30px;
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.2s ease;
   z-index: 1000;
   display: flex;
   flex-direction: column;
@@ -2823,7 +2809,7 @@ body {
   padding: 16px;
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   margin-bottom: 8px;
 }
 
@@ -2873,7 +2859,7 @@ body {
   border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   width: 100%;
 }
 
@@ -2969,7 +2955,7 @@ body {
   border-radius: 12px;
   padding: 12px 16px 12px 38px;
   outline: none;
-  transition: all .2s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   box-shadow: 0 6px 16px rgba(0,0,0,.25);
 }
 
@@ -3038,7 +3024,7 @@ body {
   border-radius: 6px;
   font-size: 12px;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   margin-left: 8px;
 }
 
@@ -3159,7 +3145,7 @@ body {
   font-size: 1.2rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   position: relative;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -3204,7 +3190,7 @@ body {
   padding: 0.5rem;
   color: var(--text-primary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .consulta-modal-close:hover {
@@ -3243,7 +3229,7 @@ body {
   padding: 0.75rem 2rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .consulta-btn-cerrar:hover {
@@ -3497,7 +3483,7 @@ body {
   padding: 0.2rem 0.3rem;
   margin: 0;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -3735,7 +3721,7 @@ body {
   padding: 0.75rem;
   color: #64748b;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3759,7 +3745,7 @@ body {
   padding: 0.75rem;
   color: #dc2626;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3784,7 +3770,7 @@ body {
   border: none;
   padding: 1rem 1.5rem;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   display: flex;
   align-items: center;
     gap: 0.5rem;
@@ -3965,7 +3951,7 @@ body {
 
 /* Efectos adicionales para los títulos de sección */
 .modern-section-title {
-  transition: all 0.3s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .modern-section-title:hover {
@@ -4016,7 +4002,7 @@ body {
   border-radius: 12px;
   border: 1px solid #cbd5e1;
   overflow: hidden;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -4098,14 +4084,14 @@ body {
 .modern-grade-header:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 /* Animación sutil para el precio */
 .modern-grade-price:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: scale(1.05);
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .modern-students-list {
@@ -4122,7 +4108,7 @@ body {
   border-radius: 8px;
   padding: 0.75rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4223,7 +4209,7 @@ body {
   border-radius: 16px;
   border: 1px solid #cbd5e1;
   overflow: hidden;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -4357,14 +4343,14 @@ body {
 .modern-servicio-header:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 /* Animación sutil para el precio de servicios */
 .modern-servicio-price:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: scale(1.05);
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .modern-servicio-list {
@@ -4391,7 +4377,7 @@ body {
   border-radius: 8px;
   padding: 0.75rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4514,7 +4500,7 @@ body {
   padding: 0.75rem 1.5rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
