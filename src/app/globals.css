@@ -11,6 +11,7 @@
   --bg-accent-hover:   #162d4a;
   --bg-accent-muted:   #dbeafe;
   --bg-accent-border:  #bfdbfe;
+  --bg-accent-glow:    rgba(30, 58, 95, 0.12);
 
   /* Text */
   --text-primary:   #0f172a;
@@ -22,10 +23,11 @@
   --border-light:  #e2e8f0;
   --border-medium: #cbd5e1;
 
-  /* Shadows — sutiles, sin opacidad agresiva */
+  /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -1px rgba(15, 23, 42, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.10), 0 4px 6px -2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.10), 0 2px 4px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 12px 28px rgba(15, 23, 42, 0.14), 0 4px 8px rgba(15, 23, 42, 0.08);
+  --shadow-glow: 0 8px 24px rgba(30, 58, 95, 0.14);
 
   /* Estado */
   --success: #059669;
@@ -33,11 +35,11 @@
   --error:   #dc2626;
   --info:    #1d4ed8;
 
-  /* Glass — para light mode */
+  /* Glass */
   --glass-bg:     rgba(255, 255, 255, 0.85);
   --glass-border: rgba(30, 58, 95, 0.12);
 
-  /* Gradients — elegantes, monocromáticos */
+  /* Gradients */
   --bg-gradient:           linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
   --bg-gradient-secondary: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
 
@@ -45,34 +47,45 @@
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
+
+  /* Animation timing */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ─── Design Tokens — Dark Mode ─────────────────────────────────────────── */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-primary:   #0c1628;
-    --bg-secondary: #111c33;
-    --bg-card:      #152240;
-    --bg-subtle:    #1a2a47;
+    /* Backgrounds — más separación entre capas */
+    --bg-primary:   #0a1628;
+    --bg-secondary: #0f1f3d;
+    --bg-card:      #162944;
+    --bg-subtle:    #1c3352;
 
-    --bg-accent:        #2563eb;
-    --bg-accent-hover:  #1d4ed8;
-    --bg-accent-muted:  #1e3a5f;
-    --bg-accent-border: #2d5282;
+    /* Accent */
+    --bg-accent:        #3b82f6;
+    --bg-accent-hover:  #2563eb;
+    --bg-accent-muted:  #1e3f6e;
+    --bg-accent-border: #3d6cb8;
+    --bg-accent-glow:   rgba(59, 130, 246, 0.18);
 
-    --text-primary:   #f1f5f9;
+    /* Text */
+    --text-primary:   #e2e8f0;
     --text-secondary: #94a3b8;
     --text-muted:     #64748b;
     --text-on-accent: #ffffff;
 
+    /* Borders */
     --border-light:  #1e3a5f;
     --border-medium: #2d5282;
 
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+    /* Shadows — con tinte azul para profundidad */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(59, 130, 246, 0.06);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(59, 130, 246, 0.10);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(59, 130, 246, 0.14);
+    --shadow-glow: 0 8px 28px rgba(59, 130, 246, 0.22);
 
-    --glass-bg:     rgba(21, 34, 64, 0.85);
+    --glass-bg:     rgba(22, 41, 68, 0.88);
     --glass-border: rgba(148, 163, 184, 0.12);
   }
 }
@@ -2489,6 +2502,29 @@ body {
   color: #9ca3af;
 }
 
+/* ── /animate keyframes ───────────────────────────────────────────────── */
+@keyframes navItemIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes headingIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Dashboard Styles */
 .dashboard-container {
   min-height: 100vh;
@@ -2526,14 +2562,54 @@ body {
   }
 }
 
+/* /polish — prefers-reduced-motion: desactiva todas las animaciones */
+@media (prefers-reduced-motion: reduce) {
+  .dash-nav-item,
+  .dashboard-heading {
+    animation: none !important;
+  }
+
+  .dash-nav-item,
+  .dash-nav-item:hover,
+  .dash-nav-icon,
+  .dash-nav-arrow {
+    transition-duration: 0.01ms !important;
+  }
+
+  .dash-nav-item:hover {
+    transform: none;
+  }
+}
+
 .dashboard-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 32px;
+  padding: 14px 32px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-light);
   box-shadow: var(--shadow-sm);
+  position: relative;
+  /* /bolder — línea accent en el top en dark mode */
+  background-image: linear-gradient(
+    to bottom,
+    var(--bg-secondary) 0%,
+    var(--bg-primary) 100%
+  );
+  background-size: 100% 2px;
+  background-repeat: no-repeat;
+  background-position: top;
+}
+
+.dashboard-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--bg-accent);
+  opacity: 0.6;
 }
 
 .dashboard-menu-icon {
@@ -2580,7 +2656,11 @@ body {
 .dashboard-welcome {
   color: var(--text-primary);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .dashboard-user-id {
@@ -2626,39 +2706,41 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 48px 24px 64px;
+  padding: 52px 24px 72px;
 }
 
-/* Heading section */
+/* ── Heading section — /bolder + /animate ─────────────────── */
 .dashboard-heading {
   text-align: center;
-  margin-bottom: 40px;
+  margin-bottom: 44px;
+  animation: headingIn 0.5s var(--ease-out-expo) both;
 }
 
 .dashboard-title {
   color: var(--text-primary);
-  font-size: clamp(20px, 2.5vw, 28px);
-  font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  font-size: clamp(26px, 3vw, 38px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
 }
 
 .dashboard-subtitle {
   color: var(--text-secondary);
-  font-size: 14px;
-  margin-top: 6px;
+  font-size: 15px;
+  margin-top: 8px;
+  letter-spacing: 0.01em;
 }
 
 .dashboard-star {
   display: none;
 }
 
-/* ── Navigation grid ──────────────────────────────────── */
+/* ── Navigation grid — /bolder + /animate ────────────────── */
 .dashboard-nav-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  max-width: 760px;
+  gap: 14px;
+  max-width: 780px;
   width: 100%;
 }
 
@@ -2666,49 +2748,75 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
-  padding: 18px 20px;
+  padding: 20px 22px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 16px;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 0.2s var(--ease-out-quart),
+    box-shadow 0.2s var(--ease-out-quart),
+    background-color 0.2s var(--ease-out-quart),
+    transform 0.2s var(--ease-out-quart);
   text-decoration: none;
   outline: none;
+  /* /animate — entrada escalonada */
+  animation: navItemIn 0.5s var(--ease-out-expo) both;
 }
+
+.dash-nav-item:nth-child(1) { animation-delay: 0ms; }
+.dash-nav-item:nth-child(2) { animation-delay: 70ms; }
+.dash-nav-item:nth-child(3) { animation-delay: 140ms; }
+.dash-nav-item:nth-child(4) { animation-delay: 210ms; }
 
 .dash-nav-item:hover {
   border-color: var(--bg-accent-border);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md), 0 0 0 1px var(--bg-accent-border), var(--shadow-glow);
   background: var(--bg-subtle);
+  transform: translateY(-3px) scale(1.015);
+}
+
+.dash-nav-item:active {
+  transform: translateY(-1px) scale(1.005);
+  transition-duration: 0.08s;
 }
 
 .dash-nav-item:focus-visible {
   border-color: var(--bg-accent);
   box-shadow: 0 0 0 3px var(--bg-accent-muted);
+  outline: none;
 }
 
+/* ── Icon — /bolder ─────────────────────────────────────── */
 .dash-nav-icon {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
   background: var(--bg-accent-muted);
   border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--bg-accent);
-  transition: background-color 0.15s ease;
+  transition:
+    background-color 0.2s var(--ease-out-quart),
+    color 0.2s var(--ease-out-quart),
+    box-shadow 0.2s var(--ease-out-quart);
 }
 
 .dash-nav-item:hover .dash-nav-icon {
-  background: var(--bg-accent-border);
+  background: var(--bg-accent);
+  color: #ffffff;
+  box-shadow: 0 4px 12px var(--bg-accent-glow);
 }
 
 .dash-nav-icon svg {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
+/* ── Body text — /bolder ───────────────────────────────── */
 .dash-nav-body {
   flex: 1;
   min-width: 0;
@@ -2716,10 +2824,11 @@ body {
 
 .dash-nav-title {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
-  line-height: 1.4;
+  line-height: 1.35;
   margin: 0 0 3px;
+  letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2727,7 +2836,7 @@ body {
 
 .dash-nav-desc {
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   line-height: 1.4;
   margin: 0;
   white-space: nowrap;
@@ -2735,10 +2844,15 @@ body {
   text-overflow: ellipsis;
 }
 
+/* ── Arrow — /polish ───────────────────────────────────── */
 .dash-nav-arrow {
   color: var(--text-muted);
   flex-shrink: 0;
-  transition: color 0.15s ease, transform 0.15s ease;
+  opacity: 0.5;
+  transition:
+    color 0.2s var(--ease-out-quart),
+    transform 0.2s var(--ease-out-quart),
+    opacity 0.2s var(--ease-out-quart);
 }
 
 .dash-nav-arrow svg {
@@ -2749,7 +2863,8 @@ body {
 
 .dash-nav-item:hover .dash-nav-arrow {
   color: var(--bg-accent);
-  transform: translateX(2px);
+  opacity: 1;
+  transform: translateX(4px);
 }
 
 /* Legacy card classes — kept for backward compat */
