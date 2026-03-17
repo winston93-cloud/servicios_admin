@@ -179,6 +179,33 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          <div className="dash-nav-item" onClick={() => router.push('/entrega-ninos')} role="button" tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') router.push('/entrega-ninos') }}>
+            <div className="dash-nav-icon">
+              {/* Persona caminando con niño */}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="14" cy="3.5" r="1.5"/>
+                <path d="M10 8.5c1.5-1 4-1 4.5 1.5L16 14"/>
+                <path d="M8.5 21l2-5.5 1.5-2"/>
+                <path d="M16 14l-2.5 7"/>
+                <path d="M8 11l-2 3"/>
+                <circle cx="6.5" cy="6.5" r="1.2"/>
+                <path d="M6.5 7.7v3l1.5 2"/>
+                <path d="M5 14l2-3.3"/>
+                <path d="M6.5 10.7 5 14"/>
+              </svg>
+            </div>
+            <div className="dash-nav-body">
+              <h2 className="dash-nav-title">Entrega de Niños a Pie</h2>
+              <p className="dash-nav-desc">Registro y control de salida peatonal de alumnos</p>
+            </div>
+            <div className="dash-nav-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -238,13 +265,35 @@ export default function DashboardPage() {
 
           <div className="dashboard-menu-item" onClick={() => { router.push('/reportes'); setIsMenuOpen(false); }}>
             <div className="dashboard-menu-icon">
-              <svg fill="currentColor" viewBox="0 0 24 24">
-                <path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM7 12h2v5H7v-5zm4-3h2v8h-2V9zm4-3h2v11h-2V6z"/>
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
               </svg>
             </div>
             <div className="dashboard-menu-text">
               <h4>Reportes y Estadísticas</h4>
               <p>Análisis de datos ejecutivos</p>
+            </div>
+          </div>
+
+          <div className="dashboard-menu-item" onClick={() => { router.push('/entrega-ninos'); setIsMenuOpen(false); }}>
+            <div className="dashboard-menu-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="14" cy="3.5" r="1.5"/>
+                <path d="M10 8.5c1.5-1 4-1 4.5 1.5L16 14"/>
+                <path d="M8.5 21l2-5.5 1.5-2"/>
+                <path d="M16 14l-2.5 7"/>
+                <path d="M8 11l-2 3"/>
+                <circle cx="6.5" cy="6.5" r="1.2"/>
+                <path d="M6.5 7.7v3l1.5 2"/>
+                <path d="M5 14l2-3.3"/>
+                <path d="M6.5 10.7 5 14"/>
+              </svg>
+            </div>
+            <div className="dashboard-menu-text">
+              <h4>Entrega de Niños a Pie</h4>
+              <p>Control de salida peatonal de alumnos</p>
             </div>
           </div>
         </div>
