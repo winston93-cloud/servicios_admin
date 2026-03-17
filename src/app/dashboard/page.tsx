@@ -72,104 +72,113 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="dashboard-main">
-        <h1 className="dashboard-title">
-          Servicios Administrativos Winston
-        </h1>
-        <div className="dashboard-star">⭐</div>
+        <div className="dashboard-heading">
+          <h1 className="dashboard-title">Servicios Administrativos</h1>
+          <p className="dashboard-subtitle">Selecciona un módulo para continuar</p>
+        </div>
 
-        {/* Services Cards Grid */}
-        <div className="dashboard-cards-grid">
-          {/* Desayunos Card */}
-          <div className="dashboard-card" onClick={handleDesayunosClick}>
-            <div className="dashboard-card-icon orange">
-              <svg fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8.1 13.34l2.83-2.83L12.93 12l-1.59 1.59c-.24.24-.24.63 0 .87.12.12.28.18.44.18s.32-.06.44-.18L15.13 11.5c.24-.24.24-.63 0-.87-.24-.24-.63-.24-.87 0l-.88.88-.88-.88c-.24-.24-.63-.24-.87 0s-.24.63 0 .87l2.83 2.83zM12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        {/* Navigation Grid */}
+        <div className="dashboard-nav-grid">
+
+          <div className="dash-nav-item" onClick={handleDesayunosClick} role="button" tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleDesayunosClick() }}>
+            <div className="dash-nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 8h1a4 4 0 0 1 0 8h-1"/>
+                <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/>
+                <line x1="6" y1="1" x2="6" y2="4"/>
+                <line x1="10" y1="1" x2="10" y2="4"/>
+                <line x1="14" y1="1" x2="14" y2="4"/>
               </svg>
             </div>
-            
-            <div className="dashboard-card-content">
-              <h2 className="dashboard-card-title">
-                Desayunos, Estancias<br />
-                y Comidas
-              </h2>
-              <p className="dashboard-card-subtitle">
-                Servicios de alimentación y cuidado<br />
-                escolar
-              </p>
+            <div className="dash-nav-body">
+              <h2 className="dash-nav-title">Desayunos, Estancias y Comidas</h2>
+              <p className="dash-nav-desc">Servicios de alimentación y cuidado escolar</p>
             </div>
-          </div>
-
-          {/* Notificaciones Card */}
-          <div className="dashboard-card" onClick={handleOpenNotificaciones} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleOpenNotificaciones() }}>
-            <div className="dashboard-card-icon red">
-              <span className="dashboard-emoji" role="img" aria-label="campana">🔔</span>
-            </div>
-            
-            <div className="dashboard-card-content">
-              <h2 className="dashboard-card-title">Notificaciones</h2>
-              <p className="dashboard-card-subtitle">Enviar aviso a padres</p>
-            </div>
-          </div>
-
-          {/* Servicios Internos Card */}
-          <div className="dashboard-card" onClick={() => router.push('/servicios-internos')}>
-            <div className="dashboard-card-icon blue">
-              <svg fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            <div className="dash-nav-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
               </svg>
             </div>
-            
-            <div className="dashboard-card-content">
-              <h2 className="dashboard-card-title">
-                Servicios<br />
-                Internos
-              </h2>
-              <p className="dashboard-card-subtitle">
-                Gestión de servicios<br />
-                administrativos internos
-              </p>
+          </div>
+
+          <div className="dash-nav-item" onClick={handleOpenNotificaciones} role="button" tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleOpenNotificaciones() }}>
+            <div className="dash-nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+            </div>
+            <div className="dash-nav-body">
+              <h2 className="dash-nav-title">Notificaciones</h2>
+              <p className="dash-nav-desc">Enviar avisos y comunicados a padres de familia</p>
+            </div>
+            <div className="dash-nav-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
             </div>
           </div>
 
-          {/* Boletas Card */}
-          <div className="dashboard-card" onClick={() => router.push('/boletas')}>
-            <div className="dashboard-card-icon green">
-              <svg fill="currentColor" viewBox="0 0 24 24">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z M6 20V4h7v5h5v11H6z M8 12h8v2H8v-2z M8 16h8v2H8v-2z M8 8h5v2H8V8z"/>
+          <div className="dash-nav-item" onClick={() => router.push('/servicios-internos')} role="button" tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') router.push('/servicios-internos') }}>
+            <div className="dash-nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
               </svg>
             </div>
-            
-            <div className="dashboard-card-content">
-              <h2 className="dashboard-card-title">
-                Boletas<br />
-                y Calificaciones
-              </h2>
-              <p className="dashboard-card-subtitle">
-                Sistema de gestión<br />
-                académica y evaluaciones
-              </p>
+            <div className="dash-nav-body">
+              <h2 className="dash-nav-title">Servicios Internos</h2>
+              <p className="dash-nav-desc">Gestión de servicios administrativos internos</p>
+            </div>
+            <div className="dash-nav-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
             </div>
           </div>
 
-          {/* Reportes Card */}
-          <div className="dashboard-card" onClick={() => router.push('/reportes')}>
-            <div className="dashboard-card-icon purple">
-              <svg fill="currentColor" viewBox="0 0 24 24">
-                <path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM7 12h2v5H7v-5zm4-3h2v8h-2V9zm4-3h2v11h-2V6z"/>
+          <div className="dash-nav-item" onClick={() => router.push('/boletas')} role="button" tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') router.push('/boletas') }}>
+            <div className="dash-nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"/>
+                <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/>
               </svg>
             </div>
-            
-            <div className="dashboard-card-content">
-              <h2 className="dashboard-card-title">
-                Reportes<br />
-                y Estadísticas
-              </h2>
-              <p className="dashboard-card-subtitle">
-                Análisis de datos<br />
-                y reportes ejecutivos
-              </p>
+            <div className="dash-nav-body">
+              <h2 className="dash-nav-title">Boletas y Calificaciones</h2>
+              <p className="dash-nav-desc">Gestión académica y evaluaciones escolares</p>
+            </div>
+            <div className="dash-nav-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
             </div>
           </div>
+
+          <div className="dash-nav-item" onClick={() => router.push('/reportes')} role="button" tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') router.push('/reportes') }}>
+            <div className="dash-nav-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"/>
+                <line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/>
+              </svg>
+            </div>
+            <div className="dash-nav-body">
+              <h2 className="dash-nav-title">Reportes y Estadísticas</h2>
+              <p className="dash-nav-desc">Análisis de datos y reportes ejecutivos</p>
+            </div>
+            <div className="dash-nav-arrow" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </div>
+          </div>
+
         </div>
       </div>
 
