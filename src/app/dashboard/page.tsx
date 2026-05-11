@@ -32,23 +32,6 @@ export default function DashboardPage() {
 
   const navItems = [
     {
-      label: 'Entrega de Niños a Pie',
-      desc: 'Registro y control de salida peatonal de alumnos',
-      path: '/entrega-ninos',
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="14" cy="3.5" r="1.5"/>
-          <path d="M10 8.5c1.5-1 4-1 4.5 1.5L16 14"/>
-          <path d="M8.5 21l2-5.5 1.5-2"/>
-          <path d="M16 14l-2.5 7"/>
-          <circle cx="6.5" cy="6.5" r="1.2"/>
-          <path d="M6.5 7.7v3l1.5 2"/>
-          <path d="M5 14l2-3.3"/>
-          <path d="M6.5 10.7 5 14"/>
-        </svg>
-      ),
-    },
-    {
       label: 'Desayunos, Estancias y Comidas',
       desc: 'Servicios de alimentación y cuidado escolar',
       path: '/pos',
@@ -59,17 +42,6 @@ export default function DashboardPage() {
           <line x1="6" y1="1" x2="6" y2="4"/>
           <line x1="10" y1="1" x2="10" y2="4"/>
           <line x1="14" y1="1" x2="14" y2="4"/>
-        </svg>
-      ),
-    },
-    {
-      label: 'Boletas y Calificaciones',
-      desc: 'Gestión académica y evaluaciones escolares',
-      path: '/boletas',
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z"/>
-          <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/>
         </svg>
       ),
     },
