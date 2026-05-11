@@ -2,9 +2,10 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useAuth } from '@/contexts/AuthContext'
-import { ChevronRight, ChevronLeft, Menu, ArrowLeft, Shield, LogOut } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Menu, ArrowLeft, LogOut } from 'lucide-react'
 import {
   SERVICIOS_MENU,
   type ServiciosModuloId,
@@ -137,10 +138,23 @@ function ServiciosPageInner() {
         aria-label="Servicios administrativos"
       >
         <div className="servicios-sidebar-brand">
-          <div className="servicios-sidebar-shield" aria-hidden>
-            <Shield size={28} strokeWidth={1.5} />
-          </div>
+          <Image
+            src="/logos/logo-winston-churchill.png"
+            alt="Instituto Winston Churchill"
+            width={64}
+            height={48}
+            className="servicios-sidebar-institution-logo"
+            priority
+          />
           <span className="servicios-sidebar-brand-text">Servicios Administrativos</span>
+          <Image
+            src="/logos/logo-winston-educativo.png"
+            alt="Winston Educativo"
+            width={64}
+            height={48}
+            className="servicios-sidebar-institution-logo"
+            priority
+          />
           <button
             type="button"
             className="servicios-sidebar-collapse"

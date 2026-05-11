@@ -4848,9 +4848,10 @@ body {
 
 .servicios-sidebar-brand {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 18px 14px 16px;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+  padding: 14px 10px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -4891,25 +4892,24 @@ body {
   border: 0;
 }
 
-.servicios-sidebar-shield {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+.servicios-sidebar-institution-logo {
+  flex-shrink: 0;
+  height: 36px;
+  width: auto;
+  max-width: 48px;
+  object-fit: contain;
+  object-position: center;
 }
 
 .servicios-sidebar-brand-text {
   flex: 1;
   min-width: 0;
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.01em;
-  line-height: 1.25;
-  padding-top: 4px;
+  line-height: 1.2;
+  text-align: center;
+  hyphens: auto;
 }
 
 .servicios-sidebar-nav {
@@ -5144,8 +5144,8 @@ body {
     gap: 12px;
   }
 
-  .servicios-sidebar--collapsed .servicios-sidebar-shield {
-    margin: 0 auto;
+  .servicios-sidebar--collapsed .servicios-sidebar-institution-logo {
+    display: none;
   }
 
   .servicios-sidebar--collapsed .servicios-sidebar-brand-text {
