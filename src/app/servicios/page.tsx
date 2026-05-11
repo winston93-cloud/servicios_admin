@@ -4,12 +4,14 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useAuth } from '@/contexts/AuthContext'
-import { ChevronRight, Menu, ArrowLeft, Shield } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Menu, ArrowLeft, Shield, LogOut } from 'lucide-react'
 import {
   SERVICIOS_MENU,
   type ServiciosModuloId,
   esServiciosModuloId,
 } from './menu'
+
+const SIDEBAR_COLLAPSED_KEY = 'servicios-sidebar-collapsed'
 
 function ServiciosModuloPlaceholder({ titulo }: { titulo: string }) {
   return (
@@ -50,6 +52,29 @@ function ServiciosPageInner() {
   const searchParams = useSearchParams()
   const { user, logout } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1') {
+        setSidebarCollapsed(true)
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
+  const toggleSidebarCollapsed = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0')
+      } catch {
+        /* ignore */
+      }
+      return next
+    })
+  }, [])
 
   const moduloFromUrl = searchParams.get('modulo')
   const inicial = useMemo(() => {
@@ -107,15 +132,39 @@ function ServiciosPageInner() {
         />
       )}
 
-      <aside className={`servicios-sidebar ${sidebarOpen ? 'open' : ''}`}>
+      <aside
+        className={`servicios-sidebar ${sidebarOpen ? 'open' : ''} ${sidebarCollapsed ? 'servicios-sidebar--collapsed' : ''}`}
+        aria-label="Servicios administrativos"
+      >
         <div className="servicios-sidebar-brand">
           <div className="servicios-sidebar-shield" aria-hidden>
             <Shield size={28} strokeWidth={1.5} />
           </div>
-          <span className="servicios-sidebar-brand-text">Servicios</span>
+          <span className="servicios-sidebar-brand-text">Servicios Administrativos</span>
+          <button
+            type="button"
+            className="servicios-sidebar-collapse"
+            onClick={toggleSidebarCollapsed}
+            aria-expanded={!sidebarCollapsed}
+            aria-controls="servicios-modulos-nav"
+            title={sidebarCollapsed ? 'Expandir menú' : 'Contraer menú'}
+          >
+            {sidebarCollapsed ? (
+              <ChevronRight size={20} strokeWidth={2} aria-hidden />
+            ) : (
+              <ChevronLeft size={20} strokeWidth={2} aria-hidden />
+            )}
+            <span className="servicios-sr-only">
+              {sidebarCollapsed ? 'Expandir menú lateral' : 'Contraer menú lateral'}
+            </span>
+          </button>
         </div>
 
-        <nav className="servicios-sidebar-nav" aria-label="Módulos de servicios">
+        <nav
+          id="servicios-modulos-nav"
+          className="servicios-sidebar-nav"
+          aria-label="Módulos de servicios"
+        >
           {SERVICIOS_MENU.map((item) => {
             const Icon = item.icon
             const active = item.id === moduloActivo
@@ -124,6 +173,7 @@ function ServiciosPageInner() {
                 key={item.id}
                 type="button"
                 className={`servicios-nav-item ${active ? 'active' : ''}`}
+                title={item.label}
                 onClick={() => seleccionarModulo(item.id)}
               >
                 <Icon className="servicios-nav-icon" size={18} strokeWidth={1.75} aria-hidden />
@@ -141,7 +191,8 @@ function ServiciosPageInner() {
             <p className="servicios-sidebar-user">{user.usuario_nombre_completo}</p>
           )}
           <button type="button" className="servicios-sidebar-logout" onClick={handleLogout}>
-            Cerrar sesión
+            <LogOut className="servicios-sidebar-logout-icon" size={18} strokeWidth={1.75} aria-hidden />
+            <span className="servicios-sidebar-logout-text">Cerrar sesión</span>
           </button>
         </div>
       </aside>
