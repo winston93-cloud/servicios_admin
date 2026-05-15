@@ -79,7 +79,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   return (
     <form className="alumno-form" onSubmit={(e) => e.preventDefault()} noValidate>
       <fieldset className="alumno-form-fieldset">
-        <div className="alumno-form-grid alumno-form-grid--4">
+        <div className="alumno-form-grid alumno-form-grid--2">
           <div className="alumno-form-field">
             <label htmlFor="alumno_id" className="alumno-form-label">
               ID
@@ -105,69 +105,6 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               value={a.alumno_ref ?? ''}
               readOnly
             />
-          </div>
-          <div className="alumno-form-field">
-            <label htmlFor="alumno_ciclo_escolar" className="alumno-form-label">
-              Ciclo escolar
-            </label>
-            <select
-              id="alumno_ciclo_escolar"
-              name="alumno_ciclo_escolar"
-              className="alumno-form-select"
-              value={String(cicloEscolar)}
-              onChange={(e) => setCicloEscolar(Number(e.target.value))}
-            >
-              {CICLOS_ESCOLARES_OPCIONES.map((opcion) => (
-                <option key={opcion.valor} value={opcion.valor}>
-                  {opcion.etiqueta}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="alumno-form-field">
-            <label htmlFor="alumno_nivel" className="alumno-form-label">
-              Nivel
-            </label>
-            <select
-              id="alumno_nivel"
-              name="alumno_nivel"
-              className="alumno-form-select"
-              value={String(nivelEscolar)}
-              onChange={(e) => {
-                const nivel = Number(e.target.value)
-                setNivelEscolar(nivel)
-                setGradoEscolar((gradoActual) =>
-                  gradoEscolarPorDefecto(nivel, gradoActual)
-                )
-              }}
-            >
-              {NIVELES_ESCOLARES_OPCIONES.map((opcion) => (
-                <option key={opcion.valor} value={opcion.valor}>
-                  {opcion.etiqueta}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="alumno-form-grid alumno-form-grid--2 alumno-form-grid--grado">
-          <div className="alumno-form-field alumno-form-field--narrow">
-            <label htmlFor="alumno_grado" className="alumno-form-label">
-              Grado
-            </label>
-            <select
-              id="alumno_grado"
-              name="alumno_grado"
-              className="alumno-form-select"
-              value={String(gradoEscolar)}
-              onChange={(e) => setGradoEscolar(Number(e.target.value))}
-              disabled={opcionesGrado.length === 0}
-            >
-              {opcionesGrado.map((opcion) => (
-                <option key={opcion.valor} value={opcion.valor}>
-                  {opcion.etiqueta}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
       </fieldset>
@@ -220,7 +157,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
       </fieldset>
 
       <fieldset className="alumno-form-fieldset alumno-form-fieldset--spaced">
-        <div className="alumno-form-grid alumno-form-grid--1">
+        <div className="alumno-form-secuencial">
           <div className="alumno-form-field alumno-form-field--narrow">
             <label htmlFor="alumno_clave" className="alumno-form-label">
               Clave personal
@@ -234,6 +171,70 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               readOnly
               placeholder={detalles ? undefined : 'Sin registro en alumno_detalles'}
             />
+          </div>
+
+          <div className="alumno-form-field alumno-form-field--narrow">
+            <label htmlFor="alumno_ciclo_escolar" className="alumno-form-label">
+              Ciclo escolar
+            </label>
+            <select
+              id="alumno_ciclo_escolar"
+              name="alumno_ciclo_escolar"
+              className="alumno-form-select"
+              value={String(cicloEscolar)}
+              onChange={(e) => setCicloEscolar(Number(e.target.value))}
+            >
+              {CICLOS_ESCOLARES_OPCIONES.map((opcion) => (
+                <option key={opcion.valor} value={opcion.valor}>
+                  {opcion.etiqueta}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="alumno-form-field alumno-form-field--narrow">
+            <label htmlFor="alumno_nivel" className="alumno-form-label">
+              Nivel
+            </label>
+            <select
+              id="alumno_nivel"
+              name="alumno_nivel"
+              className="alumno-form-select"
+              value={String(nivelEscolar)}
+              onChange={(e) => {
+                const nivel = Number(e.target.value)
+                setNivelEscolar(nivel)
+                setGradoEscolar((gradoActual) =>
+                  gradoEscolarPorDefecto(nivel, gradoActual)
+                )
+              }}
+            >
+              {NIVELES_ESCOLARES_OPCIONES.map((opcion) => (
+                <option key={opcion.valor} value={opcion.valor}>
+                  {opcion.etiqueta}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="alumno-form-field alumno-form-field--narrow">
+            <label htmlFor="alumno_grado" className="alumno-form-label">
+              Grado
+            </label>
+            <select
+              id="alumno_grado"
+              name="alumno_grado"
+              className="alumno-form-select"
+              value={String(gradoEscolar)}
+              onChange={(e) => setGradoEscolar(Number(e.target.value))}
+              disabled={opcionesGrado.length === 0}
+            >
+              {opcionesGrado.map((opcion) => (
+                <option key={opcion.valor} value={opcion.valor}>
+                  {opcion.etiqueta}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </fieldset>
