@@ -15,6 +15,11 @@ import {
 } from '@/lib/gradoEscolar'
 import { GRUPOS_ESCOLARES_OPCIONES, grupoEscolarPorDefecto } from '@/lib/grupoEscolar'
 import { fechaNacAMostrar, fechaNacIsoDesdeBd } from '@/lib/fechaNacimiento'
+import {
+  ESTATUS_ALUMNO_OPCIONES,
+  claseFormularioPorEstatus,
+  estatusAlumnoPorDefecto,
+} from '@/lib/alumnoStatus'
 
 interface AlumnoFormElementalesProps {
   alumno: AlumnoBusquedaResultado
@@ -47,6 +52,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   const [fechaNacimientoIso, setFechaNacimientoIso] = useState('')
   const [fechaNacimientoTexto, setFechaNacimientoTexto] = useState('')
   const [modalCurpAbierto, setModalCurpAbierto] = useState(false)
+  const [estatusAlumno, setEstatusAlumno] = useState<number>(1)
 
   const opcionesGrado = useMemo(
     () => gradoOpcionesPorNivel(nivelEscolar),
@@ -85,6 +91,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
         setFechaAltaIso(altaIso)
         setFechaAltaTexto(fechaNacAMostrar(altaIso))
         setMostrarClave(false)
+        setEstatusAlumno(estatusAlumnoPorDefecto(registro.alumno.alumno_status))
       }
       setCargando(false)
     })
@@ -117,8 +124,14 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
     .join(' ')
     .trim()
 
+  const claseEstatus = claseFormularioPorEstatus(estatusAlumno)
+
   return (
-    <form className="alumno-form" onSubmit={(e) => e.preventDefault()} noValidate>
+    <form
+      className={`alumno-form ${claseEstatus}`}
+      onSubmit={(e) => e.preventDefault()}
+      noValidate
+    >
       <fieldset className="alumno-form-fieldset">
         <section className="alumno-form-identidad" aria-label="Nombre del alumno">
           <div className="alumno-form-flujo-nombres">
@@ -168,6 +181,24 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
         </section>
 
         <div className="alumno-form-grid-datos">
+          <div className="alumno-form-field alumno-form-field--estatus">
+            <label htmlFor="alumno_status" className="alumno-form-label">
+              Estatus del alumno
+            </label>
+            <select
+              id="alumno_status"
+              name="alumno_status"
+              className="alumno-form-select alumno-form-select--estatus"
+              value={String(estatusAlumno)}
+              onChange={(e) => setEstatusAlumno(Number(e.target.value))}
+            >
+              {ESTATUS_ALUMNO_OPCIONES.map((opcion) => (
+                <option key={opcion.valor} value={opcion.valor}>
+                  {opcion.etiqueta}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="alumno-form-field">
             <label htmlFor="alumno_id" className="alumno-form-label">
               ID

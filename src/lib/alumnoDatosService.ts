@@ -24,7 +24,7 @@ function cicloNumerico(ciclo: string | number | null | undefined): number {
   return Number.isNaN(n) ? 0 : n
 }
 
-/** Registro vigente por número de control (ciclo escolar más reciente, activo). */
+/** Registro vigente por número de control (ciclo escolar más reciente, cualquier estatus). */
 export async function obtenerAlumnoPorRef(alumnoRef: string): Promise<AlumnoRegistro | null> {
   const ref = String(alumnoRef ?? '').trim()
   if (!ref) return null
@@ -35,7 +35,6 @@ export async function obtenerAlumnoPorRef(alumnoRef: string): Promise<AlumnoRegi
     .from('alumno')
     .select(SELECT_ALUMNO)
     .eq('alumno_ref', refFiltro)
-    .eq('alumno_status', 1)
     .order('alumno_ciclo_escolar', { ascending: false })
     .limit(1)
     .maybeSingle()
