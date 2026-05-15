@@ -5139,25 +5139,7 @@ body {
   font-size: 0.875rem;
   font-weight: 600;
   color: #0f172a;
-  margin-bottom: 6px;
-}
-
-.alumno-ac-hint {
-  font-size: 12px;
-  color: #64748b;
-  margin-bottom: 12px;
-  line-height: 1.5;
-}
-
-.alumno-ac-hint kbd {
-  display: inline-block;
-  padding: 1px 5px;
-  font-size: 11px;
-  font-family: inherit;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  color: #475569;
+  margin-bottom: 8px;
 }
 
 .alumno-ac-input-wrap {

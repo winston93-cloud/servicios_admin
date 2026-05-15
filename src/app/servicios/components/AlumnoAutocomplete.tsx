@@ -13,7 +13,6 @@ import { Search, Loader2, UserRound, X } from 'lucide-react'
 import {
   buscarAlumnosServicios,
   MIN_CARACTERES,
-  RESULTADOS_MAX,
   type AlumnoBusquedaResultado,
   type CampoBusquedaAlumno,
   grupoALetra,
@@ -240,11 +239,6 @@ export default function AlumnoAutocomplete({
       <label htmlFor={`${baseId}-input`} className="alumno-ac-label">
         Buscar alumno
       </label>
-      <p className="alumno-ac-hint">
-        Escribe nombre o apellidos · hasta {RESULTADOS_MAX} coincidencias ·{' '}
-        <kbd>↑</kbd> <kbd>↓</kbd> <kbd>Enter</kbd> <kbd>Esc</kbd>
-      </p>
-
       <div className="alumno-ac-input-wrap">
         <Search className="alumno-ac-input-icon" size={20} aria-hidden />
         <input
