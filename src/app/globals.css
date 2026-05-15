@@ -5661,21 +5661,52 @@ body {
   align-items: start;
 }
 
-/* Campos en fila; al no caber, pasan a la siguiente línea */
-.alumno-form-flujo {
+/* Cuadrícula alineada de datos del alumno (4 columnas en escritorio) */
+.alumno-form-grid-datos {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
-  align-items: start;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px 20px;
+  margin-top: 20px;
+  padding: 20px 22px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
 }
 
-.alumno-form-flujo--resto {
-  margin-top: 20px;
+.alumno-form-field--col-2 {
+  grid-column: span 2;
+}
+
+@media (max-width: 1024px) {
+  .alumno-form-grid-datos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
   .alumno-form-flujo-nombres {
     grid-template-columns: 1fr;
+  }
+
+  .alumno-form-grid-datos {
+    grid-template-columns: 1fr;
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .alumno-form-field--col-2 {
+    grid-column: span 1;
+  }
+
+  .alumno-form-fecha-fila,
+  .alumno-form-curp-fila {
+    flex-direction: column;
+  }
+
+  .alumno-form-fecha-btn,
+  .alumno-form-curp-btn {
+    width: 100%;
+    min-height: 44px;
   }
 }
 
@@ -5698,6 +5729,7 @@ body {
 
 .alumno-form-input {
   width: 100%;
+  min-height: 44px;
   padding: 11px 14px;
   font-family: inherit;
   font-size: 15px;
@@ -5705,6 +5737,7 @@ body {
   background: #fff;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
+  box-sizing: border-box;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -5715,13 +5748,16 @@ body {
 
 .alumno-form-select {
   width: 100%;
-  padding: 10px 12px;
+  min-height: 44px;
+  padding: 11px 14px;
   border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  font-size: 0.9375rem;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 15px;
   color: #0f172a;
   background: #fff;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 .alumno-form-select:focus {
@@ -5759,17 +5795,12 @@ body {
   font-size: 14px;
 }
 
-.alumno-form-field--fecha,
-.alumno-form-field--curp {
-  grid-column: 1 / -1;
-  max-width: 420px;
-}
-
 .alumno-form-fecha-fila {
   position: relative;
   display: flex;
   gap: 8px;
   align-items: stretch;
+  min-height: 44px;
 }
 
 .alumno-form-input--fecha {
@@ -5795,6 +5826,7 @@ body {
   justify-content: center;
   flex-shrink: 0;
   width: 44px;
+  min-height: 44px;
   padding: 0;
   color: #1e3a5f;
   background: #e8f1fb;
@@ -5814,14 +5846,11 @@ body {
   outline-offset: 2px;
 }
 
-.alumno-form-field--curp {
-  max-width: 520px;
-}
-
 .alumno-form-curp-fila {
   display: flex;
   gap: 10px;
   align-items: stretch;
+  min-height: 44px;
 }
 
 .alumno-form-input--curp {
@@ -5835,8 +5864,10 @@ body {
 .alumno-form-curp-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   flex-shrink: 0;
+  min-height: 44px;
   padding: 0 16px;
   font-family: inherit;
   font-size: 14px;
@@ -6065,15 +6096,6 @@ body {
 @media (max-width: 520px) {
   .alumno-curp-modal-segmentos {
     grid-template-columns: 1fr;
-  }
-
-  .alumno-form-curp-fila {
-    flex-direction: column;
-  }
-
-  .alumno-form-curp-btn {
-    justify-content: center;
-    padding: 12px;
   }
 }
 

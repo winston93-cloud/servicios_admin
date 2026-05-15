@@ -175,7 +175,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
           </div>
         </section>
 
-        <div className="alumno-form-flujo alumno-form-flujo--resto">
+        <div className="alumno-form-grid-datos">
           <div className="alumno-form-field">
             <label htmlFor="alumno_id" className="alumno-form-label">
               ID
@@ -300,7 +300,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
             </select>
           </div>
 
-          <div className="alumno-form-field alumno-form-field--fecha">
+          <div className="alumno-form-field">
             <label htmlFor="alumno_fecha_nac" className="alumno-form-label">
               Fecha de nacimiento
             </label>
@@ -344,7 +344,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
             </div>
           </div>
 
-          <div className="alumno-form-field alumno-form-field--curp">
+          <div className="alumno-form-field alumno-form-field--col-2">
             <label htmlFor="alumno_curp" className="alumno-form-label">
               CURP
             </label>
