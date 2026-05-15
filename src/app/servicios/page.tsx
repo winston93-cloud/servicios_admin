@@ -11,6 +11,7 @@ import {
   type ServiciosModuloId,
   esServiciosModuloId,
 } from './menu'
+import AlumnosModulo from './modulos/AlumnosModulo'
 
 const SIDEBAR_COLLAPSED_KEY = 'servicios-sidebar-collapsed'
 
@@ -43,6 +44,8 @@ function ServiciosPanelContenido({
   titulo: string
 }) {
   switch (moduloId) {
+    case 'alumnos':
+      return <AlumnosModulo />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }

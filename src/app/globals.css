@@ -5128,6 +5128,255 @@ body {
   }
 }
 
+/* ─── Autocompletado Alumnos (módulo Servicios) ───────────────────────── */
+.alumno-ac {
+  position: relative;
+  max-width: 640px;
+}
+
+.alumno-ac-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.alumno-ac-hint {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.alumno-ac-hint kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  font-size: 11px;
+  font-family: inherit;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  color: #475569;
+}
+
+.alumno-ac-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.alumno-ac-input-icon {
+  position: absolute;
+  left: 14px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.alumno-ac-input {
+  width: 100%;
+  padding: 14px 44px 14px 44px;
+  font-family: inherit;
+  font-size: 1rem;
+  color: #0f172a;
+  background: #fff;
+  border: 2px solid #cbd5e1;
+  border-radius: 12px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.alumno-ac-input::placeholder {
+  color: #94a3b8;
+}
+
+.alumno-ac-input:hover {
+  border-color: #94a3b8;
+}
+
+.alumno-ac-input:focus {
+  border-color: #1e3a5f;
+  box-shadow: 0 0 0 4px rgba(30, 58, 95, 0.15);
+}
+
+.alumno-ac-spinner {
+  position: absolute;
+  right: 44px;
+  color: #1e3a5f;
+  animation: alumno-ac-spin 0.7s linear infinite;
+}
+
+@keyframes alumno-ac-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.alumno-ac-clear {
+  position: absolute;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.alumno-ac-clear:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.alumno-ac-panel {
+  margin-top: 8px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+}
+
+.alumno-ac-status {
+  padding: 16px 18px;
+  font-size: 14px;
+  color: #475569;
+  margin: 0;
+}
+
+.alumno-ac-status--empty {
+  color: #64748b;
+}
+
+.alumno-ac-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: min(420px, 55vh);
+  overflow-y: auto;
+}
+
+.alumno-ac-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 12px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s ease;
+}
+
+.alumno-ac-option:hover,
+.alumno-ac-option--active {
+  background: #e8eef5;
+}
+
+.alumno-ac-option--active {
+  outline: 2px solid #1e3a5f;
+  outline-offset: -2px;
+}
+
+.alumno-ac-option-rank {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e3a5f;
+  background: rgba(30, 58, 95, 0.1);
+  border-radius: 6px;
+}
+
+.alumno-ac-option-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.alumno-ac-option-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.alumno-ac-match {
+  background: rgba(30, 58, 95, 0.18);
+  color: inherit;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+.alumno-ac-option-meta {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.alumno-ac-option-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.alumno-ac-tag {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #1e3a5f;
+  color: #f8fafc;
+}
+
+.alumno-ac-selected {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%);
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+}
+
+.alumno-ac-selected-icon {
+  flex-shrink: 0;
+  color: #1e3a5f;
+}
+
+.alumno-ac-selected-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+
+.alumno-ac-selected-meta {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.servicios-panel-inner--alumnos {
+  max-width: 720px;
+}
+
 @media (min-width: 901px) {
   .servicios-sidebar-backdrop {
     display: none !important;
