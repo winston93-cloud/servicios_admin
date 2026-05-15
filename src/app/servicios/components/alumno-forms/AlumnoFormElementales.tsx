@@ -181,24 +181,6 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
         </section>
 
         <div className="alumno-form-grid-datos">
-          <div className="alumno-form-field alumno-form-field--estatus">
-            <label htmlFor="alumno_status" className="alumno-form-label">
-              Estatus del alumno
-            </label>
-            <select
-              id="alumno_status"
-              name="alumno_status"
-              className="alumno-form-select alumno-form-select--estatus"
-              value={String(estatusAlumno)}
-              onChange={(e) => setEstatusAlumno(Number(e.target.value))}
-            >
-              {ESTATUS_ALUMNO_OPCIONES.map((opcion) => (
-                <option key={opcion.valor} value={opcion.valor}>
-                  {opcion.etiqueta}
-                </option>
-              ))}
-            </select>
-          </div>
           <div className="alumno-form-field">
             <label htmlFor="alumno_id" className="alumno-form-label">
               ID
@@ -395,6 +377,25 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
             onIsoChange={setFechaAltaIso}
             onTextoChange={setFechaAltaTexto}
           />
+
+          <div className="alumno-form-field alumno-form-field--estatus">
+            <label htmlFor="alumno_status" className="alumno-form-label">
+              Estatus del alumno
+            </label>
+            <select
+              id="alumno_status"
+              name="alumno_status"
+              className="alumno-form-select alumno-form-select--estatus"
+              value={String(estatusAlumno)}
+              onChange={(e) => setEstatusAlumno(Number(e.target.value))}
+            >
+              {ESTATUS_ALUMNO_OPCIONES.map((opcion) => (
+                <option key={opcion.valor} value={opcion.valor}>
+                  {opcion.etiqueta}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </fieldset>
 
