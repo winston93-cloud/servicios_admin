@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { Loader2, Pencil } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Calendar, Loader2, Pencil } from 'lucide-react'
 import AlumnoCurpModal from './AlumnoCurpModal'
 import { normalizarCurp } from '@/lib/curp'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
@@ -13,6 +13,11 @@ import {
   gradoOpcionesPorNivel,
 } from '@/lib/gradoEscolar'
 import { GRUPOS_ESCOLARES_OPCIONES, grupoEscolarPorDefecto } from '@/lib/grupoEscolar'
+import {
+  fechaNacAMostrar,
+  fechaNacDesdeTexto,
+  fechaNacIsoDesdeBd,
+} from '@/lib/fechaNacimiento'
 
 interface AlumnoFormElementalesProps {
   alumno: AlumnoBusquedaResultado
@@ -37,7 +42,10 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
     GRUPOS_ESCOLARES_OPCIONES[0].valor
   )
   const [curp, setCurp] = useState('')
+  const [fechaNacimientoIso, setFechaNacimientoIso] = useState('')
+  const [fechaNacimientoTexto, setFechaNacimientoTexto] = useState('')
   const [modalCurpAbierto, setModalCurpAbierto] = useState(false)
+  const fechaCalRef = useRef<HTMLInputElement>(null)
 
   const opcionesGrado = useMemo(
     () => gradoOpcionesPorNivel(nivelEscolar),
@@ -66,6 +74,9 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
         setGradoEscolar(gradoEscolarPorDefecto(nivel, registro.alumno.alumno_grado))
         setGrupoEscolar(grupoEscolarPorDefecto(registro.alumno.alumno_grupo))
         setCurp(normalizarCurp(registro.detalles?.alumno_curp ?? ''))
+        const fechaIso = fechaNacIsoDesdeBd(registro.detalles?.alumno_fecha_nac)
+        setFechaNacimientoIso(fechaIso)
+        setFechaNacimientoTexto(fechaNacAMostrar(fechaIso))
       }
       setCargando(false)
     })
@@ -97,6 +108,22 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
     .filter(Boolean)
     .join(' ')
     .trim()
+
+  const aplicarFechaIso = (iso: string) => {
+    setFechaNacimientoIso(iso)
+    setFechaNacimientoTexto(fechaNacAMostrar(iso))
+  }
+
+  const abrirCalendario = () => {
+    const el = fechaCalRef.current
+    if (!el) return
+    try {
+      el.showPicker()
+    } catch {
+      el.focus()
+      el.click()
+    }
+  }
 
   return (
     <form className="alumno-form" onSubmit={(e) => e.preventDefault()} noValidate>
@@ -273,6 +300,50 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
             </select>
           </div>
 
+          <div className="alumno-form-field alumno-form-field--fecha">
+            <label htmlFor="alumno_fecha_nac" className="alumno-form-label">
+              Fecha de nacimiento
+            </label>
+            <div className="alumno-form-fecha-fila">
+              <input
+                id="alumno_fecha_nac"
+                name="alumno_fecha_nac"
+                type="text"
+                className="alumno-form-input alumno-form-input--fecha"
+                value={fechaNacimientoTexto}
+                onChange={(e) => setFechaNacimientoTexto(e.target.value)}
+                onBlur={() => {
+                  const parsed = fechaNacDesdeTexto(fechaNacimientoTexto)
+                  if (parsed === null && fechaNacimientoTexto.trim()) {
+                    setFechaNacimientoTexto(fechaNacAMostrar(fechaNacimientoIso))
+                    return
+                  }
+                  if (parsed !== null) aplicarFechaIso(parsed)
+                }}
+                placeholder="DD/MM/AAAA"
+                inputMode="numeric"
+                autoComplete="bday"
+              />
+              <input
+                ref={fechaCalRef}
+                type="date"
+                className="alumno-form-fecha-cal"
+                value={fechaNacimientoIso}
+                onChange={(e) => aplicarFechaIso(e.target.value)}
+                aria-label="Elegir fecha en calendario"
+                tabIndex={-1}
+              />
+              <button
+                type="button"
+                className="alumno-form-fecha-btn"
+                onClick={abrirCalendario}
+                aria-label="Abrir calendario"
+              >
+                <Calendar size={18} aria-hidden />
+              </button>
+            </div>
+          </div>
+
           <div className="alumno-form-field alumno-form-field--curp">
             <label htmlFor="alumno_curp" className="alumno-form-label">
               CURP
@@ -306,7 +377,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
         valorInicial={curp}
         onAplicar={setCurp}
         nombreAlumno={nombreCompleto || undefined}
-        fechaNacimiento={detalles?.alumno_fecha_nac}
+        fechaNacimiento={fechaNacimientoIso || detalles?.alumno_fecha_nac}
         sexoRegistrado={detalles?.alumno_sexo}
       />
     </form>

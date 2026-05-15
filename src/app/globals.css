@@ -5759,8 +5759,62 @@ body {
   font-size: 14px;
 }
 
+.alumno-form-field--fecha,
 .alumno-form-field--curp {
   grid-column: 1 / -1;
+  max-width: 420px;
+}
+
+.alumno-form-fecha-fila {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.alumno-form-input--fecha {
+  flex: 1;
+  min-width: 0;
+}
+
+.alumno-form-fecha-cal {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.alumno-form-fecha-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  padding: 0;
+  color: #1e3a5f;
+  background: #e8f1fb;
+  border: 1px solid #94a3b8;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.alumno-form-fecha-btn:hover {
+  background: #dbeafe;
+  border-color: #1e3a5f;
+}
+
+.alumno-form-fecha-btn:focus-visible {
+  outline: 2px solid #1e3a5f;
+  outline-offset: 2px;
+}
+
+.alumno-form-field--curp {
   max-width: 520px;
 }
 
