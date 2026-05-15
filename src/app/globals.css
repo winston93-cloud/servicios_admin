@@ -5616,6 +5616,10 @@ body {
   grid-template-columns: repeat(3, 1fr);
 }
 
+.alumno-form-grid--4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
 .alumno-form-fieldset--spaced {
   margin-top: 22px;
 }
@@ -5698,7 +5702,8 @@ body {
 
 @media (max-width: 768px) {
   .alumno-form-grid--2,
-  .alumno-form-grid--3 {
+  .alumno-form-grid--3,
+  .alumno-form-grid--4 {
     grid-template-columns: 1fr;
   }
 }

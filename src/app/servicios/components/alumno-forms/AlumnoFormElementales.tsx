@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 import { obtenerDatosElementalesPorRef, type AlumnoDatosElementales } from '@/lib/alumnoDatosService'
 import { CICLOS_ESCOLARES_OPCIONES, cicloEscolarPorDefecto } from '@/lib/cicloEscolar'
+import { NIVELES_ESCOLARES_OPCIONES, nivelEscolarPorDefecto } from '@/lib/nivelEscolar'
 
 interface AlumnoFormElementalesProps {
   alumno: AlumnoBusquedaResultado
@@ -16,6 +17,9 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   const [datos, setDatos] = useState<AlumnoDatosElementales | null>(null)
   const [cicloEscolar, setCicloEscolar] = useState<number>(
     CICLOS_ESCOLARES_OPCIONES[0].valor
+  )
+  const [nivelEscolar, setNivelEscolar] = useState<number>(
+    NIVELES_ESCOLARES_OPCIONES[0].valor
   )
 
   useEffect(() => {
@@ -31,6 +35,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
       } else {
         setDatos(registro)
         setCicloEscolar(cicloEscolarPorDefecto(registro.alumno.alumno_ciclo_escolar))
+        setNivelEscolar(nivelEscolarPorDefecto(registro.alumno.alumno_nivel))
       }
       setCargando(false)
     })
@@ -62,7 +67,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   return (
     <form className="alumno-form" onSubmit={(e) => e.preventDefault()} noValidate>
       <fieldset className="alumno-form-fieldset">
-        <div className="alumno-form-grid alumno-form-grid--3">
+        <div className="alumno-form-grid alumno-form-grid--4">
           <div className="alumno-form-field">
             <label htmlFor="alumno_id" className="alumno-form-label">
               ID
@@ -101,6 +106,24 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               onChange={(e) => setCicloEscolar(Number(e.target.value))}
             >
               {CICLOS_ESCOLARES_OPCIONES.map((opcion) => (
+                <option key={opcion.valor} value={opcion.valor}>
+                  {opcion.etiqueta}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="alumno-form-field">
+            <label htmlFor="alumno_nivel" className="alumno-form-label">
+              Nivel
+            </label>
+            <select
+              id="alumno_nivel"
+              name="alumno_nivel"
+              className="alumno-form-select"
+              value={String(nivelEscolar)}
+              onChange={(e) => setNivelEscolar(Number(e.target.value))}
+            >
+              {NIVELES_ESCOLARES_OPCIONES.map((opcion) => (
                 <option key={opcion.valor} value={opcion.valor}>
                   {opcion.etiqueta}
                 </option>
