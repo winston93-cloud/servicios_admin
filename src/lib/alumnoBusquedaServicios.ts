@@ -5,7 +5,7 @@ const CANDIDATOS_POR_CONSULTA = 80
 const RESULTADOS_MAX = 15
 const MIN_CARACTERES = 2
 
-export type CampoNombreAlumno = 'nombre' | 'app' | 'apm'
+export type CampoBusquedaAlumno = 'nombre' | 'app' | 'apm' | 'ref'
 
 export interface AlumnoBusquedaRow {
   alumno_id: number
@@ -21,7 +21,7 @@ export interface AlumnoBusquedaRow {
 export interface AlumnoBusquedaResultado extends AlumnoBusquedaRow {
   nombre_completo: string
   puntuacion: number
-  campos_coincidentes: CampoNombreAlumno[]
+  campos_coincidentes: CampoBusquedaAlumno[]
 }
 
 function normalizar(texto: string): string {
@@ -51,6 +51,15 @@ export function construirNombreCompleto(
   return [nombre, app, apm].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
 }
 
+/** Grupo numérico en BD → letra (1 = A, 2 = B, 3 = C, …). */
+export function grupoALetra(grupo: string | number | null | undefined): string | null {
+  if (grupo == null || grupo === '') return null
+  const n = typeof grupo === 'string' ? parseInt(grupo, 10) : grupo
+  if (Number.isNaN(n)) return String(grupo)
+  if (n >= 1 && n <= 26) return String.fromCharCode(64 + n)
+  return String(n)
+}
+
 /** Distancia de edición para tolerar errores de tipeo. */
 function levenshtein(a: string, b: string): number {
   if (a === b) return 0
@@ -68,6 +77,16 @@ function levenshtein(a: string, b: string): number {
     }
   }
   return fila[b.length]
+}
+
+function puntuarCampoRef(termino: string, ref: string): number {
+  const q = termino.replace(/\s/g, '')
+  const r = String(ref ?? '').trim()
+  if (!q || !r) return 0
+  if (r === q) return 1150
+  if (r.startsWith(q)) return 980
+  if (r.includes(q)) return 85
+  return puntuarCampo(termino, r)
 }
 
 function puntuarCampo(termino: string, valor: string): number {
@@ -90,21 +109,29 @@ function puntuarCampo(termino: string, valor: string): number {
 function puntuarAlumno(
   alumno: AlumnoBusquedaRow,
   consulta: string
-): { puntuacion: number; campos: CampoNombreAlumno[] } {
+): { puntuacion: number; campos: CampoBusquedaAlumno[] } {
   const tokens = tokensDeConsulta(consulta)
   const qCompleta = normalizar(consulta)
+  const qRef = consulta.replace(/\s/g, '')
   const nombre = alumno.alumno_nombre ?? ''
   const app = alumno.alumno_app ?? ''
   const apm = alumno.alumno_apm ?? ''
+  const ref = String(alumno.alumno_ref ?? '').trim()
   const completo = normalizar(construirNombreCompleto(nombre, app, apm))
-  const campos: CampoNombreAlumno[] = []
+  const campos: CampoBusquedaAlumno[] = []
   let puntuacion = 0
+
+  const ptsRef = puntuarCampoRef(qRef, ref)
+  if (ptsRef > 0) {
+    puntuacion += ptsRef
+    campos.push('ref')
+  }
 
   if (completo === qCompleta) puntuacion += 1200
   else if (completo.startsWith(qCompleta)) puntuacion += 620
   else if (completo.includes(qCompleta)) puntuacion += 320
 
-  const partes: { id: CampoNombreAlumno; valor: string }[] = [
+  const partes: { id: CampoBusquedaAlumno; valor: string }[] = [
     { id: 'nombre', valor: nombre },
     { id: 'app', valor: app },
     { id: 'apm', valor: apm },
@@ -122,7 +149,7 @@ function puntuarAlumno(
     let todosLosTokens = true
     let bonusTokens = 0
     for (const token of tokens) {
-      let mejor = 0
+      let mejor = Math.max(puntuarCampoRef(token.replace(/\s/g, ''), ref), 0)
       for (const { valor } of partes) {
         mejor = Math.max(mejor, puntuarCampo(token, valor))
       }
@@ -132,6 +159,8 @@ function puntuarAlumno(
     puntuacion += todosLosTokens ? bonusTokens + 180 : Math.round(bonusTokens * 0.45)
   } else if (tokens.length === 1) {
     const token = tokens[0]
+    const ptsRefToken = puntuarCampoRef(token.replace(/\s/g, ''), ref)
+    if (ptsRefToken > 0 && !campos.includes('ref')) campos.push('ref')
     for (const { id, valor } of partes) {
       const pts = puntuarCampo(token, valor)
       if (pts > 0 && !campos.includes(id)) campos.push(id)
@@ -162,6 +191,7 @@ async function consultarCandidatos(
     `alumno_nombre.ilike.${patron}`,
     `alumno_app.ilike.${patron}`,
     `alumno_apm.ilike.${patron}`,
+    `alumno_ref.ilike.${patron}`,
   ].join(',')
 
   let query = supabase
@@ -188,7 +218,7 @@ async function consultarCandidatos(
 }
 
 /**
- * Búsqueda por nombre, apellido paterno o apellido materno.
+ * Búsqueda por nombre, apellidos o número de control (alumno_ref).
  * Devuelve hasta 15 coincidencias ordenadas por relevancia.
  */
 export async function buscarAlumnosServicios(

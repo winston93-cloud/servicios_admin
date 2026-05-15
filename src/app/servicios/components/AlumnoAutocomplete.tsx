@@ -15,13 +15,15 @@ import {
   MIN_CARACTERES,
   RESULTADOS_MAX,
   type AlumnoBusquedaResultado,
-  type CampoNombreAlumno,
+  type CampoBusquedaAlumno,
+  grupoALetra,
 } from '@/lib/alumnoBusquedaServicios'
 
-const ETIQUETA_CAMPO: Record<CampoNombreAlumno, string> = {
+const ETIQUETA_CAMPO: Record<CampoBusquedaAlumno, string> = {
   nombre: 'Nombre',
   app: 'Ap. paterno',
   apm: 'Ap. materno',
+  ref: 'No. control',
 }
 
 function normalizar(texto: string): string {
@@ -259,7 +261,7 @@ export default function AlumnoAutocomplete({
             indiceActivo >= 0 ? `${baseId}-opt-${indiceActivo}` : undefined
           }
           className="alumno-ac-input"
-          placeholder="Nombre, apellido paterno o apellido materno…"
+          placeholder="Nombre, apellidos o número de control…"
           value={consulta}
           onChange={(e) => {
             setConsulta(e.target.value)
@@ -304,6 +306,7 @@ export default function AlumnoAutocomplete({
             >
               {resultados.map((alumno, index) => {
                 const activo = index === indiceActivo
+                const grupoLetra = grupoALetra(alumno.alumno_grupo)
                 return (
                   <li
                     key={alumno.alumno_id}
@@ -325,7 +328,7 @@ export default function AlumnoAutocomplete({
                       <span className="alumno-ac-option-meta">
                         No. control {alumno.alumno_ref} · {textoNivel(alumno.alumno_nivel)}
                         {alumno.alumno_grado ? ` · ${alumno.alumno_grado}°` : ''}
-                        {alumno.alumno_grupo ? ` · Grupo ${alumno.alumno_grupo}` : ''}
+                        {grupoLetra ? ` · Grupo ${grupoLetra}` : ''}
                       </span>
                       {alumno.campos_coincidentes.length > 0 && (
                         <span className="alumno-ac-option-tags">
