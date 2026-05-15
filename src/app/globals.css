@@ -5131,7 +5131,14 @@ body {
 /* ─── Autocompletado Alumnos (módulo Servicios) ───────────────────────── */
 .alumno-ac {
   position: relative;
-  max-width: 640px;
+  max-width: 100%;
+}
+
+.alumno-ac-row {
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
 .alumno-ac-label {
@@ -5146,6 +5153,9 @@ body {
   position: relative;
   display: flex;
   align-items: center;
+  flex: 0 1 340px;
+  min-width: 220px;
+  max-width: 100%;
 }
 
 .alumno-ac-input-icon {
@@ -5328,13 +5338,21 @@ body {
 
 .alumno-ac-selected {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
-  margin-top: 20px;
-  padding: 16px 18px;
+  flex: 1;
+  min-width: 200px;
+  min-height: 52px;
+  padding: 10px 16px;
   background: linear-gradient(135deg, #f0f4f8 0%, #e8eef5 100%);
   border: 1px solid #cbd5e1;
   border-radius: 12px;
+  align-self: stretch;
+}
+
+.alumno-ac-selected-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .alumno-ac-selected-icon {
@@ -5343,10 +5361,14 @@ body {
 }
 
 .alumno-ac-selected-title {
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: #0f172a;
-  margin: 0 0 4px;
+  margin: 0 0 2px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .alumno-ac-selected-meta {
@@ -5356,7 +5378,26 @@ body {
 }
 
 .servicios-panel-inner--alumnos {
-  max-width: 720px;
+  max-width: 1100px;
+}
+
+@media (max-width: 640px) {
+  .alumno-ac-row {
+    flex-direction: column;
+  }
+
+  .alumno-ac-input-wrap {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .alumno-ac-selected {
+    width: 100%;
+  }
+
+  .alumno-ac-selected-title {
+    white-space: normal;
+  }
 }
 
 .servicios-panel-header--compact {

@@ -239,7 +239,9 @@ export default function AlumnoAutocomplete({
       <label htmlFor={`${baseId}-input`} className="alumno-ac-label">
         Buscar alumno
       </label>
-      <div className="alumno-ac-input-wrap">
+
+      <div className="alumno-ac-row">
+        <div className="alumno-ac-input-wrap">
         <Search className="alumno-ac-input-icon" size={20} aria-hidden />
         <input
           ref={inputRef}
@@ -279,6 +281,19 @@ export default function AlumnoAutocomplete({
           >
             <X size={18} />
           </button>
+        )}
+        </div>
+
+        {seleccionado && (
+          <div className="alumno-ac-selected" role="status">
+            <UserRound size={22} className="alumno-ac-selected-icon" aria-hidden />
+            <div className="alumno-ac-selected-text">
+              <p className="alumno-ac-selected-title">{seleccionado.nombre_completo}</p>
+              <p className="alumno-ac-selected-meta">
+                No. control {seleccionado.alumno_ref} · ID {seleccionado.alumno_id}
+              </p>
+            </div>
+          </div>
         )}
       </div>
 
@@ -339,18 +354,6 @@ export default function AlumnoAutocomplete({
               })}
             </ul>
           )}
-        </div>
-      )}
-
-      {seleccionado && (
-        <div className="alumno-ac-selected" role="status">
-          <UserRound size={22} className="alumno-ac-selected-icon" aria-hidden />
-          <div>
-            <p className="alumno-ac-selected-title">{seleccionado.nombre_completo}</p>
-            <p className="alumno-ac-selected-meta">
-              No. control {seleccionado.alumno_ref} · ID {seleccionado.alumno_id}
-            </p>
-          </div>
         </div>
       )}
     </div>
