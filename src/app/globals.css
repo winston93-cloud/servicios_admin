@@ -5502,6 +5502,14 @@ body {
   gap: 16px;
 }
 
+.alumno-form-grid--1 {
+  grid-template-columns: 1fr;
+}
+
+.alumno-form-field--narrow {
+  max-width: 320px;
+}
+
 .alumno-form-grid--2 {
   grid-template-columns: repeat(2, 1fr);
 }

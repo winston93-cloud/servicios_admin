@@ -30,3 +30,45 @@ export async function obtenerAlumnoPorId(alumnoId: number): Promise<AlumnoRegist
 
   return data as AlumnoRegistro | null
 }
+
+export interface AlumnoDetallesRegistro {
+  detalle_id: number
+  alumno_id: number
+  alumno_clave?: string | null
+}
+
+export async function obtenerAlumnoDetallesPorAlumnoId(
+  alumnoId: number
+): Promise<AlumnoDetallesRegistro | null> {
+  const { data, error } = await supabase
+    .from('alumno_detalles')
+    .select('detalle_id, alumno_id, alumno_clave')
+    .eq('alumno_id', alumnoId)
+    .order('detalle_id', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Error al cargar detalles del alumno:', error)
+    return null
+  }
+
+  return data as AlumnoDetallesRegistro | null
+}
+
+export interface AlumnoDatosElementales {
+  alumno: AlumnoRegistro
+  detalles: AlumnoDetallesRegistro | null
+}
+
+export async function obtenerDatosElementalesAlumno(
+  alumnoId: number
+): Promise<AlumnoDatosElementales | null> {
+  const [alumno, detalles] = await Promise.all([
+    obtenerAlumnoPorId(alumnoId),
+    obtenerAlumnoDetallesPorAlumnoId(alumnoId),
+  ])
+
+  if (!alumno) return null
+  return { alumno, detalles }
+}

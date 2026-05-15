@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
-import { obtenerAlumnoPorId, type AlumnoRegistro } from '@/lib/alumnoDatosService'
+import { obtenerDatosElementalesAlumno, type AlumnoDatosElementales } from '@/lib/alumnoDatosService'
 
 interface AlumnoFormElementalesProps {
   alumno: AlumnoBusquedaResultado
@@ -12,14 +12,14 @@ interface AlumnoFormElementalesProps {
 export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesProps) {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [datos, setDatos] = useState<AlumnoRegistro | null>(null)
+  const [datos, setDatos] = useState<AlumnoDatosElementales | null>(null)
 
   useEffect(() => {
     let activo = true
     setCargando(true)
     setError(null)
 
-    obtenerAlumnoPorId(alumno.alumno_id).then((registro) => {
+    obtenerDatosElementalesAlumno(alumno.alumno_id).then((registro) => {
       if (!activo) return
       if (!registro) {
         setError('No se pudo cargar la información del alumno.')
@@ -52,6 +52,8 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
     )
   }
 
+  const { alumno: a, detalles } = datos
+
   return (
     <form className="alumno-form" onSubmit={(e) => e.preventDefault()} noValidate>
       <fieldset className="alumno-form-fieldset">
@@ -66,7 +68,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               name="alumno_id"
               type="text"
               className="alumno-form-input"
-              value={String(datos.alumno_id)}
+              value={String(a.alumno_id)}
               readOnly
             />
           </div>
@@ -79,7 +81,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               name="alumno_ref"
               type="text"
               className="alumno-form-input"
-              value={datos.alumno_ref ?? ''}
+              value={a.alumno_ref ?? ''}
               readOnly
             />
           </div>
@@ -98,7 +100,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               name="alumno_app"
               type="text"
               className="alumno-form-input"
-              value={datos.alumno_app ?? ''}
+              value={a.alumno_app ?? ''}
               readOnly
               autoComplete="family-name"
             />
@@ -112,7 +114,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               name="alumno_apm"
               type="text"
               className="alumno-form-input"
-              value={datos.alumno_apm ?? ''}
+              value={a.alumno_apm ?? ''}
               readOnly
               autoComplete="family-name"
             />
@@ -126,9 +128,29 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               name="alumno_nombre"
               type="text"
               className="alumno-form-input"
-              value={datos.alumno_nombre ?? ''}
+              value={a.alumno_nombre ?? ''}
               readOnly
               autoComplete="given-name"
+            />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset className="alumno-form-fieldset alumno-form-fieldset--spaced">
+        <legend className="alumno-form-legend">Clave personal</legend>
+        <div className="alumno-form-grid alumno-form-grid--1">
+          <div className="alumno-form-field alumno-form-field--narrow">
+            <label htmlFor="alumno_clave" className="alumno-form-label">
+              Clave personal
+            </label>
+            <input
+              id="alumno_clave"
+              name="alumno_clave"
+              type="text"
+              className="alumno-form-input"
+              value={detalles?.alumno_clave ?? ''}
+              readOnly
+              placeholder={detalles ? undefined : 'Sin registro en alumno_detalles'}
             />
           </div>
         </div>
