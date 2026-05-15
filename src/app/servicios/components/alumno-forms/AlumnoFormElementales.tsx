@@ -57,7 +57,6 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   return (
     <form className="alumno-form" onSubmit={(e) => e.preventDefault()} noValidate>
       <fieldset className="alumno-form-fieldset">
-        <legend className="alumno-form-legend">Identificación</legend>
         <div className="alumno-form-grid alumno-form-grid--2">
           <div className="alumno-form-field">
             <label htmlFor="alumno_id" className="alumno-form-label">
@@ -89,7 +88,6 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
       </fieldset>
 
       <fieldset className="alumno-form-fieldset alumno-form-fieldset--spaced">
-        <legend className="alumno-form-legend">Nombre del alumno</legend>
         <div className="alumno-form-grid alumno-form-grid--3">
           <div className="alumno-form-field">
             <label htmlFor="alumno_app" className="alumno-form-label">
@@ -137,7 +135,6 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
       </fieldset>
 
       <fieldset className="alumno-form-fieldset alumno-form-fieldset--spaced">
-        <legend className="alumno-form-legend">Clave personal</legend>
         <div className="alumno-form-grid alumno-form-grid--1">
           <div className="alumno-form-field alumno-form-field--narrow">
             <label htmlFor="alumno_clave" className="alumno-form-label">
