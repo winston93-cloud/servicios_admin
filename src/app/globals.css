@@ -5699,11 +5699,13 @@ body {
   }
 
   .alumno-form-fecha-fila,
-  .alumno-form-curp-fila {
+  .alumno-form-curp-fila,
+  .alumno-form-clave-fila {
     flex-direction: column;
   }
 
   .alumno-form-fecha-btn,
+  .alumno-form-clave-btn,
   .alumno-form-curp-btn {
     width: 100%;
     min-height: 44px;
@@ -5795,12 +5797,54 @@ body {
   font-size: 14px;
 }
 
+.alumno-form-clave-fila {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  min-height: 44px;
+}
+
+.alumno-form-input--clave {
+  flex: 1;
+  min-width: 0;
+}
+
+.alumno-form-clave-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  color: #1e3a5f;
+  background: #e8f1fb;
+  border: 1px solid #94a3b8;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.alumno-form-clave-btn:hover {
+  background: #dbeafe;
+  border-color: #1e3a5f;
+}
+
+.alumno-form-clave-btn:focus-visible {
+  outline: 2px solid #1e3a5f;
+  outline-offset: 2px;
+}
+
 .alumno-form-fecha-fila {
   position: relative;
   display: flex;
   gap: 8px;
   align-items: stretch;
   min-height: 44px;
+}
+
+.alumno-form-fecha-fila--solo-lectura .alumno-form-input--fecha {
+  flex: 1;
 }
 
 .alumno-form-input--fecha {

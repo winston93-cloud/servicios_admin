@@ -11,10 +11,12 @@ export interface AlumnoRegistro {
   alumno_grupo?: string | number | null
   alumno_status?: number | null
   alumno_ciclo_escolar?: string | number | null
+  alumno_registro?: string | null
+  alumno_alta?: string | null
 }
 
 const SELECT_ALUMNO =
-  'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_status, alumno_ciclo_escolar'
+  'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_status, alumno_ciclo_escolar, alumno_registro, alumno_alta'
 
 function cicloNumerico(ciclo: string | number | null | undefined): number {
   if (ciclo == null || ciclo === '') return 0
