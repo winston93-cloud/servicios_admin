@@ -5164,6 +5164,18 @@ body {
   animation: alumno-ac-spin 0.7s linear infinite;
 }
 
+.ciclo-escolar-selector-actual {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #1e3a8a;
+}
+
+.ciclo-escolar-selector-actual strong {
+  font-weight: 700;
+}
+
 .ciclo-escolar-selector-error {
   flex: 1 1 100%;
   margin: 0;

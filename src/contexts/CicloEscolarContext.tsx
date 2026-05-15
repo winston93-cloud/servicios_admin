@@ -16,13 +16,15 @@ import {
   type CicloEscolarRegistro,
 } from '@/lib/ciclosEscolaresService'
 
-const STORAGE_KEY = 'servicios-ciclo-escolar-valor'
 const CICLO_FALLBACK = 22
 
 interface CicloEscolarContextValue {
   ciclos: CicloEscolarRegistro[]
+  /** Ciclo con el que se filtran alumnos (cambiable en el selector superior). */
   cicloSeleccionado: number
+  /** Ciclo marcado como actual en BD (`es_actual`); solo se edita en el catálogo. */
   cicloActualSistema: number
+  etiquetaCicloActualSistema: string
   opcionesSelector: { valor: number; etiqueta: string }[]
   opcionesCatalogo: { valor: number; etiqueta: string }[]
   cargando: boolean
@@ -33,23 +35,9 @@ interface CicloEscolarContextValue {
 
 const CicloEscolarContext = createContext<CicloEscolarContextValue | null>(null)
 
-function leerCicloGuardado(): number | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const n = parseInt(raw, 10)
-    return Number.isNaN(n) ? null : n
-  } catch {
-    return null
-  }
-}
-
-function guardarCicloLocal(valor: number) {
-  try {
-    localStorage.setItem(STORAGE_KEY, String(valor))
-  } catch {
-    /* ignore */
-  }
+function valorCicloActualSistema(ciclos: CicloEscolarRegistro[]): number {
+  const actual = ciclos.find((c) => c.es_actual)
+  return actual?.valor ?? CICLO_FALLBACK
 }
 
 export function CicloEscolarProvider({ children }: { children: ReactNode }) {
@@ -58,10 +46,12 @@ export function CicloEscolarProvider({ children }: { children: ReactNode }) {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const cicloActualSistema = useMemo(() => {
-    const actual = ciclos.find((c) => c.es_actual)
-    return actual?.valor ?? CICLO_FALLBACK
-  }, [ciclos])
+  const cicloActualSistema = useMemo(() => valorCicloActualSistema(ciclos), [ciclos])
+
+  const etiquetaCicloActualSistema = useMemo(() => {
+    const hit = ciclos.find((c) => c.valor === cicloActualSistema)
+    return hit?.nombre ?? '—'
+  }, [ciclos, cicloActualSistema])
 
   const opcionesSelector = useMemo(() => {
     const lista = ciclosParaSelector(ciclos, cicloActualSistema)
@@ -79,23 +69,8 @@ export function CicloEscolarProvider({ children }: { children: ReactNode }) {
     try {
       const lista = await listarCiclosEscolares()
       setCiclos(lista)
-
-      const actual = lista.find((c) => c.es_actual)
-      const valorActual = actual?.valor ?? CICLO_FALLBACK
-      const permitidos = ciclosParaSelector(lista, valorActual).map((c) => c.valor)
-      const guardado = leerCicloGuardado()
-
-      let elegido = valorActual
-      if (guardado != null && permitidos.includes(guardado)) {
-        elegido = guardado
-      } else if (permitidos.includes(valorActual)) {
-        elegido = valorActual
-      } else if (permitidos.length > 0) {
-        elegido = permitidos[0]
-      }
-
-      setCicloSeleccionadoState(elegido)
-      guardarCicloLocal(elegido)
+      // Siempre arrancar en el ciclo activo del sistema (es_actual en catálogo).
+      setCicloSeleccionadoState(valorCicloActualSistema(lista))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudieron cargar los ciclos escolares.')
     } finally {
@@ -112,7 +87,6 @@ export function CicloEscolarProvider({ children }: { children: ReactNode }) {
       const permitidos = ciclosParaSelector(ciclos, cicloActualSistema).map((c) => c.valor)
       if (!permitidos.includes(valor)) return
       setCicloSeleccionadoState(valor)
-      guardarCicloLocal(valor)
     },
     [ciclos, cicloActualSistema]
   )
@@ -122,6 +96,7 @@ export function CicloEscolarProvider({ children }: { children: ReactNode }) {
       ciclos,
       cicloSeleccionado,
       cicloActualSistema,
+      etiquetaCicloActualSistema,
       opcionesSelector,
       opcionesCatalogo,
       cargando,
@@ -133,6 +108,7 @@ export function CicloEscolarProvider({ children }: { children: ReactNode }) {
       ciclos,
       cicloSeleccionado,
       cicloActualSistema,
+      etiquetaCicloActualSistema,
       opcionesSelector,
       opcionesCatalogo,
       cargando,
