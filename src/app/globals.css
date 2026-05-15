@@ -5650,6 +5650,23 @@ body {
   cursor: default;
 }
 
+.alumno-form-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  color: #0f172a;
+  background: #fff;
+  cursor: pointer;
+}
+
+.alumno-form-select:focus {
+  outline: none;
+  border-color: #1e3a5f;
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.15);
+}
+
 .alumno-form-input:focus {
   outline: none;
   border-color: #1e3a5f;

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 import { obtenerDatosElementalesPorRef, type AlumnoDatosElementales } from '@/lib/alumnoDatosService'
+import { CICLOS_ESCOLARES_OPCIONES, cicloEscolarPorDefecto } from '@/lib/cicloEscolar'
 
 interface AlumnoFormElementalesProps {
   alumno: AlumnoBusquedaResultado
@@ -13,6 +14,9 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [datos, setDatos] = useState<AlumnoDatosElementales | null>(null)
+  const [cicloEscolar, setCicloEscolar] = useState<number>(
+    CICLOS_ESCOLARES_OPCIONES[0].valor
+  )
 
   useEffect(() => {
     let activo = true
@@ -26,6 +30,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
         setDatos(null)
       } else {
         setDatos(registro)
+        setCicloEscolar(cicloEscolarPorDefecto(registro.alumno.alumno_ciclo_escolar))
       }
       setCargando(false)
     })
@@ -57,7 +62,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   return (
     <form className="alumno-form" onSubmit={(e) => e.preventDefault()} noValidate>
       <fieldset className="alumno-form-fieldset">
-        <div className="alumno-form-grid alumno-form-grid--2">
+        <div className="alumno-form-grid alumno-form-grid--3">
           <div className="alumno-form-field">
             <label htmlFor="alumno_id" className="alumno-form-label">
               ID
@@ -83,6 +88,24 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               value={a.alumno_ref ?? ''}
               readOnly
             />
+          </div>
+          <div className="alumno-form-field">
+            <label htmlFor="alumno_ciclo_escolar" className="alumno-form-label">
+              Ciclo escolar
+            </label>
+            <select
+              id="alumno_ciclo_escolar"
+              name="alumno_ciclo_escolar"
+              className="alumno-form-select"
+              value={String(cicloEscolar)}
+              onChange={(e) => setCicloEscolar(Number(e.target.value))}
+            >
+              {CICLOS_ESCOLARES_OPCIONES.map((opcion) => (
+                <option key={opcion.valor} value={opcion.valor}>
+                  {opcion.etiqueta}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </fieldset>
