@@ -12,11 +12,13 @@ import {
 import { Search, Loader2, X } from 'lucide-react'
 import {
   buscarAlumnosServicios,
+  construirNombreCompleto,
   MIN_CARACTERES,
   type AlumnoBusquedaResultado,
   type CampoBusquedaAlumno,
   grupoALetra,
 } from '@/lib/alumnoBusquedaServicios'
+import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
 
 const ETIQUETA_CAMPO: Record<CampoBusquedaAlumno, string> = {
   nombre: 'Nombre',
@@ -125,7 +127,27 @@ export default function AlumnoAutocomplete({
   }, [])
 
   const elegir = useCallback(
-    (alumno: AlumnoBusquedaResultado) => {
+    async (pick: AlumnoBusquedaResultado) => {
+      const canon = await obtenerAlumnoPorRef(pick.alumno_ref)
+      const alumno: AlumnoBusquedaResultado = canon
+        ? {
+            ...pick,
+            alumno_id: canon.alumno_id,
+            alumno_ref: String(canon.alumno_ref),
+            alumno_nombre: canon.alumno_nombre,
+            alumno_app: canon.alumno_app,
+            alumno_apm: canon.alumno_apm,
+            alumno_nivel: canon.alumno_nivel,
+            alumno_grado:
+              canon.alumno_grado != null ? String(canon.alumno_grado) : null,
+            alumno_grupo:
+              canon.alumno_grupo != null ? String(canon.alumno_grupo) : null,
+            nombre_completo:
+              canon.alumno_nombre_completo ??
+              construirNombreCompleto(canon.alumno_nombre, canon.alumno_app, canon.alumno_apm),
+          }
+        : pick
+
       setSeleccionado(alumno)
       setConsulta(alumno.nombre_completo)
       cerrarLista()
@@ -203,6 +225,8 @@ export default function AlumnoAutocomplete({
 
   const alClicEnInput = () => {
     prepararNuevaBusqueda()
+    setSeleccionado(null)
+    onSeleccionar?.(null)
     inputRef.current?.select()
   }
 

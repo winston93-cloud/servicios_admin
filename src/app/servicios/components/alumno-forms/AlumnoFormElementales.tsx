@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
-import { obtenerDatosElementalesAlumno, type AlumnoDatosElementales } from '@/lib/alumnoDatosService'
+import { obtenerDatosElementalesPorRef, type AlumnoDatosElementales } from '@/lib/alumnoDatosService'
 
 interface AlumnoFormElementalesProps {
   alumno: AlumnoBusquedaResultado
@@ -19,7 +19,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
     setCargando(true)
     setError(null)
 
-    obtenerDatosElementalesAlumno(alumno.alumno_id).then((registro) => {
+    obtenerDatosElementalesPorRef(alumno.alumno_ref).then((registro) => {
       if (!activo) return
       if (!registro) {
         setError('No se pudo cargar la información del alumno.')
@@ -33,7 +33,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
     return () => {
       activo = false
     }
-  }, [alumno.alumno_id])
+  }, [alumno.alumno_ref, alumno.alumno_id])
 
   if (cargando) {
     return (

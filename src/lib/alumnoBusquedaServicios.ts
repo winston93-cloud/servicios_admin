@@ -1,6 +1,5 @@
 import { supabase } from './supabase'
 
-const CICLO_ESCOLAR = '22'
 const CANDIDATOS_POR_CONSULTA = 80
 const RESULTADOS_MAX = 15
 const MIN_CARACTERES = 2
@@ -16,6 +15,31 @@ export interface AlumnoBusquedaRow {
   alumno_nivel: number
   alumno_grado?: string | null
   alumno_grupo?: string | null
+  alumno_ciclo_escolar?: string | number | null
+}
+
+function cicloNumerico(ciclo: string | number | null | undefined): number {
+  if (ciclo == null || ciclo === '') return 0
+  const n = typeof ciclo === 'number' ? ciclo : parseInt(String(ciclo), 10)
+  return Number.isNaN(n) ? 0 : n
+}
+
+function fusionarCandidato(
+  mapa: Map<number, AlumnoBusquedaRow>,
+  refIndex: Map<string, number>,
+  fila: AlumnoBusquedaRow
+) {
+  const ref = String(fila.alumno_ref ?? '').trim()
+  const prevId = refIndex.get(ref)
+  if (prevId !== undefined) {
+    const prev = mapa.get(prevId)
+    if (prev && cicloNumerico(fila.alumno_ciclo_escolar) <= cicloNumerico(prev.alumno_ciclo_escolar)) {
+      return
+    }
+    mapa.delete(prevId)
+  }
+  mapa.set(fila.alumno_id, fila)
+  if (ref) refIndex.set(ref, fila.alumno_id)
 }
 
 export interface AlumnoBusquedaResultado extends AlumnoBusquedaRow {
@@ -197,9 +221,8 @@ async function consultarCandidatos(
   let query = supabase
     .from('alumno')
     .select(
-      'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo'
+      'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_ciclo_escolar'
     )
-    .eq('alumno_ciclo_escolar', CICLO_ESCOLAR)
     .eq('alumno_status', 1)
     .or(or)
     .limit(CANDIDATOS_POR_CONSULTA)
@@ -232,6 +255,7 @@ export async function buscarAlumnosServicios(
   const terminosBusqueda = new Set<string>([limpia, ...tokens])
 
   const mapa = new Map<number, AlumnoBusquedaRow>()
+  const refIndex = new Map<string, number>()
   const terminosValidos = [...terminosBusqueda].filter((t) => t.length >= MIN_CARACTERES)
 
   const lotes = await Promise.all(
@@ -239,7 +263,7 @@ export async function buscarAlumnosServicios(
   )
   for (const filas of lotes) {
     for (const fila of filas) {
-      mapa.set(fila.alumno_id, fila)
+      fusionarCandidato(mapa, refIndex, fila)
     }
   }
 
