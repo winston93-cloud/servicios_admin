@@ -13,6 +13,7 @@ import {
   type AlumnoDatosElementales,
   type SnapshotDatosElementales,
 } from '@/lib/alumnoDatosService'
+import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import { CICLOS_ESCOLARES_OPCIONES, cicloEscolarPorDefecto } from '@/lib/cicloEscolar'
 import { NIVELES_ESCOLARES_OPCIONES, nivelEscolarPorDefecto } from '@/lib/nivelEscolar'
 import {
@@ -37,6 +38,12 @@ interface AlumnoFormElementalesProps {
 }
 
 export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesProps) {
+  const { cicloSeleccionado, opcionesCatalogo } = useCicloEscolar()
+  const opcionesCicloForm = useMemo(
+    () => (opcionesCatalogo.length > 0 ? opcionesCatalogo : [...CICLOS_ESCOLARES_OPCIONES]),
+    [opcionesCatalogo]
+  )
+
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [datos, setDatos] = useState<AlumnoDatosElementales | null>(null)
@@ -135,7 +142,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
     setMensajeGuardar(null)
     setErrorGuardar(false)
 
-    obtenerDatosElementalesPorRef(alumno.alumno_ref).then((registro) => {
+    obtenerDatosElementalesPorRef(alumno.alumno_ref, cicloSeleccionado).then((registro) => {
       if (!activo) return
       if (!registro) {
         setError('No se pudo cargar la información del alumno.')
@@ -147,7 +154,13 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
         setNombre(registro.alumno.alumno_nombre ?? '')
         setClavePersonal(registro.detalles?.alumno_clave ?? '')
         const nivel = nivelEscolarPorDefecto(registro.alumno.alumno_nivel)
-        setCicloEscolar(cicloEscolarPorDefecto(registro.alumno.alumno_ciclo_escolar))
+        setCicloEscolar(
+          cicloEscolarPorDefecto(
+            registro.alumno.alumno_ciclo_escolar,
+            opcionesCicloForm,
+            cicloSeleccionado
+          )
+        )
         setNivelEscolar(nivel)
         setGradoEscolar(gradoEscolarPorDefecto(nivel, registro.alumno.alumno_grado))
         setGrupoEscolar(grupoEscolarPorDefecto(registro.alumno.alumno_grupo))
@@ -170,7 +183,11 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
           apellidoMaterno: registro.alumno.alumno_apm ?? '',
           nombre: registro.alumno.alumno_nombre ?? '',
           clavePersonal: registro.detalles?.alumno_clave ?? '',
-          cicloEscolar: cicloEscolarPorDefecto(registro.alumno.alumno_ciclo_escolar),
+          cicloEscolar: cicloEscolarPorDefecto(
+            registro.alumno.alumno_ciclo_escolar,
+            opcionesCicloForm,
+            cicloSeleccionado
+          ),
           nivelEscolar: nivel,
           gradoEscolar: gradoEscolarPorDefecto(nivel, registro.alumno.alumno_grado),
           grupoEscolar: grupoEscolarPorDefecto(registro.alumno.alumno_grupo),
@@ -189,7 +206,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
     return () => {
       activo = false
     }
-  }, [alumno.alumno_ref, alumno.alumno_id])
+  }, [alumno.alumno_ref, alumno.alumno_id, cicloSeleccionado, opcionesCicloForm])
 
   useEffect(() => {
     if (modificado) {
@@ -402,7 +419,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               value={String(cicloEscolar)}
               onChange={(e) => setCicloEscolar(Number(e.target.value))}
             >
-              {CICLOS_ESCOLARES_OPCIONES.map((opcion) => (
+              {opcionesCicloForm.map((opcion) => (
                 <option key={opcion.valor} value={opcion.valor}>
                   {opcion.etiqueta}
                 </option>

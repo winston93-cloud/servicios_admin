@@ -18,6 +18,7 @@ import {
   type CampoBusquedaAlumno,
   grupoALetra,
 } from '@/lib/alumnoBusquedaServicios'
+import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
 import {
   claseTagEstatusAlumno,
@@ -119,6 +120,10 @@ export default function AlumnoAutocomplete({
   const [indiceActivo, setIndiceActivo] = useState(-1)
   const [seleccionado, setSeleccionado] = useState<AlumnoBusquedaResultado | null>(null)
   const [mensajeVacio, setMensajeVacio] = useState<string | null>(null)
+  const { cicloSeleccionado, opcionesSelector } = useCicloEscolar()
+  const etiquetaCiclo =
+    opcionesSelector.find((o) => o.valor === cicloSeleccionado)?.etiqueta ?? 'ciclo actual'
+  const cicloPrevioRef = useRef(cicloSeleccionado)
 
   useEffect(() => {
     if (autoFocus && inputRef.current) {
@@ -131,9 +136,21 @@ export default function AlumnoAutocomplete({
     setIndiceActivo(-1)
   }, [])
 
+  useEffect(() => {
+    if (cicloPrevioRef.current === cicloSeleccionado) return
+    cicloPrevioRef.current = cicloSeleccionado
+    abortRef.current?.abort()
+    setConsulta('')
+    setResultados([])
+    setSeleccionado(null)
+    setMensajeVacio(null)
+    cerrarLista()
+    onSeleccionar?.(null)
+  }, [cicloSeleccionado, cerrarLista, onSeleccionar])
+
   const elegir = useCallback(
     async (pick: AlumnoBusquedaResultado) => {
-      const canon = await obtenerAlumnoPorRef(pick.alumno_ref)
+      const canon = await obtenerAlumnoPorRef(pick.alumno_ref, cicloSeleccionado)
       const alumno: AlumnoBusquedaResultado = canon
         ? {
             ...pick,
@@ -161,7 +178,7 @@ export default function AlumnoAutocomplete({
       setResultados([])
       onSeleccionar?.(alumno)
     },
-    [cerrarLista, onSeleccionar]
+    [cerrarLista, onSeleccionar, cicloSeleccionado]
   )
 
   useEffect(() => {
@@ -186,7 +203,7 @@ export default function AlumnoAutocomplete({
       setMensajeVacio(null)
 
       try {
-        const lista = await buscarAlumnosServicios(texto, controller.signal)
+        const lista = await buscarAlumnosServicios(texto, cicloSeleccionado, controller.signal)
         if (controller.signal.aborted) return
         setResultados(lista)
         setAbierto(true)
@@ -207,7 +224,7 @@ export default function AlumnoAutocomplete({
     }, 110)
 
     return () => window.clearTimeout(timer)
-  }, [consulta, seleccionado])
+  }, [consulta, seleccionado, cicloSeleccionado])
 
   useEffect(() => {
     if (indiceActivo < 0 || !listRef.current) return
@@ -279,6 +296,7 @@ export default function AlumnoAutocomplete({
     <div className="alumno-ac">
       <label htmlFor={`${baseId}-input`} className="alumno-ac-label">
         Buscar alumno
+        <span className="alumno-ac-label-ciclo"> · Ciclo {etiquetaCiclo}</span>
       </label>
 
       <div className="alumno-ac-input-wrap">

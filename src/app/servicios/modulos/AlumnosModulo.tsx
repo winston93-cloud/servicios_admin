@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
 import AlumnoDatosTabs from '../components/AlumnoDatosTabs'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 
 export default function AlumnosModulo() {
+  const { cicloSeleccionado } = useCicloEscolar()
   const [alumnoSeleccionado, setAlumnoSeleccionado] = useState<AlumnoBusquedaResultado | null>(
     null
   )
@@ -16,9 +18,12 @@ export default function AlumnosModulo() {
         <h1 className="servicios-panel-title">Alumnos</h1>
       </header>
 
-      <AlumnoAutocomplete onSeleccionar={setAlumnoSeleccionado} />
+      <AlumnoAutocomplete
+        key={cicloSeleccionado}
+        onSeleccionar={setAlumnoSeleccionado}
+      />
 
-      <AlumnoDatosTabs alumno={alumnoSeleccionado} />
+      <AlumnoDatosTabs key={cicloSeleccionado} alumno={alumnoSeleccionado} />
     </div>
   )
 }

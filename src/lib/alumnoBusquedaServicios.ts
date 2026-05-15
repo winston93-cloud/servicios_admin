@@ -208,6 +208,7 @@ function puntuarAlumno(
 
 async function consultarCandidatos(
   termino: string,
+  cicloEscolar: number,
   signal?: AbortSignal
 ): Promise<AlumnoBusquedaRow[]> {
   const esc = escaparIlike(termino)
@@ -228,6 +229,7 @@ async function consultarCandidatos(
     .select(
       'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_ciclo_escolar, alumno_status'
     )
+    .eq('alumno_ciclo_escolar', cicloEscolar)
     .or(or)
     .limit(CANDIDATOS_POR_CONSULTA)
 
@@ -250,6 +252,7 @@ async function consultarCandidatos(
  */
 export async function buscarAlumnosServicios(
   consulta: string,
+  cicloEscolar: number,
   signal?: AbortSignal
 ): Promise<AlumnoBusquedaResultado[]> {
   const limpia = consulta.replace(/\s+/g, ' ').trim()
@@ -263,7 +266,7 @@ export async function buscarAlumnosServicios(
   const terminosValidos = [...terminosBusqueda].filter((t) => t.length >= MIN_CARACTERES)
 
   const lotes = await Promise.all(
-    terminosValidos.map((termino) => consultarCandidatos(termino, signal))
+    terminosValidos.map((termino) => consultarCandidatos(termino, cicloEscolar, signal))
   )
   for (const filas of lotes) {
     for (const fila of filas) {

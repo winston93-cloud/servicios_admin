@@ -11,8 +11,11 @@ import {
   type ServiciosModuloId,
   esServiciosModuloId,
 } from './menu'
+import { CicloEscolarProvider } from '@/contexts/CicloEscolarContext'
 import AlumnosModulo from './modulos/AlumnosModulo'
+import CiclosEscolaresModulo from './modulos/CiclosEscolaresModulo'
 import MigracionModulo from './modulos/MigracionModulo'
+import CicloEscolarSelector from './components/CicloEscolarSelector'
 
 const SIDEBAR_COLLAPSED_KEY = 'servicios-sidebar-collapsed'
 
@@ -49,6 +52,8 @@ function ServiciosPanelContenido({
       return <MigracionModulo />
     case 'alumnos':
       return <AlumnosModulo />
+    case 'catalogo-ciclos-escolares':
+      return <CiclosEscolaresModulo />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }
@@ -122,6 +127,7 @@ function ServiciosPageInner() {
   }
 
   return (
+    <CicloEscolarProvider>
     <div className="servicios-app">
       <button
         type="button"
@@ -220,7 +226,7 @@ function ServiciosPageInner() {
       </aside>
 
       <main className="servicios-main">
-        <div className="servicios-main-toolbar">
+        <div className="servicios-main-toolbar servicios-main-toolbar--with-ciclo">
           <button
             type="button"
             className="servicios-back-btn"
@@ -229,12 +235,14 @@ function ServiciosPageInner() {
             <ArrowLeft size={18} aria-hidden />
             Volver al panel
           </button>
+          <CicloEscolarSelector />
         </div>
         <div className="servicios-main-scroll">
           <ServiciosPanelContenido moduloId={moduloActivo} titulo={itemActivo.label} />
         </div>
       </main>
     </div>
+    </CicloEscolarProvider>
   )
 }
 

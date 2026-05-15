@@ -15,20 +15,24 @@ export function parseCicloEscolar(
 }
 
 export function etiquetaCicloEscolar(
-  ciclo: string | number | null | undefined
+  ciclo: string | number | null | undefined,
+  opciones: readonly { valor: number; etiqueta: string }[] = CICLOS_ESCOLARES_OPCIONES
 ): string {
   const n = parseCicloEscolar(ciclo)
   if (n == null) return ''
-  const hit = CICLOS_ESCOLARES_OPCIONES.find((c) => c.valor === n)
+  const hit = opciones.find((c) => c.valor === n)
   return hit?.etiqueta ?? String(ciclo)
 }
 
 export function cicloEscolarPorDefecto(
-  ciclo: string | number | null | undefined
-): CicloEscolarValor {
+  ciclo: string | number | null | undefined,
+  opciones: readonly { valor: number; etiqueta: string }[] = CICLOS_ESCOLARES_OPCIONES,
+  fallback: number = CICLOS_ESCOLARES_OPCIONES[0].valor
+): number {
   const n = parseCicloEscolar(ciclo)
-  if (n != null && CICLOS_ESCOLARES_OPCIONES.some((c) => c.valor === n)) {
-    return n as CicloEscolarValor
+  if (n != null && opciones.some((c) => c.valor === n)) {
+    return n
   }
-  return CICLOS_ESCOLARES_OPCIONES[0].valor
+  if (opciones.some((c) => c.valor === fallback)) return fallback
+  return opciones[0]?.valor ?? fallback
 }

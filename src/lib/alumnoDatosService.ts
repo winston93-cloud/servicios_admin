@@ -27,20 +27,25 @@ function cicloNumerico(ciclo: string | number | null | undefined): number {
   return Number.isNaN(n) ? 0 : n
 }
 
-/** Registro vigente por número de control (ciclo escolar más reciente, cualquier estatus). */
-export async function obtenerAlumnoPorRef(alumnoRef: string): Promise<AlumnoRegistro | null> {
+/** Registro por número de control; si se indica ciclo, solo ese `alumno_ciclo_escolar`. */
+export async function obtenerAlumnoPorRef(
+  alumnoRef: string,
+  cicloEscolar?: number
+): Promise<AlumnoRegistro | null> {
   const ref = String(alumnoRef ?? '').trim()
   if (!ref) return null
 
   const refFiltro = /^\d+$/.test(ref) ? parseInt(ref, 10) : ref
 
-  const { data, error } = await supabase
-    .from('alumno')
-    .select(SELECT_ALUMNO)
-    .eq('alumno_ref', refFiltro)
-    .order('alumno_ciclo_escolar', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+  let query = supabase.from('alumno').select(SELECT_ALUMNO).eq('alumno_ref', refFiltro)
+
+  if (cicloEscolar != null) {
+    query = query.eq('alumno_ciclo_escolar', cicloEscolar)
+  } else {
+    query = query.order('alumno_ciclo_escolar', { ascending: false })
+  }
+
+  const { data, error } = await query.limit(1).maybeSingle()
 
   if (error) {
     console.error('Error al cargar alumno por ref:', error)
@@ -109,9 +114,10 @@ export async function obtenerDatosElementalesAlumno(
 
 /** Carga por no. de control para alinear alumno_id con la tabla alumno. */
 export async function obtenerDatosElementalesPorRef(
-  alumnoRef: string
+  alumnoRef: string,
+  cicloEscolar?: number
 ): Promise<AlumnoDatosElementales | null> {
-  const alumno = await obtenerAlumnoPorRef(alumnoRef)
+  const alumno = await obtenerAlumnoPorRef(alumnoRef, cicloEscolar)
   if (!alumno) return null
   const detalles = await obtenerAlumnoDetallesPorAlumnoId(alumno.alumno_id)
   return { alumno, detalles }

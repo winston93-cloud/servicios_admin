@@ -20,6 +20,7 @@ import {
   FileText,
   Lock,
   BarChart3,
+  CalendarRange,
 } from 'lucide-react'
 
 export type ServiciosModuloId =
@@ -43,6 +44,7 @@ export type ServiciosModuloId =
   | 'bauchers'
   | 'bloqueados'
   | 'reportes-varios'
+  | 'catalogo-ciclos-escolares'
 
 export interface ServiciosMenuItem {
   id: ServiciosModuloId
@@ -71,6 +73,7 @@ export const SERVICIOS_MENU: ServiciosMenuItem[] = [
   { id: 'bauchers', label: 'Bauchers', icon: FileText },
   { id: 'bloqueados', label: 'Bloqueados', icon: Lock },
   { id: 'reportes-varios', label: 'Reportes Varios', icon: BarChart3 },
+  { id: 'catalogo-ciclos-escolares', label: 'Catálogo de ciclos escolares', icon: CalendarRange },
 ]
 
 export function esServiciosModuloId(v: string): v is ServiciosModuloId {
