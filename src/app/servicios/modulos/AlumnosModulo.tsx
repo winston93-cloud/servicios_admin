@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
 import AlumnoDatosTabs from '../components/AlumnoDatosTabs'
@@ -12,16 +12,17 @@ export default function AlumnosModulo() {
     null
   )
 
+  useEffect(() => {
+    setAlumnoSeleccionado(null)
+  }, [cicloSeleccionado])
+
   return (
     <div className="servicios-panel-inner servicios-panel-inner--alumnos">
       <header className="servicios-panel-header servicios-panel-header--compact">
         <h1 className="servicios-panel-title">Alumnos</h1>
       </header>
 
-      <AlumnoAutocomplete
-        key={cicloSeleccionado}
-        onSeleccionar={setAlumnoSeleccionado}
-      />
+      <AlumnoAutocomplete onSeleccionar={setAlumnoSeleccionado} />
 
       <AlumnoDatosTabs key={cicloSeleccionado} alumno={alumnoSeleccionado} />
     </div>

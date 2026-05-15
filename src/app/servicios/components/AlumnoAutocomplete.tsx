@@ -140,13 +140,19 @@ export default function AlumnoAutocomplete({
     if (cicloPrevioRef.current === cicloSeleccionado) return
     cicloPrevioRef.current = cicloSeleccionado
     abortRef.current?.abort()
-    setConsulta('')
-    setResultados([])
     setSeleccionado(null)
+    setResultados([])
     setMensajeVacio(null)
-    cerrarLista()
+    setCargando(false)
     onSeleccionar?.(null)
-  }, [cicloSeleccionado, cerrarLista, onSeleccionar])
+    const texto = consulta.trim()
+    if (texto.length >= MIN_CARACTERES) {
+      setAbierto(true)
+    } else {
+      cerrarLista()
+    }
+    // La consulta se conserva; el efecto de búsqueda vuelve a ejecutarse con el nuevo ciclo.
+  }, [cicloSeleccionado, cerrarLista, onSeleccionar, consulta])
 
   const elegir = useCallback(
     async (pick: AlumnoBusquedaResultado) => {
