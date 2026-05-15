@@ -86,7 +86,7 @@ function ServiciosPageInner() {
   const moduloFromUrl = searchParams.get('modulo')
   const inicial = useMemo(() => {
     if (moduloFromUrl && esServiciosModuloId(moduloFromUrl)) return moduloFromUrl
-    return SERVICIOS_MENU[0].id
+    return 'alumnos'
   }, [moduloFromUrl])
 
   const [moduloActivo, setModuloActivo] = useState<ServiciosModuloId>(inicial)
@@ -108,7 +108,9 @@ function ServiciosPageInner() {
     [router, searchParams]
   )
 
-  const itemActivo = SERVICIOS_MENU.find((m) => m.id === moduloActivo) ?? SERVICIOS_MENU[0]
+  const itemActivo =
+    SERVICIOS_MENU.find((m) => m.id === moduloActivo) ??
+    SERVICIOS_MENU.find((m) => m.id === 'alumnos')!
 
   const handleLogout = async () => {
     try {
