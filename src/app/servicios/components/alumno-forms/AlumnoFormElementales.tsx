@@ -1,11 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 import { obtenerDatosElementalesPorRef, type AlumnoDatosElementales } from '@/lib/alumnoDatosService'
 import { CICLOS_ESCOLARES_OPCIONES, cicloEscolarPorDefecto } from '@/lib/cicloEscolar'
 import { NIVELES_ESCOLARES_OPCIONES, nivelEscolarPorDefecto } from '@/lib/nivelEscolar'
+import {
+  gradoEscolarPorDefecto,
+  gradoOpcionesPorNivel,
+} from '@/lib/gradoEscolar'
 
 interface AlumnoFormElementalesProps {
   alumno: AlumnoBusquedaResultado
@@ -21,6 +25,12 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   const [nivelEscolar, setNivelEscolar] = useState<number>(
     NIVELES_ESCOLARES_OPCIONES[0].valor
   )
+  const [gradoEscolar, setGradoEscolar] = useState<number>(1)
+
+  const opcionesGrado = useMemo(
+    () => gradoOpcionesPorNivel(nivelEscolar),
+    [nivelEscolar]
+  )
 
   useEffect(() => {
     let activo = true
@@ -34,8 +44,10 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
         setDatos(null)
       } else {
         setDatos(registro)
+        const nivel = nivelEscolarPorDefecto(registro.alumno.alumno_nivel)
         setCicloEscolar(cicloEscolarPorDefecto(registro.alumno.alumno_ciclo_escolar))
-        setNivelEscolar(nivelEscolarPorDefecto(registro.alumno.alumno_nivel))
+        setNivelEscolar(nivel)
+        setGradoEscolar(gradoEscolarPorDefecto(nivel, registro.alumno.alumno_grado))
       }
       setCargando(false)
     })
@@ -121,9 +133,36 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               name="alumno_nivel"
               className="alumno-form-select"
               value={String(nivelEscolar)}
-              onChange={(e) => setNivelEscolar(Number(e.target.value))}
+              onChange={(e) => {
+                const nivel = Number(e.target.value)
+                setNivelEscolar(nivel)
+                setGradoEscolar((gradoActual) =>
+                  gradoEscolarPorDefecto(nivel, gradoActual)
+                )
+              }}
             >
               {NIVELES_ESCOLARES_OPCIONES.map((opcion) => (
+                <option key={opcion.valor} value={opcion.valor}>
+                  {opcion.etiqueta}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="alumno-form-grid alumno-form-grid--2 alumno-form-grid--grado">
+          <div className="alumno-form-field alumno-form-field--narrow">
+            <label htmlFor="alumno_grado" className="alumno-form-label">
+              Grado
+            </label>
+            <select
+              id="alumno_grado"
+              name="alumno_grado"
+              className="alumno-form-select"
+              value={String(gradoEscolar)}
+              onChange={(e) => setGradoEscolar(Number(e.target.value))}
+              disabled={opcionesGrado.length === 0}
+            >
+              {opcionesGrado.map((opcion) => (
                 <option key={opcion.valor} value={opcion.valor}>
                   {opcion.etiqueta}
                 </option>

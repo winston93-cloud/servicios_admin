@@ -5620,6 +5620,10 @@ body {
   grid-template-columns: repeat(4, 1fr);
 }
 
+.alumno-form-grid--grado {
+  margin-top: 16px;
+}
+
 .alumno-form-fieldset--spaced {
   margin-top: 22px;
 }
