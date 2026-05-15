@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sistema de Desayunos y Estancias",
-  description: "Sistema moderno para gestión de desayunos y estancias escolares",
+  title: "Servicios Administrativos",
+  description: "Sistema administrativo escolar Winston",
 };
 
 export default function RootLayout({
