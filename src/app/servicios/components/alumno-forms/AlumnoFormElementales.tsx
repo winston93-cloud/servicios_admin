@@ -55,6 +55,38 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   return (
     <form className="alumno-form" onSubmit={(e) => e.preventDefault()} noValidate>
       <fieldset className="alumno-form-fieldset">
+        <legend className="alumno-form-legend">Identificación</legend>
+        <div className="alumno-form-grid alumno-form-grid--2">
+          <div className="alumno-form-field">
+            <label htmlFor="alumno_id" className="alumno-form-label">
+              ID
+            </label>
+            <input
+              id="alumno_id"
+              name="alumno_id"
+              type="text"
+              className="alumno-form-input"
+              value={String(datos.alumno_id)}
+              readOnly
+            />
+          </div>
+          <div className="alumno-form-field">
+            <label htmlFor="alumno_ref" className="alumno-form-label">
+              No. de control
+            </label>
+            <input
+              id="alumno_ref"
+              name="alumno_ref"
+              type="text"
+              className="alumno-form-input"
+              value={datos.alumno_ref ?? ''}
+              readOnly
+            />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset className="alumno-form-fieldset alumno-form-fieldset--spaced">
         <legend className="alumno-form-legend">Nombre del alumno</legend>
         <div className="alumno-form-grid alumno-form-grid--3">
           <div className="alumno-form-field">

@@ -5502,8 +5502,16 @@ body {
   gap: 16px;
 }
 
+.alumno-form-grid--2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 .alumno-form-grid--3 {
   grid-template-columns: repeat(3, 1fr);
+}
+
+.alumno-form-fieldset--spaced {
+  margin-top: 22px;
 }
 
 .alumno-form-field {
@@ -5566,6 +5574,7 @@ body {
 }
 
 @media (max-width: 768px) {
+  .alumno-form-grid--2,
   .alumno-form-grid--3 {
     grid-template-columns: 1fr;
   }
