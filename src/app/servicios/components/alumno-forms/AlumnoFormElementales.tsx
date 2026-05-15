@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Pencil } from 'lucide-react'
+import AlumnoCurpModal from './AlumnoCurpModal'
+import { normalizarCurp } from '@/lib/curp'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 import { obtenerDatosElementalesPorRef, type AlumnoDatosElementales } from '@/lib/alumnoDatosService'
 import { CICLOS_ESCOLARES_OPCIONES, cicloEscolarPorDefecto } from '@/lib/cicloEscolar'
@@ -34,6 +36,8 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   const [grupoEscolar, setGrupoEscolar] = useState<number>(
     GRUPOS_ESCOLARES_OPCIONES[0].valor
   )
+  const [curp, setCurp] = useState('')
+  const [modalCurpAbierto, setModalCurpAbierto] = useState(false)
 
   const opcionesGrado = useMemo(
     () => gradoOpcionesPorNivel(nivelEscolar),
@@ -61,6 +65,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
         setNivelEscolar(nivel)
         setGradoEscolar(gradoEscolarPorDefecto(nivel, registro.alumno.alumno_grado))
         setGrupoEscolar(grupoEscolarPorDefecto(registro.alumno.alumno_grupo))
+        setCurp(normalizarCurp(registro.detalles?.alumno_curp ?? ''))
       }
       setCargando(false)
     })
@@ -88,6 +93,10 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   }
 
   const { alumno: a, detalles } = datos
+  const nombreCompleto = [nombre, apellidoPaterno, apellidoMaterno]
+    .filter(Boolean)
+    .join(' ')
+    .trim()
 
   return (
     <form className="alumno-form" onSubmit={(e) => e.preventDefault()} noValidate>
@@ -263,8 +272,43 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               ))}
             </select>
           </div>
+
+          <div className="alumno-form-field alumno-form-field--curp">
+            <label htmlFor="alumno_curp" className="alumno-form-label">
+              CURP
+            </label>
+            <div className="alumno-form-curp-fila">
+              <input
+                id="alumno_curp"
+                name="alumno_curp"
+                type="text"
+                className="alumno-form-input alumno-form-input--curp"
+                value={curp}
+                readOnly
+                placeholder={detalles ? 'Sin CURP registrado' : 'Sin registro en alumno_detalles'}
+              />
+              <button
+                type="button"
+                className="alumno-form-curp-btn"
+                onClick={() => setModalCurpAbierto(true)}
+              >
+                <Pencil size={16} aria-hidden />
+                Corregir
+              </button>
+            </div>
+          </div>
         </div>
       </fieldset>
+
+      <AlumnoCurpModal
+        isOpen={modalCurpAbierto}
+        onClose={() => setModalCurpAbierto(false)}
+        valorInicial={curp}
+        onAplicar={setCurp}
+        nombreAlumno={nombreCompleto || undefined}
+        fechaNacimiento={detalles?.alumno_fecha_nac}
+        sexoRegistrado={detalles?.alumno_sexo}
+      />
     </form>
   )
 }

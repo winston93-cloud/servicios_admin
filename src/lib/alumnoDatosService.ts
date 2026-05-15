@@ -65,6 +65,9 @@ export interface AlumnoDetallesRegistro {
   detalle_id: number
   alumno_id: number
   alumno_clave?: string | null
+  alumno_curp?: string | null
+  alumno_fecha_nac?: string | null
+  alumno_sexo?: string | null
 }
 
 export async function obtenerAlumnoDetallesPorAlumnoId(
@@ -72,7 +75,7 @@ export async function obtenerAlumnoDetallesPorAlumnoId(
 ): Promise<AlumnoDetallesRegistro | null> {
   const { data, error } = await supabase
     .from('alumno_detalles')
-    .select('detalle_id, alumno_id, alumno_clave')
+    .select('detalle_id, alumno_id, alumno_clave, alumno_curp, alumno_fecha_nac, alumno_sexo')
     .eq('alumno_id', alumnoId)
     .order('detalle_id', { ascending: false })
     .limit(1)

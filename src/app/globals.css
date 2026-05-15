@@ -5759,6 +5759,270 @@ body {
   font-size: 14px;
 }
 
+.alumno-form-field--curp {
+  grid-column: 1 / -1;
+  max-width: 520px;
+}
+
+.alumno-form-curp-fila {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.alumno-form-input--curp {
+  flex: 1;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.alumno-form-curp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 0 16px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: #1e3a5f;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.alumno-form-curp-btn:hover {
+  background: #2d4a6f;
+}
+
+.alumno-form-curp-btn:focus-visible {
+  outline: 2px solid #1e3a5f;
+  outline-offset: 2px;
+}
+
+/* Modal corrección CURP */
+.alumno-curp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.alumno-curp-modal {
+  width: 100%;
+  max-width: 560px;
+  max-height: min(92vh, 720px);
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22);
+  overflow: hidden;
+}
+
+.alumno-curp-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+}
+
+.alumno-curp-modal-titulo {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+
+.alumno-curp-modal-subtitulo {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.alumno-curp-modal-cerrar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.alumno-curp-modal-cerrar:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.alumno-curp-modal-body {
+  padding: 18px 22px 8px;
+  overflow-y: auto;
+}
+
+.alumno-curp-modal-ayuda {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.alumno-curp-modal-referencia {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: #f0f6fc;
+  border-radius: 8px;
+  border-left: 4px solid #1e3a5f;
+  font-size: 13px;
+  color: #334155;
+}
+
+.alumno-curp-modal-referencia-titulo {
+  display: block;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin-bottom: 6px;
+}
+
+.alumno-curp-modal-referencia ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.alumno-curp-modal-input {
+  width: 100%;
+  padding: 14px 16px;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #0f172a;
+  background: #fff;
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+}
+
+.alumno-curp-modal-input:focus {
+  outline: none;
+  border-color: #1e3a5f;
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.15);
+}
+
+.alumno-curp-modal-input--error {
+  border-color: #dc2626;
+}
+
+.alumno-curp-modal-contador {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.alumno-curp-modal-error {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #b91c1c;
+}
+
+.alumno-curp-modal-segmentos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.alumno-curp-modal-segmento {
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.alumno-curp-modal-segmento-etiqueta {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.alumno-curp-modal-segmento-valor {
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, monospace;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #1e3a5f;
+}
+
+.alumno-curp-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 22px 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.alumno-curp-modal-btn {
+  padding: 10px 18px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+
+.alumno-curp-modal-btn--sec {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.alumno-curp-modal-btn--sec:hover {
+  background: #e2e8f0;
+}
+
+.alumno-curp-modal-btn--pri {
+  background: #1e3a5f;
+  color: #fff;
+}
+
+.alumno-curp-modal-btn--pri:hover {
+  background: #2d4a6f;
+}
+
+@media (max-width: 520px) {
+  .alumno-curp-modal-segmentos {
+    grid-template-columns: 1fr;
+  }
+
+  .alumno-form-curp-fila {
+    flex-direction: column;
+  }
+
+  .alumno-form-curp-btn {
+    justify-content: center;
+    padding: 12px;
+  }
+}
+
 @media (max-width: 768px) {
   .alumno-form-grid--2,
   .alumno-form-grid--3,
