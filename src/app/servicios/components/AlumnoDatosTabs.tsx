@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react'
 import { GraduationCap, UserRound } from 'lucide-react'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 import AlumnoFormPlaceholder from './alumno-forms/AlumnoFormPlaceholder'
+import AlumnoFormElementales from './alumno-forms/AlumnoFormElementales'
 
 export type AlumnoDatosTabId = 'elementales' | 'madre' | 'padre'
 
@@ -84,13 +85,7 @@ export default function AlumnoDatosTabs({ alumno }: AlumnoDatosTabsProps) {
                 hidden={!activa}
                 className={`alumno-tabs-panel ${activa ? 'alumno-tabs-panel--active' : ''}`}
               >
-                {tab.id === 'elementales' && (
-                  <AlumnoFormPlaceholder
-                    titulo="Datos elementales de alumno"
-                    descripcion="Aquí irán los campos básicos del alumno (nombre, nivel, grupo, contacto, etc.)."
-                    alumno={alumno}
-                  />
-                )}
+                {tab.id === 'elementales' && <AlumnoFormElementales alumno={alumno} />}
                 {tab.id === 'madre' && (
                   <AlumnoFormPlaceholder
                     titulo="Datos de la madre del alumno"

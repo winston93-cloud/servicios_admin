@@ -5543,6 +5543,102 @@ body {
   font-weight: 600;
 }
 
+/* Formularios pestaña Alumnos */
+.alumno-form {
+  margin: 0;
+}
+
+.alumno-form-fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.alumno-form-legend {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #1e3a5f;
+  margin-bottom: 14px;
+  padding: 0;
+}
+
+.alumno-form-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.alumno-form-grid--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.alumno-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.alumno-form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.alumno-form-input {
+  width: 100%;
+  padding: 11px 14px;
+  font-family: inherit;
+  font-size: 15px;
+  color: #0f172a;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.alumno-form-input:read-only {
+  background: #f8fafc;
+  cursor: default;
+}
+
+.alumno-form-input:focus {
+  outline: none;
+  border-color: #1e3a5f;
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
+}
+
+.alumno-form-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 8px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.alumno-form-loading-icon {
+  animation: alumno-ac-spin 0.7s linear infinite;
+  color: #1e3a5f;
+}
+
+.alumno-form-error {
+  margin: 0;
+  padding: 16px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .alumno-form-grid--3 {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 900px) {
   .alumno-tabs-trigger-label {
     display: none;
