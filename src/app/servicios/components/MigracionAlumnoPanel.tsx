@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Database, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 interface EstadoConfig {
   listo: boolean
@@ -56,12 +56,7 @@ export default function MigracionAlumnoPanel() {
   }, [secreto, vaciar])
 
   return (
-    <section className="migracion-alumno" aria-labelledby="migracion-alumno-titulo">
-      <h2 id="migracion-alumno-titulo" className="migracion-alumno-titulo">
-        <Database size={20} aria-hidden />
-        Migración de tablas
-      </h2>
-
+    <section className="migracion-alumno" aria-label="Herramientas de migración">
       {config && !config.listo && (
         <p className="migracion-alumno-alerta" role="alert">
           Falta configuración MySQL (MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD). En Vercel solo aplica si vas a migrar desde ahí.

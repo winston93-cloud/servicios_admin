@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react'
 import {
+  Database,
   Users,
   UsersRound,
   Star,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react'
 
 export type ServiciosModuloId =
+  | 'migracion-tablas'
   | 'alumnos'
   | 'asignar-grupos'
   | 'becas'
@@ -49,6 +51,7 @@ export interface ServiciosMenuItem {
 }
 
 export const SERVICIOS_MENU: ServiciosMenuItem[] = [
+  { id: 'migracion-tablas', label: 'Migración de tablas', icon: Database },
   { id: 'alumnos', label: 'Alumnos', icon: Users },
   { id: 'asignar-grupos', label: 'Asignar Grupos', icon: UsersRound },
   { id: 'becas', label: 'Becas', icon: Star },

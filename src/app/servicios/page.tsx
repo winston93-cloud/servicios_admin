@@ -12,6 +12,7 @@ import {
   esServiciosModuloId,
 } from './menu'
 import AlumnosModulo from './modulos/AlumnosModulo'
+import MigracionModulo from './modulos/MigracionModulo'
 
 const SIDEBAR_COLLAPSED_KEY = 'servicios-sidebar-collapsed'
 
@@ -44,6 +45,8 @@ function ServiciosPanelContenido({
   titulo: string
 }) {
   switch (moduloId) {
+    case 'migracion-tablas':
+      return <MigracionModulo />
     case 'alumnos':
       return <AlumnosModulo />
     default:
