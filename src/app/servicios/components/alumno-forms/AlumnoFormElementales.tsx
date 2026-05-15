@@ -20,6 +20,11 @@ import {
   claseFormularioPorEstatus,
   estatusAlumnoPorDefecto,
 } from '@/lib/alumnoStatus'
+import {
+  FORMA_INGRESO_OPCIONES,
+  formaIngresoPorDefecto,
+} from '@/lib/alumnoFormaIngreso'
+import { SEXO_ALUMNO_OPCIONES, sexoAlumnoPorDefecto } from '@/lib/alumnoSexo'
 
 interface AlumnoFormElementalesProps {
   alumno: AlumnoBusquedaResultado
@@ -52,6 +57,8 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   const [fechaNacimientoIso, setFechaNacimientoIso] = useState('')
   const [fechaNacimientoTexto, setFechaNacimientoTexto] = useState('')
   const [modalCurpAbierto, setModalCurpAbierto] = useState(false)
+  const [formaIngreso, setFormaIngreso] = useState<number>(0)
+  const [sexoAlumno, setSexoAlumno] = useState<string>('')
   const [estatusAlumno, setEstatusAlumno] = useState<number>(1)
 
   const opcionesGrado = useMemo(
@@ -91,6 +98,8 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
         setFechaAltaIso(altaIso)
         setFechaAltaTexto(fechaNacAMostrar(altaIso))
         setMostrarClave(false)
+        setFormaIngreso(formaIngresoPorDefecto(registro.alumno.alumno_nuevo_ingreso))
+        setSexoAlumno(sexoAlumnoPorDefecto(registro.detalles?.alumno_sexo))
         setEstatusAlumno(estatusAlumnoPorDefecto(registro.alumno.alumno_status))
       }
       setCargando(false)
@@ -378,6 +387,48 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
             onTextoChange={setFechaAltaTexto}
           />
 
+          <div className="alumno-form-field">
+            <label htmlFor="alumno_nuevo_ingreso" className="alumno-form-label">
+              Forma de ingreso
+            </label>
+            <select
+              id="alumno_nuevo_ingreso"
+              name="alumno_nuevo_ingreso"
+              className="alumno-form-select"
+              value={String(formaIngreso)}
+              onChange={(e) => setFormaIngreso(Number(e.target.value))}
+            >
+              {FORMA_INGRESO_OPCIONES.map((opcion) => (
+                <option key={opcion.valor} value={opcion.valor}>
+                  {opcion.etiqueta}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="alumno-form-field">
+            <label htmlFor="alumno_sexo" className="alumno-form-label">
+              Sexo
+            </label>
+            <select
+              id="alumno_sexo"
+              name="alumno_sexo"
+              className="alumno-form-select"
+              value={sexoAlumno}
+              onChange={(e) => setSexoAlumno(e.target.value)}
+              disabled={!detalles}
+            >
+              <option value="">
+                {detalles ? 'Seleccionar' : 'Sin registro en alumno_detalles'}
+              </option>
+              {SEXO_ALUMNO_OPCIONES.map((opcion) => (
+                <option key={opcion.valor} value={opcion.valor}>
+                  {opcion.etiqueta}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="alumno-form-field alumno-form-field--estatus">
             <label htmlFor="alumno_status" className="alumno-form-label">
               Estatus del alumno
@@ -406,7 +457,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
         onAplicar={setCurp}
         nombreAlumno={nombreCompleto || undefined}
         fechaNacimiento={fechaNacimientoIso || detalles?.alumno_fecha_nac}
-        sexoRegistrado={detalles?.alumno_sexo}
+        sexoRegistrado={sexoAlumno || detalles?.alumno_sexo}
       />
     </form>
   )
