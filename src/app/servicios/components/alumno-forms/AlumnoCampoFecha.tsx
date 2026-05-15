@@ -51,7 +51,7 @@ export default function AlumnoCampoFecha({
   const valorMostrado = soloLectura ? fechaNacAMostrar(iso) || '' : texto
 
   return (
-    <div className="alumno-form-field">
+    <div className="alumno-form-field alumno-campo-fecha-root">
       <label htmlFor={id} className="alumno-form-label">
         {label}
       </label>

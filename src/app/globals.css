@@ -5052,6 +5052,8 @@ body {
 
 .servicios-main-scroll {
   flex: 1;
+  width: 100%;
+  min-width: 0;
   overflow-y: auto;
   padding: 0 20px 28px;
 }
@@ -5329,7 +5331,8 @@ body {
 }
 
 .servicios-panel-inner--alumnos {
-  max-width: 1100px;
+  width: 100%;
+  max-width: none;
 }
 
 .servicios-panel-header--compact {
@@ -5509,6 +5512,9 @@ body {
 }
 
 .alumno-tabs-panel {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   background: #fff;
   border: 2px solid #cbd5e1;
   border-radius: 14px;
@@ -5576,6 +5582,8 @@ body {
 /* Formularios pestaña Alumnos */
 .alumno-form {
   margin: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .alumno-form-fieldset {
@@ -5622,6 +5630,8 @@ body {
 
 /* Bloque destacado: apellidos y nombre */
 .alumno-form-identidad {
+  width: 100%;
+  box-sizing: border-box;
   padding: 18px 20px 20px;
   border-radius: 12px;
   background: linear-gradient(145deg, #e8f1fb 0%, #f4f8fd 55%, #fafcff 100%);
@@ -5666,6 +5676,9 @@ body {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 18px 20px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   margin-top: 20px;
   padding: 20px 22px;
   background: #f8fafc;
@@ -5673,8 +5686,14 @@ body {
   border-radius: 12px;
 }
 
+.alumno-form-grid-datos > .alumno-form-field,
+.alumno-form-grid-datos > .alumno-campo-fecha-root {
+  min-width: 0;
+}
+
 .alumno-form-field--col-2 {
   grid-column: span 2;
+  min-width: 0;
 }
 
 @media (max-width: 1024px) {

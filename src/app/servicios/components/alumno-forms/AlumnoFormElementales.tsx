@@ -225,28 +225,6 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
             </div>
           </div>
 
-          <AlumnoCampoFecha
-            id="alumno_registro"
-            name="alumno_registro"
-            label="Fecha de registro"
-            iso={fechaRegistroIso}
-            texto={fechaRegistroTexto}
-            onIsoChange={setFechaRegistroIso}
-            onTextoChange={setFechaRegistroTexto}
-            soloLectura
-            placeholder="Sin fecha de registro"
-          />
-
-          <AlumnoCampoFecha
-            id="alumno_alta"
-            name="alumno_alta"
-            label="Fecha de alta"
-            iso={fechaAltaIso}
-            texto={fechaAltaTexto}
-            onIsoChange={setFechaAltaIso}
-            onTextoChange={setFechaAltaTexto}
-          />
-
           <div className="alumno-form-field">
             <label htmlFor="alumno_ciclo_escolar" className="alumno-form-label">
               Ciclo escolar
@@ -364,6 +342,28 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               </button>
             </div>
           </div>
+
+          <AlumnoCampoFecha
+            id="alumno_registro"
+            name="alumno_registro"
+            label="Fecha de registro"
+            iso={fechaRegistroIso}
+            texto={fechaRegistroTexto}
+            onIsoChange={setFechaRegistroIso}
+            onTextoChange={setFechaRegistroTexto}
+            soloLectura
+            placeholder="Sin fecha de registro"
+          />
+
+          <AlumnoCampoFecha
+            id="alumno_alta"
+            name="alumno_alta"
+            label="Fecha de alta"
+            iso={fechaAltaIso}
+            texto={fechaAltaTexto}
+            onIsoChange={setFechaAltaIso}
+            onTextoChange={setFechaAltaTexto}
+          />
         </div>
       </fieldset>
 
