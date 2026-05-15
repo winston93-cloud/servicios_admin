@@ -5620,6 +5620,39 @@ body {
   grid-template-columns: repeat(4, 1fr);
 }
 
+/* Bloque destacado: apellidos y nombre */
+.alumno-form-identidad {
+  padding: 18px 20px 20px;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #e8f1fb 0%, #f4f8fd 55%, #fafcff 100%);
+  border: 1px solid rgba(30, 58, 95, 0.2);
+  border-left: 5px solid #1e3a5f;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.9) inset,
+    0 4px 18px rgba(30, 58, 95, 0.1);
+}
+
+.alumno-form-identidad .alumno-form-label {
+  color: #1e3a5f;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.alumno-form-input--identidad {
+  font-weight: 600;
+  color: #0f172a;
+  background: #fff;
+  border-color: #94a3b8;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.alumno-form-input--identidad:focus {
+  border-color: #1e3a5f;
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.18);
+  outline: none;
+}
+
 /* Apellidos y nombre siempre en la primera línea */
 .alumno-form-flujo-nombres {
   display: grid;
@@ -5637,7 +5670,7 @@ body {
 }
 
 .alumno-form-flujo--resto {
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
 @media (max-width: 720px) {

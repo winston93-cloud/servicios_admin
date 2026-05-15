@@ -87,7 +87,8 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   return (
     <form className="alumno-form" onSubmit={(e) => e.preventDefault()} noValidate>
       <fieldset className="alumno-form-fieldset">
-        <div className="alumno-form-flujo-nombres">
+        <section className="alumno-form-identidad" aria-label="Nombre del alumno">
+          <div className="alumno-form-flujo-nombres">
           <div className="alumno-form-field">
             <label htmlFor="alumno_app" className="alumno-form-label">
               Apellido paterno
@@ -96,7 +97,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               id="alumno_app"
               name="alumno_app"
               type="text"
-              className="alumno-form-input"
+              className="alumno-form-input alumno-form-input--identidad"
               value={apellidoPaterno}
               onChange={(e) => setApellidoPaterno(e.target.value)}
               autoComplete="family-name"
@@ -110,7 +111,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               id="alumno_apm"
               name="alumno_apm"
               type="text"
-              className="alumno-form-input"
+              className="alumno-form-input alumno-form-input--identidad"
               value={apellidoMaterno}
               onChange={(e) => setApellidoMaterno(e.target.value)}
               autoComplete="family-name"
@@ -124,13 +125,14 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               id="alumno_nombre"
               name="alumno_nombre"
               type="text"
-              className="alumno-form-input"
+              className="alumno-form-input alumno-form-input--identidad"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               autoComplete="given-name"
             />
           </div>
-        </div>
+          </div>
+        </section>
 
         <div className="alumno-form-flujo alumno-form-flujo--resto">
           <div className="alumno-form-field">
