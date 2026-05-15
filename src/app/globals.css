@@ -5191,6 +5191,7 @@ body {
   border-radius: 14px;
   border: 1px solid #cbd5e1;
   background: #fff;
+  color: #0f172a;
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
 }
 
@@ -5220,6 +5221,8 @@ body {
   padding: 10px 12px;
   border-radius: 8px;
   border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0f172a;
   font-size: 14px;
   box-sizing: border-box;
 }
@@ -5337,6 +5340,7 @@ body {
   padding: 10px 12px;
   text-align: left;
   border-bottom: 1px solid #e2e8f0;
+  color: #1e293b;
 }
 
 .ciclos-crud-table th {
@@ -5344,7 +5348,11 @@ body {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #64748b;
+  color: #475569;
+  background: #f8fafc;
+}
+
+.ciclos-crud-table tbody tr:hover td {
   background: #f8fafc;
 }
 
@@ -5421,6 +5429,8 @@ body {
   overflow-y: auto;
   padding: 0 var(--page-gutter) 28px;
   box-sizing: border-box;
+  /* El módulo servicios usa paneles claros; evita texto claro heredado en dark mode */
+  color: #0f172a;
 }
 
 .servicios-panel-inner {
@@ -5444,6 +5454,14 @@ body {
   color: #475569;
   line-height: 1.55;
   max-width: 56ch;
+}
+
+.servicios-panel-lead code {
+  color: #1e3a5f;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
 }
 
 .servicios-panel-card {
