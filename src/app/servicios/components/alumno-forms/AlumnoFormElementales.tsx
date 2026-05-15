@@ -1,12 +1,18 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { Eye, EyeOff, Loader2, Pencil } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Check, Eye, EyeOff, Loader2, Pencil, Save } from 'lucide-react'
 import AlumnoCampoFecha from './AlumnoCampoFecha'
 import AlumnoCurpModal from './AlumnoCurpModal'
 import { normalizarCurp } from '@/lib/curp'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
-import { obtenerDatosElementalesPorRef, type AlumnoDatosElementales } from '@/lib/alumnoDatosService'
+import {
+  guardarDatosElementalesAlumno,
+  obtenerDatosElementalesPorRef,
+  snapshotsDatosElementalesIguales,
+  type AlumnoDatosElementales,
+  type SnapshotDatosElementales,
+} from '@/lib/alumnoDatosService'
 import { CICLOS_ESCOLARES_OPCIONES, cicloEscolarPorDefecto } from '@/lib/cicloEscolar'
 import { NIVELES_ESCOLARES_OPCIONES, nivelEscolarPorDefecto } from '@/lib/nivelEscolar'
 import {
@@ -60,6 +66,60 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   const [formaIngreso, setFormaIngreso] = useState<number>(0)
   const [sexoAlumno, setSexoAlumno] = useState<string>('')
   const [estatusAlumno, setEstatusAlumno] = useState<number>(1)
+  const [snapshotGuardado, setSnapshotGuardado] = useState<SnapshotDatosElementales | null>(
+    null
+  )
+  const [guardadoReciente, setGuardadoReciente] = useState(false)
+  const [guardando, setGuardando] = useState(false)
+  const [mensajeGuardar, setMensajeGuardar] = useState<string | null>(null)
+  const [errorGuardar, setErrorGuardar] = useState(false)
+
+  const snapshotActual = useMemo<SnapshotDatosElementales>(
+    () => ({
+      apellidoPaterno,
+      apellidoMaterno,
+      nombre,
+      clavePersonal,
+      cicloEscolar,
+      nivelEscolar,
+      gradoEscolar,
+      grupoEscolar,
+      curp,
+      fechaNacimientoIso,
+      fechaAltaIso,
+      formaIngreso,
+      sexoAlumno,
+      estatusAlumno,
+    }),
+    [
+      apellidoPaterno,
+      apellidoMaterno,
+      nombre,
+      clavePersonal,
+      cicloEscolar,
+      nivelEscolar,
+      gradoEscolar,
+      grupoEscolar,
+      curp,
+      fechaNacimientoIso,
+      fechaAltaIso,
+      formaIngreso,
+      sexoAlumno,
+      estatusAlumno,
+    ]
+  )
+
+  const modificado =
+    snapshotGuardado != null &&
+    !snapshotsDatosElementalesIguales(snapshotGuardado, snapshotActual)
+
+  const varianteBotonGuardar = guardando
+    ? 'guardando'
+    : modificado
+      ? 'dirty'
+      : guardadoReciente
+        ? 'saved'
+        : 'idle'
 
   const opcionesGrado = useMemo(
     () => gradoOpcionesPorNivel(nivelEscolar),
@@ -70,6 +130,10 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
     let activo = true
     setCargando(true)
     setError(null)
+    setSnapshotGuardado(null)
+    setGuardadoReciente(false)
+    setMensajeGuardar(null)
+    setErrorGuardar(false)
 
     obtenerDatosElementalesPorRef(alumno.alumno_ref).then((registro) => {
       if (!activo) return
@@ -101,6 +165,23 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
         setFormaIngreso(formaIngresoPorDefecto(registro.alumno.alumno_nuevo_ingreso))
         setSexoAlumno(sexoAlumnoPorDefecto(registro.detalles?.alumno_sexo))
         setEstatusAlumno(estatusAlumnoPorDefecto(registro.alumno.alumno_status))
+        setSnapshotGuardado({
+          apellidoPaterno: registro.alumno.alumno_app ?? '',
+          apellidoMaterno: registro.alumno.alumno_apm ?? '',
+          nombre: registro.alumno.alumno_nombre ?? '',
+          clavePersonal: registro.detalles?.alumno_clave ?? '',
+          cicloEscolar: cicloEscolarPorDefecto(registro.alumno.alumno_ciclo_escolar),
+          nivelEscolar: nivel,
+          gradoEscolar: gradoEscolarPorDefecto(nivel, registro.alumno.alumno_grado),
+          grupoEscolar: grupoEscolarPorDefecto(registro.alumno.alumno_grupo),
+          curp: normalizarCurp(registro.detalles?.alumno_curp ?? ''),
+          fechaNacimientoIso: fechaIso,
+          fechaAltaIso: altaIso,
+          formaIngreso: formaIngresoPorDefecto(registro.alumno.alumno_nuevo_ingreso),
+          sexoAlumno: sexoAlumnoPorDefecto(registro.detalles?.alumno_sexo),
+          estatusAlumno: estatusAlumnoPorDefecto(registro.alumno.alumno_status),
+        })
+        setGuardadoReciente(false)
       }
       setCargando(false)
     })
@@ -109,6 +190,69 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
       activo = false
     }
   }, [alumno.alumno_ref, alumno.alumno_id])
+
+  useEffect(() => {
+    if (modificado) {
+      setGuardadoReciente(false)
+      if (mensajeGuardar && !errorGuardar) setMensajeGuardar(null)
+    }
+  }, [modificado, mensajeGuardar, errorGuardar])
+
+  const onGuardar = useCallback(async () => {
+    if (!datos || !modificado || guardando) return
+
+    setGuardando(true)
+    setMensajeGuardar(null)
+    setErrorGuardar(false)
+
+    const resultado = await guardarDatosElementalesAlumno({
+      ...snapshotActual,
+      alumnoId: datos.alumno.alumno_id,
+      detalleId: datos.detalles?.detalle_id ?? null,
+    })
+
+    setGuardando(false)
+
+    if (!resultado.ok) {
+      setErrorGuardar(true)
+      setMensajeGuardar(resultado.mensaje)
+      return
+    }
+
+    const detalleId = resultado.detalleId ?? datos.detalles?.detalle_id
+    setDatos((prev) => {
+      if (!prev) return prev
+      const alumnoActualizado = {
+        ...prev.alumno,
+        alumno_app: snapshotActual.apellidoPaterno,
+        alumno_apm: snapshotActual.apellidoMaterno,
+        alumno_nombre: snapshotActual.nombre,
+        alumno_nivel: snapshotActual.nivelEscolar,
+        alumno_grado: snapshotActual.gradoEscolar,
+        alumno_grupo: snapshotActual.grupoEscolar,
+        alumno_ciclo_escolar: snapshotActual.cicloEscolar,
+        alumno_status: snapshotActual.estatusAlumno,
+        alumno_nuevo_ingreso: snapshotActual.formaIngreso,
+        alumno_alta: snapshotActual.fechaAltaIso || null,
+      }
+      const detallesActualizados =
+        detalleId != null
+          ? {
+              detalle_id: detalleId,
+              alumno_id: prev.alumno.alumno_id,
+              alumno_clave: snapshotActual.clavePersonal || null,
+              alumno_curp: snapshotActual.curp || null,
+              alumno_fecha_nac: snapshotActual.fechaNacimientoIso || null,
+              alumno_sexo: snapshotActual.sexoAlumno || null,
+            }
+          : prev.detalles
+      return { alumno: alumnoActualizado, detalles: detallesActualizados }
+    })
+
+    setSnapshotGuardado(snapshotActual)
+    setGuardadoReciente(true)
+    setMensajeGuardar('Los datos se guardaron correctamente.')
+  }, [datos, modificado, guardando, snapshotActual])
 
   if (cargando) {
     return (
@@ -449,6 +593,32 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
           </div>
         </div>
       </fieldset>
+
+      <footer className="alumno-form-guardar">
+        {mensajeGuardar && (
+          <p
+            className={`alumno-form-guardar-msg ${errorGuardar ? 'alumno-form-guardar-msg--error' : 'alumno-form-guardar-msg--ok'}`}
+            role={errorGuardar ? 'alert' : 'status'}
+          >
+            {mensajeGuardar}
+          </p>
+        )}
+        <button
+          type="button"
+          className={`alumno-form-guardar-btn alumno-form-guardar-btn--${varianteBotonGuardar}`}
+          disabled={guardando || !modificado}
+          onClick={onGuardar}
+        >
+          {guardando ? (
+            <Loader2 size={20} className="alumno-form-guardar-btn-icon" aria-hidden />
+          ) : guardadoReciente && !modificado ? (
+            <Check size={20} className="alumno-form-guardar-btn-icon" aria-hidden />
+          ) : (
+            <Save size={20} className="alumno-form-guardar-btn-icon" aria-hidden />
+          )}
+          Guardar
+        </button>
+      </footer>
 
       <AlumnoCurpModal
         isOpen={modalCurpAbierto}

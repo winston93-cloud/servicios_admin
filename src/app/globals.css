@@ -5966,6 +5966,110 @@ body {
   font-size: 14px;
 }
 
+.alumno-form-guardar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px 16px;
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.alumno-form-guardar-msg {
+  flex: 1 1 200px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.alumno-form-guardar-msg--ok {
+  color: #15803d;
+}
+
+.alumno-form-guardar-msg--error {
+  color: #b91c1c;
+}
+
+.alumno-form-guardar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 168px;
+  padding: 14px 28px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  cursor: pointer;
+  box-shadow:
+    0 4px 14px rgba(15, 23, 42, 0.18),
+    0 1px 2px rgba(15, 23, 42, 0.08);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.alumno-form-guardar-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    0 8px 22px rgba(15, 23, 42, 0.22),
+    0 2px 4px rgba(15, 23, 42, 0.1);
+  filter: brightness(1.05);
+}
+
+.alumno-form-guardar-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.alumno-form-guardar-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.88;
+  transform: none;
+}
+
+.alumno-form-guardar-btn--idle {
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a5f 55%, #172554 100%);
+}
+
+.alumno-form-guardar-btn--dirty {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 55%, #b91c1c 100%);
+  box-shadow:
+    0 4px 16px rgba(220, 38, 38, 0.35),
+    0 1px 2px rgba(127, 29, 29, 0.12);
+}
+
+.alumno-form-guardar-btn--dirty:hover:not(:disabled) {
+  box-shadow:
+    0 8px 24px rgba(220, 38, 38, 0.4),
+    0 2px 4px rgba(127, 29, 29, 0.15);
+}
+
+.alumno-form-guardar-btn--saved {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 55%, #15803d 100%);
+  box-shadow:
+    0 4px 16px rgba(34, 197, 94, 0.35),
+    0 1px 2px rgba(21, 128, 61, 0.12);
+}
+
+.alumno-form-guardar-btn--guardando {
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+}
+
+.alumno-form-guardar-btn-icon {
+  flex-shrink: 0;
+}
+
+.alumno-form-guardar-btn--guardando .alumno-form-guardar-btn-icon {
+  animation: alumno-ac-spin 0.7s linear infinite;
+}
+
 .alumno-form-clave-fila {
   display: flex;
   gap: 8px;

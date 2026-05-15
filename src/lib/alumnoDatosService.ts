@@ -1,4 +1,6 @@
+import { normalizarCurp } from './curp'
 import { supabase } from './supabase'
+import { sexoAlumnoPorDefecto } from './alumnoSexo'
 
 export interface AlumnoRegistro {
   alumno_id: number
@@ -113,4 +115,128 @@ export async function obtenerDatosElementalesPorRef(
   if (!alumno) return null
   const detalles = await obtenerAlumnoDetallesPorAlumnoId(alumno.alumno_id)
   return { alumno, detalles }
+}
+
+/** Valores editables del formulario elementales para detectar cambios. */
+export interface SnapshotDatosElementales {
+  apellidoPaterno: string
+  apellidoMaterno: string
+  nombre: string
+  clavePersonal: string
+  cicloEscolar: number
+  nivelEscolar: number
+  gradoEscolar: number
+  grupoEscolar: number
+  curp: string
+  fechaNacimientoIso: string
+  fechaAltaIso: string
+  formaIngreso: number
+  sexoAlumno: string
+  estatusAlumno: number
+}
+
+export function snapshotsDatosElementalesIguales(
+  a: SnapshotDatosElementales,
+  b: SnapshotDatosElementales
+): boolean {
+  return (
+    a.apellidoPaterno === b.apellidoPaterno &&
+    a.apellidoMaterno === b.apellidoMaterno &&
+    a.nombre === b.nombre &&
+    a.clavePersonal === b.clavePersonal &&
+    a.cicloEscolar === b.cicloEscolar &&
+    a.nivelEscolar === b.nivelEscolar &&
+    a.gradoEscolar === b.gradoEscolar &&
+    a.grupoEscolar === b.grupoEscolar &&
+    a.curp === b.curp &&
+    a.fechaNacimientoIso === b.fechaNacimientoIso &&
+    a.fechaAltaIso === b.fechaAltaIso &&
+    a.formaIngreso === b.formaIngreso &&
+    a.sexoAlumno === b.sexoAlumno &&
+    a.estatusAlumno === b.estatusAlumno
+  )
+}
+
+export interface GuardarDatosElementalesPayload extends SnapshotDatosElementales {
+  alumnoId: number
+  detalleId: number | null
+}
+
+export type ResultadoGuardarDatosElementales =
+  | { ok: true; detalleId: number | null }
+  | { ok: false; mensaje: string }
+
+/** Persiste cambios en `alumno` y `alumno_detalles`. */
+export async function guardarDatosElementalesAlumno(
+  payload: GuardarDatosElementalesPayload
+): Promise<ResultadoGuardarDatosElementales> {
+  const sexo = sexoAlumnoPorDefecto(payload.sexoAlumno) || null
+  const curpNorm = normalizarCurp(payload.curp)
+  const fechaAlta = payload.fechaAltaIso.trim() || null
+  const fechaNac = payload.fechaNacimientoIso.trim() || null
+
+  const { error: errorAlumno } = await supabase
+    .from('alumno')
+    .update({
+      alumno_app: payload.apellidoPaterno.trim(),
+      alumno_apm: payload.apellidoMaterno.trim(),
+      alumno_nombre: payload.nombre.trim(),
+      alumno_nivel: payload.nivelEscolar,
+      alumno_grado: payload.gradoEscolar,
+      alumno_grupo: payload.grupoEscolar,
+      alumno_ciclo_escolar: payload.cicloEscolar,
+      alumno_status: payload.estatusAlumno,
+      alumno_nuevo_ingreso: payload.formaIngreso,
+      alumno_alta: fechaAlta,
+    })
+    .eq('alumno_id', payload.alumnoId)
+
+  if (errorAlumno) {
+    console.error('Error al guardar alumno:', errorAlumno)
+    return { ok: false, mensaje: errorAlumno.message }
+  }
+
+  const detallesUpdate = {
+    alumno_clave: payload.clavePersonal.trim() || null,
+    alumno_curp: curpNorm || null,
+    alumno_fecha_nac: fechaNac,
+    alumno_sexo: sexo,
+  }
+
+  let detalleId = payload.detalleId
+
+  if (detalleId != null) {
+    const { error: errorDetalle } = await supabase
+      .from('alumno_detalles')
+      .update(detallesUpdate)
+      .eq('detalle_id', detalleId)
+
+    if (errorDetalle) {
+      console.error('Error al guardar detalles del alumno:', errorDetalle)
+      return { ok: false, mensaje: errorDetalle.message }
+    }
+  } else {
+    const hayDatosDetalle =
+      detallesUpdate.alumno_clave != null ||
+      detallesUpdate.alumno_curp != null ||
+      detallesUpdate.alumno_fecha_nac != null ||
+      detallesUpdate.alumno_sexo != null
+
+    if (hayDatosDetalle) {
+      const { data: insertado, error: errorInsert } = await supabase
+        .from('alumno_detalles')
+        .insert({ alumno_id: payload.alumnoId, ...detallesUpdate })
+        .select('detalle_id')
+        .single()
+
+      if (errorInsert) {
+        console.error('Error al crear detalles del alumno:', errorInsert)
+        return { ok: false, mensaje: errorInsert.message }
+      }
+
+      detalleId = insertado?.detalle_id ?? null
+    }
+  }
+
+  return { ok: true, detalleId }
 }
