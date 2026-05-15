@@ -27,6 +27,31 @@ export function estatusAlumnoPorDefecto(
 }
 
 /** Clase en el `<form>` para colorear campos según estatus. */
+export function etiquetaEstatusAlumno(
+  status: string | number | null | undefined
+): string {
+  const n = parseEstatusAlumno(status)
+  const opt = ESTATUS_ALUMNO_OPCIONES.find((o) => o.valor === n)
+  if (opt) return opt.etiqueta
+  if (n != null) return `Estatus ${n}`
+  return 'Sin estatus'
+}
+
+/** Clase del badge de estatus en resultados de búsqueda. */
+export function claseTagEstatusAlumno(status: number | null): string {
+  switch (status) {
+    case 0:
+      return 'alumno-ac-tag--estatus-baja'
+    case 2:
+      return 'alumno-ac-tag--estatus-inactivo'
+    case 3:
+      return 'alumno-ac-tag--estatus-baja-temporal'
+    case 1:
+    default:
+      return 'alumno-ac-tag--estatus-activo'
+  }
+}
+
 export function claseFormularioPorEstatus(status: number): string {
   switch (status) {
     case 0:

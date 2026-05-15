@@ -16,6 +16,7 @@ export interface AlumnoBusquedaRow {
   alumno_grado?: string | null
   alumno_grupo?: string | null
   alumno_ciclo_escolar?: string | number | null
+  alumno_status?: number | null
 }
 
 function cicloNumerico(ciclo: string | number | null | undefined): number {
@@ -225,9 +226,8 @@ async function consultarCandidatos(
   let query = supabase
     .from('alumno')
     .select(
-      'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_ciclo_escolar'
+      'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_ciclo_escolar, alumno_status'
     )
-    .eq('alumno_status', 1)
     .or(or)
     .limit(CANDIDATOS_POR_CONSULTA)
 

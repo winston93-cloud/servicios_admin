@@ -19,6 +19,11 @@ import {
   grupoALetra,
 } from '@/lib/alumnoBusquedaServicios'
 import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
+import {
+  claseTagEstatusAlumno,
+  etiquetaEstatusAlumno,
+  parseEstatusAlumno,
+} from '@/lib/alumnoStatus'
 
 const ETIQUETA_CAMPO: Record<CampoBusquedaAlumno, string> = {
   nombre: 'Nombre',
@@ -365,15 +370,18 @@ export default function AlumnoAutocomplete({
                         {alumno.alumno_grado ? ` · ${alumno.alumno_grado}°` : ''}
                         {grupoLetra ? ` · Grupo ${grupoLetra}` : ''}
                       </span>
-                      {alumno.campos_coincidentes.length > 0 && (
-                        <span className="alumno-ac-option-tags">
-                          {alumno.campos_coincidentes.map((c) => (
-                            <span key={c} className="alumno-ac-tag">
-                              {ETIQUETA_CAMPO[c]}
-                            </span>
-                          ))}
+                      <span className="alumno-ac-option-tags">
+                        <span
+                          className={`alumno-ac-tag ${claseTagEstatusAlumno(parseEstatusAlumno(alumno.alumno_status))}`}
+                        >
+                          {etiquetaEstatusAlumno(alumno.alumno_status)}
                         </span>
-                      )}
+                        {alumno.campos_coincidentes.map((c) => (
+                          <span key={c} className="alumno-ac-tag alumno-ac-tag--campo">
+                            {ETIQUETA_CAMPO[c]}
+                          </span>
+                        ))}
+                      </span>
                     </span>
                   </li>
                 )

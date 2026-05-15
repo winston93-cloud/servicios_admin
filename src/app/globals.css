@@ -5386,6 +5386,31 @@ body {
   color: #f8fafc;
 }
 
+.alumno-ac-tag--campo {
+  background: #1e3a5f;
+  color: #f8fafc;
+}
+
+.alumno-ac-tag--estatus-activo {
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.alumno-ac-tag--estatus-baja {
+  background: #fecaca;
+  color: #991b1b;
+}
+
+.alumno-ac-tag--estatus-inactivo {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+.alumno-ac-tag--estatus-baja-temporal {
+  background: #fef08a;
+  color: #854d0e;
+}
+
 .servicios-panel-inner--alumnos {
   width: 100%;
   max-width: none;
