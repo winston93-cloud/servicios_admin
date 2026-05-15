@@ -91,7 +91,7 @@ function textoNivel(nivel: number): string {
 }
 
 interface AlumnoAutocompleteProps {
-  onSeleccionar?: (alumno: AlumnoBusquedaResultado) => void
+  onSeleccionar?: (alumno: AlumnoBusquedaResultado | null) => void
   autoFocus?: boolean
 }
 
@@ -193,6 +193,7 @@ export default function AlumnoAutocomplete({
     setSeleccionado(null)
     setMensajeVacio(null)
     cerrarLista()
+    onSeleccionar?.(null)
     inputRef.current?.focus()
   }
 
@@ -261,7 +262,10 @@ export default function AlumnoAutocomplete({
           value={consulta}
           onChange={(e) => {
             setConsulta(e.target.value)
-            setSeleccionado(null)
+            if (seleccionado) {
+              setSeleccionado(null)
+              onSeleccionar?.(null)
+            }
             if (e.target.value.trim().length >= MIN_CARACTERES) setAbierto(true)
           }}
           onFocus={() => {
