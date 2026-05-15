@@ -5377,6 +5377,10 @@ body {
   max-width: 720px;
 }
 
+.servicios-panel-header--compact {
+  margin-bottom: 12px;
+}
+
 @media (min-width: 901px) {
   .servicios-sidebar-backdrop {
     display: none !important;
