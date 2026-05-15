@@ -211,12 +211,16 @@ async function consultarCandidatos(
 ): Promise<AlumnoBusquedaRow[]> {
   const esc = escaparIlike(termino)
   const patron = `%${esc}%`
-  const or = [
+  const refExacta = termino.trim()
+  const orParts = [
     `alumno_nombre.ilike.${patron}`,
     `alumno_app.ilike.${patron}`,
     `alumno_apm.ilike.${patron}`,
-    `alumno_ref.ilike.${patron}`,
-  ].join(',')
+  ]
+  if (/^\d+$/.test(refExacta)) {
+    orParts.push(`alumno_ref.eq.${refExacta}`)
+  }
+  const or = orParts.join(',')
 
   let query = supabase
     .from('alumno')

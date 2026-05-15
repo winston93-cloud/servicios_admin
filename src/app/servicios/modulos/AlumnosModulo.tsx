@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
 import AlumnoDatosTabs from '../components/AlumnoDatosTabs'
+import MigracionAlumnoPanel from '../components/MigracionAlumnoPanel'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 
 export default function AlumnosModulo() {
@@ -15,6 +16,8 @@ export default function AlumnosModulo() {
       <header className="servicios-panel-header servicios-panel-header--compact">
         <h1 className="servicios-panel-title">Alumnos</h1>
       </header>
+
+      <MigracionAlumnoPanel />
 
       <AlumnoAutocomplete onSeleccionar={setAlumnoSeleccionado} />
 
