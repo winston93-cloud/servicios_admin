@@ -79,7 +79,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   return (
     <form className="alumno-form" onSubmit={(e) => e.preventDefault()} noValidate>
       <fieldset className="alumno-form-fieldset">
-        <div className="alumno-form-grid alumno-form-grid--2">
+        <div className="alumno-form-flujo">
           <div className="alumno-form-field">
             <label htmlFor="alumno_id" className="alumno-form-label">
               ID
@@ -106,11 +106,6 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               readOnly
             />
           </div>
-        </div>
-      </fieldset>
-
-      <fieldset className="alumno-form-fieldset alumno-form-fieldset--spaced">
-        <div className="alumno-form-grid alumno-form-grid--3">
           <div className="alumno-form-field">
             <label htmlFor="alumno_app" className="alumno-form-label">
               Apellido paterno
@@ -153,12 +148,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               autoComplete="given-name"
             />
           </div>
-        </div>
-      </fieldset>
-
-      <fieldset className="alumno-form-fieldset alumno-form-fieldset--spaced">
-        <div className="alumno-form-secuencial">
-          <div className="alumno-form-field alumno-form-field--narrow">
+          <div className="alumno-form-field">
             <label htmlFor="alumno_clave" className="alumno-form-label">
               Clave personal
             </label>
@@ -173,7 +163,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
             />
           </div>
 
-          <div className="alumno-form-field alumno-form-field--narrow">
+          <div className="alumno-form-field">
             <label htmlFor="alumno_ciclo_escolar" className="alumno-form-label">
               Ciclo escolar
             </label>
@@ -192,7 +182,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
             </select>
           </div>
 
-          <div className="alumno-form-field alumno-form-field--narrow">
+          <div className="alumno-form-field">
             <label htmlFor="alumno_nivel" className="alumno-form-label">
               Nivel
             </label>
@@ -217,7 +207,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
             </select>
           </div>
 
-          <div className="alumno-form-field alumno-form-field--narrow">
+          <div className="alumno-form-field">
             <label htmlFor="alumno_grado" className="alumno-form-label">
               Grado
             </label>

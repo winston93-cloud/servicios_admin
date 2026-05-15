@@ -5620,11 +5620,12 @@ body {
   grid-template-columns: repeat(4, 1fr);
 }
 
-.alumno-form-secuencial {
-  display: flex;
-  flex-direction: column;
+/* Campos en fila; al no caber, pasan a la siguiente línea */
+.alumno-form-flujo {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
-  max-width: 420px;
+  align-items: start;
 }
 
 .alumno-form-fieldset--spaced {
