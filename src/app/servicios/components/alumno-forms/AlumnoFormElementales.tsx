@@ -19,6 +19,10 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [datos, setDatos] = useState<AlumnoDatosElementales | null>(null)
+  const [apellidoPaterno, setApellidoPaterno] = useState('')
+  const [apellidoMaterno, setApellidoMaterno] = useState('')
+  const [nombre, setNombre] = useState('')
+  const [clavePersonal, setClavePersonal] = useState('')
   const [cicloEscolar, setCicloEscolar] = useState<number>(
     CICLOS_ESCOLARES_OPCIONES[0].valor
   )
@@ -44,6 +48,10 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
         setDatos(null)
       } else {
         setDatos(registro)
+        setApellidoPaterno(registro.alumno.alumno_app ?? '')
+        setApellidoMaterno(registro.alumno.alumno_apm ?? '')
+        setNombre(registro.alumno.alumno_nombre ?? '')
+        setClavePersonal(registro.detalles?.alumno_clave ?? '')
         const nivel = nivelEscolarPorDefecto(registro.alumno.alumno_nivel)
         setCicloEscolar(cicloEscolarPorDefecto(registro.alumno.alumno_ciclo_escolar))
         setNivelEscolar(nivel)
@@ -79,7 +87,52 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   return (
     <form className="alumno-form" onSubmit={(e) => e.preventDefault()} noValidate>
       <fieldset className="alumno-form-fieldset">
-        <div className="alumno-form-flujo">
+        <div className="alumno-form-flujo-nombres">
+          <div className="alumno-form-field">
+            <label htmlFor="alumno_app" className="alumno-form-label">
+              Apellido paterno
+            </label>
+            <input
+              id="alumno_app"
+              name="alumno_app"
+              type="text"
+              className="alumno-form-input"
+              value={apellidoPaterno}
+              onChange={(e) => setApellidoPaterno(e.target.value)}
+              autoComplete="family-name"
+            />
+          </div>
+          <div className="alumno-form-field">
+            <label htmlFor="alumno_apm" className="alumno-form-label">
+              Apellido materno
+            </label>
+            <input
+              id="alumno_apm"
+              name="alumno_apm"
+              type="text"
+              className="alumno-form-input"
+              value={apellidoMaterno}
+              onChange={(e) => setApellidoMaterno(e.target.value)}
+              autoComplete="family-name"
+            />
+          </div>
+          <div className="alumno-form-field">
+            <label htmlFor="alumno_nombre" className="alumno-form-label">
+              Nombre(s)
+            </label>
+            <input
+              id="alumno_nombre"
+              name="alumno_nombre"
+              type="text"
+              className="alumno-form-input"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              autoComplete="given-name"
+            />
+          </div>
+        </div>
+
+        <div className="alumno-form-flujo alumno-form-flujo--resto">
           <div className="alumno-form-field">
             <label htmlFor="alumno_id" className="alumno-form-label">
               ID
@@ -107,48 +160,6 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
             />
           </div>
           <div className="alumno-form-field">
-            <label htmlFor="alumno_app" className="alumno-form-label">
-              Apellido paterno
-            </label>
-            <input
-              id="alumno_app"
-              name="alumno_app"
-              type="text"
-              className="alumno-form-input"
-              value={a.alumno_app ?? ''}
-              readOnly
-              autoComplete="family-name"
-            />
-          </div>
-          <div className="alumno-form-field">
-            <label htmlFor="alumno_apm" className="alumno-form-label">
-              Apellido materno
-            </label>
-            <input
-              id="alumno_apm"
-              name="alumno_apm"
-              type="text"
-              className="alumno-form-input"
-              value={a.alumno_apm ?? ''}
-              readOnly
-              autoComplete="family-name"
-            />
-          </div>
-          <div className="alumno-form-field">
-            <label htmlFor="alumno_nombre" className="alumno-form-label">
-              Nombre(s)
-            </label>
-            <input
-              id="alumno_nombre"
-              name="alumno_nombre"
-              type="text"
-              className="alumno-form-input"
-              value={a.alumno_nombre ?? ''}
-              readOnly
-              autoComplete="given-name"
-            />
-          </div>
-          <div className="alumno-form-field">
             <label htmlFor="alumno_clave" className="alumno-form-label">
               Clave personal
             </label>
@@ -157,8 +168,8 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               name="alumno_clave"
               type="text"
               className="alumno-form-input"
-              value={detalles?.alumno_clave ?? ''}
-              readOnly
+              value={clavePersonal}
+              onChange={(e) => setClavePersonal(e.target.value)}
               placeholder={detalles ? undefined : 'Sin registro en alumno_detalles'}
             />
           </div>

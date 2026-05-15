@@ -5620,12 +5620,30 @@ body {
   grid-template-columns: repeat(4, 1fr);
 }
 
+/* Apellidos y nombre siempre en la primera línea */
+.alumno-form-flujo-nombres {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
 /* Campos en fila; al no caber, pasan a la siguiente línea */
 .alumno-form-flujo {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
   align-items: start;
+}
+
+.alumno-form-flujo--resto {
+  margin-top: 16px;
+}
+
+@media (max-width: 720px) {
+  .alumno-form-flujo-nombres {
+    grid-template-columns: 1fr;
+  }
 }
 
 .alumno-form-fieldset--spaced {
