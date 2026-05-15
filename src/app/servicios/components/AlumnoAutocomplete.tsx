@@ -142,7 +142,6 @@ export default function AlumnoAutocomplete({
       setResultados([])
       setCargando(false)
       setMensajeVacio(null)
-      if (texto.length === 0) setSeleccionado(null)
       return
     }
 
@@ -187,14 +186,24 @@ export default function AlumnoAutocomplete({
     item?.scrollIntoView({ block: 'nearest' })
   }, [indiceActivo])
 
-  const limpiar = () => {
+  const prepararNuevaBusqueda = useCallback(() => {
+    abortRef.current?.abort()
     setConsulta('')
     setResultados([])
-    setSeleccionado(null)
     setMensajeVacio(null)
     cerrarLista()
+  }, [cerrarLista])
+
+  const limpiar = () => {
+    prepararNuevaBusqueda()
+    setSeleccionado(null)
     onSeleccionar?.(null)
     inputRef.current?.focus()
+  }
+
+  const alClicEnInput = () => {
+    prepararNuevaBusqueda()
+    inputRef.current?.select()
   }
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -268,6 +277,7 @@ export default function AlumnoAutocomplete({
             }
             if (e.target.value.trim().length >= MIN_CARACTERES) setAbierto(true)
           }}
+          onClick={alClicEnInput}
           onFocus={() => {
             if (resultados.length > 0 && consulta.trim().length >= MIN_CARACTERES) {
               setAbierto(true)
