@@ -142,9 +142,11 @@ export default function AlumnoAutocomplete({
               canon.alumno_grado != null ? String(canon.alumno_grado) : null,
             alumno_grupo:
               canon.alumno_grupo != null ? String(canon.alumno_grupo) : null,
-            nombre_completo:
-              canon.alumno_nombre_completo ??
-              construirNombreCompleto(canon.alumno_nombre, canon.alumno_app, canon.alumno_apm),
+            nombre_completo: construirNombreCompleto(
+              canon.alumno_nombre,
+              canon.alumno_app,
+              canon.alumno_apm
+            ),
           }
         : pick
 

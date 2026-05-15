@@ -64,7 +64,7 @@ export default function MigracionAlumnoPanel() {
 
       {config && !config.listo && (
         <p className="migracion-alumno-alerta" role="alert">
-          Falta MySQL en <code>.env.local</code> (MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD).
+          Falta configuración MySQL (MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD). En Vercel solo aplica si vas a migrar desde ahí.
         </p>
       )}
 

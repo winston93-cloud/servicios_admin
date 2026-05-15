@@ -9,13 +9,12 @@ export interface AlumnoRegistro {
   alumno_nivel: number
   alumno_grado?: string | number | null
   alumno_grupo?: string | number | null
-  alumno_nombre_completo?: string | null
   alumno_status?: number | null
   alumno_ciclo_escolar?: string | number | null
 }
 
 const SELECT_ALUMNO =
-  'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_nombre_completo, alumno_status, alumno_ciclo_escolar'
+  'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_status, alumno_ciclo_escolar'
 
 function cicloNumerico(ciclo: string | number | null | undefined): number {
   if (ciclo == null || ciclo === '') return 0
@@ -28,10 +27,12 @@ export async function obtenerAlumnoPorRef(alumnoRef: string): Promise<AlumnoRegi
   const ref = String(alumnoRef ?? '').trim()
   if (!ref) return null
 
+  const refFiltro = /^\d+$/.test(ref) ? parseInt(ref, 10) : ref
+
   const { data, error } = await supabase
     .from('alumno')
     .select(SELECT_ALUMNO)
-    .eq('alumno_ref', ref)
+    .eq('alumno_ref', refFiltro)
     .eq('alumno_status', 1)
     .order('alumno_ciclo_escolar', { ascending: false })
     .limit(1)
