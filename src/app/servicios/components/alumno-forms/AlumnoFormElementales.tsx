@@ -10,6 +10,7 @@ import {
   gradoEscolarPorDefecto,
   gradoOpcionesPorNivel,
 } from '@/lib/gradoEscolar'
+import { GRUPOS_ESCOLARES_OPCIONES, grupoEscolarPorDefecto } from '@/lib/grupoEscolar'
 
 interface AlumnoFormElementalesProps {
   alumno: AlumnoBusquedaResultado
@@ -30,6 +31,9 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
     NIVELES_ESCOLARES_OPCIONES[0].valor
   )
   const [gradoEscolar, setGradoEscolar] = useState<number>(1)
+  const [grupoEscolar, setGrupoEscolar] = useState<number>(
+    GRUPOS_ESCOLARES_OPCIONES[0].valor
+  )
 
   const opcionesGrado = useMemo(
     () => gradoOpcionesPorNivel(nivelEscolar),
@@ -56,6 +60,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
         setCicloEscolar(cicloEscolarPorDefecto(registro.alumno.alumno_ciclo_escolar))
         setNivelEscolar(nivel)
         setGradoEscolar(gradoEscolarPorDefecto(nivel, registro.alumno.alumno_grado))
+        setGrupoEscolar(grupoEscolarPorDefecto(registro.alumno.alumno_grupo))
       }
       setCargando(false)
     })
@@ -233,6 +238,25 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               disabled={opcionesGrado.length === 0}
             >
               {opcionesGrado.map((opcion) => (
+                <option key={opcion.valor} value={opcion.valor}>
+                  {opcion.etiqueta}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="alumno-form-field">
+            <label htmlFor="alumno_grupo" className="alumno-form-label">
+              Grupo
+            </label>
+            <select
+              id="alumno_grupo"
+              name="alumno_grupo"
+              className="alumno-form-select"
+              value={String(grupoEscolar)}
+              onChange={(e) => setGrupoEscolar(Number(e.target.value))}
+            >
+              {GRUPOS_ESCOLARES_OPCIONES.map((opcion) => (
                 <option key={opcion.valor} value={opcion.valor}>
                   {opcion.etiqueta}
                 </option>
