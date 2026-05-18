@@ -64,14 +64,31 @@ function toCsvLine(fields) {
   return fields.map(escapeCsvField).join(',')
 }
 
-function cleanCell(v) {
-  const s = (v ?? '').trim()
-  if (s.toUpperCase() === 'NULL' || s === '\\N') return ''
+const FECHA_FALLBACK = '1970-01-01 00:00:00'
+
+function esFechaMysqlInvalida(texto) {
+  const s = texto.trim()
+  return !s || s.startsWith('0000-00-00')
+}
+
+function cleanCell(v, key) {
+  let s = (v ?? '').trim()
+  if (s.toUpperCase() === 'NULL' || s === '\\N') s = ''
+
+  if (key === 'beca_p') {
+    return s === '' ? '0' : s
+  }
+
+  if (key === 'beca_registro' || key === 'beca_actualizacion') {
+    if (esFechaMysqlInvalida(s)) return FECHA_FALLBACK
+    return s
+  }
+
   return s
 }
 
 function normalizeHeader(fields) {
-  return fields.map((f) => cleanCell(f).toLowerCase())
+  return fields.map((f) => cleanCell(f, '').toLowerCase())
 }
 
 const inputPath = process.argv[2]
@@ -87,6 +104,10 @@ if (lines.length < 2) {
   process.exit(1)
 }
 
+function cleanRowCells(cells) {
+  return COLUMNS.map((col, i) => cleanCell(cells[i] ?? '', col))
+}
+
 const headerNorm = normalizeHeader(parseCsvLine(lines[0]))
 const headerOk =
   headerNorm.length === COLUMNS.length &&
@@ -95,9 +116,9 @@ const headerOk =
 const outLines = [toCsvLine(COLUMNS)]
 
 for (let i = 1; i < lines.length; i++) {
-  const cells = parseCsvLine(lines[i]).map(cleanCell)
-  while (cells.length < COLUMNS.length) cells.push('')
-  outLines.push(toCsvLine(cells.slice(0, COLUMNS.length)))
+  const parsed = parseCsvLine(lines[i])
+  while (parsed.length < COLUMNS.length) parsed.push('')
+  outLines.push(toCsvLine(cleanRowCells(parsed)))
 }
 
 const outPath = join(dirname(inputPath), basename(inputPath, '.csv') + '_supabase.csv')
