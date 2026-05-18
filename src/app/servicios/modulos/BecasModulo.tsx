@@ -27,6 +27,15 @@ interface SnapshotBeca {
   cicloEscolar: number
 }
 
+function snapshotsIguales(a: SnapshotBeca, b: SnapshotBeca): boolean {
+  return (
+    a.becaId === b.becaId &&
+    a.porcentaje === b.porcentaje &&
+    a.estatus === b.estatus &&
+    a.cicloEscolar === b.cicloEscolar
+  )
+}
+
 export default function BecasModulo() {
   const {
     cicloSeleccionado,
@@ -39,10 +48,12 @@ export default function BecasModulo() {
 
   const [conceptos, setConceptos] = useState<ConceptoBeca[]>([])
   const [cargandoBeca, setCargandoBeca] = useState(false)
-  const [alumnoId, setAlumnoId] = useState<number | null>(null)
+  /** Alumno del ciclo en que se buscó (consultar ciclo). */
+  const [alumnoIdBase, setAlumnoIdBase] = useState<number | null>(null)
+  /** Alumno del ciclo del formulario, si existe inscripción en ese ciclo. */
+  const [alumnoIdCicloBeca, setAlumnoIdCicloBeca] = useState<number | null>(null)
   const [registroBeca, setRegistroBeca] = useState<AlumnoBecaRegistro | null>(null)
 
-  /** Ciclo en el que se asigna/consulta la beca (independiente de «Consultar ciclo»). */
   const [cicloEscolarBeca, setCicloEscolarBeca] = useState(cicloSeleccionado)
 
   const [becaId, setBecaId] = useState(0)
@@ -53,6 +64,7 @@ export default function BecasModulo() {
   const [guardando, setGuardando] = useState(false)
   const [guardadoReciente, setGuardadoReciente] = useState(false)
   const [mensaje, setMensaje] = useState<string | null>(null)
+  const [mensajeInfo, setMensajeInfo] = useState<string | null>(null)
   const [errorGuardar, setErrorGuardar] = useState(false)
 
   const snapshotActual = useMemo<SnapshotBeca>(
@@ -61,105 +73,135 @@ export default function BecasModulo() {
   )
 
   const modificado =
-    snapshotGuardado != null &&
-    (snapshotGuardado.becaId !== snapshotActual.becaId ||
-      snapshotGuardado.porcentaje !== snapshotActual.porcentaje ||
-      snapshotGuardado.estatus !== snapshotActual.estatus ||
-      snapshotGuardado.cicloEscolar !== snapshotActual.cicloEscolar)
+    snapshotGuardado != null && !snapshotsIguales(snapshotGuardado, snapshotActual)
+
+  const puedeGuardar =
+    modificado && becaId > 0 && (alumnoIdCicloBeca != null || alumnoIdBase != null)
 
   useEffect(() => {
     listarConceptosBeca().then(setConceptos)
   }, [])
 
-  const aplicarRegistro = useCallback(
-    (
-      reg: AlumnoBecaRegistro | null,
-      conceptosLista: ConceptoBeca[],
-      ciclo: number
-    ) => {
-      if (!reg) {
-        const primero = conceptosLista[0]?.beca_id ?? 0
-        setRegistroBeca(null)
-        setCicloEscolarBeca(ciclo)
-        setBecaId(primero)
-        setPorcentaje(0)
-        setEstatus(BECA_ESTATUS_ACTIVA)
-        const snap: SnapshotBeca = {
-          becaId: primero,
-          porcentaje: 0,
-          estatus: BECA_ESTATUS_ACTIVA,
-          cicloEscolar: ciclo,
-        }
-        setSnapshotGuardado(snap)
-        return
-      }
+  const aplicarDesdeBeca = useCallback(
+    (reg: AlumnoBecaRegistro, lista: ConceptoBeca[]) => {
       setRegistroBeca(reg)
-      setCicloEscolarBeca(reg.beca_ciclo_escolar)
       setBecaId(reg.beca_id)
       setPorcentaje(reg.beca_porcentaje)
       setEstatus(reg.beca_estatus)
+      setCicloEscolarBeca(reg.beca_ciclo_escolar)
       setSnapshotGuardado({
         becaId: reg.beca_id,
         porcentaje: reg.beca_porcentaje,
         estatus: reg.beca_estatus,
         cicloEscolar: reg.beca_ciclo_escolar,
       })
+      if (lista.length) setConceptos(lista)
     },
     []
   )
 
-  const cargarBecaEnCiclo = useCallback(
-    async (ref: string, ciclo: number) => {
+  const aplicarFormularioVacio = useCallback((lista: ConceptoBeca[], ciclo: number) => {
+    const primero = lista[0]?.beca_id ?? 0
+    setRegistroBeca(null)
+    setCicloEscolarBeca(ciclo)
+    setBecaId(primero)
+    setPorcentaje(0)
+    setEstatus(BECA_ESTATUS_ACTIVA)
+    setSnapshotGuardado({
+      becaId: primero,
+      porcentaje: 0,
+      estatus: BECA_ESTATUS_ACTIVA,
+      cicloEscolar: ciclo,
+    })
+    if (lista.length) setConceptos(lista)
+  }, [])
+
+  const cargarAlumnoInicial = useCallback(
+    async (ref: string, cicloConsulta: number) => {
       setCargandoBeca(true)
       setMensaje(null)
+      setMensajeInfo(null)
       setErrorGuardar(false)
       setGuardadoReciente(false)
 
-      const alumno = await obtenerAlumnoPorRef(ref, ciclo)
+      const alumno = await obtenerAlumnoPorRef(ref, cicloConsulta)
+      const lista = await listarConceptosBeca()
+
       if (!alumno) {
-        setAlumnoId(null)
+        setAlumnoIdBase(null)
+        setAlumnoIdCicloBeca(null)
         setRegistroBeca(null)
         setSnapshotGuardado(null)
         setCargandoBeca(false)
-        const etiqueta =
-          opcionesCatalogo.find((o) => o.valor === ciclo)?.etiqueta ?? String(ciclo)
-        setMensaje(`El alumno no tiene registro en el ciclo ${etiqueta}.`)
+        setMensaje('No hay registro de alumno para el ciclo de consulta.')
         return
       }
 
-      setAlumnoId(alumno.alumno_id)
-      const beca = await obtenerBecaPorAlumnoId(alumno.alumno_id)
+      setAlumnoIdBase(alumno.alumno_id)
+      setAlumnoIdCicloBeca(alumno.alumno_id)
+      setCicloEscolarBeca(cicloConsulta)
 
-      const lista = await listarConceptosBeca()
-      setConceptos(lista)
-      aplicarRegistro(beca, lista, ciclo)
+      const beca = await obtenerBecaPorAlumnoId(alumno.alumno_id)
+      if (beca) {
+        aplicarDesdeBeca(beca, lista)
+      } else {
+        aplicarFormularioVacio(lista, cicloConsulta)
+      }
+
       setCargandoBeca(false)
     },
-    [aplicarRegistro, opcionesCatalogo]
+    [aplicarDesdeBeca, aplicarFormularioVacio]
   )
 
   useEffect(() => {
     if (!alumnoSeleccionado) {
-      setAlumnoId(null)
+      setAlumnoIdBase(null)
+      setAlumnoIdCicloBeca(null)
       setRegistroBeca(null)
       setSnapshotGuardado(null)
       setMensaje(null)
+      setMensajeInfo(null)
       setErrorGuardar(false)
       return
     }
 
-    const cicloInicial = cicloSeleccionado
-    setCicloEscolarBeca(cicloInicial)
-    cargarBecaEnCiclo(alumnoSeleccionado.alumno_ref, cicloInicial)
-  }, [alumnoSeleccionado, cicloSeleccionado, cargarBecaEnCiclo])
+    cargarAlumnoInicial(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
+  }, [alumnoSeleccionado, cicloSeleccionado, cargarAlumnoInicial])
 
   const onCambioCicloBeca = useCallback(
-    (ciclo: number) => {
+    async (ciclo: number) => {
       if (!alumnoSeleccionado || ciclo === cicloEscolarBeca) return
+
       setCicloEscolarBeca(ciclo)
-      cargarBecaEnCiclo(alumnoSeleccionado.alumno_ref, ciclo)
+      setMensajeInfo(null)
+      setErrorGuardar(false)
+
+      const alumno = await obtenerAlumnoPorRef(alumnoSeleccionado.alumno_ref, ciclo)
+      if (alumno) {
+        setAlumnoIdCicloBeca(alumno.alumno_id)
+        const beca = await obtenerBecaPorAlumnoId(alumno.alumno_id)
+        if (beca) {
+          aplicarDesdeBeca(beca, conceptos)
+        } else {
+          setRegistroBeca(null)
+          const etiqueta =
+            opcionesCatalogo.find((o) => o.valor === ciclo)?.etiqueta ?? String(ciclo)
+          setMensajeInfo(
+            `Sin beca en ${etiqueta}. Ajusta los datos y pulsa Aplicar beca para registrarla.`
+          )
+        }
+        return
+      }
+
+      setAlumnoIdCicloBeca(null)
+      setRegistroBeca(null)
+      const etiqueta =
+        opcionesCatalogo.find((o) => o.valor === ciclo)?.etiqueta ?? String(ciclo)
+      setMensajeInfo(
+        `Sin inscripción en ${etiqueta}. Se actualizará la beca del ciclo de consulta con ciclo escolar ${etiqueta}.`
+      )
     },
-    [alumnoSeleccionado, cicloEscolarBeca, cargarBecaEnCiclo]
+    [alumnoSeleccionado, cicloEscolarBeca, conceptos, opcionesCatalogo, aplicarDesdeBeca]
   )
 
   useEffect(() => {
@@ -170,15 +212,34 @@ export default function BecasModulo() {
   }, [modificado, mensaje, errorGuardar])
 
   const onGuardar = useCallback(async () => {
-    if (!modificado || guardando || alumnoId == null || becaId <= 0) return
+    if (!puedeGuardar || guardando) return
 
     setGuardando(true)
     setMensaje(null)
+    setMensajeInfo(null)
     setErrorGuardar(false)
 
+    const ref = alumnoSeleccionado!.alumno_ref
+    const alumnoDestino =
+      (await obtenerAlumnoPorRef(ref, cicloEscolarBeca))?.alumno_id ??
+      alumnoIdCicloBeca ??
+      alumnoIdBase
+
+    if (alumnoDestino == null) {
+      setGuardando(false)
+      setErrorGuardar(true)
+      setMensaje('No se encontró un alumno válido para guardar la beca.')
+      return
+    }
+
+    const becaIdPersistir =
+      registroBeca && registroBeca.alumno_id === alumnoDestino
+        ? registroBeca.alumno_beca_id
+        : null
+
     const resultado = await guardarBecaAlumno({
-      alumnoBecaId: registroBeca?.alumno_beca_id ?? null,
-      alumnoId,
+      alumnoBecaId: becaIdPersistir,
+      alumnoId: alumnoDestino,
       becaId,
       porcentaje,
       estatus,
@@ -196,26 +257,30 @@ export default function BecasModulo() {
 
     const actualizado: AlumnoBecaRegistro = {
       alumno_beca_id: resultado.alumnoBecaId,
-      alumno_id: alumnoId,
+      alumno_id: alumnoDestino,
       beca_id: becaId,
       beca_porcentaje: Math.max(0, Math.min(100, Math.round(porcentaje))),
       beca_estatus: estatus,
       beca_ciclo_escolar: cicloEscolarBeca,
       beca_p: registroBeca?.beca_p ?? '0',
     }
+
+    setAlumnoIdCicloBeca(alumnoDestino)
     setRegistroBeca(actualizado)
     setSnapshotGuardado(snapshotActual)
     setGuardadoReciente(true)
     setMensaje('Beca aplicada correctamente.')
   }, [
-    modificado,
+    puedeGuardar,
     guardando,
-    alumnoId,
+    alumnoSeleccionado,
+    cicloEscolarBeca,
+    alumnoIdCicloBeca,
+    alumnoIdBase,
+    registroBeca,
     becaId,
     porcentaje,
     estatus,
-    cicloEscolarBeca,
-    registroBeca,
     snapshotActual,
   ])
 
@@ -327,7 +392,7 @@ export default function BecasModulo() {
                 disabled={cargandoCiclos || opcionesCicloBeca.length === 0}
                 onChange={(e) => onCambioCicloBeca(Number(e.target.value))}
                 aria-label="Ciclo escolar al que aplica la beca"
-                title="No cambia el ciclo de consulta arriba; solo define en qué ciclo se guarda la beca"
+                title="Ciclo al que aplica la beca (independiente del consultar ciclo)"
               >
                 {opcionesCicloBeca.map((opcion) => (
                   <option key={opcion.valor} value={opcion.valor}>
@@ -357,6 +422,12 @@ export default function BecasModulo() {
             </div>
           </div>
 
+          {mensajeInfo && !errorGuardar && (
+            <p className="becas-msg becas-msg--info" role="status">
+              {mensajeInfo}
+            </p>
+          )}
+
           {mensaje && (
             <p
               className={`becas-msg ${errorGuardar ? 'becas-msg--error' : 'becas-msg--ok'}`}
@@ -378,7 +449,7 @@ export default function BecasModulo() {
                       ? 'becas-btn--saved'
                       : ''
               }`}
-              disabled={guardando || !modificado || becaId <= 0 || alumnoId == null}
+              disabled={guardando || !puedeGuardar}
               onClick={onGuardar}
             >
               {guardando ? (
