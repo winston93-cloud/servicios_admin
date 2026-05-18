@@ -1,20 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useAlumnoSeleccionado } from '@/contexts/AlumnoSeleccionadoContext'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
 import AlumnoDatosTabs from '../components/AlumnoDatosTabs'
-import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 
 export default function AlumnosModulo() {
   const { cicloSeleccionado } = useCicloEscolar()
-  const [alumnoSeleccionado, setAlumnoSeleccionado] = useState<AlumnoBusquedaResultado | null>(
-    null
-  )
-
-  useEffect(() => {
-    setAlumnoSeleccionado(null)
-  }, [cicloSeleccionado])
+  const { alumnoSeleccionado, setAlumnoSeleccionado } = useAlumnoSeleccionado()
 
   return (
     <div className="servicios-panel-inner servicios-panel-inner--alumnos">
@@ -22,7 +15,10 @@ export default function AlumnosModulo() {
         <h1 className="servicios-panel-title">Alumnos</h1>
       </header>
 
-      <AlumnoAutocomplete onSeleccionar={setAlumnoSeleccionado} />
+      <AlumnoAutocomplete
+        alumnoSeleccionado={alumnoSeleccionado}
+        onSeleccionar={setAlumnoSeleccionado}
+      />
 
       <AlumnoDatosTabs key={cicloSeleccionado} alumno={alumnoSeleccionado} />
     </div>

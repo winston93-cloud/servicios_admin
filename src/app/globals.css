@@ -6026,6 +6026,231 @@ body {
   font-weight: 600;
 }
 
+/* Becas */
+.servicios-panel-inner--becas {
+  width: 100%;
+  max-width: none;
+}
+
+.becas-lead {
+  max-width: 72ch;
+}
+
+.becas-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 4px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.becas-loading-icon {
+  animation: alumno-ac-spin 0.7s linear infinite;
+  color: #1e3a5f;
+}
+
+.becas-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 32px 20px;
+  color: #64748b;
+}
+
+.becas-empty svg {
+  color: #94a3b8;
+}
+
+.becas-formulario {
+  margin-top: 8px;
+  padding: 22px 20px 24px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.becas-formulario-titulo {
+  margin: 0 0 16px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+
+.becas-estatus-badge {
+  margin: 0 0 18px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.becas-estatus--activa {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.becas-estatus--validacion {
+  background: #fef9c3;
+  color: #854d0e;
+  border: 1px solid #fde047;
+}
+
+.becas-estatus--inactiva {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.becas-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 20px;
+}
+
+.becas-field--full {
+  grid-column: 1 / -1;
+}
+
+.becas-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.becas-input,
+.becas-select {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+}
+
+.becas-input--readonly {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.becas-input:focus,
+.becas-select:focus {
+  border-color: #1e3a5f;
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
+}
+
+.becas-select--estatus.becas-estatus--activa {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.becas-select--estatus.becas-estatus--validacion {
+  background: #fefce8;
+  border-color: #fde047;
+}
+
+.becas-select--estatus.becas-estatus--inactiva {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.becas-msg {
+  margin: 18px 0 0;
+  font-size: 14px;
+}
+
+.becas-msg--ok {
+  color: #15803d;
+}
+
+.becas-msg--error {
+  color: #b91c1b;
+}
+
+.becas-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.becas-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 168px;
+  padding: 14px 28px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a5f 100%);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.18);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.becas-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.becas-btn--dirty {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.becas-btn--saved {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+.becas-btn--guardando {
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+}
+
+.becas-btn-icon {
+  flex-shrink: 0;
+}
+
+.becas-btn--guardando .becas-btn-icon {
+  animation: alumno-ac-spin 0.7s linear infinite;
+}
+
+.becas-resumen-tipo {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.becas-resumen-tipo strong {
+  color: #1e3a5f;
+}
+
+@media (max-width: 640px) {
+  .becas-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .becas-btn {
+    width: 100%;
+  }
+}
+
 .servicios-panel-header--compact {
   margin-bottom: 12px;
 }

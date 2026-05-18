@@ -16,7 +16,9 @@ import AlumnosModulo from './modulos/AlumnosModulo'
 import CiclosEscolaresModulo from './modulos/CiclosEscolaresModulo'
 import MigracionModulo from './modulos/MigracionModulo'
 import AsignarGruposModulo from './modulos/AsignarGruposModulo'
+import BecasModulo from './modulos/BecasModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
+import { AlumnoSeleccionadoProvider } from '@/contexts/AlumnoSeleccionadoContext'
 
 const SIDEBAR_COLLAPSED_KEY = 'servicios-sidebar-collapsed'
 
@@ -57,6 +59,8 @@ function ServiciosPanelContenido({
       return <CiclosEscolaresModulo />
     case 'asignar-grupos':
       return <AsignarGruposModulo />
+    case 'becas':
+      return <BecasModulo />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }
@@ -131,6 +135,7 @@ function ServiciosPageInner() {
 
   return (
     <CicloEscolarProvider>
+    <AlumnoSeleccionadoProvider>
     <div className="servicios-app">
       <button
         type="button"
@@ -245,6 +250,7 @@ function ServiciosPageInner() {
         </div>
       </main>
     </div>
+    </AlumnoSeleccionadoProvider>
     </CicloEscolarProvider>
   )
 }

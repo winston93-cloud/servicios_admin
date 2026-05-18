@@ -100,12 +100,17 @@ function textoNivel(nivel: number): string {
 
 interface AlumnoAutocompleteProps {
   onSeleccionar?: (alumno: AlumnoBusquedaResultado | null) => void
+  /** Alumno compartido entre módulos (Alumnos, Becas, …). */
+  alumnoSeleccionado?: AlumnoBusquedaResultado | null
   autoFocus?: boolean
+  etiqueta?: string
 }
 
 export default function AlumnoAutocomplete({
   onSeleccionar,
+  alumnoSeleccionado: alumnoControlado = null,
   autoFocus = true,
+  etiqueta = 'Buscar alumno',
 }: AlumnoAutocompleteProps) {
   const baseId = useId()
   const listboxId = `${baseId}-listbox`
@@ -123,7 +128,8 @@ export default function AlumnoAutocomplete({
   const { cicloSeleccionado, opcionesSelector } = useCicloEscolar()
   const etiquetaCiclo =
     opcionesSelector.find((o) => o.valor === cicloSeleccionado)?.etiqueta ?? 'ciclo actual'
-  const cicloPrevioRef = useRef(cicloSeleccionado)
+
+  const alumnoVisible = alumnoControlado ?? seleccionado
 
   useEffect(() => {
     if (autoFocus && inputRef.current) {
@@ -131,28 +137,16 @@ export default function AlumnoAutocomplete({
     }
   }, [autoFocus])
 
+  useEffect(() => {
+    if (!alumnoControlado) return
+    setSeleccionado(alumnoControlado)
+    setConsulta(alumnoControlado.nombre_completo)
+  }, [alumnoControlado])
+
   const cerrarLista = useCallback(() => {
     setAbierto(false)
     setIndiceActivo(-1)
   }, [])
-
-  useEffect(() => {
-    if (cicloPrevioRef.current === cicloSeleccionado) return
-    cicloPrevioRef.current = cicloSeleccionado
-    abortRef.current?.abort()
-    setSeleccionado(null)
-    setResultados([])
-    setMensajeVacio(null)
-    setCargando(false)
-    onSeleccionar?.(null)
-    const texto = consulta.trim()
-    if (texto.length >= MIN_CARACTERES) {
-      setAbierto(true)
-    } else {
-      cerrarLista()
-    }
-    // La consulta se conserva; el efecto de búsqueda vuelve a ejecutarse con el nuevo ciclo.
-  }, [cicloSeleccionado, cerrarLista, onSeleccionar, consulta])
 
   const elegir = useCallback(
     async (pick: AlumnoBusquedaResultado) => {
@@ -197,7 +191,7 @@ export default function AlumnoAutocomplete({
       return
     }
 
-    if (seleccionado && texto === seleccionado.nombre_completo) {
+    if (alumnoVisible && texto === alumnoVisible.nombre_completo) {
       return
     }
 
@@ -230,7 +224,7 @@ export default function AlumnoAutocomplete({
     }, 110)
 
     return () => window.clearTimeout(timer)
-  }, [consulta, seleccionado, cicloSeleccionado])
+  }, [consulta, alumnoVisible, cicloSeleccionado])
 
   useEffect(() => {
     if (indiceActivo < 0 || !listRef.current) return
@@ -301,7 +295,7 @@ export default function AlumnoAutocomplete({
   return (
     <div className="alumno-ac">
       <label htmlFor={`${baseId}-input`} className="alumno-ac-label">
-        Buscar alumno
+        {etiqueta}
         <span className="alumno-ac-label-ciclo"> · Ciclo {etiquetaCiclo}</span>
       </label>
 
