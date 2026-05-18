@@ -24,14 +24,14 @@ interface SnapshotBeca {
   becaId: number
   porcentaje: number
   estatus: number
+  cicloEscolar: number
 }
 
 export default function BecasModulo() {
   const {
     cicloSeleccionado,
     cicloActualSistema,
-    opcionesSelector,
-    setCicloSeleccionado,
+    opcionesCatalogo,
     cargando: cargandoCiclos,
   } = useCicloEscolar()
   const { alumnoSeleccionado, setAlumnoSeleccionado, resolviendoCiclo } =
@@ -41,6 +41,9 @@ export default function BecasModulo() {
   const [cargandoBeca, setCargandoBeca] = useState(false)
   const [alumnoId, setAlumnoId] = useState<number | null>(null)
   const [registroBeca, setRegistroBeca] = useState<AlumnoBecaRegistro | null>(null)
+
+  /** Ciclo en el que se asigna/consulta la beca (independiente de «Consultar ciclo»). */
+  const [cicloEscolarBeca, setCicloEscolarBeca] = useState(cicloSeleccionado)
 
   const [becaId, setBecaId] = useState(0)
   const [porcentaje, setPorcentaje] = useState(0)
@@ -53,33 +56,45 @@ export default function BecasModulo() {
   const [errorGuardar, setErrorGuardar] = useState(false)
 
   const snapshotActual = useMemo<SnapshotBeca>(
-    () => ({ becaId, porcentaje, estatus }),
-    [becaId, porcentaje, estatus]
+    () => ({ becaId, porcentaje, estatus, cicloEscolar: cicloEscolarBeca }),
+    [becaId, porcentaje, estatus, cicloEscolarBeca]
   )
 
   const modificado =
     snapshotGuardado != null &&
     (snapshotGuardado.becaId !== snapshotActual.becaId ||
       snapshotGuardado.porcentaje !== snapshotActual.porcentaje ||
-      snapshotGuardado.estatus !== snapshotActual.estatus)
+      snapshotGuardado.estatus !== snapshotActual.estatus ||
+      snapshotGuardado.cicloEscolar !== snapshotActual.cicloEscolar)
 
   useEffect(() => {
     listarConceptosBeca().then(setConceptos)
   }, [])
 
   const aplicarRegistro = useCallback(
-    (reg: AlumnoBecaRegistro | null, conceptosLista: ConceptoBeca[]) => {
+    (
+      reg: AlumnoBecaRegistro | null,
+      conceptosLista: ConceptoBeca[],
+      ciclo: number
+    ) => {
       if (!reg) {
         const primero = conceptosLista[0]?.beca_id ?? 0
         setRegistroBeca(null)
+        setCicloEscolarBeca(ciclo)
         setBecaId(primero)
         setPorcentaje(0)
         setEstatus(BECA_ESTATUS_ACTIVA)
-        const snap = { becaId: primero, porcentaje: 0, estatus: BECA_ESTATUS_ACTIVA }
+        const snap: SnapshotBeca = {
+          becaId: primero,
+          porcentaje: 0,
+          estatus: BECA_ESTATUS_ACTIVA,
+          cicloEscolar: ciclo,
+        }
         setSnapshotGuardado(snap)
         return
       }
       setRegistroBeca(reg)
+      setCicloEscolarBeca(reg.beca_ciclo_escolar)
       setBecaId(reg.beca_id)
       setPorcentaje(reg.beca_porcentaje)
       setEstatus(reg.beca_estatus)
@@ -87,9 +102,40 @@ export default function BecasModulo() {
         becaId: reg.beca_id,
         porcentaje: reg.beca_porcentaje,
         estatus: reg.beca_estatus,
+        cicloEscolar: reg.beca_ciclo_escolar,
       })
     },
     []
+  )
+
+  const cargarBecaEnCiclo = useCallback(
+    async (ref: string, ciclo: number) => {
+      setCargandoBeca(true)
+      setMensaje(null)
+      setErrorGuardar(false)
+      setGuardadoReciente(false)
+
+      const alumno = await obtenerAlumnoPorRef(ref, ciclo)
+      if (!alumno) {
+        setAlumnoId(null)
+        setRegistroBeca(null)
+        setSnapshotGuardado(null)
+        setCargandoBeca(false)
+        const etiqueta =
+          opcionesCatalogo.find((o) => o.valor === ciclo)?.etiqueta ?? String(ciclo)
+        setMensaje(`El alumno no tiene registro en el ciclo ${etiqueta}.`)
+        return
+      }
+
+      setAlumnoId(alumno.alumno_id)
+      const beca = await obtenerBecaPorAlumnoId(alumno.alumno_id)
+
+      const lista = await listarConceptosBeca()
+      setConceptos(lista)
+      aplicarRegistro(beca, lista, ciclo)
+      setCargandoBeca(false)
+    },
+    [aplicarRegistro, opcionesCatalogo]
   )
 
   useEffect(() => {
@@ -102,38 +148,19 @@ export default function BecasModulo() {
       return
     }
 
-    let activo = true
-    setCargandoBeca(true)
-    setMensaje(null)
-    setErrorGuardar(false)
-    setGuardadoReciente(false)
+    const cicloInicial = cicloSeleccionado
+    setCicloEscolarBeca(cicloInicial)
+    cargarBecaEnCiclo(alumnoSeleccionado.alumno_ref, cicloInicial)
+  }, [alumnoSeleccionado, cicloSeleccionado, cargarBecaEnCiclo])
 
-    obtenerAlumnoPorRef(alumnoSeleccionado.alumno_ref, cicloSeleccionado).then(async (alumno) => {
-      if (!activo) return
-      if (!alumno) {
-        setAlumnoId(null)
-        setRegistroBeca(null)
-        setCargandoBeca(false)
-        setMensaje('No hay registro de alumno para este ciclo escolar.')
-        return
-      }
-
-      setAlumnoId(alumno.alumno_id)
-      const beca = await obtenerBecaPorAlumnoId(alumno.alumno_id)
-      if (!activo) return
-
-      const lista = conceptos.length ? conceptos : await listarConceptosBeca()
-      if (!activo) return
-      if (!conceptos.length && lista.length) setConceptos(lista)
-
-      aplicarRegistro(beca, lista)
-      setCargandoBeca(false)
-    })
-
-    return () => {
-      activo = false
-    }
-  }, [alumnoSeleccionado, cicloSeleccionado, aplicarRegistro])
+  const onCambioCicloBeca = useCallback(
+    (ciclo: number) => {
+      if (!alumnoSeleccionado || ciclo === cicloEscolarBeca) return
+      setCicloEscolarBeca(ciclo)
+      cargarBecaEnCiclo(alumnoSeleccionado.alumno_ref, ciclo)
+    },
+    [alumnoSeleccionado, cicloEscolarBeca, cargarBecaEnCiclo]
+  )
 
   useEffect(() => {
     if (modificado) {
@@ -155,7 +182,7 @@ export default function BecasModulo() {
       becaId,
       porcentaje,
       estatus,
-      cicloEscolar: cicloSeleccionado,
+      cicloEscolar: cicloEscolarBeca,
       becaP: registroBeca?.beca_p,
     })
 
@@ -173,7 +200,7 @@ export default function BecasModulo() {
       beca_id: becaId,
       beca_porcentaje: Math.max(0, Math.min(100, Math.round(porcentaje))),
       beca_estatus: estatus,
-      beca_ciclo_escolar: cicloSeleccionado,
+      beca_ciclo_escolar: cicloEscolarBeca,
       beca_p: registroBeca?.beca_p ?? '0',
     }
     setRegistroBeca(actualizado)
@@ -187,7 +214,7 @@ export default function BecasModulo() {
     becaId,
     porcentaje,
     estatus,
-    cicloSeleccionado,
+    cicloEscolarBeca,
     registroBeca,
     snapshotActual,
   ])
@@ -195,6 +222,9 @@ export default function BecasModulo() {
   const nombreAlumno = alumnoSeleccionado?.nombre_completo ?? ''
   const etiquetaTipo =
     conceptos.find((c) => c.beca_id === becaId)?.beca_clase ?? '—'
+
+  const opcionesCicloBeca =
+    opcionesCatalogo.length > 0 ? opcionesCatalogo : []
 
   return (
     <div className="servicios-panel-inner servicios-panel-inner--becas">
@@ -229,7 +259,10 @@ export default function BecasModulo() {
 
           {registroBeca && (
             <p className={`becas-estatus-badge ${claseBecaEstatus(registroBeca.beca_estatus)}`}>
-              Beca actual: {etiquetaBecaEstatus(registroBeca.beca_estatus)} ·{' '}
+              Beca en{' '}
+              {opcionesCatalogo.find((o) => o.valor === registroBeca.beca_ciclo_escolar)
+                ?.etiqueta ?? registroBeca.beca_ciclo_escolar}
+              : {etiquetaBecaEstatus(registroBeca.beca_estatus)} ·{' '}
               {conceptos.find((c) => c.beca_id === registroBeca.beca_id)?.beca_clase ?? '—'} ·{' '}
               {registroBeca.beca_porcentaje}%
             </p>
@@ -290,13 +323,13 @@ export default function BecasModulo() {
               <select
                 id="becas_ciclo"
                 className="becas-select"
-                value={String(cicloSeleccionado)}
-                disabled={cargandoCiclos || opcionesSelector.length === 0}
-                onChange={(e) => setCicloSeleccionado(Number(e.target.value))}
-                aria-label="Ciclo escolar de la beca"
-                title="Mismo ciclo que «Consultar ciclo» arriba a la derecha"
+                value={String(cicloEscolarBeca)}
+                disabled={cargandoCiclos || opcionesCicloBeca.length === 0}
+                onChange={(e) => onCambioCicloBeca(Number(e.target.value))}
+                aria-label="Ciclo escolar al que aplica la beca"
+                title="No cambia el ciclo de consulta arriba; solo define en qué ciclo se guarda la beca"
               >
-                {opcionesSelector.map((opcion) => (
+                {opcionesCicloBeca.map((opcion) => (
                   <option key={opcion.valor} value={opcion.valor}>
                     {opcion.etiqueta}
                     {opcion.valor === cicloActualSistema ? ' (activo)' : ''}
@@ -345,7 +378,7 @@ export default function BecasModulo() {
                       ? 'becas-btn--saved'
                       : ''
               }`}
-              disabled={guardando || !modificado || becaId <= 0}
+              disabled={guardando || !modificado || becaId <= 0 || alumnoId == null}
               onClick={onGuardar}
             >
               {guardando ? (
