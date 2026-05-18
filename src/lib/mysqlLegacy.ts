@@ -15,6 +15,7 @@ export function getMysqlTableNames() {
     alumno_detalles: process.env.MYSQL_TABLE_ALUMNO_DETALLES?.trim() || 'alumno_detalles',
     alumno_familiar: process.env.MYSQL_TABLE_ALUMNO_FAMILIAR?.trim() || 'alumno_familiar',
     alumno_contacto: process.env.MYSQL_TABLE_ALUMNO_CONTACTO?.trim() || 'alumno_contacto',
+    alumno_beca: process.env.MYSQL_TABLE_ALUMNO_BECA?.trim() || 'alumno_beca',
   }
 }
 

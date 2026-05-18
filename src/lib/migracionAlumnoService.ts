@@ -28,6 +28,11 @@ function definicionTablas() {
       supabase: 'alumno_contacto' as const,
       pk: 'contacto_id',
     },
+    {
+      mysql: mysqlTables.alumno_beca,
+      supabase: 'alumno_beca' as const,
+      pk: 'alumno_beca_id',
+    },
   ]
 }
 
@@ -68,6 +73,8 @@ const CAMPOS_FECHA_HORA = new Set([
   'familiar_actualizacion',
   'contacto_actualizacion',
   'contacto_alta',
+  'beca_registro',
+  'beca_actualizacion',
 ])
 
 function esFechaMysqlInvalidaTexto(texto: string): boolean {
@@ -114,12 +121,13 @@ function serializarFila(fila: RowDataPacket): Record<string, unknown> {
 
 async function vaciarTablasDestino(sb: SupabaseClient) {
   const orden: Array<{
-    tabla: 'alumno' | 'alumno_detalles' | 'alumno_familiar' | 'alumno_contacto'
+    tabla: 'alumno' | 'alumno_detalles' | 'alumno_familiar' | 'alumno_contacto' | 'alumno_beca'
     pk: string
   }> = [
     { tabla: 'alumno_contacto', pk: 'contacto_id' },
     { tabla: 'alumno_familiar', pk: 'familiar_id' },
     { tabla: 'alumno_detalles', pk: 'detalle_id' },
+    { tabla: 'alumno_beca', pk: 'alumno_beca_id' },
     { tabla: 'alumno', pk: 'alumno_id' },
   ]
 
@@ -152,6 +160,7 @@ export interface ResultadoMigracionAlumno {
     alumno_detalles: number
     alumno_familiar: number
     alumno_contacto: number
+    alumno_beca: number
   }
   validacion: {
     alumno_ref: number
@@ -166,7 +175,13 @@ export async function ejecutarMigracionAlumno(opciones: {
   const inicio = Date.now()
   const sb = createSupabaseAdmin()
   const mysql = await createMysqlLegacyConnection()
-  const filas = { alumno: 0, alumno_detalles: 0, alumno_familiar: 0, alumno_contacto: 0 }
+  const filas = {
+    alumno: 0,
+    alumno_detalles: 0,
+    alumno_familiar: 0,
+    alumno_contacto: 0,
+    alumno_beca: 0,
+  }
 
   try {
     await comprobarTablasMysql(mysql)
