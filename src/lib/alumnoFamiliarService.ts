@@ -1,6 +1,6 @@
 import { normalizarCurp } from './curp'
 import { supabase } from './supabase'
-import { TUTOR_ID_MADRE } from './alumnoFamiliarTutor'
+import { TUTOR_ID_MADRE, TUTOR_ID_PADRE } from './alumnoFamiliarTutor'
 
 const SELECT_FAMILIAR =
   'familiar_id, alumno_id, tutor_id, familiar_app, familiar_apm, familiar_nombre, familiar_tel, familiar_cel, familiar_email, familiar_recibir_email, familiar_curp, familiar_empresa_tel'
@@ -20,7 +20,7 @@ export interface AlumnoFamiliarRegistro {
   familiar_empresa_tel?: string | null
 }
 
-export interface SnapshotDatosFamiliarMadre {
+export interface SnapshotDatosFamiliar {
   apellidoPaterno: string
   apellidoMaterno: string
   nombre: string
@@ -32,9 +32,12 @@ export interface SnapshotDatosFamiliarMadre {
   curp: string
 }
 
-export function snapshotDatosFamiliarMadreDesdeRegistro(
+/** @deprecated Usar SnapshotDatosFamiliar */
+export type SnapshotDatosFamiliarMadre = SnapshotDatosFamiliar
+
+export function snapshotDatosFamiliarDesdeRegistro(
   reg: AlumnoFamiliarRegistro | null
-): SnapshotDatosFamiliarMadre {
+): SnapshotDatosFamiliar {
   if (!reg) {
     return {
       apellidoPaterno: '',
@@ -61,9 +64,11 @@ export function snapshotDatosFamiliarMadreDesdeRegistro(
   }
 }
 
-export function snapshotsDatosFamiliarMadreIguales(
-  a: SnapshotDatosFamiliarMadre,
-  b: SnapshotDatosFamiliarMadre
+export const snapshotDatosFamiliarMadreDesdeRegistro = snapshotDatosFamiliarDesdeRegistro
+
+export function snapshotsDatosFamiliarIguales(
+  a: SnapshotDatosFamiliar,
+  b: SnapshotDatosFamiliar
 ): boolean {
   return (
     a.apellidoPaterno === b.apellidoPaterno &&
@@ -78,38 +83,56 @@ export function snapshotsDatosFamiliarMadreIguales(
   )
 }
 
-export async function obtenerFamiliarMadrePorAlumnoId(
-  alumnoId: number
+export const snapshotsDatosFamiliarMadreIguales = snapshotsDatosFamiliarIguales
+
+export async function obtenerFamiliarPorAlumnoId(
+  alumnoId: number,
+  tutorId: number
 ): Promise<AlumnoFamiliarRegistro | null> {
   const { data, error } = await supabase
     .from('alumno_familiar')
     .select(SELECT_FAMILIAR)
     .eq('alumno_id', alumnoId)
-    .eq('tutor_id', TUTOR_ID_MADRE)
+    .eq('tutor_id', tutorId)
     .order('familiar_id', { ascending: false })
     .limit(1)
     .maybeSingle()
 
   if (error) {
-    console.error('Error al cargar datos de la madre:', error)
+    console.error('Error al cargar familiar:', error)
     return null
   }
 
   return data as AlumnoFamiliarRegistro | null
 }
 
-export interface GuardarDatosFamiliarMadrePayload extends SnapshotDatosFamiliarMadre {
+export async function obtenerFamiliarMadrePorAlumnoId(
   alumnoId: number
-  familiarId: number | null
+): Promise<AlumnoFamiliarRegistro | null> {
+  return obtenerFamiliarPorAlumnoId(alumnoId, TUTOR_ID_MADRE)
 }
 
-export type ResultadoGuardarFamiliarMadre =
+export async function obtenerFamiliarPadrePorAlumnoId(
+  alumnoId: number
+): Promise<AlumnoFamiliarRegistro | null> {
+  return obtenerFamiliarPorAlumnoId(alumnoId, TUTOR_ID_PADRE)
+}
+
+export interface GuardarDatosFamiliarPayload extends SnapshotDatosFamiliar {
+  alumnoId: number
+  familiarId: number | null
+  tutorId: number
+}
+
+export type ResultadoGuardarFamiliar =
   | { ok: true; familiarId: number }
   | { ok: false; mensaje: string }
 
-export async function guardarDatosFamiliarMadre(
-  payload: GuardarDatosFamiliarMadrePayload
-): Promise<ResultadoGuardarFamiliarMadre> {
+export type ResultadoGuardarFamiliarMadre = ResultadoGuardarFamiliar
+
+export async function guardarDatosFamiliar(
+  payload: GuardarDatosFamiliarPayload
+): Promise<ResultadoGuardarFamiliar> {
   const fila = {
     familiar_app: payload.apellidoPaterno.trim() || null,
     familiar_apm: payload.apellidoMaterno.trim() || null,
@@ -129,7 +152,7 @@ export async function guardarDatosFamiliarMadre(
       .eq('familiar_id', payload.familiarId)
 
     if (error) {
-      console.error('Error al actualizar datos de la madre:', error)
+      console.error('Error al actualizar familiar:', error)
       return { ok: false, mensaje: error.message }
     }
 
@@ -140,7 +163,7 @@ export async function guardarDatosFamiliarMadre(
     .from('alumno_familiar')
     .insert({
       alumno_id: payload.alumnoId,
-      tutor_id: TUTOR_ID_MADRE,
+      tutor_id: payload.tutorId,
       ...fila,
       familiar_vive: 1,
       familiar_factura: 0,
@@ -149,9 +172,21 @@ export async function guardarDatosFamiliarMadre(
     .single()
 
   if (error) {
-    console.error('Error al crear registro de la madre:', error)
+    console.error('Error al crear familiar:', error)
     return { ok: false, mensaje: error.message }
   }
 
   return { ok: true, familiarId: data.familiar_id }
+}
+
+export async function guardarDatosFamiliarMadre(
+  payload: Omit<GuardarDatosFamiliarPayload, 'tutorId'> & { tutorId?: number }
+): Promise<ResultadoGuardarFamiliar> {
+  return guardarDatosFamiliar({ ...payload, tutorId: payload.tutorId ?? TUTOR_ID_MADRE })
+}
+
+export async function guardarDatosFamiliarPadre(
+  payload: Omit<GuardarDatosFamiliarPayload, 'tutorId'> & { tutorId?: number }
+): Promise<ResultadoGuardarFamiliar> {
+  return guardarDatosFamiliar({ ...payload, tutorId: payload.tutorId ?? TUTOR_ID_PADRE })
 }

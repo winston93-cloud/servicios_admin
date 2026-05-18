@@ -3,9 +3,9 @@
 import { useState, type ReactNode } from 'react'
 import { GraduationCap, UserRound } from 'lucide-react'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
-import AlumnoFormPlaceholder from './alumno-forms/AlumnoFormPlaceholder'
 import AlumnoFormElementales from './alumno-forms/AlumnoFormElementales'
 import AlumnoFormMadre from './alumno-forms/AlumnoFormMadre'
+import AlumnoFormPadre from './alumno-forms/AlumnoFormPadre'
 
 export type AlumnoDatosTabId = 'elementales' | 'madre' | 'padre'
 
@@ -88,13 +88,7 @@ export default function AlumnoDatosTabs({ alumno }: AlumnoDatosTabsProps) {
               >
                 {tab.id === 'elementales' && <AlumnoFormElementales alumno={alumno} />}
                 {tab.id === 'madre' && <AlumnoFormMadre alumno={alumno} />}
-                {tab.id === 'padre' && (
-                  <AlumnoFormPlaceholder
-                    titulo="Datos del padre del alumno"
-                    descripcion="Aquí irán apellidos, nombre, correo, teléfono, CURP y preferencias de contacto."
-                    alumno={alumno}
-                  />
-                )}
+                {tab.id === 'padre' && <AlumnoFormPadre alumno={alumno} />}
               </div>
             )
           })
