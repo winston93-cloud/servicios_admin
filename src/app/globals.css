@@ -6457,6 +6457,129 @@ body {
   animation: alumno-ac-spin 0.7s linear infinite;
 }
 
+/* Personas autorizadas (alumno_contacto, contacto_tipo = 2) */
+.alumno-contactos {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.alumno-contactos-titulo {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1e3a5f;
+}
+
+.alumno-contactos-vacio {
+  margin: 0;
+  padding: 16px 18px;
+  font-size: 14px;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+}
+
+.alumno-contactos-tabla-scroll {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.alumno-contactos-tabla {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.alumno-contactos-tabla thead {
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a5f 100%);
+  color: #fff;
+}
+
+.alumno-contactos-tabla th {
+  padding: 12px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.alumno-contactos-tabla td {
+  padding: 11px 14px;
+  border-top: 1px solid #e2e8f0;
+  color: #0f172a;
+  vertical-align: middle;
+}
+
+.alumno-contactos-tabla tbody tr {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.alumno-contactos-tabla tbody tr:hover {
+  background-color: #f1f5f9;
+}
+
+.alumno-contactos-fila--activa,
+.alumno-contactos-fila--activa:hover {
+  background-color: #dbeafe !important;
+}
+
+.alumno-contactos-formulario {
+  margin-top: 4px;
+  padding: 20px 18px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fafbfc;
+}
+
+.alumno-contactos-form-acciones {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.alumno-contactos-btn-nueva {
+  padding: 8px 14px;
+  border: 1px solid #93c5fd;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e40af;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.alumno-contactos-btn-nueva:hover {
+  background: #dbeafe;
+  border-color: #60a5fa;
+}
+
+.alumno-form-grid-datos--contacto {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 640px) {
+  .alumno-form-grid-datos--contacto {
+    grid-template-columns: 1fr;
+  }
+
+  .alumno-form-grid-datos--contacto .alumno-form-field--col-2 {
+    grid-column: 1;
+  }
+}
+
 .alumno-form-clave-fila {
   display: flex;
   gap: 8px;

@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
-import { GraduationCap, UserRound } from 'lucide-react'
+import { GraduationCap, ShieldCheck, UserRound } from 'lucide-react'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 import AlumnoFormElementales from './alumno-forms/AlumnoFormElementales'
 import AlumnoFormMadre from './alumno-forms/AlumnoFormMadre'
 import AlumnoFormPadre from './alumno-forms/AlumnoFormPadre'
+import AlumnoPersonasAutorizadas from './alumno-forms/AlumnoPersonasAutorizadas'
 
-export type AlumnoDatosTabId = 'elementales' | 'madre' | 'padre'
+export type AlumnoDatosTabId = 'elementales' | 'madre' | 'padre' | 'autorizadas'
 
 const TABS: {
   id: AlumnoDatosTabId
@@ -32,6 +33,12 @@ const TABS: {
     label: 'Datos del padre del alumno',
     shortLabel: 'Padre',
     icon: <UserRound size={18} strokeWidth={2} aria-hidden />,
+  },
+  {
+    id: 'autorizadas',
+    label: 'Personas autorizadas',
+    shortLabel: 'Autorizadas',
+    icon: <ShieldCheck size={18} strokeWidth={2} aria-hidden />,
   },
 ]
 
@@ -89,6 +96,7 @@ export default function AlumnoDatosTabs({ alumno }: AlumnoDatosTabsProps) {
                 {tab.id === 'elementales' && <AlumnoFormElementales alumno={alumno} />}
                 {tab.id === 'madre' && <AlumnoFormMadre alumno={alumno} />}
                 {tab.id === 'padre' && <AlumnoFormPadre alumno={alumno} />}
+                {tab.id === 'autorizadas' && <AlumnoPersonasAutorizadas alumno={alumno} />}
               </div>
             )
           })

@@ -27,7 +27,7 @@ export default function MigracionAlumnoPanel() {
     if (
       !window.confirm(
         vaciar
-          ? 'Se vaciarán alumno, alumno_detalles y alumno_familiar en Supabase y se copiarán desde MySQL. ¿Continuar?'
+          ? 'Se vaciarán alumno, alumno_detalles, alumno_familiar y alumno_contacto en Supabase y se copiarán desde MySQL. ¿Continuar?'
           : 'Se agregarán/actualizarán filas desde MySQL sin vaciar antes. ¿Continuar?'
       )
     ) {
