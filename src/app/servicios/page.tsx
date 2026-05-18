@@ -15,6 +15,7 @@ import { CicloEscolarProvider } from '@/contexts/CicloEscolarContext'
 import AlumnosModulo from './modulos/AlumnosModulo'
 import CiclosEscolaresModulo from './modulos/CiclosEscolaresModulo'
 import MigracionModulo from './modulos/MigracionModulo'
+import AsignarGruposModulo from './modulos/AsignarGruposModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
 
 const SIDEBAR_COLLAPSED_KEY = 'servicios-sidebar-collapsed'
@@ -54,6 +55,8 @@ function ServiciosPanelContenido({
       return <AlumnosModulo />
     case 'catalogo-ciclos-escolares':
       return <CiclosEscolaresModulo />
+    case 'asignar-grupos':
+      return <AsignarGruposModulo />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }
