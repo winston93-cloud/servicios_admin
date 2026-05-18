@@ -27,12 +27,15 @@ interface SnapshotBeca {
 }
 
 export default function BecasModulo() {
-  const { cicloSeleccionado, opcionesSelector } = useCicloEscolar()
+  const {
+    cicloSeleccionado,
+    cicloActualSistema,
+    opcionesSelector,
+    setCicloSeleccionado,
+    cargando: cargandoCiclos,
+  } = useCicloEscolar()
   const { alumnoSeleccionado, setAlumnoSeleccionado, resolviendoCiclo } =
     useAlumnoSeleccionado()
-
-  const etiquetaCiclo =
-    opcionesSelector.find((o) => o.valor === cicloSeleccionado)?.etiqueta ?? '—'
 
   const [conceptos, setConceptos] = useState<ConceptoBeca[]>([])
   const [cargandoBeca, setCargandoBeca] = useState(false)
@@ -197,10 +200,6 @@ export default function BecasModulo() {
     <div className="servicios-panel-inner servicios-panel-inner--becas">
       <header className="servicios-panel-header servicios-panel-header--compact">
         <h1 className="servicios-panel-title">Becas</h1>
-        <p className="servicios-panel-lead becas-lead">
-          Busca un alumno y asigna o actualiza su beca para el ciclo consultado arriba (
-          {etiquetaCiclo}). La selección se conserva al cambiar entre Alumnos y Becas.
-        </p>
       </header>
 
       <AlumnoAutocomplete
@@ -288,14 +287,22 @@ export default function BecasModulo() {
               <label htmlFor="becas_ciclo" className="becas-label">
                 Ciclo escolar
               </label>
-              <input
+              <select
                 id="becas_ciclo"
-                type="text"
-                className="becas-input becas-input--readonly"
-                value={etiquetaCiclo}
-                readOnly
-                title="Usa el selector «Consultar ciclo» en la barra superior"
-              />
+                className="becas-select"
+                value={String(cicloSeleccionado)}
+                disabled={cargandoCiclos || opcionesSelector.length === 0}
+                onChange={(e) => setCicloSeleccionado(Number(e.target.value))}
+                aria-label="Ciclo escolar de la beca"
+                title="Mismo ciclo que «Consultar ciclo» arriba a la derecha"
+              >
+                {opcionesSelector.map((opcion) => (
+                  <option key={opcion.valor} value={opcion.valor}>
+                    {opcion.etiqueta}
+                    {opcion.valor === cicloActualSistema ? ' (activo)' : ''}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="becas-field">

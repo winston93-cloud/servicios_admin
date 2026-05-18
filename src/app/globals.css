@@ -6032,10 +6032,6 @@ body {
   max-width: none;
 }
 
-.becas-lead {
-  max-width: 72ch;
-}
-
 .becas-loading {
   display: flex;
   align-items: center;
