@@ -212,6 +212,20 @@ export default function BecasModulo() {
     cargarAlumnoInicial(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
   }, [alumnoSeleccionado, cicloSeleccionado, cargarAlumnoInicial])
 
+  /** Al cambiar ciclo en el formulario: respeta la selección y no resetea el snapshot (el botón sigue activo). */
+  const vincularFilaBeca = useCallback((beca: AlumnoBecaRegistro, cicloFormulario: number) => {
+    setRegistroBeca(beca)
+    setFilaBecaEnBd({
+      alumnoBecaId: beca.alumno_beca_id,
+      alumnoId: beca.alumno_id,
+    })
+    if (beca.beca_ciclo_escolar === cicloFormulario) {
+      setBecaId(beca.beca_id)
+      setPorcentaje(beca.beca_porcentaje)
+      setEstatus(beca.beca_estatus)
+    }
+  }, [])
+
   const onCambioCicloBeca = useCallback(
     async (ciclo: number) => {
       if (!alumnoSeleccionado || ciclo === cicloEscolarBeca) return
@@ -225,7 +239,7 @@ export default function BecasModulo() {
         setAlumnoIdCicloBeca(alumno.alumno_id)
         const beca = await obtenerBecaPorAlumnoId(alumno.alumno_id)
         if (beca) {
-          aplicarDesdeBeca(beca, conceptos)
+          vincularFilaBeca(beca, ciclo)
         } else if (alumno.alumno_id === alumnoIdBase) {
           const etiqueta =
             opcionesCatalogo.find((o) => o.valor === ciclo)?.etiqueta ?? String(ciclo)
@@ -248,11 +262,7 @@ export default function BecasModulo() {
       if (alumnoIdBase != null) {
         const becaBase = await obtenerBecaPorAlumnoId(alumnoIdBase)
         if (becaBase) {
-          setFilaBecaEnBd({
-            alumnoBecaId: becaBase.alumno_beca_id,
-            alumnoId: becaBase.alumno_id,
-          })
-          setRegistroBeca((prev) => prev ?? becaBase)
+          vincularFilaBeca(becaBase, ciclo)
         }
       }
       const etiqueta =
@@ -264,10 +274,9 @@ export default function BecasModulo() {
     [
       alumnoSeleccionado,
       cicloEscolarBeca,
-      conceptos,
       opcionesCatalogo,
-      aplicarDesdeBeca,
       alumnoIdBase,
+      vincularFilaBeca,
     ]
   )
 
@@ -366,6 +375,12 @@ export default function BecasModulo() {
   const opcionesCicloBeca =
     opcionesCatalogo.length > 0 ? opcionesCatalogo : []
 
+  const mostrarResumenBeca = registroBeca != null || filaBecaEnBd != null
+  const cicloResumen = modificado ? cicloEscolarBeca : (registroBeca?.beca_ciclo_escolar ?? cicloEscolarBeca)
+  const estatusResumen = modificado ? estatus : (registroBeca?.beca_estatus ?? estatus)
+  const becaIdResumen = modificado ? becaId : (registroBeca?.beca_id ?? becaId)
+  const porcentajeResumen = modificado ? porcentaje : (registroBeca?.beca_porcentaje ?? porcentaje)
+
   return (
     <div className="servicios-panel-inner servicios-panel-inner--becas">
       <header className="servicios-panel-header servicios-panel-header--compact">
@@ -397,14 +412,14 @@ export default function BecasModulo() {
         <section className="becas-formulario" aria-label="Asignar beca">
           <h2 className="becas-formulario-titulo">Asignar beca</h2>
 
-          {registroBeca && (
-            <p className={`becas-estatus-badge ${claseBecaEstatus(registroBeca.beca_estatus)}`}>
+          {mostrarResumenBeca && (
+            <p className={`becas-estatus-badge ${claseBecaEstatus(estatusResumen)}`}>
+              {modificado ? 'Cambios pendientes · ' : ''}
               Beca en{' '}
-              {opcionesCatalogo.find((o) => o.valor === registroBeca.beca_ciclo_escolar)
-                ?.etiqueta ?? registroBeca.beca_ciclo_escolar}
-              : {etiquetaBecaEstatus(registroBeca.beca_estatus)} ·{' '}
-              {conceptos.find((c) => c.beca_id === registroBeca.beca_id)?.beca_clase ?? '—'} ·{' '}
-              {registroBeca.beca_porcentaje}%
+              {opcionesCatalogo.find((o) => o.valor === cicloResumen)?.etiqueta ?? cicloResumen}:{' '}
+              {etiquetaBecaEstatus(estatusResumen)} ·{' '}
+              {conceptos.find((c) => c.beca_id === becaIdResumen)?.beca_clase ?? '—'} ·{' '}
+              {porcentajeResumen}%
             </p>
           )}
 
