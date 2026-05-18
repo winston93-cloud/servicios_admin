@@ -74,11 +74,18 @@ export async function guardarBecaAlumno(
     beca_p: (payload.becaP ?? '0').trim() || '0',
   }
 
-  if (payload.alumnoBecaId != null) {
+  // UPDATE si ya hay fila para este alumno_id; INSERT solo si no existe.
+  let alumnoBecaId = payload.alumnoBecaId
+  if (alumnoBecaId == null) {
+    const existente = await obtenerBecaPorAlumnoId(payload.alumnoId)
+    alumnoBecaId = existente?.alumno_beca_id ?? null
+  }
+
+  if (alumnoBecaId != null) {
     const { error } = await supabase
       .from('alumno_beca')
       .update(fila)
-      .eq('alumno_beca_id', payload.alumnoBecaId)
+      .eq('alumno_beca_id', alumnoBecaId)
       .eq('alumno_id', payload.alumnoId)
 
     if (error) {
@@ -86,7 +93,7 @@ export async function guardarBecaAlumno(
       return { ok: false, mensaje: error.message }
     }
 
-    return { ok: true, alumnoBecaId: payload.alumnoBecaId }
+    return { ok: true, alumnoBecaId }
   }
 
   const { data, error } = await supabase

@@ -36,6 +36,41 @@ function snapshotsIguales(a: SnapshotBeca, b: SnapshotBeca): boolean {
   )
 }
 
+/** Fila existente en alumno_beca: si hay id, guardar hace UPDATE; si no, INSERT. */
+interface FilaBecaEnBd {
+  alumnoBecaId: number
+  alumnoId: number
+}
+
+async function resolverFilaBecaParaGuardar(
+  alumnoDestino: number,
+  alumnoIdBase: number | null,
+  filaEnBd: FilaBecaEnBd | null,
+  registroBeca: AlumnoBecaRegistro | null
+): Promise<FilaBecaEnBd | null> {
+  if (registroBeca) {
+    return {
+      alumnoBecaId: registroBeca.alumno_beca_id,
+      alumnoId: registroBeca.alumno_id,
+    }
+  }
+  if (filaEnBd) return filaEnBd
+
+  const enDestino = await obtenerBecaPorAlumnoId(alumnoDestino)
+  if (enDestino) {
+    return { alumnoBecaId: enDestino.alumno_beca_id, alumnoId: enDestino.alumno_id }
+  }
+
+  if (alumnoIdBase != null && alumnoIdBase !== alumnoDestino) {
+    const enBase = await obtenerBecaPorAlumnoId(alumnoIdBase)
+    if (enBase) {
+      return { alumnoBecaId: enBase.alumno_beca_id, alumnoId: enBase.alumno_id }
+    }
+  }
+
+  return null
+}
+
 export default function BecasModulo() {
   const {
     cicloSeleccionado,
@@ -53,6 +88,8 @@ export default function BecasModulo() {
   /** Alumno del ciclo del formulario, si existe inscripción en ese ciclo. */
   const [alumnoIdCicloBeca, setAlumnoIdCicloBeca] = useState<number | null>(null)
   const [registroBeca, setRegistroBeca] = useState<AlumnoBecaRegistro | null>(null)
+  /** Referencia a la fila en BD (no se pierde al cambiar solo el ciclo del formulario). */
+  const [filaBecaEnBd, setFilaBecaEnBd] = useState<FilaBecaEnBd | null>(null)
 
   const [cicloEscolarBeca, setCicloEscolarBeca] = useState(cicloSeleccionado)
 
@@ -85,6 +122,10 @@ export default function BecasModulo() {
   const aplicarDesdeBeca = useCallback(
     (reg: AlumnoBecaRegistro, lista: ConceptoBeca[]) => {
       setRegistroBeca(reg)
+      setFilaBecaEnBd({
+        alumnoBecaId: reg.alumno_beca_id,
+        alumnoId: reg.alumno_id,
+      })
       setBecaId(reg.beca_id)
       setPorcentaje(reg.beca_porcentaje)
       setEstatus(reg.beca_estatus)
@@ -103,6 +144,7 @@ export default function BecasModulo() {
   const aplicarFormularioVacio = useCallback((lista: ConceptoBeca[], ciclo: number) => {
     const primero = lista[0]?.beca_id ?? 0
     setRegistroBeca(null)
+    setFilaBecaEnBd(null)
     setCicloEscolarBeca(ciclo)
     setBecaId(primero)
     setPorcentaje(0)
@@ -131,6 +173,7 @@ export default function BecasModulo() {
         setAlumnoIdBase(null)
         setAlumnoIdCicloBeca(null)
         setRegistroBeca(null)
+        setFilaBecaEnBd(null)
         setSnapshotGuardado(null)
         setCargandoBeca(false)
         setMensaje('No hay registro de alumno para el ciclo de consulta.')
@@ -158,6 +201,7 @@ export default function BecasModulo() {
       setAlumnoIdBase(null)
       setAlumnoIdCicloBeca(null)
       setRegistroBeca(null)
+      setFilaBecaEnBd(null)
       setSnapshotGuardado(null)
       setMensaje(null)
       setMensajeInfo(null)
@@ -182,8 +226,15 @@ export default function BecasModulo() {
         const beca = await obtenerBecaPorAlumnoId(alumno.alumno_id)
         if (beca) {
           aplicarDesdeBeca(beca, conceptos)
+        } else if (alumno.alumno_id === alumnoIdBase) {
+          const etiqueta =
+            opcionesCatalogo.find((o) => o.valor === ciclo)?.etiqueta ?? String(ciclo)
+          setMensajeInfo(
+            `Sin beca en ${etiqueta}. Ajusta los datos y pulsa Aplicar beca para registrarla.`
+          )
         } else {
           setRegistroBeca(null)
+          setFilaBecaEnBd(null)
           const etiqueta =
             opcionesCatalogo.find((o) => o.valor === ciclo)?.etiqueta ?? String(ciclo)
           setMensajeInfo(
@@ -194,14 +245,30 @@ export default function BecasModulo() {
       }
 
       setAlumnoIdCicloBeca(null)
-      setRegistroBeca(null)
+      if (alumnoIdBase != null) {
+        const becaBase = await obtenerBecaPorAlumnoId(alumnoIdBase)
+        if (becaBase) {
+          setFilaBecaEnBd({
+            alumnoBecaId: becaBase.alumno_beca_id,
+            alumnoId: becaBase.alumno_id,
+          })
+          setRegistroBeca((prev) => prev ?? becaBase)
+        }
+      }
       const etiqueta =
         opcionesCatalogo.find((o) => o.valor === ciclo)?.etiqueta ?? String(ciclo)
       setMensajeInfo(
-        `Sin inscripción en ${etiqueta}. Se actualizará la beca del ciclo de consulta con ciclo escolar ${etiqueta}.`
+        `Sin inscripción en ${etiqueta}. Se actualizará la beca existente con ciclo escolar ${etiqueta}.`
       )
     },
-    [alumnoSeleccionado, cicloEscolarBeca, conceptos, opcionesCatalogo, aplicarDesdeBeca]
+    [
+      alumnoSeleccionado,
+      cicloEscolarBeca,
+      conceptos,
+      opcionesCatalogo,
+      aplicarDesdeBeca,
+      alumnoIdBase,
+    ]
   )
 
   useEffect(() => {
@@ -232,14 +299,17 @@ export default function BecasModulo() {
       return
     }
 
-    const becaIdPersistir =
-      registroBeca && registroBeca.alumno_id === alumnoDestino
-        ? registroBeca.alumno_beca_id
-        : null
+    const filaPersistir = await resolverFilaBecaParaGuardar(
+      alumnoDestino,
+      alumnoIdBase,
+      filaBecaEnBd,
+      registroBeca
+    )
+    const alumnoIdGuardar = filaPersistir?.alumnoId ?? alumnoDestino
 
     const resultado = await guardarBecaAlumno({
-      alumnoBecaId: becaIdPersistir,
-      alumnoId: alumnoDestino,
+      alumnoBecaId: filaPersistir?.alumnoBecaId ?? null,
+      alumnoId: alumnoIdGuardar,
       becaId,
       porcentaje,
       estatus,
@@ -257,7 +327,7 @@ export default function BecasModulo() {
 
     const actualizado: AlumnoBecaRegistro = {
       alumno_beca_id: resultado.alumnoBecaId,
-      alumno_id: alumnoDestino,
+      alumno_id: alumnoIdGuardar,
       beca_id: becaId,
       beca_porcentaje: Math.max(0, Math.min(100, Math.round(porcentaje))),
       beca_estatus: estatus,
@@ -265,7 +335,11 @@ export default function BecasModulo() {
       beca_p: registroBeca?.beca_p ?? '0',
     }
 
-    setAlumnoIdCicloBeca(alumnoDestino)
+    setFilaBecaEnBd({
+      alumnoBecaId: resultado.alumnoBecaId,
+      alumnoId: alumnoIdGuardar,
+    })
+    setAlumnoIdCicloBeca(alumnoIdGuardar)
     setRegistroBeca(actualizado)
     setSnapshotGuardado(snapshotActual)
     setGuardadoReciente(true)
@@ -277,6 +351,7 @@ export default function BecasModulo() {
     cicloEscolarBeca,
     alumnoIdCicloBeca,
     alumnoIdBase,
+    filaBecaEnBd,
     registroBeca,
     becaId,
     porcentaje,
