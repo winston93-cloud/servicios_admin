@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { Loader2, Plus, Printer, Settings2, Wallet } from 'lucide-react'
+import { Loader2, Plus, Settings2, Wallet } from 'lucide-react'
+import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { useAlumnoSeleccionado } from '@/contexts/AlumnoSeleccionadoContext'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
@@ -18,6 +19,10 @@ import {
 } from '@/lib/pagoInternoService'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
 import PagosInternosCatalogoModal from '../components/PagosInternosCatalogoModal'
+import ValePagoInternoPrint, {
+  imprimirValePagoInterno,
+  type DatosValePagoInterno,
+} from '../components/ValePagoInternoPrint'
 
 function hoyIso(): string {
   return new Date().toISOString().slice(0, 10)
@@ -45,8 +50,8 @@ export default function PagosInternosModulo({ abrirCatalogoInicial = false }: Pr
   const [fechaPago, setFechaPago] = useState(hoyIso())
   const [cicloPago, setCicloPago] = useState(cicloSeleccionado)
 
-  const [conceptoImprimir, setConceptoImprimir] = useState(0)
   const [catalogoAbierto, setCatalogoAbierto] = useState(abrirCatalogoInicial)
+  const [valeImpresion, setValeImpresion] = useState<DatosValePagoInterno | null>(null)
 
   const [guardando, setGuardando] = useState(false)
   const [mensaje, setMensaje] = useState<string | null>(null)
@@ -57,7 +62,6 @@ export default function PagosInternosModulo({ abrirCatalogoInicial = false }: Pr
     setConceptos(lista)
     if (lista.length) {
       setConceptoId((prev) => (prev === 0 ? lista[0].concepto_id : prev))
-      setConceptoImprimir((prev) => (prev === 0 ? lista[0].concepto_id : prev))
     }
   }, [])
 
@@ -104,6 +108,42 @@ export default function PagosInternosModulo({ abrirCatalogoInicial = false }: Pr
     }
     cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
   }, [alumnoSeleccionado, cicloSeleccionado, cargarDatosAlumno])
+
+  const prepararValeImpresion = useCallback(
+    async (
+      conceptoIdPago: number,
+      importePago: number,
+      fecha: string,
+      ciclo: number,
+      conceptoExtra?: string
+    ) => {
+      if (!alumnoSeleccionado) return
+      const alumno = await obtenerAlumnoPorRef(
+        alumnoSeleccionado.alumno_ref,
+        cicloSeleccionado
+      )
+      if (!alumno) return
+
+      const concepto =
+        conceptos.find((c) => c.concepto_id === conceptoIdPago)?.concepto_clase ?? ''
+
+      setValeImpresion({
+        fecha,
+        importe: importePago,
+        concepto,
+        conceptoExtra,
+        nombreAlumno: alumnoSeleccionado.nombre_completo,
+        alumnoApp: alumno.alumno_app,
+        alumnoApm: alumno.alumno_apm,
+        alumnoNombre: alumno.alumno_nombre,
+        alumnoNivel: alumno.alumno_nivel,
+        alumnoGrado: alumno.alumno_grado ?? null,
+        cicloEtiqueta: etiquetaCicloEscolar(ciclo, opcionesCatalogo),
+      })
+      imprimirValePagoInterno()
+    },
+    [alumnoSeleccionado, cicloSeleccionado, conceptos, opcionesCatalogo]
+  )
 
   const onCambioConcepto = useCallback(
     async (id: number) => {
@@ -154,6 +194,13 @@ export default function PagosInternosModulo({ abrirCatalogoInicial = false }: Pr
     if (alumnoSeleccionado) {
       await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
     }
+    await prepararValeImpresion(
+      conceptoId,
+      Number(importe),
+      fechaPago,
+      cicloPago,
+      conceptoOtro
+    )
   }
 
   const onCuotaPadresRapida = async () => {
@@ -198,6 +245,12 @@ export default function PagosInternosModulo({ abrirCatalogoInicial = false }: Pr
     if (alumnoSeleccionado) {
       await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
     }
+    await prepararValeImpresion(
+      conceptoCuota.concepto_id,
+      monto,
+      fechaPago,
+      cicloPago
+    )
   }
 
   const nombreAlumno = alumnoSeleccionado?.nombre_completo ?? ''
@@ -334,41 +387,6 @@ export default function PagosInternosModulo({ abrirCatalogoInicial = false }: Pr
               </form>
             </section>
 
-            <section className="pi-tarjeta" aria-labelledby="pi-imprimir-titulo">
-              <h2 id="pi-imprimir-titulo" className="pi-tarjeta-titulo">
-                Imprimir recibo de pago
-              </h2>
-              <div className="pi-form">
-                <label>
-                  Alumno
-                  <input type="text" readOnly value={nombreAlumno} className="pi-input pi-input--ro" />
-                </label>
-                <label>
-                  Concepto
-                  <select
-                    className="pi-select"
-                    value={conceptoImprimir || ''}
-                    onChange={(e) => setConceptoImprimir(Number(e.target.value))}
-                  >
-                    {conceptos.map((c) => (
-                      <option key={c.concepto_id} value={c.concepto_id}>
-                        {c.concepto_clase}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  type="button"
-                  className="pi-btn pi-btn--primary"
-                  onClick={() => window.print()}
-                >
-                  <Printer size={18} aria-hidden />
-                  Imprimir vale
-                </button>
-                <p className="pi-hint">Usa la impresión del navegador; el formato de vale se afinará después.</p>
-              </div>
-            </section>
-
             <section className="pi-tarjeta pi-tarjeta--cuota" aria-labelledby="pi-cuota-titulo">
               <h2 id="pi-cuota-titulo" className="pi-tarjeta-titulo">
                 Cuota de padres
@@ -438,6 +456,8 @@ export default function PagosInternosModulo({ abrirCatalogoInicial = false }: Pr
         onCerrar={() => setCatalogoAbierto(false)}
         onActualizado={recargarConceptos}
       />
+
+      <ValePagoInternoPrint datos={valeImpresion} />
     </div>
   )
 }
