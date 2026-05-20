@@ -8119,9 +8119,7 @@ body {
 
 .pc-encabezado {
   display: flex;
-  flex-wrap: wrap;
   align-items: flex-start;
-  justify-content: space-between;
   gap: 1rem;
 }
 
@@ -8159,18 +8157,6 @@ body {
 
 .pc-ultima-actualizacion strong {
   font-weight: 600;
-}
-
-.pc-badge-ciclo {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.4rem 0.85rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #1e40af;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 999px;
 }
 
 .pc-panel-busqueda {

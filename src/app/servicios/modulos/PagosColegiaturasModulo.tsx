@@ -114,7 +114,6 @@ export default function PagosColegiaturasModulo() {
             ) : null}
           </div>
         </div>
-        <span className="pc-badge-ciclo">{etiquetaCiclo}</span>
       </header>
 
       <section className="pc-panel-busqueda" aria-label="Búsqueda de alumno">
