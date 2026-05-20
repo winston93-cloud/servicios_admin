@@ -63,7 +63,14 @@ function toCsvLine(fields) {
 
 function esFechaInvalida(s) {
   const t = s.trim()
-  return !t || t.startsWith('0000-00-00')
+  if (!t || t.startsWith('0000-00-00')) return true
+  if (/-00/.test(t)) return true
+  const m = t.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (m) {
+    const day = parseInt(m[3], 10)
+    if (day < 1 || day > 31) return true
+  }
+  return false
 }
 
 function cleanCell(v, key) {

@@ -3,7 +3,7 @@
  * Crea tablas (SQL) e importa concepto_boucher + pago_detalle a Supabase.
  * Requiere .env.local con NEXT_PUBLIC_SUPABASE_URL y clave service role.
  *
- * node scripts/import-colegiatura-supabase.mjs
+ * node scripts/import-colegiatura-supabase.mjs [concepto_supabase.csv] [pago_supabase.csv]
  */
 
 import { readFileSync } from 'node:fs'
@@ -48,6 +48,18 @@ function parseCsvLine(line) {
   return out
 }
 
+function esFechaInvalida(s) {
+  const t = String(s ?? '').trim()
+  if (!t || t.startsWith('0000-00-00')) return true
+  if (/-00/.test(t)) return true
+  const m = t.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (m) {
+    const day = parseInt(m[3], 10)
+    if (day < 1 || day > 31) return true
+  }
+  return false
+}
+
 function readCsv(path) {
   const lines = readFileSync(path, 'utf8').replace(/^\uFEFF/, '').split(/\r?\n/).filter((l) => l.trim())
   const header = parseCsvLine(lines[0])
@@ -58,10 +70,16 @@ function readCsv(path) {
     const row = {}
     header.forEach((h, i) => {
       let v = cells[i]?.trim() ?? ''
-      if (v === '') row[h] = null
-      else if (/^-?\d+$/.test(v)) row[h] = Number(v)
+      if (v === '') {
+        row[h] = h === 'facturo' || h === 'fact' ? '' : null
+      }       else if (/^-?\d+$/.test(v)) row[h] = Number(v)
       else if (/^-?\d+\.\d+$/.test(v)) row[h] = Number(v)
-      else row[h] = v
+      else if (
+        (h === 'pago_fecha' || h === 'pago_registro' || h === 'pago_actualizacion') &&
+        esFechaInvalida(v)
+      ) {
+        row[h] = h === 'pago_fecha' ? null : '1970-01-01'
+      } else row[h] = v
     })
     rows.push(row)
   }
@@ -81,8 +99,12 @@ async function upsertLotes(sb, tabla, pk, filas, tam = 500) {
 const { url, key } = loadEnv()
 const sb = createClient(url, key, { auth: { persistSession: false } })
 
-const conceptos = readCsv(join(root, 'data/concepto_boucher_supabase.csv'))
-const pagos = readCsv(join(root, 'data/pago_detalle_supabase.csv'))
+const conceptosPath =
+  process.argv[2] || join(root, 'data/concepto_boucher_supabase.csv')
+const pagosPath = process.argv[3] || join(root, 'data/pago_detalle_supabase.csv')
+
+const conceptos = readCsv(conceptosPath)
+const pagos = readCsv(pagosPath)
 
 console.log('Importando concepto_boucher…', conceptos.length)
 await upsertLotes(sb, 'concepto_boucher', 'concepto_id', conceptos)
