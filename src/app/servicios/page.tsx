@@ -17,6 +17,7 @@ import CiclosEscolaresModulo from './modulos/CiclosEscolaresModulo'
 import MigracionModulo from './modulos/MigracionModulo'
 import AsignarGruposModulo from './modulos/AsignarGruposModulo'
 import BecasModulo from './modulos/BecasModulo'
+import PagosInternosModulo from './modulos/PagosInternosModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
 import { AlumnoSeleccionadoProvider } from '@/contexts/AlumnoSeleccionadoContext'
 
@@ -61,6 +62,10 @@ function ServiciosPanelContenido({
       return <AsignarGruposModulo />
     case 'becas':
       return <BecasModulo />
+    case 'pagos-internos':
+      return <PagosInternosModulo />
+    case 'precios-pagos-internos':
+      return <PagosInternosModulo abrirCatalogoInicial />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }
