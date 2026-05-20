@@ -1,14 +1,24 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CreditCard, Loader2 } from 'lucide-react'
+import {
+  CreditCard,
+  FileText,
+  Loader2,
+  PlusCircle,
+  RotateCcw,
+  XCircle,
+} from 'lucide-react'
 import { useAlumnoSeleccionado } from '@/contexts/AlumnoSeleccionadoContext'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
+import { clasePlanMeses, etiquetaPlanMeses } from '@/lib/alumnoPlanMeses'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
-import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
+import { obtenerAlumnoPorRef, type AlumnoRegistro } from '@/lib/alumnoDatosService'
 import { normalizarConceptoNo, parsearReferenciaPago } from '@/lib/pagoReferenciaColegiatura'
 import {
+  actualizarEstatusPagoColegiatura,
   estatusVisualPago,
+  etiquetaEstatusPago,
   listarConceptosBoucher,
   listarPagosColegiaturaAlumno,
   mapaConceptosPorNo,
@@ -59,11 +69,18 @@ export default function PagosColegiaturasModulo() {
 
   const [conceptos, setConceptos] = useState<ConceptoBoucher[]>([])
   const [ultimaActualizacion, setUltimaActualizacion] = useState<string | null>(null)
+  const [alumnoCargado, setAlumnoCargado] = useState<AlumnoRegistro | null>(null)
   const [pagos, setPagos] = useState<PagoDetalleRegistro[]>([])
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [actualizandoId, setActualizandoId] = useState<number | null>(null)
 
   const mapaConceptos = useMemo(() => mapaConceptosPorNo(conceptos), [conceptos])
+
+  const etiquetaPlan = useMemo(
+    () => etiquetaPlanMeses(alumnoCargado?.mes),
+    [alumnoCargado?.mes]
+  )
 
   useEffect(() => {
     listarConceptosBoucher().then(setConceptos)
@@ -81,11 +98,13 @@ export default function PagosColegiaturasModulo() {
     setError(null)
     const alumno = await obtenerAlumnoPorRef(ref, ciclo)
     if (!alumno) {
+      setAlumnoCargado(null)
       setPagos([])
       setCargando(false)
       setError('El alumno no tiene registro en el ciclo de consulta.')
       return
     }
+    setAlumnoCargado(alumno)
     const lista = await listarPagosColegiaturaAlumno(alumno.alumno_id, ciclo)
     setPagos(lista)
     setCargando(false)
@@ -93,6 +112,7 @@ export default function PagosColegiaturasModulo() {
 
   useEffect(() => {
     if (!alumnoSeleccionado) {
+      setAlumnoCargado(null)
       setPagos([])
       setError(null)
       return
@@ -109,6 +129,23 @@ export default function PagosColegiaturasModulo() {
   const totalImporte = useMemo(
     () => pagos.reduce((s, p) => s + p.pago_importe + p.pago_recargo, 0),
     [pagos]
+  )
+
+  const cambiarEstatus = useCallback(
+    async (pagoId: number, nuevoEstatus: number, mensaje: string) => {
+      if (!window.confirm(mensaje)) return
+      setActualizandoId(pagoId)
+      const res = await actualizarEstatusPagoColegiatura(pagoId, nuevoEstatus)
+      setActualizandoId(null)
+      if (!res.ok) {
+        setError(res.error ?? 'No se pudo actualizar el pago.')
+        return
+      }
+      setPagos((prev) =>
+        prev.map((p) => (p.pago_id === pagoId ? { ...p, pago_cancelado: nuevoEstatus } : p))
+      )
+    },
+    []
   )
 
   return (
@@ -154,9 +191,19 @@ export default function PagosColegiaturasModulo() {
 
       <section className="pc-tabla-card" aria-labelledby="pc-tabla-titulo">
         <div className="pc-tabla-card-bar">
-          <h2 id="pc-tabla-titulo" className="pc-tabla-card-titulo">
-            Historial de pagos
-          </h2>
+          <div className="pc-tabla-card-bar-izq">
+            <h2 id="pc-tabla-titulo" className="pc-tabla-card-titulo">
+              Historial de pagos
+            </h2>
+            {etiquetaPlan ? (
+              <span
+                className={`pc-plan-badge ${clasePlanMeses(alumnoCargado?.mes)}`}
+                title="Forma de pago según registro del alumno (campo mes)"
+              >
+                {etiquetaPlan}
+              </span>
+            ) : null}
+          </div>
           {alumnoSeleccionado && pagos.length > 0 ? (
             <div className="pc-tabla-resumen">
               <span>{pagos.length} pagos</span>
@@ -202,11 +249,17 @@ export default function PagosColegiaturasModulo() {
                   <th scope="col">Referencia</th>
                   <th scope="col">Emisora</th>
                   <th scope="col">Forma de pago</th>
+                  <th scope="col">Estatus</th>
+                  <th scope="col" className="pc-col--acciones">
+                    Cancelar
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {pagos.map((p, i) => {
                   const est = estatusVisualPago(p.pago_cancelado)
+                  const etiquetaEst = etiquetaEstatusPago(p.pago_cancelado)
+                  const busy = actualizandoId === p.pago_id
                   return (
                     <tr key={p.pago_id} className={claseFilaEstatus(est)}>
                       <td className="pc-col--num">{i + 1}</td>
@@ -219,6 +272,79 @@ export default function PagosColegiaturasModulo() {
                       <td className="pc-col--ref">{p.pago_referencia ?? '—'}</td>
                       <td>{p.pago_emisora ?? 'S/E'}</td>
                       <td>{p.pago_forma ?? '—'}</td>
+                      <td className="pc-col--estatus">
+                        {etiquetaEst ? (
+                          <span className={`pc-estatus-badge pc-estatus-badge--${est}`}>
+                            {etiquetaEst}
+                          </span>
+                        ) : (
+                          <span className="pc-estatus-vacio">—</span>
+                        )}
+                      </td>
+                      <td className="pc-col--acciones">
+                        <div className="pc-acciones" role="group" aria-label="Acciones del pago">
+                          <button
+                            type="button"
+                            className="pc-accion pc-accion--cancelar"
+                            title="Marcar como pago cancelado"
+                            disabled={busy || p.pago_cancelado === 1}
+                            onClick={() =>
+                              cambiarEstatus(
+                                p.pago_id,
+                                1,
+                                '¿Marcar este pago como cancelado?'
+                              )
+                            }
+                          >
+                            <XCircle size={18} aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            className="pc-accion pc-accion--devolucion"
+                            title="Marcar como devolución"
+                            disabled={busy || p.pago_cancelado === 2}
+                            onClick={() =>
+                              cambiarEstatus(
+                                p.pago_id,
+                                2,
+                                '¿Marcar este pago como devolución?'
+                              )
+                            }
+                          >
+                            <RotateCcw size={18} aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            className="pc-accion pc-accion--manual"
+                            title="Marcar como agregado manual"
+                            disabled={busy || p.pago_cancelado === 3}
+                            onClick={() =>
+                              cambiarEstatus(
+                                p.pago_id,
+                                3,
+                                '¿Marcar este pago como agregado manual?'
+                              )
+                            }
+                          >
+                            <PlusCircle size={18} aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            className="pc-accion pc-accion--restaurar"
+                            title="Restaurar a pago vigente"
+                            disabled={busy || p.pago_cancelado === 0}
+                            onClick={() =>
+                              cambiarEstatus(
+                                p.pago_id,
+                                0,
+                                '¿Restaurar este pago como vigente?'
+                              )
+                            }
+                          >
+                            <FileText size={18} aria-hidden />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   )
                 })}

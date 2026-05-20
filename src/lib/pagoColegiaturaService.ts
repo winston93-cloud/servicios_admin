@@ -35,6 +35,19 @@ export type EstatusVisualPago = 'normal' | 'cancelado' | 'devolucion' | 'manual'
 const SELECT_PAGO =
   'pago_id, alumno_id, pago_nombre, pago_referencia, pago_importe, pago_recargo, pago_forma, pago_folio, pago_fecha, pago_hora, pago_emisora, pago_cancelado, pago_registro'
 
+export function etiquetaEstatusPago(pago_cancelado: number): string | null {
+  switch (pago_cancelado) {
+    case 1:
+      return 'Es pago cancelado'
+    case 2:
+      return 'Es devolución'
+    case 3:
+      return 'Agregado manual'
+    default:
+      return null
+  }
+}
+
 export function estatusVisualPago(pago_cancelado: number): EstatusVisualPago {
   switch (pago_cancelado) {
     case 1:
@@ -112,6 +125,22 @@ export function conceptoClasePorReferencia(
     (c) => normalizarConceptoNo(c.concepto_no) === noRef
   )
   return hit?.concepto_clase ?? `Concepto ${noRef}`
+}
+
+export async function actualizarEstatusPagoColegiatura(
+  pagoId: number,
+  pagoCancelado: number
+): Promise<{ ok: boolean; error?: string }> {
+  const { error } = await supabase
+    .from('pago_detalle')
+    .update({ pago_cancelado: pagoCancelado })
+    .eq('pago_id', pagoId)
+
+  if (error) {
+    console.error('Error al actualizar pago_detalle:', error)
+    return { ok: false, error: error.message }
+  }
+  return { ok: true }
 }
 
 export function mapaConceptosPorNo(conceptos: ConceptoBoucher[]): Map<string, string> {
