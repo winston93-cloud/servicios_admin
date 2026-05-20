@@ -418,7 +418,7 @@ export default function PagosInternosModulo() {
                   ) : (
                     <Plus size={18} aria-hidden />
                   )}
-                  Agregar pago
+                  Guardar/Imprimir
                 </button>
               </form>
             </section>
