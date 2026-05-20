@@ -1,5 +1,9 @@
 import { supabase } from './supabase'
-import { parsearReferenciaPago, referenciaCoincideCiclo } from './pagoReferenciaColegiatura'
+import {
+  normalizarConceptoNo,
+  parsearReferenciaPago,
+  referenciaCoincideCiclo,
+} from './pagoReferenciaColegiatura'
 
 export interface ConceptoBoucher {
   concepto_id: number
@@ -103,6 +107,17 @@ export function conceptoClasePorReferencia(
 ): string {
   const p = parsearReferenciaPago(referencia)
   if (!p) return '—'
-  const hit = conceptos.find((c) => c.concepto_no === p.conceptoNo)
-  return hit?.concepto_clase ?? `Concepto ${p.conceptoNo}`
+  const noRef = normalizarConceptoNo(p.conceptoNo)
+  const hit = conceptos.find(
+    (c) => normalizarConceptoNo(c.concepto_no) === noRef
+  )
+  return hit?.concepto_clase ?? `Concepto ${noRef}`
+}
+
+export function mapaConceptosPorNo(conceptos: ConceptoBoucher[]): Map<string, string> {
+  const m = new Map<string, string>()
+  for (const c of conceptos) {
+    m.set(normalizarConceptoNo(c.concepto_no), c.concepto_clase)
+  }
+  return m
 }

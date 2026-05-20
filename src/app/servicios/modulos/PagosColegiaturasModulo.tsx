@@ -1,16 +1,17 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { CreditCard, Loader2 } from 'lucide-react'
 import { useAlumnoSeleccionado } from '@/contexts/AlumnoSeleccionadoContext'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
+import { normalizarConceptoNo, parsearReferenciaPago } from '@/lib/pagoReferenciaColegiatura'
 import {
-  conceptoClasePorReferencia,
   estatusVisualPago,
   listarConceptosBoucher,
   listarPagosColegiaturaAlumno,
+  mapaConceptosPorNo,
   obtenerUltimaActualizacionPagos,
   type ConceptoBoucher,
   type PagoDetalleRegistro,
@@ -34,6 +35,16 @@ function claseFilaEstatus(estatus: ReturnType<typeof estatusVisualPago>): string
   }
 }
 
+function conceptoDesdeReferencia(
+  referencia: string | null | undefined,
+  mapa: Map<string, string>
+): string {
+  const p = parsearReferenciaPago(referencia)
+  if (!p) return '—'
+  const no = normalizarConceptoNo(p.conceptoNo)
+  return mapa.get(no) ?? `Concepto ${no}`
+}
+
 export default function PagosColegiaturasModulo() {
   const { cicloSeleccionado } = useCicloEscolar()
   const { alumnoSeleccionado, setAlumnoSeleccionado, resolviendoCiclo } =
@@ -44,6 +55,8 @@ export default function PagosColegiaturasModulo() {
   const [pagos, setPagos] = useState<PagoDetalleRegistro[]>([])
   const [cargando, setCargando] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const mapaConceptos = useMemo(() => mapaConceptosPorNo(conceptos), [conceptos])
 
   useEffect(() => {
     listarConceptosBoucher().then(setConceptos)
@@ -80,92 +93,119 @@ export default function PagosColegiaturasModulo() {
     [cicloSeleccionado]
   )
 
+  const totalImporte = useMemo(
+    () => pagos.reduce((s, p) => s + p.pago_importe + p.pago_recargo, 0),
+    [pagos]
+  )
+
   return (
     <div className="servicios-panel-inner pc-modulo">
-      <header className="servicios-panel-header">
-        <h1 className="servicios-panel-title">Pagos de Colegiaturas</h1>
-        {ultimaActualizacion ? (
-          <p className="pc-ultima-actualizacion">
-            Última actualización: <strong>{ultimaActualizacion}</strong>
-          </p>
-        ) : null}
-        <p className="servicios-panel-lead">
-          Consulta los pagos registrados por comercio electrónico, Openpay u otros medios
-          confirmados. Ciclo de consulta: <strong>{etiquetaCiclo}</strong>.
-        </p>
+      <header className="pc-encabezado">
+        <div className="pc-encabezado-titulo">
+          <span className="pc-encabezado-icono" aria-hidden>
+            <CreditCard size={22} />
+          </span>
+          <div>
+            <h1 className="pc-encabezado-h1">Pagos de Colegiaturas</h1>
+            {ultimaActualizacion ? (
+              <p className="pc-ultima-actualizacion">
+                Última actualización: <strong>{ultimaActualizacion}</strong>
+              </p>
+            ) : null}
+          </div>
+        </div>
+        <span className="pc-badge-ciclo">{etiquetaCiclo}</span>
       </header>
 
-      <div className="pc-busqueda">
+      <section className="pc-panel-busqueda" aria-label="Búsqueda de alumno">
         <AlumnoAutocomplete
           etiqueta="Nombre del alumno / No. control"
           alumnoSeleccionado={alumnoSeleccionado}
           onSeleccionar={setAlumnoSeleccionado}
         />
-      </div>
+      </section>
 
-      <div className="pc-leyenda" aria-label="Leyenda de estados de pago">
-        <span className="pc-leyenda-item">
-          <span className="pc-leyenda-muestra pc-leyenda-muestra--cancelado" />
-          Es pago cancelado
-        </span>
-        <span className="pc-leyenda-item">
-          <span className="pc-leyenda-muestra pc-leyenda-muestra--devolucion" />
-          Es devolución
-        </span>
-        <span className="pc-leyenda-item">
-          <span className="pc-leyenda-muestra pc-leyenda-muestra--manual" />
-          Agregado manual
-        </span>
-      </div>
+      {error ? (
+        <p className="pc-msg pc-msg--error" role="alert">
+          {error}
+        </p>
+      ) : null}
 
-      {error ? <p className="pc-msg pc-msg--error">{error}</p> : null}
+      <section className="pc-tabla-card" aria-labelledby="pc-tabla-titulo">
+        <div className="pc-tabla-card-bar">
+          <h2 id="pc-tabla-titulo" className="pc-tabla-card-titulo">
+            Historial de pagos
+          </h2>
+          {alumnoSeleccionado && pagos.length > 0 ? (
+            <div className="pc-tabla-resumen">
+              <span>{pagos.length} pagos</span>
+              <span className="pc-tabla-resumen-sep" aria-hidden>
+                ·
+              </span>
+              <span>
+                Total: <strong>{formatearMonto(totalImporte)}</strong>
+              </span>
+            </div>
+          ) : null}
+        </div>
 
-      <div className="pc-tabla-wrap">
-        {cargando ? (
-          <p className="pc-loading">
-            <Loader2 className="pc-spin" size={20} aria-hidden />
-            Cargando pagos…
-          </p>
-        ) : !alumnoSeleccionado ? (
-          <p className="pc-empty">Busca un alumno para ver sus pagos de colegiatura.</p>
-        ) : pagos.length === 0 ? (
-          <p className="pc-empty">
-            No hay pagos registrados para este alumno en el ciclo {etiquetaCiclo}.
-          </p>
-        ) : (
-          <table className="pc-tabla">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Concepto</th>
-                <th>Monto</th>
-                <th>Recargos</th>
-                <th>Fecha pago</th>
-                <th>Referencia</th>
-                <th>Emisora</th>
-                <th>Forma de pago</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pagos.map((p, i) => {
-                const est = estatusVisualPago(p.pago_cancelado)
-                return (
-                  <tr key={p.pago_id} className={claseFilaEstatus(est)}>
-                    <td>{i + 1}</td>
-                    <td>{conceptoClasePorReferencia(p.pago_referencia, conceptos)}</td>
-                    <td className="pc-num">{formatearMonto(p.pago_importe)}</td>
-                    <td className="pc-num">{formatearMonto(p.pago_recargo)}</td>
-                    <td>{p.pago_fecha ?? '—'}</td>
-                    <td className="pc-ref">{p.pago_referencia ?? '—'}</td>
-                    <td>{p.pago_emisora ?? '—'}</td>
-                    <td>{p.pago_forma ?? '—'}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+        <div className="pc-tabla-scroll">
+          {cargando ? (
+            <p className="pc-loading">
+              <Loader2 className="pc-spin" size={22} aria-hidden />
+              Cargando pagos…
+            </p>
+          ) : !alumnoSeleccionado ? (
+            <p className="pc-empty">
+              Busca un alumno para ver sus pagos de colegiatura en el ciclo seleccionado.
+            </p>
+          ) : pagos.length === 0 ? (
+            <p className="pc-empty">
+              No hay pagos registrados para este alumno en {etiquetaCiclo}.
+            </p>
+          ) : (
+            <table className="pc-tabla">
+              <thead>
+                <tr>
+                  <th scope="col" className="pc-col--num">
+                    #
+                  </th>
+                  <th scope="col">Concepto</th>
+                  <th scope="col" className="pc-col--monto">
+                    Monto
+                  </th>
+                  <th scope="col" className="pc-col--monto">
+                    Recargos
+                  </th>
+                  <th scope="col">Fecha pago</th>
+                  <th scope="col">Referencia</th>
+                  <th scope="col">Emisora</th>
+                  <th scope="col">Forma de pago</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pagos.map((p, i) => {
+                  const est = estatusVisualPago(p.pago_cancelado)
+                  return (
+                    <tr key={p.pago_id} className={claseFilaEstatus(est)}>
+                      <td className="pc-col--num">{i + 1}</td>
+                      <td className="pc-col--concepto">
+                        {conceptoDesdeReferencia(p.pago_referencia, mapaConceptos)}
+                      </td>
+                      <td className="pc-col--monto">{formatearMonto(p.pago_importe)}</td>
+                      <td className="pc-col--monto">{formatearMonto(p.pago_recargo)}</td>
+                      <td className="pc-col--fecha">{p.pago_fecha ?? '—'}</td>
+                      <td className="pc-col--ref">{p.pago_referencia ?? '—'}</td>
+                      <td>{p.pago_emisora ?? 'S/E'}</td>
+                      <td>{p.pago_forma ?? '—'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </section>
     </div>
   )
 }

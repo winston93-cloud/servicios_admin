@@ -30,6 +30,13 @@ export function referenciaCoincideCiclo(
   return p.cicloEscolar === cicloEscolar
 }
 
+/** Dos dígitos del concepto en la referencia (01, 09, 16…). */
+export function normalizarConceptoNo(no: string | number | null | undefined): string {
+  const s = String(no ?? '').replace(/\D/g, '')
+  if (!s) return '00'
+  return s.padStart(2, '0').slice(-2)
+}
+
 export function formatearAlumnoRefParaReferencia(ref: string | number): string {
   const s = String(ref ?? '').replace(/\D/g, '')
   return s.padStart(5, '0').slice(-5)
