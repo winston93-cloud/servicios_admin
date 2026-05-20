@@ -305,6 +305,25 @@ export async function crearPagoInterno(
   return { ok: true, pago_id: nuevoId, pago_folio: folio }
 }
 
+/** Conceptos que cuentan como cuota de padres pagada (legacy). */
+export const CONCEPTOS_CUOTA_PADRES = [1, 2] as const
+
+/** Concepto MANUALES en catálogo legacy. */
+export const CONCEPTO_ID_MANUALES = 5
+
+export function esConceptoManuales(
+  conceptoId: number,
+  conceptoClase?: string | null
+): boolean {
+  if (conceptoId === CONCEPTO_ID_MANUALES) return true
+  const nombre = (conceptoClase ?? '').replace(/^\*\s*/, '').trim().toUpperCase()
+  return nombre === 'MANUALES'
+}
+
+export function mensajeManualesRequiereCuotaPadres(): string {
+  return 'Registra primero la cuota de padres en este ciclo escolar antes de pagar manuales.'
+}
+
 export async function alumnoTieneCuotaPadresPagada(
   alumnoId: number,
   cicloEscolar: number
@@ -315,7 +334,7 @@ export async function alumnoTieneCuotaPadresPagada(
     .eq('alumno_id', alumnoId)
     .eq('pago_ciclo_escolar', cicloEscolar)
     .eq('pago_cancelado', 0)
-    .in('concepto_id', [1, 2])
+    .in('concepto_id', [...CONCEPTOS_CUOTA_PADRES])
     .limit(1)
 
   if (error) return false

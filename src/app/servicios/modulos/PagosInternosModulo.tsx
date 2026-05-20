@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Loader2, Plus, Settings2, Wallet } from 'lucide-react'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { useAlumnoSeleccionado } from '@/contexts/AlumnoSeleccionadoContext'
@@ -9,8 +9,10 @@ import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
 import {
   alumnoTieneCuotaPadresPagada,
   crearPagoInterno,
+  esConceptoManuales,
   listarConceptosInternos,
   listarPagosPorAlumno,
+  mensajeManualesRequiereCuotaPadres,
   nivelGradoDesdeAlumno,
   obtenerSiguienteFolioPago,
   resolverPrecioInterno,
@@ -73,6 +75,21 @@ export default function PagosInternosModulo({ abrirCatalogoInicial = false }: Pr
   useEffect(() => {
     setCicloPago(cicloSeleccionado)
   }, [cicloSeleccionado])
+
+  useEffect(() => {
+    if (alumnoId == null) return
+    alumnoTieneCuotaPadresPagada(alumnoId, cicloPago).then(setCuotaPadresPagada)
+  }, [alumnoId, cicloPago])
+
+  const conceptoSeleccionado = useMemo(
+    () => conceptos.find((c) => c.concepto_id === conceptoId) ?? null,
+    [conceptos, conceptoId]
+  )
+
+  const bloqueoManualesSinCuota =
+    conceptoSeleccionado != null &&
+    esConceptoManuales(conceptoSeleccionado.concepto_id, conceptoSeleccionado.concepto_clase) &&
+    !cuotaPadresPagada
 
   const cargarDatosAlumno = useCallback(
     async (ref: string, ciclo: number) => {
@@ -165,6 +182,20 @@ export default function PagosInternosModulo({ abrirCatalogoInicial = false }: Pr
     e.preventDefault()
     if (alumnoId == null || conceptoId <= 0 || importe === '' || importe < 0) {
       setError('Completa alumno, concepto e importe.')
+      return
+    }
+
+    const cuotaEnCiclo = await alumnoTieneCuotaPadresPagada(alumnoId, cicloPago)
+    setCuotaPadresPagada(cuotaEnCiclo)
+    if (
+      conceptoSeleccionado &&
+      esConceptoManuales(
+        conceptoSeleccionado.concepto_id,
+        conceptoSeleccionado.concepto_clase
+      ) &&
+      !cuotaEnCiclo
+    ) {
+      setError(mensajeManualesRequiereCuotaPadres())
       return
     }
 
@@ -376,7 +407,16 @@ export default function PagosInternosModulo({ abrirCatalogoInicial = false }: Pr
                     ))}
                   </select>
                 </label>
-                <button type="submit" className="pi-btn pi-btn--primary" disabled={guardando}>
+                {bloqueoManualesSinCuota && (
+                  <p className="pi-msg pi-msg--error" role="alert">
+                    {mensajeManualesRequiereCuotaPadres()}
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  className="pi-btn pi-btn--primary"
+                  disabled={guardando || bloqueoManualesSinCuota}
+                >
                   {guardando ? (
                     <Loader2 size={18} className="pi-spin" aria-hidden />
                   ) : (
@@ -393,7 +433,12 @@ export default function PagosInternosModulo({ abrirCatalogoInicial = false }: Pr
               </h2>
               <label className="pi-check pi-check--grande">
                 <input type="checkbox" checked={cuotaPadresPagada} readOnly />
-                <span>Pagada{cuotaPadresPagada ? ' en este ciclo' : ''}</span>
+                <span>
+                  Pagada
+                  {cuotaPadresPagada
+                    ? ` (${etiquetaCicloEscolar(cicloPago, opcionesCatalogo) || 'ciclo del pago'})`
+                    : ` — falta en ${etiquetaCicloEscolar(cicloPago, opcionesCatalogo) || 'este ciclo'}`}
+                </span>
               </label>
               {!cuotaPadresPagada && (
                 <button
