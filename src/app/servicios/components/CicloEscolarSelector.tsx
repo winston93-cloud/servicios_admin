@@ -3,7 +3,24 @@
 import { CalendarRange, Loader2 } from 'lucide-react'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 
-export default function CicloEscolarSelector() {
+export interface CicloEscolarSelectorProps {
+  /** Etiqueta visible junto al selector. */
+  etiqueta?: string
+  /** Oculta el texto «Ciclo activo del sistema: …». */
+  mostrarCicloSistema?: boolean
+  /** Variante compacta para colocar junto a la búsqueda. */
+  variante?: 'barra' | 'inline'
+  id?: string
+  className?: string
+}
+
+export default function CicloEscolarSelector({
+  etiqueta = 'Consultar ciclo',
+  mostrarCicloSistema = true,
+  variante = 'barra',
+  id = 'ciclo-escolar-global',
+  className = '',
+}: CicloEscolarSelectorProps) {
   const {
     cicloSeleccionado,
     cicloActualSistema,
@@ -17,11 +34,19 @@ export default function CicloEscolarSelector() {
   const etiquetaConsulta =
     opcionesSelector.find((o) => o.valor === cicloSeleccionado)?.etiqueta ?? 'Ciclo escolar'
 
+  const rootClass = [
+    'ciclo-escolar-selector',
+    variante === 'inline' ? 'ciclo-escolar-selector--inline' : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ')
+
   return (
-    <div className="ciclo-escolar-selector" role="group" aria-label="Ciclo escolar de consulta">
-      <label htmlFor="ciclo-escolar-global" className="ciclo-escolar-selector-label">
+    <div className={rootClass} role="group" aria-label={etiqueta}>
+      <label htmlFor={id} className="ciclo-escolar-selector-label">
         <CalendarRange size={18} aria-hidden className="ciclo-escolar-selector-icon" />
-        <span className="ciclo-escolar-selector-text">Consultar ciclo</span>
+        <span className="ciclo-escolar-selector-text">{etiqueta}</span>
       </label>
       <div className="ciclo-escolar-selector-control">
         {cargando ? (
@@ -31,13 +56,13 @@ export default function CicloEscolarSelector() {
           </span>
         ) : (
           <select
-            id="ciclo-escolar-global"
+            id={id}
             className="ciclo-escolar-selector-select"
             value={String(cicloSeleccionado)}
             onChange={(e) => setCicloSeleccionado(Number(e.target.value))}
             disabled={opcionesSelector.length === 0}
-            aria-label={`Consultar alumnos del ciclo ${etiquetaConsulta}`}
-            title="Filtra alumnos por ciclo. El ciclo activo del sistema solo se cambia en el catálogo."
+            aria-label={`${etiqueta}: ${etiquetaConsulta}`}
+            title="Filtra pagos y alumnos por ciclo escolar."
           >
             {opcionesSelector.map((opcion) => (
               <option key={opcion.valor} value={opcion.valor}>
@@ -48,9 +73,11 @@ export default function CicloEscolarSelector() {
           </select>
         )}
       </div>
-      <p className="ciclo-escolar-selector-actual" title="Definido en catálogo de ciclos escolares">
-        Ciclo activo del sistema: <strong>{etiquetaCicloActualSistema}</strong>
-      </p>
+      {mostrarCicloSistema ? (
+        <p className="ciclo-escolar-selector-actual" title="Definido en catálogo de ciclos escolares">
+          Ciclo activo del sistema: <strong>{etiquetaCicloActualSistema}</strong>
+        </p>
+      ) : null}
       {error && (
         <p className="ciclo-escolar-selector-error" role="alert">
           {error}

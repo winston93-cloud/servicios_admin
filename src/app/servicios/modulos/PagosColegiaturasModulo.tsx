@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CreditCard, Loader2 } from 'lucide-react'
 import { useAlumnoSeleccionado } from '@/contexts/AlumnoSeleccionadoContext'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
@@ -17,6 +17,7 @@ import {
   type PagoDetalleRegistro,
 } from '@/lib/pagoColegiaturaService'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
+import CicloEscolarSelector from '../components/CicloEscolarSelector'
 
 function formatearMonto(n: number): string {
   return n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -46,7 +47,13 @@ function conceptoDesdeReferencia(
 }
 
 export default function PagosColegiaturasModulo() {
-  const { cicloSeleccionado } = useCicloEscolar()
+  const {
+    cicloSeleccionado,
+    cicloActualSistema,
+    cargando: cargandoCiclos,
+    setCicloSeleccionado,
+  } = useCicloEscolar()
+  const cicloInicializado = useRef(false)
   const { alumnoSeleccionado, setAlumnoSeleccionado, resolviendoCiclo } =
     useAlumnoSeleccionado()
 
@@ -62,6 +69,12 @@ export default function PagosColegiaturasModulo() {
     listarConceptosBoucher().then(setConceptos)
     obtenerUltimaActualizacionPagos().then(setUltimaActualizacion)
   }, [])
+
+  useEffect(() => {
+    if (cargandoCiclos || cicloInicializado.current) return
+    setCicloSeleccionado(cicloActualSistema)
+    cicloInicializado.current = true
+  }, [cargandoCiclos, cicloActualSistema, setCicloSeleccionado])
 
   const cargarPagos = useCallback(async (ref: string, ciclo: number) => {
     setCargando(true)
@@ -116,13 +129,22 @@ export default function PagosColegiaturasModulo() {
         </div>
       </header>
 
-      <section className="pc-panel-busqueda" aria-label="Búsqueda de alumno">
-        <AlumnoAutocomplete
-          etiqueta="Nombre del alumno / No. control"
-          alumnoSeleccionado={alumnoSeleccionado}
-          onSeleccionar={setAlumnoSeleccionado}
+      <div className="pc-filtros">
+        <section className="pc-panel-busqueda" aria-label="Búsqueda de alumno">
+          <AlumnoAutocomplete
+            etiqueta="Nombre del alumno / No. control"
+            alumnoSeleccionado={alumnoSeleccionado}
+            onSeleccionar={setAlumnoSeleccionado}
+          />
+        </section>
+        <CicloEscolarSelector
+          id="ciclo-escolar-pagos-colegiaturas"
+          etiqueta="Ciclo activo"
+          variante="inline"
+          mostrarCicloSistema={false}
+          className="pc-ciclo-selector"
         />
-      </section>
+      </div>
 
       {error ? (
         <p className="pc-msg pc-msg--error" role="alert">

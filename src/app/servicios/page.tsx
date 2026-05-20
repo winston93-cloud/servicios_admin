@@ -249,7 +249,7 @@ function ServiciosPageInner() {
             <ArrowLeft size={18} aria-hidden />
             Volver al panel
           </button>
-          <CicloEscolarSelector />
+          {moduloActivo !== 'pagos-colegiaturas' ? <CicloEscolarSelector /> : null}
         </div>
         <div className="servicios-main-scroll">
           <ServiciosPanelContenido moduloId={moduloActivo} titulo={itemActivo.label} />
