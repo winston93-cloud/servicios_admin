@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { referenciaCoincideCiclo } from './pagoReferenciaColegiatura'
+import { parsearReferenciaPago, referenciaCoincideCiclo } from './pagoReferenciaColegiatura'
 
 export interface ConceptoBoucher {
   concepto_id: number
