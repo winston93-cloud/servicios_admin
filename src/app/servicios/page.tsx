@@ -250,7 +250,6 @@ function ServiciosPageInner() {
             Volver al panel
           </button>
           <div className="servicios-toolbar-ciclo-grupo">
-            <CicloEscolarSelector etiqueta="Ciclo activo" />
             <button
               type="button"
               className={`servicios-btn-pagos-internos${moduloActivo === 'pagos-internos' ? ' servicios-btn-pagos-internos--activo' : ''}`}
@@ -258,6 +257,7 @@ function ServiciosPageInner() {
             >
               Pagos internos
             </button>
+            <CicloEscolarSelector etiqueta="Ciclo activo" />
           </div>
         </div>
         <div className="servicios-main-scroll">
