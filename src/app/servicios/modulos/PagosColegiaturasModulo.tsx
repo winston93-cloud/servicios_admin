@@ -55,6 +55,59 @@ function conceptoDesdeReferencia(
   return mapa.get(no) ?? `Concepto ${no}`
 }
 
+function AccionesPago({
+  pago,
+  busy,
+  onCambiarEstatus,
+}: {
+  pago: PagoDetalleRegistro
+  busy: boolean
+  onCambiarEstatus: (pagoId: number, nuevoEstatus: number, mensaje: string) => void
+}) {
+  return (
+    <div className="pc-acciones" role="group" aria-label="Acciones del pago">
+      <button
+        type="button"
+        className="pc-accion pc-accion--cancelar"
+        title="Marcar como pago cancelado"
+        disabled={busy || pago.pago_cancelado === 1}
+        onClick={() => onCambiarEstatus(pago.pago_id, 1, '¿Marcar este pago como cancelado?')}
+      >
+        <XCircle size={16} aria-hidden />
+      </button>
+      <button
+        type="button"
+        className="pc-accion pc-accion--devolucion"
+        title="Marcar como devolución"
+        disabled={busy || pago.pago_cancelado === 2}
+        onClick={() => onCambiarEstatus(pago.pago_id, 2, '¿Marcar este pago como devolución?')}
+      >
+        <RotateCcw size={16} aria-hidden />
+      </button>
+      <button
+        type="button"
+        className="pc-accion pc-accion--manual"
+        title="Marcar como agregado manual"
+        disabled={busy || pago.pago_cancelado === 3}
+        onClick={() =>
+          onCambiarEstatus(pago.pago_id, 3, '¿Marcar este pago como agregado manual?')
+        }
+      >
+        <PlusCircle size={16} aria-hidden />
+      </button>
+      <button
+        type="button"
+        className="pc-accion pc-accion--restaurar"
+        title="Restaurar a pago vigente"
+        disabled={busy || pago.pago_cancelado === 0}
+        onClick={() => onCambiarEstatus(pago.pago_id, 0, '¿Restaurar este pago como vigente?')}
+      >
+        <FileText size={16} aria-hidden />
+      </button>
+    </div>
+  )
+}
+
 export default function PagosColegiaturasModulo() {
   const {
     cicloSeleccionado,
@@ -194,7 +247,7 @@ export default function PagosColegiaturasModulo() {
             onSeleccionar={setAlumnoSeleccionado}
           />
         </section>
-        <div className="pc-ciclo-pagos" role="group" aria-label="Ciclo escolar de pagos">
+        <section className="pc-panel-ciclo" aria-label="Ciclo escolar de pagos">
           <label htmlFor="ciclo-escolar-pagos" className="pc-ciclo-pagos-label">
             Ciclo escolar
           </label>
@@ -213,7 +266,7 @@ export default function PagosColegiaturasModulo() {
               </option>
             ))}
           </select>
-        </div>
+        </section>
       </div>
 
       {error ? (
@@ -250,7 +303,7 @@ export default function PagosColegiaturasModulo() {
           ) : null}
         </div>
 
-        <div className="pc-tabla-scroll">
+        <div className="pc-contenido-pagos">
           {cargando ? (
             <p className="pc-loading">
               <Loader2 className="pc-spin" size={22} aria-hidden />
@@ -265,6 +318,8 @@ export default function PagosColegiaturasModulo() {
               No hay pagos registrados para este alumno en {etiquetaCicloPagos}.
             </p>
           ) : (
+            <>
+            <div className="pc-tabla-scroll pc-vista-escritorio">
             <table className="pc-tabla">
               <colgroup>
                 <col className="pc-w--num" />
@@ -335,74 +390,74 @@ export default function PagosColegiaturasModulo() {
                         )}
                       </td>
                       <td className="pc-col--acciones">
-                        <div className="pc-acciones" role="group" aria-label="Acciones del pago">
-                          <button
-                            type="button"
-                            className="pc-accion pc-accion--cancelar"
-                            title="Marcar como pago cancelado"
-                            disabled={busy || p.pago_cancelado === 1}
-                            onClick={() =>
-                              cambiarEstatus(
-                                p.pago_id,
-                                1,
-                                '¿Marcar este pago como cancelado?'
-                              )
-                            }
-                          >
-                            <XCircle size={16} aria-hidden />
-                          </button>
-                          <button
-                            type="button"
-                            className="pc-accion pc-accion--devolucion"
-                            title="Marcar como devolución"
-                            disabled={busy || p.pago_cancelado === 2}
-                            onClick={() =>
-                              cambiarEstatus(
-                                p.pago_id,
-                                2,
-                                '¿Marcar este pago como devolución?'
-                              )
-                            }
-                          >
-                            <RotateCcw size={16} aria-hidden />
-                          </button>
-                          <button
-                            type="button"
-                            className="pc-accion pc-accion--manual"
-                            title="Marcar como agregado manual"
-                            disabled={busy || p.pago_cancelado === 3}
-                            onClick={() =>
-                              cambiarEstatus(
-                                p.pago_id,
-                                3,
-                                '¿Marcar este pago como agregado manual?'
-                              )
-                            }
-                          >
-                            <PlusCircle size={16} aria-hidden />
-                          </button>
-                          <button
-                            type="button"
-                            className="pc-accion pc-accion--restaurar"
-                            title="Restaurar a pago vigente"
-                            disabled={busy || p.pago_cancelado === 0}
-                            onClick={() =>
-                              cambiarEstatus(
-                                p.pago_id,
-                                0,
-                                '¿Restaurar este pago como vigente?'
-                              )
-                            }
-                          >
-                            <FileText size={16} aria-hidden />
-                          </button>
-                        </div>
+                        <AccionesPago
+                          pago={p}
+                          busy={busy}
+                          onCambiarEstatus={cambiarEstatus}
+                        />
                       </td>
                     </tr>
                   )
                 })}
               </tbody>
             </table>
+            </div>
+            <ul className="pc-pagos-movil" aria-label="Lista de pagos">
+              {pagos.map((p, i) => {
+                const est = estatusVisualPago(p.pago_cancelado)
+                const etiquetaEst = etiquetaEstatusPago(p.pago_cancelado)
+                const busy = actualizandoId === p.pago_id
+                const concepto = conceptoDesdeReferencia(p.pago_referencia, mapaConceptos)
+                return (
+                  <li
+                    key={p.pago_id}
+                    className={`pc-pago-card ${claseFilaEstatus(est)}`}
+                  >
+                    <div className="pc-pago-card-cabecera">
+                      <span className="pc-pago-card-num">#{i + 1}</span>
+                      <p className="pc-pago-card-concepto">{concepto}</p>
+                      {etiquetaEst ? (
+                        <span className={`pc-estatus-badge pc-estatus-badge--${est}`}>
+                          {etiquetaEst}
+                        </span>
+                      ) : null}
+                    </div>
+                    <dl className="pc-pago-card-datos">
+                      <div>
+                        <dt>Monto</dt>
+                        <dd>{formatearMonto(p.pago_importe)}</dd>
+                      </div>
+                      <div>
+                        <dt>Recargos</dt>
+                        <dd>{formatearMonto(p.pago_recargo)}</dd>
+                      </div>
+                      <div>
+                        <dt>Fecha</dt>
+                        <dd>{p.pago_fecha ?? '—'}</dd>
+                      </div>
+                      <div className="pc-pago-card-datos--ancho">
+                        <dt>Referencia</dt>
+                        <dd className="pc-pago-card-ref">{p.pago_referencia ?? '—'}</dd>
+                      </div>
+                      <div>
+                        <dt>Emisora</dt>
+                        <dd>{p.pago_emisora ?? 'S/E'}</dd>
+                      </div>
+                      <div className="pc-pago-card-datos--ancho">
+                        <dt>Forma de pago</dt>
+                        <dd>{p.pago_forma ?? '—'}</dd>
+                      </div>
+                    </dl>
+                    <AccionesPago
+                      pago={p}
+                      busy={busy}
+                      onCambiarEstatus={cambiarEstatus}
+                    />
+                  </li>
+                )
+              })}
+            </ul>
+            </>
           )}
         </div>
       </section>
