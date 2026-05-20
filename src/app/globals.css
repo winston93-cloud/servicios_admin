@@ -8121,6 +8121,11 @@ body {
 }
 
 /* Pagos de colegiaturas */
+.servicios-panel-inner.pc-modulo {
+  max-width: none;
+  width: 100%;
+}
+
 .pc-modulo {
   display: flex;
   flex-direction: column;
@@ -8245,6 +8250,7 @@ body {
 }
 
 .pc-tabla-card {
+  width: 100%;
   background: #fff;
   border: 1px solid #cbd5e1;
   border-radius: 14px;
@@ -8324,7 +8330,18 @@ body {
 }
 
 .pc-tabla-scroll {
+  width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pc-tabla-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+
+.pc-tabla-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
 }
 
 .pc-loading,
@@ -8343,9 +8360,45 @@ body {
 
 .pc-tabla {
   width: 100%;
-  min-width: 1080px;
+  table-layout: fixed;
   border-collapse: collapse;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+}
+
+.pc-w--num {
+  width: 4%;
+}
+
+.pc-w--concepto {
+  width: 21%;
+}
+
+.pc-w--monto {
+  width: 8%;
+}
+
+.pc-w--fecha {
+  width: 9%;
+}
+
+.pc-w--ref {
+  width: 12%;
+}
+
+.pc-w--emisora {
+  width: 6%;
+}
+
+.pc-w--forma {
+  width: 12%;
+}
+
+.pc-w--estatus {
+  width: 11%;
+}
+
+.pc-w--acciones {
+  width: 11%;
 }
 
 .pc-tabla thead {
@@ -8359,16 +8412,27 @@ body {
 }
 
 .pc-tabla th {
-  padding: 0.75rem 1rem;
+  padding: 0.65rem 0.55rem;
   text-align: left;
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #fff;
   white-space: nowrap;
   border: none;
   border-right: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-tabla th.pc-col--acciones,
+.pc-tabla th.pc-col--num {
+  text-align: center;
+}
+
+.pc-tabla th.pc-col--monto {
+  text-align: right;
 }
 
 .pc-tabla th:last-child {
@@ -8389,13 +8453,29 @@ body {
 }
 
 .pc-tabla td {
-  padding: 0.7rem 1rem;
+  padding: 0.55rem 0.5rem;
   color: #334155;
   vertical-align: middle;
+  overflow: hidden;
+}
+
+.pc-celda-ellipsis {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pc-celda-ref {
+  display: block;
+  font-size: 0.75rem;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .pc-col--num {
-  width: 3rem;
   text-align: center;
   font-weight: 600;
   color: #64748b;
@@ -8412,19 +8492,27 @@ body {
 .pc-col--concepto {
   font-weight: 500;
   color: #1e293b;
-  min-width: 12rem;
 }
 
 .pc-col--fecha {
   white-space: nowrap;
+  font-size: 0.75rem;
 }
 
 .pc-col--ref {
   font-family: ui-monospace, 'SF Mono', monospace;
-  font-size: 0.8125rem;
-  letter-spacing: 0.02em;
   color: #475569;
-  white-space: nowrap;
+}
+
+.pc-col--emisora {
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+.pc-col--forma {
+  font-size: 0.75rem;
+  line-height: 1.25;
+  word-break: break-word;
 }
 
 .pc-fila--cancelado {
@@ -8452,13 +8540,14 @@ body {
 }
 
 .pc-col--estatus {
-  min-width: 9.5rem;
+  text-align: center;
 }
 
 .pc-estatus-badge {
   display: inline-block;
-  padding: 0.2rem 0.5rem;
-  font-size: 0.6875rem;
+  max-width: 100%;
+  padding: 0.2rem 0.35rem;
+  font-size: 0.625rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -8486,24 +8575,26 @@ body {
 }
 
 .pc-col--acciones {
-  width: 1%;
-  white-space: nowrap;
   text-align: center;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
 }
 
 .pc-acciones {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 0.35rem;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 0.25rem;
 }
 
 .pc-accion {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
   padding: 0;
   border: 1px solid #e2e8f0;
   border-radius: 50%;
@@ -8563,4 +8654,11 @@ body {
 
 .pc-accion--restaurar:hover:not(:disabled) {
   background: #dbeafe;
+}
+
+@media (max-width: 1100px) {
+  .pc-tabla {
+    min-width: 920px;
+    table-layout: auto;
+  }
 }

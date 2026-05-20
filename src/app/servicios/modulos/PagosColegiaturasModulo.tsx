@@ -266,6 +266,18 @@ export default function PagosColegiaturasModulo() {
             </p>
           ) : (
             <table className="pc-tabla">
+              <colgroup>
+                <col className="pc-w--num" />
+                <col className="pc-w--concepto" />
+                <col className="pc-w--monto" />
+                <col className="pc-w--monto" />
+                <col className="pc-w--fecha" />
+                <col className="pc-w--ref" />
+                <col className="pc-w--emisora" />
+                <col className="pc-w--forma" />
+                <col className="pc-w--estatus" />
+                <col className="pc-w--acciones" />
+              </colgroup>
               <thead>
                 <tr>
                   <th scope="col" className="pc-col--num">
@@ -284,7 +296,7 @@ export default function PagosColegiaturasModulo() {
                   <th scope="col">Forma de pago</th>
                   <th scope="col">Estatus</th>
                   <th scope="col" className="pc-col--acciones">
-                    Cancelar
+                    Acciones
                   </th>
                 </tr>
               </thead>
@@ -293,18 +305,26 @@ export default function PagosColegiaturasModulo() {
                   const est = estatusVisualPago(p.pago_cancelado)
                   const etiquetaEst = etiquetaEstatusPago(p.pago_cancelado)
                   const busy = actualizandoId === p.pago_id
+                  const concepto = conceptoDesdeReferencia(
+                    p.pago_referencia,
+                    mapaConceptos
+                  )
                   return (
                     <tr key={p.pago_id} className={claseFilaEstatus(est)}>
                       <td className="pc-col--num">{i + 1}</td>
-                      <td className="pc-col--concepto">
-                        {conceptoDesdeReferencia(p.pago_referencia, mapaConceptos)}
+                      <td className="pc-col--concepto" title={concepto}>
+                        <span className="pc-celda-ellipsis">{concepto}</span>
                       </td>
                       <td className="pc-col--monto">{formatearMonto(p.pago_importe)}</td>
                       <td className="pc-col--monto">{formatearMonto(p.pago_recargo)}</td>
                       <td className="pc-col--fecha">{p.pago_fecha ?? '—'}</td>
-                      <td className="pc-col--ref">{p.pago_referencia ?? '—'}</td>
-                      <td>{p.pago_emisora ?? 'S/E'}</td>
-                      <td>{p.pago_forma ?? '—'}</td>
+                      <td className="pc-col--ref">
+                        <span className="pc-celda-ref">{p.pago_referencia ?? '—'}</span>
+                      </td>
+                      <td className="pc-col--emisora">{p.pago_emisora ?? 'S/E'}</td>
+                      <td className="pc-col--forma" title={p.pago_forma ?? undefined}>
+                        {p.pago_forma ?? '—'}
+                      </td>
                       <td className="pc-col--estatus">
                         {etiquetaEst ? (
                           <span className={`pc-estatus-badge pc-estatus-badge--${est}`}>
@@ -329,7 +349,7 @@ export default function PagosColegiaturasModulo() {
                               )
                             }
                           >
-                            <XCircle size={18} aria-hidden />
+                            <XCircle size={16} aria-hidden />
                           </button>
                           <button
                             type="button"
@@ -344,7 +364,7 @@ export default function PagosColegiaturasModulo() {
                               )
                             }
                           >
-                            <RotateCcw size={18} aria-hidden />
+                            <RotateCcw size={16} aria-hidden />
                           </button>
                           <button
                             type="button"
@@ -359,7 +379,7 @@ export default function PagosColegiaturasModulo() {
                               )
                             }
                           >
-                            <PlusCircle size={18} aria-hidden />
+                            <PlusCircle size={16} aria-hidden />
                           </button>
                           <button
                             type="button"
@@ -374,7 +394,7 @@ export default function PagosColegiaturasModulo() {
                               )
                             }
                           >
-                            <FileText size={18} aria-hidden />
+                            <FileText size={16} aria-hidden />
                           </button>
                         </div>
                       </td>
