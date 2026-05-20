@@ -8109,3 +8109,124 @@ body {
     pointer-events: none !important;
   }
 }
+
+/* Pagos de colegiaturas */
+.pc-modulo .pc-ultima-actualizacion {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  color: #dc2626;
+}
+
+.pc-busqueda {
+  margin-bottom: 1rem;
+  max-width: 520px;
+}
+
+.pc-busqueda .alumno-ac {
+  width: 100%;
+}
+
+.pc-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.pc-leyenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.pc-leyenda-muestra {
+  width: 1.25rem;
+  height: 1rem;
+  border-radius: 3px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.pc-leyenda-muestra--cancelado {
+  background: #fef08a;
+}
+
+.pc-leyenda-muestra--devolucion {
+  background: #bae6fd;
+}
+
+.pc-leyenda-muestra--manual {
+  background: #bbf7d0;
+}
+
+.pc-msg {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+}
+
+.pc-msg--error {
+  color: #b91c1c;
+}
+
+.pc-loading,
+.pc-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #64748b;
+}
+
+.pc-spin {
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 0.35rem;
+}
+
+.pc-tabla-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.pc-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.pc-tabla th,
+.pc-tabla td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.pc-tabla th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.pc-tabla .pc-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pc-tabla .pc-ref {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+
+.pc-fila--cancelado {
+  background: #fef9c3;
+}
+
+.pc-fila--devolucion {
+  background: #e0f2fe;
+}
+
+.pc-fila--manual {
+  background: #dcfce7;
+}
