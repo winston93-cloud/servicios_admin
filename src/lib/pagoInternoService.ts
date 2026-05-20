@@ -11,6 +11,21 @@ export interface ConceptoInterno {
   orden_visible: number
 }
 
+export function compararTextoAz(a: string | null | undefined, b: string | null | undefined): number {
+  return String(a ?? '').localeCompare(String(b ?? ''), 'es', { sensitivity: 'base' })
+}
+
+export function ordenarConceptosAz(lista: ConceptoInterno[]): ConceptoInterno[] {
+  return [...lista].sort((a, b) => compararTextoAz(a.concepto_clase, b.concepto_clase))
+}
+
+export function nombreConceptoInterno(
+  conceptoId: number,
+  conceptos: ConceptoInterno[]
+): string {
+  return conceptos.find((c) => c.concepto_id === conceptoId)?.concepto_clase ?? String(conceptoId)
+}
+
 export interface ConceptoInternoInput {
   concepto_id: number
   concepto_clase: string
@@ -95,6 +110,20 @@ export interface PagoInternoPrecioInput {
   precio_ciclo_escolar: number
 }
 
+export function ordenarPreciosPorConceptoAz(
+  precios: PagoInternoPrecio[],
+  conceptos: ConceptoInterno[]
+): PagoInternoPrecio[] {
+  return [...precios].sort((a, b) => {
+    const na = nombreConceptoInterno(a.concepto_id, conceptos)
+    const nb = nombreConceptoInterno(b.concepto_id, conceptos)
+    const porConcepto = compararTextoAz(na, nb)
+    if (porConcepto !== 0) return porConcepto
+    if (a.alumno_nivel !== b.alumno_nivel) return a.alumno_nivel - b.alumno_nivel
+    return a.alumno_grado - b.alumno_grado
+  })
+}
+
 export async function listarPreciosInternos(
   cicloEscolar?: number
 ): Promise<PagoInternoPrecio[]> {
@@ -103,10 +132,7 @@ export async function listarPreciosInternos(
     .select(
       'precio_interno_id, alumno_nivel, alumno_grado, concepto_id, precio_interno, precio_ciclo_escolar'
     )
-    .order('precio_ciclo_escolar', { ascending: false })
-    .order('concepto_id', { ascending: true })
-    .order('alumno_nivel', { ascending: true })
-    .order('alumno_grado', { ascending: true })
+    .order('precio_interno_id', { ascending: true })
 
   if (cicloEscolar != null) {
     q = q.eq('precio_ciclo_escolar', cicloEscolar)

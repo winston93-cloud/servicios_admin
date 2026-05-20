@@ -11,6 +11,7 @@ import {
   crearPagoInterno,
   esConceptoManuales,
   listarConceptosInternos,
+  ordenarConceptosAz,
   listarPagosPorAlumno,
   mensajeManualesRequiereCuotaPadres,
   nivelGradoDesdeAlumno,
@@ -55,8 +56,10 @@ export default function PagosInternosModulo() {
   const [mensaje, setMensaje] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  const conceptosOrdenados = useMemo(() => ordenarConceptosAz(conceptos), [conceptos])
+
   const recargarConceptos = useCallback(async () => {
-    const lista = await listarConceptosInternos(true)
+    const lista = ordenarConceptosAz(await listarConceptosInternos(true))
     setConceptos(lista)
     if (lista.length) {
       setConceptoId((prev) => (prev === 0 ? lista[0].concepto_id : prev))
@@ -78,8 +81,8 @@ export default function PagosInternosModulo() {
   }, [alumnoId, cicloPago])
 
   const conceptoSeleccionado = useMemo(
-    () => conceptos.find((c) => c.concepto_id === conceptoId) ?? null,
-    [conceptos, conceptoId]
+    () => conceptosOrdenados.find((c) => c.concepto_id === conceptoId) ?? null,
+    [conceptosOrdenados, conceptoId]
   )
 
   const bloqueoManualesSinCuota =
@@ -138,7 +141,7 @@ export default function PagosInternosModulo() {
       if (!alumno) return
 
       const concepto =
-        conceptos.find((c) => c.concepto_id === conceptoIdPago)?.concepto_clase ?? ''
+        conceptosOrdenados.find((c) => c.concepto_id === conceptoIdPago)?.concepto_clase ?? ''
 
       setValeImpresion({
         fecha,
@@ -155,7 +158,7 @@ export default function PagosInternosModulo() {
       })
       imprimirValePagoInterno()
     },
-    [alumnoSeleccionado, cicloSeleccionado, conceptos, opcionesCatalogo]
+    [alumnoSeleccionado, cicloSeleccionado, conceptosOrdenados, opcionesCatalogo]
   )
 
   const onCambioConcepto = useCallback(
@@ -235,7 +238,7 @@ export default function PagosInternosModulo() {
       setError('Selecciona un alumno primero.')
       return
     }
-    const conceptoCuota = conceptos.find((c) => c.concepto_id === 2) ?? conceptos[0]
+    const conceptoCuota = conceptosOrdenados.find((c) => c.concepto_id === 2) ?? conceptosOrdenados[0]
     if (!conceptoCuota) {
       setError('No hay concepto de cuota de padres en el catálogo.')
       return
@@ -379,7 +382,7 @@ export default function PagosInternosModulo() {
                     onChange={(e) => onCambioConcepto(Number(e.target.value))}
                   >
                     <option value="">No seleccionado</option>
-                    {conceptos.map((c) => (
+                    {conceptosOrdenados.map((c) => (
                       <option key={c.concepto_id} value={c.concepto_id}>
                         {c.concepto_clase}
                       </option>
@@ -474,8 +477,8 @@ export default function PagosInternosModulo() {
                         <tr key={p.pago_id}>
                           <td>{p.pago_folio}</td>
                           <td>
-                            {conceptos.find((c) => c.concepto_id === p.concepto_id)?.concepto_clase ??
-                              p.concepto_id}
+                            {conceptosOrdenados.find((c) => c.concepto_id === p.concepto_id)
+                              ?.concepto_clase ?? p.concepto_id}
                           </td>
                           <td>{p.concepto_otro ?? '—'}</td>
                           <td>${Number(p.pago_importe).toFixed(2)}</td>
