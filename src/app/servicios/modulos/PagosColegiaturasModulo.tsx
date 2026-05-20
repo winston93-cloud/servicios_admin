@@ -27,7 +27,6 @@ import {
   type PagoDetalleRegistro,
 } from '@/lib/pagoColegiaturaService'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
-import CicloEscolarSelector from '../components/CicloEscolarSelector'
 
 function formatearMonto(n: number): string {
   return n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -60,12 +59,15 @@ export default function PagosColegiaturasModulo() {
   const {
     cicloSeleccionado,
     cicloActualSistema,
+    opcionesCatalogo,
     cargando: cargandoCiclos,
-    setCicloSeleccionado,
   } = useCicloEscolar()
-  const cicloInicializado = useRef(false)
+  const cicloPagosInicializado = useRef(false)
   const { alumnoSeleccionado, setAlumnoSeleccionado, resolviendoCiclo } =
     useAlumnoSeleccionado()
+
+  /** Ciclo para filtrar pagos (dígitos 8-9 de pago_referencia / alumno_ciclo_escolar). */
+  const [cicloEscolarPagos, setCicloEscolarPagos] = useState(cicloActualSistema)
 
   const [conceptos, setConceptos] = useState<ConceptoBoucher[]>([])
   const [ultimaActualizacion, setUltimaActualizacion] = useState<string | null>(null)
@@ -88,27 +90,35 @@ export default function PagosColegiaturasModulo() {
   }, [])
 
   useEffect(() => {
-    if (cargandoCiclos || cicloInicializado.current) return
-    setCicloSeleccionado(cicloActualSistema)
-    cicloInicializado.current = true
-  }, [cargandoCiclos, cicloActualSistema, setCicloSeleccionado])
+    if (cargandoCiclos || cicloPagosInicializado.current) return
+    setCicloEscolarPagos(cicloActualSistema)
+    cicloPagosInicializado.current = true
+  }, [cargandoCiclos, cicloActualSistema])
 
-  const cargarPagos = useCallback(async (ref: string, ciclo: number) => {
-    setCargando(true)
-    setError(null)
-    const alumno = await obtenerAlumnoPorRef(ref, ciclo)
-    if (!alumno) {
-      setAlumnoCargado(null)
-      setPagos([])
+  const cargarPagos = useCallback(
+    async (ref: string, cicloAlumnoActivo: number, cicloPagos: number) => {
+      setCargando(true)
+      setError(null)
+      const alumno = await obtenerAlumnoPorRef(ref, cicloAlumnoActivo)
+      if (!alumno) {
+        setAlumnoCargado(null)
+        setPagos([])
+        setCargando(false)
+        setError('El alumno no tiene registro en el ciclo activo seleccionado.')
+        return
+      }
+      setAlumnoCargado(alumno)
+      const alumnoPagos =
+        (await obtenerAlumnoPorRef(ref, cicloPagos)) ?? alumno
+      const lista = await listarPagosColegiaturaAlumno(
+        alumnoPagos.alumno_id,
+        cicloPagos
+      )
+      setPagos(lista)
       setCargando(false)
-      setError('El alumno no tiene registro en el ciclo de consulta.')
-      return
-    }
-    setAlumnoCargado(alumno)
-    const lista = await listarPagosColegiaturaAlumno(alumno.alumno_id, ciclo)
-    setPagos(lista)
-    setCargando(false)
-  }, [])
+    },
+    []
+  )
 
   useEffect(() => {
     if (!alumnoSeleccionado) {
@@ -118,12 +128,22 @@ export default function PagosColegiaturasModulo() {
       return
     }
     if (resolviendoCiclo) return
-    cargarPagos(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
-  }, [alumnoSeleccionado, cicloSeleccionado, resolviendoCiclo, cargarPagos])
+    cargarPagos(
+      alumnoSeleccionado.alumno_ref,
+      cicloSeleccionado,
+      cicloEscolarPagos
+    )
+  }, [
+    alumnoSeleccionado,
+    cicloSeleccionado,
+    cicloEscolarPagos,
+    resolviendoCiclo,
+    cargarPagos,
+  ])
 
-  const etiquetaCiclo = useMemo(
-    () => etiquetaCicloEscolar(cicloSeleccionado),
-    [cicloSeleccionado]
+  const etiquetaCicloPagos = useMemo(
+    () => etiquetaCicloEscolar(cicloEscolarPagos, opcionesCatalogo),
+    [cicloEscolarPagos, opcionesCatalogo]
   )
 
   const totalImporte = useMemo(
@@ -174,13 +194,26 @@ export default function PagosColegiaturasModulo() {
             onSeleccionar={setAlumnoSeleccionado}
           />
         </section>
-        <CicloEscolarSelector
-          id="ciclo-escolar-pagos-colegiaturas"
-          etiqueta="Ciclo activo"
-          variante="inline"
-          mostrarCicloSistema={false}
-          className="pc-ciclo-selector"
-        />
+        <div className="pc-ciclo-pagos" role="group" aria-label="Ciclo escolar de pagos">
+          <label htmlFor="ciclo-escolar-pagos" className="pc-ciclo-pagos-label">
+            Ciclo escolar
+          </label>
+          <select
+            id="ciclo-escolar-pagos"
+            className="pc-ciclo-pagos-select"
+            value={String(cicloEscolarPagos)}
+            disabled={cargandoCiclos || opcionesCatalogo.length === 0}
+            onChange={(e) => setCicloEscolarPagos(Number(e.target.value))}
+            title="Muestra los pagos cuya referencia corresponde a este ciclo (posiciones 8-9)."
+          >
+            {opcionesCatalogo.map((o) => (
+              <option key={o.valor} value={o.valor}>
+                {o.etiqueta}
+                {o.valor === cicloActualSistema ? ' (activo)' : ''}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {error ? (
@@ -229,7 +262,7 @@ export default function PagosColegiaturasModulo() {
             </p>
           ) : pagos.length === 0 ? (
             <p className="pc-empty">
-              No hay pagos registrados para este alumno en {etiquetaCiclo}.
+              No hay pagos registrados para este alumno en {etiquetaCicloPagos}.
             </p>
           ) : (
             <table className="pc-tabla">
