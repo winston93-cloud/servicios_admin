@@ -6,7 +6,6 @@ import {
   Star,
   GraduationCap,
   Wallet,
-  Tags,
   CreditCard,
   BookOpenCheck,
   Mail,
@@ -30,7 +29,6 @@ export type ServiciosModuloId =
   | 'becas'
   | 'becas-sep'
   | 'pagos-internos'
-  | 'precios-pagos-internos'
   | 'pagos-colegiaturas'
   | 'pagos-inscripcion'
   | 'correo-masivo'
@@ -59,7 +57,6 @@ export const SERVICIOS_MENU: ServiciosMenuItem[] = [
   { id: 'becas', label: 'Becas', icon: Star },
   { id: 'becas-sep', label: 'Becas SEP', icon: GraduationCap },
   { id: 'pagos-internos', label: 'Pagos Internos', icon: Wallet },
-  { id: 'precios-pagos-internos', label: 'Precios Pagos Internos', icon: Tags },
   { id: 'pagos-colegiaturas', label: 'Pagos de Colegiaturas', icon: CreditCard },
   { id: 'pagos-inscripcion', label: 'Pagos de Inscripción', icon: BookOpenCheck },
   { id: 'correo-masivo', label: 'Correo Masivo', icon: Mail },

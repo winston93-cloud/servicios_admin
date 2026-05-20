@@ -30,11 +30,7 @@ function hoyIso(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-interface Props {
-  abrirCatalogoInicial?: boolean
-}
-
-export default function PagosInternosModulo({ abrirCatalogoInicial = false }: Props) {
+export default function PagosInternosModulo() {
   const { cicloSeleccionado, opcionesCatalogo } = useCicloEscolar()
   const { alumnoSeleccionado, setAlumnoSeleccionado, resolviendoCiclo } =
     useAlumnoSeleccionado()
@@ -52,7 +48,7 @@ export default function PagosInternosModulo({ abrirCatalogoInicial = false }: Pr
   const [fechaPago, setFechaPago] = useState(hoyIso())
   const [cicloPago, setCicloPago] = useState(cicloSeleccionado)
 
-  const [catalogoAbierto, setCatalogoAbierto] = useState(abrirCatalogoInicial)
+  const [catalogoAbierto, setCatalogoAbierto] = useState(false)
   const [valeImpresion, setValeImpresion] = useState<DatosValePagoInterno | null>(null)
 
   const [guardando, setGuardando] = useState(false)

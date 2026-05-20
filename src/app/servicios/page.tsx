@@ -64,8 +64,6 @@ function ServiciosPanelContenido({
       return <BecasModulo />
     case 'pagos-internos':
       return <PagosInternosModulo />
-    case 'precios-pagos-internos':
-      return <PagosInternosModulo abrirCatalogoInicial />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }
