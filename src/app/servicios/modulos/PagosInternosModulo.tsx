@@ -296,12 +296,42 @@ export default function PagosInternosModulo() {
         </button>
       </header>
 
-      <AlumnoAutocomplete
-        etiqueta="Nombre del alumno / No. control"
-        alumnoSeleccionado={alumnoSeleccionado}
-        onSeleccionar={setAlumnoSeleccionado}
-        autoFocus
-      />
+      <div className="pi-busqueda-fila">
+        <div className="pi-busqueda-fila__buscar">
+          <AlumnoAutocomplete
+            etiqueta="Nombre del alumno / No. control"
+            alumnoSeleccionado={alumnoSeleccionado}
+            onSeleccionar={setAlumnoSeleccionado}
+            autoFocus
+          />
+        </div>
+        {alumnoSeleccionado && !resolviendoCiclo && !cargandoPagos && (
+          <aside className="pi-cuota-top" aria-labelledby="pi-cuota-titulo">
+            <h2 id="pi-cuota-titulo" className="pi-cuota-top-titulo">
+              Cuota de padres
+            </h2>
+            <label className="pi-check pi-check--compact">
+              <input type="checkbox" checked={cuotaPadresPagada} readOnly />
+              <span>
+                Pagada
+                {cuotaPadresPagada
+                  ? ` (${etiquetaCicloEscolar(cicloPago, opcionesCatalogo) || 'ciclo del pago'})`
+                  : ` — falta en ${etiquetaCicloEscolar(cicloPago, opcionesCatalogo) || 'este ciclo'}`}
+              </span>
+            </label>
+            {!cuotaPadresPagada && (
+              <button
+                type="button"
+                className="pi-btn pi-btn--secondary pi-btn--sm"
+                disabled={guardando || alumnoId == null}
+                onClick={onCuotaPadresRapida}
+              >
+                Registrar cuota
+              </button>
+            )}
+          </aside>
+        )}
+      </div>
 
       {(resolviendoCiclo || cargandoPagos) && (
         <div className="pi-loading" role="status">
@@ -423,28 +453,38 @@ export default function PagosInternosModulo() {
               </form>
             </section>
 
-            <section className="pi-tarjeta pi-tarjeta--cuota" aria-labelledby="pi-cuota-titulo">
-              <h2 id="pi-cuota-titulo" className="pi-tarjeta-titulo">
-                Cuota de padres
-              </h2>
-              <label className="pi-check pi-check--grande">
-                <input type="checkbox" checked={cuotaPadresPagada} readOnly />
-                <span>
-                  Pagada
-                  {cuotaPadresPagada
-                    ? ` (${etiquetaCicloEscolar(cicloPago, opcionesCatalogo) || 'ciclo del pago'})`
-                    : ` — falta en ${etiquetaCicloEscolar(cicloPago, opcionesCatalogo) || 'este ciclo'}`}
-                </span>
-              </label>
-              {!cuotaPadresPagada && (
-                <button
-                  type="button"
-                  className="pi-btn pi-btn--secondary"
-                  disabled={guardando || alumnoId == null}
-                  onClick={onCuotaPadresRapida}
-                >
-                  Registrar cuota de padres
-                </button>
+            <section className="pi-tarjeta pi-tarjeta--historial" aria-label="Pagos del alumno">
+              <h2 className="pi-tarjeta-titulo">Pagos registrados (ciclo de consulta)</h2>
+              {pagos.length === 0 ? (
+                <p className="pi-hint">Sin pagos internos en este ciclo.</p>
+              ) : (
+                <div className="pi-historial-tabla-wrap">
+                  <table className="pi-historial-tabla">
+                    <thead>
+                      <tr>
+                        <th>Folio</th>
+                        <th>Concepto</th>
+                        <th>Extra</th>
+                        <th>Monto</th>
+                        <th>Fecha</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagos.map((p) => (
+                        <tr key={p.pago_id}>
+                          <td>{p.pago_folio}</td>
+                          <td>
+                            {conceptos.find((c) => c.concepto_id === p.concepto_id)?.concepto_clase ??
+                              p.concepto_id}
+                          </td>
+                          <td>{p.concepto_otro ?? '—'}</td>
+                          <td>${Number(p.pago_importe).toFixed(2)}</td>
+                          <td>{p.pago_fecha ?? '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </section>
           </div>
@@ -454,41 +494,6 @@ export default function PagosInternosModulo() {
               {error ?? mensaje}
             </p>
           )}
-
-          <section className="pi-historial" aria-label="Pagos del alumno">
-            <h2 className="pi-historial-titulo">Pagos registrados (ciclo de consulta)</h2>
-            {pagos.length === 0 ? (
-              <p className="pi-hint">Sin pagos internos en este ciclo.</p>
-            ) : (
-              <div className="pi-historial-tabla-wrap">
-                <table className="pi-historial-tabla">
-                  <thead>
-                    <tr>
-                      <th>Folio</th>
-                      <th>Concepto</th>
-                      <th>Extra</th>
-                      <th>Monto</th>
-                      <th>Fecha</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pagos.map((p) => (
-                      <tr key={p.pago_id}>
-                        <td>{p.pago_folio}</td>
-                        <td>
-                          {conceptos.find((c) => c.concepto_id === p.concepto_id)?.concepto_clase ??
-                            p.concepto_id}
-                        </td>
-                        <td>{p.concepto_otro ?? '—'}</td>
-                        <td>${Number(p.pago_importe).toFixed(2)}</td>
-                        <td>{p.pago_fecha ?? '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
         </>
       )}
 
