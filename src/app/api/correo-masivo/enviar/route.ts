@@ -1,9 +1,5 @@
 import { NextResponse } from 'next/server'
-import {
-  enviarCorreoMasivo,
-  htmlCuerpoCorreoMasivo,
-  nombreRemitentePorNivel,
-} from '@/lib/emailServicios'
+import { enviarCorreoMasivo, htmlCuerpoCorreoMasivo } from '@/lib/emailServicios'
 import {
   listarDestinatariosCorreoMasivo,
   type DestinatarioCorreoMasivo,
@@ -115,7 +111,7 @@ export async function POST(request: Request) {
       continue
     }
 
-    const html = htmlCuerpoCorreoMasivo(mensaje, nombreRemitentePorNivel(dest.nivel))
+    const html = htmlCuerpoCorreoMasivo(mensaje, dest.nivel)
     const res = await enviarCorreoMasivo({
       to: dest.emails,
       subject: asunto,
