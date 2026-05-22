@@ -7,7 +7,6 @@ import {
   GraduationCap,
   Wallet,
   CreditCard,
-  BookOpenCheck,
   Mail,
   RefreshCw,
   Ban,
@@ -30,7 +29,6 @@ export type ServiciosModuloId =
   | 'becas-sep'
   | 'pagos-internos'
   | 'pagos-colegiaturas'
-  | 'pagos-inscripcion'
   | 'correo-masivo'
   | 'actualizar-pagos'
   | 'suspensiones'
@@ -58,7 +56,6 @@ export const SERVICIOS_MENU: ServiciosMenuItem[] = [
   { id: 'becas-sep', label: 'Becas SEP', icon: GraduationCap },
   { id: 'pagos-internos', label: 'Pagos Internos', icon: Wallet },
   { id: 'pagos-colegiaturas', label: 'Pagos de Colegiaturas', icon: CreditCard },
-  { id: 'pagos-inscripcion', label: 'Pagos de Inscripción', icon: BookOpenCheck },
   { id: 'correo-masivo', label: 'Correo Masivo', icon: Mail },
   { id: 'actualizar-pagos', label: 'Actualizar Pagos', icon: RefreshCw },
   { id: 'suspensiones', label: 'Suspensiones', icon: Ban },

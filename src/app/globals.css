@@ -5084,23 +5084,28 @@ body {
 }
 
 .servicios-main-toolbar--with-ciclo {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: 12px 20px;
 }
 
-.servicios-toolbar-ciclo-grupo {
+.servicios-toolbar-izq {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 16px;
-  margin-left: auto;
-  margin-right: clamp(12px, 2vw, 28px);
+  gap: 10px 12px;
+  justify-self: start;
 }
 
-.servicios-btn-pagos-internos {
+.servicios-toolbar-centro {
+  display: flex;
+  justify-content: center;
+  justify-self: center;
+  grid-column: 2;
+}
+
+.servicios-btn-modulo {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -5118,12 +5123,12 @@ body {
   transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.12s ease;
 }
 
-.servicios-btn-pagos-internos:hover {
+.servicios-btn-modulo:hover {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 55%, #1d4ed8 100%);
   box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
 }
 
-.servicios-btn-pagos-internos--activo {
+.servicios-btn-modulo--activo {
   outline: 3px solid rgba(37, 99, 235, 0.35);
   outline-offset: 2px;
 }
@@ -5456,8 +5461,19 @@ body {
   }
 
   .servicios-main-toolbar--with-ciclo {
+    display: flex;
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .servicios-toolbar-izq {
+    justify-self: stretch;
+  }
+
+  .servicios-toolbar-centro {
+    grid-column: auto;
+    justify-self: stretch;
+    width: 100%;
   }
 }
 
@@ -7539,6 +7555,54 @@ body {
 
   .servicios-sidebar--collapsed .servicios-sidebar-logout {
     padding: 10px 8px;
+  }
+
+  .servicios-sidebar--collapsed:hover {
+    width: 272px;
+    z-index: 220;
+    box-shadow: 8px 0 32px rgba(15, 23, 42, 0.35);
+  }
+
+  .servicios-sidebar--collapsed:hover .servicios-sidebar-brand {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    padding: 14px 10px 14px;
+    gap: 8px;
+  }
+
+  .servicios-sidebar--collapsed:hover .servicios-sidebar-institution-logo {
+    display: block;
+  }
+
+  .servicios-sidebar--collapsed:hover .servicios-sidebar-brand-text {
+    display: block;
+  }
+
+  .servicios-sidebar--collapsed:hover .servicios-sidebar-collapse {
+    margin-top: 2px;
+  }
+
+  .servicios-sidebar--collapsed:hover .servicios-nav-label,
+  .servicios-sidebar--collapsed:hover .servicios-nav-chevron {
+    display: inline;
+  }
+
+  .servicios-sidebar--collapsed:hover .servicios-nav-item {
+    justify-content: flex-start;
+    padding: 10px 12px;
+  }
+
+  .servicios-sidebar--collapsed:hover .servicios-sidebar-user {
+    display: block;
+  }
+
+  .servicios-sidebar--collapsed:hover .servicios-sidebar-logout-text {
+    display: inline;
+  }
+
+  .servicios-sidebar--collapsed:hover .servicios-sidebar-logout {
+    padding: 10px 12px;
   }
 }
 

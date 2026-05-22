@@ -77,12 +77,14 @@ function ServiciosPageInner() {
   const searchParams = useSearchParams()
   const { user, logout } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
 
   useEffect(() => {
     try {
-      if (typeof window !== 'undefined' && localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1') {
-        setSidebarCollapsed(true)
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY)
+        if (stored === '0') setSidebarCollapsed(false)
+        else if (stored === '1') setSidebarCollapsed(true)
       }
     } catch {
       /* ignore */
@@ -241,22 +243,31 @@ function ServiciosPageInner() {
 
       <main className="servicios-main">
         <div className="servicios-main-toolbar servicios-main-toolbar--with-ciclo">
-          <button
-            type="button"
-            className="servicios-back-btn"
-            onClick={() => router.push('/dashboard')}
-          >
-            <ArrowLeft size={18} aria-hidden />
-            Volver al panel
-          </button>
-          <div className="servicios-toolbar-ciclo-grupo">
+          <div className="servicios-toolbar-izq">
             <button
               type="button"
-              className={`servicios-btn-pagos-internos${moduloActivo === 'pagos-internos' ? ' servicios-btn-pagos-internos--activo' : ''}`}
+              className="servicios-back-btn"
+              onClick={() => router.push('/dashboard')}
+            >
+              <ArrowLeft size={18} aria-hidden />
+              Volver al panel
+            </button>
+            <button
+              type="button"
+              className={`servicios-btn-modulo${moduloActivo === 'alumnos' ? ' servicios-btn-modulo--activo' : ''}`}
+              onClick={() => seleccionarModulo('alumnos')}
+            >
+              Alumnos
+            </button>
+            <button
+              type="button"
+              className={`servicios-btn-modulo${moduloActivo === 'pagos-internos' ? ' servicios-btn-modulo--activo' : ''}`}
               onClick={() => seleccionarModulo('pagos-internos')}
             >
               Pagos internos
             </button>
+          </div>
+          <div className="servicios-toolbar-centro">
             <CicloEscolarSelector etiqueta="Ciclo activo" />
           </div>
         </div>
