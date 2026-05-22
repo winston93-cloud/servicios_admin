@@ -9324,6 +9324,12 @@ body {
   border: 1px solid #a7f3d0;
 }
 
+.cm-alerta--progreso {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
 .cm-alerta--error {
   background: #fef2f2;
   color: #b91c1c;

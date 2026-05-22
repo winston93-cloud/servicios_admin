@@ -35,6 +35,9 @@ export default function CorreoMasivoModulo() {
   const [error, setError] = useState<string | null>(null)
   const [mensajeOk, setMensajeOk] = useState<string | null>(null)
   const [faseEnvio, setFaseEnvio] = useState<'preview' | 'resultado'>('preview')
+  const [progresoEnvio, setProgresoEnvio] = useState<string | null>(null)
+
+  const TAMANO_LOTE_ENVIO = 35
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -125,39 +128,87 @@ export default function CorreoMasivoModulo() {
     }
 
     setEnviando(true)
+    setProgresoEnvio(null)
     try {
-      const fd = new FormData()
-      fd.set('asunto', asunto.trim())
-      fd.set('mensaje', mensaje.trim())
-      fd.set(
-        'filtros',
-        JSON.stringify({
-          cicloEscolar: cicloFiltro,
-          nivel: nivel > 0 ? nivel : null,
-          grado: grado > 0 ? grado : null,
-          grupo: grupo > 0 ? grupo : null,
-          filtroAdicional,
-        })
-      )
-      for (const f of archivos) fd.append('archivos', f)
+      const conCorreo = destinatarios.filter((d) => d.emails.length > 0)
+      const sinCorreoPrevios = destinatarios.filter((d) => !d.emails.length)
+      const resultadosMap = new Map<number, DestinatarioCorreoMasivo>()
 
-      const res = await fetch('/api/correo-masivo/enviar', { method: 'POST', body: fd })
-      const json = await res.json()
-      if (!res.ok) {
-        setError(json.error ?? 'Error al enviar correos')
-        return
+      for (const d of sinCorreoPrevios) {
+        resultadosMap.set(d.alumno_id, {
+          ...d,
+          estado: 'sin-correo',
+          mensaje_estado: 'Sin correo autorizado (padre/madre)',
+        })
       }
 
-      setDestinatarios(json.resultados ?? [])
+      let totalEnviados = 0
+      let totalErrores = 0
+      const totalLotes = Math.ceil(conCorreo.length / TAMANO_LOTE_ENVIO) || 0
+
+      for (let i = 0; i < conCorreo.length; i += TAMANO_LOTE_ENVIO) {
+        const lote = conCorreo.slice(i, i + TAMANO_LOTE_ENVIO)
+        const numLote = Math.floor(i / TAMANO_LOTE_ENVIO) + 1
+        setProgresoEnvio(
+          `Enviando lote ${numLote} de ${totalLotes} (alumnos ${i + 1}–${i + lote.length} de ${conCorreo.length})…`
+        )
+
+        const fd = new FormData()
+        fd.set('asunto', asunto.trim())
+        fd.set('mensaje', mensaje.trim())
+        fd.set(
+          'filtros',
+          JSON.stringify({
+            cicloEscolar: cicloFiltro,
+            nivel: nivel > 0 ? nivel : null,
+            grado: grado > 0 ? grado : null,
+            grupo: grupo > 0 ? grupo : null,
+            filtroAdicional,
+            soloAlumnoIds: lote.map((d) => d.alumno_id),
+          })
+        )
+        for (const f of archivos) fd.append('archivos', f)
+
+        const res = await fetch('/api/correo-masivo/enviar', { method: 'POST', body: fd })
+        const json = await res.json()
+        if (!res.ok) {
+          setError(json.error ?? `Error en lote ${numLote}`)
+          for (const d of lote) {
+            resultadosMap.set(d.alumno_id, {
+              ...d,
+              estado: 'error',
+              mensaje_estado: json.error ?? 'Error de envío',
+            })
+          }
+          totalErrores += lote.length
+          continue
+        }
+
+        totalEnviados += json.resumen?.enviados ?? 0
+        totalErrores += json.resumen?.errores ?? 0
+
+        for (const r of (json.resultados ?? []) as DestinatarioCorreoMasivo[]) {
+          resultadosMap.set(r.alumno_id, r)
+        }
+      }
+
+      const ordenados = [...resultadosMap.values()].sort((a, b) => {
+        if (a.nivel !== b.nivel) return a.nivel - b.nivel
+        if (a.grado !== b.grado) return a.grado - b.grado
+        if (a.grupo !== b.grupo) return a.grupo - b.grupo
+        return a.nombre_completo.localeCompare(b.nombre_completo, 'es')
+      })
+
+      setDestinatarios(ordenados)
       setFaseEnvio('resultado')
-      const r = json.resumen
       setMensajeOk(
-        `Proceso terminado: ${r.enviados} enviado(s), ${r.errores} error(es), ${r.sinCorreo} sin correo.`
+        `Proceso terminado: ${totalEnviados} enviado(s), ${totalErrores} error(es), ${sinCorreoPrevios.length} sin correo.`
       )
     } catch {
       setError('Error de red al enviar correos')
     } finally {
       setEnviando(false)
+      setProgresoEnvio(null)
     }
   }
 
@@ -332,9 +383,12 @@ export default function CorreoMasivoModulo() {
         </div>
       </form>
 
-      {(error || mensajeOk) && (
-        <p className={`cm-alerta ${error ? 'cm-alerta--error' : 'cm-alerta--ok'}`} role="status">
-          {error ?? mensajeOk}
+      {(progresoEnvio || error || mensajeOk) && (
+        <p
+          className={`cm-alerta ${error ? 'cm-alerta--error' : progresoEnvio ? 'cm-alerta--progreso' : 'cm-alerta--ok'}`}
+          role="status"
+        >
+          {error ?? progresoEnvio ?? mensajeOk}
         </p>
       )}
 

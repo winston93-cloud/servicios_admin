@@ -74,13 +74,19 @@ export async function POST(request: Request) {
     ? (filtrosRaw!.filtroAdicional as FiltroAdicionalCorreo)
     : 'sin-filtro'
 
-  const destinatarios = await listarDestinatariosCorreoMasivo({
+  let destinatarios = await listarDestinatariosCorreoMasivo({
     cicloEscolar: ciclo,
     nivel: filtrosRaw?.nivel ? Number(filtrosRaw.nivel) : null,
     grado: filtrosRaw?.grado ? Number(filtrosRaw.grado) : null,
     grupo: filtrosRaw?.grupo ? Number(filtrosRaw.grupo) : null,
     filtroAdicional,
   })
+
+  const soloIds = filtrosRaw?.soloAlumnoIds
+  if (Array.isArray(soloIds) && soloIds.length > 0) {
+    const permitidos = new Set(soloIds.map((id) => Number(id)).filter((id) => id > 0))
+    destinatarios = destinatarios.filter((d) => permitidos.has(d.alumno_id))
+  }
 
   const archivos = form.getAll('archivos').filter((f): f is File => f instanceof File)
   const attachments: { filename: string; content: Buffer; contentType?: string }[] = []
