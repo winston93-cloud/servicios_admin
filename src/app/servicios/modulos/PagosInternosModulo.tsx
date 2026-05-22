@@ -294,7 +294,7 @@ export default function PagosInternosModulo() {
           className="pi-btn pi-btn--secondary pi-btn--catalogo"
           onClick={() => setCatalogoAbierto(true)}
         >
-          <Settings2 size={18} aria-hidden />
+          <Settings2 size={16} aria-hidden />
           Conceptos y precios
         </button>
       </header>
