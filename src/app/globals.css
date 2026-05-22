@@ -9335,6 +9335,18 @@ body {
   border: 1px solid #cbd5e1;
 }
 
+.cm-btn--descartar {
+  background: #fef9c3;
+  color: #713f12;
+  border-color: #facc15;
+  font-weight: 700;
+}
+
+.cm-btn--descartar:hover:not(:disabled) {
+  background: #fef08a;
+  border-color: #eab308;
+}
+
 .cm-btn--sm {
   padding: 8px 14px;
   font-size: 0.8125rem;

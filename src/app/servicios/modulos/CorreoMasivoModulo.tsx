@@ -415,7 +415,7 @@ export default function CorreoMasivoModulo() {
             )}
             <button
               type="button"
-              className="cm-btn cm-btn--sec cm-btn--sm"
+              className="cm-btn cm-btn--sec cm-btn--descartar cm-btn--sm"
               disabled={enviando}
               onClick={() => {
                 if (
