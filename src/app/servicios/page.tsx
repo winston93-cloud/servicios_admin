@@ -271,6 +271,13 @@ function ServiciosPageInner() {
             >
               Pagos internos
             </button>
+            <button
+              type="button"
+              className={`servicios-btn-modulo${moduloActivo === 'pagos-colegiaturas' ? ' servicios-btn-modulo--activo' : ''}`}
+              onClick={() => seleccionarModulo('pagos-colegiaturas')}
+            >
+              Colegiaturas
+            </button>
           </div>
         </div>
         <div className="servicios-main-scroll">
