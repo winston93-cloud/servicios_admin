@@ -4898,7 +4898,9 @@ body {
   flex-direction: column;
   min-height: 100vh;
   box-shadow: 4px 0 24px rgba(15, 23, 42, 0.2);
-  transition: width 0.22s var(--ease-out-expo);
+  transition:
+    width 0.48s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.48s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .servicios-sidebar-brand {
@@ -7549,40 +7551,56 @@ body {
     align-items: center;
     padding: 14px 8px 16px;
     gap: 12px;
+    transition: padding 0.45s cubic-bezier(0.22, 1, 0.36, 1), gap 0.45s ease;
   }
 
   .servicios-sidebar--collapsed .servicios-sidebar-institution-logo {
-    display: none;
+    opacity: 0;
+    visibility: hidden;
+    width: 0;
+    max-width: 0;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.32s ease,
+      visibility 0.32s ease,
+      max-width 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+      width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
-  .servicios-sidebar--collapsed .servicios-sidebar-brand-text {
-    display: none;
+  .servicios-sidebar--collapsed .servicios-sidebar-brand-text,
+  .servicios-sidebar--collapsed .servicios-nav-label,
+  .servicios-sidebar--collapsed .servicios-nav-chevron,
+  .servicios-sidebar--collapsed .servicios-sidebar-user,
+  .servicios-sidebar--collapsed .servicios-sidebar-logout-text {
+    opacity: 0;
+    visibility: hidden;
+    max-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    pointer-events: none;
+    transition:
+      opacity 0.28s ease,
+      visibility 0.28s ease,
+      max-width 0.42s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .servicios-sidebar--collapsed .servicios-sidebar-collapse {
     margin-top: 0;
-  }
-
-  .servicios-sidebar--collapsed .servicios-nav-label,
-  .servicios-sidebar--collapsed .servicios-nav-chevron {
-    display: none;
+    transition: margin-top 0.4s ease;
   }
 
   .servicios-sidebar--collapsed .servicios-nav-item {
     justify-content: center;
     padding: 10px 8px;
-  }
-
-  .servicios-sidebar--collapsed .servicios-sidebar-user {
-    display: none;
-  }
-
-  .servicios-sidebar--collapsed .servicios-sidebar-logout-text {
-    display: none;
+    transition: padding 0.45s cubic-bezier(0.22, 1, 0.36, 1), justify-content 0.45s ease;
   }
 
   .servicios-sidebar--collapsed .servicios-sidebar-logout {
     padding: 10px 8px;
+    transition: padding 0.45s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .servicios-sidebar--collapsed:hover {
@@ -7600,33 +7618,33 @@ body {
   }
 
   .servicios-sidebar--collapsed:hover .servicios-sidebar-institution-logo {
-    display: block;
+    opacity: 1;
+    visibility: visible;
+    width: auto;
+    max-width: 48px;
+    pointer-events: auto;
+    transition-delay: 0.12s;
   }
 
-  .servicios-sidebar--collapsed:hover .servicios-sidebar-brand-text {
-    display: block;
+  .servicios-sidebar--collapsed:hover .servicios-sidebar-brand-text,
+  .servicios-sidebar--collapsed:hover .servicios-nav-label,
+  .servicios-sidebar--collapsed:hover .servicios-nav-chevron,
+  .servicios-sidebar--collapsed:hover .servicios-sidebar-user,
+  .servicios-sidebar--collapsed:hover .servicios-sidebar-logout-text {
+    opacity: 1;
+    visibility: visible;
+    max-width: 220px;
+    pointer-events: auto;
+    transition-delay: 0.14s;
   }
 
   .servicios-sidebar--collapsed:hover .servicios-sidebar-collapse {
     margin-top: 2px;
   }
 
-  .servicios-sidebar--collapsed:hover .servicios-nav-label,
-  .servicios-sidebar--collapsed:hover .servicios-nav-chevron {
-    display: inline;
-  }
-
   .servicios-sidebar--collapsed:hover .servicios-nav-item {
     justify-content: flex-start;
     padding: 10px 12px;
-  }
-
-  .servicios-sidebar--collapsed:hover .servicios-sidebar-user {
-    display: block;
-  }
-
-  .servicios-sidebar--collapsed:hover .servicios-sidebar-logout-text {
-    display: inline;
   }
 
   .servicios-sidebar--collapsed:hover .servicios-sidebar-logout {
