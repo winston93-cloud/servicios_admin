@@ -16,6 +16,12 @@ import {
   type DestinatarioCorreoMasivo,
   type FiltroAdicionalCorreo,
 } from '@/lib/correoMasivoService'
+import {
+  guardarProgresoCorreoMasivo,
+  leerProgresoCorreoMasivo,
+  limpiarProgresoCorreoMasivo,
+  resumenProgresoGuardado,
+} from '@/lib/correoMasivoProgresoStorage'
 
 export default function CorreoMasivoModulo() {
   const { cicloSeleccionado, opcionesCatalogo, cargando: cargandoCiclos } = useCicloEscolar()
@@ -36,6 +42,9 @@ export default function CorreoMasivoModulo() {
   const [mensajeOk, setMensajeOk] = useState<string | null>(null)
   const [faseEnvio, setFaseEnvio] = useState<'preview' | 'resultado'>('preview')
   const [progresoEnvio, setProgresoEnvio] = useState<string | null>(null)
+  const [sesionRestaurada, setSesionRestaurada] = useState(false)
+  const [inicializado, setInicializado] = useState(false)
+  const [nombresArchivosRecordados, setNombresArchivosRecordados] = useState<string[]>([])
 
   /** Lotes pequeños + pausa para no saturar Gmail (454 Too many login attempts). */
   const TAMANO_LOTE_ENVIO = 12
@@ -43,14 +52,43 @@ export default function CorreoMasivoModulo() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const cantidadErrores = useMemo(
-    () => destinatarios.filter((d) => d.estado === 'error' && d.emails.length > 0).length,
+  const cantidadPorReenviar = useMemo(
+    () =>
+      destinatarios.filter(
+        (d) =>
+          d.emails.length > 0 && (d.estado === 'error' || d.estado === 'pendiente')
+      ).length,
+    [destinatarios]
+  )
+
+  const resumenGuardado = useMemo(
+    () => (destinatarios.length ? resumenProgresoGuardado(destinatarios) : null),
     [destinatarios]
   )
 
   useEffect(() => {
+    const guardado = leerProgresoCorreoMasivo()
+    if (guardado) {
+      setCicloFiltro(guardado.cicloFiltro)
+      setNivel(guardado.nivel)
+      setGrado(guardado.grado)
+      setGrupo(guardado.grupo)
+      setFiltroAdicional(guardado.filtroAdicional)
+      setAsunto(guardado.asunto)
+      setMensaje(guardado.mensaje)
+      setDestinatarios(guardado.destinatarios)
+      setFaseEnvio('resultado')
+      setMensajeOk(guardado.resumenTexto)
+      setNombresArchivosRecordados(guardado.nombresArchivos ?? [])
+      setSesionRestaurada(true)
+    }
+    setInicializado(true)
+  }, [])
+
+  useEffect(() => {
+    if (!inicializado || sesionRestaurada) return
     setCicloFiltro(cicloSeleccionado)
-  }, [cicloSeleccionado])
+  }, [cicloSeleccionado, inicializado, sesionRestaurada])
 
   useEffect(() => {
     setGrado(0)
@@ -64,10 +102,38 @@ export default function CorreoMasivoModulo() {
     return [...base, ...gruposOpcionesPorNivel(nivel)]
   }, [nivel])
 
+  const persistirSesion = useCallback(
+    (lista: DestinatarioCorreoMasivo[], resumenTexto: string | null) => {
+      guardarProgresoCorreoMasivo({
+        cicloFiltro,
+        nivel,
+        grado,
+        grupo,
+        filtroAdicional,
+        asunto,
+        mensaje,
+        nombresArchivos: archivos.map((f) => f.name),
+        destinatarios: lista,
+        resumenTexto,
+      })
+    },
+    [archivos, asunto, cicloFiltro, filtroAdicional, grado, grupo, mensaje, nivel]
+  )
+
+  const descartarProgresoGuardado = useCallback(() => {
+    limpiarProgresoCorreoMasivo()
+    setSesionRestaurada(false)
+    setNombresArchivosRecordados([])
+    setMensajeOk(null)
+    setFaseEnvio('preview')
+  }, [])
+
   const cargarDestinatarios = useCallback(async () => {
     if (!cicloFiltro) return
     setCargandoLista(true)
     setError(null)
+    limpiarProgresoCorreoMasivo()
+    setSesionRestaurada(false)
     try {
       const params = new URLSearchParams({
         ciclo: String(cicloFiltro),
@@ -95,10 +161,10 @@ export default function CorreoMasivoModulo() {
   }, [cicloFiltro, nivel, grado, grupo, filtroAdicional])
 
   useEffect(() => {
-    if (cargandoCiclos || !cicloFiltro) return
+    if (!inicializado || sesionRestaurada || cargandoCiclos || !cicloFiltro) return
     const t = setTimeout(() => cargarDestinatarios(), 280)
     return () => clearTimeout(t)
-  }, [cargarDestinatarios, cargandoCiclos, cicloFiltro])
+  }, [cargarDestinatarios, cargandoCiclos, cicloFiltro, inicializado, sesionRestaurada])
 
   const grupos = useMemo(() => agruparDestinatariosPorSeccion(destinatarios), [destinatarios])
   const resumen = useMemo(() => resumenDestinatarios(destinatarios), [destinatarios])
@@ -135,6 +201,8 @@ export default function CorreoMasivoModulo() {
       let totalEnviados = 0
       let totalErrores = 0
       const totalLotes = Math.ceil(conCorreo.length / TAMANO_LOTE_ENVIO) || 0
+
+      persistirSesion(destinatarios, 'Iniciando envío…')
 
       for (let i = 0; i < conCorreo.length; i += TAMANO_LOTE_ENVIO) {
         const lote = conCorreo.slice(i, i + TAMANO_LOTE_ENVIO)
@@ -179,6 +247,18 @@ export default function CorreoMasivoModulo() {
           }
         }
 
+        const ordenadosParcial = [...resultadosMap.values()].sort((a, b) => {
+          if (a.nivel !== b.nivel) return a.nivel - b.nivel
+          if (a.grado !== b.grado) return a.grado - b.grado
+          if (a.grupo !== b.grupo) return a.grupo - b.grupo
+          return a.nombre_completo.localeCompare(b.nombre_completo, 'es')
+        })
+        setDestinatarios(ordenadosParcial)
+        persistirSesion(
+          ordenadosParcial,
+          `En progreso… lote ${numLote}/${totalLotes}`
+        )
+
         if (numLote < totalLotes) {
           setProgresoEnvio(`Pausa ${PAUSA_ENTRE_LOTES_MS / 1000}s antes del siguiente lote (Gmail)…`)
           await new Promise((r) => setTimeout(r, PAUSA_ENTRE_LOTES_MS))
@@ -195,7 +275,11 @@ export default function CorreoMasivoModulo() {
       setDestinatarios(ordenados)
       setFaseEnvio('resultado')
       const sinCorreo = ordenados.filter((d) => d.estado === 'sin-correo').length
-      return { totalEnviados, totalErrores, sinCorreo }
+      const pendientes = ordenados.filter(
+        (d) => d.estado === 'error' || d.estado === 'pendiente'
+      ).length
+      if (pendientes === 0) limpiarProgresoCorreoMasivo()
+      return { totalEnviados, totalErrores, sinCorreo, ordenados }
     },
     [
       archivos,
@@ -207,6 +291,7 @@ export default function CorreoMasivoModulo() {
       grupo,
       mensaje,
       nivel,
+      persistirSesion,
     ]
   )
 
@@ -234,13 +319,13 @@ export default function CorreoMasivoModulo() {
     setEnviando(true)
     setProgresoEnvio(null)
     try {
-      const { totalEnviados, totalErrores, sinCorreo } = await ejecutarEnvioLotes(
+      const { totalEnviados, totalErrores, sinCorreo, ordenados } = await ejecutarEnvioLotes(
         destinatarios.filter((d) => d.emails.length > 0),
         false
       )
-      setMensajeOk(
-        `Proceso terminado: ${totalEnviados} enviado(s), ${totalErrores} error(es), ${sinCorreo} sin correo.`
-      )
+      const texto = `Proceso terminado: ${totalEnviados} enviado(s), ${totalErrores} error(es), ${sinCorreo} sin correo.`
+      setMensajeOk(texto)
+      persistirSesion(ordenados, texto)
     } catch {
       setError('Error de red al enviar correos')
     } finally {
@@ -250,14 +335,14 @@ export default function CorreoMasivoModulo() {
   }
 
   const onReenviarErrores = async () => {
-    if (cantidadErrores === 0) return
+    if (cantidadPorReenviar === 0) return
     if (!asunto.trim() || !mensaje.trim()) {
       setError('Captura asunto y mensaje.')
       return
     }
     if (
       !window.confirm(
-        `¿Reenviar solo a ${cantidadErrores} alumno(s) con error? Espere a que termine cada lote.`
+        `¿Continuar envío a ${cantidadPorReenviar} alumno(s) pendiente(s) o con error? Espere a que termine cada lote.`
       )
     ) {
       return
@@ -268,11 +353,18 @@ export default function CorreoMasivoModulo() {
     setMensajeOk(null)
     setProgresoEnvio(null)
     try {
-      const soloErrores = destinatarios.filter((d) => d.estado === 'error' && d.emails.length > 0)
-      const { totalEnviados, totalErrores } = await ejecutarEnvioLotes(soloErrores, true)
-      setMensajeOk(
-        `Reintento terminado: ${totalEnviados} enviado(s) en este ciclo, ${totalErrores} siguen con error.`
+      const pendientes = destinatarios.filter(
+        (d) =>
+          d.emails.length > 0 && (d.estado === 'error' || d.estado === 'pendiente')
       )
+      const { totalEnviados, totalErrores, ordenados } = await ejecutarEnvioLotes(
+        pendientes,
+        true
+      )
+      const texto = `Reintento terminado: ${totalEnviados} enviado(s) en este ciclo, ${totalErrores} siguen con error.`
+      setMensajeOk(texto)
+      persistirSesion(ordenados, texto)
+      setSesionRestaurada(false)
     } catch {
       setError('Error de red al reenviar')
     } finally {
@@ -297,6 +389,50 @@ export default function CorreoMasivoModulo() {
           </p>
         </div>
       </header>
+
+      {sesionRestaurada && resumenGuardado && (
+        <div className="cm-restaurar-banner" role="status">
+          <div className="cm-restaurar-banner-texto">
+            <strong>Envío recuperado</strong> (guardado en este navegador tras recarga o redeploy).
+            <span className="cm-restaurar-banner-detalle">
+              {resumenGuardado.enviados} enviado(s) · {resumenGuardado.errores} error(es) ·{' '}
+              {resumenGuardado.pendientes} pendiente(s)
+              {nombresArchivosRecordados.length > 0
+                ? ` · Adjuntos antes: ${nombresArchivosRecordados.join(', ')}`
+                : ''}
+            </span>
+          </div>
+          <div className="cm-restaurar-banner-acciones">
+            {cantidadPorReenviar > 0 && (
+              <button
+                type="button"
+                className="cm-btn cm-btn--primary cm-btn--sm"
+                disabled={enviando}
+                onClick={onReenviarErrores}
+              >
+                Continuar envío ({cantidadPorReenviar})
+              </button>
+            )}
+            <button
+              type="button"
+              className="cm-btn cm-btn--sec cm-btn--sm"
+              disabled={enviando}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    '¿Descartar el progreso guardado y volver a cargar la lista desde cero?'
+                  )
+                ) {
+                  descartarProgresoGuardado()
+                  cargarDestinatarios()
+                }
+              }}
+            >
+              Descartar y empezar de nuevo
+            </button>
+          </div>
+        </div>
+      )}
 
       <form className="cm-formulario" onSubmit={onEnviar}>
         <div className="cm-form-grid">
@@ -431,13 +567,24 @@ export default function CorreoMasivoModulo() {
               </ul>
             )}
             {archivos.length === 0 && (
-              <p className="cm-hint">Puede adjuntar uno o más archivos (PDF, imágenes, etc.).</p>
+              <p className="cm-hint">
+                Puede adjuntar uno o más archivos (PDF, imágenes, etc.).
+                {sesionRestaurada && nombresArchivosRecordados.length > 0 && (
+                  <>
+                    {' '}
+                    <strong>
+                      Vuelva a seleccionar los adjuntos ({nombresArchivosRecordados.join(', ')})
+                      antes de continuar el envío.
+                    </strong>
+                  </>
+                )}
+              </p>
             )}
           </fieldset>
         </div>
 
         <div className="cm-form-acciones">
-          {faseEnvio === 'resultado' && cantidadErrores > 0 && (
+          {faseEnvio === 'resultado' && cantidadPorReenviar > 0 && !sesionRestaurada && (
             <button
               type="button"
               className="cm-btn cm-btn--sec"
@@ -445,7 +592,7 @@ export default function CorreoMasivoModulo() {
               onClick={onReenviarErrores}
             >
               <RotateCcw size={18} aria-hidden />
-              Reenviar solo errores ({cantidadErrores})
+              Continuar envío ({cantidadPorReenviar})
             </button>
           )}
           <button
