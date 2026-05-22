@@ -1,0 +1,332 @@
+import { BECA_ESTATUS_ACTIVA } from './becaEstatus'
+import { construirNombreCompleto, grupoALetra } from './alumnoBusquedaServicios'
+import { etiquetaGradoEscolar, gradoOpcionesPorNivel } from './gradoEscolar'
+import { etiquetaNivelEscolar, NIVELES_ESCOLARES_OPCIONES } from './nivelEscolar'
+import { supabase } from './supabase'
+
+export type FiltroAdicionalCorreo =
+  | 'sin-filtro'
+  | 'becados'
+  | 'nuevo-ingreso'
+  | 'reinscritos'
+
+export interface FiltrosCorreoMasivo {
+  cicloEscolar: number
+  nivel: number | null
+  grado: number | null
+  grupo: number | null
+  filtroAdicional: FiltroAdicionalCorreo
+}
+
+export type EstadoEnvioCorreo =
+  | 'pendiente'
+  | 'enviado'
+  | 'recibido'
+  | 'error'
+  | 'sin-correo'
+
+export interface DestinatarioCorreoMasivo {
+  alumno_id: number
+  alumno_ref: string
+  nombre_completo: string
+  nivel: number
+  grado: number
+  grupo: number
+  grupo_letra: string
+  emails: string[]
+  estado: EstadoEnvioCorreo
+  mensaje_estado: string
+}
+
+export interface GrupoDestinatariosCorreo {
+  clave: string
+  nivel: number
+  grado: number
+  grupo: number
+  etiqueta_nivel: string
+  etiqueta_grado: string
+  etiqueta_grupo: string
+  destinatarios: DestinatarioCorreoMasivo[]
+}
+
+const SELECT_ALUMNO =
+  'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_nuevo_ingreso'
+
+const PAGE_SIZE = 1000
+
+export const FILTROS_ADICIONALES_OPCIONES: {
+  valor: FiltroAdicionalCorreo
+  etiqueta: string
+}[] = [
+  { valor: 'sin-filtro', etiqueta: 'Sin filtro adicional' },
+  { valor: 'becados', etiqueta: 'Becados' },
+  { valor: 'nuevo-ingreso', etiqueta: 'Nuevo ingreso' },
+  { valor: 'reinscritos', etiqueta: 'Reinscritos' },
+]
+
+export function gruposOpcionesPorNivel(nivel: number | null): { valor: number; etiqueta: string }[] {
+  if (nivel === 1 || nivel === 2) {
+    return [
+      { valor: 1, etiqueta: 'A' },
+      { valor: 2, etiqueta: 'B' },
+    ]
+  }
+  if (nivel === 3 || nivel === 4) {
+    return [
+      { valor: 1, etiqueta: 'A' },
+      { valor: 2, etiqueta: 'B' },
+      { valor: 3, etiqueta: 'C' },
+      { valor: 4, etiqueta: 'D' },
+    ]
+  }
+  return [
+    { valor: 1, etiqueta: 'A' },
+    { valor: 2, etiqueta: 'B' },
+    { valor: 3, etiqueta: 'C' },
+    { valor: 4, etiqueta: 'D' },
+  ]
+}
+
+function parseNum(v: string | number | null | undefined): number {
+  if (v == null || v === '') return 0
+  const n = typeof v === 'number' ? v : parseInt(String(v), 10)
+  return Number.isNaN(n) ? 0 : n
+}
+
+function emailValido(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+}
+
+async function idsAlumnosBecadosCiclo(ciclo: number): Promise<Set<number>> {
+  const ids = new Set<number>()
+  let from = 0
+  while (true) {
+    const { data, error } = await supabase
+      .from('alumno_beca')
+      .select('alumno_id')
+      .eq('beca_ciclo_escolar', ciclo)
+      .eq('beca_estatus', BECA_ESTATUS_ACTIVA)
+      .range(from, from + PAGE_SIZE - 1)
+
+    if (error) {
+      console.error('Error becas correo masivo:', error)
+      break
+    }
+    const filas = data ?? []
+    for (const f of filas) ids.add(f.alumno_id)
+    if (filas.length < PAGE_SIZE) break
+    from += PAGE_SIZE
+  }
+  return ids
+}
+
+async function cargarEmailsPorAlumno(alumnoIds: number[]): Promise<Map<number, string[]>> {
+  const mapa = new Map<number, string[]>()
+  if (!alumnoIds.length) return mapa
+
+  const CHUNK = 150
+  for (let i = 0; i < alumnoIds.length; i += CHUNK) {
+    const slice = alumnoIds.slice(i, i + CHUNK)
+    const { data, error } = await supabase
+      .from('alumno_familiar')
+      .select('alumno_id, familiar_email, familiar_recibir_email')
+      .in('alumno_id', slice)
+      .eq('familiar_recibir_email', 1)
+
+    if (error) {
+      console.error('Error familiares correo masivo:', error)
+      continue
+    }
+
+    for (const row of data ?? []) {
+      const email = String(row.familiar_email ?? '').trim()
+      if (!emailValido(email)) continue
+      const prev = mapa.get(row.alumno_id) ?? []
+      if (!prev.includes(email)) prev.push(email)
+      mapa.set(row.alumno_id, prev)
+    }
+  }
+
+  return mapa
+}
+
+export async function listarDestinatariosCorreoMasivo(
+  filtros: FiltrosCorreoMasivo
+): Promise<DestinatarioCorreoMasivo[]> {
+  const becadosIds =
+    filtros.filtroAdicional === 'becados'
+      ? await idsAlumnosBecadosCiclo(filtros.cicloEscolar)
+      : null
+
+  const alumnos: {
+    alumno_id: number
+    alumno_ref: string
+    alumno_nombre: string
+    alumno_app: string
+    alumno_apm: string
+    alumno_nivel: number
+    alumno_grado: string | number
+    alumno_grupo: string | number
+    alumno_nuevo_ingreso: number
+  }[] = []
+
+  let from = 0
+  while (true) {
+    let q = supabase
+      .from('alumno')
+      .select(SELECT_ALUMNO)
+      .eq('alumno_ciclo_escolar', filtros.cicloEscolar)
+      .eq('alumno_status', 1)
+
+    if (filtros.nivel != null && filtros.nivel > 0) {
+      q = q.eq('alumno_nivel', filtros.nivel)
+    }
+    if (filtros.grado != null && filtros.grado > 0) {
+      q = q.eq('alumno_grado', filtros.grado)
+    }
+    if (filtros.grupo != null && filtros.grupo > 0) {
+      q = q.eq('alumno_grupo', filtros.grupo)
+    }
+
+    if (filtros.filtroAdicional === 'nuevo-ingreso') {
+      q = q.eq('alumno_nuevo_ingreso', 1)
+    } else if (filtros.filtroAdicional === 'reinscritos') {
+      q = q.eq('alumno_nuevo_ingreso', 0)
+    }
+
+    const { data, error } = await q
+      .order('alumno_nivel', { ascending: true })
+      .order('alumno_grado', { ascending: true })
+      .order('alumno_grupo', { ascending: true })
+      .order('alumno_nombre', { ascending: true })
+      .range(from, from + PAGE_SIZE - 1)
+
+    if (error) {
+      console.error('Error alumnos correo masivo:', error)
+      break
+    }
+
+    const filas = data ?? []
+    for (const f of filas) {
+      if (becadosIds && !becadosIds.has(f.alumno_id)) continue
+      alumnos.push(f as (typeof alumnos)[0])
+    }
+
+    if (filas.length < PAGE_SIZE) break
+    from += PAGE_SIZE
+  }
+
+  const emailsMap = await cargarEmailsPorAlumno(alumnos.map((a) => a.alumno_id))
+
+  return alumnos.map((a) => {
+    const nivel = parseNum(a.alumno_nivel)
+    const grado = parseNum(a.alumno_grado)
+    const grupo = parseNum(a.alumno_grupo)
+    const emails = emailsMap.get(a.alumno_id) ?? []
+    const estado: EstadoEnvioCorreo = emails.length ? 'pendiente' : 'sin-correo'
+    const mensaje_estado =
+      emails.length > 0
+        ? `${emails.length} correo(s) listo(s)`
+        : 'Sin correo autorizado (padre/madre)'
+
+    return {
+      alumno_id: a.alumno_id,
+      alumno_ref: String(a.alumno_ref ?? ''),
+      nombre_completo: construirNombreCompleto(
+        a.alumno_nombre ?? '',
+        a.alumno_app ?? '',
+        a.alumno_apm ?? ''
+      ),
+      nivel,
+      grado,
+      grupo,
+      grupo_letra: grupoALetra(grupo) ?? '—',
+      emails,
+      estado,
+      mensaje_estado,
+    }
+  })
+}
+
+export function agruparDestinatariosPorSeccion(
+  lista: DestinatarioCorreoMasivo[]
+): GrupoDestinatariosCorreo[] {
+  const mapa = new Map<string, GrupoDestinatariosCorreo>()
+
+  for (const d of lista) {
+    const clave = `${d.nivel}|${d.grado}|${d.grupo}`
+    let g = mapa.get(clave)
+    if (!g) {
+      g = {
+        clave,
+        nivel: d.nivel,
+        grado: d.grado,
+        grupo: d.grupo,
+        etiqueta_nivel: etiquetaNivelEscolar(d.nivel) || `Nivel ${d.nivel}`,
+        etiqueta_grado: etiquetaGradoEscolar(d.nivel, d.grado) || String(d.grado),
+        etiqueta_grupo: d.grupo_letra,
+        destinatarios: [],
+      }
+      mapa.set(clave, g)
+    }
+    g.destinatarios.push(d)
+  }
+
+  return [...mapa.values()].sort((a, b) => {
+    if (a.nivel !== b.nivel) return a.nivel - b.nivel
+    if (a.grado !== b.grado) return a.grado - b.grado
+    return a.grupo - b.grupo
+  })
+}
+
+export function resumenDestinatarios(lista: DestinatarioCorreoMasivo[]) {
+  const conCorreo = lista.filter((d) => d.emails.length > 0).length
+  return {
+    total: lista.length,
+    conCorreo,
+    sinCorreo: lista.length - conCorreo,
+  }
+}
+
+export function etiquetaEstadoEnvio(estado: EstadoEnvioCorreo): string {
+  switch (estado) {
+    case 'pendiente':
+      return 'Pendiente'
+    case 'enviado':
+      return 'Enviado'
+    case 'recibido':
+      return 'Recibido'
+    case 'error':
+      return 'Error'
+    case 'sin-correo':
+      return 'Sin correo'
+    default:
+      return estado
+  }
+}
+
+export function claseEstadoEnvio(estado: EstadoEnvioCorreo): string {
+  return `cm-estado cm-estado--${estado}`
+}
+
+/** Niveles para el select (placeholder + opciones). */
+export const NIVEL_CORREO_OPCIONES = [
+  { valor: 0, etiqueta: 'Todos los niveles' },
+  ...NIVELES_ESCOLARES_OPCIONES.map((o) => ({ valor: o.valor, etiqueta: o.etiqueta })),
+]
+
+export const GRADO_TODOS = 0
+export const GRUPO_TODOS = 0
+
+export function gradoCorreoOpciones(nivel: number | null) {
+  if (!nivel || nivel === 0) {
+    return [{ valor: 0, etiqueta: 'Seleccione nivel primero' }]
+  }
+  return [
+    { valor: 0, etiqueta: 'Todos los grados' },
+    ...gradoOpcionesPorNivel(nivel).map((g) => ({
+      valor: g.valor,
+      etiqueta: g.etiqueta,
+    })),
+  ]
+}

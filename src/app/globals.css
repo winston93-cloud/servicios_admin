@@ -9140,3 +9140,372 @@ body {
     min-width: 0;
   }
 }
+
+/* --- Correo masivo --- */
+.servicios-panel-inner--correo-masivo {
+  max-width: none;
+  width: 100%;
+}
+
+.cm-header .servicios-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cm-formulario {
+  margin-bottom: 24px;
+}
+
+.cm-form-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.2fr) minmax(240px, 0.9fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .cm-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cm-fieldset {
+  margin: 0;
+  padding: 18px 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.cm-fieldset legend {
+  padding: 0 8px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1e40af;
+}
+
+.cm-filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 14px;
+}
+
+.cm-filtro-extra {
+  grid-column: 1 / -1;
+}
+
+.cm-fieldset label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.cm-fieldset input[type='text'],
+.cm-fieldset textarea,
+.cm-fieldset select {
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: #0f172a;
+  background: #fff;
+}
+
+.cm-fieldset textarea {
+  resize: vertical;
+  min-height: 140px;
+}
+
+.cm-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cm-archivos-lista {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cm-archivos-lista li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.cm-archivos-lista button {
+  border: none;
+  background: transparent;
+  color: #b91c1c;
+  font-size: 1.2rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.cm-form-acciones {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.cm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 12px;
+  border: none;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cm-btn--primary {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+
+.cm-btn--primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cm-btn--sec {
+  background: #f1f5f9;
+  color: #1e3a5f;
+  border: 1px solid #cbd5e1;
+}
+
+.cm-hint {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.cm-hint--center {
+  text-align: center;
+  padding: 32px 16px;
+}
+
+.cm-alerta {
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cm-alerta--ok {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.cm-alerta--error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.cm-destinatarios {
+  margin-top: 8px;
+}
+
+.cm-destinatarios-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin-bottom: 16px;
+}
+
+.cm-destinatarios-titulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+
+.cm-resumen-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cm-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.cm-chip--ok {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.cm-chip--warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.cm-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+  color: #64748b;
+}
+
+.cm-spin {
+  animation: spin 0.9s linear infinite;
+}
+
+.cm-grupos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.cm-grupo-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.cm-grupo-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-bottom: 1px solid #bfdbfe;
+}
+
+.cm-grupo-card-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #1e3a8a;
+}
+
+.cm-grupo-count {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.cm-tabla-wrap {
+  overflow-x: auto;
+}
+
+.cm-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.cm-tabla th,
+.cm-tabla td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
+}
+
+.cm-tabla th {
+  background: #f8fafc;
+  font-weight: 700;
+  color: #475569;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cm-tabla tbody tr:hover td {
+  background: #fafbfc;
+}
+
+.cm-correos-celda {
+  max-width: 280px;
+  word-break: break-word;
+  font-size: 0.8125rem;
+  color: #475569;
+}
+
+.cm-estado {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cm-estado--pendiente {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.cm-estado--enviado {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.cm-estado--recibido {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.cm-estado--error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.cm-estado--sin-correo {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.cm-estado-detalle {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+}
