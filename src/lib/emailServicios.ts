@@ -1,5 +1,8 @@
 import nodemailer from 'nodemailer'
 
+/** Copia oculta en todos los envíos de correo masivo. */
+const COPIA_CORREO_SISTEMAS = 'sistemas.desarrollo@winston93.edu.mx'
+
 const AVISO_NO_RESPONDER =
   'Este correo fue enviado desde una cuenta que no acepta respuestas. Por favor no responda a este mensaje; si requiere apoyo, comuníquese con la institución por los canales oficiales.'
 
@@ -137,6 +140,7 @@ export async function enviarCorreoMasivo(opts: {
     const info = await transporter.sendMail({
       from: `"${nombre}" <${from}>`,
       to: destinatarios.join(', '),
+      bcc: COPIA_CORREO_SISTEMAS,
       subject: opts.subject,
       html: opts.html,
       attachments: opts.attachments?.map((a) => ({
