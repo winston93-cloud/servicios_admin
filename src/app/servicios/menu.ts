@@ -10,8 +10,6 @@ import {
   Mail,
   RefreshCw,
   Ban,
-  Receipt,
-  Calculator,
   KeyRound,
   CalendarClock,
   ClipboardList,
@@ -32,8 +30,6 @@ export type ServiciosModuloId =
   | 'correo-masivo'
   | 'actualizar-pagos'
   | 'suspensiones'
-  | 'facturacion-colegiaturas'
-  | 'facturacion-contable'
   | 'credenciales'
   | 'prorrogas'
   | 'reporte-inscritos'
@@ -59,8 +55,6 @@ export const SERVICIOS_MENU: ServiciosMenuItem[] = [
   { id: 'correo-masivo', label: 'Correo Masivo', icon: Mail },
   { id: 'actualizar-pagos', label: 'Actualizar Pagos', icon: RefreshCw },
   { id: 'suspensiones', label: 'Suspensiones', icon: Ban },
-  { id: 'facturacion-colegiaturas', label: 'Facturación Colegiaturas', icon: Receipt },
-  { id: 'facturacion-contable', label: 'Facturación Contable', icon: Calculator },
   { id: 'credenciales', label: 'Credenciales', icon: KeyRound },
   { id: 'prorrogas', label: 'Prórrogas', icon: CalendarClock },
   { id: 'reporte-inscritos', label: 'Reporte de Inscritos', icon: ClipboardList },
