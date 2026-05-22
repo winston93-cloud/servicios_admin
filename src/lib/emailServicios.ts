@@ -6,8 +6,21 @@ const COPIA_CORREO_SISTEMAS = 'sistemas.desarrollo@winston93.edu.mx'
 const AVISO_NO_RESPONDER =
   'Este correo fue enviado desde una cuenta que no acepta respuestas. Por favor no responda a este mensaje; si requiere apoyo, comuníquese con la institución por los canales oficiales.'
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+export function esErrorLimiteGmail(mensaje: string): boolean {
+  return /454|too many login|rate limit|421|4\.7\.0/i.test(mensaje)
+}
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
+  pool: true,
+  maxConnections: 1,
+  maxMessages: 80,
+  rateDelta: 2000,
+  rateLimit: 1,
   auth: {
     user: process.env.MAIL_USER ?? 'avisos_no-replay@winston93.edu.mx',
     pass: process.env.MAIL_PASS,
@@ -135,33 +148,48 @@ export async function enviarCorreoMasivo(opts: {
 
   const from = remitenteCorreoInstitucional()
   const nombre = nombreRemitentePorNivel(opts.nivel)
-
-  try {
-    const info = await transporter.sendMail({
-      from: `"${nombre}" <${from}>`,
-      to: destinatarios.join(', '),
-      bcc: COPIA_CORREO_SISTEMAS,
-      subject: opts.subject,
-      html: opts.html,
-      attachments: opts.attachments?.map((a) => ({
-        filename: a.filename,
-        content: a.content,
-        contentType: a.contentType,
-      })),
-    })
-
-    const accepted = (info.accepted ?? []).map(String)
-    const rejected = (info.rejected ?? []).map(String)
-
-    return {
-      ok: rejected.length === 0 && accepted.length > 0,
-      messageId: info.messageId,
-      accepted,
-      rejected,
-      error: rejected.length ? `Rechazados: ${rejected.join(', ')}` : undefined,
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Error al enviar correo'
-    return { ok: false, error: message }
+  const mailOptions = {
+    from: `"${nombre}" <${from}>`,
+    to: destinatarios.join(', '),
+    bcc: COPIA_CORREO_SISTEMAS,
+    subject: opts.subject,
+    html: opts.html,
+    attachments: opts.attachments?.map((a) => ({
+      filename: a.filename,
+      content: a.content,
+      contentType: a.contentType,
+    })),
   }
+
+  const maxIntentos = 4
+
+  for (let intento = 0; intento < maxIntentos; intento++) {
+    try {
+      const info = await transporter.sendMail(mailOptions)
+      const accepted = (info.accepted ?? []).map(String)
+      const rejected = (info.rejected ?? []).map(String)
+
+      return {
+        ok: rejected.length === 0 && accepted.length > 0,
+        messageId: info.messageId,
+        accepted,
+        rejected,
+        error: rejected.length ? `Rechazados: ${rejected.join(', ')}` : undefined,
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al enviar correo'
+      if (esErrorLimiteGmail(message) && intento < maxIntentos - 1) {
+        await sleep(18_000 * (intento + 1))
+        continue
+      }
+      return {
+        ok: false,
+        error: esErrorLimiteGmail(message)
+          ? 'Gmail bloqueó envíos por exceso de intentos. Espere 2–5 minutos y use «Reenviar solo errores».'
+          : message,
+      }
+    }
+  }
+
+  return { ok: false, error: 'No se pudo enviar tras varios intentos' }
 }

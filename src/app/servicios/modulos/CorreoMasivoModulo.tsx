@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Loader2, Mail, Paperclip, Send, Users } from 'lucide-react'
+import { Loader2, Mail, Paperclip, RotateCcw, Send, Users } from 'lucide-react'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import {
@@ -37,9 +37,16 @@ export default function CorreoMasivoModulo() {
   const [faseEnvio, setFaseEnvio] = useState<'preview' | 'resultado'>('preview')
   const [progresoEnvio, setProgresoEnvio] = useState<string | null>(null)
 
-  const TAMANO_LOTE_ENVIO = 35
+  /** Lotes pequeños + pausa para no saturar Gmail (454 Too many login attempts). */
+  const TAMANO_LOTE_ENVIO = 12
+  const PAUSA_ENTRE_LOTES_MS = 10_000
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const cantidadErrores = useMemo(
+    () => destinatarios.filter((d) => d.estado === 'error' && d.emails.length > 0).length,
+    [destinatarios]
+  )
 
   useEffect(() => {
     setCicloFiltro(cicloSeleccionado)
@@ -106,40 +113,23 @@ export default function CorreoMasivoModulo() {
     setArchivos((prev) => prev.filter((_, i) => i !== idx))
   }
 
-  const onEnviar = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setMensajeOk(null)
-
-    if (!asunto.trim() || !mensaje.trim()) {
-      setError('Captura asunto y mensaje.')
-      return
-    }
-    if (!cicloFiltro) {
-      setError('Selecciona el ciclo escolar.')
-      return
-    }
-    if (resumen.conCorreo === 0) {
-      setError('No hay alumnos con correo autorizado para enviar.')
-      return
-    }
-    if (!window.confirm(`¿Enviar correo a ${resumen.conCorreo} alumno(s) con correo registrado?`)) {
-      return
-    }
-
-    setEnviando(true)
-    setProgresoEnvio(null)
-    try {
-      const conCorreo = destinatarios.filter((d) => d.emails.length > 0)
-      const sinCorreoPrevios = destinatarios.filter((d) => !d.emails.length)
+  const ejecutarEnvioLotes = useCallback(
+    async (listaEnviar: DestinatarioCorreoMasivo[], preservarExistentes: boolean) => {
+      const conCorreo = listaEnviar.filter((d) => d.emails.length > 0)
       const resultadosMap = new Map<number, DestinatarioCorreoMasivo>()
 
-      for (const d of sinCorreoPrevios) {
-        resultadosMap.set(d.alumno_id, {
-          ...d,
-          estado: 'sin-correo',
-          mensaje_estado: 'Sin correo autorizado (padre/madre)',
-        })
+      if (preservarExistentes) {
+        for (const d of destinatarios) {
+          if (d.estado !== 'error') resultadosMap.set(d.alumno_id, d)
+        }
+      } else {
+        for (const d of destinatarios.filter((x) => !x.emails.length)) {
+          resultadosMap.set(d.alumno_id, {
+            ...d,
+            estado: 'sin-correo',
+            mensaje_estado: 'Sin correo autorizado (padre/madre)',
+          })
+        }
       }
 
       let totalEnviados = 0
@@ -150,7 +140,7 @@ export default function CorreoMasivoModulo() {
         const lote = conCorreo.slice(i, i + TAMANO_LOTE_ENVIO)
         const numLote = Math.floor(i / TAMANO_LOTE_ENVIO) + 1
         setProgresoEnvio(
-          `Enviando lote ${numLote} de ${totalLotes} (alumnos ${i + 1}–${i + lote.length} de ${conCorreo.length})…`
+          `Enviando lote ${numLote} de ${totalLotes} (${i + lote.length}/${conCorreo.length} alumnos). Gmail limita velocidad; espere…`
         )
 
         const fd = new FormData()
@@ -181,14 +171,17 @@ export default function CorreoMasivoModulo() {
             })
           }
           totalErrores += lote.length
-          continue
+        } else {
+          totalEnviados += json.resumen?.enviados ?? 0
+          totalErrores += json.resumen?.errores ?? 0
+          for (const r of (json.resultados ?? []) as DestinatarioCorreoMasivo[]) {
+            resultadosMap.set(r.alumno_id, r)
+          }
         }
 
-        totalEnviados += json.resumen?.enviados ?? 0
-        totalErrores += json.resumen?.errores ?? 0
-
-        for (const r of (json.resultados ?? []) as DestinatarioCorreoMasivo[]) {
-          resultadosMap.set(r.alumno_id, r)
+        if (numLote < totalLotes) {
+          setProgresoEnvio(`Pausa ${PAUSA_ENTRE_LOTES_MS / 1000}s antes del siguiente lote (Gmail)…`)
+          await new Promise((r) => setTimeout(r, PAUSA_ENTRE_LOTES_MS))
         }
       }
 
@@ -201,11 +194,87 @@ export default function CorreoMasivoModulo() {
 
       setDestinatarios(ordenados)
       setFaseEnvio('resultado')
+      const sinCorreo = ordenados.filter((d) => d.estado === 'sin-correo').length
+      return { totalEnviados, totalErrores, sinCorreo }
+    },
+    [
+      archivos,
+      asunto,
+      cicloFiltro,
+      destinatarios,
+      filtroAdicional,
+      grado,
+      grupo,
+      mensaje,
+      nivel,
+    ]
+  )
+
+  const onEnviar = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setMensajeOk(null)
+
+    if (!asunto.trim() || !mensaje.trim()) {
+      setError('Captura asunto y mensaje.')
+      return
+    }
+    if (!cicloFiltro) {
+      setError('Selecciona el ciclo escolar.')
+      return
+    }
+    if (resumen.conCorreo === 0) {
+      setError('No hay alumnos con correo autorizado para enviar.')
+      return
+    }
+    if (!window.confirm(`¿Enviar correo a ${resumen.conCorreo} alumno(s) con correo registrado?`)) {
+      return
+    }
+
+    setEnviando(true)
+    setProgresoEnvio(null)
+    try {
+      const { totalEnviados, totalErrores, sinCorreo } = await ejecutarEnvioLotes(
+        destinatarios.filter((d) => d.emails.length > 0),
+        false
+      )
       setMensajeOk(
-        `Proceso terminado: ${totalEnviados} enviado(s), ${totalErrores} error(es), ${sinCorreoPrevios.length} sin correo.`
+        `Proceso terminado: ${totalEnviados} enviado(s), ${totalErrores} error(es), ${sinCorreo} sin correo.`
       )
     } catch {
       setError('Error de red al enviar correos')
+    } finally {
+      setEnviando(false)
+      setProgresoEnvio(null)
+    }
+  }
+
+  const onReenviarErrores = async () => {
+    if (cantidadErrores === 0) return
+    if (!asunto.trim() || !mensaje.trim()) {
+      setError('Captura asunto y mensaje.')
+      return
+    }
+    if (
+      !window.confirm(
+        `¿Reenviar solo a ${cantidadErrores} alumno(s) con error? Espere a que termine cada lote.`
+      )
+    ) {
+      return
+    }
+
+    setEnviando(true)
+    setError(null)
+    setMensajeOk(null)
+    setProgresoEnvio(null)
+    try {
+      const soloErrores = destinatarios.filter((d) => d.estado === 'error' && d.emails.length > 0)
+      const { totalEnviados, totalErrores } = await ejecutarEnvioLotes(soloErrores, true)
+      setMensajeOk(
+        `Reintento terminado: ${totalEnviados} enviado(s) en este ciclo, ${totalErrores} siguen con error.`
+      )
+    } catch {
+      setError('Error de red al reenviar')
     } finally {
       setEnviando(false)
       setProgresoEnvio(null)
@@ -368,6 +437,17 @@ export default function CorreoMasivoModulo() {
         </div>
 
         <div className="cm-form-acciones">
+          {faseEnvio === 'resultado' && cantidadErrores > 0 && (
+            <button
+              type="button"
+              className="cm-btn cm-btn--sec"
+              disabled={enviando}
+              onClick={onReenviarErrores}
+            >
+              <RotateCcw size={18} aria-hidden />
+              Reenviar solo errores ({cantidadErrores})
+            </button>
+          )}
           <button
             type="submit"
             className="cm-btn cm-btn--primary"

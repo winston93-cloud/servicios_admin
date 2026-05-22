@@ -141,8 +141,6 @@ export async function POST(request: Request) {
       estado,
       mensaje_estado: res.error ?? msgEstado,
     })
-
-    await new Promise((r) => setTimeout(r, 120))
   }
 
   return NextResponse.json({
