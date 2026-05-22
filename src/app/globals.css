@@ -5105,6 +5105,20 @@ body {
   grid-column: 2;
 }
 
+.servicios-toolbar-der {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  justify-self: end;
+  grid-column: 3;
+  margin-right: clamp(12px, 2vw, 28px);
+}
+
+.servicios-toolbar-der .servicios-btn-modulo {
+  min-width: 148px;
+}
+
 .servicios-btn-modulo {
   display: inline-flex;
   align-items: center;
@@ -5473,6 +5487,17 @@ body {
   .servicios-toolbar-centro {
     grid-column: auto;
     justify-self: stretch;
+    width: 100%;
+  }
+
+  .servicios-toolbar-der {
+    grid-column: auto;
+    justify-self: stretch;
+    margin-right: 0;
+    width: 100%;
+  }
+
+  .servicios-toolbar-der .servicios-btn-modulo {
     width: 100%;
   }
 }

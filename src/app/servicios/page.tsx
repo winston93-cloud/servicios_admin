@@ -252,6 +252,11 @@ function ServiciosPageInner() {
               <ArrowLeft size={18} aria-hidden />
               Volver al panel
             </button>
+          </div>
+          <div className="servicios-toolbar-centro">
+            <CicloEscolarSelector etiqueta="Ciclo activo" />
+          </div>
+          <div className="servicios-toolbar-der">
             <button
               type="button"
               className={`servicios-btn-modulo${moduloActivo === 'alumnos' ? ' servicios-btn-modulo--activo' : ''}`}
@@ -266,9 +271,6 @@ function ServiciosPageInner() {
             >
               Pagos internos
             </button>
-          </div>
-          <div className="servicios-toolbar-centro">
-            <CicloEscolarSelector etiqueta="Ciclo activo" />
           </div>
         </div>
         <div className="servicios-main-scroll">
