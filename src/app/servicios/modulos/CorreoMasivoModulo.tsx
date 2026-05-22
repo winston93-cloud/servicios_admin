@@ -172,9 +172,8 @@ export default function CorreoMasivoModulo() {
             Correo masivo
           </h1>
           <p className="servicios-panel-lead">
-            Envía comunicados a padres y madres con correo autorizado. Remitente{' '}
-            <strong>avisos_no-replay@winston93.edu.mx</strong>; cada envío incluye copia a{' '}
-            <strong>sistemas.desarrollo@winston93.edu.mx</strong>.
+            Envía comunicados a padres y madres con correo autorizado desde{' '}
+            <strong>avisos_no-replay@winston93.edu.mx</strong>.
           </p>
         </div>
       </header>
