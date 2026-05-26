@@ -9676,6 +9676,18 @@ body {
   color: #14b8a6;
 }
 
+.ap-lista-archivos--idle {
+  color: #94a3b8;
+}
+
+.ap-lista-punto {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  flex-shrink: 0;
+}
+
 .ap-lista-estado {
   margin-left: auto;
   font-size: 0.75rem;

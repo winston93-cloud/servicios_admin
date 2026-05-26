@@ -325,27 +325,30 @@ export default function ActualizarPagosModulo() {
 
       <section className="ap-instrucciones" aria-labelledby="ap-instrucciones-titulo">
         <h2 id="ap-instrucciones-titulo" className="ap-subtitulo">
-          Archivos requeridos
+          Archivos admitidos
         </h2>
         <ul className="ap-lista-archivos">
           {ARCHIVOS_PAGO_EFECTIVO.map((nombre) => {
             const ok = nombresPresentes.has(nombre)
             return (
-              <li key={nombre} className={ok ? 'ap-lista-archivos--ok' : ''}>
+              <li key={nombre} className={ok ? 'ap-lista-archivos--ok' : 'ap-lista-archivos--idle'}>
                 {ok ? (
                   <CheckCircle2 size={16} aria-hidden />
                 ) : (
-                  <AlertCircle size={16} aria-hidden />
+                  <span className="ap-lista-punto" aria-hidden />
                 )}
                 <span>{nombre}</span>
-                <span className="ap-lista-estado">{ok ? 'Listo' : 'Pendiente'}</span>
+                <span className="ap-lista-estado">
+                  {ok ? 'Cargado' : 'Opcional (no seleccionado)'}
+                </span>
               </li>
             )
           })}
         </ul>
         <p className="ap-hint">
-          Formato: texto separado por pipe (<code>|</code>). Puedes subir uno o ambos; si falta
-          alguno, se procesará lo disponible y se avisará.
+          Formato: texto separado por pipe (<code>|</code>). <strong>No hace falta subir los dos:</strong>{' '}
+          basta con el que tengas hoy (solo colegiaturas o solo inscripciones). El otro se omite sin
+          error.
         </p>
       </section>
 

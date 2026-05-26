@@ -37,7 +37,10 @@ export async function POST(request: Request) {
   const entradas = formData.getAll('file')
   if (!entradas.length) {
     return NextResponse.json(
-      { error: 'No se enviaron archivos. Se requieren colegiaturas.txt e inscripciones.txt.' },
+      {
+        error:
+          'No se enviaron archivos. Sube al menos uno: colegiaturas.txt o inscripciones.txt.',
+      },
       { status: 400 }
     )
   }
