@@ -20,6 +20,7 @@ import BecasModulo from './modulos/BecasModulo'
 import PagosInternosModulo from './modulos/PagosInternosModulo'
 import PagosColegiaturasModulo from './modulos/PagosColegiaturasModulo'
 import CorreoMasivoModulo from './modulos/CorreoMasivoModulo'
+import ActualizarPagosModulo from './modulos/ActualizarPagosModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
 import { AlumnoSeleccionadoProvider } from '@/contexts/AlumnoSeleccionadoContext'
 
@@ -70,6 +71,8 @@ function ServiciosPanelContenido({
       return <PagosColegiaturasModulo />
     case 'correo-masivo':
       return <CorreoMasivoModulo />
+    case 'actualizar-pagos':
+      return <ActualizarPagosModulo />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }
