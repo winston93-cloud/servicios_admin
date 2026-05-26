@@ -285,12 +285,31 @@ async function actualizarPagoManual(
   return { ok: true }
 }
 
+/** pago_id no es SERIAL en Supabase (legacy); hay que asignarlo como en MySQL AUTO_INCREMENT. */
+async function obtenerMaxPagoDetalleId(supabase: SupabaseClient): Promise<number> {
+  const { data, error } = await supabase
+    .from('pago_detalle')
+    .select('pago_id')
+    .order('pago_id', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.error('obtenerMaxPagoDetalleId:', error)
+    return 0
+  }
+  return typeof data?.pago_id === 'number' ? data.pago_id : 0
+}
+
 async function insertarPago(
   supabase: SupabaseClient,
   alumnoId: number,
-  fila: FilaPagoEfectivoParseada
+  fila: FilaPagoEfectivoParseada,
+  pagoId: number
 ): Promise<{ ok: boolean; error?: string }> {
+  const ahora = new Date().toISOString()
   const { error } = await supabase.from('pago_detalle').insert({
+    pago_id: pagoId,
     alumno_id: alumnoId,
     pago_nombre: fila.nombre,
     pago_referencia: fila.referencia,
@@ -302,7 +321,10 @@ async function insertarPago(
     pago_hora: fila.hora,
     pago_emisora: fila.emisora,
     pago_cancelado: 0,
-    pago_registro: new Date().toISOString(),
+    pago_registro: ahora,
+    pago_actualizacion: ahora,
+    facturo: '',
+    fact: '',
   })
 
   if (error) return { ok: false, error: error.message }
@@ -361,6 +383,8 @@ export async function procesarArchivoPagoEfectivo(
 
   const filas = parsearLineasPipe(contenido)
   resumen.lineasLeidas = filas.length
+
+  let nextPagoId = await obtenerMaxPagoDetalleId(supabase)
 
   let numeroLinea = 0
   for (const col of filas) {
@@ -468,7 +492,8 @@ export async function procesarArchivoPagoEfectivo(
       continue
     }
 
-    const ins = await insertarPago(supabase, alumnoId, fila)
+    nextPagoId += 1
+    const ins = await insertarPago(supabase, alumnoId, fila, nextPagoId)
     if (ins.ok) {
       resumen.insertados += 1
       agregarMuestra(resumen, {
