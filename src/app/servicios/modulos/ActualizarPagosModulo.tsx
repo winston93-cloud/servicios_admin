@@ -319,36 +319,9 @@ export default function ActualizarPagosModulo() {
         </div>
       </header>
 
-      <section className="ap-instrucciones" aria-label="Archivos y formato">
-        <div className="ap-instrucciones-fila">
-          <p className="ap-instrucciones-desc">
-            Carga los archivos del banco con pagos en ventanilla. Se registran en{' '}
-            <code>pago_detalle</code> con la misma lógica del sistema anterior.
-          </p>
-          <ul className="ap-lista-archivos ap-lista-archivos--inline">
-            {ARCHIVOS_PAGO_EFECTIVO.map((nombre) => {
-              const ok = nombresPresentes.has(nombre)
-              return (
-                <li
-                  key={nombre}
-                  className={ok ? 'ap-lista-archivos--ok' : 'ap-lista-archivos--idle'}
-                >
-                  {ok ? (
-                    <CheckCircle2 size={15} aria-hidden />
-                  ) : (
-                    <span className="ap-lista-punto" aria-hidden />
-                  )}
-                  <span className="ap-lista-nombre">{nombre}</span>
-                  {ok && <span className="ap-lista-estado">Cargado</span>}
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      </section>
-
-      <div
-        className={`ap-dropzone ${arrastrando ? 'ap-dropzone--over' : ''}`}
+      <section
+        className={`ap-carga-bar ${arrastrando ? 'ap-carga-bar--over' : ''}`}
+        aria-label="Carga de archivos de pago en efectivo"
         onDragOver={(e) => {
           e.preventDefault()
           setArrastrando(true)
@@ -370,17 +343,29 @@ export default function ActualizarPagosModulo() {
             if (e.target.files?.length) agregarArchivos(e.target.files)
           }}
         />
-        <Upload className="ap-dropzone-icono" size={32} strokeWidth={1.25} aria-hidden />
-        <p className="ap-dropzone-titulo">Arrastra los archivos .txt aquí</p>
-        <p className="ap-dropzone-sub">o</p>
-        <button
-          type="button"
-          className="ap-btn ap-btn--secundario"
-          onClick={() => inputRef.current?.click()}
-        >
-          Elegir archivos
-        </button>
-      </div>
+
+        <div className="ap-carga-bar__col ap-carga-bar__col--texto">
+          <p className="ap-carga-bar__desc">
+            Carga los archivos del banco con pagos en ventanilla. Se registran en{' '}
+            <code>pago_detalle</code> con la misma lógica del sistema anterior.
+          </p>
+        </div>
+
+        <div className="ap-carga-bar__col ap-carga-bar__col--arrastre">
+          <Upload className="ap-carga-bar__icono" size={26} strokeWidth={1.25} aria-hidden />
+          <span className="ap-carga-bar__arrastre-txt">Arrastra los archivos .txt aquí</span>
+        </div>
+
+        <div className="ap-carga-bar__col ap-carga-bar__col--btn">
+          <button
+            type="button"
+            className="ap-btn ap-btn--secundario"
+            onClick={() => inputRef.current?.click()}
+          >
+            Elegir archivos
+          </button>
+        </div>
+      </section>
 
       {archivos.length > 0 && (
         <ul className="ap-archivos-lista">
