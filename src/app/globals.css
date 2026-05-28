@@ -10447,3 +10447,239 @@ body {
 .sus-spin {
   animation: ap-spin 0.8s linear infinite;
 }
+
+.sus-tabla-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sus-envio-panel {
+  margin-bottom: 1rem;
+  padding: 1rem 1.15rem;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: linear-gradient(135deg, #f8fafc 0%, #fff 100%);
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+}
+
+.sus-envio-panel-titulo {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.sus-envio-panel-texto {
+  margin: 0 0 0.85rem;
+  font-size: 0.875rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.sus-envio-panel-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sus-envio-progreso {
+  margin-bottom: 1rem;
+  padding: 1rem 1.15rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.sus-envio-progreso--hecho {
+  border-color: #bbf7d0;
+  background: linear-gradient(135deg, #f0fdf4 0%, #fff 100%);
+}
+
+.sus-envio-progreso-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.sus-envio-progreso-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.sus-envio-progreso-pct {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: #1d4ed8;
+  font-variant-numeric: tabular-nums;
+}
+
+.sus-envio-barra {
+  height: 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+
+.sus-envio-barra-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  transition: width 0.35s ease;
+}
+
+.sus-envio-progreso-nombre {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sus-envio-cancelar {
+  margin-top: 0.65rem;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 0.8125rem;
+  color: #b91c1c;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.sus-envio-cancelar:hover {
+  color: #991b1b;
+}
+
+.sus-envio-resumen {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.sus-envio-resumen-titulo {
+  margin: 0 0 0.35rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.sus-envio-resumen-nota {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: #047857;
+}
+
+.sus-envio-resumen-icono--ok {
+  color: #16a34a;
+  flex-shrink: 0;
+}
+
+.sus-envio-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.sus-envio-chips--inline {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.sus-envio-chip {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.sus-envio-chip--ok {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.sus-envio-chip--error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.sus-envio-chip--pendiente {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.sus-celda-envio {
+  min-width: 120px;
+}
+
+.sus-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.sus-estado-icono {
+  flex-shrink: 0;
+}
+
+.sus-estado--idle {
+  color: #94a3b8;
+  font-weight: 500;
+  text-transform: none;
+}
+
+.sus-estado--pendiente {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.sus-estado--enviando {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.sus-estado--ok {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.sus-estado--error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.sus-estado-detalle {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: none;
+  letter-spacing: normal;
+  line-height: 1.35;
+  max-width: 160px;
+}
+
+.sus-fila--enviando {
+  background: #eff6ff;
+}
+
+.sus-fila--ok {
+  background: #f0fdf4;
+}
+
+.sus-fila--error {
+  background: #fef2f2;
+}
