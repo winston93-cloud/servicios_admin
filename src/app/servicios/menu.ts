@@ -54,7 +54,7 @@ export const SERVICIOS_MENU: ServiciosMenuItem[] = [
   { id: 'credenciales', label: 'Credenciales', icon: KeyRound },
   { id: 'bauchers', label: 'Bauchers', icon: FileText },
   { id: 'bloqueados', label: 'Bloqueados', icon: Lock },
-  { id: 'reportes-varios', label: 'Reportes Varios', icon: BarChart3 },
+  { id: 'reportes-varios', label: 'Reportes', icon: BarChart3 },
   { id: 'catalogo-ciclos-escolares', label: 'Catálogo de ciclos escolares', icon: CalendarRange },
 ]
 
