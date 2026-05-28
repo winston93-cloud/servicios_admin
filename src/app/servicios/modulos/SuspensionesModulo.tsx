@@ -160,8 +160,8 @@ export default function SuspensionesModulo() {
             value={plantel}
             onChange={(e) => setPlantel(Number(e.target.value) as 1 | 2)}
           >
-            <option value={1}>Instituto Educativo Winston (niveles 1–2)</option>
-            <option value={2}>Instituto Winston Churchill (niveles 3–4)</option>
+            <option value={1}>Instituto Educativo Winston</option>
+            <option value={2}>Instituto Winston Churchill</option>
           </select>
 
           <label className="sus-label" htmlFor="sus-tipo">
