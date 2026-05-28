@@ -21,6 +21,7 @@ import PagosInternosModulo from './modulos/PagosInternosModulo'
 import PagosColegiaturasModulo from './modulos/PagosColegiaturasModulo'
 import CorreoMasivoModulo from './modulos/CorreoMasivoModulo'
 import ActualizarPagosModulo from './modulos/ActualizarPagosModulo'
+import SuspensionesModulo from './modulos/SuspensionesModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
 import { AlumnoSeleccionadoProvider } from '@/contexts/AlumnoSeleccionadoContext'
 
@@ -73,6 +74,8 @@ function ServiciosPanelContenido({
       return <CorreoMasivoModulo />
     case 'actualizar-pagos':
       return <ActualizarPagosModulo />
+    case 'suspensiones':
+      return <SuspensionesModulo />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }
