@@ -12,7 +12,6 @@ import {
   Ban,
   KeyRound,
   FileText,
-  Lock,
   BarChart3,
   CalendarRange,
 } from 'lucide-react'
@@ -30,7 +29,6 @@ export type ServiciosModuloId =
   | 'suspensiones'
   | 'credenciales'
   | 'bauchers'
-  | 'bloqueados'
   | 'reportes-varios'
   | 'catalogo-ciclos-escolares'
 
@@ -53,7 +51,6 @@ export const SERVICIOS_MENU: ServiciosMenuItem[] = [
   { id: 'suspensiones', label: 'Suspensiones', icon: Ban },
   { id: 'credenciales', label: 'Credenciales', icon: KeyRound },
   { id: 'bauchers', label: 'Bauchers', icon: FileText },
-  { id: 'bloqueados', label: 'Bloqueados', icon: Lock },
   { id: 'reportes-varios', label: 'Reportes', icon: BarChart3 },
   { id: 'catalogo-ciclos-escolares', label: 'Ciclos escolares', icon: CalendarRange },
 ]
