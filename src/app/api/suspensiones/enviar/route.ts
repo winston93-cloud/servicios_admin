@@ -3,6 +3,10 @@ import { htmlCuerpoCorreoMasivo, enviarCorreoMasivo } from '@/lib/emailServicios
 import { generarPdfCartaSuspension } from '@/lib/suspensionesPdf'
 import type { AlumnoDeudorSuspension } from '@/lib/suspensionesService'
 import type { TipoReporteSuspension } from '@/lib/suspensionesAdeudos'
+import {
+  SUSPENSIONES_CORREO_PRUEBA,
+  SUSPENSIONES_ENVIO_MODO_PRUEBA,
+} from '@/lib/suspensionesEnvioConfig'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -28,10 +32,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No hay alumnos seleccionados' }, { status: 400 })
     }
 
-    const asunto =
+    if (SUSPENSIONES_ENVIO_MODO_PRUEBA && !SUSPENSIONES_CORREO_PRUEBA.includes('@')) {
+      return NextResponse.json(
+        { error: 'Correo de prueba no configurado (SUSPENSIONES_CORREO_PRUEBA)' },
+        { status: 500 }
+      )
+    }
+
+    const asuntoBase =
       tipo === 3 || tipo === 4
         ? 'Aviso de Suspensión Administrativa'
         : 'Aviso por Adeudo'
+    const asunto = SUSPENSIONES_ENVIO_MODO_PRUEBA
+      ? `[PRUEBA] ${asuntoBase}`
+      : asuntoBase
 
     let enviados = 0
     let errores = 0
@@ -39,8 +53,21 @@ export async function POST(request: Request) {
     const detalle: { alumnoRef: string; ok: boolean; mensaje: string }[] = []
 
     for (const fila of filas) {
-      const emails = (fila.emails ?? []).filter((e) => e.includes('@'))
-      if (!emails.length) {
+      // --- Envío a papás/tutores (producción) — deshabilitado en modo prueba ---
+      // const emailsPadres = (fila.emails ?? []).filter((e) => e.includes('@'))
+      // if (!emailsPadres.length) {
+      //   sinCorreo++
+      //   detalle.push({
+      //     alumnoRef: fila.alumnoRef,
+      //     ok: false,
+      //     mensaje: 'Sin correo autorizado',
+      //   })
+      //   continue
+      // }
+      // const destinatarios = emailsPadres
+
+      const emailsPadres = (fila.emails ?? []).filter((e) => e.includes('@'))
+      if (!SUSPENSIONES_ENVIO_MODO_PRUEBA && !emailsPadres.length) {
         sinCorreo++
         detalle.push({
           alumnoRef: fila.alumnoRef,
@@ -49,6 +76,10 @@ export async function POST(request: Request) {
         })
         continue
       }
+
+      const destinatarios = SUSPENSIONES_ENVIO_MODO_PRUEBA
+        ? [SUSPENSIONES_CORREO_PRUEBA]
+        : emailsPadres
 
       const deudor: AlumnoDeudorSuspension = {
         alumnoId: fila.alumnoId,
@@ -61,17 +92,24 @@ export async function POST(request: Request) {
         adeudos: fila.adeudos,
         prorroga: null,
         planMes: null,
-        emails,
+        emails: emailsPadres,
       }
 
       const pdf = generarPdfCartaSuspension({ deudor, plantel, fechaCartas })
+
+      const notaPrueba = SUSPENSIONES_ENVIO_MODO_PRUEBA
+        ? `\n\n[MODO PRUEBA — no se envió a familias]\nDestinatarios reales que quedarían: ${
+            emailsPadres.length ? emailsPadres.join(', ') : '(sin correo en base de datos)'
+          }`
+        : ''
+
       const html = htmlCuerpoCorreoMasivo(
-        `Por medio del presente hacemos llegar el aviso de suspensión administrativa correspondiente al alumno ${fila.nombre} (control ${fila.alumnoRef}).`,
+        `Por medio del presente hacemos llegar el aviso de suspensión administrativa correspondiente al alumno ${fila.nombre} (control ${fila.alumnoRef}).${notaPrueba}`,
         fila.nivel
       )
 
       const res = await enviarCorreoMasivo({
-        to: emails,
+        to: destinatarios,
         subject: asunto,
         html,
         nivel: fila.nivel,
@@ -86,7 +124,13 @@ export async function POST(request: Request) {
 
       if (res.ok) {
         enviados++
-        detalle.push({ alumnoRef: fila.alumnoRef, ok: true, mensaje: 'Enviado' })
+        detalle.push({
+          alumnoRef: fila.alumnoRef,
+          ok: true,
+          mensaje: SUSPENSIONES_ENVIO_MODO_PRUEBA
+            ? `Prueba → ${SUSPENSIONES_CORREO_PRUEBA}`
+            : 'Enviado',
+        })
       } else {
         errores++
         detalle.push({
@@ -99,6 +143,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       ok: errores === 0,
+      modoPrueba: SUSPENSIONES_ENVIO_MODO_PRUEBA,
+      correoPrueba: SUSPENSIONES_ENVIO_MODO_PRUEBA ? SUSPENSIONES_CORREO_PRUEBA : undefined,
       resumen: { enviados, errores, sinCorreo, total: filas.length },
       detalle,
     })

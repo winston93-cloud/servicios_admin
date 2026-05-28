@@ -7,6 +7,10 @@ import {
   ETIQUETAS_TIPO_SUSPENSION,
   TIPOS_SUSPENSION_UI,
 } from '@/lib/suspensionesAdeudos'
+import {
+  SUSPENSIONES_CORREO_PRUEBA,
+  SUSPENSIONES_ENVIO_MODO_PRUEBA,
+} from '@/lib/suspensionesEnvioConfig'
 import type { AlumnoDeudorSuspension } from '@/lib/suspensionesService'
 
 type TipoReporte = 1 | 2 | 3 | 4
@@ -87,6 +91,12 @@ export default function SuspensionesModulo() {
       setError('Seleccione al menos un alumno para enviar correo.')
       return
     }
+    if (SUSPENSIONES_ENVIO_MODO_PRUEBA) {
+      const ok = window.confirm(
+        `MODO PRUEBA: se enviarán ${elegidos.length} correo(s) SOLO a ${SUSPENSIONES_CORREO_PRUEBA}.\n\nNingún papá/tutor recibirá correo. ¿Continuar?`
+      )
+      if (!ok) return
+    }
     setEnviando(true)
     setError(null)
     try {
@@ -112,8 +122,11 @@ export default function SuspensionesModulo() {
         setError(data.error ?? 'Error al enviar')
         return
       }
+      const prueba = data.modoPrueba
+        ? `\n\nModo prueba: todo fue a ${data.correoPrueba ?? SUSPENSIONES_CORREO_PRUEBA}. Ningún papá recibió correo.`
+        : ''
       alert(
-        `Correos: ${data.resumen.enviados} enviados, ${data.resumen.errores} errores, ${data.resumen.sinCorreo} sin correo.`
+        `Correos: ${data.resumen.enviados} enviados, ${data.resumen.errores} errores, ${data.resumen.sinCorreo} sin correo.${prueba}`
       )
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error de red')
@@ -255,6 +268,13 @@ export default function SuspensionesModulo() {
         </section>
       </div>
 
+      {SUSPENSIONES_ENVIO_MODO_PRUEBA && (
+        <div className="sus-alerta sus-alerta--aviso" role="status">
+          <strong>Modo prueba de correos activo.</strong> Los avisos solo se envían a{' '}
+          <code>{SUSPENSIONES_CORREO_PRUEBA}</code>. El envío a papás está deshabilitado.
+        </div>
+      )}
+
       {error && (
         <div className="sus-alerta sus-alerta--error" role="alert">
           {error}
@@ -282,7 +302,9 @@ export default function SuspensionesModulo() {
               ) : (
                 <>
                   <Mail size={18} aria-hidden />
-                  Enviar correos de suspensión ({seleccion.size})
+                  {SUSPENSIONES_ENVIO_MODO_PRUEBA
+                    ? `Enviar prueba a ${SUSPENSIONES_CORREO_PRUEBA} (${seleccion.size})`
+                    : `Enviar correos de suspensión (${seleccion.size})`}
                 </>
               )}
             </button>
