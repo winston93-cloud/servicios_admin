@@ -11,8 +11,6 @@ import {
   RefreshCw,
   Ban,
   KeyRound,
-  CalendarClock,
-  ClipboardList,
   FileText,
   Lock,
   BarChart3,
@@ -31,8 +29,6 @@ export type ServiciosModuloId =
   | 'actualizar-pagos'
   | 'suspensiones'
   | 'credenciales'
-  | 'prorrogas'
-  | 'reporte-inscritos'
   | 'bauchers'
   | 'bloqueados'
   | 'reportes-varios'
@@ -56,8 +52,6 @@ export const SERVICIOS_MENU: ServiciosMenuItem[] = [
   { id: 'actualizar-pagos', label: 'Actualizar Pagos', icon: RefreshCw },
   { id: 'suspensiones', label: 'Suspensiones', icon: Ban },
   { id: 'credenciales', label: 'Credenciales', icon: KeyRound },
-  { id: 'prorrogas', label: 'Prórrogas', icon: CalendarClock },
-  { id: 'reporte-inscritos', label: 'Reporte de Inscritos', icon: ClipboardList },
   { id: 'bauchers', label: 'Bauchers', icon: FileText },
   { id: 'bloqueados', label: 'Bloqueados', icon: Lock },
   { id: 'reportes-varios', label: 'Reportes Varios', icon: BarChart3 },
