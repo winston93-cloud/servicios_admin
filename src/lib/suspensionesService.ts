@@ -56,6 +56,37 @@ function bloqueInscripcionCiclo(ciclo: number): string[] {
   return [`12${c}`, `13${c}`]
 }
 
+const PAGOS_PAGE_SIZE = 1000
+
+async function cargarPagosDetalleAlumnos(
+  supabase: SupabaseClient,
+  alumnoIds: number[]
+): Promise<Array<{ alumno_id: number; pago_referencia: string | null; pago_fecha: string | null }>> {
+  const filas: Array<{
+    alumno_id: number
+    pago_referencia: string | null
+    pago_fecha: string | null
+  }> = []
+
+  let from = 0
+  while (true) {
+    const { data, error } = await supabase
+      .from('pago_detalle')
+      .select('alumno_id, pago_referencia, pago_fecha')
+      .in('alumno_id', alumnoIds)
+      .eq('pago_cancelado', 0)
+      .range(from, from + PAGOS_PAGE_SIZE - 1)
+
+    if (error) throw new Error(error.message)
+    const chunk = data ?? []
+    filas.push(...chunk)
+    if (chunk.length < PAGOS_PAGE_SIZE) break
+    from += PAGOS_PAGE_SIZE
+  }
+
+  return filas
+}
+
 export async function generarListaDeudoresSuspension(
   supabase: SupabaseClient,
   input: GenerarSuspensionesInput
@@ -100,20 +131,14 @@ export async function generarListaDeudoresSuspension(
 
   const becados100 = new Set((becas100 ?? []).map((b) => b.alumno_id as number))
 
-  const { data: pagos, error: errPagos } = await supabase
-    .from('pago_detalle')
-    .select('alumno_id, pago_referencia, pago_fecha')
-    .in('alumno_id', ids)
-    .eq('pago_cancelado', 0)
-
-  if (errPagos) throw new Error(errPagos.message)
+  const pagos = await cargarPagosDetalleAlumnos(supabase, ids)
 
   const pagosPorAlumno = new Map<number, { conceptos: Set<string>; fechaInscripcion: string | null }>()
   for (const id of ids) {
     pagosPorAlumno.set(id, { conceptos: new Set(), fechaInscripcion: null })
   }
 
-  for (const p of pagos ?? []) {
+  for (const p of pagos) {
     const alumnoId = p.alumno_id as number
     if (!alumnoId) continue
     const ref = p.pago_referencia as string | null

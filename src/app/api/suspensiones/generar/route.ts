@@ -13,7 +13,7 @@ export const maxDuration = 120
 
 function parseTipo(v: unknown): TipoReporteSuspension | null {
   const n = Number(v)
-  if (n === 1 || n === 2 || n === 3 || n === 4) return n
+  if (n === 3 || n === 4) return n
   return null
 }
 
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
     if (!plantel || !tipo) {
       return NextResponse.json(
-        { error: 'plantel (1|2) y tipo (1-4) son obligatorios' },
+        { error: 'plantel (1|2) y tipo (3|4) son obligatorios' },
         { status: 400 }
       )
     }

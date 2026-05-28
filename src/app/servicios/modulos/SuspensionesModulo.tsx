@@ -3,7 +3,10 @@
 import { useCallback, useMemo, useState } from 'react'
 import { Ban, FileDown, Loader2, Mail, RefreshCw } from 'lucide-react'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
-import { ETIQUETAS_TIPO_SUSPENSION } from '@/lib/suspensionesAdeudos'
+import {
+  ETIQUETAS_TIPO_SUSPENSION,
+  TIPOS_SUSPENSION_UI,
+} from '@/lib/suspensionesAdeudos'
 import type { AlumnoDeudorSuspension } from '@/lib/suspensionesService'
 
 type TipoReporte = 1 | 2 | 3 | 4
@@ -175,14 +178,11 @@ export default function SuspensionesModulo() {
             value={tipo}
             onChange={(e) => setTipo(Number(e.target.value) as TipoReporte)}
           >
-            {(Object.entries(ETIQUETAS_TIPO_SUSPENSION) as [string, string][]).map(
-              ([k, label]) => (
-                <option key={k} value={k} disabled={k === '1'}>
-                  {label}
-                  {k === '1' ? ' (próximamente)' : ''}
-                </option>
-              )
-            )}
+            {TIPOS_SUSPENSION_UI.map((t) => (
+              <option key={t} value={t}>
+                {ETIQUETAS_TIPO_SUSPENSION[t]}
+              </option>
+            ))}
           </select>
 
           <label className="sus-label" htmlFor="sus-ciclo">
@@ -216,7 +216,7 @@ export default function SuspensionesModulo() {
           <button
             type="button"
             className="sus-btn sus-btn--primario"
-            disabled={generando || tipo === 1}
+            disabled={generando}
             onClick={() => void generar()}
           >
             {generando ? (

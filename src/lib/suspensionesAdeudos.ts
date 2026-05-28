@@ -8,6 +8,9 @@ export const ETIQUETAS_TIPO_SUSPENSION: Record<TipoReporteSuspension, string> = 
   4: 'Deudores festival diciembre',
 }
 
+/** Opciones visibles en el módulo (tipos 1 y 2 no se usan en producción). */
+export const TIPOS_SUSPENSION_UI: TipoReporteSuspension[] = [3, 4]
+
 const MESES_CONCEPTO: Record<string, string> = {
   '00': 'CUOTA DE INICIO',
   '01': 'SEP',
@@ -46,15 +49,15 @@ const TABLA_CONCEPTOS_POR_MES_INSCRIPCION: string[][] = [
   ['04', '16', '05', '06', '07', '08', '09', '10'],
 ]
 
-/** Mes calendario → concepto colegiatura del mes escolar. */
+/** Mes calendario → concepto colegiatura (legacy `$mes` en verificarAdeudos). */
 const MES_A_CONCEPTO: string[] = [
   '',
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
+  '05',
+  '06',
+  '07',
+  '08',
+  '09',
+  '10',
   '',
   '',
   '01',
