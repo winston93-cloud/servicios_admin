@@ -144,11 +144,6 @@ export default function SuspensionesModulo() {
         </div>
         <div>
           <h1 className="sus-titulo">Suspensiones</h1>
-          <p className="sus-lead">
-            Reporte de alumnos deudores y envío de aviso de suspensión. Niveles 1–2: plantel
-            Educativo; 3–4: Winston Churchill. Colegiaturas según plan de 10 u 11 meses más cuota
-            de inicio (00) y material de enero (16).
-          </p>
         </div>
       </header>
 
