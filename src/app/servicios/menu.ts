@@ -55,7 +55,7 @@ export const SERVICIOS_MENU: ServiciosMenuItem[] = [
   { id: 'bauchers', label: 'Bauchers', icon: FileText },
   { id: 'bloqueados', label: 'Bloqueados', icon: Lock },
   { id: 'reportes-varios', label: 'Reportes', icon: BarChart3 },
-  { id: 'catalogo-ciclos-escolares', label: 'Catálogo de ciclos escolares', icon: CalendarRange },
+  { id: 'catalogo-ciclos-escolares', label: 'Ciclos escolares', icon: CalendarRange },
 ]
 
 export function esServiciosModuloId(v: string): v is ServiciosModuloId {
