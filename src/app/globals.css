@@ -11540,3 +11540,244 @@ body {
   }
 }
 
+/* ─── Servicios: móvil unificado (todos los módulos) ─────────────────────── */
+
+@media (max-width: 900px) {
+  .servicios-mobile-toggle {
+    top: max(12px, env(safe-area-inset-top));
+    left: max(12px, env(safe-area-inset-left));
+  }
+
+  .servicios-app {
+    overflow-x: hidden;
+  }
+}
+
+@media (max-width: 640px) {
+  .servicios-panel-inner {
+    max-width: 100%;
+  }
+
+  /* iOS: inputs < 16px provocan zoom al enfocar */
+  .bch-campo input,
+  .bch-campo select,
+  .sus-select,
+  .sus-input,
+  .cred-select,
+  .cred-input,
+  .becas-input,
+  .becas-select,
+  .cm-fieldset input[type='text'],
+  .cm-fieldset textarea,
+  .cm-fieldset select,
+  .pi-input,
+  .pi-select,
+  .asignar-grupos-field select,
+  .asignar-grupos-masivo-select,
+  .asignar-grupos-select,
+  .ciclos-crud-field input,
+  .migracion-alumno-input {
+    font-size: 16px;
+  }
+
+  .migracion-alumno-input {
+    max-width: none;
+  }
+
+  /* Áreas táctiles mínimas */
+  .bch-btn-generar,
+  .sus-btn,
+  .cred-btn,
+  .cred-tab,
+  .becas-btn,
+  .pi-btn,
+  .cm-btn,
+  .asignar-grupos-btn,
+  .ap-btn,
+  .ciclos-crud-btn,
+  .migracion-alumno-btn,
+  .pc-accion,
+  .servicios-btn-modulo {
+    min-height: var(--touch-min);
+  }
+
+  .pc-pago-card .pc-accion {
+    width: var(--touch-min);
+    height: var(--touch-min);
+  }
+
+  .pi-btn--catalogo {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .pi-busqueda-fila {
+    flex-direction: column;
+  }
+
+  .pi-busqueda-fila__buscar,
+  .pi-cuota-top {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Credenciales: tabs con scroll horizontal */
+  .cred-tabs {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .cred-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cred-tab {
+    flex: 0 0 auto;
+  }
+
+  .cred-hero-inner,
+  .bch-hero-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem 1.1rem;
+  }
+
+  .cred-hero-titulo,
+  .bch-hero-titulo {
+    font-size: 1.25rem;
+  }
+
+  .cred-pdf-frame,
+  .sus-pdf-frame,
+  .bch-preview-iframe {
+    min-height: 360px;
+    height: 50vh;
+  }
+
+  .cred-preview-vacio {
+    min-height: 280px;
+    padding: 1.5rem;
+  }
+
+  /* Asignar grupos */
+  .asignar-grupos-filtros-grid {
+    grid-template-columns: 1fr;
+    padding: 14px 16px;
+  }
+
+  .asignar-grupos-field--accion {
+    align-self: stretch;
+  }
+
+  .asignar-grupos-field--accion .asignar-grupos-btn {
+    width: 100%;
+  }
+
+  .asignar-grupos-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .asignar-grupos-stats {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .asignar-grupos-masivo {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .asignar-grupos-masivo-select {
+    width: 100%;
+  }
+
+  .asignar-grupos-toolbar-acciones {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .asignar-grupos-toolbar-acciones .asignar-grupos-btn {
+    width: 100%;
+  }
+
+  /* Becas */
+  .becas-acciones {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Correo masivo */
+  .cm-filtros-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cm-fieldset {
+    padding: 14px 16px;
+  }
+
+  .cm-form-acciones,
+  .cm-restaurar-banner-acciones {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cm-form-acciones .cm-btn,
+  .cm-restaurar-banner-acciones .cm-btn {
+    width: 100%;
+  }
+
+  .cm-destinatarios-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* Bauchers resumen */
+  .bch-resumen dl {
+    grid-template-columns: 1fr;
+  }
+
+  /* Suspensiones / actualizar pagos */
+  .sus-encabezado,
+  .ap-encabezado {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sus-titulo,
+  .ap-titulo {
+    font-size: 1.25rem;
+  }
+
+  .ap-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .migracion-alumno-btn {
+    width: 100%;
+  }
+
+  /* Tablas: scroll suave en pantallas táctiles */
+  .bch-tabla-scroll,
+  .asignar-grupos-tabla-wrap,
+  .pi-historial-tabla-wrap,
+  .pi-crud-tabla-wrap,
+  .ciclos-crud-table-wrap,
+  .cm-tabla-wrap,
+  .pc-tabla-scroll,
+  .sus-tabla-wrap {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pc-pago-card-datos {
+    grid-template-columns: 1fr;
+  }
+}
+
