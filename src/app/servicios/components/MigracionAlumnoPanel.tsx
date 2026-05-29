@@ -19,6 +19,20 @@ interface EstadoConfig {
   mysql: { host: string; database: string; port: number } | null
 }
 
+type EstadoFilaProgreso = 'pendiente' | 'activa' | 'ok' | 'omitida' | 'error'
+
+interface ProgresoMigracion {
+  total: number
+  completadas: number
+  tablaActual: string | null
+  tablaActualEtiqueta: string | null
+  filas: Record<string, EstadoFilaProgreso>
+}
+
+function ordenarSeleccion(ids: Set<string>): TablaMigracion[] {
+  return TABLAS_MIGRACION.filter((t) => ids.has(t.id))
+}
+
 function formatoDuracion(ms: number): string {
   if (ms < 1000) return `${ms} ms`
   const s = Math.round(ms / 100) / 10
@@ -33,6 +47,7 @@ export default function MigracionAlumnoPanel() {
     () => new Set(TABLAS_MIGRACION.map((t) => t.id))
   )
   const [cargando, setCargando] = useState(false)
+  const [progreso, setProgreso] = useState<ProgresoMigracion | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [resultado, setResultado] = useState<ResultadoMigracionTablas | null>(null)
 
@@ -100,27 +115,99 @@ export default function MigracionAlumnoPanel() {
     setError(null)
     setResultado(null)
 
+    const ordenadas = ordenarSeleccion(seleccion)
+    const total = ordenadas.length
+    const estadosIniciales = Object.fromEntries(
+      ordenadas.map((t) => [t.id, 'pendiente' as EstadoFilaProgreso])
+    ) as Record<string, EstadoFilaProgreso>
+
+    setProgreso({
+      total,
+      completadas: 0,
+      tablaActual: ordenadas[0]?.id ?? null,
+      tablaActualEtiqueta: ordenadas[0]?.etiqueta ?? null,
+      filas: estadosIniciales,
+    })
+
+    const inicio = Date.now()
+    const tablasAcumuladas: ResultadoTablaMigracion[] = []
+    const erroresGlobales: string[] = []
+    let mysqlMeta: ResultadoMigracionTablas['mysql'] | null = null
+
     try {
       const headers: HeadersInit = { 'Content-Type': 'application/json' }
       if (secreto.trim()) headers['x-migracion-secret'] = secreto.trim()
 
-      const res = await fetch('/api/migracion-tablas', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ modo, tablas: [...seleccion] }),
-      })
-      const data = (await res.json()) as ResultadoMigracionTablas & { error?: string }
-      if (!res.ok) throw new Error(data.error ?? res.statusText)
-      setResultado(data)
-      if (!data.ok) {
-        setError(data.erroresGlobales.join(' · ') || 'Migración con errores parciales')
+      for (let i = 0; i < ordenadas.length; i++) {
+        const def = ordenadas[i]
+        setProgreso((prev) =>
+          prev
+            ? {
+                ...prev,
+                tablaActual: def.id,
+                tablaActualEtiqueta: def.etiqueta,
+                filas: { ...prev.filas, [def.id]: 'activa' },
+              }
+            : prev
+        )
+
+        const res = await fetch('/api/migracion-tablas', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ modo, tablas: [def.id] }),
+        })
+        const data = (await res.json()) as ResultadoMigracionTablas & { error?: string }
+
+        if (!res.ok) {
+          throw new Error(data.error ?? res.statusText)
+        }
+
+        if (data.mysql) mysqlMeta = data.mysql
+        if (data.tablas?.length) tablasAcumuladas.push(...data.tablas)
+        if (data.erroresGlobales?.length) erroresGlobales.push(...data.erroresGlobales)
+
+        const fila = data.tablas?.[0]
+        const estadoFila: EstadoFilaProgreso =
+          fila?.estado === 'error' ? 'error' : fila?.estado === 'omitida' ? 'omitida' : 'ok'
+
+        setProgreso((prev) =>
+          prev
+            ? {
+                ...prev,
+                completadas: i + 1,
+                tablaActual: ordenadas[i + 1]?.id ?? null,
+                tablaActualEtiqueta: ordenadas[i + 1]?.etiqueta ?? null,
+                filas: { ...prev.filas, [def.id]: estadoFila },
+              }
+            : prev
+        )
+      }
+
+      const resultadoFinal: ResultadoMigracionTablas = {
+        ok: erroresGlobales.length === 0,
+        duracionMs: Date.now() - inicio,
+        modo,
+        mysql: mysqlMeta ?? { host: '—', database: '—', port: 3306 },
+        tablas: tablasAcumuladas,
+        erroresGlobales,
+      }
+
+      setResultado(resultadoFinal)
+      if (!resultadoFinal.ok) {
+        setError(erroresGlobales.join(' · ') || 'Migración con errores parciales')
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al migrar')
     } finally {
       setCargando(false)
+      setProgreso(null)
     }
   }, [modo, secreto, seleccion])
+
+  const porcentajeProgreso = useMemo(() => {
+    if (!progreso || progreso.total === 0) return 0
+    return Math.round((progreso.completadas / progreso.total) * 100)
+  }, [progreso])
 
   const totales = useMemo(() => {
     if (!resultado) return null
@@ -261,6 +348,63 @@ export default function MigracionAlumnoPanel() {
         )}
       </div>
 
+      {cargando && progreso && (
+        <div
+          className="migracion-alumno-progreso"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div className="migracion-alumno-progreso-cabecera">
+            <span className="migracion-alumno-progreso-texto">
+              {progreso.tablaActualEtiqueta ? (
+                <>
+                  Migrando <strong>{progreso.tablaActualEtiqueta}</strong>…
+                </>
+              ) : (
+                'Finalizando…'
+              )}
+            </span>
+            <span className="migracion-alumno-progreso-contador">
+              {progreso.completadas} / {progreso.total} ({porcentajeProgreso}%)
+            </span>
+          </div>
+          <div
+            className="migracion-alumno-progreso-bar"
+            role="progressbar"
+            aria-valuenow={porcentajeProgreso}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Avance de migración"
+          >
+            <div
+              className="migracion-alumno-progreso-fill"
+              style={{ width: `${porcentajeProgreso}%` }}
+            />
+          </div>
+          <ul className="migracion-alumno-progreso-lista">
+            {ordenarSeleccion(seleccion).map((t) => {
+              const est = progreso.filas[t.id] ?? 'pendiente'
+              return (
+                <li
+                  key={t.id}
+                  className={`migracion-alumno-progreso-item migracion-alumno-progreso-item--${est}`}
+                >
+                  {est === 'activa' && (
+                    <Loader2 className="migracion-alumno-spin" size={14} aria-hidden />
+                  )}
+                  {est === 'ok' && <span aria-hidden>✓</span>}
+                  {est === 'omitida' && <span aria-hidden>−</span>}
+                  {est === 'error' && <span aria-hidden>✗</span>}
+                  {est === 'pendiente' && <span className="migracion-alumno-progreso-punto" aria-hidden />}
+                  {t.etiqueta}
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
       <button
         type="button"
         className="migracion-alumno-btn"
@@ -270,7 +414,7 @@ export default function MigracionAlumnoPanel() {
         {cargando ? (
           <>
             <Loader2 className="migracion-alumno-spin" size={18} aria-hidden />
-            Migrando… (puede tardar varios minutos)
+            Migrando…
           </>
         ) : (
           `Migrar ${seleccion.size} tabla(s)`
