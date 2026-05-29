@@ -6786,6 +6786,280 @@ body {
   flex-shrink: 0;
 }
 
+/* ─── Modal confirmación migración ───────────────────────────────────── */
+.migracion-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(6px);
+  animation: migracion-confirm-fade-in 0.2s ease;
+}
+
+@keyframes migracion-confirm-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes migracion-confirm-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.migracion-confirm-dialog {
+  position: relative;
+  width: min(100%, 480px);
+  padding: 28px 28px 24px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  background: linear-gradient(165deg, #ffffff 0%, #f8fafc 55%, #eef2ff 100%);
+  box-shadow:
+    0 24px 48px -12px rgba(15, 23, 42, 0.35),
+    0 0 0 1px rgba(30, 58, 95, 0.06);
+  animation: migracion-confirm-slide-up 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.migracion-confirm-dialog--peligro {
+  background: linear-gradient(165deg, #fff 0%, #fff7ed 55%, #ffedd5 100%);
+  border-color: #fed7aa;
+}
+
+.migracion-confirm-cerrar {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(148, 163, 184, 0.15);
+  color: #64748b;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.migracion-confirm-cerrar:hover {
+  background: rgba(148, 163, 184, 0.28);
+  color: #334155;
+}
+
+.migracion-confirm-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #1e3a5f, #2563eb);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
+}
+
+.migracion-confirm-dialog--peligro .migracion-confirm-icono {
+  background: linear-gradient(135deg, #c2410c, #ea580c);
+  box-shadow: 0 8px 20px rgba(234, 88, 12, 0.35);
+}
+
+.migracion-confirm-icono--verificar {
+  background: linear-gradient(135deg, #047857, #059669);
+  box-shadow: 0 8px 20px rgba(5, 150, 105, 0.35);
+}
+
+.migracion-confirm-titulo {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.migracion-confirm-subtitulo {
+  margin: 0 0 16px;
+  font-size: 0.9375rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.migracion-confirm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.migracion-confirm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(30, 58, 95, 0.08);
+  border: 1px solid rgba(30, 58, 95, 0.12);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.migracion-confirm-chip--alerta {
+  background: #fff7ed;
+  border-color: #fdba74;
+  color: #c2410c;
+}
+
+.migracion-confirm-modo-detalle {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid #e2e8f0;
+  font-size: 0.8125rem;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.migracion-confirm-dialog--peligro .migracion-confirm-modo-detalle {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: #fed7aa;
+  color: #9a3412;
+}
+
+.migracion-confirm-lista {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.migracion-confirm-lista li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.8125rem;
+  color: #334155;
+  line-height: 1.45;
+}
+
+.migracion-confirm-lista li svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #2563eb;
+}
+
+.migracion-confirm-dialog--peligro .migracion-confirm-lista li svg {
+  color: #ea580c;
+}
+
+.migracion-confirm-dialog--verificar .migracion-confirm-lista li svg {
+  color: #059669;
+}
+
+.migracion-confirm-nota {
+  margin: 0 0 20px;
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.migracion-confirm-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.migracion-confirm-btn-cancelar,
+.migracion-confirm-btn-confirmar {
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.migracion-confirm-btn-cancelar {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+}
+
+.migracion-confirm-btn-cancelar:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.migracion-confirm-btn-confirmar {
+  border: none;
+  background: linear-gradient(135deg, #1e3a5f, #2563eb);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+
+.migracion-confirm-btn-confirmar:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.42);
+}
+
+.migracion-confirm-btn-confirmar--verificar {
+  background: linear-gradient(135deg, #047857, #059669);
+  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35);
+}
+
+.migracion-confirm-btn-confirmar--verificar:hover {
+  box-shadow: 0 6px 18px rgba(5, 150, 105, 0.42);
+}
+
+.migracion-confirm-btn-confirmar--peligro {
+  background: linear-gradient(135deg, #c2410c, #ea580c);
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.35);
+}
+
+.migracion-confirm-btn-confirmar--peligro:hover {
+  box-shadow: 0 6px 18px rgba(234, 88, 12, 0.42);
+}
+
+@media (max-width: 640px) {
+  .migracion-confirm-overlay {
+    padding: 12px;
+    align-items: flex-end;
+  }
+
+  .migracion-confirm-dialog {
+    width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px 20px;
+  }
+
+  .migracion-confirm-acciones {
+    flex-direction: column-reverse;
+  }
+
+  .migracion-confirm-btn-cancelar,
+  .migracion-confirm-btn-confirmar {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* ─── Pestañas datos alumno / madre / padre ───────────────────────────── */
 .alumno-tabs {
   margin-top: 28px;

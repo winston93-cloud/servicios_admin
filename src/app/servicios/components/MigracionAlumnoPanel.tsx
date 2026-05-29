@@ -16,6 +16,9 @@ import type {
   ResultadoTablaVerificacion,
   ResultadoVerificacionEspejo,
 } from '@/lib/migracionTablasVerificacion'
+import MigracionConfirmModal, {
+  type TipoConfirmacionMigracion,
+} from '@/app/servicios/components/MigracionConfirmModal'
 
 interface EstadoConfig {
   listo: boolean
@@ -66,6 +69,7 @@ export default function MigracionAlumnoPanel() {
   const [resultado, setResultado] = useState<ResultadoMigracionTablas | null>(null)
   const [resultadoVerificacion, setResultadoVerificacion] =
     useState<ResultadoVerificacionEspejo | null>(null)
+  const [confirmacion, setConfirmacion] = useState<TipoConfirmacionMigracion | null>(null)
 
   useEffect(() => {
     fetch('/api/migracion-tablas')
@@ -106,26 +110,26 @@ export default function MigracionAlumnoPanel() {
     })
   }
 
-  const migrar = useCallback(async () => {
+  const solicitarMigrar = () => {
     if (seleccion.size === 0) {
       setError('Selecciona al menos una tabla.')
       return
     }
+    setError(null)
+    setConfirmacion('migrar')
+  }
 
-    const etiquetaModo =
-      modo === 'espejo'
-        ? 'modo espejo (insertar, actualizar y eliminar huérfanos para igualar phpMyAdmin)'
-        : modo === 'solo_upsert'
-          ? 'solo insertar/actualizar sin borrar huérfanos'
-          : 'vaciar tablas en Supabase y copiar todo de nuevo'
-
-    if (
-      !window.confirm(
-        `Migrar ${seleccion.size} tabla(s) en ${etiquetaModo}.\n\nSe ejecutará en el servidor (Vercel). ¿Continuar?`
-      )
-    ) {
+  const solicitarVerificar = () => {
+    if (seleccion.size === 0) {
+      setError('Selecciona al menos una tabla.')
       return
     }
+    setError(null)
+    setConfirmacion('verificar')
+  }
+
+  const ejecutarMigracion = useCallback(async () => {
+    setConfirmacion(null)
 
     setCargando(true)
     setOperacion('migrar')
@@ -224,19 +228,8 @@ export default function MigracionAlumnoPanel() {
     }
   }, [modo, secreto, seleccion])
 
-  const verificar = useCallback(async () => {
-    if (seleccion.size === 0) {
-      setError('Selecciona al menos una tabla.')
-      return
-    }
-
-    if (
-      !window.confirm(
-        `Verificar espejo de ${seleccion.size} tabla(s).\n\nCompara MySQL (adaptado) vs Supabase: conteos, PKs faltantes/sobrantes y filas con contenido distinto.\n\nSe ejecutará en el servidor (Vercel). ¿Continuar?`
-      )
-    ) {
-      return
-    }
+  const ejecutarVerificacion = useCallback(async () => {
+    setConfirmacion(null)
 
     setCargando(true)
     setOperacion('verificar')
@@ -377,6 +370,7 @@ export default function MigracionAlumnoPanel() {
   }, [resultado])
 
   return (
+    <>
     <section className="migracion-alumno" aria-label="Migración MySQL → Supabase">
       <p className="migracion-alumno-desc">
         Sincroniza tablas de <strong>phpMyAdmin</strong> ({config?.mysql?.database ?? 'winston_general'})
@@ -567,7 +561,7 @@ export default function MigracionAlumnoPanel() {
           type="button"
           className="migracion-alumno-btn"
           disabled={cargando || config?.listo === false || seleccion.size === 0}
-          onClick={migrar}
+          onClick={solicitarMigrar}
         >
           {cargando && operacion === 'migrar' ? (
             <>
@@ -583,7 +577,7 @@ export default function MigracionAlumnoPanel() {
           type="button"
           className="migracion-alumno-btn migracion-alumno-btn--secundario"
           disabled={cargando || config?.listo === false || seleccion.size === 0}
-          onClick={verificar}
+          onClick={solicitarVerificar}
         >
           {cargando && operacion === 'verificar' ? (
             <>
@@ -766,5 +760,16 @@ export default function MigracionAlumnoPanel() {
         </div>
       )}
     </section>
+
+      <MigracionConfirmModal
+        abierto={confirmacion !== null}
+        tipo={confirmacion ?? 'migrar'}
+        cantidadTablas={seleccion.size}
+        modo={modo}
+        mysqlDatabase={config?.mysql?.database}
+        onCancelar={() => setConfirmacion(null)}
+        onConfirmar={confirmacion === 'verificar' ? ejecutarVerificacion : ejecutarMigracion}
+      />
+    </>
   )
 }
