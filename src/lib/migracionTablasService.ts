@@ -8,6 +8,7 @@ import {
   TABLAS_MIGRACION,
   type TablaMigracion,
 } from './migracionTablasManifest'
+import { adaptarFilaParaSupabase, mensajeErrorSupabase } from './migracionTablasAdaptadores'
 
 const LOTE = 200
 const LOTE_PK = 500
@@ -53,12 +54,22 @@ function serializarValor(clave: string, valor: unknown): unknown {
   if (Buffer.isBuffer(valor)) return valor.toString('utf8')
 
   if (typeof valor === 'string' && (CAMPOS_SOLO_FECHA.has(clave) || CAMPOS_FECHA_HORA.has(clave))) {
-    if (esFechaMysqlInvalidaTexto(valor)) return null
+    if (esFechaMysqlInvalidaTexto(valor)) {
+      if (clave === 'beca_registro' || clave === 'beca_actualizacion') {
+        return '1970-01-01T00:00:00.000Z'
+      }
+      return null
+    }
     return CAMPOS_SOLO_FECHA.has(clave) ? valor.trim().slice(0, 10) : valor.trim()
   }
 
   if (valor instanceof Date) {
-    if (!fechaValida(valor)) return null
+    if (!fechaValida(valor)) {
+      if (clave === 'beca_registro' || clave === 'beca_actualizacion') {
+        return '1970-01-01T00:00:00.000Z'
+      }
+      return null
+    }
     if (CAMPOS_SOLO_FECHA.has(clave)) return valor.toISOString().slice(0, 10)
     if (CAMPOS_FECHA_HORA.has(clave)) return valor.toISOString()
     return valor.toISOString()
@@ -111,10 +122,50 @@ async function tablaExisteEnMysql(
 
 async function leerFilasMysql(
   mysql: Awaited<ReturnType<typeof createMysqlLegacyConnection>>,
-  nombreMysql: string
+  nombreMysql: string,
+  def: TablaMigracion
 ): Promise<Record<string, unknown>[]> {
   const [resultado] = await mysql.query<RowDataPacket[]>(`SELECT * FROM \`${nombreMysql}\``)
-  return resultado.map((f) => serializarFila(f))
+  return resultado.map((f) => adaptarFilaParaSupabase(def, serializarFila(f)))
+}
+
+async function obtenerPkMysql(
+  mysql: Awaited<ReturnType<typeof createMysqlLegacyConnection>>,
+  nombreMysql: string
+): Promise<string | null> {
+  const cfg = getMysqlLegacyConfig()
+  const db = cfg?.database ?? 'winston_general'
+  const [filas] = await mysql.query<RowDataPacket[]>(
+    `SELECT COLUMN_NAME AS col FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_KEY = 'PRI'
+     ORDER BY ORDINAL_POSITION LIMIT 1`,
+    [db, nombreMysql]
+  )
+  const col = filas[0]?.col
+  return col ? String(col) : null
+}
+
+async function supabaseTablaDisponible(sb: SupabaseClient, tabla: string): Promise<boolean> {
+  const { error } = await sb.from(tabla).select('*').limit(0)
+  if (!error) return true
+  const msg = error.message?.toLowerCase() ?? ''
+  if (
+    msg.includes('does not exist') ||
+    msg.includes('schema cache') ||
+    error.code === 'PGRST205' ||
+    error.code === '42P01'
+  ) {
+    return false
+  }
+  return true
+}
+
+async function cargarIdsReferencia(
+  sb: SupabaseClient,
+  tabla: string,
+  pk: string
+): Promise<Set<number>> {
+  return obtenerPksSupabase(sb, tabla, pk)
 }
 
 async function obtenerPksSupabase(
@@ -175,7 +226,7 @@ async function upsertLote(
   filas: Record<string, unknown>[]
 ) {
   const { error } = await sb.from(tabla).upsert(filas, { onConflict: pk })
-  if (error) throw new Error(`${tabla} upsert: ${error.message}`)
+  if (error) throw new Error(`${tabla} upsert: ${mensajeErrorSupabase(error)}`)
 }
 
 async function vaciarTabla(sb: SupabaseClient, tabla: string, pk: string) {
@@ -230,13 +281,36 @@ async function migrarUnaTabla(
     }
   }
 
-  const filas = await leerFilasMysql(mysql, def.mysql)
+  const supabaseOk = await supabaseTablaDisponible(sb, def.supabase)
+  if (!supabaseOk) {
+    return {
+      ...base,
+      estado: 'omitida',
+      mensaje: `No existe en Supabase (${def.supabase}); ejecuta el SQL correspondiente en sql/`,
+    }
+  }
+
+  let pk = def.pk
+  const pkMysql = await obtenerPkMysql(mysql, def.mysql)
+  if (pkMysql) pk = pkMysql
+
+  let filas = await leerFilasMysql(mysql, def.mysql, def)
   base.origen = filas.length
 
+  if (def.id === 'pago_interno_precio') {
+    const conceptos = await cargarIdsReferencia(sb, 'concepto_interno', 'concepto_id')
+    const antes = filas.length
+    filas = filas.filter((f) => conceptos.has(Number(f.concepto_id)))
+    const omitidos = antes - filas.length
+    if (omitidos > 0) {
+      base.mensaje = `${omitidos} fila(s) omitidas (concepto_id sin catálogo en Supabase)`
+    }
+  }
+
   if (modo === 'vaciar_copiar') {
-    await vaciarTabla(sb, def.supabase, def.pk)
+    await vaciarTabla(sb, def.supabase, pk)
     for (let i = 0; i < filas.length; i += LOTE) {
-      await upsertLote(sb, def.supabase, def.pk, filas.slice(i, i + LOTE))
+      await upsertLote(sb, def.supabase, pk, filas.slice(i, i + LOTE))
     }
     base.insertados = filas.length
     return base
@@ -244,21 +318,21 @@ async function migrarUnaTabla(
 
   const pksOrigen = new Set<number>()
   for (const f of filas) {
-    const id = Number(f[def.pk])
+    const id = Number(f[pk])
     if (!Number.isNaN(id)) pksOrigen.add(id)
   }
 
   for (let i = 0; i < filas.length; i += LOTE) {
     const lote = filas.slice(i, i + LOTE)
     const pksLote = lote
-      .map((f) => Number(f[def.pk]))
+      .map((f) => Number(f[pk]))
       .filter((id) => !Number.isNaN(id))
 
-    const existentes = await obtenerFilasSupabasePorPks(sb, def.supabase, def.pk, pksLote)
+    const existentes = await obtenerFilasSupabasePorPks(sb, def.supabase, pk, pksLote)
     const aUpsert: Record<string, unknown>[] = []
 
     for (const fila of lote) {
-      const id = Number(fila[def.pk])
+      const id = Number(fila[pk])
       const prev = existentes.get(id)
       if (!prev) {
         base.insertados++
@@ -272,12 +346,12 @@ async function migrarUnaTabla(
     }
 
     if (aUpsert.length > 0) {
-      await upsertLote(sb, def.supabase, def.pk, aUpsert)
+      await upsertLote(sb, def.supabase, pk, aUpsert)
     }
   }
 
   if (modo === 'espejo') {
-    base.eliminados = await eliminarHuérfanos(sb, def.supabase, def.pk, pksOrigen)
+    base.eliminados = await eliminarHuérfanos(sb, def.supabase, pk, pksOrigen)
   }
 
   return base
