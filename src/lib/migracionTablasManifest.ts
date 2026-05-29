@@ -57,7 +57,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
     id: 'concepto_desayunos',
     mysql: 'concepto_desayunos',
     supabase: 'concepto_desayunos',
-    pk: 'concepto_id',
+    pk: 'id',
     grupo: 'desayunos',
     etiqueta: 'Conceptos desayunos',
   },
@@ -182,7 +182,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
     id: 'pago_desayunos',
     mysql: 'pago_desayunos',
     supabase: 'pago_desayunos',
-    pk: 'pago_id',
+    pk: 'id',
     grupo: 'desayunos',
     etiqueta: 'Pagos desayunos',
   },
@@ -205,6 +205,14 @@ export const TABLAS_MIGRACION_ELIMINAR = [...TABLAS_MIGRACION].reverse()
  */
 export const TABLAS_VACIAR_ANTES: Partial<Record<string, string[]>> = {
   usuario: ['contrato_determinado'],
+}
+
+/** PK y estrategia de vaciado para tablas auxiliares (solo Supabase). */
+export const VACIAR_TABLA_AUXILIAR: Record<
+  string,
+  { pk: string; tipo: 'entero' | 'uuid' }
+> = {
+  contrato_determinado: { pk: 'id', tipo: 'uuid' },
 }
 
 export const CAMPOS_SOLO_FECHA = new Set([

@@ -2,7 +2,13 @@ import type { RowDataPacket } from 'mysql2'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createMysqlLegacyConnection, getMysqlLegacyConfig } from './mysqlLegacy'
 import { createSupabaseAdmin } from './supabaseAdmin'
-import { TABLAS_MIGRACION, TABLAS_MIGRACION_ELIMINAR, TABLAS_VACIAR_ANTES, type TablaMigracion } from './migracionTablasManifest'
+import {
+  TABLAS_MIGRACION,
+  TABLAS_MIGRACION_ELIMINAR,
+  TABLAS_VACIAR_ANTES,
+  VACIAR_TABLA_AUXILIAR,
+  type TablaMigracion,
+} from './migracionTablasManifest'
 import { mensajeErrorSupabase } from './migracionTablasAdaptadores'
 import {
   filasIguales,
@@ -95,9 +101,47 @@ async function upsertLote(
   if (error) throw new Error(`${tabla} upsert: ${mensajeErrorSupabase(error)}`)
 }
 
-async function vaciarTabla(sb: SupabaseClient, tabla: string, pk: string) {
+async function vaciarTablaPorPk(
+  sb: SupabaseClient,
+  tabla: string,
+  pk: string,
+  tipo: 'entero' | 'uuid' | 'auto' = 'auto'
+): Promise<void> {
+  if (tipo === 'uuid') {
+    const { error } = await sb
+      .from(tabla)
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000')
+    if (error) throw new Error(`No se pudo vaciar ${tabla}: ${error.message}`)
+    return
+  }
+
   const { error } = await sb.from(tabla).delete().gte(pk, 0)
-  if (error) throw new Error(`No se pudo vaciar ${tabla}: ${error.message}`)
+  if (!error) return
+
+  const msg = error.message?.toLowerCase() ?? ''
+  if (
+    tipo === 'auto' &&
+    (msg.includes('uuid') || msg.includes('invalid input syntax') || msg.includes('integer'))
+  ) {
+    const { error: e2 } = await sb.from(tabla).delete().not(pk, 'is', null)
+    if (!e2) return
+    if (pk === 'id') {
+      const { error: e3 } = await sb
+        .from(tabla)
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000')
+      if (!e3) return
+      throw new Error(`No se pudo vaciar ${tabla}: ${e3.message}`)
+    }
+    throw new Error(`No se pudo vaciar ${tabla}: ${e2.message}`)
+  }
+
+  throw new Error(`No se pudo vaciar ${tabla}: ${error.message}`)
+}
+
+async function vaciarTabla(sb: SupabaseClient, tabla: string, pk: string) {
+  await vaciarTablaPorPk(sb, tabla, pk, 'auto')
 }
 
 /** Vacía tablas auxiliares (FK hacia padre) que no están en el manifiesto MySQL. */
@@ -106,23 +150,28 @@ async function vaciarTablasAuxiliares(sb: SupabaseClient, tablas: string[]) {
     const ok = await supabaseTablaDisponible(sb, tabla)
     if (!ok) continue
 
+    const cfg = VACIAR_TABLA_AUXILIAR[tabla]
+    if (cfg) {
+      await vaciarTablaPorPk(sb, tabla, cfg.pk, cfg.tipo)
+      continue
+    }
+
     let vaciada = false
-    for (const pk of ['id', 'contrato_id', 'usuario_id', 'created_by']) {
-      const { error } = await sb.from(tabla).delete().gte(pk, 0)
-      if (!error) {
+    for (const pk of ['id', 'contrato_id']) {
+      try {
+        await vaciarTablaPorPk(sb, tabla, pk, 'auto')
         vaciada = true
         break
-      }
-      const msg = error.message?.toLowerCase() ?? ''
-      if (!msg.includes('column') && !msg.includes('does not exist')) {
-        throw new Error(`No se pudo vaciar ${tabla}: ${error.message}`)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message.toLowerCase() : ''
+        if (!msg.includes('column') && !msg.includes('does not exist')) {
+          throw e
+        }
       }
     }
 
     if (!vaciada) {
-      throw new Error(
-        `No se pudo vaciar ${tabla}: no se encontró columna PK conocida (id, contrato_id, usuario_id)`
-      )
+      throw new Error(`No se pudo vaciar ${tabla}: no se encontró PK compatible`)
     }
   }
 }
