@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { parseImporteBoucher } from '@/lib/boucherCore'
 import { calcularBoucher } from '@/lib/boucherService'
 import { obtenerAlumnoPorId } from '@/lib/alumnoDatosService'
 
@@ -12,7 +13,9 @@ export async function POST(request: Request) {
     const conceptoRaw = String(body.conceptoNo ?? '0')
     const cicloEscolar = Number(body.cicloEscolar)
     const importeManual =
-      body.importe != null && body.importe !== '' ? Number(body.importe) : null
+      body.importe != null && body.importe !== ''
+        ? parseImporteBoucher(body.importe)
+        : null
 
     if (!alumnoId || !cicloEscolar) {
       return NextResponse.json({ error: 'Alumno y ciclo escolar son obligatorios' }, { status: 400 })

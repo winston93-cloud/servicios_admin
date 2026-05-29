@@ -140,9 +140,25 @@ export function getDiscount(amount: number, percent: number): number {
   return amount - amount * (percent * 0.01)
 }
 
+/** Normaliza importe con formato es-MX o símbolo $ (legacy number_format). */
+export function parseImporteBoucher(valor: number | string | null | undefined): number {
+  if (valor == null || valor === '') return 0
+  if (typeof valor === 'number') return Number.isFinite(valor) ? valor : 0
+  const limpio = String(valor).replace(/[$\s]/g, '').replace(/,/g, '')
+  const n = parseFloat(limpio)
+  return Number.isFinite(n) ? n : 0
+}
+
+/** Referencia de 12 dígitos: base + dígito importe + 2 verificadores Banorte. */
+export function formatearReferenciaBoucher(ref: string): string {
+  const d = ref.replace(/\D/g, '')
+  if (d.length !== 12) return ref
+  return `${d.slice(0, 5)} ${d.slice(5, 10)} ${d.slice(10)}`
+}
+
 /** Dígito verificador Banorte (Alan-Fn, legacy getDigVerif). */
 export function getDigVerif(importe: number | string, referenciaBase: string): string {
-  const importeTotal = Number(importe)
+  const importeTotal = parseImporteBoucher(importe)
   let importeStr = importeTotal.toFixed(2)
   importeStr = importeStr.replace('.', '').replace(',', '')
 
@@ -185,8 +201,13 @@ export function getDigVerif(importe: number | string, referenciaBase: string): s
   return `${digitoFinal}${digRefStr}`
 }
 
-export function referenciaSemibase(alumnoRef: string | number, conceptoNo: string, cicloEscolar: number): string {
+export function referenciaSemibase(
+  alumnoRef: string | number,
+  conceptoNo: string,
+  cicloEscolar: number
+): string {
   const ref = String(alumnoRef).replace(/\D/g, '')
-  const concepto = String(conceptoNo).padStart(2, '0').slice(-2)
-  return `${ref}${concepto}${cicloEscolar}`
+  const concepto = String(conceptoNo).replace(/\D/g, '').padStart(2, '0').slice(-2)
+  const ciclo = String(cicloEscolar).replace(/\D/g, '')
+  return `${ref}${concepto}${ciclo}`
 }

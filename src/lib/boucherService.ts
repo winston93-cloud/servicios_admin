@@ -3,6 +3,7 @@ import { numeroCicloEscolarAdmin } from './cicloEscolarAdmin'
 import {
   getDigVerif,
   getDiscount,
+  parseImporteBoucher,
   referenciaSemibase,
 } from './boucherCore'
 
@@ -200,9 +201,11 @@ export async function calcularBoucher(
   const cicloActual = numeroCicloEscolarAdmin()
   const becaPct = await obtenerPorcentajeBeca(supabase, params.alumnoId, cicloActual)
 
+  const manual =
+    params.importeManual != null ? parseImporteBoucher(params.importeManual) : null
   const importe =
-    params.importeManual != null && !Number.isNaN(params.importeManual)
-      ? Number(params.importeManual)
+    manual != null && manual > 0
+      ? manual
       : calcularImporteConcepto(params.conceptoNo, precio, becaPct)
 
   const semibase = referenciaSemibase(

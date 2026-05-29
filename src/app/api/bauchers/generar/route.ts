@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { calcularBoucher } from '@/lib/boucherService'
+import { parseImporteBoucher } from '@/lib/boucherCore'
 import { generarPdfBoucher } from '@/lib/boucherPdf'
 import { obtenerAlumnoPorId } from '@/lib/alumnoDatosService'
 
@@ -14,8 +15,8 @@ export async function POST(request: Request) {
     const conceptoNo = String(body.conceptoNo ?? '').padStart(2, '0')
     const cicloEscolar = Number(body.cicloEscolar)
     const vigencia = String(body.vigencia ?? '')
-    const importe = Number(body.importe)
-    const referencia = String(body.referencia ?? '')
+    const importe = parseImporteBoucher(body.importe)
+    const referencia = String(body.referencia ?? '').replace(/\D/g, '')
     const aplicarRecargos = Boolean(body.aplicarRecargos)
     const ignorarMesPago = Boolean(body.ignorarMesPago)
     const nombreAlumno = String(body.nombreAlumno ?? '')

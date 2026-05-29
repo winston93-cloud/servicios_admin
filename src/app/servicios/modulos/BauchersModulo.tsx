@@ -1,11 +1,25 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FileText, Loader2, Receipt } from 'lucide-react'
+import {
+  Banknote,
+  Calendar,
+  FileText,
+  Hash,
+  Loader2,
+  Receipt,
+  Sparkles,
+  User,
+} from 'lucide-react'
 import { useAlumnoSeleccionado } from '@/contexts/AlumnoSeleccionadoContext'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
-import { vigenciaBoucherPorDefecto } from '@/lib/boucherCore'
+import {
+  formatearReferenciaBoucher,
+  getPaymentConcept,
+  parseImporteBoucher,
+  vigenciaBoucherPorDefecto,
+} from '@/lib/boucherCore'
 import { listarConceptosBoucher } from '@/lib/pagoColegiaturaService'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
@@ -24,11 +38,12 @@ export default function BauchersModulo() {
   const [conceptos, setConceptos] = useState<{ no: string; clase: string }[]>([])
   const [precios, setPrecios] = useState<FilaTablaPrecios[]>([])
   const [alumnoId, setAlumnoId] = useState<number | null>(null)
+  const [alumnoRef, setAlumnoRef] = useState('')
   const [nombreAlumno, setNombreAlumno] = useState('')
 
   const [concepto, setConcepto] = useState('0')
   const [referencia, setReferencia] = useState('')
-  const [importe, setImporte] = useState('0.00')
+  const [importeTexto, setImporteTexto] = useState('0.00')
   const [vigencia, setVigencia] = useState(vigenciaBoucherPorDefecto())
   const [cicloBoucher, setCicloBoucher] = useState(cicloSeleccionado)
   const [aplicarRecargos, setAplicarRecargos] = useState(false)
@@ -42,6 +57,19 @@ export default function BauchersModulo() {
 
   const calcTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const importeManual = useRef(false)
+
+  const importeNumero = useMemo(() => parseImporteBoucher(importeTexto), [importeTexto])
+
+  const conceptoEtiqueta = useMemo(() => {
+    if (concepto === '0') return 'Sin concepto'
+    if (ignorarMesPago) return 'Colegiatura'
+    return getPaymentConcept(concepto)
+  }, [concepto, ignorarMesPago])
+
+  const referenciaValida = useMemo(() => {
+    const d = referencia.replace(/\D/g, '')
+    return d.length === 12 && !referencia.includes('NaN')
+  }, [referencia])
 
   useEffect(() => {
     listarConceptosBoucher().then((lista) => {
@@ -62,7 +90,6 @@ export default function BauchersModulo() {
 
   const cargarPrecios = useCallback(async (ciclo: number) => {
     setCargandoPrecios(true)
-    setError(null)
     try {
       const res = await fetch(`/api/bauchers/precios?ciclo=${ciclo}`)
       const json = await res.json()
@@ -87,6 +114,7 @@ export default function BauchersModulo() {
       const reg = await obtenerAlumnoPorRef(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
       if (cancel || !reg) return
       setAlumnoId(reg.alumno_id)
+      setAlumnoRef(String(reg.alumno_ref))
       setNombreAlumno(
         `${reg.alumno_app} ${reg.alumno_apm} ${reg.alumno_nombre}`.trim().toUpperCase()
       )
@@ -103,7 +131,7 @@ export default function BauchersModulo() {
     async (importeOverride?: number | null) => {
       if (!alumnoId || concepto === '0' || !cicloBoucher) {
         setReferencia('')
-        if (concepto === '0') setImporte('0.00')
+        if (concepto === '0') setImporteTexto('0.00')
         return
       }
 
@@ -115,7 +143,9 @@ export default function BauchersModulo() {
           conceptoNo: concepto,
           cicloEscolar: cicloBoucher,
         }
-        if (importeOverride != null) body.importe = importeOverride
+        if (importeOverride != null && importeOverride > 0) {
+          body.importe = importeOverride
+        }
 
         const res = await fetch('/api/bauchers/calcular', {
           method: 'POST',
@@ -126,9 +156,9 @@ export default function BauchersModulo() {
         if (!res.ok) throw new Error(json.error ?? 'Error al calcular')
 
         if (importeOverride == null && !importeManual.current) {
-          setImporte(formatearMonto(json.importe))
+          setImporteTexto(formatearMonto(json.importe))
         }
-        setReferencia(json.referencia ?? '')
+        setReferencia(String(json.referencia ?? '').replace(/\D/g, '').slice(0, 12))
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Error al calcular baucher')
       } finally {
@@ -144,13 +174,13 @@ export default function BauchersModulo() {
   }, [alumnoId, concepto, cicloBoucher, recalcular])
 
   const onImporteChange = (valor: string) => {
-    setImporte(valor)
+    setImporteTexto(valor)
     importeManual.current = true
     if (calcTimer.current) clearTimeout(calcTimer.current)
     calcTimer.current = setTimeout(() => {
-      const n = parseFloat(valor.replace(/,/g, ''))
-      if (!Number.isNaN(n)) recalcular(n)
-    }, 350)
+      const n = parseImporteBoucher(valor)
+      if (n > 0) recalcular(n)
+    }, 400)
   }
 
   const generarPdf = async () => {
@@ -158,9 +188,8 @@ export default function BauchersModulo() {
       setError('Selecciona un alumno y un concepto')
       return
     }
-    const monto = parseFloat(importe.replace(/,/g, ''))
-    if (!monto || !referencia) {
-      setError('Importe y referencia son obligatorios')
+    if (!referenciaValida || importeNumero <= 0) {
+      setError('Revisa el importe y espera a que se calcule la referencia de 12 dígitos')
       return
     }
 
@@ -174,8 +203,8 @@ export default function BauchersModulo() {
           alumnoId,
           nombreAlumno,
           conceptoNo: concepto,
-          referencia,
-          importe: monto,
+          referencia: referencia.replace(/\D/g, ''),
+          importe: importeNumero,
           vigencia,
           cicloEscolar: cicloBoucher,
           aplicarRecargos,
@@ -210,176 +239,249 @@ export default function BauchersModulo() {
     [opcionesCatalogo, cicloSeleccionado]
   )
 
+  const listoParaGenerar =
+    !!alumnoId && concepto !== '0' && referenciaValida && importeNumero > 0 && !calculando
+
   return (
     <div className="servicios-panel-inner bch-modulo">
-      <header className="bch-encabezado">
-        <div className="bch-encabezado-icono">
-          <Receipt size={22} aria-hidden />
-        </div>
-        <div>
-          <h1 className="bch-encabezado-h1">Bauchers</h1>
-          <p className="bch-encabezado-lead">
-            Genera bauchers de pago con referencia Banorte, igual que en el sistema legacy.
-          </p>
+      <header className="bch-hero">
+        <div className="bch-hero-glow" aria-hidden />
+        <div className="bch-hero-inner">
+          <div className="bch-hero-icono" aria-hidden>
+            <Receipt size={24} strokeWidth={1.75} />
+          </div>
+          <div>
+            <p className="bch-hero-kicker">
+              <Sparkles size={14} aria-hidden />
+              Pagos bancarios
+            </p>
+            <h1 className="bch-hero-titulo">Bauchers</h1>
+            <p className="bch-hero-lead">
+              Referencia Banorte de 12 dígitos con dígito verificador, como en el sistema
+              administrativo legacy.
+            </p>
+          </div>
         </div>
       </header>
 
+      <section className="bch-busqueda">
+        <AlumnoAutocomplete
+          etiqueta="Nombre del alumno / No. control"
+          alumnoSeleccionado={alumnoSeleccionado}
+          onSeleccionar={setAlumnoSeleccionado}
+        />
+      </section>
+
       <div className="bch-layout">
-        <section className="bch-panel">
-          <AlumnoAutocomplete
-            etiqueta="Nombre del alumno / No. control"
-            alumnoSeleccionado={alumnoSeleccionado}
-            onSeleccionar={setAlumnoSeleccionado}
-          />
+        <div className="bch-columna-form">
+          {nombreAlumno && (
+            <div className="bch-alumno-chip">
+              <User size={16} aria-hidden />
+              <div>
+                <span className="bch-alumno-chip-label">Alumno seleccionado</span>
+                <strong>{nombreAlumno}</strong>
+                {alumnoRef && <span className="bch-alumno-chip-ref">No. {alumnoRef}</span>}
+              </div>
+            </div>
+          )}
 
-          <fieldset className="bch-formulario">
-            <legend>Generar Baucher</legend>
+          <div className="bch-card">
+            <h2 className="bch-card-titulo">Generar baucher</h2>
 
-            <label className="bch-campo">
-              <span>Alumno</span>
-              <input type="text" readOnly value={nombreAlumno} placeholder="Busca un alumno arriba…" />
-            </label>
+            <div className="bch-grid">
+              <label className="bch-campo bch-campo--full">
+                <span>Concepto de pago</span>
+                <select value={concepto} onChange={(e) => setConcepto(e.target.value)}>
+                  <option value="0">Sin concepto</option>
+                  {conceptos.map((c) => (
+                    <option key={c.no} value={c.no}>
+                      {c.clase}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            <label className="bch-campo">
-              <span>Concepto</span>
-              <select value={concepto} onChange={(e) => setConcepto(e.target.value)}>
-                <option value="0">Sin Concepto</option>
-                {conceptos.map((c) => (
-                  <option key={c.no} value={c.no}>
-                    {c.clase}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <label className="bch-campo">
+                <span>
+                  <Banknote size={14} aria-hidden />
+                  Importe
+                </span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={importeTexto}
+                  onChange={(e) => onImporteChange(e.target.value)}
+                  placeholder="0.00"
+                />
+              </label>
 
-            <label className="bch-campo">
-              <span>Referencia</span>
-              <input type="text" readOnly value={referencia} placeholder="12 dígitos…" maxLength={12} />
-            </label>
+              <label className="bch-campo">
+                <span>
+                  <Calendar size={14} aria-hidden />
+                  Vigencia
+                </span>
+                <input
+                  type="date"
+                  value={vigencia}
+                  onChange={(e) => setVigencia(e.target.value)}
+                />
+              </label>
 
-            <label className="bch-campo">
-              <span>Importe</span>
-              <input
-                type="text"
-                value={importe}
-                onChange={(e) => onImporteChange(e.target.value)}
-                placeholder="0.00"
-              />
-            </label>
+              <label className="bch-campo">
+                <span>Ciclo escolar</span>
+                <select
+                  value={cicloBoucher}
+                  onChange={(e) => setCicloBoucher(Number(e.target.value))}
+                >
+                  {opcionesCiclo.map((c) => (
+                    <option key={c.valor} value={c.valor}>
+                      {c.etiqueta}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-            <label className="bch-campo">
-              <span>Vigencia</span>
-              <input
-                type="date"
-                value={vigencia}
-                onChange={(e) => setVigencia(e.target.value)}
-              />
-            </label>
+              <label className="bch-campo">
+                <span>¿Aplicar recargos?</span>
+                <select
+                  value={aplicarRecargos ? '1' : '0'}
+                  onChange={(e) => setAplicarRecargos(e.target.value === '1')}
+                >
+                  <option value="0">No</option>
+                  <option value="1">Sí</option>
+                </select>
+              </label>
 
-            <label className="bch-campo">
-              <span>Ciclo Escolar</span>
-              <select
-                value={cicloBoucher}
-                onChange={(e) => setCicloBoucher(Number(e.target.value))}
-              >
-                {opcionesCiclo.map((c) => (
-                  <option key={c.valor} value={c.valor}>
-                    {c.etiqueta}
-                  </option>
-                ))}
-              </select>
-            </label>
+              <label className="bch-campo">
+                <span>Ignorar mes de pago</span>
+                <select
+                  value={ignorarMesPago ? '1' : '0'}
+                  onChange={(e) => setIgnorarMesPago(e.target.value === '1')}
+                >
+                  <option value="0">No</option>
+                  <option value="1">Sí</option>
+                </select>
+              </label>
+            </div>
 
-            <label className="bch-campo">
-              <span>¿Aplicar Recargos?</span>
-              <select
-                value={aplicarRecargos ? '1' : '0'}
-                onChange={(e) => setAplicarRecargos(e.target.value === '1')}
-              >
-                <option value="0">No</option>
-                <option value="1">Sí</option>
-              </select>
-            </label>
-
-            <label className="bch-campo">
-              <span>Ignorar Mes de pago</span>
-              <select
-                value={ignorarMesPago ? '1' : '0'}
-                onChange={(e) => setIgnorarMesPago(e.target.value === '1')}
-              >
-                <option value="0">No</option>
-                <option value="1">Sí</option>
-              </select>
-            </label>
+            <div
+              className={`bch-referencia-box ${referenciaValida ? 'bch-referencia-box--ok' : ''} ${calculando ? 'bch-referencia-box--loading' : ''}`}
+            >
+              <div className="bch-referencia-head">
+                <Hash size={16} aria-hidden />
+                <span>Referencia bancaria (12 dígitos)</span>
+                {calculando && <Loader2 size={14} className="bch-spin" aria-hidden />}
+              </div>
+              <p className="bch-referencia-valor" aria-live="polite">
+                {referenciaValida
+                  ? formatearReferenciaBoucher(referencia)
+                  : referencia.includes('NaN')
+                    ? 'Error al calcular — revisa el importe'
+                    : '— — — — — — — — — — — —'}
+              </p>
+              <p className="bch-referencia-hint">
+                Incluye dígito del importe y 2 dígitos verificadores Banorte (algoritmo legacy).
+              </p>
+            </div>
 
             <button
               type="button"
               className="bch-btn-generar"
-              disabled={generando || calculando || !alumnoId || concepto === '0'}
+              disabled={generando || !listoParaGenerar}
               onClick={generarPdf}
             >
               {generando ? (
                 <>
-                  <Loader2 size={16} className="bch-spin" aria-hidden />
-                  Generando…
+                  <Loader2 size={18} className="bch-spin" aria-hidden />
+                  Generando PDF…
                 </>
               ) : (
                 <>
-                  <FileText size={16} aria-hidden />
-                  Generar Baucher
+                  <FileText size={18} aria-hidden />
+                  Generar baucher
                 </>
               )}
             </button>
 
-            {(calculando || cargandoPrecios) && (
-              <p className="bch-estado">
-                <Loader2 size={14} className="bch-spin" aria-hidden />
-                {calculando ? 'Calculando referencia…' : 'Cargando precios…'}
+            {error && (
+              <p className="bch-alerta bch-alerta--error" role="alert">
+                {error}
               </p>
             )}
-            {error && <p className="bch-error">{error}</p>}
-          </fieldset>
-        </section>
+          </div>
 
-        <section className="bch-preview">
+          <div className="bch-resumen">
+            <dl>
+              <div>
+                <dt>Concepto en PDF</dt>
+                <dd>{conceptoEtiqueta}</dd>
+              </div>
+              <div>
+                <dt>Importe</dt>
+                <dd>{importeNumero > 0 ? formatearMonto(importeNumero) : '—'}</dd>
+              </div>
+              <div>
+                <dt>Ciclo</dt>
+                <dd>{etiquetaCicloEscolar(cicloBoucher)}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+
+        <section className="bch-preview" aria-label="Vista previa del baucher">
+          <div className="bch-preview-head">
+            <FileText size={18} aria-hidden />
+            <span>Vista previa</span>
+          </div>
           {pdfUrl ? (
             <iframe title="Vista previa baucher" src={pdfUrl} className="bch-preview-iframe" />
           ) : (
             <div className="bch-preview-vacio">
-              <FileText size={40} strokeWidth={1.2} aria-hidden />
-              <p>El PDF aparecerá aquí al generar el baucher.</p>
+              <div className="bch-preview-icono" aria-hidden>
+                <Receipt size={48} strokeWidth={1.1} />
+              </div>
+              <p className="bch-preview-titulo">Sin PDF aún</p>
+              <p className="bch-preview-texto">
+                Busca un alumno, elige concepto y pulsa <strong>Generar baucher</strong>.
+              </p>
             </div>
           )}
         </section>
       </div>
 
-      <div className="bch-tabla-precios-wrap">
-        <h2 className="bch-tabla-titulo">Precios por nivel (ciclo seleccionado)</h2>
+      <section className="bch-tabla-precios-wrap">
+        <div className="bch-tabla-head">
+          <h2>Precios por nivel</h2>
+          <span className="bch-tabla-ciclo">{etiquetaCicloEscolar(cicloBoucher)}</span>
+          {cargandoPrecios && <Loader2 size={14} className="bch-spin" aria-hidden />}
+        </div>
         <div className="bch-tabla-scroll">
           <table className="bch-tabla">
             <thead>
               <tr>
                 <th>Nivel</th>
                 <th>Inscripción</th>
-                <th>Cuota Agosto</th>
+                <th>Cuota agosto</th>
                 <th>Colegiatura</th>
-                <th>Material Enero</th>
-                <th>Seguro Escolar</th>
-                <th>Cuota de Padres</th>
-                <th>Certificado Cambridge</th>
+                <th>Material</th>
+                <th>Seguro</th>
+                <th>Cuota padres</th>
+                <th>Cambridge</th>
               </tr>
             </thead>
             <tbody>
               {precios.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="bch-tabla-vacio">
-                    {cargandoPrecios ? 'Cargando…' : 'Sin precios para este ciclo'}
+                    {cargandoPrecios ? 'Cargando precios…' : 'Sin precios para este ciclo'}
                   </td>
                 </tr>
               ) : (
                 precios.map((f) => (
                   <tr key={f.nivel}>
-                    <td>{etiquetaNivelEscolar(f.nivel)}</td>
+                    <td>
+                      <span className="bch-nivel-pill">{etiquetaNivelEscolar(f.nivel)}</span>
+                    </td>
                     <td>{formatearMonto(f.inscripcion)}</td>
                     <td>{formatearMonto(f.agosto)}</td>
                     <td>{formatearMonto(f.colegiatura)}</td>
@@ -393,7 +495,7 @@ export default function BauchersModulo() {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     </div>
   )
 }
