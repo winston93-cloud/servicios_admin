@@ -6504,6 +6504,172 @@ body {
   line-height: 1.5;
 }
 
+.migracion-alumno-modo {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.migracion-alumno-modo legend {
+  padding: 0 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.migracion-alumno-radio {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 8px 0 0;
+  font-size: 0.8125rem;
+  color: #334155;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.migracion-alumno-tablas {
+  margin-bottom: 16px;
+}
+
+.migracion-alumno-tablas-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-bottom: 10px;
+}
+
+.migracion-alumno-subtitulo {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0f172a;
+  flex: 1 1 auto;
+}
+
+.migracion-alumno-link-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.migracion-alumno-grupo {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.migracion-alumno-grupo-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+.migracion-alumno-grupo-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.migracion-alumno-grupo-lista label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+  font-size: 0.8125rem;
+  color: #334155;
+  cursor: pointer;
+}
+
+.migracion-alumno-tabla-meta {
+  font-size: 0.6875rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.migracion-alumno-resultado {
+  margin-top: 16px;
+}
+
+.migracion-alumno-resumen {
+  margin: 8px 0 12px;
+  font-size: 0.8125rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.migracion-alumno-tabla-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.migracion-alumno-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.migracion-alumno-tabla th,
+.migracion-alumno-tabla td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+  vertical-align: top;
+}
+
+.migracion-alumno-tabla th {
+  background: #f8fafc;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.migracion-alumno-tabla td:nth-child(n + 3) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.migracion-alumno-tr--omitida {
+  opacity: 0.75;
+}
+
+.migracion-alumno-tr--error td {
+  background: #fef2f2;
+}
+
+.migracion-alumno-detalles {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
 /* ─── Pestañas datos alumno / madre / padre ───────────────────────────── */
 .alumno-tabs {
   margin-top: 28px;
