@@ -7,6 +7,7 @@ function claveNormalizada(key: string): string {
   const lower = k.toLowerCase()
   if (lower === 'visible' || k === 'Visible') return 'visible'
   if (lower === 'orden_visible' || k === 'Orden_Visible') return 'orden_visible'
+  if (lower === 'porroga_id') return 'prorroga_id'
   return k
 }
 
@@ -93,8 +94,14 @@ export function adaptarFilaParaSupabase(
 
   if (def.id === 'concepto_interno') out = adaptarConceptoInterno(out)
   if (def.id === 'alumno_beca') out = adaptarAlumnoBeca(out)
-  if (def.id === 'pago_prorroga' && (out.correccion === null || out.correccion === undefined)) {
-    out.correccion = 0
+  if (def.id === 'pago_prorroga') {
+    if (out.porroga_id !== undefined && out.prorroga_id === undefined) {
+      out.prorroga_id = out.porroga_id
+      delete out.porroga_id
+    }
+    if (out.correccion === null || out.correccion === undefined) {
+      out.correccion = 0
+    }
   }
 
   return filtrarColumnas(out, COLUMNAS_SUPABASE[def.supabase])

@@ -129,22 +129,6 @@ async function leerFilasMysql(
   return resultado.map((f) => adaptarFilaParaSupabase(def, serializarFila(f)))
 }
 
-async function obtenerPkMysql(
-  mysql: Awaited<ReturnType<typeof createMysqlLegacyConnection>>,
-  nombreMysql: string
-): Promise<string | null> {
-  const cfg = getMysqlLegacyConfig()
-  const db = cfg?.database ?? 'winston_general'
-  const [filas] = await mysql.query<RowDataPacket[]>(
-    `SELECT COLUMN_NAME AS col FROM information_schema.COLUMNS
-     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_KEY = 'PRI'
-     ORDER BY ORDINAL_POSITION LIMIT 1`,
-    [db, nombreMysql]
-  )
-  const col = filas[0]?.col
-  return col ? String(col) : null
-}
-
 async function supabaseTablaDisponible(sb: SupabaseClient, tabla: string): Promise<boolean> {
   const { error } = await sb.from(tabla).select('*').limit(0)
   if (!error) return true
@@ -290,9 +274,8 @@ async function migrarUnaTabla(
     }
   }
 
-  let pk = def.pk
-  const pkMysql = await obtenerPkMysql(mysql, def.mysql)
-  if (pkMysql) pk = pkMysql
+  /** PK en Supabase (no usar el nombre legacy de MySQL, ej. porroga_id). */
+  const pk = def.pk
 
   let filas = await leerFilasMysql(mysql, def.mysql, def)
   base.origen = filas.length
