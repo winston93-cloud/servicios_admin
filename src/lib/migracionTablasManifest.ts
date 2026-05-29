@@ -200,11 +200,21 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
 export const TABLAS_MIGRACION_ELIMINAR = [...TABLAS_MIGRACION].reverse()
 
 /**
+ * Tablas de contratos (solo Supabase, módulo RRHH) que referencian usuario.created_by.
+ * Deben vaciarse antes que `usuario` en modo vaciar_copiar.
+ */
+export const CONTRATOS_SUPABASE_AUX = [
+  'contrato_hora',
+  'contrato_indeterminado',
+  'contrato_determinado',
+] as const
+
+/**
  * Tablas en Supabase que referencian a otra del manifiesto pero no se migran desde MySQL.
  * Se vacían antes que el padre en modo vaciar_copiar.
  */
 export const TABLAS_VACIAR_ANTES: Partial<Record<string, string[]>> = {
-  usuario: ['contrato_indeterminado', 'contrato_determinado'],
+  usuario: [...CONTRATOS_SUPABASE_AUX],
 }
 
 /** PK y estrategia de vaciado para tablas auxiliares (solo Supabase). */
@@ -212,6 +222,7 @@ export const VACIAR_TABLA_AUXILIAR: Record<
   string,
   { pk: string; tipo: 'entero' | 'uuid' }
 > = {
+  contrato_hora: { pk: 'id', tipo: 'uuid' },
   contrato_indeterminado: { pk: 'id', tipo: 'uuid' },
   contrato_determinado: { pk: 'id', tipo: 'uuid' },
 }
