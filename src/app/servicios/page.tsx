@@ -23,6 +23,7 @@ import CorreoMasivoModulo from './modulos/CorreoMasivoModulo'
 import ActualizarPagosModulo from './modulos/ActualizarPagosModulo'
 import SuspensionesModulo from './modulos/SuspensionesModulo'
 import CredencialesModulo from './modulos/CredencialesModulo'
+import BauchersModulo from './modulos/BauchersModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
 import { AlumnoSeleccionadoProvider } from '@/contexts/AlumnoSeleccionadoContext'
 
@@ -79,6 +80,8 @@ function ServiciosPanelContenido({
       return <SuspensionesModulo />
     case 'credenciales':
       return <CredencialesModulo />
+    case 'bauchers':
+      return <BauchersModulo />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }
