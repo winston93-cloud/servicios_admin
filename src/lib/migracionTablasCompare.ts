@@ -1,7 +1,11 @@
 import type { RowDataPacket } from 'mysql2'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { TablaMigracion } from './migracionTablasManifest'
-import { CAMPOS_FECHA_HORA, CAMPOS_SOLO_FECHA } from './migracionTablasManifest'
+import {
+  CAMPOS_FECHA_HORA,
+  CAMPOS_SOLO_FECHA,
+  esCampoNumerico,
+} from './migracionTablasManifest'
 import { adaptarFilaParaSupabase } from './migracionTablasAdaptadores'
 
 const LOTE_PK = 500
@@ -44,6 +48,11 @@ function serializarValor(clave: string, valor: unknown): unknown {
 
   if (typeof valor === 'bigint') return Number(valor)
 
+  if (esCampoNumerico(clave) && valor !== null && valor !== '') {
+    const n = Number(valor)
+    if (!Number.isNaN(n)) return n
+  }
+
   return valor
 }
 
@@ -56,20 +65,69 @@ export function serializarFilaMysql(fila: RowDataPacket): Record<string, unknown
   return out
 }
 
-function normalizarComparacion(valor: unknown): string {
+function normalizarSoloFecha(valor: unknown): string {
+  if (valor === null || valor === undefined || valor === '') return ''
+  if (valor instanceof Date) {
+    if (!fechaValida(valor)) return ''
+    return valor.toISOString().slice(0, 10)
+  }
+  const s = String(valor).trim()
+  if (!s || esFechaMysqlInvalidaTexto(s)) return ''
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})/)
+  return m ? m[1] : s
+}
+
+function normalizarFechaHora(valor: unknown): string {
+  if (valor === null || valor === undefined || valor === '') return ''
+  if (valor instanceof Date) {
+    if (!fechaValida(valor)) return ''
+    return String(Math.floor(valor.getTime() / 1000))
+  }
+  const s = String(valor).trim()
+  if (!s || esFechaMysqlInvalidaTexto(s)) return ''
+
+  let parseable = s
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?$/.test(s)) {
+    parseable = `${s.replace(' ', 'T')}Z`
+  }
+
+  const t = Date.parse(parseable)
+  if (Number.isNaN(t)) return s
+  return String(Math.floor(t / 1000))
+}
+
+function normalizarNumerico(valor: unknown): string {
+  if (valor === null || valor === undefined || valor === '') return ''
+  const n = Number(valor)
+  if (Number.isNaN(n)) return String(valor).trim()
+  return n.toFixed(2)
+}
+
+/** Canonicaliza un valor según el tipo semántico de la columna. */
+export function normalizarValorCampo(clave: string, valor: unknown): string {
   if (valor === null || valor === undefined) return ''
   if (typeof valor === 'number' && Number.isNaN(valor)) return ''
+
+  if (CAMPOS_SOLO_FECHA.has(clave)) return normalizarSoloFecha(valor)
+  if (CAMPOS_FECHA_HORA.has(clave)) return normalizarFechaHora(valor)
+  if (esCampoNumerico(clave)) return normalizarNumerico(valor)
+
+  if (typeof valor === 'boolean') return valor ? '1' : '0'
+  if (typeof valor === 'number') return String(valor)
   if (typeof valor === 'object') return JSON.stringify(valor)
   return String(valor).trim()
+}
+
+export function valoresEquivalentes(clave: string, a: unknown, b: unknown): boolean {
+  return normalizarValorCampo(clave, a) === normalizarValorCampo(clave, b)
 }
 
 export function filasIguales(
   a: Record<string, unknown>,
   b: Record<string, unknown>
 ): boolean {
-  const keys = new Set([...Object.keys(a), ...Object.keys(b)])
-  for (const k of keys) {
-    if (normalizarComparacion(a[k]) !== normalizarComparacion(b[k])) return false
+  for (const k of Object.keys(a)) {
+    if (!valoresEquivalentes(k, a[k], b[k])) return false
   }
   return true
 }
@@ -78,10 +136,9 @@ export function camposDistintosEntreFilas(
   a: Record<string, unknown>,
   b: Record<string, unknown>
 ): string[] {
-  const keys = new Set([...Object.keys(a), ...Object.keys(b)])
   const diff: string[] = []
-  for (const k of keys) {
-    if (normalizarComparacion(a[k]) !== normalizarComparacion(b[k])) diff.push(k)
+  for (const k of Object.keys(a)) {
+    if (!valoresEquivalentes(k, a[k], b[k])) diff.push(k)
   }
   return diff
 }

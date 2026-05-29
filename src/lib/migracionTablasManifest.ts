@@ -204,7 +204,12 @@ export const CAMPOS_SOLO_FECHA = new Set([
   'alumno_alta',
   'alumno_fecha_nac',
   'familiar_fecha_nac',
+  'familiar_registro',
   'pago_fecha',
+  'materia_registro',
+  'maestro_registro',
+  'grupo_registro',
+  'prorroga_fecha',
 ])
 
 export const CAMPOS_FECHA_HORA = new Set([
@@ -218,10 +223,18 @@ export const CAMPOS_FECHA_HORA = new Set([
   'beca_actualizacion',
   'pago_registro',
   'pago_actualizacion',
-  'materia_registro',
-  'maestro_registro',
-  'grupo_registro',
-  'prorroga_fecha',
+  'usuario_alta',
   'created_at',
   'updated_at',
 ])
+
+/** NUMERIC(6,2) / NUMERIC(10,2) — comparar como decimal, no como texto. */
+export function esCampoNumerico(clave: string): boolean {
+  if (/^precio_(id|interno_id|ciclo)/.test(clave)) return false
+  return (
+    clave.startsWith('precio_') ||
+    clave === 'pago_importe' ||
+    clave === 'pago_recargo' ||
+    clave === 'beca_porcentaje'
+  )
+}
