@@ -1,7 +1,30 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState, type ComponentType } from 'react'
+import {
+  AlertCircle,
+  ArrowRight,
+  BookOpen,
+  Check,
+  CheckCircle2,
+  Cloud,
+  Coffee,
+  Database,
+  Eraser,
+  GitCompareArrows,
+  GraduationCap,
+  KeyRound,
+  Loader2,
+  Minus,
+  RefreshCw,
+  Server,
+  Settings,
+  ShieldCheck,
+  Sparkles,
+  Users,
+  Wallet,
+  XCircle,
+} from 'lucide-react'
 import {
   GRUPOS_MIGRACION,
   TABLAS_MIGRACION,
@@ -45,6 +68,37 @@ interface ProgresoMigracion {
   filas: Record<string, EstadoFilaProgreso>
 }
 
+const GRUPO_ICON: Record<TablaMigracion['grupo'], ComponentType<{ size?: number; className?: string }>> = {
+  catalogos: BookOpen,
+  alumnos: Users,
+  pagos: Wallet,
+  boletas: GraduationCap,
+  desayunos: Coffee,
+  sistema: Settings,
+}
+
+const MODOS_INFO: Record<
+  ModoMigracion,
+  { titulo: string; desc: string; Icon: ComponentType<{ size?: number }>; badge?: string }
+> = {
+  espejo: {
+    titulo: 'Espejo',
+    desc: 'Inserta, actualiza y elimina huérfanos para igualar phpMyAdmin.',
+    Icon: GitCompareArrows,
+    badge: 'Recomendado',
+  },
+  solo_upsert: {
+    titulo: 'Solo upsert',
+    desc: 'Inserta o actualiza filas sin borrar extras en Supabase.',
+    Icon: RefreshCw,
+  },
+  vaciar_copiar: {
+    titulo: 'Vaciar y copiar',
+    desc: 'Borra la tabla destino y recarga todo desde cero.',
+    Icon: Eraser,
+  },
+}
+
 function ordenarSeleccion(ids: Set<string>): TablaMigracion[] {
   return TABLAS_MIGRACION.filter((t) => ids.has(t.id))
 }
@@ -53,6 +107,13 @@ function formatoDuracion(ms: number): string {
   if (ms < 1000) return `${ms} ms`
   const s = Math.round(ms / 100) / 10
   return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${Math.round(s % 60)} s`
+}
+
+function estadoGrupo(ids: string[], seleccion: Set<string>): 'todos' | 'ninguno' | 'parcial' {
+  const n = ids.filter((id) => seleccion.has(id)).length
+  if (n === 0) return 'ninguno'
+  if (n === ids.length) return 'todos'
+  return 'parcial'
 }
 
 export default function MigracionAlumnoPanel() {
@@ -130,7 +191,6 @@ export default function MigracionAlumnoPanel() {
 
   const ejecutarMigracion = useCallback(async () => {
     setConfirmacion(null)
-
     setCargando(true)
     setOperacion('migrar')
     setError(null)
@@ -181,9 +241,7 @@ export default function MigracionAlumnoPanel() {
         })
         const data = (await res.json()) as ResultadoMigracionTablas & { error?: string }
 
-        if (!res.ok) {
-          throw new Error(data.error ?? res.statusText)
-        }
+        if (!res.ok) throw new Error(data.error ?? res.statusText)
 
         if (data.mysql) mysqlMeta = data.mysql
         if (data.tablas?.length) tablasAcumuladas.push(...data.tablas)
@@ -230,7 +288,6 @@ export default function MigracionAlumnoPanel() {
 
   const ejecutarVerificacion = useCallback(async () => {
     setConfirmacion(null)
-
     setCargando(true)
     setOperacion('verificar')
     setError(null)
@@ -281,9 +338,7 @@ export default function MigracionAlumnoPanel() {
         })
         const data = (await res.json()) as ResultadoVerificacionEspejo & { error?: string }
 
-        if (!res.ok) {
-          throw new Error(data.error ?? res.statusText)
-        }
+        if (!res.ok) throw new Error(data.error ?? res.statusText)
 
         if (data.mysql) mysqlMeta = data.mysql
         if (data.tablas?.length) tablasAcumuladas.push(...data.tablas)
@@ -369,397 +424,542 @@ export default function MigracionAlumnoPanel() {
     )
   }, [resultado])
 
+  const accionesDeshabilitadas = cargando || config?.listo === false || seleccion.size === 0
+
   return (
     <>
-    <section className="migracion-alumno" aria-label="Migración MySQL → Supabase">
-      <p className="migracion-alumno-desc">
-        Sincroniza tablas de <strong>phpMyAdmin</strong> ({config?.mysql?.database ?? 'winston_general'})
-        hacia Supabase. Se ejecuta en el servidor (Vercel), no en tu PC. Tras migrar en modo espejo,
-        usa <strong>Verificar espejo</strong> para auditar conteos, PKs y contenido de negocio
-        (ignora columnas <code>*_actualizacion</code> que Postgres sobrescribe con triggers).
-      </p>
+      <div className="migracion-pro" aria-label="Migración MySQL → Supabase">
+        {/* Hero */}
+        <header className="migracion-pro-hero">
+          <div className="migracion-pro-hero-copy">
+            <span className="migracion-pro-kicker">
+              <Sparkles size={14} aria-hidden />
+              Sincronización de datos
+            </span>
+            <h2 className="migracion-pro-hero-title">MySQL → Supabase</h2>
+            <p className="migracion-pro-hero-lead">
+              Replica tablas de phpMyAdmin hacia Supabase desde el servidor Vercel. Tras migrar en
+              modo espejo, audita con verificación de conteos, PKs y contenido de negocio.
+            </p>
+          </div>
 
-      {config?.mysql && (
-        <p className="migracion-alumno-meta">
-          Origen MySQL: <strong>{config.mysql.host}</strong> · puerto {config.mysql.port}
-        </p>
-      )}
-
-      {config && !config.listo && (
-        <p className="migracion-alumno-alerta" role="alert">
-          Falta configuración MySQL en Vercel. Ve a{' '}
-          <strong>Project → Settings → Environment Variables</strong> y agrega MYSQL_HOST,
-          MYSQL_USER, MYSQL_PASSWORD y MYSQL_DATABASE. El servidor MySQL debe aceptar conexiones
-          desde internet (no solo localhost).
-        </p>
-      )}
-
-      {config?.requiereSecreto && (
-        <label className="migracion-alumno-field">
-          <span>Secreto de migración (MIGRACION_SECRET)</span>
-          <input
-            type="password"
-            value={secreto}
-            onChange={(e) => setSecreto(e.target.value)}
-            className="migracion-alumno-input"
-            autoComplete="off"
-          />
-        </label>
-      )}
-
-      <fieldset className="migracion-alumno-modo">
-        <legend>Modo de sincronización</legend>
-        <label className="migracion-alumno-radio">
-          <input
-            type="radio"
-            name="modo-migracion"
-            checked={modo === 'espejo'}
-            onChange={() => setModo('espejo')}
-          />
-          <span>
-            <strong>Espejo</strong> — inserta, actualiza y elimina en Supabase lo que no esté en
-            MySQL (recomendado para quedar idéntico)
-          </span>
-        </label>
-        <label className="migracion-alumno-radio">
-          <input
-            type="radio"
-            name="modo-migracion"
-            checked={modo === 'solo_upsert'}
-            onChange={() => setModo('solo_upsert')}
-          />
-          <span>
-            <strong>Solo upsert</strong> — inserta o actualiza; no borra filas extra en Supabase
-          </span>
-        </label>
-        <label className="migracion-alumno-radio">
-          <input
-            type="radio"
-            name="modo-migracion"
-            checked={modo === 'vaciar_copiar'}
-            onChange={() => setModo('vaciar_copiar')}
-          />
-          <span>
-            <strong>Vaciar y copiar</strong> — borra la tabla en Supabase y vuelve a cargar todo
-          </span>
-        </label>
-      </fieldset>
-
-      <div className="migracion-alumno-tablas">
-        <div className="migracion-alumno-tablas-head">
-          <h2 className="migracion-alumno-subtitulo">Tablas a migrar</h2>
-          <button
-            type="button"
-            className="migracion-alumno-link-btn"
-            onClick={() => setSeleccion(new Set(TABLAS_MIGRACION.map((t) => t.id)))}
-          >
-            Todas
-          </button>
-          <button
-            type="button"
-            className="migracion-alumno-link-btn"
-            onClick={() => setSeleccion(new Set())}
-          >
-            Ninguna
-          </button>
-        </div>
-
-        {([...porGrupo.entries()] as [TablaMigracion['grupo'], TablaMigracion[]][]).map(
-          ([grupo, tablas]) => (
-            <div key={grupo} className="migracion-alumno-grupo">
-              <label className="migracion-alumno-grupo-label">
-                <input
-                  type="checkbox"
-                  checked={tablas.every((t) => seleccion.has(t.id))}
-                  onChange={() => toggleGrupo(grupo)}
-                />
-                {GRUPOS_MIGRACION[grupo]}
-              </label>
-              <ul className="migracion-alumno-grupo-lista">
-                {tablas.map((t) => (
-                  <li key={t.id}>
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={seleccion.has(t.id)}
-                        onChange={() => toggleTabla(t.id)}
-                      />
-                      {t.etiqueta}
-                      <span className="migracion-alumno-tabla-meta">
-                        {t.mysql} → {t.supabase}
-                      </span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
+          <div className="migracion-pro-pipeline" aria-hidden>
+            <div className="migracion-pro-node migracion-pro-node--mysql">
+              <Database size={22} />
+              <span>MySQL</span>
+              <small>{config?.mysql?.database ?? 'winston_general'}</small>
             </div>
-          )
+            <div className="migracion-pro-arrow">
+              <ArrowRight size={20} />
+            </div>
+            <div className="migracion-pro-node migracion-pro-node--supabase">
+              <Cloud size={22} />
+              <span>Supabase</span>
+              <small>PostgreSQL</small>
+            </div>
+          </div>
+
+          <div className="migracion-pro-badges">
+            <span
+              className={`migracion-pro-badge${config?.listo ? ' migracion-pro-badge--ok' : ' migracion-pro-badge--warn'}`}
+            >
+              <span className="migracion-pro-badge-dot" aria-hidden />
+              {config?.listo ? 'MySQL configurado' : 'MySQL pendiente'}
+            </span>
+            {config?.mysql && (
+              <span className="migracion-pro-badge">
+                <Server size={13} aria-hidden />
+                {config.mysql.host}:{config.mysql.port}
+              </span>
+            )}
+            <span className="migracion-pro-badge migracion-pro-badge--accent">
+              {seleccion.size} / {TABLAS_MIGRACION.length} tablas
+            </span>
+          </div>
+        </header>
+
+        {config && !config.listo && (
+          <div className="migracion-pro-banner migracion-pro-banner--error" role="alert">
+            <AlertCircle size={18} aria-hidden />
+            <div>
+              <strong>Falta configuración MySQL en Vercel.</strong> Agrega MYSQL_HOST, MYSQL_USER,
+              MYSQL_PASSWORD y MYSQL_DATABASE en Project → Settings → Environment Variables.
+            </div>
+          </div>
         )}
-      </div>
 
-      {cargando && progreso && (
-        <div
-          className="migracion-alumno-progreso"
-          role="status"
-          aria-live="polite"
-          aria-busy="true"
-        >
-          <div className="migracion-alumno-progreso-cabecera">
-            <span className="migracion-alumno-progreso-texto">
-              {progreso.tablaActualEtiqueta ? (
-                <>
-                  {progreso.tipo === 'verificar' ? 'Verificando' : 'Migrando'}{' '}
-                  <strong>{progreso.tablaActualEtiqueta}</strong>…
-                </>
-              ) : (
-                'Finalizando…'
-              )}
-            </span>
-            <span className="migracion-alumno-progreso-contador">
-              {progreso.completadas} / {progreso.total} ({porcentajeProgreso}%)
-            </span>
-          </div>
-          <div
-            className="migracion-alumno-progreso-bar"
-            role="progressbar"
-            aria-valuenow={porcentajeProgreso}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-label={progreso.tipo === 'verificar' ? 'Avance de verificación' : 'Avance de migración'}
-          >
-            <div
-              className="migracion-alumno-progreso-fill"
-              style={{ width: `${porcentajeProgreso}%` }}
-            />
-          </div>
-          <ul className="migracion-alumno-progreso-lista">
-            {ordenarSeleccion(seleccion).map((t) => {
-              const est = progreso.filas[t.id] ?? 'pendiente'
-              return (
-                <li
-                  key={t.id}
-                  className={`migracion-alumno-progreso-item migracion-alumno-progreso-item--${est}`}
+        <div className="migracion-pro-layout">
+          {/* Sidebar: config + modos */}
+          <aside className="migracion-pro-sidebar">
+            {config?.requiereSecreto && (
+              <section className="migracion-pro-card">
+                <h3 className="migracion-pro-card-title">
+                  <KeyRound size={16} aria-hidden />
+                  Secreto de migración
+                </h3>
+                <p className="migracion-pro-card-hint">Variable MIGRACION_SECRET en Vercel</p>
+                <input
+                  type="password"
+                  value={secreto}
+                  onChange={(e) => setSecreto(e.target.value)}
+                  className="migracion-pro-input"
+                  placeholder="••••••••••••"
+                  autoComplete="off"
+                />
+              </section>
+            )}
+
+            <section className="migracion-pro-card">
+              <h3 className="migracion-pro-card-title">Modo de sincronización</h3>
+              <div className="migracion-pro-modos" role="radiogroup" aria-label="Modo de sincronización">
+                {(Object.keys(MODOS_INFO) as ModoMigracion[]).map((id) => {
+                  const info = MODOS_INFO[id]
+                  const activo = modo === id
+                  const Icon = info.Icon
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      role="radio"
+                      aria-checked={activo}
+                      className={`migracion-pro-modo${activo ? ' migracion-pro-modo--activo' : ''}${id === 'vaciar_copiar' ? ' migracion-pro-modo--peligro' : ''}`}
+                      onClick={() => setModo(id)}
+                    >
+                      <span className="migracion-pro-modo-icono" aria-hidden>
+                        <Icon size={18} />
+                      </span>
+                      <span className="migracion-pro-modo-texto">
+                        <span className="migracion-pro-modo-titulo">
+                          {info.titulo}
+                          {info.badge && (
+                            <span className="migracion-pro-modo-badge">{info.badge}</span>
+                          )}
+                        </span>
+                        <span className="migracion-pro-modo-desc">{info.desc}</span>
+                      </span>
+                      <span className="migracion-pro-modo-check" aria-hidden>
+                        {activo && <Check size={14} strokeWidth={3} />}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+
+            <section className="migracion-pro-card migracion-pro-card--tip">
+              <p>
+                Las columnas <code>*_actualizacion</code> las gestiona Postgres con triggers; la
+                verificación las ignora a propósito.
+              </p>
+            </section>
+          </aside>
+
+          {/* Main: tablas */}
+          <main className="migracion-pro-main">
+            <div className="migracion-pro-main-head">
+              <div>
+                <h3 className="migracion-pro-main-title">Tablas a procesar</h3>
+                <p className="migracion-pro-main-sub">
+                  {seleccion.size} seleccionada{seleccion.size === 1 ? '' : 's'} de{' '}
+                  {TABLAS_MIGRACION.length}
+                </p>
+              </div>
+              <div className="migracion-pro-quick">
+                <button
+                  type="button"
+                  className="migracion-pro-quick-btn"
+                  onClick={() => setSeleccion(new Set(TABLAS_MIGRACION.map((t) => t.id)))}
                 >
-                  {est === 'activa' && (
-                    <Loader2 className="migracion-alumno-spin" size={14} aria-hidden />
-                  )}
-                  {est === 'ok' && <span aria-hidden>✓</span>}
-                  {est === 'discordancia' && <span aria-hidden>≠</span>}
-                  {est === 'omitida' && <span aria-hidden>−</span>}
-                  {est === 'error' && <span aria-hidden>✗</span>}
-                  {est === 'pendiente' && <span className="migracion-alumno-progreso-punto" aria-hidden />}
-                  {t.etiqueta}
-                </li>
-              )
-            })}
-          </ul>
+                  Todas
+                </button>
+                <button
+                  type="button"
+                  className="migracion-pro-quick-btn"
+                  onClick={() => setSeleccion(new Set())}
+                >
+                  Ninguna
+                </button>
+              </div>
+            </div>
+
+            <div className="migracion-pro-grupos">
+              {([...porGrupo.entries()] as [TablaMigracion['grupo'], TablaMigracion[]][]).map(
+                ([grupo, tablas]) => {
+                  const ids = tablas.map((t) => t.id)
+                  const estado = estadoGrupo(ids, seleccion)
+                  const GrupoIcon = GRUPO_ICON[grupo]
+                  const selCount = ids.filter((id) => seleccion.has(id)).length
+
+                  return (
+                    <section key={grupo} className="migracion-pro-grupo">
+                      <button
+                        type="button"
+                        className="migracion-pro-grupo-head"
+                        onClick={() => toggleGrupo(grupo)}
+                        aria-pressed={estado === 'todos'}
+                      >
+                        <span
+                          className={`migracion-pro-check migracion-pro-check--grupo migracion-pro-check--${estado}`}
+                          aria-hidden
+                        >
+                          {estado === 'todos' && <Check size={12} strokeWidth={3} />}
+                          {estado === 'parcial' && <Minus size={12} strokeWidth={3} />}
+                        </span>
+                        <span className="migracion-pro-grupo-icono" aria-hidden>
+                          <GrupoIcon size={16} />
+                        </span>
+                        <span className="migracion-pro-grupo-nombre">{GRUPOS_MIGRACION[grupo]}</span>
+                        <span className="migracion-pro-grupo-count">
+                          {selCount}/{tablas.length}
+                        </span>
+                      </button>
+
+                      <ul className="migracion-pro-tablas">
+                        {tablas.map((t) => {
+                          const activa = seleccion.has(t.id)
+                          return (
+                            <li key={t.id}>
+                              <button
+                                type="button"
+                                className={`migracion-pro-fila${activa ? ' migracion-pro-fila--activa' : ''}`}
+                                onClick={() => toggleTabla(t.id)}
+                                aria-pressed={activa}
+                              >
+                                <span
+                                  className={`migracion-pro-check${activa ? ' migracion-pro-check--on' : ''}`}
+                                  aria-hidden
+                                >
+                                  {activa && <Check size={11} strokeWidth={3} />}
+                                </span>
+                                <span className="migracion-pro-tabla-info">
+                                  <span className="migracion-pro-tabla-nombre">{t.etiqueta}</span>
+                                  <span className="migracion-pro-tabla-ruta">
+                                    {t.mysql} → {t.supabase}
+                                  </span>
+                                </span>
+                              </button>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </section>
+                  )
+                }
+              )}
+            </div>
+          </main>
         </div>
-      )}
 
-      <div className="migracion-alumno-acciones">
-        <button
-          type="button"
-          className="migracion-alumno-btn"
-          disabled={cargando || config?.listo === false || seleccion.size === 0}
-          onClick={solicitarMigrar}
-        >
-          {cargando && operacion === 'migrar' ? (
-            <>
-              <Loader2 className="migracion-alumno-spin" size={18} aria-hidden />
-              Migrando…
-            </>
-          ) : (
-            `Migrar ${seleccion.size} tabla(s)`
-          )}
-        </button>
-
-        <button
-          type="button"
-          className="migracion-alumno-btn migracion-alumno-btn--secundario"
-          disabled={cargando || config?.listo === false || seleccion.size === 0}
-          onClick={solicitarVerificar}
-        >
-          {cargando && operacion === 'verificar' ? (
-            <>
-              <Loader2 className="migracion-alumno-spin" size={18} aria-hidden />
-              Verificando…
-            </>
-          ) : (
-            `Verificar espejo (${seleccion.size})`
-          )}
-        </button>
-      </div>
-
-      {error && (
-        <p className="migracion-alumno-alerta" role="alert">
-          {error}
-        </p>
-      )}
-
-      {resultado && (
-        <div className="migracion-alumno-resultado">
-          <p className="migracion-alumno-ok" role="status">
-            {resultado.ok ? 'Migración completada' : 'Migración terminada con errores'} ·{' '}
-            {formatoDuracion(resultado.duracionMs)} · modo {resultado.modo}
-          </p>
-
-          {totales && (
-            <p className="migracion-alumno-resumen">
-              Origen: <strong>{totales.origen}</strong> filas · Insertados:{' '}
-              <strong>{totales.insertados}</strong> · Actualizados:{' '}
-              <strong>{totales.actualizados}</strong> · Sin cambios:{' '}
-              <strong>{totales.sinCambios}</strong> · Eliminados:{' '}
-              <strong>{totales.eliminados}</strong>
-            </p>
-          )}
-
-          <div className="migracion-alumno-tabla-wrap">
-            <table className="migracion-alumno-tabla">
-              <thead>
-                <tr>
-                  <th>Tabla</th>
-                  <th>Estado</th>
-                  <th>MySQL</th>
-                  <th>+ Insert</th>
-                  <th>↻ Update</th>
-                  <th>= Igual</th>
-                  <th>− Delete</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resultado.tablas.map((t: ResultadoTablaMigracion) => (
-                  <tr key={t.id} className={`migracion-alumno-tr--${t.estado}`}>
-                    <td>
-                      <strong>{t.etiqueta}</strong>
-                      <span className="migracion-alumno-tabla-meta">{t.supabase}</span>
-                    </td>
-                    <td>
-                      {t.estado === 'ok' && 'OK'}
-                      {t.estado === 'omitida' && 'Omitida'}
-                      {t.estado === 'error' && 'Error'}
-                    </td>
-                    <td>{t.origen}</td>
-                    <td>{t.insertados}</td>
-                    <td>{t.actualizados}</td>
-                    <td>{t.sinCambios}</td>
-                    <td>{t.eliminados}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {resultado.tablas.some((t) => t.mensaje) && (
-            <ul className="migracion-alumno-detalles">
-              {resultado.tablas
-                .filter((t) => t.mensaje)
-                .map((t) => (
-                  <li key={t.id}>
-                    <strong>{t.etiqueta}:</strong> {t.mensaje}
-                  </li>
-                ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {resultadoVerificacion && (
-        <div className="migracion-alumno-resultado migracion-alumno-resultado--verificacion">
-          <p
-            className={
-              resultadoVerificacion.ok ? 'migracion-alumno-ok' : 'migracion-alumno-alerta'
-            }
+        {/* Progreso */}
+        {cargando && progreso && (
+          <section
+            className="migracion-pro-progreso"
             role="status"
+            aria-live="polite"
+            aria-busy="true"
           >
-            {resultadoVerificacion.ok
-              ? 'Espejo verificado: MySQL y Supabase coinciden'
-              : 'Verificación terminada con discordancias'}{' '}
-            · {formatoDuracion(resultadoVerificacion.duracionMs)}
-          </p>
-
-          {totalesVerificacion && (
-            <p className="migracion-alumno-resumen">
-              MySQL esperado: <strong>{totalesVerificacion.mysql}</strong> · Supabase:{' '}
-              <strong>{totalesVerificacion.supabase}</strong> · Faltan en Supabase:{' '}
-              <strong>{totalesVerificacion.faltan}</strong> · Sobran en Supabase:{' '}
-              <strong>{totalesVerificacion.sobran}</strong> · Contenido distinto:{' '}
-              <strong>{totalesVerificacion.distintas}</strong>
-            </p>
-          )}
-
-          <div className="migracion-alumno-tabla-wrap">
-            <table className="migracion-alumno-tabla">
-              <thead>
-                <tr>
-                  <th>Tabla</th>
-                  <th>Estado</th>
-                  <th>MySQL</th>
-                  <th>Supabase</th>
-                  <th>Faltan</th>
-                  <th>Sobran</th>
-                  <th>≠ Contenido</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resultadoVerificacion.tablas.map((t: ResultadoTablaVerificacion) => (
-                  <tr key={t.id} className={`migracion-alumno-tr--${t.estado}`}>
-                    <td>
-                      <strong>{t.etiqueta}</strong>
-                      <span className="migracion-alumno-tabla-meta">{t.supabase}</span>
-                    </td>
-                    <td>
-                      {t.estado === 'ok' && 'OK'}
-                      {t.estado === 'discordancia' && 'Discordancia'}
-                      {t.estado === 'omitida' && 'Omitida'}
-                      {t.estado === 'error' && 'Error'}
-                    </td>
-                    <td>{t.mysqlCount}</td>
-                    <td>{t.supabaseCount}</td>
-                    <td>{t.faltanEnSupabase}</td>
-                    <td>{t.sobranEnSupabase}</td>
-                    <td>{t.contenidoDistinto}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {resultadoVerificacion.tablas.some(
-            (t) =>
-              t.mensaje ||
-              t.muestraFaltan.length > 0 ||
-              t.muestraSobran.length > 0 ||
-              t.muestraDistintas.length > 0
-          ) && (
-            <ul className="migracion-alumno-detalles">
-              {resultadoVerificacion.tablas.map((t) => {
-                const partes: string[] = []
-                if (t.mensaje) partes.push(t.mensaje)
-                if (t.muestraFaltan.length > 0) {
-                  partes.push(
-                    `PK faltan (muestra): ${t.muestraFaltan.join(', ')}${t.faltanEnSupabase > t.muestraFaltan.length ? '…' : ''}`
-                  )
-                }
-                if (t.muestraSobran.length > 0) {
-                  partes.push(
-                    `PK sobran (muestra): ${t.muestraSobran.join(', ')}${t.sobranEnSupabase > t.muestraSobran.length ? '…' : ''}`
-                  )
-                }
-                for (const d of t.muestraDistintas) {
-                  partes.push(`PK ${d.pk}: campos distintos → ${d.campos.join(', ')}`)
-                }
-                if (partes.length === 0) return null
+            <div className="migracion-pro-progreso-top">
+              <div>
+                <p className="migracion-pro-progreso-label">
+                  {progreso.tipo === 'verificar' ? 'Verificando espejo' : 'Migrando tablas'}
+                </p>
+                <p className="migracion-pro-progreso-tabla">
+                  {progreso.tablaActualEtiqueta ?? 'Finalizando…'}
+                </p>
+              </div>
+              <span className="migracion-pro-progreso-pct">{porcentajeProgreso}%</span>
+            </div>
+            <div
+              className="migracion-pro-progreso-bar"
+              role="progressbar"
+              aria-valuenow={porcentajeProgreso}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className="migracion-pro-progreso-fill"
+                style={{ width: `${porcentajeProgreso}%` }}
+              />
+            </div>
+            <ul className="migracion-pro-progreso-lista">
+              {ordenarSeleccion(seleccion).map((t) => {
+                const est = progreso.filas[t.id] ?? 'pendiente'
                 return (
-                  <li key={t.id}>
-                    <strong>{t.etiqueta}:</strong> {partes.join(' · ')}
+                  <li key={t.id} className={`migracion-pro-progreso-item migracion-pro-progreso-item--${est}`}>
+                    {est === 'activa' && <Loader2 className="migracion-pro-spin" size={13} aria-hidden />}
+                    {est === 'ok' && <CheckCircle2 size={13} aria-hidden />}
+                    {est === 'discordancia' && <span aria-hidden>≠</span>}
+                    {est === 'omitida' && <Minus size={13} aria-hidden />}
+                    {est === 'error' && <XCircle size={13} aria-hidden />}
+                    {est === 'pendiente' && <span className="migracion-pro-progreso-dot" aria-hidden />}
+                    {t.etiqueta}
                   </li>
                 )
               })}
             </ul>
-          )}
-        </div>
-      )}
-    </section>
+          </section>
+        )}
+
+        {/* Acciones sticky */}
+        <footer className="migracion-pro-footer">
+          <div className="migracion-pro-footer-info">
+            <strong>{seleccion.size}</strong> tabla{seleccion.size === 1 ? '' : 's'} · modo{' '}
+            <strong>{MODOS_INFO[modo].titulo}</strong>
+          </div>
+          <div className="migracion-pro-footer-btns">
+            <button
+              type="button"
+              className="migracion-pro-btn migracion-pro-btn--ghost"
+              disabled={accionesDeshabilitadas}
+              onClick={solicitarVerificar}
+            >
+              {cargando && operacion === 'verificar' ? (
+                <>
+                  <Loader2 className="migracion-pro-spin" size={17} aria-hidden />
+                  Verificando…
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={17} aria-hidden />
+                  Verificar espejo
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              className="migracion-pro-btn migracion-pro-btn--primary"
+              disabled={accionesDeshabilitadas}
+              onClick={solicitarMigrar}
+            >
+              {cargando && operacion === 'migrar' ? (
+                <>
+                  <Loader2 className="migracion-pro-spin" size={17} aria-hidden />
+                  Migrando…
+                </>
+              ) : (
+                <>
+                  <GitCompareArrows size={17} aria-hidden />
+                  Migrar {seleccion.size} tabla{seleccion.size === 1 ? '' : 's'}
+                </>
+              )}
+            </button>
+          </div>
+        </footer>
+
+        {error && (
+          <div className="migracion-pro-banner migracion-pro-banner--error" role="alert">
+            <AlertCircle size={18} aria-hidden />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Resultados migración */}
+        {resultado && (
+          <section className="migracion-pro-resultado">
+            <header className={`migracion-pro-resultado-head${resultado.ok ? ' migracion-pro-resultado-head--ok' : ''}`}>
+              <CheckCircle2 size={20} aria-hidden />
+              <div>
+                <h3>{resultado.ok ? 'Migración completada' : 'Migración con errores'}</h3>
+                <p>
+                  {formatoDuracion(resultado.duracionMs)} · modo {resultado.modo}
+                </p>
+              </div>
+            </header>
+
+            {totales && (
+              <div className="migracion-pro-stats">
+                <div className="migracion-pro-stat">
+                  <span className="migracion-pro-stat-val">{totales.origen.toLocaleString()}</span>
+                  <span className="migracion-pro-stat-lbl">Origen</span>
+                </div>
+                <div className="migracion-pro-stat migracion-pro-stat--insert">
+                  <span className="migracion-pro-stat-val">{totales.insertados.toLocaleString()}</span>
+                  <span className="migracion-pro-stat-lbl">Insertados</span>
+                </div>
+                <div className="migracion-pro-stat migracion-pro-stat--update">
+                  <span className="migracion-pro-stat-val">{totales.actualizados.toLocaleString()}</span>
+                  <span className="migracion-pro-stat-lbl">Actualizados</span>
+                </div>
+                <div className="migracion-pro-stat">
+                  <span className="migracion-pro-stat-val">{totales.sinCambios.toLocaleString()}</span>
+                  <span className="migracion-pro-stat-lbl">Sin cambios</span>
+                </div>
+                <div className="migracion-pro-stat migracion-pro-stat--delete">
+                  <span className="migracion-pro-stat-val">{totales.eliminados.toLocaleString()}</span>
+                  <span className="migracion-pro-stat-lbl">Eliminados</span>
+                </div>
+              </div>
+            )}
+
+            <div className="migracion-pro-tabla-wrap">
+              <table className="migracion-pro-tabla">
+                <thead>
+                  <tr>
+                    <th>Tabla</th>
+                    <th>Estado</th>
+                    <th>MySQL</th>
+                    <th>+ Insert</th>
+                    <th>↻ Update</th>
+                    <th>= Igual</th>
+                    <th>− Delete</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resultado.tablas.map((t) => (
+                    <tr key={t.id} className={`migracion-pro-tr--${t.estado}`}>
+                      <td>
+                        <strong>{t.etiqueta}</strong>
+                        <span className="migracion-pro-tabla-ruta">{t.supabase}</span>
+                      </td>
+                      <td>
+                        <span className={`migracion-pro-estado migracion-pro-estado--${t.estado}`}>
+                          {t.estado === 'ok' && 'OK'}
+                          {t.estado === 'omitida' && 'Omitida'}
+                          {t.estado === 'error' && 'Error'}
+                        </span>
+                      </td>
+                      <td>{t.origen.toLocaleString()}</td>
+                      <td>{t.insertados.toLocaleString()}</td>
+                      <td>{t.actualizados.toLocaleString()}</td>
+                      <td>{t.sinCambios.toLocaleString()}</td>
+                      <td>{t.eliminados.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {resultado.tablas.some((t) => t.mensaje) && (
+              <ul className="migracion-pro-detalles">
+                {resultado.tablas
+                  .filter((t) => t.mensaje)
+                  .map((t) => (
+                    <li key={t.id}>
+                      <strong>{t.etiqueta}:</strong> {t.mensaje}
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </section>
+        )}
+
+        {/* Resultados verificación */}
+        {resultadoVerificacion && (
+          <section className="migracion-pro-resultado">
+            <header
+              className={`migracion-pro-resultado-head${resultadoVerificacion.ok ? ' migracion-pro-resultado-head--ok' : ' migracion-pro-resultado-head--warn'}`}
+            >
+              <ShieldCheck size={20} aria-hidden />
+              <div>
+                <h3>
+                  {resultadoVerificacion.ok
+                    ? 'Espejo verificado'
+                    : 'Verificación con discordancias'}
+                </h3>
+                <p>{formatoDuracion(resultadoVerificacion.duracionMs)}</p>
+              </div>
+            </header>
+
+            {totalesVerificacion && (
+              <div className="migracion-pro-stats">
+                <div className="migracion-pro-stat">
+                  <span className="migracion-pro-stat-val">{totalesVerificacion.mysql.toLocaleString()}</span>
+                  <span className="migracion-pro-stat-lbl">MySQL esperado</span>
+                </div>
+                <div className="migracion-pro-stat">
+                  <span className="migracion-pro-stat-val">{totalesVerificacion.supabase.toLocaleString()}</span>
+                  <span className="migracion-pro-stat-lbl">Supabase</span>
+                </div>
+                <div className="migracion-pro-stat migracion-pro-stat--warn">
+                  <span className="migracion-pro-stat-val">{totalesVerificacion.faltan.toLocaleString()}</span>
+                  <span className="migracion-pro-stat-lbl">Faltan</span>
+                </div>
+                <div className="migracion-pro-stat migracion-pro-stat--warn">
+                  <span className="migracion-pro-stat-val">{totalesVerificacion.sobran.toLocaleString()}</span>
+                  <span className="migracion-pro-stat-lbl">Sobran</span>
+                </div>
+                <div className="migracion-pro-stat migracion-pro-stat--warn">
+                  <span className="migracion-pro-stat-val">{totalesVerificacion.distintas.toLocaleString()}</span>
+                  <span className="migracion-pro-stat-lbl">≠ Contenido</span>
+                </div>
+              </div>
+            )}
+
+            <div className="migracion-pro-tabla-wrap">
+              <table className="migracion-pro-tabla">
+                <thead>
+                  <tr>
+                    <th>Tabla</th>
+                    <th>Estado</th>
+                    <th>MySQL</th>
+                    <th>Supabase</th>
+                    <th>Faltan</th>
+                    <th>Sobran</th>
+                    <th>≠ Contenido</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resultadoVerificacion.tablas.map((t) => (
+                    <tr key={t.id} className={`migracion-pro-tr--${t.estado}`}>
+                      <td>
+                        <strong>{t.etiqueta}</strong>
+                        <span className="migracion-pro-tabla-ruta">{t.supabase}</span>
+                      </td>
+                      <td>
+                        <span className={`migracion-pro-estado migracion-pro-estado--${t.estado}`}>
+                          {t.estado === 'ok' && 'OK'}
+                          {t.estado === 'discordancia' && 'Discordancia'}
+                          {t.estado === 'omitida' && 'Omitida'}
+                          {t.estado === 'error' && 'Error'}
+                        </span>
+                      </td>
+                      <td>{t.mysqlCount.toLocaleString()}</td>
+                      <td>{t.supabaseCount.toLocaleString()}</td>
+                      <td>{t.faltanEnSupabase.toLocaleString()}</td>
+                      <td>{t.sobranEnSupabase.toLocaleString()}</td>
+                      <td>{t.contenidoDistinto.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {resultadoVerificacion.tablas.some(
+              (t) =>
+                t.mensaje ||
+                t.muestraFaltan.length > 0 ||
+                t.muestraSobran.length > 0 ||
+                t.muestraDistintas.length > 0
+            ) && (
+              <ul className="migracion-pro-detalles">
+                {resultadoVerificacion.tablas.map((t) => {
+                  const partes: string[] = []
+                  if (t.mensaje) partes.push(t.mensaje)
+                  if (t.muestraFaltan.length > 0) {
+                    partes.push(
+                      `PK faltan (muestra): ${t.muestraFaltan.join(', ')}${t.faltanEnSupabase > t.muestraFaltan.length ? '…' : ''}`
+                    )
+                  }
+                  if (t.muestraSobran.length > 0) {
+                    partes.push(
+                      `PK sobran (muestra): ${t.muestraSobran.join(', ')}${t.sobranEnSupabase > t.muestraSobran.length ? '…' : ''}`
+                    )
+                  }
+                  for (const d of t.muestraDistintas) {
+                    partes.push(`PK ${d.pk}: campos distintos → ${d.campos.join(', ')}`)
+                  }
+                  if (partes.length === 0) return null
+                  return (
+                    <li key={t.id}>
+                      <strong>{t.etiqueta}:</strong> {partes.join(' · ')}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </section>
+        )}
+      </div>
 
       <MigracionConfirmModal
         abierto={confirmacion !== null}
