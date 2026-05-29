@@ -2,7 +2,7 @@ import type { RowDataPacket } from 'mysql2'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createMysqlLegacyConnection, getMysqlLegacyConfig } from './mysqlLegacy'
 import { createSupabaseAdmin } from './supabaseAdmin'
-import { TABLAS_MIGRACION, type TablaMigracion } from './migracionTablasManifest'
+import { TABLAS_MIGRACION, TABLAS_MIGRACION_ELIMINAR, TABLAS_VACIAR_ANTES, type TablaMigracion } from './migracionTablasManifest'
 import { mensajeErrorSupabase } from './migracionTablasAdaptadores'
 import {
   filasIguales,
@@ -100,6 +100,73 @@ async function vaciarTabla(sb: SupabaseClient, tabla: string, pk: string) {
   if (error) throw new Error(`No se pudo vaciar ${tabla}: ${error.message}`)
 }
 
+/** Vacía tablas auxiliares (FK hacia padre) que no están en el manifiesto MySQL. */
+async function vaciarTablasAuxiliares(sb: SupabaseClient, tablas: string[]) {
+  for (const tabla of tablas) {
+    const ok = await supabaseTablaDisponible(sb, tabla)
+    if (!ok) continue
+
+    let vaciada = false
+    for (const pk of ['id', 'contrato_id', 'usuario_id', 'created_by']) {
+      const { error } = await sb.from(tabla).delete().gte(pk, 0)
+      if (!error) {
+        vaciada = true
+        break
+      }
+      const msg = error.message?.toLowerCase() ?? ''
+      if (!msg.includes('column') && !msg.includes('does not exist')) {
+        throw new Error(`No se pudo vaciar ${tabla}: ${error.message}`)
+      }
+    }
+
+    if (!vaciada) {
+      throw new Error(
+        `No se pudo vaciar ${tabla}: no se encontró columna PK conocida (id, contrato_id, usuario_id)`
+      )
+    }
+  }
+}
+
+/** Vacía tablas seleccionadas en orden inverso de dependencias (hijos → padres). */
+export async function vaciarTablasMigracion(opciones: {
+  tablas?: string[]
+}): Promise<{ ok: boolean; vaciadas: string[]; errores: string[] }> {
+  const idsSeleccionados = opciones.tablas?.length ? new Set(opciones.tablas) : null
+  const aVaciar = TABLAS_MIGRACION_ELIMINAR.filter(
+    (t) => !idsSeleccionados || idsSeleccionados.has(t.id)
+  )
+
+  const sb = createSupabaseAdmin()
+  const vaciadas: string[] = []
+  const errores: string[] = []
+
+  for (const def of aVaciar) {
+    const auxiliares = TABLAS_VACIAR_ANTES[def.id]
+    if (auxiliares?.length) {
+      try {
+        await vaciarTablasAuxiliares(sb, auxiliares)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Error desconocido'
+        errores.push(msg)
+        continue
+      }
+    }
+
+    const supabaseOk = await supabaseTablaDisponible(sb, def.supabase)
+    if (!supabaseOk) continue
+
+    try {
+      await vaciarTabla(sb, def.supabase, def.pk)
+      vaciadas.push(def.supabase)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Error desconocido'
+      errores.push(`${def.etiqueta}: ${msg}`)
+    }
+  }
+
+  return { ok: errores.length === 0, vaciadas, errores }
+}
+
 async function eliminarHuérfanos(
   sb: SupabaseClient,
   tabla: string,
@@ -122,7 +189,8 @@ async function migrarUnaTabla(
   sb: SupabaseClient,
   mysql: Awaited<ReturnType<typeof createMysqlLegacyConnection>>,
   def: TablaMigracion,
-  modo: ModoMigracion
+  modo: ModoMigracion,
+  opciones?: { omitirVaciar?: boolean }
 ): Promise<ResultadoTablaMigracion> {
   const base: ResultadoTablaMigracion = {
     id: def.id,
@@ -173,7 +241,13 @@ async function migrarUnaTabla(
   }
 
   if (modo === 'vaciar_copiar') {
-    await vaciarTabla(sb, def.supabase, pk)
+    if (!opciones?.omitirVaciar) {
+      const auxiliares = TABLAS_VACIAR_ANTES[def.id]
+      if (auxiliares?.length) {
+        await vaciarTablasAuxiliares(sb, auxiliares)
+      }
+      await vaciarTabla(sb, def.supabase, pk)
+    }
     for (let i = 0; i < filas.length; i += LOTE) {
       await upsertLote(sb, def.supabase, pk, filas.slice(i, i + LOTE))
     }
@@ -225,6 +299,8 @@ async function migrarUnaTabla(
 export async function ejecutarMigracionTablas(opciones: {
   modo?: ModoMigracion
   tablas?: string[]
+  /** En vaciar_copiar: 'vaciar' solo borra (hijos→padres); 'copiar' solo inserta. */
+  faseVaciarCopiar?: 'vaciar' | 'copiar'
 }): Promise<ResultadoMigracionTablas> {
   const inicio = Date.now()
   const cfg = getMysqlLegacyConfig()
@@ -241,15 +317,47 @@ export async function ejecutarMigracionTablas(opciones: {
     ? TABLAS_MIGRACION.filter((t) => idsSeleccionados.has(t.id))
     : TABLAS_MIGRACION
 
+  if (modo === 'vaciar_copiar' && opciones.faseVaciarCopiar === 'vaciar') {
+    const r = await vaciarTablasMigracion({ tablas: opciones.tablas })
+    return {
+      ok: r.ok,
+      duracionMs: Date.now() - inicio,
+      modo,
+      mysql: { host: cfg.host, database: cfg.database, port: cfg.port },
+      tablas: [],
+      erroresGlobales: r.errores,
+    }
+  }
+
+  const omitirVaciar = modo === 'vaciar_copiar' && opciones.faseVaciarCopiar === 'copiar'
+
   const sb = createSupabaseAdmin()
   const mysql = await createMysqlLegacyConnection()
   const tablas: ResultadoTablaMigracion[] = []
   const erroresGlobales: string[] = []
+  let vaciarBatchHecho = false
 
   try {
+    if (modo === 'vaciar_copiar' && !opciones.faseVaciarCopiar && aMigrar.length > 1) {
+      const rVaciar = await vaciarTablasMigracion({
+        tablas: opciones.tablas ?? aMigrar.map((t) => t.id),
+      })
+      if (rVaciar.errores.length) {
+        erroresGlobales.push(...rVaciar.errores)
+      }
+      vaciarBatchHecho = true
+    }
+
+    const omitirVaciarEnTabla =
+      modo === 'vaciar_copiar' && (omitirVaciar || vaciarBatchHecho)
+
     for (const def of aMigrar) {
       try {
-        tablas.push(await migrarUnaTabla(sb, mysql, def, modo))
+        tablas.push(
+          await migrarUnaTabla(sb, mysql, def, modo, {
+            omitirVaciar: omitirVaciarEnTabla,
+          })
+        )
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Error desconocido'
         tablas.push({

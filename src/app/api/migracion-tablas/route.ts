@@ -59,12 +59,16 @@ export async function POST(request: Request) {
 
   let modo: ModoMigracion = 'espejo'
   let tablas: string[] | undefined
+  let faseVaciarCopiar: 'vaciar' | 'copiar' | undefined
 
   try {
     const body = await request.json()
     modo = parseModo(body?.modo)
     if (Array.isArray(body?.tablas) && body.tablas.every((t: unknown) => typeof t === 'string')) {
       tablas = body.tablas as string[]
+    }
+    if (body?.faseVaciarCopiar === 'vaciar' || body?.faseVaciarCopiar === 'copiar') {
+      faseVaciarCopiar = body.faseVaciarCopiar
     }
     // Compatibilidad API anterior
     if (typeof body?.vaciarDestino === 'boolean') {
@@ -75,7 +79,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const resultado = await ejecutarMigracionTablas({ modo, tablas })
+    const resultado = await ejecutarMigracionTablas({ modo, tablas, faseVaciarCopiar })
     return NextResponse.json(resultado)
   } catch (e) {
     const mensaje = e instanceof Error ? e.message : 'Error desconocido'

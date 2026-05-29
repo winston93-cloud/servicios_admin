@@ -199,6 +199,14 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
 /** Orden inverso para borrar huérfanos (hijos antes que padres). */
 export const TABLAS_MIGRACION_ELIMINAR = [...TABLAS_MIGRACION].reverse()
 
+/**
+ * Tablas en Supabase que referencian a otra del manifiesto pero no se migran desde MySQL.
+ * Se vacían antes que el padre en modo vaciar_copiar.
+ */
+export const TABLAS_VACIAR_ANTES: Partial<Record<string, string[]>> = {
+  usuario: ['contrato_determinado'],
+}
+
 export const CAMPOS_SOLO_FECHA = new Set([
   'alumno_registro',
   'alumno_alta',

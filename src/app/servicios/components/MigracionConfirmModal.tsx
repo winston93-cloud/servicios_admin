@@ -98,8 +98,8 @@ export default function MigracionConfirmModal({
             'No elimina registros que solo existan en Supabase.',
           ]
         : [
-            'Vacía por completo cada tabla destino en Supabase.',
-            'Copia de nuevo todas las filas desde MySQL.',
+            'Vacía primero las tablas hijas (orden inverso de dependencias).',
+            'Luego copia todas las filas desde MySQL.',
             'Operación destructiva: no se puede deshacer desde aquí.',
           ]
 

@@ -221,6 +221,37 @@ export default function MigracionAlumnoPanel() {
       const headers: HeadersInit = { 'Content-Type': 'application/json' }
       if (secreto.trim()) headers['x-migracion-secret'] = secreto.trim()
 
+      if (modo === 'vaciar_copiar') {
+        setProgreso((prev) =>
+          prev
+            ? {
+                ...prev,
+                tablaActualEtiqueta: 'Vaciando tablas (hijos → padres)…',
+              }
+            : prev
+        )
+
+        const resVaciar = await fetch('/api/migracion-tablas', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            modo,
+            faseVaciarCopiar: 'vaciar',
+            tablas: [...seleccion],
+          }),
+        })
+        const dataVaciar = (await resVaciar.json()) as ResultadoMigracionTablas & {
+          error?: string
+        }
+
+        if (!resVaciar.ok) {
+          throw new Error(dataVaciar.error ?? resVaciar.statusText)
+        }
+        if (dataVaciar.erroresGlobales?.length) {
+          erroresGlobales.push(...dataVaciar.erroresGlobales)
+        }
+      }
+
       for (let i = 0; i < ordenadas.length; i++) {
         const def = ordenadas[i]
         setProgreso((prev) =>
@@ -237,7 +268,11 @@ export default function MigracionAlumnoPanel() {
         const res = await fetch('/api/migracion-tablas', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ modo, tablas: [def.id] }),
+          body: JSON.stringify({
+            modo,
+            faseVaciarCopiar: modo === 'vaciar_copiar' ? 'copiar' : undefined,
+            tablas: [def.id],
+          }),
         })
         const data = (await res.json()) as ResultadoMigracionTablas & { error?: string }
 
