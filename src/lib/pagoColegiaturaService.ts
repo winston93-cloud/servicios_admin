@@ -3,6 +3,7 @@ import {
   normalizarConceptoNo,
   parsearReferenciaPago,
   referenciaCoincideCiclo,
+  compararConceptoNoAsc,
 } from './pagoReferenciaColegiatura'
 
 export interface ConceptoBoucher {
@@ -71,7 +72,8 @@ export async function listarConceptosBoucher(): Promise<ConceptoBoucher[]> {
     console.error('Error al cargar concepto_boucher:', error)
     return []
   }
-  return (data ?? []) as ConceptoBoucher[]
+  const filas = (data ?? []) as ConceptoBoucher[]
+  return filas.sort((a, b) => compararConceptoNoAsc(a.concepto_no, b.concepto_no))
 }
 
 export async function obtenerUltimaActualizacionPagos(): Promise<string | null> {
@@ -145,8 +147,19 @@ export async function actualizarEstatusPagoColegiatura(
 
 export function mapaConceptosPorNo(conceptos: ConceptoBoucher[]): Map<string, string> {
   const m = new Map<string, string>()
-  for (const c of conceptos) {
-    m.set(normalizarConceptoNo(c.concepto_no), c.concepto_clase)
+  const ordenados = [...conceptos].sort((a, b) =>
+    compararConceptoNoAsc(a.concepto_no, b.concepto_no)
+  )
+  for (const c of ordenados) {
+    m.set(normalizarConceptoNo(c.concepto_no), c.concepto_clase.trim())
   }
   return m
+}
+
+/** Lista para selects de bauchers: sin tipo 3, deduplicada y ordenada 00→99. */
+export function conceptosBoucherParaSelect(
+  conceptos: ConceptoBoucher[]
+): { no: string; clase: string }[] {
+  const mapa = mapaConceptosPorNo(conceptos.filter((c) => c.concepto_tipo !== 3))
+  return [...mapa.entries()].map(([no, clase]) => ({ no, clase }))
 }

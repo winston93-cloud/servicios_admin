@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { numeroCicloEscolarAdmin } from './cicloEscolarAdmin'
-import { normalizarConceptoNo } from './pagoReferenciaColegiatura'
+import { normalizarConceptoNo, compararConceptoNoAsc } from './pagoReferenciaColegiatura'
 import {
   getDigVerif,
   getDiscount,
@@ -51,10 +51,11 @@ export async function listarConceptosBoucherPagos(
     .order('concepto_id')
 
   if (error) throw new Error(error.message)
-  return (data ?? []).map((r) => ({
+  const filas = (data ?? []).map((r) => ({
     concepto_no: normalizarConceptoNo(r.concepto_no),
     concepto_clase: String(r.concepto_clase).trim(),
   }))
+  return filas.sort((a, b) => compararConceptoNoAsc(a.concepto_no, b.concepto_no))
 }
 
 export async function listarPreciosPorCiclo(

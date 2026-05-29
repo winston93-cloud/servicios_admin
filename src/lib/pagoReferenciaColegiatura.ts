@@ -37,6 +37,14 @@ export function normalizarConceptoNo(no: string | number | null | undefined): st
   return s.padStart(2, '0').slice(-2)
 }
 
+/** Orden ascendente por número de concepto (00, 01, 02 …). */
+export function compararConceptoNoAsc(
+  a: string | number | null | undefined,
+  b: string | number | null | undefined
+): number {
+  return parseInt(normalizarConceptoNo(a), 10) - parseInt(normalizarConceptoNo(b), 10)
+}
+
 export function formatearAlumnoRefParaReferencia(ref: string | number): string {
   const s = String(ref ?? '').replace(/\D/g, '')
   return s.padStart(5, '0').slice(-5)

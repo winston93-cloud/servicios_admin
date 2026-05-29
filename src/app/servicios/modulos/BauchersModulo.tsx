@@ -21,7 +21,7 @@ import {
   parseImporteBoucher,
   vigenciaBoucherPorDefecto,
 } from '@/lib/boucherCore'
-import { listarConceptosBoucher, mapaConceptosPorNo } from '@/lib/pagoColegiaturaService'
+import { listarConceptosBoucher, conceptosBoucherParaSelect } from '@/lib/pagoColegiaturaService'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
@@ -80,12 +80,7 @@ export default function BauchersModulo() {
 
   useEffect(() => {
     listarConceptosBoucher().then((lista) => {
-      const mapa = mapaConceptosPorNo(lista.filter((c) => c.concepto_tipo !== 3))
-      setConceptos(
-        [...mapa.entries()]
-          .map(([no, clase]) => ({ no, clase }))
-          .sort((a, b) => a.no.localeCompare(b.no))
-      )
+      setConceptos(conceptosBoucherParaSelect(lista))
     })
   }, [])
 
@@ -295,11 +290,11 @@ export default function BauchersModulo() {
                 <span>Concepto de pago</span>
                 <select value={concepto} onChange={(e) => setConcepto(e.target.value)}>
                   <option value="0">Sin concepto</option>
-                  {conceptos.map((c) => (
-                    <option key={c.no} value={c.no}>
-                      {c.clase}
-                    </option>
-                  ))}
+                {conceptos.map((c) => (
+                  <option key={c.no} value={c.no}>
+                    {c.no} — {c.clase}
+                  </option>
+                ))}
                 </select>
               </label>
 
