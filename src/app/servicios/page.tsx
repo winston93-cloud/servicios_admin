@@ -5,15 +5,18 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { useAuth } from '@/contexts/AuthContext'
-import { ChevronRight, ChevronLeft, Menu, ArrowLeft, LogOut } from 'lucide-react'
+import { ChevronRight, ChevronLeft, ChevronDown, Menu, ArrowLeft, LogOut } from 'lucide-react'
 import {
   SERVICIOS_MENU,
   type ServiciosModuloId,
   esServiciosModuloId,
+  etiquetaModulo,
+  grupoContieneModulo,
 } from './menu'
 import { CicloEscolarProvider } from '@/contexts/CicloEscolarContext'
 import AlumnosModulo from './modulos/AlumnosModulo'
 import CiclosEscolaresModulo from './modulos/CiclosEscolaresModulo'
+import CambioCicloEscolarModulo from './modulos/CambioCicloEscolarModulo'
 import MigracionModulo from './modulos/MigracionModulo'
 import AsignarGruposModulo from './modulos/AsignarGruposModulo'
 import BecasModulo from './modulos/BecasModulo'
@@ -64,6 +67,8 @@ function ServiciosPanelContenido({
       return <AlumnosModulo />
     case 'catalogo-ciclos-escolares':
       return <CiclosEscolaresModulo />
+    case 'cambio-ciclo-escolar':
+      return <CambioCicloEscolarModulo />
     case 'asignar-grupos':
       return <AsignarGruposModulo />
     case 'becas':
@@ -126,11 +131,36 @@ function ServiciosPageInner() {
 
   const [moduloActivo, setModuloActivo] = useState<ServiciosModuloId>(inicial)
 
+  const gruposAbiertosIniciales = useMemo(() => {
+    const abiertos = new Set<string>()
+    for (const entry of SERVICIOS_MENU) {
+      if (entry.type === 'group' && grupoContieneModulo(entry, inicial)) {
+        abiertos.add(entry.id)
+      }
+    }
+    return abiertos
+  }, [inicial])
+
+  const [gruposAbiertos, setGruposAbiertos] = useState<Set<string>>(gruposAbiertosIniciales)
+
   useEffect(() => {
     if (moduloFromUrl && esServiciosModuloId(moduloFromUrl)) {
       setModuloActivo(moduloFromUrl)
+      for (const entry of SERVICIOS_MENU) {
+        if (entry.type === 'group' && grupoContieneModulo(entry, moduloFromUrl)) {
+          setGruposAbiertos((prev) => new Set(prev).add(entry.id))
+        }
+      }
     }
   }, [moduloFromUrl])
+
+  useEffect(() => {
+    for (const entry of SERVICIOS_MENU) {
+      if (entry.type === 'group' && grupoContieneModulo(entry, moduloActivo)) {
+        setGruposAbiertos((prev) => new Set(prev).add(entry.id))
+      }
+    }
+  }, [moduloActivo])
 
   const seleccionarModulo = useCallback(
     (id: ServiciosModuloId) => {
@@ -143,9 +173,16 @@ function ServiciosPageInner() {
     [router, searchParams]
   )
 
-  const itemActivo =
-    SERVICIOS_MENU.find((m) => m.id === moduloActivo) ??
-    SERVICIOS_MENU.find((m) => m.id === 'alumnos')!
+  const toggleGrupo = useCallback((groupId: string) => {
+    setGruposAbiertos((prev) => {
+      const next = new Set(prev)
+      if (next.has(groupId)) next.delete(groupId)
+      else next.add(groupId)
+      return next
+    })
+  }, [])
+
+  const tituloModuloActivo = etiquetaModulo(moduloActivo)
 
   const handleLogout = async () => {
     try {
@@ -224,23 +261,74 @@ function ServiciosPageInner() {
           className="servicios-sidebar-nav"
           aria-label="Módulos de servicios"
         >
-          {SERVICIOS_MENU.map((item) => {
-            const Icon = item.icon
-            const active = item.id === moduloActivo
+          {SERVICIOS_MENU.map((entry) => {
+            if (entry.type === 'leaf') {
+              const Icon = entry.icon
+              const active = entry.id === moduloActivo
+              return (
+                <button
+                  key={entry.id}
+                  type="button"
+                  className={`servicios-nav-item ${active ? 'active' : ''}`}
+                  title={entry.label}
+                  onClick={() => seleccionarModulo(entry.id)}
+                >
+                  <Icon className="servicios-nav-icon" size={18} strokeWidth={1.75} aria-hidden />
+                  <span className="servicios-nav-label">{entry.label}</span>
+                  {active && (
+                    <ChevronRight className="servicios-nav-chevron" size={16} aria-hidden />
+                  )}
+                </button>
+              )
+            }
+
+            const group = entry
+            const Icon = group.icon
+            const grupoActivo = grupoContieneModulo(group, moduloActivo)
+            const abierto = gruposAbiertos.has(group.id)
+
             return (
-              <button
-                key={item.id}
-                type="button"
-                className={`servicios-nav-item ${active ? 'active' : ''}`}
-                title={item.label}
-                onClick={() => seleccionarModulo(item.id)}
+              <div
+                key={group.id}
+                className={`servicios-nav-group ${abierto ? 'servicios-nav-group--open' : ''} ${grupoActivo ? 'servicios-nav-group--active' : ''}`}
               >
-                <Icon className="servicios-nav-icon" size={18} strokeWidth={1.75} aria-hidden />
-                <span className="servicios-nav-label">{item.label}</span>
-                {active && (
-                  <ChevronRight className="servicios-nav-chevron" size={16} aria-hidden />
+                <button
+                  type="button"
+                  className={`servicios-nav-item servicios-nav-item--group ${grupoActivo ? 'active' : ''}`}
+                  title={group.label}
+                  aria-expanded={abierto}
+                  onClick={() => toggleGrupo(group.id)}
+                >
+                  <Icon className="servicios-nav-icon" size={18} strokeWidth={1.75} aria-hidden />
+                  <span className="servicios-nav-label">{group.label}</span>
+                  <ChevronDown
+                    className={`servicios-nav-chevron servicios-nav-chevron--toggle ${abierto ? 'servicios-nav-chevron--open' : ''}`}
+                    size={16}
+                    aria-hidden
+                  />
+                </button>
+                {abierto && (
+                  <div className="servicios-nav-submenu" role="group" aria-label={group.label}>
+                    {group.children.map((child) => {
+                      const childActive = child.id === moduloActivo
+                      return (
+                        <button
+                          key={child.id}
+                          type="button"
+                          className={`servicios-nav-subitem ${childActive ? 'active' : ''}`}
+                          title={child.label}
+                          onClick={() => seleccionarModulo(child.id)}
+                        >
+                          <span className="servicios-nav-subitem-label">{child.label}</span>
+                          {childActive && (
+                            <ChevronRight className="servicios-nav-chevron" size={14} aria-hidden />
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
                 )}
-              </button>
+              </div>
             )
           })}
         </nav>
@@ -296,7 +384,7 @@ function ServiciosPageInner() {
           </div>
         </div>
         <div className="servicios-main-scroll">
-          <ServiciosPanelContenido moduloId={moduloActivo} titulo={itemActivo.label} />
+          <ServiciosPanelContenido moduloId={moduloActivo} titulo={tituloModuloActivo} />
         </div>
       </main>
     </div>

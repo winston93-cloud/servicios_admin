@@ -5029,6 +5029,65 @@ body {
   opacity: 0.85;
 }
 
+.servicios-nav-chevron--toggle {
+  transition: transform 0.2s ease;
+}
+
+.servicios-nav-chevron--toggle.servicios-nav-chevron--open {
+  transform: rotate(180deg);
+}
+
+.servicios-nav-group {
+  margin-bottom: 2px;
+}
+
+.servicios-nav-item--group {
+  font-weight: 600;
+}
+
+.servicios-nav-submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 2px 0 4px;
+  padding-left: 8px;
+  border-left: 2px solid rgba(255, 255, 255, 0.12);
+  margin-left: 20px;
+}
+
+.servicios-nav-subitem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(248, 250, 252, 0.78);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.servicios-nav-subitem:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(248, 250, 252, 0.95);
+}
+
+.servicios-nav-subitem.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.servicios-nav-subitem-label {
+  flex: 1;
+}
+
 .servicios-sidebar-footer {
   padding: 14px 14px 18px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -7573,6 +7632,7 @@ body {
   .servicios-sidebar--collapsed .servicios-sidebar-brand-text,
   .servicios-sidebar--collapsed .servicios-nav-label,
   .servicios-sidebar--collapsed .servicios-nav-chevron,
+  .servicios-sidebar--collapsed .servicios-nav-submenu,
   .servicios-sidebar--collapsed .servicios-sidebar-user,
   .servicios-sidebar--collapsed .servicios-sidebar-logout-text {
     opacity: 0;
@@ -7629,6 +7689,7 @@ body {
   .servicios-sidebar--collapsed:hover .servicios-sidebar-brand-text,
   .servicios-sidebar--collapsed:hover .servicios-nav-label,
   .servicios-sidebar--collapsed:hover .servicios-nav-chevron,
+  .servicios-sidebar--collapsed:hover .servicios-nav-submenu,
   .servicios-sidebar--collapsed:hover .servicios-sidebar-user,
   .servicios-sidebar--collapsed:hover .servicios-sidebar-logout-text {
     opacity: 1;
@@ -7682,6 +7743,11 @@ body {
 
   .servicios-nav-item {
     min-height: var(--touch-min);
+  }
+
+  .servicios-nav-subitem {
+    min-height: var(--touch-min);
+    font-size: 13px;
   }
 
   .alumno-tabs-list {
