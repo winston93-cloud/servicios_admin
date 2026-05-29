@@ -4,6 +4,7 @@ import type { TablaMigracion } from './migracionTablasManifest'
 import {
   CAMPOS_FECHA_HORA,
   CAMPOS_SOLO_FECHA,
+  debeCompararCampo,
   esCampoNumerico,
 } from './migracionTablasManifest'
 import { adaptarFilaParaSupabase } from './migracionTablasAdaptadores'
@@ -127,6 +128,7 @@ export function filasIguales(
   b: Record<string, unknown>
 ): boolean {
   for (const k of Object.keys(a)) {
+    if (!debeCompararCampo(k)) continue
     if (!valoresEquivalentes(k, a[k], b[k])) return false
   }
   return true
@@ -138,6 +140,7 @@ export function camposDistintosEntreFilas(
 ): string[] {
   const diff: string[] = []
   for (const k of Object.keys(a)) {
+    if (!debeCompararCampo(k)) continue
     if (!valoresEquivalentes(k, a[k], b[k])) diff.push(k)
   }
   return diff

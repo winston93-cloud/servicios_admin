@@ -381,8 +381,8 @@ export default function MigracionAlumnoPanel() {
       <p className="migracion-alumno-desc">
         Sincroniza tablas de <strong>phpMyAdmin</strong> ({config?.mysql?.database ?? 'winston_general'})
         hacia Supabase. Se ejecuta en el servidor (Vercel), no en tu PC. Tras migrar en modo espejo,
-        usa <strong>Verificar espejo</strong> para auditar conteos, PKs y contenido (fechas y montos
-        normalizados semánticamente, no texto crudo).
+        usa <strong>Verificar espejo</strong> para auditar conteos, PKs y contenido de negocio
+        (ignora columnas <code>*_actualizacion</code> que Postgres sobrescribe con triggers).
       </p>
 
       {config?.mysql && (

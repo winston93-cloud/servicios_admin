@@ -238,3 +238,14 @@ export function esCampoNumerico(clave: string): boolean {
     clave === 'beca_porcentaje'
   )
 }
+
+/**
+ * Columnas de auditoría que Postgres actualiza con triggers BEFORE UPDATE
+ * (p. ej. alumno_actualizacion := CURRENT_TIMESTAMP). Tras un upsert en
+ * Supabase no coinciden con MySQL aunque el resto del espejo esté bien.
+ */
+export function debeCompararCampo(clave: string): boolean {
+  if (clave.endsWith('_actualizacion')) return false
+  if (clave === 'created_at' || clave === 'updated_at') return false
+  return true
+}
