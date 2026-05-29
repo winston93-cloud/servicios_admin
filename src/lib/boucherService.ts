@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { numeroCicloEscolarAdmin } from './cicloEscolarAdmin'
+import { normalizarConceptoNo } from './pagoReferenciaColegiatura'
 import {
   getDigVerif,
   getDiscount,
@@ -51,8 +52,8 @@ export async function listarConceptosBoucherPagos(
 
   if (error) throw new Error(error.message)
   return (data ?? []).map((r) => ({
-    concepto_no: String(r.concepto_no).padStart(2, '0'),
-    concepto_clase: String(r.concepto_clase),
+    concepto_no: normalizarConceptoNo(r.concepto_no),
+    concepto_clase: String(r.concepto_clase).trim(),
   }))
 }
 
@@ -143,7 +144,7 @@ export function calcularImporteConcepto(
   precio: PrecioBoucherRow,
   porcentajeBeca: number
 ): number {
-  const c = conceptoNo.padStart(2, '0')
+  const c = normalizarConceptoNo(conceptoNo)
   let montoNormal = 0
   let aplicaDescuento = true
 

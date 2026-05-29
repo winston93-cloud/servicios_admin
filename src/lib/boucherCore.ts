@@ -1,5 +1,9 @@
 /** Utilidades legacy para bauchers (port de core.php). */
 
+import { normalizarConceptoNo } from './pagoReferenciaColegiatura'
+
+export { normalizarConceptoNo }
+
 const MESES = [
   '',
   'Enero',
@@ -36,7 +40,8 @@ export function vigenciaBoucherPorDefecto(fecha = new Date()): string {
 }
 
 export function getPaymentConcept(conceptoNo: string): string {
-  switch (conceptoNo) {
+  const c = normalizarConceptoNo(conceptoNo)
+  switch (c) {
     case '00':
       return 'Cuota de Mantenimiento'
     case '01':
@@ -85,6 +90,8 @@ export function getPaymentConcept(conceptoNo: string): string {
       return 'Doble Titulación 2'
     case '25':
       return 'Doble Titulación 3'
+    case '26':
+      return 'Colegiatura Julio'
     default:
       return '-None-'
   }
@@ -207,7 +214,7 @@ export function referenciaSemibase(
   cicloEscolar: number
 ): string {
   const ref = String(alumnoRef).replace(/\D/g, '')
-  const concepto = String(conceptoNo).replace(/\D/g, '').padStart(2, '0').slice(-2)
+  const concepto = normalizarConceptoNo(conceptoNo)
   const ciclo = String(cicloEscolar).replace(/\D/g, '')
   return `${ref}${concepto}${ciclo}`
 }

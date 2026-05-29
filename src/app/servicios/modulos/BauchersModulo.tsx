@@ -17,10 +17,11 @@ import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import {
   formatearReferenciaBoucher,
   getPaymentConcept,
+  normalizarConceptoNo,
   parseImporteBoucher,
   vigenciaBoucherPorDefecto,
 } from '@/lib/boucherCore'
-import { listarConceptosBoucher } from '@/lib/pagoColegiaturaService'
+import { listarConceptosBoucher, mapaConceptosPorNo } from '@/lib/pagoColegiaturaService'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
@@ -36,6 +37,11 @@ export default function BauchersModulo() {
     useAlumnoSeleccionado()
 
   const [conceptos, setConceptos] = useState<{ no: string; clase: string }[]>([])
+  const mapaConceptos = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const c of conceptos) m.set(c.no, c.clase)
+    return m
+  }, [conceptos])
   const [precios, setPrecios] = useState<FilaTablaPrecios[]>([])
   const [alumnoId, setAlumnoId] = useState<number | null>(null)
   const [alumnoRef, setAlumnoRef] = useState('')
@@ -63,8 +69,9 @@ export default function BauchersModulo() {
   const conceptoEtiqueta = useMemo(() => {
     if (concepto === '0') return 'Sin concepto'
     if (ignorarMesPago) return 'Colegiatura'
-    return getPaymentConcept(concepto)
-  }, [concepto, ignorarMesPago])
+    const no = normalizarConceptoNo(concepto)
+    return mapaConceptos.get(no) ?? getPaymentConcept(no)
+  }, [concepto, ignorarMesPago, mapaConceptos])
 
   const referenciaValida = useMemo(() => {
     const d = referencia.replace(/\D/g, '')
@@ -73,13 +80,11 @@ export default function BauchersModulo() {
 
   useEffect(() => {
     listarConceptosBoucher().then((lista) => {
+      const mapa = mapaConceptosPorNo(lista.filter((c) => c.concepto_tipo !== 3))
       setConceptos(
-        lista
-          .filter((c) => c.concepto_tipo !== 3)
-          .map((c) => ({
-            no: String(c.concepto_no).padStart(2, '0'),
-            clase: c.concepto_clase,
-          }))
+        [...mapa.entries()]
+          .map(([no, clase]) => ({ no, clase }))
+          .sort((a, b) => a.no.localeCompare(b.no))
       )
     })
   }, [])
@@ -140,7 +145,7 @@ export default function BauchersModulo() {
       try {
         const body: Record<string, unknown> = {
           alumnoId,
-          conceptoNo: concepto,
+          conceptoNo: normalizarConceptoNo(concepto),
           cicloEscolar: cicloBoucher,
         }
         if (importeOverride != null && importeOverride > 0) {
@@ -202,13 +207,14 @@ export default function BauchersModulo() {
         body: JSON.stringify({
           alumnoId,
           nombreAlumno,
-          conceptoNo: concepto,
+          conceptoNo: normalizarConceptoNo(concepto),
           referencia: referencia.replace(/\D/g, ''),
           importe: importeNumero,
           vigencia,
           cicloEscolar: cicloBoucher,
           aplicarRecargos,
           ignorarMesPago,
+          conceptoClase: conceptoEtiqueta,
         }),
       })
       const json = await res.json()

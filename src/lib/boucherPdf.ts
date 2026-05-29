@@ -17,6 +17,7 @@ export interface DatosPdfBoucher {
   alumnoNivel: number
   alumnoGrado: number
   conceptoNo: string
+  conceptoClase?: string
   referencia: string
   importe: number
   vigencia: string
@@ -86,7 +87,7 @@ export function generarPdfBoucher(datos: DatosPdfBoucher): Buffer {
 
   const conceptoTexto = datos.ignorarMesPago
     ? 'Colegiatura'
-    : getPaymentConcept(datos.conceptoNo)
+    : (datos.conceptoClase?.trim() || getPaymentConcept(datos.conceptoNo))
   y = filaTabla(pdf, 'Concepto:', conceptoTexto, y)
   y = filaTabla(pdf, 'Referencia:', datos.referencia, y)
   y = filaTabla(pdf, 'Validez:', formatearFechaBoucher(datos.vigencia), y)

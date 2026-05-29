@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { calcularBoucher } from '@/lib/boucherService'
-import { parseImporteBoucher } from '@/lib/boucherCore'
+import { getPaymentConcept, normalizarConceptoNo, parseImporteBoucher } from '@/lib/boucherCore'
 import { generarPdfBoucher } from '@/lib/boucherPdf'
 import { obtenerAlumnoPorId } from '@/lib/alumnoDatosService'
 
@@ -12,7 +12,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const alumnoId = Number(body.alumnoId)
-    const conceptoNo = String(body.conceptoNo ?? '').padStart(2, '0')
+    const conceptoNo = normalizarConceptoNo(body.conceptoNo)
+    const conceptoClase =
+      String(body.conceptoClase ?? '').trim() || getPaymentConcept(conceptoNo)
     const cicloEscolar = Number(body.cicloEscolar)
     const vigencia = String(body.vigencia ?? '')
     const importe = parseImporteBoucher(body.importe)
@@ -21,7 +23,7 @@ export async function POST(request: Request) {
     const ignorarMesPago = Boolean(body.ignorarMesPago)
     const nombreAlumno = String(body.nombreAlumno ?? '')
 
-    if (!alumnoId || !conceptoNo || String(body.conceptoNo) === '0' || !cicloEscolar || !vigencia) {
+    if (!alumnoId || conceptoNo === '00' || !cicloEscolar || !vigencia) {
       return NextResponse.json(
         { error: 'Completa alumno, concepto, ciclo y vigencia' },
         { status: 400 }
@@ -63,6 +65,7 @@ export async function POST(request: Request) {
       alumnoNivel: alumno.alumno_nivel,
       alumnoGrado: Number(alumno.alumno_grado) || 0,
       conceptoNo,
+      conceptoClase,
       referencia,
       importe,
       vigencia,
