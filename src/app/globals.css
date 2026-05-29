@@ -2805,7 +2805,7 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: 16px;
-  max-width: min(800px, 100%);
+  max-width: min(960px, 100%);
   width: 100%;
   margin-inline: auto;
 }
