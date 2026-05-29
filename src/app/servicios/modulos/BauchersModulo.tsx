@@ -256,10 +256,6 @@ export default function BauchersModulo() {
               Pagos bancarios
             </p>
             <h1 className="bch-hero-titulo">Bauchers</h1>
-            <p className="bch-hero-lead">
-              Referencia Banorte de 12 dígitos con dígito verificador, como en el sistema
-              administrativo legacy.
-            </p>
           </div>
         </div>
       </header>
