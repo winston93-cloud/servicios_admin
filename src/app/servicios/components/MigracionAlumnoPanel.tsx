@@ -12,6 +12,10 @@ import type {
   ResultadoMigracionTablas,
   ResultadoTablaMigracion,
 } from '@/lib/migracionTablasService'
+import type {
+  ResultadoTablaVerificacion,
+  ResultadoVerificacionEspejo,
+} from '@/lib/migracionTablasVerificacion'
 
 interface EstadoConfig {
   listo: boolean
@@ -19,9 +23,18 @@ interface EstadoConfig {
   mysql: { host: string; database: string; port: number } | null
 }
 
-type EstadoFilaProgreso = 'pendiente' | 'activa' | 'ok' | 'omitida' | 'error'
+type EstadoFilaProgreso =
+  | 'pendiente'
+  | 'activa'
+  | 'ok'
+  | 'omitida'
+  | 'error'
+  | 'discordancia'
+
+type TipoOperacion = 'migrar' | 'verificar'
 
 interface ProgresoMigracion {
+  tipo: TipoOperacion
   total: number
   completadas: number
   tablaActual: string | null
@@ -47,9 +60,12 @@ export default function MigracionAlumnoPanel() {
     () => new Set(TABLAS_MIGRACION.map((t) => t.id))
   )
   const [cargando, setCargando] = useState(false)
+  const [operacion, setOperacion] = useState<TipoOperacion | null>(null)
   const [progreso, setProgreso] = useState<ProgresoMigracion | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [resultado, setResultado] = useState<ResultadoMigracionTablas | null>(null)
+  const [resultadoVerificacion, setResultadoVerificacion] =
+    useState<ResultadoVerificacionEspejo | null>(null)
 
   useEffect(() => {
     fetch('/api/migracion-tablas')
@@ -112,8 +128,10 @@ export default function MigracionAlumnoPanel() {
     }
 
     setCargando(true)
+    setOperacion('migrar')
     setError(null)
     setResultado(null)
+    setResultadoVerificacion(null)
 
     const ordenadas = ordenarSeleccion(seleccion)
     const total = ordenadas.length
@@ -122,6 +140,7 @@ export default function MigracionAlumnoPanel() {
     ) as Record<string, EstadoFilaProgreso>
 
     setProgreso({
+      tipo: 'migrar',
       total,
       completadas: 0,
       tablaActual: ordenadas[0]?.id ?? null,
@@ -200,14 +219,148 @@ export default function MigracionAlumnoPanel() {
       setError(e instanceof Error ? e.message : 'Error al migrar')
     } finally {
       setCargando(false)
+      setOperacion(null)
       setProgreso(null)
     }
   }, [modo, secreto, seleccion])
+
+  const verificar = useCallback(async () => {
+    if (seleccion.size === 0) {
+      setError('Selecciona al menos una tabla.')
+      return
+    }
+
+    if (
+      !window.confirm(
+        `Verificar espejo de ${seleccion.size} tabla(s).\n\nCompara MySQL (adaptado) vs Supabase: conteos, PKs faltantes/sobrantes y filas con contenido distinto.\n\nSe ejecutará en el servidor (Vercel). ¿Continuar?`
+      )
+    ) {
+      return
+    }
+
+    setCargando(true)
+    setOperacion('verificar')
+    setError(null)
+    setResultado(null)
+    setResultadoVerificacion(null)
+
+    const ordenadas = ordenarSeleccion(seleccion)
+    const total = ordenadas.length
+    const estadosIniciales = Object.fromEntries(
+      ordenadas.map((t) => [t.id, 'pendiente' as EstadoFilaProgreso])
+    ) as Record<string, EstadoFilaProgreso>
+
+    setProgreso({
+      tipo: 'verificar',
+      total,
+      completadas: 0,
+      tablaActual: ordenadas[0]?.id ?? null,
+      tablaActualEtiqueta: ordenadas[0]?.etiqueta ?? null,
+      filas: estadosIniciales,
+    })
+
+    const inicio = Date.now()
+    const tablasAcumuladas: ResultadoTablaVerificacion[] = []
+    const erroresGlobales: string[] = []
+    let mysqlMeta: ResultadoVerificacionEspejo['mysql'] | null = null
+
+    try {
+      const headers: HeadersInit = { 'Content-Type': 'application/json' }
+      if (secreto.trim()) headers['x-migracion-secret'] = secreto.trim()
+
+      for (let i = 0; i < ordenadas.length; i++) {
+        const def = ordenadas[i]
+        setProgreso((prev) =>
+          prev
+            ? {
+                ...prev,
+                tablaActual: def.id,
+                tablaActualEtiqueta: def.etiqueta,
+                filas: { ...prev.filas, [def.id]: 'activa' },
+              }
+            : prev
+        )
+
+        const res = await fetch('/api/migracion-tablas/verificar', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ tablas: [def.id] }),
+        })
+        const data = (await res.json()) as ResultadoVerificacionEspejo & { error?: string }
+
+        if (!res.ok) {
+          throw new Error(data.error ?? res.statusText)
+        }
+
+        if (data.mysql) mysqlMeta = data.mysql
+        if (data.tablas?.length) tablasAcumuladas.push(...data.tablas)
+        if (data.erroresGlobales?.length) erroresGlobales.push(...data.erroresGlobales)
+
+        const fila = data.tablas?.[0]
+        let estadoFila: EstadoFilaProgreso = 'ok'
+        if (fila?.estado === 'error') estadoFila = 'error'
+        else if (fila?.estado === 'omitida') estadoFila = 'omitida'
+        else if (fila?.estado === 'discordancia') estadoFila = 'discordancia'
+
+        setProgreso((prev) =>
+          prev
+            ? {
+                ...prev,
+                completadas: i + 1,
+                tablaActual: ordenadas[i + 1]?.id ?? null,
+                tablaActualEtiqueta: ordenadas[i + 1]?.etiqueta ?? null,
+                filas: { ...prev.filas, [def.id]: estadoFila },
+              }
+            : prev
+        )
+      }
+
+      const conDiscordancia = tablasAcumuladas.some((t) => t.estado === 'discordancia')
+      const conError = tablasAcumuladas.some((t) => t.estado === 'error')
+
+      const resultadoFinal: ResultadoVerificacionEspejo = {
+        ok: !conDiscordancia && !conError && erroresGlobales.length === 0,
+        duracionMs: Date.now() - inicio,
+        mysql: mysqlMeta ?? { host: '—', database: '—', port: 3306 },
+        tablas: tablasAcumuladas,
+        erroresGlobales,
+      }
+
+      setResultadoVerificacion(resultadoFinal)
+      if (!resultadoFinal.ok) {
+        setError(
+          conDiscordancia
+            ? 'Verificación terminada con discordancias entre MySQL y Supabase'
+            : erroresGlobales.join(' · ') || 'Verificación con errores parciales'
+        )
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al verificar')
+    } finally {
+      setCargando(false)
+      setOperacion(null)
+      setProgreso(null)
+    }
+  }, [secreto, seleccion])
 
   const porcentajeProgreso = useMemo(() => {
     if (!progreso || progreso.total === 0) return 0
     return Math.round((progreso.completadas / progreso.total) * 100)
   }, [progreso])
+
+  const totalesVerificacion = useMemo(() => {
+    if (!resultadoVerificacion) return null
+    return resultadoVerificacion.tablas.reduce(
+      (acc, t) => ({
+        mysql: acc.mysql + t.mysqlCount,
+        supabase: acc.supabase + t.supabaseCount,
+        faltan: acc.faltan + t.faltanEnSupabase,
+        sobran: acc.sobran + t.sobranEnSupabase,
+        distintas: acc.distintas + t.contenidoDistinto,
+      }),
+      { mysql: 0, supabase: 0, faltan: 0, sobran: 0, distintas: 0 }
+    )
+  }, [resultadoVerificacion])
 
   const totales = useMemo(() => {
     if (!resultado) return null
@@ -227,7 +380,8 @@ export default function MigracionAlumnoPanel() {
     <section className="migracion-alumno" aria-label="Migración MySQL → Supabase">
       <p className="migracion-alumno-desc">
         Sincroniza tablas de <strong>phpMyAdmin</strong> ({config?.mysql?.database ?? 'winston_general'})
-        hacia Supabase. Se ejecuta en el servidor (Vercel), no en tu PC.
+        hacia Supabase. Se ejecuta en el servidor (Vercel), no en tu PC. Tras migrar en modo espejo,
+        usa <strong>Verificar espejo</strong> para auditar conteos, PKs y contenido fila a fila.
       </p>
 
       {config?.mysql && (
@@ -359,7 +513,8 @@ export default function MigracionAlumnoPanel() {
             <span className="migracion-alumno-progreso-texto">
               {progreso.tablaActualEtiqueta ? (
                 <>
-                  Migrando <strong>{progreso.tablaActualEtiqueta}</strong>…
+                  {progreso.tipo === 'verificar' ? 'Verificando' : 'Migrando'}{' '}
+                  <strong>{progreso.tablaActualEtiqueta}</strong>…
                 </>
               ) : (
                 'Finalizando…'
@@ -375,7 +530,7 @@ export default function MigracionAlumnoPanel() {
             aria-valuenow={porcentajeProgreso}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label="Avance de migración"
+            aria-label={progreso.tipo === 'verificar' ? 'Avance de verificación' : 'Avance de migración'}
           >
             <div
               className="migracion-alumno-progreso-fill"
@@ -394,6 +549,7 @@ export default function MigracionAlumnoPanel() {
                     <Loader2 className="migracion-alumno-spin" size={14} aria-hidden />
                   )}
                   {est === 'ok' && <span aria-hidden>✓</span>}
+                  {est === 'discordancia' && <span aria-hidden>≠</span>}
                   {est === 'omitida' && <span aria-hidden>−</span>}
                   {est === 'error' && <span aria-hidden>✗</span>}
                   {est === 'pendiente' && <span className="migracion-alumno-progreso-punto" aria-hidden />}
@@ -405,21 +561,39 @@ export default function MigracionAlumnoPanel() {
         </div>
       )}
 
-      <button
-        type="button"
-        className="migracion-alumno-btn"
-        disabled={cargando || config?.listo === false || seleccion.size === 0}
-        onClick={migrar}
-      >
-        {cargando ? (
-          <>
-            <Loader2 className="migracion-alumno-spin" size={18} aria-hidden />
-            Migrando…
-          </>
-        ) : (
-          `Migrar ${seleccion.size} tabla(s)`
-        )}
-      </button>
+      <div className="migracion-alumno-acciones">
+        <button
+          type="button"
+          className="migracion-alumno-btn"
+          disabled={cargando || config?.listo === false || seleccion.size === 0}
+          onClick={migrar}
+        >
+          {cargando && operacion === 'migrar' ? (
+            <>
+              <Loader2 className="migracion-alumno-spin" size={18} aria-hidden />
+              Migrando…
+            </>
+          ) : (
+            `Migrar ${seleccion.size} tabla(s)`
+          )}
+        </button>
+
+        <button
+          type="button"
+          className="migracion-alumno-btn migracion-alumno-btn--secundario"
+          disabled={cargando || config?.listo === false || seleccion.size === 0}
+          onClick={verificar}
+        >
+          {cargando && operacion === 'verificar' ? (
+            <>
+              <Loader2 className="migracion-alumno-spin" size={18} aria-hidden />
+              Verificando…
+            </>
+          ) : (
+            `Verificar espejo (${seleccion.size})`
+          )}
+        </button>
+      </div>
 
       {error && (
         <p className="migracion-alumno-alerta" role="alert">
@@ -489,6 +663,103 @@ export default function MigracionAlumnoPanel() {
                     <strong>{t.etiqueta}:</strong> {t.mensaje}
                   </li>
                 ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {resultadoVerificacion && (
+        <div className="migracion-alumno-resultado migracion-alumno-resultado--verificacion">
+          <p
+            className={
+              resultadoVerificacion.ok ? 'migracion-alumno-ok' : 'migracion-alumno-alerta'
+            }
+            role="status"
+          >
+            {resultadoVerificacion.ok
+              ? 'Espejo verificado: MySQL y Supabase coinciden'
+              : 'Verificación terminada con discordancias'}{' '}
+            · {formatoDuracion(resultadoVerificacion.duracionMs)}
+          </p>
+
+          {totalesVerificacion && (
+            <p className="migracion-alumno-resumen">
+              MySQL esperado: <strong>{totalesVerificacion.mysql}</strong> · Supabase:{' '}
+              <strong>{totalesVerificacion.supabase}</strong> · Faltan en Supabase:{' '}
+              <strong>{totalesVerificacion.faltan}</strong> · Sobran en Supabase:{' '}
+              <strong>{totalesVerificacion.sobran}</strong> · Contenido distinto:{' '}
+              <strong>{totalesVerificacion.distintas}</strong>
+            </p>
+          )}
+
+          <div className="migracion-alumno-tabla-wrap">
+            <table className="migracion-alumno-tabla">
+              <thead>
+                <tr>
+                  <th>Tabla</th>
+                  <th>Estado</th>
+                  <th>MySQL</th>
+                  <th>Supabase</th>
+                  <th>Faltan</th>
+                  <th>Sobran</th>
+                  <th>≠ Contenido</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resultadoVerificacion.tablas.map((t: ResultadoTablaVerificacion) => (
+                  <tr key={t.id} className={`migracion-alumno-tr--${t.estado}`}>
+                    <td>
+                      <strong>{t.etiqueta}</strong>
+                      <span className="migracion-alumno-tabla-meta">{t.supabase}</span>
+                    </td>
+                    <td>
+                      {t.estado === 'ok' && 'OK'}
+                      {t.estado === 'discordancia' && 'Discordancia'}
+                      {t.estado === 'omitida' && 'Omitida'}
+                      {t.estado === 'error' && 'Error'}
+                    </td>
+                    <td>{t.mysqlCount}</td>
+                    <td>{t.supabaseCount}</td>
+                    <td>{t.faltanEnSupabase}</td>
+                    <td>{t.sobranEnSupabase}</td>
+                    <td>{t.contenidoDistinto}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {resultadoVerificacion.tablas.some(
+            (t) =>
+              t.mensaje ||
+              t.muestraFaltan.length > 0 ||
+              t.muestraSobran.length > 0 ||
+              t.muestraDistintas.length > 0
+          ) && (
+            <ul className="migracion-alumno-detalles">
+              {resultadoVerificacion.tablas.map((t) => {
+                const partes: string[] = []
+                if (t.mensaje) partes.push(t.mensaje)
+                if (t.muestraFaltan.length > 0) {
+                  partes.push(
+                    `PK faltan (muestra): ${t.muestraFaltan.join(', ')}${t.faltanEnSupabase > t.muestraFaltan.length ? '…' : ''}`
+                  )
+                }
+                if (t.muestraSobran.length > 0) {
+                  partes.push(
+                    `PK sobran (muestra): ${t.muestraSobran.join(', ')}${t.sobranEnSupabase > t.muestraSobran.length ? '…' : ''}`
+                  )
+                }
+                for (const d of t.muestraDistintas) {
+                  partes.push(`PK ${d.pk}: campos distintos → ${d.campos.join(', ')}`)
+                }
+                if (partes.length === 0) return null
+                return (
+                  <li key={t.id}>
+                    <strong>{t.etiqueta}:</strong> {partes.join(' · ')}
+                  </li>
+                )
+              })}
             </ul>
           )}
         </div>

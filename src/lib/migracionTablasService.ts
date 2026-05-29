@@ -2,13 +2,14 @@ import type { RowDataPacket } from 'mysql2'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createMysqlLegacyConnection, getMysqlLegacyConfig } from './mysqlLegacy'
 import { createSupabaseAdmin } from './supabaseAdmin'
+import { TABLAS_MIGRACION, type TablaMigracion } from './migracionTablasManifest'
+import { mensajeErrorSupabase } from './migracionTablasAdaptadores'
 import {
-  CAMPOS_FECHA_HORA,
-  CAMPOS_SOLO_FECHA,
-  TABLAS_MIGRACION,
-  type TablaMigracion,
-} from './migracionTablasManifest'
-import { adaptarFilaParaSupabase, mensajeErrorSupabase } from './migracionTablasAdaptadores'
+  filasIguales,
+  leerFilasMysqlAdaptadas,
+  obtenerFilasSupabasePorPks,
+  obtenerPksSupabase,
+} from './migracionTablasCompare'
 
 const LOTE = 200
 const LOTE_PK = 500
@@ -39,74 +40,6 @@ export interface ResultadoMigracionTablas {
   erroresGlobales: string[]
 }
 
-function esFechaMysqlInvalidaTexto(texto: string): boolean {
-  const s = texto.trim()
-  return !s || s.startsWith('0000-00-00') || /-00/.test(s)
-}
-
-function fechaValida(d: Date): boolean {
-  return !Number.isNaN(d.getTime())
-}
-
-function serializarValor(clave: string, valor: unknown): unknown {
-  if (valor === undefined) return undefined
-  if (valor === null) return null
-  if (Buffer.isBuffer(valor)) return valor.toString('utf8')
-
-  if (typeof valor === 'string' && (CAMPOS_SOLO_FECHA.has(clave) || CAMPOS_FECHA_HORA.has(clave))) {
-    if (esFechaMysqlInvalidaTexto(valor)) {
-      if (clave === 'beca_registro' || clave === 'beca_actualizacion') {
-        return '1970-01-01T00:00:00.000Z'
-      }
-      return null
-    }
-    return CAMPOS_SOLO_FECHA.has(clave) ? valor.trim().slice(0, 10) : valor.trim()
-  }
-
-  if (valor instanceof Date) {
-    if (!fechaValida(valor)) {
-      if (clave === 'beca_registro' || clave === 'beca_actualizacion') {
-        return '1970-01-01T00:00:00.000Z'
-      }
-      return null
-    }
-    if (CAMPOS_SOLO_FECHA.has(clave)) return valor.toISOString().slice(0, 10)
-    if (CAMPOS_FECHA_HORA.has(clave)) return valor.toISOString()
-    return valor.toISOString()
-  }
-
-  if (typeof valor === 'bigint') return Number(valor)
-
-  return valor
-}
-
-function serializarFila(fila: RowDataPacket): Record<string, unknown> {
-  const out: Record<string, unknown> = {}
-  for (const [clave, valor] of Object.entries(fila)) {
-    const v = serializarValor(clave, valor)
-    if (v !== undefined) out[clave] = v
-  }
-  return out
-}
-
-function normalizarComparacion(valor: unknown): string {
-  if (valor === null || valor === undefined) return ''
-  if (typeof valor === 'number' && Number.isNaN(valor)) return ''
-  if (typeof valor === 'object') return JSON.stringify(valor)
-  return String(valor).trim()
-}
-
-function filasIguales(
-  a: Record<string, unknown>,
-  b: Record<string, unknown>
-): boolean {
-  const keys = new Set([...Object.keys(a), ...Object.keys(b)])
-  for (const k of keys) {
-    if (normalizarComparacion(a[k]) !== normalizarComparacion(b[k])) return false
-  }
-  return true
-}
-
 async function tablaExisteEnMysql(
   mysql: Awaited<ReturnType<typeof createMysqlLegacyConnection>>,
   nombre: string
@@ -125,8 +58,8 @@ async function leerFilasMysql(
   nombreMysql: string,
   def: TablaMigracion
 ): Promise<Record<string, unknown>[]> {
-  const [resultado] = await mysql.query<RowDataPacket[]>(`SELECT * FROM \`${nombreMysql}\``)
-  return resultado.map((f) => adaptarFilaParaSupabase(def, serializarFila(f)))
+  const mapa = await leerFilasMysqlAdaptadas(mysql, def)
+  return [...mapa.values()]
 }
 
 async function supabaseTablaDisponible(sb: SupabaseClient, tabla: string): Promise<boolean> {
@@ -150,57 +83,6 @@ async function cargarIdsReferencia(
   pk: string
 ): Promise<Set<number>> {
   return obtenerPksSupabase(sb, tabla, pk)
-}
-
-async function obtenerPksSupabase(
-  sb: SupabaseClient,
-  tabla: string,
-  pk: string
-): Promise<Set<number>> {
-  const ids = new Set<number>()
-  let desde = 0
-  const pagina = 1000
-
-  while (true) {
-    const { data, error } = await sb
-      .from(tabla)
-      .select(pk)
-      .order(pk, { ascending: true })
-      .range(desde, desde + pagina - 1)
-
-    if (error) throw new Error(`No se pudieron leer PK de ${tabla}: ${error.message}`)
-    if (!data?.length) break
-
-    for (const row of data) {
-      const rec = row as unknown as Record<string, unknown>
-      const id = Number(rec[pk])
-      if (!Number.isNaN(id)) ids.add(id)
-    }
-
-    if (data.length < pagina) break
-    desde += pagina
-  }
-
-  return ids
-}
-
-async function obtenerFilasSupabasePorPks(
-  sb: SupabaseClient,
-  tabla: string,
-  pk: string,
-  pks: number[]
-): Promise<Map<number, Record<string, unknown>>> {
-  const mapa = new Map<number, Record<string, unknown>>()
-  for (let i = 0; i < pks.length; i += LOTE_PK) {
-    const slice = pks.slice(i, i + LOTE_PK)
-    const { data, error } = await sb.from(tabla).select('*').in(pk, slice)
-    if (error) throw new Error(`${tabla} lectura lote: ${error.message}`)
-    for (const row of data ?? []) {
-      const rec = row as Record<string, unknown>
-      mapa.set(Number(rec[pk]), rec)
-    }
-  }
-  return mapa
 }
 
 async function upsertLote(
