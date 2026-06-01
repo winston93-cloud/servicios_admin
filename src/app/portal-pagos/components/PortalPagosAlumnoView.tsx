@@ -180,21 +180,18 @@ export default function PortalPagosAlumnoView() {
                     <span className="portal-pagos-ciclo-nombre">{matriz.ciclo.nombre}</span>
                   </div>
                 )}
+                <button
+                  type="button"
+                  className="portal-pagos-btn-sec portal-pagos-btn-actualizar"
+                  onClick={() => void cargar()}
+                  disabled={cargando}
+                >
+                  <RefreshCw size={16} aria-hidden className={cargando ? 'portal-pagos-spin' : ''} />
+                  Actualizar
+                </button>
               </div>
             </div>
           </header>
-
-          <div className="portal-pagos-toolbar">
-            <button
-              type="button"
-              className="portal-pagos-btn-sec"
-              onClick={() => void cargar()}
-              disabled={cargando}
-            >
-              <RefreshCw size={16} aria-hidden className={cargando ? 'portal-pagos-spin' : ''} />
-              Actualizar
-            </button>
-          </div>
 
           {avisoLinea && (
             <div className="portal-pagos-alerta portal-pagos-alerta--info" role="status">

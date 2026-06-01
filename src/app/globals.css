@@ -14329,12 +14329,6 @@ body {
   max-width: 52rem;
 }
 
-.portal-pagos-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 1rem;
-}
-
 .portal-pagos-btn-sec {
   display: inline-flex;
   align-items: center;
@@ -14644,6 +14638,13 @@ body {
   gap: 0.65rem;
 }
 
+.portal-pagos-encabezado-badges .portal-pagos-btn-actualizar {
+  align-self: stretch;
+  padding: 0.65rem 1rem;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
 .portal-pagos-plan-badge {
   display: flex;
   flex-direction: column;
@@ -14669,6 +14670,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
+  margin-top: 0.25rem;
 }
 
 .portal-matriz-seccion-head {

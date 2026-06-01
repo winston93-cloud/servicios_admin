@@ -23,16 +23,24 @@ export default function PortalPagosTablaSeccion({
 }: PortalPagosTablaSeccionProps) {
   if (seccion.filas.length === 0) return null
 
+  const mostrarEncabezadoSeccion = seccion.id !== 'colegiatura'
+
   return (
-    <section className="portal-matriz-seccion" aria-labelledby={`seccion-${seccion.id}`}>
-      <div className="portal-matriz-seccion-head">
-        <h2 id={`seccion-${seccion.id}`} className="portal-matriz-seccion-titulo">
-          {seccion.titulo}
-        </h2>
-        {seccion.planEtiqueta && (
-          <span className="portal-matriz-plan-badge">{seccion.planEtiqueta}</span>
-        )}
-      </div>
+    <section
+      className="portal-matriz-seccion"
+      aria-label={mostrarEncabezadoSeccion ? undefined : seccion.titulo}
+      aria-labelledby={mostrarEncabezadoSeccion ? `seccion-${seccion.id}` : undefined}
+    >
+      {mostrarEncabezadoSeccion && (
+        <div className="portal-matriz-seccion-head">
+          <h2 id={`seccion-${seccion.id}`} className="portal-matriz-seccion-titulo">
+            {seccion.titulo}
+          </h2>
+          {seccion.planEtiqueta && (
+            <span className="portal-matriz-plan-badge">{seccion.planEtiqueta}</span>
+          )}
+        </div>
+      )}
 
       <div className="portal-matriz-tabla-wrap">
         <table className="portal-matriz-tabla">
