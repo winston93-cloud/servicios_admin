@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { formatearMontoPortal } from '@/lib/portalPagosService'
-import type { FilaMatrizPortal, MatrizPortalPagos } from '@/lib/portalPagosMatrizService'
+import type { MatrizPortalPagos } from '@/lib/portalPagosMatrizService'
 import { vigenciaBoucherPorDefecto } from '@/lib/boucherCore'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 import PortalDocumentoModal, { type TipoDocumentoPortal } from './PortalDocumentoModal'
@@ -41,8 +40,6 @@ export default function PortalPagosAlumnoView() {
     referencia: string | null
     concepto: string
   }>({ abierto: false, pdfUrl: null, referencia: null, concepto: '' })
-
-  const [avisoLinea, setAvisoLinea] = useState<string | null>(null)
 
   const cargar = useCallback(async () => {
     if (alumnoId == null) {
@@ -128,12 +125,6 @@ export default function PortalPagosAlumnoView() {
     setGenerandoBoucher(null)
   }
 
-  const pagoEnLinea = (fila: FilaMatrizPortal) => {
-    setAvisoLinea(
-      `El pago en línea de «${fila.conceptoClase}» (${formatearMontoPortal(fila.importe ?? 0)}) se conectará pronto a Openpay (SPEI) y Banorte. Por ahora usa el baucher para pagar en ventanilla.`
-    )
-  }
-
   const abrirDoc = (tipo: TipoDocumentoPortal, url: string, concepto: string) => {
     setDocModal({
       abierto: true,
@@ -193,15 +184,6 @@ export default function PortalPagosAlumnoView() {
             </div>
           </header>
 
-          {avisoLinea && (
-            <div className="portal-pagos-alerta portal-pagos-alerta--info" role="status">
-              <p>{avisoLinea}</p>
-              <button type="button" className="portal-pagos-alerta-cerrar" onClick={() => setAvisoLinea(null)}>
-                Entendido
-              </button>
-            </div>
-          )}
-
           {cargando && (
             <div className="portal-pagos-estado" role="status">
               <div className="portal-access-loading-spinner" />
@@ -223,7 +205,6 @@ export default function PortalPagosAlumnoView() {
                   seccion={seccion}
                   generandoBoucher={generandoBoucher}
                   onImprimirBoucher={(f) => void imprimirBoucher(f)}
-                  onPagoEnLinea={pagoEnLinea}
                   onVerPdf={(url, c) => abrirDoc('pdf', url, c)}
                   onVerXml={(url, c) => abrirDoc('xml', url, c)}
                 />
