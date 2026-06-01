@@ -32,8 +32,8 @@ export default function DashboardPage() {
   }
 
   const primerNombre =
-    user?.usuario_nombre?.trim().split(/\s+/)[0] ||
     user?.usuario_nombre_completo?.trim().split(/\s+/)[0] ||
+    user?.usuario_username ||
     'equipo'
 
   const saludo = (() => {
