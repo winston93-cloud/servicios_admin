@@ -42,14 +42,15 @@ export default function PortalBoucherModal({
         aria-labelledby="portal-boucher-modal-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="portal-doc-modal-header">
+        <header className="portal-doc-modal-header portal-boucher-modal-header">
           <div>
+            <p className="portal-boucher-modal-eyebrow">Comprobante de pago</p>
             <h2 id="portal-boucher-modal-title" className="portal-doc-modal-title">
-              Baucher — {concepto}
+              {concepto}
             </h2>
             {referencia && (
               <p className="portal-boucher-ref">
-                Referencia: <code>{referencia}</code>
+                Referencia <code>{referencia}</code>
               </p>
             )}
           </div>

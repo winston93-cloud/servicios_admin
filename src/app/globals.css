@@ -14942,6 +14942,60 @@ body {
 
 .portal-doc-modal--boucher {
   width: min(820px, 100%);
+  border-color: rgba(var(--winston-cyan-rgb), 0.25);
+}
+
+.portal-boucher-modal-header {
+  background: linear-gradient(135deg, #081420 0%, #14325a 55%, #0c2848 100%);
+  border-bottom-color: rgba(var(--winston-cyan-rgb), 0.35);
+}
+
+.portal-boucher-modal-header .portal-doc-modal-title {
+  color: #ffffff;
+  font-size: 1.125rem;
+}
+
+.portal-boucher-modal-eyebrow {
+  margin: 0 0 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--winston-cyan-bright);
+}
+
+.portal-boucher-modal-header .portal-boucher-ref {
+  color: #cbd5e1;
+}
+
+.portal-boucher-modal-header .portal-boucher-ref code {
+  color: #fef08a;
+  font-size: 0.9375rem;
+  letter-spacing: 0.04em;
+}
+
+.portal-boucher-modal-header .portal-doc-modal-cerrar {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+.portal-boucher-modal-header .portal-doc-modal-cerrar:hover {
+  background: rgba(var(--winston-cyan-rgb), 0.25);
+}
+
+.portal-doc-modal--boucher .portal-doc-modal-body {
+  background: #e2e8f0;
+  padding: 0.5rem;
+}
+
+.portal-doc-modal--boucher .portal-doc-modal-frame {
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.2);
+}
+
+.portal-doc-modal--boucher .portal-doc-modal-foot {
+  background: var(--bg-secondary);
+  justify-content: center;
 }
 
 .portal-doc-modal-header {
