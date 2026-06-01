@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/contexts/AuthContext'
+import { PORTALES_ALUMNO } from '@/lib/portalAuthService'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Image from 'next/image'
@@ -149,13 +150,15 @@ export default function DashboardPage() {
 
   const navItems = useMemo(() => {
     if (isAlumno) {
-      return NAV_ITEMS_ALL.filter((item) => item.path === '/portal-pagos')
+      return NAV_ITEMS_ALL.filter((item) =>
+        PORTALES_ALUMNO.includes(item.path as (typeof PORTALES_ALUMNO)[number])
+      )
     }
     return [...NAV_ITEMS_ALL]
   }, [isAlumno])
 
   const subtituloDashboard = isAlumno
-    ? 'Accede al portal de pagos en línea'
+    ? 'Accede a tus portales en línea'
     : 'Selecciona un módulo para continuar'
 
   return (
