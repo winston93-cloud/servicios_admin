@@ -47,7 +47,7 @@ export interface MatrizPortalPagos {
 
 const SECCION_COLEGIATURA = {
   id: 'colegiatura',
-  titulo: 'Colegiaturas y conceptos del ciclo',
+  titulo: 'Colegiaturas del ciclo escolar',
 } as const
 
 const SECCION_CAMBRIDGE = {
@@ -68,11 +68,34 @@ const CONCEPTOS_SECCION_PROPIA = new Set([
   ...SECCION_USA.conceptos,
 ])
 
-/** Ya no se muestra en el portal (legacy lo manejaba aparte). */
-const CONCEPTOS_EXCLUIDOS_COLEGIATURA = new Set(['16', ...CONCEPTOS_SECCION_PROPIA])
+/** Material y Seguro (17) no se lista en el portal alumno. */
+const CONCEPTOS_EXCLUIDOS_COLEGIATURA = new Set(['17', ...CONCEPTOS_SECCION_PROPIA])
+
+/** Orden del bloque principal: 00 inicio → sep–jun → 16 (material ene.) → jul si plan 11. */
+const ORDEN_COLEGIATURA_PORTAL = [
+  '00',
+  '01',
+  '02',
+  '03',
+  '04',
+  '05',
+  '16',
+  '06',
+  '07',
+  '08',
+  '09',
+  '10',
+  '26',
+] as const
 
 export function etiquetaPlanPagos(planMeses: number): string {
   return planMeses === 2 ? 'Plan de pagos: 11 meses' : 'Plan de pagos: 10 meses'
+}
+
+function ordenColegiaturaPortal(conceptoNo: string): number {
+  const c = normalizarConceptoNo(conceptoNo)
+  const i = ORDEN_COLEGIATURA_PORTAL.indexOf(c as (typeof ORDEN_COLEGIATURA_PORTAL)[number])
+  return i === -1 ? 999 : i
 }
 
 function pagoVigente(p: PagoDetalleRegistro): boolean {
@@ -118,7 +141,7 @@ async function listarConceptosColegiatura(
       concepto_clase: String(r.concepto_clase).trim(),
     }))
     .filter((r) => !CONCEPTOS_EXCLUIDOS_COLEGIATURA.has(r.concepto_no))
-    .sort((a, b) => compararConceptoNoAsc(a.concepto_no, b.concepto_no))
+    .sort((a, b) => ordenColegiaturaPortal(a.concepto_no) - ordenColegiaturaPortal(b.concepto_no))
 }
 
 async function listarConceptosPorNumeros(
