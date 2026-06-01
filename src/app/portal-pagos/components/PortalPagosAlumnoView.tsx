@@ -182,11 +182,6 @@ export default function PortalPagosAlumnoView() {
                 )}
               </div>
             </div>
-
-            <p className="portal-pagos-lead">
-              Consulta tus conceptos del ciclo vigente, genera tu baucher para pago en ventanilla o
-              revisa tus facturas. Los abonos pueden tardar hasta 48 horas en reflejarse.
-            </p>
           </header>
 
           <div className="portal-pagos-toolbar">
