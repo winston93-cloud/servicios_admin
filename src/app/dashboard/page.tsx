@@ -3,6 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import Image from 'next/image'
 import { useState } from 'react'
 
 const ChevronRight = () => (
@@ -143,12 +144,23 @@ export default function DashboardPage() {
             </svg>
           </div>
 
-          <div className="dashboard-logo">
-            <div className="dashboard-logo-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-              </svg>
-            </div>
+          <div className="dashboard-header-brand" aria-hidden="true">
+            <Image
+              src="/logos/logo-winston-churchill.png"
+              alt=""
+              width={120}
+              height={90}
+              className="dashboard-header-logo dashboard-header-logo--churchill"
+              priority
+            />
+            <Image
+              src="/logos/logo-winston-educativo.png"
+              alt=""
+              width={120}
+              height={90}
+              className="dashboard-header-logo dashboard-header-logo--educativo"
+              priority
+            />
           </div>
 
           <div className="dashboard-user-info">
@@ -166,33 +178,80 @@ export default function DashboardPage() {
 
         {/* Main Content */}
         <div className="dashboard-main">
-          <div className="dashboard-heading">
-            <p className="dashboard-greeting">
-              {saludo}, <span className="dashboard-greeting-name">{primerNombre}</span>
-            </p>
-            <h1 className="dashboard-title">Servicios Administrativos</h1>
-            <p className="dashboard-subtitle">Selecciona un módulo para continuar</p>
-          </div>
+          <div className="dashboard-main-stage">
+            <aside className="dashboard-flank dashboard-flank--start">
+              <Image
+                src="/logos/logo-winston-churchill.png"
+                alt="Instituto Winston Churchill"
+                width={160}
+                height={120}
+                className="dashboard-flank-logo"
+                priority
+              />
+              <span className="dashboard-flank-label">Instituto Winston Churchill</span>
+            </aside>
 
-          <div className="dashboard-nav-grid">
-            {navItems.map((item) => (
-              <div
-                key={item.path}
-                className="dash-nav-item"
-                data-accent={item.accent}
-                onClick={() => navigate(item.path)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(item.path) }}
-              >
-                <div className="dash-nav-icon">{item.icon}</div>
-                <div className="dash-nav-body">
-                  <h2 className="dash-nav-title">{item.label}</h2>
-                  <p className="dash-nav-desc">{item.desc}</p>
-                </div>
-                <div className="dash-nav-arrow" aria-hidden="true"><ChevronRight /></div>
+            <div className="dashboard-main-center">
+              <div className="dashboard-mobile-logos" aria-hidden="true">
+                <Image
+                  src="/logos/logo-winston-churchill.png"
+                  alt=""
+                  width={88}
+                  height={66}
+                  className="dashboard-mobile-logo"
+                  priority
+                />
+                <Image
+                  src="/logos/logo-winston-educativo.png"
+                  alt=""
+                  width={88}
+                  height={66}
+                  className="dashboard-mobile-logo"
+                  priority
+                />
               </div>
-            ))}
+
+              <div className="dashboard-heading">
+                <p className="dashboard-greeting">
+                  {saludo}, <span className="dashboard-greeting-name">{primerNombre}</span>
+                </p>
+                <h1 className="dashboard-title">Servicios Administrativos</h1>
+                <p className="dashboard-subtitle">Selecciona un módulo para continuar</p>
+              </div>
+
+              <div className="dashboard-nav-grid">
+                {navItems.map((item) => (
+                  <div
+                    key={item.path}
+                    className="dash-nav-item"
+                    data-accent={item.accent}
+                    onClick={() => navigate(item.path)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(item.path) }}
+                  >
+                    <div className="dash-nav-icon">{item.icon}</div>
+                    <div className="dash-nav-body">
+                      <h2 className="dash-nav-title">{item.label}</h2>
+                      <p className="dash-nav-desc">{item.desc}</p>
+                    </div>
+                    <div className="dash-nav-arrow" aria-hidden="true"><ChevronRight /></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <aside className="dashboard-flank dashboard-flank--end">
+              <Image
+                src="/logos/logo-winston-educativo.png"
+                alt="Winston Educativo"
+                width={160}
+                height={120}
+                className="dashboard-flank-logo"
+                priority
+              />
+              <span className="dashboard-flank-label">Winston Educativo</span>
+            </aside>
           </div>
         </div>
 
@@ -202,10 +261,21 @@ export default function DashboardPage() {
         {/* Sidebar */}
         <div className={`dashboard-sidebar ${isMenuOpen ? 'open' : ''}`}>
           <div className="dashboard-sidebar-header">
-            <div className="dashboard-sidebar-logo">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-              </svg>
+            <div className="dashboard-sidebar-logos">
+              <Image
+                src="/logos/logo-winston-churchill.png"
+                alt="Instituto Winston Churchill"
+                width={56}
+                height={42}
+                className="dashboard-sidebar-institution-logo"
+              />
+              <Image
+                src="/logos/logo-winston-educativo.png"
+                alt="Winston Educativo"
+                width={56}
+                height={42}
+                className="dashboard-sidebar-institution-logo"
+              />
             </div>
             <div className="dashboard-sidebar-title">
               <h3>Menú Principal</h3>
