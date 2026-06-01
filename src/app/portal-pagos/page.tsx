@@ -4,7 +4,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft } from 'lucide-react'
 
-export default function ProrrogasPage() {
+export default function PortalPagosPage() {
   const router = useRouter()
 
   return (
@@ -20,8 +20,8 @@ export default function ProrrogasPage() {
               <ArrowLeft size={16} aria-hidden />
               Volver al inicio
             </button>
-            <h1 className="dashboard-title">Prórrogas y Ajustes</h1>
-            <p className="dashboard-subtitle">Gestión de prórrogas y ajustes de pago escolar</p>
+            <h1 className="dashboard-title">Portal de pagos</h1>
+            <p className="dashboard-subtitle">Consulta y registro de pagos en línea</p>
           </div>
 
           <div className="servicios-panel-card">

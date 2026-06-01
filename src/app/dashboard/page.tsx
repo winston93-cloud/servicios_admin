@@ -58,6 +58,19 @@ export default function DashboardPage() {
       ),
     },
     {
+      label: 'Portal de pagos',
+      desc: 'Consulta y registro de pagos en línea',
+      path: '/portal-pagos',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="5" width="20" height="14" rx="2"/>
+          <line x1="2" y1="10" x2="22" y2="10"/>
+          <path d="M6 15h.01"/>
+          <path d="M10 15h4"/>
+        </svg>
+      ),
+    },
+    {
       label: 'Reportes',
       desc: 'Consulta y generación de reportes administrativos',
       path: '/reportes',
@@ -70,8 +83,8 @@ export default function DashboardPage() {
       ),
     },
     {
-      label: 'Prórrogas',
-      desc: 'Gestión de prórrogas de pago escolar',
+      label: 'Prórrogas y Ajustes',
+      desc: 'Gestión de prórrogas y ajustes de pago escolar',
       path: '/prorrogas',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
