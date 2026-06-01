@@ -1,7 +1,6 @@
 'use client'
 
 import { useAuth } from '@/contexts/AuthContext'
-import { PORTALES_ALUMNO } from '@/lib/portalAuthService'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Image from 'next/image'
@@ -13,7 +12,8 @@ const ChevronRight = () => (
   </svg>
 )
 
-const NAV_ITEMS_ALL = [
+/** Módulos del personal administrativo (sin portales de familias). */
+const NAV_ITEMS_ADMIN = [
   {
     label: 'Desayunos, Estancias y Comidas',
     desc: 'Servicios de alimentación y cuidado escolar',
@@ -43,34 +43,6 @@ const NAV_ITEMS_ALL = [
     ),
   },
   {
-    label: 'Portal de pagos',
-    desc: 'Consulta y registro de pagos en línea',
-    path: '/portal-pagos',
-    accent: 'emerald',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="5" width="20" height="14" rx="2"/>
-        <line x1="2" y1="10" x2="22" y2="10"/>
-        <path d="M6 15h.01"/>
-        <path d="M10 15h4"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Portal de inscripciones',
-    desc: 'Registro y seguimiento de inscripciones en línea',
-    path: '/portal-inscripciones',
-    accent: 'sky',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-        <circle cx="9" cy="7" r="4"/>
-        <line x1="19" y1="8" x2="19" y2="14"/>
-        <line x1="22" y1="11" x2="16" y2="11"/>
-      </svg>
-    ),
-  },
-  {
     label: 'Reportes',
     desc: 'Consulta y generación de reportes administrativos',
     path: '/reportes',
@@ -96,6 +68,38 @@ const NAV_ITEMS_ALL = [
         <line x1="3" y1="10" x2="21" y2="10"/>
         <circle cx="12" cy="16" r="3"/>
         <polyline points="12 14 12 16 13.5 17.5"/>
+      </svg>
+    ),
+  },
+] as const
+
+/** Portales en línea solo para alumnos / familias. */
+const NAV_ITEMS_ALUMNO = [
+  {
+    label: 'Portal de pagos',
+    desc: 'Consulta y registro de pagos en línea',
+    path: '/portal-pagos',
+    accent: 'emerald',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="5" width="20" height="14" rx="2"/>
+        <line x1="2" y1="10" x2="22" y2="10"/>
+        <path d="M6 15h.01"/>
+        <path d="M10 15h4"/>
+      </svg>
+    ),
+  },
+  {
+    label: 'Portal de inscripciones',
+    desc: 'Registro y seguimiento de inscripciones en línea',
+    path: '/portal-inscripciones',
+    accent: 'sky',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <line x1="19" y1="8" x2="19" y2="14"/>
+        <line x1="22" y1="11" x2="16" y2="11"/>
       </svg>
     ),
   },
@@ -148,14 +152,10 @@ export default function DashboardPage() {
     return 'Buenas noches'
   })()
 
-  const navItems = useMemo(() => {
-    if (isAlumno) {
-      return NAV_ITEMS_ALL.filter((item) =>
-        PORTALES_ALUMNO.includes(item.path as (typeof PORTALES_ALUMNO)[number])
-      )
-    }
-    return [...NAV_ITEMS_ALL]
-  }, [isAlumno])
+  const navItems = useMemo(
+    () => (isAlumno ? [...NAV_ITEMS_ALUMNO] : [...NAV_ITEMS_ADMIN]),
+    [isAlumno]
+  )
 
   const subtituloDashboard = isAlumno
     ? 'Accede a tus portales en línea'
