@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
+import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 
 const ChevronRight = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -109,6 +110,7 @@ export default function DashboardPage() {
   const { user, session, logout, isAlumno } = useAuth()
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [cicloVigenteNombre, setCicloVigenteNombre] = useState<string | null>(null)
 
   const handleLogout = async () => {
     try {
@@ -126,6 +128,20 @@ export default function DashboardPage() {
 
   const toggleMenu = () => setIsMenuOpen((open) => !open)
   const closeMenu = () => setIsMenuOpen(false)
+
+  useEffect(() => {
+    if (!isAlumno) {
+      setCicloVigenteNombre(null)
+      return
+    }
+    let cancelado = false
+    void obtenerCicloEscolarActual().then((c) => {
+      if (!cancelado) setCicloVigenteNombre(c?.nombre ?? null)
+    })
+    return () => {
+      cancelado = true
+    }
+  }, [isAlumno])
 
   useEffect(() => {
     if (!isMenuOpen) return
@@ -256,6 +272,12 @@ export default function DashboardPage() {
                 </p>
                 <h1 className="dashboard-title">Servicios Administrativos</h1>
                 <p className="dashboard-subtitle">{subtituloDashboard}</p>
+                {isAlumno && cicloVigenteNombre && (
+                  <p className="dashboard-ciclo-vigente" role="status">
+                    <span className="dashboard-ciclo-vigente-label">Ciclo escolar vigente</span>
+                    <span className="dashboard-ciclo-vigente-nombre">{cicloVigenteNombre}</span>
+                  </p>
+                )}
               </div>
 
               <div className="dashboard-nav-grid">
