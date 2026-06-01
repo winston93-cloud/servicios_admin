@@ -30,11 +30,24 @@ export default function DashboardPage() {
     setIsMenuOpen(false)
   }
 
+  const primerNombre =
+    user?.usuario_nombre?.trim().split(/\s+/)[0] ||
+    user?.usuario_nombre_completo?.trim().split(/\s+/)[0] ||
+    'equipo'
+
+  const saludo = (() => {
+    const h = new Date().getHours()
+    if (h < 12) return 'Buenos días'
+    if (h < 19) return 'Buenas tardes'
+    return 'Buenas noches'
+  })()
+
   const navItems = [
     {
       label: 'Desayunos, Estancias y Comidas',
       desc: 'Servicios de alimentación y cuidado escolar',
       path: '/pos',
+      accent: 'amber',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
           <path d="M17 8h1a4 4 0 0 1 0 8h-1"/>
@@ -49,6 +62,7 @@ export default function DashboardPage() {
       label: 'Servicios',
       desc: 'Gestión general de servicios escolares',
       path: '/servicios',
+      accent: 'indigo',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
           <polygon points="12 2 2 7 12 12 22 7 12 2"/>
@@ -61,6 +75,7 @@ export default function DashboardPage() {
       label: 'Portal de pagos',
       desc: 'Consulta y registro de pagos en línea',
       path: '/portal-pagos',
+      accent: 'emerald',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
           <rect x="2" y="5" width="20" height="14" rx="2"/>
@@ -74,6 +89,7 @@ export default function DashboardPage() {
       label: 'Portal de inscripciones',
       desc: 'Registro y seguimiento de inscripciones en línea',
       path: '/portal-inscripciones',
+      accent: 'sky',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -87,6 +103,7 @@ export default function DashboardPage() {
       label: 'Reportes',
       desc: 'Consulta y generación de reportes administrativos',
       path: '/reportes',
+      accent: 'violet',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
           <line x1="18" y1="20" x2="18" y2="10"/>
@@ -99,6 +116,7 @@ export default function DashboardPage() {
       label: 'Prórrogas y Ajustes',
       desc: 'Gestión de prórrogas y ajustes de pago escolar',
       path: '/prorrogas',
+      accent: 'rose',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -114,7 +132,8 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <div className="dashboard-container">
+      <div className="dashboard-container dashboard-home">
+        <div className="dashboard-home-bg" aria-hidden="true" />
 
         {/* Header */}
         <div className="dashboard-header">
@@ -148,6 +167,9 @@ export default function DashboardPage() {
         {/* Main Content */}
         <div className="dashboard-main">
           <div className="dashboard-heading">
+            <p className="dashboard-greeting">
+              {saludo}, <span className="dashboard-greeting-name">{primerNombre}</span>
+            </p>
             <h1 className="dashboard-title">Servicios Administrativos</h1>
             <p className="dashboard-subtitle">Selecciona un módulo para continuar</p>
           </div>
@@ -157,6 +179,7 @@ export default function DashboardPage() {
               <div
                 key={item.path}
                 className="dash-nav-item"
+                data-accent={item.accent}
                 onClick={() => navigate(item.path)}
                 role="button"
                 tabIndex={0}
@@ -192,7 +215,12 @@ export default function DashboardPage() {
 
           <div className="dashboard-sidebar-menu">
             {navItems.map((item) => (
-              <div key={item.path} className="dashboard-menu-item" onClick={() => navigate(item.path)}>
+              <div
+                key={item.path}
+                className="dashboard-menu-item"
+                data-accent={item.accent}
+                onClick={() => navigate(item.path)}
+              >
                 <div className="dashboard-menu-icon">{item.icon}</div>
                 <div className="dashboard-menu-text">
                   <h4>{item.label}</h4>
