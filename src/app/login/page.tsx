@@ -95,6 +95,7 @@ export default function LoginPage() {
             <h1 className="portal-access-title">Servicios Administrativos</h1>
             <p className="portal-access-lead">
               Acceso unificado para familias y personal de los dos planteles Winston.
+              <br />
               Tu perfil determina los módulos disponibles.
             </p>
           </header>
@@ -109,14 +110,17 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Usuario administrativo o No. de control del alumno"
+                placeholder="Usuario o No. de control"
                 className="portal-access-input"
                 disabled={loading}
                 autoComplete="username"
               />
-              <p className="portal-access-hint">
+              <p className="portal-access-hint portal-access-hint--desktop">
                 Personal: <strong>usuario_username</strong> · Familia:{' '}
                 <strong>alumno_ref</strong>
+              </p>
+              <p className="portal-access-hint portal-access-hint--mobile">
+                Personal: usuario · Familia: No. de control
               </p>
             </div>
 
