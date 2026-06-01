@@ -27,6 +27,7 @@ import {
   type PagoDetalleRegistro,
 } from '@/lib/pagoColegiaturaService'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
+import OpenpayVerificacionPanel from '../components/OpenpayVerificacionPanel'
 
 function formatearMonto(n: number): string {
   return n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -461,6 +462,8 @@ export default function PagosColegiaturasModulo() {
           )}
         </div>
       </section>
+
+      <OpenpayVerificacionPanel />
     </div>
   )
 }

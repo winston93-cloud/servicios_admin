@@ -87,6 +87,10 @@ function validarOpenpay(
   )
 }
 
+export function obtenerConfigOpenpayPorCuenta(cuenta: OpenpayCuenta): OpenpayConfigServidor {
+  return obtenerConfigOpenpay(cuenta === 'winston' ? 4 : 1)
+}
+
 export function obtenerConfigOpenpay(alumnoNivel: number): OpenpayConfigServidor {
   const cuenta = openpayCuentaPorNivel(alumnoNivel)
   const sandbox = envBool('OPENPAY_SANDBOX', false)
