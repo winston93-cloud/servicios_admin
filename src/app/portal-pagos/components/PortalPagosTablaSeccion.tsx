@@ -2,12 +2,13 @@
 
 import type { FilaMatrizPortal, SeccionMatrizPortal } from '@/lib/portalPagosMatrizService'
 import { formatearMontoPortal } from '@/lib/portalPagosService'
-import { FileText, Printer, Code2 } from 'lucide-react'
+import { FileText, Printer, CreditCard, Code2 } from 'lucide-react'
 
 interface PortalPagosTablaSeccionProps {
   seccion: SeccionMatrizPortal
   generandoBoucher: string | null
   onImprimirBoucher: (fila: FilaMatrizPortal) => void
+  onPagoEnLinea: (fila: FilaMatrizPortal) => void
   onVerPdf: (url: string, concepto: string) => void
   onVerXml: (url: string, concepto: string) => void
 }
@@ -16,6 +17,7 @@ export default function PortalPagosTablaSeccion({
   seccion,
   generandoBoucher,
   onImprimirBoucher,
+  onPagoEnLinea,
   onVerPdf,
   onVerXml,
 }: PortalPagosTablaSeccionProps) {
@@ -46,6 +48,7 @@ export default function PortalPagosTablaSeccion({
             <tr>
               <th scope="col">Conceptos</th>
               <th scope="col">Generar baucher (ventanilla)</th>
+              <th scope="col">Pago en línea</th>
               <th scope="col">Facturas</th>
             </tr>
           </thead>
@@ -72,6 +75,25 @@ export default function PortalPagosTablaSeccion({
                       >
                         <Printer size={14} aria-hidden />
                         {generandoBoucher === fila.conceptoNo ? 'Generando…' : 'Imprimir'}
+                      </button>
+                    </div>
+                  )}
+                </td>
+                <td className="portal-matriz-col-accion">
+                  {fila.pagado ? (
+                    <span className="portal-matriz-pagado">Pagado</span>
+                  ) : (
+                    <div className="portal-matriz-accion-grupo">
+                      <span className="portal-matriz-monto">
+                        {fila.importe != null ? formatearMontoPortal(fila.importe) : '—'}
+                      </span>
+                      <button
+                        type="button"
+                        className="portal-pagos-btn-linea"
+                        onClick={() => onPagoEnLinea(fila)}
+                      >
+                        <CreditCard size={14} aria-hidden />
+                        Pago en línea
                       </button>
                     </div>
                   )}
@@ -135,6 +157,14 @@ export default function PortalPagosTablaSeccion({
                   >
                     <Printer size={14} aria-hidden />
                     Baucher
+                  </button>
+                  <button
+                    type="button"
+                    className="portal-pagos-btn-linea"
+                    onClick={() => onPagoEnLinea(fila)}
+                  >
+                    <CreditCard size={14} aria-hidden />
+                    En línea
                   </button>
                 </>
               )}

@@ -4,10 +4,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import type { FilaMatrizPortal, MatrizPortalPagos } from '@/lib/portalPagosMatrizService'
+import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { vigenciaBoucherPorDefecto } from '@/lib/boucherCore'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 import PortalDocumentoModal, { type TipoDocumentoPortal } from './PortalDocumentoModal'
 import PortalBoucherModal from './PortalBoucherModal'
+import PortalTransferenciaModal, { type DatosTransferenciaPortal } from './PortalTransferenciaModal'
 import PortalPagosTablaSeccion from './PortalPagosTablaSeccion'
 
 function nombreCompletoAlumno(matriz: MatrizPortalPagos | null, fallback?: string): string {
@@ -15,6 +17,14 @@ function nombreCompletoAlumno(matriz: MatrizPortalPagos | null, fallback?: strin
   const a = matriz.alumno
   const n = `${a.alumno_nombre ?? ''} ${a.alumno_app ?? ''} ${a.alumno_apm ?? ''}`.trim()
   return n || fallback?.trim() || 'Alumno'
+}
+
+/** Formato enlinea3: apellidos y nombre en mayúsculas */
+function nombreAlumnoTransferencia(matriz: MatrizPortalPagos | null, fallback?: string): string {
+  if (!matriz) return (fallback?.trim() || 'Alumno').toUpperCase()
+  const a = matriz.alumno
+  const n = `${a.alumno_app ?? ''} ${a.alumno_apm ?? ''} ${a.alumno_nombre ?? ''}`.trim()
+  return (n || fallback?.trim() || 'Alumno').toUpperCase()
 }
 
 export default function PortalPagosAlumnoView() {
@@ -40,6 +50,12 @@ export default function PortalPagosAlumnoView() {
     referencia: string | null
     concepto: string
   }>({ abierto: false, pdfUrl: null, referencia: null, concepto: '' })
+
+  const [transferModal, setTransferModal] = useState<{
+    abierto: boolean
+    cargando: boolean
+    datos: DatosTransferenciaPortal | null
+  }>({ abierto: false, cargando: false, datos: null })
 
   const cargar = useCallback(async () => {
     if (alumnoId == null) {
@@ -125,6 +141,46 @@ export default function PortalPagosAlumnoView() {
     setGenerandoBoucher(null)
   }
 
+  const abrirPagoEnLinea = async (fila: FilaMatrizPortal) => {
+    if (!matriz || alumnoId == null || fila.pagado) return
+    setTransferModal({ abierto: true, cargando: true, datos: null })
+    setError(null)
+    try {
+      let referencia = fila.referencia
+      let importe = fila.importe ?? 0
+      if (!referencia) {
+        const calcRes = await fetch('/api/bauchers/calcular', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            alumnoId,
+            conceptoNo: fila.conceptoNo,
+            cicloEscolar: matriz.ciclo.valor,
+          }),
+        })
+        const calc = await calcRes.json()
+        if (!calcRes.ok) throw new Error(calc.error ?? 'No se pudo calcular la referencia.')
+        referencia = calc.referencia as string
+        importe = calc.importe
+      }
+      if (!referencia) throw new Error('No se obtuvo referencia de pago.')
+      setTransferModal({
+        abierto: true,
+        cargando: false,
+        datos: {
+          alumno: nombreAlumnoTransferencia(matriz, session?.displayName),
+          grado: etiquetaGradoEscolar(matriz.alumno.alumno_nivel, matriz.alumno.alumno_grado),
+          referencia,
+          concepto: fila.conceptoClase,
+          importe,
+        },
+      })
+    } catch (e) {
+      setTransferModal({ abierto: false, cargando: false, datos: null })
+      setError(e instanceof Error ? e.message : 'No se pudo abrir el pago en línea.')
+    }
+  }
+
   const abrirDoc = (tipo: TipoDocumentoPortal, url: string, concepto: string) => {
     setDocModal({
       abierto: true,
@@ -205,6 +261,7 @@ export default function PortalPagosAlumnoView() {
                   seccion={seccion}
                   generandoBoucher={generandoBoucher}
                   onImprimirBoucher={(f) => void imprimirBoucher(f)}
+                  onPagoEnLinea={(f) => void abrirPagoEnLinea(f)}
                   onVerPdf={(url, c) => abrirDoc('pdf', url, c)}
                   onVerXml={(url, c) => abrirDoc('xml', url, c)}
                 />
@@ -233,6 +290,13 @@ export default function PortalPagosAlumnoView() {
             URL.revokeObjectURL(boucherModal.pdfUrl)
           }
         }}
+      />
+
+      <PortalTransferenciaModal
+        abierto={transferModal.abierto}
+        cargando={transferModal.cargando}
+        datos={transferModal.datos}
+        onCerrar={() => setTransferModal({ abierto: false, cargando: false, datos: null })}
       />
     </div>
   )

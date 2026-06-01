@@ -15038,6 +15038,198 @@ body {
   }
 }
 
+/* Modal — Información de la Transferencia (enlinea3) */
+.portal-transfer-modal {
+  position: relative;
+  width: min(640px, 100%);
+  max-height: min(92vh, 720px);
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem 1.5rem;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #1e293b;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.portal-transfer-cerrar-x {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.65rem;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.portal-transfer-cerrar-x:hover {
+  color: #0f172a;
+}
+
+.portal-transfer-titulo-caja {
+  margin: 0.25rem auto 1.25rem;
+  max-width: 22rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.portal-transfer-titulo {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1c2377;
+}
+
+.portal-transfer-datos {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.25rem;
+  font-size: 0.9375rem;
+}
+
+.portal-transfer-datos th {
+  width: 38%;
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+  font-weight: 700;
+  color: #1c2377;
+  vertical-align: top;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.portal-transfer-datos td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  color: #0f172a;
+}
+
+.portal-transfer-datos--alumno {
+  font-weight: 700;
+}
+
+.portal-transfer-ref {
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+}
+
+.portal-transfer-importe {
+  font-weight: 700;
+}
+
+.portal-transfer-opciones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.portal-transfer-opcion {
+  padding: 1rem 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.portal-transfer-opcion-titulo {
+  margin: 0 0 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #1c2377;
+}
+
+.portal-transfer-btn-pago {
+  display: inline-block;
+  min-width: 9.5rem;
+  padding: 0.45rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: #ffffff;
+  background: linear-gradient(180deg, #34d058 0%, #28a745 100%);
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.portal-transfer-opcion-nota {
+  margin: 0.5rem 0 0;
+  font-size: 0.6875rem;
+  color: #64748b;
+}
+
+.portal-transfer-pie {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.25rem;
+}
+
+.portal-transfer-btn-cerrar {
+  min-width: 7rem;
+  padding: 0.45rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: #ffffff;
+  background: linear-gradient(180deg, #e4606d 0%, #dc3545 100%);
+  cursor: pointer;
+}
+
+.portal-transfer-btn-cerrar:hover {
+  filter: brightness(1.05);
+}
+
+.portal-transfer-cargando {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  color: #475569;
+}
+
+.portal-transfer-error {
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  text-align: center;
+  color: #b91c1c;
+}
+
+@media (max-width: 560px) {
+  .portal-transfer-opciones {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-transfer-modal {
+    padding: 1rem 1rem 1.25rem;
+  }
+
+  .portal-transfer-datos th,
+  .portal-transfer-datos td {
+    display: block;
+    width: 100%;
+    border-bottom: none;
+    padding: 0.35rem 0.5rem;
+  }
+
+  .portal-transfer-datos th {
+    padding-top: 0.65rem;
+  }
+
+  .portal-transfer-datos tr {
+    border-bottom: 1px solid #e2e8f0;
+  }
+}
+
 /* ── SaaS UI polish — animaciones, glass, micro-interacciones ─────────── */
 @keyframes saasFadeSlideUp {
   from {
