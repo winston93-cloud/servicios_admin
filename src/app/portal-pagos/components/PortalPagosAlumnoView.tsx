@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import type { MatrizPortalPagos } from '@/lib/portalPagosMatrizService'
+import type { FilaMatrizPortal, MatrizPortalPagos } from '@/lib/portalPagosMatrizService'
 import { vigenciaBoucherPorDefecto } from '@/lib/boucherCore'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 import PortalDocumentoModal, { type TipoDocumentoPortal } from './PortalDocumentoModal'
