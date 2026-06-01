@@ -19,6 +19,11 @@ import {
   formatearAlumnoRefParaReferencia,
 } from './pagoReferenciaColegiatura'
 import type { PagoDetalleRegistro } from './pagoColegiaturaService'
+import {
+  filtrarFilasPorCandado,
+  slotsColegiaturaPortal,
+  slotsLineales,
+} from './portalPagosCandados'
 
 export interface FilaMatrizPortal {
   conceptoNo: string
@@ -71,7 +76,7 @@ const CONCEPTOS_SECCION_PROPIA = new Set([
 /** Material y Seguro (17) no se lista en el portal alumno. */
 const CONCEPTOS_EXCLUIDOS_COLEGIATURA = new Set(['17', ...CONCEPTOS_SECCION_PROPIA])
 
-/** Orden del bloque principal: 00 inicio → sep–jun → 16 (material ene.) → jul si plan 11. */
+/** Orden al construir filas (16 va junto a enero en pantalla vía slots). */
 const ORDEN_COLEGIATURA_PORTAL = [
   '00',
   '01',
@@ -252,7 +257,7 @@ export async function construirMatrizPortalPagos(
     listarConceptosPorNumeros(supabase, [...SECCION_USA.conceptos]),
   ])
 
-  const [filasColeg, filasCam, filasUsa] = await Promise.all([
+  const [filasColegRaw, filasCamRaw, filasUsaRaw] = await Promise.all([
     construirFilas(supabase, alumno, ciclo, conceptosColeg, pagos, planMeses),
     conceptosCam.length > 0
       ? construirFilas(supabase, alumno, ciclo, conceptosCam, pagos, planMeses, true)
@@ -261,6 +266,19 @@ export async function construirMatrizPortalPagos(
       ? construirFilas(supabase, alumno, ciclo, conceptosUsa, pagos, planMeses)
       : Promise.resolve([]),
   ])
+
+  const filasColeg = filtrarFilasPorCandado(
+    filasColegRaw,
+    slotsColegiaturaPortal(planMeses)
+  )
+  const filasCam = filtrarFilasPorCandado(
+    filasCamRaw,
+    slotsLineales(SECCION_CAMBRIDGE.conceptos)
+  )
+  const filasUsa = filtrarFilasPorCandado(
+    filasUsaRaw,
+    slotsLineales(SECCION_USA.conceptos)
+  )
 
   const secciones: SeccionMatrizPortal[] = [
     {
