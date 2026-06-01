@@ -24,7 +24,7 @@ export default function LoginPage() {
     e.preventDefault()
 
     if (!username.trim() || !password.trim()) {
-      setError('Ingresa tu usuario o número de control y tu clave de acceso')
+      setError('Ingresa tu usuario y tu clave de acceso')
       return
     }
 
@@ -41,9 +41,7 @@ export default function LoginPage() {
         login(authSession)
         router.push('/dashboard')
       } else {
-        setError(
-          'Acceso no válido. Verifica tu usuario o número de control y tu clave.'
-        )
+        setError('Acceso no válido. Verifica tu usuario y tu clave.')
       }
     } catch (err) {
       console.error('Error en login:', err)
@@ -103,25 +101,18 @@ export default function LoginPage() {
           <form className="portal-access-form" onSubmit={handleSubmit}>
             <div className="portal-access-field">
               <label htmlFor="portal-username" className="portal-access-label">
-                Usuario o número de control
+                Usuario
               </label>
               <input
                 id="portal-username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Usuario o No. de control"
+                placeholder="Usuario"
                 className="portal-access-input"
                 disabled={loading}
                 autoComplete="username"
               />
-              <p className="portal-access-hint portal-access-hint--desktop">
-                Personal: <strong>usuario_username</strong> · Familia:{' '}
-                <strong>alumno_ref</strong>
-              </p>
-              <p className="portal-access-hint portal-access-hint--mobile">
-                Personal: usuario · Familia: No. de control
-              </p>
             </div>
 
             <div className="portal-access-field">
