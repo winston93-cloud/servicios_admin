@@ -62,6 +62,19 @@ const SECCION_USA = {
   conceptos: ['23', '24', '25'],
 } as const
 
+/** Solo en su tabla aparte (también están en concepto_tipo=2 en BD). */
+const CONCEPTOS_SECCION_PROPIA = new Set([
+  ...SECCION_CAMBRIDGE.conceptos,
+  ...SECCION_USA.conceptos,
+])
+
+/** Ya no se muestra en el portal (legacy lo manejaba aparte). */
+const CONCEPTOS_EXCLUIDOS_COLEGIATURA = new Set(['16', ...CONCEPTOS_SECCION_PROPIA])
+
+export function etiquetaPlanPagos(planMeses: number): string {
+  return planMeses === 2 ? 'Plan de pagos: 11 meses' : 'Plan de pagos: 10 meses'
+}
+
 function pagoVigente(p: PagoDetalleRegistro): boolean {
   return p.pago_cancelado !== 1 && p.pago_cancelado !== 2
 }
@@ -104,6 +117,7 @@ async function listarConceptosColegiatura(
       concepto_no: normalizarConceptoNo(r.concepto_no),
       concepto_clase: String(r.concepto_clase).trim(),
     }))
+    .filter((r) => !CONCEPTOS_EXCLUIDOS_COLEGIATURA.has(r.concepto_no))
     .sort((a, b) => compararConceptoNoAsc(a.concepto_no, b.concepto_no))
 }
 
@@ -207,7 +221,7 @@ export async function construirMatrizPortalPagos(
   pagos: PagoDetalleRegistro[]
 ): Promise<MatrizPortalPagos> {
   const planMeses = alumno.mes === 2 ? 2 : 1
-  const planEtiqueta = planMeses === 2 ? '11 meses' : '10 meses'
+  const planEtiqueta = etiquetaPlanPagos(planMeses)
 
   const [conceptosColeg, conceptosCam, conceptosUsa] = await Promise.all([
     listarConceptosColegiatura(supabase, planMeses),
@@ -229,7 +243,6 @@ export async function construirMatrizPortalPagos(
     {
       id: SECCION_COLEGIATURA.id,
       titulo: SECCION_COLEGIATURA.titulo,
-      planEtiqueta: `Plan de pagos: ${planEtiqueta}`,
       filas: filasColeg,
     },
   ]

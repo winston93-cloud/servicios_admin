@@ -166,16 +166,21 @@ export default function PortalPagosAlumnoView() {
                   <strong>{nombreCompletoAlumno(matriz, session?.displayName)}</strong>
                   <span className="portal-pagos-alumno-ref">No. de control {refFmt}</span>
                 </p>
+              </div>
+              <div className="portal-pagos-encabezado-badges">
                 {matriz && (
-                  <p className="portal-pagos-plan-linea">{matriz.planEtiqueta}</p>
+                  <div className="portal-pagos-plan-badge" role="status">
+                    <span className="portal-pagos-ciclo-label">Modo de pago</span>
+                    <span className="portal-pagos-plan-badge-valor">{matriz.planEtiqueta}</span>
+                  </div>
+                )}
+                {matriz?.ciclo && (
+                  <div className="portal-pagos-ciclo-badge" role="status">
+                    <span className="portal-pagos-ciclo-label">Ciclo escolar vigente</span>
+                    <span className="portal-pagos-ciclo-nombre">{matriz.ciclo.nombre}</span>
+                  </div>
                 )}
               </div>
-              {matriz?.ciclo && (
-                <div className="portal-pagos-ciclo-badge" role="status">
-                  <span className="portal-pagos-ciclo-label">Ciclo escolar vigente</span>
-                  <span className="portal-pagos-ciclo-nombre">{matriz.ciclo.nombre}</span>
-                </div>
-              )}
             </div>
 
             <p className="portal-pagos-lead">
