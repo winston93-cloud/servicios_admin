@@ -1,50 +1,77 @@
 'use client'
 
-import React, { createContext, useContext, useState } from 'react'
-import { AuthUser } from '@/lib/authService'
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+import {
+  type AuthSession,
+  clearSession,
+  getStoredSession,
+  sessionToLegacyUser,
+  storeSession,
+} from '@/lib/portalAuthService'
 
 interface AuthContextType {
-  user: AuthUser | null
+  session: AuthSession | null
+  user: {
+    usuario_id: number
+    usuario_username: string
+    usuario_nombre_completo: string
+  } | null
   loading: boolean
-  login: (user: AuthUser) => void
+  login: (session: AuthSession) => void
   logout: () => void
   isAuthenticated: boolean
+  isAlumno: boolean
+  isUsuario: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Usuario por defecto para simular autenticación
-  const [user] = useState<AuthUser | null>({
-    usuario_id: 1,
-    usuario_username: 'admin',
-    usuario_nombre_completo: 'Administrador del Sistema'
-  })
-  const [loading] = useState(false)
+  const [session, setSession] = useState<AuthSession | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const login = (authUser: AuthUser) => {
-    // No hacer nada, ya estamos "autenticados"
-    console.log('Login llamado:', authUser)
-  }
+  useEffect(() => {
+    setSession(getStoredSession())
+    setLoading(false)
+  }, [])
 
-  const logout = () => {
-    // No hacer nada, mantener siempre autenticado
-    console.log('Logout llamado - manteniendo sesión')
-  }
+  const login = useCallback((next: AuthSession) => {
+    storeSession(next)
+    setSession(next)
+  }, [])
 
-  const value = {
-    user,
-    loading,
-    login,
-    logout,
-    isAuthenticated: true // Siempre autenticado
-  }
+  const logout = useCallback(() => {
+    clearSession()
+    setSession(null)
+  }, [])
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+  const user = useMemo(
+    () => (session ? sessionToLegacyUser(session) : null),
+    [session]
   )
+
+  const value = useMemo(
+    () => ({
+      session,
+      user,
+      loading,
+      login,
+      logout,
+      isAuthenticated: !!session,
+      isAlumno: session?.role === 'alumno',
+      isUsuario: session?.role === 'usuario',
+    }),
+    [session, user, loading, login, logout]
+  )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { loginUser } from '@/lib/authService'
+import { loginPortal } from '@/lib/portalAuthService'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function LoginPage() {
@@ -14,18 +14,17 @@ export default function LoginPage() {
   const router = useRouter()
   const { login, isAuthenticated } = useAuth()
 
-  // Verificar si ya está logueado
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/')
+      router.replace('/dashboard')
     }
   }, [isAuthenticated, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!username.trim() || !password.trim()) {
-      setError('Por favor ingrese usuario y contraseña')
+      setError('Ingresa tu usuario o número de control y tu clave de acceso')
       return
     }
 
@@ -33,126 +32,144 @@ export default function LoginPage() {
     setError('')
 
     try {
-      const user = await loginUser({ username: username.trim(), password: password.trim() })
-      
-      if (user) {
-        // Usar el contexto de autenticación
-        login(user)
-        
-        // Redirigir al dashboard
+      const authSession = await loginPortal({
+        username: username.trim(),
+        password: password.trim(),
+      })
+
+      if (authSession) {
+        login(authSession)
         router.push('/dashboard')
       } else {
-        setError('Usuario o contraseña incorrectos')
+        setError(
+          'Acceso no válido. Verifica tu usuario o número de control y tu clave.'
+        )
       }
-    } catch (error: unknown) {
-      console.error('Error en login:', error)
-      setError('Error al iniciar sesión. Intente nuevamente.')
+    } catch (err) {
+      console.error('Error en login:', err)
+      setError('No se pudo conectar. Intenta de nuevo en unos momentos.')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSubmit(e as React.FormEvent)
-    }
-  }
-
-
   return (
-    <div className="login-container">
-      <div className="login-card">
-        {/* Header con gradiente */}
-        <div className="login-header">
-          <div className="login-icon">
-            <Image 
-              src="/logo.jpg" 
-              alt="Logo Winston Churchill"
-              width={80}
-              height={80}
-              className="login-logo"
-            />
-          </div>
-          <h1 className="login-title">
-            Sistema Integral de Servicios
-          </h1>
-          <div className="login-subtitle">
-            ⭐ Instituto Winston Churchill ⭐
-          </div>
+    <div className="portal-access">
+      <div className="portal-access-bg" aria-hidden />
+
+      <aside className="portal-access-flank portal-access-flank--start">
+        <Image
+          src="/logos/logo-winston-churchill.png"
+          alt="Instituto Winston Churchill"
+          width={200}
+          height={150}
+          className="portal-access-flank-logo"
+          priority
+        />
+        <p className="portal-access-flank-label">Instituto Winston Churchill</p>
+      </aside>
+
+      <main className="portal-access-main">
+        <div className="portal-access-mobile-logos" aria-hidden>
+          <Image
+            src="/logos/logo-winston-churchill.png"
+            alt=""
+            width={72}
+            height={54}
+            className="portal-access-mobile-logo"
+            priority
+          />
+          <Image
+            src="/logos/logo-winston-educativo.png"
+            alt=""
+            width={72}
+            height={54}
+            className="portal-access-mobile-logo"
+            priority
+          />
         </div>
 
-        {/* Formulario */}
-        <div className="login-form">
-          <div className="form-group">
-            <label className="form-label">
-              <svg fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-              </svg>
-              Usuario/Empleado
-            </label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Ingrese su usuario o número de empleado"
-              className="form-input"
-              disabled={loading}
-            />
-          </div>
+        <div className="portal-access-card">
+          <header className="portal-access-card-head">
+            <p className="portal-access-eyebrow">Sistema integral</p>
+            <h1 className="portal-access-title">Servicios Administrativos</h1>
+            <p className="portal-access-lead">
+              Acceso unificado para familias y personal de los dos planteles Winston.
+              Tu perfil determina los módulos disponibles.
+            </p>
+          </header>
 
-          <div className="form-group">
-            <label className="form-label">
-              <svg fill="currentColor" viewBox="0 0 24 24">
-                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
-              </svg>
-              Clave de Acceso
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Ingrese su clave de acceso"
-              className="form-input"
-              disabled={loading}
-            />
-          </div>
-
-          {error && (
-            <div className="error-message">
-              {error}
+          <form className="portal-access-form" onSubmit={handleSubmit}>
+            <div className="portal-access-field">
+              <label htmlFor="portal-username" className="portal-access-label">
+                Usuario o número de control
+              </label>
+              <input
+                id="portal-username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Usuario administrativo o No. de control del alumno"
+                className="portal-access-input"
+                disabled={loading}
+                autoComplete="username"
+              />
+              <p className="portal-access-hint">
+                Personal: <strong>usuario_username</strong> · Familia:{' '}
+                <strong>alumno_ref</strong>
+              </p>
             </div>
-          )}
 
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={loading}
-            className="login-button"
-          >
-            {loading ? (
-              <>
-                <div className="loading-spinner"></div>
-                Iniciando Sesión...
-              </>
-            ) : (
-              <>
-                <svg fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                Iniciar Sesión
-              </>
+            <div className="portal-access-field">
+              <label htmlFor="portal-password" className="portal-access-label">
+                Clave de acceso
+              </label>
+              <input
+                id="portal-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Tu clave secreta"
+                className="portal-access-input"
+                disabled={loading}
+                autoComplete="current-password"
+              />
+            </div>
+
+            {error && (
+              <p className="portal-access-error" role="alert">
+                {error}
+              </p>
             )}
-          </button>
 
-        </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="portal-access-submit"
+            >
+              {loading ? 'Verificando acceso…' : 'Entrar al sistema'}
+            </button>
+          </form>
 
-        {/* Footer */}
-        <div className="login-footer">
-          © 2025 Sistema Integral de Servicios. ⚡ Innovación y tecnología.
+          <footer className="portal-access-foot">
+            <span>Winston Churchill</span>
+            <span className="portal-access-foot-dot" aria-hidden />
+            <span>Winston Educativo</span>
+          </footer>
         </div>
-      </div>
+      </main>
+
+      <aside className="portal-access-flank portal-access-flank--end">
+        <Image
+          src="/logos/logo-winston-educativo.png"
+          alt="Winston Educativo"
+          width={200}
+          height={150}
+          className="portal-access-flank-logo"
+          priority
+        />
+        <p className="portal-access-flank-label">Winston Educativo</p>
+      </aside>
     </div>
   )
 }

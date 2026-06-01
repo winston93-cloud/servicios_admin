@@ -3,46 +3,49 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import type { AuthRole } from '@/lib/portalAuthService'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
+  /** Si se define, solo ese rol puede ver la ruta */
+  roles?: AuthRole[]
 }
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, loading } = useAuth()
+export default function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
+  const { isAuthenticated, loading, session } = useAuth()
   const router = useRouter()
 
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      console.log('Usuario no autenticado, redirigiendo a login')
-      router.replace('/login')
-    }
-  }, [isAuthenticated, loading, router])
+  const roleOk =
+    !roles?.length || (session && roles.includes(session.role))
 
-  // Mostrar loading mientras verifica autenticación
+  useEffect(() => {
+    if (loading) return
+    if (!isAuthenticated) {
+      router.replace('/login')
+      return
+    }
+    if (!roleOk) {
+      router.replace('/dashboard')
+    }
+  }, [isAuthenticated, loading, roleOk, router])
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 via-purple-600 to-blue-700">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white text-lg">Verificando autenticación...</p>
-        </div>
+      <div className="portal-access-loading">
+        <div className="portal-access-loading-spinner" />
+        <p>Verificando acceso…</p>
       </div>
     )
   }
 
-  // Si no está autenticado, mostrar loading mientras redirige
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !roleOk) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 via-purple-600 to-blue-700">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white text-lg">Redirigiendo...</p>
-        </div>
+      <div className="portal-access-loading">
+        <div className="portal-access-loading-spinner" />
+        <p>Redirigiendo…</p>
       </div>
     )
   }
 
-  // Si está autenticado, mostrar el contenido
   return <>{children}</>
 }
