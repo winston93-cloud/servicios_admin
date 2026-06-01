@@ -15219,6 +15219,87 @@ body {
   color: #64748b;
 }
 
+.portal-transfer-opcion-nota--spei {
+  color: #475569;
+  line-height: 1.4;
+}
+
+.portal-transfer-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.25rem;
+  margin-bottom: 0.65rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.portal-transfer-logo-wrap--openpay {
+  background: #ffffff;
+  padding: 0.35rem 0.5rem;
+}
+
+.portal-transfer-logo {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 2.75rem;
+  object-fit: contain;
+}
+
+.portal-transfer-logo--openpay {
+  max-height: 3rem;
+}
+
+.portal-transfer-opcion--banorte {
+  border-color: #fecaca;
+  background: linear-gradient(180deg, #fff 0%, #fff5f5 100%);
+}
+
+.portal-transfer-opcion--openpay {
+  border-color: #bae6fd;
+  background: linear-gradient(180deg, #fff 0%, #f0f9ff 100%);
+}
+
+.portal-transfer-btn-pago--activo {
+  opacity: 1;
+  cursor: pointer;
+}
+
+.portal-transfer-btn-pago--activo:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.portal-transfer-btn-pago--activo:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+
+.portal-transfer-ref--spei {
+  color: #0369a1;
+}
+
+.portal-transfer-opcion-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  color: #b91c1c;
+  line-height: 1.35;
+}
+
+.portal-spei-device-form {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.portal-doc-modal--spei .portal-doc-modal-frame {
+  height: min(72vh, 680px);
+}
+
 .portal-transfer-pie {
   display: flex;
   justify-content: center;

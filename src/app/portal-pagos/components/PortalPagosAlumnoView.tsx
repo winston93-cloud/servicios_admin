@@ -10,6 +10,7 @@ import { ArrowLeft, RefreshCw } from 'lucide-react'
 import PortalDocumentoModal, { type TipoDocumentoPortal } from './PortalDocumentoModal'
 import PortalBoucherModal from './PortalBoucherModal'
 import PortalTransferenciaModal, { type DatosTransferenciaPortal } from './PortalTransferenciaModal'
+import PortalSpeiReciboModal from './PortalSpeiReciboModal'
 import PortalPagosTablaSeccion from './PortalPagosTablaSeccion'
 
 function nombreCompletoAlumno(matriz: MatrizPortalPagos | null, fallback?: string): string {
@@ -56,6 +57,13 @@ export default function PortalPagosAlumnoView() {
     cargando: boolean
     datos: DatosTransferenciaPortal | null
   }>({ abierto: false, cargando: false, datos: null })
+
+  const [speiModal, setSpeiModal] = useState<{
+    abierto: boolean
+    speiPdfUrl: string | null
+    referenciaSpei: string | null
+    concepto: string
+  }>({ abierto: false, speiPdfUrl: null, referenciaSpei: null, concepto: '' })
 
   const cargar = useCallback(async () => {
     if (alumnoId == null) {
@@ -170,9 +178,13 @@ export default function PortalPagosAlumnoView() {
         datos: {
           alumno: nombreAlumnoTransferencia(matriz, session?.displayName),
           grado: etiquetaGradoEscolar(matriz.alumno.alumno_nivel, matriz.alumno.alumno_grado),
-          referencia,
+          referenciaVentanilla: referencia,
           concepto: fila.conceptoClase,
           importe,
+          alumnoId,
+          conceptoNo: fila.conceptoNo,
+          cicloEscolar: matriz.ciclo.valor,
+          alumnoNivel: matriz.alumno.alumno_nivel,
         },
       })
     } catch (e) {
@@ -297,6 +309,24 @@ export default function PortalPagosAlumnoView() {
         cargando={transferModal.cargando}
         datos={transferModal.datos}
         onCerrar={() => setTransferModal({ abierto: false, cargando: false, datos: null })}
+        onSpeiGenerado={({ referenciaSpei, speiPdfUrl, concepto }) => {
+          setSpeiModal({
+            abierto: true,
+            speiPdfUrl,
+            referenciaSpei,
+            concepto,
+          })
+        }}
+      />
+
+      <PortalSpeiReciboModal
+        abierto={speiModal.abierto}
+        speiPdfUrl={speiModal.speiPdfUrl}
+        referenciaSpei={speiModal.referenciaSpei}
+        concepto={speiModal.concepto}
+        onCerrar={() =>
+          setSpeiModal({ abierto: false, speiPdfUrl: null, referenciaSpei: null, concepto: '' })
+        }
       />
     </div>
   )
