@@ -61,7 +61,7 @@ export default function LoginPage() {
           alt="Instituto Winston Churchill"
           width={200}
           height={150}
-          className="portal-access-flank-logo"
+          className="portal-access-flank-logo saas-logo-glow"
           priority
         />
         <p className="portal-access-flank-label">Instituto Winston Churchill</p>
@@ -74,7 +74,7 @@ export default function LoginPage() {
             alt=""
             width={72}
             height={54}
-            className="portal-access-mobile-logo"
+            className="portal-access-mobile-logo saas-logo-glow"
             priority
           />
           <Image
@@ -82,19 +82,19 @@ export default function LoginPage() {
             alt=""
             width={72}
             height={54}
-            className="portal-access-mobile-logo"
+            className="portal-access-mobile-logo saas-logo-glow"
             priority
           />
         </div>
 
-        <div className="portal-access-card">
-          <header className="portal-access-card-head">
+        <div className="portal-access-card portal-access-card--glass">
+          <header className="portal-access-card-head saas-reveal saas-reveal--1">
             <p className="portal-access-eyebrow">Sistema integral</p>
             <h1 className="portal-access-title">Servicios Administrativos</h1>
           </header>
 
           <form className="portal-access-form" onSubmit={handleSubmit}>
-            <div className="portal-access-field">
+            <div className="portal-access-field saas-reveal saas-reveal--2">
               <label htmlFor="portal-username" className="portal-access-label">
                 Usuario
               </label>
@@ -110,7 +110,7 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="portal-access-field">
+            <div className="portal-access-field saas-reveal saas-reveal--3">
               <label htmlFor="portal-password" className="portal-access-label">
                 Clave de acceso
               </label>
@@ -127,7 +127,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <p className="portal-access-error" role="alert">
+              <p className="portal-access-error saas-reveal saas-reveal--4" role="alert">
                 {error}
               </p>
             )}
@@ -135,7 +135,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="portal-access-submit"
+              className="portal-access-submit saas-reveal saas-reveal--5"
             >
               {loading ? 'Verificando acceso…' : 'Entrar al sistema'}
             </button>
@@ -155,7 +155,7 @@ export default function LoginPage() {
           alt="Winston Educativo"
           width={200}
           height={150}
-          className="portal-access-flank-logo"
+          className="portal-access-flank-logo saas-logo-glow"
           priority
         />
         <p className="portal-access-flank-label">Winston Educativo</p>

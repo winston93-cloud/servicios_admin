@@ -2645,13 +2645,16 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  letter-spacing: 0.045em;
+  line-height: 1.2;
 }
 
 .dashboard-home .dashboard-subtitle {
   color: #94a3b8;
   max-width: 28rem;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 1.35rem auto 0;
+  line-height: 1.7;
+  letter-spacing: 0.025em;
 }
 
 .dashboard-home .dashboard-main {
@@ -2692,7 +2695,6 @@ body {
   max-height: clamp(110px, 16vh, 168px);
   object-fit: contain;
   object-position: center;
-  filter: drop-shadow(0 10px 28px rgba(0, 0, 0, 0.45));
 }
 
 .dashboard-home .dashboard-flank-label {
@@ -2776,7 +2778,8 @@ body {
 }
 
 .dashboard-home .dashboard-heading {
-  margin-bottom: 40px;
+  margin-bottom: 52px;
+  animation: headingIn 0.55s var(--ease-out-expo) both;
 }
 
 .dashboard-home .dashboard-nav-grid {
@@ -2825,6 +2828,11 @@ body {
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
   position: relative;
   overflow: hidden;
+  transition:
+    transform 0.38s var(--ease-out-expo),
+    box-shadow 0.38s var(--ease-out-expo),
+    border-color 0.32s ease,
+    background 0.38s var(--ease-out-expo);
 }
 
 .dashboard-home .dash-nav-item::before {
@@ -2855,18 +2863,33 @@ body {
 }
 
 .dashboard-home .dash-nav-item:hover {
-  border-color: rgba(var(--dash-accent-rgb, 99, 102, 241), 0.45);
+  border-color: rgba(var(--dash-accent-rgb, 99, 102, 241), 0.5);
   background: linear-gradient(
-    135deg,
-    rgba(37, 52, 78, 0.98) 0%,
-    rgba(26, 42, 72, 0.95) 100%
+    148deg,
+    rgba(42, 58, 88, 0.98) 0%,
+    rgba(28, 46, 82, 0.96) 45%,
+    rgba(22, 38, 68, 0.94) 100%
   );
   box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(var(--dash-accent-rgb, 99, 102, 241), 0.2),
-    0 0 32px rgba(var(--dash-accent-rgb, 99, 102, 241), 0.15);
-  transform: translateY(-3px);
+    0 14px 44px rgba(0, 0, 0, 0.48),
+    0 0 0 1px rgba(var(--dash-accent-rgb, 99, 102, 241), 0.22),
+    0 0 40px rgba(var(--dash-accent-rgb, 99, 102, 241), 0.18);
+  transform: translateY(-4px);
   filter: none;
+}
+
+.dashboard-home .dash-nav-item:hover::after {
+  opacity: 1;
+  background: radial-gradient(
+    circle at 85% 15%,
+    rgba(var(--dash-accent-rgb, 99, 102, 241), 0.22) 0%,
+    transparent 65%
+  );
+}
+
+.dashboard-home .dash-nav-item:active {
+  transform: translateY(-1px) scale(0.995);
+  transition-duration: 0.12s;
 }
 
 .dashboard-home .dash-nav-icon {
@@ -2877,14 +2900,20 @@ body {
   background: rgba(var(--dash-accent-rgb, 99, 102, 241), 0.14);
   border: 1px solid rgba(var(--dash-accent-rgb, 99, 102, 241), 0.28);
   color: var(--dash-accent, var(--bg-accent));
+  transition:
+    transform 0.38s var(--ease-out-expo),
+    background 0.32s ease,
+    color 0.28s ease,
+    border-color 0.28s ease,
+    box-shadow 0.32s ease;
 }
 
 .dashboard-home .dash-nav-item:hover .dash-nav-icon {
   background: var(--dash-accent, var(--bg-accent));
   color: #0f172a;
   border-color: transparent;
-  box-shadow: 0 6px 20px rgba(var(--dash-accent-rgb, 99, 102, 241), 0.35);
-  transform: scale(1.06);
+  box-shadow: 0 8px 24px rgba(var(--dash-accent-rgb, 99, 102, 241), 0.4);
+  transform: scale(1.1);
 }
 
 .dashboard-home .dash-nav-title {
@@ -13729,7 +13758,6 @@ body {
   max-width: min(200px, 100%);
   max-height: clamp(120px, 18vh, 180px);
   object-fit: contain;
-  filter: drop-shadow(0 12px 32px rgba(0, 0, 0, 0.45));
 }
 
 .portal-access-flank-label {
@@ -13765,17 +13793,48 @@ body {
 }
 
 .portal-access-card {
-  background: linear-gradient(
-    160deg,
-    rgba(30, 41, 59, 0.95) 0%,
-    rgba(15, 29, 53, 0.92) 100%
-  );
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  position: relative;
+  isolation: isolate;
+  background: rgba(15, 23, 42, 0.42);
+  backdrop-filter: blur(22px) saturate(1.25);
+  -webkit-backdrop-filter: blur(22px) saturate(1.25);
+  border: 1px solid transparent;
   border-radius: 20px;
   box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 28px 72px rgba(0, 0, 0, 0.48),
+    0 8px 24px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   overflow: hidden;
+}
+
+.portal-access-card--glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    145deg,
+    rgba(232, 212, 138, 0.55) 0%,
+    rgba(129, 140, 248, 0.35) 38%,
+    rgba(148, 163, 184, 0.12) 62%,
+    rgba(212, 175, 55, 0.4) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.portal-access-card--glass > * {
+  position: relative;
+  z-index: 1;
 }
 
 .portal-access-card-head {
@@ -13796,15 +13855,16 @@ body {
 .portal-access-title {
   font-size: clamp(22px, 4vw, 28px);
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: 0.04em;
   color: #f8fafc;
   margin: 0 0 12px;
-  line-height: 1.15;
+  line-height: 1.2;
 }
 
 .portal-access-lead {
   font-size: 14px;
-  line-height: 1.55;
+  line-height: 1.65;
+  letter-spacing: 0.02em;
   color: #94a3b8;
   margin: 0;
 }
@@ -13882,21 +13942,39 @@ body {
   border: none;
   border-radius: 10px;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   font-family: inherit;
   cursor: pointer;
   color: #0f172a;
-  background: linear-gradient(180deg, #e8d48a 0%, #d4af37 100%);
-  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.35);
-  transition: transform 0.12s ease, filter 0.15s ease;
+  background: linear-gradient(
+    165deg,
+    #f0e6b8 0%,
+    #e8d48a 28%,
+    #d4af37 72%,
+    #b8962e 100%
+  );
+  box-shadow:
+    0 4px 18px rgba(212, 175, 55, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition:
+    transform 0.28s var(--ease-out-expo),
+    box-shadow 0.32s var(--ease-out-expo),
+    filter 0.28s ease;
 }
 
 .portal-access-submit:hover:not(:disabled) {
-  filter: brightness(1.06);
+  filter: brightness(1.05);
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 32px rgba(212, 175, 55, 0.55),
+    0 0 28px rgba(232, 212, 138, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .portal-access-submit:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 12px rgba(212, 175, 55, 0.4);
 }
 
 .portal-access-submit:disabled {
@@ -14884,6 +14962,122 @@ body {
 
   .portal-doc-modal-frame {
     height: min(58vh, 480px);
+  }
+}
+
+/* ── SaaS UI polish — animaciones, glass, micro-interacciones ─────────── */
+@keyframes saasFadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes saasLogoGlow {
+  0%,
+  100% {
+    filter:
+      drop-shadow(0 0 10px rgba(212, 175, 55, 0.22))
+      drop-shadow(0 0 20px rgba(99, 102, 241, 0.08))
+      drop-shadow(0 12px 32px rgba(0, 0, 0, 0.45));
+  }
+  50% {
+    filter:
+      drop-shadow(0 0 18px rgba(232, 212, 138, 0.42))
+      drop-shadow(0 0 28px rgba(129, 140, 248, 0.18))
+      drop-shadow(0 12px 36px rgba(0, 0, 0, 0.5));
+  }
+}
+
+.saas-reveal {
+  opacity: 0;
+  animation: saasFadeSlideUp 0.62s var(--ease-out-expo) forwards;
+}
+
+.saas-reveal--1 {
+  animation-delay: 0.06s;
+}
+.saas-reveal--2 {
+  animation-delay: 0.14s;
+}
+.saas-reveal--3 {
+  animation-delay: 0.22s;
+}
+.saas-reveal--4 {
+  animation-delay: 0.28s;
+}
+.saas-reveal--5 {
+  animation-delay: 0.34s;
+}
+
+.portal-access-card--glass {
+  animation: saasFadeSlideUp 0.72s var(--ease-out-expo) both;
+}
+
+.saas-logo-glow {
+  animation: saasLogoGlow 5s ease-in-out infinite;
+}
+
+.dashboard-home .dashboard-flank-logo,
+.dashboard-home .dashboard-mobile-logo {
+  animation: saasLogoGlow 5s ease-in-out infinite;
+}
+
+.dashboard-home .dashboard-flank-logo--end {
+  animation-delay: 2.5s;
+}
+
+.portal-access-input,
+.portal-access-label,
+.form-input,
+.dashboard-logout-btn,
+.dashboard-hamburger-btn,
+.portal-pagos-btn-boucher,
+.portal-pagos-btn-linea,
+.portal-pagos-btn-pdf,
+.portal-pagos-btn-xml,
+.servicios-back-btn {
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.28s var(--ease-out-expo),
+    background 0.25s ease,
+    color 0.22s ease,
+    transform 0.28s var(--ease-out-expo);
+}
+
+.dashboard-home .dash-nav-arrow {
+  transition:
+    background 0.3s ease,
+    color 0.25s ease,
+    opacity 0.25s ease,
+    transform 0.32s var(--ease-out-expo);
+}
+
+.dashboard-home .dash-nav-item:hover .dash-nav-arrow {
+  transform: translateX(3px);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saas-reveal,
+  .portal-access-card--glass,
+  .saas-logo-glow,
+  .dashboard-home .dashboard-flank-logo,
+  .dashboard-home .dashboard-mobile-logo,
+  .dashboard-home .dash-nav-item,
+  .dashboard-home .dash-nav-icon {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .dashboard-home .dash-nav-item:hover,
+  .dashboard-home .dash-nav-item:hover .dash-nav-icon {
+    transform: none;
   }
 }
 

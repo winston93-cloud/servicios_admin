@@ -240,7 +240,7 @@ export default function DashboardPage() {
                 alt="Instituto Winston Churchill"
                 width={160}
                 height={120}
-                className="dashboard-flank-logo"
+                className="dashboard-flank-logo saas-logo-glow"
                 priority
               />
               <span className="dashboard-flank-label">Instituto Winston Churchill</span>
@@ -253,7 +253,7 @@ export default function DashboardPage() {
                   alt=""
                   width={88}
                   height={66}
-                  className="dashboard-mobile-logo"
+                  className="dashboard-mobile-logo saas-logo-glow"
                   priority
                 />
                 <Image
@@ -261,7 +261,7 @@ export default function DashboardPage() {
                   alt=""
                   width={88}
                   height={66}
-                  className="dashboard-mobile-logo"
+                  className="dashboard-mobile-logo saas-logo-glow"
                   priority
                 />
               </div>
@@ -308,7 +308,7 @@ export default function DashboardPage() {
                 alt="Winston Educativo"
                 width={160}
                 height={120}
-                className="dashboard-flank-logo"
+                className="dashboard-flank-logo saas-logo-glow dashboard-flank-logo--end"
                 priority
               />
               <span className="dashboard-flank-label">Winston Educativo</span>
