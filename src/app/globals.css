@@ -14613,19 +14613,16 @@ body {
   }
 
   .portal-pagos-encabezado-badges {
-    align-items: flex-start;
+    align-items: stretch;
+    justify-content: flex-start;
     width: 100%;
   }
 
   .portal-pagos-plan-badge,
   .portal-pagos-ciclo-badge {
     align-items: flex-start;
-    width: 100%;
-  }
-
-  .portal-pagos-ciclo-badge {
-    align-items: flex-start;
-    width: 100%;
+    flex: 1 1 min(0, 48%);
+    min-width: 0;
   }
 
   .portal-pagos-tabla-wrap {
@@ -14640,8 +14637,10 @@ body {
 /* Matriz portal pagos (estilo enlinea3) */
 .portal-pagos-encabezado-badges {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: flex-end;
   gap: 0.65rem;
 }
 
