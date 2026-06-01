@@ -14486,3 +14486,375 @@ body {
   }
 }
 
+/* Matriz portal pagos (estilo enlinea3) */
+.portal-pagos-plan-linea {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.portal-matriz-contenedor {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.portal-matriz-seccion-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.portal-matriz-seccion-titulo {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.portal-matriz-plan-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+}
+
+.portal-matriz-tabla-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-secondary);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+}
+
+.portal-matriz-tabla {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.portal-matriz-tabla thead {
+  background: linear-gradient(135deg, #1c2377 0%, #2c3e50 100%);
+}
+
+.portal-matriz-tabla th {
+  padding: 0.85rem 0.75rem;
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #f8fafc;
+}
+
+.portal-matriz-tabla td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: middle;
+}
+
+.portal-matriz-fila--pagada {
+  background: rgba(34, 197, 94, 0.06);
+}
+
+.portal-matriz-fila--pendiente:nth-child(even) {
+  background: rgba(250, 204, 21, 0.04);
+}
+
+.portal-matriz-col-concepto {
+  font-weight: 600;
+  color: var(--text-primary);
+  max-width: 16rem;
+}
+
+.portal-matriz-col-accion {
+  min-width: 11rem;
+}
+
+.portal-matriz-accion-grupo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.65rem;
+}
+
+.portal-matriz-monto {
+  font-weight: 700;
+  color: #f87171;
+  font-variant-numeric: tabular-nums;
+}
+
+.portal-matriz-pagado {
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+.portal-matriz-pagado--card {
+  margin: 0 0 0.5rem;
+}
+
+.portal-matriz-col-facturas {
+  min-width: 8rem;
+}
+
+.portal-matriz-facturas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.portal-matriz-sin-factura {
+  color: var(--text-muted);
+}
+
+.portal-pagos-btn-boucher,
+.portal-pagos-btn-linea,
+.portal-pagos-btn-pdf,
+.portal-pagos-btn-xml,
+.portal-pagos-btn-prim {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.12s ease, filter 0.12s ease;
+  white-space: nowrap;
+}
+
+.portal-pagos-btn-boucher {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  color: #fff;
+}
+
+.portal-pagos-btn-linea {
+  background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+  color: #fff;
+}
+
+.portal-pagos-btn-pdf {
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+}
+
+.portal-pagos-btn-xml {
+  background: linear-gradient(180deg, #06b6d4 0%, #0891b2 100%);
+  color: #fff;
+}
+
+.portal-pagos-btn-prim {
+  background: linear-gradient(180deg, #d4af37 0%, #b8962e 100%);
+  color: #0f172a;
+  text-decoration: none;
+}
+
+.portal-pagos-btn-boucher:hover:not(:disabled),
+.portal-pagos-btn-linea:hover,
+.portal-pagos-btn-pdf:hover,
+.portal-pagos-btn-xml:hover,
+.portal-pagos-btn-prim:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.portal-pagos-btn-boucher:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.portal-matriz-cards {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 0.75rem;
+  flex-direction: column;
+}
+
+.portal-matriz-card {
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-secondary);
+}
+
+.portal-matriz-card--pagada {
+  border-color: rgba(34, 197, 94, 0.35);
+}
+
+.portal-matriz-card-concepto {
+  margin: 0 0 0.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.portal-matriz-card-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+
+.portal-pagos-alerta--info {
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #bfdbfe;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.portal-pagos-alerta--info p {
+  margin: 0;
+  flex: 1;
+  min-width: 200px;
+}
+
+.portal-pagos-alerta-cerrar {
+  padding: 0.35rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Modales PDF / XML / Baucher */
+.portal-doc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(2, 6, 23, 0.82);
+  backdrop-filter: blur(6px);
+}
+
+.portal-doc-modal {
+  width: min(960px, 100%);
+  max-height: min(92vh, 900px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  border: 1px solid var(--border-light);
+  background: var(--bg-primary);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.portal-doc-modal--boucher {
+  width: min(820px, 100%);
+}
+
+.portal-doc-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-secondary);
+}
+
+.portal-doc-modal-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.portal-boucher-ref {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.portal-boucher-ref code {
+  font-family: ui-monospace, monospace;
+  color: var(--accent-gold, #d4af37);
+}
+
+.portal-doc-modal-cerrar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.portal-doc-modal-cerrar:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.portal-doc-modal-body {
+  flex: 1;
+  min-height: 0;
+  padding: 0.75rem;
+  background: #0f172a;
+}
+
+.portal-doc-modal-frame {
+  width: 100%;
+  height: min(70vh, 640px);
+  border: none;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.portal-doc-modal-fallback {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.portal-doc-modal-foot {
+  padding: 0.75rem 1.15rem;
+  border-top: 1px solid var(--border-light);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.portal-doc-modal-link-ext {
+  font-size: 0.8125rem;
+  color: var(--accent-gold, #d4af37);
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .portal-matriz-tabla-wrap {
+    display: none;
+  }
+
+  .portal-matriz-cards {
+    display: flex;
+  }
+
+  .portal-doc-modal-frame {
+    height: min(58vh, 480px);
+  }
+}
+

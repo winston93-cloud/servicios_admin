@@ -40,6 +40,7 @@ export async function POST(request: Request) {
       conceptoNo,
       cicloEscolar,
       importeManual,
+      planMeses: alumno.mes === 2 ? 2 : 1,
     })
 
     return NextResponse.json({ ok: true, ...resultado })

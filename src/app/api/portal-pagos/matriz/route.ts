@@ -1,0 +1,45 @@
+import { NextResponse } from 'next/server'
+import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { obtenerAlumnoPorId } from '@/lib/alumnoDatosService'
+import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
+import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
+import { construirMatrizPortalPagos } from '@/lib/portalPagosMatrizService'
+
+export const runtime = 'nodejs'
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+    const alumnoId = Number(body.alumnoId)
+
+    if (!alumnoId) {
+      return NextResponse.json({ error: 'alumnoId es obligatorio' }, { status: 400 })
+    }
+
+    const ciclo = await obtenerCicloEscolarActual()
+    if (!ciclo) {
+      return NextResponse.json(
+        {
+          error:
+            'No hay ciclo escolar vigente configurado. Contacta a servicios escolares.',
+        },
+        { status: 503 }
+      )
+    }
+
+    const alumno = await obtenerAlumnoPorId(alumnoId)
+    if (!alumno) {
+      return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
+    }
+
+    const supabase = createSupabaseAdmin()
+    const pagos = await listarPagosColegiaturaAlumno(alumnoId, ciclo.valor)
+    const matriz = await construirMatrizPortalPagos(supabase, alumno, ciclo, pagos)
+
+    return NextResponse.json({ ok: true, matriz })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Error al cargar matriz de pagos'
+    console.error('portal-pagos/matriz:', e)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
+}

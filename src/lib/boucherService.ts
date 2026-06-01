@@ -91,7 +91,7 @@ export async function listarPreciosPorCiclo(
   }))
 }
 
-async function obtenerPrecioFila(
+export async function obtenerPrecioFila(
   supabase: SupabaseClient,
   nivel: number,
   cicloEscolar: number
@@ -124,7 +124,7 @@ async function obtenerPrecioFila(
   }
 }
 
-async function obtenerPorcentajeBeca(
+export async function obtenerPorcentajeBeca(
   supabase: SupabaseClient,
   alumnoId: number,
   cicloActual: number
@@ -143,7 +143,8 @@ async function obtenerPorcentajeBeca(
 export function calcularImporteConcepto(
   conceptoNo: string,
   precio: PrecioBoucherRow,
-  porcentajeBeca: number
+  porcentajeBeca: number,
+  planMeses = 1
 ): number {
   const c = normalizarConceptoNo(conceptoNo)
   let montoNormal = 0
@@ -170,8 +171,17 @@ export function calcularImporteConcepto(
   } else if (c === '21') {
     montoNormal = precio.precio_cuota_padres
     aplicaDescuento = false
+  } else if (c === '26') {
+    montoNormal = precio.precio_colegiatura2
+    aplicaDescuento = true
+  } else if (c === '23' || c === '24' || c === '25') {
+    const tercio = precio.precio_dtitulacion > 0 ? precio.precio_dtitulacion / 3 : 0
+    montoNormal = tercio
+    aplicaDescuento = false
   } else {
-    montoNormal = precio.precio_colegiatura
+    montoNormal =
+      planMeses === 2 ? precio.precio_colegiatura2 : precio.precio_colegiatura
+    aplicaDescuento = c !== '00' && c !== '16'
   }
 
   const pct = aplicaDescuento && porcentajeBeca > 0 ? porcentajeBeca : 0
@@ -188,6 +198,8 @@ export async function calcularBoucher(
     conceptoNo: string
     cicloEscolar: number
     importeManual?: number | null
+    /** 1 = 10 meses, 2 = 11 meses (campo alumno.mes). */
+    planMeses?: number
   }
 ): Promise<{ importe: number; referencia: string }> {
   const nivelPrecio =
@@ -202,13 +214,14 @@ export async function calcularBoucher(
 
   const cicloActual = numeroCicloEscolarAdmin()
   const becaPct = await obtenerPorcentajeBeca(supabase, params.alumnoId, cicloActual)
+  const planMeses = params.planMeses ?? 1
 
   const manual =
     params.importeManual != null ? parseImporteBoucher(params.importeManual) : null
   const importe =
     manual != null && manual > 0
       ? manual
-      : calcularImporteConcepto(params.conceptoNo, precio, becaPct)
+      : calcularImporteConcepto(params.conceptoNo, precio, becaPct, planMeses)
 
   const semibase = referenciaSemibase(
     params.alumnoRef,

@@ -51,6 +51,7 @@ export async function POST(request: Request) {
       conceptoNo,
       cicloEscolar,
       importeManual: importe,
+      planMeses: alumno.mes === 2 ? 2 : 1,
     })
 
     if (verificado.referencia !== referencia) {
