@@ -2567,11 +2567,33 @@ body {
 }
 
 .dashboard-home .dashboard-header,
-.dashboard-home .dashboard-main,
-.dashboard-home .dashboard-sidebar,
-.dashboard-home .dashboard-overlay {
+.dashboard-home .dashboard-main {
   position: relative;
   z-index: 1;
+}
+
+.dashboard-home .dashboard-sidebar {
+  position: fixed;
+  z-index: 1100;
+  transform: translateX(-100%);
+  transition: transform 0.28s var(--ease-out-expo);
+  left: 0;
+}
+
+.dashboard-home .dashboard-sidebar.open {
+  transform: translateX(0);
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.dashboard-home .dashboard-sidebar:not(.open) {
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.dashboard-home .dashboard-overlay {
+  position: fixed;
+  z-index: 1050;
 }
 
 .dashboard-home .dashboard-header {
@@ -2918,12 +2940,69 @@ body {
 .dashboard-home .dash-nav-item:nth-child(6) { animation-delay: 350ms; }
 
 .dashboard-home .dashboard-sidebar {
-  background: rgba(15, 29, 53, 0.96);
+  background: rgba(15, 29, 53, 0.98);
   backdrop-filter: blur(16px);
   border-right-color: rgba(148, 163, 184, 0.12);
+  box-shadow: 8px 0 40px rgba(0, 0, 0, 0.45);
 }
 
-.dashboard-home .dashboard-menu-item[data-accent] .dashboard-menu-icon {
+.dashboard-home .dashboard-sidebar-close {
+  margin-left: auto;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.dashboard-home .dashboard-sidebar-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+}
+
+.dashboard-hamburger-btn {
+  width: var(--touch-min);
+  height: var(--touch-min);
+  min-width: var(--touch-min);
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dashboard-hamburger-btn:hover {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  border-color: var(--border-light);
+}
+
+.dashboard-hamburger-btn[aria-expanded='true'] {
+  background: var(--bg-accent-muted);
+  color: var(--bg-accent);
+  border-color: var(--bg-accent-border);
+}
+
+.dashboard-hamburger-btn svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+.dashboard-home .dashboard-menu-item[data-accent] .dashboard-menu-item-icon {
   background: rgba(var(--dash-accent-rgb, 99, 102, 241), 0.14);
   border: 1px solid rgba(var(--dash-accent-rgb, 99, 102, 241), 0.22);
   color: var(--dash-accent, var(--bg-accent));
@@ -3022,6 +3101,7 @@ body {
     display: none;
   }
 
+  .dashboard-hamburger-btn,
   .dashboard-menu-icon {
     width: var(--touch-min);
     height: var(--touch-min);
@@ -3494,9 +3574,14 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
   padding: 10px 12px;
+  border: none;
   border-radius: var(--radius-sm);
+  background: transparent;
   cursor: pointer;
+  text-align: left;
+  font-family: inherit;
   transition: background-color 0.15s ease, color 0.15s ease;
   margin-bottom: 4px;
 }
@@ -3506,9 +3591,11 @@ body {
   background: var(--bg-subtle);
 }
 
-.dashboard-menu-item .dashboard-menu-icon {
+.dashboard-menu-item .dashboard-menu-icon,
+.dashboard-menu-item .dashboard-menu-item-icon {
   width: 32px;
   height: 32px;
+  min-width: 32px;
   background: var(--bg-accent-muted);
   border-radius: var(--radius-sm);
   display: flex;
@@ -3517,9 +3604,26 @@ body {
   color: var(--bg-accent);
 }
 
-.dashboard-menu-item .dashboard-menu-icon svg {
+.dashboard-menu-item .dashboard-menu-icon svg,
+.dashboard-menu-item .dashboard-menu-item-icon svg {
   width: 18px;
   height: 18px;
+}
+
+.dashboard-home .dashboard-menu-item--inicio .dashboard-menu-item-icon {
+  background: var(--dash-gold-soft);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: #e8d48a;
+}
+
+.dashboard-home .dashboard-sidebar-header {
+  align-items: flex-start;
+}
+
+.dashboard-home .dashboard-sidebar-menu {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 4px;
 }
 
 .dashboard-menu-text h4 {

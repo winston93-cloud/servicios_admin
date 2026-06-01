@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const ChevronRight = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -30,6 +30,22 @@ export default function DashboardPage() {
     router.push(path)
     setIsMenuOpen(false)
   }
+
+  const toggleMenu = () => setIsMenuOpen((open) => !open)
+  const closeMenu = () => setIsMenuOpen(false)
+
+  useEffect(() => {
+    if (!isMenuOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeMenu()
+    }
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = ''
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [isMenuOpen])
 
   const primerNombre =
     user?.usuario_nombre_completo?.trim().split(/\s+/)[0] ||
@@ -138,11 +154,18 @@ export default function DashboardPage() {
 
         {/* Header */}
         <div className="dashboard-header">
-          <div className="dashboard-menu-icon" onClick={() => setIsMenuOpen(true)}>
-            <svg fill="currentColor" viewBox="0 0 24 24">
+          <button
+            type="button"
+            className="dashboard-hamburger-btn"
+            onClick={toggleMenu}
+            aria-expanded={isMenuOpen}
+            aria-controls="dashboard-system-menu"
+            aria-label={isMenuOpen ? 'Cerrar menú del sistema' : 'Abrir menú del sistema'}
+          >
+            <svg fill="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
             </svg>
-          </div>
+          </button>
 
           <div className="dashboard-header-brand" aria-hidden="true">
             <Image
@@ -256,10 +279,21 @@ export default function DashboardPage() {
         </div>
 
         {/* Overlay */}
-        {isMenuOpen && <div className="dashboard-overlay" onClick={() => setIsMenuOpen(false)} />}
+        {isMenuOpen && (
+          <div
+            className="dashboard-overlay"
+            onClick={closeMenu}
+            aria-hidden
+          />
+        )}
 
-        {/* Sidebar */}
-        <div className={`dashboard-sidebar ${isMenuOpen ? 'open' : ''}`}>
+        {/* Sidebar — opciones del sistema */}
+        <nav
+          id="dashboard-system-menu"
+          className={`dashboard-sidebar ${isMenuOpen ? 'open' : ''}`}
+          aria-label="Opciones del sistema"
+          aria-hidden={!isMenuOpen}
+        >
           <div className="dashboard-sidebar-header">
             <div className="dashboard-sidebar-logos">
               <Image
@@ -278,29 +312,57 @@ export default function DashboardPage() {
               />
             </div>
             <div className="dashboard-sidebar-title">
-              <h3>Menú Principal</h3>
-              <p>Winston Churchill</p>
+              <h3>Menú del sistema</h3>
+              <p>Opciones disponibles</p>
             </div>
+            <button
+              type="button"
+              className="dashboard-sidebar-close"
+              onClick={closeMenu}
+              aria-label="Cerrar menú"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
           </div>
 
           <div className="dashboard-sidebar-menu">
+            <button
+              type="button"
+              className="dashboard-menu-item dashboard-menu-item--inicio"
+              onClick={() => navigate('/dashboard')}
+            >
+              <div className="dashboard-menu-item-icon" aria-hidden>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                  <polyline points="9 22 9 12 15 12 15 22" />
+                </svg>
+              </div>
+              <div className="dashboard-menu-text">
+                <h4>Inicio</h4>
+                <p>Panel principal</p>
+              </div>
+            </button>
             {navItems.map((item) => (
-              <div
+              <button
                 key={item.path}
+                type="button"
                 className="dashboard-menu-item"
                 data-accent={item.accent}
                 onClick={() => navigate(item.path)}
               >
-                <div className="dashboard-menu-icon">{item.icon}</div>
+                <div className="dashboard-menu-item-icon" aria-hidden>{item.icon}</div>
                 <div className="dashboard-menu-text">
                   <h4>{item.label}</h4>
                   <p>{item.desc}</p>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
 
-          <button onClick={handleLogout} className="dashboard-sidebar-logout">
+          <button type="button" onClick={handleLogout} className="dashboard-sidebar-logout">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
               <polyline points="16 17 21 12 16 7"/>
@@ -308,7 +370,7 @@ export default function DashboardPage() {
             </svg>
             Cerrar Sesión
           </button>
-        </div>
+        </nav>
 
       </div>
     </ProtectedRoute>
