@@ -91,11 +91,6 @@ export default function LoginPage() {
           <header className="portal-access-card-head">
             <p className="portal-access-eyebrow">Sistema integral</p>
             <h1 className="portal-access-title">Servicios Administrativos</h1>
-            <p className="portal-access-lead">
-              Acceso unificado para familias y personal de los dos planteles Winston.
-              <br />
-              Tu perfil determina los módulos disponibles.
-            </p>
           </header>
 
           <form className="portal-access-form" onSubmit={handleSubmit}>
