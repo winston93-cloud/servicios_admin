@@ -61,26 +61,48 @@ function envBool(name: string, fallback = false): boolean {
   return v === '1' || v.toLowerCase() === 'true'
 }
 
+/** Acepta el primer nombre definido (p. ej. *_SECRET_KEY o *_SECRET en Vercel). */
+function envPrimero(...nombres: string[]): string {
+  for (const n of nombres) {
+    const v = process.env[n]?.trim()
+    if (v) return v
+  }
+  return ''
+}
+
+function validarOpenpay(
+  cuenta: OpenpayCuenta,
+  merchantId: string,
+  secretKey: string,
+  publicKey: string
+): void {
+  const faltan: string[] = []
+  if (!merchantId) faltan.push('MERCHANT_ID')
+  if (!secretKey) faltan.push('SECRET o SECRET_KEY')
+  if (!publicKey) faltan.push('PUBLIC o PUBLIC_KEY')
+  if (faltan.length === 0) return
+  const prefijo = cuenta === 'winston' ? 'OPENPAY_WINSTON_' : 'OPENPAY_EDUCATIVO_'
+  throw new Error(
+    `OpenPay ${cuenta === 'winston' ? 'Winston' : 'Educativo'} incompleto en Vercel: falta ${prefijo}${faltan.join(', ' + prefijo)}.`
+  )
+}
+
 export function obtenerConfigOpenpay(alumnoNivel: number): OpenpayConfigServidor {
   const cuenta = openpayCuentaPorNivel(alumnoNivel)
   const sandbox = envBool('OPENPAY_SANDBOX', false)
 
   if (cuenta === 'winston') {
-    const merchantId = process.env.OPENPAY_WINSTON_MERCHANT_ID ?? ''
-    const secretKey = process.env.OPENPAY_WINSTON_SECRET_KEY ?? ''
-    const publicKey = process.env.OPENPAY_WINSTON_PUBLIC_KEY ?? ''
-    if (!merchantId || !secretKey || !publicKey) {
-      throw new Error('OpenPay Winston no está configurado en el servidor.')
-    }
+    const merchantId = envPrimero('OPENPAY_WINSTON_MERCHANT_ID')
+    const secretKey = envPrimero('OPENPAY_WINSTON_SECRET_KEY', 'OPENPAY_WINSTON_SECRET')
+    const publicKey = envPrimero('OPENPAY_WINSTON_PUBLIC_KEY', 'OPENPAY_WINSTON_PUBLIC')
+    validarOpenpay('winston', merchantId, secretKey, publicKey)
     return { cuenta, merchantId, secretKey, publicKey, sandbox }
   }
 
-  const merchantId = process.env.OPENPAY_EDUCATIVO_MERCHANT_ID ?? ''
-  const secretKey = process.env.OPENPAY_EDUCATIVO_SECRET_KEY ?? ''
-  const publicKey = process.env.OPENPAY_EDUCATIVO_PUBLIC_KEY ?? ''
-  if (!merchantId || !secretKey || !publicKey) {
-    throw new Error('OpenPay Educativo no está configurado en el servidor.')
-  }
+  const merchantId = envPrimero('OPENPAY_EDUCATIVO_MERCHANT_ID')
+  const secretKey = envPrimero('OPENPAY_EDUCATIVO_SECRET_KEY', 'OPENPAY_EDUCATIVO_SECRET')
+  const publicKey = envPrimero('OPENPAY_EDUCATIVO_PUBLIC_KEY', 'OPENPAY_EDUCATIVO_PUBLIC')
+  validarOpenpay('educativo', merchantId, secretKey, publicKey)
   return { cuenta, merchantId, secretKey, publicKey, sandbox }
 }
 
