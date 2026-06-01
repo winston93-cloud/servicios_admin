@@ -81,35 +81,46 @@ async function loginAlumno(
   const ref = parseInt(refInput.replace(/\D/g, ''), 10)
   if (!Number.isFinite(ref) || ref <= 0) return null
 
-  const selectCols =
-    'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, secret_key, alumno_status'
+  const { data: alumno, error: errAlumno } = await supabase
+    .from('alumno')
+    .select('alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_status')
+    .eq('alumno_ref', ref)
+    .maybeSingle()
 
-  const claveMaestra = password === ALUMNO_CLAVE_MAESTRA
-
-  let query = supabase.from('alumno').select(selectCols).eq('alumno_ref', ref)
-
-  if (!claveMaestra) {
-    query = query.eq('secret_key', password)
-  }
-
-  const { data, error } = await query.maybeSingle()
-
-  if (error && error.code !== 'PGRST116') {
-    console.error('loginAlumno:', error)
+  if (errAlumno && errAlumno.code !== 'PGRST116') {
+    console.error('loginAlumno alumno:', errAlumno)
     throw new Error('Error de conexión con la base de datos')
   }
 
-  if (!data) return null
+  if (!alumno || alumno.alumno_status !== 1) return null
 
-  if (data.alumno_status !== 1) {
-    return null
+  const claveMaestra = password === ALUMNO_CLAVE_MAESTRA
+
+  if (!claveMaestra) {
+    const { data: detalle, error: errDetalle } = await supabase
+      .from('alumno_detalles')
+      .select('alumno_clave')
+      .eq('alumno_id', alumno.alumno_id)
+      .maybeSingle()
+
+    if (errDetalle && errDetalle.code !== 'PGRST116') {
+      console.error('loginAlumno detalles:', errDetalle)
+      throw new Error('Error de conexión con la base de datos')
+    }
+
+    const claveDb = (detalle?.alumno_clave ?? '').trim()
+    const claveIngresada = password.trim()
+
+    if (!claveDb || claveDb !== claveIngresada) {
+      return null
+    }
   }
 
-  return sessionDesdeAlumno(data)
+  return sessionDesdeAlumno(alumno)
 }
 
 /**
- * Acceso unificado: personal por usuario_username, alumno por alumno_ref + secret_key.
+ * Acceso unificado: personal por usuario_username; alumno por alumno_ref + alumno_detalles.alumno_clave.
  */
 export async function loginPortal(
   credentials: PortalLoginCredentials
