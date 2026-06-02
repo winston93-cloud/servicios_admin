@@ -242,43 +242,45 @@ export default function PortalTransferenciaModal({
 
             <div className="portal-transfer-opciones">
               <div className="portal-transfer-opcion portal-transfer-opcion--banorte">
-                <div className="portal-transfer-opcion-header">
-                  <div className="portal-transfer-logo-wrap portal-transfer-logo-wrap--banorte">
-                    <Image
-                      src="/portal-pagos/banorte.png"
-                      alt="Banorte"
-                      width={180}
-                      height={64}
-                      className="portal-transfer-logo portal-transfer-logo--banorte"
-                    />
-                  </div>
-                  <h3 className="portal-transfer-opcion-titulo">
-                    Comercio electrónico (tarjeta crédito o débito)
-                  </h3>
+                <div className="portal-transfer-logo-wrap portal-transfer-logo-wrap--banorte">
+                  <Image
+                    src="/portal-pagos/banorte.png"
+                    alt="Banorte"
+                    width={200}
+                    height={70}
+                    className="portal-transfer-logo portal-transfer-logo--banorte"
+                    style={{ height: '3.5rem', width: 'auto', maxWidth: '100%' }}
+                    priority
+                  />
                 </div>
-                <button
-                  type="button"
-                  className="portal-transfer-btn-pago portal-transfer-btn-pago--activo"
-                  disabled={!datos || generandoSpei}
-                  onClick={() => {
-                    if (!datos) return
-                    const semibase = semibaseDesdeReferenciaCompleta(datos.referenciaVentanilla)
-                    const refBanorte = generarReferenciaPagoAleatoria(semibase)
-                    const params = new URLSearchParams({
-                      referencia: refBanorte,
-                      monto: Number(datos.importe).toFixed(2),
-                      concepto: datos.concepto,
-                      nivel: String(datos.alumnoNivel),
-                    })
-                    window.open(
-                      `/portal-pagos/banorte/3d?${params.toString()}`,
-                      '_blank',
-                      'noopener,noreferrer'
-                    )
-                  }}
-                >
-                  Realizar pago
-                </button>
+                <h3 className="portal-transfer-opcion-titulo">
+                  Comercio electrónico (tarjeta crédito o débito)
+                </h3>
+                <div className="portal-transfer-opcion-accion">
+                  <button
+                    type="button"
+                    className="portal-transfer-btn-pago portal-transfer-btn-pago--activo"
+                    disabled={!datos || generandoSpei}
+                    onClick={() => {
+                      if (!datos) return
+                      const semibase = semibaseDesdeReferenciaCompleta(datos.referenciaVentanilla)
+                      const refBanorte = generarReferenciaPagoAleatoria(semibase)
+                      const params = new URLSearchParams({
+                        referencia: refBanorte,
+                        monto: Number(datos.importe).toFixed(2),
+                        concepto: datos.concepto,
+                        nivel: String(datos.alumnoNivel),
+                      })
+                      window.open(
+                        `/portal-pagos/banorte/3d?${params.toString()}`,
+                        '_blank',
+                        'noopener,noreferrer'
+                      )
+                    }}
+                  >
+                    Realizar pago
+                  </button>
+                </div>
                 <p className="portal-transfer-opcion-nota">
                   Tarjeta de crédito o débito de cualquier banco, procesada por el comercio
                   electrónico de Banorte (3D Secure y Payworks).
@@ -286,28 +288,29 @@ export default function PortalTransferenciaModal({
               </div>
 
               <div className="portal-transfer-opcion portal-transfer-opcion--openpay">
-                <div className="portal-transfer-opcion-header">
-                  <div className="portal-transfer-logo-wrap portal-transfer-logo-wrap--openpay">
-                    <Image
-                      src="/portal-pagos/openpay.jpg"
-                      alt="OpenPay"
-                      width={160}
-                      height={56}
-                      className="portal-transfer-logo portal-transfer-logo--openpay"
-                    />
-                  </div>
-                  <h3 className="portal-transfer-opcion-titulo">
-                    Pago SPEI (Transferencia Interbancaria)
-                  </h3>
+                <div className="portal-transfer-logo-wrap portal-transfer-logo-wrap--openpay">
+                  <Image
+                    src="/portal-pagos/openpay.jpg"
+                    alt="OpenPay"
+                    width={200}
+                    height={70}
+                    className="portal-transfer-logo portal-transfer-logo--openpay"
+                    style={{ height: '3.5rem', width: 'auto', maxWidth: '100%' }}
+                  />
                 </div>
-                <button
-                  type="button"
-                  className="portal-transfer-btn-pago portal-transfer-btn-pago--activo"
-                  disabled={generandoSpei}
-                  onClick={() => void generarReciboSpei()}
-                >
-                  {generandoSpei ? 'Generando recibo…' : 'Generar Recibo'}
-                </button>
+                <h3 className="portal-transfer-opcion-titulo">
+                  Pago SPEI (Transferencia Interbancaria)
+                </h3>
+                <div className="portal-transfer-opcion-accion">
+                  <button
+                    type="button"
+                    className="portal-transfer-btn-pago portal-transfer-btn-pago--activo"
+                    disabled={generandoSpei}
+                    onClick={() => void generarReciboSpei()}
+                  >
+                    {generandoSpei ? 'Generando recibo…' : 'Generar Recibo'}
+                  </button>
+                </div>
                 <p className="portal-transfer-opcion-nota portal-transfer-opcion-nota--spei">
                   Al generar el recibo se crea una referencia SPEI con 3 dígitos aleatorios.
                 </p>

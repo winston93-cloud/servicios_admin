@@ -15185,8 +15185,10 @@ body {
 }
 
 .portal-transfer-opcion {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: 4.75rem 3.5rem 2.75rem minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: center;
   height: 100%;
   padding: 1rem 0.85rem;
   border: 1px solid #cbd5e1;
@@ -15194,29 +15196,27 @@ body {
   text-align: center;
 }
 
-.portal-transfer-opcion-header {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 7.5rem;
-  margin-bottom: 0.85rem;
-}
-
-.portal-transfer-opcion-header .portal-transfer-logo-wrap {
-  margin-bottom: 0.65rem;
-}
-
 .portal-transfer-opcion-titulo {
-  margin: auto 0 0;
+  margin: 0;
+  min-height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1.35;
   color: #1c2377;
 }
 
+.portal-transfer-opcion-accion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+}
+
 .portal-transfer-opcion .portal-transfer-btn-pago {
   flex-shrink: 0;
-  align-self: center;
 }
 
 .portal-transfer-btn-pago {
@@ -15249,40 +15249,44 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 3.25rem;
-  margin-bottom: 0.65rem;
-  padding: 0.5rem 0.75rem;
+  height: 4.75rem;
+  min-height: 4.75rem;
+  margin: 0;
+  padding: 0.35rem 0.5rem;
   border-radius: 8px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
 }
 
-.portal-transfer-logo-wrap--banorte {
-  min-height: 3.75rem;
-  padding: 0.4rem 0.65rem;
+.portal-transfer-logo-wrap--banorte,
+.portal-transfer-logo-wrap--openpay {
+  height: 4.75rem;
+  min-height: 4.75rem;
 }
 
 .portal-transfer-logo-wrap--openpay {
   background: #ffffff;
-  padding: 0.35rem 0.5rem;
-  min-height: 3.75rem;
 }
 
 .portal-transfer-logo {
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  max-height: 2.75rem;
+  width: auto !important;
+  height: 3.5rem !important;
+  max-width: 11rem;
+  max-height: none !important;
   object-fit: contain;
 }
 
-.portal-transfer-logo--banorte {
-  max-height: 3.35rem;
-  min-height: 2.5rem;
+.portal-transfer-logo--banorte,
+.portal-transfer-logo--openpay {
+  height: 3.5rem !important;
+  width: auto !important;
+  max-width: 11rem;
 }
 
-.portal-transfer-logo--openpay {
-  max-height: 3.25rem;
+/* El PNG de Banorte suele traer mucho margen; escala para igualar OpenPay */
+.portal-transfer-logo--banorte {
+  transform: scale(1.55);
+  transform-origin: center center;
 }
 
 .portal-transfer-opcion--banorte {
