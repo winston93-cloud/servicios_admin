@@ -84,11 +84,11 @@ export default async function Banorte3dPage({ searchParams }: PageProps) {
           <div className="banorte-hero">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/portal-pagos/banorte/seguridad.jpg"
-              alt="Verificación segura con tarjeta"
+              src="/portal-pagos/banorte/seguridad.png"
+              alt="Pago seguro en línea"
               className="banorte-hero-img"
-              width={1200}
-              height={320}
+              width={788}
+              height={441}
             />
           </div>
           <Banorte3dForm
