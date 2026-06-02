@@ -242,18 +242,20 @@ export default function PortalTransferenciaModal({
 
             <div className="portal-transfer-opciones">
               <div className="portal-transfer-opcion portal-transfer-opcion--banorte">
-                <div className="portal-transfer-logo-wrap">
-                  <Image
-                    src="/portal-pagos/banorte.png"
-                    alt="Banorte"
-                    width={140}
-                    height={48}
-                    className="portal-transfer-logo"
-                  />
+                <div className="portal-transfer-opcion-header">
+                  <div className="portal-transfer-logo-wrap">
+                    <Image
+                      src="/portal-pagos/banorte.png"
+                      alt="Banorte"
+                      width={140}
+                      height={48}
+                      className="portal-transfer-logo"
+                    />
+                  </div>
+                  <h3 className="portal-transfer-opcion-titulo">
+                    Comercio electrónico (tarjeta crédito o débito)
+                  </h3>
                 </div>
-                <h3 className="portal-transfer-opcion-titulo">
-                  Comercio electrónico (tarjeta crédito o débito)
-                </h3>
                 <button
                   type="button"
                   className="portal-transfer-btn-pago portal-transfer-btn-pago--activo"
@@ -284,16 +286,20 @@ export default function PortalTransferenciaModal({
               </div>
 
               <div className="portal-transfer-opcion portal-transfer-opcion--openpay">
-                <div className="portal-transfer-logo-wrap portal-transfer-logo-wrap--openpay">
-                  <Image
-                    src="/portal-pagos/openpay.jpg"
-                    alt="OpenPay"
-                    width={160}
-                    height={56}
-                    className="portal-transfer-logo portal-transfer-logo--openpay"
-                  />
+                <div className="portal-transfer-opcion-header">
+                  <div className="portal-transfer-logo-wrap portal-transfer-logo-wrap--openpay">
+                    <Image
+                      src="/portal-pagos/openpay.jpg"
+                      alt="OpenPay"
+                      width={160}
+                      height={56}
+                      className="portal-transfer-logo portal-transfer-logo--openpay"
+                    />
+                  </div>
+                  <h3 className="portal-transfer-opcion-titulo">
+                    Pago SPEI (Transferencia Interbancaria)
+                  </h3>
                 </div>
-                <h3 className="portal-transfer-opcion-titulo">Pago SPEI (Transferencia Interbancaria)</h3>
                 <button
                   type="button"
                   className="portal-transfer-btn-pago portal-transfer-btn-pago--activo"

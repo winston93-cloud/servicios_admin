@@ -15180,22 +15180,43 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  align-items: stretch;
   margin-bottom: 1.25rem;
 }
 
 .portal-transfer-opcion {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   padding: 1rem 0.85rem;
   border: 1px solid #cbd5e1;
   border-radius: 4px;
   text-align: center;
 }
 
+.portal-transfer-opcion-header {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 7.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.portal-transfer-opcion-header .portal-transfer-logo-wrap {
+  margin-bottom: 0.65rem;
+}
+
 .portal-transfer-opcion-titulo {
-  margin: 0 0 0.85rem;
+  margin: auto 0 0;
   font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1.35;
   color: #1c2377;
+}
+
+.portal-transfer-opcion .portal-transfer-btn-pago {
+  flex-shrink: 0;
+  align-self: center;
 }
 
 .portal-transfer-btn-pago {
