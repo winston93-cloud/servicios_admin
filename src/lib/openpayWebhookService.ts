@@ -145,22 +145,32 @@ async function insertarPagoOpenpay(
 async function procesarChargeSucceeded(
   supabase: SupabaseClient,
   cuenta: OpenpayCuenta,
-  evento: OpenpayWebhookEvento
+  evento: OpenpayWebhookEvento,
+  tipoEvento = 'charge.succeeded'
 ): Promise<ResultadoWebhookOpenpay> {
   const tx = evento.transaction
   const referencia = String(tx?.order_id ?? '').replace(/\D/g, '')
   const importe = parseFloat(String(tx?.amount ?? '0'))
   const transactionId = tx?.id ?? ''
+  const status = String((tx as { status?: string })?.status ?? '').toLowerCase()
 
   if (referencia.length < 9 || !Number.isFinite(importe) || importe <= 0) {
-    return { ok: false, mensaje: 'Cargo sin referencia o importe válido', tipo: 'charge.succeeded' }
+    return { ok: false, mensaje: 'Cargo sin referencia o importe válido', tipo: tipoEvento }
+  }
+
+  if (status && status !== 'completed' && status !== 'success') {
+    return {
+      ok: true,
+      mensaje: `Cargo aún no liquidado (status=${status}); se espera completed`,
+      tipo: tipoEvento,
+    }
   }
 
   if (await existePagoPorReferencia(supabase, referencia)) {
     return {
       ok: true,
       mensaje: `Pago ya registrado (${referencia})`,
-      tipo: 'charge.succeeded',
+      tipo: tipoEvento,
     }
   }
 
@@ -171,7 +181,7 @@ async function procesarChargeSucceeded(
     return {
       ok: false,
       mensaje: `Alumno no encontrado para ref ${referencia.slice(0, 5)}`,
-      tipo: 'charge.succeeded',
+      tipo: tipoEvento,
     }
   }
 
@@ -180,7 +190,7 @@ async function procesarChargeSucceeded(
   return {
     ok: true,
     mensaje: `Pago registrado (${etiquetaCuentaOpenpay(cuenta)}) ref=${referencia} txn=${transactionId}`,
-    tipo: 'charge.succeeded',
+    tipo: tipoEvento,
   }
 }
 
@@ -208,8 +218,9 @@ export async function procesarWebhookOpenpay(
         }
       }
 
-      case 'charge.succeeded': {
-        const res = await procesarChargeSucceeded(supabase, cuenta, evento)
+      case 'charge.succeeded':
+      case 'spei.received': {
+        const res = await procesarChargeSucceeded(supabase, cuenta, evento, tipo)
         await registrarLog(supabase, cuenta, tipo, res.ok, res.mensaje, payloadCrudo, {
           referencia: evento.transaction?.order_id,
           transaction_id: evento.transaction?.id,
