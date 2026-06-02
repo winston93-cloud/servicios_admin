@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server'
 import { createSupabaseAdmin } from './supabaseAdmin'
 import {
   eventoOpenpayEsVerificacion,
+  listarSecretKeysOpenpayWebhook,
+  openpayRelajarValidacionFirma,
   parsearEventoOpenpay,
-  validarFirmaOpenpay,
+  validarFirmaOpenpayConClaves,
 } from './openpayWebhookCore'
 import { procesarWebhookOpenpay } from './openpayWebhookService'
 import {
@@ -35,33 +37,36 @@ export async function manejarPostWebhookOpenpay(
   }
 
   const esVerificacion = eventoOpenpayEsVerificacion(evento)
-  if (
-    !esVerificacion &&
-    !validarFirmaOpenpay(payload, signature, config.secretKey)
-  ) {
-    console.error(`webhook openpay/${cuenta}: firma inválida`)
-    try {
-      const supabase = createSupabaseAdmin()
-      await supabase.from('openpay_webhook_log').insert({
-        cuenta,
-        tipo_evento: 'signature.invalid',
-        ok: false,
-        mensaje: 'Firma inválida',
-        payload: { signaturePresent: Boolean(signature), type: evento.type },
-      })
-    } catch {
-      /* ignore log failure */
-    }
-    return NextResponse.json({ error: 'Firma inválida' }, { status: 401 })
+  const secretKeys = listarSecretKeysOpenpayWebhook(cuenta)
+  if (!secretKeys.includes(config.secretKey)) {
+    secretKeys.unshift(config.secretKey)
   }
+  const firmaValida = validarFirmaOpenpayConClaves(payload, signature, secretKeys)
+  const relajar = openpayRelajarValidacionFirma()
 
-  if (
-    esVerificacion &&
-    signature &&
-    !validarFirmaOpenpay(payload, signature, config.secretKey)
-  ) {
+  if (!esVerificacion && !firmaValida) {
+    if (!relajar) {
+      console.error(`webhook openpay/${cuenta}: firma inválida (estricto)`)
+      try {
+        const supabase = createSupabaseAdmin()
+        await supabase.from('openpay_webhook_log').insert({
+          cuenta,
+          tipo_evento: 'signature.invalid',
+          ok: false,
+          mensaje: 'Firma inválida',
+          payload: {
+            signaturePresent: Boolean(signature),
+            type: evento.type,
+            keysProbadas: secretKeys.length,
+          },
+        })
+      } catch {
+        /* ignore log failure */
+      }
+      return NextResponse.json({ error: 'Firma inválida' }, { status: 401 })
+    }
     console.warn(
-      `webhook openpay/${cuenta}: verification con firma distinta; se acepta (OpenPay MX)`
+      `webhook openpay/${cuenta}: firma no coincide; se procesa igual (OPENPAY_WEBHOOK_RELAX_SIGNATURE)`
     )
   }
 

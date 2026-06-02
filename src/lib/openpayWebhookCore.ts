@@ -65,6 +65,52 @@ function firmasEsperadasOpenpay(payload: string, secretKey: string): string[] {
   return [firmaOpenpayEsperada(payload, secretKey), firmaOpenpayHex(payload, secretKey)]
 }
 
+function compararHmacBinario(
+  payload: string,
+  secretKey: string,
+  firmaRecibida: string
+): boolean {
+  const hmac = createHmac('sha256', secretKey).update(payload, 'utf8').digest()
+  const rec = firmaRecibida.trim()
+  for (const enc of ['base64', 'hex'] as const) {
+    try {
+      const sig = Buffer.from(rec, enc)
+      if (sig.length === hmac.length && timingSafeEqual(sig, hmac)) return true
+    } catch {
+      /* formato no aplica */
+    }
+  }
+  return false
+}
+
+/** Llaves a probar (SECRET_KEY, SECRET, lista alternativa). */
+export function listarSecretKeysOpenpayWebhook(cuenta: OpenpayCuenta): string[] {
+  const prefix = cuenta === 'winston' ? 'OPENPAY_WINSTON' : 'OPENPAY_EDUCATIVO'
+  const keys = new Set<string>()
+  for (const name of [`${prefix}_SECRET_KEY`, `${prefix}_SECRET`, `${prefix}_PRIVATE_KEY`]) {
+    const v = process.env[name]?.trim()
+    if (v) keys.add(v)
+  }
+  const lista = process.env[`${prefix}_SECRET_KEYS`]
+  if (lista) {
+    for (const part of lista.split(',')) {
+      const v = part.trim()
+      if (v) keys.add(v)
+    }
+  }
+  return [...keys]
+}
+
+/**
+ * OpenPay MX: la doc oficial usa verification_code, no HMAC obligatorio.
+ * Por defecto relajado (como el PHP legacy con hash_equals roto).
+ */
+export function openpayRelajarValidacionFirma(): boolean {
+  const v = process.env.OPENPAY_WEBHOOK_RELAX_SIGNATURE
+  if (v == null || v === '') return true
+  return v === '1' || v.toLowerCase() === 'true'
+}
+
 /** OpenPay MX: la verificación del webhook no documenta firma; solo exige 200 OK. */
 export function eventoOpenpayEsVerificacion(evento: OpenpayWebhookEvento): boolean {
   return evento.type === 'verification'
@@ -84,6 +130,18 @@ export function validarFirmaOpenpay(
     for (const esp of esperadas) {
       if (compararFirmaConstante(esp, rec)) return true
     }
+    if (compararHmacBinario(payload, secretKey, rec)) return true
+  }
+  return false
+}
+
+export function validarFirmaOpenpayConClaves(
+  payload: string,
+  signatureHeader: string | null,
+  secretKeys: string[]
+): boolean {
+  for (const key of secretKeys) {
+    if (validarFirmaOpenpay(payload, signatureHeader, key)) return true
   }
   return false
 }
