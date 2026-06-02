@@ -16,8 +16,28 @@ export interface OpenpayWebhookEvento {
   subscription?: { id?: string; amount?: number | string }
 }
 
+function compararFirmaConstante(esperada: string, recibida: string): boolean {
+  try {
+    const a = Buffer.from(esperada, 'utf8')
+    const b = Buffer.from(recibida, 'utf8')
+    if (a.length !== b.length) return false
+    return timingSafeEqual(a, b)
+  } catch {
+    return false
+  }
+}
+
 export function firmaOpenpayEsperada(payload: string, secretKey: string): string {
   return createHmac('sha256', secretKey).update(payload, 'utf8').digest('base64')
+}
+
+function firmaOpenpayHex(payload: string, secretKey: string): string {
+  return createHmac('sha256', secretKey).update(payload, 'utf8').digest('hex')
+}
+
+/** OpenPay MX: la verificación del webhook no documenta firma; solo exige 200 OK. */
+export function eventoOpenpayEsVerificacion(evento: OpenpayWebhookEvento): boolean {
+  return evento.type === 'verification'
 }
 
 export function validarFirmaOpenpay(
@@ -26,15 +46,10 @@ export function validarFirmaOpenpay(
   secretKey: string
 ): boolean {
   if (!signatureHeader?.trim()) return false
-  const esperada = firmaOpenpayEsperada(payload, secretKey)
-  try {
-    const a = Buffer.from(esperada, 'utf8')
-    const b = Buffer.from(signatureHeader.trim(), 'utf8')
-    if (a.length !== b.length) return false
-    return timingSafeEqual(a, b)
-  } catch {
-    return false
-  }
+  const recibida = signatureHeader.trim()
+  if (compararFirmaConstante(firmaOpenpayEsperada(payload, secretKey), recibida)) return true
+  if (compararFirmaConstante(firmaOpenpayHex(payload, secretKey), recibida)) return true
+  return false
 }
 
 export function parsearEventoOpenpay(payload: string): OpenpayWebhookEvento | null {

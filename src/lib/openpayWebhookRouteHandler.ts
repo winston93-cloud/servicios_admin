@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseAdmin } from './supabaseAdmin'
-import { parsearEventoOpenpay, validarFirmaOpenpay } from './openpayWebhookCore'
+import {
+  eventoOpenpayEsVerificacion,
+  parsearEventoOpenpay,
+  validarFirmaOpenpay,
+} from './openpayWebhookCore'
 import { procesarWebhookOpenpay } from './openpayWebhookService'
 import {
   obtenerConfigOpenpayPorCuenta,
@@ -25,7 +29,16 @@ export async function manejarPostWebhookOpenpay(
     return NextResponse.json({ error: msg }, { status: 503 })
   }
 
-  if (!validarFirmaOpenpay(payload, signature, config.secretKey)) {
+  const evento = parsearEventoOpenpay(payload)
+  if (!evento) {
+    return NextResponse.json({ error: 'Payload inválido' }, { status: 400 })
+  }
+
+  const esVerificacion = eventoOpenpayEsVerificacion(evento)
+  if (
+    !esVerificacion &&
+    !validarFirmaOpenpay(payload, signature, config.secretKey)
+  ) {
     console.error(`webhook openpay/${cuenta}: firma inválida`)
     try {
       const supabase = createSupabaseAdmin()
@@ -34,7 +47,7 @@ export async function manejarPostWebhookOpenpay(
         tipo_evento: 'signature.invalid',
         ok: false,
         mensaje: 'Firma inválida',
-        payload: { signaturePresent: Boolean(signature) },
+        payload: { signaturePresent: Boolean(signature), type: evento.type },
       })
     } catch {
       /* ignore log failure */
@@ -42,9 +55,14 @@ export async function manejarPostWebhookOpenpay(
     return NextResponse.json({ error: 'Firma inválida' }, { status: 401 })
   }
 
-  const evento = parsearEventoOpenpay(payload)
-  if (!evento) {
-    return NextResponse.json({ error: 'Payload inválido' }, { status: 400 })
+  if (
+    esVerificacion &&
+    signature &&
+    !validarFirmaOpenpay(payload, signature, config.secretKey)
+  ) {
+    console.warn(
+      `webhook openpay/${cuenta}: verification con firma distinta; se acepta (OpenPay MX)`
+    )
   }
 
   let payloadJson: unknown = null
