@@ -43,18 +43,25 @@ function scriptPersistenciaTarjeta(referencia: string): string {
         var el = document.getElementById(id);
         if (el && el.value) d[id] = el.value;
       });
+      localStorage.setItem(key, JSON.stringify(d));
       sessionStorage.setItem(key, JSON.stringify(d));
     } catch (e) {}
   }
   function load() {
     try {
-      var raw = sessionStorage.getItem(key);
+      var raw = localStorage.getItem(key) || sessionStorage.getItem(key);
       if (!raw) return;
       var d = JSON.parse(raw);
       ids.forEach(function (id) {
         var el = document.getElementById(id);
-        if (el && d[id] && !el.value) el.value = d[id];
+        if (el && d[id]) el.value = d[id];
       });
+      var nameEl = document.getElementById("CUSTOMER_REF1");
+      var countEl = document.getElementById("char-count");
+      if (nameEl && countEl && nameEl.value) {
+        var rest = 28 - nameEl.value.length;
+        countEl.textContent = rest + " caracteres restantes";
+      }
     } catch (e) {}
   }
   form.addEventListener("input", save);
@@ -122,7 +129,7 @@ export function htmlFormularioComercioElectronico(
     ${okBanner}
     <section class="banorte-card">
       <h1 class="banorte-card-title">Formulario 2 de 2 · Comercio electrónico</h1>
-      <p class="banorte-card-lead">${opts?.error ? 'Corrija los datos y vuelva a intentar el cargo. No necesita repetir 3D Secure.' : 'Confirme el cargo con su tarjeta de crédito o débito (cualquier banco).'}</p>
+      <p class="banorte-card-lead">${opts?.error ? 'Corrija los datos y vuelva a intentar el cargo. No necesita repetir 3D Secure.' : 'Confirme el cargo. Si ya verificó su tarjeta en el paso anterior, los datos se cargan automáticamente; solo confirme el CVV.'}</p>
       <dl class="banorte-summary">
         <div><dt>Referencia</dt><dd><code>${esc(datos.referencia)}</code></dd></div>
         <div><dt>Total</dt><dd class="banorte-amount">$${esc(datos.montoFmt)}</dd></div>

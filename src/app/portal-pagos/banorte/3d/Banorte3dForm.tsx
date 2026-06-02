@@ -6,6 +6,7 @@ import {
   opcionesAnioExpiracion,
   type BanorteAfiliacion3ds,
 } from '@/lib/banorteConfig'
+import { guardarDatosTarjetaComercio } from '@/lib/banorteCardStorage'
 
 interface Banorte3dFormProps {
   referencia: string
@@ -35,9 +36,21 @@ export default function Banorte3dForm({
         e.preventDefault()
         return
       }
+      const form = e.currentTarget
+      const numero = (form.elements.namedItem('NUMERO_TARJETA') as HTMLInputElement | null)?.value
+        ?.replace(/\D/g, '')
+        .slice(0, 16)
+      const nombre = (form.elements.namedItem('NOMBRE') as HTMLInputElement | null)?.value?.trim() ?? ''
+      const apellido = (form.elements.namedItem('APELLIDO') as HTMLInputElement | null)?.value?.trim() ?? ''
+      const titular = `${nombre} ${apellido}`.trim().slice(0, 28)
+      guardarDatosTarjetaComercio(referencia, {
+        CUSTOMER_REF1: titular,
+        CARD_NUMBER: numero ?? '',
+        CARD_EXP: fechaExp,
+      })
       setEnviando(true)
     },
-    [fechaExp]
+    [fechaExp, referencia]
   )
 
   return (
