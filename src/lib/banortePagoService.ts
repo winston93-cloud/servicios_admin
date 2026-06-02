@@ -1,4 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { DetalleErrorPayw2 } from './banortePaywErrors'
+import type { RespuestaPayw2 } from './banortePayw2'
 import { formatearAlumnoRefParaReferencia, normalizarConceptoNo } from './pagoReferenciaColegiatura'
 
 export function normalizarReferenciaBanorte(ref: string): string {
@@ -184,5 +186,34 @@ export async function registrarPagoBanorteExitoso(
   return {
     ok: true,
     mensaje: 'Pago registrado correctamente. La factura se emitirá cuando el proceso esté activo.',
+  }
+}
+
+
+/** Guarda intento fallido Payworks (Anexo A) para soporte y reportes. */
+export async function registrarIntentoPaywFallido(
+  supabase: SupabaseClient,
+  referencia: string,
+  importe: number,
+  resp: RespuestaPayw2,
+  detalle: DetalleErrorPayw2
+): Promise<void> {
+  const ref = normalizarReferenciaBanorte(referencia)
+  const { error } = await supabase.from('banorte_payw_intento').insert({
+    referencia: ref,
+    importe: Number.isFinite(importe) ? Number(importe.toFixed(2)) : null,
+    payw_result: resp.paywResult,
+    payw_code: detalle.paywCode ?? resp.paywCode,
+    auth_result: resp.authResult,
+    auth_code: resp.authCode,
+    mensaje_es: detalle.mensaje,
+    mensaje_raw: resp.text,
+  })
+  if (error) {
+    if (error.code === '42P01') {
+      console.warn('banorte_payw_intento: ejecute sql/banorte_payw_intento_add.sql')
+      return
+    }
+    console.error('registrarIntentoPaywFallido:', error.message)
   }
 }

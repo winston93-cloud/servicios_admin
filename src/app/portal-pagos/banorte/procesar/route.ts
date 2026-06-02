@@ -1,10 +1,13 @@
 import { obtenerCredencialesPayw2 } from '@/lib/banorteConfig'
+import { htmlFormularioComercioElectronico } from '@/lib/banorteComercioFormHtml'
 import { htmlResultadoBanorte, respuestaHtml } from '@/lib/banorteHtml'
+import { obtenerDetalleErrorPayw2 } from '@/lib/banortePaywErrors'
 import {
   normalizarReferenciaBanorte,
+  registrarIntentoPaywFallido,
   registrarPagoBanorteExitoso,
 } from '@/lib/banortePagoService'
-import { ejecutarVentaPayw2, mensajeResultadoPayw2 } from '@/lib/banortePayw2'
+import { ejecutarVentaPayw2 } from '@/lib/banortePayw2'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const runtime = 'nodejs'
@@ -12,6 +15,24 @@ export const runtime = 'nodejs'
 function str(form: FormData, key: string): string {
   const v = form.get(key)
   return typeof v === 'string' ? v.trim() : ''
+}
+
+function datosFormularioDesdePost(
+  request: Request,
+  campos: Record<string, string>,
+  referencia: string,
+  nivel: number
+) {
+  const montoFmt = campos.AMOUNT || '0.00'
+  return {
+    procesarUrl: new URL('/portal-pagos/banorte/procesar', request.url).toString(),
+    referencia,
+    montoFmt,
+    nivel,
+    eci: campos.ECI,
+    xid: campos.XID,
+    cavv: campos.CAVV,
+  }
 }
 
 export async function POST(request: Request) {
@@ -74,20 +95,28 @@ export async function POST(request: Request) {
     )
   }
 
-  if (payw.paywResult !== 'A') {
-    return respuestaHtml(
-      htmlResultadoBanorte({
-        exito: false,
-        titulo: 'Pago no autorizado',
-        mensaje: mensajeResultadoPayw2(payw),
-        referencia,
-        detalle: payw.authCode ? `Autorización: ${payw.authCode}` : undefined,
-      })
-    )
-  }
-
   const importe = Number.parseFloat(amount)
   const supabase = createSupabaseAdmin()
+
+  if (payw.paywResult !== 'A') {
+    const detalle = obtenerDetalleErrorPayw2(payw)
+    await registrarIntentoPaywFallido(
+      supabase,
+      referencia,
+      Number.isFinite(importe) ? importe : 0,
+      payw,
+      detalle
+    )
+    const html = htmlFormularioComercioElectronico(
+      datosFormularioDesdePost(request, campos, referencia, nivel),
+      {
+        error: detalle,
+        prefill: { customerRef1: campos.CUSTOMER_REF1 },
+      }
+    )
+    return respuestaHtml(html)
+  }
+
   const registro = await registrarPagoBanorteExitoso(
     supabase,
     referencia,

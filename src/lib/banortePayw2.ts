@@ -1,4 +1,5 @@
 import type { BanorteCredencialesPayw2 } from './banorteConfig'
+import { obtenerDetalleErrorPayw2 } from './banortePaywErrors'
 
 export interface RespuestaPayw2 {
   headers: Record<string, string>
@@ -24,7 +25,7 @@ export async function ejecutarVentaPayw2(
     CMD_TRANS: 'VENTA',
     MODE: 'PRD',
     ENTRY_MODE: 'MANUAL',
-    RESPONSE_LANGUAGE: 'EN',
+    RESPONSE_LANGUAGE: 'ES',
     ...campos,
   })
 
@@ -63,11 +64,7 @@ export async function ejecutarVentaPayw2(
 }
 
 export function mensajeResultadoPayw2(resp: RespuestaPayw2): string {
-  if (resp.paywResult === 'A') {
-    return 'Operación aprobada.'
-  }
-  const partes = [resp.text, resp.paywCode, resp.authResult].filter(Boolean)
-  return partes.length > 0
-    ? partes.join(' — ')
-    : 'El banco no autorizó el cargo. Verifique los datos o use otra tarjeta.'
+  if (resp.paywResult === 'A') return 'Operación aprobada.'
+  const d = obtenerDetalleErrorPayw2(resp)
+  return d.paywCode ? `${d.mensaje} — ${d.paywCode}` : d.mensaje
 }

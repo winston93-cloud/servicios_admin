@@ -2,6 +2,7 @@ import {
   esEstatus3dAprobado,
   obtenerDetalleError3dSecure,
 } from '@/lib/banorte3dsErrors'
+import { htmlFormularioComercioElectronico } from '@/lib/banorteComercioFormHtml'
 import { obtenerCredencialesPayw2 } from '@/lib/banorteConfig'
 import { htmlResultado3dSecureRechazo, htmlShellBanorte, respuestaHtml } from '@/lib/banorteHtml'
 import {
@@ -11,14 +12,6 @@ import {
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const runtime = 'nodejs'
-
-function esc(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
 
 function str(form: FormData, key: string): string {
   const v = form.get(key)
@@ -84,9 +77,8 @@ export async function POST(request: Request) {
 
   const nivel = Number(alumno?.alumno_nivel ?? 0)
 
-  let cred
   try {
-    cred = obtenerCredencialesPayw2(nivel)
+    obtenerCredencialesPayw2(nivel)
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Credenciales Banorte no configuradas.'
     return respuestaHtml(
@@ -106,75 +98,15 @@ export async function POST(request: Request) {
   }
 
   const montoFmt = monto.toFixed(2)
-  const procesarUrl = new URL('/portal-pagos/banorte/procesar', request.url).toString()
-
-  const contenido = `
-    <div class="banorte-ok-banner" role="status">
-      <span class="banorte-ok-banner-icon" aria-hidden="true">✓</span>
-      <div>
-        <p class="banorte-ok-banner-title">Verificación 3D Secure aprobada</p>
-        <p class="banorte-ok-banner-text">Su banco confirmó la identidad. Continúe con el cargo en comercio electrónico (paso 2 de 2).</p>
-      </div>
-    </div>
-    <section class="banorte-card">
-      <h1 class="banorte-card-title">Formulario 2 de 2 · Comercio electrónico</h1>
-      <p class="banorte-card-lead">Confirme el cargo con su tarjeta de crédito o débito (cualquier banco).</p>
-      <dl class="banorte-summary">
-        <div><dt>Referencia</dt><dd><code>${esc(referencia3d)}</code></dd></div>
-        <div><dt>Total</dt><dd class="banorte-amount">$${esc(montoFmt)}</dd></div>
-      </dl>
-      <form method="POST" action="${esc(procesarUrl)}" accept-charset="UTF-8" class="banorte-form-grid" id="banorte-pay-form">
-        <input type="hidden" name="CONTROL_NUMBER" value="${esc(referencia3d)}" />
-        <input type="hidden" name="ECI" value="${esc(eci)}" />
-        <input type="hidden" name="STATUS_3D" value="200" />
-        <input type="hidden" name="XID" value="${esc(xid)}" />
-        <input type="hidden" name="CAVV" value="${esc(cavv)}" />
-        <input type="hidden" name="VERSION_3D" value="2" />
-        <input type="hidden" name="AMOUNT" value="${esc(montoFmt)}" />
-        <input type="hidden" name="ALUMNO_NIVEL" value="${esc(String(nivel))}" />
-
-        <div class="banorte-field">
-          <label for="CUSTOMER_REF1">Nombre del cliente (máx. 28 caracteres)</label>
-          <input type="text" name="CUSTOMER_REF1" id="CUSTOMER_REF1" maxlength="28" required placeholder="Como aparece en la tarjeta" />
-          <span class="banorte-char-count" id="char-count">28 caracteres restantes</span>
-        </div>
-        <div class="banorte-field">
-          <label for="CARD_NUMBER">Número de tarjeta</label>
-          <input type="text" name="CARD_NUMBER" id="CARD_NUMBER" inputmode="numeric" maxlength="16" pattern="[0-9]{16}" required autocomplete="cc-number" />
-        </div>
-        <div class="banorte-field banorte-field--half">
-          <label for="CARD_EXP">Vencimiento (MM/AA)</label>
-          <input type="text" name="CARD_EXP" id="CARD_EXP" placeholder="MM/AA" maxlength="5" pattern="[0-9]{2}/[0-9]{2}" required autocomplete="cc-exp" />
-        </div>
-        <div class="banorte-field banorte-field--half">
-          <label for="SECURITY_CODE">CVV</label>
-          <input type="password" name="SECURITY_CODE" id="SECURITY_CODE" inputmode="numeric" maxlength="4" pattern="[0-9]{3,4}" required autocomplete="cc-csc" />
-        </div>
-        <div class="banorte-actions" style="grid-column:1/-1">
-          <button type="submit" class="banorte-btn banorte-btn--primary">Realizar pago</button>
-        </div>
-      </form>
-      <p class="banorte-secure-note"><span aria-hidden="true">🔒</span> Comercio electrónico Banorte · cargo seguro vía Payworks.</p>
-    </section>
-    <script>
-      (function () {
-        var input = document.getElementById('CUSTOMER_REF1');
-        var count = document.getElementById('char-count');
-        if (!input || !count) return;
-        input.addEventListener('input', function () {
-          var rest = 28 - input.value.length;
-          count.textContent = rest + ' caracteres restantes';
-          count.className = rest === 0 ? 'banorte-char-count banorte-char-count--warn' : 'banorte-char-count';
-        });
-      })();
-    </script>`
-
-  const html = htmlShellBanorte(
-    'Comercio electrónico',
-    2,
-    contenido,
-    '/portal-pagos/banorte/comercio.png'
-  )
+  const html = htmlFormularioComercioElectronico({
+    procesarUrl: new URL('/portal-pagos/banorte/procesar', request.url).toString(),
+    referencia: referencia3d,
+    montoFmt,
+    nivel,
+    eci,
+    xid,
+    cavv,
+  })
 
   return respuestaHtml(html)
 }

@@ -519,3 +519,57 @@
   margin-left: auto;
   margin-right: auto;
 }
+
+
+.banorte-error-banner {
+  margin-bottom: 1.25rem;
+  padding: 1.35rem 1.5rem;
+  border-radius: var(--bn-radius);
+  background: rgba(240, 113, 120, 0.08);
+  border: 1px solid rgba(240, 113, 120, 0.35);
+}
+
+.banorte-error-banner-head {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.banorte-error-banner-icon {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(240, 113, 120, 0.15);
+  color: var(--bn-error);
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.banorte-error-banner-title {
+  margin: 0.15rem 0 0;
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 400;
+  color: var(--bn-cream);
+}
+
+.banorte-error-banner-msg {
+  margin: 0 0 0.85rem;
+  color: var(--bn-cream);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.banorte-error-banner .banorte-result-code {
+  margin-bottom: 0.85rem;
+}
+
+.banorte-error-banner .banorte-ref {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+  color: var(--bn-muted);
+}
