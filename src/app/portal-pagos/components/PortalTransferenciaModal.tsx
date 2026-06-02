@@ -243,13 +243,13 @@ export default function PortalTransferenciaModal({
             <div className="portal-transfer-opciones">
               <div className="portal-transfer-opcion portal-transfer-opcion--banorte">
                 <div className="portal-transfer-opcion-header">
-                  <div className="portal-transfer-logo-wrap">
+                  <div className="portal-transfer-logo-wrap portal-transfer-logo-wrap--banorte">
                     <Image
                       src="/portal-pagos/banorte.png"
                       alt="Banorte"
-                      width={140}
-                      height={48}
-                      className="portal-transfer-logo"
+                      width={180}
+                      height={64}
+                      className="portal-transfer-logo portal-transfer-logo--banorte"
                     />
                   </div>
                   <h3 className="portal-transfer-opcion-titulo">

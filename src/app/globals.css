@@ -15257,9 +15257,15 @@ body {
   border: 1px solid #e2e8f0;
 }
 
+.portal-transfer-logo-wrap--banorte {
+  min-height: 3.75rem;
+  padding: 0.4rem 0.65rem;
+}
+
 .portal-transfer-logo-wrap--openpay {
   background: #ffffff;
   padding: 0.35rem 0.5rem;
+  min-height: 3.75rem;
 }
 
 .portal-transfer-logo {
@@ -15270,8 +15276,13 @@ body {
   object-fit: contain;
 }
 
+.portal-transfer-logo--banorte {
+  max-height: 3.35rem;
+  min-height: 2.5rem;
+}
+
 .portal-transfer-logo--openpay {
-  max-height: 3rem;
+  max-height: 3.25rem;
 }
 
 .portal-transfer-opcion--banorte {
