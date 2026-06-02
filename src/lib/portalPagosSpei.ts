@@ -1,41 +1,25 @@
-import { referenciaSemibase } from './boucherCore'
-import { normalizarConceptoNo } from './pagoReferenciaColegiatura'
+import {
+  generarReferenciaPagoAleatoria,
+  generarReferenciaPagoDesdePago,
+} from './pagoReferenciaColegiatura'
 
-/** Primeros 9 dígitos: ref(5) + concepto(2) + ciclo(2). */
-export function semibaseReferenciaPago(
-  alumnoRef: string | number,
-  conceptoNo: string,
-  cicloEscolar: number
-): string {
-  return referenciaSemibase(alumnoRef, conceptoNo, cicloEscolar)
-}
+export {
+  semibaseReferenciaPago,
+  semibaseDesdeReferenciaCompleta,
+} from './pagoReferenciaColegiatura'
 
-export function semibaseDesdeReferenciaCompleta(referencia: string): string {
-  const d = referencia.replace(/\D/g, '')
-  return d.length >= 9 ? d.slice(0, 9) : d
-}
-
-/**
- * Referencia OpenPay SPEI: semibase (9) + 3 dígitos aleatorios.
- * Solo para recibo SPEI; baucher y Banorte siguen con getDigVerif.
- */
+/** @deprecated Use generarReferenciaPagoAleatoria — mismo comportamiento. */
 export function generarReferenciaSpeiOpenpay(semibase: string): string {
-  const base = semibase.replace(/\D/g, '').slice(0, 9)
-  if (base.length !== 9) {
-    throw new Error('La referencia base debe tener 9 dígitos para SPEI.')
-  }
-  const verificador = String(Math.floor(Math.random() * 1000)).padStart(3, '0')
-  return `${base}${verificador}`
+  return generarReferenciaPagoAleatoria(semibase)
 }
 
+/** @deprecated Use generarReferenciaPagoDesdePago */
 export function generarReferenciaSpeiDesdePago(
   alumnoRef: string | number,
   conceptoNo: string,
   cicloEscolar: number
 ): string {
-  return generarReferenciaSpeiOpenpay(
-    semibaseReferenciaPago(alumnoRef, normalizarConceptoNo(conceptoNo), cicloEscolar)
-  )
+  return generarReferenciaPagoDesdePago(alumnoRef, conceptoNo, cicloEscolar)
 }
 
 export type OpenpayCuenta = 'winston' | 'educativo'

@@ -44,8 +44,8 @@ export default function Banorte3dForm({
     <section className="banorte-card">
       <h1 className="banorte-card-title">Formulario 1 de 2</h1>
       <p className="banorte-card-lead">
-        Verificación 3D Secure: su banco confirmará que usted es el titular de la tarjeta antes del
-        cargo.
+        Comercio electrónico Banorte: verificación 3D Secure. El banco emisor de su tarjeta
+        (cualquier institución) confirmará que usted es el titular antes del cargo.
       </p>
 
       <dl className="banorte-summary">
@@ -223,8 +223,8 @@ export default function Banorte3dForm({
 
       <p className="banorte-secure-note">
         <span aria-hidden="true">🔒</span>
-        Será redirigido al servicio 3D Secure de Banorte. No almacenamos su número de tarjeta en
-        este paso.
+        Será redirigido al 3D Secure del comercio electrónico Banorte (su banco emisor valida la
+        tarjeta). No almacenamos su número de tarjeta en este paso.
       </p>
     </section>
   )

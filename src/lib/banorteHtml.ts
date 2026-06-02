@@ -52,7 +52,7 @@ export function htmlShellBanorte(
     ${contenido}
   </main>
   <footer class="banorte-footer">
-    <p>Transacción procesada por Banorte · Payworks</p>
+    <p>Comercio electrónico Banorte · Payworks · tarjetas de cualquier banco</p>
   </footer>
 </body>
 </html>`

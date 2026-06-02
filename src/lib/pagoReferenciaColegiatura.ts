@@ -1,3 +1,5 @@
+import { referenciaSemibase } from './boucherCore'
+
 /** Estructura de pago_referencia (12 dígitos). */
 export interface ReferenciaPagoParseada {
   alumnoRef: string
@@ -48,4 +50,42 @@ export function compararConceptoNoAsc(
 export function formatearAlumnoRefParaReferencia(ref: string | number): string {
   const s = String(ref ?? '').replace(/\D/g, '')
   return s.padStart(5, '0').slice(-5)
+}
+
+/** Primeros 9 dígitos: ref(5) + concepto(2) + ciclo(2). */
+export function semibaseReferenciaPago(
+  alumnoRef: string | number,
+  conceptoNo: string,
+  cicloEscolar: number
+): string {
+  return referenciaSemibase(alumnoRef, conceptoNo, cicloEscolar)
+}
+
+export function semibaseDesdeReferenciaCompleta(referencia: string): string {
+  const d = referencia.replace(/\D/g, '')
+  return d.length >= 9 ? d.slice(0, 9) : d
+}
+
+/**
+ * Semibase (9) + 3 dígitos aleatorios. Solo SPEI y comercio electrónico Banorte en línea.
+ * Ventanilla y baucher usan getDigVerif en boucherCore.
+ */
+export function generarReferenciaPagoAleatoria(semibase: string): string {
+  const base = String(semibase ?? '').replace(/\D/g, '').slice(0, 9)
+  if (base.length !== 9) {
+    throw new Error('La semibase de referencia debe tener 9 dígitos.')
+  }
+  const sufijo = String(Math.floor(Math.random() * 1000)).padStart(3, '0')
+  return `${base}${sufijo}`
+}
+
+export function generarReferenciaPagoDesdePago(
+  alumnoRef: string | number,
+  conceptoNo: string,
+  cicloEscolar: number
+): string {
+  const ref = formatearAlumnoRefParaReferencia(alumnoRef)
+  const concepto = normalizarConceptoNo(conceptoNo)
+  const ciclo = String(cicloEscolar).replace(/\D/g, '').padStart(2, '0').slice(-2)
+  return generarReferenciaPagoAleatoria(`${ref}${concepto}${ciclo}`)
 }

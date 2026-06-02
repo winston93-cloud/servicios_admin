@@ -3,11 +3,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import Image from 'next/image'
 import { formatearMontoPortal } from '@/lib/portalPagosService'
+import {
+  generarReferenciaPagoAleatoria,
+  semibaseDesdeReferenciaCompleta,
+} from '@/lib/pagoReferenciaColegiatura'
 
 export interface DatosTransferenciaPortal {
   alumno: string
   grado: string
-  /** Referencia Banorte/baucher (dígito verificador por algoritmo). */
+  /** Referencia ventanilla / baucher (9 semibase + verificador Banorte por algoritmo). */
   referenciaVentanilla: string
   concepto: string
   importe: number
@@ -247,17 +251,20 @@ export default function PortalTransferenciaModal({
                     className="portal-transfer-logo"
                   />
                 </div>
-                <h3 className="portal-transfer-opcion-titulo">Pago con Tarjeta de Crédito/Débito</h3>
+                <h3 className="portal-transfer-opcion-titulo">
+                  Comercio electrónico (tarjeta crédito o débito)
+                </h3>
                 <button
                   type="button"
                   className="portal-transfer-btn-pago portal-transfer-btn-pago--activo"
                   disabled={!datos || generandoSpei}
                   onClick={() => {
                     if (!datos) return
-                    const ref = datos.referenciaVentanilla.replace(/\D/g, '').slice(0, 12)
+                    const semibase = semibaseDesdeReferenciaCompleta(datos.referenciaVentanilla)
+                    const refBanorte = generarReferenciaPagoAleatoria(semibase)
                     const params = new URLSearchParams({
-                      referencia: ref,
-                      monto: String(datos.importe),
+                      referencia: refBanorte,
+                      monto: Number(datos.importe).toFixed(2),
                       concepto: datos.concepto,
                       nivel: String(datos.alumnoNivel),
                     })
@@ -271,7 +278,8 @@ export default function PortalTransferenciaModal({
                   Realizar pago
                 </button>
                 <p className="portal-transfer-opcion-nota">
-                  Tarjeta de crédito o débito · Verificación 3D Secure y cargo Banorte.
+                  Tarjeta de crédito o débito de cualquier banco, procesada por el comercio
+                  electrónico de Banorte (3D Secure y Payworks).
                 </p>
               </div>
 
@@ -295,7 +303,7 @@ export default function PortalTransferenciaModal({
                   {generandoSpei ? 'Generando recibo…' : 'Generar Recibo'}
                 </button>
                 <p className="portal-transfer-opcion-nota portal-transfer-opcion-nota--spei">
-                  La referencia SPEI usa 3 dígitos aleatorios al generar el recibo.
+                  Al generar el recibo se crea una referencia SPEI con 3 dígitos aleatorios.
                 </p>
                 {errorSpei && (
                   <p className="portal-transfer-opcion-error" role="alert">

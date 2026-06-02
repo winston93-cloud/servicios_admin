@@ -9,4 +9,4 @@ create index if not exists banorte_pago_pendiente_creado_en_idx
   on public.banorte_pago_pendiente (creado_en desc);
 
 comment on table public.banorte_pago_pendiente is
-  'Importe acordado al iniciar pago Banorte; usado al volver de 3D Secure (REFERENCIA3D).';
+  'Importe al iniciar comercio electrónico Banorte; usado al volver de 3D Secure (REFERENCIA3D).';
