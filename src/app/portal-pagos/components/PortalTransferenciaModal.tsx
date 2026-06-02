@@ -248,10 +248,31 @@ export default function PortalTransferenciaModal({
                   />
                 </div>
                 <h3 className="portal-transfer-opcion-titulo">Pago con Tarjeta de Crédito/Débito</h3>
-                <button type="button" className="portal-transfer-btn-pago" disabled>
-                  Realizar Pago
+                <button
+                  type="button"
+                  className="portal-transfer-btn-pago portal-transfer-btn-pago--activo"
+                  disabled={!datos || generandoSpei}
+                  onClick={() => {
+                    if (!datos) return
+                    const ref = datos.referenciaVentanilla.replace(/\D/g, '').slice(0, 12)
+                    const params = new URLSearchParams({
+                      referencia: ref,
+                      monto: String(datos.importe),
+                      concepto: datos.concepto,
+                      nivel: String(datos.alumnoNivel),
+                    })
+                    window.open(
+                      `/portal-pagos/banorte/3d?${params.toString()}`,
+                      '_blank',
+                      'noopener,noreferrer'
+                    )
+                  }}
+                >
+                  Realizar pago
                 </button>
-                <p className="portal-transfer-opcion-nota">Disponible próximamente</p>
+                <p className="portal-transfer-opcion-nota">
+                  Tarjeta de crédito o débito · Verificación 3D Secure y cargo Banorte.
+                </p>
               </div>
 
               <div className="portal-transfer-opcion portal-transfer-opcion--openpay">

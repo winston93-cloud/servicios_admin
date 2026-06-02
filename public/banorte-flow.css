@@ -1,0 +1,404 @@
+/* Flujo Banorte 3DS + comercio electrónico (portal de pagos) */
+:root {
+  --bn-bg: #0c1118;
+  --bn-surface: #141c28;
+  --bn-surface-2: #1a2535;
+  --bn-border: rgba(212, 175, 106, 0.22);
+  --bn-gold: #d4af6a;
+  --bn-gold-soft: #e8c98a;
+  --bn-cream: #f4efe4;
+  --bn-muted: #9aa8bc;
+  --bn-error: #f07178;
+  --bn-ok: #5fd4a4;
+  --bn-radius: 16px;
+  --bn-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.banorte-body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  color: var(--bn-cream);
+  background: var(--bn-bg);
+  line-height: 1.5;
+}
+
+.banorte-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(212, 175, 106, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 90% 100%, rgba(95, 212, 164, 0.06), transparent),
+    var(--bn-bg);
+  pointer-events: none;
+}
+
+.banorte-header,
+.banorte-main,
+.banorte-footer {
+  position: relative;
+  z-index: 1;
+}
+
+.banorte-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem clamp(1rem, 4vw, 2.5rem);
+  border-bottom: 1px solid var(--bn-border);
+  background: rgba(12, 17, 24, 0.85);
+  backdrop-filter: blur(12px);
+}
+
+.banorte-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.banorte-brand-mark {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--bn-gold), #9a7b3c);
+  color: #1a1208;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.banorte-brand-title {
+  margin: 0;
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.banorte-brand-sub {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--bn-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.banorte-steps {
+  display: flex;
+  gap: 0.5rem 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-wrap: wrap;
+}
+
+.banorte-step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--bn-muted);
+}
+
+.banorte-step span {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--bn-border);
+  display: grid;
+  place-items: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.banorte-step--active {
+  color: var(--bn-gold-soft);
+}
+
+.banorte-step--active span {
+  background: var(--bn-gold);
+  color: #1a1208;
+  border-color: var(--bn-gold);
+}
+
+.banorte-step--done {
+  color: var(--bn-ok);
+}
+
+.banorte-main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: clamp(1rem, 3vw, 2rem) clamp(1rem, 4vw, 2rem) 3rem;
+}
+
+.banorte-hero {
+  margin-bottom: 1.5rem;
+  border-radius: var(--bn-radius);
+  overflow: hidden;
+  box-shadow: var(--bn-shadow);
+  border: 1px solid var(--bn-border);
+}
+
+.banorte-hero-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  max-height: 220px;
+}
+
+.banorte-card {
+  background: linear-gradient(165deg, var(--bn-surface) 0%, var(--bn-surface-2) 100%);
+  border: 1px solid var(--bn-border);
+  border-radius: var(--bn-radius);
+  padding: clamp(1.25rem, 3vw, 2rem);
+  box-shadow: var(--bn-shadow);
+}
+
+.banorte-card-title {
+  margin: 0 0 0.35rem;
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 400;
+  color: var(--bn-gold-soft);
+}
+
+.banorte-card-lead {
+  margin: 0 0 1.5rem;
+  color: var(--bn-muted);
+  font-size: 0.95rem;
+}
+
+.banorte-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--bn-border);
+}
+
+.banorte-summary dt {
+  margin: 0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--bn-muted);
+}
+
+.banorte-summary dd {
+  margin: 0.25rem 0 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.banorte-summary dd.banorte-amount {
+  font-size: 1.35rem;
+  color: var(--bn-gold-soft);
+}
+
+.banorte-form-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+}
+
+.banorte-field {
+  grid-column: span 12;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+@media (min-width: 600px) {
+  .banorte-field--half {
+    grid-column: span 6;
+  }
+  .banorte-field--third {
+    grid-column: span 4;
+  }
+}
+
+.banorte-field label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--bn-muted);
+}
+
+.banorte-field input,
+.banorte-field select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--bn-cream);
+  font: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.banorte-field input:focus,
+.banorte-field select:focus {
+  outline: none;
+  border-color: var(--bn-gold);
+  box-shadow: 0 0 0 3px rgba(212, 175, 106, 0.2);
+}
+
+.banorte-field input[readonly] {
+  opacity: 0.85;
+  cursor: default;
+}
+
+.banorte-exp-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.banorte-exp-row select {
+  flex: 1;
+}
+
+.banorte-hint {
+  font-size: 0.75rem;
+  color: var(--bn-muted);
+}
+
+.banorte-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.banorte-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.75rem;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+
+.banorte-btn--primary {
+  background: linear-gradient(135deg, var(--bn-gold), #b8944f);
+  color: #1a1208;
+  box-shadow: 0 8px 24px rgba(212, 175, 106, 0.35);
+}
+
+.banorte-btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 32px rgba(212, 175, 106, 0.45);
+}
+
+.banorte-btn--ghost {
+  background: transparent;
+  color: var(--bn-muted);
+  border: 1px solid var(--bn-border);
+}
+
+.banorte-secure-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: rgba(95, 212, 164, 0.08);
+  border: 1px solid rgba(95, 212, 164, 0.2);
+  font-size: 0.8rem;
+  color: var(--bn-muted);
+}
+
+.banorte-result {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+}
+
+.banorte-result-icon {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.banorte-result--ok .banorte-result-icon {
+  background: rgba(95, 212, 164, 0.15);
+  color: var(--bn-ok);
+  border: 2px solid var(--bn-ok);
+}
+
+.banorte-result--error .banorte-result-icon {
+  background: rgba(240, 113, 120, 0.12);
+  color: var(--bn-error);
+  border: 2px solid var(--bn-error);
+}
+
+.banorte-result-title {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 1.75rem;
+  font-weight: 400;
+  margin: 0 0 0.5rem;
+}
+
+.banorte-result-msg {
+  margin: 0 0 1rem;
+  color: var(--bn-muted);
+  max-width: 36rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.banorte-ref code {
+  font-size: 1.1rem;
+  color: var(--bn-gold-soft);
+  letter-spacing: 0.05em;
+}
+
+.banorte-factura-pausa {
+  font-size: 0.85rem;
+  color: var(--bn-gold);
+  margin: 0 0 1.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: rgba(212, 175, 106, 0.1);
+}
+
+.banorte-footer {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.75rem;
+  color: var(--bn-muted);
+  border-top: 1px solid var(--bn-border);
+}
+
+.banorte-char-count {
+  font-size: 0.75rem;
+  color: var(--bn-muted);
+}
+
+.banorte-char-count--warn {
+  color: var(--bn-error);
+}
