@@ -402,3 +402,120 @@
 .banorte-char-count--warn {
   color: var(--bn-error);
 }
+
+.banorte-ok-banner {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  border-radius: var(--bn-radius);
+  background: rgba(95, 212, 164, 0.12);
+  border: 1px solid rgba(95, 212, 164, 0.35);
+}
+
+.banorte-ok-banner-icon {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(95, 212, 164, 0.2);
+  color: var(--bn-ok);
+  font-weight: 700;
+}
+
+.banorte-ok-banner-title {
+  margin: 0 0 0.25rem;
+  font-weight: 600;
+  color: var(--bn-ok);
+}
+
+.banorte-ok-banner-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--bn-muted);
+}
+
+.banorte-result--3ds {
+  text-align: left;
+  max-width: 32rem;
+  margin-inline: auto;
+}
+
+.banorte-result-eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bn-gold);
+  text-align: center;
+}
+
+.banorte-result-code {
+  display: inline-block;
+  margin: 0 0 1rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  background: rgba(240, 113, 120, 0.12);
+  border: 1px solid rgba(240, 113, 120, 0.35);
+  color: var(--bn-cream);
+}
+
+.banorte-result-hint {
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.15rem;
+  border-radius: 12px;
+  background: var(--bn-surface-2);
+  border: 1px solid var(--bn-border);
+  font-size: 0.9rem;
+  color: var(--bn-muted);
+}
+
+.banorte-result-hint-title {
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+  color: var(--bn-cream);
+  font-size: 0.85rem;
+}
+
+.banorte-result-tecnico {
+  margin: 0 0 1rem;
+  font-size: 0.75rem;
+  color: var(--bn-muted);
+  opacity: 0.85;
+}
+
+.banorte-result-tecnico span {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.banorte-result-note {
+  margin: 0 0 1.5rem;
+  font-size: 0.85rem;
+  color: var(--bn-muted);
+  text-align: center;
+}
+
+.banorte-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.banorte-result--3ds .banorte-result-title,
+.banorte-result--3ds .banorte-result-msg {
+  text-align: center;
+}
+
+.banorte-result--3ds .banorte-result-code {
+  display: table;
+  margin-left: auto;
+  margin-right: auto;
+}

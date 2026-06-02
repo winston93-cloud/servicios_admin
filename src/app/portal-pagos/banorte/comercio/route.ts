@@ -1,6 +1,9 @@
-import { mensajeError3dSecure } from '@/lib/banorte3dsErrors'
+import {
+  esEstatus3dAprobado,
+  obtenerDetalleError3dSecure,
+} from '@/lib/banorte3dsErrors'
 import { obtenerCredencialesPayw2 } from '@/lib/banorteConfig'
-import { htmlShellBanorte, respuestaHtml } from '@/lib/banorteHtml'
+import { htmlResultado3dSecureRechazo, htmlShellBanorte, respuestaHtml } from '@/lib/banorteHtml'
 import {
   normalizarReferenciaBanorte,
   obtenerMontoPendienteBanorte,
@@ -26,23 +29,29 @@ export async function POST(request: Request) {
   const form = await request.formData()
   const estatus3d = str(form, 'Estatus')
   const referencia3d = normalizarReferenciaBanorte(str(form, 'REFERENCIA3D'))
+  const mensaje3d = str(form, 'MENSAJE')
   const eci = str(form, 'ECI')
   const xid = str(form, 'XID')
   const cavv = str(form, 'CAVV')
 
-  if (estatus3d !== '200') {
-    const code = Number(estatus3d)
-    const html = htmlResultadoError(
-      referencia3d || '—',
-      Number.isNaN(code) ? null : code,
-      mensajeError3dSecure(estatus3d)
-    )
+  if (!esEstatus3dAprobado(estatus3d)) {
+    const detalle = obtenerDetalleError3dSecure(estatus3d, mensaje3d || null)
+    const html = htmlResultado3dSecureRechazo(detalle, referencia3d || '—')
     return respuestaHtml(html, 200)
   }
 
   if (referencia3d.length !== 12) {
+    const detalle = obtenerDetalleError3dSecure(null, null)
     return respuestaHtml(
-      htmlResultadoError('—', null, 'No se recibió una referencia válida desde 3D Secure.'),
+      htmlResultado3dSecureRechazo(
+        {
+          ...detalle,
+          titulo: 'Respuesta incompleta',
+          mensaje: 'No se recibió una referencia válida desde 3D Secure.',
+          sugerencia: 'Regrese al portal de pagos e inicie el pago de nuevo.',
+        },
+        '—'
+      ),
       200
     )
   }
@@ -51,10 +60,16 @@ export async function POST(request: Request) {
   const monto = await obtenerMontoPendienteBanorte(supabase, referencia3d)
   if (monto == null || monto <= 0) {
     return respuestaHtml(
-      htmlResultadoError(
-        referencia3d,
-        null,
-        'No se encontró el importe del pago. Vuelva al portal e inicie de nuevo.'
+      htmlResultado3dSecureRechazo(
+        {
+          aprobado: false,
+          codigo: null,
+          titulo: 'Sesión de pago expirada',
+          mensaje: 'No se encontró el importe asociado a esta referencia.',
+          sugerencia: 'El enlace de verificación expiró o ya fue usado. Inicie el pago nuevamente desde el portal.',
+          categoria: 'sistema',
+        },
+        referencia3d
       ),
       200
     )
@@ -74,16 +89,36 @@ export async function POST(request: Request) {
     cred = obtenerCredencialesPayw2(nivel)
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Credenciales Banorte no configuradas.'
-    return respuestaHtml(htmlResultadoError(referencia3d, null, msg), 200)
+    return respuestaHtml(
+      htmlResultado3dSecureRechazo(
+        {
+          aprobado: false,
+          codigo: null,
+          titulo: 'Pago en línea no disponible',
+          mensaje: msg,
+          sugerencia: 'Contacte al plantel. El cargo no se realizó.',
+          categoria: 'sistema',
+        },
+        referencia3d
+      ),
+      200
+    )
   }
 
   const montoFmt = monto.toFixed(2)
   const procesarUrl = new URL('/portal-pagos/banorte/procesar', request.url).toString()
 
   const contenido = `
+    <div class="banorte-ok-banner" role="status">
+      <span class="banorte-ok-banner-icon" aria-hidden="true">✓</span>
+      <div>
+        <p class="banorte-ok-banner-title">Verificación 3D Secure aprobada</p>
+        <p class="banorte-ok-banner-text">Su banco confirmó la identidad. Continúe con el cargo en comercio electrónico (paso 2 de 2).</p>
+      </div>
+    </div>
     <section class="banorte-card">
-      <h1 class="banorte-card-title">Formulario 2 de 2</h1>
-      <p class="banorte-card-lead">Verificación aprobada. Confirme el cargo con su tarjeta de crédito o débito (cualquier banco).</p>
+      <h1 class="banorte-card-title">Formulario 2 de 2 · Comercio electrónico</h1>
+      <p class="banorte-card-lead">Confirme el cargo con su tarjeta de crédito o débito (cualquier banco).</p>
       <dl class="banorte-summary">
         <div><dt>Referencia</dt><dd><code>${esc(referencia3d)}</code></dd></div>
         <div><dt>Total</dt><dd class="banorte-amount">$${esc(montoFmt)}</dd></div>
@@ -142,20 +177,6 @@ export async function POST(request: Request) {
   )
 
   return respuestaHtml(html)
-}
-
-function htmlResultadoError(referencia: string, code: number | null, mensaje: string): string {
-  const codeHtml = code != null ? `<p class="banorte-ref">Código <strong>${code}</strong></p>` : ''
-  const contenido = `
-    <section class="banorte-card banorte-result banorte-result--error">
-      <div class="banorte-result-icon">!</div>
-      <h1 class="banorte-result-title">Verificación no aprobada</h1>
-      <p class="banorte-result-msg">${esc(mensaje)}</p>
-      ${codeHtml}
-      <p class="banorte-ref">Referencia <code>${esc(referencia)}</code></p>
-      <a href="/portal-pagos" class="banorte-btn banorte-btn--primary">Volver al portal</a>
-    </section>`
-  return htmlShellBanorte('Error 3D Secure', 'resultado', contenido)
 }
 
 export async function GET() {

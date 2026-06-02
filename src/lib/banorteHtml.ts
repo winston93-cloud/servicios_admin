@@ -1,4 +1,8 @@
 import { urlPortalPagosAlumno } from './banorteConfig'
+import {
+  etiquetaCategoria3d,
+  type DetalleError3dSecure,
+} from './banorte3dsErrors'
 
 function esc(text: string): string {
   return text
@@ -84,6 +88,50 @@ export function htmlResultadoBanorte(opts: {
     </section>`
 
   return htmlShellBanorte(opts.titulo, 'resultado', contenido)
+}
+
+/** Pantalla profesional cuando 3D Secure devuelve Estatus distinto de 200. */
+export function htmlResultado3dSecureRechazo(
+  detalle: DetalleError3dSecure,
+  referencia: string
+): string {
+  const ref =
+    referencia && referencia !== '—'
+      ? `<p class="banorte-ref">Referencia de pago <code>${esc(referencia)}</code></p>`
+      : ''
+
+  const codigoBadge =
+    detalle.codigo != null
+      ? `<p class="banorte-result-code" aria-label="Código de error Banorte">Código Banorte <strong>${detalle.codigo}</strong> · ${esc(etiquetaCategoria3d(detalle.categoria))}</p>`
+      : ''
+
+  const tecnico = detalle.detalleTecnico
+    ? `<p class="banorte-result-tecnico"><span>Detalle del procesador:</span> ${esc(detalle.detalleTecnico)}</p>`
+    : ''
+
+  const portal = esc(urlPortalPagosAlumno())
+
+  const contenido = `
+    <section class="banorte-card banorte-result banorte-result--error banorte-result--3ds">
+      <div class="banorte-result-icon" aria-hidden="true">✕</div>
+      <p class="banorte-result-eyebrow">Paso 1 de 2 · 3D Secure</p>
+      <h1 class="banorte-result-title">${esc(detalle.titulo)}</h1>
+      <p class="banorte-result-msg">${esc(detalle.mensaje)}</p>
+      ${codigoBadge}
+      <div class="banorte-result-hint">
+        <p class="banorte-result-hint-title">Qué puede hacer</p>
+        <p>${esc(detalle.sugerencia)}</p>
+      </div>
+      ${tecnico}
+      ${ref}
+      <p class="banorte-result-note">No se realizó ningún cargo. Puede cerrar esta ventana e intentar de nuevo desde el portal de pagos.</p>
+      <div class="banorte-result-actions">
+        <a href="${portal}" class="banorte-btn banorte-btn--primary">Volver al portal de pagos</a>
+        <button type="button" class="banorte-btn banorte-btn--ghost" onclick="window.close()">Cerrar ventana</button>
+      </div>
+    </section>`
+
+  return htmlShellBanorte('Verificación 3D Secure', 'resultado', contenido)
 }
 
 export function respuestaHtml(html: string, status = 200): Response {
