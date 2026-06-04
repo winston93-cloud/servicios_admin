@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppDatabaseClient } from '@/lib/dbTypes'
 import { formatearAlumnoRefParaReferencia, normalizarConceptoNo } from './pagoReferenciaColegiatura'
 import type { OpenpayCuenta } from './portalPagosSpei'
 import {
@@ -13,7 +13,7 @@ export interface ResultadoWebhookOpenpay {
 }
 
 async function registrarLog(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   cuenta: OpenpayCuenta,
   tipo: string,
   ok: boolean,
@@ -34,7 +34,7 @@ async function registrarLog(
 }
 
 async function guardarCodigoVerificacion(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   cuenta: OpenpayCuenta,
   codigo: string
 ): Promise<void> {
@@ -46,7 +46,7 @@ async function guardarCodigoVerificacion(
 }
 
 async function existePagoPorReferencia(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   referencia: string
 ): Promise<boolean> {
   const { count, error } = await supabase
@@ -61,7 +61,7 @@ async function existePagoPorReferencia(
   return (count ?? 0) > 0
 }
 
-async function obtenerMaxPagoId(supabase: SupabaseClient): Promise<number> {
+async function obtenerMaxPagoId(supabase: AppDatabaseClient): Promise<number> {
   const { data, error } = await supabase
     .from('pago_detalle')
     .select('pago_id')
@@ -74,7 +74,7 @@ async function obtenerMaxPagoId(supabase: SupabaseClient): Promise<number> {
 }
 
 async function buscarAlumnoPorReferencia(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   referencia: string
 ): Promise<{ alumno_id: number; pago_nombre: string } | null> {
   const ref5 = formatearAlumnoRefParaReferencia(referencia.slice(0, 5))
@@ -96,7 +96,7 @@ async function buscarAlumnoPorReferencia(
 }
 
 async function activarAlumnoInscripcion(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   referencia: string
 ): Promise<void> {
   if (normalizarConceptoNo(referencia.slice(5, 7)) !== '13') return
@@ -110,7 +110,7 @@ async function activarAlumnoInscripcion(
 }
 
 async function insertarPagoOpenpay(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   alumnoId: number,
   pagoNombre: string,
   referencia: string,
@@ -143,7 +143,7 @@ async function insertarPagoOpenpay(
 }
 
 async function procesarChargeSucceeded(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   cuenta: OpenpayCuenta,
   evento: OpenpayWebhookEvento,
   tipoEvento = 'charge.succeeded'
@@ -195,7 +195,7 @@ async function procesarChargeSucceeded(
 }
 
 export async function procesarWebhookOpenpay(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   cuenta: OpenpayCuenta,
   evento: OpenpayWebhookEvento,
   payloadCrudo: unknown
@@ -254,7 +254,7 @@ export async function procesarWebhookOpenpay(
 }
 
 export async function listarUltimasVerificaciones(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   cuenta?: OpenpayCuenta,
   limite = 5
 ) {

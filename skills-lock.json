@@ -66,6 +66,30 @@
       "sourceType": "github",
       "computedHash": "69cecc4f28fb2f140652669bd45cc492744ad5c3c45083f5e0be5b0a5ef8acd0"
     },
+    "insforge": {
+      "source": "insforge/insforge-skills",
+      "sourceType": "github",
+      "skillPath": "skills/insforge/SKILL.md",
+      "computedHash": "e1d075e11771bbc4cf8f1c06b3f4e7c90c753cb9e73817ee1e3a6c8777378547"
+    },
+    "insforge-cli": {
+      "source": "insforge/insforge-skills",
+      "sourceType": "github",
+      "skillPath": "skills/insforge-cli/SKILL.md",
+      "computedHash": "1543dab6fd325139685f3c40a7532803f680830f46a4cf792b30f880dcb5e2dc"
+    },
+    "insforge-debug": {
+      "source": "insforge/insforge-skills",
+      "sourceType": "github",
+      "skillPath": "skills/insforge-debug/SKILL.md",
+      "computedHash": "cc1348806d59e2505924b6278d405c7ff9dd0f36d6e489493d53e16ce54b28ab"
+    },
+    "insforge-integrations": {
+      "source": "insforge/insforge-skills",
+      "sourceType": "github",
+      "skillPath": "skills/insforge-integrations/SKILL.md",
+      "computedHash": "3a47a6a0cc454de26d54334474cc27d85a4811acf88f1f617964a5c5acdf62ae"
+    },
     "normalize": {
       "source": "pbakaus/impeccable",
       "sourceType": "github",

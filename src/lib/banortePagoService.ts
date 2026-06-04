@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppDatabaseClient } from '@/lib/dbTypes'
 import type { DetalleErrorPayw2 } from './banortePaywErrors'
 import type { RespuestaPayw2 } from './banortePayw2'
 import { formatearAlumnoRefParaReferencia, normalizarConceptoNo } from './pagoReferenciaColegiatura'
@@ -8,7 +8,7 @@ export function normalizarReferenciaBanorte(ref: string): string {
 }
 
 export async function guardarMontoPendienteBanorte(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   referencia: string,
   monto: number
 ): Promise<void> {
@@ -31,7 +31,7 @@ export async function guardarMontoPendienteBanorte(
 }
 
 export async function obtenerMontoPendienteBanorte(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   referencia: string
 ): Promise<number | null> {
   const ref = normalizarReferenciaBanorte(referencia)
@@ -51,7 +51,7 @@ export async function obtenerMontoPendienteBanorte(
   return Number(data.monto)
 }
 
-async function obtenerMaxPagoId(supabase: SupabaseClient): Promise<number> {
+async function obtenerMaxPagoId(supabase: AppDatabaseClient): Promise<number> {
   const { data, error } = await supabase
     .from('pago_detalle')
     .select('pago_id')
@@ -64,7 +64,7 @@ async function obtenerMaxPagoId(supabase: SupabaseClient): Promise<number> {
 }
 
 async function existePagoPorReferencia(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   referencia: string
 ): Promise<boolean> {
   const { count, error } = await supabase
@@ -80,7 +80,7 @@ async function existePagoPorReferencia(
 }
 
 async function buscarAlumnoPorReferencia(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   referencia: string
 ): Promise<{ alumno_id: number; pago_nombre: string; alumno_nivel: number } | null> {
   const ref5 = formatearAlumnoRefParaReferencia(referencia.slice(0, 5))
@@ -106,7 +106,7 @@ async function buscarAlumnoPorReferencia(
 }
 
 async function activarAlumnoInscripcion(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   referencia: string
 ): Promise<void> {
   if (normalizarConceptoNo(referencia.slice(5, 7)) !== '13') return
@@ -130,7 +130,7 @@ export interface ResultadoRegistroPagoBanorte {
  * Facturación CFDI: en pausa (no se timbra aquí).
  */
 export async function registrarPagoBanorteExitoso(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   referencia: string,
   importe: number
 ): Promise<ResultadoRegistroPagoBanorte> {
@@ -192,7 +192,7 @@ export async function registrarPagoBanorteExitoso(
 
 /** Guarda intento fallido Payworks (Anexo A) para soporte y reportes. */
 export async function registrarIntentoPaywFallido(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   referencia: string,
   importe: number,
   resp: RespuestaPayw2,

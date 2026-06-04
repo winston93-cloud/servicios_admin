@@ -1,5 +1,5 @@
 import type { RowDataPacket } from 'mysql2'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppDatabaseClient } from '@/lib/dbTypes'
 import { createMysqlLegacyConnection, getMysqlLegacyConfig } from './mysqlLegacy'
 import { createSupabaseAdmin } from './supabaseAdmin'
 import { TABLAS_MIGRACION, type TablaMigracion } from './migracionTablasManifest'
@@ -60,7 +60,7 @@ async function tablaExisteEnMysql(
   return filas.length > 0
 }
 
-async function supabaseTablaDisponible(sb: SupabaseClient, tabla: string): Promise<boolean> {
+async function supabaseTablaDisponible(sb: AppDatabaseClient, tabla: string): Promise<boolean> {
   const { error } = await sb.from(tabla).select('*').limit(0)
   if (!error) return true
   const msg = error.message?.toLowerCase() ?? ''
@@ -76,7 +76,7 @@ async function supabaseTablaDisponible(sb: SupabaseClient, tabla: string): Promi
 }
 
 async function aplicarFiltroMigracion(
-  sb: SupabaseClient,
+  sb: AppDatabaseClient,
   def: TablaMigracion,
   mysqlMap: Map<number, Record<string, unknown>>
 ): Promise<{ mapa: Map<number, Record<string, unknown>>; mensaje?: string }> {
@@ -99,7 +99,7 @@ async function aplicarFiltroMigracion(
 }
 
 async function verificarUnaTabla(
-  sb: SupabaseClient,
+  sb: AppDatabaseClient,
   mysql: Awaited<ReturnType<typeof createMysqlLegacyConnection>>,
   def: TablaMigracion
 ): Promise<ResultadoTablaVerificacion> {

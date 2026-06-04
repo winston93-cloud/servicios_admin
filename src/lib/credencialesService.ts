@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppDatabaseClient } from '@/lib/dbTypes'
 import { etiquetaGradoCredencial, etiquetaGrupo } from './credencialesEtiquetas'
 
 export interface PersonaCredencial {
@@ -49,7 +49,7 @@ function mapAlumno(row: Record<string, unknown>): PersonaCredencial {
 }
 
 export async function listarAlumnosCredenciales(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   filtros: FiltrosCredencialesAlumnos
 ): Promise<PersonaCredencial[]> {
   const { cicloEscolar, nivel, grado, grupo, refs } = filtros
@@ -93,7 +93,7 @@ export async function listarAlumnosCredenciales(
 }
 
 export async function listarMaestrosCredenciales(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   filtros: FiltrosCredencialesMaestros
 ): Promise<PersonaCredencial[]> {
   const { data: maestros, error } = await supabase

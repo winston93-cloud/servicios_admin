@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppDatabaseClient } from '@/lib/dbTypes'
 import type { AlumnoRegistro } from './alumnoDatosService'
 import type { CicloEscolarRegistro } from './ciclosEscolaresService'
 import {
@@ -123,7 +123,7 @@ function buscarPagoConcepto(
 }
 
 async function listarConceptosColegiatura(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   planMeses: number
 ): Promise<{ concepto_no: string; concepto_clase: string }[]> {
   let query = supabase
@@ -150,7 +150,7 @@ async function listarConceptosColegiatura(
 }
 
 async function listarConceptosPorNumeros(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   numeros: string[]
 ): Promise<{ concepto_no: string; concepto_clase: string }[]> {
   if (numeros.length === 0) return []
@@ -170,7 +170,7 @@ async function listarConceptosPorNumeros(
 }
 
 async function construirFilas(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   alumno: AlumnoRegistro,
   ciclo: CicloEscolarRegistro,
   conceptos: { concepto_no: string; concepto_clase: string }[],
@@ -243,7 +243,7 @@ async function construirFilas(
 }
 
 export async function construirMatrizPortalPagos(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   alumno: AlumnoRegistro,
   ciclo: CicloEscolarRegistro,
   pagos: PagoDetalleRegistro[]
@@ -315,7 +315,7 @@ export async function construirMatrizPortalPagos(
 
 /** Recalcula referencia con dígito verificador (misma lógica que bauchers). */
 export async function recalcularReferenciaPortal(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   alumno: AlumnoRegistro,
   conceptoNo: string,
   cicloValor: number,

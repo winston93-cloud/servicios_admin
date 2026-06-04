@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppDatabaseClient } from '@/lib/dbTypes'
 import { numeroCicloEscolarAdmin } from './cicloEscolarAdmin'
 import { normalizarConceptoNo, compararConceptoNoAsc } from './pagoReferenciaColegiatura'
 import {
@@ -42,7 +42,7 @@ export interface FilaTablaPrecios {
 }
 
 export async function listarConceptosBoucherPagos(
-  supabase: SupabaseClient
+  supabase: AppDatabaseClient
 ): Promise<ConceptoBoucherOpcion[]> {
   const { data, error } = await supabase
     .from('concepto_boucher')
@@ -59,7 +59,7 @@ export async function listarConceptosBoucherPagos(
 }
 
 export async function listarPreciosPorCiclo(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   cicloEscolar: number
 ): Promise<FilaTablaPrecios[]> {
   const { data, error } = await supabase
@@ -92,7 +92,7 @@ export async function listarPreciosPorCiclo(
 }
 
 export async function obtenerPrecioFila(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   nivel: number,
   cicloEscolar: number
 ): Promise<PrecioBoucherRow | null> {
@@ -125,7 +125,7 @@ export async function obtenerPrecioFila(
 }
 
 export async function obtenerPorcentajeBeca(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   alumnoId: number,
   cicloActual: number
 ): Promise<number> {
@@ -189,7 +189,7 @@ export function calcularImporteConcepto(
 }
 
 export async function calcularBoucher(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   params: {
     alumnoId: number
     alumnoRef: string | number

@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppInsforgeClient } from '@/lib/dbTypes'
 import { NIVELES_CREDENCIAL } from './credencialesConfig'
 
 const BUCKET = 'credenciales-fondos'
@@ -28,7 +28,7 @@ export function leerFondoDefaultBuffer(nivel: number): Buffer | null {
 }
 
 export async function leerFondoCustomBuffer(
-  supabase: SupabaseClient | null,
+  client: AppInsforgeClient | null,
   nivel: number
 ): Promise<Buffer | null> {
   const local = rutaCustomLocal(nivel)
@@ -40,10 +40,10 @@ export async function leerFondoCustomBuffer(
     }
   }
 
-  if (!supabase) return null
+  if (!client) return null
 
   try {
-    const { data, error } = await supabase.storage.from(BUCKET).download(storagePath(nivel))
+    const { data, error } = await client.storage.from(BUCKET).download(storagePath(nivel))
     if (error || !data) return null
     return Buffer.from(await data.arrayBuffer())
   } catch {
@@ -52,10 +52,10 @@ export async function leerFondoCustomBuffer(
 }
 
 export async function resolverFondoCredencial(
-  supabase: SupabaseClient | null,
+  client: AppInsforgeClient | null,
   nivel: number
 ): Promise<{ buffer: Buffer; mime: 'PNG' | 'JPEG'; origen: 'custom' | 'default' } | null> {
-  const custom = await leerFondoCustomBuffer(supabase, nivel)
+  const custom = await leerFondoCustomBuffer(client, nivel)
   if (custom?.length) {
     return { buffer: custom, mime: detectarMime(custom), origen: 'custom' }
   }
@@ -72,7 +72,7 @@ function detectarMime(buf: Buffer): 'PNG' | 'JPEG' {
 }
 
 export async function guardarFondoCustom(
-  supabase: SupabaseClient | null,
+  client: AppInsforgeClient | null,
   nivel: number,
   buffer: Buffer,
   contentType: string
@@ -83,14 +83,12 @@ export async function guardarFondoCustom(
     fs.writeFileSync(rutaCustomLocal(nivel), buffer)
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'No se pudo guardar localmente'
-    if (!supabase) return { ok: false, error: msg }
+    if (!client) return { ok: false, error: msg }
   }
 
-  if (supabase) {
-    const { error } = await supabase.storage.from(BUCKET).upload(storagePath(nivel), buffer, {
-      upsert: true,
-      contentType: contentType || 'image/png',
-    })
+  if (client) {
+    const blob = new Blob([buffer], { type: contentType || 'image/png' })
+    const { error } = await client.storage.from(BUCKET).upload(storagePath(nivel), blob)
     if (error) {
       if (fs.existsSync(rutaCustomLocal(nivel))) {
         return { ok: true, via: 'local' }

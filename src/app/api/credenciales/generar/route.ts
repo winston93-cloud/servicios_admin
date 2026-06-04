@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { createInsforgeAdmin } from '@/lib/insforgeAdmin'
 import { generarPdfCredenciales } from '@/lib/credencialesPdf'
 import {
   listarAlumnosCredenciales,
@@ -25,8 +25,8 @@ export async function POST(request: Request) {
 
     let cicloEscolar = Number(body.cicloEscolar)
     if (!cicloEscolar || Number.isNaN(cicloEscolar)) {
-      const supabase = createSupabaseAdmin()
-      const { data: actual } = await supabase
+      const admin = createInsforgeAdmin()
+      const { data: actual } = await admin.database
         .from('ciclos_escolares')
         .select('valor')
         .eq('es_actual', true)
@@ -34,14 +34,15 @@ export async function POST(request: Request) {
       cicloEscolar = actual?.valor ?? numeroCicloEscolarAdmin()
     }
 
-    const supabase = createSupabaseAdmin()
+    const admin = createInsforgeAdmin()
+    const db = admin.database
 
     const personas =
       tipo === 'maestros'
-        ? await listarMaestrosCredenciales(supabase, {
+        ? await listarMaestrosCredenciales(db, {
             nivel: Number(body.nivel) || undefined,
           })
-        : await listarAlumnosCredenciales(supabase, {
+        : await listarAlumnosCredenciales(db, {
             cicloEscolar,
             nivel: Number(body.nivel) || undefined,
             grado: Number(body.grado) || undefined,
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const pdfBuffer = await generarPdfCredenciales(supabase, personas)
+    const pdfBuffer = await generarPdfCredenciales(admin, personas)
 
     return NextResponse.json({
       ok: true,

@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# InsForge CLI (contiene api_key del proyecto)
+.insforge/
+
 # vercel
 .vercel
 
@@ -42,3 +45,18 @@ next-env.d.ts
 
 # exportaciones MySQL (regenerar con scripts/)
 data/*.csv
+
+# InsForge & AI agent skills
+.insforge
+.agent
+.agents
+.augment
+.claude
+.cline
+.github/copilot*
+.kilocode
+.qoder
+.qwen
+.roo
+.trae
+.windsurf

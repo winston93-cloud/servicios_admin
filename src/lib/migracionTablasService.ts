@@ -1,5 +1,5 @@
 import type { RowDataPacket } from 'mysql2'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppDatabaseClient } from '@/lib/dbTypes'
 import { createMysqlLegacyConnection, getMysqlLegacyConfig } from './mysqlLegacy'
 import { createSupabaseAdmin } from './supabaseAdmin'
 import {
@@ -68,7 +68,7 @@ async function leerFilasMysql(
   return [...mapa.values()]
 }
 
-async function supabaseTablaDisponible(sb: SupabaseClient, tabla: string): Promise<boolean> {
+async function supabaseTablaDisponible(sb: AppDatabaseClient, tabla: string): Promise<boolean> {
   const { error } = await sb.from(tabla).select('*').limit(0)
   if (!error) return true
   const msg = error.message?.toLowerCase() ?? ''
@@ -84,7 +84,7 @@ async function supabaseTablaDisponible(sb: SupabaseClient, tabla: string): Promi
 }
 
 async function cargarIdsReferencia(
-  sb: SupabaseClient,
+  sb: AppDatabaseClient,
   tabla: string,
   pk: string
 ): Promise<Set<number>> {
@@ -92,7 +92,7 @@ async function cargarIdsReferencia(
 }
 
 async function upsertLote(
-  sb: SupabaseClient,
+  sb: AppDatabaseClient,
   tabla: string,
   pk: string,
   filas: Record<string, unknown>[]
@@ -102,7 +102,7 @@ async function upsertLote(
 }
 
 async function vaciarTablaPorPk(
-  sb: SupabaseClient,
+  sb: AppDatabaseClient,
   tabla: string,
   pk: string,
   tipo: 'entero' | 'uuid' | 'auto' = 'auto'
@@ -140,12 +140,12 @@ async function vaciarTablaPorPk(
   throw new Error(`No se pudo vaciar ${tabla}: ${error.message}`)
 }
 
-async function vaciarTabla(sb: SupabaseClient, tabla: string, pk: string) {
+async function vaciarTabla(sb: AppDatabaseClient, tabla: string, pk: string) {
   await vaciarTablaPorPk(sb, tabla, pk, 'auto')
 }
 
 /** Vacía tablas auxiliares (FK hacia padre) que no están en el manifiesto MySQL. */
-async function vaciarTablasAuxiliares(sb: SupabaseClient, tablas: string[]) {
+async function vaciarTablasAuxiliares(sb: AppDatabaseClient, tablas: string[]) {
   for (const tabla of tablas) {
     const ok = await supabaseTablaDisponible(sb, tabla)
     if (!ok) continue
@@ -217,7 +217,7 @@ export async function vaciarTablasMigracion(opciones: {
 }
 
 async function eliminarHuérfanos(
-  sb: SupabaseClient,
+  sb: AppDatabaseClient,
   tabla: string,
   pk: string,
   pksOrigen: Set<number>
@@ -235,7 +235,7 @@ async function eliminarHuérfanos(
 }
 
 async function migrarUnaTabla(
-  sb: SupabaseClient,
+  sb: AppDatabaseClient,
   mysql: Awaited<ReturnType<typeof createMysqlLegacyConnection>>,
   def: TablaMigracion,
   modo: ModoMigracion,

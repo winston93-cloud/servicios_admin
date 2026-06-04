@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppDatabaseClient } from '@/lib/dbTypes'
 import {
   calcularAdeudosAlumno,
   cicloLargoDesdeValorCiclo,
@@ -59,7 +59,7 @@ function bloqueInscripcionCiclo(ciclo: number): string[] {
 const PAGOS_PAGE_SIZE = 1000
 
 async function cargarPagosDetalleAlumnos(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   alumnoIds: number[]
 ): Promise<Array<{ alumno_id: number; pago_referencia: string | null; pago_fecha: string | null }>> {
   const filas: Array<{
@@ -88,7 +88,7 @@ async function cargarPagosDetalleAlumnos(
 }
 
 export async function generarListaDeudoresSuspension(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   input: GenerarSuspensionesInput
 ): Promise<GenerarSuspensionesResultado> {
   const { plantel, tipo, cicloEscolar, fechaCartas } = input
@@ -228,7 +228,7 @@ export async function generarListaDeudoresSuspension(
 }
 
 async function cargarProrrogasVigentes(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   alumnoIds: number[]
 ): Promise<Map<number, string>> {
   const mapa = new Map<number, string>()
@@ -257,7 +257,7 @@ async function cargarProrrogasVigentes(
 }
 
 async function cargarEmailsPadres(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   alumnoIds: number[]
 ): Promise<Map<number, string[]>> {
   const mapa = new Map<number, Set<string>>()

@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppInsforgeClient } from '@/lib/dbTypes'
 import jsPDF from 'jspdf'
 import type { PersonaCredencial } from './credencialesService'
 import { resolverFondoCredencial } from './credencialesFondos'
@@ -16,12 +16,12 @@ const CARDS_PER_PAGE = 8
 const fondoCache = new Map<number, { data: string; format: 'PNG' | 'JPEG' }>()
 
 async function fondoDataUrl(
-  supabase: SupabaseClient | null,
+  client: AppInsforgeClient | null,
   nivel: number
 ): Promise<{ data: string; format: 'PNG' | 'JPEG' } | null> {
   if (fondoCache.has(nivel)) return fondoCache.get(nivel)!
 
-  const res = await resolverFondoCredencial(supabase, nivel)
+  const res = await resolverFondoCredencial(client, nivel)
   if (!res) return null
 
   const data = `data:image/${res.mime === 'JPEG' ? 'jpeg' : 'png'};base64,${res.buffer.toString('base64')}`
@@ -35,7 +35,7 @@ function limpiarCacheFondos() {
 }
 
 export async function generarPdfCredenciales(
-  supabase: SupabaseClient | null,
+  client: AppInsforgeClient | null,
   personas: PersonaCredencial[]
 ): Promise<Buffer> {
   limpiarCacheFondos()
@@ -48,7 +48,7 @@ export async function generarPdfCredenciales(
   let c = 0
 
   for (const p of personas) {
-    const fondo = await fondoDataUrl(supabase, p.nivel)
+    const fondo = await fondoDataUrl(client, p.nivel)
     if (!fondo) continue
 
     c++

@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppDatabaseClient } from '@/lib/dbTypes'
 import { numeroCicloEscolarAdmin } from './cicloEscolarAdmin'
 
 export const ARCHIVOS_PAGO_EFECTIVO = ['colegiaturas.txt', 'inscripciones.txt'] as const
@@ -201,7 +201,7 @@ function parsearFilaPago(
 }
 
 async function obtenerAlumnoId(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   alumnoRef: string
 ): Promise<number | null> {
   const refNum = parseInt(alumnoRef, 10)
@@ -216,7 +216,7 @@ async function obtenerAlumnoId(
 }
 
 async function existePagoConFolio(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   alumnoId: number,
   referencia: string,
   fecha: string,
@@ -239,7 +239,7 @@ async function existePagoConFolio(
 }
 
 async function existePagoManual(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   alumnoId: number,
   referenciaParcial9: string
 ): Promise<boolean> {
@@ -258,7 +258,7 @@ async function existePagoManual(
 }
 
 async function actualizarPagoManual(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   alumnoId: number,
   referenciaParcial9: string,
   fila: FilaPagoEfectivoParseada
@@ -286,7 +286,7 @@ async function actualizarPagoManual(
 }
 
 /** pago_id no es SERIAL en Supabase (legacy); hay que asignarlo como en MySQL AUTO_INCREMENT. */
-async function obtenerMaxPagoDetalleId(supabase: SupabaseClient): Promise<number> {
+async function obtenerMaxPagoDetalleId(supabase: AppDatabaseClient): Promise<number> {
   const { data, error } = await supabase
     .from('pago_detalle')
     .select('pago_id')
@@ -302,7 +302,7 @@ async function obtenerMaxPagoDetalleId(supabase: SupabaseClient): Promise<number
 }
 
 async function insertarPago(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   alumnoId: number,
   fila: FilaPagoEfectivoParseada,
   pagoId: number
@@ -332,7 +332,7 @@ async function insertarPago(
 }
 
 async function activarAlumnoPorRef(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   alumnoRef: string
 ): Promise<boolean> {
   const refNum = parseInt(alumnoRef, 10)
@@ -359,7 +359,7 @@ function contarOmision(resumen: ResumenArchivoPagoEfectivo, motivo: MotivoOmisio
 }
 
 export async function procesarArchivoPagoEfectivo(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   archivo: ArchivoPagoEfectivo,
   contenido: string,
   opciones?: { ceActivo?: number; ceSiguiente?: number }
@@ -526,7 +526,7 @@ export async function procesarArchivoPagoEfectivo(
 }
 
 export async function procesarCargaPagosEfectivo(
-  supabase: SupabaseClient,
+  supabase: AppDatabaseClient,
   archivos: { nombre: ArchivoPagoEfectivo; contenido: string }[]
 ): Promise<ResultadoCargaPagosEfectivo> {
   const inicio = Date.now()

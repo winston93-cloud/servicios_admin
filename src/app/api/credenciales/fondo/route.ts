@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { createInsforgeAdmin } from '@/lib/insforgeAdmin'
 import {
   guardarFondoCustom,
   leerFondoCustomBuffer,
@@ -16,8 +16,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'nivel 1-4 requerido' }, { status: 400 })
   }
 
-  const supabase = createSupabaseAdmin()
-  const custom = await leerFondoCustomBuffer(supabase, nivel)
+  const client = createInsforgeAdmin()
+  const custom = await leerFondoCustomBuffer(client, nivel)
   const buf = custom ?? leerFondoDefaultBuffer(nivel)
   if (!buf) {
     return NextResponse.json({ error: 'Sin imagen de fondo' }, { status: 404 })
@@ -52,8 +52,8 @@ export async function POST(request: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer())
-    const supabase = createSupabaseAdmin()
-    const res = await guardarFondoCustom(supabase, nivel, buffer, file.type)
+    const client = createInsforgeAdmin()
+    const res = await guardarFondoCustom(client, nivel, buffer, file.type)
 
     if (!res.ok) {
       return NextResponse.json({ error: res.error }, { status: 500 })

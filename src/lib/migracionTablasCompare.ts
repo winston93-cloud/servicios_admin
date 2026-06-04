@@ -1,5 +1,5 @@
 import type { RowDataPacket } from 'mysql2'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppDatabaseClient } from '@/lib/dbTypes'
 import type { TablaMigracion } from './migracionTablasManifest'
 import {
   CAMPOS_FECHA_HORA,
@@ -161,7 +161,7 @@ export async function leerFilasMysqlAdaptadas(
 }
 
 export async function obtenerPksSupabase(
-  sb: SupabaseClient,
+  sb: AppDatabaseClient,
   tabla: string,
   pk: string
 ): Promise<Set<number>> {
@@ -193,7 +193,7 @@ export async function obtenerPksSupabase(
 }
 
 export async function obtenerFilasSupabasePorPks(
-  sb: SupabaseClient,
+  sb: AppDatabaseClient,
   tabla: string,
   pk: string,
   pks: number[]
