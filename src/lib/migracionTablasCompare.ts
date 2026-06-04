@@ -10,30 +10,102 @@ import {
 import { adaptarFilaParaDestino } from './migracionTablasAdaptadores'
 
 /** Lote por defecto al leer filas completas desde InsForge (evita 502 en tablas grandes). */
-const LOTE_PK_DEFAULT = 75
+const LOTE_PK_DEFAULT = 50
 
 /** Tablas con muchas filas o filas anchas: lotes más pequeños. */
 const LOTE_PK_POR_TABLA: Partial<Record<string, number>> = {
-  pago_detalle: 35,
-  pago_interno: 45,
-  alumno_familiar: 50,
-  alumno_contacto: 50,
-  alumno_detalles: 60,
-  alumno_beca: 60,
-  pago_desayunos: 60,
+  pago_detalle: 20,
+  pago_interno: 25,
+  pago_prorroga: 30,
+  usuario: 30,
+  alumno_familiar: 35,
+  alumno_contacto: 35,
+  alumno_detalles: 45,
+  alumno_beca: 45,
+  pago_desayunos: 45,
 }
+
+/** Filas MySQL por iteración en migración (modo con lectura previa). */
+const LOTE_MIGRACION_POR_TABLA: Partial<Record<string, number>> = {
+  pago_detalle: 40,
+  pago_interno: 50,
+  pago_prorroga: 60,
+  usuario: 60,
+  alumno_familiar: 60,
+  alumno_contacto: 60,
+}
+
+const LOTE_MIGRACION_DEFAULT = 100
+
+/** Mínimo ms entre peticiones al API de InsForge (rate limit por IP). */
+const INTERVALO_PETICION_MS: Partial<Record<string, number>> = {
+  pago_detalle: 520,
+  pago_interno: 480,
+  pago_prorroga: 420,
+  usuario: 420,
+  alumno_familiar: 380,
+  alumno_contacto: 380,
+}
+
+const INTERVALO_PETICION_DEFAULT = 320
+
+let ultimaPeticionDestino = 0
+
+/** Tablas que siempre migran con upsert masivo (sin leer cada lote antes). */
+export const TABLAS_UPSERT_SIN_PRELECTURA = new Set([
+  'pago_detalle',
+  'pago_interno',
+  'pago_prorroga',
+  'usuario',
+  'alumno_familiar',
+  'alumno_contacto',
+])
 
 function tamanoLoteLectura(tabla: string): number {
   return LOTE_PK_POR_TABLA[tabla] ?? LOTE_PK_DEFAULT
+}
+
+export function tamanoLoteMigracion(tabla: string): number {
+  return LOTE_MIGRACION_POR_TABLA[tabla] ?? LOTE_MIGRACION_DEFAULT
+}
+
+function tamanoLoteComparacion(tabla: string): number {
+  return tamanoLoteLectura(tabla)
+}
+
+export { tamanoLoteComparacion }
+
+export function usaUpsertSinPrelectura(tabla: string, filas: number): boolean {
+  if (TABLAS_UPSERT_SIN_PRELECTURA.has(tabla)) return true
+  return filas > 2500
 }
 
 function pausa(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+/** Serializa peticiones para no disparar "Too many requests from this IP". */
+export async function throttlePeticionDestino(tabla: string): Promise<void> {
+  const intervalo = INTERVALO_PETICION_MS[tabla] ?? INTERVALO_PETICION_DEFAULT
+  const ahora = Date.now()
+  const esperar = ultimaPeticionDestino + intervalo - ahora
+  if (esperar > 0) await pausa(esperar)
+  ultimaPeticionDestino = Date.now()
+}
+
+function esRateLimitDestino(mensaje: string): boolean {
+  const m = mensaje.toLowerCase()
+  return (
+    m.includes('too many requests') ||
+    m.includes('rate limit') ||
+    m.includes('429')
+  )
+}
+
 function esErrorTransitorioDestino(mensaje: string): boolean {
   const m = mensaje.toLowerCase()
   return (
+    esRateLimitDestino(mensaje) ||
     m.includes('502') ||
     m.includes('503') ||
     m.includes('504') ||
@@ -45,11 +117,15 @@ function esErrorTransitorioDestino(mensaje: string): boolean {
   )
 }
 
-function tamanoLoteComparacion(tabla: string): number {
-  return tamanoLoteLectura(tabla)
+async function esperaReintentoDestino(mensaje: string, intento: number): Promise<void> {
+  if (esRateLimitDestino(mensaje)) {
+    await pausa(Math.min(90_000, 12_000 * intento))
+    return
+  }
+  await pausa(600 * intento)
 }
 
-export { tamanoLoteComparacion }
+const MAX_REINTENTOS_DESTINO = 6
 
 function esFechaMysqlInvalidaTexto(texto: string): boolean {
   const s = texto.trim()
@@ -207,16 +283,37 @@ export async function obtenerPksDestino(
 ): Promise<Set<number>> {
   const ids = new Set<number>()
   let desde = 0
-  const pagina = 1000
+  const pagina = TABLAS_UPSERT_SIN_PRELECTURA.has(tabla) ? 400 : 800
 
   while (true) {
-    const { data, error } = await sb
-      .from(tabla)
-      .select(pk)
-      .order(pk, { ascending: true })
-      .range(desde, desde + pagina - 1)
+    await throttlePeticionDestino(tabla)
 
-    if (error) throw new Error(`No se pudieron leer PK de ${tabla}: ${error.message}`)
+    let data: unknown[] | null = null
+    let ultimoError: Error | null = null
+
+    for (let intento = 1; intento <= MAX_REINTENTOS_DESTINO; intento++) {
+      const res = await sb
+        .from(tabla)
+        .select(pk)
+        .order(pk, { ascending: true })
+        .range(desde, desde + pagina - 1)
+
+      if (!res.error) {
+        data = res.data
+        ultimoError = null
+        break
+      }
+
+      const msg = res.error.message ?? String(res.error)
+      ultimoError = new Error(`No se pudieron leer PK de ${tabla}: ${msg}`)
+      if (!esErrorTransitorioDestino(msg) || intento === MAX_REINTENTOS_DESTINO) {
+        throw ultimoError
+      }
+      await esperaReintentoDestino(msg, intento)
+      await throttlePeticionDestino(tabla)
+    }
+
+    if (ultimoError) throw ultimoError
     if (!data?.length) break
 
     for (const row of data) {
@@ -240,13 +337,13 @@ export async function obtenerFilasDestinoPorPks(
 ): Promise<Map<number, Record<string, unknown>>> {
   const mapa = new Map<number, Record<string, unknown>>()
   const lote = tamanoLoteLectura(tabla)
-  const maxIntentos = 4
 
   for (let i = 0; i < pks.length; i += lote) {
     const slice = pks.slice(i, i + lote)
     let ultimoError: Error | null = null
 
-    for (let intento = 1; intento <= maxIntentos; intento++) {
+    for (let intento = 1; intento <= MAX_REINTENTOS_DESTINO; intento++) {
+      await throttlePeticionDestino(tabla)
       const { data, error } = await sb.from(tabla).select('*').in(pk, slice)
       if (!error) {
         for (const row of data ?? []) {
@@ -259,17 +356,13 @@ export async function obtenerFilasDestinoPorPks(
 
       const msg = error.message ?? String(error)
       ultimoError = new Error(`${tabla} lectura lote: ${msg}`)
-      if (!esErrorTransitorioDestino(msg) || intento === maxIntentos) {
+      if (!esErrorTransitorioDestino(msg) || intento === MAX_REINTENTOS_DESTINO) {
         throw ultimoError
       }
-      await pausa(500 * intento)
+      await esperaReintentoDestino(msg, intento)
     }
 
     if (ultimoError) throw ultimoError
-
-    if (i + lote < pks.length) {
-      await pausa(80)
-    }
   }
   return mapa
 }

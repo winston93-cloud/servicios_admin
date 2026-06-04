@@ -10,7 +10,8 @@ import {
 } from '@/lib/migracionTablasManifest'
 
 export const runtime = 'nodejs'
-export const maxDuration = 300
+/** Tablas grandes (pago_detalle) con throttle pueden tardar varios minutos. */
+export const maxDuration = 800
 
 function autorizado(request: Request): boolean {
   const secreto = process.env.MIGRACION_SECRET?.trim()

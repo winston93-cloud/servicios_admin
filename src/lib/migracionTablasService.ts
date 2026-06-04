@@ -14,10 +14,26 @@ import {
   leerFilasMysqlAdaptadas,
   obtenerFilasDestinoPorPks,
   obtenerPksDestino,
+  tamanoLoteMigracion,
+  throttlePeticionDestino,
+  usaUpsertSinPrelectura,
 } from './migracionTablasCompare'
 
-const LOTE = 200
-const LOTE_PK = 500
+const LOTE_ELIMINAR_PK = 80
+
+/** Upserts masivos (menos peticiones que lectura fila a fila). */
+const LOTE_UPSERT_MASIVO: Partial<Record<string, number>> = {
+  pago_detalle: 100,
+  pago_interno: 120,
+  pago_prorroga: 150,
+  usuario: 150,
+  alumno_familiar: 120,
+  alumno_contacto: 120,
+}
+
+function loteUpsertMasivo(tabla: string): number {
+  return LOTE_UPSERT_MASIVO[tabla] ?? 150
+}
 
 export type ModoMigracion = 'espejo' | 'solo_upsert' | 'vaciar_copiar'
 
@@ -96,8 +112,27 @@ async function upsertLote(
   pk: string,
   filas: Record<string, unknown>[]
 ) {
-  const { error } = await sb.from(tabla).upsert(filas, { onConflict: pk })
-  if (error) throw new Error(`${tabla} upsert: ${mensajeErrorDestino(error)}`)
+  if (!filas.length) return
+
+  let ultimoError: Error | null = null
+  for (let intento = 1; intento <= 6; intento++) {
+    await throttlePeticionDestino(tabla)
+    const { error } = await sb.from(tabla).upsert(filas, { onConflict: pk })
+    if (!error) return
+
+    const msg = mensajeErrorDestino(error)
+    ultimoError = new Error(`${tabla} upsert: ${msg}`)
+    const transitorio =
+      msg.toLowerCase().includes('too many requests') ||
+      msg.includes('502') ||
+      msg.includes('503') ||
+      msg.includes('504') ||
+      msg.includes('429')
+    if (!transitorio || intento === 6) throw ultimoError
+    const espera = msg.toLowerCase().includes('too many requests') ? 12_000 * intento : 800 * intento
+    await new Promise((r) => setTimeout(r, Math.min(90_000, espera)))
+  }
+  if (ultimoError) throw ultimoError
 }
 
 async function vaciarTablaPorPk(
@@ -219,8 +254,9 @@ async function eliminarHuérfanos(
   const aEliminar = [...pksDestino].filter((id) => !pksOrigen.has(id))
   if (aEliminar.length === 0) return 0
 
-  for (let i = 0; i < aEliminar.length; i += LOTE_PK) {
-    const slice = aEliminar.slice(i, i + LOTE_PK)
+  for (let i = 0; i < aEliminar.length; i += LOTE_ELIMINAR_PK) {
+    const slice = aEliminar.slice(i, i + LOTE_ELIMINAR_PK)
+    await throttlePeticionDestino(tabla)
     const { error } = await sb.from(tabla).delete().in(pk, slice)
     if (error) throw new Error(`${tabla} eliminar huérfanos: ${error.message}`)
   }
@@ -281,6 +317,9 @@ async function migrarUnaTabla(
     }
   }
 
+  const lote = tamanoLoteMigracion(def.destino)
+  const sinPrelectura = usaUpsertSinPrelectura(def.destino, filas.length)
+
   if (modo === 'vaciar_copiar') {
     if (!opciones?.omitirVaciar) {
       const auxiliares = TABLAS_VACIAR_ANTES[def.id]
@@ -289,8 +328,8 @@ async function migrarUnaTabla(
       }
       await vaciarTabla(sb, def.destino, pk)
     }
-    for (let i = 0; i < filas.length; i += LOTE) {
-      await upsertLote(sb, def.destino, pk, filas.slice(i, i + LOTE))
+    for (let i = 0; i < filas.length; i += lote) {
+      await upsertLote(sb, def.destino, pk, filas.slice(i, i + lote))
     }
     base.insertados = filas.length
     return base
@@ -302,31 +341,41 @@ async function migrarUnaTabla(
     if (!Number.isNaN(id)) pksOrigen.add(id)
   }
 
-  for (let i = 0; i < filas.length; i += LOTE) {
-    const lote = filas.slice(i, i + LOTE)
-    const pksLote = lote
-      .map((f) => Number(f[pk]))
-      .filter((id) => !Number.isNaN(id))
-
-    const existentes = await obtenerFilasDestinoPorPks(sb, def.destino, pk, pksLote)
-    const aUpsert: Record<string, unknown>[] = []
-
-    for (const fila of lote) {
-      const id = Number(fila[pk])
-      const prev = existentes.get(id)
-      if (!prev) {
-        base.insertados++
-        aUpsert.push(fila)
-      } else if (filasIguales(fila, prev)) {
-        base.sinCambios++
-      } else {
-        base.actualizados++
-        aUpsert.push(fila)
-      }
+  if (sinPrelectura) {
+    const loteUpsert = loteUpsertMasivo(def.destino)
+    for (let i = 0; i < filas.length; i += loteUpsert) {
+      await upsertLote(sb, def.destino, pk, filas.slice(i, i + loteUpsert))
     }
+    base.insertados = filas.length
+    base.mensaje =
+      'Upsert masivo sin lectura previa (tabla grande; evita rate limit de InsForge). Usa Verificar espejo para auditar.'
+  } else {
+    for (let i = 0; i < filas.length; i += lote) {
+      const loteFilas = filas.slice(i, i + lote)
+      const pksLote = loteFilas
+        .map((f) => Number(f[pk]))
+        .filter((id) => !Number.isNaN(id))
 
-    if (aUpsert.length > 0) {
-      await upsertLote(sb, def.destino, pk, aUpsert)
+      const existentes = await obtenerFilasDestinoPorPks(sb, def.destino, pk, pksLote)
+      const aUpsert: Record<string, unknown>[] = []
+
+      for (const fila of loteFilas) {
+        const id = Number(fila[pk])
+        const prev = existentes.get(id)
+        if (!prev) {
+          base.insertados++
+          aUpsert.push(fila)
+        } else if (filasIguales(fila, prev)) {
+          base.sinCambios++
+        } else {
+          base.actualizados++
+          aUpsert.push(fila)
+        }
+      }
+
+      if (aUpsert.length > 0) {
+        await upsertLote(sb, def.destino, pk, aUpsert)
+      }
     }
   }
 
