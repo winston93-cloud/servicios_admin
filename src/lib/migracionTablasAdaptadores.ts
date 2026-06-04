@@ -2,6 +2,46 @@ import type { TablaMigracion } from './migracionTablasManifest'
 
 const FECHA_FALLBACK = '1970-01-01T00:00:00.000Z'
 
+/**
+ * Columnas NOT NULL en InsForge que en MySQL pueden venir NULL o vacías.
+ * Misma regla que scripts/migrate-supabase-to-insforge.mjs (espacio o valor fijo).
+ */
+const DEFAULTS_NOT_NULL_DESTINO: Partial<
+  Record<string, Record<string, string>>
+> = {
+  alumno: {
+    secret_key: ' ',
+    motivo: ' ',
+    responsable: ' ',
+  },
+  pago_detalle: {
+    facturo: ' ',
+    fact: ' ',
+    pago_nombre: ' ',
+    pago_forma: ' ',
+    pago_folio: ' ',
+    pago_hora: ' ',
+    pago_emisora: ' ',
+    pago_referencia: '000000000000',
+  },
+}
+
+function aplicarDefaultsNotNull(
+  tabla: string,
+  fila: Record<string, unknown>
+): Record<string, unknown> {
+  const defaults = DEFAULTS_NOT_NULL_DESTINO[tabla]
+  if (!defaults) return fila
+  const out = { ...fila }
+  for (const [col, valorDefecto] of Object.entries(defaults)) {
+    const v = out[col]
+    if (v === null || v === undefined || (typeof v === 'string' && v.trim() === '')) {
+      out[col] = valorDefecto
+    }
+  }
+  return out
+}
+
 function claveNormalizada(key: string): string {
   const k = key.trim()
   const lower = k.toLowerCase()
@@ -104,7 +144,8 @@ export function adaptarFilaParaDestino(
     }
   }
 
-  return filtrarColumnas(out, COLUMNAS_DESTINO[def.destino])
+  const filtrada = filtrarColumnas(out, COLUMNAS_DESTINO[def.destino])
+  return aplicarDefaultsNotNull(def.destino, filtrada)
 }
 
 export function mensajeErrorDestino(error: unknown): string {
