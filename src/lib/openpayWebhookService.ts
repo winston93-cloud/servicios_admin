@@ -12,7 +12,13 @@ export interface ResultadoWebhookOpenpay {
   tipo?: string
 }
 
-async function registrarLog(
+function esDuplicatePk(error: { message?: string; code?: string }): boolean {
+  const msg = (error.message ?? '').toLowerCase()
+  return error.code === '23505' || msg.includes('duplicate key')
+}
+
+/** Auditoría de webhooks OpenPay (no bloquea el flujo si falla el insert). */
+export async function registrarLogWebhookOpenpay(
   supabase: AppDatabaseClient,
   cuenta: OpenpayCuenta,
   tipo: string,
@@ -30,7 +36,14 @@ async function registrarLog(
     mensaje,
     payload: payload as Record<string, unknown>,
   })
-  if (error) console.error('openpay_webhook_log:', error.message)
+  if (!error) return
+  if (esDuplicatePk(error)) {
+    console.warn(
+      'openpay_webhook_log: secuencia id desfasada (tras migración). Ejecuta sql/insforge_fix_serial_sequences.sql en InsForge.'
+    )
+    return
+  }
+  console.error('openpay_webhook_log:', error.message)
 }
 
 async function guardarCodigoVerificacion(
@@ -210,7 +223,7 @@ export async function procesarWebhookOpenpay(
           return { ok: false, mensaje: 'verification sin código', tipo }
         }
         await guardarCodigoVerificacion(supabase, cuenta, codigo)
-        await registrarLog(supabase, cuenta, tipo, true, `Código: ${codigo}`, payloadCrudo)
+        await registrarLogWebhookOpenpay(supabase, cuenta, tipo, true, `Código: ${codigo}`, payloadCrudo)
         return {
           ok: true,
           mensaje: `Código de verificación guardado (${cuenta})`,
@@ -221,7 +234,7 @@ export async function procesarWebhookOpenpay(
       case 'charge.succeeded':
       case 'spei.received': {
         const res = await procesarChargeSucceeded(supabase, cuenta, evento, tipo)
-        await registrarLog(supabase, cuenta, tipo, res.ok, res.mensaje, payloadCrudo, {
+        await registrarLogWebhookOpenpay(supabase, cuenta, tipo, res.ok, res.mensaje, payloadCrudo, {
           referencia: evento.transaction?.order_id,
           transaction_id: evento.transaction?.id,
         })
@@ -234,7 +247,7 @@ export async function procesarWebhookOpenpay(
           tipo === 'charge.failed'
             ? `Pago fallido: ${evento.transaction?.error_message ?? 'sin detalle'}`
             : 'Cargo creado (pendiente de liquidación)'
-        await registrarLog(supabase, cuenta, tipo, true, msg, payloadCrudo, {
+        await registrarLogWebhookOpenpay(supabase, cuenta, tipo, true, msg, payloadCrudo, {
           referencia: evento.transaction?.order_id,
           transaction_id: evento.transaction?.id,
         })
@@ -242,13 +255,13 @@ export async function procesarWebhookOpenpay(
       }
 
       default: {
-        await registrarLog(supabase, cuenta, tipo, true, 'Evento no manejado', payloadCrudo)
+        await registrarLogWebhookOpenpay(supabase, cuenta, tipo, true, 'Evento no manejado', payloadCrudo)
         return { ok: true, mensaje: `Evento no manejado: ${tipo}`, tipo }
       }
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al procesar webhook'
-    await registrarLog(supabase, cuenta, tipo, false, msg, payloadCrudo)
+    await registrarLogWebhookOpenpay(supabase, cuenta, tipo, false, msg, payloadCrudo)
     return { ok: false, mensaje: msg, tipo }
   }
 }

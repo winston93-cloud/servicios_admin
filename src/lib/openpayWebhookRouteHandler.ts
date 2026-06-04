@@ -7,7 +7,10 @@ import {
   parsearEventoOpenpay,
   validarFirmaOpenpayConClaves,
 } from './openpayWebhookCore'
-import { procesarWebhookOpenpay } from './openpayWebhookService'
+import {
+  procesarWebhookOpenpay,
+  registrarLogWebhookOpenpay,
+} from './openpayWebhookService'
 import {
   obtenerConfigOpenpayPorCuenta,
   type OpenpayCuenta,
@@ -49,17 +52,18 @@ export async function manejarPostWebhookOpenpay(
       console.error(`webhook openpay/${cuenta}: firma inválida (estricto)`)
       try {
         const supabase = createSupabaseAdmin()
-        await supabase.from('openpay_webhook_log').insert({
+        await registrarLogWebhookOpenpay(
+          supabase,
           cuenta,
-          tipo_evento: 'signature.invalid',
-          ok: false,
-          mensaje: 'Firma inválida',
-          payload: {
+          'signature.invalid',
+          false,
+          'Firma inválida',
+          {
             signaturePresent: Boolean(signature),
             type: evento.type,
             keysProbadas: secretKeys.length,
-          },
-        })
+          }
+        )
       } catch {
         /* ignore log failure */
       }
