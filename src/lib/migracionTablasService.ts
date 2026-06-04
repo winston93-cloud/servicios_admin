@@ -10,8 +10,10 @@ import {
 } from './migracionTablasManifest'
 import { mensajeErrorDestino } from './migracionTablasAdaptadores'
 import {
+  cargarPksMysql,
   filasIguales,
   leerFilasMysqlAdaptadas,
+  leerFilasMysqlAdaptadasPagina,
   obtenerFilasDestinoPorPks,
   obtenerPksDestino,
   tamanoLoteMigracion,
@@ -50,6 +52,8 @@ export interface ResultadoTablaMigracion {
   actualizados: number
   sinCambios: number
   eliminados: number
+  hayMasFilas?: boolean
+  siguienteOffset?: number
 }
 
 export interface ResultadoMigracionTablas {
@@ -59,6 +63,8 @@ export interface ResultadoMigracionTablas {
   mysql: { host: string; database: string; port: number }
   tablas: ResultadoTablaMigracion[]
   erroresGlobales: string[]
+  hayMasFilas?: boolean
+  siguienteOffset?: number
 }
 
 async function tablaExisteEnMysql(
@@ -268,7 +274,13 @@ async function migrarUnaTabla(
   mysql: Awaited<ReturnType<typeof createMysqlLegacyConnection>>,
   def: TablaMigracion,
   modo: ModoMigracion,
-  opciones?: { omitirVaciar?: boolean }
+  opciones?: {
+    omitirVaciar?: boolean
+    offsetFilas?: number
+    limiteFilas?: number
+    omitirHuérfanos?: boolean
+    soloHuérfanos?: boolean
+  }
 ): Promise<ResultadoTablaMigracion> {
   const base: ResultadoTablaMigracion = {
     id: def.id,
@@ -304,7 +316,35 @@ async function migrarUnaTabla(
 
   const pk = def.pk
 
-  let filas = await leerFilasMysql(mysql, def.mysql, def)
+  if (opciones?.soloHuérfanos) {
+    if (modo !== 'espejo') {
+      return { ...base, mensaje: 'Limpieza de huérfanos solo aplica en modo espejo' }
+    }
+    const pksOrigen = await cargarPksMysql(mysql, def)
+    base.eliminados = await eliminarHuérfanos(sb, def.destino, pk, pksOrigen)
+    base.mensaje = `${base.eliminados} huérfano(s) eliminado(s) en InsForge`
+    return base
+  }
+
+  let filas: Record<string, unknown>[]
+  let hayMasChunk = false
+
+  if (opciones?.limiteFilas != null && opciones.limiteFilas > 0) {
+    const offset = opciones.offsetFilas ?? 0
+    const pagina = await leerFilasMysqlAdaptadasPagina(
+      mysql,
+      def,
+      offset,
+      opciones.limiteFilas
+    )
+    filas = pagina.filas
+    hayMasChunk = pagina.hayMas
+    base.hayMasFilas = hayMasChunk
+    base.siguienteOffset = offset + filas.length
+  } else {
+    filas = await leerFilasMysql(mysql, def.mysql, def)
+  }
+
   base.origen = filas.length
 
   if (def.id === 'pago_interno_precio') {
@@ -379,8 +419,11 @@ async function migrarUnaTabla(
     }
   }
 
-  if (modo === 'espejo') {
+  if (modo === 'espejo' && !opciones?.omitirHuérfanos && !hayMasChunk) {
     base.eliminados = await eliminarHuérfanos(sb, def.destino, pk, pksOrigen)
+  } else if (modo === 'espejo' && hayMasChunk) {
+    const parte = (base.mensaje ? `${base.mensaje} · ` : '') + 'Trozo de datos (huérfanos al final)'
+    base.mensaje = parte
   }
 
   return base
@@ -391,6 +434,10 @@ export async function ejecutarMigracionTablas(opciones: {
   tablas?: string[]
   /** En vaciar_copiar: 'vaciar' solo borra (hijos→padres); 'copiar' solo inserta. */
   faseVaciarCopiar?: 'vaciar' | 'copiar'
+  offsetFilas?: number
+  limiteFilas?: number
+  /** Tras todos los trozos en espejo: eliminar PKs que no están en MySQL. */
+  soloHuérfanos?: boolean
 }): Promise<ResultadoMigracionTablas> {
   const inicio = Date.now()
   const cfg = getMysqlLegacyConfig()
@@ -443,9 +490,16 @@ export async function ejecutarMigracionTablas(opciones: {
 
     for (const def of aMigrar) {
       try {
+        const omitirHuérfanos =
+          opciones.limiteFilas != null && !opciones.soloHuérfanos
+
         tablas.push(
           await migrarUnaTabla(sb, mysql, def, modo, {
             omitirVaciar: omitirVaciarEnTabla,
+            offsetFilas: opciones.offsetFilas,
+            limiteFilas: opciones.limiteFilas,
+            omitirHuérfanos,
+            soloHuérfanos: opciones.soloHuérfanos,
           })
         )
       } catch (e) {
@@ -471,6 +525,8 @@ export async function ejecutarMigracionTablas(opciones: {
     await mysql.end()
   }
 
+  const ultima = tablas[tablas.length - 1]
+
   return {
     ok: erroresGlobales.length === 0,
     duracionMs: Date.now() - inicio,
@@ -478,6 +534,8 @@ export async function ejecutarMigracionTablas(opciones: {
     mysql: { host: cfg.host, database: cfg.database, port: cfg.port },
     tablas,
     erroresGlobales,
+    hayMasFilas: ultima?.hayMasFilas,
+    siguienteOffset: ultima?.siguienteOffset,
   }
 }
 

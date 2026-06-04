@@ -80,6 +80,20 @@ export function usaUpsertSinPrelectura(tabla: string, filas: number): boolean {
   return filas > 2500
 }
 
+/** Filas MySQL por petición HTTP (evita timeout 300 s en Vercel Hobby). */
+const CHUNK_MIGRACION_POR_TABLA: Partial<Record<string, number>> = {
+  pago_detalle: 2000,
+  pago_interno: 2500,
+  pago_prorroga: 3000,
+  usuario: 3000,
+  alumno_familiar: 2500,
+  alumno_contacto: 2500,
+}
+
+export function tamanoChunkMigracion(tabla: string): number | null {
+  return CHUNK_MIGRACION_POR_TABLA[tabla] ?? null
+}
+
 function pausa(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
@@ -263,7 +277,7 @@ export function camposDistintosEntreFilas(
 }
 
 export async function leerFilasMysqlAdaptadas(
-  mysql: { query: (sql: string) => Promise<[RowDataPacket[], unknown]> },
+  mysql: { query: (sql: string, values?: unknown[]) => Promise<[RowDataPacket[], unknown]> },
   def: TablaMigracion
 ): Promise<Map<number, Record<string, unknown>>> {
   const [resultado] = await mysql.query(`SELECT * FROM \`${def.mysql}\``)
@@ -274,6 +288,54 @@ export async function leerFilasMysqlAdaptadas(
     if (!Number.isNaN(id)) mapa.set(id, row)
   }
   return mapa
+}
+
+export async function leerFilasMysqlAdaptadasPagina(
+  mysql: { query: (sql: string, values?: unknown[]) => Promise<[RowDataPacket[], unknown]> },
+  def: TablaMigracion,
+  offset: number,
+  limite: number
+): Promise<{ filas: Record<string, unknown>[]; hayMas: boolean }> {
+  const pk = def.pk
+  const [resultado] = await mysql.query(
+    `SELECT * FROM \`${def.mysql}\` ORDER BY \`${pk}\` ASC LIMIT ? OFFSET ?`,
+    [limite + 1, offset]
+  )
+  const raw = resultado as RowDataPacket[]
+  const hayMas = raw.length > limite
+  const slice = hayMas ? raw.slice(0, limite) : raw
+  const filas: Record<string, unknown>[] = []
+  for (const f of slice) {
+    filas.push(adaptarFilaParaDestino(def, serializarFilaMysql(f)))
+  }
+  return { filas, hayMas }
+}
+
+export async function cargarPksMysql(
+  mysql: { query: (sql: string, values?: unknown[]) => Promise<[RowDataPacket[], unknown]> },
+  def: TablaMigracion
+): Promise<Set<number>> {
+  const pk = def.pk
+  const ids = new Set<number>()
+  let offset = 0
+  const pagina = 8000
+
+  while (true) {
+    const [resultado] = await mysql.query(
+      `SELECT \`${pk}\` FROM \`${def.mysql}\` ORDER BY \`${pk}\` ASC LIMIT ? OFFSET ?`,
+      [pagina, offset]
+    )
+    const rows = resultado as RowDataPacket[]
+    if (!rows.length) break
+    for (const f of rows) {
+      const id = Number(f[pk])
+      if (!Number.isNaN(id)) ids.add(id)
+    }
+    if (rows.length < pagina) break
+    offset += pagina
+  }
+
+  return ids
 }
 
 export async function obtenerPksDestino(

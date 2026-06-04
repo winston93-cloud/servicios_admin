@@ -67,6 +67,9 @@ export async function POST(request: Request) {
   let modo: ModoMigracion = 'espejo'
   let tablas: string[] | undefined
   let faseVaciarCopiar: 'vaciar' | 'copiar' | undefined
+  let offsetFilas: number | undefined
+  let limiteFilas: number | undefined
+  let soloHuérfanos = false
 
   try {
     const body = await request.json()
@@ -77,6 +80,15 @@ export async function POST(request: Request) {
     if (body?.faseVaciarCopiar === 'vaciar' || body?.faseVaciarCopiar === 'copiar') {
       faseVaciarCopiar = body.faseVaciarCopiar
     }
+    if (typeof body?.offsetFilas === 'number' && body.offsetFilas >= 0) {
+      offsetFilas = body.offsetFilas
+    }
+    if (typeof body?.limiteFilas === 'number' && body.limiteFilas > 0) {
+      limiteFilas = body.limiteFilas
+    }
+    if (body?.soloHuérfanos === true) {
+      soloHuérfanos = true
+    }
     // Compatibilidad API anterior
     if (typeof body?.vaciarDestino === 'boolean') {
       modo = body.vaciarDestino ? 'vaciar_copiar' : 'solo_upsert'
@@ -86,7 +98,14 @@ export async function POST(request: Request) {
   }
 
   try {
-    const resultado = await ejecutarMigracionTablas({ modo, tablas, faseVaciarCopiar })
+    const resultado = await ejecutarMigracionTablas({
+      modo,
+      tablas,
+      faseVaciarCopiar,
+      offsetFilas,
+      limiteFilas,
+      soloHuérfanos,
+    })
     return NextResponse.json(resultado)
   } catch (e) {
     const mensaje = e instanceof Error ? e.message : 'Error desconocido'

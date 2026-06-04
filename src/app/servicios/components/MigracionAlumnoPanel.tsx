@@ -42,6 +42,8 @@ import type {
 import MigracionConfirmModal, {
   type TipoConfirmacionMigracion,
 } from '@/app/servicios/components/MigracionConfirmModal'
+import { parsearRespuestaMigracion } from '@/lib/migracionFetch'
+import { tamanoChunkMigracion } from '@/lib/migracionTablasCompare'
 
 interface EstadoConfig {
   listo: boolean
@@ -135,8 +137,10 @@ export default function MigracionAlumnoPanel() {
 
   useEffect(() => {
     fetch('/api/migracion-tablas')
-      .then((r) => r.json())
-      .then((d) => setConfig(d as EstadoConfig))
+      .then(async (r) => {
+        const { data } = await parsearRespuestaMigracion<EstadoConfig>(r)
+        setConfig(data)
+      })
       .catch(() => setConfig({ listo: false, requiereSecreto: false, mysql: null }))
   }, [])
 
@@ -241,11 +245,12 @@ export default function MigracionAlumnoPanel() {
             tablas: [...seleccion],
           }),
         })
-        const dataVaciar = (await resVaciar.json()) as ResultadoMigracionTablas & {
-          error?: string
-        }
+        const { data: dataVaciar, ok: okVaciar } =
+          await parsearRespuestaMigracion<ResultadoMigracionTablas & { error?: string }>(
+            resVaciar
+          )
 
-        if (!resVaciar.ok) {
+        if (!okVaciar) {
           throw new Error(dataVaciar.error ?? resVaciar.statusText)
         }
         if (dataVaciar.erroresGlobales?.length) {
@@ -266,26 +271,110 @@ export default function MigracionAlumnoPanel() {
             : prev
         )
 
-        const res = await fetch('/api/migracion-tablas', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
+        const chunkSize = tamanoChunkMigracion(def.destino)
+        let fila: ResultadoTablaMigracion | undefined
+        let estadoFila: EstadoFilaProgreso = 'ok'
+
+        const postMigracion = async (body: Record<string, unknown>) => {
+          const res = await fetch('/api/migracion-tablas', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(body),
+          })
+          const { data, ok } = await parsearRespuestaMigracion<
+            ResultadoMigracionTablas & { error?: string }
+          >(res)
+          if (!ok) throw new Error(data.error ?? res.statusText)
+          return data
+        }
+
+        if (!chunkSize) {
+          const data = await postMigracion({
             modo,
             faseVaciarCopiar: modo === 'vaciar_copiar' ? 'copiar' : undefined,
             tablas: [def.id],
-          }),
-        })
-        const data = (await res.json()) as ResultadoMigracionTablas & { error?: string }
+          })
+          if (data.mysql) mysqlMeta = data.mysql
+          if (data.tablas?.length) tablasAcumuladas.push(...data.tablas)
+          if (data.erroresGlobales?.length) erroresGlobales.push(...data.erroresGlobales)
+          fila = data.tablas?.[0]
+          estadoFila =
+            fila?.estado === 'error' ? 'error' : fila?.estado === 'omitida' ? 'omitida' : 'ok'
+        } else {
+          let offset = 0
+          let trozo = 0
+          const trozos: ResultadoTablaMigracion[] = []
 
-        if (!res.ok) throw new Error(data.error ?? res.statusText)
+          while (true) {
+            trozo++
+            setProgreso((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    tablaActualEtiqueta: `${def.etiqueta} (trozo ${trozo})`,
+                  }
+                : prev
+            )
 
-        if (data.mysql) mysqlMeta = data.mysql
-        if (data.tablas?.length) tablasAcumuladas.push(...data.tablas)
-        if (data.erroresGlobales?.length) erroresGlobales.push(...data.erroresGlobales)
+            const data = await postMigracion({
+              modo,
+              faseVaciarCopiar: modo === 'vaciar_copiar' ? 'copiar' : undefined,
+              tablas: [def.id],
+              offsetFilas: offset,
+              limiteFilas: chunkSize,
+            })
 
-        const fila = data.tablas?.[0]
-        const estadoFila: EstadoFilaProgreso =
-          fila?.estado === 'error' ? 'error' : fila?.estado === 'omitida' ? 'omitida' : 'ok'
+            if (data.mysql) mysqlMeta = data.mysql
+            if (data.erroresGlobales?.length) erroresGlobales.push(...data.erroresGlobales)
+            if (data.tablas?.[0]) trozos.push(data.tablas[0])
+
+            if (!data.hayMasFilas) break
+            offset = data.siguienteOffset ?? offset + chunkSize
+          }
+
+          if (modo === 'espejo' && trozos.length > 0) {
+            setProgreso((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    tablaActualEtiqueta: `${def.etiqueta} (limpiar huérfanos)`,
+                  }
+                : prev
+            )
+            const dataH = await postMigracion({
+              modo: 'espejo',
+              tablas: [def.id],
+              soloHuérfanos: true,
+            })
+            if (dataH.erroresGlobales?.length) erroresGlobales.push(...dataH.erroresGlobales)
+            const eliminados = dataH.tablas?.[0]?.eliminados ?? 0
+            fila = {
+              ...trozos[trozos.length - 1],
+              origen: trozos.reduce((s, t) => s + t.origen, 0),
+              insertados: trozos.reduce((s, t) => s + t.insertados, 0),
+              actualizados: trozos.reduce((s, t) => s + t.actualizados, 0),
+              sinCambios: trozos.reduce((s, t) => s + t.sinCambios, 0),
+              eliminados,
+              mensaje: `${trozos.length} trozo(s) · ${eliminados} huérfano(s) eliminados`,
+            }
+          } else if (trozos.length > 0) {
+            fila = {
+              ...trozos[trozos.length - 1],
+              origen: trozos.reduce((s, t) => s + t.origen, 0),
+              insertados: trozos.reduce((s, t) => s + t.insertados, 0),
+              actualizados: trozos.reduce((s, t) => s + t.actualizados, 0),
+              sinCambios: trozos.reduce((s, t) => s + t.sinCambios, 0),
+              eliminados: trozos.reduce((s, t) => s + t.eliminados, 0),
+              mensaje: `Migración en ${trozos.length} trozo(s)`,
+            }
+          }
+
+          if (fila) {
+            tablasAcumuladas.push(fila)
+            estadoFila =
+              fila.estado === 'error' ? 'error' : fila.estado === 'omitida' ? 'omitida' : 'ok'
+          }
+        }
 
         setProgreso((prev) =>
           prev
@@ -372,9 +461,11 @@ export default function MigracionAlumnoPanel() {
           headers,
           body: JSON.stringify({ tablas: [def.id] }),
         })
-        const data = (await res.json()) as ResultadoVerificacionEspejo & { error?: string }
+        const { data, ok } = await parsearRespuestaMigracion<
+          ResultadoVerificacionEspejo & { error?: string }
+        >(res)
 
-        if (!res.ok) throw new Error(data.error ?? res.statusText)
+        if (!ok) throw new Error(data.error ?? res.statusText)
 
         if (data.mysql) mysqlMeta = data.mysql
         if (data.tablas?.length) tablasAcumuladas.push(...data.tablas)
