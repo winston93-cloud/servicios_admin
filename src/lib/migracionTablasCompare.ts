@@ -146,6 +146,9 @@ async function esperaReintentoDestino(mensaje: string, intento: number): Promise
 
 const MAX_REINTENTOS_DESTINO = 6
 
+/** Tope por petición en InsForge/PostgREST (si pides más, devuelve 1000 y el bucle cortaba mal). */
+const PAGINA_MAX_INSFORGE = 1000
+
 function esFechaMysqlInvalidaTexto(texto: string): boolean {
   const s = texto.trim()
   return !s || s.startsWith('0000-00-00') || /-00/.test(s)
@@ -351,13 +354,14 @@ export async function obtenerPksDestino(
 ): Promise<Set<number>> {
   const ids = new Set<number>()
   let desde = 0
-  const pagina = opciones?.ligero
+  const paginaSolicitada = opciones?.ligero
     ? TABLAS_UPSERT_SIN_PRELECTURA.has(tabla)
-      ? 3000
-      : 1500
-    : TABLAS_UPSERT_SIN_PRELECTURA.has(tabla)
-      ? 400
+      ? 1000
       : 800
+    : TABLAS_UPSERT_SIN_PRELECTURA.has(tabla)
+      ? 500
+      : 800
+  const pagina = Math.min(paginaSolicitada, PAGINA_MAX_INSFORGE)
 
   while (true) {
     if (!opciones?.ligero) {
@@ -400,8 +404,9 @@ export async function obtenerPksDestino(
       if (!Number.isNaN(id)) ids.add(id)
     }
 
-    if (data.length < pagina) break
-    desde += pagina
+    const filasLeidas = data.length
+    desde += filasLeidas
+    if (filasLeidas < pagina) break
   }
 
   return ids
