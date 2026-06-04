@@ -42,8 +42,8 @@ import type {
 import MigracionConfirmModal, {
   type TipoConfirmacionMigracion,
 } from '@/app/servicios/components/MigracionConfirmModal'
-import { parsearRespuestaMigracion } from '@/lib/migracionFetch'
-import { tamanoChunkMigracion } from '@/lib/migracionTablasCompare'
+import { fetchMigracion, parsearRespuestaMigracion } from '@/lib/migracionFetch'
+import { pesoProgresoTabla, tamanoChunkMigracion } from '@/lib/migracionTablasCompare'
 
 interface EstadoConfig {
   listo: boolean
@@ -69,6 +69,13 @@ interface ProgresoMigracion {
   tablaActual: string | null
   tablaActualEtiqueta: string | null
   filas: Record<string, EstadoFilaProgreso>
+  /** Trozos de la tabla grande en curso (p. ej. pago_detalle). */
+  trozoActual?: number
+  trozosEstimados?: number
+  pesoCompletado?: number
+  pesoTotal?: number
+  /** Texto bajo la barra (logs Vercel, tiempos). */
+  detalle?: string
 }
 
 const GRUPO_ICON: Record<TablaMigracion['grupo'], ComponentType<{ size?: number; className?: string }>> = {
@@ -106,6 +113,17 @@ function ordenarSeleccion(ids: Set<string>): TablaMigracion[] {
   return TABLAS_MIGRACION.filter((t) => ids.has(t.id))
 }
 
+function calcularPesosMigracion(ordenadas: TablaMigracion[]) {
+  const pesoTotal = ordenadas.reduce((s, t) => s + pesoProgresoTabla(t.destino), 0)
+  return { pesoTotal }
+}
+
+function pesoHastaTabla(ordenadas: TablaMigracion[], indice: number) {
+  let n = 0
+  for (let j = 0; j < indice; j++) n += pesoProgresoTabla(ordenadas[j].destino)
+  return n
+}
+
 function formatoDuracion(ms: number): string {
   if (ms < 1000) return `${ms} ms`
   const s = Math.round(ms / 100) / 10
@@ -136,7 +154,7 @@ export default function MigracionAlumnoPanel() {
   const [confirmacion, setConfirmacion] = useState<TipoConfirmacionMigracion | null>(null)
 
   useEffect(() => {
-    fetch('/api/migracion-tablas')
+    fetchMigracion('/api/migracion-tablas')
       .then(async (r) => {
         const { data } = await parsearRespuestaMigracion<EstadoConfig>(r)
         setConfig(data)
@@ -204,6 +222,7 @@ export default function MigracionAlumnoPanel() {
 
     const ordenadas = ordenarSeleccion(seleccion)
     const total = ordenadas.length
+    const { pesoTotal } = calcularPesosMigracion(ordenadas)
     const estadosIniciales = Object.fromEntries(
       ordenadas.map((t) => [t.id, 'pendiente' as EstadoFilaProgreso])
     ) as Record<string, EstadoFilaProgreso>
@@ -215,6 +234,9 @@ export default function MigracionAlumnoPanel() {
       tablaActual: ordenadas[0]?.id ?? null,
       tablaActualEtiqueta: ordenadas[0]?.etiqueta ?? null,
       filas: estadosIniciales,
+      pesoTotal,
+      pesoCompletado: 0,
+      detalle: 'Cada trozo ~10 s en Vercel (POST 200 en Runtime Logs = sigue avanzando).',
     })
 
     const inicio = Date.now()
@@ -236,7 +258,7 @@ export default function MigracionAlumnoPanel() {
             : prev
         )
 
-        const resVaciar = await fetch('/api/migracion-tablas', {
+        const resVaciar = await fetchMigracion('/api/migracion-tablas', {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -276,7 +298,7 @@ export default function MigracionAlumnoPanel() {
         let estadoFila: EstadoFilaProgreso = 'ok'
 
         const postMigracion = async (body: Record<string, unknown>) => {
-          const res = await fetch('/api/migracion-tablas', {
+          const res = await fetchMigracion('/api/migracion-tablas', {
             method: 'POST',
             headers,
             body: JSON.stringify(body),
@@ -303,15 +325,24 @@ export default function MigracionAlumnoPanel() {
         } else {
           let offset = 0
           let trozo = 0
+          let trozosEstimados = 12
           const trozos: ResultadoTablaMigracion[] = []
+          const pesoTabla = pesoProgresoTabla(def.destino)
+          const pesoBase = pesoHastaTabla(ordenadas, i)
 
           while (true) {
             trozo++
+            trozosEstimados = Math.max(trozosEstimados, trozo + 4)
+            const avanceTrozo = Math.min(0.98, trozo / trozosEstimados)
             setProgreso((prev) =>
               prev
                 ? {
                     ...prev,
                     tablaActualEtiqueta: `${def.etiqueta} (trozo ${trozo})`,
+                    trozoActual: trozo,
+                    trozosEstimados,
+                    pesoCompletado: pesoBase + avanceTrozo * pesoTabla,
+                    detalle: `~10 s por trozo · ${trozo} enviados · revisa Vercel Logs (200 = OK)`,
                   }
                 : prev
             )
@@ -456,7 +487,7 @@ export default function MigracionAlumnoPanel() {
             : prev
         )
 
-        const res = await fetch('/api/migracion-tablas/verificar', {
+        const res = await fetchMigracion('/api/migracion-tablas/verificar', {
           method: 'POST',
           headers,
           body: JSON.stringify({ tablas: [def.id] }),
@@ -520,6 +551,9 @@ export default function MigracionAlumnoPanel() {
 
   const porcentajeProgreso = useMemo(() => {
     if (!progreso || progreso.total === 0) return 0
+    if (progreso.pesoTotal && progreso.pesoTotal > 0 && progreso.pesoCompletado != null) {
+      return Math.min(99, Math.round((progreso.pesoCompletado / progreso.pesoTotal) * 100))
+    }
     return Math.round((progreso.completadas / progreso.total) * 100)
   }, [progreso])
 
@@ -794,6 +828,9 @@ export default function MigracionAlumnoPanel() {
                 <p className="migracion-pro-progreso-tabla">
                   {progreso.tablaActualEtiqueta ?? 'Finalizando…'}
                 </p>
+                {progreso.detalle && (
+                  <p className="migracion-pro-progreso-hint">{progreso.detalle}</p>
+                )}
               </div>
               <span className="migracion-pro-progreso-pct">{porcentajeProgreso}%</span>
             </div>

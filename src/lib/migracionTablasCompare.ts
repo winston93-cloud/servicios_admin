@@ -94,6 +94,11 @@ export function tamanoChunkMigracion(tabla: string): number | null {
   return CHUNK_MIGRACION_POR_TABLA[tabla] ?? null
 }
 
+/** Peso en la barra de progreso (tablas con trozos pesan más). */
+export function pesoProgresoTabla(destino: string): number {
+  return tamanoChunkMigracion(destino) ? 6 : 1
+}
+
 function pausa(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
