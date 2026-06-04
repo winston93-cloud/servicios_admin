@@ -10,8 +10,8 @@ import {
 } from '@/lib/migracionTablasManifest'
 
 export const runtime = 'nodejs'
-/** Tablas grandes (pago_detalle) con throttle pueden tardar varios minutos. */
-export const maxDuration = 800
+/** Máximo permitido en Vercel Hobby (1–300 s). Migración grande: una tabla por petición desde la UI. */
+export const maxDuration = 300
 
 function autorizado(request: Request): boolean {
   const secreto = process.env.MIGRACION_SECRET?.trim()
