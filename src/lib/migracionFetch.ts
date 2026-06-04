@@ -47,10 +47,12 @@ export async function parsearRespuestaMigracion<T>(
     if (
       res.status === 504 ||
       res.status === 502 ||
-      preview.toLowerCase().includes('an error occurred')
+      preview.toLowerCase().includes('an error occurred') ||
+      preview.toLowerCase().includes('task timed out') ||
+      preview.toLowerCase().includes('runtime timeout')
     ) {
       throw new Error(
-        'Tiempo agotado en Vercel (máx. 5 min por petición). Si la tabla es grande, actualiza el deploy y vuelve a migrar: ahora se procesa por trozos.'
+        'Tiempo agotado en Vercel (máx. 5 min por petición). En tablas grandes la verificación usa solo PKs; redeploy y verifica tabla por tabla.'
       )
     }
     throw new Error(`Respuesta no válida (${res.status}): ${preview}`)

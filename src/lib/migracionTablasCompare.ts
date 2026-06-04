@@ -346,14 +346,25 @@ export async function cargarPksMysql(
 export async function obtenerPksDestino(
   sb: AppDatabaseClient,
   tabla: string,
-  pk: string
+  pk: string,
+  opciones?: { ligero?: boolean }
 ): Promise<Set<number>> {
   const ids = new Set<number>()
   let desde = 0
-  const pagina = TABLAS_UPSERT_SIN_PRELECTURA.has(tabla) ? 400 : 800
+  const pagina = opciones?.ligero
+    ? TABLAS_UPSERT_SIN_PRELECTURA.has(tabla)
+      ? 3000
+      : 1500
+    : TABLAS_UPSERT_SIN_PRELECTURA.has(tabla)
+      ? 400
+      : 800
 
   while (true) {
-    await throttlePeticionDestino(tabla)
+    if (!opciones?.ligero) {
+      await throttlePeticionDestino(tabla)
+    } else if (desde > 0) {
+      await pausa(TABLAS_UPSERT_SIN_PRELECTURA.has(tabla) ? 120 : 80)
+    }
 
     let data: unknown[] | null = null
     let ultimoError: Error | null = null
@@ -394,6 +405,35 @@ export async function obtenerPksDestino(
   }
 
   return ids
+}
+
+/** Lee filas MySQL solo para un conjunto de PK (muestra en verificación). */
+export async function leerFilasMysqlPorPks(
+  mysql: { query: (sql: string, values?: unknown[]) => Promise<[RowDataPacket[], unknown]> },
+  def: TablaMigracion,
+  pks: number[]
+): Promise<Map<number, Record<string, unknown>>> {
+  const mapa = new Map<number, Record<string, unknown>>()
+  if (!pks.length) return mapa
+
+  const pkCol = pkMysql(def)
+  const LOTE_IN = 250
+
+  for (let i = 0; i < pks.length; i += LOTE_IN) {
+    const slice = pks.slice(i, i + LOTE_IN)
+    const placeholders = slice.map(() => '?').join(',')
+    const [resultado] = await mysql.query(
+      `SELECT * FROM \`${def.mysql}\` WHERE \`${pkCol}\` IN (${placeholders})`,
+      slice
+    )
+    for (const f of resultado as RowDataPacket[]) {
+      const row = adaptarFilaParaDestino(def, serializarFilaMysql(f))
+      const id = Number(row[def.pk])
+      if (!Number.isNaN(id)) mapa.set(id, row)
+    }
+  }
+
+  return mapa
 }
 
 export async function obtenerFilasDestinoPorPks(

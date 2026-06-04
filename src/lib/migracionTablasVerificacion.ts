@@ -4,9 +4,12 @@ import { createMysqlLegacyConnection, getMysqlLegacyConfig } from './mysqlLegacy
 import { createDbAdmin } from './insforgeAdmin'
 import { TABLAS_MIGRACION, type TablaMigracion } from './migracionTablasManifest'
 import {
+  TABLAS_UPSERT_SIN_PRELECTURA,
   camposDistintosEntreFilas,
+  cargarPksMysql,
   filasIguales,
   leerFilasMysqlAdaptadas,
+  leerFilasMysqlPorPks,
   obtenerFilasDestinoPorPks,
   obtenerPksDestino,
   tamanoLoteComparacion,
@@ -14,6 +17,8 @@ import {
 
 const MUESTRA_PK_MAX = 20
 const MUESTRA_DIFF_MAX = 10
+/** Filas con las que se compara contenido en tablas grandes (resto solo PKs). */
+const MUESTRA_CONTENIDO_TABLAS_GRANDES = 80
 
 export interface MuestraDiffVerificacion {
   pk: number
@@ -75,27 +80,189 @@ async function destinoTablaDisponible(sb: AppDatabaseClient, tabla: string): Pro
   return true
 }
 
-async function aplicarFiltroMigracion(
-  sb: AppDatabaseClient,
-  def: TablaMigracion,
-  mysqlMap: Map<number, Record<string, unknown>>
-): Promise<{ mapa: Map<number, Record<string, unknown>>; mensaje?: string }> {
-  if (def.id !== 'pago_interno_precio') {
-    return { mapa: mysqlMap }
+function compararConjuntosPks(
+  base: ResultadoTablaVerificacion,
+  mysqlPks: Set<number>,
+  destinoPks: Set<number>
+): void {
+  base.mysqlCount = mysqlPks.size
+  base.destinoCount = destinoPks.size
+
+  for (const id of mysqlPks) {
+    if (!destinoPks.has(id)) {
+      base.faltanEnDestino++
+      if (base.muestraFaltan.length < MUESTRA_PK_MAX) base.muestraFaltan.push(id)
+    }
   }
 
-  const conceptos = await obtenerPksDestino(sb, 'concepto_interno', 'concepto_id')
-  const antes = mysqlMap.size
-  const filtrado = new Map<number, Record<string, unknown>>()
-  for (const [id, fila] of mysqlMap) {
-    if (conceptos.has(Number(fila.concepto_id))) filtrado.set(id, fila)
+  for (const id of destinoPks) {
+    if (!mysqlPks.has(id)) {
+      base.sobranEnDestino++
+      if (base.muestraSobran.length < MUESTRA_PK_MAX) base.muestraSobran.push(id)
+    }
   }
-  const omitidos = antes - filtrado.size
-  const mensaje =
-    omitidos > 0
-      ? `${omitidos} fila(s) excluidas de la comparación (concepto_id sin catálogo en InsForge)`
-      : undefined
-  return { mapa: filtrado, mensaje }
+
+  const idsComunes = [...mysqlPks].filter((id) => destinoPks.has(id))
+  base.comunes = idsComunes.length
+}
+
+function cerrarResultadoVerificacion(base: ResultadoTablaVerificacion): ResultadoTablaVerificacion {
+  const hayDiscordancia =
+    base.faltanEnDestino > 0 || base.sobranEnDestino > 0 || base.contenidoDistinto > 0
+
+  if (hayDiscordancia) {
+    base.estado = 'discordancia'
+    const partes: string[] = []
+    if (base.faltanEnDestino > 0) partes.push(`${base.faltanEnDestino} PK faltan en InsForge`)
+    if (base.sobranEnDestino > 0) partes.push(`${base.sobranEnDestino} PK sobran en InsForge`)
+    if (base.contenidoDistinto > 0) {
+      partes.push(`${base.contenidoDistinto} fila(s) con contenido distinto`)
+    }
+    const resumen = partes.join(' · ')
+    base.mensaje = base.mensaje ? `${base.mensaje} · ${resumen}` : resumen
+  } else if (base.mysqlCount !== base.destinoCount) {
+    base.estado = 'discordancia'
+    base.mensaje =
+      base.mensaje ??
+      `Conteos distintos (MySQL esperado ${base.mysqlCount}, InsForge ${base.destinoCount})`
+  }
+
+  return base
+}
+
+/** Tablas voluminosas: solo PKs + muestra de contenido (cabe en 300 s en Vercel). */
+async function verificarSoloPks(
+  sb: AppDatabaseClient,
+  mysql: Awaited<ReturnType<typeof createMysqlLegacyConnection>>,
+  def: TablaMigracion,
+  base: ResultadoTablaVerificacion
+): Promise<ResultadoTablaVerificacion> {
+  const pk = def.pk
+  let mysqlPks = await cargarPksMysql(mysql, def)
+
+  if (def.id === 'pago_interno_precio') {
+    const conceptos = await obtenerPksDestino(sb, 'concepto_interno', 'concepto_id', {
+      ligero: true,
+    })
+    const antes = mysqlPks.size
+    const filtrado = new Set<number>()
+    const filas = await leerFilasMysqlPorPks(mysql, def, [...mysqlPks])
+    for (const [id, fila] of filas) {
+      if (conceptos.has(Number(fila.concepto_id))) filtrado.add(id)
+    }
+    mysqlPks = filtrado
+    const omitidos = antes - mysqlPks.size
+    if (omitidos > 0) {
+      base.mensaje = `${omitidos} fila(s) excluidas (concepto_id sin catálogo en InsForge)`
+    }
+  }
+
+  const destinoPks = await obtenerPksDestino(sb, def.destino, pk, { ligero: true })
+  compararConjuntosPks(base, mysqlPks, destinoPks)
+
+  const idsComunes = [...mysqlPks].filter((id) => destinoPks.has(id))
+  const muestraIds = idsComunes.slice(0, MUESTRA_CONTENIDO_TABLAS_GRANDES)
+
+  if (muestraIds.length > 0) {
+    const mysqlMap = await leerFilasMysqlPorPks(mysql, def, muestraIds)
+    const lote = tamanoLoteComparacion(def.destino)
+    for (let i = 0; i < muestraIds.length; i += lote) {
+      const loteIds = muestraIds.slice(i, i + lote)
+      const destinoLote = await obtenerFilasDestinoPorPks(sb, def.destino, pk, loteIds)
+      for (const id of loteIds) {
+        const filaMysql = mysqlMap.get(id)
+        const filaDestino = destinoLote.get(id)
+        if (!filaMysql || !filaDestino) continue
+        if (!filasIguales(filaMysql, filaDestino)) {
+          base.contenidoDistinto++
+          if (base.muestraDistintas.length < MUESTRA_DIFF_MAX) {
+            base.muestraDistintas.push({
+              pk: id,
+              campos: camposDistintosEntreFilas(filaMysql, filaDestino),
+            })
+          }
+        }
+      }
+    }
+  }
+
+  const nota =
+    `Verificación rápida: PKs completas; contenido revisado en muestra de ${muestraIds.length} fila(s).`
+  base.mensaje = base.mensaje ? `${base.mensaje} · ${nota}` : nota
+
+  return cerrarResultadoVerificacion(base)
+}
+
+async function verificarUnaTablaCompleta(
+  sb: AppDatabaseClient,
+  mysql: Awaited<ReturnType<typeof createMysqlLegacyConnection>>,
+  def: TablaMigracion
+): Promise<ResultadoTablaVerificacion> {
+  const base: ResultadoTablaVerificacion = {
+    id: def.id,
+    destino: def.destino,
+    mysql: def.mysql,
+    etiqueta: def.etiqueta,
+    grupo: def.grupo,
+    estado: 'ok',
+    mysqlCount: 0,
+    destinoCount: 0,
+    comunes: 0,
+    faltanEnDestino: 0,
+    sobranEnDestino: 0,
+    contenidoDistinto: 0,
+    muestraFaltan: [],
+    muestraSobran: [],
+    muestraDistintas: [],
+  }
+
+  const pk = def.pk
+  let mysqlMap = await leerFilasMysqlAdaptadas(mysql, def)
+
+  if (def.id === 'pago_interno_precio') {
+    const conceptos = await obtenerPksDestino(sb, 'concepto_interno', 'concepto_id', {
+      ligero: true,
+    })
+    const antes = mysqlMap.size
+    const filtrado = new Map<number, Record<string, unknown>>()
+    for (const [id, fila] of mysqlMap) {
+      if (conceptos.has(Number(fila.concepto_id))) filtrado.set(id, fila)
+    }
+    mysqlMap = filtrado
+    const omitidos = antes - mysqlMap.size
+    if (omitidos > 0) {
+      base.mensaje = `${omitidos} fila(s) excluidas de la comparación (concepto_id sin catálogo en InsForge)`
+    }
+  }
+
+  const mysqlPks = new Set(mysqlMap.keys())
+  const destinoPks = await obtenerPksDestino(sb, def.destino, pk, { ligero: true })
+  compararConjuntosPks(base, mysqlPks, destinoPks)
+
+  const idsComunes = [...mysqlPks].filter((id) => destinoPks.has(id))
+  const loteCompare = tamanoLoteComparacion(def.destino)
+  for (let i = 0; i < idsComunes.length; i += loteCompare) {
+    const lote = idsComunes.slice(i, i + loteCompare)
+    const destinoLote = await obtenerFilasDestinoPorPks(sb, def.destino, pk, lote)
+
+    for (const id of lote) {
+      const filaMysql = mysqlMap.get(id)
+      const filaDestino = destinoLote.get(id)
+      if (!filaMysql || !filaDestino) continue
+
+      if (!filasIguales(filaMysql, filaDestino)) {
+        base.contenidoDistinto++
+        if (base.muestraDistintas.length < MUESTRA_DIFF_MAX) {
+          base.muestraDistintas.push({
+            pk: id,
+            campos: camposDistintosEntreFilas(filaMysql, filaDestino),
+          })
+        }
+      }
+    }
+  }
+
+  return cerrarResultadoVerificacion(base)
 }
 
 async function verificarUnaTabla(
@@ -139,83 +306,11 @@ async function verificarUnaTabla(
     }
   }
 
-  const pk = def.pk
-  let mysqlMap = await leerFilasMysqlAdaptadas(mysql, def)
-  const { mapa: mysqlFiltrado, mensaje: mensajeFiltro } = await aplicarFiltroMigracion(
-    sb,
-    def,
-    mysqlMap
-  )
-  mysqlMap = mysqlFiltrado
-  if (mensajeFiltro) base.mensaje = mensajeFiltro
-
-  base.mysqlCount = mysqlMap.size
-
-  const destinoPks = await obtenerPksDestino(sb, def.destino, pk)
-  base.destinoCount = destinoPks.size
-
-  const mysqlPks = new Set(mysqlMap.keys())
-
-  for (const id of mysqlPks) {
-    if (!destinoPks.has(id)) {
-      base.faltanEnDestino++
-      if (base.muestraFaltan.length < MUESTRA_PK_MAX) base.muestraFaltan.push(id)
-    }
+  if (TABLAS_UPSERT_SIN_PRELECTURA.has(def.destino)) {
+    return verificarSoloPks(sb, mysql, def, base)
   }
 
-  for (const id of destinoPks) {
-    if (!mysqlPks.has(id)) {
-      base.sobranEnDestino++
-      if (base.muestraSobran.length < MUESTRA_PK_MAX) base.muestraSobran.push(id)
-    }
-  }
-
-  const idsComunes = [...mysqlPks].filter((id) => destinoPks.has(id))
-  base.comunes = idsComunes.length
-
-  const loteCompare = tamanoLoteComparacion(def.destino)
-  for (let i = 0; i < idsComunes.length; i += loteCompare) {
-    const lote = idsComunes.slice(i, i + loteCompare)
-    const destinoLote = await obtenerFilasDestinoPorPks(sb, def.destino, pk, lote)
-
-    for (const id of lote) {
-      const filaMysql = mysqlMap.get(id)
-      const filaDestino = destinoLote.get(id)
-      if (!filaMysql || !filaDestino) continue
-
-      if (!filasIguales(filaMysql, filaDestino)) {
-        base.contenidoDistinto++
-        if (base.muestraDistintas.length < MUESTRA_DIFF_MAX) {
-          base.muestraDistintas.push({
-            pk: id,
-            campos: camposDistintosEntreFilas(filaMysql, filaDestino),
-          })
-        }
-      }
-    }
-  }
-
-  const hayDiscordancia =
-    base.faltanEnDestino > 0 || base.sobranEnDestino > 0 || base.contenidoDistinto > 0
-
-  if (hayDiscordancia) {
-    base.estado = 'discordancia'
-    const partes: string[] = []
-    if (base.faltanEnDestino > 0) partes.push(`${base.faltanEnDestino} PK faltan en InsForge`)
-    if (base.sobranEnDestino > 0) partes.push(`${base.sobranEnDestino} PK sobran en InsForge`)
-    if (base.contenidoDistinto > 0) {
-      partes.push(`${base.contenidoDistinto} fila(s) con contenido distinto`)
-    }
-    const resumen = partes.join(' · ')
-    base.mensaje = base.mensaje ? `${base.mensaje} · ${resumen}` : resumen
-  } else if (base.mysqlCount !== base.destinoCount) {
-    base.estado = 'discordancia'
-    base.mensaje =
-      base.mensaje ??
-      `Conteos distintos (MySQL esperado ${base.mysqlCount}, InsForge ${base.destinoCount})`
-  }
-
-  return base
+  return verificarUnaTablaCompleta(sb, mysql, def)
 }
 
 export async function ejecutarVerificacionEspejo(opciones: {
