@@ -9,7 +9,47 @@ import {
 } from './migracionTablasManifest'
 import { adaptarFilaParaDestino } from './migracionTablasAdaptadores'
 
-const LOTE_PK = 500
+/** Lote por defecto al leer filas completas desde InsForge (evita 502 en tablas grandes). */
+const LOTE_PK_DEFAULT = 75
+
+/** Tablas con muchas filas o filas anchas: lotes más pequeños. */
+const LOTE_PK_POR_TABLA: Partial<Record<string, number>> = {
+  pago_detalle: 35,
+  pago_interno: 45,
+  alumno_familiar: 50,
+  alumno_contacto: 50,
+  alumno_detalles: 60,
+  alumno_beca: 60,
+  pago_desayunos: 60,
+}
+
+function tamanoLoteLectura(tabla: string): number {
+  return LOTE_PK_POR_TABLA[tabla] ?? LOTE_PK_DEFAULT
+}
+
+function pausa(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function esErrorTransitorioDestino(mensaje: string): boolean {
+  const m = mensaje.toLowerCase()
+  return (
+    m.includes('502') ||
+    m.includes('503') ||
+    m.includes('504') ||
+    m.includes('bad gateway') ||
+    m.includes('gateway timeout') ||
+    m.includes('fetch failed') ||
+    m.includes('econnreset') ||
+    m.includes('socket hang up')
+  )
+}
+
+function tamanoLoteComparacion(tabla: string): number {
+  return tamanoLoteLectura(tabla)
+}
+
+export { tamanoLoteComparacion }
 
 function esFechaMysqlInvalidaTexto(texto: string): boolean {
   const s = texto.trim()
@@ -199,13 +239,36 @@ export async function obtenerFilasDestinoPorPks(
   pks: number[]
 ): Promise<Map<number, Record<string, unknown>>> {
   const mapa = new Map<number, Record<string, unknown>>()
-  for (let i = 0; i < pks.length; i += LOTE_PK) {
-    const slice = pks.slice(i, i + LOTE_PK)
-    const { data, error } = await sb.from(tabla).select('*').in(pk, slice)
-    if (error) throw new Error(`${tabla} lectura lote: ${error.message}`)
-    for (const row of data ?? []) {
-      const rec = row as Record<string, unknown>
-      mapa.set(Number(rec[pk]), rec)
+  const lote = tamanoLoteLectura(tabla)
+  const maxIntentos = 4
+
+  for (let i = 0; i < pks.length; i += lote) {
+    const slice = pks.slice(i, i + lote)
+    let ultimoError: Error | null = null
+
+    for (let intento = 1; intento <= maxIntentos; intento++) {
+      const { data, error } = await sb.from(tabla).select('*').in(pk, slice)
+      if (!error) {
+        for (const row of data ?? []) {
+          const rec = row as Record<string, unknown>
+          mapa.set(Number(rec[pk]), rec)
+        }
+        ultimoError = null
+        break
+      }
+
+      const msg = error.message ?? String(error)
+      ultimoError = new Error(`${tabla} lectura lote: ${msg}`)
+      if (!esErrorTransitorioDestino(msg) || intento === maxIntentos) {
+        throw ultimoError
+      }
+      await pausa(500 * intento)
+    }
+
+    if (ultimoError) throw ultimoError
+
+    if (i + lote < pks.length) {
+      await pausa(80)
     }
   }
   return mapa

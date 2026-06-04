@@ -9,11 +9,11 @@ import {
   leerFilasMysqlAdaptadas,
   obtenerFilasDestinoPorPks,
   obtenerPksDestino,
+  tamanoLoteComparacion,
 } from './migracionTablasCompare'
 
 const MUESTRA_PK_MAX = 20
 const MUESTRA_DIFF_MAX = 10
-const LOTE_COMPARE = 500
 
 export interface MuestraDiffVerificacion {
   pk: number
@@ -173,8 +173,9 @@ async function verificarUnaTabla(
   const idsComunes = [...mysqlPks].filter((id) => destinoPks.has(id))
   base.comunes = idsComunes.length
 
-  for (let i = 0; i < idsComunes.length; i += LOTE_COMPARE) {
-    const lote = idsComunes.slice(i, i + LOTE_COMPARE)
+  const loteCompare = tamanoLoteComparacion(def.destino)
+  for (let i = 0; i < idsComunes.length; i += loteCompare) {
+    const lote = idsComunes.slice(i, i + loteCompare)
     const destinoLote = await obtenerFilasDestinoPorPks(sb, def.destino, pk, lote)
 
     for (const id of lote) {
