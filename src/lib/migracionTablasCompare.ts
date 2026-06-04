@@ -1,6 +1,6 @@
 import type { RowDataPacket } from 'mysql2'
 import type { AppDatabaseClient } from '@/lib/dbTypes'
-import type { TablaMigracion } from './migracionTablasManifest'
+import { pkMysql, type TablaMigracion } from './migracionTablasManifest'
 import {
   CAMPOS_FECHA_HORA,
   CAMPOS_SOLO_FECHA,
@@ -301,9 +301,9 @@ export async function leerFilasMysqlAdaptadasPagina(
   offset: number,
   limite: number
 ): Promise<{ filas: Record<string, unknown>[]; hayMas: boolean }> {
-  const pk = def.pk
+  const pkCol = pkMysql(def)
   const [resultado] = await mysql.query(
-    `SELECT * FROM \`${def.mysql}\` ORDER BY \`${pk}\` ASC LIMIT ? OFFSET ?`,
+    `SELECT * FROM \`${def.mysql}\` ORDER BY \`${pkCol}\` ASC LIMIT ? OFFSET ?`,
     [limite + 1, offset]
   )
   const raw = resultado as RowDataPacket[]
@@ -320,20 +320,20 @@ export async function cargarPksMysql(
   mysql: { query: (sql: string, values?: unknown[]) => Promise<[RowDataPacket[], unknown]> },
   def: TablaMigracion
 ): Promise<Set<number>> {
-  const pk = def.pk
+  const pkCol = pkMysql(def)
   const ids = new Set<number>()
   let offset = 0
   const pagina = 8000
 
   while (true) {
     const [resultado] = await mysql.query(
-      `SELECT \`${pk}\` FROM \`${def.mysql}\` ORDER BY \`${pk}\` ASC LIMIT ? OFFSET ?`,
+      `SELECT \`${pkCol}\` FROM \`${def.mysql}\` ORDER BY \`${pkCol}\` ASC LIMIT ? OFFSET ?`,
       [pagina, offset]
     )
     const rows = resultado as RowDataPacket[]
     if (!rows.length) break
     for (const f of rows) {
-      const id = Number(f[pk])
+      const id = Number(f[pkCol])
       if (!Number.isNaN(id)) ids.add(id)
     }
     if (rows.length < pagina) break

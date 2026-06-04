@@ -8,10 +8,18 @@ export interface TablaMigracion {
   mysql: string
   /** Nombre de tabla en InsForge / Postgres */
   destino: string
+  /** PK en InsForge */
   pk: string
+  /** PK en MySQL si el nombre legacy difiere (ej. porroga_id → prorroga_id) */
+  mysqlPk?: string
   /** Grupo para selección en UI */
   grupo: 'alumnos' | 'catalogos' | 'pagos' | 'boletas' | 'desayunos' | 'sistema'
   etiqueta: string
+}
+
+/** Nombre de la columna PK en MySQL (puede diferir del destino). */
+export function pkMysql(def: TablaMigracion): string {
+  return def.mysqlPk ?? def.pk
 }
 
 export const GRUPOS_MIGRACION: Record<TablaMigracion['grupo'], string> = {
@@ -170,6 +178,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
     mysql: 'pago_prorroga',
     destino: 'pago_prorroga',
     pk: 'prorroga_id',
+    mysqlPk: 'porroga_id',
     grupo: 'pagos',
     etiqueta: 'Prórrogas',
   },
