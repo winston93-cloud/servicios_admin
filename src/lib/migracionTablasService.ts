@@ -1,20 +1,19 @@
 import type { RowDataPacket } from 'mysql2'
 import type { AppDatabaseClient } from '@/lib/dbTypes'
 import { createMysqlLegacyConnection, getMysqlLegacyConfig } from './mysqlLegacy'
-import { createSupabaseAdmin } from './supabaseAdmin'
+import { createDbAdmin } from './insforgeAdmin'
 import {
   TABLAS_MIGRACION,
   TABLAS_MIGRACION_ELIMINAR,
   TABLAS_VACIAR_ANTES,
-  VACIAR_TABLA_AUXILIAR,
   type TablaMigracion,
 } from './migracionTablasManifest'
-import { mensajeErrorSupabase } from './migracionTablasAdaptadores'
+import { mensajeErrorDestino } from './migracionTablasAdaptadores'
 import {
   filasIguales,
   leerFilasMysqlAdaptadas,
-  obtenerFilasSupabasePorPks,
-  obtenerPksSupabase,
+  obtenerFilasDestinoPorPks,
+  obtenerPksDestino,
 } from './migracionTablasCompare'
 
 const LOTE = 200
@@ -24,7 +23,7 @@ export type ModoMigracion = 'espejo' | 'solo_upsert' | 'vaciar_copiar'
 
 export interface ResultadoTablaMigracion {
   id: string
-  supabase: string
+  destino: string
   mysql: string
   etiqueta: string
   grupo: TablaMigracion['grupo']
@@ -68,7 +67,7 @@ async function leerFilasMysql(
   return [...mapa.values()]
 }
 
-async function supabaseTablaDisponible(sb: AppDatabaseClient, tabla: string): Promise<boolean> {
+async function destinoTablaDisponible(sb: AppDatabaseClient, tabla: string): Promise<boolean> {
   const { error } = await sb.from(tabla).select('*').limit(0)
   if (!error) return true
   const msg = error.message?.toLowerCase() ?? ''
@@ -88,7 +87,7 @@ async function cargarIdsReferencia(
   tabla: string,
   pk: string
 ): Promise<Set<number>> {
-  return obtenerPksSupabase(sb, tabla, pk)
+  return obtenerPksDestino(sb, tabla, pk)
 }
 
 async function upsertLote(
@@ -98,7 +97,7 @@ async function upsertLote(
   filas: Record<string, unknown>[]
 ) {
   const { error } = await sb.from(tabla).upsert(filas, { onConflict: pk })
-  if (error) throw new Error(`${tabla} upsert: ${mensajeErrorSupabase(error)}`)
+  if (error) throw new Error(`${tabla} upsert: ${mensajeErrorDestino(error)}`)
 }
 
 async function vaciarTablaPorPk(
@@ -147,14 +146,8 @@ async function vaciarTabla(sb: AppDatabaseClient, tabla: string, pk: string) {
 /** Vacía tablas auxiliares (FK hacia padre) que no están en el manifiesto MySQL. */
 async function vaciarTablasAuxiliares(sb: AppDatabaseClient, tablas: string[]) {
   for (const tabla of tablas) {
-    const ok = await supabaseTablaDisponible(sb, tabla)
+    const ok = await destinoTablaDisponible(sb, tabla)
     if (!ok) continue
-
-    const cfg = VACIAR_TABLA_AUXILIAR[tabla]
-    if (cfg) {
-      await vaciarTablaPorPk(sb, tabla, cfg.pk, cfg.tipo)
-      continue
-    }
 
     let vaciada = false
     for (const pk of ['id', 'contrato_id']) {
@@ -185,7 +178,7 @@ export async function vaciarTablasMigracion(opciones: {
     (t) => !idsSeleccionados || idsSeleccionados.has(t.id)
   )
 
-  const sb = createSupabaseAdmin()
+  const sb = createDbAdmin()
   const vaciadas: string[] = []
   const errores: string[] = []
 
@@ -201,12 +194,12 @@ export async function vaciarTablasMigracion(opciones: {
       }
     }
 
-    const supabaseOk = await supabaseTablaDisponible(sb, def.supabase)
-    if (!supabaseOk) continue
+    const destinoOk = await destinoTablaDisponible(sb, def.destino)
+    if (!destinoOk) continue
 
     try {
-      await vaciarTabla(sb, def.supabase, def.pk)
-      vaciadas.push(def.supabase)
+      await vaciarTabla(sb, def.destino, def.pk)
+      vaciadas.push(def.destino)
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Error desconocido'
       errores.push(`${def.etiqueta}: ${msg}`)
@@ -222,7 +215,7 @@ async function eliminarHuérfanos(
   pk: string,
   pksOrigen: Set<number>
 ): Promise<number> {
-  const pksDestino = await obtenerPksSupabase(sb, tabla, pk)
+  const pksDestino = await obtenerPksDestino(sb, tabla, pk)
   const aEliminar = [...pksDestino].filter((id) => !pksOrigen.has(id))
   if (aEliminar.length === 0) return 0
 
@@ -243,7 +236,7 @@ async function migrarUnaTabla(
 ): Promise<ResultadoTablaMigracion> {
   const base: ResultadoTablaMigracion = {
     id: def.id,
-    supabase: def.supabase,
+    destino: def.destino,
     mysql: def.mysql,
     etiqueta: def.etiqueta,
     grupo: def.grupo,
@@ -264,16 +257,15 @@ async function migrarUnaTabla(
     }
   }
 
-  const supabaseOk = await supabaseTablaDisponible(sb, def.supabase)
-  if (!supabaseOk) {
+  const destinoOk = await destinoTablaDisponible(sb, def.destino)
+  if (!destinoOk) {
     return {
       ...base,
       estado: 'omitida',
-      mensaje: `No existe en Supabase (${def.supabase}); ejecuta el SQL correspondiente en sql/`,
+      mensaje: `No existe en InsForge (${def.destino}); aplica el esquema en migrations/`,
     }
   }
 
-  /** PK en Supabase (no usar el nombre legacy de MySQL, ej. porroga_id). */
   const pk = def.pk
 
   let filas = await leerFilasMysql(mysql, def.mysql, def)
@@ -285,7 +277,7 @@ async function migrarUnaTabla(
     filas = filas.filter((f) => conceptos.has(Number(f.concepto_id)))
     const omitidos = antes - filas.length
     if (omitidos > 0) {
-      base.mensaje = `${omitidos} fila(s) omitidas (concepto_id sin catálogo en Supabase)`
+      base.mensaje = `${omitidos} fila(s) omitidas (concepto_id sin catálogo en InsForge)`
     }
   }
 
@@ -295,10 +287,10 @@ async function migrarUnaTabla(
       if (auxiliares?.length) {
         await vaciarTablasAuxiliares(sb, auxiliares)
       }
-      await vaciarTabla(sb, def.supabase, pk)
+      await vaciarTabla(sb, def.destino, pk)
     }
     for (let i = 0; i < filas.length; i += LOTE) {
-      await upsertLote(sb, def.supabase, pk, filas.slice(i, i + LOTE))
+      await upsertLote(sb, def.destino, pk, filas.slice(i, i + LOTE))
     }
     base.insertados = filas.length
     return base
@@ -316,7 +308,7 @@ async function migrarUnaTabla(
       .map((f) => Number(f[pk]))
       .filter((id) => !Number.isNaN(id))
 
-    const existentes = await obtenerFilasSupabasePorPks(sb, def.supabase, pk, pksLote)
+    const existentes = await obtenerFilasDestinoPorPks(sb, def.destino, pk, pksLote)
     const aUpsert: Record<string, unknown>[] = []
 
     for (const fila of lote) {
@@ -334,12 +326,12 @@ async function migrarUnaTabla(
     }
 
     if (aUpsert.length > 0) {
-      await upsertLote(sb, def.supabase, pk, aUpsert)
+      await upsertLote(sb, def.destino, pk, aUpsert)
     }
   }
 
   if (modo === 'espejo') {
-    base.eliminados = await eliminarHuérfanos(sb, def.supabase, pk, pksOrigen)
+    base.eliminados = await eliminarHuérfanos(sb, def.destino, pk, pksOrigen)
   }
 
   return base
@@ -380,7 +372,7 @@ export async function ejecutarMigracionTablas(opciones: {
 
   const omitirVaciar = modo === 'vaciar_copiar' && opciones.faseVaciarCopiar === 'copiar'
 
-  const sb = createSupabaseAdmin()
+  const sb = createDbAdmin()
   const mysql = await createMysqlLegacyConnection()
   const tablas: ResultadoTablaMigracion[] = []
   const erroresGlobales: string[] = []
@@ -411,7 +403,7 @@ export async function ejecutarMigracionTablas(opciones: {
         const msg = e instanceof Error ? e.message : 'Error desconocido'
         tablas.push({
           id: def.id,
-          supabase: def.supabase,
+          destino: def.destino,
           mysql: def.mysql,
           etiqueta: def.etiqueta,
           grupo: def.grupo,
@@ -445,7 +437,7 @@ export async function ejecutarMigracionAlumno(opciones: { vaciarDestino: boolean
   const modo: ModoMigracion = opciones.vaciarDestino ? 'vaciar_copiar' : 'solo_upsert'
   const ids = ['alumno', 'alumno_detalles', 'alumno_familiar', 'alumno_contacto', 'alumno_beca']
   const r = await ejecutarMigracionTablas({ modo, tablas: ids })
-  const mapa = Object.fromEntries(r.tablas.map((t) => [t.supabase, t])) as Record<
+  const mapa = Object.fromEntries(r.tablas.map((t) => [t.destino, t])) as Record<
     string,
     ResultadoTablaMigracion
   >

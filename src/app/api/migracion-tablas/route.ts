@@ -20,10 +20,16 @@ function autorizado(request: Request): boolean {
 
 export async function GET() {
   const mysql = getMysqlLegacyConfig()
+  const insforgeUrl =
+    process.env.NEXT_PUBLIC_INSFORGE_URL ?? process.env.INSFORGE_URL ?? null
+  const insforgeListo = Boolean(insforgeUrl && process.env.INSFORGE_API_KEY?.trim())
   return NextResponse.json({
-    listo: Boolean(mysql),
+    listo: Boolean(mysql) && insforgeListo,
     mysql: mysql
       ? { host: mysql.host, database: mysql.database, port: mysql.port }
+      : null,
+    insforge: insforgeListo
+      ? { url: insforgeUrl, proyecto: 'Winston Servicios' }
       : null,
     requiereSecreto: Boolean(process.env.MIGRACION_SECRET?.trim()),
     grupos: GRUPOS_MIGRACION,
@@ -32,7 +38,7 @@ export async function GET() {
       etiqueta: t.etiqueta,
       grupo: t.grupo,
       mysql: t.mysql,
-      supabase: t.supabase,
+      destino: t.destino,
     })),
   })
 }

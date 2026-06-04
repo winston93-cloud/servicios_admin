@@ -7288,6 +7288,7 @@ body {
   margin-bottom: 4px;
 }
 
+.migracion-pro-node--insforge svg,
 .migracion-pro-node--supabase svg {
   color: #34d399;
   margin-bottom: 4px;

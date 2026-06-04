@@ -37,13 +37,13 @@ function textoModo(modo: ModoMigracion): { titulo: string; detalle: string; peli
     case 'solo_upsert':
       return {
         titulo: 'Solo upsert',
-        detalle: 'Inserta o actualiza filas; no borra registros extra en Supabase.',
+        detalle: 'Inserta o actualiza filas; no borra registros extra en InsForge.',
         peligroso: false,
       }
     case 'vaciar_copiar':
       return {
         titulo: 'Vaciar y copiar',
-        detalle: 'Borra cada tabla en Supabase y vuelve a cargar todo desde MySQL.',
+        detalle: 'Borra cada tabla en InsForge y vuelve a cargar todo desde MySQL.',
         peligroso: true,
       }
   }
@@ -88,14 +88,14 @@ export default function MigracionConfirmModal({
     modo === 'espejo'
       ? [
           'Lee las tablas seleccionadas en MySQL (phpMyAdmin).',
-          'Adapta columnas y tipos al esquema de Supabase.',
+          'Adapta columnas y tipos al esquema de InsForge.',
           'Sincroniza insertando, actualizando y eliminando huérfanos.',
         ]
       : modo === 'solo_upsert'
         ? [
             'Lee las tablas seleccionadas en MySQL.',
-            'Inserta filas nuevas y actualiza las existentes en Supabase.',
-            'No elimina registros que solo existan en Supabase.',
+            'Inserta filas nuevas y actualiza las existentes en InsForge.',
+            'No elimina registros que solo existan en InsForge.',
           ]
         : [
             'Vacía primero las tablas hijas (orden inverso de dependencias).',
@@ -104,7 +104,7 @@ export default function MigracionConfirmModal({
           ]
 
   const pasosVerificar = [
-    'Compara conteos y PKs entre MySQL y Supabase.',
+    'Compara conteos y PKs entre MySQL e InsForge.',
     'Revisa filas con el mismo ID y contenido de negocio equivalente.',
     'Ignora marcas *_actualizacion (las gestiona Postgres).',
   ]
@@ -149,7 +149,7 @@ export default function MigracionConfirmModal({
 
         <p className="migracion-confirm-subtitulo">
           {esMigrar
-            ? `Vas a migrar ${cantidadTablas} tabla(s) hacia Supabase.`
+            ? `Vas a migrar ${cantidadTablas} tabla(s) hacia InsForge (Winston Servicios).`
             : `Vas a auditar ${cantidadTablas} tabla(s) sin modificar datos.`}
         </p>
 

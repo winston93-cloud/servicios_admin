@@ -47,6 +47,7 @@ interface EstadoConfig {
   listo: boolean
   requiereSecreto: boolean
   mysql: { host: string; database: string; port: number } | null
+  insforge?: { url: string; proyecto: string } | null
 }
 
 type EstadoFilaProgreso =
@@ -89,7 +90,7 @@ const MODOS_INFO: Record<
   },
   solo_upsert: {
     titulo: 'Solo upsert',
-    desc: 'Inserta o actualiza filas sin borrar extras en Supabase.',
+    desc: 'Inserta o actualiza filas sin borrar extras en InsForge.',
     Icon: RefreshCw,
   },
   vaciar_copiar: {
@@ -413,7 +414,7 @@ export default function MigracionAlumnoPanel() {
       if (!resultadoFinal.ok) {
         setError(
           conDiscordancia
-            ? 'Verificación terminada con discordancias entre MySQL y Supabase'
+            ? 'Verificación terminada con discordancias entre MySQL e InsForge'
             : erroresGlobales.join(' · ') || 'Verificación con errores parciales'
         )
       }
@@ -436,12 +437,12 @@ export default function MigracionAlumnoPanel() {
     return resultadoVerificacion.tablas.reduce(
       (acc, t) => ({
         mysql: acc.mysql + t.mysqlCount,
-        supabase: acc.supabase + t.supabaseCount,
-        faltan: acc.faltan + t.faltanEnSupabase,
-        sobran: acc.sobran + t.sobranEnSupabase,
+        destino: acc.destino + t.destinoCount,
+        faltan: acc.faltan + t.faltanEnDestino,
+        sobran: acc.sobran + t.sobranEnDestino,
         distintas: acc.distintas + t.contenidoDistinto,
       }),
-      { mysql: 0, supabase: 0, faltan: 0, sobran: 0, distintas: 0 }
+      { mysql: 0, destino: 0, faltan: 0, sobran: 0, distintas: 0 }
     )
   }, [resultadoVerificacion])
 
@@ -463,7 +464,7 @@ export default function MigracionAlumnoPanel() {
 
   return (
     <>
-      <div className="migracion-pro" aria-label="Migración MySQL → Supabase">
+      <div className="migracion-pro" aria-label="Migración MySQL → InsForge">
         {/* Hero */}
         <header className="migracion-pro-hero">
           <div className="migracion-pro-hero-copy">
@@ -471,10 +472,11 @@ export default function MigracionAlumnoPanel() {
               <Sparkles size={14} aria-hidden />
               Sincronización de datos
             </span>
-            <h2 className="migracion-pro-hero-title">MySQL → Supabase</h2>
+            <h2 className="migracion-pro-hero-title">MySQL → InsForge</h2>
             <p className="migracion-pro-hero-lead">
-              Replica tablas de phpMyAdmin hacia Supabase desde el servidor Vercel. Tras migrar en
-              modo espejo, audita con verificación de conteos, PKs y contenido de negocio.
+              Replica tablas de phpMyAdmin (winston_general) hacia InsForge (Winston Servicios):
+              panel Servicios y portal de pagos. Tras migrar en modo espejo, audita conteos, PKs y
+              contenido.
             </p>
           </div>
 
@@ -487,10 +489,10 @@ export default function MigracionAlumnoPanel() {
             <div className="migracion-pro-arrow">
               <ArrowRight size={20} />
             </div>
-            <div className="migracion-pro-node migracion-pro-node--supabase">
+            <div className="migracion-pro-node migracion-pro-node--insforge">
               <Cloud size={22} />
-              <span>Supabase</span>
-              <small>PostgreSQL</small>
+              <span>InsForge</span>
+              <small>{config?.insforge?.proyecto ?? 'Winston Servicios'}</small>
             </div>
           </div>
 
@@ -499,7 +501,7 @@ export default function MigracionAlumnoPanel() {
               className={`migracion-pro-badge${config?.listo ? ' migracion-pro-badge--ok' : ' migracion-pro-badge--warn'}`}
             >
               <span className="migracion-pro-badge-dot" aria-hidden />
-              {config?.listo ? 'MySQL configurado' : 'MySQL pendiente'}
+              {config?.listo ? 'MySQL + InsForge listos' : 'Configuración pendiente'}
             </span>
             {config?.mysql && (
               <span className="migracion-pro-badge">
@@ -517,8 +519,8 @@ export default function MigracionAlumnoPanel() {
           <div className="migracion-pro-banner migracion-pro-banner--error" role="alert">
             <AlertCircle size={18} aria-hidden />
             <div>
-              <strong>Falta configuración MySQL en Vercel.</strong> Agrega MYSQL_HOST, MYSQL_USER,
-              MYSQL_PASSWORD y MYSQL_DATABASE en Project → Settings → Environment Variables.
+              <strong>Falta configuración en Vercel.</strong> MySQL: MYSQL_HOST, MYSQL_USER,
+              MYSQL_PASSWORD, MYSQL_DATABASE. InsForge: NEXT_PUBLIC_INSFORGE_URL e INSFORGE_API_KEY.
             </div>
           </div>
         )}
@@ -669,7 +671,7 @@ export default function MigracionAlumnoPanel() {
                                 <span className="migracion-pro-tabla-info">
                                   <span className="migracion-pro-tabla-nombre">{t.etiqueta}</span>
                                   <span className="migracion-pro-tabla-ruta">
-                                    {t.mysql} → {t.supabase}
+                                    {t.mysql} → {t.destino}
                                   </span>
                                 </span>
                               </button>
@@ -844,7 +846,7 @@ export default function MigracionAlumnoPanel() {
                     <tr key={t.id} className={`migracion-pro-tr--${t.estado}`}>
                       <td>
                         <strong>{t.etiqueta}</strong>
-                        <span className="migracion-pro-tabla-ruta">{t.supabase}</span>
+                        <span className="migracion-pro-tabla-ruta">{t.destino}</span>
                       </td>
                       <td>
                         <span className={`migracion-pro-estado migracion-pro-estado--${t.estado}`}>
@@ -902,8 +904,8 @@ export default function MigracionAlumnoPanel() {
                   <span className="migracion-pro-stat-lbl">MySQL esperado</span>
                 </div>
                 <div className="migracion-pro-stat">
-                  <span className="migracion-pro-stat-val">{totalesVerificacion.supabase.toLocaleString()}</span>
-                  <span className="migracion-pro-stat-lbl">Supabase</span>
+                  <span className="migracion-pro-stat-val">{totalesVerificacion.destino.toLocaleString()}</span>
+                  <span className="migracion-pro-stat-lbl">InsForge</span>
                 </div>
                 <div className="migracion-pro-stat migracion-pro-stat--warn">
                   <span className="migracion-pro-stat-val">{totalesVerificacion.faltan.toLocaleString()}</span>
@@ -927,7 +929,7 @@ export default function MigracionAlumnoPanel() {
                     <th>Tabla</th>
                     <th>Estado</th>
                     <th>MySQL</th>
-                    <th>Supabase</th>
+                    <th>InsForge</th>
                     <th>Faltan</th>
                     <th>Sobran</th>
                     <th>≠ Contenido</th>
@@ -938,7 +940,7 @@ export default function MigracionAlumnoPanel() {
                     <tr key={t.id} className={`migracion-pro-tr--${t.estado}`}>
                       <td>
                         <strong>{t.etiqueta}</strong>
-                        <span className="migracion-pro-tabla-ruta">{t.supabase}</span>
+                        <span className="migracion-pro-tabla-ruta">{t.destino}</span>
                       </td>
                       <td>
                         <span className={`migracion-pro-estado migracion-pro-estado--${t.estado}`}>
@@ -949,9 +951,9 @@ export default function MigracionAlumnoPanel() {
                         </span>
                       </td>
                       <td>{t.mysqlCount.toLocaleString()}</td>
-                      <td>{t.supabaseCount.toLocaleString()}</td>
-                      <td>{t.faltanEnSupabase.toLocaleString()}</td>
-                      <td>{t.sobranEnSupabase.toLocaleString()}</td>
+                      <td>{t.destinoCount.toLocaleString()}</td>
+                      <td>{t.faltanEnDestino.toLocaleString()}</td>
+                      <td>{t.sobranEnDestino.toLocaleString()}</td>
                       <td>{t.contenidoDistinto.toLocaleString()}</td>
                     </tr>
                   ))}
@@ -972,12 +974,12 @@ export default function MigracionAlumnoPanel() {
                   if (t.mensaje) partes.push(t.mensaje)
                   if (t.muestraFaltan.length > 0) {
                     partes.push(
-                      `PK faltan (muestra): ${t.muestraFaltan.join(', ')}${t.faltanEnSupabase > t.muestraFaltan.length ? '…' : ''}`
+                      `PK faltan (muestra): ${t.muestraFaltan.join(', ')}${t.faltanEnDestino > t.muestraFaltan.length ? '…' : ''}`
                     )
                   }
                   if (t.muestraSobran.length > 0) {
                     partes.push(
-                      `PK sobran (muestra): ${t.muestraSobran.join(', ')}${t.sobranEnSupabase > t.muestraSobran.length ? '…' : ''}`
+                      `PK sobran (muestra): ${t.muestraSobran.join(', ')}${t.sobranEnDestino > t.muestraSobran.length ? '…' : ''}`
                     )
                   }
                   for (const d of t.muestraDistintas) {

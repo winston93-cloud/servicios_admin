@@ -7,7 +7,7 @@ import {
   debeCompararCampo,
   esCampoNumerico,
 } from './migracionTablasManifest'
-import { adaptarFilaParaSupabase } from './migracionTablasAdaptadores'
+import { adaptarFilaParaDestino } from './migracionTablasAdaptadores'
 
 const LOTE_PK = 500
 
@@ -153,14 +153,14 @@ export async function leerFilasMysqlAdaptadas(
   const [resultado] = await mysql.query(`SELECT * FROM \`${def.mysql}\``)
   const mapa = new Map<number, Record<string, unknown>>()
   for (const f of resultado as RowDataPacket[]) {
-    const row = adaptarFilaParaSupabase(def, serializarFilaMysql(f))
+    const row = adaptarFilaParaDestino(def, serializarFilaMysql(f))
     const id = Number(row[def.pk])
     if (!Number.isNaN(id)) mapa.set(id, row)
   }
   return mapa
 }
 
-export async function obtenerPksSupabase(
+export async function obtenerPksDestino(
   sb: AppDatabaseClient,
   tabla: string,
   pk: string
@@ -192,7 +192,7 @@ export async function obtenerPksSupabase(
   return ids
 }
 
-export async function obtenerFilasSupabasePorPks(
+export async function obtenerFilasDestinoPorPks(
   sb: AppDatabaseClient,
   tabla: string,
   pk: string,

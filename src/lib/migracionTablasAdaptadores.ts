@@ -11,8 +11,8 @@ function claveNormalizada(key: string): string {
   return k
 }
 
-/** Columnas permitidas en Supabase por tabla (evita codigo, Orden_Visible, etc.). */
-export const COLUMNAS_SUPABASE: Partial<Record<string, string[]>> = {
+/** Columnas permitidas en InsForge por tabla (evita codigo, Orden_Visible, etc.). */
+export const COLUMNAS_DESTINO: Partial<Record<string, string[]>> = {
   concepto_interno: ['concepto_id', 'concepto_clase', 'visible', 'orden_visible'],
   usuario: [
     'usuario_id',
@@ -83,7 +83,7 @@ function filtrarColumnas(
   return out
 }
 
-export function adaptarFilaParaSupabase(
+export function adaptarFilaParaDestino(
   def: TablaMigracion,
   fila: Record<string, unknown>
 ): Record<string, unknown> {
@@ -104,10 +104,10 @@ export function adaptarFilaParaSupabase(
     }
   }
 
-  return filtrarColumnas(out, COLUMNAS_SUPABASE[def.supabase])
+  return filtrarColumnas(out, COLUMNAS_DESTINO[def.destino])
 }
 
-export function mensajeErrorSupabase(error: unknown): string {
+export function mensajeErrorDestino(error: unknown): string {
   if (!error || typeof error !== 'object') return String(error ?? 'Error desconocido')
   const e = error as { message?: string; code?: string; details?: string; hint?: string }
   const partes = [e.message, e.details, e.hint, e.code].filter(Boolean)

@@ -1,9 +1,13 @@
-/** Tablas MySQL (winston_general) → Supabase, en orden de dependencias (padres antes que hijos). */
+/**
+ * Tablas MySQL (winston_general) → InsForge (Winston Servicios).
+ * Alcance: panel Servicios + portal de pagos (22 tablas), en orden de dependencias.
+ */
 export interface TablaMigracion {
   /** Identificador interno */
   id: string
   mysql: string
-  supabase: string
+  /** Nombre de tabla en InsForge / Postgres */
+  destino: string
   pk: string
   /** Grupo para selección en UI */
   grupo: 'alumnos' | 'catalogos' | 'pagos' | 'boletas' | 'desayunos' | 'sistema'
@@ -24,7 +28,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'ciclos_escolares',
     mysql: 'ciclos_escolares',
-    supabase: 'ciclos_escolares',
+    destino: 'ciclos_escolares',
     pk: 'id',
     grupo: 'catalogos',
     etiqueta: 'Ciclos escolares',
@@ -32,7 +36,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'concepto_beca',
     mysql: 'concepto_beca',
-    supabase: 'concepto_beca',
+    destino: 'concepto_beca',
     pk: 'beca_id',
     grupo: 'catalogos',
     etiqueta: 'Conceptos de beca',
@@ -40,7 +44,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'concepto_boucher',
     mysql: 'concepto_boucher',
-    supabase: 'concepto_boucher',
+    destino: 'concepto_boucher',
     pk: 'concepto_id',
     grupo: 'catalogos',
     etiqueta: 'Conceptos boucher',
@@ -48,7 +52,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'concepto_interno',
     mysql: 'concepto_interno',
-    supabase: 'concepto_interno',
+    destino: 'concepto_interno',
     pk: 'concepto_id',
     grupo: 'catalogos',
     etiqueta: 'Conceptos pago interno',
@@ -56,7 +60,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'concepto_desayunos',
     mysql: 'concepto_desayunos',
-    supabase: 'concepto_desayunos',
+    destino: 'concepto_desayunos',
     pk: 'id',
     grupo: 'desayunos',
     etiqueta: 'Conceptos desayunos',
@@ -65,7 +69,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'alumno',
     mysql: 'alumno',
-    supabase: 'alumno',
+    destino: 'alumno',
     pk: 'alumno_id',
     grupo: 'alumnos',
     etiqueta: 'Alumnos',
@@ -73,7 +77,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'alumno_detalles',
     mysql: 'alumno_detalles',
-    supabase: 'alumno_detalles',
+    destino: 'alumno_detalles',
     pk: 'detalle_id',
     grupo: 'alumnos',
     etiqueta: 'Detalles alumno',
@@ -81,7 +85,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'alumno_familiar',
     mysql: 'alumno_familiar',
-    supabase: 'alumno_familiar',
+    destino: 'alumno_familiar',
     pk: 'familiar_id',
     grupo: 'alumnos',
     etiqueta: 'Familiares',
@@ -89,7 +93,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'alumno_contacto',
     mysql: 'alumno_contacto',
-    supabase: 'alumno_contacto',
+    destino: 'alumno_contacto',
     pk: 'contacto_id',
     grupo: 'alumnos',
     etiqueta: 'Contactos autorizados',
@@ -97,7 +101,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'alumno_beca',
     mysql: 'alumno_beca',
-    supabase: 'alumno_beca',
+    destino: 'alumno_beca',
     pk: 'alumno_beca_id',
     grupo: 'alumnos',
     etiqueta: 'Becas alumno',
@@ -106,7 +110,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'pago_boucher_precio',
     mysql: 'pago_boucher_precio',
-    supabase: 'pago_boucher_precio',
+    destino: 'pago_boucher_precio',
     pk: 'precio_id',
     grupo: 'pagos',
     etiqueta: 'Precios boucher',
@@ -114,7 +118,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'pago_interno_precio',
     mysql: 'pago_interno_precio',
-    supabase: 'pago_interno_precio',
+    destino: 'pago_interno_precio',
     pk: 'precio_interno_id',
     grupo: 'pagos',
     etiqueta: 'Precios pago interno',
@@ -123,7 +127,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'boleta_materia',
     mysql: 'boleta_materia',
-    supabase: 'boleta_materia',
+    destino: 'boleta_materia',
     pk: 'materia_id',
     grupo: 'boletas',
     etiqueta: 'Materias boleta',
@@ -131,7 +135,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'boleta_maestro',
     mysql: 'boleta_maestro',
-    supabase: 'boleta_maestro',
+    destino: 'boleta_maestro',
     pk: 'maestro_id',
     grupo: 'boletas',
     etiqueta: 'Maestros boleta',
@@ -139,7 +143,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'boleta_maestro_grupo',
     mysql: 'boleta_maestro_grupo',
-    supabase: 'boleta_maestro_grupo',
+    destino: 'boleta_maestro_grupo',
     pk: 'grupo_id',
     grupo: 'boletas',
     etiqueta: 'Grupos maestro',
@@ -148,7 +152,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'pago_detalle',
     mysql: 'pago_detalle',
-    supabase: 'pago_detalle',
+    destino: 'pago_detalle',
     pk: 'pago_id',
     grupo: 'pagos',
     etiqueta: 'Pagos colegiatura',
@@ -156,7 +160,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'pago_interno',
     mysql: 'pago_interno',
-    supabase: 'pago_interno',
+    destino: 'pago_interno',
     pk: 'pago_id',
     grupo: 'pagos',
     etiqueta: 'Pagos internos',
@@ -164,7 +168,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'pago_prorroga',
     mysql: 'pago_prorroga',
-    supabase: 'pago_prorroga',
+    destino: 'pago_prorroga',
     pk: 'prorroga_id',
     grupo: 'pagos',
     etiqueta: 'Prórrogas',
@@ -173,7 +177,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'personal',
     mysql: 'personal',
-    supabase: 'personal',
+    destino: 'personal',
     pk: 'id',
     grupo: 'desayunos',
     etiqueta: 'Personal',
@@ -181,7 +185,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'pago_desayunos',
     mysql: 'pago_desayunos',
-    supabase: 'pago_desayunos',
+    destino: 'pago_desayunos',
     pk: 'id',
     grupo: 'desayunos',
     etiqueta: 'Pagos desayunos',
@@ -189,7 +193,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
   {
     id: 'usuario',
     mysql: 'usuario',
-    supabase: 'usuario',
+    destino: 'usuario',
     pk: 'usuario_id',
     grupo: 'sistema',
     etiqueta: 'Usuarios',
@@ -200,32 +204,10 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
 export const TABLAS_MIGRACION_ELIMINAR = [...TABLAS_MIGRACION].reverse()
 
 /**
- * Tablas de contratos (solo Supabase, módulo RRHH) que referencian usuario.created_by.
- * Deben vaciarse antes que `usuario` en modo vaciar_copiar.
+ * Tablas en InsForge que referencian a otra del manifiesto pero no se migran desde MySQL.
+ * Vacías antes que el padre en modo vaciar_copiar (p. ej. contratos RRHH en otros proyectos).
  */
-export const CONTRATOS_SUPABASE_AUX = [
-  'contrato_hora',
-  'contrato_indeterminado',
-  'contrato_determinado',
-] as const
-
-/**
- * Tablas en Supabase que referencian a otra del manifiesto pero no se migran desde MySQL.
- * Se vacían antes que el padre en modo vaciar_copiar.
- */
-export const TABLAS_VACIAR_ANTES: Partial<Record<string, string[]>> = {
-  usuario: [...CONTRATOS_SUPABASE_AUX],
-}
-
-/** PK y estrategia de vaciado para tablas auxiliares (solo Supabase). */
-export const VACIAR_TABLA_AUXILIAR: Record<
-  string,
-  { pk: string; tipo: 'entero' | 'uuid' }
-> = {
-  contrato_hora: { pk: 'id', tipo: 'uuid' },
-  contrato_indeterminado: { pk: 'id', tipo: 'uuid' },
-  contrato_determinado: { pk: 'id', tipo: 'uuid' },
-}
+export const TABLAS_VACIAR_ANTES: Partial<Record<string, string[]>> = {}
 
 export const CAMPOS_SOLO_FECHA = new Set([
   'alumno_registro',
@@ -268,9 +250,8 @@ export function esCampoNumerico(clave: string): boolean {
 }
 
 /**
- * Columnas de auditoría que Postgres actualiza con triggers BEFORE UPDATE
- * (p. ej. alumno_actualizacion := CURRENT_TIMESTAMP). Tras un upsert en
- * Supabase no coinciden con MySQL aunque el resto del espejo esté bien.
+ * Columnas de auditoría que Postgres actualiza con triggers BEFORE UPDATE.
+ * Tras un upsert en InsForge no coinciden con MySQL aunque el resto del espejo esté bien.
  */
 export function debeCompararCampo(clave: string): boolean {
   if (clave.endsWith('_actualizacion')) return false

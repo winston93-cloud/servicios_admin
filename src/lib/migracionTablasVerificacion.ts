@@ -1,14 +1,14 @@
 import type { RowDataPacket } from 'mysql2'
 import type { AppDatabaseClient } from '@/lib/dbTypes'
 import { createMysqlLegacyConnection, getMysqlLegacyConfig } from './mysqlLegacy'
-import { createSupabaseAdmin } from './supabaseAdmin'
+import { createDbAdmin } from './insforgeAdmin'
 import { TABLAS_MIGRACION, type TablaMigracion } from './migracionTablasManifest'
 import {
   camposDistintosEntreFilas,
   filasIguales,
   leerFilasMysqlAdaptadas,
-  obtenerFilasSupabasePorPks,
-  obtenerPksSupabase,
+  obtenerFilasDestinoPorPks,
+  obtenerPksDestino,
 } from './migracionTablasCompare'
 
 const MUESTRA_PK_MAX = 20
@@ -22,17 +22,17 @@ export interface MuestraDiffVerificacion {
 
 export interface ResultadoTablaVerificacion {
   id: string
-  supabase: string
+  destino: string
   mysql: string
   etiqueta: string
   grupo: TablaMigracion['grupo']
   estado: 'ok' | 'discordancia' | 'omitida' | 'error'
   mensaje?: string
   mysqlCount: number
-  supabaseCount: number
+  destinoCount: number
   comunes: number
-  faltanEnSupabase: number
-  sobranEnSupabase: number
+  faltanEnDestino: number
+  sobranEnDestino: number
   contenidoDistinto: number
   muestraFaltan: number[]
   muestraSobran: number[]
@@ -60,7 +60,7 @@ async function tablaExisteEnMysql(
   return filas.length > 0
 }
 
-async function supabaseTablaDisponible(sb: AppDatabaseClient, tabla: string): Promise<boolean> {
+async function destinoTablaDisponible(sb: AppDatabaseClient, tabla: string): Promise<boolean> {
   const { error } = await sb.from(tabla).select('*').limit(0)
   if (!error) return true
   const msg = error.message?.toLowerCase() ?? ''
@@ -84,7 +84,7 @@ async function aplicarFiltroMigracion(
     return { mapa: mysqlMap }
   }
 
-  const conceptos = await obtenerPksSupabase(sb, 'concepto_interno', 'concepto_id')
+  const conceptos = await obtenerPksDestino(sb, 'concepto_interno', 'concepto_id')
   const antes = mysqlMap.size
   const filtrado = new Map<number, Record<string, unknown>>()
   for (const [id, fila] of mysqlMap) {
@@ -93,7 +93,7 @@ async function aplicarFiltroMigracion(
   const omitidos = antes - filtrado.size
   const mensaje =
     omitidos > 0
-      ? `${omitidos} fila(s) excluidas de la comparación (concepto_id sin catálogo en Supabase)`
+      ? `${omitidos} fila(s) excluidas de la comparación (concepto_id sin catálogo en InsForge)`
       : undefined
   return { mapa: filtrado, mensaje }
 }
@@ -105,16 +105,16 @@ async function verificarUnaTabla(
 ): Promise<ResultadoTablaVerificacion> {
   const base: ResultadoTablaVerificacion = {
     id: def.id,
-    supabase: def.supabase,
+    destino: def.destino,
     mysql: def.mysql,
     etiqueta: def.etiqueta,
     grupo: def.grupo,
     estado: 'ok',
     mysqlCount: 0,
-    supabaseCount: 0,
+    destinoCount: 0,
     comunes: 0,
-    faltanEnSupabase: 0,
-    sobranEnSupabase: 0,
+    faltanEnDestino: 0,
+    sobranEnDestino: 0,
     contenidoDistinto: 0,
     muestraFaltan: [],
     muestraSobran: [],
@@ -130,12 +130,12 @@ async function verificarUnaTabla(
     }
   }
 
-  const supabaseOk = await supabaseTablaDisponible(sb, def.supabase)
-  if (!supabaseOk) {
+  const destinoOk = await destinoTablaDisponible(sb, def.destino)
+  if (!destinoOk) {
     return {
       ...base,
       estado: 'omitida',
-      mensaje: `No existe en Supabase (${def.supabase})`,
+      mensaje: `No existe en InsForge (${def.destino})`,
     }
   }
 
@@ -151,43 +151,43 @@ async function verificarUnaTabla(
 
   base.mysqlCount = mysqlMap.size
 
-  const supabasePks = await obtenerPksSupabase(sb, def.supabase, pk)
-  base.supabaseCount = supabasePks.size
+  const destinoPks = await obtenerPksDestino(sb, def.destino, pk)
+  base.destinoCount = destinoPks.size
 
   const mysqlPks = new Set(mysqlMap.keys())
 
   for (const id of mysqlPks) {
-    if (!supabasePks.has(id)) {
-      base.faltanEnSupabase++
+    if (!destinoPks.has(id)) {
+      base.faltanEnDestino++
       if (base.muestraFaltan.length < MUESTRA_PK_MAX) base.muestraFaltan.push(id)
     }
   }
 
-  for (const id of supabasePks) {
+  for (const id of destinoPks) {
     if (!mysqlPks.has(id)) {
-      base.sobranEnSupabase++
+      base.sobranEnDestino++
       if (base.muestraSobran.length < MUESTRA_PK_MAX) base.muestraSobran.push(id)
     }
   }
 
-  const idsComunes = [...mysqlPks].filter((id) => supabasePks.has(id))
+  const idsComunes = [...mysqlPks].filter((id) => destinoPks.has(id))
   base.comunes = idsComunes.length
 
   for (let i = 0; i < idsComunes.length; i += LOTE_COMPARE) {
     const lote = idsComunes.slice(i, i + LOTE_COMPARE)
-    const supabaseLote = await obtenerFilasSupabasePorPks(sb, def.supabase, pk, lote)
+    const destinoLote = await obtenerFilasDestinoPorPks(sb, def.destino, pk, lote)
 
     for (const id of lote) {
       const filaMysql = mysqlMap.get(id)
-      const filaSupabase = supabaseLote.get(id)
-      if (!filaMysql || !filaSupabase) continue
+      const filaDestino = destinoLote.get(id)
+      if (!filaMysql || !filaDestino) continue
 
-      if (!filasIguales(filaMysql, filaSupabase)) {
+      if (!filasIguales(filaMysql, filaDestino)) {
         base.contenidoDistinto++
         if (base.muestraDistintas.length < MUESTRA_DIFF_MAX) {
           base.muestraDistintas.push({
             pk: id,
-            campos: camposDistintosEntreFilas(filaMysql, filaSupabase),
+            campos: camposDistintosEntreFilas(filaMysql, filaDestino),
           })
         }
       }
@@ -195,23 +195,23 @@ async function verificarUnaTabla(
   }
 
   const hayDiscordancia =
-    base.faltanEnSupabase > 0 || base.sobranEnSupabase > 0 || base.contenidoDistinto > 0
+    base.faltanEnDestino > 0 || base.sobranEnDestino > 0 || base.contenidoDistinto > 0
 
   if (hayDiscordancia) {
     base.estado = 'discordancia'
     const partes: string[] = []
-    if (base.faltanEnSupabase > 0) partes.push(`${base.faltanEnSupabase} PK faltan en Supabase`)
-    if (base.sobranEnSupabase > 0) partes.push(`${base.sobranEnSupabase} PK sobran en Supabase`)
+    if (base.faltanEnDestino > 0) partes.push(`${base.faltanEnDestino} PK faltan en InsForge`)
+    if (base.sobranEnDestino > 0) partes.push(`${base.sobranEnDestino} PK sobran en InsForge`)
     if (base.contenidoDistinto > 0) {
       partes.push(`${base.contenidoDistinto} fila(s) con contenido distinto`)
     }
     const resumen = partes.join(' · ')
     base.mensaje = base.mensaje ? `${base.mensaje} · ${resumen}` : resumen
-  } else if (base.mysqlCount !== base.supabaseCount) {
+  } else if (base.mysqlCount !== base.destinoCount) {
     base.estado = 'discordancia'
     base.mensaje =
       base.mensaje ??
-      `Conteos distintos (MySQL esperado ${base.mysqlCount}, Supabase ${base.supabaseCount})`
+      `Conteos distintos (MySQL esperado ${base.mysqlCount}, InsForge ${base.destinoCount})`
   }
 
   return base
@@ -231,7 +231,7 @@ export async function ejecutarVerificacionEspejo(opciones: {
     ? TABLAS_MIGRACION.filter((t) => idsSeleccionados.has(t.id))
     : TABLAS_MIGRACION
 
-  const sb = createSupabaseAdmin()
+  const sb = createDbAdmin()
   const mysql = await createMysqlLegacyConnection()
   const tablas: ResultadoTablaVerificacion[] = []
   const erroresGlobales: string[] = []
@@ -244,17 +244,17 @@ export async function ejecutarVerificacionEspejo(opciones: {
         const msg = e instanceof Error ? e.message : 'Error desconocido'
         tablas.push({
           id: def.id,
-          supabase: def.supabase,
+          destino: def.destino,
           mysql: def.mysql,
           etiqueta: def.etiqueta,
           grupo: def.grupo,
           estado: 'error',
           mensaje: msg,
           mysqlCount: 0,
-          supabaseCount: 0,
+          destinoCount: 0,
           comunes: 0,
-          faltanEnSupabase: 0,
-          sobranEnSupabase: 0,
+          faltanEnDestino: 0,
+          sobranEnDestino: 0,
           contenidoDistinto: 0,
           muestraFaltan: [],
           muestraSobran: [],
