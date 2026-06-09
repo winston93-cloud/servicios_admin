@@ -15921,21 +15921,24 @@ body {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   width: 100%;
 }
 
 .portal-inscripciones-paso {
   position: relative;
   display: grid;
-  grid-template-columns: 44px 36px minmax(0, 1fr);
-  gap: 14px 18px;
-  padding: clamp(18px, 2.5vw, 24px) clamp(20px, 3vw, 28px);
-  border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.16);
-  background: rgba(15, 23, 42, 0.4);
+  grid-template-columns: 52px 40px minmax(0, 1fr);
+  gap: 16px 20px;
+  padding: clamp(20px, 2.5vw, 26px) clamp(22px, 3vw, 32px);
+  padding-left: clamp(24px, 3vw, 36px);
+  border-radius: 18px;
+  border: 2px solid rgba(148, 163, 184, 0.28);
+  background: rgba(21, 34, 64, 0.88);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
   transition:
     border-color 0.22s ease,
     background 0.22s ease,
@@ -15943,30 +15946,88 @@ body {
     transform 0.22s ease;
 }
 
+.portal-inscripciones-paso::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: rgba(100, 116, 139, 0.55);
+}
+
 .portal-inscripciones-paso:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28);
 }
 
 .portal-inscripciones-paso--disponible,
 .portal-inscripciones-paso--atencion {
-  border-color: rgba(56, 189, 248, 0.38);
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.08) 0%, rgba(15, 23, 42, 0.45) 100%);
-  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.08) inset;
+  border-color: rgba(56, 189, 248, 0.55);
+  background: linear-gradient(
+    135deg,
+    rgba(56, 189, 248, 0.14) 0%,
+    rgba(21, 34, 64, 0.92) 48%,
+    rgba(15, 23, 42, 0.95) 100%
+  );
+  box-shadow:
+    0 0 0 1px rgba(56, 189, 248, 0.12) inset,
+    0 8px 32px rgba(14, 165, 233, 0.12);
+}
+
+.portal-inscripciones-paso--disponible::before,
+.portal-inscripciones-paso--atencion::before {
+  background: linear-gradient(180deg, #38bdf8 0%, #0ea5e9 100%);
 }
 
 .portal-inscripciones-paso--completado {
-  border-color: rgba(52, 211, 153, 0.32);
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.07) 0%, rgba(15, 23, 42, 0.4) 100%);
+  border-color: rgba(52, 211, 153, 0.5);
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.12) 0%,
+    rgba(21, 34, 64, 0.9) 50%,
+    rgba(15, 23, 42, 0.92) 100%
+  );
+}
+
+.portal-inscripciones-paso--completado::before {
+  background: linear-gradient(180deg, #34d399 0%, #10b981 100%);
+}
+
+.portal-inscripciones-paso--bloqueado {
+  border-color: rgba(71, 85, 105, 0.45);
+  background: rgba(15, 23, 42, 0.75);
+  opacity: 0.92;
 }
 
 .portal-inscripciones-paso-indice {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: rgba(148, 163, 184, 0.65);
-  padding-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #e2e8f0;
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.35);
   font-variant-numeric: tabular-nums;
+  align-self: start;
+}
+
+.portal-inscripciones-paso--completado .portal-inscripciones-paso-indice {
+  color: #6ee7b7;
+  border-color: rgba(52, 211, 153, 0.45);
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.portal-inscripciones-paso--disponible .portal-inscripciones-paso-indice,
+.portal-inscripciones-paso--atencion .portal-inscripciones-paso-indice {
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.45);
+  background: rgba(56, 189, 248, 0.12);
 }
 
 .portal-inscripciones-paso-icono {
@@ -16036,16 +16097,17 @@ body {
 }
 
 .portal-inscripciones-paso-desc {
-  margin: 0 0 6px;
-  font-size: 14px;
-  line-height: 1.5;
-  color: rgba(203, 213, 225, 0.9);
+  margin: 0 0 8px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #cbd5e1;
 }
 
 .portal-inscripciones-paso-detalle {
-  margin: 0 0 10px;
-  font-size: 13px;
-  color: rgba(148, 163, 184, 0.95);
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #94a3b8;
 }
 
 .portal-inscripciones-paso-link {
@@ -16069,13 +16131,6 @@ body {
   font-size: 13px;
   font-style: italic;
   color: rgba(148, 163, 184, 0.85);
-}
-
-@media (min-width: 900px) {
-  .portal-inscripciones-pasos {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-  }
 }
 
 @media (max-width: 768px) {

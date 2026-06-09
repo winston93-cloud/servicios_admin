@@ -5,7 +5,6 @@ export type PasoInscripcionId =
   | 'solicitud'
   | 'reglamento'
   | 'pago-inscripcion'
-  | 'material-seguro'
   | 'documentos'
   | 'recibo-final'
 

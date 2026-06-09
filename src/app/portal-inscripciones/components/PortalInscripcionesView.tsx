@@ -223,7 +223,7 @@ export default function PortalInscripcionesView() {
         {estado && (
           <>
             <ol className="portal-inscripciones-pasos">
-              {estado.pasos.map((paso, idx) => (
+              {estado.pasos.map((paso) => (
                 <li
                   key={paso.id}
                   className={`portal-inscripciones-paso portal-inscripciones-paso--${paso.estado}`}
@@ -264,9 +264,6 @@ export default function PortalInscripcionesView() {
                       </div>
                     )}
                   </div>
-                  {idx < estado.pasos.length - 1 && (
-                    <div className="portal-inscripciones-paso-conector" aria-hidden />
-                  )}
                 </li>
               ))}
             </ol>

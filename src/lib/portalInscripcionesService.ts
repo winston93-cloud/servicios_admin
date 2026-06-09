@@ -270,7 +270,6 @@ export async function construirEstadoPortalInscripciones(
 
   const solCompleta = solicitudCompleta(alumno)
   const insPagada = inscripcionPagada(pagos, alumno, cicloValor, esReinscrito)
-  const matSegPagado = tienePagoConcepto(pagos, alumno.alumno_ref, '17', cicloValor)
   const reciboHabilitado = await enReciboFinal(supabase, alumno.alumno_ref)
 
   const pasos: PasoInscripcion[] = []
@@ -328,43 +327,20 @@ export async function construirEstadoPortalInscripciones(
             : null,
   })
 
-  pasos.push({
-        id: 'material-seguro',
-        orden: 4,
-        titulo: 'Material, herramientas y seguro',
-        descripcion: 'Pago de evaluación, herramientas tecnológicas y seguro escolar.',
-        estado: resolverEstadoPaso(
-          matSegPagado,
-          flujoActivo && solCompleta && insPagada
-        ),
-        detalle: matSegPagado ? 'Pago registrado.' : 'Se habilita tras pagar la inscripción.',
-        accion:
-          flujoActivo && solCompleta && insPagada && !matSegPagado
-            ? { tipo: 'ruta-interna', href: '/portal-pagos', etiqueta: 'Pagar en línea' }
-            : null,
-  })
-
   if (!esReinscrito) {
     pasos.push({
-        id: 'documentos',
-        orden: 5,
-        titulo: 'Carga de documentos',
-        descripcion: 'Solo alumnos de nuevo ingreso: expediente digital.',
-        estado: resolverEstadoPaso(
-          false,
-          flujoActivo && solCompleta && insPagada && matSegPagado
-        ),
-        detalle: 'Portal de documentos — próximamente en este sistema.',
-        accion: null,
+      id: 'documentos',
+      orden: 4,
+      titulo: 'Carga de documentos',
+      descripcion: 'Solo alumnos de nuevo ingreso: expediente digital.',
+      estado: resolverEstadoPaso(false, flujoActivo && solCompleta && insPagada),
+      detalle: 'Portal de documentos — próximamente en este sistema.',
+      accion: null,
     })
   }
 
-  const ordenRecibo = esReinscrito ? 5 : 6
-  const puedeRecibo =
-    flujoActivo &&
-    insPagada &&
-    (esReinscrito || matSegPagado) &&
-    (reciboHabilitado || esReinscrito)
+  const ordenRecibo = esReinscrito ? 4 : 5
+  const puedeRecibo = flujoActivo && insPagada && (reciboHabilitado || esReinscrito)
 
   pasos.push({
       id: 'recibo-final',
