@@ -132,7 +132,8 @@ export default function PortalInscripcionesView() {
   const refFmt = String(session?.alumno_ref ?? '').padStart(5, '0')
 
   return (
-    <div className="dashboard-container portal-inscripciones-page">
+    <div className="dashboard-container dashboard-home portal-inscripciones-page">
+      <div className="dashboard-home-bg" aria-hidden />
       <div className="dashboard-main portal-inscripciones-main">
         <header className="portal-inscripciones-encabezado">
           <button

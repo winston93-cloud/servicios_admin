@@ -3,6 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import ThemeToggle from '@/components/ThemeToggle'
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
@@ -220,6 +221,7 @@ export default function DashboardPage() {
             <span className="dashboard-welcome">
               Bienvenido, {session?.displayName ?? user?.usuario_nombre_completo}
             </span>
+            <ThemeToggle />
             <button onClick={handleLogout} className="dashboard-logout-btn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
