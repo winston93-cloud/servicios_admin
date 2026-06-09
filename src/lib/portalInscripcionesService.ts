@@ -287,9 +287,12 @@ export async function construirEstadoPortalInscripciones(
           : 'Datos listos para continuar'
         : 'Completa el formulario para habilitar los pagos.',
       fechaCompletado: alumno.alumno_registro ?? null,
-      accion: flujoActivo && !solCompleta
-        ? { tipo: 'ruta-interna', href: '#', etiqueta: 'Completar solicitud' }
-        : null,
+      accion:
+        flujoActivo && !solCompleta
+          ? { tipo: 'ruta-interna', href: '/portal-inscripciones/solicitud', etiqueta: 'Completar solicitud' }
+          : flujoActivo && solCompleta
+            ? { tipo: 'ruta-interna', href: '/portal-inscripciones/solicitud', etiqueta: 'Actualizar solicitud' }
+            : null,
   })
 
   pasos.push({

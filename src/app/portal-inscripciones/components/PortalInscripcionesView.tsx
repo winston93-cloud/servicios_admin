@@ -213,7 +213,7 @@ export default function PortalInscripcionesView() {
                     {paso.detalle && (
                       <p className="portal-inscripciones-paso-detalle">{paso.detalle}</p>
                     )}
-                    {paso.accion && paso.accion.href !== '#' && (
+                    {paso.accion && (
                       <div className="portal-inscripciones-paso-accion">
                         {paso.accion.tipo === 'ruta-interna' ? (
                           <Link href={paso.accion.href} className="portal-inscripciones-paso-link">
@@ -232,11 +232,6 @@ export default function PortalInscripcionesView() {
                           </a>
                         )}
                       </div>
-                    )}
-                    {paso.accion?.href === '#' && (
-                      <p className="portal-inscripciones-paso-proximamente">
-                        Formulario disponible en la fase 2.
-                      </p>
                     )}
                   </div>
                   {idx < estado.pasos.length - 1 && (
