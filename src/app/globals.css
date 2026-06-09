@@ -14535,11 +14535,11 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   --portal-paso-completado-border: rgba(52, 211, 153, 0.5);
   --portal-paso-bloqueado-bg: rgba(15, 23, 42, 0.75);
   --portal-paso-bloqueado-border: rgba(71, 85, 105, 0.45);
-  --portal-form-step-activa-bg: linear-gradient(160deg, rgba(56, 189, 248, 0.18), rgba(21, 34, 64, 0.95));
-  --portal-form-step-activa-border: rgba(56, 189, 248, 0.65);
-  --portal-form-step-activa-color: #e0f2fe;
-  --portal-form-step-visitada-border: rgba(52, 211, 153, 0.35);
-  --portal-form-step-visitada-color: #a7f3d0;
+  --portal-form-step-activa-bg: linear-gradient(165deg, rgba(56, 189, 248, 0.28) 0%, rgba(21, 34, 64, 0.96) 100%);
+  --portal-form-step-activa-border: #38bdf8;
+  --portal-form-step-activa-color: #f0f9ff;
+  --portal-form-step-visitada-border: #34d399;
+  --portal-form-step-visitada-color: #6ee7b7;
   --portal-paso-desc: #cbd5e1;
   --portal-paso-detalle: #94a3b8;
   --portal-paso-link: #38bdf8;
@@ -14597,9 +14597,19 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   --portal-form-label: #cbd5e1;
   --portal-form-title: #f1f5f9;
   --portal-form-hint: #94a3b8;
-  --portal-form-step-bg: rgba(21, 34, 64, 0.75);
-  --portal-form-step-border: rgba(71, 85, 105, 0.45);
-  --portal-form-step-color: #94a3b8;
+  --portal-form-stepper-bg: rgba(15, 23, 42, 0.45);
+  --portal-form-step-bg: rgba(30, 41, 59, 0.88);
+  --portal-form-step-border: rgba(148, 163, 184, 0.55);
+  --portal-form-step-color: #cbd5e1;
+  --portal-form-step-shadow: 0 2px 10px rgba(0, 0, 0, 0.22);
+  --portal-form-step-num-bg: rgba(15, 23, 42, 0.95);
+  --portal-form-step-num-border: rgba(148, 163, 184, 0.5);
+  --portal-form-step-num-color: #e2e8f0;
+  --portal-form-step-activa-shadow: 0 8px 28px rgba(14, 165, 233, 0.28);
+  --portal-form-step-activa-num-bg: #0ea5e9;
+  --portal-form-step-activa-num-border: #38bdf8;
+  --portal-form-step-activa-num-color: #ffffff;
+  --portal-form-step-visitada-bg: rgba(16, 185, 129, 0.12);
   --portal-form-footer-bg: linear-gradient(180deg, transparent, rgba(11, 18, 32, 0.92) 28%);
   --portal-modal-overlay: rgba(2, 6, 23, 0.82);
   --portal-modal-body-bg: #0f172a;
@@ -14629,11 +14639,13 @@ html[data-theme='light'] .portal-inscripciones-page {
   --portal-paso-completado-border: #6ee7b7;
   --portal-paso-bloqueado-bg: #f8fafc;
   --portal-paso-bloqueado-border: #e2e8f0;
-  --portal-form-step-activa-bg: linear-gradient(160deg, #f0f9ff, #ffffff);
-  --portal-form-step-activa-border: #38bdf8;
+  --portal-form-stepper-bg: #e8eef4;
+  --portal-form-step-activa-bg: linear-gradient(180deg, #bae6fd 0%, #e0f2fe 55%, #f0f9ff 100%);
+  --portal-form-step-activa-border: #0284c7;
   --portal-form-step-activa-color: #0c4a6e;
-  --portal-form-step-visitada-border: #a7f3d0;
-  --portal-form-step-visitada-color: #059669;
+  --portal-form-step-visitada-border: #34d399;
+  --portal-form-step-visitada-color: #047857;
+  --portal-form-step-visitada-bg: #ecfdf5;
   --portal-paso-desc: #475569;
   --portal-paso-detalle: #64748b;
   --portal-paso-link: #0284c7;
@@ -14682,8 +14694,16 @@ html[data-theme='light'] .portal-inscripciones-page {
   --portal-form-title: #0f172a;
   --portal-form-hint: #64748b;
   --portal-form-step-bg: #ffffff;
-  --portal-form-step-border: #e2e8f0;
-  --portal-form-step-color: #64748b;
+  --portal-form-step-border: #94a3b8;
+  --portal-form-step-color: #334155;
+  --portal-form-step-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  --portal-form-step-num-bg: #f1f5f9;
+  --portal-form-step-num-border: #94a3b8;
+  --portal-form-step-num-color: #475569;
+  --portal-form-step-activa-shadow: 0 6px 20px rgba(2, 132, 199, 0.22);
+  --portal-form-step-activa-num-bg: #0284c7;
+  --portal-form-step-activa-num-border: #0369a1;
+  --portal-form-step-activa-num-color: #ffffff;
   --portal-form-footer-bg: linear-gradient(180deg, transparent, rgba(248, 250, 252, 0.95) 28%);
   --portal-modal-overlay: rgba(15, 23, 42, 0.45);
   --portal-modal-body-bg: #f1f5f9;
@@ -16686,9 +16706,12 @@ html[data-theme='light'] .portal-inscripciones-paso--bloqueado {
 
 .pi-form-stepper {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   overflow-x: auto;
-  padding-bottom: 6px;
+  padding: 10px;
+  border-radius: 18px;
+  background: var(--portal-form-stepper-bg);
+  border: 1px solid var(--portal-form-step-border);
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
 }
@@ -16701,11 +16724,13 @@ html[data-theme='light'] .portal-inscripciones-paso--bloqueado {
   align-items: center;
   gap: 6px;
   padding: 14px 10px 12px;
-  border-radius: 16px;
+  border-radius: 14px;
   border: 2px solid var(--portal-form-step-border);
   background: var(--portal-form-step-bg);
   color: var(--portal-form-step-color);
+  box-shadow: var(--portal-form-step-shadow);
   cursor: pointer;
+  font-family: inherit;
   transition:
     border-color 0.2s ease,
     background 0.2s ease,
@@ -16714,50 +16739,74 @@ html[data-theme='light'] .portal-inscripciones-paso--bloqueado {
     box-shadow 0.2s ease;
 }
 
-.pi-form-step:hover {
-  border-color: rgba(56, 189, 248, 0.4);
-  color: #cbd5e1;
+.pi-form-step:hover:not(.pi-form-step--activa) {
+  border-color: var(--portal-form-step-activa-border);
+  color: var(--portal-form-step-activa-color);
   transform: translateY(-2px);
+  box-shadow: var(--portal-form-step-activa-shadow);
 }
 
 .pi-form-step--visitada {
   border-color: var(--portal-form-step-visitada-border);
+  background: var(--portal-form-step-visitada-bg, var(--portal-form-step-bg));
   color: var(--portal-form-step-visitada-color);
+}
+
+.pi-form-step--visitada .pi-form-step-num {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: var(--portal-form-step-visitada-border);
+  color: var(--portal-form-step-visitada-color);
+}
+
+html[data-theme='light'] .pi-form-step--visitada .pi-form-step-num {
+  background: #d1fae5;
+  border-color: #34d399;
+  color: #047857;
 }
 
 .pi-form-step--activa {
   border-color: var(--portal-form-step-activa-border);
   background: var(--portal-form-step-activa-bg);
   color: var(--portal-form-step-activa-color);
-  box-shadow: var(--portal-surface-card-shadow);
+  box-shadow: var(--portal-form-step-activa-shadow);
+  transform: translateY(-1px);
+}
+
+.pi-form-step--activa .pi-form-step-icon {
+  color: var(--portal-form-step-activa-border);
 }
 
 .pi-form-step-num {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 800;
-  background: rgba(15, 23, 42, 0.8);
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: var(--portal-form-step-num-bg);
+  border: 2px solid var(--portal-form-step-num-border);
+  color: var(--portal-form-step-num-color);
 }
 
 .pi-form-step--activa .pi-form-step-num {
-  background: rgba(56, 189, 248, 0.25);
-  border-color: rgba(56, 189, 248, 0.5);
-  color: #fff;
+  background: var(--portal-form-step-activa-num-bg);
+  border-color: var(--portal-form-step-activa-num-border);
+  color: var(--portal-form-step-activa-num-color);
 }
 
 .pi-form-step-icon {
-  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  opacity: 1;
 }
 
 .pi-form-step-label {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 800;
   letter-spacing: 0.02em;
   text-align: center;
   line-height: 1.2;
@@ -17136,18 +17185,6 @@ html[data-theme='light'] .pi-form-btn-nav {
   color: var(--portal-btn-sec-color);
   background: #ffffff;
   border-color: var(--portal-btn-sec-border);
-}
-
-html[data-theme='light'] .pi-form-step-num {
-  background: #f1f5f9;
-  border-color: #e2e8f0;
-  color: #334155;
-}
-
-html[data-theme='light'] .pi-form-step--activa .pi-form-step-num {
-  background: #e0f2fe;
-  border-color: #7dd3fc;
-  color: #0369a1;
 }
 
 html[data-theme='light'] .portal-matriz-monto {
