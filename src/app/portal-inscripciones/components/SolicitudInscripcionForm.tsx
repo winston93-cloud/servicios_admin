@@ -3,21 +3,38 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, CheckCircle2, Loader2, Save } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  HeartPulse,
+  Loader2,
+  Phone,
+  Save,
+  User,
+  Users,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { SEXO_ALUMNO_OPCIONES } from '@/lib/alumnoSexo'
 import type { SolicitudInscripcionFormulario } from '@/lib/portalInscripcionesSolicitudTypes'
 import { SOLICITUD_CONTACTO_VACIO } from '@/lib/portalInscripcionesSolicitudTypes'
 
 const SECCIONES = [
-  { id: 'alumno', label: 'Alumno' },
-  { id: 'salud', label: 'Salud' },
-  { id: 'mama', label: 'Mamá' },
-  { id: 'papa', label: 'Papá' },
-  { id: 'contactos', label: 'Contactos' },
+  { id: 'alumno', label: 'Alumno', hint: 'Datos personales y domicilio', icon: User },
+  { id: 'salud', label: 'Salud', hint: 'Ficha médica escolar', icon: HeartPulse },
+  { id: 'mama', label: 'Mamá', hint: 'Datos de la madre', icon: Users },
+  { id: 'papa', label: 'Papá', hint: 'Datos del padre', icon: Users },
+  { id: 'contactos', label: 'Contactos', hint: 'Emergencia y autorizados', icon: Phone },
 ] as const
 
 type SeccionId = (typeof SECCIONES)[number]['id']
+
+function iconoSeccion(id: SeccionId): LucideIcon {
+  return SECCIONES.find((s) => s.id === id)?.icon ?? User
+}
 
 // Formulario vacío con ids nulos
 const SOLICITUD_INSCRIPCION_VACIO: SolicitudInscripcionFormulario = {
@@ -210,6 +227,18 @@ export default function SolicitudInscripcionForm() {
       autorizados: [...f.autorizados, { ...SOLICITUD_CONTACTO_VACIO }],
     }))
 
+  const indiceSeccion = SECCIONES.findIndex((s) => s.id === seccion)
+  const seccionActual = SECCIONES[indiceSeccion] ?? SECCIONES[0]
+  const progresoSeccion = Math.round(((indiceSeccion + 1) / SECCIONES.length) * 100)
+  const IconoSeccion = iconoSeccion(seccion)
+
+  const irSeccion = (dir: -1 | 1) => {
+    const next = indiceSeccion + dir
+    if (next >= 0 && next < SECCIONES.length) {
+      setSeccion(SECCIONES[next].id)
+    }
+  }
+
   if (cargando) {
     return (
       <div className="portal-inscripciones-estado">
@@ -226,25 +255,51 @@ export default function SolicitudInscripcionForm() {
           <ArrowLeft size={16} aria-hidden />
           Volver al proceso
         </Link>
-        <h1 className="dashboard-title portal-inscripciones-titulo">Solicitud de inscripción</h1>
-        <p className="dashboard-subtitle portal-inscripciones-lead">
-          Completa cada sección. Al guardar se habilitan los pagos del ciclo.
-        </p>
+        <div className="pi-form-hero">
+          <div>
+            <p className="portal-inscripciones-kicker">Formulario en línea</p>
+            <h1 className="dashboard-title portal-inscripciones-titulo">Solicitud de inscripción</h1>
+            <p className="dashboard-subtitle portal-inscripciones-lead">
+              Completa las 5 secciones. Al guardar se habilitan los pagos del ciclo.
+            </p>
+          </div>
+          <div className="pi-form-progreso-mini" aria-hidden>
+            <span className="pi-form-progreso-mini-valor">{progresoSeccion}%</span>
+            <span className="pi-form-progreso-mini-label">
+              Sección {indiceSeccion + 1} de {SECCIONES.length}
+            </span>
+          </div>
+        </div>
       </header>
 
-      <nav className="pi-form-tabs" aria-label="Secciones del formulario">
-        {SECCIONES.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            className={`pi-form-tab${seccion === s.id ? ' pi-form-tab--activa' : ''}`}
-            onClick={() => setSeccion(s.id)}
-          >
-            {s.label}
-          </button>
-        ))}
+      <div className="pi-form-progreso-track" aria-hidden>
+        <div className="pi-form-progreso-track-fill" style={{ width: `${progresoSeccion}%` }} />
+      </div>
+
+      <nav className="pi-form-stepper" aria-label="Secciones del formulario">
+        {SECCIONES.map((s, i) => {
+          const Icon = s.icon
+          const activa = seccion === s.id
+          const visitada = i < indiceSeccion
+          return (
+            <button
+              key={s.id}
+              type="button"
+              className={`pi-form-step${activa ? ' pi-form-step--activa' : ''}${visitada ? ' pi-form-step--visitada' : ''}`}
+              onClick={() => setSeccion(s.id)}
+              aria-current={activa ? 'step' : undefined}
+            >
+              <span className="pi-form-step-num">{i + 1}</span>
+              <span className="pi-form-step-icon" aria-hidden>
+                <Icon size={16} />
+              </span>
+              <span className="pi-form-step-label">{s.label}</span>
+            </button>
+          )
+        })}
       </nav>
 
+      <div className="pi-form-shell">
       {error && (
         <div className="portal-inscripciones-alerta portal-inscripciones-alerta--error" role="alert">
           {error}
@@ -269,6 +324,16 @@ export default function SolicitudInscripcionForm() {
       )}
 
       <div className="pi-form-panel">
+        <div className="pi-form-section-head">
+          <div className="pi-form-section-icon" aria-hidden>
+            <IconoSeccion size={22} />
+          </div>
+          <div>
+            <h2 className="pi-form-section-title">{seccionActual.label}</h2>
+            <p className="pi-form-section-hint">{seccionActual.hint}</p>
+          </div>
+        </div>
+
         {seccion === 'alumno' && (
           <div className="pi-form-grid">
             <Campo label="Fecha de nacimiento" required>
@@ -495,6 +560,23 @@ export default function SolicitudInscripcionForm() {
       </div>
 
       <footer className="pi-form-footer">
+        <div className="pi-form-footer-nav">
+          <button
+            type="button"
+            className="pi-form-btn-nav"
+            onClick={() => irSeccion(-1)}
+            disabled={indiceSeccion === 0}
+          >
+            <ChevronLeft size={18} aria-hidden />
+            Anterior
+          </button>
+          {indiceSeccion < SECCIONES.length - 1 && (
+            <button type="button" className="pi-form-btn-nav pi-form-btn-nav--sig" onClick={() => irSeccion(1)}>
+              Siguiente
+              <ChevronRight size={18} aria-hidden />
+            </button>
+          )}
+        </div>
         <button
           type="button"
           className="pi-form-btn-guardar"
@@ -507,8 +589,10 @@ export default function SolicitudInscripcionForm() {
             <Save size={18} aria-hidden />
           )}
           Guardar solicitud
+          <ArrowRight size={16} aria-hidden />
         </button>
       </footer>
+      </div>
     </div>
   )
 }
