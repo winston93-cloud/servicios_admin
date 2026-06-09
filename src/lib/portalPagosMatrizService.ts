@@ -242,6 +242,37 @@ async function construirFilas(
   return filas
 }
 
+/** Conceptos de inscripción / reinscripción (no aparecen en candados de colegiatura). */
+export const CONCEPTOS_INSCRIPCION_REINSCRITO = ['11', '12', '13'] as const
+export const CONCEPTO_INSCRIPCION_NUEVO = '13'
+
+export async function construirFilasInscripcionPortal(
+  supabase: AppDatabaseClient,
+  alumno: AlumnoRegistro,
+  ciclo: CicloEscolarRegistro,
+  pagos: PagoDetalleRegistro[],
+  esReinscrito: boolean
+): Promise<FilaMatrizPortal[]> {
+  const numeros = esReinscrito
+    ? [...CONCEPTOS_INSCRIPCION_REINSCRITO]
+    : [CONCEPTO_INSCRIPCION_NUEVO]
+  const conceptos = await listarConceptosPorNumeros(supabase, numeros)
+  const planMeses = alumno.mes === 2 ? 2 : 1
+  const filas = await construirFilas(supabase, alumno, ciclo, conceptos, pagos, planMeses)
+
+  const orden = esReinscrito ? [...CONCEPTOS_INSCRIPCION_REINSCRITO] : [CONCEPTO_INSCRIPCION_NUEVO]
+  const porConcepto = new Map(filas.map((f) => [normalizarConceptoNo(f.conceptoNo), f]))
+  const pagadas = orden
+    .map((c) => porConcepto.get(normalizarConceptoNo(c)))
+    .filter((f): f is FilaMatrizPortal => f != null && f.pagado)
+  const primeraPendiente = orden
+    .map((c) => porConcepto.get(normalizarConceptoNo(c)))
+    .find((f): f is FilaMatrizPortal => f != null && !f.pagado)
+
+  if (primeraPendiente) return [...pagadas, primeraPendiente]
+  return pagadas
+}
+
 export async function construirMatrizPortalPagos(
   supabase: AppDatabaseClient,
   alumno: AlumnoRegistro,

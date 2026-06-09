@@ -311,8 +311,8 @@ export async function construirEstadoPortalInscripciones(
       orden: 3,
       titulo: esReinscrito ? 'Pago de reinscripción' : 'Pago de inscripción',
       descripcion: esReinscrito
-        ? 'Cubre el diferido o inscripción del ciclo vigente.'
-        : 'Realiza el pago de inscripción de nuevo ingreso.',
+        ? 'Efectivo en ventanilla, comercio electrónico o SPEI — igual que en portal de pagos.'
+        : 'Paga inscripción en ventanilla (baucher), comercio electrónico o SPEI.',
       estado: resolverEstadoPaso(
         insPagada,
         flujoActivo && solCompleta,
@@ -321,9 +321,9 @@ export async function construirEstadoPortalInscripciones(
       detalle: insPagada ? 'Pago registrado correctamente.' : 'Pendiente de pago.',
       accion:
         flujoActivo && solCompleta && !insPagada
-          ? { tipo: 'ruta-interna', href: '/portal-pagos', etiqueta: 'Ir a pagos' }
+          ? { tipo: 'ruta-interna', href: '/portal-inscripciones/pago', etiqueta: 'Pagar inscripción' }
           : insPagada
-            ? { tipo: 'ruta-interna', href: '/portal-pagos', etiqueta: 'Ver comprobante' }
+            ? { tipo: 'ruta-interna', href: '/portal-inscripciones/pago', etiqueta: 'Ver comprobante' }
             : null,
   })
 

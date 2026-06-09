@@ -17227,3 +17227,55 @@ html[data-theme='light'] .portal-doc-modal-cerrar:hover {
   background: var(--border-light);
 }
 
+/* ── Pago inscripción — métodos (portal inscripciones) ─────────────────── */
+.pi-pago-metodos {
+  margin-bottom: 24px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  border: 1px solid var(--portal-progreso-border);
+  background: var(--portal-progreso-bg);
+  box-shadow: var(--portal-surface-card-shadow);
+}
+
+.pi-pago-metodos-titulo {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--portal-kicker-color);
+}
+
+.pi-pago-metodos-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pi-pago-metodos-lista li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--portal-paso-desc);
+}
+
+.pi-pago-metodos-lista li svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--portal-paso-link);
+}
+
+.pi-pago-metodos-lista strong {
+  color: var(--text-primary);
+}
+
+.pi-pago-nota {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
