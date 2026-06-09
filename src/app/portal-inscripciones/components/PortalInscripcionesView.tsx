@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -47,6 +47,45 @@ function etiquetaEstado(estado: PasoEstadoInscripcion): string {
     default:
       return 'Bloqueado'
   }
+}
+
+function ProgresoInscripcion({
+  pct,
+  completados,
+  totales,
+}: {
+  pct: number
+  completados: number
+  totales: number
+}) {
+  return (
+    <section className="portal-inscripciones-progreso" aria-label="Progreso general">
+      <div
+        className="portal-inscripciones-progreso-ring"
+        style={{ '--pi-pct': pct } as CSSProperties}
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
+        <div className="portal-inscripciones-progreso-ring-inner">
+          <span className="portal-inscripciones-progreso-pct">{pct}%</span>
+          <span className="portal-inscripciones-progreso-sublabel">Progreso</span>
+        </div>
+      </div>
+      <div className="portal-inscripciones-progreso-meta">
+        <div
+          className="portal-inscripciones-progreso-bar"
+          aria-hidden
+        >
+          <div className="portal-inscripciones-progreso-fill" style={{ width: `${pct}%` }} />
+        </div>
+        <p className="portal-inscripciones-progreso-hint">
+          <strong>{completados}</strong> de <strong>{totales}</strong> pasos completados
+        </p>
+      </div>
+    </section>
+  )
 }
 
 export default function PortalInscripcionesView() {
@@ -124,25 +163,32 @@ export default function PortalInscripcionesView() {
           </div>
 
           {estado && (
-            <div className="portal-inscripciones-alumno-card">
-              <div className="portal-inscripciones-alumno-info">
-                <span className="portal-inscripciones-alumno-nombre">
-                  {nombreAlumno(estado, session?.displayName)}
-                </span>
-                <span className="portal-inscripciones-alumno-meta">
-                  No. {refFmt} · {estado.gradoEtiqueta} · {estado.formaIngresoEtiqueta}
-                </span>
+            <div className="portal-inscripciones-hero">
+              <div className="portal-inscripciones-alumno-card">
+                <div className="portal-inscripciones-alumno-info">
+                  <span className="portal-inscripciones-alumno-nombre">
+                    {nombreAlumno(estado, session?.displayName)}
+                  </span>
+                  <span className="portal-inscripciones-alumno-meta">
+                    No. {refFmt} · {estado.gradoEtiqueta} · {estado.formaIngresoEtiqueta}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="portal-inscripciones-btn-sec"
+                  onClick={() => void cargar()}
+                  disabled={cargando}
+                  aria-label="Actualizar estado"
+                >
+                  <RefreshCw size={16} className={cargando ? 'portal-inscripciones-spin' : ''} />
+                  Actualizar
+                </button>
               </div>
-              <button
-                type="button"
-                className="portal-inscripciones-btn-sec"
-                onClick={() => void cargar()}
-                disabled={cargando}
-                aria-label="Actualizar estado"
-              >
-                <RefreshCw size={16} className={cargando ? 'portal-inscripciones-spin' : ''} />
-                Actualizar
-              </button>
+              <ProgresoInscripcion
+                pct={estado.progresoPct}
+                completados={estado.pasosCompletados}
+                totales={estado.pasosTotales}
+              />
             </div>
           )}
         </header>
@@ -176,22 +222,6 @@ export default function PortalInscripcionesView() {
 
         {estado && (
           <>
-            <section className="portal-inscripciones-progreso" aria-label="Progreso general">
-              <div className="portal-inscripciones-progreso-top">
-                <span className="portal-inscripciones-progreso-label">Progreso</span>
-                <span className="portal-inscripciones-progreso-pct">{estado.progresoPct}%</span>
-              </div>
-              <div className="portal-inscripciones-progreso-bar" role="progressbar" aria-valuenow={estado.progresoPct} aria-valuemin={0} aria-valuemax={100}>
-                <div
-                  className="portal-inscripciones-progreso-fill"
-                  style={{ width: `${estado.progresoPct}%` }}
-                />
-              </div>
-              <p className="portal-inscripciones-progreso-hint">
-                {estado.pasosCompletados} de {estado.pasosTotales} pasos completados
-              </p>
-            </section>
-
             <ol className="portal-inscripciones-pasos">
               {estado.pasos.map((paso, idx) => (
                 <li

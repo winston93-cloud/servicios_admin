@@ -15638,13 +15638,21 @@ body {
 }
 
 /* ── Portal de inscripciones (familias) ── */
+.portal-inscripciones-page.dashboard-container {
+  width: 100%;
+}
+
 .portal-inscripciones-page .portal-inscripciones-main {
-  max-width: 720px;
+  width: 100%;
+  max-width: min(1120px, 100%);
   margin-inline: auto;
+  padding: clamp(20px, 3vw, 40px) clamp(16px, 4vw, 40px) 56px;
+  align-items: stretch;
 }
 
 .portal-inscripciones-encabezado {
-  margin-bottom: 28px;
+  margin-bottom: 32px;
+  width: 100%;
 }
 
 .portal-inscripciones-encabezado-grid {
@@ -15670,7 +15678,7 @@ body {
 }
 
 .portal-inscripciones-lead {
-  max-width: 36rem;
+  max-width: 42rem;
 }
 
 .portal-inscripciones-ciclo-badge {
@@ -15698,23 +15706,39 @@ body {
   color: #e0f2fe;
 }
 
+.portal-inscripciones-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  gap: clamp(16px, 2.5vw, 24px);
+  align-items: stretch;
+  margin-top: 24px;
+  width: 100%;
+}
+
 .portal-inscripciones-alumno-card {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px 16px;
-  margin-top: 20px;
-  padding: 16px 18px;
-  border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  background: rgba(15, 23, 42, 0.45);
+  gap: 14px 20px;
+  padding: clamp(18px, 2.5vw, 24px) clamp(20px, 3vw, 28px);
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: linear-gradient(
+    145deg,
+    rgba(30, 41, 59, 0.55) 0%,
+    rgba(15, 23, 42, 0.75) 100%
+  );
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+  min-height: 100%;
 }
 
 .portal-inscripciones-alumno-nombre {
   display: block;
-  font-size: 17px;
-  font-weight: 700;
+  font-size: clamp(17px, 2vw, 22px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
   color: var(--text-primary, #f1f5f9);
 }
 
@@ -15794,44 +15818,85 @@ body {
 }
 
 .portal-inscripciones-progreso {
-  margin-bottom: 28px;
-  padding: 18px 20px;
-  border-radius: 14px;
-  border: 1px solid rgba(56, 189, 248, 0.2);
-  background: linear-gradient(
-    135deg,
-    rgba(56, 189, 248, 0.06) 0%,
-    rgba(15, 23, 42, 0.5) 100%
-  );
-}
-
-.portal-inscripciones-progreso-top {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 10px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: clamp(16px, 2vw, 22px) clamp(18px, 2.5vw, 24px);
+  border-radius: 16px;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  background: linear-gradient(
+    160deg,
+    rgba(56, 189, 248, 0.1) 0%,
+    rgba(15, 23, 42, 0.65) 55%,
+    rgba(15, 23, 42, 0.85) 100%
+  );
+  box-shadow:
+    0 0 0 1px rgba(56, 189, 248, 0.06) inset,
+    0 8px 32px rgba(14, 165, 233, 0.08);
 }
 
-.portal-inscripciones-progreso-label {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: rgba(148, 163, 184, 0.9);
+.portal-inscripciones-progreso-ring {
+  --pi-pct: 0;
+  position: relative;
+  width: clamp(96px, 12vw, 112px);
+  height: clamp(96px, 12vw, 112px);
+  border-radius: 50%;
+  background: conic-gradient(
+    #38bdf8 0deg,
+    #0ea5e9 calc(var(--pi-pct) * 3.6deg),
+    rgba(51, 65, 85, 0.65) calc(var(--pi-pct) * 3.6deg),
+    rgba(51, 65, 85, 0.65) 360deg
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.6s ease;
+}
+
+.portal-inscripciones-progreso-ring-inner {
+  width: calc(100% - 14px);
+  height: calc(100% - 14px);
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.12) inset;
 }
 
 .portal-inscripciones-progreso-pct {
-  font-size: 22px;
+  font-size: clamp(22px, 3vw, 28px);
   font-weight: 800;
+  line-height: 1;
   color: #7dd3fc;
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+
+.portal-inscripciones-progreso-sublabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.portal-inscripciones-progreso-meta {
+  width: 100%;
+  text-align: center;
 }
 
 .portal-inscripciones-progreso-bar {
-  height: 8px;
+  height: 6px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.8);
+  background: rgba(15, 23, 42, 0.85);
   overflow: hidden;
+  margin-bottom: 8px;
 }
 
 .portal-inscripciones-progreso-fill {
@@ -15842,42 +15907,57 @@ body {
 }
 
 .portal-inscripciones-progreso-hint {
-  margin: 10px 0 0;
+  margin: 0;
   font-size: 13px;
-  color: rgba(148, 163, 184, 0.9);
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.portal-inscripciones-progreso-hint strong {
+  color: #e0f2fe;
+  font-weight: 700;
 }
 
 .portal-inscripciones-pasos {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  width: 100%;
 }
 
 .portal-inscripciones-paso {
   position: relative;
   display: grid;
-  grid-template-columns: 40px 32px 1fr;
-  gap: 12px 14px;
-  padding: 20px 18px;
-  border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  background: rgba(15, 23, 42, 0.35);
-  margin-bottom: 12px;
-  transition: border-color 0.22s ease, background 0.22s ease;
+  grid-template-columns: 44px 36px minmax(0, 1fr);
+  gap: 14px 18px;
+  padding: clamp(18px, 2.5vw, 24px) clamp(20px, 3vw, 28px);
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.4);
+  transition:
+    border-color 0.22s ease,
+    background 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.22s ease;
+}
+
+.portal-inscripciones-paso:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
 }
 
 .portal-inscripciones-paso--disponible,
 .portal-inscripciones-paso--atencion {
-  border-color: rgba(56, 189, 248, 0.35);
-  background: rgba(56, 189, 248, 0.05);
+  border-color: rgba(56, 189, 248, 0.38);
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.08) 0%, rgba(15, 23, 42, 0.45) 100%);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.08) inset;
 }
 
 .portal-inscripciones-paso--completado {
-  border-color: rgba(52, 211, 153, 0.28);
-  background: rgba(16, 185, 129, 0.04);
+  border-color: rgba(52, 211, 153, 0.32);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.07) 0%, rgba(15, 23, 42, 0.4) 100%);
 }
 
 .portal-inscripciones-paso-indice {
@@ -15920,8 +16000,9 @@ body {
 
 .portal-inscripciones-paso-titulo {
   margin: 0;
-  font-size: 16px;
+  font-size: clamp(16px, 1.8vw, 18px);
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--text-primary, #f1f5f9);
 }
 
@@ -15990,10 +16071,39 @@ body {
   color: rgba(148, 163, 184, 0.85);
 }
 
-@media (max-width: 640px) {
-  .portal-inscripciones-paso {
-    grid-template-columns: 28px 28px 1fr;
-    padding: 16px 14px;
+@media (min-width: 900px) {
+  .portal-inscripciones-pasos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .portal-inscripciones-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-inscripciones-progreso {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+  }
+
+  .portal-inscripciones-progreso-meta {
+    flex: 1;
+    min-width: 140px;
+    text-align: left;
+  }
+
+  .portal-inscripciones-progreso-ring {
+    width: 88px;
+    height: 88px;
+  }
+
+  .portal-inscripciones-encabezado-grid {
+    flex-direction: column;
   }
 
   .portal-inscripciones-ciclo-badge {
@@ -16002,8 +16112,39 @@ body {
   }
 }
 
+@media (max-width: 640px) {
+  .portal-inscripciones-paso {
+    grid-template-columns: 32px 28px 1fr;
+    gap: 10px 12px;
+    padding: 16px 14px;
+  }
+
+  .portal-inscripciones-paso:hover {
+    transform: none;
+  }
+
+  .portal-inscripciones-alumno-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .portal-inscripciones-btn-sec {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .portal-inscripciones-progreso {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .portal-inscripciones-progreso-meta {
+    text-align: center;
+  }
+}
+
 .portal-inscripciones-main--form {
-  max-width: 820px;
+  max-width: min(1120px, 100%);
 }
 
 .pi-form-page {
