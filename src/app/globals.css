@@ -14492,8 +14492,220 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   }
 }
 
+/* ── Portales alumno — tokens por tema (pagos + inscripciones) ─────────── */
+.portal-pagos-page,
+.portal-inscripciones-page {
+  --portal-badge-bg: linear-gradient(
+    135deg,
+    rgba(var(--winston-cyan-rgb), 0.14) 0%,
+    rgba(20, 50, 86, 0.55) 100%
+  );
+  --portal-badge-border: rgba(var(--winston-cyan-rgb), 0.45);
+  --portal-badge-label: var(--text-muted);
+  --portal-badge-value: var(--winston-cyan-bright);
+  --portal-kicker-color: rgba(56, 189, 248, 0.85);
+  --portal-surface-card: linear-gradient(
+    145deg,
+    rgba(30, 41, 59, 0.55) 0%,
+    rgba(15, 23, 42, 0.75) 100%
+  );
+  --portal-surface-card-border: rgba(148, 163, 184, 0.2);
+  --portal-surface-card-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+  --portal-btn-sec-color: #bae6fd;
+  --portal-btn-sec-bg: rgba(56, 189, 248, 0.1);
+  --portal-btn-sec-border: rgba(56, 189, 248, 0.28);
+  --portal-btn-sec-hover-bg: rgba(56, 189, 248, 0.16);
+  --portal-btn-sec-hover-border: rgba(56, 189, 248, 0.45);
+  --portal-paso-bg: rgba(21, 34, 64, 0.88);
+  --portal-paso-border: rgba(148, 163, 184, 0.28);
+  --portal-paso-shadow: 0 4px 20px rgba(0, 0, 0, 0.22);
+  --portal-paso-activo-bg: linear-gradient(
+    135deg,
+    rgba(56, 189, 248, 0.14) 0%,
+    rgba(21, 34, 64, 0.92) 48%,
+    rgba(15, 23, 42, 0.95) 100%
+  );
+  --portal-paso-activo-border: rgba(56, 189, 248, 0.55);
+  --portal-paso-completado-bg: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.12) 0%,
+    rgba(21, 34, 64, 0.9) 50%,
+    rgba(15, 23, 42, 0.92) 100%
+  );
+  --portal-paso-completado-border: rgba(52, 211, 153, 0.5);
+  --portal-paso-bloqueado-bg: rgba(15, 23, 42, 0.75);
+  --portal-paso-bloqueado-border: rgba(71, 85, 105, 0.45);
+  --portal-form-step-activa-bg: linear-gradient(160deg, rgba(56, 189, 248, 0.18), rgba(21, 34, 64, 0.95));
+  --portal-form-step-activa-border: rgba(56, 189, 248, 0.65);
+  --portal-form-step-activa-color: #e0f2fe;
+  --portal-form-step-visitada-border: rgba(52, 211, 153, 0.35);
+  --portal-form-step-visitada-color: #a7f3d0;
+  --portal-paso-desc: #cbd5e1;
+  --portal-paso-detalle: #94a3b8;
+  --portal-paso-link: #38bdf8;
+  --portal-paso-link-hover: #7dd3fc;
+  --portal-progreso-bg: linear-gradient(
+    160deg,
+    rgba(56, 189, 248, 0.1) 0%,
+    rgba(15, 23, 42, 0.65) 55%,
+    rgba(15, 23, 42, 0.85) 100%
+  );
+  --portal-progreso-border: rgba(56, 189, 248, 0.28);
+  --portal-progreso-ring-inner: rgba(15, 23, 42, 0.92);
+  --portal-progreso-pct: #7dd3fc;
+  --portal-progreso-bar-bg: rgba(15, 23, 42, 0.85);
+  --portal-progreso-hint: rgba(148, 163, 184, 0.95);
+  --portal-progreso-hint-strong: #e0f2fe;
+  --portal-table-head-bg: linear-gradient(135deg, #0e3a5c 0%, #123d62 40%, #1a5080 100%);
+  --portal-table-head-text: #f8fafc;
+  --portal-table-th-bg: rgba(15, 23, 42, 0.5);
+  --portal-table-row-hover: rgba(255, 255, 255, 0.03);
+  --portal-matriz-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  --portal-plan-badge-bg: rgba(99, 102, 241, 0.15);
+  --portal-plan-badge-color: #a5b4fc;
+  --portal-plan-badge-border: rgba(99, 102, 241, 0.35);
+  --portal-estatus-ok: #86efac;
+  --portal-alerta-error-bg: rgba(239, 68, 68, 0.12);
+  --portal-alerta-error-border: rgba(239, 68, 68, 0.35);
+  --portal-alerta-error-text: #fecaca;
+  --portal-alerta-info-bg: rgba(59, 130, 246, 0.12);
+  --portal-alerta-info-border: rgba(59, 130, 246, 0.35);
+  --portal-alerta-info-text: #bfdbfe;
+  --portal-alerta-aviso-bg: rgba(56, 189, 248, 0.1);
+  --portal-alerta-aviso-border: rgba(56, 189, 248, 0.28);
+  --portal-alerta-aviso-text: #bae6fd;
+  --portal-alerta-bloqueo-bg: rgba(251, 191, 36, 0.1);
+  --portal-alerta-bloqueo-border: rgba(251, 191, 36, 0.35);
+  --portal-alerta-bloqueo-text: #fde68a;
+  --portal-back-bg: rgba(15, 23, 42, 0.72);
+  --portal-back-border: rgba(148, 163, 184, 0.35);
+  --portal-back-color: #e2e8f0;
+  --portal-back-hover-bg: rgba(30, 41, 59, 0.92);
+  --portal-back-hover-border: rgba(56, 189, 248, 0.4);
+  --portal-form-shell-bg: linear-gradient(
+    165deg,
+    rgba(30, 41, 59, 0.55) 0%,
+    rgba(15, 23, 42, 0.92) 40%,
+    rgba(11, 18, 32, 0.98) 100%
+  );
+  --portal-form-shell-border: rgba(56, 189, 248, 0.22);
+  --portal-form-panel-bg: rgba(15, 23, 42, 0.65);
+  --portal-form-panel-border: rgba(148, 163, 184, 0.22);
+  --portal-form-input-bg: rgba(11, 18, 32, 0.85);
+  --portal-form-input-border: rgba(71, 85, 105, 0.55);
+  --portal-form-input-color: #f8fafc;
+  --portal-form-label: #cbd5e1;
+  --portal-form-title: #f1f5f9;
+  --portal-form-hint: #94a3b8;
+  --portal-form-step-bg: rgba(21, 34, 64, 0.75);
+  --portal-form-step-border: rgba(71, 85, 105, 0.45);
+  --portal-form-step-color: #94a3b8;
+  --portal-form-footer-bg: linear-gradient(180deg, transparent, rgba(11, 18, 32, 0.92) 28%);
+  --portal-modal-overlay: rgba(2, 6, 23, 0.82);
+  --portal-modal-body-bg: #0f172a;
+}
+
+html[data-theme='light'] .portal-pagos-page,
+html[data-theme='light'] .portal-inscripciones-page {
+  --portal-badge-bg: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%);
+  --portal-badge-border: #bae6fd;
+  --portal-badge-label: #0369a1;
+  --portal-badge-value: #0c4a6e;
+  --portal-kicker-color: #0369a1;
+  --portal-surface-card: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  --portal-surface-card-border: #e2e8f0;
+  --portal-surface-card-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+  --portal-btn-sec-color: #0369a1;
+  --portal-btn-sec-bg: #f0f9ff;
+  --portal-btn-sec-border: #bae6fd;
+  --portal-btn-sec-hover-bg: #e0f2fe;
+  --portal-btn-sec-hover-border: #7dd3fc;
+  --portal-paso-bg: #ffffff;
+  --portal-paso-border: #e2e8f0;
+  --portal-paso-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
+  --portal-paso-activo-bg: linear-gradient(135deg, #f0f9ff 0%, #ffffff 48%, #f8fafc 100%);
+  --portal-paso-activo-border: #7dd3fc;
+  --portal-paso-completado-bg: linear-gradient(135deg, #ecfdf5 0%, #ffffff 50%, #f8fafc 100%);
+  --portal-paso-completado-border: #6ee7b7;
+  --portal-paso-bloqueado-bg: #f8fafc;
+  --portal-paso-bloqueado-border: #e2e8f0;
+  --portal-form-step-activa-bg: linear-gradient(160deg, #f0f9ff, #ffffff);
+  --portal-form-step-activa-border: #38bdf8;
+  --portal-form-step-activa-color: #0c4a6e;
+  --portal-form-step-visitada-border: #a7f3d0;
+  --portal-form-step-visitada-color: #059669;
+  --portal-paso-desc: #475569;
+  --portal-paso-detalle: #64748b;
+  --portal-paso-link: #0284c7;
+  --portal-paso-link-hover: #0369a1;
+  --portal-progreso-bg: linear-gradient(160deg, #f0f9ff 0%, #ffffff 55%, #f8fafc 100%);
+  --portal-progreso-border: #bae6fd;
+  --portal-progreso-ring-inner: #ffffff;
+  --portal-progreso-pct: #0284c7;
+  --portal-progreso-bar-bg: #e2e8f0;
+  --portal-progreso-hint: #64748b;
+  --portal-progreso-hint-strong: #0f172a;
+  --portal-table-head-bg: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 40%, #7dd3fc 100%);
+  --portal-table-head-text: #0c4a6e;
+  --portal-table-th-bg: #f1f5f9;
+  --portal-table-row-hover: rgba(79, 70, 229, 0.04);
+  --portal-matriz-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --portal-plan-badge-bg: #eef2ff;
+  --portal-plan-badge-color: #4338ca;
+  --portal-plan-badge-border: #c7d2fe;
+  --portal-estatus-ok: #059669;
+  --portal-alerta-error-bg: #fef2f2;
+  --portal-alerta-error-border: #fecaca;
+  --portal-alerta-error-text: #b91c1c;
+  --portal-alerta-info-bg: #eff6ff;
+  --portal-alerta-info-border: #bfdbfe;
+  --portal-alerta-info-text: #1d4ed8;
+  --portal-alerta-aviso-bg: #f0f9ff;
+  --portal-alerta-aviso-border: #bae6fd;
+  --portal-alerta-aviso-text: #0369a1;
+  --portal-alerta-bloqueo-bg: #fffbeb;
+  --portal-alerta-bloqueo-border: #fde68a;
+  --portal-alerta-bloqueo-text: #b45309;
+  --portal-back-bg: #ffffff;
+  --portal-back-border: #cbd5e1;
+  --portal-back-color: #1e293b;
+  --portal-back-hover-bg: #f8fafc;
+  --portal-back-hover-border: #94a3b8;
+  --portal-form-shell-bg: linear-gradient(165deg, #ffffff 0%, #f8fafc 40%, #f1f5f9 100%);
+  --portal-form-shell-border: #e2e8f0;
+  --portal-form-panel-bg: #ffffff;
+  --portal-form-panel-border: #e2e8f0;
+  --portal-form-input-bg: #ffffff;
+  --portal-form-input-border: #cbd5e1;
+  --portal-form-input-color: #0f172a;
+  --portal-form-label: #334155;
+  --portal-form-title: #0f172a;
+  --portal-form-hint: #64748b;
+  --portal-form-step-bg: #ffffff;
+  --portal-form-step-border: #e2e8f0;
+  --portal-form-step-color: #64748b;
+  --portal-form-footer-bg: linear-gradient(180deg, transparent, rgba(248, 250, 252, 0.95) 28%);
+  --portal-modal-overlay: rgba(15, 23, 42, 0.45);
+  --portal-modal-body-bg: #f1f5f9;
+}
+
+.portal-pagos-page .servicios-back-btn,
+.portal-inscripciones-page .servicios-back-btn {
+  background: var(--portal-back-bg);
+  border-color: var(--portal-back-border);
+  color: var(--portal-back-color);
+}
+
+.portal-pagos-page .servicios-back-btn:hover,
+.portal-inscripciones-page .servicios-back-btn:hover {
+  background: var(--portal-back-hover-bg);
+  border-color: var(--portal-back-hover-border);
+}
+
 /* Portal de pagos — alumno */
 .portal-pagos-page .portal-pagos-main {
+  position: relative;
+  z-index: 1;
   padding: 0 16px 48px;
 }
 
@@ -14543,13 +14755,9 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   gap: 0.2rem;
   padding: 0.65rem 1rem;
   border-radius: 10px;
-  border: 1px solid rgba(var(--winston-cyan-rgb), 0.45);
-  background: linear-gradient(
-    135deg,
-    rgba(var(--winston-cyan-rgb), 0.14) 0%,
-    rgba(20, 50, 86, 0.55) 100%
-  );
-  box-shadow: 0 0 20px rgba(var(--winston-cyan-rgb), 0.12);
+  border: 1px solid var(--portal-badge-border);
+  background: var(--portal-badge-bg);
+  box-shadow: var(--portal-surface-card-shadow);
 }
 
 .portal-pagos-ciclo-label {
@@ -14557,13 +14765,13 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--portal-badge-label);
 }
 
 .portal-pagos-ciclo-nombre {
   font-size: 1.0625rem;
   font-weight: 700;
-  color: var(--winston-cyan-bright);
+  color: var(--portal-badge-value);
 }
 
 .portal-pagos-lead {
@@ -14590,7 +14798,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .portal-pagos-btn-sec:hover:not(:disabled) {
-  background: var(--bg-tertiary);
+  background: var(--bg-subtle);
   border-color: var(--border-medium);
 }
 
@@ -14621,9 +14829,9 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .portal-pagos-alerta--error {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.35);
-  color: #fecaca;
+  background: var(--portal-alerta-error-bg);
+  border: 1px solid var(--portal-alerta-error-border);
+  color: var(--portal-alerta-error-text);
 }
 
 .portal-pagos-resumen {
@@ -14694,7 +14902,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--text-muted);
-  background: rgba(15, 23, 42, 0.5);
+  background: var(--portal-table-th-bg);
 }
 
 .portal-pagos-tabla tbody tr:last-child td {
@@ -14702,7 +14910,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .portal-pagos-tabla tbody tr:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--portal-table-row-hover);
 }
 
 .portal-pagos-fila--inactiva {
@@ -14729,7 +14937,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 .portal-pagos-estatus-ok {
   font-size: 0.75rem;
   font-weight: 600;
-  color: #86efac;
+  color: var(--portal-estatus-ok);
 }
 
 .portal-pagos-estatus-tag {
@@ -14897,18 +15105,15 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   gap: 0.2rem;
   padding: 0.65rem 1rem;
   border-radius: 10px;
-  border: 1px solid rgba(var(--winston-cyan-rgb), 0.38);
-  background: linear-gradient(
-    135deg,
-    rgba(var(--winston-cyan-rgb), 0.12) 0%,
-    rgba(20, 50, 86, 0.5) 100%
-  );
+  border: 1px solid var(--portal-badge-border);
+  background: var(--portal-badge-bg);
+  box-shadow: var(--portal-surface-card-shadow);
 }
 
 .portal-pagos-plan-badge-valor {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--winston-cyan-bright);
+  color: var(--portal-badge-value);
 }
 
 .portal-matriz-contenedor {
@@ -14938,9 +15143,9 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   font-weight: 700;
   padding: 0.3rem 0.65rem;
   border-radius: 6px;
-  background: rgba(99, 102, 241, 0.15);
-  color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: var(--portal-plan-badge-bg);
+  color: var(--portal-plan-badge-color);
+  border: 1px solid var(--portal-plan-badge-border);
 }
 
 .portal-matriz-tabla-wrap {
@@ -14949,7 +15154,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   border-radius: 14px;
   border: 1px solid var(--border-light);
   background: var(--bg-secondary);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--portal-matriz-shadow);
 }
 
 .portal-matriz-tabla {
@@ -14960,13 +15165,8 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .portal-matriz-tabla thead {
-  background: linear-gradient(
-    135deg,
-    #0e3a5c 0%,
-    #123d62 40%,
-    #1a5080 100%
-  );
-  box-shadow: inset 0 -1px 0 rgba(var(--winston-cyan-rgb), 0.25);
+  background: var(--portal-table-head-bg);
+  box-shadow: inset 0 -1px 0 var(--portal-badge-border);
 }
 
 .portal-matriz-tabla th {
@@ -14976,7 +15176,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #f8fafc;
+  color: var(--portal-table-head-text);
 }
 
 .portal-matriz-tabla td {
@@ -15132,9 +15332,9 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .portal-pagos-alerta--info {
-  background: rgba(59, 130, 246, 0.12);
-  border: 1px solid rgba(59, 130, 246, 0.35);
-  color: #bfdbfe;
+  background: var(--portal-alerta-info-bg);
+  border: 1px solid var(--portal-alerta-info-border);
+  color: var(--portal-alerta-info-text);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -15169,7 +15369,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: rgba(2, 6, 23, 0.82);
+  background: var(--portal-modal-overlay, rgba(2, 6, 23, 0.82));
   backdrop-filter: blur(6px);
 }
 
@@ -15293,7 +15493,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   flex: 1;
   min-height: 0;
   padding: 0.75rem;
-  background: #0f172a;
+  background: var(--portal-modal-body-bg, #0f172a);
 }
 
 .portal-doc-modal-frame {
@@ -15908,7 +16108,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(56, 189, 248, 0.85);
+  color: var(--portal-kicker-color);
 }
 
 .portal-inscripciones-titulo {
@@ -15926,8 +16126,9 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   gap: 2px;
   padding: 10px 14px;
   border-radius: 12px;
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid var(--portal-badge-border);
+  background: var(--portal-badge-bg);
+  box-shadow: var(--portal-surface-card-shadow);
 }
 
 .portal-inscripciones-ciclo-label {
@@ -15935,13 +16136,13 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(148, 163, 184, 0.9);
+  color: var(--portal-badge-label);
 }
 
 .portal-inscripciones-ciclo-nombre {
   font-size: 15px;
   font-weight: 700;
-  color: #e0f2fe;
+  color: var(--portal-badge-value);
 }
 
 .portal-inscripciones-hero {
@@ -15961,13 +16162,9 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   gap: 14px 20px;
   padding: clamp(18px, 2.5vw, 24px) clamp(20px, 3vw, 28px);
   border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background: linear-gradient(
-    145deg,
-    rgba(30, 41, 59, 0.55) 0%,
-    rgba(15, 23, 42, 0.75) 100%
-  );
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--portal-surface-card-border);
+  background: var(--portal-surface-card);
+  box-shadow: var(--portal-surface-card-shadow);
   min-height: 100%;
 }
 
@@ -15984,7 +16181,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   display: block;
   margin-top: 4px;
   font-size: 13px;
-  color: rgba(148, 163, 184, 0.95);
+  color: var(--text-muted);
 }
 
 .portal-inscripciones-btn-sec {
@@ -15994,17 +16191,17 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   padding: 8px 14px;
   font-size: 13px;
   font-weight: 600;
-  color: #bae6fd;
-  background: rgba(56, 189, 248, 0.1);
-  border: 1px solid rgba(56, 189, 248, 0.28);
+  color: var(--portal-btn-sec-color);
+  background: var(--portal-btn-sec-bg);
+  border: 1px solid var(--portal-btn-sec-border);
   border-radius: 10px;
   cursor: pointer;
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .portal-inscripciones-btn-sec:hover:not(:disabled) {
-  background: rgba(56, 189, 248, 0.16);
-  border-color: rgba(56, 189, 248, 0.45);
+  background: var(--portal-btn-sec-hover-bg);
+  border-color: var(--portal-btn-sec-hover-border);
 }
 
 .portal-inscripciones-btn-sec:disabled {
@@ -16023,7 +16220,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   gap: 10px;
   padding: 32px 16px;
   font-size: 14px;
-  color: rgba(148, 163, 184, 0.95);
+  color: var(--text-muted);
 }
 
 .portal-inscripciones-alerta {
@@ -16038,21 +16235,21 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .portal-inscripciones-alerta--error {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.35);
-  color: #fecaca;
+  background: var(--portal-alerta-error-bg);
+  border: 1px solid var(--portal-alerta-error-border);
+  color: var(--portal-alerta-error-text);
 }
 
 .portal-inscripciones-alerta--bloqueo {
-  background: rgba(251, 191, 36, 0.1);
-  border: 1px solid rgba(251, 191, 36, 0.35);
-  color: #fde68a;
+  background: var(--portal-alerta-bloqueo-bg);
+  border: 1px solid var(--portal-alerta-bloqueo-border);
+  color: var(--portal-alerta-bloqueo-text);
 }
 
 .portal-inscripciones-alerta--aviso {
-  background: rgba(56, 189, 248, 0.1);
-  border: 1px solid rgba(56, 189, 248, 0.28);
-  color: #bae6fd;
+  background: var(--portal-alerta-aviso-bg);
+  border: 1px solid var(--portal-alerta-aviso-border);
+  color: var(--portal-alerta-aviso-text);
 }
 
 .portal-inscripciones-progreso {
@@ -16063,16 +16260,9 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   gap: 14px;
   padding: clamp(16px, 2vw, 22px) clamp(18px, 2.5vw, 24px);
   border-radius: 16px;
-  border: 1px solid rgba(56, 189, 248, 0.28);
-  background: linear-gradient(
-    160deg,
-    rgba(56, 189, 248, 0.1) 0%,
-    rgba(15, 23, 42, 0.65) 55%,
-    rgba(15, 23, 42, 0.85) 100%
-  );
-  box-shadow:
-    0 0 0 1px rgba(56, 189, 248, 0.06) inset,
-    0 8px 32px rgba(14, 165, 233, 0.08);
+  border: 1px solid var(--portal-progreso-border);
+  background: var(--portal-progreso-bg);
+  box-shadow: var(--portal-surface-card-shadow);
 }
 
 .portal-inscripciones-progreso-ring {
@@ -16098,20 +16288,20 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   width: calc(100% - 14px);
   height: calc(100% - 14px);
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.92);
+  background: var(--portal-progreso-ring-inner);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.12) inset;
+  box-shadow: 0 0 0 1px var(--portal-surface-card-border) inset;
 }
 
 .portal-inscripciones-progreso-pct {
   font-size: clamp(22px, 3vw, 28px);
   font-weight: 800;
   line-height: 1;
-  color: #7dd3fc;
+  color: var(--portal-progreso-pct);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.03em;
 }
@@ -16132,7 +16322,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 .portal-inscripciones-progreso-bar {
   height: 6px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.85);
+  background: var(--portal-progreso-bar-bg);
   overflow: hidden;
   margin-bottom: 8px;
 }
@@ -16147,11 +16337,11 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 .portal-inscripciones-progreso-hint {
   margin: 0;
   font-size: 13px;
-  color: rgba(148, 163, 184, 0.95);
+  color: var(--portal-progreso-hint);
 }
 
 .portal-inscripciones-progreso-hint strong {
-  color: #e0f2fe;
+  color: var(--portal-progreso-hint-strong);
   font-weight: 700;
 }
 
@@ -16173,9 +16363,9 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   padding: clamp(20px, 2.5vw, 26px) clamp(22px, 3vw, 32px);
   padding-left: clamp(24px, 3vw, 36px);
   border-radius: 18px;
-  border: 2px solid rgba(148, 163, 184, 0.28);
-  background: rgba(21, 34, 64, 0.88);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.22);
+  border: 2px solid var(--portal-paso-border);
+  background: var(--portal-paso-bg);
+  box-shadow: var(--portal-paso-shadow);
   overflow: hidden;
   transition:
     border-color 0.22s ease,
@@ -16201,16 +16391,9 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 
 .portal-inscripciones-paso--disponible,
 .portal-inscripciones-paso--atencion {
-  border-color: rgba(56, 189, 248, 0.55);
-  background: linear-gradient(
-    135deg,
-    rgba(56, 189, 248, 0.14) 0%,
-    rgba(21, 34, 64, 0.92) 48%,
-    rgba(15, 23, 42, 0.95) 100%
-  );
-  box-shadow:
-    0 0 0 1px rgba(56, 189, 248, 0.12) inset,
-    0 8px 32px rgba(14, 165, 233, 0.12);
+  border-color: var(--portal-paso-activo-border);
+  background: var(--portal-paso-activo-bg);
+  box-shadow: var(--portal-surface-card-shadow);
 }
 
 .portal-inscripciones-paso--disponible::before,
@@ -16219,13 +16402,8 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .portal-inscripciones-paso--completado {
-  border-color: rgba(52, 211, 153, 0.5);
-  background: linear-gradient(
-    135deg,
-    rgba(16, 185, 129, 0.12) 0%,
-    rgba(21, 34, 64, 0.9) 50%,
-    rgba(15, 23, 42, 0.92) 100%
-  );
+  border-color: var(--portal-paso-completado-border);
+  background: var(--portal-paso-completado-bg);
 }
 
 .portal-inscripciones-paso--completado::before {
@@ -16233,9 +16411,13 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .portal-inscripciones-paso--bloqueado {
-  border-color: rgba(71, 85, 105, 0.45);
-  background: rgba(15, 23, 42, 0.75);
+  border-color: var(--portal-paso-bloqueado-border);
+  background: var(--portal-paso-bloqueado-bg);
   opacity: 0.92;
+}
+
+html[data-theme='light'] .portal-inscripciones-paso--bloqueado {
+  opacity: 1;
 }
 
 .portal-inscripciones-paso-indice {
@@ -16338,14 +16520,14 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   margin: 0 0 8px;
   font-size: 15px;
   line-height: 1.55;
-  color: #cbd5e1;
+  color: var(--portal-paso-desc);
 }
 
 .portal-inscripciones-paso-detalle {
   margin: 0 0 12px;
   font-size: 14px;
   font-weight: 500;
-  color: #94a3b8;
+  color: var(--portal-paso-detalle);
 }
 
 .portal-inscripciones-paso-link {
@@ -16354,13 +16536,13 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
-  color: #38bdf8;
+  color: var(--portal-paso-link);
   text-decoration: none;
   transition: color 0.2s ease, gap 0.2s ease;
 }
 
 .portal-inscripciones-paso-link:hover {
-  color: #7dd3fc;
+  color: var(--portal-paso-link-hover);
   gap: 10px;
 }
 
@@ -16467,14 +16649,14 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   align-items: flex-end;
   padding: 12px 18px;
   border-radius: 14px;
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  background: linear-gradient(145deg, rgba(56, 189, 248, 0.12), rgba(15, 23, 42, 0.8));
+  border: 1px solid var(--portal-progreso-border);
+  background: var(--portal-progreso-bg);
 }
 
 .pi-form-progreso-mini-valor {
   font-size: 22px;
   font-weight: 800;
-  color: #7dd3fc;
+  color: var(--portal-progreso-pct);
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -16491,7 +16673,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 .pi-form-progreso-track {
   height: 4px;
   border-radius: 999px;
-  background: rgba(30, 41, 59, 0.9);
+  background: var(--portal-progreso-bar-bg);
   overflow: hidden;
 }
 
@@ -16520,9 +16702,9 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   gap: 6px;
   padding: 14px 10px 12px;
   border-radius: 16px;
-  border: 2px solid rgba(71, 85, 105, 0.45);
-  background: rgba(21, 34, 64, 0.75);
-  color: #94a3b8;
+  border: 2px solid var(--portal-form-step-border);
+  background: var(--portal-form-step-bg);
+  color: var(--portal-form-step-color);
   cursor: pointer;
   transition:
     border-color 0.2s ease,
@@ -16539,17 +16721,15 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .pi-form-step--visitada {
-  border-color: rgba(52, 211, 153, 0.35);
-  color: #a7f3d0;
+  border-color: var(--portal-form-step-visitada-border);
+  color: var(--portal-form-step-visitada-color);
 }
 
 .pi-form-step--activa {
-  border-color: rgba(56, 189, 248, 0.65);
-  background: linear-gradient(160deg, rgba(56, 189, 248, 0.18), rgba(21, 34, 64, 0.95));
-  color: #e0f2fe;
-  box-shadow:
-    0 0 0 1px rgba(56, 189, 248, 0.15) inset,
-    0 8px 28px rgba(14, 165, 233, 0.15);
+  border-color: var(--portal-form-step-activa-border);
+  background: var(--portal-form-step-activa-bg);
+  color: var(--portal-form-step-activa-color);
+  box-shadow: var(--portal-surface-card-shadow);
 }
 
 .pi-form-step-num {
@@ -16589,23 +16769,16 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   gap: 16px;
   padding: clamp(18px, 2.5vw, 24px);
   border-radius: 20px;
-  border: 1px solid rgba(56, 189, 248, 0.22);
-  background: linear-gradient(
-    165deg,
-    rgba(30, 41, 59, 0.55) 0%,
-    rgba(15, 23, 42, 0.92) 40%,
-    rgba(11, 18, 32, 0.98) 100%
-  );
-  box-shadow:
-    0 0 0 1px rgba(148, 163, 184, 0.08) inset,
-    0 20px 50px rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--portal-form-shell-border);
+  background: var(--portal-form-shell-bg);
+  box-shadow: var(--portal-surface-card-shadow);
 }
 
 .pi-form-panel {
   padding: clamp(20px, 3vw, 28px);
   border-radius: 16px;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid var(--portal-form-panel-border);
+  background: var(--portal-form-panel-bg);
 }
 
 .pi-form-section-head {
@@ -16635,13 +16808,13 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   font-size: clamp(18px, 2.2vw, 22px);
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: #f1f5f9;
+  color: var(--portal-form-title);
 }
 
 .pi-form-section-hint {
   margin: 0;
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--portal-form-hint);
 }
 
 .pi-form-grid {
@@ -16660,7 +16833,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.01em;
-  color: #cbd5e1;
+  color: var(--portal-form-label);
 }
 
 .pi-form-req {
@@ -16671,9 +16844,9 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   width: 100%;
   padding: 12px 14px;
   font-size: 15px;
-  color: #f8fafc;
-  background: rgba(11, 18, 32, 0.85);
-  border: 2px solid rgba(71, 85, 105, 0.55);
+  color: var(--portal-form-input-color);
+  background: var(--portal-form-input-bg);
+  border: 2px solid var(--portal-form-input-border);
   border-radius: 12px;
   outline: none;
   transition:
@@ -16683,13 +16856,13 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .pi-form-input:hover {
-  border-color: rgba(100, 116, 139, 0.7);
+  border-color: var(--border-medium);
 }
 
 .pi-form-input:focus {
-  border-color: rgba(56, 189, 248, 0.7);
-  background: rgba(15, 23, 42, 0.95);
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+  border-color: var(--bg-accent-border);
+  background: var(--portal-form-input-bg);
+  box-shadow: 0 0 0 3px var(--bg-accent-glow);
 }
 
 .pi-form-input--wide {
@@ -16755,7 +16928,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   z-index: 2;
   margin: 0 -4px;
   padding: 14px 4px 4px;
-  background: linear-gradient(180deg, transparent, rgba(11, 18, 32, 0.92) 28%);
+  background: var(--portal-form-footer-bg);
 }
 
 .pi-form-footer-nav {
@@ -16876,171 +17049,93 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   }
 }
 
-/* ── Portal inscripciones + formulario — modo claro ─────────────────────── */
-html[data-theme='light'] .portal-inscripciones-kicker {
-  color: #0369a1;
+/* ── Portales alumno — ajustes complementarios por tema ─────────────────── */
+html[data-theme='light'] .portal-pagos-page .dashboard-title,
+html[data-theme='light'] .portal-inscripciones-page .dashboard-title {
+  background: linear-gradient(180deg, #0f172a 0%, #334155 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
 }
 
-html[data-theme='light'] .portal-inscripciones-ciclo-badge {
-  border-color: #bae6fd;
-  background: #f0f9ff;
-}
-
-html[data-theme='light'] .portal-inscripciones-ciclo-label {
-  color: #0369a1;
-}
-
-html[data-theme='light'] .portal-inscripciones-ciclo-nombre {
-  color: #0c4a6e;
-}
-
-html[data-theme='light'] .portal-inscripciones-alumno-card {
-  border-color: #e2e8f0;
-  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
-}
-
-html[data-theme='light'] .portal-inscripciones-alumno-meta {
+html[data-theme='light'] .portal-pagos-page .dashboard-subtitle,
+html[data-theme='light'] .portal-inscripciones-page .dashboard-subtitle {
   color: #64748b;
 }
 
-html[data-theme='light'] .portal-inscripciones-btn-sec {
-  color: #0369a1;
-  background: #f0f9ff;
-  border-color: #bae6fd;
-}
-
-html[data-theme='light'] .portal-inscripciones-btn-sec:hover:not(:disabled) {
-  background: #e0f2fe;
-  border-color: #7dd3fc;
-}
-
-html[data-theme='light'] .portal-inscripciones-estado {
-  color: #64748b;
-}
-
-html[data-theme='light'] .portal-inscripciones-alerta--error {
-  background: #fef2f2;
-  border-color: #fecaca;
-  color: #b91c1c;
-}
-
-html[data-theme='light'] .portal-inscripciones-alerta--bloqueo {
-  background: #fffbeb;
-  border-color: #fde68a;
-  color: #b45309;
-}
-
-html[data-theme='light'] .portal-inscripciones-alerta--aviso {
-  background: #f0f9ff;
-  border-color: #bae6fd;
-  color: #0369a1;
-}
-
-html[data-theme='light'] .portal-inscripciones-progreso {
-  border-color: #bae6fd;
-  background: linear-gradient(160deg, #f0f9ff 0%, #ffffff 55%, #f8fafc 100%);
-  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.08);
-}
-
-html[data-theme='light'] .portal-inscripciones-progreso-ring-inner {
-  background: #ffffff;
-  box-shadow: 0 0 0 1px #e2e8f0 inset;
-}
-
-html[data-theme='light'] .portal-inscripciones-progreso-pct {
-  color: #0284c7;
-}
-
-html[data-theme='light'] .portal-inscripciones-progreso-bar {
-  background: #e2e8f0;
-}
-
-html[data-theme='light'] .portal-inscripciones-progreso-hint {
-  color: #64748b;
-}
-
-html[data-theme='light'] .portal-inscripciones-progreso-hint strong {
-  color: #0f172a;
-}
-
-html[data-theme='light'] .portal-inscripciones-paso {
-  border-color: #e2e8f0;
-  background: #ffffff;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
-}
-
-html[data-theme='light'] .portal-inscripciones-paso--disponible,
-html[data-theme='light'] .portal-inscripciones-paso--atencion {
-  border-color: #7dd3fc;
-  background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 48%, #f8fafc 100%);
-}
-
-html[data-theme='light'] .portal-inscripciones-paso--completado {
-  border-color: #6ee7b7;
-  background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 50%, #f8fafc 100%);
-}
-
-html[data-theme='light'] .portal-inscripciones-paso--bloqueado {
-  background: #f8fafc;
-  opacity: 1;
-}
-
-html[data-theme='light'] .portal-inscripciones-paso-indice {
+html[data-theme='light'] .portal-inscripciones-paso-indice,
+html[data-theme='light'] .portal-inscripciones-paso--disponible .portal-inscripciones-paso-indice,
+html[data-theme='light'] .portal-inscripciones-paso--atencion .portal-inscripciones-paso-indice {
   color: #334155;
   background: #f1f5f9;
   border-color: #e2e8f0;
 }
 
-html[data-theme='light'] .portal-inscripciones-paso-titulo {
-  color: #0f172a;
-}
-
-html[data-theme='light'] .portal-inscripciones-paso-resumen {
-  color: #475569;
-}
-
-html[data-theme='light'] .portal-inscripciones-paso-detalle {
-  color: #64748b;
-}
-
-html[data-theme='light'] .portal-inscripciones-paso-link {
-  color: #0284c7;
-}
-
-html[data-theme='light'] .portal-inscripciones-paso-proximamente {
-  color: #94a3b8;
-}
-
-html[data-theme='light'] .pi-form-progreso-mini {
-  border-color: #bae6fd;
-  background: linear-gradient(145deg, #f0f9ff, #ffffff);
-}
-
-html[data-theme='light'] .pi-form-progreso-mini-valor {
-  color: #0284c7;
-}
-
-html[data-theme='light'] .pi-form-progreso-track {
-  background: #e2e8f0;
-}
-
-html[data-theme='light'] .pi-form-step {
-  border-color: #e2e8f0;
-  background: #ffffff;
-  color: #64748b;
-}
-
-html[data-theme='light'] .pi-form-step--visitada {
+html[data-theme='light'] .portal-inscripciones-paso--completado .portal-inscripciones-paso-indice {
+  color: #059669;
+  background: #ecfdf5;
   border-color: #a7f3d0;
+}
+
+html[data-theme='light'] .portal-inscripciones-paso-badge--completado {
+  background: #ecfdf5;
   color: #059669;
 }
 
-html[data-theme='light'] .pi-form-step--activa {
-  border-color: #38bdf8;
-  background: linear-gradient(160deg, #f0f9ff, #ffffff);
-  color: #0c4a6e;
-  box-shadow: 0 8px 24px rgba(14, 165, 233, 0.12);
+html[data-theme='light'] .portal-inscripciones-paso-badge--disponible {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+html[data-theme='light'] .portal-inscripciones-paso-badge--atencion {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+html[data-theme='light'] .portal-inscripciones-paso-badge--bloqueado {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+html[data-theme='light'] .portal-inscripciones-paso-proximamente {
+  color: var(--text-muted);
+}
+
+html[data-theme='light'] .pi-form-section-head {
+  border-bottom-color: var(--border-light);
+}
+
+html[data-theme='light'] .pi-form-section-icon {
+  color: #0284c7;
+  background: linear-gradient(135deg, #e0f2fe, #f0f9ff);
+  border-color: #bae6fd;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.1);
+}
+
+html[data-theme='light'] .pi-form-subtitulo {
+  color: var(--portal-form-title);
+}
+
+html[data-theme='light'] .pi-form-autorizado {
+  border-color: #bae6fd;
+  background: #f0f9ff;
+}
+
+html[data-theme='light'] .pi-form-autorizado-label {
+  color: #0369a1;
+}
+
+html[data-theme='light'] .pi-form-btn-sec {
+  color: var(--portal-btn-sec-color);
+  background: var(--portal-btn-sec-bg);
+  border-color: var(--portal-btn-sec-border);
+}
+
+html[data-theme='light'] .pi-form-btn-nav {
+  color: var(--portal-btn-sec-color);
+  background: #ffffff;
+  border-color: var(--portal-btn-sec-border);
 }
 
 html[data-theme='light'] .pi-form-step-num {
@@ -17055,82 +17150,43 @@ html[data-theme='light'] .pi-form-step--activa .pi-form-step-num {
   color: #0369a1;
 }
 
-html[data-theme='light'] .pi-form-shell {
-  border-color: #e2e8f0;
-  background: linear-gradient(165deg, #ffffff 0%, #f8fafc 40%, #f1f5f9 100%);
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+html[data-theme='light'] .portal-matriz-monto {
+  color: #dc2626;
 }
 
-html[data-theme='light'] .pi-form-panel {
-  border-color: #e2e8f0;
-  background: #ffffff;
+html[data-theme='dark'] .portal-pagos-page .dashboard-subtitle,
+html[data-theme='dark'] .portal-inscripciones-page .dashboard-subtitle {
+  color: var(--winston-text-desc);
 }
 
-html[data-theme='light'] .pi-form-section-head {
-  border-bottom-color: #e2e8f0;
+html[data-theme='light'] .portal-boucher-modal-header {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 55%, #bae6fd 100%);
+  border-bottom-color: #7dd3fc;
 }
 
-html[data-theme='light'] .pi-form-section-icon {
-  color: #0284c7;
-  background: linear-gradient(135deg, #e0f2fe, #f0f9ff);
-  border-color: #bae6fd;
-  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.1);
+html[data-theme='light'] .portal-boucher-modal-header .portal-doc-modal-title {
+  color: #0c4a6e;
 }
 
-html[data-theme='light'] .pi-form-section-title {
-  color: #0f172a;
+html[data-theme='light'] .portal-boucher-modal-header .portal-boucher-modal-eyebrow {
+  color: #0369a1;
 }
 
-html[data-theme='light'] .pi-form-section-hint {
-  color: #64748b;
+html[data-theme='light'] .portal-boucher-modal-header .portal-boucher-ref {
+  color: #475569;
 }
 
-html[data-theme='light'] .pi-form-label {
+html[data-theme='light'] .portal-boucher-modal-header .portal-doc-modal-cerrar {
+  background: rgba(15, 23, 42, 0.06);
   color: #334155;
 }
 
-html[data-theme='light'] .pi-form-input {
-  color: #0f172a;
-  background: #ffffff;
-  border-color: #cbd5e1;
+html[data-theme='light'] .portal-doc-modal-cerrar {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
 }
 
-html[data-theme='light'] .pi-form-input:hover {
-  border-color: #94a3b8;
-}
-
-html[data-theme='light'] .pi-form-input:focus {
-  border-color: #38bdf8;
-  background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
-}
-
-html[data-theme='light'] .pi-form-subtitulo {
-  color: #0f172a;
-}
-
-html[data-theme='light'] .pi-form-autorizado {
-  border-color: #bae6fd;
-  background: #f0f9ff;
-}
-
-html[data-theme='light'] .pi-form-autorizado-label {
-  color: #0369a1;
-}
-
-html[data-theme='light'] .pi-form-btn-sec {
-  color: #0369a1;
-  background: #f0f9ff;
-  border-color: #bae6fd;
-}
-
-html[data-theme='light'] .pi-form-btn-nav {
-  color: #0369a1;
-  background: #ffffff;
-  border-color: #bae6fd;
-}
-
-html[data-theme='light'] .pi-form-footer {
-  background: linear-gradient(180deg, transparent, rgba(248, 250, 252, 0.95) 28%);
+html[data-theme='light'] .portal-doc-modal-cerrar:hover {
+  background: var(--border-light);
 }
 
