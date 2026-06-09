@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -23,11 +23,11 @@ import type { SolicitudInscripcionFormulario } from '@/lib/portalInscripcionesSo
 import { SOLICITUD_CONTACTO_VACIO } from '@/lib/portalInscripcionesSolicitudTypes'
 
 const SECCIONES = [
-  { id: 'alumno', label: 'Alumno', hint: 'Datos personales y domicilio', icon: User },
-  { id: 'salud', label: 'Salud', hint: 'Ficha médica escolar', icon: HeartPulse },
-  { id: 'mama', label: 'Mamá', hint: 'Datos de la madre', icon: Users },
-  { id: 'papa', label: 'Papá', hint: 'Datos del padre', icon: Users },
-  { id: 'contactos', label: 'Contactos', hint: 'Emergencia y autorizados', icon: Phone },
+  { id: 'alumno', label: 'Alumno', hint: 'Datos personales y domicilio', icon: User, accent: 'sky' },
+  { id: 'salud', label: 'Salud', hint: 'Ficha médica escolar', icon: HeartPulse, accent: 'emerald' },
+  { id: 'mama', label: 'Mamá', hint: 'Datos de la madre', icon: Users, accent: 'violet' },
+  { id: 'papa', label: 'Papá', hint: 'Datos del padre', icon: Users, accent: 'indigo' },
+  { id: 'contactos', label: 'Contactos', hint: 'Emergencia y autorizados', icon: Phone, accent: 'amber' },
 ] as const
 
 type SeccionId = (typeof SECCIONES)[number]['id']
@@ -263,7 +263,11 @@ export default function SolicitudInscripcionForm() {
               Completa las 5 secciones. Al guardar se habilitan los pagos del ciclo.
             </p>
           </div>
-          <div className="pi-form-progreso-mini" aria-hidden>
+          <div
+            className="pi-form-progreso-mini"
+            style={{ '--pi-form-pct': progresoSeccion } as CSSProperties}
+            aria-hidden
+          >
             <span className="pi-form-progreso-mini-valor">{progresoSeccion}%</span>
             <span className="pi-form-progreso-mini-label">
               Sección {indiceSeccion + 1} de {SECCIONES.length}
@@ -286,6 +290,7 @@ export default function SolicitudInscripcionForm() {
               key={s.id}
               type="button"
               className={`pi-form-step${activa ? ' pi-form-step--activa' : ''}${visitada ? ' pi-form-step--visitada' : ''}`}
+              data-accent={s.accent}
               onClick={() => setSeccion(s.id)}
               aria-current={activa ? 'step' : undefined}
             >
@@ -323,8 +328,8 @@ export default function SolicitudInscripcionForm() {
         </div>
       )}
 
-      <div className="pi-form-panel">
-        <div className="pi-form-section-head">
+      <div key={seccion} className="pi-form-panel" data-accent={seccionActual.accent}>
+        <div className="pi-form-section-head" data-accent={seccionActual.accent}>
           <div className="pi-form-section-icon" aria-hidden>
             <IconoSeccion size={22} />
           </div>
