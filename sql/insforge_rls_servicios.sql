@@ -38,11 +38,21 @@ DECLARE
     'boleta_maestro',
     'boleta_maestro_grupo',
     'registro_salida_pie',
-    'pago_prorroga'
+    'pago_prorroga',
+    'alumno_dato_medico'
   ];
+  pol text;
 BEGIN
   FOREACH t IN ARRAY tablas LOOP
+    pol := 'servicios_insforge_deny_anon';
     EXECUTE format('ALTER TABLE IF EXISTS public.%I ENABLE ROW LEVEL SECURITY', t);
+    EXECUTE format('ALTER TABLE IF EXISTS public.%I FORCE ROW LEVEL SECURITY', t);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', pol, t);
+    EXECUTE format(
+      'CREATE POLICY %I ON public.%I FOR ALL TO anon, authenticated USING (false) WITH CHECK (false)',
+      pol,
+      t
+    );
     EXECUTE format('REVOKE ALL ON public.%I FROM anon, authenticated', t);
   END LOOP;
 END $$;
@@ -128,6 +138,7 @@ WHERE n.nspname = 'public'
     'banorte_payw_intento',
     'openpay_webhook_verificacion',
     'openpay_webhook_log',
-    'registro_salida_pie'
+    'registro_salida_pie',
+    'alumno_dato_medico'
   )
 ORDER BY c.relname;
