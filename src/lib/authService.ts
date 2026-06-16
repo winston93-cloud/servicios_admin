@@ -1,4 +1,5 @@
-import { supabase } from './supabase'
+import type { AuthSession } from './portalAuthService'
+import { sessionToLegacyUser } from './portalAuthService'
 
 export interface Usuario {
   usuario_id: number
@@ -26,67 +27,60 @@ export interface AuthUser {
   usuario_nombre_completo: string
 }
 
-// Función para mantener compatibilidad con el sistema anterior
 export async function loginUser(credentials: LoginCredentials): Promise<AuthUser | null> {
   try {
-    const { data, error } = await supabase
-      .from('usuario')
-      .select('usuario_id, usuario_username, usuario_password, usuario_nombre, usuario_app, usuario_apm')
-      .eq('usuario_username', credentials.username)
-      .eq('usuario_password', credentials.password)
-      .single()
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: credentials.username,
+        password: credentials.password,
+      }),
+    })
 
-    if (error && error.code !== 'PGRST116') {
-      console.error('Error en login:', error)
+    if (res.status === 401) return null
+
+    if (!res.ok) {
       throw new Error('Error de conexión con la base de datos')
     }
 
-    if (!data) {
-      return null
-    }
+    const body = (await res.json()) as { session?: AuthSession }
+    const session = body.session
+    if (!session || session.role !== 'usuario') return null
 
-    const usuario_nombre_completo = `${data.usuario_nombre} ${data.usuario_app} ${data.usuario_apm}`.trim()
-
-    return {
-      usuario_id: data.usuario_id,
-      usuario_username: data.usuario_username,
-      usuario_nombre_completo
-    }
+    return sessionToLegacyUser(session)
   } catch (error) {
     console.error('Error en loginUser:', error)
     throw error
   }
 }
 
-// Funciones de localStorage para mantener compatibilidad
 export function getStoredUser(): AuthUser | null {
   if (typeof window === 'undefined') return null
-  
   try {
-    const storedUser = localStorage.getItem('auth_user')
-    return storedUser ? JSON.parse(storedUser) : null
-  } catch (error) {
-    console.error('Error al obtener usuario almacenado:', error)
+    const raw = localStorage.getItem('portal_auth_session')
+    if (!raw) return null
+    const session = JSON.parse(raw) as AuthSession
+    if (session?.role !== 'usuario') return null
+    return sessionToLegacyUser(session)
+  } catch {
     return null
   }
 }
 
 export function storeUser(user: AuthUser): void {
   if (typeof window === 'undefined') return
-  
-  try {
-    localStorage.setItem('auth_user', JSON.stringify(user))
-  } catch (error) {
-    console.error('Error al guardar usuario:', error)
+  const session: AuthSession = {
+    role: 'usuario',
+    displayName: user.usuario_nombre_completo,
+    usuario_id: user.usuario_id,
+    usuario_username: user.usuario_username,
   }
+  localStorage.setItem('portal_auth_session', JSON.stringify(session))
 }
 
-export function logoutUser(): void {
+export function clearStoredUser(): void {
   if (typeof window === 'undefined') return
-  
-  try {
-    localStorage.removeItem('auth_user')
-  } catch (error) {
-    console.error('Error al cerrar sesión:', error)
-  }
+  localStorage.removeItem('portal_auth_session')
+  localStorage.removeItem('auth_user')
 }

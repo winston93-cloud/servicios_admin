@@ -4,15 +4,9 @@
 --   npx @insforge/cli db query --file sql/insforge_rls_servicios.sql
 --
 -- Contexto:
--- - La app en el navegador usa NEXT_PUBLIC_INSFORGE_ANON_KEY (rol anon).
+-- - El navegador usa proxy Next.js /api/database/records (INSFORGE_API_KEY en servidor).
 -- - Las rutas API usan INSFORGE_API_KEY (admin, bypass RLS).
--- - Este script replica el comportamiento que tenías con service role en el cliente:
---   tablas del panel/portal/POS → política permisiva para anon.
---   tablas solo servidor (Banorte, webhooks, boletas API) → sin acceso anon.
---
--- ¿Es obligatorio?
--- - Si RLS está DESACTIVADO en todas las tablas y el portal ya carga bien, puedes omitirlo.
--- - Si ves 401/403 o "permission denied" en peticiones a *.insforge.app, ejecuta esto.
+-- - Rol anon: sin acceso a tablas operativas (política deny_anon).
 -- =============================================================================
 
 -- Roles PostgREST / SDK
@@ -85,18 +79,17 @@ DECLARE
   pol text;
 BEGIN
   FOREACH t IN ARRAY tablas LOOP
-    pol := 'servicios_insforge_anon_' || t;
+    pol := 'servicios_insforge_deny_anon';
     EXECUTE format('ALTER TABLE IF EXISTS public.%I ENABLE ROW LEVEL SECURITY', t);
+    EXECUTE format('ALTER TABLE IF EXISTS public.%I FORCE ROW LEVEL SECURITY', t);
+    EXECUTE format('DROP POLICY IF EXISTS servicios_insforge_anon_%I ON public.%I', t, t);
     EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', pol, t);
     EXECUTE format(
-      'CREATE POLICY %I ON public.%I FOR ALL TO anon, authenticated USING (true) WITH CHECK (true)',
+      'CREATE POLICY %I ON public.%I FOR ALL TO anon, authenticated USING (false) WITH CHECK (false)',
       pol,
       t
     );
-    EXECUTE format(
-      'GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO anon, authenticated',
-      t
-    );
+    EXECUTE format('REVOKE ALL ON public.%I FROM anon, authenticated', t);
   END LOOP;
 END $$;
 
