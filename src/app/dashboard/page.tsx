@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
 import Image from 'next/image'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 
 const ChevronRight = () => (
@@ -14,8 +14,29 @@ const ChevronRight = () => (
   </svg>
 )
 
+type DashboardNavItem = {
+  label: string
+  desc: string
+  accent: 'amber' | 'indigo' | 'violet' | 'rose' | 'emerald' | 'sky'
+  icon: ReactNode
+  path?: string
+  href?: string
+}
+
+function navItemKey(item: DashboardNavItem): string {
+  return item.path ?? item.href ?? item.label
+}
+
+function abrirNavItem(item: DashboardNavItem, push: (path: string) => void) {
+  if (item.href) {
+    window.open(item.href, '_blank', 'noopener,noreferrer')
+    return
+  }
+  if (item.path) push(item.path)
+}
+
 /** Módulos del personal administrativo (sin portales de familias). */
-const NAV_ITEMS_ADMIN = [
+const NAV_ITEMS_ADMIN: DashboardNavItem[] = [
   {
     label: 'Desayunos, Estancias y Comidas',
     desc: 'Servicios de alimentación y cuidado escolar',
@@ -73,10 +94,62 @@ const NAV_ITEMS_ADMIN = [
       </svg>
     ),
   },
-] as const
+  {
+    label: 'Agenda administrativa',
+    desc: 'Calendario y gestión administrativa escolar',
+    href: 'https://agendaw.vercel.app/admin/',
+    accent: 'emerald',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+        <path d="M8 14h.01"/>
+        <path d="M12 14h.01"/>
+        <path d="M16 14h.01"/>
+        <path d="M8 18h.01"/>
+        <path d="M12 18h.01"/>
+      </svg>
+    ),
+  },
+  {
+    label: 'Agenda psicólogas',
+    desc: 'Calendario y citas del área de psicología',
+    href: 'https://agendaw.vercel.app/admin/',
+    accent: 'sky',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+        <path d="M12 14v4"/>
+        <path d="M10 16h4"/>
+      </svg>
+    ),
+  },
+  {
+    label: 'Agenda directoras',
+    desc: 'Panel de agenda para dirección escolar',
+    href: 'https://agendaw.vercel.app/admin/dashboard',
+    accent: 'violet',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+        <path d="M7 14h4"/>
+        <path d="M7 18h7"/>
+        <path d="M14 14h3"/>
+      </svg>
+    ),
+  },
+]
 
 /** Portales en línea solo para alumnos / familias. */
-const NAV_ITEMS_ALUMNO = [
+const NAV_ITEMS_ALUMNO: DashboardNavItem[] = [
   {
     label: 'Portal de pagos',
     desc: 'Consulta y registro de pagos en línea',
@@ -105,7 +178,7 @@ const NAV_ITEMS_ALUMNO = [
       </svg>
     ),
   },
-] as const
+]
 
 export default function DashboardPage() {
   const { user, session, logout, isAlumno } = useAuth()
@@ -124,6 +197,11 @@ export default function DashboardPage() {
 
   const navigate = (path: string) => {
     router.push(path)
+    setIsMenuOpen(false)
+  }
+
+  const handleNavItem = (item: DashboardNavItem) => {
+    abrirNavItem(item, router.push)
     setIsMenuOpen(false)
   }
 
@@ -285,13 +363,15 @@ export default function DashboardPage() {
               <div className="dashboard-nav-grid">
                 {navItems.map((item) => (
                   <div
-                    key={item.path}
+                    key={navItemKey(item)}
                     className="dash-nav-item"
                     data-accent={item.accent}
-                    onClick={() => navigate(item.path)}
+                    onClick={() => handleNavItem(item)}
                     role="button"
                     tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(item.path) }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') handleNavItem(item)
+                    }}
                   >
                     <div className="dash-nav-icon">{item.icon}</div>
                     <div className="dash-nav-body">
@@ -387,11 +467,11 @@ export default function DashboardPage() {
             </button>
             {navItems.map((item) => (
               <button
-                key={item.path}
+                key={navItemKey(item)}
                 type="button"
                 className="dashboard-menu-item"
                 data-accent={item.accent}
-                onClick={() => navigate(item.path)}
+                onClick={() => handleNavItem(item)}
               >
                 <div className="dashboard-menu-item-icon" aria-hidden>{item.icon}</div>
                 <div className="dashboard-menu-text">
