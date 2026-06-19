@@ -14,24 +14,35 @@ No hace falta `ADMISSION_SUPABASE_*`. El deploy de **agendaw.vercel.app** (papá
 
 ## Crear tablas en InsForge (proyecto AgendaW)
 
-1. En InsForge Dashboard → **AgendaW** → copiar Project ID y API key.
-2. Enlazar el CLI (una vez):
+**Estado:** migraciones aplicadas en InsForge **AgendaW** (`d5c0f471-a16c-497c-b92c-d3f2d0f2638f`, appkey `sr6a9iza`).
+
+Si necesitas recrearlas en otro entorno:
+
+1. Enlazar el CLI al proyecto AgendaW (carpeta `agendaw` ya tiene `.insforge/project.json`):
 
 ```bash
-insforge login
-insforge link --project-id <AGENDAW_PROJECT_ID> --org-id 3ffddf5b-9cf9-4a73-8d60-3de260c20676
+cd /home/mario/Proyectos/agendaw
+insforge link --project-id d5c0f471-a16c-497c-b92c-d3f2d0f2638f --org-id 3ffddf5b-9cf9-4a73-8d60-3de260c20676
 ```
 
-3. Aplicar migraciones:
+2. Aplicar migraciones desde `servicios_admin`:
 
 ```bash
 insforge db import migrations/agendaw/20260619120000_agendaw_admission_schema.sql
 insforge db import migrations/agendaw/20260619120100_agendaw_rls_server_only.sql
 ```
 
-4. Volver a enlazar Winston Servicios si trabajas el resto del portal:
+3. Obtener claves para Vercel:
 
 ```bash
+insforge secrets get ANON_KEY   # → NEXT_PUBLIC_ADMISSION_INSFORGE_ANON_KEY
+# API key en Dashboard o en agendaw/.insforge/project.json tras link
+```
+
+4. Volver a Winston Servicios si trabajas el portal principal:
+
+```bash
+cd /home/mario/Proyectos/servicios_admin
 insforge link --project-id 1a769c0a-ab1b-4500-bb6b-1e8bb131980b --org-id 3ffddf5b-9cf9-4a73-8d60-3de260c20676
 ```
 
