@@ -127,6 +127,21 @@ const NAV_ITEMS_ADMIN: DashboardNavItem[] = [
       </svg>
     ),
   },
+  {
+    label: 'Open House/Sesiones Inf. Admin',
+    desc: 'Inscripciones y gestión de Open House y sesiones informativas',
+    href: 'https://open-house-chi.vercel.app/admin',
+    accent: 'emerald',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 10.5L12 3l9 7.5"/>
+        <path d="M5 10v10h14V10"/>
+        <path d="M9 20v-6h6v6"/>
+        <path d="M12 7v3"/>
+        <path d="M10.5 9.5h3"/>
+      </svg>
+    ),
+  },
 ]
 
 /** Portales en línea solo para alumnos / familias. */
