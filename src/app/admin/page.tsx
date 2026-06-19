@@ -26,7 +26,7 @@ const ROLE_LEVELS: Record<string, string[]> = {
 export default async function AdminPage() {
   const cookieStore = await cookies()
   const role = cookieStore.get('admin_session')?.value ?? ''
-  const roleLabel = role ? ROLE_LABELS[role] : 'Agenda de admisión'
+  const roleLabel = ROLE_LABELS[role] ?? 'Panel Administrativo'
   const allowedLevels = ROLE_LEVELS[role] ?? []
 
   let appointments: Awaited<ReturnType<typeof getAdmissionAppointments>> = []
@@ -60,6 +60,7 @@ export default async function AdminPage() {
           <div className="admin-header-actions">
             <AdminThemeToggle />
             <a href="/dashboard" className="admin-link">← Servicios</a>
+            <a href="/api/admin/logout" className="admin-link">Cambiar área</a>
           </div>
         </div>
       </header>
