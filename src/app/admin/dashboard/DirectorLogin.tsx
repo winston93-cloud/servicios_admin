@@ -12,6 +12,7 @@ const LEVELS = [
 export default function DirectorLogin() {
   const router = useRouter()
   const [level, setLevel] = useState('')
+  const [pin,   setPin]   = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -23,7 +24,7 @@ export default function DirectorLogin() {
       const res = await fetch('/api/admin/director-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ level }),
+        body: JSON.stringify({ level, pin }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -62,14 +63,27 @@ export default function DirectorLogin() {
             ))}
           </div>
 
+          <div className="director-login-field">
+            <label>PIN de acceso</label>
+            <input
+              type="password"
+              value={pin}
+              onChange={e => setPin(e.target.value)}
+              placeholder="••••••"
+              maxLength={20}
+              autoComplete="current-password"
+              className="director-pin-input"
+            />
+          </div>
+
           {error && <p className="director-login-error">⚠️ {error}</p>}
 
           <button
             type="submit"
             className="director-login-btn"
-            disabled={loading || !level}
+            disabled={loading || !level || !pin}
           >
-            {loading ? 'Entrando…' : 'Entrar al Dashboard →'}
+            {loading ? 'Verificando…' : 'Entrar al Dashboard →'}
           </button>
         </form>
 

@@ -61,4 +61,17 @@ insforge link --project-id 1a769c0a-ab1b-4500-bb6b-1e8bb131980b --org-id 3ffddf5
 ## Autenticación
 
 - Login único en Servicios Administrativos (`staff_session`).
-- Sin PIN: solo selector de área/nivel al entrar a `/admin` o `/admin/dashboard`.
+- Tras eso, cada modal pide **área/nivel + PIN** (mismas variables que agendaw):
+
+```env
+ADMIN_PIN_PSI_MK=
+ADMIN_PIN_PSI_PRI=
+ADMIN_PIN_PSI_SEC=
+ADMIN_PIN_VIN_MK=
+ADMIN_PIN_VIN_PRI=
+DIRECTOR_PIN_MK=
+DIRECTOR_PIN_PRI=
+DIRECTOR_PIN_SEC=
+```
+
+Configúralas en Vercel (servicios-admin) con los mismos valores que en agendaw.

@@ -17,6 +17,7 @@ function AdminLoginForm() {
   const router      = useRouter()
   const searchParams = useSearchParams()
   const [role,    setRole]    = useState('')
+  const [pin,     setPin]     = useState('')
   const [error,   setError]   = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -28,7 +29,7 @@ function AdminLoginForm() {
       const res = await fetch('/api/admin/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role }),
+        body: JSON.stringify({ role, pin }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -49,7 +50,7 @@ function AdminLoginForm() {
     <div className="admin-login-card">
       <div className="admin-login-header">
         <h1>Panel Administrativo</h1>
-        <p>Selecciona tu área y nivel para continuar</p>
+        <p>Selecciona tu área y nivel, luego ingresa tu PIN</p>
       </div>
 
       <form onSubmit={handleSubmit} className="admin-login-form">
@@ -73,14 +74,29 @@ function AdminLoginForm() {
           ))}
         </div>
 
+        <div className="admin-login-field">
+          <label htmlFor="admin-pin">PIN de acceso</label>
+          <input
+            id="admin-pin"
+            type="password"
+            value={pin}
+            onChange={e => setPin(e.target.value)}
+            placeholder="••••••"
+            maxLength={20}
+            autoComplete="current-password"
+            className="admin-pin-input"
+            disabled={!role}
+          />
+        </div>
+
         {error && <p className="admin-login-error">{error}</p>}
 
         <button
           type="submit"
           className="btn btn-primary"
-          disabled={loading || !role}
+          disabled={loading || !role || !pin}
         >
-          {loading ? 'Entrando…' : 'Entrar →'}
+          {loading ? 'Verificando…' : 'Entrar →'}
         </button>
       </form>
 

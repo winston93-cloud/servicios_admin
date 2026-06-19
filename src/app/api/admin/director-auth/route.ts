@@ -8,7 +8,11 @@ import {
 
 const COOKIE_MAX_AGE = 60 * 60 * 12
 
-const VALID_LEVELS = ['maternal_kinder', 'primaria', 'secundaria'] as const
+const PINS: Record<string, string | undefined> = {
+  maternal_kinder: process.env.DIRECTOR_PIN_MK,
+  primaria:        process.env.DIRECTOR_PIN_PRI,
+  secundaria:      process.env.DIRECTOR_PIN_SEC,
+}
 
 export async function POST(request: Request) {
   const staffOk = staffSessionFromRequest(request) || (await hasStaffSession())
@@ -16,9 +20,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Sesión de personal requerida' }, { status: 401 })
   }
 
-  const { level } = await request.json()
-  if (!level || !VALID_LEVELS.includes(level)) {
-    return NextResponse.json({ error: 'Nivel inválido' }, { status: 400 })
+  const { level, pin } = await request.json()
+  if (!level || !PINS[level]) {
+    return NextResponse.json({ error: 'Nivel inválido o PIN no configurado' }, { status: 400 })
+  }
+
+  if (pin !== PINS[level]) {
+    return NextResponse.json({ error: 'PIN incorrecto' }, { status: 401 })
   }
 
   const cookieStore = await cookies()

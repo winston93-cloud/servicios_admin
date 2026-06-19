@@ -12,15 +12,31 @@ export const ADMIN_ROLES: Record<string, { label: string; group: string }> = {
   vin_pri: { label: 'Vinculación Primaria y Secundaria', group: 'Vinculación' },
 }
 
+const PINS: Record<string, string | undefined> = {
+  psi_mk:  process.env.ADMIN_PIN_PSI_MK,
+  psi_pri: process.env.ADMIN_PIN_PSI_PRI,
+  psi_sec: process.env.ADMIN_PIN_PSI_SEC,
+  vin_mk:  process.env.ADMIN_PIN_VIN_MK,
+  vin_pri: process.env.ADMIN_PIN_VIN_PRI,
+}
+
 export async function POST(request: Request) {
   const staffOk = staffSessionFromRequest(request) || (await hasStaffSession())
   if (!staffOk) {
     return NextResponse.json({ error: 'Sesión de personal requerida' }, { status: 401 })
   }
 
-  const { role } = await request.json()
-  if (!role || !(role in ADMIN_ROLES)) {
+  const { role, pin } = await request.json()
+  if (!role || !(role in PINS)) {
     return NextResponse.json({ error: 'Rol inválido' }, { status: 400 })
+  }
+
+  if (!PINS[role]) {
+    return NextResponse.json({ error: 'PIN no configurado para este rol' }, { status: 500 })
+  }
+
+  if (pin !== PINS[role]) {
+    return NextResponse.json({ error: 'PIN incorrecto' }, { status: 401 })
   }
 
   const cookieStore = await cookies()
