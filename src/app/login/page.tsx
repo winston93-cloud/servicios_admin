@@ -1,38 +1,24 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { loginPortal } from '@/lib/portalAuthService'
 import { useAuth } from '@/contexts/AuthContext'
-import { portalSessionHeaderName, readPortalSessionForFetch } from '@/lib/insforgeDbProxyShared'
 
-function LoginForm() {
+export default function LoginPage() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const { login, isAuthenticated, session } = useAuth()
+  const { login, isAuthenticated } = useAuth()
 
   useEffect(() => {
-    if (!isAuthenticated) return
-    const next = searchParams.get('next') || '/dashboard'
-    if (session?.role === 'usuario') {
-      const raw = readPortalSessionForFetch()
-      if (raw) {
-        fetch('/api/auth/staff-session', {
-          method: 'POST',
-          headers: { [portalSessionHeaderName()]: raw },
-        })
-          .catch(() => {})
-          .finally(() => router.replace(next))
-        return
-      }
+    if (isAuthenticated) {
+      router.replace('/dashboard')
     }
-    router.replace(next.startsWith('/portal') ? '/dashboard' : next)
-  }, [isAuthenticated, session, router, searchParams])
+  }, [isAuthenticated, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,8 +39,7 @@ function LoginForm() {
 
       if (authSession) {
         login(authSession)
-        const next = searchParams.get('next') || '/dashboard'
-        router.push(next.startsWith('/portal') ? '/dashboard' : next)
+        router.push('/dashboard')
       } else {
         setError('Acceso no válido. Verifica tu usuario y tu clave.')
       }
@@ -176,13 +161,5 @@ function LoginForm() {
         <p className="portal-access-flank-label">Winston Educativo</p>
       </aside>
     </div>
-  )
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={<div className="portal-access-loading"><p>Cargando…</p></div>}>
-      <LoginForm />
-    </Suspense>
   )
 }

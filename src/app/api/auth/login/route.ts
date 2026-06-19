@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server'
-import { STAFF_SESSION_COOKIE } from '@/lib/admission/staffAuth'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import type { AuthSession } from '@/lib/portalAuthService'
-
-const STAFF_COOKIE_MAX_AGE = 60 * 60 * 12
 
 export const runtime = 'nodejs'
 
@@ -116,15 +113,7 @@ export async function POST(request: Request) {
 
     const staff = await loginUsuario(username, password)
     if (staff) {
-      const response = NextResponse.json({ ok: true, session: staff })
-      response.cookies.set(STAFF_SESSION_COOKIE, '1', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: STAFF_COOKIE_MAX_AGE,
-        path: '/',
-      })
-      return response
+      return NextResponse.json({ ok: true, session: staff })
     }
 
     const alumno = await loginAlumno(username, password)

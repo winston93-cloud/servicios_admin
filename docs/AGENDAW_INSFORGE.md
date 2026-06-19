@@ -1,8 +1,12 @@
 # AgendaW en InsForge
 
-El panel `/admin` y `/admin/dashboard` de **servicios_admin** usa el proyecto **AgendaW** en InsForge (no Supabase ni Winston Servicios).
+Esquema y datos de admisión en el proyecto **AgendaW** de InsForge (`sr6a9iza`).  
+El panel admin y el dashboard de directoras viven en **agendaw.vercel.app** (Supabase).  
+Este repo solo conserva migraciones y scripts de referencia.
 
-## Variables en Vercel / `.env.local`
+## Variables en Vercel / `.env.local` (opcional)
+
+Solo necesarias si vuelves a conectar código a AgendaW desde este proyecto:
 
 ```env
 NEXT_PUBLIC_ADMISSION_INSFORGE_URL=https://<appkey>.us-east.insforge.app
@@ -10,7 +14,7 @@ NEXT_PUBLIC_ADMISSION_INSFORGE_ANON_KEY=<anon del proyecto AgendaW>
 ADMISSION_INSFORGE_API_KEY=<API key del proyecto AgendaW>
 ```
 
-No hace falta `ADMISSION_SUPABASE_*`. El deploy de **agendaw.vercel.app** (papás) sigue en Supabase hasta el enlace final.
+El deploy de **agendaw.vercel.app** (papás, admin, directoras) sigue en Supabase.
 
 ## Crear tablas en InsForge (proyecto AgendaW)
 
@@ -60,18 +64,5 @@ insforge link --project-id 1a769c0a-ab1b-4500-bb6b-1e8bb131980b --org-id 3ffddf5
 
 ## Autenticación
 
-- Login único en Servicios Administrativos (`staff_session`).
-- Tras eso, cada modal pide **área/nivel + PIN** (mismas variables que agendaw):
-
-```env
-ADMIN_PIN_PSI_MK=
-ADMIN_PIN_PSI_PRI=
-ADMIN_PIN_PSI_SEC=
-ADMIN_PIN_VIN_MK=
-ADMIN_PIN_VIN_PRI=
-DIRECTOR_PIN_MK=
-DIRECTOR_PIN_PRI=
-DIRECTOR_PIN_SEC=
-```
-
-Configúralas en Vercel (servicios-admin) con los mismos valores que en agendaw.
+La agenda (admin y directoras) usa el login de **agendaw.vercel.app** (PIN por área/nivel).  
+Desde el dashboard de servicios_admin solo hay enlaces externos a esas URLs.
