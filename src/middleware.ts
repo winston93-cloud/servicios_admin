@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const ADMIN_COOKIE = 'admin_session'
 const STAFF_COOKIE = 'staff_session'
-const VALID_ROLES = ['psi_mk', 'psi_pri', 'psi_sec', 'vin_mk', 'vin_pri']
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -15,18 +13,9 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  if (
-    pathname.startsWith('/admin/login') ||
-    pathname.startsWith('/admin/dashboard')
-  ) {
-    return NextResponse.next()
-  }
-
-  const role = request.cookies.get(ADMIN_COOKIE)?.value
-  if (!role || !VALID_ROLES.includes(role)) {
-    const loginUrl = new URL('/admin/login', request.url)
-    loginUrl.searchParams.set('next', pathname)
-    return NextResponse.redirect(loginUrl)
+  // Pantallas de selección de área obsoletas: la sesión del dashboard basta.
+  if (pathname.startsWith('/admin/login')) {
+    return NextResponse.redirect(new URL('/admin', request.url))
   }
 
   return NextResponse.next()

@@ -1,23 +1,14 @@
-import { cookies } from 'next/headers'
 import DirectorDashboard from './DirectorDashboard'
-import DirectorLogin from './DirectorLogin'
-import { getPermissionRequests } from './actions'
-import type { AdmissionLevel, PermissionRequest } from '@/types/admissionDatabase'
+import { getAllPermissionRequests } from './actions'
+import type { PermissionRequest } from '@/types/admissionDatabase'
 
 export const dynamic = 'force-dynamic'
 
 export default async function DirectorDashboardPage() {
-  const cookieStore = await cookies()
-  const level = cookieStore.get('director_session')?.value as AdmissionLevel | undefined
-
-  if (!level || !['maternal_kinder', 'primaria', 'secundaria'].includes(level)) {
-    return <DirectorLogin />
-  }
-
   let requests: PermissionRequest[] = []
   let loadError: string | null = null
   try {
-    requests = await getPermissionRequests(level)
+    requests = await getAllPermissionRequests()
   } catch (e) {
     console.error('Error cargando solicitudes:', e)
     loadError = e instanceof Error ? e.message : 'No se pudieron cargar las solicitudes.'
@@ -43,7 +34,7 @@ export default async function DirectorDashboardPage() {
           </div>
         </div>
       )}
-      <DirectorDashboard level={level} requests={requests} />
+      <DirectorDashboard requests={requests} />
     </>
   )
 }

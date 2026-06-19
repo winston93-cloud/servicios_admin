@@ -282,6 +282,43 @@ export async function getAllRecentRequests() {
 }
 
 // ─── OBTENER SOLICITUDES (para el dashboard directoras) ───────────────────
+async function enrichPermissionRequestsWithBirthDates(
+  requests: PermissionRequest[]
+): Promise<PermissionRequest[]> {
+  const appointmentIds = requests
+    .map(r => r.appointment_id)
+    .filter((id): id is string => Boolean(id))
+
+  if (appointmentIds.length === 0) return requests
+
+  const supabase = createAdminClient()
+  const { data: appts } = await supabase
+    .from('admission_appointments')
+    .select('id, student_birth_date')
+    .in('id', appointmentIds)
+
+  const birthById = new Map<string, string | null>()
+  ;(appts ?? []).forEach(a => birthById.set(a.id, a.student_birth_date ?? null))
+
+  return requests.map(r => ({
+    ...r,
+    student_birth_date: r.appointment_id
+      ? birthById.get(r.appointment_id) ?? r.student_birth_date ?? undefined
+      : r.student_birth_date ?? undefined,
+  }))
+}
+
+export async function getAllPermissionRequests() {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from(PERMISSION_TABLE)
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) throw new Error(error.message)
+  return enrichPermissionRequestsWithBirthDates((data ?? []) as PermissionRequest[])
+}
+
 export async function getPermissionRequests(level: AdmissionLevel) {
   const supabase = createAdminClient()
   const { data, error } = await supabase
@@ -293,26 +330,7 @@ export async function getPermissionRequests(level: AdmissionLevel) {
   if (error) throw new Error(error.message)
 
   const requests = (data ?? []) as PermissionRequest[]
-
-  // En solicitudes de reagendar/cambio de grado, traemos fecha de nacimiento desde admission_appointments.
-  const appointmentIds = requests
-    .map(r => r.appointment_id)
-    .filter((id): id is string => Boolean(id))
-
-  if (appointmentIds.length === 0) return requests
-
-  const { data: appts } = await supabase
-    .from('admission_appointments')
-    .select('id, student_birth_date')
-    .in('id', appointmentIds)
-
-  const birthById = new Map<string, string | null>()
-  ;(appts ?? []).forEach(a => birthById.set(a.id, a.student_birth_date ?? null))
-
-  return requests.map(r => {
-    if (!r.appointment_id) return r
-    return { ...r, student_birth_date: birthById.get(r.appointment_id) ?? undefined }
-  })
+  return enrichPermissionRequestsWithBirthDates(requests)
 }
 
 // ─── RESPONDER SOLICITUD ─────────────────────────────────────────────────

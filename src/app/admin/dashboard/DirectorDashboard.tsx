@@ -72,6 +72,9 @@ function RequestCard({ req, onRespond }: { req: PermissionRequest; onRespond: ()
           <strong>{info.label}</strong>
         </div>
         <div className="director-req-meta">
+          <span style={{ fontSize: '0.8rem', color: '#64748b', marginRight: '0.5rem' }}>
+            {LEVEL_ICONS[req.level as AdmissionLevel] ?? '📋'} {LEVEL_LABELS[req.level as AdmissionLevel] ?? req.level}
+          </span>
           {req.requested_by && (
             <span style={{ fontSize: '0.8rem', color: '#64748b', marginRight: '0.5rem' }}>
               👤 {req.requested_by}
@@ -204,10 +207,8 @@ function RequestCard({ req, onRespond }: { req: PermissionRequest; onRespond: ()
 }
 
 export default function DirectorDashboard({
-  level,
   requests,
 }: {
-  level:    AdmissionLevel
   requests: PermissionRequest[]
 }) {
   const router = useRouter()
@@ -216,30 +217,22 @@ export default function DirectorDashboard({
   const pending  = requests.filter(r => r.status === 'pendiente')
   const history  = requests.filter(r => r.status !== 'pendiente')
 
-  const handleLogout = async () => {
-    await fetch('/api/admin/director-auth', { method: 'DELETE' })
-    router.refresh()
-  }
-
   const shown = tab === 'pendiente' ? pending : history
 
   return (
     <div className="director-dashboard">
-      {/* Header institucional */}
       <header className="director-header">
         <div className="director-header-inner">
           <div className="director-header-title">
-            <span className="director-header-icon">{LEVEL_ICONS[level]}</span>
+            <span className="director-header-icon">🏫</span>
             <div>
               <h1>Dashboard de Directoras</h1>
-              <p>Nivel: <strong>{LEVEL_LABELS[level]}</strong></p>
+              <p>Sistema de Autorización de Cambios</p>
             </div>
           </div>
           <div className="director-header-actions">
-            <a href="/admin" className="director-header-link">← Panel Psicólogas</a>
-            <button type="button" onClick={handleLogout} className="director-header-link">
-              Cerrar sesión
-            </button>
+            <a href="/dashboard" className="director-header-link">← Servicios</a>
+            <a href="/admin" className="director-header-link">Agenda psicólogas</a>
           </div>
         </div>
       </header>
