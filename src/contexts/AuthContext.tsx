@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     clearSession()
     setSession(null)
+    fetch('/api/auth/staff-session', { method: 'DELETE' }).catch(() => {})
   }, [])
 
   const user = useMemo(

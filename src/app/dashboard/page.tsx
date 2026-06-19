@@ -7,6 +7,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import Image from 'next/image'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
+import { portalSessionHeaderName, readPortalSessionForFetch } from '@/lib/insforgeDbProxyShared'
 
 const ChevronRight = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -97,7 +98,7 @@ const NAV_ITEMS_ADMIN: DashboardNavItem[] = [
   {
     label: 'Agenda psicólogas',
     desc: 'Calendario y citas del área de psicología',
-    href: 'https://agendaw.vercel.app/admin/',
+    path: '/admin',
     accent: 'sky',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -113,7 +114,7 @@ const NAV_ITEMS_ADMIN: DashboardNavItem[] = [
   {
     label: 'Agenda directoras',
     desc: 'Panel de agenda para dirección escolar',
-    href: 'https://agendaw.vercel.app/admin/dashboard',
+    path: '/admin/dashboard',
     accent: 'violet',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -175,6 +176,16 @@ export default function DashboardPage() {
       router.replace('/login')
     }
   }
+
+  useEffect(() => {
+    if (!session || session.role !== 'usuario') return
+    const raw = readPortalSessionForFetch()
+    if (!raw) return
+    fetch('/api/auth/staff-session', {
+      method: 'POST',
+      headers: { [portalSessionHeaderName()]: raw },
+    }).catch(() => {})
+  }, [session])
 
   const navigate = (path: string) => {
     router.push(path)
