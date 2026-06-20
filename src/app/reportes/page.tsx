@@ -8,19 +8,20 @@ import {
   reporteBecadosUrl,
 } from '@/lib/reportesConfig'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Copy, Download, ExternalLink, FileText, GraduationCap } from 'lucide-react'
+import { ArrowLeft, Search } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import ReporteTile from './ReporteTile'
+import { REPORTES_CATALOGO } from './reportesCatalog'
 
 export default function ReportesPage() {
   const router = useRouter()
   const [copiado, setCopiado] = useState<string | null>(null)
   const [origin, setOrigin] = useState('')
+  const [busqueda, setBusqueda] = useState('')
   const [cicloBecados, setCicloBecados] = useState(String(REPORTE_BECADOS_CICLO_DEFAULT))
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setOrigin(window.location.origin)
-    }
+    if (typeof window !== 'undefined') setOrigin(window.location.origin)
   }, [])
 
   const cicloBecadosNum = useMemo(() => {
@@ -30,12 +31,8 @@ export default function ReportesPage() {
 
   const becadosHtmlPath = `/api/reportes/becados?ciclo=${cicloBecadosNum}`
   const becadosPdfPath = `/api/reportes/becados?ciclo=${cicloBecadosNum}&format=pdf`
-  const becadosHtmlUrl = origin ? `${origin}${becadosHtmlPath}` : reporteBecadosUrl(cicloBecadosNum, 'html')
   const becadosPdfUrl = origin ? `${origin}${becadosPdfPath}` : reporteBecadosUrl(cicloBecadosNum, 'pdf')
-
-  const alumnosPdfUrl = origin
-    ? `${origin}${REPORTE_ALUMNOS_CICLO_23_PATH}`
-    : reporteAlumnosCiclo23Url()
+  const alumnosPdfUrl = origin ? `${origin}${REPORTE_ALUMNOS_CICLO_23_PATH}` : reporteAlumnosCiclo23Url()
 
   const copiarUrl = useCallback(async (id: string, url: string) => {
     try {
@@ -47,11 +44,22 @@ export default function ReportesPage() {
     }
   }, [])
 
+  const q = busqueda.trim().toLowerCase()
+  const catalogoFiltrado = useMemo(() => {
+    if (!q) return REPORTES_CATALOGO
+    return REPORTES_CATALOGO.filter((item) => {
+      const blob = [item.titulo, item.meta, item.descripcion, ...item.keywords]
+        .join(' ')
+        .toLowerCase()
+      return blob.includes(q)
+    })
+  }, [q])
+
   return (
     <ProtectedRoute>
       <div className="dashboard-container">
-        <div className="dashboard-main">
-          <div className="dashboard-heading">
+        <div className="dashboard-main reportes-page">
+          <div className="dashboard-heading reportes-heading">
             <button
               type="button"
               className="servicios-back-btn"
@@ -66,102 +74,81 @@ export default function ReportesPage() {
             </p>
           </div>
 
-          <div className="reportes-grid">
-            <article className="reporte-card reporte-card--violet">
-              <div className="reporte-card-icon" aria-hidden>
-                <FileText size={22} />
-              </div>
-              <div className="reporte-card-body">
-                <p className="reporte-card-meta">79 alumnos · 4 niveles · PDF</p>
-                <h2 className="reporte-card-title">Alumnos Ciclo Escolar 23</h2>
-                <p className="reporte-card-desc">
-                  Listado por nivel y grado con nombre completo, grupo y estatus.
-                </p>
-                <code className="reporte-card-url">{alumnosPdfUrl}</code>
-                <div className="reporte-card-actions">
-                  <a
-                    className="reporte-btn reporte-btn--primary"
-                    href={REPORTE_ALUMNOS_CICLO_23_PATH}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink size={16} aria-hidden />
-                    Ver PDF
-                  </a>
-                  <a
-                    className="reporte-btn"
-                    href={REPORTE_ALUMNOS_CICLO_23_PATH}
-                    download="alumnos-ciclo-23.pdf"
-                  >
-                    <Download size={16} aria-hidden />
-                    Descargar
-                  </a>
-                  <button
-                    type="button"
-                    className="reporte-btn"
-                    onClick={() => copiarUrl('alumnos-ciclo-23', alumnosPdfUrl)}
-                  >
-                    <Copy size={16} aria-hidden />
-                    {copiado === 'alumnos-ciclo-23' ? 'Copiado' : 'Copiar URL'}
-                  </button>
-                </div>
-              </div>
-            </article>
-
-            <article className="reporte-card reporte-card--amber">
-              <div className="reporte-card-icon reporte-card-icon--amber" aria-hidden>
-                <GraduationCap size={22} />
-              </div>
-              <div className="reporte-card-body">
-                <p className="reporte-card-meta">Becas activas · por ciclo · PDF/HTML</p>
-                <h2 className="reporte-card-title">Alumnos becados</h2>
-                <p className="reporte-card-desc">
-                  Listado de alumnos con beca activa en{' '}
-                  <code>alumno_beca</code>, enlazado con <code>alumno</code> por nivel y grado.
-                </p>
-                <label className="reporte-ciclo-field">
-                  <span>Ciclo escolar</span>
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={cicloBecados}
-                    onChange={(e) => setCicloBecados(e.target.value)}
-                    inputMode="numeric"
-                  />
-                </label>
-                <code className="reporte-card-url">{becadosPdfUrl}</code>
-                <div className="reporte-card-actions">
-                  <a
-                    className="reporte-btn reporte-btn--amber"
-                    href={becadosHtmlPath}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink size={16} aria-hidden />
-                    Ver reporte
-                  </a>
-                  <a
-                    className="reporte-btn"
-                    href={becadosPdfPath}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Download size={16} aria-hidden />
-                    Descargar PDF
-                  </a>
-                  <button
-                    type="button"
-                    className="reporte-btn"
-                    onClick={() => copiarUrl('becados', becadosPdfUrl)}
-                  >
-                    <Copy size={16} aria-hidden />
-                    {copiado === 'becados' ? 'Copiado' : 'Copiar URL'}
-                  </button>
-                </div>
-              </div>
-            </article>
+          <div className="reportes-toolbar">
+            <label className="reportes-search">
+              <Search size={15} aria-hidden />
+              <input
+                type="search"
+                placeholder="Buscar reporte…"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+              />
+            </label>
+            <span className="reportes-count">
+              {catalogoFiltrado.length} de {REPORTES_CATALOGO.length}
+            </span>
           </div>
+
+          {catalogoFiltrado.length === 0 ? (
+            <p className="reportes-empty">No hay reportes que coincidan con la búsqueda.</p>
+          ) : (
+            <div className="reportes-grid">
+              {catalogoFiltrado.map((item) => {
+                if (item.id === 'alumnos-ciclo-23') {
+                  return (
+                    <ReporteTile
+                      key={item.id}
+                      id={item.id}
+                      titulo={item.titulo}
+                      meta={item.meta}
+                      descripcion={item.descripcion}
+                      accent={item.accent}
+                      icon={item.icon}
+                      verHref={REPORTE_ALUMNOS_CICLO_23_PATH}
+                      descargarHref={REPORTE_ALUMNOS_CICLO_23_PATH}
+                      copyUrl={alumnosPdfUrl}
+                      copiado={copiado}
+                      onCopy={copiarUrl}
+                    />
+                  )
+                }
+
+                if (item.id === 'becados') {
+                  return (
+                    <ReporteTile
+                      key={item.id}
+                      id={item.id}
+                      titulo={item.titulo}
+                      meta={item.meta}
+                      descripcion={item.descripcion}
+                      accent={item.accent}
+                      icon={item.icon}
+                      verHref={becadosHtmlPath}
+                      descargarHref={becadosPdfPath}
+                      copyUrl={becadosPdfUrl}
+                      copiado={copiado}
+                      onCopy={copiarUrl}
+                      extra={
+                        <label className="reporte-tile-ciclo">
+                          <span>Ciclo</span>
+                          <input
+                            type="number"
+                            min={1}
+                            step={1}
+                            value={cicloBecados}
+                            onChange={(e) => setCicloBecados(e.target.value)}
+                            inputMode="numeric"
+                          />
+                        </label>
+                      }
+                    />
+                  )
+                }
+
+                return null
+              })}
+            </div>
+          )}
         </div>
       </div>
     </ProtectedRoute>
