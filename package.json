@@ -9,7 +9,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "reporte:alumnos-ciclo-23": "node scripts/generar-pdf-ciclo-23.mjs"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
