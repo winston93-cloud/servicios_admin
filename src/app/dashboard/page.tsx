@@ -1,5 +1,6 @@
 'use client'
 
+import { urlProrrogasAjustesApp } from '@/lib/prorrogasAjustesConfig'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -81,7 +82,7 @@ const NAV_ITEMS_ADMIN: DashboardNavItem[] = [
   {
     label: 'Prórrogas y Ajustes',
     desc: 'Gestión de prórrogas y ajustes de pago escolar',
-    path: '/prorrogas',
+    href: urlProrrogasAjustesApp(),
     accent: 'rose',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
