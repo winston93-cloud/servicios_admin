@@ -10,14 +10,11 @@ import {
 import {
   REPORTE_CATEGORIAS,
   REPORTE_ENTRADAS,
-  resolveLegacyFile,
+  apiPathReporte,
   type NivelId,
   type ReporteCatalogEntry,
 } from '@/lib/reportesCatalogData'
-import {
-  reporteAlumnosCicloPdfPath,
-  reporteLegacyUrl,
-} from '@/lib/reportesConfig'
+import { etiquetaCicloReporte } from '@/lib/reportesConfig'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Search } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -41,74 +38,52 @@ function buildUrls(
   entry: ReporteCatalogEntry,
   params: ParametrosReporte,
   origin: string
-): { ver: string; pdf?: string; copy: string; verLabel: string; pdfLabel: string } {
-  if (entry.motor === 'legacy-php') {
-    const file = entry.requiereNivel
-      ? resolveLegacyFile(entry, params.nivel)
-      : resolveLegacyFile(entry, params.nivel)
-    if (!file) {
-      return { ver: '#', copy: '', verLabel: 'Ver', pdfLabel: 'PDF' }
-    }
-    const url = reporteLegacyUrl(file)
+): { ver: string; pdf?: string; copy: string; verLabel: string; pdfLabel: string; disponible: boolean } {
+  if (entry.motor === 'pendiente') {
     return {
-      ver: url,
-      copy: url,
-      verLabel: 'Abrir PDF',
+      ver: '#',
+      copy: '',
+      verLabel: 'Próximamente',
       pdfLabel: 'PDF',
+      disponible: false,
     }
   }
 
-  if (entry.motor === 'api-next' && entry.apiPath) {
-    const html = `${entry.apiPath}?ciclo=${params.ciclo}`
-    const pdf = `${entry.apiPath}?ciclo=${params.ciclo}&format=pdf`
-    const base = origin || ''
-    return {
-      ver: `${base}${html}`,
-      pdf: `${base}${pdf}`,
-      copy: `${base}${pdf}`,
-      verLabel: 'Ver',
-      pdfLabel: 'PDF',
-    }
+  const apiPath = apiPathReporte(entry)
+  if (!apiPath) {
+    return { ver: '#', copy: '', verLabel: 'Ver', pdfLabel: 'PDF', disponible: false }
   }
 
-  if (entry.motor === 'static-pdf') {
-    const path =
-      entry.id === 'alumnos-ciclo-pdf'
-        ? reporteAlumnosCicloPdfPath(params.ciclo)
-        : entry.staticPath ?? '#'
-    const url = origin ? `${origin}${path}` : path
-    return {
-      ver: url,
-      pdf: url,
-      copy: url,
-      verLabel: 'Ver PDF',
-      pdfLabel: 'PDF',
-    }
-  }
+  const qs = new URLSearchParams({ ciclo: String(params.ciclo) })
+  if (entry.requiereNivel) qs.set('nivel', params.nivel)
 
-  return { ver: '#', copy: '', verLabel: 'Ver', pdfLabel: 'PDF' }
+  const html = `${apiPath}?${qs.toString()}`
+  const pdf = `${apiPath}?${qs.toString()}&format=pdf`
+  const base = origin || ''
+
+  return {
+    ver: `${base}${html}`,
+    pdf: `${base}${pdf}`,
+    copy: `${base}${pdf}`,
+    verLabel: 'Ver',
+    pdfLabel: 'PDF',
+    disponible: true,
+  }
 }
 
 function metaReporte(entry: ReporteCatalogEntry, params: ParametrosReporte): string {
-  if (entry.motor === 'legacy-php') {
-    const parts = ['PDF legacy']
-    if (entry.requiereNivel) {
-      const n = params.nivel.charAt(0).toUpperCase() + params.nivel.slice(1)
-      parts.push(n)
-    }
-    if (entry.usaCiclo) {
-      parts.push(
-        entry.usaCiclo === 'inscripcion'
-          ? `insc. ${cicloEscolarEtiqueta(params.ciclo)}`
-          : cicloEscolarEtiqueta(params.ciclo)
-      )
-    }
-    return parts.join(' · ')
+  if (entry.motor === 'pendiente') {
+    return 'Migración en curso'
   }
-  if (entry.motor === 'api-next') {
-    return `HTML/PDF · ciclo ${params.ciclo}`
+  const parts = ['HTML/PDF nativo']
+  if (entry.requiereNivel) {
+    const n = params.nivel.charAt(0).toUpperCase() + params.nivel.slice(1)
+    parts.push(n)
   }
-  return `PDF · ciclo ${params.ciclo}`
+  if (entry.usaCiclo) {
+    parts.push(etiquetaCicloReporte(entry.usaCiclo, params.ciclo))
+  }
+  return parts.join(' · ')
 }
 
 export default function ReportesPage() {
@@ -152,6 +127,7 @@ export default function ReportesPage() {
   )
 
   const copiarUrl = useCallback(async (id: string, url: string) => {
+    if (!url) return
     try {
       await navigator.clipboard.writeText(url)
       setCopiado(id)
@@ -204,9 +180,8 @@ export default function ReportesPage() {
               {cicloEscolarEtiqueta(cicloInscripcion)}
             </p>
             <p className="reportes-legacy-hint">
-              Los reportes legacy abren el PDF en{' '}
-              <strong>winston93.edu.mx/reportes</strong> (sesión PHP). Los nativos
-              se generan aquí con el ciclo que elijas.
+              Los reportes se generan en Servicios Admin (InsForge + Vercel). Elige
+              nivel y ciclo; no dependen del hosting PHP legacy.
             </p>
           </div>
 
@@ -247,7 +222,7 @@ export default function ReportesPage() {
                       const params = getParams(entry)
                       const urls = buildUrls(entry, params, origin)
                       const mostrarCiclo =
-                        entry.motor !== 'legacy-php' && Boolean(entry.usaCiclo)
+                        entry.motor === 'api-next' && Boolean(entry.usaCiclo)
                       const cicloLabel =
                         entry.usaCiclo === 'inscripcion' ? 'Ciclo inscripción' : 'Ciclo'
 
@@ -263,11 +238,12 @@ export default function ReportesPage() {
                           icon={null}
                           verHref={urls.ver}
                           verLabel={urls.verLabel}
-                          descargarHref={urls.pdf}
+                          descargarHref={urls.disponible ? urls.pdf : undefined}
                           descargarLabel={urls.pdfLabel}
                           copyUrl={urls.copy}
                           copiado={copiado}
                           onCopy={copiarUrl}
+                          deshabilitado={!urls.disponible}
                           extra={
                             entry.requiereNivel || mostrarCiclo ? (
                               <ReporteParametros
@@ -280,15 +256,17 @@ export default function ReportesPage() {
                                 cicloLabel={cicloLabel}
                                 ciclosOpciones={ciclosOpciones}
                               />
-                            ) : entry.usaCiclo && entry.motor === 'legacy-php' ? (
-                              <p className="reporte-tile-legacy-ciclo">
-                                Referencia:{' '}
-                                {entry.usaCiclo === 'inscripcion'
-                                  ? `inscripción ${cicloEscolarEtiqueta(cicloInscripcion)}`
-                                  : `ciclo ${cicloEscolarEtiqueta(cicloActual)}`}
-                                {' '}
-                                (automático en servidor PHP)
-                              </p>
+                            ) : entry.usaCiclo && entry.motor === 'api-next' ? (
+                              <ReporteParametros
+                                nivel={params.nivel}
+                                onNivelChange={() => {}}
+                                mostrarNivel={false}
+                                ciclo={params.ciclo}
+                                onCicloChange={(c) => setParam(entry.id, { ciclo: c })}
+                                mostrarCiclo
+                                cicloLabel={cicloLabel}
+                                ciclosOpciones={ciclosOpciones}
+                              />
                             ) : null
                           }
                         />

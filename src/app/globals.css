@@ -17738,6 +17738,21 @@ html[data-theme='light'] .portal-doc-modal-cerrar:hover {
   border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
+.reporte-tile-badge--pendiente {
+  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.reporte-tile--disabled {
+  opacity: 0.72;
+}
+
+.reporte-tile--disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 .reporte-tile-badge--static-pdf {
   color: #a5b4fc;
   background: rgba(99, 102, 241, 0.15);

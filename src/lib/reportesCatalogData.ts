@@ -9,14 +9,7 @@ export const NIVELES: { id: NivelId; label: string }[] = [
   { id: 'secundaria', label: 'Secundaria' },
 ]
 
-const NIVEL_SUFFIX: Record<NivelId, string> = {
-  maternal: 'Maternal',
-  kinder: 'Kinder',
-  primaria: 'Primaria',
-  secundaria: 'Secundaria',
-}
-
-export type ReporteMotor = 'legacy-php' | 'api-next' | 'static-pdf'
+export type ReporteMotor = 'api-next' | 'pendiente'
 
 export type ReporteCatalogEntry = {
   id: string
@@ -29,9 +22,8 @@ export type ReporteCatalogEntry = {
   requiereNivel?: boolean
   /** Ciclo mostrado en UI / APIs nativas */
   usaCiclo?: 'escolar' | 'inscripcion' | 'libre'
-  legacyFile?: string | ((nivel: NivelId) => string)
-  apiPath?: string
-  staticPath?: string
+  /** Ruta API bajo /api/reportes/{slug} */
+  apiSlug?: string
 }
 
 export type ReporteCategoria = {
@@ -60,11 +52,12 @@ export const REPORTE_CATEGORIAS: ReporteCategoria[] = [
   { id: 'becados', titulo: 'Becados Winston', orden: 6 },
   { id: 'bajas', titulo: 'Bajas por nivel', orden: 7 },
   { id: 'otros', titulo: 'Otros reportes', orden: 8 },
-  { id: 'nativos', titulo: 'Reportes nativos (InsForge)', subtitulo: 'Generados en Servicios Admin', orden: 9 },
 ]
 
-function porNivel(base: string): (nivel: NivelId) => string {
-  return (nivel) => `${base}${NIVEL_SUFFIX[nivel]}.php`
+export function apiPathReporte(entry: ReporteCatalogEntry): string | null {
+  if (entry.motor !== 'api-next') return null
+  const slug = entry.apiSlug ?? entry.id
+  return `/api/reportes/${slug}`
 }
 
 export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
@@ -73,12 +66,11 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     id: 'curp',
     categoriaId: 'curp',
     titulo: 'CURP',
-    descripcion: 'Listado de CURP por nivel.',
+    descripcion: 'Listado de CURP por nivel (InsForge).',
     accent: 'sky',
-    motor: 'legacy-php',
+    motor: 'api-next',
     requiereNivel: true,
     usaCiclo: 'escolar',
-    legacyFile: porNivel('curp'),
     keywords: ['curp', 'clave'],
   },
   // Listas
@@ -86,12 +78,11 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     id: 'alumnos-lista',
     categoriaId: 'listas',
     titulo: 'Lista de alumnos',
-    descripcion: 'Alumnos activos del ciclo en curso por nivel.',
+    descripcion: 'Alumnos activos del ciclo por nivel.',
     accent: 'emerald',
-    motor: 'legacy-php',
+    motor: 'api-next',
     requiereNivel: true,
     usaCiclo: 'escolar',
-    legacyFile: porNivel('alumnos'),
     keywords: ['lista', 'alumnos', 'activos'],
   },
   // Nuevo ingreso actual
@@ -101,10 +92,9 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Nuevo ingreso — reporte completo',
     descripcion: 'Nuevo ingreso del ciclo escolar en curso.',
     accent: 'violet',
-    motor: 'legacy-php',
+    motor: 'pendiente',
     requiereNivel: true,
     usaCiclo: 'escolar',
-    legacyFile: (nivel) => `nuevoIngreso${NIVEL_SUFFIX[nivel]}actual.php`,
     keywords: ['nuevo', 'ingreso', 'completo'],
   },
   {
@@ -113,10 +103,9 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Nuevo ingreso — deben inscripción',
     descripcion: 'Nuevo ingreso del ciclo en curso sin inscripción pagada.',
     accent: 'violet',
-    motor: 'legacy-php',
+    motor: 'pendiente',
     requiereNivel: true,
     usaCiclo: 'escolar',
-    legacyFile: (nivel) => `nuevoIngresoDebenInsc${NIVEL_SUFFIX[nivel]}actual.php`,
     keywords: ['nuevo', 'ingreso', 'deben', 'pendiente'],
   },
   // Nuevo ingreso siguiente ciclo
@@ -126,10 +115,9 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Nuevo ingreso — reporte completo',
     descripcion: 'Nuevo ingreso hacia el próximo ciclo escolar.',
     accent: 'indigo',
-    motor: 'legacy-php',
+    motor: 'pendiente',
     requiereNivel: true,
     usaCiclo: 'inscripcion',
-    legacyFile: porNivel('nuevoIngreso'),
     keywords: ['nuevo', 'ingreso', 'siguiente'],
   },
   {
@@ -138,10 +126,9 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'No han pagado inscripción',
     descripcion: 'Nuevo ingreso del próximo ciclo sin pago de inscripción.',
     accent: 'indigo',
-    motor: 'legacy-php',
+    motor: 'pendiente',
     requiereNivel: true,
     usaCiclo: 'inscripcion',
-    legacyFile: porNivel('nuevoIngresoDebenInsc'),
     keywords: ['nuevo', 'ingreso', 'deben', 'inscripcion'],
   },
   // Reinscritos
@@ -151,10 +138,9 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Reinscritos — 1 pago',
     descripcion: 'Primer diferido / primer pago de reinscripción.',
     accent: 'amber',
-    motor: 'legacy-php',
+    motor: 'api-next',
     requiereNivel: true,
     usaCiclo: 'inscripcion',
-    legacyFile: porNivel('reinscritos1pago'),
     keywords: ['reinscritos', '1 pago', 'diferido 1'],
   },
   {
@@ -163,69 +149,34 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Reinscritos — 2 pagos',
     descripcion: 'Segundo diferido; incluye 1er dif, 2do dif y plan de meses.',
     accent: 'amber',
-    motor: 'legacy-php',
+    motor: 'api-next',
     requiereNivel: true,
     usaCiclo: 'inscripcion',
-    legacyFile: porNivel('reinscritos2pagos'),
     keywords: ['reinscritos', '2 pagos', 'diferido 2'],
   },
-  // Becados legacy por nivel
+  // Becados
   {
-    id: 'becados-legacy',
+    id: 'becados',
     categoriaId: 'becados',
-    titulo: 'Becados (PDF legacy)',
-    descripcion: 'Reporte PDF del portal PHP por nivel.',
+    titulo: 'Alumnos becados',
+    descripcion: 'Becas activas por ciclo — HTML/PDF nativo (InsForge).',
     accent: 'rose',
-    motor: 'legacy-php',
-    requiereNivel: true,
-    usaCiclo: 'escolar',
-    legacyFile: porNivel('becados'),
-    keywords: ['becados', 'beca', 'legacy'],
+    motor: 'api-next',
+    usaCiclo: 'libre',
+    keywords: ['becados', 'beca', 'insforge'],
   },
   // Bajas
   {
-    id: 'bajas-maternal',
+    id: 'bajas',
     categoriaId: 'bajas',
-    titulo: 'Bajas Maternal',
-    descripcion: 'Alumnos de baja en Maternal.',
+    titulo: 'Bajas por nivel',
+    descripcion: 'Alumnos de baja con fecha y correo de contacto.',
     accent: 'rose',
-    motor: 'legacy-php',
+    motor: 'api-next',
+    requiereNivel: true,
     usaCiclo: 'escolar',
-    legacyFile: 'bajas_maternal.php',
-    keywords: ['bajas', 'maternal'],
-  },
-  {
-    id: 'bajas-kinder',
-    categoriaId: 'bajas',
-    titulo: 'Bajas Kinder',
-    descripcion: 'Alumnos de baja en Kinder.',
-    accent: 'rose',
-    motor: 'legacy-php',
-    usaCiclo: 'escolar',
-    legacyFile: 'bajas_kinder.php',
-    keywords: ['bajas', 'kinder'],
-  },
-  {
-    id: 'bajas-primaria',
-    categoriaId: 'bajas',
-    titulo: 'Bajas Primaria',
-    descripcion: 'Alumnos de baja en Primaria.',
-    accent: 'rose',
-    motor: 'legacy-php',
-    usaCiclo: 'escolar',
-    legacyFile: 'bajas_primaria.php',
-    keywords: ['bajas', 'primaria'],
-  },
-  {
-    id: 'bajas-secundaria',
-    categoriaId: 'bajas',
-    titulo: 'Bajas Secundaria',
-    descripcion: 'Alumnos de baja en Secundaria.',
-    accent: 'rose',
-    motor: 'legacy-php',
-    usaCiclo: 'escolar',
-    legacyFile: 'bajas_secundaria.php',
-    keywords: ['bajas', 'secundaria'],
+    apiSlug: 'bajas',
+    keywords: ['bajas', 'maternal', 'kinder', 'primaria', 'secundaria'],
   },
   // Otros (sin nivel)
   {
@@ -234,8 +185,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Cambridge',
     descripcion: 'Reporte Cambridge.',
     accent: 'sky',
-    motor: 'legacy-php',
-    legacyFile: 'Cambridge.php',
+    motor: 'pendiente',
     keywords: ['cambridge'],
   },
   {
@@ -244,8 +194,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Talleres',
     descripcion: 'Inscripciones a talleres.',
     accent: 'sky',
-    motor: 'legacy-php',
-    legacyFile: 'talleres.php',
+    motor: 'pendiente',
     keywords: ['talleres'],
   },
   {
@@ -254,8 +203,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Suspendidos IWC',
     descripcion: 'Deudores / suspendidos IWC.',
     accent: 'sky',
-    motor: 'legacy-php',
-    legacyFile: 'deudores2pagosIWC.php',
+    motor: 'pendiente',
     keywords: ['suspendidos', 'iwc', 'deudores'],
   },
   {
@@ -264,8 +212,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Suspendidos IEW',
     descripcion: 'Deudores / suspendidos IEW.',
     accent: 'sky',
-    motor: 'legacy-php',
-    legacyFile: 'deudores2pagosIEW.php',
+    motor: 'pendiente',
     keywords: ['suspendidos', 'iew'],
   },
   {
@@ -274,8 +221,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Inscripciones',
     descripcion: 'Reporte general de inscripciones.',
     accent: 'sky',
-    motor: 'legacy-php',
-    legacyFile: 'inscritos.php',
+    motor: 'pendiente',
     keywords: ['inscripciones'],
   },
   {
@@ -284,8 +230,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Cuota de padres por fecha',
     descripcion: 'Cálculo de cuota de padres por fecha.',
     accent: 'sky',
-    motor: 'legacy-php',
-    legacyFile: 'calculo.php',
+    motor: 'pendiente',
     keywords: ['cuota', 'padres', 'fecha'],
   },
   {
@@ -294,8 +239,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Deudores 1 mes IEW',
     descripcion: 'Deudores de un mes IEW.',
     accent: 'sky',
-    motor: 'legacy-php',
-    legacyFile: 'calculode.php',
+    motor: 'pendiente',
     keywords: ['deudores', 'iew'],
   },
   {
@@ -304,8 +248,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Deudores 1 mes IWCH',
     descripcion: 'Deudores de un mes IWCH.',
     accent: 'sky',
-    motor: 'legacy-php',
-    legacyFile: 'calculodw.php',
+    motor: 'pendiente',
     keywords: ['deudores', 'iwch'],
   },
   {
@@ -314,8 +257,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Reinscritos sin pago (Kinder)',
     descripcion: 'Reinscritos Kinder que no han pagado.',
     accent: 'amber',
-    motor: 'legacy-php',
-    legacyFile: 'DIKinder.php',
+    motor: 'pendiente',
     keywords: ['reinscritos', 'kinder', 'pendiente'],
   },
   {
@@ -324,8 +266,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Cuota de padres general',
     descripcion: 'Cuota de padres — Primaria.',
     accent: 'amber',
-    motor: 'legacy-php',
-    legacyFile: 'primaria_cuota.php',
+    motor: 'pendiente',
     keywords: ['cuota', 'padres'],
   },
   {
@@ -334,8 +275,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Inscripciones admin (1er. diferido)',
     descripcion: 'Inscripciones reales — primer diferido.',
     accent: 'amber',
-    motor: 'legacy-php',
-    legacyFile: 'inscripcionesreales.php',
+    motor: 'pendiente',
     keywords: ['inscripciones', 'diferido 1', 'admin'],
   },
   {
@@ -344,8 +284,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Inscripciones admin (2do. diferido)',
     descripcion: 'Inscripciones reales — segundo diferido.',
     accent: 'amber',
-    motor: 'legacy-php',
-    legacyFile: 'inscripcionesreales2.php',
+    motor: 'pendiente',
     keywords: ['inscripciones', 'diferido 2', 'admin'],
   },
   {
@@ -354,8 +293,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Herramientas, material y seguro',
     descripcion: 'Reporte EMS / material escolar.',
     accent: 'emerald',
-    motor: 'legacy-php',
-    legacyFile: 'reporteEMS.php',
+    motor: 'pendiente',
     keywords: ['ems', 'material', 'seguro'],
   },
   {
@@ -364,18 +302,16 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Doble titulación',
     descripcion: 'Alumnos en doble titulación.',
     accent: 'emerald',
-    motor: 'legacy-php',
-    legacyFile: 'doble.php',
+    motor: 'pendiente',
     keywords: ['doble', 'titulacion'],
   },
   {
     id: 'nuevo-ingreso-mes',
     categoriaId: 'otros',
     titulo: 'Nuevo ingreso por mes',
-    descripcion: 'Formulario de reporte por mes (nuevo ingreso).',
+    descripcion: 'Reporte por mes (nuevo ingreso).',
     accent: 'violet',
-    motor: 'legacy-php',
-    legacyFile: 'nuevoIngresoxmes_form.php',
+    motor: 'pendiente',
     keywords: ['nuevo ingreso', 'mes'],
   },
   {
@@ -384,40 +320,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Familias Winston',
     descripcion: 'Alumnos por niveles — familias Winston.',
     accent: 'indigo',
-    motor: 'legacy-php',
-    legacyFile: 'alumnoGeneralNiveles.php',
+    motor: 'pendiente',
     keywords: ['familias', 'winston'],
   },
-  // Nativos Next.js
-  {
-    id: 'becados',
-    categoriaId: 'nativos',
-    titulo: 'Alumnos becados',
-    descripcion: 'Becas activas (alumno_beca) por ciclo — HTML/PDF nativo.',
-    accent: 'amber',
-    motor: 'api-next',
-    usaCiclo: 'libre',
-    apiPath: '/api/reportes/becados',
-    keywords: ['beca', 'becados', 'nativo', 'insforge'],
-  },
-  {
-    id: 'alumnos-ciclo-pdf',
-    categoriaId: 'nativos',
-    titulo: 'Alumnos por ciclo (PDF)',
-    descripcion: 'Listado PDF generado en Servicios Admin.',
-    accent: 'violet',
-    motor: 'static-pdf',
-    usaCiclo: 'libre',
-    staticPath: '/reportes/alumnos-ciclo-23.pdf',
-    keywords: ['alumnos', 'ciclo', 'pdf'],
-  },
 ]
-
-export function resolveLegacyFile(
-  entry: ReporteCatalogEntry,
-  nivel: NivelId
-): string | null {
-  if (!entry.legacyFile) return null
-  if (typeof entry.legacyFile === 'string') return entry.legacyFile
-  return entry.legacyFile(nivel)
-}

@@ -21,6 +21,7 @@ type ReporteTileProps = {
   copiado: string | null
   onCopy: (id: string, url: string) => void
   extra?: ReactNode
+  deshabilitado?: boolean
 }
 
 export default function ReporteTile({
@@ -39,12 +40,13 @@ export default function ReporteTile({
   copiado,
   onCopy,
   extra,
+  deshabilitado = false,
 }: ReporteTileProps) {
   const motorLabel =
-    motor === 'legacy-php' ? 'PHP' : motor === 'api-next' ? 'Nativo' : motor === 'static-pdf' ? 'PDF' : null
+    motor === 'api-next' ? 'Nativo' : motor === 'pendiente' ? 'Próximo' : null
 
   return (
-    <article className={`reporte-tile reporte-tile--${accent}`}>
+    <article className={`reporte-tile reporte-tile--${accent}${deshabilitado ? ' reporte-tile--disabled' : ''}`}>
       <div className="reporte-tile-head">
         <div className={`reporte-tile-icon reporte-tile-icon--${accent}`} aria-hidden>
           {icon ?? <ExternalLink size={18} />}
@@ -68,8 +70,10 @@ export default function ReporteTile({
         <a
           className={`reporte-tile-btn reporte-tile-btn--main reporte-tile-btn--${accent}`}
           href={verHref}
-          target="_blank"
-          rel="noopener noreferrer"
+          target={deshabilitado ? undefined : '_blank'}
+          rel={deshabilitado ? undefined : 'noopener noreferrer'}
+          aria-disabled={deshabilitado}
+          onClick={deshabilitado ? (e) => e.preventDefault() : undefined}
         >
           <ExternalLink size={13} aria-hidden />
           {verLabel}
