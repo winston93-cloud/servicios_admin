@@ -2,37 +2,154 @@
 
 import ProtectedRoute from '@/components/ProtectedRoute'
 import {
-  REPORTE_ALUMNOS_CICLO_23_PATH,
-  REPORTE_BECADOS_CICLO_DEFAULT,
-  reporteAlumnosCiclo23Url,
-  reporteBecadosUrl,
+  cicloEscolarEtiqueta,
+  getCicloEscolarActual,
+  getCicloInscripcion,
+  getCiclosEscolaresOpciones,
+} from '@/lib/ciclosEscolares'
+import {
+  REPORTE_CATEGORIAS,
+  REPORTE_ENTRADAS,
+  resolveLegacyFile,
+  type NivelId,
+  type ReporteCatalogEntry,
+} from '@/lib/reportesCatalogData'
+import {
+  reporteAlumnosCicloPdfPath,
+  reporteLegacyUrl,
 } from '@/lib/reportesConfig'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, Search } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import ReporteParametros from './ReporteParametros'
 import ReporteTile from './ReporteTile'
-import { REPORTES_CATALOGO } from './reportesCatalog'
+
+type ParametrosReporte = {
+  nivel: NivelId
+  ciclo: number
+}
+
+function paramsIniciales(entry: ReporteCatalogEntry): ParametrosReporte {
+  const ciclo =
+    entry.usaCiclo === 'inscripcion'
+      ? getCicloInscripcion()
+      : getCicloEscolarActual()
+  return { nivel: 'primaria', ciclo }
+}
+
+function buildUrls(
+  entry: ReporteCatalogEntry,
+  params: ParametrosReporte,
+  origin: string
+): { ver: string; pdf?: string; copy: string; verLabel: string; pdfLabel: string } {
+  if (entry.motor === 'legacy-php') {
+    const file = entry.requiereNivel
+      ? resolveLegacyFile(entry, params.nivel)
+      : resolveLegacyFile(entry, params.nivel)
+    if (!file) {
+      return { ver: '#', copy: '', verLabel: 'Ver', pdfLabel: 'PDF' }
+    }
+    const url = reporteLegacyUrl(file)
+    return {
+      ver: url,
+      copy: url,
+      verLabel: 'Abrir PDF',
+      pdfLabel: 'PDF',
+    }
+  }
+
+  if (entry.motor === 'api-next' && entry.apiPath) {
+    const html = `${entry.apiPath}?ciclo=${params.ciclo}`
+    const pdf = `${entry.apiPath}?ciclo=${params.ciclo}&format=pdf`
+    const base = origin || ''
+    return {
+      ver: `${base}${html}`,
+      pdf: `${base}${pdf}`,
+      copy: `${base}${pdf}`,
+      verLabel: 'Ver',
+      pdfLabel: 'PDF',
+    }
+  }
+
+  if (entry.motor === 'static-pdf') {
+    const path =
+      entry.id === 'alumnos-ciclo-pdf'
+        ? reporteAlumnosCicloPdfPath(params.ciclo)
+        : entry.staticPath ?? '#'
+    const url = origin ? `${origin}${path}` : path
+    return {
+      ver: url,
+      pdf: url,
+      copy: url,
+      verLabel: 'Ver PDF',
+      pdfLabel: 'PDF',
+    }
+  }
+
+  return { ver: '#', copy: '', verLabel: 'Ver', pdfLabel: 'PDF' }
+}
+
+function metaReporte(entry: ReporteCatalogEntry, params: ParametrosReporte): string {
+  if (entry.motor === 'legacy-php') {
+    const parts = ['PDF legacy']
+    if (entry.requiereNivel) {
+      const n = params.nivel.charAt(0).toUpperCase() + params.nivel.slice(1)
+      parts.push(n)
+    }
+    if (entry.usaCiclo) {
+      parts.push(
+        entry.usaCiclo === 'inscripcion'
+          ? `insc. ${cicloEscolarEtiqueta(params.ciclo)}`
+          : cicloEscolarEtiqueta(params.ciclo)
+      )
+    }
+    return parts.join(' · ')
+  }
+  if (entry.motor === 'api-next') {
+    return `HTML/PDF · ciclo ${params.ciclo}`
+  }
+  return `PDF · ciclo ${params.ciclo}`
+}
 
 export default function ReportesPage() {
   const router = useRouter()
   const [copiado, setCopiado] = useState<string | null>(null)
   const [origin, setOrigin] = useState('')
   const [busqueda, setBusqueda] = useState('')
-  const [cicloBecados, setCicloBecados] = useState(String(REPORTE_BECADOS_CICLO_DEFAULT))
+  const [paramsById, setParamsById] = useState<Record<string, ParametrosReporte>>({})
+
+  const cicloActual = useMemo(() => getCicloEscolarActual(), [])
+  const cicloInscripcion = useMemo(() => getCicloInscripcion(), [])
+  const ciclosOpciones = useMemo(() => getCiclosEscolaresOpciones(), [])
 
   useEffect(() => {
     if (typeof window !== 'undefined') setOrigin(window.location.origin)
   }, [])
 
-  const cicloBecadosNum = useMemo(() => {
-    const n = parseInt(cicloBecados, 10)
-    return Number.isInteger(n) && n > 0 ? n : REPORTE_BECADOS_CICLO_DEFAULT
-  }, [cicloBecados])
+  useEffect(() => {
+    const initial: Record<string, ParametrosReporte> = {}
+    for (const entry of REPORTE_ENTRADAS) {
+      initial[entry.id] = paramsIniciales(entry)
+    }
+    setParamsById(initial)
+  }, [])
 
-  const becadosHtmlPath = `/api/reportes/becados?ciclo=${cicloBecadosNum}`
-  const becadosPdfPath = `/api/reportes/becados?ciclo=${cicloBecadosNum}&format=pdf`
-  const becadosPdfUrl = origin ? `${origin}${becadosPdfPath}` : reporteBecadosUrl(cicloBecadosNum, 'pdf')
-  const alumnosPdfUrl = origin ? `${origin}${REPORTE_ALUMNOS_CICLO_23_PATH}` : reporteAlumnosCiclo23Url()
+  const getParams = useCallback(
+    (entry: ReporteCatalogEntry): ParametrosReporte => {
+      return paramsById[entry.id] ?? paramsIniciales(entry)
+    },
+    [paramsById]
+  )
+
+  const setParam = useCallback(
+    (id: string, patch: Partial<ParametrosReporte>) => {
+      setParamsById((prev) => ({
+        ...prev,
+        [id]: { ...(prev[id] ?? paramsIniciales(REPORTE_ENTRADAS.find((e) => e.id === id)!)), ...patch },
+      }))
+    },
+    []
+  )
 
   const copiarUrl = useCallback(async (id: string, url: string) => {
     try {
@@ -45,15 +162,28 @@ export default function ReportesPage() {
   }, [])
 
   const q = busqueda.trim().toLowerCase()
-  const catalogoFiltrado = useMemo(() => {
-    if (!q) return REPORTES_CATALOGO
-    return REPORTES_CATALOGO.filter((item) => {
-      const blob = [item.titulo, item.meta, item.descripcion, ...item.keywords]
+  const entradasFiltradas = useMemo(() => {
+    if (!q) return REPORTE_ENTRADAS
+    return REPORTE_ENTRADAS.filter((item) => {
+      const cat = REPORTE_CATEGORIAS.find((c) => c.id === item.categoriaId)
+      const blob = [
+        item.titulo,
+        item.descripcion,
+        cat?.titulo ?? '',
+        ...item.keywords,
+      ]
         .join(' ')
         .toLowerCase()
       return blob.includes(q)
     })
   }, [q])
+
+  const categoriasVisibles = useMemo(() => {
+    const ids = new Set(entradasFiltradas.map((e) => e.categoriaId))
+    return REPORTE_CATEGORIAS.filter((c) => ids.has(c.id)).sort(
+      (a, b) => a.orden - b.orden
+    )
+  }, [entradasFiltradas])
 
   return (
     <ProtectedRoute>
@@ -70,7 +200,13 @@ export default function ReportesPage() {
             </button>
             <h1 className="dashboard-title">Reportes</h1>
             <p className="dashboard-subtitle">
-              Consulta y descarga de reportes administrativos
+              Ciclo escolar {cicloEscolarEtiqueta(cicloActual)} · inscripción{' '}
+              {cicloEscolarEtiqueta(cicloInscripcion)}
+            </p>
+            <p className="reportes-legacy-hint">
+              Los reportes legacy abren el PDF en{' '}
+              <strong>winston93.edu.mx/reportes</strong> (sesión PHP). Los nativos
+              se generan aquí con el ciclo que elijas.
             </p>
           </div>
 
@@ -85,69 +221,79 @@ export default function ReportesPage() {
               />
             </label>
             <span className="reportes-count">
-              {catalogoFiltrado.length} de {REPORTES_CATALOGO.length}
+              {entradasFiltradas.length} de {REPORTE_ENTRADAS.length}
             </span>
           </div>
 
-          {catalogoFiltrado.length === 0 ? (
+          {entradasFiltradas.length === 0 ? (
             <p className="reportes-empty">No hay reportes que coincidan con la búsqueda.</p>
           ) : (
-            <div className="reportes-grid">
-              {catalogoFiltrado.map((item) => {
-                if (item.id === 'alumnos-ciclo-23') {
-                  return (
-                    <ReporteTile
-                      key={item.id}
-                      id={item.id}
-                      titulo={item.titulo}
-                      meta={item.meta}
-                      descripcion={item.descripcion}
-                      accent={item.accent}
-                      icon={item.icon}
-                      verHref={REPORTE_ALUMNOS_CICLO_23_PATH}
-                      descargarHref={REPORTE_ALUMNOS_CICLO_23_PATH}
-                      copyUrl={alumnosPdfUrl}
-                      copiado={copiado}
-                      onCopy={copiarUrl}
-                    />
-                  )
-                }
+            categoriasVisibles.map((cat) => {
+              const items = entradasFiltradas.filter((e) => e.categoriaId === cat.id)
+              if (!items.length) return null
+              return (
+                <section key={cat.id} className="reportes-section">
+                  <header className="reportes-section-head">
+                    <h2 className="reportes-section-title">{cat.titulo}</h2>
+                    {cat.subtitulo ? (
+                      <p className="reportes-section-sub">{cat.subtitulo}</p>
+                    ) : null}
+                  </header>
+                  <div className="reportes-grid">
+                    {items.map((entry) => {
+                      const params = getParams(entry)
+                      const urls = buildUrls(entry, params, origin)
+                      const mostrarCiclo =
+                        entry.motor !== 'legacy-php' && Boolean(entry.usaCiclo)
+                      const cicloLabel =
+                        entry.usaCiclo === 'inscripcion' ? 'Ciclo inscripción' : 'Ciclo'
 
-                if (item.id === 'becados') {
-                  return (
-                    <ReporteTile
-                      key={item.id}
-                      id={item.id}
-                      titulo={item.titulo}
-                      meta={item.meta}
-                      descripcion={item.descripcion}
-                      accent={item.accent}
-                      icon={item.icon}
-                      verHref={becadosHtmlPath}
-                      descargarHref={becadosPdfPath}
-                      copyUrl={becadosPdfUrl}
-                      copiado={copiado}
-                      onCopy={copiarUrl}
-                      extra={
-                        <label className="reporte-tile-ciclo">
-                          <span>Ciclo</span>
-                          <input
-                            type="number"
-                            min={1}
-                            step={1}
-                            value={cicloBecados}
-                            onChange={(e) => setCicloBecados(e.target.value)}
-                            inputMode="numeric"
-                          />
-                        </label>
-                      }
-                    />
-                  )
-                }
-
-                return null
-              })}
-            </div>
+                      return (
+                        <ReporteTile
+                          key={entry.id}
+                          id={entry.id}
+                          titulo={entry.titulo}
+                          meta={metaReporte(entry, params)}
+                          descripcion={entry.descripcion}
+                          accent={entry.accent}
+                          icon={null}
+                          verHref={urls.ver}
+                          verLabel={urls.verLabel}
+                          descargarHref={urls.pdf}
+                          descargarLabel={urls.pdfLabel}
+                          copyUrl={urls.copy}
+                          copiado={copiado}
+                          onCopy={copiarUrl}
+                          extra={
+                            entry.requiereNivel || mostrarCiclo ? (
+                              <ReporteParametros
+                                nivel={params.nivel}
+                                onNivelChange={(n) => setParam(entry.id, { nivel: n })}
+                                mostrarNivel={entry.requiereNivel}
+                                ciclo={params.ciclo}
+                                onCicloChange={(c) => setParam(entry.id, { ciclo: c })}
+                                mostrarCiclo={mostrarCiclo}
+                                cicloLabel={cicloLabel}
+                                ciclosOpciones={ciclosOpciones}
+                              />
+                            ) : entry.usaCiclo && entry.motor === 'legacy-php' ? (
+                              <p className="reporte-tile-legacy-ciclo">
+                                Referencia:{' '}
+                                {entry.usaCiclo === 'inscripcion'
+                                  ? `inscripción ${cicloEscolarEtiqueta(cicloInscripcion)}`
+                                  : `ciclo ${cicloEscolarEtiqueta(cicloActual)}`}
+                                {' '}
+                                (automático en servidor PHP)
+                              </p>
+                            ) : null
+                          }
+                        />
+                      )
+                    })}
+                  </div>
+                </section>
+              )
+            })
           )}
         </div>
       </div>

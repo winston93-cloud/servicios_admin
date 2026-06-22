@@ -41,7 +41,7 @@ export default function ReporteTile({
     <article className={`reporte-tile reporte-tile--${accent}`}>
       <div className="reporte-tile-head">
         <div className={`reporte-tile-icon reporte-tile-icon--${accent}`} aria-hidden>
-          {icon}
+          {icon ?? <ExternalLink size={16} />}
         </div>
         <div className="reporte-tile-head-text">
           <h2 className="reporte-tile-title">{titulo}</h2>

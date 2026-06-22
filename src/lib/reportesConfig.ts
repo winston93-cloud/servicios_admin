@@ -1,6 +1,33 @@
-export const REPORTE_ALUMNOS_CICLO_23_PATH = '/reportes/alumnos-ciclo-23.pdf'
+import {
+  cicloEscolarEtiqueta,
+  getCicloEscolarActual,
+  getCicloInscripcion,
+  getCicloEscolarDefault,
+} from '@/lib/ciclosEscolares'
+
 export const REPORTE_BECADOS_API_PATH = '/api/reportes/becados'
-export const REPORTE_BECADOS_CICLO_DEFAULT = 22
+
+const LEGACY_BASE =
+  process.env.NEXT_PUBLIC_REPORTES_LEGACY_BASE?.trim() ||
+  'https://winston93.edu.mx/reportes'
+
+export function reportesLegacyBaseUrl(): string {
+  return LEGACY_BASE.replace(/\/$/, '')
+}
+
+export function reporteLegacyUrl(archivoPhp: string): string {
+  const file = archivoPhp.replace(/^\//, '')
+  return `${reportesLegacyBaseUrl()}/${file}`
+}
+
+export function getCicloBecadosDefault(): number {
+  return getCicloEscolarDefault()
+}
+
+export function reporteAlumnosCicloPdfPath(ciclo?: number): string {
+  const n = ciclo ?? getCicloEscolarDefault()
+  return `/reportes/alumnos-ciclo-${n}.pdf`
+}
 
 export function appBaseUrl(): string {
   const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim()
@@ -12,15 +39,40 @@ export function appBaseUrl(): string {
   return 'https://servicios-admin.vercel.app'
 }
 
-export function reporteAlumnosCiclo23Url(): string {
-  return `${appBaseUrl()}${REPORTE_ALUMNOS_CICLO_23_PATH}`
-}
-
 export function reporteBecadosUrl(
-  ciclo: number = REPORTE_BECADOS_CICLO_DEFAULT,
+  ciclo: number = getCicloBecadosDefault(),
   format: 'html' | 'pdf' = 'html'
 ): string {
   const params = new URLSearchParams({ ciclo: String(ciclo) })
   if (format === 'pdf') params.set('format', 'pdf')
   return `${appBaseUrl()}${REPORTE_BECADOS_API_PATH}?${params.toString()}`
+}
+
+export function etiquetaCicloReporte(
+  tipo: 'escolar' | 'inscripcion' | 'libre' | undefined,
+  cicloSeleccionado: number
+): string {
+  if (tipo === 'inscripcion') {
+    return `Inscripción ${cicloEscolarEtiqueta(cicloSeleccionado)}`
+  }
+  if (tipo === 'escolar') {
+    return `Ciclo ${cicloEscolarEtiqueta(cicloSeleccionado)}`
+  }
+  return `Ciclo ${cicloEscolarEtiqueta(cicloSeleccionado)}`
+}
+
+export function cicloSugeridoParaReporte(
+  tipo: 'escolar' | 'inscripcion' | 'libre' | undefined,
+  ref?: Date
+): number {
+  if (tipo === 'inscripcion') return getCicloInscripcion(ref)
+  return getCicloEscolarActual(ref)
+}
+
+/** @deprecated usar reporteAlumnosCicloPdfPath */
+export const REPORTE_ALUMNOS_CICLO_23_PATH = '/reportes/alumnos-ciclo-23.pdf'
+export const REPORTE_BECADOS_CICLO_DEFAULT = getCicloBecadosDefault()
+
+export function reporteAlumnosCiclo23Url(): string {
+  return `${appBaseUrl()}${REPORTE_ALUMNOS_CICLO_23_PATH}`
 }

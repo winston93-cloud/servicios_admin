@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { cargarReporteBecados } from '@/lib/reporteBecadosService'
 import { construirHtmlReporteBecados } from '@/lib/reporteBecadosDocument'
 import { generarPdfReporteBecados } from '@/lib/reporteBecadosPdf'
-import { REPORTE_BECADOS_CICLO_DEFAULT } from '@/lib/reportesConfig'
+import { getCicloBecadosDefault } from '@/lib/reportesConfig'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -16,7 +16,7 @@ function parseCiclo(value: string | null): number | null {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const ciclo = parseCiclo(searchParams.get('ciclo')) ?? REPORTE_BECADOS_CICLO_DEFAULT
+    const ciclo = parseCiclo(searchParams.get('ciclo')) ?? getCicloBecadosDefault()
     const format = (searchParams.get('format') ?? 'html').toLowerCase()
 
     const resumen = await cargarReporteBecados(ciclo)
