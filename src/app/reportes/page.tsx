@@ -234,10 +234,13 @@ export default function ReportesPage() {
               return (
                 <section key={cat.id} className="reportes-section">
                   <header className="reportes-section-head">
-                    <h2 className="reportes-section-title">{cat.titulo}</h2>
-                    {cat.subtitulo ? (
-                      <p className="reportes-section-sub">{cat.subtitulo}</p>
-                    ) : null}
+                    <div className="reportes-section-head-text">
+                      <h2 className="reportes-section-title">{cat.titulo}</h2>
+                      {cat.subtitulo ? (
+                        <p className="reportes-section-sub">{cat.subtitulo}</p>
+                      ) : null}
+                    </div>
+                    <span className="reportes-section-count">{items.length}</span>
                   </header>
                   <div className="reportes-grid">
                     {items.map((entry) => {
@@ -256,6 +259,7 @@ export default function ReportesPage() {
                           meta={metaReporte(entry, params)}
                           descripcion={entry.descripcion}
                           accent={entry.accent}
+                          motor={entry.motor}
                           icon={null}
                           verHref={urls.ver}
                           verLabel={urls.verLabel}

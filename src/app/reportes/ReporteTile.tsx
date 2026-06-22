@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { Copy, Download, ExternalLink } from 'lucide-react'
 import type { ReporteAccent } from './reportesCatalog'
+import type { ReporteMotor } from '@/lib/reportesCatalogData'
 
 type ReporteTileProps = {
   id: string
@@ -10,6 +11,7 @@ type ReporteTileProps = {
   meta: string
   descripcion: string
   accent: ReporteAccent
+  motor?: ReporteMotor
   icon: ReactNode
   verHref: string
   verLabel?: string
@@ -27,6 +29,7 @@ export default function ReporteTile({
   meta,
   descripcion,
   accent,
+  motor,
   icon,
   verHref,
   verLabel = 'Ver',
@@ -37,14 +40,22 @@ export default function ReporteTile({
   onCopy,
   extra,
 }: ReporteTileProps) {
+  const motorLabel =
+    motor === 'legacy-php' ? 'PHP' : motor === 'api-next' ? 'Nativo' : motor === 'static-pdf' ? 'PDF' : null
+
   return (
     <article className={`reporte-tile reporte-tile--${accent}`}>
       <div className="reporte-tile-head">
         <div className={`reporte-tile-icon reporte-tile-icon--${accent}`} aria-hidden>
-          {icon ?? <ExternalLink size={16} />}
+          {icon ?? <ExternalLink size={18} />}
         </div>
         <div className="reporte-tile-head-text">
-          <h2 className="reporte-tile-title">{titulo}</h2>
+          <div className="reporte-tile-title-row">
+            <h2 className="reporte-tile-title">{titulo}</h2>
+            {motorLabel ? (
+              <span className={`reporte-tile-badge reporte-tile-badge--${motor}`}>{motorLabel}</span>
+            ) : null}
+          </div>
           <p className="reporte-tile-meta">{meta}</p>
         </div>
       </div>
