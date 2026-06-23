@@ -39,16 +39,6 @@ function buildUrls(
   params: ParametrosReporte,
   origin: string
 ): { ver: string; pdf?: string; copy: string; verLabel: string; pdfLabel: string; disponible: boolean } {
-  if (entry.motor === 'pendiente') {
-    return {
-      ver: '#',
-      copy: '',
-      verLabel: 'Próximamente',
-      pdfLabel: 'PDF',
-      disponible: false,
-    }
-  }
-
   const apiPath = apiPathReporte(entry)
   if (!apiPath) {
     return { ver: '#', copy: '', verLabel: 'Ver', pdfLabel: 'PDF', disponible: false }
@@ -72,9 +62,6 @@ function buildUrls(
 }
 
 function metaReporte(entry: ReporteCatalogEntry, params: ParametrosReporte): string {
-  if (entry.motor === 'pendiente') {
-    return 'Migración en curso'
-  }
   const parts = ['HTML/PDF nativo']
   if (entry.requiereNivel) {
     const n = params.nivel.charAt(0).toUpperCase() + params.nivel.slice(1)
@@ -221,8 +208,7 @@ export default function ReportesPage() {
                     {items.map((entry) => {
                       const params = getParams(entry)
                       const urls = buildUrls(entry, params, origin)
-                      const mostrarCiclo =
-                        entry.motor === 'api-next' && Boolean(entry.usaCiclo)
+                      const mostrarCiclo = Boolean(entry.usaCiclo)
                       const cicloLabel =
                         entry.usaCiclo === 'inscripcion' ? 'Ciclo inscripción' : 'Ciclo'
 
@@ -256,7 +242,7 @@ export default function ReportesPage() {
                                 cicloLabel={cicloLabel}
                                 ciclosOpciones={ciclosOpciones}
                               />
-                            ) : entry.usaCiclo && entry.motor === 'api-next' ? (
+                            ) : entry.usaCiclo ? (
                               <ReporteParametros
                                 nivel={params.nivel}
                                 onNivelChange={() => {}}

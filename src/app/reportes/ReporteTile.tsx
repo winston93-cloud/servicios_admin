@@ -41,8 +41,7 @@ export default function ReporteTile({
   extra,
   deshabilitado = false,
 }: ReporteTileProps) {
-  const motorLabel =
-    motor === 'api-next' ? 'Nativo' : motor === 'pendiente' ? 'Próximo' : null
+  const motorLabel = motor === 'api-next' ? 'Nativo' : null
 
   return (
     <article

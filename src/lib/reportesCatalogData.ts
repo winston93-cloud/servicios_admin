@@ -9,7 +9,7 @@ export const NIVELES: { id: NivelId; label: string }[] = [
   { id: 'secundaria', label: 'Secundaria' },
 ]
 
-export type ReporteMotor = 'api-next' | 'pendiente'
+export type ReporteMotor = 'api-next'
 
 export type ReporteCatalogEntry = {
   id: string
@@ -92,7 +92,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Nuevo ingreso — reporte completo',
     descripcion: 'Nuevo ingreso del ciclo escolar en curso.',
     accent: 'violet',
-    motor: 'pendiente',
+    motor: 'api-next',
     requiereNivel: true,
     usaCiclo: 'escolar',
     keywords: ['nuevo', 'ingreso', 'completo'],
@@ -103,7 +103,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Nuevo ingreso — deben inscripción',
     descripcion: 'Nuevo ingreso del ciclo en curso sin inscripción pagada.',
     accent: 'violet',
-    motor: 'pendiente',
+    motor: 'api-next',
     requiereNivel: true,
     usaCiclo: 'escolar',
     keywords: ['nuevo', 'ingreso', 'deben', 'pendiente'],
@@ -115,7 +115,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Nuevo ingreso — reporte completo',
     descripcion: 'Nuevo ingreso hacia el próximo ciclo escolar.',
     accent: 'indigo',
-    motor: 'pendiente',
+    motor: 'api-next',
     requiereNivel: true,
     usaCiclo: 'inscripcion',
     keywords: ['nuevo', 'ingreso', 'siguiente'],
@@ -126,7 +126,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'No han pagado inscripción',
     descripcion: 'Nuevo ingreso del próximo ciclo sin pago de inscripción.',
     accent: 'indigo',
-    motor: 'pendiente',
+    motor: 'api-next',
     requiereNivel: true,
     usaCiclo: 'inscripcion',
     keywords: ['nuevo', 'ingreso', 'deben', 'inscripcion'],
@@ -185,7 +185,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Cambridge',
     descripcion: 'Reporte Cambridge.',
     accent: 'sky',
-    motor: 'pendiente',
+    motor: 'api-next',
+    usaCiclo: 'escolar',
     keywords: ['cambridge'],
   },
   {
@@ -194,7 +195,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Talleres',
     descripcion: 'Inscripciones a talleres.',
     accent: 'sky',
-    motor: 'pendiente',
+    motor: 'api-next',
+    usaCiclo: 'escolar',
     keywords: ['talleres'],
   },
   {
@@ -203,7 +205,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Suspendidos IWC',
     descripcion: 'Deudores / suspendidos IWC.',
     accent: 'sky',
-    motor: 'pendiente',
+    motor: 'api-next',
+    usaCiclo: 'escolar',
     keywords: ['suspendidos', 'iwc', 'deudores'],
   },
   {
@@ -212,7 +215,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Suspendidos IEW',
     descripcion: 'Deudores / suspendidos IEW.',
     accent: 'sky',
-    motor: 'pendiente',
+    motor: 'api-next',
+    usaCiclo: 'escolar',
     keywords: ['suspendidos', 'iew'],
   },
   {
@@ -221,7 +225,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Inscripciones',
     descripcion: 'Reporte general de inscripciones.',
     accent: 'sky',
-    motor: 'pendiente',
+    motor: 'api-next',
+    usaCiclo: 'inscripcion',
     keywords: ['inscripciones'],
   },
   {
@@ -230,7 +235,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Cuota de padres por fecha',
     descripcion: 'Cálculo de cuota de padres por fecha.',
     accent: 'sky',
-    motor: 'pendiente',
+    motor: 'api-next',
+    usaCiclo: 'escolar',
     keywords: ['cuota', 'padres', 'fecha'],
   },
   {
@@ -239,7 +245,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Deudores 1 mes IEW',
     descripcion: 'Deudores de un mes IEW.',
     accent: 'sky',
-    motor: 'pendiente',
+    motor: 'api-next',
+    usaCiclo: 'escolar',
     keywords: ['deudores', 'iew'],
   },
   {
@@ -248,7 +255,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Deudores 1 mes IWCH',
     descripcion: 'Deudores de un mes IWCH.',
     accent: 'sky',
-    motor: 'pendiente',
+    motor: 'api-next',
+    usaCiclo: 'escolar',
     keywords: ['deudores', 'iwch'],
   },
   {
@@ -257,7 +265,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Reinscritos sin pago (Kinder)',
     descripcion: 'Reinscritos Kinder que no han pagado.',
     accent: 'amber',
-    motor: 'pendiente',
+    motor: 'api-next',
+    usaCiclo: 'inscripcion',
     keywords: ['reinscritos', 'kinder', 'pendiente'],
   },
   {
@@ -266,7 +275,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Cuota de padres general',
     descripcion: 'Cuota de padres — Primaria.',
     accent: 'amber',
-    motor: 'pendiente',
+    motor: 'api-next',
+    usaCiclo: 'escolar',
     keywords: ['cuota', 'padres'],
   },
   {
@@ -275,7 +285,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Inscripciones admin (1er. diferido)',
     descripcion: 'Inscripciones reales — primer diferido.',
     accent: 'amber',
-    motor: 'pendiente',
+    motor: 'api-next',
+    usaCiclo: 'inscripcion',
     keywords: ['inscripciones', 'diferido 1', 'admin'],
   },
   {
@@ -284,7 +295,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Inscripciones admin (2do. diferido)',
     descripcion: 'Inscripciones reales — segundo diferido.',
     accent: 'amber',
-    motor: 'pendiente',
+    motor: 'api-next',
+    usaCiclo: 'inscripcion',
     keywords: ['inscripciones', 'diferido 2', 'admin'],
   },
   {
@@ -293,7 +305,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Herramientas, material y seguro',
     descripcion: 'Reporte EMS / material escolar.',
     accent: 'emerald',
-    motor: 'pendiente',
+    motor: 'api-next',
+    usaCiclo: 'inscripcion',
     keywords: ['ems', 'material', 'seguro'],
   },
   {
@@ -302,7 +315,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Doble titulación',
     descripcion: 'Alumnos en doble titulación.',
     accent: 'emerald',
-    motor: 'pendiente',
+    motor: 'api-next',
+    usaCiclo: 'escolar',
     keywords: ['doble', 'titulacion'],
   },
   {
@@ -311,7 +325,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Nuevo ingreso por mes',
     descripcion: 'Reporte por mes (nuevo ingreso).',
     accent: 'violet',
-    motor: 'pendiente',
+    motor: 'api-next',
+    usaCiclo: 'escolar',
     keywords: ['nuevo ingreso', 'mes'],
   },
   {
@@ -320,7 +335,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     titulo: 'Familias Winston',
     descripcion: 'Alumnos por niveles — familias Winston.',
     accent: 'indigo',
-    motor: 'pendiente',
+    motor: 'api-next',
+    usaCiclo: 'escolar',
     keywords: ['familias', 'winston'],
   },
 ]
