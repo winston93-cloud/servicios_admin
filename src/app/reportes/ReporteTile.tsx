@@ -31,7 +31,6 @@ export default function ReporteTile({
   descripcion,
   accent,
   motor,
-  icon,
   verHref,
   verLabel = 'Ver',
   descargarHref,
@@ -46,59 +45,54 @@ export default function ReporteTile({
     motor === 'api-next' ? 'Nativo' : motor === 'pendiente' ? 'Próximo' : null
 
   return (
-    <article className={`reporte-tile reporte-tile--${accent}${deshabilitado ? ' reporte-tile--disabled' : ''}`}>
-      <div className="reporte-tile-head">
-        <div className={`reporte-tile-icon reporte-tile-icon--${accent}`} aria-hidden>
-          {icon ?? <ExternalLink size={18} />}
-        </div>
-        <div className="reporte-tile-head-text">
-          <div className="reporte-tile-title-row">
-            <h2 className="reporte-tile-title">{titulo}</h2>
-            {motorLabel ? (
-              <span className={`reporte-tile-badge reporte-tile-badge--${motor}`}>{motorLabel}</span>
-            ) : null}
-          </div>
-          <p className="reporte-tile-meta">{meta}</p>
-        </div>
+    <article
+      className={`reporte-tile reporte-tile--${accent}${deshabilitado ? ' reporte-tile--disabled' : ''}`}
+      title={descripcion}
+    >
+      <div className="reporte-tile-top">
+        <h2 className="reporte-tile-title">{titulo}</h2>
+        {motorLabel ? (
+          <span className={`reporte-tile-badge reporte-tile-badge--${motor}`}>{motorLabel}</span>
+        ) : null}
+        <span className="reporte-tile-meta">{meta}</span>
       </div>
 
-      <p className="reporte-tile-desc">{descripcion}</p>
-
-      {extra ? <div className="reporte-tile-extra">{extra}</div> : null}
-
-      <div className="reporte-tile-foot">
-        <a
-          className={`reporte-tile-btn reporte-tile-btn--main reporte-tile-btn--${accent}`}
-          href={verHref}
-          target={deshabilitado ? undefined : '_blank'}
-          rel={deshabilitado ? undefined : 'noopener noreferrer'}
-          aria-disabled={deshabilitado}
-          onClick={deshabilitado ? (e) => e.preventDefault() : undefined}
-        >
-          <ExternalLink size={13} aria-hidden />
-          {verLabel}
-        </a>
-        {descargarHref ? (
+      <div className="reporte-tile-body">
+        {extra ? <div className="reporte-tile-extra">{extra}</div> : null}
+        <div className="reporte-tile-foot">
           <a
-            className="reporte-tile-btn"
-            href={descargarHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={descargarLabel}
+            className={`reporte-tile-btn reporte-tile-btn--main reporte-tile-btn--${accent}`}
+            href={verHref}
+            target={deshabilitado ? undefined : '_blank'}
+            rel={deshabilitado ? undefined : 'noopener noreferrer'}
+            aria-disabled={deshabilitado}
+            onClick={deshabilitado ? (e) => e.preventDefault() : undefined}
           >
-            <Download size={13} aria-hidden />
-            {descargarLabel}
+            <ExternalLink size={11} aria-hidden />
+            {verLabel}
           </a>
-        ) : null}
-        <button
-          type="button"
-          className="reporte-tile-btn reporte-tile-btn--ghost"
-          title="Copiar URL"
-          onClick={() => onCopy(id, copyUrl)}
-        >
-          <Copy size={13} aria-hidden />
-          {copiado === id ? 'OK' : 'URL'}
-        </button>
+          {descargarHref ? (
+            <a
+              className="reporte-tile-btn"
+              href={descargarHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={descargarLabel}
+            >
+              <Download size={11} aria-hidden />
+              {descargarLabel}
+            </a>
+          ) : null}
+          <button
+            type="button"
+            className="reporte-tile-btn reporte-tile-btn--ghost"
+            title="Copiar URL"
+            onClick={() => onCopy(id, copyUrl)}
+          >
+            <Copy size={11} aria-hidden />
+            {copiado === id ? 'OK' : 'URL'}
+          </button>
+        </div>
       </div>
     </article>
   )
