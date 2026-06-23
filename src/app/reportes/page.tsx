@@ -126,31 +126,80 @@ export default function ReportesPage() {
 
   const q = busqueda.trim().toLowerCase()
   const entradasFiltradas = useMemo(() => {
-    const base = !q
-      ? REPORTE_ENTRADAS
-      : REPORTE_ENTRADAS.filter((item) => {
-          const cat = REPORTE_CATEGORIAS.find((c) => c.id === item.categoriaId)
-          const blob = [
-            item.titulo,
-            item.descripcion,
-            cat?.titulo ?? '',
-            ...item.keywords,
-          ]
-            .join(' ')
-            .toLowerCase()
-          return blob.includes(q)
-        })
-
-    const ordenCategoria = new Map(
-      REPORTE_CATEGORIAS.map((c) => [c.id, c.orden] as const)
-    )
-    return [...base].sort(
-      (a, b) =>
-        (ordenCategoria.get(a.categoriaId) ?? 99) -
-          (ordenCategoria.get(b.categoriaId) ?? 99) ||
-        a.titulo.localeCompare(b.titulo, 'es')
-    )
+    if (!q) return REPORTE_ENTRADAS
+    return REPORTE_ENTRADAS.filter((item) => {
+      const cat = REPORTE_CATEGORIAS.find((c) => c.id === item.categoriaId)
+      const blob = [
+        item.titulo,
+        item.descripcion,
+        cat?.titulo ?? '',
+        ...item.keywords,
+      ]
+        .join(' ')
+        .toLowerCase()
+      return blob.includes(q)
+    })
   }, [q])
+
+  const categoriasVisibles = useMemo(() => {
+    const ids = new Set(entradasFiltradas.map((e) => e.categoriaId))
+    return REPORTE_CATEGORIAS.filter((c) => ids.has(c.id)).sort(
+      (a, b) => a.orden - b.orden
+    )
+  }, [entradasFiltradas])
+
+  const renderTile = (entry: ReporteCatalogEntry) => {
+    const params = getParams(entry)
+    const urls = buildUrls(entry, params, origin)
+    const mostrarCiclo = Boolean(entry.usaCiclo)
+    const cicloLabel = entry.usaCiclo === 'inscripcion' ? 'Ciclo inscripción' : 'Ciclo'
+
+    return (
+      <ReporteTile
+        key={entry.id}
+        id={entry.id}
+        titulo={entry.titulo}
+        meta={metaReporte(entry, params)}
+        descripcion={entry.descripcion}
+        accent={entry.accent}
+        motor={entry.motor}
+        icon={null}
+        verHref={urls.ver}
+        verLabel={urls.verLabel}
+        descargarHref={urls.disponible ? urls.pdf : undefined}
+        descargarLabel={urls.pdfLabel}
+        copyUrl={urls.copy}
+        copiado={copiado}
+        onCopy={copiarUrl}
+        deshabilitado={!urls.disponible}
+        extra={
+          entry.requiereNivel || mostrarCiclo ? (
+            <ReporteParametros
+              nivel={params.nivel}
+              onNivelChange={(n) => setParam(entry.id, { nivel: n })}
+              mostrarNivel={entry.requiereNivel}
+              ciclo={params.ciclo}
+              onCicloChange={(c) => setParam(entry.id, { ciclo: c })}
+              mostrarCiclo={mostrarCiclo}
+              cicloLabel={cicloLabel}
+              ciclosOpciones={ciclosOpciones}
+            />
+          ) : entry.usaCiclo ? (
+            <ReporteParametros
+              nivel={params.nivel}
+              onNivelChange={() => {}}
+              mostrarNivel={false}
+              ciclo={params.ciclo}
+              onCicloChange={(c) => setParam(entry.id, { ciclo: c })}
+              mostrarCiclo
+              cicloLabel={cicloLabel}
+              ciclosOpciones={ciclosOpciones}
+            />
+          ) : null
+        }
+      />
+    )
+  }
 
   return (
     <ProtectedRoute>
@@ -194,59 +243,23 @@ export default function ReportesPage() {
           {entradasFiltradas.length === 0 ? (
             <p className="reportes-empty">No hay reportes que coincidan con la búsqueda.</p>
           ) : (
-            <div className="reportes-mosaic">
-              {entradasFiltradas.map((entry) => {
-                const params = getParams(entry)
-                const urls = buildUrls(entry, params, origin)
-                const mostrarCiclo = Boolean(entry.usaCiclo)
-                const cicloLabel =
-                  entry.usaCiclo === 'inscripcion' ? 'Ciclo inscripción' : 'Ciclo'
-                const categoria = REPORTE_CATEGORIAS.find((c) => c.id === entry.categoriaId)
-
+            <div className="reportes-categories">
+              {categoriasVisibles.map((cat) => {
+                const items = entradasFiltradas.filter((e) => e.categoriaId === cat.id)
+                if (!items.length) return null
                 return (
-                  <ReporteTile
-                    key={entry.id}
-                    id={entry.id}
-                    titulo={entry.titulo}
-                    meta={[categoria?.titulo, metaReporte(entry, params)].filter(Boolean).join(' · ')}
-                    descripcion={entry.descripcion}
-                    accent={entry.accent}
-                    motor={entry.motor}
-                    icon={null}
-                    verHref={urls.ver}
-                    verLabel={urls.verLabel}
-                    descargarHref={urls.disponible ? urls.pdf : undefined}
-                    descargarLabel={urls.pdfLabel}
-                    copyUrl={urls.copy}
-                    copiado={copiado}
-                    onCopy={copiarUrl}
-                    deshabilitado={!urls.disponible}
-                    extra={
-                      entry.requiereNivel || mostrarCiclo ? (
-                        <ReporteParametros
-                          nivel={params.nivel}
-                          onNivelChange={(n) => setParam(entry.id, { nivel: n })}
-                          mostrarNivel={entry.requiereNivel}
-                          ciclo={params.ciclo}
-                          onCicloChange={(c) => setParam(entry.id, { ciclo: c })}
-                          mostrarCiclo={mostrarCiclo}
-                          cicloLabel={cicloLabel}
-                          ciclosOpciones={ciclosOpciones}
-                        />
-                      ) : entry.usaCiclo ? (
-                        <ReporteParametros
-                          nivel={params.nivel}
-                          onNivelChange={() => {}}
-                          mostrarNivel={false}
-                          ciclo={params.ciclo}
-                          onCicloChange={(c) => setParam(entry.id, { ciclo: c })}
-                          mostrarCiclo
-                          cicloLabel={cicloLabel}
-                          ciclosOpciones={ciclosOpciones}
-                        />
-                      ) : null
-                    }
-                  />
+                  <section key={cat.id} className="reportes-section">
+                    <header className="reportes-section-head">
+                      <div className="reportes-section-head-text">
+                        <h2 className="reportes-section-title">{cat.titulo}</h2>
+                        {cat.subtitulo ? (
+                          <p className="reportes-section-sub">{cat.subtitulo}</p>
+                        ) : null}
+                      </div>
+                      <span className="reportes-section-count">{items.length}</span>
+                    </header>
+                    <div className="reportes-cat-grid">{items.map(renderTile)}</div>
+                  </section>
                 )
               })}
             </div>
