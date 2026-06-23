@@ -41,7 +41,10 @@ export async function GET(request: Request, context: RouteContext) {
       },
     })
   } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Error al generar reporte'
+    const raw = e instanceof Error ? e.message : 'Error al generar reporte'
+    const msg = raw.includes('502 Bad Gateway')
+      ? 'InsForge no respondió a tiempo (502). Intenta de nuevo en unos segundos o usa formato HTML.'
+      : raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || 'Error al generar reporte'
     console.error('GET /api/reportes/[slug]:', e)
     return NextResponse.json({ error: msg }, { status: 500 })
   }

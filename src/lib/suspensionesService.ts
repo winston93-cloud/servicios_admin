@@ -1,5 +1,11 @@
 import type { AppDatabaseClient } from '@/lib/dbTypes'
 import {
+  CHUNK_ALUMNO_ID_GENERAL,
+  CHUNK_ALUMNO_ID_PAGO,
+  PAGE_ALUMNO,
+  chunkArray,
+} from '@/lib/reportes/dbChunks'
+import {
   calcularAdeudosAlumno,
   cicloLargoDesdeValorCiclo,
   nivelesPorPlantel,
@@ -68,20 +74,22 @@ async function cargarPagosDetalleAlumnos(
     pago_fecha: string | null
   }> = []
 
-  let from = 0
-  while (true) {
-    const { data, error } = await supabase
-      .from('pago_detalle')
-      .select('alumno_id, pago_referencia, pago_fecha')
-      .in('alumno_id', alumnoIds)
-      .eq('pago_cancelado', 0)
-      .range(from, from + PAGOS_PAGE_SIZE - 1)
+  for (const slice of chunkArray(alumnoIds, CHUNK_ALUMNO_ID_PAGO)) {
+    let from = 0
+    while (true) {
+      const { data, error } = await supabase
+        .from('pago_detalle')
+        .select('alumno_id, pago_referencia, pago_fecha')
+        .in('alumno_id', slice)
+        .eq('pago_cancelado', 0)
+        .range(from, from + PAGOS_PAGE_SIZE - 1)
 
-    if (error) throw new Error(error.message)
-    const chunk = data ?? []
-    filas.push(...chunk)
-    if (chunk.length < PAGOS_PAGE_SIZE) break
-    from += PAGOS_PAGE_SIZE
+      if (error) throw new Error(error.message)
+      const chunk = data ?? []
+      filas.push(...chunk)
+      if (chunk.length < PAGOS_PAGE_SIZE) break
+      from += PAGOS_PAGE_SIZE
+    }
   }
 
   return filas
@@ -96,19 +104,40 @@ export async function generarListaDeudoresSuspension(
   const niveles = nivelesPorPlantel(plantel)
   const inscripcionBloques = bloqueInscripcionCiclo(cicloEscolar)
 
-  const { data: alumnos, error: errAlumnos } = await supabase
-    .from('alumno')
-    .select(
-      'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, mes'
-    )
-    .eq('alumno_ciclo_escolar', cicloEscolar)
-    .in('alumno_nivel', niveles)
-    .not('alumno_status', 'in', '(0,2)')
+  type AlumnoSuspRow = {
+    alumno_id: number
+    alumno_ref: string | null
+    alumno_nombre: string | null
+    alumno_app: string | null
+    alumno_apm: string | null
+    alumno_nivel: number
+    alumno_grado: number
+    alumno_grupo: number
+    mes: number | null
+  }
 
-  if (errAlumnos) throw new Error(errAlumnos.message)
+  const listaAlumnos: AlumnoSuspRow[] = []
+  let offset = 0
 
-  const listaAlumnos = alumnos ?? []
-  const ids = listaAlumnos.map((a) => a.alumno_id as number)
+  while (true) {
+    const { data, error: errAlumnos } = await supabase
+      .from('alumno')
+      .select(
+        'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, mes'
+      )
+      .eq('alumno_ciclo_escolar', cicloEscolar)
+      .in('alumno_nivel', niveles)
+      .not('alumno_status', 'in', '(0,2)')
+      .range(offset, offset + PAGE_ALUMNO - 1)
+
+    if (errAlumnos) throw new Error(errAlumnos.message)
+    const chunk = (data ?? []) as AlumnoSuspRow[]
+    listaAlumnos.push(...chunk)
+    if (chunk.length < PAGE_ALUMNO) break
+    offset += PAGE_ALUMNO
+  }
+
+  const ids = listaAlumnos.map((a) => a.alumno_id)
   if (!ids.length) {
     return {
       cicloEscolar,
@@ -121,15 +150,20 @@ export async function generarListaDeudoresSuspension(
     }
   }
 
-  const { data: becas100 } = await supabase
-    .from('alumno_beca')
-    .select('alumno_id')
-    .eq('beca_ciclo_escolar', cicloEscolar)
-    .eq('beca_estatus', 1)
-    .eq('beca_porcentaje', 100)
-    .in('alumno_id', ids)
+  const becados100 = new Set<number>()
+  for (const slice of chunkArray(ids, CHUNK_ALUMNO_ID_GENERAL)) {
+    const { data: becas100 } = await supabase
+      .from('alumno_beca')
+      .select('alumno_id')
+      .eq('beca_ciclo_escolar', cicloEscolar)
+      .eq('beca_estatus', 1)
+      .eq('beca_porcentaje', 100)
+      .in('alumno_id', slice)
 
-  const becados100 = new Set((becas100 ?? []).map((b) => b.alumno_id as number))
+    for (const b of becas100 ?? []) {
+      becados100.add(b.alumno_id as number)
+    }
+  }
 
   const pagos = await cargarPagosDetalleAlumnos(supabase, ids)
 
@@ -234,23 +268,25 @@ async function cargarProrrogasVigentes(
   const mapa = new Map<number, string>()
   const hoy = new Date().toISOString().slice(0, 10)
 
-  const { data, error } = await supabase
-    .from('pago_prorroga')
-    .select('alumno_id, prorroga_fecha')
-    .in('alumno_id', alumnoIds)
-    .gte('prorroga_fecha', hoy)
-    .eq('correccion', 0)
-    .order('prorroga_fecha', { ascending: false })
+  for (const slice of chunkArray(alumnoIds, CHUNK_ALUMNO_ID_GENERAL)) {
+    const { data, error } = await supabase
+      .from('pago_prorroga')
+      .select('alumno_id, prorroga_fecha')
+      .in('alumno_id', slice)
+      .gte('prorroga_fecha', hoy)
+      .eq('correccion', 0)
+      .order('prorroga_fecha', { ascending: false })
 
-  if (error) {
-    console.warn('pago_prorroga no disponible:', error.message)
-    return mapa
-  }
+    if (error) {
+      console.warn('pago_prorroga no disponible:', error.message)
+      continue
+    }
 
-  for (const row of data ?? []) {
-    const id = row.alumno_id as number
-    if (!mapa.has(id) && row.prorroga_fecha) {
-      mapa.set(id, String(row.prorroga_fecha))
+    for (const row of data ?? []) {
+      const id = row.alumno_id as number
+      if (!mapa.has(id) && row.prorroga_fecha) {
+        mapa.set(id, String(row.prorroga_fecha))
+      }
     }
   }
   return mapa
@@ -263,21 +299,23 @@ async function cargarEmailsPadres(
   const mapa = new Map<number, Set<string>>()
   for (const id of alumnoIds) mapa.set(id, new Set())
 
-  const { data, error } = await supabase
-    .from('alumno_familiar')
-    .select('alumno_id, familiar_email')
-    .in('alumno_id', alumnoIds)
-    .in('tutor_id', [1, 2])
-    .eq('familiar_recibir_email', 1)
+  for (const slice of chunkArray(alumnoIds, CHUNK_ALUMNO_ID_GENERAL)) {
+    const { data, error } = await supabase
+      .from('alumno_familiar')
+      .select('alumno_id, familiar_email')
+      .in('alumno_id', slice)
+      .in('tutor_id', [1, 2])
+      .eq('familiar_recibir_email', 1)
 
-  if (error) return new Map()
+    if (error) continue
 
-  for (const row of data ?? []) {
-    const id = row.alumno_id as number
-    const e = String(row.familiar_email ?? '')
-      .trim()
-      .toLowerCase()
-    if (e.includes('@')) mapa.get(id)?.add(e)
+    for (const row of data ?? []) {
+      const id = row.alumno_id as number
+      const e = String(row.familiar_email ?? '')
+        .trim()
+        .toLowerCase()
+      if (e.includes('@')) mapa.get(id)?.add(e)
+    }
   }
 
   const out = new Map<number, string[]>()

@@ -2,6 +2,8 @@ import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { parsearReferenciaPago } from '@/lib/pagoReferenciaColegiatura'
+import { PAGE_ALUMNO } from './dbChunks'
+import { fetchPagosPorAlumnos } from './fetchDb'
 import { etiquetaCicloReporte } from './renderDocument'
 
 type Celda = { nivel: number; grado: number; total: number }
@@ -25,17 +27,30 @@ async function contarAlumnos(
   excluirStatus = true
 ): Promise<Map<string, number>> {
   const db = createDbAdmin()
-  let q = db
-    .from('alumno')
-    .select('alumno_nivel, alumno_grado')
-    .eq('alumno_ciclo_escolar', ciclo)
-    .eq('alumno_nuevo_ingreso', nuevoIngreso)
+  const filas: { alumno_nivel: number; alumno_grado: number }[] = []
+  let offset = 0
 
-  if (excluirStatus) q = q.not('alumno_status', 'in', '(0,2)')
+  while (true) {
+    let q = db
+      .from('alumno')
+      .select('alumno_nivel, alumno_grado')
+      .eq('alumno_ciclo_escolar', ciclo)
+      .eq('alumno_nuevo_ingreso', nuevoIngreso)
 
-  const { data, error } = await q
-  if (error) throw new Error(error.message)
-  return mapaDesdeFilas(data ?? [])
+    if (excluirStatus) q = q.not('alumno_status', 'in', '(0,2)')
+
+    const { data, error } = await q.range(offset, offset + PAGE_ALUMNO - 1)
+    if (error) throw new Error(error.message)
+    const chunk = data ?? []
+    filas.push(...chunk.map((r) => ({
+      alumno_nivel: Number(r.alumno_nivel),
+      alumno_grado: Number(r.alumno_grado),
+    })))
+    if (chunk.length < PAGE_ALUMNO) break
+    offset += PAGE_ALUMNO
+  }
+
+  return mapaDesdeFilas(filas)
 }
 
 async function contarReinscritosPagados(
@@ -44,38 +59,46 @@ async function contarReinscritosPagados(
   conceptos: string[]
 ): Promise<Map<string, number>> {
   const db = createDbAdmin()
-  const { data: alumnos, error } = await db
-    .from('alumno')
-    .select('alumno_id, alumno_nivel, alumno_grado')
-    .eq('alumno_ciclo_escolar', cicloAlumnos)
-    .eq('alumno_nuevo_ingreso', 0)
-    .not('alumno_status', 'in', '(0,2)')
+  const alumnos: { alumno_id: number; alumno_nivel: number; alumno_grado: number }[] = []
+  let offset = 0
 
-  if (error) throw new Error(error.message)
-  const ids = (alumnos ?? []).map((a) => Number(a.alumno_id))
-  if (!ids.length) return new Map()
+  while (true) {
+    const { data, error } = await db
+      .from('alumno')
+      .select('alumno_id, alumno_nivel, alumno_grado')
+      .eq('alumno_ciclo_escolar', cicloAlumnos)
+      .eq('alumno_nuevo_ingreso', 0)
+      .not('alumno_status', 'in', '(0,2)')
+      .range(offset, offset + PAGE_ALUMNO - 1)
 
-  const { data: pagos, error: pErr } = await db
-    .from('pago_detalle')
-    .select('alumno_id, pago_referencia, pago_cancelado')
-    .in('alumno_id', ids)
-    .eq('pago_cancelado', 0)
+    if (error) throw new Error(error.message)
+    const chunk = data ?? []
+    for (const a of chunk) {
+      alumnos.push({
+        alumno_id: Number(a.alumno_id),
+        alumno_nivel: Number(a.alumno_nivel),
+        alumno_grado: Number(a.alumno_grado),
+      })
+    }
+    if (chunk.length < PAGE_ALUMNO) break
+    offset += PAGE_ALUMNO
+  }
 
-  if (pErr) throw new Error(pErr.message)
+  if (!alumnos.length) return new Map()
+
+  const pagos = await fetchPagosPorAlumnos(alumnos.map((a) => a.alumno_id))
 
   const nivelGrado = new Map<number, { nivel: number; grado: number }>()
-  for (const a of alumnos ?? []) {
-    nivelGrado.set(Number(a.alumno_id), {
-      nivel: Number(a.alumno_nivel),
-      grado: Number(a.alumno_grado),
-    })
+  for (const a of alumnos) {
+    nivelGrado.set(a.alumno_id, { nivel: a.alumno_nivel, grado: a.alumno_grado })
   }
 
   const m = new Map<string, number>()
   const vistos = new Set<number>()
 
-  for (const p of pagos ?? []) {
-    const alumnoId = Number(p.alumno_id)
+  for (const p of pagos) {
+    if (p.pago_cancelado !== 0 && p.pago_cancelado != null) continue
+    const alumnoId = p.alumno_id
     if (vistos.has(alumnoId)) continue
     const parsed = parsearReferenciaPago(p.pago_referencia)
     if (!parsed) continue
@@ -93,36 +116,51 @@ async function contarReinscritosPagados(
 
 async function contarNuevoIngresoPagado(cicloInscripcion: number): Promise<Map<string, number>> {
   const db = createDbAdmin()
-  const { data: pagos, error } = await db
-    .from('pago_detalle')
-    .select('alumno_id, pago_referencia, pago_cancelado')
-    .eq('pago_cancelado', 0)
+  const alumnos: { alumno_id: number; alumno_nivel: number; alumno_grado: number }[] = []
+  let offset = 0
 
-  if (error) throw new Error(error.message)
+  while (true) {
+    const { data, error } = await db
+      .from('alumno')
+      .select('alumno_id, alumno_nivel, alumno_grado, alumno_ref')
+      .eq('alumno_ciclo_escolar', cicloInscripcion)
+      .eq('alumno_nuevo_ingreso', 1)
+      .eq('alumno_status', 1)
+      .range(offset, offset + PAGE_ALUMNO - 1)
 
-  const refs = new Set<string>()
-  for (const p of pagos ?? []) {
+    if (error) throw new Error(error.message)
+    const chunk = data ?? []
+    for (const a of chunk) {
+      alumnos.push({
+        alumno_id: Number(a.alumno_id),
+        alumno_nivel: Number(a.alumno_nivel),
+        alumno_grado: Number(a.alumno_grado),
+      })
+    }
+    if (chunk.length < PAGE_ALUMNO) break
+    offset += PAGE_ALUMNO
+  }
+
+  if (!alumnos.length) return new Map()
+
+  const pagos = await fetchPagosPorAlumnos(alumnos.map((a) => a.alumno_id))
+  const pagados = new Set<number>()
+
+  for (const p of pagos) {
+    if (p.pago_cancelado !== 0 && p.pago_cancelado != null) continue
     const parsed = parsearReferenciaPago(p.pago_referencia)
     if (!parsed) continue
     if (parsed.cicloEscolar !== cicloInscripcion || parsed.conceptoNo !== '13') continue
-    refs.add(parsed.alumnoRef)
+    pagados.add(p.alumno_id)
   }
 
-  if (!refs.size) return new Map()
-
-  const { data: alumnos, error: aErr } = await db
-    .from('alumno')
-    .select('alumno_nivel, alumno_grado, alumno_ref')
-    .eq('alumno_ciclo_escolar', cicloInscripcion)
-    .eq('alumno_nuevo_ingreso', 1)
-    .eq('alumno_status', 1)
-
-  if (aErr) throw new Error(aErr.message)
-
-  const filas = (alumnos ?? []).filter((a) =>
-    refs.has(String(a.alumno_ref ?? '').padStart(5, '0').slice(-5))
-  )
-  return mapaDesdeFilas(filas)
+  const m = new Map<string, number>()
+  for (const a of alumnos) {
+    if (!pagados.has(a.alumno_id)) continue
+    const k = key(a.alumno_nivel, a.alumno_grado)
+    m.set(k, (m.get(k) ?? 0) + 1)
+  }
+  return m
 }
 
 const NIVELES_GRADOS: Celda[] = [

@@ -1,6 +1,8 @@
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { construirNombreCompleto } from '@/lib/alumnoBusquedaServicios'
 
+import { CHUNK_ALUMNO_ID_PAGO } from './dbChunks'
+
 const PAGE = 500
 
 export type AlumnoReporteRow = {
@@ -121,24 +123,33 @@ export async function fetchPagosPorAlumnos(
   if (!alumnoIds.length) return []
   const db = createDbAdmin()
   const out: PagoReporteRow[] = []
-  const chunkSize = 120
+  const chunkSize = CHUNK_ALUMNO_ID_PAGO
 
   for (let i = 0; i < alumnoIds.length; i += chunkSize) {
     const ids = alumnoIds.slice(i, i + chunkSize)
-    const { data, error } = await db
-      .from('pago_detalle')
-      .select('alumno_id, pago_referencia, pago_fecha, pago_importe, pago_cancelado')
-      .in('alumno_id', ids)
+    let offset = 0
+    const pageSize = 1000
 
-    if (error) throw new Error(error.message)
-    for (const r of data ?? []) {
-      out.push({
-        alumno_id: Number(r.alumno_id),
-        pago_referencia: r.pago_referencia as string | null,
-        pago_fecha: r.pago_fecha as string | null,
-        pago_importe: r.pago_importe == null ? null : Number(r.pago_importe),
-        pago_cancelado: r.pago_cancelado == null ? null : Number(r.pago_cancelado),
-      })
+    while (true) {
+      const { data, error } = await db
+        .from('pago_detalle')
+        .select('alumno_id, pago_referencia, pago_fecha, pago_importe, pago_cancelado')
+        .in('alumno_id', ids)
+        .range(offset, offset + pageSize - 1)
+
+      if (error) throw new Error(error.message)
+      const chunk = data ?? []
+      for (const r of chunk) {
+        out.push({
+          alumno_id: Number(r.alumno_id),
+          pago_referencia: r.pago_referencia as string | null,
+          pago_fecha: r.pago_fecha as string | null,
+          pago_importe: r.pago_importe == null ? null : Number(r.pago_importe),
+          pago_cancelado: r.pago_cancelado == null ? null : Number(r.pago_cancelado),
+        })
+      }
+      if (chunk.length < pageSize) break
+      offset += pageSize
     }
   }
 

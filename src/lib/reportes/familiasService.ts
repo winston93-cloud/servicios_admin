@@ -3,40 +3,71 @@ import { construirNombreCompleto } from '@/lib/alumnoBusquedaServicios'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaGrupoEscolar } from '@/lib/grupoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
+import { CHUNK_ALUMNO_ID_GENERAL, PAGE_ALUMNO, chunkArray } from './dbChunks'
 import { etiquetaCicloReporte } from './renderDocument'
 
 export async function cargarFamiliasWinston(cicloEscolar: number, nivel?: number) {
   const db = createDbAdmin()
-  let q = db
-    .from('alumno')
-    .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_grado, alumno_grupo')
-    .eq('alumno_ciclo_escolar', cicloEscolar)
-    .not('alumno_status', 'in', '(0,2)')
-    .order('alumno_nivel')
-    .order('alumno_grado')
-    .order('alumno_grupo')
+  const alumnos: {
+    alumno_id: number
+    alumno_ref: string | null
+    alumno_app: string | null
+    alumno_apm: string | null
+    alumno_nombre: string | null
+    alumno_nivel: number
+    alumno_grado: number
+    alumno_grupo: number
+  }[] = []
+  let offset = 0
 
-  if (nivel != null) q = q.eq('alumno_nivel', nivel)
+  while (true) {
+    let q = db
+      .from('alumno')
+      .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_grado, alumno_grupo')
+      .eq('alumno_ciclo_escolar', cicloEscolar)
+      .not('alumno_status', 'in', '(0,2)')
+      .order('alumno_nivel')
+      .order('alumno_grado')
+      .order('alumno_grupo')
 
-  const { data, error } = await q
-  if (error) throw new Error(error.message)
+    if (nivel != null) q = q.eq('alumno_nivel', nivel)
 
-  const alumnos = data ?? []
-  const ids = alumnos.map((a) => Number(a.alumno_id))
+    const { data, error } = await q.range(offset, offset + PAGE_ALUMNO - 1)
+    if (error) throw new Error(error.message)
+    const chunk = data ?? []
+    for (const r of chunk) {
+      alumnos.push({
+        alumno_id: Number(r.alumno_id),
+        alumno_ref: r.alumno_ref as string | null,
+        alumno_app: r.alumno_app as string | null,
+        alumno_apm: r.alumno_apm as string | null,
+        alumno_nombre: r.alumno_nombre as string | null,
+        alumno_nivel: Number(r.alumno_nivel),
+        alumno_grado: Number(r.alumno_grado),
+        alumno_grupo: Number(r.alumno_grupo),
+      })
+    }
+    if (chunk.length < PAGE_ALUMNO) break
+    offset += PAGE_ALUMNO
+  }
 
-  const { data: familiares } = await db
-    .from('alumno_familiar')
-    .select('alumno_id, familiar_cel, familiar_curp, tutor_id')
-    .in('alumno_id', ids)
-    .in('tutor_id', [1, 2])
-
+  const ids = alumnos.map((a) => a.alumno_id)
   const familiaPorAlumno = new Map<number, string>()
-  for (const f of familiares ?? []) {
-    const id = Number(f.alumno_id)
-    if (familiaPorAlumno.has(id)) continue
-    const cel = String(f.familiar_cel ?? '').trim()
-    const curp = String(f.familiar_curp ?? '').trim()
-    familiaPorAlumno.set(id, cel || curp || `SIN_DATOS_${id}`)
+
+  for (const slice of chunkArray(ids, CHUNK_ALUMNO_ID_GENERAL)) {
+    const { data: familiares } = await db
+      .from('alumno_familiar')
+      .select('alumno_id, familiar_cel, familiar_curp, tutor_id')
+      .in('alumno_id', slice)
+      .in('tutor_id', [1, 2])
+
+    for (const f of familiares ?? []) {
+      const id = Number(f.alumno_id)
+      if (familiaPorAlumno.has(id)) continue
+      const cel = String(f.familiar_cel ?? '').trim()
+      const curp = String(f.familiar_curp ?? '').trim()
+      familiaPorAlumno.set(id, cel || curp || `SIN_DATOS_${id}`)
+    }
   }
 
   const alumnosPorFamilia = new Map<string, typeof alumnos>()
@@ -54,7 +85,11 @@ export async function cargarFamiliasWinston(cicloEscolar: number, nivel?: number
       .filter((h) => Number(h.alumno_id) !== alumnoId)
       .map((h) => {
         const niv = Number(h.alumno_nivel)
-        const nom = construirNombreCompleto(h.alumno_nombre, h.alumno_app, h.alumno_apm)
+        const nom = construirNombreCompleto(
+          h.alumno_nombre ?? '',
+          h.alumno_app ?? '',
+          h.alumno_apm ?? ''
+        )
         const gr = etiquetaGradoEscolar(niv, Number(h.alumno_grado))
         const gp = etiquetaGrupoEscolar(Number(h.alumno_grupo))
         return `${nom} (${gr} ${gp})`
@@ -68,7 +103,11 @@ export async function cargarFamiliasWinston(cicloEscolar: number, nivel?: number
       grado: etiquetaGradoEscolar(niv, Number(r.alumno_grado)),
       grupo: etiquetaGrupoEscolar(Number(r.alumno_grupo)),
       noCtrl: String(r.alumno_ref ?? '').trim(),
-      nombre: construirNombreCompleto(r.alumno_nombre, r.alumno_app, r.alumno_apm),
+      nombre: construirNombreCompleto(
+        r.alumno_nombre ?? '',
+        r.alumno_app ?? '',
+        r.alumno_apm ?? ''
+      ),
       hermanos: hermanos || '-',
     }
   })
