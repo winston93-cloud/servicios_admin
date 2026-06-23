@@ -16,7 +16,11 @@ export interface PortalLoginCredentials {
 
 const STORAGE_KEY = 'portal_auth_session'
 
-export const PORTALES_ALUMNO = ['/portal-pagos', '/portal-inscripciones'] as const
+export const PORTALES_ALUMNO = [
+  '/portal-desayunos',
+  '/portal-pagos',
+  '/portal-inscripciones',
+] as const
 
 /**
  * Acceso unificado: personal por usuario_username; alumno por alumno_ref + clave.
