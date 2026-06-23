@@ -20,8 +20,11 @@ import { cuotaPadresATabla, cargarCuotaPadres } from '@/lib/reportes/cuotaPadres
 import { cargarFamiliasWinston, familiasATabla } from '@/lib/reportes/familiasService'
 import {
   cargarMatrizInscripciones,
-  matrizInscripcionesATabla,
 } from '@/lib/reportes/inscripcionesAdminService'
+import {
+  construirHtmlReporteInscripciones,
+  generarPdfReporteInscripciones,
+} from '@/lib/reportes/inscripcionesAdminDocument'
 import {
   cargarNuevoIngreso,
   nuevoIngresoATabla,
@@ -115,6 +118,22 @@ function respuestaTabla(opts: {
       tablas: [{ tabla: { headers: opts.headers, rows: opts.rows } }],
     }),
   }
+}
+
+function respuestaInscripcionesAdmin(
+  slug: string,
+  modo: 'dif1' | 'dif2' | 'general',
+  searchParams: URLSearchParams
+): Promise<ReporteHandlerResult> {
+  const cicloIns = cicloInscripcionParam(searchParams)
+  const format = formatoParam(searchParams)
+  return cargarMatrizInscripciones(cicloIns, modo).then((resumen) => {
+    const filename = `${slug}-ciclo-${cicloIns}.pdf`
+    if (format === 'pdf') {
+      return { filename, pdf: generarPdfReporteInscripciones(resumen) }
+    }
+    return { filename, html: construirHtmlReporteInscripciones(resumen) }
+  })
 }
 
 function handlerNuevoIngreso(modo: 'completo' | 'deben', ambito: 'actual' | 'siguiente'): ReporteHandler {
@@ -309,21 +328,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
     })
   },
 
-  inscripciones: async (searchParams) => {
-    const cicloIns = cicloInscripcionParam(searchParams)
-    const format = formatoParam(searchParams)
-    const resumen = await cargarMatrizInscripciones(cicloIns, 'general')
-    const tabla = matrizInscripcionesATabla(resumen)
-    return respuestaTabla({
-      titulo: resumen.titulo,
-      subtitulo: `Inscripción ${resumen.cicloLabel}`,
-      meta: `${resumen.filas.length} fila(s)`,
-      ...tabla,
-      slug: 'inscripciones',
-      ciclo: cicloIns,
-      format,
-    })
-  },
+  inscripciones: (searchParams) => respuestaInscripcionesAdmin('inscripciones', 'general', searchParams),
 
   'cuota-fecha': async (searchParams) => {
     const ciclo = cicloEscolarParam(searchParams)
@@ -406,35 +411,11 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
     })
   },
 
-  'insc-admin-dif1': async (searchParams) => {
-    const cicloIns = cicloInscripcionParam(searchParams)
-    const format = formatoParam(searchParams)
-    const resumen = await cargarMatrizInscripciones(cicloIns, 'dif1')
-    const tabla = matrizInscripcionesATabla(resumen)
-    return respuestaTabla({
-      titulo: resumen.titulo,
-      subtitulo: `Inscripción ${resumen.cicloLabel}`,
-      ...tabla,
-      slug: 'insc-admin-dif1',
-      ciclo: cicloIns,
-      format,
-    })
-  },
+  'insc-admin-dif1': (searchParams) =>
+    respuestaInscripcionesAdmin('insc-admin-dif1', 'dif1', searchParams),
 
-  'insc-admin-dif2': async (searchParams) => {
-    const cicloIns = cicloInscripcionParam(searchParams)
-    const format = formatoParam(searchParams)
-    const resumen = await cargarMatrizInscripciones(cicloIns, 'dif2')
-    const tabla = matrizInscripcionesATabla(resumen)
-    return respuestaTabla({
-      titulo: resumen.titulo,
-      subtitulo: `Inscripción ${resumen.cicloLabel}`,
-      ...tabla,
-      slug: 'insc-admin-dif2',
-      ciclo: cicloIns,
-      format,
-    })
-  },
+  'insc-admin-dif2': (searchParams) =>
+    respuestaInscripcionesAdmin('insc-admin-dif2', 'dif2', searchParams),
 
   ems: async (searchParams) => {
     const cicloIns = cicloInscripcionParam(searchParams)

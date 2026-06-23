@@ -1,15 +1,84 @@
 import { createDbAdmin } from '@/lib/insforgeAdmin'
-import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { parsearReferenciaPago } from '@/lib/pagoReferenciaColegiatura'
 import { PAGE_ALUMNO } from './dbChunks'
 import { fetchPagosPorAlumnos } from './fetchDb'
 import { etiquetaCicloReporte } from './renderDocument'
 
-type Celda = { nivel: number; grado: number; total: number }
+type Celda = { nivel: number; grado: number }
 
 function key(nivel: number, grado: number) {
   return `${nivel}:${grado}`
+}
+
+/** Etiqueta legacy del reporte PHP (una sola columna NIVEL). */
+export function etiquetaNivelInscripciones(nivel: number, grado: number): string {
+  if (nivel === 1) return grado === 1 ? 'Maternal A' : 'Maternal B'
+  if (nivel === 2) return `Kinder-${grado}`
+  if (nivel === 3) return `${grado}° Primaria`
+  if (nivel === 4) return `${grado}° Secundaria`
+  return etiquetaGradoEscolar(nivel, grado)
+}
+
+export type FilaInscripcionesAdmin = {
+  nivelLabel: string
+  riEst: number
+  riPag: number
+  niEst: number
+  niPag: number
+  esTotales?: boolean
+}
+
+export type ResumenInscripcionesAdmin = {
+  titulo: string
+  cicloInscripcion: number
+  cicloLabel: string
+  modo: 'dif1' | 'dif2' | 'general'
+  filas: FilaInscripcionesAdmin[]
+}
+
+function sumarFilas(filas: FilaInscripcionesAdmin[]): FilaInscripcionesAdmin {
+  return filas.reduce(
+    (acc, f) => ({
+      nivelLabel: 'TOTALES',
+      riEst: acc.riEst + f.riEst,
+      riPag: acc.riPag + f.riPag,
+      niEst: acc.niEst + f.niEst,
+      niPag: acc.niPag + f.niPag,
+      esTotales: true,
+    }),
+    { nivelLabel: 'TOTALES', riEst: 0, riPag: 0, niEst: 0, niPag: 0, esTotales: true }
+  )
+}
+
+function construirFilasConTotales(
+  celdas: { nivel: number; grado: number; riEst: number; riPag: number; niEst: number; niPag: number }[]
+): FilaInscripcionesAdmin[] {
+  const bloques: { nivel: number; grado: number }[][] = [
+    NIVELES_GRADOS.filter((c) => c.nivel <= 2),
+    NIVELES_GRADOS.filter((c) => c.nivel === 3),
+    NIVELES_GRADOS.filter((c) => c.nivel === 4),
+  ]
+
+  const mapa = new Map(celdas.map((c) => [key(c.nivel, c.grado), c]))
+  const out: FilaInscripcionesAdmin[] = []
+
+  for (const bloque of bloques) {
+    const filasBloque: FilaInscripcionesAdmin[] = []
+    for (const { nivel, grado } of bloque) {
+      const d = mapa.get(key(nivel, grado))
+      filasBloque.push({
+        nivelLabel: etiquetaNivelInscripciones(nivel, grado),
+        riEst: d?.riEst ?? 0,
+        riPag: d?.riPag ?? 0,
+        niEst: d?.niEst ?? 0,
+        niPag: d?.niPag ?? 0,
+      })
+    }
+    out.push(...filasBloque, sumarFilas(filasBloque))
+  }
+
+  return out
 }
 
 function mapaDesdeFilas(filas: { alumno_nivel: number; alumno_grado: number }[]): Map<string, number> {
@@ -164,20 +233,20 @@ async function contarNuevoIngresoPagado(cicloInscripcion: number): Promise<Map<s
 }
 
 const NIVELES_GRADOS: Celda[] = [
-  { nivel: 1, grado: 1, total: 0 },
-  { nivel: 1, grado: 2, total: 0 },
-  { nivel: 2, grado: 1, total: 0 },
-  { nivel: 2, grado: 2, total: 0 },
-  { nivel: 2, grado: 3, total: 0 },
-  { nivel: 3, grado: 1, total: 0 },
-  { nivel: 3, grado: 2, total: 0 },
-  { nivel: 3, grado: 3, total: 0 },
-  { nivel: 3, grado: 4, total: 0 },
-  { nivel: 3, grado: 5, total: 0 },
-  { nivel: 3, grado: 6, total: 0 },
-  { nivel: 4, grado: 1, total: 0 },
-  { nivel: 4, grado: 2, total: 0 },
-  { nivel: 4, grado: 3, total: 0 },
+  { nivel: 1, grado: 1 },
+  { nivel: 1, grado: 2 },
+  { nivel: 2, grado: 1 },
+  { nivel: 2, grado: 2 },
+  { nivel: 2, grado: 3 },
+  { nivel: 3, grado: 1 },
+  { nivel: 3, grado: 2 },
+  { nivel: 3, grado: 3 },
+  { nivel: 3, grado: 4 },
+  { nivel: 3, grado: 5 },
+  { nivel: 3, grado: 6 },
+  { nivel: 4, grado: 1 },
+  { nivel: 4, grado: 2 },
+  { nivel: 4, grado: 3 },
 ]
 
 export async function cargarMatrizInscripciones(cicloInscripcion: number, modo: 'dif1' | 'dif2' | 'general') {
@@ -192,66 +261,59 @@ export async function cargarMatrizInscripciones(cicloInscripcion: number, modo: 
     contarNuevoIngresoPagado(cicloInscripcion),
   ])
 
-  const filas = NIVELES_GRADOS.map(({ nivel, grado }) => {
+  const celdas = NIVELES_GRADOS.map(({ nivel, grado }) => {
     const k = key(nivel, grado)
-    const est = riEst.get(k) ?? 0
-    const pag = riPag.get(k) ?? 0
-    const niE = niEst.get(k) ?? 0
-    const niP = niPag.get(k) ?? 0
     return {
-      nivel: etiquetaNivelEscolar(nivel),
-      grado: etiquetaGradoEscolar(nivel, grado),
-      reinscritosEst: String(est),
-      reinscritosPag: String(pag),
-      reinscritosDif: String(est - pag),
-      nuevoIngEst: String(niE),
-      nuevoIngPag: String(niP),
-      nuevoIngDif: String(niE - niP),
+      nivel,
+      grado,
+      riEst: riEst.get(k) ?? 0,
+      riPag: riPag.get(k) ?? 0,
+      niEst: niEst.get(k) ?? 0,
+      niPag: niPag.get(k) ?? 0,
     }
-  }).filter(
-    (f) =>
-      Number(f.reinscritosEst) > 0 ||
-      Number(f.nuevoIngEst) > 0 ||
-      Number(f.reinscritosPag) > 0 ||
-      Number(f.nuevoIngPag) > 0
-  )
+  })
 
-  const titulo =
-    modo === 'dif1'
-      ? 'Inscripciones admin — 1er diferido'
-      : modo === 'dif2'
-        ? 'Inscripciones admin — 2do diferido'
-        : 'Inscripciones — resumen por nivel y grado'
+  const titulo = 'Inscripciones Nuevo Ingreso'
 
   return {
     titulo,
     cicloInscripcion,
     cicloLabel: etiquetaCicloReporte(cicloInscripcion),
-    filas,
+    modo,
+    filas: construirFilasConTotales(celdas),
   }
 }
 
-export function matrizInscripcionesATabla(resumen: Awaited<ReturnType<typeof cargarMatrizInscripciones>>) {
+const HEADERS_LEGACY = [
+  'NIVEL',
+  'RI ESTIMADOS',
+  'RI INSCRITOS',
+  'RI DIFERENCIA',
+  'NI ESTIMADOS',
+  'NI INSCRITOS',
+  'NI DIFERENCIA',
+  'TOTAL ESTIMADO',
+  'TOTAL INSCRITOS',
+] as const
+
+/** @deprecated Usar construirHtmlReporteInscripciones / generarPdfReporteInscripciones */
+export function matrizInscripcionesATabla(resumen: ResumenInscripcionesAdmin) {
   return {
-    headers: [
-      'Nivel',
-      'Grado',
-      'Reinsc. est.',
-      'Reinsc. pag.',
-      'Reinsc. dif.',
-      'N. ing. est.',
-      'N. ing. pag.',
-      'N. ing. dif.',
-    ],
-    rows: resumen.filas.map((f) => [
-      f.nivel,
-      f.grado,
-      f.reinscritosEst,
-      f.reinscritosPag,
-      f.reinscritosDif,
-      f.nuevoIngEst,
-      f.nuevoIngPag,
-      f.nuevoIngDif,
-    ]),
+    headers: [...HEADERS_LEGACY],
+    rows: resumen.filas.map((f) => {
+      const riDif = f.riEst - f.riPag
+      const niDif = f.niEst - f.niPag
+      return [
+        f.nivelLabel,
+        String(f.riEst),
+        String(f.riPag),
+        String(riDif),
+        String(f.niEst),
+        String(f.niPag),
+        String(niDif),
+        String(f.riEst + f.niEst),
+        String(f.riPag + f.niPag),
+      ]
+    }),
   }
 }
