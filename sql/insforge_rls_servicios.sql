@@ -63,7 +63,6 @@ DECLARE
     'concepto_beca',
     'concepto_boucher',
     'concepto_interno',
-    'concepto_desayunos',
     'alumno',
     'alumno_detalles',
     'alumno_familiar',
@@ -73,7 +72,6 @@ DECLARE
     'pago_interno',
     'pago_interno_precio',
     'personal',
-    'pago_desayunos',
     'usuario'
   ];
   pol text;
@@ -110,7 +108,6 @@ WHERE n.nspname = 'public'
     'concepto_beca',
     'concepto_boucher',
     'concepto_interno',
-    'concepto_desayunos',
     'alumno',
     'alumno_detalles',
     'alumno_familiar',
@@ -125,7 +122,6 @@ WHERE n.nspname = 'public'
     'pago_interno',
     'pago_prorroga',
     'personal',
-    'pago_desayunos',
     'usuario',
     'banorte_pago_pendiente',
     'banorte_payw_intento',
