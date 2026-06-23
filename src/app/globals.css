@@ -17565,42 +17565,98 @@ html[data-theme='light'] .portal-doc-modal-cerrar:hover {
 
 .reportes-categories {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
   width: 100%;
 }
 
 .reportes-section {
-  width: 100%;
+  flex: 1 1 220px;
+  min-width: 200px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
   margin-bottom: 0;
-  padding: 12px 14px 10px;
-  border-radius: 14px;
+  padding: 10px 12px 10px;
+  border-radius: 12px;
   border: 1px solid var(--border-light);
+  border-top-width: 3px;
   background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.035) 0%,
-    rgba(255, 255, 255, 0.015) 55%,
-    rgba(0, 0, 0, 0.08) 100%
+    165deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.012) 100%
   );
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+}
+
+.reportes-section--wide {
+  flex: 2 1 440px;
+}
+
+.reportes-section--curp {
+  border-top-color: #38bdf8;
+  background: linear-gradient(165deg, rgba(56, 189, 248, 0.1) 0%, rgba(0, 0, 0, 0.06) 100%);
+}
+
+.reportes-section--listas {
+  border-top-color: #a78bfa;
+  background: linear-gradient(165deg, rgba(139, 92, 246, 0.1) 0%, rgba(0, 0, 0, 0.06) 100%);
+}
+
+.reportes-section--nuevo-ingreso-actual {
+  border-top-color: #34d399;
+  background: linear-gradient(165deg, rgba(16, 185, 129, 0.1) 0%, rgba(0, 0, 0, 0.06) 100%);
+}
+
+.reportes-section--nuevo-ingreso-siguiente {
+  border-top-color: #fbbf24;
+  background: linear-gradient(165deg, rgba(245, 158, 11, 0.1) 0%, rgba(0, 0, 0, 0.06) 100%);
+}
+
+.reportes-section--reinscritos {
+  border-top-color: #818cf8;
+  background: linear-gradient(165deg, rgba(99, 102, 241, 0.1) 0%, rgba(0, 0, 0, 0.06) 100%);
+}
+
+.reportes-section--becados {
+  border-top-color: #fb7185;
+  background: linear-gradient(165deg, rgba(244, 63, 94, 0.1) 0%, rgba(0, 0, 0, 0.06) 100%);
+}
+
+.reportes-section--bajas {
+  border-top-color: #f97316;
+  background: linear-gradient(165deg, rgba(249, 115, 22, 0.1) 0%, rgba(0, 0, 0, 0.06) 100%);
+}
+
+.reportes-section--otros {
+  border-top-color: #94a3b8;
+  background: linear-gradient(165deg, rgba(148, 163, 184, 0.12) 0%, rgba(0, 0, 0, 0.06) 100%);
 }
 
 .reportes-cat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   width: 100%;
+  flex: 1;
   align-items: stretch;
+}
+
+.reportes-section--wide .reportes-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 }
 
 .reportes-section-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   margin-bottom: 8px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .reportes-section-head-text {
@@ -17609,11 +17665,11 @@ html[data-theme='light'] .portal-doc-modal-cerrar:hover {
 
 .reportes-section-title {
   margin: 0;
-  font-size: 0.9375rem;
+  font-size: 0.8125rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--text-primary);
-  line-height: 1.1;
+  line-height: 1.15;
 }
 
 .reportes-section-sub {
@@ -17625,15 +17681,15 @@ html[data-theme='light'] .portal-doc-modal-cerrar:hover {
 
 .reportes-section-count {
   flex-shrink: 0;
-  min-width: 2rem;
-  padding: 6px 11px;
+  min-width: 1.75rem;
+  padding: 4px 8px;
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 800;
   text-align: center;
   color: var(--text-primary);
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .reportes-grid {
@@ -17907,6 +17963,21 @@ html[data-theme='light'] .portal-doc-modal-cerrar:hover {
   text-align: left;
 }
 
+@media (max-width: 900px) {
+  .reportes-categories {
+    flex-direction: column;
+  }
+
+  .reportes-section,
+  .reportes-section--wide {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+
+  .reportes-section--wide .reportes-cat-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
 @media (max-width: 640px) {
   .reportes-toolbar {
@@ -17916,10 +17987,6 @@ html[data-theme='light'] .portal-doc-modal-cerrar:hover {
 
   .reportes-search {
     max-width: none;
-  }
-
-  .reportes-cat-grid {
-    grid-template-columns: 1fr;
   }
 }
 

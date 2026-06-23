@@ -248,7 +248,13 @@ export default function ReportesPage() {
                 const items = entradasFiltradas.filter((e) => e.categoriaId === cat.id)
                 if (!items.length) return null
                 return (
-                  <section key={cat.id} className="reportes-section">
+                  <section
+                    key={cat.id}
+                    className={`reportes-section reportes-section--${cat.id}${
+                      items.length > 3 ? ' reportes-section--wide' : ''
+                    }`}
+                    data-cat={cat.id}
+                  >
                     <header className="reportes-section-head">
                       <div className="reportes-section-head-text">
                         <h2 className="reportes-section-title">{cat.titulo}</h2>
