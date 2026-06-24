@@ -14,7 +14,7 @@ No se usa un proyecto InsForge aparte: mismo backend que pagos y alumnos.
 ## Fase 2 — Datos e InsForge
 
 - Tablas de auditoría: `cfdi_timbrado`, `cfdi_cancelacion`, `cfdi_nota_credito` (migración SQL)
-- Migrar **`datos_facturacion`** (papás) de Supabase → InsForge Winston Servicios
+- Crear **`datos_facturacion`** en InsForge Winston Servicios y migrar desde **MySQL `winston_general`** (phpMyAdmin en winston93; hoy la captura de papás ya está en Vercel pero persiste en esa tabla legacy)
 - Variables PAC en Vercel: `FACTUROPORTI_*`, CSD por emisor (secrets, no código)
 - Bucket Storage `cfdi` para XML/PDF (opcional en esta fase)
 
