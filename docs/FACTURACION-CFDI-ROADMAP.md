@@ -17,9 +17,8 @@ No se usa un proyecto InsForge aparte: mismo backend que pagos y alumnos.
 - [x] RLS servidor-only (proxy `/api/database`)
 - [x] Portal papás `/portal-facturacion` → InsForge (reemplaza `pagos/guardar_alumno.php`)
 - [x] `datos_facturacion` en manifiesto de migración MySQL → InsForge
-- [ ] Aplicar SQL en InsForge Winston Servicios:
-  `node scripts/apply-insforge-sql.mjs migrations/20260624130000_cfdi_fase2_schema.sql migrations/20260624130100_cfdi_rls_server_only.sql`
-- [ ] Migrar filas desde MySQL: `node scripts/migrate-datos-facturacion-mysql-to-insforge.mjs` (o panel Servicios → Migración → Datos fiscales)
+- [x] Aplicar SQL en InsForge Winston Servicios (`db import`)
+- [x] Migrar filas desde MySQL `winston_general` (625 registros en `datos_facturacion`)
 - [ ] Variables PAC en Vercel: `FACTUROPORTI_BEARER_*`, CSD por emisor (secrets, Fase 3)
 - [ ] Bucket Storage `cfdi` para XML/PDF (opcional hasta Fase 5)
 

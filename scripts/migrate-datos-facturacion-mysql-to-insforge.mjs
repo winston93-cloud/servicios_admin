@@ -35,23 +35,28 @@ function loadEnvLocal() {
 }
 
 function adaptarFila(row) {
+  const str = (v, max) => {
+    if (v === null || v === undefined) return ''
+    return String(v).trim().slice(0, max)
+  }
+  const req = (v, max) => str(v, max) || ' '
   return {
     id: Number(row.id),
-    moneda: String(row.moneda ?? 'MXN').trim().slice(0, 5) || 'MXN',
-    rfc: String(row.rfc ?? '').trim().toUpperCase().slice(0, 15),
-    razsocial: String(row.razsocial ?? '').trim().slice(0, 75),
-    regfiscal: String(row.regfiscal ?? '').trim().slice(0, 5),
-    usocfdi: String(row.usocfdi ?? '').trim().toUpperCase().slice(0, 5),
-    codpostal: String(row.codpostal ?? '').trim().slice(0, 5),
-    calle: String(row.calle ?? '').trim().slice(0, 35),
-    nexterior: String(row.nexterior ?? '').trim().slice(0, 8),
-    ninterior: String(row.ninterior ?? '').trim().slice(0, 10),
-    ncolonia: String(row.ncolonia ?? '').trim().slice(0, 50),
-    nmunicipio: String(row.nmunicipio ?? '').trim().slice(0, 35),
-    nentidad: String(row.nentidad ?? '').trim().slice(0, 45),
-    email: String(row.email ?? '').trim().slice(0, 45),
-    lada: String(row.lada ?? '').trim().slice(0, 15),
-    numero: String(row.numero ?? '').replace(/\s/g, '').slice(0, 15),
+    moneda: str(row.moneda, 5) || 'MXN',
+    rfc: req(row.rfc, 15).toUpperCase(),
+    razsocial: req(row.razsocial, 75),
+    regfiscal: req(row.regfiscal, 5),
+    usocfdi: req(row.usocfdi, 5).toUpperCase(),
+    codpostal: req(row.codpostal, 5),
+    calle: req(row.calle, 35),
+    nexterior: str(row.nexterior, 8) || ' ',
+    ninterior: str(row.ninterior, 10) || ' ',
+    ncolonia: req(row.ncolonia, 50),
+    nmunicipio: req(row.nmunicipio, 35),
+    nentidad: req(row.nentidad, 45),
+    email: req(row.email, 45),
+    lada: str(row.lada, 15) || ' ',
+    numero: str(row.numero, 15).replace(/\s/g, '') || ' ',
     alumno_ref: Number(row.alumno_ref),
   }
 }
