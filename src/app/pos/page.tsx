@@ -114,7 +114,7 @@ export default function Home() {
           <div className="pos-header-content">
             <div className="pos-logo">
               <Package />
-              Desayunos POS
+              Desayunos
             </div>
             <nav className="pos-nav">
               <a href="#" className="pos-nav-item active">Punto de venta</a>

@@ -1,0 +1,457 @@
+/**
+ * Paws & Paths — tema Desayunos POS (personal administrativo)
+ * Scoped bajo .pos-paws-theme para no afectar el resto del portal.
+ */
+
+.pos-paws-theme {
+  color-scheme: light;
+  font-family: var(--font-plus-jakarta), 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  min-height: 100vh;
+  background: #f9f9ff;
+  color: #151c27;
+
+  /* Tokens Paws & Paths */
+  --bg-primary: #f9f9ff;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-subtle: #f0f3ff;
+  --bg-accent: #855300;
+  --bg-accent-hover: #f59e0b;
+  --bg-accent-muted: #ffddb8;
+  --bg-accent-border: #d8c3ad;
+  --bg-accent-glow: rgba(133, 83, 0, 0.14);
+  --text-primary: #151c27;
+  --text-secondary: #534434;
+  --text-muted: #867461;
+  --text-on-accent: #ffffff;
+  --border-light: #dce2f3;
+  --border-medium: #d8c3ad;
+  --outline-variant: #d8c3ad;
+  --success: #15803d;
+  --warning: #b45309;
+  --error: #ba1a1a;
+  --info: #0058be;
+  --glass-bg: #ffffff;
+  --glass-border: #e2e8f8;
+  --bg-gradient: linear-gradient(135deg, #855300 0%, #f59e0b 100%);
+  --bg-gradient-secondary: linear-gradient(135deg, #0058be 0%, #2170e4 100%);
+  --shadow-sm: 0 2px 8px rgba(133, 83, 0, 0.06);
+  --shadow-md: 0 8px 24px rgba(0, 88, 190, 0.08);
+  --shadow-lg: 0 16px 40px rgba(21, 28, 39, 0.08);
+  --shadow-glow: 0 12px 32px rgba(245, 158, 11, 0.18);
+  --radius-sm: 0.25rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --paws-secondary: #0058be;
+  --paws-secondary-container: #2170e4;
+  --paws-tertiary-container: #1abdff;
+  --paws-surface-high: #e2e8f8;
+}
+
+/* Forzar tokens claros aunque el portal esté en dark */
+html[data-theme='dark'] .pos-paws-theme,
+html[data-theme='light'] .pos-paws-theme {
+  --bg-primary: #f9f9ff;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-subtle: #f0f3ff;
+  --bg-accent: #855300;
+  --bg-accent-hover: #f59e0b;
+  --text-primary: #151c27;
+  --text-secondary: #534434;
+  --text-muted: #867461;
+  --glass-bg: #ffffff;
+  --glass-border: #e2e8f8;
+  --border-light: #dce2f3;
+  --border-medium: #d8c3ad;
+}
+
+/* ─── Header ─── */
+.pos-paws-theme .pos-header {
+  background: #ffffff;
+  backdrop-filter: none;
+  border-bottom: 1px solid #e2e8f8;
+  box-shadow: 0 4px 20px rgba(21, 28, 39, 0.05);
+}
+
+.pos-paws-theme .pos-logo {
+  color: #855300;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.pos-paws-theme .pos-logo svg {
+  color: #0058be;
+}
+
+.pos-paws-theme .pos-nav-item {
+  background: #f0f3ff;
+  border: 1px solid #e2e8f8;
+  color: #534434;
+  border-radius: 1rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  backdrop-filter: none;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.pos-paws-theme .pos-nav-item:hover,
+.pos-paws-theme .pos-nav-item.active {
+  background: #855300;
+  color: #ffffff;
+  border-color: #855300;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(133, 83, 0, 0.2);
+}
+
+.pos-paws-theme .pos-user-info {
+  background: #f0f3ff;
+  border: 1px solid #e2e8f8;
+  border-radius: 1rem;
+  color: #151c27;
+  backdrop-filter: none;
+}
+
+.pos-paws-theme .pos-logout-btn {
+  background: #f0f3ff;
+  border: 1px solid #e2e8f8;
+  color: #534434;
+  border-radius: 1rem;
+  backdrop-filter: none;
+}
+
+.pos-paws-theme .pos-logout-btn:hover {
+  background: #ffdad6;
+  color: #ba1a1a;
+  border-color: #ffb4ab;
+  box-shadow: 0 4px 12px rgba(186, 26, 26, 0.12);
+}
+
+/* ─── Main layout ─── */
+.pos-paws-theme .pos-main {
+  background: #f9f9ff;
+  padding: 1.5rem;
+}
+
+/* ─── Cards & sections ─── */
+.pos-paws-theme .glass-card,
+.pos-paws-theme .search-section,
+.pos-paws-theme .product-table-container {
+  background: #ffffff;
+  border: 1px solid #e2e8f8;
+  border-radius: 1.5rem;
+  box-shadow: 0 8px 28px rgba(21, 28, 39, 0.06);
+  backdrop-filter: none;
+}
+
+.pos-paws-theme .glass-card:hover,
+.pos-paws-theme .search-section:hover,
+.pos-paws-theme .product-table-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px rgba(0, 88, 190, 0.08);
+}
+
+.pos-paws-theme .search-header,
+.pos-paws-theme .product-table-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #151c27;
+  letter-spacing: -0.01em;
+}
+
+.pos-paws-theme .search-label {
+  color: #867461;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+/* ─── Inputs ─── */
+.pos-paws-theme .employee-search-input,
+.pos-paws-theme .producto-search-input,
+.pos-paws-theme .search-input,
+.pos-paws-theme .form-input {
+  background: #f0f3ff;
+  border: 1px solid #dce2f3;
+  border-radius: 0.5rem;
+  color: #151c27;
+  font-weight: 500;
+}
+
+.pos-paws-theme .employee-search-input:focus,
+.pos-paws-theme .producto-search-input:focus,
+.pos-paws-theme .search-input:focus,
+.pos-paws-theme .form-input:focus {
+  border-color: #855300;
+  box-shadow: 0 0 0 3px rgba(133, 83, 0, 0.12);
+  transform: none;
+}
+
+/* ─── Search results ─── */
+.pos-paws-theme .employee-card,
+.pos-paws-theme .producto-card,
+.pos-paws-theme .search-result-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f8;
+  border-radius: 0.75rem;
+  backdrop-filter: none;
+}
+
+.pos-paws-theme .employee-card:hover,
+.pos-paws-theme .producto-card:hover,
+.pos-paws-theme .employee-card.highlighted,
+.pos-paws-theme .producto-card.highlighted,
+.pos-paws-theme .employee-card.selected,
+.pos-paws-theme .producto-card.selected,
+.pos-paws-theme .search-result-item:hover {
+  background: #f0f3ff;
+  border-color: #adc6ff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(0, 88, 190, 0.1);
+}
+
+.pos-paws-theme .employee-card.highlighted .employee-name,
+.pos-paws-theme .producto-card.highlighted .producto-name,
+.pos-paws-theme .employee-card.selected .employee-name,
+.pos-paws-theme .producto-card.selected .producto-name {
+  color: #151c27;
+}
+
+.pos-paws-theme .employee-avatar,
+.pos-paws-theme .producto-avatar {
+  background: linear-gradient(135deg, #0058be, #2170e4);
+  color: #ffffff;
+}
+
+.pos-paws-theme .search-results-dropdown {
+  background: #ffffff;
+  border: 1px solid #e2e8f8;
+  border-radius: 0.75rem;
+  box-shadow: 0 16px 40px rgba(21, 28, 39, 0.1);
+}
+
+/* ─── Product table ─── */
+.pos-paws-theme .product-table {
+  border: 1px solid #e2e8f8;
+  border-radius: 0.75rem;
+  background: #ffffff;
+}
+
+.pos-paws-theme .table-header {
+  background: linear-gradient(135deg, #0058be 0%, #2170e4 100%);
+  color: #ffffff;
+}
+
+.pos-paws-theme .table-row {
+  border-bottom: 1px solid #f0f3ff;
+}
+
+.pos-paws-theme .table-row:hover {
+  background: #f0f3ff;
+}
+
+/* ─── Buttons ─── */
+.pos-paws-theme .btn-primary {
+  background: #855300;
+  color: #ffffff;
+  border-radius: 1rem;
+  font-weight: 600;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pos-paws-theme .btn-primary:hover {
+  background: #f59e0b;
+  color: #613b00;
+  box-shadow: 0 8px 20px rgba(245, 158, 11, 0.25);
+}
+
+.pos-paws-theme .btn-secondary {
+  background: #0058be;
+  color: #ffffff;
+  border: none;
+  border-radius: 1rem;
+}
+
+.pos-paws-theme .btn-secondary:hover {
+  background: #2170e4;
+}
+
+.pos-paws-theme .btn-danger {
+  background: #ba1a1a;
+  border-radius: 1rem;
+}
+
+.pos-paws-theme .producto-code {
+  background: #1abdff;
+  color: #004966;
+}
+
+.pos-paws-theme .producto-price {
+  color: #15803d;
+  font-weight: 700;
+}
+
+/* ─── Payment calculator (sidebar) ─── */
+.pos-paws-theme .payment-calculator {
+  background: #ffffff;
+  border: 1px solid #e2e8f8;
+  border-radius: 1.5rem;
+  box-shadow: 0 12px 32px rgba(0, 88, 190, 0.08);
+  backdrop-filter: none;
+}
+
+.pos-paws-theme .total-section {
+  background: linear-gradient(135deg, #855300 0%, #f59e0b 100%);
+  box-shadow: 0 8px 20px rgba(133, 83, 0, 0.2);
+}
+
+.pos-paws-theme .payment-input-group label,
+.pos-paws-theme .change-label {
+  color: #534434;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.pos-paws-theme .payment-input {
+  background: #f0f3ff;
+  border: 1px solid #dce2f3;
+  color: #151c27;
+  border-radius: 0.5rem;
+}
+
+.pos-paws-theme .payment-input:focus {
+  border-color: #855300;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(133, 83, 0, 0.12);
+}
+
+.pos-paws-theme .payment-input::placeholder {
+  color: #867461;
+}
+
+.pos-paws-theme .currency-symbol {
+  color: #867461;
+}
+
+.pos-paws-theme .quick-amount-btn {
+  background: #f0f3ff;
+  color: #0058be;
+  border: 1px solid #dce2f3;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+.pos-paws-theme .quick-amount-btn:hover {
+  background: #d8e2ff;
+  color: #001a42;
+  box-shadow: 0 4px 12px rgba(0, 88, 190, 0.12);
+}
+
+.pos-paws-theme .change-section {
+  background: #f0f3ff;
+  border: 1px solid #e2e8f8;
+}
+
+.pos-paws-theme .change-amount.positive {
+  color: #15803d;
+  text-shadow: none;
+}
+
+.pos-paws-theme .change-amount.zero {
+  color: #867461;
+}
+
+.pos-paws-theme .change-amount.negative {
+  color: #ba1a1a;
+}
+
+/* ─── Post-it agenda ─── */
+.pos-paws-theme .postit-card {
+  background: #e7eefe;
+  border: 1px solid #dce2f3;
+  border-radius: 1.5rem;
+  color: #151c27;
+  box-shadow: 0 8px 24px rgba(0, 88, 190, 0.06);
+  backdrop-filter: none;
+}
+
+.pos-paws-theme .postit-date {
+  background: none;
+  -webkit-text-fill-color: initial;
+  color: #0058be;
+  font-weight: 700;
+}
+
+.pos-paws-theme .postit-list li {
+  color: #534434;
+}
+
+/* ─── Modals POS ─── */
+.pos-paws-theme .modal-overlay {
+  background: rgba(21, 28, 39, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.pos-paws-theme .modal-content {
+  background: #ffffff;
+  border: 1px solid #e2e8f8;
+  border-radius: 1.5rem;
+  box-shadow: 0 24px 48px rgba(21, 28, 39, 0.12);
+}
+
+.pos-paws-theme .modal-title {
+  color: #151c27;
+  font-weight: 700;
+}
+
+.pos-paws-theme .modal-close {
+  background: #f0f3ff;
+  color: #534434;
+  border-radius: 0.75rem;
+}
+
+.pos-paws-theme .modal-close:hover {
+  background: #ffdad6;
+  color: #ba1a1a;
+}
+
+.pos-paws-theme .producto-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f8;
+  border-radius: 0.75rem;
+}
+
+.pos-paws-theme .producto-item:hover {
+  border-color: #adc6ff;
+  background: #f0f3ff;
+}
+
+/* ─── Badges / status ─── */
+.pos-paws-theme .badge-status,
+.pos-paws-theme .status-badge {
+  background: #1abdff;
+  color: #004966;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .pos-paws-theme .pos-header-content {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .pos-paws-theme .pos-nav {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .pos-paws-theme .pos-nav-item {
+    flex: 1 1 auto;
+    text-align: center;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
