@@ -168,52 +168,49 @@ export default function Home() {
 
       {/* Contenido principal */}
       <main className="pos-main">
-        {/* Contenido centrado */}
         <div className="pos-content">
-          {/* Contenedor de búsquedas y calculadora */}
-          <div className="search-and-calculator-container">
-            {/* Sección de búsquedas */}
-            <div className="search-section">
-              <div className="search-header">Búsquedas</div>
-              <div className="search-inputs-container">
-                <div className="search-input-group">
-                  <label className="search-label">Alumno</label>
-                  <SimpleAlumnoInput onAlumnoSelect={handleAlumnoSelect} />
-                </div>
-                <div className="search-input-group">
-                  <label className="search-label">Producto</label>
-                  <ProductoSearch 
-                    ref={productoInputRef}
-                    onProductSelect={handleProductSelect}
-                    refreshTrigger={refreshTrigger}
-                  />
+          <div className="pos-grid">
+            <div className="pos-grid-main">
+              <div className="search-section">
+                <div className="search-header">Búsquedas</div>
+                <div className="search-inputs-container">
+                  <div className="search-input-group">
+                    <label className="search-label">Alumno</label>
+                    <SimpleAlumnoInput onAlumnoSelect={handleAlumnoSelect} />
+                  </div>
+                  <div className="search-input-group">
+                    <label className="search-label">Producto</label>
+                    <ProductoSearch
+                      ref={productoInputRef}
+                      onProductSelect={handleProductSelect}
+                      refreshTrigger={refreshTrigger}
+                    />
+                  </div>
                 </div>
               </div>
+
+              <ProductTable
+                selectedProducts={selectedProducts}
+                onRemoveProduct={handleRemoveProduct}
+                onUpdateQuantity={handleUpdateQuantity}
+                onAddProduct={handleProductSelect}
+                onTotalChange={setOrderTotal}
+                onProductsChange={setAllProductsInTable}
+                onFocusProductInput={() => {
+                  productoInputRef.current?.focusInput();
+                }}
+              />
             </div>
 
-            {/* Calculadora de pago */}
-            <PaymentCalculator 
-              orderTotal={orderTotal} 
-              selectedProducts={allProductsInTable}
-              selectedStudent={selectedStudent}
-            />
-            <AgendaPostIt products={allProductsInTable} topOffsetPx={280} />
+            <aside className="pos-grid-sidebar">
+              <PaymentCalculator
+                orderTotal={orderTotal}
+                selectedProducts={allProductsInTable}
+                selectedStudent={selectedStudent}
+              />
+              <AgendaPostIt products={allProductsInTable} />
+            </aside>
           </div>
-
-          {/* Tabla de productos seleccionados */}
-          <ProductTable 
-            selectedProducts={selectedProducts}
-            onRemoveProduct={handleRemoveProduct}
-            onUpdateQuantity={handleUpdateQuantity}
-            onAddProduct={handleProductSelect}
-            onTotalChange={setOrderTotal}
-            onProductsChange={setAllProductsInTable}
-            onFocusProductInput={() => {
-              if (productoInputRef.current) {
-                productoInputRef.current.focusInput();
-              }
-            }}
-          />
         </div>
       </main>
 

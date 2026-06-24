@@ -323,8 +323,30 @@ body {
 }
 
 .pos-content {
-  max-width: 900px;
+  max-width: 1280px;
   width: 100%;
+}
+
+.pos-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 24px;
+  align-items: start;
+}
+
+.pos-grid-main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.pos-grid-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 96px;
 }
 
 /* Cards con efecto glassmorphism */
@@ -350,10 +372,11 @@ body {
   border: 1px solid var(--glass-border);
   border-radius: 16px;
   padding: 24px;
-  margin-bottom: 24px;
   box-shadow: var(--shadow-lg);
   width: 100%;
-  flex: 1;
+  overflow: visible;
+  position: relative;
+  z-index: 20;
 }
 
 .search-header {
@@ -384,6 +407,9 @@ body {
 .search-input-group {
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: visible;
+  z-index: 30;
 }
 
 .search-label {
@@ -554,7 +580,7 @@ body {
 
 /* Tabla de productos moderna */
 .product-table-container {
-  margin-top: 24px;
+  margin-top: 0;
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
   border: 1px solid var(--glass-border);
@@ -920,6 +946,15 @@ body {
 
 /* Responsive design mejorado */
 @media (max-width: 1024px) {
+  .pos-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pos-grid-sidebar {
+    position: static;
+    order: -1;
+  }
+
   .search-inputs-container {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -1963,13 +1998,13 @@ body {
   border-radius: 16px;
   padding: 20px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  width: 250px;
-  position: absolute;
-  right: -225px;
-  top: 0;
+  width: 100%;
+  position: relative;
+  right: auto;
+  top: auto;
   backdrop-filter: blur(20px);
   box-shadow: var(--shadow-lg);
-  z-index: 10;
+  z-index: 1;
 }
 
 /* Post-it agenda a la derecha, coherente con el diseño */
@@ -1978,11 +2013,12 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
   padding: 16px;
-  width: 250px;
+  width: 100%;
+  position: relative;
   backdrop-filter: blur(20px);
   box-shadow: var(--shadow-lg);
   color: var(--text-primary);
-  z-index: 11;
+  z-index: 1;
 }
 
 .postit-section + .postit-section {
@@ -2583,6 +2619,73 @@ body {
 
 .alumno-search-input::placeholder {
   color: #9ca3af;
+}
+
+.alumno-search-root {
+  position: relative;
+  z-index: 40;
+}
+
+.alumno-search-input--selected {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.alumno-search-selected {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #10b981;
+  font-weight: 600;
+}
+
+.alumno-search-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #0066cc;
+  border: 2px solid #004499;
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+  z-index: 100;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.alumno-search-option {
+  padding: 10px 14px;
+  cursor: pointer;
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  transition: background-color 0.15s ease;
+}
+
+.alumno-search-option:last-child {
+  border-bottom: none;
+}
+
+.alumno-search-option:hover,
+.alumno-search-option.is-active {
+  background: #1e3a8a;
+}
+
+.alumno-search-option-name {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.alumno-search-option-meta {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.alumno-search-spinner {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 /* ── /animate + /delight keyframes ──────────────────────────────────────── */

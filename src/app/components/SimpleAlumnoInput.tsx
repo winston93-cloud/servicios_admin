@@ -11,65 +11,64 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<CombinedSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(-1); // Índice del elemento seleccionado con teclado
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [selectedAlumno, setSelectedAlumno] = useState<CombinedSearchResult | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
-  // Focus automático
   useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
+    inputRef.current?.focus();
   }, []);
 
-  // Resetear índice seleccionado cuando cambien los resultados
   useEffect(() => {
     setSelectedIndex(-1);
   }, [searchResults]);
 
-  const handleInputClick = () => {
-    // Limpiar el campo al hacer clic para permitir nueva búsqueda
-    setSearchTerm('');
-    setSearchResults([]);
-    setSelectedIndex(-1);
-  };
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, []);
 
-  // Manejar navegación con teclado
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (searchResults.length === 0) return;
+    if (!isOpen || searchResults.length === 0) return;
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setSelectedIndex(prev => 
-          prev < searchResults.length - 1 ? prev + 1 : 0
-        );
+        setSelectedIndex((prev) => (prev < searchResults.length - 1 ? prev + 1 : 0));
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setSelectedIndex(prev => 
-          prev > 0 ? prev - 1 : searchResults.length - 1
-        );
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : searchResults.length - 1));
         break;
       case 'Enter':
         e.preventDefault();
         if (selectedIndex >= 0 && selectedIndex < searchResults.length) {
           handleSelectAlumno(searchResults[selectedIndex]);
+        } else if (searchResults.length === 1) {
+          handleSelectAlumno(searchResults[0]);
         }
         break;
       case 'Escape':
         e.preventDefault();
+        setIsOpen(false);
         setSearchResults([]);
         setSelectedIndex(-1);
-        setSearchTerm(''); // Limpiar también el searchTerm
         break;
     }
   };
 
-  // Búsqueda con debounce
   useEffect(() => {
     const searchAlumnosAsync = async () => {
       if (searchTerm.trim().length < 2) {
         setSearchResults([]);
+        setIsOpen(false);
         return;
       }
 
@@ -77,154 +76,131 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
       try {
         const results = await searchAlumnosAndPersonal(searchTerm);
         setSearchResults(results);
+        setIsOpen(results.length > 0);
       } catch (error) {
         console.error('Error buscando alumnos:', error);
         setSearchResults([]);
+        setIsOpen(false);
       } finally {
         setIsLoading(false);
       }
     };
 
-    const timeoutId = setTimeout(searchAlumnosAsync, 100);
+    const timeoutId = setTimeout(searchAlumnosAsync, 150);
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
 
-  // Función para convertir nivel numérico a texto
   const getNivelText = (nivel: number): string => {
     switch (nivel) {
-      case 1: return 'Maternal';
-      case 2: return 'Kinder';
-      case 3: return 'Primaria';
-      case 4: return 'Secundaria';
-      default: return `Nivel ${nivel}`;
+      case 1:
+        return 'Maternal';
+      case 2:
+        return 'Kinder';
+      case 3:
+        return 'Primaria';
+      case 4:
+        return 'Secundaria';
+      default:
+        return nivel === 0 ? 'Maestro' : `Nivel ${nivel}`;
     }
   };
 
-  // Función para convertir grupo numérico a letra
   const getGrupoText = (grupo: string | number): string => {
     if (!grupo || grupo === '') return 'N/A';
-    const grupoNum = typeof grupo === 'string' ? parseInt(grupo) : grupo;
-    if (isNaN(grupoNum)) return 'N/A';
+    const grupoNum = typeof grupo === 'string' ? parseInt(grupo, 10) : grupo;
+    if (Number.isNaN(grupoNum)) return String(grupo);
     switch (grupoNum) {
-      case 1: return 'A';
-      case 2: return 'B';
-      case 3: return 'C';
-      default: return grupoNum.toString();
+      case 1:
+        return 'A';
+      case 2:
+        return 'B';
+      case 3:
+        return 'C';
+      default:
+        return grupoNum.toString();
     }
   };
 
-  // Función para convertir grado numérico a texto
   const getGradoText = (grado: string | number, nivel: number): string => {
     if (!grado || grado === '') return 'N/A';
-    const gradoNum = typeof grado === 'string' ? parseInt(grado) : grado;
-    if (isNaN(gradoNum)) return 'N/A';
-    
-    if (nivel === 4) { // Secundaria
+    const gradoNum = typeof grado === 'string' ? parseInt(grado, 10) : grado;
+    if (Number.isNaN(gradoNum)) return String(grado);
+
+    if (nivel === 4) {
       switch (gradoNum) {
-        case 1: return '7mo';
-        case 2: return '8vo';
-        case 3: return '9no';
-        default: return `${gradoNum}°`;
+        case 1:
+          return '7mo';
+        case 2:
+          return '8vo';
+        case 3:
+          return '9no';
+        default:
+          return `${gradoNum}°`;
       }
-    } else { // Otros niveles
-      return `${gradoNum}°`;
     }
+    return `${gradoNum}°`;
   };
 
   const handleSelectAlumno = (alumno: CombinedSearchResult) => {
     setSearchTerm(alumno.display_name);
-    onAlumnoSelect(alumno);
-    // No ocultamos los resultados para que el usuario pueda ver que se seleccionó correctamente
+    setSelectedAlumno(alumno);
+    setSearchResults([]);
+    setIsOpen(false);
     setSelectedIndex(-1);
+    onAlumnoSelect(alumno);
+    inputRef.current?.blur();
   };
 
   return (
-    <div style={{ position: 'relative', zIndex: 999999 }}>
-      {/* Input sencillo */}
+    <div ref={rootRef} className="alumno-search-root">
       <input
         ref={inputRef}
         type="text"
-        placeholder="Buscar alumno (nombre, apellido paterno, apellido materno)..."
+        placeholder="Buscar alumno (nombre, apellido o número de control)..."
         value={searchTerm}
         onChange={(e) => {
           setSearchTerm(e.target.value);
-          // Si el usuario empieza a escribir, mostrar resultados de búsqueda
-          if (e.target.value.trim().length >= 2) {
-            // Los resultados se cargarán automáticamente por el useEffect
+          if (selectedAlumno && e.target.value !== selectedAlumno.display_name) {
+            setSelectedAlumno(null);
           }
         }}
-        onClick={handleInputClick}
+        onFocus={() => {
+          if (searchResults.length > 0) setIsOpen(true);
+        }}
         onKeyDown={handleKeyDown}
-        className="alumno-search-input"
+        className={`alumno-search-input${selectedAlumno ? ' alumno-search-input--selected' : ''}`}
+        autoComplete="off"
       />
 
-      {/* Resultados de autocompletado - Posicionamiento relativo */}
-      {searchResults.length > 0 && (
-        <div 
-          style={{
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            backgroundColor: '#0066CC',
-            border: '2px solid #004499',
-            boxShadow: '0 5px 15px rgba(0,0,0,0.2)',
-            zIndex: 9999999,
-            borderRadius: '6px',
-            padding: '0',
-            maxHeight: '300px',
-            overflowY: 'auto',
-            marginTop: '5px'
-          }}
-        >
+      {selectedAlumno && !isOpen && (
+        <div className="alumno-search-selected">
+          Seleccionado: <strong>{selectedAlumno.display_name}</strong> (ref: {selectedAlumno.alumno_ref})
+        </div>
+      )}
+
+      {isOpen && searchResults.length > 0 && (
+        <div className="alumno-search-dropdown" role="listbox">
           {searchResults.map((alumno, index) => (
             <div
-              key={alumno.alumno_id}
-              onClick={() => handleSelectAlumno(alumno)}
-              style={{
-                backgroundColor: index === selectedIndex ? '#1e3a8a' : '#0066CC',
-                color: index === selectedIndex ? '#ffffff' : '#ffffff',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                borderBottom: index < searchResults.length - 1 ? '1px solid #004499' : 'none',
-                padding: '10px 16px',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => {
-                if (index !== selectedIndex) {
-                  e.currentTarget.style.backgroundColor = '#1e3a8a';
-                  e.currentTarget.style.color = '#ffffff';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (index !== selectedIndex) {
-                  e.currentTarget.style.backgroundColor = '#0066CC';
-                  e.currentTarget.style.color = '#ffffff';
-                }
+              key={`${alumno.type ?? 'alumno'}-${alumno.alumno_ref}`}
+              role="option"
+              aria-selected={index === selectedIndex}
+              className={`alumno-search-option${index === selectedIndex ? ' is-active' : ''}`}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleSelectAlumno(alumno);
               }}
             >
-              <div 
-                style={{
-                  color: 'inherit', 
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  marginBottom: '4px'
-                }}
-              >
-                {alumno.display_name}
-              </div>
-              <div 
-                style={{
-                  color: 'inherit',
-                  fontSize: '12px',
-                  opacity: 0.8
-                }}
-              >
+              <div className="alumno-search-option-name">{alumno.display_name}</div>
+              <div className="alumno-search-option-meta">
                 {alumno.type === 'maestro' ? (
                   <>ID: {alumno.alumno_ref} | Maestro</>
                 ) : (
-                  <>ID: {alumno.alumno_ref} | {getNivelText(alumno.alumno_nivel)} | {getGradoText(alumno.alumno_grado || '', alumno.alumno_nivel)} | {getGrupoText(alumno.alumno_grupo || '')}</>
+                  <>
+                    ID: {alumno.alumno_ref} | {getNivelText(alumno.alumno_nivel)} |{' '}
+                    {getGradoText(alumno.alumno_grado || '', alumno.alumno_nivel)} |{' '}
+                    {getGrupoText(alumno.alumno_grupo || '')}
+                  </>
                 )}
               </div>
             </div>
@@ -232,10 +208,9 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
         </div>
       )}
 
-      {/* Indicador de carga */}
       {isLoading && (
-        <div className="absolute right-3 top-2">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+        <div className="alumno-search-spinner" aria-hidden>
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
         </div>
       )}
     </div>
