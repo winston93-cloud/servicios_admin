@@ -1,0 +1,149 @@
+/**
+ * /servicios — UI UX PRO MAX (diseño original administrativo)
+ * Paleta clara profesional: sidebar #1e3a5f, área #e2e8f0, tarjetas blancas.
+ * Excluido del shell Totality Festival; estilos base en globals.css.
+ */
+
+.pos-totality-theme.admin-app-shell:has(.servicios-app) {
+  background: transparent;
+  color: inherit;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app {
+  isolation: isolate;
+  z-index: 1;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+}
+
+/* Anular herencia Totality / dark mode global dentro del módulo */
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar {
+  background: #1e3a5f;
+  border-right: none;
+  backdrop-filter: none;
+  color: #f8fafc;
+  box-shadow: 4px 0 24px rgba(15, 23, 42, 0.2);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item,
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem {
+  color: rgba(248, 250, 252, 0.92);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item.active,
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem.active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-main-toolbar {
+  background: #e2e8f0;
+  border: none;
+  border-radius: 0;
+  backdrop-filter: none;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll {
+  color: #0f172a;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-panel-title {
+  font-family: inherit;
+  color: #0f172a;
+  text-shadow: none;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-panel-lead,
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-panel-hint {
+  color: #475569;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-panel-card {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  backdrop-filter: none;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-back-btn {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-back-btn:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-btn-modulo {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 55%, #1e40af 100%);
+  color: #fff;
+  border: 2px solid #1d4ed8;
+  font-family: inherit;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-btn-modulo:hover {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 55%, #1d4ed8 100%);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-btn-modulo--activo {
+  outline: 3px solid rgba(37, 99, 235, 0.35);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 55%, #1e40af 100%);
+  color: #fff;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .ciclo-escolar-selector {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 45%, #bfdbfe 100%);
+  border: 2px solid #1e40af;
+  backdrop-filter: none;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .ciclo-escolar-selector-label {
+  color: #1e3a8a;
+  font-family: inherit;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .ciclo-escolar-selector-select {
+  background: #fff;
+  border: 1px solid #3b82f6;
+  color: #0f172a;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-toolbar-der {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+@media (min-width: 901px) {
+  .pos-totality-theme.admin-app-shell .servicios-app .servicios-toolbar-der {
+    flex-direction: column;
+  }
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .theme-toggle {
+  border-color: #cbd5e1;
+  background: #fff;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .theme-toggle-label {
+  color: #64748b;
+}

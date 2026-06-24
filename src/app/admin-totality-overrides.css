@@ -142,76 +142,7 @@ html[data-theme='light'] .pos-totality-theme.admin-app-shell .portal-access-inpu
   text-transform: uppercase;
 }
 
-/* ─── Servicios ─── */
-.pos-totality-theme.admin-app-shell .servicios-sidebar {
-  background: rgba(26, 27, 33, 0.92);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(20px);
-}
-
-html[data-theme='light'] .pos-totality-theme.admin-app-shell .servicios-sidebar {
-  background: rgba(255, 255, 255, 0.92);
-  border-right-color: rgba(26, 27, 33, 0.1);
-}
-
-.pos-totality-theme.admin-app-shell .servicios-nav-item,
-.pos-totality-theme.admin-app-shell .servicios-nav-subitem {
-  color: #d0c6ab;
-}
-
-.pos-totality-theme.admin-app-shell .servicios-nav-item.active,
-.pos-totality-theme.admin-app-shell .servicios-nav-subitem.active {
-  background: rgba(0, 227, 253, 0.12);
-  color: #fff6df;
-  border-color: rgba(0, 227, 253, 0.25);
-}
-
-.pos-totality-theme.admin-app-shell .servicios-main-toolbar {
-  background: rgba(52, 52, 58, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.75rem;
-  backdrop-filter: blur(16px);
-}
-
-html[data-theme='light'] .pos-totality-theme.admin-app-shell .servicios-main-toolbar {
-  background: rgba(255, 255, 255, 0.72);
-}
-
-.pos-totality-theme.admin-app-shell .servicios-panel-card,
-.pos-totality-theme.admin-app-shell .servicios-panel-inner {
-  color: #e3e1e9;
-}
-
-.pos-totality-theme.admin-app-shell .servicios-panel-title {
-  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
-  color: #fff6df;
-}
-
-html[data-theme='light'] .pos-totality-theme.admin-app-shell .servicios-panel-title {
-  color: #3a3000;
-}
-
-.pos-totality-theme.admin-app-shell .servicios-back-btn,
-.pos-totality-theme.admin-app-shell .servicios-btn-modulo {
-  background: rgba(52, 52, 58, 0.25);
-  border: 1px solid rgba(0, 227, 253, 0.25);
-  color: #bdf4ff;
-}
-
-.pos-totality-theme.admin-app-shell .servicios-btn-modulo--activo {
-  background: rgba(0, 227, 253, 0.15);
-  color: #fff6df;
-}
-
-.pos-totality-theme.admin-app-shell .servicios-toolbar-der {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-direction: row;
-  flex-wrap: wrap;
-}
-
-/* Detalle en servicios/servicios-totality-overrides.css */
+/* /servicios usa UI UX PRO MAX original — ver servicios/servicios-original-theme.css */
 
 /* ─── Reportes ─── */
 .pos-totality-theme.admin-app-shell .reportes-section {
