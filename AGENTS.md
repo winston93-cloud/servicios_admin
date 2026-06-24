@@ -39,12 +39,12 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 - Credenciales PAC `FACTUROPORTI_*` en Vercel (`scripts/setup-facturoporti-vercel-env.mjs`).
 - Tema UI: Totality (mismo que Desayunos POS).
 
-### Diseño global Totality + light/dark
+### Diseño global Totality Festival + light/dark
 
-- **Tema:** Totality Festival (Desayunos Sonny) en todo el ecosistema Winston Next.js.
+- **Tema:** Totality Festival (eclipse cósmico: obsidiana + oro `#fff6df` + cian `#00e3fd`). Space Grotesk en títulos/labels; Inter en cuerpo.
 - **Modo claro/oscuro:** `ThemeToggle` + `data-theme` en `<html>`; persistencia en `localStorage` (`servicios-admin-theme` en este repo).
-- **CSS:** `src/app/pos/pos-totality-theme.css` + `src/app/admin-totality-overrides.css` en el layout raíz.
-- **Excepción `/servicios`:** diseño **Atmospheric Glass** (`src/app/servicios/servicios-atmospheric-glass.css`) — glassmorphism sobre gradiente azul/púrpura/rosa, tipografía Inter.
+- **CSS raíz:** `src/app/pos/pos-totality-theme.css` + `src/app/admin-totality-overrides.css` + `src/app/facturacion/facturacion-totality-overrides.css`.
+- **Módulo `/servicios`:** `src/app/servicios/servicios-totality-overrides.css` (paneles internos sobre el shell Totality).
 - **Excluidos (sin cambio de diseño ni toggle):**
   - AgendaW: `/admin` y rutas de directoras (`agendaw`).
   - Open House: `open_house/app/admin`.

@@ -1,4 +1,4 @@
-import './servicios-atmospheric-glass.css'
+import './servicios-totality-overrides.css'
 
 export default function ServiciosLayout({
   children,
