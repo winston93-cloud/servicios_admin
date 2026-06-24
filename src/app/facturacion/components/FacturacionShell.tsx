@@ -48,7 +48,7 @@ export default function FacturacionShell({
             <h1 className="dashboard-title">{title}</h1>
             <p className="dashboard-subtitle">{subtitle}</p>
             <p className="facturacion-cfdi-legacy-hint">
-              Portal PHP en producción durante la migración:{' '}
+              Portal PHP sigue en producción hasta nuevo aviso:{' '}
               <a href={legacy} target="_blank" rel="noopener noreferrer">
                 cfdiwinston <ExternalLink size={12} className="inline-icon" aria-hidden />
               </a>

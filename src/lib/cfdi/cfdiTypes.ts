@@ -30,3 +30,24 @@ export interface CfdiTimbradoLoteResultado {
   fallidos: number
   resultados: CfdiTimbradoResultado[]
 }
+
+export type CfdiMotivoCancelacion = '01' | '02' | '03' | '04'
+
+export interface CfdiCancelacionResultado {
+  ok: boolean
+  uuid: string
+  codigo: string
+  mensaje: string
+  emisor: CfdiEmisorClave
+  errorTecnico?: string
+}
+
+export interface CfdiNotaCreditoResultado {
+  ok: boolean
+  referencia: string
+  codigo: string
+  mensaje: string
+  uuid?: string
+  emisor: CfdiEmisorClave
+  errorTecnico?: string
+}

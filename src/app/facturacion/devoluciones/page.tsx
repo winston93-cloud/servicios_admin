@@ -1,5 +1,5 @@
-import FacturacionPlaceholder from '../components/FacturacionPlaceholder'
+import FacturacionDevolucionView from '../components/FacturacionDevolucionView'
 
 export default function FacturacionDevolucionesPage() {
-  return <FacturacionPlaceholder segment="devoluciones" />
+  return <FacturacionDevolucionView />
 }

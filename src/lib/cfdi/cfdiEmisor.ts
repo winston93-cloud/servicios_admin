@@ -9,6 +9,13 @@ export function emisorClavePorNivel(alumnoNivel: number): CfdiEmisorClave {
   return alumnoNivel < 3 ? 'educativo' : 'churchill'
 }
 
+export function emisorClavePorRfc(rfc: string): CfdiEmisorClave | null {
+  const n = rfc.trim().toUpperCase()
+  if (n === CFDI_EMISOR_CHURCHILL_RFC) return 'churchill'
+  if (n === CFDI_EMISOR_EDUCATIVO_RFC) return 'educativo'
+  return null
+}
+
 function env(prefix: string, suffix: string): string {
   return process.env[`FACTUROPORTI_${prefix}_${suffix}`]?.trim() ?? ''
 }

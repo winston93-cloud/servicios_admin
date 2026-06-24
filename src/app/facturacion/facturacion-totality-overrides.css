@@ -474,6 +474,23 @@
   text-shadow: 0 0 12px rgba(134, 239, 172, 0.25);
 }
 
+.pos-totality-theme.facturacion-cfdi-shell .facturacion-cfdi-form-stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.pos-totality-theme.facturacion-cfdi-shell .facturacion-cfdi-field-wide {
+  flex: 1 1 100%;
+  max-width: 100%;
+}
+
+.pos-totality-theme.facturacion-cfdi-shell .facturacion-cfdi-legacy-note {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: #999077;
+  font-style: italic;
+}
+
 @media (max-width: 640px) {
   .pos-totality-theme.facturacion-cfdi-shell .dashboard-main {
     padding: 1rem 1rem 2.5rem;

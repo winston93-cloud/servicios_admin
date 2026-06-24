@@ -4,11 +4,17 @@ Reemplazo progresivo de `cfdiwinston` (PHP en winston93.edu.mx) por módulo en *
 
 No se usa un proyecto InsForge aparte: mismo backend que pagos y alumnos.
 
+## Política de producción
+
+- **`cfdiwinston` permanece activo** hasta que Mario lo indique explícitamente, aunque el módulo nuevo esté listo.
+- La **sincronización final** MySQL/phpMyAdmin → InsForge de `datos_facturacion` se hará **al lanzar el nuevo portal a producción**, no antes.
+- El enlace al PHP legacy en `/facturacion` es respaldo operativo, no fecha de corte automática.
+
 ## Fase 1 — Fundación ✅
 
 - [x] Tarjeta **Facturación CFDI** en dashboard Servicios Administrativos
 - [x] Ruta `/facturacion` con shell, auth y menú de operaciones
-- [x] Enlace al portal PHP legacy durante la transición
+- [x] Enlace al portal PHP legacy (sigue en prod)
 
 ## Fase 2 — Datos e InsForge ✅
 
@@ -16,33 +22,32 @@ No se usa un proyecto InsForge aparte: mismo backend que pagos y alumnos.
 - [x] RLS servidor-only (proxy `/api/database`)
 - [x] Portal papás `/portal-facturacion` → InsForge (reemplaza `pagos/guardar_alumno.php`)
 - [x] `datos_facturacion` en manifiesto de migración MySQL → InsForge
-- [x] Aplicar SQL en InsForge Winston Servicios (`db import`)
-- [x] Migrar filas desde MySQL `winston_general` (625 registros en `datos_facturacion`)
+- [x] Migración inicial desde MySQL (625 registros)
+- [ ] Re-sync `datos_facturacion` al go-live (pedido por Mario en ese momento)
 - [ ] Bucket Storage `cfdi` para XML/PDF (opcional hasta Fase 5)
 
 ## Fase 3 — Timbrado core ✅
 
-- [x] Servicio TypeScript único (`src/lib/cfdi/*`, sin duplicar `timbrar.php` × 4)
-- [x] API `POST /api/facturacion/timbrar` — factura **individual** y **por mes** (efectivo / transferencia)
-- [x] UI `/facturacion/mes` y `/facturacion/individual` (tema Totality)
-- [x] Actualizar `pago_detalle.facturo` en InsForge tras timbrado exitoso
-- [x] Auditoría en `cfdi_timbrado` (`timbrado_mes` / `timbrado_individual`)
-- [x] Complemento instituciones educativas (Churchill vs Educativo por `alumno_nivel`)
-- [x] Credenciales PAC en Vercel: `FACTUROPORTI_*` (`scripts/setup-facturoporti-vercel-env.mjs` desde legacy)
-- [ ] Persistir XML/PDF en Storage (hoy solo rutas legacy en auditoría)
+- [x] Servicio TypeScript único (`src/lib/cfdi/*`)
+- [x] API `POST /api/facturacion/timbrar` — individual, por mes, público en general
+- [x] UI mes / individual / público general (tema Totality)
+- [x] `pago_detalle.facturo` + auditoría `cfdi_timbrado`
+- [x] Credenciales PAC en Vercel
+- [ ] Persistir XML/PDF en Storage
 
-## Fase 4 — Operaciones SAT (en progreso)
+## Fase 4 — Operaciones SAT ✅
 
-- [x] Público en general por mes (`/facturacion/publico-general`, modo `publico_mes`)
-- [x] Consulta saldo de timbres (`/facturacion/timbres`)
-- [ ] Cancelaciones (Winston / Educativo)
-- [ ] Notas de crédito (devoluciones)
+- [x] Público en general por mes
+- [x] Consulta saldo de timbres
+- [x] Cancelaciones (`POST /api/facturacion/cancelar`, auditoría `cfdi_cancelacion`)
+- [x] Notas de crédito / devoluciones (`POST /api/facturacion/nota-credito`, auditoría `cfdi_nota_credito`)
 
-## Fase 5 — Corte y legacy
+## Fase 5 — Corte y legacy (solo cuando Mario lo pida)
 
 - Reporte contadores (hoy en `/xml` en winston93)
 - Redirección o apagado de `winston93.edu.mx/cfdiwinston`
 - Retiro de credenciales del PHP en GitLab
+- Go-live: re-sync `datos_facturacion` MySQL → InsForge
 
 ## Referencia legacy
 

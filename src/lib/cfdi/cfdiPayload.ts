@@ -157,3 +157,46 @@ export function construirPayloadFacturoPorTi(input: TimbradoPayloadInput): objec
     ],
   }
 }
+
+export interface NotaCreditoPayloadInput extends TimbradoPayloadInput {
+  uuidRelacionado: string
+  tipoRelacion: string
+}
+
+export function construirPayloadNotaCredito(input: NotaCreditoPayloadInput): object {
+  const base = construirPayloadFacturoPorTi(input) as {
+    DatosGenerales: Record<string, unknown>
+    Encabezado: Record<string, unknown>
+    Conceptos: Array<Record<string, unknown>>
+  }
+
+  const montoStr = input.monto.toFixed(2)
+
+  base.DatosGenerales.CFDI = 'NotaCredito'
+  base.DatosGenerales.TipoCFDI = 'Egreso'
+  base.DatosGenerales.EmailMensaje =
+    input.emisor.clave === 'churchill'
+      ? 'Devoluciones Instituto Winston Churchill'
+      : 'Devoluciones Educativo'
+  base.DatosGenerales.ReceptorEmail = 'devoluciones@winston93.edu.mx'
+
+  base.Encabezado.CFDIsRelacionados = input.uuidRelacionado
+  base.Encabezado.TipoRelacion = input.tipoRelacion
+  base.Encabezado.FormaPago = '02'
+
+  const concepto = base.Conceptos[0]
+  if (concepto?.Impuestos && Array.isArray(concepto.Impuestos)) {
+    concepto.Impuestos = [
+      {
+        TipoImpuesto: '1',
+        Impuesto: '2',
+        Factor: '3',
+        Base: montoStr,
+        Tasa: '0.160000',
+        ImpuestoImporte: (input.monto * 0.16).toFixed(2),
+      },
+    ]
+  }
+
+  return base
+}

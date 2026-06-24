@@ -1,5 +1,11 @@
-import FacturacionPlaceholder from '../components/FacturacionPlaceholder'
+import FacturacionCancelacionView from '../components/FacturacionCancelacionView'
 
 export default function FacturacionCancelacionesPage() {
-  return <FacturacionPlaceholder segment="cancelaciones" />
+  return (
+    <FacturacionCancelacionView
+      emisorDefault="churchill"
+      title="Cancelaciones"
+      key="cancelaciones"
+    />
+  )
 }
