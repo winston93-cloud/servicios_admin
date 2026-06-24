@@ -28,7 +28,7 @@ No se usa un proyecto InsForge aparte: mismo backend que pagos y alumnos.
 - [x] Actualizar `pago_detalle.facturo` en InsForge tras timbrado exitoso
 - [x] Auditoría en `cfdi_timbrado` (`timbrado_mes` / `timbrado_individual`)
 - [x] Complemento instituciones educativas (Churchill vs Educativo por `alumno_nivel`)
-- [ ] Credenciales PAC en Vercel: `FACTUROPORTI_BEARER_*`, CSD/KEY/PASSWORD por emisor (`scripts/setup-facturoporti-vercel-env.mjs` + dashboard)
+- [x] Credenciales PAC en Vercel: `FACTUROPORTI_*` (`scripts/setup-facturoporti-vercel-env.mjs` desde legacy)
 - [ ] Persistir XML/PDF en Storage (hoy solo rutas legacy en auditoría)
 
 ## Fase 4 — Operaciones SAT

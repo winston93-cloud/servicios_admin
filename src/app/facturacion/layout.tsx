@@ -1,5 +1,12 @@
-import { Inter } from 'next/font/google'
-import './facturacion-atmospheric-glass-theme.css'
+import { Inter, Space_Grotesk } from 'next/font/google'
+import '../pos/pos-totality-theme.css'
+import './facturacion-totality-overrides.css'
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-space-grotesk',
+  display: 'swap',
+})
 
 const inter = Inter({
   subsets: ['latin'],
@@ -10,8 +17,8 @@ const inter = Inter({
 export default function FacturacionLayout({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className={`facturacion-atmospheric-glass ${inter.variable}`}
-      data-facturacion-theme="atmospheric-glass"
+      className={`pos-totality-theme facturacion-cfdi-shell ${spaceGrotesk.variable} ${inter.variable}`}
+      data-facturacion-theme="totality-festival"
     >
       {children}
     </div>
