@@ -16,6 +16,7 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
   const [isOpen, setIsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const suppressSearchRef = useRef(false);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -66,6 +67,13 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
 
   useEffect(() => {
     const searchAlumnosAsync = async () => {
+      if (suppressSearchRef.current) {
+        setSearchResults([]);
+        setIsOpen(false);
+        setIsLoading(false);
+        return;
+      }
+
       if (searchTerm.trim().length < 2) {
         setSearchResults([]);
         setIsOpen(false);
@@ -75,6 +83,7 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
       setIsLoading(true);
       try {
         const results = await searchAlumnosAndPersonal(searchTerm);
+        if (suppressSearchRef.current) return;
         setSearchResults(results);
         setIsOpen(results.length > 0);
       } catch (error) {
@@ -82,7 +91,7 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
         setSearchResults([]);
         setIsOpen(false);
       } finally {
-        setIsLoading(false);
+        if (!suppressSearchRef.current) setIsLoading(false);
       }
     };
 
@@ -142,13 +151,25 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
   };
 
   const handleSelectAlumno = (alumno: CombinedSearchResult) => {
+    suppressSearchRef.current = true;
     setSearchTerm(alumno.display_name);
     setSelectedAlumno(alumno);
     setSearchResults([]);
     setIsOpen(false);
+    setIsLoading(false);
     setSelectedIndex(-1);
     onAlumnoSelect(alumno);
     inputRef.current?.blur();
+  };
+
+  const handleClearSelection = () => {
+    suppressSearchRef.current = false;
+    setSelectedAlumno(null);
+    setSearchTerm('');
+    setSearchResults([]);
+    setIsOpen(false);
+    setSelectedIndex(-1);
+    inputRef.current?.focus();
   };
 
   return (
@@ -159,12 +180,14 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
         placeholder="Buscar alumno (nombre, apellido o número de control)..."
         value={searchTerm}
         onChange={(e) => {
+          suppressSearchRef.current = false;
           setSearchTerm(e.target.value);
           if (selectedAlumno && e.target.value !== selectedAlumno.display_name) {
             setSelectedAlumno(null);
           }
         }}
         onFocus={() => {
+          if (suppressSearchRef.current || selectedAlumno) return;
           if (searchResults.length > 0) setIsOpen(true);
         }}
         onKeyDown={handleKeyDown}
@@ -174,11 +197,16 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
 
       {selectedAlumno && !isOpen && (
         <div className="alumno-search-selected">
-          Seleccionado: <strong>{selectedAlumno.display_name}</strong> (ref: {selectedAlumno.alumno_ref})
+          <span>
+            Seleccionado: <strong>{selectedAlumno.display_name}</strong> (ref: {selectedAlumno.alumno_ref})
+          </span>
+          <button type="button" className="alumno-search-clear" onClick={handleClearSelection}>
+            Cambiar
+          </button>
         </div>
       )}
 
-      {isOpen && searchResults.length > 0 && (
+      {!selectedAlumno && isOpen && searchResults.length > 0 && (
         <div className="alumno-search-dropdown" role="listbox">
           {searchResults.map((alumno, index) => (
             <div

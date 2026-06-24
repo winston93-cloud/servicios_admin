@@ -2636,6 +2636,25 @@ body {
   font-size: 12px;
   color: #10b981;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.alumno-search-clear {
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.alumno-search-clear:hover {
+  background: rgba(16, 185, 129, 0.22);
 }
 
 .alumno-search-dropdown {
