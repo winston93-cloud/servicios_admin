@@ -1,5 +1,11 @@
-import FacturacionPlaceholder from '../components/FacturacionPlaceholder'
+import FacturacionTimbrarView from '../components/FacturacionTimbrarView'
 
 export default function FacturacionIndividualPage() {
-  return <FacturacionPlaceholder segment="individual" />
+  return (
+    <FacturacionTimbrarView
+      modo="individual"
+      title="Factura individual"
+      subtitle="Timbrar una referencia de pago específica."
+    />
+  )
 }

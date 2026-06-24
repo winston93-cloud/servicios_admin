@@ -4,14 +4,13 @@ Reemplazo progresivo de `cfdiwinston` (PHP en winston93.edu.mx) por módulo en *
 
 No se usa un proyecto InsForge aparte: mismo backend que pagos y alumnos.
 
-## Fase 1 — Fundación (actual)
+## Fase 1 — Fundación ✅
 
 - [x] Tarjeta **Facturación CFDI** en dashboard Servicios Administrativos
-- [x] Ruta `/facturacion` con shell, auth y menú de operaciones (placeholders)
-- [x] Enlace al portal legacy PHP durante la transición
-- [ ] Eliminar proyecto InsForge huérfano `d4100337-...` si no se usa
+- [x] Ruta `/facturacion` con shell, auth y menú de operaciones
+- [x] Enlace al portal PHP legacy durante la transición
 
-## Fase 2 — Datos e InsForge (actual)
+## Fase 2 — Datos e InsForge ✅
 
 - [x] Tablas `datos_facturacion`, `cfdi_timbrado`, `cfdi_cancelacion`, `cfdi_nota_credito` (migración SQL)
 - [x] RLS servidor-only (proxy `/api/database`)
@@ -19,15 +18,18 @@ No se usa un proyecto InsForge aparte: mismo backend que pagos y alumnos.
 - [x] `datos_facturacion` en manifiesto de migración MySQL → InsForge
 - [x] Aplicar SQL en InsForge Winston Servicios (`db import`)
 - [x] Migrar filas desde MySQL `winston_general` (625 registros en `datos_facturacion`)
-- [ ] Variables PAC en Vercel: `FACTUROPORTI_BEARER_*`, CSD por emisor (secrets, Fase 3)
 - [ ] Bucket Storage `cfdi` para XML/PDF (opcional hasta Fase 5)
 
-## Fase 3 — Timbrado core
+## Fase 3 — Timbrado core ✅
 
-- Servicio TypeScript único (sin duplicar `timbrar.php` × 4)
-- API: factura **individual** y **por mes** (efectivo / transferencia)
-- Actualizar `pago_detalle.facturo` en InsForge
-- Complemento instituciones educativas (Churchill vs Educativo por `alumno_nivel`)
+- [x] Servicio TypeScript único (`src/lib/cfdi/*`, sin duplicar `timbrar.php` × 4)
+- [x] API `POST /api/facturacion/timbrar` — factura **individual** y **por mes** (efectivo / transferencia)
+- [x] UI `/facturacion/mes` y `/facturacion/individual` (Atmospheric Glass)
+- [x] Actualizar `pago_detalle.facturo` en InsForge tras timbrado exitoso
+- [x] Auditoría en `cfdi_timbrado` (`timbrado_mes` / `timbrado_individual`)
+- [x] Complemento instituciones educativas (Churchill vs Educativo por `alumno_nivel`)
+- [ ] Credenciales PAC en Vercel: `FACTUROPORTI_BEARER_*`, CSD/KEY/PASSWORD por emisor (`scripts/setup-facturoporti-vercel-env.mjs` + dashboard)
+- [ ] Persistir XML/PDF en Storage (hoy solo rutas legacy en auditoría)
 
 ## Fase 4 — Operaciones SAT
 
