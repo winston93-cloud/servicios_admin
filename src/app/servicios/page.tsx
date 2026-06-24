@@ -197,7 +197,7 @@ function ServiciosPageInner() {
   return (
     <CicloEscolarProvider>
     <AlumnoSeleccionadoProvider>
-    <div className="servicios-app">
+    <div className="servicios-app atmospheric-glass-theme">
       <button
         type="button"
         className="servicios-mobile-toggle"
@@ -397,7 +397,7 @@ function ServiciosPageInner() {
 
 function ServiciosSuspenseFallback() {
   return (
-    <div className="servicios-app servicios-app--loading">
+    <div className="servicios-app atmospheric-glass-theme servicios-app--loading">
       <div className="servicios-loading-msg">Cargando servicios…</div>
     </div>
   )

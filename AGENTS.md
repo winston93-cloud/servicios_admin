@@ -44,6 +44,7 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 - **Tema:** Totality Festival (Desayunos Sonny) en todo el ecosistema Winston Next.js.
 - **Modo claro/oscuro:** `ThemeToggle` + `data-theme` en `<html>`; persistencia en `localStorage` (`servicios-admin-theme` en este repo).
 - **CSS:** `src/app/pos/pos-totality-theme.css` + `src/app/admin-totality-overrides.css` en el layout raíz.
+- **Excepción `/servicios`:** diseño **Atmospheric Glass** (`src/app/servicios/servicios-atmospheric-glass.css`) — glassmorphism sobre gradiente azul/púrpura/rosa, tipografía Inter.
 - **Excluidos (sin cambio de diseño ni toggle):**
   - AgendaW: `/admin` y rutas de directoras (`agendaw`).
   - Open House: `open_house/app/admin`.
