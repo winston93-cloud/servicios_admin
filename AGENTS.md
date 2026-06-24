@@ -20,3 +20,40 @@ Key patterns:
 - Reference users with `auth.users(id)`; use `auth.uid()` in RLS policies.
 - For storage uploads, persist both the returned `url` and `key`.
 <!-- INSFORGE:END -->
+
+## Facturación CFDI — estado y pendientes
+
+Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACION-CFDI-ROADMAP.md`.
+
+### Política de producción (no cambiar sin Mario)
+
+- **`cfdiwinston` (PHP) sigue en producción** hasta que Mario lo indique explícitamente.
+- **Re-sync `datos_facturacion`** MySQL/phpMyAdmin → InsForge **solo al go-live**, cuando Mario lo pida.
+- El enlace al legacy en `/facturacion` es respaldo operativo, no corte automático.
+
+### Hecho (Fases 1–4)
+
+- Hub `/facturacion`, portal papás `/portal-facturacion`, schema InsForge (`datos_facturacion`, `cfdi_timbrado`, `cfdi_cancelacion`, `cfdi_nota_credito`).
+- Timbrado: individual, por mes, público en general (`/api/facturacion/timbrar`).
+- Timbres, cancelaciones (`/api/facturacion/cancelar`), devoluciones / nota de crédito (`/api/facturacion/nota-credito`).
+- Credenciales PAC `FACTUROPORTI_*` en Vercel (`scripts/setup-facturoporti-vercel-env.mjs`).
+- Tema UI: Totality (mismo que Desayunos POS).
+
+### Pendiente para terminar el sistema nuevo
+
+1. **Storage XML/PDF** — Bucket `cfdi` en InsForge; persistir archivos tras timbrado y nota de crédito (hoy solo rutas legacy en auditoría).
+2. **Pruebas PAC en Vercel** — Smoke test de las 6 operaciones en preview/prod; si 401, renovar bearer FacturoPorTi.
+3. **Logo Churchill** — `FACTUROPORTI_CHURCHILL_LOGO_BASE64` (falta `escudo.png` en legacy); opcional.
+4. **Reporte contadores** — Sustituir `winston93.edu.mx/xml` (Fase 5).
+
+### Go-live (cuando Mario lo pida)
+
+5. Re-sync final `datos_facturacion` desde MySQL.
+6. Deploy + smoke test operativo con contabilidad.
+7. Uso en paralelo con `cfdiwinston` hasta confianza operativa.
+
+### Corte legacy (solo con OK explícito de Mario)
+
+8. Apagar o redirigir `winston93.edu.mx/cfdiwinston`.
+9. Retirar credenciales del PHP en GitLab/servidor.
+10. Confirmar `/portal-facturacion` como única vía de datos fiscales de papás.
