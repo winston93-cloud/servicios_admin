@@ -33,7 +33,7 @@ export default function FacturacionShell({
 
   return (
     <ProtectedRoute>
-      <div className="dashboard-container facturacion-cfdi-page">
+      <div className="dashboard-container facturacion-cfdi-page facturacion-cfdi-atmosphere">
         <div className="dashboard-home-bg" aria-hidden="true" />
         <div className="dashboard-main">
           <div className="dashboard-heading reportes-heading facturacion-cfdi-heading">
