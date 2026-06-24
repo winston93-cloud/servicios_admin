@@ -18112,3 +18112,106 @@ html[data-theme='light'] .portal-doc-modal-cerrar:hover {
   }
 }
 
+/* ─── Facturación CFDI (Fase 1) ─── */
+.facturacion-cfdi-page .facturacion-cfdi-heading {
+  text-align: left;
+  margin-bottom: 1.5rem;
+}
+
+.facturacion-cfdi-legacy-hint {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-muted, #94a3b8);
+  line-height: 1.5;
+}
+
+.facturacion-cfdi-legacy-hint a {
+  color: var(--primary-blue, #38bdf8);
+  text-decoration: none;
+}
+
+.facturacion-cfdi-legacy-hint a:hover {
+  text-decoration: underline;
+}
+
+.facturacion-cfdi-legacy-hint .inline-icon {
+  display: inline;
+  vertical-align: -2px;
+  margin-left: 2px;
+}
+
+.facturacion-cfdi-grid {
+  margin-bottom: 1.5rem;
+}
+
+.facturacion-cfdi-fase-badge {
+  display: inline-block;
+  margin-top: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted, #94a3b8);
+}
+
+.facturacion-cfdi-footnote {
+  font-size: 0.875rem;
+  color: var(--text-muted, #94a3b8);
+  line-height: 1.55;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-light, rgba(255, 255, 255, 0.1));
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.facturacion-cfdi-placeholder {
+  padding: 2rem;
+  border-radius: 16px;
+  border: 1px solid var(--border-light, rgba(255, 255, 255, 0.1));
+  background: rgba(255, 255, 255, 0.03);
+  max-width: 640px;
+}
+
+.facturacion-cfdi-placeholder-fase {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--primary-blue, #38bdf8);
+  margin-bottom: 0.75rem;
+}
+
+.facturacion-cfdi-placeholder-text {
+  color: var(--text-secondary, #cbd5e1);
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.facturacion-cfdi-placeholder-text code {
+  font-size: 0.9em;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.facturacion-cfdi-placeholder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.facturacion-cfdi-link-btn {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--primary-blue, #38bdf8);
+  text-decoration: none;
+}
+
+.facturacion-cfdi-link-btn:hover {
+  text-decoration: underline;
+}
+

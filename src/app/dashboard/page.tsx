@@ -163,6 +163,20 @@ const NAV_ITEMS_ADMIN: DashboardNavItem[] = [
       </svg>
     ),
   },
+  {
+    label: 'Facturación CFDI',
+    desc: 'Timbrado, cancelaciones y devoluciones fiscales',
+    path: '/facturacion',
+    accent: 'emerald',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 2h16v20l-4-2-4 2-4-2-4 2V2z"/>
+        <path d="M8 7h8"/>
+        <path d="M8 11h8"/>
+        <path d="M8 15h5"/>
+      </svg>
+    ),
+  },
 ]
 
 /** Portales en línea solo para alumnos / familias. */
