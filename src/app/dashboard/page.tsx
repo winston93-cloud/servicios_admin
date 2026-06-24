@@ -1,6 +1,7 @@
 'use client'
 
 import { urlProrrogasAjustesApp } from '@/lib/prorrogasAjustesConfig'
+import { urlCchicApp } from '@/lib/cchicConfig'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -142,6 +143,23 @@ const NAV_ITEMS_ADMIN: DashboardNavItem[] = [
         <path d="M9 20v-6h6v6"/>
         <path d="M12 7v3"/>
         <path d="M10.5 9.5h3"/>
+      </svg>
+    ),
+  },
+  {
+    label: 'Monitoreo y Control',
+    desc: 'Caja chica, egresos, fondos y reportes de control',
+    href: urlCchicApp(),
+    accent: 'indigo',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 20V10"/>
+        <path d="M18 20V4"/>
+        <path d="M6 20v-4"/>
+        <rect x="3" y="2" width="18" height="4" rx="1"/>
+        <path d="M7 6v2"/>
+        <path d="M12 6v2"/>
+        <path d="M17 6v2"/>
       </svg>
     ),
   },
