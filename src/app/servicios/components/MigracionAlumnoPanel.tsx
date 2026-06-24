@@ -11,6 +11,7 @@ import {
   Coffee,
   Database,
   Eraser,
+  FileText,
   GitCompareArrows,
   GraduationCap,
   KeyRound,
@@ -85,6 +86,7 @@ const GRUPO_ICON: Record<TablaMigracion['grupo'], ComponentType<{ size?: number;
   boletas: GraduationCap,
   desayunos: Coffee,
   sistema: Settings,
+  facturacion: FileText,
 }
 
 const MODOS_INFO: Record<

@@ -24,6 +24,12 @@ const DEFAULTS_NOT_NULL_DESTINO: Partial<
     pago_emisora: ' ',
     pago_referencia: '000000000000',
   },
+  datos_facturacion: {
+    nexterior: '',
+    ninterior: '',
+    lada: '',
+    numero: '',
+  },
 }
 
 function aplicarDefaultsNotNull(

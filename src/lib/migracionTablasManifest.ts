@@ -13,7 +13,7 @@ export interface TablaMigracion {
   /** PK en MySQL si el nombre legacy difiere (ej. porroga_id → prorroga_id) */
   mysqlPk?: string
   /** Grupo para selección en UI */
-  grupo: 'alumnos' | 'catalogos' | 'pagos' | 'boletas' | 'desayunos' | 'sistema'
+  grupo: 'alumnos' | 'catalogos' | 'pagos' | 'boletas' | 'desayunos' | 'sistema' | 'facturacion'
   etiqueta: string
 }
 
@@ -29,6 +29,7 @@ export const GRUPOS_MIGRACION: Record<TablaMigracion['grupo'], string> = {
   boletas: 'Boletas / credenciales maestros',
   desayunos: 'Desayunos POS',
   sistema: 'Sistema',
+  facturacion: 'Facturación CFDI',
 }
 
 export const TABLAS_MIGRACION: TablaMigracion[] = [
@@ -206,6 +207,14 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
     pk: 'usuario_id',
     grupo: 'sistema',
     etiqueta: 'Usuarios',
+  },
+  {
+    id: 'datos_facturacion',
+    mysql: 'datos_facturacion',
+    destino: 'datos_facturacion',
+    pk: 'id',
+    grupo: 'facturacion',
+    etiqueta: 'Datos fiscales (papás)',
   },
 ]
 

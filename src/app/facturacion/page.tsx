@@ -8,8 +8,9 @@ export default function FacturacionPage() {
       subtitle="Selecciona una operación. El timbrado real se habilitará en las fases 3 y 4."
     >
       <p className="facturacion-cfdi-footnote" role="status">
-        Fase 1: menú integrado en Servicios Administrativos. Datos fiscales de papás y tablas de
-        auditoría se conectarán en la Fase 2 (InsForge Winston Servicios).
+        Fase 2: datos fiscales de papás en InsForge (
+        <code>/portal-facturacion</code>). Timbrado y cancelaciones siguen en el portal PHP
+        hasta las fases 3–4.
       </p>
     </FacturacionShell>
   )

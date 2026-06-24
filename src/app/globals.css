@@ -18215,3 +18215,65 @@ html[data-theme='light'] .portal-doc-modal-cerrar:hover {
   text-decoration: underline;
 }
 
+/* Portal facturación (papás) */
+.portal-facturacion-page {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+
+.portal-facturacion-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.portal-facturacion-aviso {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.08);
+  color: var(--text-secondary, #cbd5e1);
+  font-size: 0.9rem;
+}
+
+.portal-facturacion-error {
+  color: #f87171;
+  font-size: 0.9rem;
+}
+
+.portal-facturacion-exito {
+  color: #4ade80;
+  font-size: 0.9rem;
+}
+
+.portal-facturacion-section h2 {
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-primary, #f1f5f9);
+}
+
+.portal-facturacion-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1rem;
+}
+
+.portal-facturacion-span2 {
+  grid-column: span 2;
+}
+
+.portal-facturacion-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .portal-facturacion-grid {
+    grid-template-columns: 1fr;
+  }
+  .portal-facturacion-span2 {
+    grid-column: span 1;
+  }
+}
+
