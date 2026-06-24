@@ -1,7 +1,7 @@
 /**
- * /servicios — UI UX PRO MAX (diseño original administrativo)
- * Paleta clara profesional: sidebar #1e3a5f, área #e2e8f0, tarjetas blancas.
- * Excluido del shell Totality Festival; estilos base en globals.css.
+ * /servicios — UI UX PRO MAX (administrativo educativo)
+ * Modo claro: sidebar navy + área slate clara.
+ * Modo oscuro: slate profundo + acentos azul (sin Totality).
  */
 
 .pos-totality-theme.admin-app-shell:has(.servicios-app) {
@@ -12,85 +12,174 @@
 .pos-totality-theme.admin-app-shell .servicios-app {
   isolation: isolate;
   z-index: 1;
+  min-height: 100vh;
   font-family:
     system-ui,
     -apple-system,
     'Segoe UI',
     Roboto,
     sans-serif;
+
+  /* UI UX PRO MAX — tokens modo claro */
+  --sx-surface: #e2e8f0;
+  --sx-sidebar: #1e3a5f;
+  --sx-sidebar-border: rgba(255, 255, 255, 0.08);
+  --sx-sidebar-text: #f8fafc;
+  --sx-sidebar-muted: rgba(248, 250, 252, 0.78);
+  --sx-sidebar-hover: rgba(255, 255, 255, 0.08);
+  --sx-sidebar-active: rgba(255, 255, 255, 0.14);
+  --sx-toolbar: #e2e8f0;
+  --sx-text: #0f172a;
+  --sx-text-secondary: #475569;
+  --sx-text-muted: #64748b;
+  --sx-card: #ffffff;
+  --sx-card-border: #cbd5e1;
+  --sx-card-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --sx-input-bg: #ffffff;
+  --sx-input-border: #cbd5e1;
+  --sx-input-focus: #3b82f6;
+  --sx-btn-ghost-bg: #ffffff;
+  --sx-btn-ghost-border: #cbd5e1;
+  --sx-btn-ghost-text: #1e293b;
+  --sx-ciclo-bg: linear-gradient(135deg, #eff6ff 0%, #dbeafe 45%, #bfdbfe 100%);
+  --sx-ciclo-border: #1e40af;
+  --sx-ciclo-label: #1e3a8a;
+  --sx-table-head: #64748b;
+  --sx-table-row-hover: #f1f5f9;
+  --sx-table-border: #e2e8f0;
+  --sx-accent: #2563eb;
+  --sx-accent-hover: #3b82f6;
+  --sx-accent-ring: rgba(37, 99, 235, 0.35);
 }
 
-/* Anular herencia Totality / dark mode global dentro del módulo */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app {
+  --sx-surface: #0f172a;
+  --sx-sidebar: #0c1a2e;
+  --sx-sidebar-border: rgba(148, 163, 184, 0.12);
+  --sx-sidebar-text: #e2e8f0;
+  --sx-sidebar-muted: #94a3b8;
+  --sx-sidebar-hover: rgba(59, 130, 246, 0.12);
+  --sx-sidebar-active: rgba(59, 130, 246, 0.22);
+  --sx-toolbar: #0f172a;
+  --sx-text: #f1f5f9;
+  --sx-text-secondary: #cbd5e1;
+  --sx-text-muted: #94a3b8;
+  --sx-card: #1e293b;
+  --sx-card-border: #334155;
+  --sx-card-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  --sx-input-bg: #0f172a;
+  --sx-input-border: #475569;
+  --sx-input-focus: #60a5fa;
+  --sx-btn-ghost-bg: #1e293b;
+  --sx-btn-ghost-border: #475569;
+  --sx-btn-ghost-text: #e2e8f0;
+  --sx-ciclo-bg: linear-gradient(135deg, #1e293b 0%, #172554 50%, #1e3a5f 100%);
+  --sx-ciclo-border: #3b82f6;
+  --sx-ciclo-label: #93c5fd;
+  --sx-table-head: #94a3b8;
+  --sx-table-row-hover: #334155;
+  --sx-table-border: #334155;
+  --sx-accent: #3b82f6;
+  --sx-accent-hover: #60a5fa;
+  --sx-accent-ring: rgba(96, 165, 250, 0.4);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app {
+  background: var(--sx-surface);
+  color: var(--sx-text);
+}
+
+/* ─── Shell ─── */
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar {
-  background: #1e3a5f;
-  border-right: none;
+  background: var(--sx-sidebar);
+  border-right: 1px solid var(--sx-sidebar-border);
   backdrop-filter: none;
-  color: #f8fafc;
-  box-shadow: 4px 0 24px rgba(15, 23, 42, 0.2);
+  color: var(--sx-sidebar-text);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar-brand,
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar-footer {
+  border-color: var(--sx-sidebar-border);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar-user {
+  color: var(--sx-sidebar-muted);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar-collapse,
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-mobile-toggle {
+  background: var(--sx-sidebar-hover);
+  color: var(--sx-sidebar-text);
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item,
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem {
-  color: rgba(248, 250, 252, 0.92);
+  color: var(--sx-sidebar-text);
 }
 
-.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item:hover {
-  background: rgba(255, 255, 255, 0.08);
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem {
+  color: var(--sx-sidebar-muted);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item:hover,
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem:hover {
+  background: var(--sx-sidebar-hover);
+  color: var(--sx-sidebar-text);
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item.active,
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem.active {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--sx-sidebar-active);
   color: #fff;
+  border-color: transparent;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-submenu {
+  border-left-color: var(--sx-sidebar-border);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar-logout {
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--sx-sidebar-border);
+  color: var(--sx-sidebar-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar-logout:hover {
+  background: rgba(220, 38, 38, 0.25);
+  border-color: rgba(248, 113, 113, 0.4);
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-main-toolbar {
-  background: #e2e8f0;
+  background: var(--sx-toolbar);
   border: none;
   border-radius: 0;
   backdrop-filter: none;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll {
-  color: #0f172a;
+  color: var(--sx-text);
 }
 
-.pos-totality-theme.admin-app-shell .servicios-app .servicios-panel-title {
-  font-family: inherit;
-  color: #0f172a;
-  text-shadow: none;
-}
-
-.pos-totality-theme.admin-app-shell .servicios-app .servicios-panel-lead,
-.pos-totality-theme.admin-app-shell .servicios-app .servicios-panel-hint {
-  color: #475569;
-}
-
-.pos-totality-theme.admin-app-shell .servicios-app .servicios-panel-card {
-  background: #fff;
-  border: 1px solid #cbd5e1;
-  color: #0f172a;
-  backdrop-filter: none;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
-}
-
+/* ─── Toolbar ─── */
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-back-btn {
-  background: #fff;
-  border: 1px solid #cbd5e1;
-  color: #1e293b;
+  background: var(--sx-btn-ghost-bg);
+  border: 1px solid var(--sx-btn-ghost-border);
+  color: var(--sx-btn-ghost-text);
   font-family: inherit;
   font-size: 13px;
+  font-weight: 600;
   letter-spacing: normal;
   text-transform: none;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-back-btn:hover {
-  background: #f8fafc;
-  border-color: #94a3b8;
+  background: var(--sx-table-row-hover);
+  border-color: var(--sx-input-border);
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-btn-modulo {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 55%, #1e40af 100%);
+  background: linear-gradient(135deg, var(--sx-accent) 0%, #1d4ed8 55%, #1e40af 100%);
   color: #fff;
   border: 2px solid #1d4ed8;
   font-family: inherit;
@@ -100,30 +189,37 @@
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-btn-modulo:hover {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 55%, #1d4ed8 100%);
+  background: linear-gradient(135deg, var(--sx-accent-hover) 0%, var(--sx-accent) 55%, #1d4ed8 100%);
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-btn-modulo--activo {
-  outline: 3px solid rgba(37, 99, 235, 0.35);
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 55%, #1e40af 100%);
+  outline: 3px solid var(--sx-accent-ring);
   color: #fff;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .ciclo-escolar-selector {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 45%, #bfdbfe 100%);
-  border: 2px solid #1e40af;
+  background: var(--sx-ciclo-bg);
+  border: 2px solid var(--sx-ciclo-border);
   backdrop-filter: none;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .ciclo-escolar-selector-label {
-  color: #1e3a8a;
+  color: var(--sx-ciclo-label);
   font-family: inherit;
 }
 
+.pos-totality-theme.admin-app-shell .servicios-app .ciclo-escolar-selector-icon {
+  color: var(--sx-accent);
+}
+
 .pos-totality-theme.admin-app-shell .servicios-app .ciclo-escolar-selector-select {
-  background: #fff;
-  border: 1px solid #3b82f6;
-  color: #0f172a;
+  background: var(--sx-input-bg);
+  border: 1px solid var(--sx-input-focus);
+  color: var(--sx-text);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .ciclo-escolar-selector-loading {
+  color: var(--sx-ciclo-label);
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-toolbar-der {
@@ -133,17 +229,170 @@
   gap: 8px;
 }
 
+.pos-totality-theme.admin-app-shell .servicios-app .theme-toggle {
+  border-color: var(--sx-btn-ghost-border);
+  background: var(--sx-btn-ghost-bg);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .theme-toggle-label {
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .theme-toggle-track {
+  background: #0f172a;
+  border-color: #475569;
+}
+
+/* ─── Paneles y tipografía ─── */
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-panel-title,
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-form-title'],
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-titulo'],
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-card-titulo'] {
+  font-family: inherit;
+  color: var(--sx-text) !important;
+  text-shadow: none;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-panel-lead,
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-lead'],
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-hint'],
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-panel-hint {
+  color: var(--sx-text-secondary) !important;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-panel-lead code {
+  color: var(--sx-ciclo-label);
+  background: var(--sx-card);
+  border: 1px solid var(--sx-card-border);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-panel-card,
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-filtros-grid'],
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-formulario'],
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-tabla-card'],
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-table-card'],
+.pos-totality-theme.admin-app-shell .servicios-app .ciclos-crud-table-card,
+.pos-totality-theme.admin-app-shell .servicios-app .pc-tabla-card,
+.pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-panel,
+.pos-totality-theme.admin-app-shell .servicios-app .pi-tarjeta {
+  background: var(--sx-card) !important;
+  border: 1px solid var(--sx-card-border) !important;
+  color: var(--sx-text);
+  backdrop-filter: none;
+  box-shadow: var(--sx-card-shadow);
+}
+
+/* ─── Formularios ─── */
+.pos-totality-theme.admin-app-shell .servicios-app label,
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-label']:not([class*='balance']) {
+  color: var(--sx-text-muted) !important;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll input:not([type='checkbox']):not([type='radio']):not([type='color']),
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll select,
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll textarea {
+  background: var(--sx-input-bg) !important;
+  color: var(--sx-text) !important;
+  border: 1px solid var(--sx-input-border) !important;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll input::placeholder,
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll textarea::placeholder {
+  color: var(--sx-text-muted) !important;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll input:focus,
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll select:focus,
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll textarea:focus {
+  border-color: var(--sx-input-focus) !important;
+  box-shadow: 0 0 0 3px var(--sx-accent-ring);
+}
+
+/* ─── Botones de módulos ─── */
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-btn--primary'],
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-btn-primary'],
+.pos-totality-theme.admin-app-shell .servicios-app .asignar-grupos-btn--primary,
+.pos-totality-theme.admin-app-shell .servicios-app .ciclos-crud-btn--primary,
+.pos-totality-theme.admin-app-shell .servicios-app .becas-btn--dirty {
+  background: linear-gradient(135deg, var(--sx-accent) 0%, #1d4ed8 100%) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-btn--secondary'],
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-btn--ghost'],
+.pos-totality-theme.admin-app-shell .servicios-app .asignar-grupos-btn--secondary,
+.pos-totality-theme.admin-app-shell .servicios-app .asignar-grupos-btn--ghost {
+  background: var(--sx-btn-ghost-bg) !important;
+  color: var(--sx-btn-ghost-text) !important;
+  border: 1px solid var(--sx-btn-ghost-border) !important;
+}
+
+/* ─── Tablas ─── */
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll table {
+  color: var(--sx-text);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll th {
+  color: var(--sx-table-head) !important;
+  border-bottom-color: var(--sx-table-border) !important;
+  background: transparent !important;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll td {
+  color: var(--sx-text) !important;
+  border-bottom-color: var(--sx-table-border) !important;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll tbody tr:hover td {
+  background: var(--sx-table-row-hover) !important;
+}
+
+/* ─── Dropdowns / autocompletado ─── */
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-dropdown'],
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-ac-list'],
+.pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-dropdown {
+  background: var(--sx-card) !important;
+  border: 1px solid var(--sx-card-border) !important;
+  color: var(--sx-text);
+  box-shadow: var(--sx-card-shadow);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-ac-item']:hover {
+  background: var(--sx-table-row-hover) !important;
+}
+
+/* ─── Mensajes ─── */
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-msg--ok'],
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-alert--ok'] {
+  background: rgba(34, 197, 94, 0.12) !important;
+  border-color: rgba(34, 197, 94, 0.35) !important;
+  color: #86efac !important;
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .servicios-app [class*='-msg--ok'] {
+  color: #166534 !important;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-msg--error'],
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-alert--err'] {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border-color: rgba(239, 68, 68, 0.35) !important;
+  color: #fca5a5 !important;
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .servicios-app [class*='-msg--error'] {
+  color: #991b1b !important;
+}
+
 @media (min-width: 901px) {
   .pos-totality-theme.admin-app-shell .servicios-app .servicios-toolbar-der {
     flex-direction: column;
   }
 }
 
-.pos-totality-theme.admin-app-shell .servicios-app .theme-toggle {
-  border-color: #cbd5e1;
-  background: #fff;
-}
-
-.pos-totality-theme.admin-app-shell .servicios-app .theme-toggle-label {
-  color: #64748b;
+@media (max-width: 900px) {
+  html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar-backdrop {
+    background: rgba(0, 0, 0, 0.65);
+  }
 }

@@ -44,7 +44,7 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 - **Tema:** Totality Festival (eclipse cósmico: obsidiana + oro `#fff6df` + cian `#00e3fd`). Space Grotesk en títulos/labels; Inter en cuerpo.
 - **Modo claro/oscuro:** `ThemeToggle` + `data-theme` en `<html>`; persistencia en `localStorage` (`servicios-admin-theme` en este repo).
 - **CSS raíz:** `src/app/pos/pos-totality-theme.css` + `src/app/admin-totality-overrides.css` + `src/app/facturacion/facturacion-totality-overrides.css`.
-- **Módulo `/servicios`:** excluido de Totality — conserva **UI UX PRO MAX** original (`servicios/servicios-original-theme.css` + estilos en `globals.css`: sidebar navy, paneles claros).
+- **Módulo `/servicios`:** excluido de Totality — **UI UX PRO MAX** (`servicios/servicios-original-theme.css`): claro (navy + slate) y oscuro (slate profundo + azul) vía el mismo `ThemeToggle`.
 - **Excluidos (sin cambio de diseño ni toggle):**
   - AgendaW: `/admin` y rutas de directoras (`agendaw`).
   - Open House: `open_house/app/admin`.
