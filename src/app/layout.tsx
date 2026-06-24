@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import "./pos/pos-totality-theme.css";
+import "./admin-totality-overrides.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { DEFAULT_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
@@ -13,6 +15,18 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -39,11 +53,16 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${inter.variable} antialiased`}
       >
         <ThemeProvider>
           <AuthProvider>
-            {children}
+            <div
+              className="pos-totality-theme admin-app-shell"
+              data-admin-theme="totality-festival"
+            >
+              {children}
+            </div>
           </AuthProvider>
         </ThemeProvider>
       </body>

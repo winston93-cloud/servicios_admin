@@ -1,0 +1,283 @@
+/**
+ * Totality Festival — shell admin servicios_admin (dashboard, servicios, reportes, login, portales).
+ * Excluido en otros repos: AgendaW admin/directoras, Open House admin.
+ */
+
+.pos-totality-theme.admin-app-shell {
+  min-height: 100vh;
+}
+
+.pos-totality-theme.admin-app-shell .dashboard-home-bg,
+.pos-totality-theme.admin-app-shell .portal-access-bg {
+  display: none;
+}
+
+/* ─── Dashboard home ─── */
+.pos-totality-theme.admin-app-shell .dashboard-home .dashboard-header {
+  background: rgba(26, 27, 33, 0.75);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .dashboard-home .dashboard-header {
+  background: rgba(255, 255, 255, 0.85);
+  border-bottom-color: rgba(26, 27, 33, 0.1);
+}
+
+.pos-totality-theme.admin-app-shell .dashboard-home .dashboard-title,
+.pos-totality-theme.admin-app-shell .dashboard-home .dash-nav-title {
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  color: #fff6df;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .dashboard-home .dashboard-title,
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .dashboard-home .dash-nav-title {
+  color: #3a3000;
+  text-shadow: none;
+}
+
+.pos-totality-theme.admin-app-shell .dashboard-home .dashboard-subtitle,
+.pos-totality-theme.admin-app-shell .dashboard-home .dash-nav-desc {
+  color: #d0c6ab;
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .dashboard-home .dashboard-subtitle,
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .dashboard-home .dash-nav-desc {
+  color: #6b6556;
+}
+
+.pos-totality-theme.admin-app-shell .dashboard-home .dash-nav-item {
+  background: rgba(52, 52, 58, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .dashboard-home .dash-nav-item {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(26, 27, 33, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.pos-totality-theme.admin-app-shell .dashboard-home .dash-nav-item:hover {
+  border-color: rgba(0, 227, 253, 0.35);
+  box-shadow: 0 0 28px rgba(0, 227, 253, 0.12);
+}
+
+.pos-totality-theme.admin-app-shell .dashboard-home .dash-nav-item::before,
+.pos-totality-theme.admin-app-shell .dashboard-home .dash-nav-item::after {
+  display: none;
+}
+
+.pos-totality-theme.admin-app-shell .dashboard-home .dash-nav-icon {
+  background: rgba(0, 227, 253, 0.1);
+  border: 1px solid rgba(0, 227, 253, 0.25);
+  color: #00e3fd;
+}
+
+.pos-totality-theme.admin-app-shell .dashboard-home .dashboard-logout-btn,
+.pos-totality-theme.admin-app-shell .dashboard-home .dashboard-hamburger-btn {
+  background: rgba(52, 52, 58, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #bdf4ff;
+}
+
+.pos-totality-theme.admin-app-shell .dashboard-home .dashboard-welcome {
+  color: #e3e1e9;
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .dashboard-home .dashboard-welcome {
+  color: #1a1b21;
+}
+
+.pos-totality-theme.admin-app-shell .dashboard-home .dashboard-flank-label {
+  color: #999077;
+}
+
+/* ─── Login ─── */
+.pos-totality-theme.admin-app-shell .portal-access {
+  min-height: 100vh;
+}
+
+.pos-totality-theme.admin-app-shell .portal-access-card {
+  background: rgba(26, 27, 33, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(24px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .portal-access-card {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(26, 27, 33, 0.12);
+}
+
+.pos-totality-theme.admin-app-shell .portal-access-title {
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  color: #fff6df;
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .portal-access-title {
+  color: #3a3000;
+}
+
+.pos-totality-theme.admin-app-shell .portal-access-input,
+.pos-totality-theme.admin-app-shell .portal-access .pi-form-input {
+  background: #0d0e13;
+  border: 1px solid rgba(153, 144, 119, 0.35);
+  color: #e3e1e9;
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .portal-access-input {
+  background: #fff;
+  border-color: rgba(107, 101, 86, 0.35);
+  color: #1a1b21;
+}
+
+.pos-totality-theme.admin-app-shell .portal-access-submit {
+  background: #fff6df;
+  color: #3a3000;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ─── Servicios ─── */
+.pos-totality-theme.admin-app-shell .servicios-sidebar {
+  background: rgba(26, 27, 33, 0.92);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .servicios-sidebar {
+  background: rgba(255, 255, 255, 0.92);
+  border-right-color: rgba(26, 27, 33, 0.1);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-nav-item,
+.pos-totality-theme.admin-app-shell .servicios-nav-subitem {
+  color: #d0c6ab;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-nav-item.active,
+.pos-totality-theme.admin-app-shell .servicios-nav-subitem.active {
+  background: rgba(0, 227, 253, 0.12);
+  color: #fff6df;
+  border-color: rgba(0, 227, 253, 0.25);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-main-toolbar {
+  background: rgba(52, 52, 58, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  backdrop-filter: blur(16px);
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .servicios-main-toolbar {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-panel-card,
+.pos-totality-theme.admin-app-shell .servicios-panel-inner {
+  color: #e3e1e9;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-panel-title {
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  color: #fff6df;
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .servicios-panel-title {
+  color: #3a3000;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-back-btn,
+.pos-totality-theme.admin-app-shell .servicios-btn-modulo {
+  background: rgba(52, 52, 58, 0.25);
+  border: 1px solid rgba(0, 227, 253, 0.25);
+  color: #bdf4ff;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-btn-modulo--activo {
+  background: rgba(0, 227, 253, 0.15);
+  color: #fff6df;
+}
+
+/* ─── Reportes ─── */
+.pos-totality-theme.admin-app-shell .reportes-section {
+  background: rgba(52, 52, 58, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .reportes-section {
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.pos-totality-theme.admin-app-shell .reportes-section-title {
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  color: #fff6df;
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .reportes-section-title {
+  color: #3a3000;
+}
+
+.pos-totality-theme.admin-app-shell .reportes-search input {
+  background: #0d0e13;
+  border: 1px solid rgba(153, 144, 119, 0.35);
+  color: #e3e1e9;
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .reportes-search input {
+  background: #fff;
+  color: #1a1b21;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-back-btn {
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pos-totality-theme.admin-app-shell .theme-toggle {
+  border-color: rgba(0, 227, 253, 0.25);
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .theme-toggle-track {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(26, 27, 33, 0.15);
+}
+
+.pos-totality-theme.admin-app-shell .portal-access-theme-row,
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-theme-row,
+.pos-totality-theme.admin-app-shell .reportes-theme-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+}
+
+.pos-totality-theme.admin-app-shell .portal-access-main {
+  position: relative;
+}
+
+.pos-totality-theme.admin-app-shell .portal-access-theme-row {
+  position: absolute;
+  top: 0;
+  right: 0;
+  margin-top: 0;
+  z-index: 2;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-toolbar-der {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pos-totality-theme.admin-app-shell .pos-user-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}

@@ -21,6 +21,7 @@ import { CombinedSearchResult } from '@/lib/alumnoService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { generarReporteLudy } from '@/lib/reporteLudyServicePDF';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface ProductWithDate extends ProductoSearchResult {
   date?: Date;
@@ -151,6 +152,7 @@ export default function Home() {
             </nav>
             {/* Usuario logueado y logout */}
             <div className="pos-user-section">
+              <ThemeToggle />
               <div className="pos-user-info">
                 <User className="w-4 h-4" />
                 <span className="pos-user-name">{user?.usuario_nombre_completo}</span>

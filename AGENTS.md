@@ -39,6 +39,16 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 - Credenciales PAC `FACTUROPORTI_*` en Vercel (`scripts/setup-facturoporti-vercel-env.mjs`).
 - Tema UI: Totality (mismo que Desayunos POS).
 
+### Diseño global Totality + light/dark
+
+- **Tema:** Totality Festival (Desayunos Sonny) en todo el ecosistema Winston Next.js.
+- **Modo claro/oscuro:** `ThemeToggle` + `data-theme` en `<html>`; persistencia en `localStorage` (`servicios-admin-theme` en este repo).
+- **CSS:** `src/app/pos/pos-totality-theme.css` + `src/app/admin-totality-overrides.css` en el layout raíz.
+- **Excluidos (sin cambio de diseño ni toggle):**
+  - AgendaW: `/admin` y rutas de directoras (`agendaw`).
+  - Open House: `open_house/app/admin`.
+- **Otros repos alineados:** `prorrogas_ajustes`, `Cchic` (cada uno con su clave `localStorage` propia).
+
 ### Pendiente para terminar el sistema nuevo
 
 1. **Storage XML/PDF** — Bucket `cfdi` en InsForge; persistir archivos tras timbrado y nota de crédito (hoy solo rutas legacy en auditoría).

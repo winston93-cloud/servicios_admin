@@ -1,5 +1,6 @@
 'use client'
 
+import ThemeToggle from '@/components/ThemeToggle'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import {
   cicloEscolarEtiqueta,
@@ -223,6 +224,9 @@ export default function ReportesPage() {
               Los reportes se generan en Servicios Admin (InsForge + Vercel). Elige
               nivel y ciclo; no dependen del hosting PHP legacy.
             </p>
+            <div className="reportes-theme-row">
+              <ThemeToggle />
+            </div>
           </div>
 
           <div className="reportes-toolbar">

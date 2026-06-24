@@ -1,5 +1,6 @@
 'use client'
 
+import ThemeToggle from '@/components/ThemeToggle'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { urlCfdiLegacyApp, urlReporteContadoresLegacy } from '@/lib/cfdiConfig'
 import { FACTURACION_NAV } from '@/lib/facturacionNav'
@@ -57,6 +58,9 @@ export default function FacturacionShell({
                 Reporte contadores <ExternalLink size={12} className="inline-icon" aria-hidden />
               </a>
             </p>
+            <div className="facturacion-cfdi-theme-row">
+              <ThemeToggle />
+            </div>
           </div>
 
           {showNav ? (

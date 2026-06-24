@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { loginPortal } from '@/lib/portalAuthService'
 import { useAuth } from '@/contexts/AuthContext'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -68,6 +69,9 @@ export default function LoginPage() {
       </aside>
 
       <main className="portal-access-main">
+        <div className="portal-access-theme-row">
+          <ThemeToggle />
+        </div>
         <div className="portal-access-mobile-logos" aria-hidden>
           <Image
             src="/logos/logo-winston-churchill.png"

@@ -28,6 +28,7 @@ import SuspensionesModulo from './modulos/SuspensionesModulo'
 import CredencialesModulo from './modulos/CredencialesModulo'
 import BauchersModulo from './modulos/BauchersModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
+import ThemeToggle from '@/components/ThemeToggle'
 import { AlumnoSeleccionadoProvider } from '@/contexts/AlumnoSeleccionadoContext'
 
 const SIDEBAR_COLLAPSED_KEY = 'servicios-sidebar-collapsed'
@@ -360,6 +361,7 @@ function ServiciosPageInner() {
             <CicloEscolarSelector etiqueta="Ciclo activo" />
           </div>
           <div className="servicios-toolbar-der">
+            <ThemeToggle />
             <button
               type="button"
               className={`servicios-btn-modulo${moduloActivo === 'alumnos' ? ' servicios-btn-modulo--activo' : ''}`}
