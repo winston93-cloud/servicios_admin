@@ -1,0 +1,556 @@
+/**
+ * Totality Festival — tema Desayunos POS (personal administrativo)
+ * Cosmic premium: obsidiana + corona dorada + cian etéreo.
+ */
+
+.pos-totality-theme {
+  color-scheme: dark;
+  font-family: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
+  min-height: 100vh;
+  color: #e3e1e9;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 0%, rgba(0, 227, 253, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at 80% 90%, rgba(231, 209, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 50% 40%, rgba(255, 215, 0, 0.06) 0%, transparent 45%),
+    #121318;
+
+  /* Tokens Totality */
+  --bg-primary: #121318;
+  --bg-secondary: #1a1b21;
+  --bg-card: rgba(52, 52, 58, 0.2);
+  --bg-subtle: #1e1f25;
+  --bg-accent: #ffd700;
+  --bg-accent-hover: #ffe16d;
+  --bg-accent-muted: rgba(255, 215, 0, 0.12);
+  --bg-accent-border: rgba(255, 246, 223, 0.25);
+  --bg-accent-glow: rgba(0, 227, 253, 0.2);
+  --text-primary: #e3e1e9;
+  --text-secondary: #d0c6ab;
+  --text-muted: #999077;
+  --text-on-accent: #3a3000;
+  --border-light: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(153, 144, 119, 0.35);
+  --success: #86efac;
+  --warning: #fde68a;
+  --error: #ffb4ab;
+  --info: #00e3fd;
+  --glass-bg: rgba(52, 52, 58, 0.2);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --bg-gradient: linear-gradient(135deg, #fff6df 0%, #ffd700 100%);
+  --bg-gradient-secondary: linear-gradient(135deg, #bdf4ff 0%, #00e3fd 100%);
+  --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.55);
+  --shadow-glow: 0 0 32px rgba(0, 227, 253, 0.15);
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --totality-primary: #fff6df;
+  --totality-secondary: #bdf4ff;
+  --totality-cyan: #00e3fd;
+  --totality-surface-high: #292a2f;
+}
+
+/* Forzar tema oscuro en POS */
+html[data-theme='dark'] .pos-totality-theme,
+html[data-theme='light'] .pos-totality-theme {
+  --bg-primary: #121318;
+  --bg-secondary: #1a1b21;
+  --bg-card: rgba(52, 52, 58, 0.2);
+  --text-primary: #e3e1e9;
+  --text-secondary: #d0c6ab;
+  --text-muted: #999077;
+  --glass-bg: rgba(52, 52, 58, 0.2);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --border-light: rgba(255, 255, 255, 0.08);
+  --border-medium: rgba(153, 144, 119, 0.35);
+}
+
+.pos-totality-theme h1,
+.pos-totality-theme h2,
+.pos-totality-theme h3,
+.pos-totality-theme .pos-logo,
+.pos-totality-theme .search-header,
+.pos-totality-theme .product-table-title,
+.pos-totality-theme .modal-title,
+.pos-totality-theme .pos-nav-item,
+.pos-totality-theme .btn-primary,
+.pos-totality-theme .btn-secondary,
+.pos-totality-theme .search-label,
+.pos-totality-theme .table-header {
+  font-family: var(--font-space-grotesk), 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ─── Header ─── */
+.pos-totality-theme .pos-header {
+  background: rgba(26, 27, 33, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.pos-totality-theme .pos-logo {
+  color: #fff6df;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 24px rgba(255, 215, 0, 0.25);
+}
+
+.pos-totality-theme .pos-logo svg {
+  color: #00e3fd;
+  filter: drop-shadow(0 0 8px rgba(0, 227, 253, 0.4));
+}
+
+.pos-totality-theme .pos-nav-item {
+  background: rgba(52, 52, 58, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #bdf4ff;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  font-size: 0.8125rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  backdrop-filter: blur(12px);
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.pos-totality-theme .pos-nav-item:hover,
+.pos-totality-theme .pos-nav-item.active {
+  background: rgba(0, 227, 253, 0.12);
+  color: #fff6df;
+  border-color: rgba(0, 227, 253, 0.35);
+  box-shadow: 0 0 20px rgba(0, 227, 253, 0.2);
+  transform: translateY(-1px);
+}
+
+.pos-totality-theme .pos-user-info {
+  background: rgba(52, 52, 58, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  color: #e3e1e9;
+  backdrop-filter: blur(12px);
+}
+
+.pos-totality-theme .pos-logout-btn {
+  background: rgba(52, 52, 58, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #d0c6ab;
+  border-radius: 0.5rem;
+  backdrop-filter: blur(12px);
+}
+
+.pos-totality-theme .pos-logout-btn:hover {
+  background: rgba(147, 0, 10, 0.35);
+  color: #ffb4ab;
+  border-color: rgba(255, 180, 171, 0.35);
+  box-shadow: 0 0 16px rgba(255, 180, 171, 0.15);
+}
+
+/* ─── Main ─── */
+.pos-totality-theme .pos-main {
+  background: transparent;
+  padding: 1.5rem;
+}
+
+/* ─── Glass cards ─── */
+.pos-totality-theme .glass-card,
+.pos-totality-theme .search-section,
+.pos-totality-theme .product-table-container {
+  background: rgba(52, 52, 58, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 32px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.pos-totality-theme .glass-card:hover,
+.pos-totality-theme .search-section:hover,
+.pos-totality-theme .product-table-container:hover {
+  background: rgba(56, 57, 63, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 28px rgba(0, 227, 253, 0.12),
+    0 12px 40px rgba(0, 0, 0, 0.45);
+  transform: translateY(-2px);
+}
+
+.pos-totality-theme .search-header,
+.pos-totality-theme .product-table-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #fff6df;
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
+}
+
+.pos-totality-theme .search-label {
+  color: #999077;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ─── Inputs ─── */
+.pos-totality-theme .employee-search-input,
+.pos-totality-theme .producto-search-input,
+.pos-totality-theme .search-input,
+.pos-totality-theme .form-input {
+  background: #0d0e13;
+  border: 1px solid rgba(153, 144, 119, 0.35);
+  border-radius: 0.5rem;
+  color: #e3e1e9;
+  font-weight: 400;
+}
+
+.pos-totality-theme .employee-search-input:focus,
+.pos-totality-theme .producto-search-input:focus,
+.pos-totality-theme .search-input:focus,
+.pos-totality-theme .form-input:focus {
+  border-color: #00e3fd;
+  box-shadow: 0 0 0 3px rgba(0, 227, 253, 0.15), 0 0 16px rgba(0, 227, 253, 0.1);
+  transform: none;
+}
+
+.pos-totality-theme .employee-search-input::placeholder,
+.pos-totality-theme .producto-search-input::placeholder,
+.pos-totality-theme .form-input::placeholder {
+  color: #999077;
+}
+
+/* ─── Search results ─── */
+.pos-totality-theme .employee-card,
+.pos-totality-theme .producto-card,
+.pos-totality-theme .search-result-item {
+  background: rgba(30, 31, 37, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.375rem;
+  backdrop-filter: blur(12px);
+}
+
+.pos-totality-theme .employee-card:hover,
+.pos-totality-theme .producto-card:hover,
+.pos-totality-theme .employee-card.highlighted,
+.pos-totality-theme .producto-card.highlighted,
+.pos-totality-theme .employee-card.selected,
+.pos-totality-theme .producto-card.selected,
+.pos-totality-theme .search-result-item:hover {
+  background: #292a2f;
+  border-color: rgba(0, 227, 253, 0.35);
+  color: #fff6df;
+  box-shadow: 0 0 20px rgba(0, 227, 253, 0.15);
+  transform: translateY(-1px);
+}
+
+.pos-totality-theme .employee-card.highlighted .employee-name,
+.pos-totality-theme .producto-card.highlighted .producto-name,
+.pos-totality-theme .employee-card.selected .employee-name,
+.pos-totality-theme .producto-card.selected .producto-name {
+  color: #fff6df;
+}
+
+.pos-totality-theme .employee-name,
+.pos-totality-theme .producto-name {
+  color: #e3e1e9;
+}
+
+.pos-totality-theme .employee-id,
+.pos-totality-theme .producto-details {
+  color: #d0c6ab;
+}
+
+.pos-totality-theme .employee-avatar,
+.pos-totality-theme .producto-avatar {
+  background: linear-gradient(135deg, #bdf4ff, #00e3fd);
+  color: #00363d;
+  box-shadow: 0 0 12px rgba(0, 227, 253, 0.3);
+}
+
+.pos-totality-theme .search-results-dropdown {
+  background: rgba(26, 27, 33, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+}
+
+/* ─── Product table ─── */
+.pos-totality-theme .product-table {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.5rem;
+  background: rgba(13, 14, 19, 0.5);
+}
+
+.pos-totality-theme .table-header {
+  background: linear-gradient(135deg, rgba(255, 246, 223, 0.15) 0%, rgba(255, 215, 0, 0.2) 100%);
+  color: #fff6df;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.pos-totality-theme .table-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #e3e1e9;
+}
+
+.pos-totality-theme .table-row:hover {
+  background: #292a2f;
+}
+
+.pos-totality-theme .table-cell {
+  color: #e3e1e9;
+}
+
+.pos-totality-theme .quantity-input {
+  background: #0d0e13;
+  border: 1px solid rgba(153, 144, 119, 0.35);
+  color: #e3e1e9;
+  border-radius: 0.375rem;
+}
+
+/* ─── Buttons ─── */
+.pos-totality-theme .btn-primary {
+  background: #fff6df;
+  color: #3a3000;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pos-totality-theme .btn-primary:hover {
+  background: #ffe16d;
+  box-shadow: 0 0 24px rgba(255, 215, 0, 0.35);
+}
+
+.pos-totality-theme .btn-secondary {
+  background: transparent;
+  color: #bdf4ff;
+  border: 1px solid rgba(0, 227, 253, 0.35);
+  border-radius: 0.5rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pos-totality-theme .btn-secondary:hover {
+  background: rgba(0, 227, 253, 0.1);
+  box-shadow: 0 0 20px rgba(0, 227, 253, 0.15);
+}
+
+.pos-totality-theme .btn-danger {
+  background: rgba(147, 0, 10, 0.5);
+  color: #ffb4ab;
+  border: 1px solid rgba(255, 180, 171, 0.3);
+  border-radius: 0.5rem;
+}
+
+.pos-totality-theme .producto-code {
+  background: rgba(231, 209, 255, 0.2);
+  color: #e7d1ff;
+}
+
+.pos-totality-theme .producto-price {
+  color: #86efac;
+  font-weight: 600;
+}
+
+/* ─── Payment calculator ─── */
+.pos-totality-theme .payment-calculator {
+  background: rgba(52, 52, 58, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 32px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(20px);
+}
+
+.pos-totality-theme .total-section {
+  background: linear-gradient(135deg, rgba(255, 246, 223, 0.2) 0%, rgba(255, 215, 0, 0.35) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.25);
+  box-shadow: 0 0 24px rgba(255, 215, 0, 0.15);
+}
+
+.pos-totality-theme .total-label,
+.pos-totality-theme .total-amount {
+  color: #fff6df;
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.2);
+}
+
+.pos-totality-theme .payment-input-group label,
+.pos-totality-theme .change-label {
+  color: #d0c6ab;
+  font-weight: 500;
+  font-size: 0.875rem;
+  letter-spacing: 0.05em;
+}
+
+.pos-totality-theme .payment-input {
+  background: #0d0e13;
+  border: 1px solid rgba(153, 144, 119, 0.35);
+  color: #e3e1e9;
+  border-radius: 0.5rem;
+}
+
+.pos-totality-theme .payment-input:focus {
+  border-color: #00e3fd;
+  background: #121318;
+  box-shadow: 0 0 0 3px rgba(0, 227, 253, 0.15);
+}
+
+.pos-totality-theme .payment-input::placeholder {
+  color: #999077;
+}
+
+.pos-totality-theme .currency-symbol {
+  color: #999077;
+}
+
+.pos-totality-theme .quick-amount-btn {
+  background: rgba(0, 227, 253, 0.08);
+  color: #bdf4ff;
+  border: 1px solid rgba(0, 227, 253, 0.25);
+  border-radius: 9999px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.pos-totality-theme .quick-amount-btn:hover {
+  background: rgba(0, 227, 253, 0.18);
+  box-shadow: 0 0 16px rgba(0, 227, 253, 0.2);
+}
+
+.pos-totality-theme .change-section {
+  background: rgba(13, 14, 19, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pos-totality-theme .change-amount.positive {
+  color: #86efac;
+  text-shadow: 0 0 12px rgba(134, 239, 172, 0.25);
+}
+
+.pos-totality-theme .change-amount.zero {
+  color: #999077;
+}
+
+.pos-totality-theme .change-amount.negative {
+  color: #ffb4ab;
+}
+
+/* ─── Post-it agenda ─── */
+.pos-totality-theme .postit-card {
+  background: rgba(59, 39, 84, 0.25);
+  border: 1px solid rgba(231, 209, 255, 0.15);
+  border-radius: 0.75rem;
+  color: #e3e1e9;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(16px);
+}
+
+.pos-totality-theme .postit-date {
+  background: none;
+  -webkit-text-fill-color: initial;
+  color: #bdf4ff;
+  font-weight: 600;
+  text-shadow: 0 0 12px rgba(0, 227, 253, 0.2);
+}
+
+.pos-totality-theme .postit-list li {
+  color: #d0c6ab;
+}
+
+.pos-totality-theme .postit-section + .postit-section {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ─── Modals ─── */
+.pos-totality-theme .modal-overlay {
+  background: rgba(13, 14, 19, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.pos-totality-theme .modal-content {
+  background: rgba(26, 27, 33, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 24px 64px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(24px);
+  color: #e3e1e9;
+}
+
+.pos-totality-theme .modal-title {
+  color: #fff6df;
+  font-weight: 600;
+  text-shadow: 0 0 16px rgba(255, 215, 0, 0.12);
+}
+
+.pos-totality-theme .modal-close {
+  background: rgba(52, 52, 58, 0.4);
+  color: #d0c6ab;
+  border-radius: 0.375rem;
+}
+
+.pos-totality-theme .modal-close:hover {
+  background: rgba(147, 0, 10, 0.4);
+  color: #ffb4ab;
+}
+
+.pos-totality-theme .form-group label {
+  color: #d0c6ab;
+}
+
+.pos-totality-theme .producto-item {
+  background: rgba(30, 31, 37, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.375rem;
+}
+
+.pos-totality-theme .producto-item:hover {
+  border-color: rgba(0, 227, 253, 0.3);
+  background: #292a2f;
+  box-shadow: 0 0 16px rgba(0, 227, 253, 0.1);
+}
+
+.pos-totality-theme .empty-table,
+.pos-totality-theme .empty-state {
+  color: #999077;
+}
+
+/* ─── Badges ─── */
+.pos-totality-theme .badge-status,
+.pos-totality-theme .status-badge,
+.pos-totality-theme .badge-primary {
+  background: rgba(231, 209, 255, 0.2);
+  color: #e7d1ff;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 768px) {
+  .pos-totality-theme .pos-header-content {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .pos-totality-theme .pos-nav {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .pos-totality-theme .pos-nav-item {
+    flex: 1 1 auto;
+    text-align: center;
+    padding: 0.5rem 0.5rem;
+    font-size: 0.7rem;
+  }
+}
