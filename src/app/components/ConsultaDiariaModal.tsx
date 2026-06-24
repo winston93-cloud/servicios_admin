@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { X, Check, Users, Coffee, Home, Utensils, BookOpen, Clock, ChefHat, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { desayunosDb } from '@/lib/desayunosDb';
+import { construirNombreCompleto } from '@/lib/alumnoBusquedaServicios';
 
 interface AlumnoVenta {
   alumno_nombre_completo: string;
@@ -302,21 +303,20 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
           const personalId = ref.substring(1);
           console.log('👩‍🏫 Buscando personal con ID:', personalId);
           
-          const { data: personal, error: personalError } = await supabase
-            .from('personal')
-            .select('*')
-            .eq('id', personalId)
+          const { data: maestro, error: maestroError } = await supabase
+            .from('boleta_maestro')
+            .select('maestro_nombre, maestro_app, maestro_apm')
+            .eq('maestro_id', personalId)
             .single();
 
-          if (personalError) {
-            console.error('❌ Error obteniendo personal:', personalError);
-            console.error('❌ ID personal buscado:', personalId);
+          if (maestroError) {
+            console.error('❌ Error obteniendo maestro:', maestroError);
+            console.error('❌ ID maestro buscado:', personalId);
             continue;
           }
 
-          console.log('✅ Personal encontrado:', personal);
+          console.log('✅ Maestro encontrado:', maestro);
 
-          // Obtener servicios para este personal
           const serviciosPersonal = serviciosRef.map(s => {
             const desc = s.pago_descripcion;
             console.log(`🔍 Analizando descripción personal: "${desc}"`);
@@ -333,7 +333,11 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
           });
 
           alumnosConVentas.push({
-            alumno_nombre_completo: `${personal.personal_nombre || ''} ${personal.personal_app || ''}`.trim(),
+            alumno_nombre_completo: construirNombreCompleto(
+              String(maestro.maestro_nombre ?? ''),
+              String(maestro.maestro_app ?? ''),
+              String(maestro.maestro_apm ?? '')
+            ),
             alumno_nivel: 'MAESTRO',
             alumno_grado: 'MAESTRO',
             servicios: serviciosPersonal,

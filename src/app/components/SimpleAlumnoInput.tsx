@@ -221,8 +221,8 @@ export default function SimpleAlumnoInput({ onAlumnoSelect }: SimpleAlumnoInputP
                   opacity: 0.8
                 }}
               >
-                {alumno.type === 'personal' ? (
-                  <>ID: {alumno.alumno_ref} | Personal | Externo</>
+                {alumno.type === 'maestro' ? (
+                  <>ID: {alumno.alumno_ref} | Maestro</>
                 ) : (
                   <>ID: {alumno.alumno_ref} | {getNivelText(alumno.alumno_nivel)} | {getGradoText(alumno.alumno_grado || '', alumno.alumno_nivel)} | {getGrupoText(alumno.alumno_grupo || '')}</>
                 )}

@@ -137,15 +137,15 @@ export async function obtenerVentasDelDia(): Promise<AlumnoVenta[]> {
         const personalId = ref.substring(1); // Quitar la P
         console.log('👩‍🏫 Buscando personal con ID:', personalId);
         
-    const { data: personal } = await supabase
-      .from('personal')
-          .select('personal_nombre, personal_app')
-          .eq('id', personalId)
+        const { data: maestro } = await supabase
+          .from('boleta_maestro')
+          .select('maestro_nombre, maestro_app, maestro_apm')
+          .eq('maestro_id', personalId)
           .single();
 
-        console.log('👩‍🏫 Resultado personal:', { personal });
+        console.log('👩‍🏫 Resultado maestro:', { maestro });
 
-        if (personal) {
+        if (maestro) {
           const serviciosPersonal = ventas
             .filter(v => v.pago_ref === ref)
             .map(v => v.pago_descripcion);
@@ -157,7 +157,10 @@ export async function obtenerVentasDelDia(): Promise<AlumnoVenta[]> {
           
           if (desayunos.length > 0) {
             // Concatenar nombre y apellido
-            const nombreCompleto = `${personal.personal_nombre || ''} ${personal.personal_app || ''}`.trim();
+            const nombreCompleto = [maestro.maestro_nombre, maestro.maestro_app, maestro.maestro_apm]
+              .filter(Boolean)
+              .join(' ')
+              .trim();
             
             alumnosConVentas.push({
               alumno_nombre_completo: nombreCompleto,
@@ -167,7 +170,10 @@ export async function obtenerVentasDelDia(): Promise<AlumnoVenta[]> {
             });
             console.log('✅ Personal con desayuno agregado:', nombreCompleto);
           } else {
-            const nombreCompleto = `${personal.personal_nombre || ''} ${personal.personal_app || ''}`.trim();
+            const nombreCompleto = [maestro.maestro_nombre, maestro.maestro_app, maestro.maestro_apm]
+              .filter(Boolean)
+              .join(' ')
+              .trim();
             console.log('⚠️ Personal sin desayunos, no se incluye:', nombreCompleto);
           }
         }
@@ -257,19 +263,21 @@ export async function obtenerTodasLasVentasDelDia(): Promise<AlumnoVentaCompleta
       if (ref.startsWith('P')) {
         // Es personal/maestro
         const personalId = ref.substring(1);
-    const { data: personal } = await supabase
-      .from('personal')
-          .select('personal_nombre, personal_app')
-          .eq('id', personalId)
+        const { data: maestro } = await supabase
+          .from('boleta_maestro')
+          .select('maestro_nombre, maestro_app, maestro_apm')
+          .eq('maestro_id', personalId)
           .single();
 
-        if (personal) {
+        if (maestro) {
           const serviciosPersonal = ventas
             .filter(v => v.pago_ref === ref)
             .map(v => v.pago_descripcion);
 
-          // Concatenar nombre y apellido
-          const nombreCompleto = `${personal.personal_nombre || ''} ${personal.personal_app || ''}`.trim();
+          const nombreCompleto = [maestro.maestro_nombre, maestro.maestro_app, maestro.maestro_apm]
+            .filter(Boolean)
+            .join(' ')
+            .trim();
 
           alumnosConVentas.push({
             alumno_nombre_completo: nombreCompleto,

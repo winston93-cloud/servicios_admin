@@ -58,7 +58,7 @@ function normalizar(texto: string): string {
     .trim()
 }
 
-function escaparIlike(termino: string): string {
+export function escaparIlike(termino: string): string {
   return termino.replace(/[%_\\]/g, '\\$&')
 }
 
