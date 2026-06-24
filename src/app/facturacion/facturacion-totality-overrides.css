@@ -401,6 +401,79 @@
   opacity: 0.85;
 }
 
+.pos-totality-theme.facturacion-cfdi-shell .facturacion-cfdi-publico-hint {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 0.875rem;
+  color: #d0c6ab;
+  line-height: 1.5;
+}
+
+.pos-totality-theme.facturacion-cfdi-shell .facturacion-cfdi-publico-hint code {
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+  background: rgba(13, 14, 19, 0.6);
+  color: #bdf4ff;
+}
+
+.pos-totality-theme.facturacion-cfdi-shell .facturacion-cfdi-timbres-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.pos-totality-theme.facturacion-cfdi-shell .facturacion-cfdi-timbres-card {
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(52, 52, 58, 0.2);
+  backdrop-filter: blur(20px);
+}
+
+.pos-totality-theme.facturacion-cfdi-shell .facturacion-cfdi-timbres-card.ok {
+  border-color: rgba(0, 227, 253, 0.25);
+}
+
+.pos-totality-theme.facturacion-cfdi-shell .facturacion-cfdi-timbres-card.fail {
+  border-color: rgba(255, 180, 171, 0.25);
+}
+
+.pos-totality-theme.facturacion-cfdi-shell .facturacion-cfdi-timbres-title {
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff6df;
+  margin: 0 0 1rem;
+}
+
+.pos-totality-theme.facturacion-cfdi-shell .facturacion-cfdi-timbres-dl {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.pos-totality-theme.facturacion-cfdi-shell .facturacion-cfdi-timbres-dl dt {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #999077;
+}
+
+.pos-totality-theme.facturacion-cfdi-shell .facturacion-cfdi-timbres-dl dd {
+  margin: 0.15rem 0 0;
+  font-size: 1rem;
+  color: #e3e1e9;
+}
+
+.pos-totality-theme.facturacion-cfdi-shell .facturacion-cfdi-timbres-saldo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #86efac;
+  text-shadow: 0 0 12px rgba(134, 239, 172, 0.25);
+}
+
 @media (max-width: 640px) {
   .pos-totality-theme.facturacion-cfdi-shell .dashboard-main {
     padding: 1rem 1rem 2.5rem;

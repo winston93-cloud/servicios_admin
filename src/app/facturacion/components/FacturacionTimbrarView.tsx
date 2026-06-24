@@ -22,7 +22,7 @@ const MESES = [
 ]
 
 type Props = {
-  modo: 'mes' | 'individual'
+  modo: 'mes' | 'individual' | 'publico_mes'
   title: string
   subtitle: string
 }
@@ -59,12 +59,18 @@ export default function FacturacionTimbrarView({ modo, title, subtitle }: Props)
               metodo,
               creadoPor: user?.usuario_username ?? session?.displayName,
             }
-          : {
-              modo: 'individual',
-              referencia: referencia.trim(),
-              metodo,
-              creadoPor: user?.usuario_username ?? session?.displayName,
-            }
+          : modo === 'publico_mes'
+            ? {
+                modo: 'publico_mes',
+                mes,
+                creadoPor: user?.usuario_username ?? session?.displayName,
+              }
+            : {
+                modo: 'individual',
+                referencia: referencia.trim(),
+                metodo,
+                creadoPor: user?.usuario_username ?? session?.displayName,
+              }
 
       const res = await fetch('/api/facturacion/timbrar', {
         method: 'POST',
@@ -74,7 +80,7 @@ export default function FacturacionTimbrarView({ modo, title, subtitle }: Props)
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Error al timbrar')
 
-      if (modo === 'mes') setLote(data.resultado as CfdiTimbradoLoteResultado)
+      if (modo === 'mes' || modo === 'publico_mes') setLote(data.resultado as CfdiTimbradoLoteResultado)
       else setIndividual(data.resultado as CfdiTimbradoResultado)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al timbrar')
@@ -94,7 +100,7 @@ export default function FacturacionTimbrarView({ modo, title, subtitle }: Props)
         )}
 
         <div className="facturacion-cfdi-timbrar-form">
-          {modo === 'mes' && (
+          {(modo === 'mes' || modo === 'publico_mes') && (
             <label className="facturacion-cfdi-field">
               Mes (año en curso)
               <select
@@ -124,17 +130,26 @@ export default function FacturacionTimbrarView({ modo, title, subtitle }: Props)
             </label>
           )}
 
-          <label className="facturacion-cfdi-field">
-            Forma de pago
-            <select
-              className="facturacion-cfdi-input"
-              value={metodo}
-              onChange={(e) => setMetodo(e.target.value)}
-            >
-              <option value="Transferencia">Transferencia</option>
-              <option value="Efectivo">Efectivo</option>
-            </select>
-          </label>
+          {modo !== 'publico_mes' && (
+            <label className="facturacion-cfdi-field">
+              Forma de pago
+              <select
+                className="facturacion-cfdi-input"
+                value={metodo}
+                onChange={(e) => setMetodo(e.target.value)}
+              >
+                <option value="Transferencia">Transferencia</option>
+                <option value="Efectivo">Efectivo</option>
+              </select>
+            </label>
+          )}
+
+          {modo === 'publico_mes' && (
+            <p className="facturacion-cfdi-publico-hint" role="note">
+              RFC <code>XAXX010101000</code> (público en general) para todos los pagos del mes, sin filtrar
+              forma de pago.
+            </p>
+          )}
 
           <button
             type="button"

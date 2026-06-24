@@ -1,5 +1,5 @@
-import FacturacionPlaceholder from '../components/FacturacionPlaceholder'
+import FacturacionTimbresView from '../components/FacturacionTimbresView'
 
 export default function FacturacionTimbresPage() {
-  return <FacturacionPlaceholder segment="timbres" />
+  return <FacturacionTimbresView />
 }

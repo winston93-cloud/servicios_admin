@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import {
   pacConfigurado,
   timbrarPorMes,
+  timbrarPublicoGeneralPorMes,
   timbrarReferencia,
 } from '@/lib/cfdi/cfdiTimbradoService'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
@@ -13,7 +14,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     pacConfigurado: pacConfigurado(),
-    operaciones: ['mes', 'individual'],
+    operaciones: ['mes', 'individual', 'publico_mes'],
   })
 }
 
@@ -44,6 +45,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: resultado.ok, resultado })
     }
 
+    if (modo === 'publico_mes') {
+      const mes = Number(body.mes)
+      if (!mes || mes < 1 || mes > 12) {
+        return NextResponse.json({ error: 'mes debe ser 1–12' }, { status: 400 })
+      }
+      const resultado = await timbrarPublicoGeneralPorMes(db, mes, creadoPor)
+      return NextResponse.json({ ok: resultado.fallidos === 0, resultado })
+    }
+
     if (modo === 'mes') {
       const mes = Number(body.mes)
       const metodo = String(body.metodo ?? '').trim()
@@ -57,7 +67,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: resultado.fallidos === 0, resultado })
     }
 
-    return NextResponse.json({ error: 'modo debe ser mes o individual' }, { status: 400 })
+    return NextResponse.json({ error: 'modo debe ser mes, individual o publico_mes' }, { status: 400 })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al timbrar'
     console.error('facturacion/timbrar POST:', e)

@@ -57,3 +57,54 @@ export async function timbrarConFacturoPorTi(
     raw,
   }
 }
+
+export interface FacturoPorTiTimbresRespuesta {
+  ok: boolean
+  emisor: 'churchill' | 'educativo'
+  fechaCompra?: string
+  timbresUtilizados?: number
+  creditosRestantes?: number
+  codigo: string
+  mensaje: string
+  raw?: unknown
+}
+
+export async function consultarTimbresFacturoPorTi(
+  bearer: string,
+  emisor: 'churchill' | 'educativo'
+): Promise<FacturoPorTiTimbresRespuesta> {
+  const url = `${urlFacturoPorTiApi()}/servicios/consultar/timbres`
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${bearer}`,
+    },
+  })
+
+  const raw = (await res.json().catch(() => null)) as Record<string, unknown> | null
+  if (!raw) {
+    return {
+      ok: false,
+      emisor,
+      codigo: 'HTTP',
+      mensaje: `Respuesta inválida del PAC (${res.status})`,
+      raw,
+    }
+  }
+
+  const estatus = raw.estatus as Record<string, unknown> | undefined
+  const codigo = String(estatus?.codigo ?? '').trim()
+  const mensaje = String(estatus?.descripcion ?? 'Sin descripción')
+
+  return {
+    ok: codigo === '000',
+    emisor,
+    fechaCompra: raw.fechaCompra ? String(raw.fechaCompra) : undefined,
+    timbresUtilizados: raw.timbresUtilizados != null ? Number(raw.timbresUtilizados) : undefined,
+    creditosRestantes: raw.creditosRestantes != null ? Number(raw.creditosRestantes) : undefined,
+    codigo,
+    mensaje,
+    raw,
+  }
+}

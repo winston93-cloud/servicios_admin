@@ -39,20 +39,25 @@ export function pacConfigurado(): boolean {
 export async function listarPagosPendientesMes(
   db: AppDatabaseClient,
   mes: number,
-  metodoPago: string
+  metodoPago?: string
 ): Promise<PagoDetalle[]> {
   const year = new Date().getFullYear()
   const inicio = `${year}-${String(mes).padStart(2, '0')}-01`
   const fin = `${year}-${String(mes).padStart(2, '0')}-31`
 
-  const { data, error } = await db
+  let query = db
     .from('pago_detalle')
     .select(
       'pago_id, alumno_id, pago_referencia, pago_importe, pago_recargo, pago_forma, pago_fecha, pago_cancelado, facturo'
     )
-    .eq('pago_forma', metodoPago)
     .gte('pago_fecha', inicio)
     .lte('pago_fecha', fin)
+
+  if (metodoPago) {
+    query = query.eq('pago_forma', metodoPago)
+  }
+
+  const { data, error } = await query
 
   if (error) throw new Error(error.message)
 
@@ -112,7 +117,8 @@ async function ejecutarTimbradoPago(
   pago: PagoDetalle,
   metodoPago: string,
   creadoPor?: string,
-  tipoOperacion: string = 'timbrado_individual'
+  tipoOperacion: string = 'timbrado_individual',
+  forzarPublicoGeneral = false
 ): Promise<CfdiTimbradoResultado> {
   const referencia = String(pago.pago_referencia).trim()
   const alumnoRef = alumnoRefDesdeReferencia(referencia)
@@ -145,7 +151,9 @@ async function ejecutarTimbradoPago(
     }
   }
 
-  const datosFiscales = await obtenerDatosFacturacionPorRef(db, alumnoRef)
+  const datosFiscales = forzarPublicoGeneral
+    ? null
+    : await obtenerDatosFacturacionPorRef(db, alumnoRef)
   const receptor = datosFiscales
     ? receptorDesdeDatosFacturacion(datosFiscales)
     : RECEPTOR_PUBLICO_GENERAL
@@ -248,6 +256,36 @@ export async function timbrarPorMes(
 
   for (const pago of pagos) {
     const r = await ejecutarTimbradoPago(db, pago, metodoPago, creadoPor, 'timbrado_mes')
+    resultados.push(r)
+  }
+
+  const exitosos = resultados.filter((r) => r.ok).length
+  return {
+    procesados: resultados.length,
+    exitosos,
+    fallidos: resultados.length - exitosos,
+    resultados,
+  }
+}
+
+export async function timbrarPublicoGeneralPorMes(
+  db: AppDatabaseClient,
+  mes: number,
+  creadoPor?: string
+): Promise<CfdiTimbradoLoteResultado> {
+  const pagos = await listarPagosPendientesMes(db, mes)
+  const resultados: CfdiTimbradoResultado[] = []
+
+  for (const pago of pagos) {
+    const forma = pago.pago_forma ?? 'Transferencia'
+    const r = await ejecutarTimbradoPago(
+      db,
+      pago,
+      forma,
+      creadoPor,
+      'timbrado_publico_mes',
+      true
+    )
     resultados.push(r)
   }
 

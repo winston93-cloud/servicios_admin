@@ -24,19 +24,19 @@ No se usa un proyecto InsForge aparte: mismo backend que pagos y alumnos.
 
 - [x] Servicio TypeScript único (`src/lib/cfdi/*`, sin duplicar `timbrar.php` × 4)
 - [x] API `POST /api/facturacion/timbrar` — factura **individual** y **por mes** (efectivo / transferencia)
-- [x] UI `/facturacion/mes` y `/facturacion/individual` (Atmospheric Glass)
+- [x] UI `/facturacion/mes` y `/facturacion/individual` (tema Totality)
 - [x] Actualizar `pago_detalle.facturo` en InsForge tras timbrado exitoso
 - [x] Auditoría en `cfdi_timbrado` (`timbrado_mes` / `timbrado_individual`)
 - [x] Complemento instituciones educativas (Churchill vs Educativo por `alumno_nivel`)
 - [x] Credenciales PAC en Vercel: `FACTUROPORTI_*` (`scripts/setup-facturoporti-vercel-env.mjs` desde legacy)
 - [ ] Persistir XML/PDF en Storage (hoy solo rutas legacy en auditoría)
 
-## Fase 4 — Operaciones SAT
+## Fase 4 — Operaciones SAT (en progreso)
 
-- Público en general por mes
-- Cancelaciones (Winston / Educativo)
-- Notas de crédito (devoluciones)
-- Consulta saldo de timbres
+- [x] Público en general por mes (`/facturacion/publico-general`, modo `publico_mes`)
+- [x] Consulta saldo de timbres (`/facturacion/timbres`)
+- [ ] Cancelaciones (Winston / Educativo)
+- [ ] Notas de crédito (devoluciones)
 
 ## Fase 5 — Corte y legacy
 
