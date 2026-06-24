@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { desayunosDb } from './desayunosDb'
 
 export interface Producto {
   id: number
@@ -44,7 +44,7 @@ export async function searchProductos(query: string): Promise<ProductoSearchResu
     const codigoAbreviado = CODIGOS_ABREVIADOS[searchTerm]
     console.log('Codigo abreviado encontrado:', codigoAbreviado);
     
-    let searchQuery = supabase
+    let searchQuery = desayunosDb
       .from('concepto_desayunos')
       .select('id, desayuno_nombre, desayuno_abreviatura, costo')
       .limit(10)
@@ -82,7 +82,7 @@ export async function getAllProductos(): Promise<ProductoSearchResult[]> {
   try {
     console.log('🛒 Getting all productos from concepto_desayunos...');
     
-    const { data, error } = await supabase
+    const { data, error } = await desayunosDb
       .from('concepto_desayunos')
       .select('id, desayuno_nombre, desayuno_abreviatura, costo')
       .order('desayuno_nombre')
@@ -126,7 +126,7 @@ export async function createProducto(producto: Omit<ProductoFormData, 'id'>): Pr
   try {
     console.log('Creating producto:', producto);
     
-    const { data, error } = await supabase
+    const { data, error } = await desayunosDb
       .from('concepto_desayunos')
       .insert([{
         desayuno_nombre: producto.desayuno_nombre,
@@ -154,7 +154,7 @@ export async function updateProducto(id: number, producto: Omit<ProductoFormData
     console.log('Updating producto:', { id, producto });
     
     // Primero verificamos que el producto existe
-    const { data: existingProduct, error: checkError } = await supabase
+    const { data: existingProduct, error: checkError } = await desayunosDb
       .from('concepto_desayunos')
       .select('*')
       .eq('id', id)
@@ -168,7 +168,7 @@ export async function updateProducto(id: number, producto: Omit<ProductoFormData
     console.log('Existing producto found:', existingProduct);
 
     // Ahora actualizamos
-    const { data, error } = await supabase
+    const { data, error } = await desayunosDb
       .from('concepto_desayunos')
       .update({
         desayuno_nombre: producto.desayuno_nombre,
@@ -193,7 +193,7 @@ export async function updateProducto(id: number, producto: Omit<ProductoFormData
 }
 
 export async function deleteProducto(id: number): Promise<boolean> {
-  const { error } = await supabase
+  const { error } = await desayunosDb
     .from('concepto_desayunos')
     .delete()
     .eq('id', id)
@@ -207,7 +207,7 @@ export async function deleteProducto(id: number): Promise<boolean> {
 }
 
 export async function getProductoById(id: number): Promise<ProductoFormData | null> {
-  const { data, error } = await supabase
+  const { data, error } = await desayunosDb
     .from('concepto_desayunos')
     .select('*')
     .eq('id', id)

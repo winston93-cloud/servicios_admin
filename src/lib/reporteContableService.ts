@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { desayunosDb } from './desayunosDb'
 
 export interface VentaData {
   pago_ref: string
@@ -66,7 +66,7 @@ export async function obtenerVentasPorPeriodo(fechaInicio: string, fechaFin: str
   try {
     console.log('🔍 Obteniendo ventas del período:', { fechaInicio, fechaFin })
     
-    const { data, error } = await supabase
+    const { data, error } = await desayunosDb
       .from('pago_desayunos')
       .select('*')
       .gte('pago_fecha', fechaInicio)

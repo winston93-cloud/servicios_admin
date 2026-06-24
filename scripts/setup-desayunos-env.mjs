@@ -11,7 +11,7 @@ const envPath = path.join(serviciosRoot, '.env.local')
 let text = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : ''
 const lines = [
   '',
-  '# Proyecto Desayunos (notificaciones portal familias)',
+  '# Proyecto Desayunos (POS, notificaciones portal familias)',
   `INSFORGE_DESAYUNOS_URL=${desayunosCfg.oss_host}`,
   `INSFORGE_DESAYUNOS_API_KEY=${desayunosCfg.api_key}`,
 ]

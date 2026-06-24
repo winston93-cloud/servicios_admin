@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { desayunosDb } from './desayunosDb';
 
 export interface VentaData {
   pago_ref: string;
@@ -26,7 +26,7 @@ export const saveVenta = async (ventaData: VentaData) => {
     
     console.log('📝 Datos completos a insertar:', ventaCompleta);
     
-    const { data, error } = await supabase
+    const { data, error } = await desayunosDb
       .from('pago_desayunos')
       .insert([ventaCompleta])
       .select();
@@ -49,7 +49,7 @@ export const saveVenta = async (ventaData: VentaData) => {
 
 export const getVentas = async () => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await desayunosDb
       .from('pago_desayunos')
       .select('*')
       .order('pago_fecha', { ascending: false });

@@ -1,4 +1,5 @@
 import type { AuthSession } from '@/lib/portalAuthService'
+import { requireDesayunosAdminEnv } from '@/lib/desayunosInsforge'
 
 const PORTAL_SESSION_HEADER = 'x-portal-session'
 
@@ -38,7 +39,8 @@ export function requireInsforgeAdminEnv() {
 
 export async function proxyInsforgeDatabaseRequest(
   request: Request,
-  upstreamPath: string
+  upstreamPath: string,
+  env: { baseUrl: string; apiKey: string } = requireInsforgeAdminEnv()
 ): Promise<Response> {
   const session = parsePortalSessionHeader(request.headers.get(PORTAL_SESSION_HEADER))
   if (!session) {
@@ -48,7 +50,7 @@ export async function proxyInsforgeDatabaseRequest(
     )
   }
 
-  const { baseUrl, apiKey } = requireInsforgeAdminEnv()
+  const { baseUrl, apiKey } = env
   const incoming = new URL(request.url)
   const target = `${baseUrl}${upstreamPath}${incoming.search}`
 
@@ -80,4 +82,11 @@ export async function proxyInsforgeDatabaseRequest(
     statusText: upstream.statusText,
     headers: responseHeaders,
   })
+}
+
+export async function proxyDesayunosDatabaseRequest(
+  request: Request,
+  upstreamPath: string
+): Promise<Response> {
+  return proxyInsforgeDatabaseRequest(request, upstreamPath, requireDesayunosAdminEnv())
 }

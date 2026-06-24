@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Check, Users, Coffee, Home, Utensils, BookOpen, Clock, ChefHat, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { desayunosDb } from '@/lib/desayunosDb';
 
 interface AlumnoVenta {
   alumno_nombre_completo: string;
@@ -64,7 +65,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
     try {
       console.log('🔄 Obteniendo conceptos de desayunos...');
       
-      const { data, error } = await supabase
+      const { data, error } = await desayunosDb
         .from('concepto_desayunos')
         .select('*')
         .order('id');
@@ -107,7 +108,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
 
       // Buscar todos los pagos del día actual (estatus 1 = pagado, 3 = emergente)
       console.log('🔄 Buscando pagos del día en pago_desayunos...');
-      const { data: pagosHoy, error: pagosError } = await supabase
+      const { data: pagosHoy, error: pagosError } = await desayunosDb
         .from('pago_desayunos')
         .select('pago_ref, pago_descripcion, pago_fecha, pago_estatus')
         .gte('pago_fecha', hoy)
@@ -498,7 +499,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
       const entregadosHoy = new Set<string>();
       
       // Obtener todos los pagos del día que ya fueron entregados
-      const { data: pagosEntregados, error } = await supabase
+      const { data: pagosEntregados, error } = await desayunosDb
         .from('pago_desayunos')
         .select('pago_ref, pago_descripcion, pago_pagado')
         .eq('pago_fecha', hoy)
@@ -719,7 +720,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
       let pagoRef = '';
       
       // Buscar en los pagos del día para encontrar la referencia correcta
-      const { data: pagosHoy, error: pagosError } = await supabase
+      const { data: pagosHoy, error: pagosError } = await desayunosDb
         .from('pago_desayunos')
         .select('pago_ref, pago_descripcion, pago_fecha, pago_estatus')
         .gte('pago_fecha', hoy)
@@ -795,7 +796,7 @@ export default function ConsultaDiariaModal({ isOpen, onClose }: ConsultaDiariaM
       
       console.log(`💾 DEBUG OSORIO: Actualizando BD: Ref=${pagoRef}, Fecha=${hoy}, Desc=${descripcionServicio}, Estado=${nuevoEstado}`);
       
-      const { data: updateData, error: updateError } = await supabase
+      const { data: updateData, error: updateError } = await desayunosDb
         .from('pago_desayunos')
         .update({ pago_pagado: nuevoEstado })
         .eq('pago_ref', pagoRef)

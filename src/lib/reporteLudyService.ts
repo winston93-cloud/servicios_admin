@@ -1,6 +1,7 @@
 // import jsPDF from 'jspdf';
 // import autoTable from 'jspdf-autotable';
 import { supabase } from './supabase';
+import { desayunosDb } from './desayunosDb';
 
 // Interfaces para los datos del reporte
 interface AlumnoVenta {
@@ -50,7 +51,7 @@ export async function obtenerVentasDelDia(): Promise<AlumnoVenta[]> {
 
     // Primero intentar una consulta simple para ver si la tabla es accesible
     console.log('🔄 Probando acceso a tabla pago_desayunos...');
-    const { data: testData, error: testError } = await supabase
+    const { data: testData, error: testError } = await desayunosDb
       .from('pago_desayunos')
       .select('*')
       .limit(5);
@@ -90,7 +91,7 @@ export async function obtenerVentasDelDia(): Promise<AlumnoVenta[]> {
     
     // Si el test funciona, hacer la consulta real filtrada por fecha
     console.log('🔄 Iniciando consulta real filtrada por fecha...');
-    const { data: ventas, error: ventasError } = await supabase
+    const { data: ventas, error: ventasError } = await desayunosDb
       .from('pago_desayunos')
       .select('pago_ref, pago_descripcion, pago_fecha, pago_estatus')
       .gte('pago_fecha', hoy) // Desde hoy 00:00:00
@@ -229,7 +230,7 @@ export async function obtenerTodasLasVentasDelDia(): Promise<AlumnoVentaCompleta
     console.log('🔍 Buscando TODAS las ventas del día para segunda hoja:', hoy);
     
     // Obtener todas las ventas del día
-    const { data: ventas, error: ventasError } = await supabase
+    const { data: ventas, error: ventasError } = await desayunosDb
       .from('pago_desayunos')
       .select('pago_ref, pago_descripcion, pago_fecha, pago_estatus')
       .gte('pago_fecha', hoy)
@@ -666,7 +667,7 @@ export function crearEstructuraSegundaHoja(alumnosConVentas: AlumnoVentaCompleta
     
     // Obtener ventas del día para calcular totales
     const hoy = new Date().toISOString().split('T')[0];
-    const { data: ventasDelDia } = await supabase
+    const { data: ventasDelDia } = await desayunosDb
       .from('pago_desayunos')
       .select('pago_ref, pago_descripcion, pago_fecha, pago_estatus')
       .gte('pago_fecha', hoy)
