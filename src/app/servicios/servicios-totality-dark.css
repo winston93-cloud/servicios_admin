@@ -1,0 +1,632 @@
+/**
+ * /servicios — modo oscuro Totality Festival (todos los módulos).
+ * Corrige fondos claros y textos ilegibles hardcodeados en globals.css.
+ */
+
+/* ─── Superficies (cards / paneles) ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(
+  .servicios-panel-card,
+  .pc-panel-busqueda,
+  .pc-panel-ciclo,
+  .pc-tabla-card,
+  .pi-tarjeta,
+  .pi-cuota-top,
+  .pi-historial-tabla-wrap,
+  .becas-formulario,
+  .asignar-grupos-filtros-grid,
+  .asignar-grupos-tabla-wrap,
+  .asignar-grupos-toolbar,
+  .ciclos-crud-form-card,
+  .ciclos-crud-table-card,
+  .cm-fieldset,
+  .cm-grupo-card,
+  .cm-restaurar-banner,
+  .sus-form-card,
+  .sus-preview-card,
+  .sus-tabla-section,
+  .sus-envio-panel,
+  .cred-fondos-panel,
+  .cred-fondo-card,
+  .cred-form-card,
+  .cred-preview-card,
+  .bch-card,
+  .bch-tabla-precios-wrap,
+  .bch-preview,
+  .bch-resumen,
+  .ap-carga-bar,
+  .ap-archivo-card,
+  .ap-resultado,
+  .openpay-verif-panel
+) {
+  background: var(--sx-card) !important;
+  border-color: var(--sx-card-border) !important;
+  color: var(--sx-text);
+  box-shadow: var(--sx-card-shadow);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(
+  .pc-tabla-card-bar,
+  .asignar-grupos-tabla thead,
+  .pi-historial-tabla th,
+  .sus-tabla th,
+  .cm-tabla th,
+  .ciclos-crud-table th,
+  .bch-tabla-precios thead,
+  .bch-tabla thead
+) {
+  background: var(--sx-surface-sunken) !important;
+  color: var(--sx-totality-gold) !important;
+  border-color: var(--sx-table-border) !important;
+}
+
+/* ─── Títulos y encabezados de sección ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(
+  .pc-encabezado-h1,
+  .pc-tabla-card-titulo,
+  .pc-ciclo-pagos-label,
+  .pi-tarjeta-titulo,
+  .pi-cuota-top-titulo,
+  .becas-formulario-titulo,
+  .ciclos-crud-form-title,
+  .ap-titulo,
+  .ap-subtitulo,
+  .sus-titulo,
+  .sus-subtitulo,
+  .cred-seccion-titulo,
+  .cred-form-titulo,
+  .bch-card-titulo,
+  .cm-destinatarios-titulo,
+  .cm-grupo-card-header h3
+) {
+  color: var(--sx-totality-gold) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(
+  .servicios-panel-lead,
+  .pc-tabla-resumen,
+  .pi-hint,
+  .pi-empty,
+  .pi-loading,
+  .becas-empty,
+  .asignar-grupos-lead,
+  .ap-lead,
+  .sus-lead,
+  .sus-resumen,
+  .cred-seccion-lead,
+  .bch-referencia-hint,
+  .cm-hint,
+  .pc-loading,
+  .pc-empty
+) {
+  color: var(--sx-text-muted) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(
+  .pc-tabla-resumen strong,
+  .ap-ultima-db strong,
+  .becas-resumen-tipo strong
+) {
+  color: var(--sx-text) !important;
+}
+
+/* ─── Tablas (rayas, hover, celdas) ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll table tbody tr {
+  background: transparent;
+  border-bottom-color: var(--sx-table-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll table tbody tr:nth-child(even) {
+  background: var(--sx-row-alt) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll table tbody tr:hover {
+  background: var(--sx-table-row-hover) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll table td,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll table tbody td {
+  color: var(--sx-text) !important;
+  border-color: var(--sx-table-border) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-tabla thead tr {
+  background: var(--sx-thead-gradient) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-tabla th {
+  color: #ffffff !important;
+  background: transparent !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-tabla :is(
+  .pc-col--num,
+  .pc-col--ref,
+  .pc-col--emisora,
+  .pc-col--forma,
+  .pc-col--fecha
+) {
+  color: var(--sx-text-secondary) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-tabla :is(
+  .pc-col--monto,
+  .pc-col--concepto
+) {
+  color: var(--sx-text) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .asignar-grupos-tabla thead {
+  background: var(--sx-thead-gradient) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .asignar-grupos-tabla thead th {
+  color: #ffffff !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .asignar-grupos-tr--dirty {
+  background: rgba(255, 215, 0, 0.1) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .asignar-grupos-tr--selected {
+  background: rgba(0, 227, 253, 0.12) !important;
+}
+
+/* ─── Colegiaturas: filas de estatus y acciones ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-fila--cancelado {
+  background: rgba(113, 63, 18, 0.22) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-fila--cancelado:hover {
+  background: rgba(113, 63, 18, 0.32) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-fila--devolucion {
+  background: rgba(30, 58, 138, 0.22) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-fila--devolucion:hover {
+  background: rgba(30, 58, 138, 0.32) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-fila--manual {
+  background: rgba(22, 101, 52, 0.2) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-fila--manual:hover {
+  background: rgba(22, 101, 52, 0.3) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-estatus-badge--cancelado {
+  color: #fde68a;
+  background: rgba(113, 63, 18, 0.45);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-estatus-badge--devolucion {
+  color: #93c5fd;
+  background: rgba(30, 58, 138, 0.45);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-estatus-badge--manual {
+  color: #86efac;
+  background: rgba(22, 101, 52, 0.4);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-accion {
+  background: rgba(13, 14, 19, 0.65);
+  border-color: var(--sx-card-border);
+  color: var(--sx-text-secondary);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-accion--cancelar {
+  color: #fca5a5;
+  background: rgba(127, 29, 29, 0.35);
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-accion--devolucion {
+  color: #fde68a;
+  background: rgba(113, 63, 18, 0.35);
+  border-color: rgba(250, 204, 21, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-accion--manual {
+  color: #86efac;
+  background: rgba(22, 101, 52, 0.3);
+  border-color: rgba(74, 222, 128, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-accion--restaurar {
+  color: #bdf4ff;
+  background: rgba(30, 58, 138, 0.35);
+  border-color: rgba(96, 165, 250, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-plan--10 {
+  color: #bdf4ff;
+  background: rgba(30, 58, 138, 0.35);
+  border-color: rgba(0, 227, 253, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-plan--11 {
+  color: #86efac;
+  background: rgba(22, 101, 52, 0.35);
+  border-color: rgba(74, 222, 128, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-plan--otro {
+  color: var(--sx-text-secondary);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-ciclo-pagos-select {
+  background-color: var(--sx-input-bg);
+  color: var(--sx-text);
+  border-color: rgba(0, 227, 253, 0.35);
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-pago-card {
+  background: var(--sx-card);
+  border-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-pago-card :is(
+  .pc-pago-card-concepto,
+  .pc-pago-card-datos dd
+) {
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-pago-card-datos dt {
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-msg--error {
+  color: #ffb4ab;
+  background: rgba(127, 29, 29, 0.35);
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+/* ─── Pagos internos ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-input,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-select {
+  background: var(--sx-input-bg) !important;
+  color: var(--sx-text) !important;
+  border-color: var(--sx-input-border) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-input--ro {
+  background: rgba(13, 14, 19, 0.75) !important;
+  color: var(--sx-text-secondary) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-check {
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-btn--danger {
+  background: rgba(127, 29, 29, 0.35);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fca5a5;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-modal-backdrop {
+  background: rgba(13, 14, 19, 0.85);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-modal {
+  background: var(--sx-card);
+  border: 1px solid var(--sx-card-border);
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-modal-header {
+  border-bottom-color: var(--sx-table-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-modal-header h2 {
+  color: var(--sx-totality-gold);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-modal-tabs {
+  border-bottom-color: var(--sx-table-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-modal-tabs button {
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-modal-tabs button.active {
+  color: var(--sx-accent);
+  border-bottom-color: var(--sx-accent);
+}
+
+/* ─── Becas ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .becas-estatus--activa {
+  background: rgba(22, 101, 52, 0.3);
+  color: #86efac;
+  border-color: rgba(74, 222, 128, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .becas-estatus--validacion {
+  background: rgba(113, 63, 18, 0.3);
+  color: #fde68a;
+  border-color: rgba(250, 204, 21, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .becas-estatus--inactiva {
+  background: rgba(127, 29, 29, 0.3);
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .becas-input,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .becas-select {
+  background: var(--sx-input-bg) !important;
+  color: var(--sx-text) !important;
+  border-color: var(--sx-input-border) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .becas-acciones {
+  border-top-color: var(--sx-table-border);
+}
+
+/* ─── Asignar grupos ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .asignar-grupos-alerta--error {
+  background: rgba(127, 29, 29, 0.3);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fca5a5;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .asignar-grupos-alerta--ok {
+  background: rgba(22, 101, 52, 0.25);
+  border-color: rgba(74, 222, 128, 0.35);
+  color: #86efac;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .asignar-grupos-stats--pendiente {
+  color: #fde68a;
+}
+
+/* ─── Ciclos escolares ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ciclos-crud-field input {
+  background: var(--sx-input-bg);
+  color: var(--sx-text);
+  border-color: var(--sx-input-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ciclos-crud-row--active td {
+  background: rgba(0, 227, 253, 0.12) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ciclos-crud-msg--ok {
+  color: #86efac;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ciclos-crud-msg--error {
+  color: #fca5a5;
+}
+
+/* ─── Actualizar pagos (ap-) ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-carga-bar--over {
+  border-color: rgba(0, 227, 253, 0.45);
+  box-shadow: 0 0 0 3px var(--sx-accent-ring);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-lista-archivos--ok {
+  color: #86efac;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-archivo-item--ok {
+  background: rgba(22, 101, 52, 0.2);
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-archivo-item--err {
+  background: rgba(127, 29, 29, 0.25);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-alerta--error {
+  background: rgba(127, 29, 29, 0.3);
+  color: #ffb4ab;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-resultado-banner--ok {
+  background: rgba(22, 101, 52, 0.25);
+  color: #86efac;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-resultado-banner--warn {
+  background: rgba(113, 63, 18, 0.3);
+  color: #fde68a;
+}
+
+/* ─── Correo masivo (cm-) ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-fieldset legend {
+  color: var(--sx-totality-gold);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-fieldset input,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-fieldset textarea,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-fieldset select {
+  background: var(--sx-input-bg) !important;
+  color: var(--sx-text) !important;
+  border-color: var(--sx-input-border) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-alerta--ok {
+  background: rgba(22, 101, 52, 0.25);
+  color: #86efac;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-alerta--error {
+  background: rgba(127, 29, 29, 0.3);
+  color: #ffb4ab;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-chip--ok {
+  background: rgba(22, 101, 52, 0.3);
+  color: #86efac;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-chip--warn {
+  background: rgba(113, 63, 18, 0.3);
+  color: #fde68a;
+}
+
+/* ─── Suspensiones (sus-) ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-select,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-input {
+  background: var(--sx-input-bg) !important;
+  color: var(--sx-text) !important;
+  border-color: var(--sx-input-border) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-btn--secundario {
+  color: #bdf4ff;
+  background: rgba(30, 58, 138, 0.35);
+  border-color: rgba(96, 165, 250, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-alerta--error {
+  background: rgba(127, 29, 29, 0.3);
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-alerta--aviso {
+  background: rgba(113, 63, 18, 0.3);
+  color: #fde68a;
+  border-color: rgba(250, 204, 21, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-pdf-frame {
+  background: var(--sx-surface-sunken);
+}
+
+/* ─── Credenciales (cred-) ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cred-tab {
+  color: var(--sx-text-secondary);
+  background: transparent;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cred-tab--activo {
+  color: var(--sx-totality-gold);
+  background: rgba(255, 215, 0, 0.12);
+  border-color: rgba(255, 215, 0, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cred-select,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cred-input {
+  background: var(--sx-input-bg) !important;
+  color: var(--sx-text) !important;
+  border-color: var(--sx-input-border) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cred-fondo-upload {
+  background: rgba(0, 227, 253, 0.1);
+  border-color: rgba(0, 227, 253, 0.3);
+  color: #bdf4ff;
+}
+
+/* ─── Bauchers (bch-) ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-alumno-chip {
+  background: rgba(30, 58, 138, 0.25);
+  border-color: rgba(0, 227, 253, 0.25);
+  color: #bdf4ff;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-alumno-chip strong {
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-campo input,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-campo select {
+  background: var(--sx-input-bg) !important;
+  color: var(--sx-text) !important;
+  border-color: var(--sx-input-border) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-referencia-box {
+  background: var(--sx-surface-sunken);
+  border-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-referencia-box--ok {
+  background: rgba(22, 101, 52, 0.2);
+  border-color: rgba(74, 222, 128, 0.4);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-referencia-valor {
+  color: var(--sx-totality-gold);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-preview-vacio {
+  color: var(--sx-text-muted);
+}
+
+/* ─── Migración: remapear tokens premium ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro {
+  --mg-ink: #e3e1e9;
+  --mg-ink-soft: #d0c6ab;
+  --mg-muted: #999077;
+  --mg-surface: #121318;
+  --mg-card: rgba(26, 27, 33, 0.94);
+  --mg-border: rgba(255, 255, 255, 0.1);
+  --mg-navy: #1a1b21;
+  --mg-navy-deep: #0d0e13;
+  --mg-gold: #fff6df;
+  --mg-gold-soft: rgba(255, 215, 0, 0.15);
+  --mg-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-card,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-main,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-grupo,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-resultado,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-footer {
+  background: var(--mg-card);
+  border-color: var(--mg-border);
+  color: var(--mg-ink);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-input {
+  background: #0d0e13;
+  color: var(--mg-ink);
+  border-color: rgba(153, 144, 119, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-fila:hover {
+  background: rgba(0, 227, 253, 0.08);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-tr--error td {
+  background: rgba(127, 29, 29, 0.25) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-tr--discordancia td {
+  background: rgba(113, 63, 18, 0.25) !important;
+}
+
+/* ─── Scroll tablas en móvil ─── */
+@media (max-width: 640px) {
+  html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(
+    .pc-tabla-scroll,
+    .asignar-grupos-tabla-wrap,
+    .sus-tabla-wrap,
+    .cm-tabla-wrap,
+    .pi-historial-tabla-wrap,
+    .ciclos-crud-table-wrap
+  ) {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-accion {
+    width: 32px;
+    height: 32px;
+    min-width: var(--touch-min, 44px);
+    min-height: var(--touch-min, 44px);
+  }
+}

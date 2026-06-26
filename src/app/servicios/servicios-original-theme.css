@@ -83,6 +83,9 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app {
   --sx-accent-hover: #bdf4ff;
   --sx-accent-ring: rgba(0, 227, 253, 0.25);
   --sx-totality-gold: #fff6df;
+  --sx-surface-sunken: rgba(13, 14, 19, 0.6);
+  --sx-row-alt: rgba(255, 255, 255, 0.04);
+  --sx-thead-gradient: linear-gradient(135deg, #7a6538 0%, #c9a227 100%);
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app {
@@ -246,8 +249,11 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .them
 
 /* ─── Paneles y tipografía ─── */
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-panel-title,
+.pos-totality-theme.admin-app-shell .servicios-app .pc-encabezado-h1,
+.pos-totality-theme.admin-app-shell .servicios-app .ap-titulo,
+.pos-totality-theme.admin-app-shell .servicios-app .sus-titulo,
 .pos-totality-theme.admin-app-shell .servicios-app [class*='-form-title'],
-.pos-totality-theme.admin-app-shell .servicios-app [class*='-titulo'],
+.pos-totality-theme.admin-app-shell .servicios-app [class*='-titulo']:not([class*='hero']):not(.bch-hero-titulo):not(.cred-hero-titulo),
 .pos-totality-theme.admin-app-shell .servicios-app [class*='-card-titulo'] {
   font-family: inherit;
   color: var(--sx-text) !important;
