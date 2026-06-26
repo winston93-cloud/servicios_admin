@@ -41,9 +41,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     accent: 'amber',
     icon: ICON_DESAYUNOS,
     kicker: 'Punto de venta',
-    badge: 'Módulo principal',
     tags: ['POS', 'Estancias', 'Comidas'],
-    featured: true,
   },
   {
     label: 'Servicios',
