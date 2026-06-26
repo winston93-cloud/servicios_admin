@@ -228,3 +228,20 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alum
   border-color: #facc15;
   color: #fde68a;
 }
+
+/* ─── Móvil ─── */
+@media (max-width: 640px) {
+  html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-tabla-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-guardar {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-guardar-btn {
+    width: 100%;
+    min-height: var(--touch-min, 44px);
+  }
+}

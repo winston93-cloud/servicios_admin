@@ -1,0 +1,23 @@
+---
+description: Diseño responsivo obligatorio en todo el proyecto (PC y móvil)
+alwaysApply: true
+---
+
+# Diseño responsivo (PC + móvil)
+
+Todo cambio de UI en este proyecto debe verse y funcionar bien en **escritorio y dispositivos móviles**.
+
+## Al implementar o revisar
+
+1. **Breakpoints habituales:** 1024px (tablet), 768px (móvil), 640px y 480px (móvil estrecho). Reutilizar los que ya existen en `globals.css` y en el módulo tocado.
+2. **Layout:** evitar anchos fijos que desborden; usar `min-width: 0`, `flex-wrap`, grids que colapsen a una columna en móvil.
+3. **Tablas:** envolver en contenedor con `overflow-x: auto` y `-webkit-overflow-scrolling: touch` cuando no quepan en pantalla pequeña.
+4. **Touch:** botones y controles interactivos ≥ 44px (`var(--touch-min)` donde aplique).
+5. **Tipografía en inputs:** `font-size: 16px` en móvil para evitar zoom automático en iOS.
+6. **Temas claro/oscuro:** comprobar contraste y legibilidad en **ambos** modos y en **ambos** tamaños de pantalla.
+7. **Sticky/fixed:** verificar que no tapen contenido ni rompan el scroll en viewports bajos.
+
+## Antes de dar por terminado
+
+- Revisar mentalmente (o en DevTools) al menos **375px** y **1280px** de ancho.
+- Si el cambio toca CSS nuevo, incluir `@media` cuando el componente no herede reglas móviles existentes.
