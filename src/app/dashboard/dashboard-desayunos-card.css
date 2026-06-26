@@ -1,0 +1,387 @@
+/**
+ * Tarjeta destacada: Desayunos, Estancias y Comidas (admin).
+ * Totality Festival + Taste Skill (dashboard module card).
+ */
+
+.dashboard-home .dash-nav-item--desayunos {
+  --dash-accent: #f5c542;
+  --dash-accent-rgb: 245, 197, 66;
+  --desayunos-warm-rgb: 255, 246, 223;
+
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 24px;
+  padding: 28px 30px;
+  min-height: 132px;
+  border-radius: 16px;
+  border-color: rgba(var(--dash-accent-rgb), 0.28);
+  background: linear-gradient(
+    128deg,
+    rgba(var(--dash-accent-rgb), 0.1) 0%,
+    rgba(52, 52, 58, 0.22) 38%,
+    rgba(26, 27, 33, 0.55) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(var(--desayunos-warm-rgb), 0.14),
+    0 10px 40px rgba(0, 0, 0, 0.38),
+    0 0 0 1px rgba(var(--dash-accent-rgb), 0.08);
+  cursor: pointer;
+  isolation: isolate;
+  transition:
+    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.28s ease,
+    box-shadow 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dashboard-home .dash-nav-item--desayunos::before {
+  width: 4px;
+  opacity: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(var(--desayunos-warm-rgb), 0.95) 0%,
+    rgba(var(--dash-accent-rgb), 0.85) 100%
+  );
+}
+
+.dashboard-home .dash-nav-item--desayunos::after {
+  display: block;
+  top: -30%;
+  right: -8%;
+  width: 42%;
+  height: 120%;
+  background: radial-gradient(
+    circle at 70% 30%,
+    rgba(var(--dash-accent-rgb), 0.22) 0%,
+    rgba(var(--dash-accent-rgb), 0.06) 42%,
+    transparent 72%
+  );
+  opacity: 0.85;
+}
+
+.dashboard-home .dash-nav-item--desayunos:hover {
+  transform: translateY(-3px);
+  border-color: rgba(var(--dash-accent-rgb), 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--desayunos-warm-rgb), 0.22),
+    0 18px 48px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(var(--dash-accent-rgb), 0.2),
+    0 0 32px rgba(var(--dash-accent-rgb), 0.16);
+}
+
+.dashboard-home .dash-nav-item--desayunos:active {
+  transform: translateY(-1px) scale(0.996);
+}
+
+.dashboard-home .dash-nav-item--desayunos:focus-visible {
+  outline: 2px solid rgba(var(--dash-accent-rgb), 0.75);
+  outline-offset: 3px;
+}
+
+.dashboard-home .dash-desayunos-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 42%,
+    rgba(var(--desayunos-warm-rgb), 0.04) 58%,
+    transparent 74%
+  );
+  opacity: 0;
+  transition: opacity 0.32s ease;
+}
+
+.dashboard-home .dash-nav-item--desayunos:hover .dash-desayunos-glow {
+  opacity: 1;
+}
+
+.dashboard-home .dash-desayunos-icon-wrap {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-home .dash-desayunos-icon {
+  width: 60px;
+  height: 60px;
+  min-width: 60px;
+  border-radius: 14px;
+  background: rgba(var(--dash-accent-rgb), 0.14);
+  border: 1px solid rgba(var(--dash-accent-rgb), 0.38);
+  color: #fff6df;
+  box-shadow:
+    inset 0 1px 0 rgba(var(--desayunos-warm-rgb), 0.2),
+    0 0 20px rgba(var(--dash-accent-rgb), 0.18);
+  transition:
+    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.28s ease,
+    color 0.28s ease,
+    border-color 0.28s ease,
+    box-shadow 0.32s ease;
+}
+
+.dashboard-home .dash-desayunos-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.dashboard-home .dash-nav-item--desayunos:hover .dash-desayunos-icon {
+  transform: scale(1.04);
+  background: linear-gradient(
+    145deg,
+    rgba(var(--desayunos-warm-rgb), 0.95) 0%,
+    rgba(var(--dash-accent-rgb), 0.92) 100%
+  );
+  color: #3a3000;
+  border-color: transparent;
+  box-shadow:
+    0 0 24px rgba(var(--dash-accent-rgb), 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.dashboard-home .dash-desayunos-body {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
+.dashboard-home .dash-desayunos-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.dashboard-home .dash-desayunos-kicker {
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(var(--desayunos-warm-rgb), 0.82);
+}
+
+.dashboard-home .dash-desayunos-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #3a3000;
+  background: rgba(var(--desayunos-warm-rgb), 0.92);
+  border: 1px solid rgba(var(--dash-accent-rgb), 0.35);
+}
+
+.dashboard-home .dash-desayunos-title {
+  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+  line-height: 1.25;
+  margin-bottom: 6px;
+}
+
+.dashboard-home .dash-desayunos-desc {
+  font-size: 14px;
+  line-height: 1.55;
+  max-width: 52ch;
+  margin-bottom: 14px;
+  color: #d0c6ab;
+}
+
+.dashboard-home .dash-desayunos-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-home .dash-desayunos-tag {
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(var(--desayunos-warm-rgb), 0.9);
+  background: rgba(var(--dash-accent-rgb), 0.1);
+  border: 1px solid rgba(var(--dash-accent-rgb), 0.22);
+  transition:
+    border-color 0.25s ease,
+    background 0.25s ease,
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dashboard-home .dash-nav-item--desayunos:hover .dash-desayunos-tag {
+  border-color: rgba(var(--dash-accent-rgb), 0.42);
+  background: rgba(var(--dash-accent-rgb), 0.16);
+}
+
+.dashboard-home .dash-desayunos-action {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dashboard-home .dash-desayunos-action-label {
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(var(--desayunos-warm-rgb), 0.55);
+  transition: color 0.25s ease;
+}
+
+.dashboard-home .dash-nav-item--desayunos:hover .dash-desayunos-action-label {
+  color: rgba(var(--desayunos-warm-rgb), 0.92);
+}
+
+.dashboard-home .dash-desayunos-arrow {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(var(--dash-accent-rgb), 0.12);
+  border: 1px solid rgba(var(--dash-accent-rgb), 0.28);
+  color: var(--dash-accent);
+  transition:
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    background 0.28s ease,
+    border-color 0.28s ease,
+    color 0.28s ease;
+}
+
+.dashboard-home .dash-desayunos-arrow svg {
+  width: 18px;
+  height: 18px;
+}
+
+.dashboard-home .dash-nav-item--desayunos:hover .dash-desayunos-arrow {
+  transform: translateX(4px);
+  background: rgba(var(--dash-accent-rgb), 0.22);
+  border-color: rgba(var(--dash-accent-rgb), 0.45);
+  color: #fff6df;
+}
+
+/* Totality shell overrides */
+.pos-totality-theme.admin-app-shell .dashboard-home .dash-nav-item--desayunos {
+  background: linear-gradient(
+    128deg,
+    rgba(var(--dash-accent-rgb), 0.12) 0%,
+    rgba(52, 52, 58, 0.28) 42%,
+    rgba(26, 27, 33, 0.62) 100%
+  );
+  border-color: rgba(var(--dash-accent-rgb), 0.22);
+  backdrop-filter: blur(20px);
+}
+
+.pos-totality-theme.admin-app-shell .dashboard-home .dash-nav-item--desayunos:hover {
+  border-color: rgba(var(--dash-accent-rgb), 0.48);
+  box-shadow:
+    inset 0 1px 0 rgba(var(--desayunos-warm-rgb), 0.18),
+    0 0 28px rgba(var(--dash-accent-rgb), 0.14),
+    0 12px 36px rgba(0, 0, 0, 0.4);
+}
+
+.pos-totality-theme.admin-app-shell .dashboard-home .dash-nav-item--desayunos::before,
+.pos-totality-theme.admin-app-shell .dashboard-home .dash-nav-item--desayunos::after {
+  display: block;
+}
+
+.pos-totality-theme.admin-app-shell .dashboard-home .dash-desayunos-icon {
+  background: rgba(var(--dash-accent-rgb), 0.12);
+  border-color: rgba(var(--dash-accent-rgb), 0.32);
+  color: #fff6df;
+}
+
+/* Light mode */
+html[data-theme='light'] .dashboard-home .dash-nav-item--desayunos {
+  background: linear-gradient(
+    128deg,
+    rgba(var(--dash-accent-rgb), 0.14) 0%,
+    rgba(255, 255, 255, 0.92) 55%,
+    #f8f6f0 100%
+  );
+  border-color: rgba(58, 48, 0, 0.12);
+  box-shadow:
+    0 8px 28px rgba(58, 48, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+html[data-theme='light'] .dashboard-home .dash-desayunos-kicker {
+  color: #8a7340;
+}
+
+html[data-theme='light'] .dashboard-home .dash-desayunos-desc {
+  color: #6b6556;
+}
+
+html[data-theme='light'] .dashboard-home .dash-desayunos-tag {
+  color: #5c4d28;
+  background: rgba(var(--dash-accent-rgb), 0.12);
+  border-color: rgba(58, 48, 0, 0.12);
+}
+
+html[data-theme='light'] .dashboard-home .dash-desayunos-icon {
+  color: #5c4d28;
+  background: rgba(var(--dash-accent-rgb), 0.16);
+}
+
+html[data-theme='light'] .dashboard-home .dash-nav-item--desayunos:hover .dash-desayunos-title {
+  color: #3a3000;
+  text-shadow: none;
+}
+
+@media (max-width: 768px) {
+  .dashboard-home .dash-nav-item--desayunos {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    gap: 16px;
+    padding: 20px 18px;
+    min-height: 0;
+  }
+
+  .dashboard-home .dash-desayunos-action {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .dashboard-home .dash-desayunos-desc {
+    font-size: 13px;
+    margin-bottom: 12px;
+  }
+
+  .dashboard-home .dash-desayunos-icon {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-home .dash-nav-item--desayunos,
+  .dashboard-home .dash-nav-item--desayunos:hover,
+  .dashboard-home .dash-nav-item--desayunos:active,
+  .dashboard-home .dash-desayunos-icon,
+  .dashboard-home .dash-nav-item--desayunos:hover .dash-desayunos-icon,
+  .dashboard-home .dash-desayunos-arrow,
+  .dashboard-home .dash-nav-item--desayunos:hover .dash-desayunos-arrow,
+  .dashboard-home .dash-desayunos-tag {
+    transition-duration: 0.01ms !important;
+    transform: none !important;
+  }
+}

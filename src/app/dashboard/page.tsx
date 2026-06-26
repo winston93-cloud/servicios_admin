@@ -17,6 +17,8 @@ import ThemeToggle from '@/components/ThemeToggle'
 import Image from 'next/image'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
+import DesayunosAdminCard from '@/components/dashboard/DesayunosAdminCard'
+import './dashboard-desayunos-card.css'
 
 const ChevronRight = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -59,7 +61,7 @@ const ICON_DESAYUNOS = (
 const NAV_ITEMS_ADMIN: DashboardNavItem[] = [
   {
     label: 'Desayunos, Estancias y Comidas',
-    desc: 'Servicios de alimentación y cuidado escolar',
+    desc: 'Cobros, pedidos y control de alimentación escolar en un solo flujo operativo.',
     path: '/pos',
     accent: 'amber',
     icon: ICON_DESAYUNOS,
@@ -499,7 +501,17 @@ export default function DashboardPage() {
               </div>
 
               <div className="dashboard-nav-grid">
-                {navItems.map((item) => (
+                {navItems.map((item) => {
+                  if (!isAlumno && item.path === '/pos') {
+                    return (
+                      <DesayunosAdminCard
+                        key={navItemKey(item)}
+                        onActivate={() => handleNavItem(item)}
+                      />
+                    )
+                  }
+
+                  return (
                   <div
                     key={navItemKey(item)}
                     className="dash-nav-item"
@@ -518,7 +530,8 @@ export default function DashboardPage() {
                     </div>
                     <div className="dash-nav-arrow" aria-hidden="true"><ChevronRight /></div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 
