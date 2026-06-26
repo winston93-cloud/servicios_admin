@@ -1,0 +1,239 @@
+/**
+ * POS Desayunos — modo claro: contraste y legibilidad (UI UX Pro MAX).
+ * El header/nav se mantienen oscuros; se corrigen cards, tabla y pago.
+ */
+
+/* Cards */
+html[data-theme='light'] .pos-totality-theme .glass-card,
+html[data-theme='light'] .pos-totality-theme .search-section,
+html[data-theme='light'] .pos-totality-theme .product-table-container {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(26, 27, 33, 0.12);
+  box-shadow: 0 4px 20px rgba(26, 27, 33, 0.07);
+}
+
+html[data-theme='light'] .pos-totality-theme .glass-card:hover,
+html[data-theme='light'] .pos-totality-theme .search-section:hover,
+html[data-theme='light'] .pos-totality-theme .product-table-container:hover {
+  background: #ffffff;
+  box-shadow: 0 8px 28px rgba(26, 27, 33, 0.1);
+}
+
+html[data-theme='light'] .pos-app .search-section {
+  border-color: rgba(138, 115, 64, 0.22);
+}
+
+html[data-theme='light'] .pos-app .search-section-head {
+  border-bottom-color: rgba(26, 27, 33, 0.08);
+}
+
+/* Títulos y labels */
+html[data-theme='light'] .pos-totality-theme .search-header,
+html[data-theme='light'] .pos-totality-theme .product-table-title,
+html[data-theme='light'] .pos-totality-theme .help-title,
+html[data-theme='light'] .pos-totality-theme .modal-title,
+html[data-theme='light'] .pos-app .search-header,
+html[data-theme='light'] .pos-app .product-table-title {
+  color: #1a1b21;
+  text-shadow: none;
+}
+
+html[data-theme='light'] .pos-totality-theme .search-label {
+  color: #4a4538;
+}
+
+html[data-theme='light'] .pos-app .search-section-step {
+  color: #8a7340;
+}
+
+html[data-theme='light'] .pos-app .pos-header-context {
+  color: #6b6556;
+}
+
+/* Inputs */
+html[data-theme='light'] .pos-totality-theme .employee-search-input,
+html[data-theme='light'] .pos-totality-theme .producto-search-input,
+html[data-theme='light'] .pos-totality-theme .search-input,
+html[data-theme='light'] .pos-totality-theme .form-input,
+html[data-theme='light'] .pos-totality-theme .quantity-input {
+  background: #ffffff;
+  border-color: rgba(107, 101, 86, 0.4);
+  color: #1a1b21;
+}
+
+html[data-theme='light'] .pos-totality-theme .employee-search-input::placeholder,
+html[data-theme='light'] .pos-totality-theme .producto-search-input::placeholder,
+html[data-theme='light'] .pos-totality-theme .form-input::placeholder {
+  color: #6b6556;
+}
+
+/* Tabla */
+html[data-theme='light'] .pos-totality-theme .product-table {
+  background: #ffffff;
+  border-color: rgba(26, 27, 33, 0.12);
+}
+
+html[data-theme='light'] .pos-totality-theme .table-header {
+  background: linear-gradient(135deg, #7a6538 0%, #b8942e 100%);
+  color: #ffffff;
+  border-bottom-color: rgba(58, 48, 0, 0.2);
+}
+
+html[data-theme='light'] .pos-totality-theme .table-row {
+  color: #1a1b21;
+  border-bottom-color: rgba(26, 27, 33, 0.08);
+}
+
+html[data-theme='light'] .pos-totality-theme .table-row:hover {
+  background: #f8f6f0;
+}
+
+html[data-theme='light'] .pos-totality-theme .table-cell {
+  color: #1a1b21;
+  border-right-color: rgba(26, 27, 33, 0.08);
+}
+
+html[data-theme='light'] .pos-totality-theme .table-cell.cost {
+  color: #15803d;
+}
+
+html[data-theme='light'] .pos-totality-theme .empty-table,
+html[data-theme='light'] .pos-totality-theme .empty-state {
+  color: #6b6556;
+}
+
+/* Códigos rápidos */
+html[data-theme='light'] .pos-totality-theme .search-help {
+  background: #f8f6f0;
+  border-color: rgba(138, 115, 64, 0.28);
+}
+
+/* Pago */
+html[data-theme='light'] .pos-totality-theme .payment-calculator {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(26, 27, 33, 0.12);
+}
+
+html[data-theme='light'] .pos-totality-theme .payment-input-group label,
+html[data-theme='light'] .pos-totality-theme .change-label {
+  color: #1a1b21;
+}
+
+html[data-theme='light'] .pos-totality-theme .payment-input {
+  background: #ffffff;
+  border-color: rgba(107, 101, 86, 0.4);
+  color: #1a1b21;
+}
+
+html[data-theme='light'] .pos-totality-theme .payment-input::placeholder {
+  color: #6b6556;
+}
+
+html[data-theme='light'] .pos-totality-theme .currency-symbol {
+  color: #6b6556;
+}
+
+html[data-theme='light'] .pos-totality-theme .change-section {
+  background: #f8f6f0;
+  border-color: rgba(26, 27, 33, 0.12);
+}
+
+html[data-theme='light'] .pos-totality-theme .payment-input:focus {
+  border-color: #1e3a5f;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.15);
+}
+
+html[data-theme='light'] .pos-totality-theme .change-amount {
+  color: #1a1b21;
+}
+
+html[data-theme='light'] .pos-totality-theme .change-amount.positive {
+  color: #15803d;
+  text-shadow: none;
+}
+
+html[data-theme='light'] .pos-totality-theme .change-amount.negative {
+  color: #b91c1c;
+  text-shadow: none;
+}
+
+html[data-theme='light'] .pos-totality-theme .change-amount.zero {
+  color: #6b6556;
+}
+
+html[data-theme='light'] .pos-totality-theme .total-section {
+  background: linear-gradient(135deg, #8a7340 0%, #d4af37 100%);
+  border-color: rgba(58, 48, 0, 0.2);
+}
+
+html[data-theme='light'] .pos-totality-theme .total-label,
+html[data-theme='light'] .pos-totality-theme .total-amount {
+  color: #ffffff;
+  text-shadow: none;
+}
+
+html[data-theme='light'] .pos-totality-theme .quick-amount-btn {
+  background: rgba(30, 58, 95, 0.08);
+  color: #1e3a5f;
+  border-color: rgba(30, 58, 95, 0.25);
+}
+
+/* Post-it agenda */
+html[data-theme='light'] .pos-totality-theme .postit-card {
+  background: #ffffff;
+  border-color: rgba(26, 27, 33, 0.12);
+  color: #1a1b21;
+}
+
+html[data-theme='light'] .pos-totality-theme .postit-date {
+  color: #1e3a5f;
+  -webkit-text-fill-color: #1e3a5f;
+  background: none;
+  text-shadow: none;
+}
+
+html[data-theme='light'] .pos-totality-theme .postit-list li {
+  color: #4a4538;
+}
+
+/* Alumno seleccionado */
+html[data-theme='light'] .pos-totality-theme .alumno-search-selected {
+  color: #15803d;
+}
+
+html[data-theme='light'] .pos-totality-theme .alumno-search-clear {
+  color: #166534;
+  background: rgba(22, 101, 52, 0.1);
+  border-color: rgba(22, 101, 52, 0.35);
+}
+
+/* Resultados búsqueda */
+html[data-theme='light'] .pos-totality-theme .employee-name,
+html[data-theme='light'] .pos-totality-theme .producto-name {
+  color: #1a1b21;
+}
+
+html[data-theme='light'] .pos-totality-theme .employee-id,
+html[data-theme='light'] .pos-totality-theme .producto-details {
+  color: #4a4538;
+}
+
+html[data-theme='light'] .pos-totality-theme .employee-card,
+html[data-theme='light'] .pos-totality-theme .producto-card {
+  background: #ffffff;
+  border-color: rgba(26, 27, 33, 0.12);
+}
+
+html[data-theme='light'] .pos-totality-theme .table-body {
+  background: #ffffff;
+}
+
+html[data-theme='light'] .pos-totality-theme .postit-section + .postit-section {
+  border-top-color: rgba(26, 27, 33, 0.1);
+}
+
+html[data-theme='light'] .pos-totality-theme .search-results-dropdown {
+  background: #ffffff;
+  border-color: rgba(26, 27, 33, 0.12);
+}

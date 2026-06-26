@@ -77,6 +77,16 @@ html[data-theme='light'] .pos-totality-theme {
   --border-medium: rgba(107, 101, 86, 0.35);
   --glass-bg: rgba(255, 255, 255, 0.65);
   --glass-border: rgba(26, 27, 33, 0.12);
+  --bg-gradient: linear-gradient(135deg, #8a7340 0%, #c9a227 100%);
+  --bg-gradient-secondary: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+  --bg-accent: #1e3a5f;
+  --bg-accent-hover: #2563eb;
+  --bg-accent-muted: rgba(30, 58, 95, 0.1);
+  --bg-accent-border: rgba(30, 58, 95, 0.35);
+  --success: #15803d;
+  --shadow-sm: 0 2px 8px rgba(26, 27, 33, 0.06);
+  --shadow-md: 0 6px 20px rgba(26, 27, 33, 0.08);
+  --shadow-lg: 0 10px 28px rgba(26, 27, 33, 0.1);
 }
 
 html[data-theme='dark'] .pos-totality-theme {
