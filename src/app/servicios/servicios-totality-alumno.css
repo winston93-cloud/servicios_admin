@@ -1,0 +1,230 @@
+/**
+ * /servicios — formularios y pestañas de alumno (Totality dark + legibilidad).
+ * Corrige fondos claros hardcodeados en globals.css que rompen el modo oscuro.
+ */
+
+/* ─── Pestañas alumno ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-tabs-list {
+  background: rgba(13, 14, 19, 0.65);
+  border-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-tabs-trigger {
+  color: var(--sx-text-secondary);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-tabs-trigger:hover:not(.alumno-tabs-trigger--active) {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-tabs-trigger--active {
+  background: linear-gradient(145deg, rgba(255, 215, 0, 0.18) 0%, rgba(0, 227, 253, 0.12) 100%);
+  color: var(--sx-totality-gold, #fff6df);
+  border-color: rgba(255, 215, 0, 0.35);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.12);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-tabs-panel {
+  background: var(--sx-card) !important;
+  border-color: var(--sx-card-border) !important;
+  color: var(--sx-text);
+  box-shadow: var(--sx-card-shadow);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-tabs-panel--active {
+  border-color: rgba(0, 227, 253, 0.35) !important;
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(0, 227, 253, 0.12);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-tabs-empty {
+  background: rgba(13, 14, 19, 0.5);
+  border-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-tabs-empty p {
+  color: var(--sx-text-muted);
+}
+
+/* ─── Formularios alumno ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-legend,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-titulo,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-placeholder-title {
+  color: var(--sx-totality-gold, #fff6df) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-label,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-label {
+  color: var(--sx-text-muted) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-identidad {
+  background: linear-gradient(145deg, rgba(30, 58, 95, 0.28) 0%, rgba(13, 14, 19, 0.65) 100%);
+  border-color: rgba(0, 227, 253, 0.2);
+  border-left-color: #00e3fd;
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-identidad .alumno-form-label {
+  color: var(--sx-totality-gold, #fff6df);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-grid-datos {
+  background: rgba(13, 14, 19, 0.45);
+  border-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-input,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-select,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-input--identidad,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-input {
+  background: var(--sx-input-bg) !important;
+  color: var(--sx-text) !important;
+  border-color: var(--sx-input-border) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-input:read-only {
+  background: rgba(13, 14, 19, 0.75) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-input:focus,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-select:focus,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-input:focus {
+  border-color: var(--sx-input-focus) !important;
+  box-shadow: 0 0 0 3px var(--sx-accent-ring) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-guardar {
+  border-top-color: var(--sx-table-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-loading {
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-loading-icon {
+  color: var(--sx-accent);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-error {
+  background: rgba(147, 0, 10, 0.25);
+  color: #ffb4ab;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-placeholder-desc,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-placeholder-ref {
+  color: var(--sx-text-secondary);
+  background: rgba(13, 14, 19, 0.45);
+  border-left-color: var(--sx-accent);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-placeholder-ref strong {
+  color: var(--sx-text);
+}
+
+/* ─── Personas autorizadas ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-vacio {
+  color: var(--sx-text-muted);
+  background: rgba(13, 14, 19, 0.45);
+  border-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-tabla-scroll {
+  border-color: var(--sx-card-border);
+  background: rgba(13, 14, 19, 0.35);
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-tabla thead {
+  background: linear-gradient(135deg, #7a6538 0%, #c9a227 100%) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-tabla th {
+  color: #ffffff !important;
+  background: transparent !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-tabla td {
+  color: var(--sx-text) !important;
+  border-top-color: var(--sx-table-border);
+  background: transparent;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-tabla tbody tr:hover {
+  background-color: var(--sx-table-row-hover) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-fila--activa,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-fila--activa:hover {
+  background-color: rgba(0, 227, 253, 0.14) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-formulario {
+  background: rgba(13, 14, 19, 0.5) !important;
+  border-color: var(--sx-card-border) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-btn-nueva {
+  background: rgba(0, 227, 253, 0.1);
+  border-color: rgba(0, 227, 253, 0.3);
+  color: #bdf4ff;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-btn-nueva:hover {
+  background: rgba(0, 227, 253, 0.18);
+  border-color: rgba(0, 227, 253, 0.45);
+}
+
+/* ─── Autocompletado alumno ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-input-icon {
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-spinner {
+  color: var(--sx-accent);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-panel {
+  background: var(--sx-card);
+  border-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-option {
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-option:hover,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-option--active {
+  background: var(--sx-table-row-hover);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-option-meta {
+  color: var(--sx-text-muted);
+}
+
+/* Estatus alumno — tonos legibles en oscuro */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form--estatus-activo .alumno-form-select--estatus {
+  background-color: rgba(22, 101, 52, 0.35);
+  border-color: #4ade80;
+  color: #86efac;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form--estatus-baja .alumno-form-select--estatus {
+  background-color: rgba(127, 29, 29, 0.35);
+  border-color: #f87171;
+  color: #fca5a5;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form--estatus-inactivo .alumno-form-select--estatus {
+  background-color: rgba(30, 58, 138, 0.35);
+  border-color: #60a5fa;
+  color: #93c5fd;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form--estatus-baja-temporal .alumno-form-select--estatus {
+  background-color: rgba(113, 63, 18, 0.35);
+  border-color: #facc15;
+  color: #fde68a;
+}

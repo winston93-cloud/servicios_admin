@@ -1,7 +1,7 @@
 /**
- * /servicios — UI UX PRO MAX (administrativo educativo)
+ * /servicios — Totality Festival (dark) + UI UX PRO MAX (light)
  * Modo claro: sidebar navy + área slate clara.
- * Modo oscuro: slate profundo + acentos azul (sin Totality).
+ * Modo oscuro: obsidiana Totality + dorado/cian.
  */
 
 .pos-totality-theme.admin-app-shell:has(.servicios-app) {
@@ -53,35 +53,36 @@
 }
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app {
-  --sx-surface: #0f172a;
-  --sx-sidebar: #0c1a2e;
-  --sx-sidebar-border: rgba(148, 163, 184, 0.12);
-  --sx-sidebar-text: #e2e8f0;
-  --sx-sidebar-muted: #94a3b8;
-  --sx-sidebar-hover: rgba(59, 130, 246, 0.12);
-  --sx-sidebar-active: rgba(59, 130, 246, 0.22);
-  --sx-toolbar: #0f172a;
-  --sx-text: #f1f5f9;
-  --sx-text-secondary: #cbd5e1;
-  --sx-text-muted: #94a3b8;
-  --sx-card: #1e293b;
-  --sx-card-border: #334155;
-  --sx-card-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  --sx-input-bg: #0f172a;
-  --sx-input-border: #475569;
-  --sx-input-focus: #60a5fa;
-  --sx-btn-ghost-bg: #1e293b;
-  --sx-btn-ghost-border: #475569;
-  --sx-btn-ghost-text: #e2e8f0;
-  --sx-ciclo-bg: linear-gradient(135deg, #1e293b 0%, #172554 50%, #1e3a5f 100%);
-  --sx-ciclo-border: #3b82f6;
-  --sx-ciclo-label: #93c5fd;
-  --sx-table-head: #94a3b8;
-  --sx-table-row-hover: #334155;
-  --sx-table-border: #334155;
-  --sx-accent: #3b82f6;
-  --sx-accent-hover: #60a5fa;
-  --sx-accent-ring: rgba(96, 165, 250, 0.4);
+  --sx-surface: #121318;
+  --sx-sidebar: #0d0e13;
+  --sx-sidebar-border: rgba(255, 255, 255, 0.08);
+  --sx-sidebar-text: #e3e1e9;
+  --sx-sidebar-muted: #d0c6ab;
+  --sx-sidebar-hover: rgba(0, 227, 253, 0.1);
+  --sx-sidebar-active: rgba(255, 215, 0, 0.14);
+  --sx-toolbar: rgba(26, 27, 33, 0.92);
+  --sx-text: #e3e1e9;
+  --sx-text-secondary: #d0c6ab;
+  --sx-text-muted: #999077;
+  --sx-card: rgba(26, 27, 33, 0.94);
+  --sx-card-border: rgba(255, 255, 255, 0.1);
+  --sx-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --sx-input-bg: #0d0e13;
+  --sx-input-border: rgba(153, 144, 119, 0.35);
+  --sx-input-focus: #00e3fd;
+  --sx-btn-ghost-bg: rgba(52, 52, 58, 0.35);
+  --sx-btn-ghost-border: rgba(255, 255, 255, 0.12);
+  --sx-btn-ghost-text: #e3e1e9;
+  --sx-ciclo-bg: linear-gradient(135deg, rgba(26, 27, 33, 0.95) 0%, rgba(59, 39, 84, 0.35) 55%, rgba(13, 14, 19, 0.95) 100%);
+  --sx-ciclo-border: rgba(255, 215, 0, 0.35);
+  --sx-ciclo-label: #fff6df;
+  --sx-table-head: #fff6df;
+  --sx-table-row-hover: rgba(0, 227, 253, 0.1);
+  --sx-table-border: rgba(255, 255, 255, 0.08);
+  --sx-accent: #00e3fd;
+  --sx-accent-hover: #bdf4ff;
+  --sx-accent-ring: rgba(0, 227, 253, 0.25);
+  --sx-totality-gold: #fff6df;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app {
@@ -239,8 +240,8 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .serv
 }
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .theme-toggle-track {
-  background: #0f172a;
-  border-color: #475569;
+  background: #0d0e13;
+  border-color: rgba(153, 144, 119, 0.35);
 }
 
 /* ─── Paneles y tipografía ─── */
@@ -333,7 +334,7 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .them
   color: var(--sx-text);
 }
 
-.pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll th {
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-main-scroll table:not(.alumno-contactos-tabla) th {
   color: var(--sx-table-head) !important;
   border-bottom-color: var(--sx-table-border) !important;
   background: transparent !important;
