@@ -1,24 +1,21 @@
 'use client'
 
-import { urlProrrogasAjustesApp } from '@/lib/prorrogasAjustesConfig'
-import { urlCchicApp } from '@/lib/cchicConfig'
+import { urlBecasAlumnoApp, urlBoletasAlumnoApp } from '@/lib/dashboardModulosConfig'
 import {
-  urlBecasAdminPath,
-  urlBecasAlumnoApp,
-  urlBoletasAlumnoApp,
-  urlBoletasApp,
-  urlChequesApp,
-  urlReportesConductaApp,
-} from '@/lib/dashboardModulosConfig'
+  NAV_ITEMS_ADMIN,
+  abrirNavItem,
+  navItemKey,
+  type DashboardAdminNavItem,
+} from '@/lib/dashboardNavAdmin'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
+import DashboardModuleCard from '@/components/dashboard/DashboardModuleCard'
 import Image from 'next/image'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
-import DesayunosAdminCard from '@/components/dashboard/DesayunosAdminCard'
-import './dashboard-desayunos-card.css'
+import './dashboard-module-card.css'
 
 const ChevronRight = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -29,17 +26,13 @@ const ChevronRight = () => (
 type DashboardNavItem = {
   label: string
   desc: string
-  accent: 'amber' | 'indigo' | 'violet' | 'rose' | 'emerald' | 'sky'
+  accent: DashboardAdminNavItem['accent']
   icon: ReactNode
   path?: string
   href?: string
 }
 
-function navItemKey(item: DashboardNavItem): string {
-  return item.path ?? item.href ?? item.label
-}
-
-function abrirNavItem(item: DashboardNavItem, push: (path: string) => void) {
+function abrirNavItemAlumno(item: DashboardNavItem, push: (path: string) => void) {
   if (item.href) {
     window.open(item.href, '_blank', 'noopener,noreferrer')
     return
@@ -56,190 +49,6 @@ const ICON_DESAYUNOS = (
     <line x1="14" y1="1" x2="14" y2="4"/>
   </svg>
 )
-
-/** Módulos del personal administrativo (sin portales de familias). */
-const NAV_ITEMS_ADMIN: DashboardNavItem[] = [
-  {
-    label: 'Desayunos, Estancias y Comidas',
-    desc: 'Cobros, pedidos y control de alimentación escolar en un solo flujo operativo.',
-    path: '/pos',
-    accent: 'amber',
-    icon: ICON_DESAYUNOS,
-  },
-  {
-    label: 'Servicios',
-    desc: 'Gestión general de servicios escolares',
-    path: '/servicios',
-    accent: 'indigo',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-        <polyline points="2 17 12 22 22 17"/>
-        <polyline points="2 12 12 17 22 12"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Reportes',
-    desc: 'Consulta y generación de reportes administrativos',
-    path: '/reportes',
-    accent: 'violet',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10"/>
-        <line x1="12" y1="20" x2="12" y2="4"/>
-        <line x1="6" y1="20" x2="6" y2="14"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Prórrogas y Ajustes',
-    desc: 'Gestión de prórrogas y ajustes de pago escolar',
-    href: urlProrrogasAjustesApp(),
-    accent: 'rose',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-        <line x1="16" y1="2" x2="16" y2="6"/>
-        <line x1="8" y1="2" x2="8" y2="6"/>
-        <line x1="3" y1="10" x2="21" y2="10"/>
-        <circle cx="12" cy="16" r="3"/>
-        <polyline points="12 14 12 16 13.5 17.5"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Agenda psicólogas',
-    desc: 'Calendario y citas del área de psicología',
-    href: 'https://agendaw.vercel.app/admin/',
-    accent: 'sky',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-        <line x1="16" y1="2" x2="16" y2="6"/>
-        <line x1="8" y1="2" x2="8" y2="6"/>
-        <line x1="3" y1="10" x2="21" y2="10"/>
-        <path d="M12 14v4"/>
-        <path d="M10 16h4"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Agenda directoras',
-    desc: 'Panel de agenda para dirección escolar',
-    href: 'https://agendaw.vercel.app/admin/dashboard',
-    accent: 'violet',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-        <line x1="16" y1="2" x2="16" y2="6"/>
-        <line x1="8" y1="2" x2="8" y2="6"/>
-        <line x1="3" y1="10" x2="21" y2="10"/>
-        <path d="M7 14h4"/>
-        <path d="M7 18h7"/>
-        <path d="M14 14h3"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Open House/Sesiones Inf. Admin',
-    desc: 'Inscripciones y gestión de Open House y sesiones informativas',
-    href: 'https://open-house-chi.vercel.app/admin',
-    accent: 'emerald',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 10.5L12 3l9 7.5"/>
-        <path d="M5 10v10h14V10"/>
-        <path d="M9 20v-6h6v6"/>
-        <path d="M12 7v3"/>
-        <path d="M10.5 9.5h3"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Monitoreo y Control',
-    desc: 'Caja chica, egresos, fondos y reportes de control',
-    href: urlCchicApp(),
-    accent: 'indigo',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 20V10"/>
-        <path d="M18 20V4"/>
-        <path d="M6 20v-4"/>
-        <rect x="3" y="2" width="18" height="4" rx="1"/>
-        <path d="M7 6v2"/>
-        <path d="M12 6v2"/>
-        <path d="M17 6v2"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Facturación CFDI',
-    desc: 'Timbrado, cancelaciones y devoluciones fiscales',
-    path: '/facturacion',
-    accent: 'emerald',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 2h16v20l-4-2-4 2-4-2-4 2V2z"/>
-        <path d="M8 7h8"/>
-        <path d="M8 11h8"/>
-        <path d="M8 15h5"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Cheques',
-    desc: 'Emisión, impresión y control de cheques escolares',
-    href: urlChequesApp(),
-    accent: 'sky',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="6" width="20" height="12" rx="2"/>
-        <line x1="6" y1="10" x2="18" y2="10"/>
-        <line x1="6" y1="14" x2="12" y2="14"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Boletas',
-    desc: 'Captura, consulta y envío de boletas escolares',
-    href: urlBoletasApp(),
-    accent: 'indigo',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-        <line x1="8" y1="7" x2="16" y2="7"/>
-        <line x1="8" y1="11" x2="16" y2="11"/>
-        <line x1="8" y1="15" x2="12" y2="15"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Becas',
-    desc: 'Asignación y seguimiento de becas por alumno y ciclo',
-    path: urlBecasAdminPath(),
-    accent: 'amber',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Reportes de Conducta',
-    desc: 'Captura y seguimiento de reportes de conducta escolar',
-    href: urlReportesConductaApp(),
-    accent: 'rose',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-        <line x1="12" y1="9" x2="12" y2="13"/>
-        <line x1="12" y1="17" x2="12.01" y2="17"/>
-      </svg>
-    ),
-  },
-]
 
 /** Portales en línea solo para alumnos / familias. */
 const NAV_ITEMS_ALUMNO: DashboardNavItem[] = [
@@ -340,8 +149,13 @@ export default function DashboardPage() {
     setIsMenuOpen(false)
   }
 
-  const handleNavItem = (item: DashboardNavItem) => {
+  const handleNavItemAdmin = (item: DashboardAdminNavItem) => {
     abrirNavItem(item, router.push)
+    setIsMenuOpen(false)
+  }
+
+  const handleNavItemAlumno = (item: DashboardNavItem) => {
+    abrirNavItemAlumno(item, router.push)
     setIsMenuOpen(false)
   }
 
@@ -387,10 +201,8 @@ export default function DashboardPage() {
     return 'Buenas noches'
   })()
 
-  const navItems = useMemo(
-    () => (isAlumno ? [...NAV_ITEMS_ALUMNO] : [...NAV_ITEMS_ADMIN]),
-    [isAlumno]
-  )
+  const navItemsAdmin = useMemo(() => [...NAV_ITEMS_ADMIN], [])
+  const navItemsAlumno = useMemo(() => [...NAV_ITEMS_ALUMNO], [])
 
   const subtituloDashboard = isAlumno
     ? 'Accede a tus portales en línea'
@@ -501,37 +313,44 @@ export default function DashboardPage() {
               </div>
 
               <div className="dashboard-nav-grid">
-                {navItems.map((item) => {
-                  if (!isAlumno && item.path === '/pos') {
-                    return (
-                      <DesayunosAdminCard
+                {isAlumno
+                  ? navItemsAlumno.map((item) => (
+                      <div
                         key={navItemKey(item)}
-                        onActivate={() => handleNavItem(item)}
+                        className="dash-nav-item"
+                        data-accent={item.accent}
+                        onClick={() => handleNavItemAlumno(item)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') handleNavItemAlumno(item)
+                        }}
+                      >
+                        <div className="dash-nav-icon">{item.icon}</div>
+                        <div className="dash-nav-body">
+                          <h2 className="dash-nav-title">{item.label}</h2>
+                          <p className="dash-nav-desc">{item.desc}</p>
+                        </div>
+                        <div className="dash-nav-arrow" aria-hidden="true">
+                          <ChevronRight />
+                        </div>
+                      </div>
+                    ))
+                  : navItemsAdmin.map((item) => (
+                      <DashboardModuleCard
+                        key={navItemKey(item)}
+                        label={item.label}
+                        desc={item.desc}
+                        accent={item.accent}
+                        icon={item.icon}
+                        kicker={item.kicker}
+                        badge={item.badge}
+                        tags={item.tags}
+                        featured={item.featured}
+                        external={Boolean(item.href)}
+                        onActivate={() => handleNavItemAdmin(item)}
                       />
-                    )
-                  }
-
-                  return (
-                  <div
-                    key={navItemKey(item)}
-                    className="dash-nav-item"
-                    data-accent={item.accent}
-                    onClick={() => handleNavItem(item)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') handleNavItem(item)
-                    }}
-                  >
-                    <div className="dash-nav-icon">{item.icon}</div>
-                    <div className="dash-nav-body">
-                      <h2 className="dash-nav-title">{item.label}</h2>
-                      <p className="dash-nav-desc">{item.desc}</p>
-                    </div>
-                    <div className="dash-nav-arrow" aria-hidden="true"><ChevronRight /></div>
-                  </div>
-                  )
-                })}
+                    ))}
               </div>
             </div>
 
@@ -616,21 +435,41 @@ export default function DashboardPage() {
                 <p>Panel principal</p>
               </div>
             </button>
-            {navItems.map((item) => (
-              <button
-                key={navItemKey(item)}
-                type="button"
-                className="dashboard-menu-item"
-                data-accent={item.accent}
-                onClick={() => handleNavItem(item)}
-              >
-                <div className="dashboard-menu-item-icon" aria-hidden>{item.icon}</div>
-                <div className="dashboard-menu-text">
-                  <h4>{item.label}</h4>
-                  <p>{item.desc}</p>
-                </div>
-              </button>
-            ))}
+            {isAlumno
+              ? navItemsAlumno.map((item) => (
+                  <button
+                    key={navItemKey(item)}
+                    type="button"
+                    className="dashboard-menu-item"
+                    data-accent={item.accent}
+                    onClick={() => handleNavItemAlumno(item)}
+                  >
+                    <div className="dashboard-menu-item-icon" aria-hidden>
+                      {item.icon}
+                    </div>
+                    <div className="dashboard-menu-text">
+                      <h4>{item.label}</h4>
+                      <p>{item.desc}</p>
+                    </div>
+                  </button>
+                ))
+              : navItemsAdmin.map((item) => (
+                  <button
+                    key={navItemKey(item)}
+                    type="button"
+                    className="dashboard-menu-item"
+                    data-accent={item.accent}
+                    onClick={() => handleNavItemAdmin(item)}
+                  >
+                    <div className="dashboard-menu-item-icon" aria-hidden>
+                      {item.icon}
+                    </div>
+                    <div className="dashboard-menu-text">
+                      <h4>{item.label}</h4>
+                      <p>{item.desc}</p>
+                    </div>
+                  </button>
+                ))}
           </div>
 
           <button type="button" onClick={handleLogout} className="dashboard-sidebar-logout">

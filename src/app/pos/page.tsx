@@ -109,7 +109,12 @@ export default function Home() {
 
   return (
     <ProtectedRoute>
-      <div>
+      <div className="pos-app">
+        <div className="pos-header-strip" aria-hidden="false">
+          <span className="pos-header-kicker">Punto de venta</span>
+          <span className="pos-header-context">Alimentación escolar</span>
+        </div>
+
         {/* Header POS */}
         <header className="pos-header">
           <div className="pos-header-content">
@@ -174,7 +179,10 @@ export default function Home() {
           <div className="pos-grid">
             <div className="pos-grid-main">
               <div className="search-section">
-                <div className="search-header">Búsquedas</div>
+                <div className="search-section-head">
+                  <h2 className="search-header">Búsquedas</h2>
+                  <span className="search-section-step">Paso 1</span>
+                </div>
                 <div className="search-inputs-container">
                   <div className="search-input-group">
                     <label className="search-label">Alumno</label>
