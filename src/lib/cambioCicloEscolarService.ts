@@ -4,6 +4,22 @@ import {
   CICLO_CAMBIO_ORIGEN,
   calcularDestinoCambioCiclo,
 } from './cambioCicloEscolarAdvance'
+import { mensajeErrorDestino } from './migracionTablasAdaptadores'
+
+function mensajeDb(error: unknown): string {
+  const base = mensajeErrorDestino(error)
+  const code =
+    error && typeof error === 'object' && 'code' in error
+      ? String((error as { code?: string }).code ?? '')
+      : ''
+  const faltaTabla =
+    code === '42P01' ||
+    /does not exist|relation|not found|404/i.test(base)
+  if (faltaTabla || /alumno_cambio_ciclo_respaldo/i.test(base)) {
+    return `${base} Falta la tabla alumno_cambio_ciclo_respaldo en InsForge. Ejecuta: npx @insforge/cli db import migrations/20260619130000_alumno_cambio_ciclo_respaldo.sql`
+  }
+  return base
+}
 
 export interface AlumnoCambioCicloRow {
   alumno_id: number
@@ -74,7 +90,7 @@ export async function listarAlumnosOrigenCambioCiclo(
 
   if (error) {
     console.error('Listar origen cambio ciclo:', error)
-    return { ok: false, mensaje: error.message }
+    return { ok: false, mensaje: mensajeDb(error) }
   }
 
   const filas = (data ?? []).map((r) => mapFila(r as Record<string, unknown>))
@@ -108,7 +124,7 @@ export async function listarAlumnosDestinoCambioCiclo(
 
   if (error) {
     console.error('Listar destino cambio ciclo:', error)
-    return { ok: false, mensaje: error.message }
+    return { ok: false, mensaje: mensajeDb(error) }
   }
 
   const ids = (data ?? []).map((r) => Number(r.alumno_id))
@@ -156,11 +172,7 @@ async function guardarRespaldo(
 
   if (error) {
     console.error('Guardar respaldo cambio ciclo:', error)
-    const hint =
-      error.message.includes('does not exist') || error.message.includes('relation')
-        ? ' Ejecuta la migración SQL `alumno_cambio_ciclo_respaldo` en InsForge.'
-        : ''
-    return { ok: false, mensaje: error.message + hint }
+    return { ok: false, mensaje: mensajeDb(error) }
   }
   return { ok: true }
 }
@@ -199,7 +211,7 @@ async function migrarUnAlumno(
 
   if (error) {
     console.error('Migrar alumno cambio ciclo:', error)
-    return { ok: false, mensaje: error.message }
+    return { ok: false, mensaje: mensajeDb(error) }
   }
   return { ok: true }
 }
@@ -226,7 +238,7 @@ export async function migrarAlumnosCambioCiclo(
     .eq('alumno_status', 1)
 
   if (error) {
-    return { ok: false, mensaje: error.message, migrados: 0 }
+    return { ok: false, mensaje: mensajeDb(error), migrados: 0 }
   }
 
   const alumnos = (data ?? []).map((r) => mapFila(r as Record<string, unknown>))
@@ -259,7 +271,7 @@ export async function revertirAlumnosCambioCiclo(
     .in('alumno_id', alumnoIds)
 
   if (errRespaldo) {
-    return { ok: false, mensaje: errRespaldo.message, revertidos: 0 }
+    return { ok: false, mensaje: mensajeDb(errRespaldo), revertidos: 0 }
   }
 
   const filas = respaldos ?? []
@@ -287,7 +299,7 @@ export async function revertirAlumnosCambioCiclo(
       .eq('alumno_ciclo_escolar', CICLO_CAMBIO_DESTINO)
 
     if (error) {
-      return { ok: false, mensaje: error.message, revertidos }
+      return { ok: false, mensaje: mensajeDb(error), revertidos }
     }
 
     const { error: errDel } = await supabase
@@ -296,7 +308,7 @@ export async function revertirAlumnosCambioCiclo(
       .eq('alumno_id', Number(r.alumno_id))
 
     if (errDel) {
-      return { ok: false, mensaje: errDel.message, revertidos }
+      return { ok: false, mensaje: mensajeDb(errDel), revertidos }
     }
     revertidos += 1
   }

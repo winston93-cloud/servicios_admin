@@ -241,23 +241,28 @@ export default function CambioCicloEscolarModulo() {
     setError(null)
     setMensaje(null)
 
-    const res = await migrarAlumnosCambioCiclo([...selOrigen], nivel, grado)
-    setProcesando(false)
+    try {
+      const res = await migrarAlumnosCambioCiclo([...selOrigen], nivel, grado)
 
-    if (!res.ok) {
-      setError(
-        res.migrados > 0
-          ? `Se migraron ${res.migrados} antes del error: ${res.mensaje}`
-          : res.mensaje
+      if (!res.ok) {
+        setError(
+          res.migrados > 0
+            ? `Se migraron ${res.migrados} antes del error: ${res.mensaje}`
+            : res.mensaje
+        )
+        if (res.migrados > 0) await cargarListas()
+        return
+      }
+
+      setMensaje(
+        `${res.migrados} alumno(s) pasados al ciclo ${CICLO_CAMBIO_DESTINO} en ${etiquetaDestino}.`
       )
-      if (res.migrados > 0) await cargarListas()
-      return
+      await cargarListas()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error inesperado al migrar alumnos.')
+    } finally {
+      setProcesando(false)
     }
-
-    setMensaje(
-      `${res.migrados} alumno(s) pasados al ciclo ${CICLO_CAMBIO_DESTINO} en ${etiquetaDestino}.`
-    )
-    await cargarListas()
   }, [selOrigen, nivel, grado, cargarListas, etiquetaDestino])
 
   const regresarSeleccionados = useCallback(async () => {
@@ -269,21 +274,26 @@ export default function CambioCicloEscolarModulo() {
     setError(null)
     setMensaje(null)
 
-    const res = await revertirAlumnosCambioCiclo([...selDestino])
-    setProcesando(false)
+    try {
+      const res = await revertirAlumnosCambioCiclo([...selDestino])
 
-    if (!res.ok) {
-      setError(
-        res.revertidos > 0
-          ? `Se revirtieron ${res.revertidos} antes del error: ${res.mensaje}`
-          : res.mensaje
-      )
-      if (res.revertidos > 0) await cargarListas()
-      return
+      if (!res.ok) {
+        setError(
+          res.revertidos > 0
+            ? `Se revirtieron ${res.revertidos} antes del error: ${res.mensaje}`
+            : res.mensaje
+        )
+        if (res.revertidos > 0) await cargarListas()
+        return
+      }
+
+      setMensaje(`${res.revertidos} alumno(s) regresados al ciclo ${CICLO_CAMBIO_ORIGEN}.`)
+      await cargarListas()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error inesperado al regresar alumnos.')
+    } finally {
+      setProcesando(false)
     }
-
-    setMensaje(`${res.revertidos} alumno(s) regresados al ciclo ${CICLO_CAMBIO_ORIGEN}.`)
-    await cargarListas()
   }, [selDestino, cargarListas])
 
   return (
