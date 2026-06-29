@@ -1,4 +1,5 @@
 import type { TablaMigracion } from './migracionTablasManifest'
+import { normalizarDatosFacturacion } from './datosFacturacionTypes'
 
 const FECHA_FALLBACK = '1970-01-01T00:00:00.000Z'
 
@@ -117,6 +118,30 @@ function adaptarAlumnoBeca(fila: Record<string, unknown>): Record<string, unknow
   return out
 }
 
+function adaptarDatosFacturacion(fila: Record<string, unknown>): Record<string, unknown> {
+  const norm = normalizarDatosFacturacion({
+    moneda: String(fila.moneda ?? 'MXN'),
+    rfc: String(fila.rfc ?? ''),
+    razsocial: String(fila.razsocial ?? ''),
+    regfiscal: String(fila.regfiscal ?? ''),
+    usocfdi: String(fila.usocfdi ?? ''),
+    codpostal: String(fila.codpostal ?? ''),
+    calle: String(fila.calle ?? ''),
+    nexterior: String(fila.nexterior ?? ''),
+    ninterior: String(fila.ninterior ?? ''),
+    ncolonia: String(fila.ncolonia ?? ''),
+    nmunicipio: String(fila.nmunicipio ?? ''),
+    nentidad: String(fila.nentidad ?? ''),
+    email: String(fila.email ?? ''),
+    lada: String(fila.lada ?? ''),
+    numero: String(fila.numero ?? ''),
+    alumno_ref: Number(fila.alumno_ref),
+  })
+  const out: Record<string, unknown> = { ...norm }
+  if (fila.id != null && fila.id !== '') out.id = Number(fila.id)
+  return out
+}
+
 function filtrarColumnas(
   fila: Record<string, unknown>,
   columnas: string[] | undefined
@@ -140,6 +165,7 @@ export function adaptarFilaParaDestino(
 
   if (def.id === 'concepto_interno') out = adaptarConceptoInterno(out)
   if (def.id === 'alumno_beca') out = adaptarAlumnoBeca(out)
+  if (def.id === 'datos_facturacion') out = adaptarDatosFacturacion(out)
   if (def.id === 'pago_prorroga') {
     if (out.porroga_id !== undefined && out.prorroga_id === undefined) {
       out.prorroga_id = out.porroga_id

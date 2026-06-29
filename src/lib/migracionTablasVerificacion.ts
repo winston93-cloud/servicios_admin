@@ -288,6 +288,14 @@ async function verificarUnaTabla(
     muestraDistintas: [],
   }
 
+  if (def.soloInsforge) {
+    return {
+      ...base,
+      estado: 'omitida',
+      mensaje: 'Solo en InsForge (no forma parte de la migración desde phpMyAdmin)',
+    }
+  }
+
   const existeMysql = await tablaExisteEnMysql(mysql, def.mysql)
   if (!existeMysql) {
     return {

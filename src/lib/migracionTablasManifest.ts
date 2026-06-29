@@ -15,6 +15,8 @@ export interface TablaMigracion {
   /** Grupo para selección en UI */
   grupo: 'alumnos' | 'catalogos' | 'pagos' | 'boletas' | 'desayunos' | 'sistema' | 'facturacion'
   etiqueta: string
+  /** Solo vive en InsForge (producción); no migrar ni vaciar desde phpMyAdmin. */
+  soloInsforge?: boolean
 }
 
 /** Nombre de la columna PK en MySQL (puede diferir del destino). */
@@ -41,6 +43,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
     pk: 'id',
     grupo: 'catalogos',
     etiqueta: 'Ciclos escolares',
+    soloInsforge: true,
   },
   {
     id: 'concepto_beca',
@@ -73,6 +76,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
     pk: 'id',
     grupo: 'desayunos',
     etiqueta: 'Conceptos desayunos',
+    soloInsforge: true,
   },
   // Alumnos
   {
@@ -191,6 +195,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
     pk: 'id',
     grupo: 'desayunos',
     etiqueta: 'Personal',
+    soloInsforge: true,
   },
   {
     id: 'pago_desayunos',
@@ -199,6 +204,7 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
     pk: 'id',
     grupo: 'desayunos',
     etiqueta: 'Pagos desayunos',
+    soloInsforge: true,
   },
   {
     id: 'usuario',
@@ -217,6 +223,13 @@ export const TABLAS_MIGRACION: TablaMigracion[] = [
     etiqueta: 'Datos fiscales (papás)',
   },
 ]
+
+/** Tablas del manifiesto que sí tienen origen en MySQL / phpMyAdmin. */
+export const TABLAS_MIGRACION_DESDE_MYSQL = TABLAS_MIGRACION.filter((t) => !t.soloInsforge)
+
+export function idsTablasMigracionPorDefecto(): string[] {
+  return TABLAS_MIGRACION_DESDE_MYSQL.map((t) => t.id)
+}
 
 /** Orden inverso para borrar huérfanos (hijos antes que padres). */
 export const TABLAS_MIGRACION_ELIMINAR = [...TABLAS_MIGRACION].reverse()

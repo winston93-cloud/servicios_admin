@@ -8270,6 +8270,27 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   font-weight: 600;
   color: var(--mg-ink);
   line-height: 1.3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.migracion-pro-tabla-badge {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 1px 5px;
+  line-height: 1.4;
+}
+
+.migracion-pro-fila--solo-if:not(.migracion-pro-fila--activa) {
+  opacity: 0.72;
 }
 
 .migracion-pro-tabla-ruta {

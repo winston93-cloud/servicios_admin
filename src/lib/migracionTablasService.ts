@@ -213,41 +213,65 @@ async function vaciarTablasAuxiliares(sb: AppDatabaseClient, tablas: string[]) {
 /** Vacía tablas seleccionadas en orden inverso de dependencias (hijos → padres). */
 export async function vaciarTablasMigracion(opciones: {
   tablas?: string[]
-}): Promise<{ ok: boolean; vaciadas: string[]; errores: string[] }> {
+  mysql?: Awaited<ReturnType<typeof createMysqlLegacyConnection>>
+}): Promise<{ ok: boolean; vaciadas: string[]; omitidas: string[]; errores: string[] }> {
   const idsSeleccionados = opciones.tablas?.length ? new Set(opciones.tablas) : null
   const aVaciar = TABLAS_MIGRACION_ELIMINAR.filter(
     (t) => !idsSeleccionados || idsSeleccionados.has(t.id)
   )
 
-  const sb = createDbAdmin()
-  const vaciadas: string[] = []
-  const errores: string[] = []
-
-  for (const def of aVaciar) {
-    const auxiliares = TABLAS_VACIAR_ANTES[def.id]
-    if (auxiliares?.length) {
-      try {
-        await vaciarTablasAuxiliares(sb, auxiliares)
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : 'Error desconocido'
-        errores.push(msg)
-        continue
-      }
-    }
-
-    const destinoOk = await destinoTablaDisponible(sb, def.destino)
-    if (!destinoOk) continue
-
-    try {
-      await vaciarTabla(sb, def.destino, def.pk)
-      vaciadas.push(def.destino)
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Error desconocido'
-      errores.push(`${def.etiqueta}: ${msg}`)
-    }
+  let mysql = opciones.mysql
+  let cerrarMysql = false
+  if (!mysql) {
+    mysql = await createMysqlLegacyConnection()
+    cerrarMysql = true
   }
 
-  return { ok: errores.length === 0, vaciadas, errores }
+  const sb = createDbAdmin()
+  const vaciadas: string[] = []
+  const omitidas: string[] = []
+  const errores: string[] = []
+
+  try {
+    for (const def of aVaciar) {
+      if (def.soloInsforge) {
+        omitidas.push(def.destino)
+        continue
+      }
+
+      const existeMysql = await tablaExisteEnMysql(mysql, def.mysql)
+      if (!existeMysql) {
+        omitidas.push(def.destino)
+        continue
+      }
+
+      const auxiliares = TABLAS_VACIAR_ANTES[def.id]
+      if (auxiliares?.length) {
+        try {
+          await vaciarTablasAuxiliares(sb, auxiliares)
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : 'Error desconocido'
+          errores.push(msg)
+          continue
+        }
+      }
+
+      const destinoOk = await destinoTablaDisponible(sb, def.destino)
+      if (!destinoOk) continue
+
+      try {
+        await vaciarTabla(sb, def.destino, def.pk)
+        vaciadas.push(def.destino)
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Error desconocido'
+        errores.push(`${def.etiqueta}: ${msg}`)
+      }
+    }
+  } finally {
+    if (cerrarMysql) await mysql.end()
+  }
+
+  return { ok: errores.length === 0, vaciadas, omitidas, errores }
 }
 
 async function eliminarHuérfanos(
@@ -294,6 +318,14 @@ async function migrarUnaTabla(
     actualizados: 0,
     sinCambios: 0,
     eliminados: 0,
+  }
+
+  if (def.soloInsforge) {
+    return {
+      ...base,
+      estado: 'omitida',
+      mensaje: 'Solo en InsForge (no forma parte de la migración desde phpMyAdmin)',
+    }
   }
 
   const existe = await tablaExisteEnMysql(mysql, def.mysql)
@@ -478,6 +510,7 @@ export async function ejecutarMigracionTablas(opciones: {
     if (modo === 'vaciar_copiar' && !opciones.faseVaciarCopiar && aMigrar.length > 1) {
       const rVaciar = await vaciarTablasMigracion({
         tablas: opciones.tablas ?? aMigrar.map((t) => t.id),
+        mysql,
       })
       if (rVaciar.errores.length) {
         erroresGlobales.push(...rVaciar.errores)

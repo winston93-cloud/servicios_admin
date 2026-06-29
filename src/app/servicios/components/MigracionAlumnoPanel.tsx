@@ -29,6 +29,8 @@ import {
 import {
   GRUPOS_MIGRACION,
   TABLAS_MIGRACION,
+  TABLAS_MIGRACION_DESDE_MYSQL,
+  idsTablasMigracionPorDefecto,
   type TablaMigracion,
 } from '@/lib/migracionTablasManifest'
 import type {
@@ -144,7 +146,7 @@ export default function MigracionAlumnoPanel() {
   const [secreto, setSecreto] = useState('')
   const [modo, setModo] = useState<ModoMigracion>('espejo')
   const [seleccion, setSeleccion] = useState<Set<string>>(
-    () => new Set(TABLAS_MIGRACION.map((t) => t.id))
+    () => new Set(idsTablasMigracionPorDefecto())
   )
   const [cargando, setCargando] = useState(false)
   const [operacion, setOperacion] = useState<TipoOperacion | null>(null)
@@ -725,14 +727,17 @@ export default function MigracionAlumnoPanel() {
                 <h3 className="migracion-pro-main-title">Tablas a procesar</h3>
                 <p className="migracion-pro-main-sub">
                   {seleccion.size} seleccionada{seleccion.size === 1 ? '' : 's'} de{' '}
-                  {TABLAS_MIGRACION.length}
+                  {TABLAS_MIGRACION_DESDE_MYSQL.length} migrables
+                  {TABLAS_MIGRACION.length > TABLAS_MIGRACION_DESDE_MYSQL.length
+                    ? ` (${TABLAS_MIGRACION.length - TABLAS_MIGRACION_DESDE_MYSQL.length} solo InsForge)`
+                    : ''}
                 </p>
               </div>
               <div className="migracion-pro-quick">
                 <button
                   type="button"
                   className="migracion-pro-quick-btn"
-                  onClick={() => setSeleccion(new Set(TABLAS_MIGRACION.map((t) => t.id)))}
+                  onClick={() => setSeleccion(new Set(idsTablasMigracionPorDefecto()))}
                 >
                   Todas
                 </button>
@@ -781,11 +786,12 @@ export default function MigracionAlumnoPanel() {
                       <ul className="migracion-pro-tablas">
                         {tablas.map((t) => {
                           const activa = seleccion.has(t.id)
+                          const soloIf = t.soloInsforge === true
                           return (
                             <li key={t.id}>
                               <button
                                 type="button"
-                                className={`migracion-pro-fila${activa ? ' migracion-pro-fila--activa' : ''}`}
+                                className={`migracion-pro-fila${activa ? ' migracion-pro-fila--activa' : ''}${soloIf ? ' migracion-pro-fila--solo-if' : ''}`}
                                 onClick={() => toggleTabla(t.id)}
                                 aria-pressed={activa}
                               >
@@ -796,9 +802,14 @@ export default function MigracionAlumnoPanel() {
                                   {activa && <Check size={11} strokeWidth={3} />}
                                 </span>
                                 <span className="migracion-pro-tabla-info">
-                                  <span className="migracion-pro-tabla-nombre">{t.etiqueta}</span>
+                                  <span className="migracion-pro-tabla-nombre">
+                                    {t.etiqueta}
+                                    {soloIf && (
+                                      <span className="migracion-pro-tabla-badge">solo InsForge</span>
+                                    )}
+                                  </span>
                                   <span className="migracion-pro-tabla-ruta">
-                                    {t.mysql} → {t.destino}
+                                    {soloIf ? t.destino : `${t.mysql} → ${t.destino}`}
                                   </span>
                                 </span>
                               </button>
