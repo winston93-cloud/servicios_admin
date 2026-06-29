@@ -7301,6 +7301,87 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   font-weight: 600;
 }
 
+/* Cambio de ciclo escolar */
+.servicios-panel-inner--cambio-ciclo {
+  width: 100%;
+  max-width: none;
+}
+
+.cambio-ciclo-dual-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.cambio-ciclo-panel {
+  min-width: 0;
+}
+
+.cambio-ciclo-panel-title {
+  margin: 0 0 6px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.cambio-ciclo-panel-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.cambio-ciclo-tabla-wrap {
+  max-height: min(62vh, 640px);
+}
+
+.cambio-ciclo-field-destino .cambio-ciclo-destino-hint {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: #1e3a5f;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+}
+
+.cambio-ciclo-acciones-centro {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 14px;
+  margin: 0 0 16px;
+}
+
+.cambio-ciclo-nota {
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.cambio-ciclo-nota--ok {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.cambio-ciclo-nota--prev {
+  color: #64748b;
+}
+
+.cambio-ciclo-empty {
+  padding: 12px 0;
+}
+
+@media (max-width: 1100px) {
+  .cambio-ciclo-dual-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Becas */
 .servicios-panel-inner--becas {
   width: 100%;
