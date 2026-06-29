@@ -7,7 +7,6 @@ import {
   ArrowRight,
   Check,
   Loader2,
-  RefreshCw,
   Users,
 } from 'lucide-react'
 import {
@@ -19,9 +18,11 @@ import {
 import {
   listarAlumnosDestinoCambioCiclo,
   listarAlumnosOrigenCambioCiclo,
+  listarResumenGradosCambioCiclo,
   migrarAlumnosCambioCiclo,
   revertirAlumnosCambioCiclo,
   type AlumnoCambioCicloRow,
+  type ResumenGradoCambioCiclo,
 } from '@/lib/cambioCicloEscolarService'
 import { FORMA_INGRESO_OPCIONES } from '@/lib/alumnoFormaIngreso'
 import {
@@ -133,6 +134,7 @@ export default function CambioCicloEscolarModulo() {
   const [grado, setGrado] = useState(1)
   const [origen, setOrigen] = useState<AlumnoCambioCicloRow[]>([])
   const [destino, setDestino] = useState<AlumnoCambioCicloRow[]>([])
+  const [resumenGrados, setResumenGrados] = useState<ResumenGradoCambioCiclo[]>([])
   const [selOrigen, setSelOrigen] = useState<Set<number>>(new Set())
   const [selDestino, setSelDestino] = useState<Set<number>>(new Set())
   const [cargando, setCargando] = useState(false)
@@ -165,14 +167,18 @@ export default function CambioCicloEscolarModulo() {
   const cargarListas = useCallback(async () => {
     setCargando(true)
     setError(null)
-    setMensaje(null)
 
-    const [resOrigen, resDestino] = await Promise.all([
+    const [resOrigen, resDestino, resResumen] = await Promise.all([
       listarAlumnosOrigenCambioCiclo(nivel, grado),
       listarAlumnosDestinoCambioCiclo(nivel, grado),
+      listarResumenGradosCambioCiclo(nivel),
     ])
 
     setCargando(false)
+
+    if (resResumen.ok) {
+      setResumenGrados(resResumen.filas)
+    }
 
     if (!resOrigen.ok) {
       setError(resOrigen.mensaje)
@@ -196,6 +202,11 @@ export default function CambioCicloEscolarModulo() {
     setSelOrigen(new Set(resOrigen.filas.map((f) => f.alumno_id)))
     setSelDestino(new Set())
   }, [nivel, grado])
+
+  useEffect(() => {
+    if (!opcionesGrado.some((o) => o.valor === grado)) return
+    void cargarListas()
+  }, [nivel, grado, opcionesGrado, cargarListas])
 
   const toggleOrigen = useCallback((id: number) => {
     setSelOrigen((prev) => {
@@ -309,13 +320,14 @@ export default function CambioCicloEscolarModulo() {
       </header>
 
       <section className="asignar-grupos-filtros" aria-label="Filtros">
-        <div className="asignar-grupos-filtros-grid">
+        <div className="asignar-grupos-filtros-grid cambio-ciclo-filtros-grid">
           <div className="asignar-grupos-field">
             <label htmlFor="cce-nivel">Nivel (origen ciclo {CICLO_CAMBIO_ORIGEN})</label>
             <select
               id="cce-nivel"
               value={nivel}
               onChange={(e) => setNivel(Number(e.target.value))}
+              disabled={cargando || procesando}
             >
               {NIVELES_ESCOLARES_OPCIONES.map((o) => (
                 <option key={o.valor} value={o.valor}>
@@ -331,6 +343,7 @@ export default function CambioCicloEscolarModulo() {
               id="cce-grado"
               value={grado}
               onChange={(e) => setGrado(Number(e.target.value))}
+              disabled={cargando || procesando}
             >
               {opcionesGrado.map((o) => (
                 <option key={o.valor} value={o.valor}>
@@ -345,23 +358,48 @@ export default function CambioCicloEscolarModulo() {
             <p className="cambio-ciclo-destino-hint">{etiquetaDestino}</p>
           </div>
 
-          <div className="asignar-grupos-field asignar-grupos-field--accion">
-            <span className="asignar-grupos-field-label">Acción</span>
-            <button
-              type="button"
-              className="asignar-grupos-btn asignar-grupos-btn--primary"
-              onClick={() => void cargarListas()}
-              disabled={cargando || procesando}
-            >
-              {cargando ? (
-                <Loader2 size={18} className="asignar-grupos-spin" aria-hidden />
-              ) : (
-                <RefreshCw size={18} aria-hidden />
-              )}
-              {cargando ? 'Cargando…' : 'Cargar listas'}
-            </button>
+          <div className="asignar-grupos-field cambio-ciclo-field-progreso">
+            <span className="asignar-grupos-field-label">
+              Grados pasados al ciclo {CICLO_CAMBIO_DESTINO}
+            </span>
+            <div className="cambio-ciclo-progreso-grid" role="list">
+              {resumenGrados.map((r) => (
+                <button
+                  key={r.grado}
+                  type="button"
+                  role="listitem"
+                  className={[
+                    'cambio-ciclo-progreso-chip',
+                    r.completado ? 'cambio-ciclo-progreso-chip--ok' : 'cambio-ciclo-progreso-chip--pendiente',
+                    grado === r.grado ? 'cambio-ciclo-progreso-chip--activo' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  onClick={() => setGrado(r.grado)}
+                  disabled={cargando || procesando}
+                  title={
+                    r.completado
+                      ? `${r.etiqueta}: sin alumnos pendientes en ciclo ${CICLO_CAMBIO_ORIGEN}`
+                      : `${r.etiqueta}: ${r.pendientes} alumno(s) pendiente(s)`
+                  }
+                >
+                  <span className="cambio-ciclo-progreso-chip-label">{r.etiqueta}</span>
+                  {r.completado ? (
+                    <Check size={14} aria-hidden className="cambio-ciclo-progreso-chip-icon" />
+                  ) : (
+                    <span className="cambio-ciclo-progreso-chip-count">{r.pendientes}</span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+        {cargando && (
+          <p className="cambio-ciclo-cargando" role="status">
+            <Loader2 size={16} className="asignar-grupos-spin" aria-hidden />
+            Actualizando listas…
+          </p>
+        )}
       </section>
 
       {error && (
@@ -434,9 +472,8 @@ export default function CambioCicloEscolarModulo() {
       {!cargando && origen.length === 0 && destino.length === 0 && !error && (
         <div className="servicios-panel-card asignar-grupos-empty">
           <p className="servicios-panel-hint">
-            Elige nivel y grado del ciclo {CICLO_CAMBIO_ORIGEN}, luego pulsa{' '}
-            <strong>Cargar listas</strong>. Antes de la migración masiva, sincroniza las tablas desde
-            phpMyAdmin.
+            No hay alumnos en el ciclo {CICLO_CAMBIO_ORIGEN} para este nivel y grado, ni en el
+            destino calculado del ciclo {CICLO_CAMBIO_DESTINO}.
           </p>
         </div>
       )}

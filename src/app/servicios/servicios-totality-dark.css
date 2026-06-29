@@ -610,6 +610,42 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migr
   background: rgba(113, 63, 18, 0.25) !important;
 }
 
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cambio-ciclo-destino-hint {
+  color: var(--sx-text) !important;
+  background: rgba(0, 227, 253, 0.1) !important;
+  border-color: rgba(0, 227, 253, 0.35) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cambio-ciclo-panel-title {
+  color: var(--sx-text) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cambio-ciclo-progreso-chip {
+  background: var(--sx-input-bg) !important;
+  border-color: var(--sx-card-border) !important;
+  color: var(--sx-text) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cambio-ciclo-progreso-chip--ok {
+  background: rgba(34, 197, 94, 0.15) !important;
+  border-color: rgba(34, 197, 94, 0.45) !important;
+  color: #86efac !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cambio-ciclo-progreso-chip--pendiente .cambio-ciclo-progreso-chip-count {
+  background: rgba(251, 191, 36, 0.2) !important;
+  color: #fcd34d !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cambio-ciclo-progreso-chip--activo {
+  box-shadow: 0 0 0 2px rgba(0, 227, 253, 0.35) !important;
+  border-color: var(--sx-accent) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cambio-ciclo-cargando {
+  color: var(--sx-text-muted) !important;
+}
+
 /* ─── Scroll tablas en móvil ─── */
 @media (max-width: 640px) {
   html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(

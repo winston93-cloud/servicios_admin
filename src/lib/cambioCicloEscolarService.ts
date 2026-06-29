@@ -5,6 +5,7 @@ import {
   calcularDestinoCambioCiclo,
 } from './cambioCicloEscolarAdvance'
 import { mensajeErrorDestino } from './migracionTablasAdaptadores'
+import { gradoOpcionesPorNivel } from './gradoEscolar'
 
 function mensajeDb(error: unknown): string {
   const base = mensajeErrorDestino(error)
@@ -94,6 +95,49 @@ export async function listarAlumnosOrigenCambioCiclo(
   }
 
   const filas = (data ?? []).map((r) => mapFila(r as Record<string, unknown>))
+  return { ok: true, filas }
+}
+
+export interface ResumenGradoCambioCiclo {
+  grado: number
+  etiqueta: string
+  /** Alumnos activos aún en ciclo origen. */
+  pendientes: number
+  /** Sin alumnos pendientes en ese grado del nivel. */
+  completado: boolean
+}
+
+/** Por cada grado del nivel: cuántos faltan por pasar del ciclo origen. */
+export async function listarResumenGradosCambioCiclo(
+  nivel: number
+): Promise<
+  { ok: true; filas: ResumenGradoCambioCiclo[] } | { ok: false; mensaje: string }
+> {
+  const grados = gradoOpcionesPorNivel(nivel)
+  const filas: ResumenGradoCambioCiclo[] = []
+
+  for (const g of grados) {
+    const { count, error } = await supabase
+      .from('alumno')
+      .select('alumno_id', { count: 'exact', head: true })
+      .eq('alumno_ciclo_escolar', CICLO_CAMBIO_ORIGEN)
+      .eq('alumno_nivel', nivel)
+      .eq('alumno_grado', g.valor)
+      .eq('alumno_status', 1)
+
+    if (error) {
+      return { ok: false, mensaje: mensajeDb(error) }
+    }
+
+    const pendientes = count ?? 0
+    filas.push({
+      grado: g.valor,
+      etiqueta: g.etiqueta,
+      pendientes,
+      completado: pendientes === 0,
+    })
+  }
+
   return { ok: true, filas }
 }
 

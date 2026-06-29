@@ -7339,15 +7339,89 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   max-height: min(62vh, 640px);
 }
 
+.cambio-ciclo-filtros-grid {
+  grid-template-columns: repeat(2, minmax(140px, 1fr)) minmax(180px, 1.1fr) minmax(220px, 1.4fr);
+}
+
 .cambio-ciclo-field-destino .cambio-ciclo-destino-hint {
   margin: 0;
   padding: 10px 12px;
   font-size: 0.8125rem;
   line-height: 1.4;
-  color: #1e3a5f;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  color: var(--sx-text, #0f172a);
+  background: var(--sx-accent-soft, #eff6ff);
+  border: 1px solid var(--sx-accent-border, #bfdbfe);
   border-radius: 8px;
+  font-weight: 600;
+}
+
+.cambio-ciclo-field-progreso {
+  grid-column: span 1;
+}
+
+.cambio-ciclo-progreso-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cambio-ciclo-progreso-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.cambio-ciclo-progreso-chip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cambio-ciclo-progreso-chip--pendiente .cambio-ciclo-progreso-chip-count {
+  min-width: 1.25rem;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.6875rem;
+  text-align: center;
+}
+
+.cambio-ciclo-progreso-chip--ok {
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+  color: #047857;
+}
+
+.cambio-ciclo-progreso-chip--activo {
+  box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.25);
+  border-color: #1e3a5f;
+}
+
+.cambio-ciclo-progreso-chip-label {
+  max-width: 9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cambio-ciclo-cargando {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  font-size: 0.8125rem;
+  color: #64748b;
 }
 
 .cambio-ciclo-acciones-centro {
@@ -7379,6 +7453,14 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 @media (max-width: 1100px) {
   .cambio-ciclo-dual-grid {
     grid-template-columns: 1fr;
+  }
+
+  .cambio-ciclo-filtros-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cambio-ciclo-field-progreso {
+    grid-column: 1 / -1;
   }
 }
 
