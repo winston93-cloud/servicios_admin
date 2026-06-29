@@ -1,5 +1,4 @@
 import type { TablaMigracion } from './migracionTablasManifest'
-import { normalizarDatosFacturacion } from './datosFacturacionTypes'
 
 const FECHA_FALLBACK = '1970-01-01T00:00:00.000Z'
 
@@ -26,10 +25,10 @@ const DEFAULTS_NOT_NULL_DESTINO: Partial<
     pago_referencia: '000000000000',
   },
   datos_facturacion: {
-    nexterior: '',
-    ninterior: '',
-    lada: '',
-    numero: '',
+    nexterior: ' ',
+    ninterior: ' ',
+    lada: ' ',
+    numero: ' ',
   },
 }
 
@@ -118,26 +117,35 @@ function adaptarAlumnoBeca(fila: Record<string, unknown>): Record<string, unknow
   return out
 }
 
+/** Misma regla que scripts/migrate-datos-facturacion-mysql-to-insforge.mjs */
+function strFacturacion(valor: unknown, max: number): string {
+  if (valor === null || valor === undefined) return ''
+  return String(valor).trim().slice(0, max)
+}
+
+function reqFacturacion(valor: unknown, max: number): string {
+  return strFacturacion(valor, max) || ' '
+}
+
 function adaptarDatosFacturacion(fila: Record<string, unknown>): Record<string, unknown> {
-  const norm = normalizarDatosFacturacion({
-    moneda: String(fila.moneda ?? 'MXN'),
-    rfc: String(fila.rfc ?? ''),
-    razsocial: String(fila.razsocial ?? ''),
-    regfiscal: String(fila.regfiscal ?? ''),
-    usocfdi: String(fila.usocfdi ?? ''),
-    codpostal: String(fila.codpostal ?? ''),
-    calle: String(fila.calle ?? ''),
-    nexterior: String(fila.nexterior ?? ''),
-    ninterior: String(fila.ninterior ?? ''),
-    ncolonia: String(fila.ncolonia ?? ''),
-    nmunicipio: String(fila.nmunicipio ?? ''),
-    nentidad: String(fila.nentidad ?? ''),
-    email: String(fila.email ?? ''),
-    lada: String(fila.lada ?? ''),
-    numero: String(fila.numero ?? ''),
+  const out: Record<string, unknown> = {
+    moneda: strFacturacion(fila.moneda, 5) || 'MXN',
+    rfc: reqFacturacion(fila.rfc, 15).toUpperCase(),
+    razsocial: reqFacturacion(fila.razsocial, 75),
+    regfiscal: reqFacturacion(fila.regfiscal, 5),
+    usocfdi: reqFacturacion(fila.usocfdi, 5).toUpperCase(),
+    codpostal: reqFacturacion(fila.codpostal, 5),
+    calle: reqFacturacion(fila.calle, 35),
+    nexterior: strFacturacion(fila.nexterior, 8) || ' ',
+    ninterior: strFacturacion(fila.ninterior, 10) || ' ',
+    ncolonia: reqFacturacion(fila.ncolonia, 50),
+    nmunicipio: reqFacturacion(fila.nmunicipio, 35),
+    nentidad: reqFacturacion(fila.nentidad, 45),
+    email: reqFacturacion(fila.email, 45),
+    lada: strFacturacion(fila.lada, 15) || ' ',
+    numero: strFacturacion(fila.numero, 15).replace(/\s/g, '') || ' ',
     alumno_ref: Number(fila.alumno_ref),
-  })
-  const out: Record<string, unknown> = { ...norm }
+  }
   if (fila.id != null && fila.id !== '') out.id = Number(fila.id)
   return out
 }
@@ -178,6 +186,22 @@ export function adaptarFilaParaDestino(
 
   const filtrada = filtrarColumnas(out, COLUMNAS_DESTINO[def.destino])
   return aplicarDefaultsNotNull(def.destino, filtrada)
+}
+
+const CAMPOS_OPCIONALES_FACTURACION = ['nexterior', 'ninterior', 'lada', 'numero'] as const
+
+/** Red de seguridad antes del upsert: InsForge/PostgREST puede mandar '' como null. */
+export function sanitizarFilaDatosFacturacionUpsert(
+  fila: Record<string, unknown>
+): Record<string, unknown> {
+  const out = { ...fila }
+  for (const col of CAMPOS_OPCIONALES_FACTURACION) {
+    const v = out[col]
+    if (v === null || v === undefined || (typeof v === 'string' && v.trim() === '')) {
+      out[col] = col === 'numero' ? strFacturacion(v, 15).replace(/\s/g, '') || ' ' : ' '
+    }
+  }
+  return out
 }
 
 export function mensajeErrorDestino(error: unknown): string {

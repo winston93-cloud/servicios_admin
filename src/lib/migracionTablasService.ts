@@ -8,7 +8,10 @@ import {
   TABLAS_VACIAR_ANTES,
   type TablaMigracion,
 } from './migracionTablasManifest'
-import { mensajeErrorDestino } from './migracionTablasAdaptadores'
+import {
+  mensajeErrorDestino,
+  sanitizarFilaDatosFacturacionUpsert,
+} from './migracionTablasAdaptadores'
 import {
   cargarPksMysql,
   filasIguales,
@@ -120,10 +123,15 @@ async function upsertLote(
 ) {
   if (!filas.length) return
 
+  const payload =
+    tabla === 'datos_facturacion'
+      ? filas.map((fila) => sanitizarFilaDatosFacturacionUpsert(fila))
+      : filas
+
   let ultimoError: Error | null = null
   for (let intento = 1; intento <= 6; intento++) {
     await throttlePeticionDestino(tabla)
-    const { error } = await sb.from(tabla).upsert(filas, { onConflict: pk })
+    const { error } = await sb.from(tabla).upsert(payload, { onConflict: pk })
     if (!error) return
 
     const msg = mensajeErrorDestino(error)
