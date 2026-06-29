@@ -7707,6 +7707,40 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   --mg-gold: #b8956a;
   --mg-gold-soft: rgba(184, 149, 106, 0.18);
   --mg-emerald: #047857;
+  --mg-subtle: #fafbfc;
+  --mg-subtle-2: #f8fafc;
+  --mg-subtle-3: #f1f5f9;
+  --mg-line: #eef2f6;
+  --mg-line-2: #e8ecf1;
+  --mg-line-3: #e2e8f0;
+  --mg-line-4: #cbd5e1;
+  --mg-chip-bg: #e2e8f0;
+  --mg-check-bg: #ffffff;
+  --mg-row-hover: rgba(255, 255, 255, 0.8);
+  --mg-row-active-bg: #ffffff;
+  --mg-row-active-border: rgba(26, 54, 93, 0.2);
+  --mg-row-active-shadow: 0 1px 4px rgba(12, 25, 41, 0.05);
+  --mg-grupo-head-bg: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  --mg-grupo-head-hover: #f1f5f9;
+  --mg-modo-bg: #fafbfc;
+  --mg-modo-hover-bg: #ffffff;
+  --mg-modo-active-bg: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+  --mg-modo-peligro-bg: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  --mg-modo-icon-bg: #e2e8f0;
+  --mg-modo-active-ring: rgba(26, 54, 93, 0.08);
+  --mg-modo-peligro-ring: rgba(234, 88, 12, 0.1);
+  --mg-warm-text: #92400e;
+  --mg-orange: #ea580c;
+  --mg-badge-bg: #f1f5f9;
+  --mg-badge-border: #e2e8f0;
+  --mg-badge-text: #64748b;
+  --mg-input-bg: #fafafa;
+  --mg-input-focus-bg: #ffffff;
+  --mg-input-border: #e2e8f0;
+  --mg-input-focus-ring: rgba(26, 54, 93, 0.12);
+  --mg-tip-bg: linear-gradient(135deg, #faf8f5 0%, #f5f0ea 100%);
+  --mg-tip-border: rgba(184, 149, 106, 0.25);
+  --mg-tip-code-bg: rgba(184, 149, 106, 0.15);
   --mg-radius: 16px;
   --mg-radius-lg: 22px;
   --mg-shadow: 0 1px 2px rgba(12, 25, 41, 0.04), 0 12px 32px rgba(12, 25, 41, 0.07);
@@ -7912,8 +7946,8 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .migracion-pro-card--tip {
-  background: linear-gradient(135deg, #faf8f5 0%, #f5f0ea 100%);
-  border-color: rgba(184, 149, 106, 0.25);
+  background: var(--mg-tip-bg);
+  border-color: var(--mg-tip-border);
 }
 
 .migracion-pro-card--tip p {
@@ -7927,8 +7961,8 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   font-size: 0.75rem;
   padding: 1px 5px;
   border-radius: 4px;
-  background: rgba(184, 149, 106, 0.15);
-  color: #92400e;
+  background: var(--mg-tip-code-bg);
+  color: var(--mg-warm-text);
 }
 
 .migracion-pro-card-title {
@@ -7952,9 +7986,9 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   display: block;
   width: 100%;
   padding: 11px 14px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--mg-input-border);
   border-radius: 12px;
-  background: #fafafa;
+  background: var(--mg-input-bg);
   font-size: 0.875rem;
   color: var(--mg-ink);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -7963,8 +7997,8 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 .migracion-pro-input:focus {
   outline: none;
   border-color: var(--mg-navy);
-  box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.12);
-  background: #fff;
+  box-shadow: 0 0 0 3px var(--mg-input-focus-ring);
+  background: var(--mg-input-focus-bg);
 }
 
 .migracion-pro-modos {
@@ -7979,29 +8013,29 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   gap: 12px;
   width: 100%;
   padding: 12px 14px;
-  border: 1.5px solid #e8ecf1;
+  border: 1.5px solid var(--mg-line-2);
   border-radius: 14px;
-  background: #fafbfc;
+  background: var(--mg-modo-bg);
   text-align: left;
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .migracion-pro-modo:hover {
-  border-color: #cbd5e1;
-  background: #fff;
+  border-color: var(--mg-line-4);
+  background: var(--mg-modo-hover-bg);
 }
 
 .migracion-pro-modo--activo {
   border-color: var(--mg-navy);
-  background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
-  box-shadow: 0 0 0 3px rgba(26, 54, 93, 0.08);
+  background: var(--mg-modo-active-bg);
+  box-shadow: 0 0 0 3px var(--mg-modo-active-ring);
 }
 
 .migracion-pro-modo--peligro.migracion-pro-modo--activo {
-  border-color: #ea580c;
-  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.1);
+  border-color: var(--mg-orange);
+  background: var(--mg-modo-peligro-bg);
+  box-shadow: 0 0 0 3px var(--mg-modo-peligro-ring);
 }
 
 .migracion-pro-modo-icono {
@@ -8012,7 +8046,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   height: 36px;
   flex-shrink: 0;
   border-radius: 10px;
-  background: #e2e8f0;
+  background: var(--mg-modo-icon-bg);
   color: var(--mg-navy);
 }
 
@@ -8022,7 +8056,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .migracion-pro-modo--peligro.migracion-pro-modo--activo .migracion-pro-modo-icono {
-  background: #ea580c;
+  background: var(--mg-orange);
 }
 
 .migracion-pro-modo-texto {
@@ -8047,7 +8081,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   padding: 2px 8px;
   border-radius: 999px;
   background: var(--mg-gold-soft);
-  color: #92400e;
+  color: var(--mg-warm-text);
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -8068,7 +8102,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   height: 22px;
   flex-shrink: 0;
   border-radius: 50%;
-  border: 2px solid #cbd5e1;
+  border: 2px solid var(--mg-line-4);
   color: transparent;
 }
 
@@ -8079,8 +8113,8 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .migracion-pro-modo--peligro.migracion-pro-modo--activo .migracion-pro-modo-check {
-  border-color: #ea580c;
-  background: #ea580c;
+  border-color: var(--mg-orange);
+  background: var(--mg-orange);
 }
 
 .migracion-pro-main {
@@ -8099,7 +8133,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   gap: 12px;
   margin-bottom: 18px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--mg-line);
 }
 
 .migracion-pro-main-title {
@@ -8123,9 +8157,9 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 
 .migracion-pro-quick-btn {
   padding: 7px 14px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--mg-line-3);
   border-radius: 999px;
-  background: #fff;
+  background: var(--mg-check-bg);
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--mg-navy);
@@ -8134,7 +8168,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .migracion-pro-quick-btn:hover {
-  background: #f8fafc;
+  background: var(--mg-subtle-2);
   border-color: var(--mg-navy);
 }
 
@@ -8145,10 +8179,10 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .migracion-pro-grupo {
-  border: 1px solid #eef2f6;
+  border: 1px solid var(--mg-line);
   border-radius: 14px;
   overflow: hidden;
-  background: #fafbfc;
+  background: var(--mg-subtle);
 }
 
 .migracion-pro-grupo-head {
@@ -8158,14 +8192,14 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   width: 100%;
   padding: 12px 14px;
   border: none;
-  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  background: var(--mg-grupo-head-bg);
   cursor: pointer;
   text-align: left;
   transition: background 0.15s ease;
 }
 
 .migracion-pro-grupo-head:hover {
-  background: #f1f5f9;
+  background: var(--mg-grupo-head-hover);
 }
 
 .migracion-pro-grupo-icono {
@@ -8176,7 +8210,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   height: 30px;
   border-radius: 8px;
   background: var(--mg-gold-soft);
-  color: #92400e;
+  color: var(--mg-warm-text);
 }
 
 .migracion-pro-grupo-nombre {
@@ -8193,7 +8227,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   font-variant-numeric: tabular-nums;
   padding: 3px 8px;
   border-radius: 999px;
-  background: #e2e8f0;
+  background: var(--mg-chip-bg);
   color: var(--mg-muted);
 }
 
@@ -8205,8 +8239,8 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   height: 18px;
   flex-shrink: 0;
   border-radius: 5px;
-  border: 1.5px solid #cbd5e1;
-  background: #fff;
+  border: 1.5px solid var(--mg-line-4);
+  background: var(--mg-check-bg);
   color: transparent;
   transition: all 0.15s ease;
 }
@@ -8220,7 +8254,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 
 .migracion-pro-check--parcial {
   border-color: var(--mg-navy);
-  background: #fff;
+  background: var(--mg-check-bg);
   color: var(--mg-navy);
 }
 
@@ -8248,14 +8282,14 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .migracion-pro-fila:hover {
-  background: rgba(255, 255, 255, 0.8);
-  border-color: #e2e8f0;
+  background: var(--mg-row-hover);
+  border-color: var(--mg-line-3);
 }
 
 .migracion-pro-fila--activa {
-  background: #fff;
-  border-color: rgba(26, 54, 93, 0.2);
-  box-shadow: 0 1px 4px rgba(12, 25, 41, 0.05);
+  background: var(--mg-row-active-bg);
+  border-color: var(--mg-row-active-border);
+  box-shadow: var(--mg-row-active-shadow);
 }
 
 .migracion-pro-tabla-info {
@@ -8281,9 +8315,9 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #64748b;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  color: var(--mg-badge-text);
+  background: var(--mg-badge-bg);
+  border: 1px solid var(--mg-badge-border);
   border-radius: 4px;
   padding: 1px 5px;
   line-height: 1.4;
@@ -8297,7 +8331,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   display: block;
   font-size: 0.625rem;
   font-weight: 500;
-  color: #94a3b8;
+  color: var(--mg-muted);
   font-family: ui-monospace, 'Cascadia Code', monospace;
   white-space: nowrap;
   overflow: hidden;
@@ -8469,13 +8503,13 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .migracion-pro-btn--ghost {
-  border: 1.5px solid #e2e8f0;
-  background: #fff;
+  border: 1.5px solid var(--mg-line-3);
+  background: var(--mg-check-bg);
   color: var(--mg-navy);
 }
 
 .migracion-pro-btn--ghost:hover:not(:disabled) {
-  background: #f8fafc;
+  background: var(--mg-subtle-2);
   border-color: var(--mg-navy);
 }
 
@@ -8505,7 +8539,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   gap: 14px;
   margin-bottom: 18px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--mg-line);
 }
 
 .migracion-pro-resultado-head svg {

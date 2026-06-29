@@ -569,22 +569,56 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-
 
 /* ─── Migración: remapear tokens premium ─── */
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro {
-  --mg-ink: #e3e1e9;
-  --mg-ink-soft: #d0c6ab;
-  --mg-muted: #999077;
+  --mg-ink: #eceaf2;
+  --mg-ink-soft: #c8c4d4;
+  --mg-muted: #9a96a8;
   --mg-surface: #121318;
   --mg-card: rgba(26, 27, 33, 0.94);
   --mg-border: rgba(255, 255, 255, 0.1);
-  --mg-navy: #1a1b21;
-  --mg-navy-deep: #0d0e13;
-  --mg-gold: #fff6df;
-  --mg-gold-soft: rgba(255, 215, 0, 0.15);
+  --mg-navy: #22d3ee;
+  --mg-navy-deep: #0891b2;
+  --mg-gold: #fcd34d;
+  --mg-gold-soft: rgba(252, 211, 77, 0.18);
+  --mg-emerald: #6ee7b7;
+  --mg-subtle: rgba(255, 255, 255, 0.04);
+  --mg-subtle-2: rgba(255, 255, 255, 0.06);
+  --mg-subtle-3: rgba(255, 255, 255, 0.08);
+  --mg-line: rgba(255, 255, 255, 0.08);
+  --mg-line-2: rgba(255, 255, 255, 0.12);
+  --mg-line-3: rgba(255, 255, 255, 0.16);
+  --mg-line-4: rgba(255, 255, 255, 0.24);
+  --mg-chip-bg: rgba(255, 255, 255, 0.1);
+  --mg-check-bg: rgba(18, 19, 24, 0.92);
+  --mg-row-hover: rgba(34, 211, 238, 0.08);
+  --mg-row-active-bg: rgba(34, 211, 238, 0.12);
+  --mg-row-active-border: rgba(34, 211, 238, 0.35);
+  --mg-row-active-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  --mg-grupo-head-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.03) 100%);
+  --mg-grupo-head-hover: rgba(255, 255, 255, 0.09);
+  --mg-modo-bg: rgba(255, 255, 255, 0.04);
+  --mg-modo-hover-bg: rgba(255, 255, 255, 0.07);
+  --mg-modo-active-bg: linear-gradient(135deg, rgba(34, 211, 238, 0.14) 0%, rgba(34, 211, 238, 0.06) 100%);
+  --mg-modo-peligro-bg: linear-gradient(135deg, rgba(251, 146, 60, 0.2) 0%, rgba(234, 88, 12, 0.12) 100%);
+  --mg-modo-icon-bg: rgba(255, 255, 255, 0.1);
+  --mg-modo-active-ring: rgba(34, 211, 238, 0.22);
+  --mg-modo-peligro-ring: rgba(251, 146, 60, 0.28);
+  --mg-warm-text: #fcd34d;
+  --mg-orange: #fb923c;
+  --mg-badge-bg: rgba(255, 255, 255, 0.08);
+  --mg-badge-border: rgba(255, 255, 255, 0.14);
+  --mg-badge-text: #b8b4c4;
+  --mg-input-bg: #0d0e13;
+  --mg-input-focus-bg: #121318;
+  --mg-input-border: rgba(153, 144, 119, 0.35);
+  --mg-input-focus-ring: rgba(34, 211, 238, 0.18);
+  --mg-tip-bg: rgba(34, 211, 238, 0.06);
+  --mg-tip-border: rgba(34, 211, 238, 0.2);
+  --mg-tip-code-bg: rgba(0, 0, 0, 0.35);
   --mg-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 }
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-card,
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-main,
-html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-grupo,
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-resultado,
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-footer {
   background: var(--mg-card);
@@ -592,14 +626,52 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migr
   color: var(--mg-ink);
 }
 
-html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-input {
-  background: #0d0e13;
-  color: var(--mg-ink);
-  border-color: rgba(153, 144, 119, 0.35);
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-grupo {
+  background: var(--mg-subtle);
+  border-color: var(--mg-line);
 }
 
-html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-fila:hover {
-  background: rgba(0, 227, 253, 0.08);
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-input {
+  background: var(--mg-input-bg);
+  color: var(--mg-ink);
+  border-color: var(--mg-input-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-input:focus {
+  background: var(--mg-input-focus-bg);
+  border-color: var(--mg-navy);
+  box-shadow: 0 0 0 3px var(--mg-input-focus-ring);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-modo--activo .migracion-pro-modo-icono {
+  background: var(--mg-navy);
+  color: #0d0e13;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-modo--activo .migracion-pro-modo-check {
+  color: #0d0e13;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-check--on,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-check--todos {
+  color: #0d0e13;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-btn--primary {
+  color: #0d0e13;
+  box-shadow: 0 4px 16px rgba(34, 211, 238, 0.25);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-btn--primary:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(34, 211, 238, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-footer {
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-card--tip code {
+  color: var(--mg-gold);
 }
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .migracion-pro-tr--error td {
