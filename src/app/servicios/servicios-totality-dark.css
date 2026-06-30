@@ -76,6 +76,7 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(
   .cred-seccion-titulo,
   .cred-form-titulo,
   .bch-card-titulo,
+  .bch-tabla-head h2,
   .cm-destinatarios-titulo,
   .cm-grupo-card-header h3
 ) {
@@ -102,6 +103,14 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(
   .sus-estado-detalle,
   .cred-seccion-lead,
   .bch-referencia-hint,
+  .bch-alumno-chip-label,
+  .bch-alumno-chip-ref,
+  .bch-campo span,
+  .bch-resumen dt,
+  .bch-preview-head,
+  .bch-preview-titulo,
+  .bch-preview-texto,
+  .bch-tabla-vacio,
   .cm-hint,
   .pc-loading,
   .pc-empty
@@ -897,6 +906,60 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-preview-vacio {
   color: var(--sx-text-muted);
+  background: var(--sx-surface-sunken);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-preview-icono {
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-preview-texto strong {
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-preview-head {
+  background: var(--sx-surface-sunken);
+  border-bottom-color: var(--sx-card-border);
+  color: var(--sx-text-secondary);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-preview-iframe {
+  background: var(--sx-surface-sunken);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-resumen dd {
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-referencia-head {
+  color: var(--sx-text-secondary);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-alerta--error {
+  background: rgba(127, 29, 29, 0.3);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  color: #fca5a5;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-tabla-head {
+  background: var(--sx-surface-sunken);
+  border-bottom-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-tabla-ciclo {
+  background: rgba(0, 227, 253, 0.12);
+  color: var(--sx-ciclo-label);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-nivel-pill {
+  background: var(--sx-surface-sunken);
+  color: var(--sx-text-secondary);
+  border: 1px solid var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .bch-tabla tbody td {
+  color: var(--sx-text);
+  border-bottom-color: var(--sx-table-border);
 }
 
 /* ─── Migración: remapear tokens premium ─── */
