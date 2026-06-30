@@ -26,6 +26,7 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(
   .sus-preview-card,
   .sus-tabla-section,
   .sus-envio-panel,
+  .sus-envio-progreso,
   .cred-fondos-panel,
   .cred-fondo-card,
   .cred-form-card,
@@ -95,6 +96,10 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(
   .ap-ultima-db,
   .sus-lead,
   .sus-resumen,
+  .sus-preview-vacio,
+  .sus-envio-panel-texto,
+  .sus-envio-progreso-nombre,
+  .sus-estado-detalle,
   .cred-seccion-lead,
   .bch-referencia-hint,
   .cm-hint,
@@ -674,6 +679,10 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-c
 }
 
 /* ─── Suspensiones (sus-) ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-label {
+  color: var(--sx-text-muted) !important;
+}
+
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-select,
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-input {
   background: var(--sx-input-bg) !important;
@@ -682,9 +691,9 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-
 }
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-btn--secundario {
-  color: #bdf4ff;
-  background: rgba(30, 58, 138, 0.35);
-  border-color: rgba(96, 165, 250, 0.35);
+  color: var(--sx-ciclo-label) !important;
+  background: var(--sx-input-bg) !important;
+  border-color: rgba(0, 227, 253, 0.35) !important;
 }
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-alerta--error {
@@ -694,13 +703,139 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-
 }
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-alerta--aviso {
-  background: rgba(113, 63, 18, 0.3);
+  background: rgba(113, 63, 18, 0.35);
   color: #fde68a;
-  border-color: rgba(250, 204, 21, 0.35);
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-alerta code,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-panel-texto code {
+  color: var(--sx-ciclo-label) !important;
+  background: rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid var(--sx-card-border);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
 }
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-pdf-frame {
   background: var(--sx-surface-sunken);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-panel {
+  background: var(--sx-card) !important;
+  border-color: var(--sx-card-border);
+  box-shadow: var(--sx-card-shadow);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-panel-titulo,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-resumen-titulo {
+  color: var(--sx-text) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-progreso {
+  background: var(--sx-card) !important;
+  border-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-progreso--hecho {
+  background: rgba(22, 101, 52, 0.18) !important;
+  border-color: rgba(74, 222, 128, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-progreso-label {
+  color: var(--sx-text-secondary) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-progreso-pct {
+  color: var(--sx-ciclo-label) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-barra {
+  background: var(--sx-surface-sunken);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-barra-fill {
+  background: linear-gradient(90deg, rgba(0, 227, 253, 0.85), rgba(56, 189, 248, 0.9));
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-cancelar {
+  color: #fca5a5;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-cancelar:hover {
+  color: #fecaca;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-resumen-nota {
+  color: #86efac;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-resumen-icono--ok {
+  color: #86efac;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-chips--inline {
+  border-top-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-chip--ok {
+  background: rgba(30, 64, 175, 0.35);
+  color: #93c5fd;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-chip--error {
+  background: rgba(127, 29, 29, 0.35);
+  color: #fca5a5;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-envio-chip--pendiente {
+  background: var(--sx-surface-sunken);
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-tabla td {
+  color: var(--sx-text);
+  border-bottom-color: var(--sx-table-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-deudas {
+  color: var(--sx-text-secondary);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-estado--idle {
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-estado--pendiente {
+  background: var(--sx-surface-sunken);
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-estado--enviando {
+  background: rgba(30, 64, 175, 0.35);
+  color: #93c5fd;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-estado--ok {
+  background: rgba(22, 101, 52, 0.35);
+  color: #86efac;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-estado--error {
+  background: rgba(127, 29, 29, 0.35);
+  color: #fca5a5;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-fila--enviando {
+  background: rgba(30, 64, 175, 0.12) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-fila--ok {
+  background: rgba(22, 101, 52, 0.12) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-fila--error {
+  background: rgba(127, 29, 29, 0.12) !important;
 }
 
 /* ─── Credenciales (cred-) ─── */
