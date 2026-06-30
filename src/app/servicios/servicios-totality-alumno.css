@@ -204,6 +204,33 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alum
   color: var(--sx-text-muted);
 }
 
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-option-name {
+  color: var(--sx-text) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-match {
+  background: rgba(0, 227, 253, 0.22);
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-option-rank {
+  color: var(--sx-text-muted);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-status {
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-clear {
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-clear:hover {
+  color: var(--sx-text);
+  background: rgba(255, 255, 255, 0.08);
+}
+
 /* Estatus alumno — tonos legibles en oscuro */
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form--estatus-activo .alumno-form-select--estatus {
   background-color: rgba(22, 101, 52, 0.35);
