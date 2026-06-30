@@ -154,9 +154,12 @@ export async function guardarPersonaAutorizada(
     }
   }
 
-  if (error) {
+  if (error || data == null) {
     console.error('Error al crear persona autorizada:', error)
-    return { ok: false, mensaje: error.message }
+    return {
+      ok: false,
+      mensaje: error?.message ?? 'No se pudo crear el contacto.',
+    }
   }
 
   return { ok: true, contactoId: data.contacto_id }
