@@ -9,6 +9,7 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(
   .pc-panel-busqueda,
   .pc-panel-ciclo,
   .pc-tabla-card,
+  .pc-form-manual,
   .pi-tarjeta,
   .pi-cuota-top,
   .pi-historial-tabla-wrap,
@@ -208,6 +209,19 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-e
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-estatus-badge--manual {
   color: #86efac;
   background: rgba(22, 101, 52, 0.4);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-form-manual-input,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-form-manual-select {
+  background: var(--sx-input-bg) !important;
+  color: var(--sx-text) !important;
+  border-color: var(--sx-input-border) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-msg--ok {
+  color: #86efac;
+  background: rgba(22, 101, 52, 0.25);
+  border-color: rgba(74, 222, 128, 0.35);
 }
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pc-accion {

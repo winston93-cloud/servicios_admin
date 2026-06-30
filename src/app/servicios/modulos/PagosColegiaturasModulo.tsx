@@ -27,6 +27,7 @@ import {
   type PagoDetalleRegistro,
 } from '@/lib/pagoColegiaturaService'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
+import PagosColegiaturaManualForm from '../components/PagosColegiaturaManualForm'
 
 function formatearMonto(n: number): string {
   return n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -461,6 +462,26 @@ export default function PagosColegiaturasModulo() {
           )}
         </div>
       </section>
+
+      {alumnoSeleccionado && !cargando && !resolviendoCiclo ? (
+        <PagosColegiaturaManualForm
+          alumnoRef={alumnoSeleccionado.alumno_ref}
+          nombreAlumno={alumnoSeleccionado.nombre_completo}
+          cicloInicial={cicloEscolarPagos}
+          cicloActualSistema={cicloActualSistema}
+          opcionesCiclo={opcionesCatalogo}
+          cargandoCiclos={cargandoCiclos}
+          conceptos={conceptos}
+          onExito={() => {
+            void cargarPagos(
+              alumnoSeleccionado.alumno_ref,
+              cicloSeleccionado,
+              cicloEscolarPagos
+            )
+          }}
+          onError={setError}
+        />
+      ) : null}
     </div>
   )
 }

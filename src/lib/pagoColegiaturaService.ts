@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import {
+  generarReferenciaPagoDesdePago,
   normalizarConceptoNo,
   parsearReferenciaPago,
   referenciaCoincideCiclo,
@@ -154,6 +155,121 @@ export function mapaConceptosPorNo(conceptos: ConceptoBoucher[]): Map<string, st
     m.set(normalizarConceptoNo(c.concepto_no), c.concepto_clase.trim())
   }
   return m
+}
+
+export const FORMAS_PAGO_COLEGIATURA = [
+  'Efectivo',
+  'PaymentClabe',
+  'Openpay',
+  'Comercio Electronico',
+  'Ventanilla',
+  'CargoCuentaCheques',
+] as const
+
+export type FormaPagoColegiatura = (typeof FORMAS_PAGO_COLEGIATURA)[number]
+
+export interface CrearPagoColegiaturaManualPayload {
+  alumnoId: number
+  alumnoRef: string
+  pagoNombre: string
+  conceptoNo: string
+  cicloEscolar: number
+  importe: number
+  recargo: number
+  fechaPago: string
+  formaPago: string
+}
+
+export type ResultadoCrearPagoColegiaturaManual =
+  | { ok: true; pagoId: number; referencia: string }
+  | { ok: false; mensaje: string }
+
+async function obtenerSiguientePagoId(): Promise<number> {
+  const { data, error } = await supabase
+    .from('pago_detalle')
+    .select('pago_id')
+    .order('pago_id', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Error al obtener siguiente pago_id:', error)
+    return 0
+  }
+
+  return (data?.pago_id ?? 0) + 1
+}
+
+function esErrorClaveDuplicada(error: { code?: string; message?: string }): boolean {
+  return error.code === '23505' || (error.message?.includes('duplicate key') ?? false)
+}
+
+export async function crearPagoColegiaturaManual(
+  payload: CrearPagoColegiaturaManualPayload
+): Promise<ResultadoCrearPagoColegiaturaManual> {
+  const importe = Math.round(payload.importe * 100) / 100
+  const recargo = Math.round(payload.recargo * 100) / 100
+
+  if (!Number.isFinite(importe) || !Number.isFinite(recargo) || importe < 0 || recargo < 0) {
+    return { ok: false, mensaje: 'Importe y recargos deben ser números válidos.' }
+  }
+
+  if (importe + recargo <= 0) {
+    return { ok: false, mensaje: 'El monto total debe ser mayor a cero.' }
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.fechaPago)) {
+    return { ok: false, mensaje: 'La fecha de pago no es válida.' }
+  }
+
+  const referencia = generarReferenciaPagoDesdePago(
+    payload.alumnoRef,
+    payload.conceptoNo,
+    payload.cicloEscolar
+  )
+
+  const ahora = new Date().toISOString()
+  const hora = new Date().toLocaleTimeString('es-MX', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  })
+
+  let pagoId = await obtenerSiguientePagoId()
+  const fila = {
+    pago_id: pagoId,
+    alumno_id: payload.alumnoId,
+    pago_nombre: payload.pagoNombre.trim().slice(0, 100) || null,
+    pago_referencia: referencia,
+    pago_importe: importe,
+    pago_recargo: recargo,
+    pago_forma: payload.formaPago.trim().slice(0, 30) || null,
+    pago_folio: null,
+    pago_fecha: payload.fechaPago,
+    pago_hora: hora,
+    pago_emisora: 'S/E',
+    pago_cancelado: 3,
+    pago_registro: ahora,
+    pago_actualizacion: ahora,
+    facturo: '',
+    fact: '',
+  }
+
+  let { error } = await supabase.from('pago_detalle').insert(fila)
+
+  if (error && esErrorClaveDuplicada(error)) {
+    pagoId = await obtenerSiguientePagoId()
+    const reintento = await supabase.from('pago_detalle').insert({ ...fila, pago_id: pagoId })
+    error = reintento.error
+  }
+
+  if (error) {
+    console.error('Error al crear pago manual:', error)
+    return { ok: false, mensaje: error.message }
+  }
+
+  return { ok: true, pagoId, referencia }
 }
 
 /** Lista para selects de bauchers: sin tipo 3, deduplicada y ordenada 00→99. */

@@ -11221,6 +11221,111 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   border-radius: 10px;
 }
 
+.pc-msg--ok {
+  margin-top: 0.85rem;
+  padding: 0.75rem 1rem;
+  color: #166534;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 10px;
+}
+
+.pc-form-manual {
+  padding: 1.25rem 1.35rem 1.35rem;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07);
+}
+
+.pc-form-manual-titulo {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pc-form-manual-lead {
+  margin: 0 0 1rem;
+  font-size: 0.8125rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.pc-form-manual-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) 7rem 7rem minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.85rem 1rem;
+  align-items: end;
+}
+
+.pc-form-manual-field--full {
+  grid-column: 1 / -1;
+}
+
+.pc-form-manual-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.pc-form-manual-input,
+.pc-form-manual-select {
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+}
+
+.pc-form-manual-input--readonly {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.pc-form-manual-input:focus,
+.pc-form-manual-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.pc-form-manual-acciones {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.25rem;
+}
+
+.pc-form-manual-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-width: 10.5rem;
+  padding: 0.7rem 1.25rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a5f 100%);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+.pc-form-manual-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .pc-tabla-card {
   width: 100%;
   max-width: 100%;
@@ -11768,6 +11873,27 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   .pc-pagos-movil {
     display: flex;
     flex-direction: column;
+  }
+
+  .pc-form-manual-grid {
+    grid-template-columns: 1fr 7rem;
+  }
+
+  .pc-form-manual-field--concepto,
+  .pc-form-manual-field--fecha,
+  .pc-form-manual-field--forma,
+  .pc-form-manual-field--ciclo {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .pc-form-manual-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pc-form-manual-field--monto {
+    max-width: 8rem;
   }
 }
 
