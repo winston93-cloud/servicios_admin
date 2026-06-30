@@ -19,7 +19,7 @@ export type MotivoOmision =
   | 'fila_vacia'
   | 'referencia_tipo_3'
   | 'cargo_cuenta_cheques'
-  | 'duplicado'
+  | 'registrado'
   | 'alumno_no_encontrado'
   | 'columnas_insuficientes'
   | 'fecha_invalida'
@@ -472,22 +472,22 @@ export async function procesarArchivoPagoEfectivo(
       continue
     }
 
-    const duplicado = await existePagoConFolio(
+    const yaRegistrado = await existePagoConFolio(
       supabase,
       alumnoId,
       fila.referencia,
       fila.fecha,
       fila.folio
     )
-    if (duplicado) {
-      contarOmision(resumen, 'duplicado')
+    if (yaRegistrado) {
+      contarOmision(resumen, 'registrado')
       agregarMuestra(resumen, {
         linea: fila.linea,
         alumnoRef: fila.alumnoRef,
         referencia: fila.referencia,
         nombre: fila.nombre,
         accion: 'omitido',
-        motivo: 'duplicado',
+        motivo: 'registrado',
       })
       continue
     }

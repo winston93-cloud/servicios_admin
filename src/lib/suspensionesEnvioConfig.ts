@@ -3,7 +3,7 @@
  * Mientras esté activo, NINGÚN correo sale a papás/tutores: todo va a CORREO_PRUEBA.
  * Poner MODO_PRUEBA en false antes del envío real a familias.
  */
-export const SUSPENSIONES_ENVIO_MODO_PRUEBA = true
+export const SUSPENSIONES_ENVIO_MODO_PRUEBA = false
 
 function correoPruebaSuspensiones(): string {
   return (

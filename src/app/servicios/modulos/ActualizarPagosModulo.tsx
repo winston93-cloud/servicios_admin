@@ -28,7 +28,7 @@ const ETIQUETA_MOTIVO: Record<MotivoOmision, string> = {
   fila_vacia: 'Fila vacía',
   referencia_tipo_3: 'Referencia tipo 3 (omitida por regla)',
   cargo_cuenta_cheques: 'Cargo a cuenta cheques',
-  duplicado: 'Pago duplicado (ya registrado)',
+  registrado: 'Pago ya registrado',
   alumno_no_encontrado: 'Alumno no encontrado',
   columnas_insuficientes: 'Columnas inválidas',
   fecha_invalida: 'Fecha inválida',
@@ -180,7 +180,12 @@ function TarjetaResumenArchivo({ resumen }: { resumen: ResumenArchivoPagoEfectiv
                       <td>
                         <span className={`ap-pill ap-pill--${m.accion}`}>{m.accion}</span>
                       </td>
-                      <td>{m.detalle ?? m.motivo ?? '—'}</td>
+                      <td>
+                        {m.detalle ??
+                          (m.motivo
+                            ? ETIQUETA_MOTIVO[m.motivo as MotivoOmision] ?? m.motivo
+                            : '—')}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
