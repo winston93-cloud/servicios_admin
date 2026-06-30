@@ -90,6 +90,9 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(
   .becas-empty,
   .asignar-grupos-lead,
   .ap-lead,
+  .ap-carga-bar__desc,
+  .ap-carga-bar__arrastre-txt,
+  .ap-ultima-db,
   .sus-lead,
   .sus-resumen,
   .cred-seccion-lead,
@@ -422,28 +425,127 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cicl
 }
 
 /* ─── Actualizar pagos (ap-) ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-carga-bar {
+  border-style: dashed;
+  border-color: var(--sx-card-border);
+}
+
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-carga-bar--over {
   border-color: rgba(0, 227, 253, 0.45);
+  background: rgba(0, 227, 253, 0.06) !important;
   box-shadow: 0 0 0 3px var(--sx-accent-ring);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-carga-bar__desc,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-carga-bar__arrastre-txt {
+  color: var(--sx-text-secondary) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-carga-bar__desc code,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-lead code {
+  color: var(--sx-ciclo-label) !important;
+  background: rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-carga-bar__col--arrastre {
+  border-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-carga-bar__icono {
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-carga-bar--over .ap-carga-bar__icono {
+  color: var(--sx-ciclo-label);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-ultima-db {
+  color: var(--sx-text-muted) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-ultima-db strong {
+  color: var(--sx-ciclo-label) !important;
 }
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-lista-archivos--ok {
   color: #86efac;
 }
 
-html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-archivo-item--ok {
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-lista-archivos--inline li {
+  background: var(--sx-surface-sunken);
+  border-color: var(--sx-card-border);
+  color: var(--sx-text-secondary);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-lista-archivos--inline .ap-lista-archivos--ok {
   background: rgba(22, 101, 52, 0.2);
-  border-color: rgba(74, 222, 128, 0.3);
+  border-color: rgba(74, 222, 128, 0.35);
+  color: #86efac;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-archivo-item--ok,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-archivo-item--err {
+  background: var(--sx-surface-sunken);
+  border-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-archivo-item--ok {
+  background: rgba(22, 101, 52, 0.22);
+  border-color: rgba(74, 222, 128, 0.35);
 }
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-archivo-item--err {
   background: rgba(127, 29, 29, 0.25);
-  border-color: rgba(248, 113, 113, 0.3);
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-archivo-nombre {
+  color: var(--sx-text) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-archivo-meta,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-archivo-card .ap-archivo-meta {
+  color: var(--sx-text-muted) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-archivo-error {
+  color: #fca5a5 !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-aviso-parcial {
+  color: #fde68a !important;
+  background: rgba(113, 63, 18, 0.35) !important;
+  border-color: rgba(251, 191, 36, 0.35) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-btn--secundario {
+  color: var(--sx-ciclo-label) !important;
+  background: var(--sx-input-bg) !important;
+  border-color: rgba(0, 227, 253, 0.35) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-btn--ghost {
+  color: var(--sx-text-secondary) !important;
+  border-color: var(--sx-card-border) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-btn-icon {
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-btn-ghost {
+  color: var(--sx-ciclo-label);
 }
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-alerta--error {
   background: rgba(127, 29, 29, 0.3);
+  border-color: rgba(248, 113, 113, 0.35);
   color: #ffb4ab;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-alerta-texto {
+  color: inherit;
 }
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-resultado-banner--ok {
@@ -454,6 +556,88 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-r
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-resultado-banner--warn {
   background: rgba(113, 63, 18, 0.3);
   color: #fde68a;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-resultado-banner p,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-advertencia,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-rechazados {
+  color: inherit;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-archivo-card--warn {
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-archivo-card-titulo {
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-badge--tipo {
+  background: rgba(0, 227, 253, 0.12);
+  color: var(--sx-ciclo-label);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-stat--ok {
+  background: rgba(22, 101, 52, 0.22);
+  color: #86efac;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-stat--info {
+  background: rgba(30, 64, 175, 0.25);
+  color: #93c5fd;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-stat--muted {
+  background: var(--sx-surface-sunken);
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-stat--err {
+  background: rgba(127, 29, 29, 0.28);
+  color: #fca5a5;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-archivo-detalle {
+  border-top-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-omisiones-lista li {
+  color: var(--sx-text-secondary);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-tabla th {
+  background: var(--sx-surface-sunken) !important;
+  color: var(--sx-totality-gold) !important;
+  border-bottom-color: var(--sx-table-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-tabla td {
+  color: var(--sx-text);
+  border-bottom-color: var(--sx-table-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-ref {
+  color: var(--sx-text-secondary);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-pill--insertado {
+  background: rgba(22, 101, 52, 0.35);
+  color: #86efac;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-pill--actualizado {
+  background: rgba(30, 64, 175, 0.35);
+  color: #93c5fd;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-pill--omitido {
+  background: var(--sx-surface-sunken);
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-pill--error {
+  background: rgba(127, 29, 29, 0.35);
+  color: #fca5a5;
 }
 
 /* ─── Correo masivo (cm-) ─── */
