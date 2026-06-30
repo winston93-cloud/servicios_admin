@@ -1,11 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Trash2 } from 'lucide-react'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
 import {
   guardarPersonaAutorizada,
+  eliminarPersonaAutorizada,
   listarPersonasAutorizadas,
   SNAPSHOT_PERSONA_AUTORIZADA_VACIO,
   snapshotPersonaAutorizadaDesdeRegistro,
@@ -41,6 +42,7 @@ export default function AlumnoPersonasAutorizadas({ alumno }: AlumnoPersonasAuto
   const [guardando, setGuardando] = useState(false)
   const [mensajeGuardar, setMensajeGuardar] = useState<string | null>(null)
   const [errorGuardar, setErrorGuardar] = useState(false)
+  const [eliminandoId, setEliminandoId] = useState<number | null>(null)
 
   const snapshotActual = useMemo<SnapshotPersonaAutorizada>(
     () => ({ nombre, parentesco, telefonoCasa, celular }),
@@ -188,6 +190,55 @@ export default function AlumnoPersonasAutorizadas({ alumno }: AlumnoPersonasAuto
     seleccionarContacto,
   ])
 
+  const onEliminar = useCallback(
+    async (reg: AlumnoContactoRegistro) => {
+      if (alumnoId == null || eliminandoId != null) return
+
+      const nombreContacto = reg.contacto_nombre?.trim() || 'esta persona'
+      if (
+        !window.confirm(
+          `¿Eliminar a «${nombreContacto}» de las personas autorizadas? Esta acción no se puede deshacer.`
+        )
+      ) {
+        return
+      }
+
+      setEliminandoId(reg.contacto_id)
+      setMensajeGuardar(null)
+      setErrorGuardar(false)
+
+      const resultado = await eliminarPersonaAutorizada(alumnoId, reg.contacto_id)
+
+      setEliminandoId(null)
+
+      if (!resultado.ok) {
+        setErrorGuardar(true)
+        setMensajeGuardar(resultado.mensaje)
+        return
+      }
+
+      const registros = await recargarLista(alumnoId)
+      if (reg.contacto_id === contactoSeleccionadoId) {
+        if (registros.length > 0) {
+          seleccionarContacto(registros[0])
+        } else {
+          limpiarFormularioNuevo()
+        }
+      }
+
+      setGuardadoReciente(false)
+      setMensajeGuardar('Persona autorizada eliminada.')
+    },
+    [
+      alumnoId,
+      eliminandoId,
+      contactoSeleccionadoId,
+      recargarLista,
+      seleccionarContacto,
+      limpiarFormularioNuevo,
+    ]
+  )
+
   if (cargando) {
     return (
       <div className="alumno-form-loading">
@@ -221,11 +272,13 @@ export default function AlumnoPersonasAutorizadas({ alumno }: AlumnoPersonasAuto
                   <th scope="col">Parentesco</th>
                   <th scope="col">Teléfono</th>
                   <th scope="col">Celular</th>
+                  <th scope="col" aria-label="Acciones" />
                 </tr>
               </thead>
               <tbody>
                 {lista.map((reg, indice) => {
                   const activa = reg.contacto_id === contactoSeleccionadoId
+                  const eliminando = eliminandoId === reg.contacto_id
                   return (
                     <tr
                       key={reg.contacto_id}
@@ -247,6 +300,24 @@ export default function AlumnoPersonasAutorizadas({ alumno }: AlumnoPersonasAuto
                       <td>{reg.tutor_clase?.trim() || '—'}</td>
                       <td>{reg.contacto_tel?.trim() || '—'}</td>
                       <td>{reg.contacto_cel?.trim() || '—'}</td>
+                      <td
+                        className="alumno-contactos-acciones"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          className="alumno-contactos-btn-eliminar"
+                          onClick={() => void onEliminar(reg)}
+                          disabled={eliminando || guardando}
+                          aria-label={`Eliminar ${reg.contacto_nombre ?? 'persona autorizada'}`}
+                        >
+                          {eliminando ? (
+                            <Loader2 size={16} className="alumno-form-loading-icon" aria-hidden />
+                          ) : (
+                            <Trash2 size={16} aria-hidden />
+                          )}
+                        </button>
+                      </td>
                     </tr>
                   )
                 })}

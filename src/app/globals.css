@@ -9686,6 +9686,43 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   background-color: #dbeafe !important;
 }
 
+.alumno-contactos-acciones {
+  width: 52px;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+  text-align: center;
+  cursor: default;
+}
+
+.alumno-contactos-btn-eliminar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff;
+  color: #b91c1c;
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.alumno-contactos-btn-eliminar:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #f87171;
+  color: #991b1b;
+}
+
+.alumno-contactos-btn-eliminar:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .alumno-contactos-formulario {
   margin-top: 4px;
   padding: 20px 18px 8px;

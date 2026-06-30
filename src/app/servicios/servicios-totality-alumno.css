@@ -177,6 +177,18 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alum
   border-color: rgba(0, 227, 253, 0.45);
 }
 
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-btn-eliminar {
+  background: rgba(13, 14, 19, 0.6);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fca5a5;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-btn-eliminar:hover:not(:disabled) {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.55);
+  color: #fecaca;
+}
+
 /* ─── Autocompletado alumno ─── */
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-ac-input-icon {
   color: var(--sx-text-muted);

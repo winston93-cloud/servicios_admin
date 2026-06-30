@@ -164,3 +164,26 @@ export async function guardarPersonaAutorizada(
 
   return { ok: true, contactoId: data.contacto_id }
 }
+
+export type ResultadoEliminarPersonaAutorizada =
+  | { ok: true }
+  | { ok: false; mensaje: string }
+
+export async function eliminarPersonaAutorizada(
+  alumnoId: number,
+  contactoId: number
+): Promise<ResultadoEliminarPersonaAutorizada> {
+  const { error } = await supabase
+    .from('alumno_contacto')
+    .delete()
+    .eq('contacto_id', contactoId)
+    .eq('alumno_id', alumnoId)
+    .eq('contacto_tipo', CONTACTO_TIPO_AUTORIZADA)
+
+  if (error) {
+    console.error('Error al eliminar persona autorizada:', error)
+    return { ok: false, mensaje: error.message }
+  }
+
+  return { ok: true }
+}
