@@ -49,3 +49,34 @@ SELECT setval(
   GREATEST((SELECT COALESCE(MAX(id), 0) FROM public.personal), 1),
   (SELECT COALESCE(MAX(id), 0) > 0 FROM public.personal)
 );
+
+-- Tablas alumno (migración MySQL con ids explícitos)
+SELECT setval(
+  pg_get_serial_sequence('public.alumno', 'alumno_id'),
+  GREATEST((SELECT COALESCE(MAX(alumno_id), 0) FROM public.alumno), 1),
+  (SELECT COALESCE(MAX(alumno_id), 0) > 0 FROM public.alumno)
+);
+
+SELECT setval(
+  pg_get_serial_sequence('public.alumno_detalles', 'detalle_id'),
+  GREATEST((SELECT COALESCE(MAX(detalle_id), 0) FROM public.alumno_detalles), 1),
+  (SELECT COALESCE(MAX(detalle_id), 0) > 0 FROM public.alumno_detalles)
+);
+
+SELECT setval(
+  pg_get_serial_sequence('public.alumno_familiar', 'familiar_id'),
+  GREATEST((SELECT COALESCE(MAX(familiar_id), 0) FROM public.alumno_familiar), 1),
+  (SELECT COALESCE(MAX(familiar_id), 0) > 0 FROM public.alumno_familiar)
+);
+
+SELECT setval(
+  pg_get_serial_sequence('public.alumno_contacto', 'contacto_id'),
+  GREATEST((SELECT COALESCE(MAX(contacto_id), 0) FROM public.alumno_contacto), 1),
+  (SELECT COALESCE(MAX(contacto_id), 0) > 0 FROM public.alumno_contacto)
+);
+
+SELECT setval(
+  pg_get_serial_sequence('public.alumno_beca', 'alumno_beca_id'),
+  GREATEST((SELECT COALESCE(MAX(alumno_beca_id), 0) FROM public.alumno_beca), 1),
+  (SELECT COALESCE(MAX(alumno_beca_id), 0) > 0 FROM public.alumno_beca)
+);

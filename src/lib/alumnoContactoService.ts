@@ -83,6 +83,26 @@ export type ResultadoGuardarPersonaAutorizada =
   | { ok: true; contactoId: number }
   | { ok: false; mensaje: string }
 
+function esErrorClaveDuplicada(error: { code?: string; message?: string }): boolean {
+  return error.code === '23505' || (error.message?.includes('duplicate key') ?? false)
+}
+
+async function obtenerSiguienteContactoId(): Promise<number | null> {
+  const { data, error } = await supabase
+    .from('alumno_contacto')
+    .select('contacto_id')
+    .order('contacto_id', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Error al obtener siguiente contacto_id:', error)
+    return null
+  }
+
+  return (data?.contacto_id ?? 0) + 1
+}
+
 export async function guardarPersonaAutorizada(
   payload: GuardarPersonaAutorizadaPayload
 ): Promise<ResultadoGuardarPersonaAutorizada> {
@@ -109,15 +129,30 @@ export async function guardarPersonaAutorizada(
     return { ok: true, contactoId: payload.contactoId }
   }
 
-  const { data, error } = await supabase
+  const filaInsert = {
+    alumno_id: payload.alumnoId,
+    ...fila,
+    contacto_alta: new Date().toISOString(),
+  }
+
+  let { data, error } = await supabase
     .from('alumno_contacto')
-    .insert({
-      alumno_id: payload.alumnoId,
-      ...fila,
-      contacto_alta: new Date().toISOString(),
-    })
+    .insert(filaInsert)
     .select('contacto_id')
     .single()
+
+  if (error && esErrorClaveDuplicada(error)) {
+    const siguienteId = await obtenerSiguienteContactoId()
+    if (siguienteId != null) {
+      const reintento = await supabase
+        .from('alumno_contacto')
+        .insert({ ...filaInsert, contacto_id: siguienteId })
+        .select('contacto_id')
+        .single()
+      data = reintento.data
+      error = reintento.error
+    }
+  }
 
   if (error) {
     console.error('Error al crear persona autorizada:', error)

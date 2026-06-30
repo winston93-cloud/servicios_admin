@@ -346,7 +346,9 @@ export default function AlumnoPersonasAutorizadas({ alumno }: AlumnoPersonasAuto
         </fieldset>
 
         <AlumnoFormGuardarBar
-          etiqueta="Actualizar contacto"
+          etiqueta={
+            contactoSeleccionadoId != null ? 'Actualizar contacto' : 'Agregar contacto'
+          }
           variante={varianteBotonGuardar}
           modificado={modificado}
           guardando={guardando}
