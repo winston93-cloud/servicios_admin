@@ -35,8 +35,7 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(
   .bch-resumen,
   .ap-carga-bar,
   .ap-archivo-card,
-  .ap-resultado,
-  .openpay-verif-panel
+  .ap-resultado
 ) {
   background: var(--sx-card) !important;
   border-color: var(--sx-card-border) !important;
