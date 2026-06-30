@@ -7501,6 +7501,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 .becas-formulario {
   margin-top: 8px;
   padding: 22px 20px 24px;
+  max-width: 52rem;
   background: #fff;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
@@ -7542,12 +7543,19 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 
 .becas-form-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px 20px;
+  grid-template-columns: minmax(0, 1.35fr) 5.75rem minmax(0, 1fr) minmax(0, 0.95fr);
+  gap: 16px 18px;
+  align-items: end;
 }
 
 .becas-field--full {
   grid-column: 1 / -1;
+}
+
+.becas-input--porcentaje {
+  text-align: center;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 .becas-label {
@@ -7675,9 +7683,32 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   color: #1e3a5f;
 }
 
+@media (max-width: 900px) {
+  .becas-form-grid {
+    grid-template-columns: minmax(0, 1fr) 5.75rem;
+  }
+
+  .becas-field--tipo {
+    grid-column: 1;
+  }
+
+  .becas-field--porcentaje {
+    grid-column: 2;
+  }
+
+  .becas-field--ciclo,
+  .becas-field--estatus {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 640px) {
   .becas-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .becas-field--porcentaje {
+    max-width: 6rem;
   }
 
   .becas-btn {

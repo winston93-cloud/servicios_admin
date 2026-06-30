@@ -437,7 +437,7 @@ export default function BecasModulo() {
               />
             </div>
 
-            <div className="becas-field">
+            <div className="becas-field becas-field--tipo">
               <label htmlFor="becas_tipo" className="becas-label">
                 Tipo
               </label>
@@ -456,7 +456,7 @@ export default function BecasModulo() {
               </select>
             </div>
 
-            <div className="becas-field">
+            <div className="becas-field becas-field--porcentaje">
               <label htmlFor="becas_porcentaje" className="becas-label">
                 Porcentaje
               </label>
@@ -465,13 +465,13 @@ export default function BecasModulo() {
                 type="number"
                 min={0}
                 max={100}
-                className="becas-input"
+                className="becas-input becas-input--porcentaje"
                 value={porcentaje}
                 onChange={(e) => setPorcentaje(Number(e.target.value))}
               />
             </div>
 
-            <div className="becas-field">
+            <div className="becas-field becas-field--ciclo">
               <label htmlFor="becas_ciclo" className="becas-label">
                 Ciclo escolar
               </label>
@@ -493,7 +493,7 @@ export default function BecasModulo() {
               </select>
             </div>
 
-            <div className="becas-field">
+            <div className="becas-field becas-field--estatus">
               <label htmlFor="becas_estatus" className="becas-label">
                 Estatus de la beca
               </label>
