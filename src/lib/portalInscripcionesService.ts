@@ -106,8 +106,9 @@ function solicitudCompleta(alumno: AlumnoRegistro): boolean {
   return false
 }
 
+/** Secundaria grado 4 = Egresados (9no termina en grado 3). */
 function esEgresado(alumno: AlumnoRegistro): boolean {
-  return alumno.alumno_nivel === 4 && Number(alumno.alumno_grado) === 3
+  return Number(alumno.alumno_nivel) === 4 && Number(alumno.alumno_grado) === 4
 }
 
 async function evaluarAdeudosReinscrito(
