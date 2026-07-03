@@ -59,13 +59,13 @@ function nombreAlumno(estado: EstadoPortalInscripciones | null, fallback?: strin
 function iconoPaso(estado: PasoEstadoInscripcion) {
   switch (estado) {
     case 'completado':
-      return <CheckCircle2 size={22} className="pi-paso-icon pi-paso-icon--ok" aria-hidden />
+      return <CheckCircle2 size={18} className="pi-paso-icon pi-paso-icon--ok" aria-hidden />
     case 'disponible':
-      return <Circle size={22} className="pi-paso-icon pi-paso-icon--activo" aria-hidden />
+      return <Circle size={18} className="pi-paso-icon pi-paso-icon--activo" aria-hidden />
     case 'atencion':
-      return <AlertTriangle size={22} className="pi-paso-icon pi-paso-icon--warn" aria-hidden />
+      return <AlertTriangle size={18} className="pi-paso-icon pi-paso-icon--warn" aria-hidden />
     default:
-      return <Lock size={20} className="pi-paso-icon pi-paso-icon--lock" aria-hidden />
+      return <Lock size={18} className="pi-paso-icon pi-paso-icon--lock" aria-hidden />
   }
 }
 
