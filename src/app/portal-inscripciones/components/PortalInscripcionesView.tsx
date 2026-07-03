@@ -149,10 +149,10 @@ export default function PortalInscripcionesView() {
             <div>
               <p className="portal-inscripciones-kicker">Proceso escolar</p>
               <h1 className="dashboard-title portal-inscripciones-titulo">
-                Portal de inscripciones
+                Inscripciones y Colegiaturas
               </h1>
               <p className="dashboard-subtitle portal-inscripciones-lead">
-                Sigue tu trámite de inscripción o reinscripción paso a paso.
+                Completa tu inscripción o reinscripción y continúa con el pago de colegiaturas.
               </p>
             </div>
             {estado?.ciclo && (
@@ -268,6 +268,21 @@ export default function PortalInscripcionesView() {
                 </li>
               ))}
             </ol>
+
+            {!estado.bloqueo && (
+              <section className="portal-inscripciones-alumno-card portal-inscripciones-colegiaturas">
+                <div className="portal-inscripciones-alumno-info">
+                  <span className="portal-inscripciones-alumno-nombre">Colegiaturas del ciclo</span>
+                  <span className="portal-inscripciones-alumno-meta">
+                    Mensualidades, Cambridge y Winston USA — consulta, imprime y paga en línea.
+                  </span>
+                </div>
+                <Link href="/portal-pagos" className="portal-inscripciones-paso-link">
+                  Ir a colegiaturas
+                  <ArrowRight size={16} aria-hidden />
+                </Link>
+              </section>
+            )}
           </>
         )}
       </div>
