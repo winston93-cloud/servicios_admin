@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -10,7 +10,10 @@ import {
   Circle,
   Clock,
   AlertTriangle,
+  CreditCard,
+  FileSignature,
   Lock,
+  PartyPopper,
   RefreshCw,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
@@ -88,6 +91,30 @@ function ProgresoInscripcion({
       </div>
     </section>
   )
+}
+
+type SiguientePasoTono = 'accion' | 'exito' | 'espera'
+type SiguientePasoIcono = 'solicitud' | 'pago' | 'exito' | 'espera'
+
+interface SiguientePasoInfo {
+  tono: SiguientePasoTono
+  icono: SiguientePasoIcono
+  titulo: string
+  descripcion: string
+  cta?: { etiqueta: string; tipo: 'ruta' | 'scroll'; href?: string }
+}
+
+function iconoSiguientePaso(icono: SiguientePasoIcono) {
+  switch (icono) {
+    case 'solicitud':
+      return <FileSignature size={26} aria-hidden />
+    case 'pago':
+      return <CreditCard size={26} aria-hidden />
+    case 'exito':
+      return <PartyPopper size={26} aria-hidden />
+    default:
+      return <Clock size={26} aria-hidden />
+  }
 }
 
 export default function PortalInscripcionesView() {
@@ -168,6 +195,85 @@ export default function PortalInscripcionesView() {
     if (colegiaturasDesbloqueadas) void cargarMatriz()
   }, [colegiaturasDesbloqueadas, cargarMatriz])
 
+  const colegiaturasRef = useRef<HTMLElement>(null)
+
+  const irAColegiaturas = useCallback(() => {
+    colegiaturasRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
+
+  const colegiaturaPendiente = useMemo(() => {
+    const seccion = matriz?.secciones.find((s) => s.id === 'colegiatura')
+    return seccion?.filas.find((f) => !f.pagado) ?? null
+  }, [matriz])
+
+  const siguientePaso = useMemo<SiguientePasoInfo | null>(() => {
+    if (!estado || estado.bloqueo) return null
+
+    const paso = (id: string) => estado.pasos.find((p) => p.id === id) ?? null
+    const solicitud = paso('solicitud')
+
+    if (solicitud && solicitud.estado !== 'completado') {
+      return {
+        tono: 'accion',
+        icono: 'solicitud',
+        titulo: 'Completa la solicitud de inscripción',
+        descripcion:
+          'Captura los datos del alumno y de la familia. Al terminar se habilita el pago.',
+        cta: {
+          etiqueta: 'Completar solicitud',
+          tipo: 'ruta',
+          href: '/portal-inscripciones/solicitud',
+        },
+      }
+    }
+
+    if (!inscripcionPagada) {
+      return {
+        tono: 'accion',
+        icono: 'pago',
+        titulo: esReinscrito ? 'Realiza el pago de reinscripción' : 'Realiza el pago de inscripción',
+        descripcion:
+          'Paga en ventanilla (baucher), con tarjeta (comercio electrónico) o por transferencia SPEI.',
+        cta: {
+          etiqueta: esReinscrito ? 'Pagar reinscripción' : 'Pagar inscripción',
+          tipo: 'ruta',
+          href: '/portal-inscripciones/pago',
+        },
+      }
+    }
+
+    if (cargandoMatriz && !matriz) {
+      return {
+        tono: 'espera',
+        icono: 'espera',
+        titulo: 'Preparando tus colegiaturas…',
+        descripcion: 'Estamos cargando los conceptos del ciclo escolar.',
+      }
+    }
+
+    if (colegiaturaPendiente) {
+      const esInicio = colegiaturaPendiente.conceptoNo === '00'
+      return {
+        tono: 'accion',
+        icono: 'pago',
+        titulo: esInicio
+          ? 'Paga la cuota de inicio de curso'
+          : `Paga: ${colegiaturaPendiente.conceptoClase}`,
+        descripcion: esInicio
+          ? 'Con este pago se activa el ciclo y se habilitan las mensualidades.'
+          : 'Mantén al día las colegiaturas de tu hijo(a).',
+        cta: { etiqueta: 'Ir a colegiaturas', tipo: 'scroll' },
+      }
+    }
+
+    return {
+      tono: 'exito',
+      icono: 'exito',
+      titulo: '¡Estás al corriente!',
+      descripcion: 'No tienes pagos pendientes por ahora. Gracias por tu puntualidad.',
+    }
+  }, [estado, inscripcionPagada, esReinscrito, cargandoMatriz, matriz, colegiaturaPendiente])
+
   const refFmt = String(session?.alumno_ref ?? '').padStart(5, '0')
 
   return (
@@ -191,7 +297,11 @@ export default function PortalInscripcionesView() {
                 Inscripciones y Colegiaturas
               </h1>
               <p className="dashboard-subtitle portal-inscripciones-lead">
-                Completa tu inscripción o reinscripción y continúa con el pago de colegiaturas.
+                {esReinscrito
+                  ? 'Reinscribe a tu hijo(a) y mantén al día el pago de sus colegiaturas.'
+                  : estado
+                    ? 'Completa la inscripción de tu hijo(a) y continúa con el pago de sus colegiaturas.'
+                    : 'Completa tu inscripción o reinscripción y continúa con el pago de colegiaturas.'}
               </p>
             </div>
             {estado?.ciclo && (
@@ -232,6 +342,38 @@ export default function PortalInscripcionesView() {
             </div>
           )}
         </header>
+
+        {siguientePaso && (
+          <section
+            className={`portal-inscripciones-siguiente portal-inscripciones-siguiente--${siguientePaso.tono}`}
+            aria-label="Tu siguiente paso"
+          >
+            <div className="portal-inscripciones-siguiente-icono">
+              {iconoSiguientePaso(siguientePaso.icono)}
+            </div>
+            <div className="portal-inscripciones-siguiente-cuerpo">
+              <p className="portal-inscripciones-siguiente-kicker">Tu siguiente paso</p>
+              <h2 className="portal-inscripciones-siguiente-titulo">{siguientePaso.titulo}</h2>
+              <p className="portal-inscripciones-siguiente-desc">{siguientePaso.descripcion}</p>
+            </div>
+            {siguientePaso.cta &&
+              (siguientePaso.cta.tipo === 'ruta' && siguientePaso.cta.href ? (
+                <Link href={siguientePaso.cta.href} className="portal-inscripciones-siguiente-cta">
+                  {siguientePaso.cta.etiqueta}
+                  <ArrowRight size={18} aria-hidden />
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  className="portal-inscripciones-siguiente-cta"
+                  onClick={irAColegiaturas}
+                >
+                  {siguientePaso.cta.etiqueta}
+                  <ArrowRight size={18} aria-hidden />
+                </button>
+              ))}
+          </section>
+        )}
 
         {cargando && !estado && (
           <div className="portal-inscripciones-estado" role="status">
@@ -310,6 +452,8 @@ export default function PortalInscripcionesView() {
 
             {!estado.bloqueo && (
               <section
+                ref={colegiaturasRef}
+                id="colegiaturas"
                 className="portal-inscripciones-colegiaturas-seccion"
                 aria-label="Colegiaturas del ciclo"
               >
