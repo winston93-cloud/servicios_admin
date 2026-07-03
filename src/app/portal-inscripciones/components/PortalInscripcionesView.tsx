@@ -15,6 +15,8 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import type { EstadoPortalInscripciones, PasoEstadoInscripcion } from '@/lib/portalInscripcionesTypes'
+import type { MatrizPortalPagos } from '@/lib/portalPagosMatrizService'
+import PortalColegiaturasSecciones from '@/app/portal-pagos/components/PortalColegiaturasSecciones'
 
 function nombreAlumno(estado: EstadoPortalInscripciones | null, fallback?: string): string {
   if (!estado) return fallback?.trim() || 'Alumno'
@@ -97,6 +99,10 @@ export default function PortalInscripcionesView() {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const [matriz, setMatriz] = useState<MatrizPortalPagos | null>(null)
+  const [cargandoMatriz, setCargandoMatriz] = useState(false)
+  const [errorMatriz, setErrorMatriz] = useState<string | null>(null)
+
   const cargar = useCallback(async () => {
     if (alumnoId == null) {
       setError('Sesión de alumno no válida.')
@@ -125,9 +131,42 @@ export default function PortalInscripcionesView() {
     setCargando(false)
   }, [alumnoId])
 
+  const cargarMatriz = useCallback(async () => {
+    if (alumnoId == null) return
+    setCargandoMatriz(true)
+    setErrorMatriz(null)
+    try {
+      const res = await fetch('/api/portal-pagos/matriz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alumnoId }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setMatriz(null)
+        setErrorMatriz(data.error ?? 'No se pudieron cargar las colegiaturas.')
+      } else {
+        setMatriz(data.matriz)
+      }
+    } catch {
+      setMatriz(null)
+      setErrorMatriz('Error de conexión al cargar colegiaturas.')
+    }
+    setCargandoMatriz(false)
+  }, [alumnoId])
+
   useEffect(() => {
     void cargar()
   }, [cargar])
+
+  const pagoInscripcionPaso = estado?.pasos.find((p) => p.id === 'pago-inscripcion') ?? null
+  const inscripcionPagada = pagoInscripcionPaso?.estado === 'completado'
+  const esReinscrito = estado?.formaIngreso === 0
+  const colegiaturasDesbloqueadas = Boolean(estado && !estado.bloqueo && inscripcionPagada)
+
+  useEffect(() => {
+    if (colegiaturasDesbloqueadas) void cargarMatriz()
+  }, [colegiaturasDesbloqueadas, cargarMatriz])
 
   const refFmt = String(session?.alumno_ref ?? '').padStart(5, '0')
 
@@ -270,17 +309,61 @@ export default function PortalInscripcionesView() {
             </ol>
 
             {!estado.bloqueo && (
-              <section className="portal-inscripciones-alumno-card portal-inscripciones-colegiaturas">
-                <div className="portal-inscripciones-alumno-info">
-                  <span className="portal-inscripciones-alumno-nombre">Colegiaturas del ciclo</span>
-                  <span className="portal-inscripciones-alumno-meta">
-                    Mensualidades, Cambridge y Winston USA — consulta, imprime y paga en línea.
-                  </span>
+              <section
+                className="portal-inscripciones-colegiaturas-seccion"
+                aria-label="Colegiaturas del ciclo"
+              >
+                <div className="portal-inscripciones-colegiaturas-head">
+                  <div>
+                    <h2 className="portal-inscripciones-colegiaturas-titulo">
+                      Colegiaturas del ciclo
+                    </h2>
+                    <p className="portal-inscripciones-colegiaturas-sub">
+                      Cuota de inicio de curso (concepto 00), mensualidades, Cambridge y Winston USA.
+                    </p>
+                  </div>
+                  {colegiaturasDesbloqueadas && matriz?.planEtiqueta && (
+                    <span className="portal-inscripciones-plan-badge">{matriz.planEtiqueta}</span>
+                  )}
                 </div>
-                <Link href="/portal-pagos" className="portal-inscripciones-paso-link">
-                  Ir a colegiaturas
-                  <ArrowRight size={16} aria-hidden />
-                </Link>
+
+                {!inscripcionPagada ? (
+                  <div className="portal-inscripciones-colegiaturas-bloqueo" role="note">
+                    <Lock size={20} aria-hidden />
+                    <div>
+                      <p className="portal-inscripciones-colegiaturas-bloqueo-titulo">
+                        Colegiaturas bloqueadas
+                      </p>
+                      <p className="portal-inscripciones-colegiaturas-bloqueo-desc">
+                        Completa tu {esReinscrito ? 'reinscripción' : 'inscripción'} y su pago para
+                        desbloquear la <strong>cuota de inicio de curso (concepto 00)</strong> y las
+                        mensualidades del ciclo.
+                      </p>
+                    </div>
+                  </div>
+                ) : cargandoMatriz && !matriz ? (
+                  <div className="portal-inscripciones-estado" role="status">
+                    <RefreshCw size={20} className="portal-inscripciones-spin" aria-hidden />
+                    Cargando colegiaturas del ciclo…
+                  </div>
+                ) : errorMatriz ? (
+                  <div
+                    className="portal-inscripciones-alerta portal-inscripciones-alerta--error"
+                    role="alert"
+                  >
+                    {errorMatriz}
+                  </div>
+                ) : matriz ? (
+                  <PortalColegiaturasSecciones
+                    alumnoId={matriz.alumno.alumno_id}
+                    ciclo={matriz.ciclo}
+                    alumno={matriz.alumno}
+                    secciones={matriz.secciones}
+                    displayName={session?.displayName}
+                    cargando={cargandoMatriz}
+                    onActualizar={() => void cargarMatriz()}
+                  />
+                ) : null}
               </section>
             )}
           </>

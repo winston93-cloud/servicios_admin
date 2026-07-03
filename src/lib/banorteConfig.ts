@@ -45,7 +45,8 @@ export function urlPortalPagosAlumno(): string {
     process.env.NEXT_PUBLIC_APP_URL ??
     'https://servicios-admin.vercel.app'
   ).replace(/\/$/, '')
-  return `${base}/portal-pagos`
+  // Portal unificado: pagos y colegiaturas viven dentro de inscripciones.
+  return `${base}/portal-inscripciones`
 }
 
 export function obtenerAfiliacion3ds(alumnoNivel: number): BanorteAfiliacion3ds {

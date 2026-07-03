@@ -17002,6 +17002,86 @@ html[data-theme='light'] .portal-inscripciones-paso--bloqueado {
   color: rgba(148, 163, 184, 0.85);
 }
 
+/* ── Colegiaturas integradas en el portal unificado ───────────────────── */
+.portal-inscripciones-colegiaturas-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+  padding: clamp(20px, 2.5vw, 28px) clamp(20px, 3vw, 32px);
+  border-radius: 18px;
+  border: 1px solid var(--portal-surface-card-border);
+  background: var(--portal-surface-card);
+  box-shadow: var(--portal-surface-card-shadow);
+}
+
+.portal-inscripciones-colegiaturas-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.portal-inscripciones-colegiaturas-titulo {
+  margin: 0;
+  font-size: clamp(18px, 2.4vw, 22px);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.portal-inscripciones-colegiaturas-sub {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--portal-paso-desc);
+}
+
+.portal-inscripciones-plan-badge {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--portal-plan-badge-bg, rgba(56, 189, 248, 0.16));
+  color: var(--portal-plan-badge-color, #7dd3fc);
+}
+
+.portal-inscripciones-colegiaturas-bloqueo {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--portal-alerta-bloqueo-border);
+  background: var(--portal-alerta-bloqueo-bg);
+  color: var(--portal-alerta-bloqueo-text);
+}
+
+.portal-inscripciones-colegiaturas-bloqueo svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.portal-inscripciones-colegiaturas-bloqueo-titulo {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.portal-inscripciones-colegiaturas-bloqueo-desc {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.portal-inscripciones-colegiaturas-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 @media (max-width: 768px) {
   .portal-inscripciones-hero {
     grid-template-columns: 1fr;
