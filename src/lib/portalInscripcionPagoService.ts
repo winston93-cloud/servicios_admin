@@ -9,6 +9,8 @@ import {
   type FilaMatrizPortal,
 } from './portalPagosMatrizService'
 import { tienePagoConcepto } from './portalInscripcionesService'
+import { calcularReinscripcionDiferido } from './portalReinscripcionService'
+import { obtenerCicloPorValor } from './ciclosEscolaresService'
 
 function solicitudCompleta(alumno: AlumnoRegistro): boolean {
   if (alumno.alumno_registro) return true
@@ -48,6 +50,31 @@ export async function construirVistaPagoInscripcion(
   pagos: PagoDetalleRegistro[]
 ): Promise<VistaPagoInscripcionPortal> {
   const esReinscrito = formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 0
+
+  // Reinscritos: la reinscripción es para el ciclo SIGUIENTE (cen = alu_ce + 1) y se
+  // cobra por diferidos (concepto 11 → 12), igual que en el sistema de admisiones.
+  if (esReinscrito) {
+    const calc = await calcularReinscripcionDiferido(supabase, alumno)
+    if (calc) {
+      const cicloReinscripcion =
+        (await obtenerCicloPorValor(calc.cicloReinscripcion)) ?? ciclo
+      const filas = calc.filaPendiente
+        ? [...calc.filasPagadas, calc.filaPendiente]
+        : calc.filasPagadas
+
+      return {
+        ciclo: cicloReinscripcion,
+        alumno,
+        esReinscrito,
+        tituloPago: 'Pago de reinscripción',
+        gradoEtiqueta: etiquetaGradoEscolar(alumno.alumno_nivel, alumno.alumno_grado),
+        solicitudCompleta: solicitudCompleta(alumno),
+        inscripcionPagada: calc.completa,
+        filas,
+      }
+    }
+  }
+
   const filas = await construirFilasInscripcionPortal(
     supabase,
     alumno,

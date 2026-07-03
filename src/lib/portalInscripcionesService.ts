@@ -10,6 +10,7 @@ import {
   parsearReferenciaPago,
 } from './pagoReferenciaColegiatura'
 import { construirFilasInscripcionPortal } from './portalPagosMatrizService'
+import { calcularReinscripcionDiferido } from './portalReinscripcionService'
 import type {
   BloqueoInscripcion,
   EstadoPortalInscripciones,
@@ -302,23 +303,44 @@ export async function construirEstadoPortalInscripciones(
   const flujoActivo = bloqueo == null
 
   const solCompleta = solicitudCompleta(alumno)
-  const insPagada = inscripcionPagada(pagos, alumno, cicloValor, esReinscrito)
+
+  // Reinscritos: la reinscripción es para el ciclo SIGUIENTE (cen = alu_ce + 1) y se
+  // cobra por diferidos (concepto 11 → 12). Un solo diferido NO completa el trámite.
+  const calcReinscripcion = esReinscrito
+    ? await calcularReinscripcionDiferido(supabase, alumno)
+    : null
+
+  const insPagada = calcReinscripcion
+    ? calcReinscripcion.completa
+    : inscripcionPagada(pagos, alumno, cicloValor, esReinscrito)
   const reciboHabilitado = await enReciboFinal(supabase, alumno.alumno_ref)
+
+  if (calcReinscripcion) {
+    reinscripcionInfo = {
+      periodoInicio: reinscripcionInfo?.periodoInicio ?? null,
+      fechaLimite: reinscripcionInfo?.fechaLimite ?? null,
+      diferido: calcReinscripcion.diferido,
+    }
+  }
 
   // Importe pendiente del pago de inscripción/reinscripción (para guiar al papá).
   let montoInscripcion: number | null = null
   if (flujoActivo && solCompleta && !insPagada) {
-    try {
-      const filasInscripcion = await construirFilasInscripcionPortal(
-        supabase,
-        alumno,
-        ciclo,
-        pagos,
-        esReinscrito
-      )
-      montoInscripcion = filasInscripcion.find((f) => !f.pagado)?.importe ?? null
-    } catch {
-      montoInscripcion = null
+    if (calcReinscripcion) {
+      montoInscripcion = calcReinscripcion.pagable ? calcReinscripcion.monto : null
+    } else {
+      try {
+        const filasInscripcion = await construirFilasInscripcionPortal(
+          supabase,
+          alumno,
+          ciclo,
+          pagos,
+          esReinscrito
+        )
+        montoInscripcion = filasInscripcion.find((f) => !f.pagado)?.importe ?? null
+      } catch {
+        montoInscripcion = null
+      }
     }
   }
 

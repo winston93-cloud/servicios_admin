@@ -51,6 +51,23 @@ export async function obtenerCicloEscolarActual(): Promise<CicloEscolarRegistro 
   return data as CicloEscolarRegistro | null
 }
 
+export async function obtenerCicloPorValor(
+  valor: number
+): Promise<CicloEscolarRegistro | null> {
+  const { data, error } = await supabase
+    .from('ciclos_escolares')
+    .select(SELECT_CICLO)
+    .eq('valor', valor)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Error al obtener ciclo por valor:', error)
+    return null
+  }
+
+  return data as CicloEscolarRegistro | null
+}
+
 export async function crearCicloEscolar(
   input: CicloEscolarInput
 ): Promise<CicloEscolarRegistro> {

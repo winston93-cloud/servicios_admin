@@ -219,7 +219,11 @@ export default function PortalInscripcionesView() {
   const pagoInscripcionPaso = estado?.pasos.find((p) => p.id === 'pago-inscripcion') ?? null
   const inscripcionPagada = pagoInscripcionPaso?.estado === 'completado'
   const esReinscrito = estado?.formaIngreso === 0
-  const colegiaturasDesbloqueadas = Boolean(estado && !estado.bloqueo && inscripcionPagada)
+  // Reinscritos ya cursan el ciclo vigente: sus colegiaturas actuales no dependen de la
+  // reinscripción del ciclo siguiente. El candado de "concepto 00" aplica a nuevo ingreso.
+  const colegiaturasDesbloqueadas = Boolean(
+    estado && !estado.bloqueo && (esReinscrito || inscripcionPagada)
+  )
 
   useEffect(() => {
     if (colegiaturasDesbloqueadas) void cargarMatriz()
@@ -530,7 +534,7 @@ export default function PortalInscripcionesView() {
                   )}
                 </div>
 
-                {!inscripcionPagada ? (
+                {!colegiaturasDesbloqueadas ? (
                   <div className="portal-inscripciones-colegiaturas-bloqueo" role="note">
                     <Lock size={20} aria-hidden />
                     <div>
