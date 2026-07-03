@@ -19,7 +19,35 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import type { EstadoPortalInscripciones, PasoEstadoInscripcion } from '@/lib/portalInscripcionesTypes'
 import type { MatrizPortalPagos } from '@/lib/portalPagosMatrizService'
+import { formatearMontoPortal } from '@/lib/portalPagosService'
 import PortalColegiaturasSecciones from '@/app/portal-pagos/components/PortalColegiaturasSecciones'
+
+const MESES_ES = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+]
+
+/** Convierte "YYYY-MM-DD" a "3 de julio de 2026" sin depender de la zona horaria. */
+function formatearFechaLarga(iso: string | null | undefined): string | null {
+  if (!iso) return null
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
+  if (!m) return null
+  const anio = Number(m[1])
+  const mes = Number(m[2]) - 1
+  const dia = Number(m[3])
+  if (mes < 0 || mes > 11) return null
+  return `${dia} de ${MESES_ES[mes]} de ${anio}`
+}
 
 function nombreAlumno(estado: EstadoPortalInscripciones | null, fallback?: string): string {
   if (!estado) return fallback?.trim() || 'Alumno'
@@ -101,6 +129,8 @@ interface SiguientePasoInfo {
   icono: SiguientePasoIcono
   titulo: string
   descripcion: string
+  monto?: number | null
+  fechaLimite?: string | null
   cta?: { etiqueta: string; tipo: 'ruta' | 'scroll'; href?: string }
 }
 
@@ -234,6 +264,8 @@ export default function PortalInscripcionesView() {
         titulo: esReinscrito ? 'Realiza el pago de reinscripción' : 'Realiza el pago de inscripción',
         descripcion:
           'Paga en ventanilla (baucher), con tarjeta (comercio electrónico) o por transferencia SPEI.',
+        monto: estado.montoInscripcion,
+        fechaLimite: esReinscrito ? estado.reinscripcion?.fechaLimite ?? null : null,
         cta: {
           etiqueta: esReinscrito ? 'Pagar reinscripción' : 'Pagar inscripción',
           tipo: 'ruta',
@@ -262,6 +294,7 @@ export default function PortalInscripcionesView() {
         descripcion: esInicio
           ? 'Con este pago se activa el ciclo y se habilitan las mensualidades.'
           : 'Mantén al día las colegiaturas de tu hijo(a).',
+        monto: colegiaturaPendiente.importe,
         cta: { etiqueta: 'Ir a colegiaturas', tipo: 'scroll' },
       }
     }
@@ -355,6 +388,21 @@ export default function PortalInscripcionesView() {
               <p className="portal-inscripciones-siguiente-kicker">Tu siguiente paso</p>
               <h2 className="portal-inscripciones-siguiente-titulo">{siguientePaso.titulo}</h2>
               <p className="portal-inscripciones-siguiente-desc">{siguientePaso.descripcion}</p>
+              {(siguientePaso.monto != null || siguientePaso.fechaLimite) && (
+                <div className="portal-inscripciones-siguiente-meta">
+                  {siguientePaso.monto != null && (
+                    <span className="portal-inscripciones-siguiente-monto">
+                      {formatearMontoPortal(siguientePaso.monto)}
+                    </span>
+                  )}
+                  {siguientePaso.fechaLimite && formatearFechaLarga(siguientePaso.fechaLimite) && (
+                    <span className="portal-inscripciones-siguiente-limite">
+                      <Clock size={14} aria-hidden />
+                      Fecha límite: {formatearFechaLarga(siguientePaso.fechaLimite)}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             {siguientePaso.cta &&
               (siguientePaso.cta.tipo === 'ruta' && siguientePaso.cta.href ? (

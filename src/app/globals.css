@@ -17076,6 +17076,34 @@ html[data-theme='light'] .portal-inscripciones-paso--bloqueado {
   color: var(--portal-paso-desc);
 }
 
+.portal-inscripciones-siguiente-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 10px;
+}
+
+.portal-inscripciones-siguiente-monto {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+  background: rgba(56, 189, 248, 0.14);
+}
+
+.portal-inscripciones-siguiente-limite {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--portal-paso-detalle);
+}
+
 .portal-inscripciones-siguiente-cta {
   display: inline-flex;
   align-items: center;

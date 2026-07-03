@@ -35,6 +35,12 @@ export interface PasoInscripcion {
   accion?: AccionPasoInscripcion | null
 }
 
+export interface ReinscripcionPeriodo {
+  periodoInicio: string | null
+  fechaLimite: string | null
+  diferido: 1 | 2 | null
+}
+
 export interface EstadoPortalInscripciones {
   alumno: AlumnoRegistro
   ciclo: CicloEscolarRegistro
@@ -48,4 +54,8 @@ export interface EstadoPortalInscripciones {
   pasosCompletados: number
   pasosTotales: number
   progresoPct: number
+  /** Importe pendiente del pago de inscripción/reinscripción (si aplica). */
+  montoInscripcion: number | null
+  /** Ventana de reinscripción (diferidos) para reinscritos. */
+  reinscripcion: ReinscripcionPeriodo | null
 }

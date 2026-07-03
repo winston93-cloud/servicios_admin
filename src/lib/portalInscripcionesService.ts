@@ -9,11 +9,13 @@ import {
   normalizarConceptoNo,
   parsearReferenciaPago,
 } from './pagoReferenciaColegiatura'
+import { construirFilasInscripcionPortal } from './portalPagosMatrizService'
 import type {
   BloqueoInscripcion,
   EstadoPortalInscripciones,
   PasoEstadoInscripcion,
   PasoInscripcion,
+  ReinscripcionPeriodo,
 } from './portalInscripcionesTypes'
 
 const CAMBIO_CICLO = '07-20'
@@ -136,11 +138,16 @@ async function evaluarAdeudosReinscrito(
   return false
 }
 
+function fechaValida(valor: unknown): string | null {
+  const s = String(valor ?? '').slice(0, 10)
+  return s && s !== '0000-00-00' ? s : null
+}
+
 async function periodoInscripcionAbierto(
   supabase: AppDatabaseClient,
   alumno: AlumnoRegistro,
   ciclo: number
-): Promise<{ abierto: boolean; aviso: string | null }> {
+): Promise<{ abierto: boolean; aviso: string | null; reinscripcion: ReinscripcionPeriodo | null }> {
   const esReinscrito = formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 0
   const hoy = hoyIso()
   const anio = new Date().getFullYear()
@@ -151,9 +158,10 @@ async function periodoInscripcionAbierto(
       return {
         abierto: false,
         aviso: 'El periodo de inscripción para nuevo ingreso abre a partir del 1 de enero.',
+        reinscripcion: null,
       }
     }
-    return { abierto: true, aviso: null }
+    return { abierto: true, aviso: null, reinscripcion: null }
   }
 
   const { data, error } = await supabase
@@ -163,32 +171,55 @@ async function periodoInscripcionAbierto(
     .maybeSingle()
 
   if (error || !data) {
-    return { abierto: true, aviso: null }
+    return { abierto: true, aviso: null, reinscripcion: null }
   }
 
   const fila = data as Record<string, unknown>
   const mesAlumno = Number(alumno.mes ?? 0)
   const usarCambioLv = mesAlumno === 1
 
-  const ini1 = String(
-    usarCambioLv ? fila.ins_cambio_lv_dif1_ini : fila.ins_normal_dif1_ini ?? ''
-  ).slice(0, 10)
-  const fin2 = String(
-    usarCambioLv ? fila.ins_cambio_lv_dif2_fin : fila.ins_normal_dif2_fin ?? ''
-  ).slice(0, 10)
+  const dif1Ini = fechaValida(usarCambioLv ? fila.ins_cambio_lv_dif1_ini : fila.ins_normal_dif1_ini)
+  const dif1Fin = fechaValida(usarCambioLv ? fila.ins_cambio_lv_dif1_fin : fila.ins_normal_dif1_fin)
+  const dif2Ini = fechaValida(usarCambioLv ? fila.ins_cambio_lv_dif2_ini : fila.ins_normal_dif2_ini)
+  const dif2Fin = fechaValida(usarCambioLv ? fila.ins_cambio_lv_dif2_fin : fila.ins_normal_dif2_fin)
 
-  if (ini1 && hoy < ini1) {
+  // Diferido vigente y fecha límite aplicable (mejor esfuerzo con los campos disponibles).
+  let diferido: 1 | 2 | null = null
+  let fechaLimite: string | null = dif2Fin ?? dif1Fin
+  if (dif1Ini && dif1Fin && hoy >= dif1Ini && hoy <= dif1Fin) {
+    diferido = 1
+    fechaLimite = dif1Fin
+  } else if (dif2Ini && dif2Fin && hoy >= dif2Ini && hoy <= dif2Fin) {
+    diferido = 2
+    fechaLimite = dif2Fin
+  } else if (dif1Fin && dif2Ini && hoy > dif1Fin && hoy < dif2Ini) {
+    diferido = 2
+    fechaLimite = dif2Fin
+  }
+
+  const reinscripcion: ReinscripcionPeriodo = {
+    periodoInicio: dif1Ini,
+    fechaLimite,
+    diferido,
+  }
+
+  if (dif1Ini && hoy < dif1Ini) {
     return {
       abierto: false,
-      aviso: `El primer periodo de reinscripción inicia el ${ini1}.`,
+      aviso: `El primer periodo de reinscripción inicia el ${dif1Ini}.`,
+      reinscripcion,
     }
   }
 
-  if (fin2 && hoy > fin2) {
-    return { abierto: true, aviso: 'Reinscripción fuera del periodo oficial; puedes continuar tu trámite.' }
+  if (dif2Fin && hoy > dif2Fin) {
+    return {
+      abierto: true,
+      aviso: 'Reinscripción fuera del periodo oficial; puedes continuar tu trámite.',
+      reinscripcion,
+    }
   }
 
-  return { abierto: true, aviso: null }
+  return { abierto: true, aviso: null, reinscripcion }
 }
 
 function bloqueoPorStatus(status: number | null | undefined): {
@@ -243,6 +274,7 @@ export async function construirEstadoPortalInscripciones(
   let bloqueo: BloqueoInscripcion | null = null
   let mensajeBloqueo: string | null = null
   let aviso: string | null = null
+  let reinscripcionInfo: ReinscripcionPeriodo | null = null
 
   if (esEgresado(alumno)) {
     bloqueo = 'egresado'
@@ -259,6 +291,7 @@ export async function construirEstadoPortalInscripciones(
     } else {
       const periodo = await periodoInscripcionAbierto(supabase, alumno, cicloValor)
       aviso = periodo.aviso
+      reinscripcionInfo = periodo.reinscripcion
       if (!periodo.abierto) {
         bloqueo = 'periodo-cerrado'
         mensajeBloqueo = periodo.aviso
@@ -271,6 +304,23 @@ export async function construirEstadoPortalInscripciones(
   const solCompleta = solicitudCompleta(alumno)
   const insPagada = inscripcionPagada(pagos, alumno, cicloValor, esReinscrito)
   const reciboHabilitado = await enReciboFinal(supabase, alumno.alumno_ref)
+
+  // Importe pendiente del pago de inscripción/reinscripción (para guiar al papá).
+  let montoInscripcion: number | null = null
+  if (flujoActivo && solCompleta && !insPagada) {
+    try {
+      const filasInscripcion = await construirFilasInscripcionPortal(
+        supabase,
+        alumno,
+        ciclo,
+        pagos,
+        esReinscrito
+      )
+      montoInscripcion = filasInscripcion.find((f) => !f.pagado)?.importe ?? null
+    } catch {
+      montoInscripcion = null
+    }
+  }
 
   const pasos: PasoInscripcion[] = []
 
@@ -379,5 +429,7 @@ export async function construirEstadoPortalInscripciones(
     pasosCompletados,
     pasosTotales,
     progresoPct,
+    montoInscripcion,
+    reinscripcion: reinscripcionInfo,
   }
 }
