@@ -351,9 +351,12 @@ export async function construirEstadoPortalInscripciones(
       descripcion: 'Imprime el reglamento, la carta compromiso y fírmala.',
       estado: resolverEstadoPaso(false, flujoActivo && solCompleta),
       detalle: solCompleta
-        ? 'Disponible en la siguiente fase del portal.'
+        ? 'El enlace del reglamento y la carta compromiso estará disponible aquí.'
         : 'Se habilita al completar la solicitud.',
-      accion: null,
+      accion:
+        flujoActivo && solCompleta
+          ? { tipo: 'proximo', href: '', etiqueta: 'Ver reglamento y carta compromiso' }
+          : null,
   })
 
   pasos.push({
@@ -384,8 +387,11 @@ export async function construirEstadoPortalInscripciones(
       titulo: 'Carga de documentos',
       descripcion: 'Solo alumnos de nuevo ingreso: expediente digital.',
       estado: resolverEstadoPaso(false, flujoActivo && solCompleta && insPagada),
-      detalle: 'Portal de documentos — próximamente en este sistema.',
-      accion: null,
+      detalle: 'El enlace para cargar documentos estará disponible aquí.',
+      accion:
+        flujoActivo && solCompleta && insPagada
+          ? { tipo: 'proximo', href: '', etiqueta: 'Cargar documentos' }
+          : null,
     })
   }
 

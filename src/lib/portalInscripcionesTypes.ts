@@ -19,7 +19,8 @@ export type BloqueoInscripcion =
   | 'periodo-cerrado'
 
 export interface AccionPasoInscripcion {
-  tipo: 'ruta-interna' | 'externo'
+  /** 'proximo' = enlace visible pero aún sin destino definido (placeholder). */
+  tipo: 'ruta-interna' | 'externo' | 'proximo'
   href: string
   etiqueta: string
 }

@@ -16995,6 +16995,33 @@ html[data-theme='light'] .portal-inscripciones-paso--bloqueado {
   gap: 10px;
 }
 
+.portal-inscripciones-paso-link--proximo {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: not-allowed;
+  color: var(--portal-paso-detalle);
+  opacity: 0.85;
+}
+
+.portal-inscripciones-paso-link--proximo:hover {
+  color: var(--portal-paso-detalle);
+  gap: 6px;
+}
+
+.portal-inscripciones-paso-proximo-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(148, 163, 184, 0.2);
+  color: rgba(148, 163, 184, 0.95);
+}
+
 .portal-inscripciones-paso-proximamente {
   margin: 0;
   font-size: 13px;

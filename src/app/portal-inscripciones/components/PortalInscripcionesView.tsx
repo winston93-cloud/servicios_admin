@@ -475,7 +475,18 @@ export default function PortalInscripcionesView() {
                     )}
                     {paso.accion && (
                       <div className="portal-inscripciones-paso-accion">
-                        {paso.accion.tipo === 'ruta-interna' ? (
+                        {paso.accion.tipo === 'proximo' ? (
+                          <button
+                            type="button"
+                            className="portal-inscripciones-paso-link portal-inscripciones-paso-link--proximo"
+                            disabled
+                            aria-disabled="true"
+                            title="Disponible próximamente"
+                          >
+                            {paso.accion.etiqueta}
+                            <span className="portal-inscripciones-paso-proximo-tag">Próximamente</span>
+                          </button>
+                        ) : paso.accion.tipo === 'ruta-interna' ? (
                           <Link href={paso.accion.href} className="portal-inscripciones-paso-link">
                             {paso.accion.etiqueta}
                             <ArrowRight size={16} aria-hidden />
