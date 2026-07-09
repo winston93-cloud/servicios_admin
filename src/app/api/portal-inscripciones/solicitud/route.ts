@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { obtenerAlumnoPorId } from '@/lib/alumnoDatosService'
 import {
   cargarSolicitudInscripcion,
   guardarSolicitudInscripcion,
 } from '@/lib/portalInscripcionesSolicitudService'
 import type { SolicitudInscripcionFormulario } from '@/lib/portalInscripcionesSolicitudTypes'
+import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const runtime = 'nodejs'
@@ -12,19 +12,17 @@ export const runtime = 'nodejs'
 export async function GET(request: Request) {
   try {
     const alumnoId = Number(new URL(request.url).searchParams.get('alumnoId'))
-    if (!alumnoId) {
-      return NextResponse.json({ error: 'alumnoId es obligatorio' }, { status: 400 })
-    }
-
-    const alumno = await obtenerAlumnoPorId(alumnoId)
-    if (!alumno) {
-      return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
-    }
+    const auth = await validarAlumnoPortal(alumnoId)
+    if (!auth.ok) return auth.response
 
     const supabase = createSupabaseAdmin()
     const formulario = await cargarSolicitudInscripcion(supabase, alumnoId)
 
-    return NextResponse.json({ ok: true, formulario, alumnoRegistro: alumno.alumno_registro ?? null })
+    return NextResponse.json({
+      ok: true,
+      formulario,
+      alumnoRegistro: auth.alumno.alumno_registro ?? null,
+    })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al cargar solicitud'
     console.error('portal-inscripciones/solicitud GET:', e)
@@ -42,10 +40,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'alumnoId y formulario son obligatorios' }, { status: 400 })
     }
 
-    const alumno = await obtenerAlumnoPorId(alumnoId)
-    if (!alumno) {
-      return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
-    }
+    const auth = await validarAlumnoPortal(alumnoId)
+    if (!auth.ok) return auth.response
 
     const supabase = createSupabaseAdmin()
     const resultado = await guardarSolicitudInscripcion(supabase, alumnoId, formulario)

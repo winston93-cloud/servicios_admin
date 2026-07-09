@@ -131,7 +131,7 @@ interface SiguientePasoInfo {
   descripcion: string
   monto?: number | null
   fechaLimite?: string | null
-  cta?: { etiqueta: string; tipo: 'ruta' | 'scroll'; href?: string }
+  cta?: { etiqueta: string; tipo: 'ruta' | 'scroll' | 'externo'; href?: string }
 }
 
 function iconoSiguientePaso(icono: SiguientePasoIcono) {
@@ -261,19 +261,40 @@ export default function PortalInscripcionesView() {
       }
     }
 
-    if (!inscripcionPagada) {
+    if (!inscripcionPagada && estado.showPayment !== false) {
+      const pagoDisponible =
+        estado.showPayment === true ||
+        (estado.montoInscripcion != null && estado.montoInscripcion > 0)
+
+      if (pagoDisponible) {
+        return {
+          tono: 'accion',
+          icono: 'pago',
+          titulo: esReinscrito ? 'Realiza el pago de reinscripción' : 'Realiza el pago de inscripción',
+          descripcion:
+            'Paga en ventanilla (baucher), con tarjeta (comercio electrónico) o por transferencia SPEI.',
+          monto: estado.montoInscripcion,
+          fechaLimite: esReinscrito ? estado.reinscripcion?.fechaLimite ?? null : null,
+          cta: {
+            etiqueta: esReinscrito ? 'Pagar reinscripción' : 'Pagar inscripción',
+            tipo: 'ruta',
+            href: '/portal-inscripciones/pago',
+          },
+        }
+      }
+    }
+
+    const reglamento = paso('reglamento')
+    if (reglamento?.estado === 'disponible' && reglamento.accion?.tipo === 'externo') {
       return {
         tono: 'accion',
-        icono: 'pago',
-        titulo: esReinscrito ? 'Realiza el pago de reinscripción' : 'Realiza el pago de inscripción',
-        descripcion:
-          'Paga en ventanilla (baucher), con tarjeta (comercio electrónico) o por transferencia SPEI.',
-        monto: estado.montoInscripcion,
-        fechaLimite: esReinscrito ? estado.reinscripcion?.fechaLimite ?? null : null,
+        icono: 'solicitud',
+        titulo: 'Imprime el reglamento escolar',
+        descripcion: reglamento.descripcion,
         cta: {
-          etiqueta: esReinscrito ? 'Pagar reinscripción' : 'Pagar inscripción',
-          tipo: 'ruta',
-          href: '/portal-inscripciones/pago',
+          etiqueta: reglamento.accion.etiqueta,
+          tipo: 'externo',
+          href: reglamento.accion.href,
         },
       }
     }
@@ -414,6 +435,16 @@ export default function PortalInscripcionesView() {
                   {siguientePaso.cta.etiqueta}
                   <ArrowRight size={18} aria-hidden />
                 </Link>
+              ) : siguientePaso.cta.tipo === 'externo' && siguientePaso.cta.href ? (
+                <a
+                  href={siguientePaso.cta.href}
+                  className="portal-inscripciones-siguiente-cta"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {siguientePaso.cta.etiqueta}
+                  <ArrowRight size={18} aria-hidden />
+                </a>
               ) : (
                 <button
                   type="button"

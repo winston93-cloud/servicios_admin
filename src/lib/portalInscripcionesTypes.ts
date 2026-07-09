@@ -59,4 +59,8 @@ export interface EstadoPortalInscripciones {
   montoInscripcion: number | null
   /** Ventana de reinscripción (diferidos) para reinscritos. */
   reinscripcion: ReinscripcionPeriodo | null
+  /** Pago de inscripción/reinscripción habilitado según ventanas legacy. */
+  showPayment?: boolean
+  solicitudCapturada?: boolean
+  inscripcionPagada?: boolean
 }

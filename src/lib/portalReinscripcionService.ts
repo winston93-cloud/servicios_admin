@@ -28,12 +28,8 @@ import type { FilaMatrizPortal } from './portalPagosMatrizService'
  *  - La reinscripción está CUBIERTA solo con: concepto 13, o 11 + 12.
  */
 
-const CAMBIO_CICLO = '07-20'
-
-function mmddHoy(): string {
-  const d = new Date()
-  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
+import { cambioCicloMmDd } from './portalAdmisionesConfig'
+import { mmddHoy } from './portalAdmisionesCiclo'
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100
@@ -84,7 +80,7 @@ function proyectarReinscripcion(alumno: AlumnoRegistro): {
   let cambioNivel = false
   let graduado = false
 
-  if (mmddHoy() < CAMBIO_CICLO) {
+  if (mmddHoy() < cambioCicloMmDd()) {
     cen++
     if (nivel === 1 && grado === 2) {
       nivel = 2

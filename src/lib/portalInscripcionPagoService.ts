@@ -8,29 +8,9 @@ import {
   construirFilasInscripcionPortal,
   type FilaMatrizPortal,
 } from './portalPagosMatrizService'
-import { tienePagoConcepto } from './portalInscripcionesService'
+import { inscripcionCompletaPagada, solicitudCapturada } from './portalInscripcionesSolicitud'
 import { calcularReinscripcionDiferido } from './portalReinscripcionService'
 import { obtenerCicloPorValor } from './ciclosEscolaresService'
-
-function solicitudCompleta(alumno: AlumnoRegistro): boolean {
-  if (alumno.alumno_registro) return true
-  if (formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 1 && alumno.alumno_status === 1) {
-    return true
-  }
-  return false
-}
-
-function inscripcionPagada(
-  pagos: PagoDetalleRegistro[],
-  alumno: AlumnoRegistro,
-  ciclo: number,
-  esReinscrito: boolean
-): boolean {
-  if (tienePagoConcepto(pagos, alumno.alumno_ref, '13', ciclo)) return true
-  if (esReinscrito && tienePagoConcepto(pagos, alumno.alumno_ref, '12', ciclo)) return true
-  if (esReinscrito && tienePagoConcepto(pagos, alumno.alumno_ref, '11', ciclo)) return true
-  return false
-}
 
 export interface VistaPagoInscripcionPortal {
   ciclo: CicloEscolarRegistro
@@ -50,6 +30,7 @@ export async function construirVistaPagoInscripcion(
   pagos: PagoDetalleRegistro[]
 ): Promise<VistaPagoInscripcionPortal> {
   const esReinscrito = formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 0
+  const solCompleta = await solicitudCapturada(supabase, alumno)
 
   // Reinscritos: la reinscripción es para el ciclo SIGUIENTE (cen = alu_ce + 1) y se
   // cobra por diferidos (concepto 11 → 12), igual que en el sistema de admisiones.
@@ -68,13 +49,14 @@ export async function construirVistaPagoInscripcion(
         esReinscrito,
         tituloPago: 'Pago de reinscripción',
         gradoEtiqueta: etiquetaGradoEscolar(alumno.alumno_nivel, alumno.alumno_grado),
-        solicitudCompleta: solicitudCompleta(alumno),
+        solicitudCompleta: solCompleta,
         inscripcionPagada: calc.completa,
         filas,
       }
     }
   }
 
+  const cicloPago = Number(alumno.alumno_ciclo_escolar) || ciclo.valor
   const filas = await construirFilasInscripcionPortal(
     supabase,
     alumno,
@@ -89,8 +71,8 @@ export async function construirVistaPagoInscripcion(
     esReinscrito,
     tituloPago: esReinscrito ? 'Pago de reinscripción' : 'Pago de inscripción',
     gradoEtiqueta: etiquetaGradoEscolar(alumno.alumno_nivel, alumno.alumno_grado),
-    solicitudCompleta: solicitudCompleta(alumno),
-    inscripcionPagada: inscripcionPagada(pagos, alumno, ciclo.valor, esReinscrito),
+    solicitudCompleta: solCompleta,
+    inscripcionPagada: inscripcionCompletaPagada(pagos, alumno.alumno_ref, cicloPago),
     filas,
   }
 }

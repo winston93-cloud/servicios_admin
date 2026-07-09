@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { obtenerAlumnoPorId } from '@/lib/alumnoDatosService'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
+import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import { construirVistaPagoInscripcion } from '@/lib/portalInscripcionPagoService'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
@@ -12,9 +12,8 @@ export async function POST(request: Request) {
     const body = await request.json()
     const alumnoId = Number(body.alumnoId)
 
-    if (!alumnoId) {
-      return NextResponse.json({ error: 'alumnoId es obligatorio' }, { status: 400 })
-    }
+    const auth = await validarAlumnoPortal(alumnoId)
+    if (!auth.ok) return auth.response
 
     const ciclo = await obtenerCicloEscolarActual()
     if (!ciclo) {
@@ -27,13 +26,9 @@ export async function POST(request: Request) {
       )
     }
 
-    const alumno = await obtenerAlumnoPorId(alumnoId)
-    if (!alumno) {
-      return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
-    }
-
+    const alumno = auth.alumno
     const supabase = createSupabaseAdmin()
-    const pagos = await listarPagosColegiaturaAlumno(alumnoId, ciclo.valor)
+    const pagos = await listarPagosColegiaturaAlumno(alumno.alumno_id, ciclo.valor)
     const vista = await construirVistaPagoInscripcion(supabase, alumno, ciclo, pagos)
 
     return NextResponse.json({ ok: true, vista })
