@@ -420,7 +420,8 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .asig
 }
 
 /* ─── Ciclos escolares ─── */
-html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ciclos-crud-field input {
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ciclos-crud-field input,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ciclos-crud-field select {
   background: var(--sx-input-bg);
   color: var(--sx-text);
   border-color: var(--sx-input-border);
@@ -436,6 +437,60 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cicl
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ciclos-crud-msg--error {
   color: #fca5a5;
+}
+
+/* ─── Reglamentos escolares ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-file-label {
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-file-hint,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-list-summary,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-nivel-empty,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-nivel-date,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-dropzone-meta {
+  color: var(--sx-text-muted) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-dropzone {
+  background: var(--sx-surface-sunken);
+  border-color: var(--sx-card-border);
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-dropzone:hover,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-dropzone:focus-visible,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-dropzone.is-dragging,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-dropzone.has-file {
+  background: rgba(0, 227, 253, 0.08);
+  border-color: rgba(0, 227, 253, 0.45);
+  box-shadow: 0 0 0 3px var(--sx-accent-ring);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-dropzone-name,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-nivel-name,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-nivel-file {
+  color: var(--sx-text) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-nivel-card {
+  background: var(--sx-surface-sunken);
+  border-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-nivel-card.is-ready {
+  background: rgba(0, 227, 253, 0.06);
+  border-color: rgba(0, 227, 253, 0.28);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-nivel-badge {
+  background: rgba(148, 163, 184, 0.2);
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .reglamentos-nivel-badge--ok {
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
 }
 
 /* ─── Actualizar pagos (ap-) ─── */

@@ -1,7 +1,14 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { ExternalLink, FileText, Loader2, Trash2, Upload } from 'lucide-react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import {
+  CheckCircle2,
+  ExternalLink,
+  FileText,
+  Loader2,
+  Trash2,
+  Upload,
+} from 'lucide-react'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import { NIVELES_ESCOLARES_OPCIONES } from '@/lib/nivelEscolar'
 
@@ -17,16 +24,28 @@ type ReglamentoFila = {
   href: string
 }
 
+function formatearTamano(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export default function ReglamentosEscolaresModulo() {
   const { cicloSeleccionado, cicloActualSistema, opcionesCatalogo } = useCicloEscolar()
   const [ciclo, setCiclo] = useState<number | null>(null)
   const [nivel, setNivel] = useState(1)
+  const [archivo, setArchivo] = useState<File | null>(null)
   const [lista, setLista] = useState<ReglamentoFila[]>([])
   const [cargando, setCargando] = useState(false)
   const [subiendo, setSubiendo] = useState(false)
   const [eliminandoNivel, setEliminandoNivel] = useState<number | null>(null)
   const [mensaje, setMensaje] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [arrastrando, setArrastrando] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cicloId = useId()
+  const nivelId = useId()
+  const fileId = useId()
 
   const cicloEfectivo = ciclo ?? cicloSeleccionado ?? cicloActualSistema ?? null
 
@@ -55,16 +74,23 @@ export default function ReglamentosEscolaresModulo() {
     cargar(cicloEfectivo)
   }, [cicloEfectivo, cargar])
 
+  const tomarArchivo = (file: File | null | undefined) => {
+    if (!file) return
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      setError('Solo se aceptan archivos PDF.')
+      return
+    }
+    setError(null)
+    setArchivo(file)
+  }
+
   const onSubir = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (cicloEfectivo == null) {
       setError('Selecciona un ciclo escolar.')
       return
     }
-    const form = e.currentTarget
-    const input = form.elements.namedItem('archivo') as HTMLInputElement | null
-    const file = input?.files?.[0]
-    if (!file) {
+    if (!archivo) {
       setError('Selecciona un PDF.')
       return
     }
@@ -76,7 +102,7 @@ export default function ReglamentosEscolaresModulo() {
       const fd = new FormData()
       fd.set('nivel', String(nivel))
       fd.set('ciclo', String(cicloEfectivo))
-      fd.set('archivo', file)
+      fd.set('archivo', archivo)
       const res = await fetch('/api/reglamentos', { method: 'POST', body: fd })
       const data = await res.json()
       if (!res.ok) {
@@ -86,7 +112,8 @@ export default function ReglamentosEscolaresModulo() {
       setMensaje(
         `Reglamento de ${data.reglamento?.etiqueta ?? 'nivel'} cargado para el ciclo ${cicloEfectivo}.`
       )
-      form.reset()
+      setArchivo(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
       await cargar(cicloEfectivo)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error de red')
@@ -126,141 +153,253 @@ export default function ReglamentosEscolaresModulo() {
   }
 
   const porNivel = new Map(lista.map((r) => [r.nivel, r]))
+  const publicados = lista.length
+  const pendientes = NIVELES_ESCOLARES_OPCIONES.length - publicados
 
   return (
     <div className="servicios-panel-inner">
-      <header className="servicios-panel-header">
+      <header className="servicios-panel-header servicios-panel-header--compact">
         <h1 className="servicios-panel-title">Reglamentos escolares</h1>
         <p className="servicios-panel-lead">
-          Carga el PDF del reglamento y carta compromiso por nivel y ciclo. El portal de
-          inscripciones usa este archivo en el paso «Reglamento escolar».
+          Sube un PDF por nivel (reglamento + carta compromiso). El portal de inscripciones lo
+          muestra en el paso «Reglamento escolar».
         </p>
       </header>
 
-      <div className="ciclos-crud-layout">
-        <form className="ciclos-crud-form-card" onSubmit={onSubir}>
-          <h2 className="ciclos-crud-form-title">Subir PDF</h2>
-
-          <label className="ciclos-crud-field">
-            <span>Ciclo escolar</span>
-            <select
-              value={cicloEfectivo ?? ''}
-              onChange={(e) => setCiclo(Number(e.target.value))}
-              required
-            >
-              <option value="" disabled>
-                Selecciona ciclo
-              </option>
-              {opcionesCatalogo.map((c) => (
-                <option key={c.valor} value={c.valor}>
-                  {c.etiqueta}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="ciclos-crud-field">
-            <span>Nivel</span>
-            <select value={nivel} onChange={(e) => setNivel(Number(e.target.value))}>
-              {NIVELES_ESCOLARES_OPCIONES.map((n) => (
-                <option key={n.valor} value={n.valor}>
-                  {n.etiqueta}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="ciclos-crud-field">
-            <span>Archivo PDF (reglamento + carta compromiso)</span>
-            <input name="archivo" type="file" accept="application/pdf,.pdf" required />
-          </label>
-
-          {mensaje ? <p className="ciclos-crud-msg ciclos-crud-msg--ok">{mensaje}</p> : null}
-          {error ? <p className="ciclos-crud-msg ciclos-crud-msg--error">{error}</p> : null}
-
-          <button type="submit" className="ciclos-crud-btn ciclos-crud-btn--primary" disabled={subiendo}>
-            {subiendo ? (
-              <>
-                <Loader2 size={16} className="animate-spin" /> Subiendo…
-              </>
-            ) : (
-              <>
-                <Upload size={16} /> Cargar reglamento
-              </>
-            )}
-          </button>
-        </form>
-
-        <div className="ciclos-crud-table-card">
-          <h2 className="ciclos-crud-form-title">
-            Publicados
-            {cicloEfectivo != null ? ` · ciclo ${cicloEfectivo}` : ''}
+      <div className="reglamentos-layout">
+        <section className="ciclos-crud-form-card reglamentos-upload-card" aria-labelledby="reglamentos-form-titulo">
+          <h2 id="reglamentos-form-titulo" className="ciclos-crud-form-title">
+            Subir PDF
           </h2>
 
+          <form className="ciclos-crud-form" onSubmit={onSubir}>
+            <div className="ciclos-crud-field-row">
+              <div className="ciclos-crud-field">
+                <label htmlFor={cicloId}>Ciclo escolar</label>
+                <select
+                  id={cicloId}
+                  value={cicloEfectivo ?? ''}
+                  onChange={(e) => setCiclo(Number(e.target.value))}
+                  required
+                >
+                  <option value="" disabled>
+                    Selecciona ciclo
+                  </option>
+                  {opcionesCatalogo.map((c) => (
+                    <option key={c.valor} value={c.valor}>
+                      {c.etiqueta}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="ciclos-crud-field">
+                <label htmlFor={nivelId}>Nivel</label>
+                <select
+                  id={nivelId}
+                  value={nivel}
+                  onChange={(e) => setNivel(Number(e.target.value))}
+                >
+                  {NIVELES_ESCOLARES_OPCIONES.map((n) => (
+                    <option key={n.valor} value={n.valor}>
+                      {n.etiqueta}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="ciclos-crud-field">
+              <span className="reglamentos-file-label" id={`${fileId}-label`}>
+                Archivo PDF
+              </span>
+              <p className="reglamentos-file-hint">
+                Un solo archivo con el reglamento y la carta compromiso. Máximo 15 MB.
+              </p>
+
+              <input
+                ref={fileInputRef}
+                id={fileId}
+                name="archivo"
+                type="file"
+                accept="application/pdf,.pdf"
+                className="reglamentos-file-input"
+                aria-labelledby={`${fileId}-label`}
+                onChange={(e) => tomarArchivo(e.target.files?.[0])}
+              />
+
+              <button
+                type="button"
+                className={`reglamentos-dropzone${arrastrando ? ' is-dragging' : ''}${archivo ? ' has-file' : ''}`}
+                onClick={() => fileInputRef.current?.click()}
+                onDragEnter={(e) => {
+                  e.preventDefault()
+                  setArrastrando(true)
+                }}
+                onDragOver={(e) => e.preventDefault()}
+                onDragLeave={() => setArrastrando(false)}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  setArrastrando(false)
+                  tomarArchivo(e.dataTransfer.files?.[0])
+                }}
+              >
+                {archivo ? (
+                  <>
+                    <FileText size={28} aria-hidden />
+                    <span className="reglamentos-dropzone-name">{archivo.name}</span>
+                    <span className="reglamentos-dropzone-meta">
+                      {formatearTamano(archivo.size)} · clic para cambiar
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={28} aria-hidden />
+                    <span className="reglamentos-dropzone-name">
+                      Arrastra el PDF aquí o haz clic para elegir
+                    </span>
+                    <span className="reglamentos-dropzone-meta">Solo PDF</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {mensaje ? (
+              <p className="ciclos-crud-msg ciclos-crud-msg--ok" role="status">
+                {mensaje}
+              </p>
+            ) : null}
+            {error ? (
+              <p className="ciclos-crud-msg ciclos-crud-msg--error" role="alert">
+                {error}
+              </p>
+            ) : null}
+
+            <div className="ciclos-crud-form-actions">
+              <button
+                type="submit"
+                className="ciclos-crud-btn ciclos-crud-btn--primary"
+                disabled={subiendo || !archivo || cicloEfectivo == null}
+              >
+                {subiendo ? (
+                  <>
+                    <Loader2 size={18} className="ciclos-crud-spin" aria-hidden />
+                    Subiendo…
+                  </>
+                ) : (
+                  <>
+                    <Upload size={18} aria-hidden />
+                    Cargar reglamento
+                  </>
+                )}
+              </button>
+              {archivo ? (
+                <button
+                  type="button"
+                  className="ciclos-crud-btn ciclos-crud-btn--ghost"
+                  disabled={subiendo}
+                  onClick={() => {
+                    setArchivo(null)
+                    if (fileInputRef.current) fileInputRef.current.value = ''
+                  }}
+                >
+                  Quitar archivo
+                </button>
+              ) : null}
+            </div>
+          </form>
+        </section>
+
+        <section className="ciclos-crud-table-card reglamentos-list-card" aria-labelledby="reglamentos-lista-titulo">
+          <div className="ciclos-crud-table-header">
+            <h2 id="reglamentos-lista-titulo" className="ciclos-crud-form-title">
+              Publicados
+              {cicloEfectivo != null ? ` · ciclo ${cicloEfectivo}` : ''}
+            </h2>
+            {!cargando && cicloEfectivo != null ? (
+              <p className="reglamentos-list-summary">
+                {publicados} de {NIVELES_ESCOLARES_OPCIONES.length} niveles
+                {pendientes > 0 ? ` · faltan ${pendientes}` : ''}
+              </p>
+            ) : null}
+          </div>
+
           {cargando ? (
-            <p className="servicios-panel-hint">
-              <Loader2 size={16} className="animate-spin" /> Cargando…
+            <p className="ciclos-crud-loading">
+              <Loader2 size={18} className="ciclos-crud-spin" aria-hidden />
+              Cargando…
             </p>
           ) : (
-            <div className="ciclos-crud-table-wrap">
-              <table className="ciclos-crud-table">
-                <thead>
-                  <tr>
-                    <th>Nivel</th>
-                    <th>Archivo</th>
-                    <th>Actualizado</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {NIVELES_ESCOLARES_OPCIONES.map((n) => {
-                    const fila = porNivel.get(n.valor)
-                    return (
-                      <tr key={n.valor} className={fila ? 'ciclos-crud-row--active' : undefined}>
-                        <td>{n.etiqueta}</td>
-                        <td>
-                          {fila ? (
-                            <a href={fila.href} target="_blank" rel="noreferrer">
-                              <FileText size={14} /> {fila.nombre_archivo ?? 'Ver PDF'}{' '}
-                              <ExternalLink size={12} />
-                            </a>
-                          ) : (
-                            <span className="servicios-panel-hint">Sin cargar</span>
-                          )}
-                        </td>
-                        <td>
-                          {fila
-                            ? new Date(fila.updated_at).toLocaleString('es-MX', {
-                                dateStyle: 'short',
-                                timeStyle: 'short',
-                              })
-                            : '—'}
-                        </td>
-                        <td>
-                          {fila ? (
-                            <button
-                              type="button"
-                              className="ciclos-crud-btn"
-                              disabled={eliminandoNivel === fila.nivel}
-                              onClick={() => onEliminar(fila)}
-                              title="Eliminar"
-                            >
-                              {eliminandoNivel === fila.nivel ? (
-                                <Loader2 size={14} className="animate-spin" />
-                              ) : (
-                                <Trash2 size={14} />
-                              )}
-                            </button>
-                          ) : null}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <ul className="reglamentos-nivel-grid">
+              {NIVELES_ESCOLARES_OPCIONES.map((n) => {
+                const fila = porNivel.get(n.valor)
+                return (
+                  <li
+                    key={n.valor}
+                    className={`reglamentos-nivel-card${fila ? ' is-ready' : ''}`}
+                  >
+                    <div className="reglamentos-nivel-card-top">
+                      <span className="reglamentos-nivel-name">{n.etiqueta}</span>
+                      {fila ? (
+                        <span className="reglamentos-nivel-badge reglamentos-nivel-badge--ok">
+                          <CheckCircle2 size={14} aria-hidden />
+                          Publicado
+                        </span>
+                      ) : (
+                        <span className="reglamentos-nivel-badge">Pendiente</span>
+                      )}
+                    </div>
+
+                    {fila ? (
+                      <>
+                        <p className="reglamentos-nivel-file" title={fila.nombre_archivo ?? undefined}>
+                          <FileText size={15} aria-hidden />
+                          {fila.nombre_archivo ?? 'reglamento.pdf'}
+                        </p>
+                        <p className="reglamentos-nivel-date">
+                          Actualizado{' '}
+                          {new Date(fila.updated_at).toLocaleString('es-MX', {
+                            dateStyle: 'short',
+                            timeStyle: 'short',
+                          })}
+                        </p>
+                        <div className="reglamentos-nivel-actions">
+                          <a
+                            className="ciclos-crud-btn ciclos-crud-btn--secondary"
+                            href={fila.href}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Ver PDF
+                            <ExternalLink size={14} aria-hidden />
+                          </a>
+                          <button
+                            type="button"
+                            className="ciclos-crud-icon-btn ciclos-crud-icon-btn--danger"
+                            disabled={eliminandoNivel === fila.nivel}
+                            onClick={() => onEliminar(fila)}
+                            title="Eliminar"
+                            aria-label={`Eliminar reglamento de ${n.etiqueta}`}
+                          >
+                            {eliminandoNivel === fila.nivel ? (
+                              <Loader2 size={14} className="ciclos-crud-spin" aria-hidden />
+                            ) : (
+                              <Trash2 size={14} aria-hidden />
+                            )}
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="reglamentos-nivel-empty">
+                        Aún no hay PDF para este nivel en el ciclo seleccionado.
+                      </p>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
           )}
-        </div>
+        </section>
       </div>
     </div>
   )
