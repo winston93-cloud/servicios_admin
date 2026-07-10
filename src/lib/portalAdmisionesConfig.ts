@@ -48,8 +48,16 @@ export function nivelReglamentoSlug(nivel: number): string | null {
   }
 }
 
-export function urlReglamentoEscolar(nivel: number, cicloEscolar: number): string | null {
+export function urlReglamentoEscolarLegacy(
+  nivel: number,
+  cicloEscolar: number
+): string | null {
   const slug = nivelReglamentoSlug(nivel)
   if (!slug) return null
   return `${admisionesLegacyBaseUrl()}/module/pdf/list/reglamento_${slug}_${cicloEscolar}.pdf`
+}
+
+/** @deprecated Preferir metadata InsForge + hrefReglamentoArchivo; se mantiene como fallback. */
+export function urlReglamentoEscolar(nivel: number, cicloEscolar: number): string | null {
+  return urlReglamentoEscolarLegacy(nivel, cicloEscolar)
 }

@@ -13,6 +13,7 @@ import {
   KeyRound,
   FileText,
   CalendarRange,
+  ScrollText,
 } from 'lucide-react'
 
 export type ServiciosModuloId =
@@ -30,6 +31,7 @@ export type ServiciosModuloId =
   | 'bauchers'
   | 'catalogo-ciclos-escolares'
   | 'cambio-ciclo-escolar'
+  | 'reglamentos-escolares'
 
 export interface ServiciosSubMenuItem {
   id: ServiciosModuloId
@@ -76,6 +78,7 @@ export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
       { id: 'cambio-ciclo-escolar', label: 'Cambio de ciclo escolar' },
     ],
   },
+  { type: 'leaf', id: 'reglamentos-escolares', label: 'Reglamentos', icon: ScrollText },
 ]
 
 const MODULO_IDS = new Set<ServiciosModuloId>(

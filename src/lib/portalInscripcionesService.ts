@@ -16,7 +16,11 @@ import {
   puedeVerPasosInscripcion,
 } from './portalAdmisionesEstadoService'
 import { generarUrlPortalDocumentos } from './portalAdmisionesJwt'
-import { urlReglamentoEscolar } from './portalAdmisionesConfig'
+import { urlReglamentoEscolarLegacy } from './portalAdmisionesConfig'
+import {
+  hrefReglamentoArchivo,
+  obtenerReglamento,
+} from './reglamentosEscolaresService'
 import { construirFilasInscripcionPortal } from './portalPagosMatrizService'
 import { calcularReinscripcionDiferido } from './portalReinscripcionService'
 import {
@@ -251,7 +255,26 @@ export async function construirEstadoPortalInscripciones(
   const nivelReglamento = esReinscrito
     ? calcReinscripcion?.nivelDestino ?? alumno.alumno_nivel
     : alumno.alumno_nivel
-  const urlReglamento = urlReglamentoEscolar(nivelReglamento, cicloReglamento)
+
+  let urlReglamento: string | null = null
+  try {
+    const publicado = await obtenerReglamento(
+      supabase,
+      Number(nivelReglamento),
+      Number(cicloReglamento)
+    )
+    if (publicado) {
+      urlReglamento = hrefReglamentoArchivo(
+        Number(nivelReglamento),
+        Number(cicloReglamento)
+      )
+    }
+  } catch {
+    urlReglamento = null
+  }
+  if (!urlReglamento) {
+    urlReglamento = urlReglamentoEscolarLegacy(nivelReglamento, cicloReglamento)
+  }
   const urlDocumentos = generarUrlPortalDocumentos(alumno.alumno_ref)
 
   let montoInscripcion: number | null = null
