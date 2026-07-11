@@ -28,7 +28,7 @@ export function getCicloInscripcion(ref?: Date): number {
   const d = fechaReferencia(ref)
   const cmd = `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
   const y = d.getFullYear() % 100
-  const cambioCiclo = '07-10'
+  const cambioCiclo = process.env.ADMISIONES_CAMBIO_CICLO?.trim() || '07-25'
   const cea = cmd < cambioCiclo ? y - 4 : y - 3
   return cmd < cambioCiclo ? cea + 1 : cea
 }

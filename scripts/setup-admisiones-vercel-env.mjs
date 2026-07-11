@@ -19,7 +19,7 @@ const VARS = [
   ['JWT_DOCUMENTOS_SECRET', jwtSecret],
   ['JWT_DOCUMENTOS_ISSUER', 'winston-escolar'],
   ['JWT_DOCUMENTOS_TTL_SEC', '3600'],
-  ['ADMISIONES_CAMBIO_CICLO', '07-10'],
+  ['ADMISIONES_CAMBIO_CICLO', '07-25'],
 ]
 
 function run(cmd, input) {
