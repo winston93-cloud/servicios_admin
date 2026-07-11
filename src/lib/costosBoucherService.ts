@@ -7,7 +7,7 @@ export type CostoBoucherInput = {
   precio_agosto: number
   precio_colegiatura: number
   precio_colegiatura2: number
-  /** Evaluación y Herramientas Tecnológicas (concepto 17). */
+  /** Herramientas Tecnológicas y Evaluaciones (concepto 17). */
   precio_material: number
   precio_cuota_padres: number
   precio_cambridge: number

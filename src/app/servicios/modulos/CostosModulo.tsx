@@ -229,8 +229,8 @@ export default function CostosModulo() {
     },
     {
       key: 'evaluacion_herramientas',
-      label: 'Evaluación y Herramientas Tecnológicas',
-      hint: 'Concepto 17',
+      label: 'Herramientas Tecnológicas y Evaluaciones',
+      hint: 'Concepto 17 · 2do. pago (Enero)',
     },
     {
       key: 'precio_cambridge',

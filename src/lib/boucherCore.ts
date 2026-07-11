@@ -73,7 +73,7 @@ export function getPaymentConcept(conceptoNo: string): string {
     case '16':
       return 'Material (legacy)'
     case '17':
-      return 'Evaluación y Herramientas Tecnológicas'
+      return 'Herramientas Tecnológicas y Evaluaciones'
     case '18':
       return 'Seguro'
     case '19':
