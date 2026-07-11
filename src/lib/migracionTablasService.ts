@@ -22,6 +22,7 @@ import {
   tamanoLoteMigracion,
   throttlePeticionDestino,
   usaUpsertSinPrelectura,
+  TABLAS_SIN_LIMPIEZA_HUERFANOS,
 } from './migracionTablasCompare'
 
 const LOTE_ELIMINAR_PK = 80
@@ -291,15 +292,16 @@ async function eliminarHuérfanos(
   pk: string,
   pksOrigen: Set<number>
 ): Promise<{ eliminados: number; advertencia?: string }> {
-  const pksDestino = await obtenerPksDestino(sb, tabla, pk)
+  const pksDestino = await obtenerPksDestino(sb, tabla, pk, { ligero: true })
   const aEliminar = [...pksDestino].filter((id) => !pksOrigen.has(id))
   if (aEliminar.length === 0) return { eliminados: 0 }
 
   let eliminados = 0
   const fallidos: number[] = []
+  const loteEliminar = TABLAS_SIN_LIMPIEZA_HUERFANOS.has(tabla) ? 200 : LOTE_ELIMINAR_PK
 
-  for (let i = 0; i < aEliminar.length; i += LOTE_ELIMINAR_PK) {
-    const slice = aEliminar.slice(i, i + LOTE_ELIMINAR_PK)
+  for (let i = 0; i < aEliminar.length; i += loteEliminar) {
+    const slice = aEliminar.slice(i, i + loteEliminar)
     await throttlePeticionDestino(tabla)
     const { error } = await sb.from(tabla).delete().in(pk, slice)
     if (!error) {
@@ -392,6 +394,13 @@ async function migrarUnaTabla(
   if (opciones?.soloHuérfanos) {
     if (modo !== 'espejo') {
       return { ...base, mensaje: 'Limpieza de huérfanos solo aplica en modo espejo' }
+    }
+    if (TABLAS_SIN_LIMPIEZA_HUERFANOS.has(def.destino)) {
+      return {
+        ...base,
+        mensaje:
+          'Limpieza de huérfanos omitida en esta tabla (muy grande). Usa Verificar espejo para auditar.',
+      }
     }
     const pksOrigen = await cargarPksMysql(mysql, def)
     const limpia = await eliminarHuérfanos(sb, def.destino, pk, pksOrigen)
@@ -497,16 +506,22 @@ async function migrarUnaTabla(
   }
 
   if (modo === 'espejo' && !opciones?.omitirHuérfanos && !hayMasChunk) {
-    try {
-      const limpia = await eliminarHuérfanos(sb, def.destino, pk, pksOrigen)
-      base.eliminados = limpia.eliminados
-      if (limpia.advertencia) {
-        base.mensaje = (base.mensaje ? `${base.mensaje} · ` : '') + limpia.advertencia
+    if (TABLAS_SIN_LIMPIEZA_HUERFANOS.has(def.destino)) {
+      base.mensaje =
+        (base.mensaje ? `${base.mensaje} · ` : '') +
+        'Sin limpieza de huérfanos (tabla grande; Verificar espejo para auditar)'
+    } else {
+      try {
+        const limpia = await eliminarHuérfanos(sb, def.destino, pk, pksOrigen)
+        base.eliminados = limpia.eliminados
+        if (limpia.advertencia) {
+          base.mensaje = (base.mensaje ? `${base.mensaje} · ` : '') + limpia.advertencia
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Error al limpiar huérfanos'
+        // Los upserts ya corrieron; no tumbar toda la tabla por FK en huérfanos.
+        base.mensaje = (base.mensaje ? `${base.mensaje} · ` : '') + `Huérfanos: ${msg}`
       }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Error al limpiar huérfanos'
-      // Los upserts ya corrieron; no tumbar toda la tabla por FK en huérfanos.
-      base.mensaje = (base.mensaje ? `${base.mensaje} · ` : '') + `Huérfanos: ${msg}`
     }
   } else if (modo === 'espejo' && hayMasChunk) {
     const parte = (base.mensaje ? `${base.mensaje} · ` : '') + 'Trozo de datos (huérfanos al final)'

@@ -39,12 +39,12 @@ const LOTE_MIGRACION_DEFAULT = 100
 
 /** Mínimo ms entre peticiones al API de InsForge (rate limit por IP). */
 const INTERVALO_PETICION_MS: Partial<Record<string, number>> = {
-  pago_detalle: 520,
-  pago_interno: 480,
-  pago_prorroga: 420,
-  usuario: 420,
-  alumno_familiar: 380,
-  alumno_contacto: 380,
+  pago_detalle: 280,
+  pago_interno: 280,
+  pago_prorroga: 300,
+  usuario: 320,
+  alumno_familiar: 320,
+  alumno_contacto: 320,
 }
 
 const INTERVALO_PETICION_DEFAULT = 320
@@ -85,9 +85,9 @@ export function usaUpsertSinPrelectura(tabla: string, filas: number): boolean {
 
 /** Filas MySQL por petición HTTP (evita timeout 300 s en Vercel Hobby). */
 const CHUNK_MIGRACION_POR_TABLA: Partial<Record<string, number>> = {
-  pago_detalle: 2000,
-  pago_interno: 2500,
-  pago_prorroga: 3000,
+  pago_detalle: 4500,
+  pago_interno: 4000,
+  pago_prorroga: 4000,
   usuario: 3000,
   alumno: 800,
   alumno_detalles: 1200,
@@ -95,6 +95,15 @@ const CHUNK_MIGRACION_POR_TABLA: Partial<Record<string, number>> = {
   alumno_familiar: 2500,
   alumno_contacto: 2500,
 }
+
+/**
+ * Tablas demasiado grandes para limpiar huérfanos en espejo (114k+ filas).
+ * El upsert ya deja el destino alineado; usar «Verificar espejo» si hace falta auditar.
+ */
+export const TABLAS_SIN_LIMPIEZA_HUERFANOS = new Set([
+  'pago_detalle',
+  'pago_interno',
+])
 
 export function tamanoChunkMigracion(tabla: string): number | null {
   return CHUNK_MIGRACION_POR_TABLA[tabla] ?? null

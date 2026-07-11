@@ -46,7 +46,7 @@ import MigracionConfirmModal, {
   type TipoConfirmacionMigracion,
 } from '@/app/servicios/components/MigracionConfirmModal'
 import { fetchMigracion, parsearRespuestaMigracion } from '@/lib/migracionFetch'
-import { pesoProgresoTabla, tamanoChunkMigracion } from '@/lib/migracionTablasCompare'
+import { pesoProgresoTabla, tamanoChunkMigracion, TABLAS_SIN_LIMPIEZA_HUERFANOS } from '@/lib/migracionTablasCompare'
 
 interface EstadoConfig {
   listo: boolean
@@ -370,6 +370,17 @@ export default function MigracionAlumnoPanel() {
           }
 
           if (modo === 'espejo' && trozos.length > 0) {
+            if (TABLAS_SIN_LIMPIEZA_HUERFANOS.has(def.destino)) {
+              fila = {
+                ...trozos[trozos.length - 1],
+                origen: trozos.reduce((s, t) => s + t.origen, 0),
+                insertados: trozos.reduce((s, t) => s + t.insertados, 0),
+                actualizados: trozos.reduce((s, t) => s + t.actualizados, 0),
+                sinCambios: trozos.reduce((s, t) => s + t.sinCambios, 0),
+                eliminados: 0,
+                mensaje: `${trozos.length} trozo(s) · sin limpieza de huérfanos (tabla grande)`,
+              }
+            } else {
             setProgreso((prev) =>
               prev
                 ? {
@@ -393,6 +404,7 @@ export default function MigracionAlumnoPanel() {
               sinCambios: trozos.reduce((s, t) => s + t.sinCambios, 0),
               eliminados,
               mensaje: `${trozos.length} trozo(s) · ${eliminados} huérfano(s) eliminados`,
+            }
             }
           } else if (trozos.length > 0) {
             fila = {
