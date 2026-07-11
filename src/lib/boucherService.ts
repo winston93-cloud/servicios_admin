@@ -6,6 +6,7 @@ import {
   getDiscount,
   parseImporteBoucher,
   referenciaSemibase,
+  nivelPrecioBoucher,
 } from './boucherCore'
 
 export interface PrecioBoucherRow {
@@ -202,8 +203,7 @@ export async function calcularBoucher(
     planMeses?: number
   }
 ): Promise<{ importe: number; referencia: string }> {
-  const nivelPrecio =
-    params.alumnoNivel === 2 && params.alumnoGrado === 1 ? 1 : params.alumnoNivel
+  const nivelPrecio = nivelPrecioBoucher(params.alumnoNivel, params.alumnoGrado)
 
   const precio = await obtenerPrecioFila(supabase, nivelPrecio, params.cicloEscolar)
   if (!precio) {

@@ -7,7 +7,7 @@ import {
   obtenerPrecioFila,
   obtenerPorcentajeBeca,
 } from './boucherService'
-import { getDigVerif, referenciaSemibase } from './boucherCore'
+import { getDigVerif, referenciaSemibase, nivelPrecioBoucher } from './boucherCore'
 import {
   conceptoFacturaCambridge,
   rutasFacturaDesdeReferencia,
@@ -178,10 +178,10 @@ async function construirFilas(
   planMeses: number,
   usarCodigoCambridge = false
 ): Promise<FilaMatrizPortal[]> {
-  const nivelPrecio =
-    alumno.alumno_nivel === 2 && Number(alumno.alumno_grado) === 1
-      ? 1
-      : alumno.alumno_nivel
+  const nivelPrecio = nivelPrecioBoucher(
+    alumno.alumno_nivel,
+    Number(alumno.alumno_grado) || 0
+  )
 
   const precio = await obtenerPrecioFila(supabase, nivelPrecio, ciclo.valor)
   if (!precio) {

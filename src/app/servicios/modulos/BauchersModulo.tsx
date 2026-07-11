@@ -22,7 +22,7 @@ import {
   vigenciaBoucherPorDefecto,
 } from '@/lib/boucherCore'
 import { listarConceptosBoucher, conceptosBoucherParaSelect } from '@/lib/pagoColegiaturaService'
-import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
+import { etiquetaNivelPrecioBoucher } from '@/lib/boucherCore'
 import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
 import type { FilaTablaPrecios } from '@/lib/boucherService'
@@ -477,7 +477,7 @@ export default function BauchersModulo() {
                 precios.map((f) => (
                   <tr key={f.nivel}>
                     <td>
-                      <span className="bch-nivel-pill">{etiquetaNivelEscolar(f.nivel)}</span>
+                      <span className="bch-nivel-pill">{etiquetaNivelPrecioBoucher(f.nivel)}</span>
                     </td>
                     <td>{formatearMonto(f.inscripcion)}</td>
                     <td>{formatearMonto(f.agosto)}</td>

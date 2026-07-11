@@ -6,7 +6,7 @@ import {
   upsertPrecioBoucher,
   type CostoBoucherInput,
 } from '@/lib/costosBoucherService'
-import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
+import { etiquetaNivelPrecioBoucher } from '@/lib/boucherCore'
 
 export const runtime = 'nodejs'
 
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
       ciclo,
       filas: filas.map((f) => ({
         ...f,
-        etiqueta: etiquetaNivelEscolar(f.alumno_nivel),
+        etiqueta: etiquetaNivelPrecioBoucher(f.alumno_nivel),
         /** Monto único para concepto 17 en UI. */
         evaluacion_herramientas: f.precio_material + f.precio_seguro,
       })),
@@ -77,7 +77,7 @@ export async function PUT(request: Request) {
       ok: true,
       fila: {
         ...fila,
-        etiqueta: etiquetaNivelEscolar(fila.alumno_nivel),
+        etiqueta: etiquetaNivelPrecioBoucher(fila.alumno_nivel),
         evaluacion_herramientas: fila.precio_material + fila.precio_seguro,
       },
     })

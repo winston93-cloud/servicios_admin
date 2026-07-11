@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { CheckCircle2, Copy, Loader2, Save } from 'lucide-react'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
-import { NIVELES_ESCOLARES_OPCIONES, etiquetaNivelEscolar } from '@/lib/nivelEscolar'
+import {
+  NIVELES_PRECIO_BOUCHER_OPCIONES,
+  etiquetaNivelPrecioBoucher,
+} from '@/lib/boucherCore'
 import ConceptosPagoCatalogo from './ConceptosPagoCatalogo'
 
 type TabCostos = 'precios' | 'conceptos'
@@ -162,7 +165,7 @@ export default function CostosModulo() {
         return
       }
       setMensaje(
-        `Costos de ${etiquetaNivelEscolar(nivel)} guardados para el ciclo ${cicloEfectivo}.`
+        `Costos de ${etiquetaNivelPrecioBoucher(nivel)} guardados para el ciclo ${cicloEfectivo}.`
       )
       await cargar(cicloEfectivo)
     } catch (err) {
@@ -250,8 +253,9 @@ export default function CostosModulo() {
       <header className="servicios-panel-header servicios-panel-header--compact">
         <h1 className="servicios-panel-title">Costos</h1>
         <p className="servicios-panel-lead">
-          Precios por ciclo/nivel (<code>pago_boucher_precio</code>) y catálogo de conceptos de
-          pago (<code>concepto_boucher</code>).
+          Precios por ciclo y banda de tarifa (<code>pago_boucher_precio</code>): Maternal A/B +
+          Kinder-1, Kinder-2/3, Primaria y Secundaria. Catálogo de conceptos en{' '}
+          <code>concepto_boucher</code>.
         </p>
       </header>
 
@@ -312,12 +316,16 @@ export default function CostosModulo() {
                   value={nivel}
                   onChange={(e) => setNivel(Number(e.target.value))}
                 >
-                  {NIVELES_ESCOLARES_OPCIONES.map((n) => (
+                  {NIVELES_PRECIO_BOUCHER_OPCIONES.map((n) => (
                     <option key={n.valor} value={n.valor}>
                       {n.etiqueta}
                     </option>
                   ))}
                 </select>
+                <p className="costos-field-hint">
+                  {NIVELES_PRECIO_BOUCHER_OPCIONES.find((n) => n.valor === nivel)?.detalle}
+                  . Kinder-1 usa los mismos precios que Maternal.
+                </p>
               </div>
             </div>
 
@@ -453,7 +461,7 @@ export default function CostosModulo() {
             </h2>
             {!cargando ? (
               <p className="costos-list-summary">
-                {lista.length} de {NIVELES_ESCOLARES_OPCIONES.length} con fila
+                {lista.length} de {NIVELES_PRECIO_BOUCHER_OPCIONES.length} con fila
               </p>
             ) : null}
           </div>
@@ -465,7 +473,7 @@ export default function CostosModulo() {
             </p>
           ) : (
             <ul className="costos-nivel-grid">
-              {NIVELES_ESCOLARES_OPCIONES.map((n) => {
+              {NIVELES_PRECIO_BOUCHER_OPCIONES.map((n) => {
                 const fila = porNivel.get(n.valor)
                 const activo = n.valor === nivel
                 return (
@@ -486,6 +494,7 @@ export default function CostosModulo() {
                           <span className="costos-nivel-badge">Sin fila</span>
                         )}
                       </div>
+                      <p className="costos-field-hint">{n.detalle}</p>
                       {fila ? (
                         <dl className="costos-nivel-stats">
                           <div>

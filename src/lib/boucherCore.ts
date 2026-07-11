@@ -123,6 +123,25 @@ export function nivelPrecioBoucher(nivel: number, grado: number): number {
   return nivel
 }
 
+/**
+ * Filas de `pago_boucher_precio.alumno_nivel` (no es el mismo mapeo que alumno_nivel escolar).
+ * 1 = Maternal A/B + Kinder-1 · 2 = Kinder-2/3 · 3 = Primaria · 4 = Secundaria
+ */
+export const NIVELES_PRECIO_BOUCHER_OPCIONES = [
+  { valor: 1, etiqueta: 'Maternal A/B + Kinder-1', detalle: 'Maternal A, Maternal B y Kinder-1' },
+  { valor: 2, etiqueta: 'Kinder-2 + Kinder-3', detalle: 'Kinder-2 y Kinder-3' },
+  { valor: 3, etiqueta: 'Primaria', detalle: '1° a 6° de Primaria' },
+  { valor: 4, etiqueta: 'Secundaria', detalle: '7mo, 8vo y 9no' },
+] as const
+
+export function etiquetaNivelPrecioBoucher(
+  nivel: number | null | undefined
+): string {
+  const n = Number(nivel)
+  const hit = NIVELES_PRECIO_BOUCHER_OPCIONES.find((o) => o.valor === n)
+  return hit?.etiqueta ?? (Number.isFinite(n) ? `Nivel precio ${n}` : '')
+}
+
 export function gradoPdfBoucher(nivel: number, grado: number): number {
   if (nivel === 4 && grado === 4) return 3
   return grado
