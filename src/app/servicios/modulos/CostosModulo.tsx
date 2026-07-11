@@ -214,7 +214,7 @@ export default function CostosModulo() {
     { key: 'precio_inscripcion', label: 'Inscripción', hint: 'Conceptos 11 / 12 / 13' },
     {
       key: 'precio_agosto',
-      label: 'Cuota de inicio de ciclo escolar',
+      label: 'Cuota de Inicio de Curso',
       hint: 'Concepto 00',
     },
     {
@@ -493,7 +493,7 @@ export default function CostosModulo() {
                             <dd>{money(fila.precio_inscripcion)}</dd>
                           </div>
                           <div>
-                            <dt>Inicio ciclo</dt>
+                            <dt>Inicio de curso</dt>
                             <dd>{money(fila.precio_agosto)}</dd>
                           </div>
                           <div>

@@ -1,6 +1,6 @@
 -- Renombrar conceptos de costos usados en portal / bauchers
 UPDATE public.concepto_boucher
-SET concepto_clase = 'Cuota de inicio de ciclo escolar'
+SET concepto_clase = 'Cuota de Inicio de Curso'
 WHERE TRIM(concepto_no::text) IN ('00', '0');
 
 UPDATE public.concepto_boucher

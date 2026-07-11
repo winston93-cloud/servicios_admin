@@ -43,7 +43,7 @@ export function getPaymentConcept(conceptoNo: string): string {
   const c = normalizarConceptoNo(conceptoNo)
   switch (c) {
     case '00':
-      return 'Cuota de inicio de ciclo escolar'
+      return 'Cuota de Inicio de Curso'
     case '01':
       return 'Colegiatura Septiembre'
     case '02':
