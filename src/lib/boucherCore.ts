@@ -43,7 +43,7 @@ export function getPaymentConcept(conceptoNo: string): string {
   const c = normalizarConceptoNo(conceptoNo)
   switch (c) {
     case '00':
-      return 'Cuota de Mantenimiento'
+      return 'Cuota de inicio de ciclo escolar'
     case '01':
       return 'Colegiatura Septiembre'
     case '02':
@@ -71,9 +71,9 @@ export function getPaymentConcept(conceptoNo: string): string {
     case '13':
       return 'Inscripción'
     case '16':
-      return 'Evaluación y Herramientas Tecnológicas'
+      return 'Material (legacy)'
     case '17':
-      return 'Material & Seguro'
+      return 'Evaluación y Herramientas Tecnológicas'
     case '18':
       return 'Seguro'
     case '19':

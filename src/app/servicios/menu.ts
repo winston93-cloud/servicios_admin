@@ -14,6 +14,7 @@ import {
   FileText,
   CalendarRange,
   ScrollText,
+  CircleDollarSign,
 } from 'lucide-react'
 
 export type ServiciosModuloId =
@@ -32,6 +33,7 @@ export type ServiciosModuloId =
   | 'catalogo-ciclos-escolares'
   | 'cambio-ciclo-escolar'
   | 'reglamentos-escolares'
+  | 'costos'
 
 export interface ServiciosSubMenuItem {
   id: ServiciosModuloId
@@ -79,6 +81,7 @@ export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
     ],
   },
   { type: 'leaf', id: 'reglamentos-escolares', label: 'Reglamentos', icon: ScrollText },
+  { type: 'leaf', id: 'costos', label: 'Costos', icon: CircleDollarSign },
 ]
 
 const MODULO_IDS = new Set<ServiciosModuloId>(

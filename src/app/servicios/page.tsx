@@ -28,6 +28,7 @@ import SuspensionesModulo from './modulos/SuspensionesModulo'
 import CredencialesModulo from './modulos/CredencialesModulo'
 import BauchersModulo from './modulos/BauchersModulo'
 import ReglamentosEscolaresModulo from './modulos/ReglamentosEscolaresModulo'
+import CostosModulo from './modulos/CostosModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
 import ThemeToggle from '@/components/ThemeToggle'
 import { AlumnoSeleccionadoProvider } from '@/contexts/AlumnoSeleccionadoContext'
@@ -91,6 +92,8 @@ function ServiciosPanelContenido({
       return <BauchersModulo />
     case 'reglamentos-escolares':
       return <ReglamentosEscolaresModulo />
+    case 'costos':
+      return <CostosModulo />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }
