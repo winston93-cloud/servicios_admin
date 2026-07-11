@@ -421,6 +421,16 @@ export default function MigracionAlumnoPanel() {
                 tablaActual: ordenadas[i + 1]?.id ?? null,
                 tablaActualEtiqueta: ordenadas[i + 1]?.etiqueta ?? null,
                 filas: { ...prev.filas, [def.id]: estadoFila },
+                detalleError:
+                  estadoFila === 'error'
+                    ? {
+                        ...prev.detalleError,
+                        [def.id]:
+                          fila?.mensaje ||
+                          erroresGlobales.find((e) => e.startsWith(`${def.etiqueta}:`)) ||
+                          'Error al migrar',
+                      }
+                    : prev.detalleError,
               }
             : prev
         )
