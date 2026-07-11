@@ -8,6 +8,7 @@ import {
   construirFilasInscripcionPortal,
   type FilaMatrizPortal,
 } from './portalPagosMatrizService'
+import { resolverCicloPagoInscripcionPortal } from './portalInscripcionesCiclo'
 import { inscripcionCompletaPagada, solicitudCapturada } from './portalInscripcionesSolicitud'
 import { calcularReinscripcionDiferido } from './portalReinscripcionService'
 import { obtenerCicloPorValor } from './ciclosEscolaresService'
@@ -56,23 +57,27 @@ export async function construirVistaPagoInscripcion(
     }
   }
 
-  const cicloPago = Number(alumno.alumno_ciclo_escolar) || ciclo.valor
+  const cicloPago = await resolverCicloPagoInscripcionPortal(alumno, ciclo)
   const filas = await construirFilasInscripcionPortal(
     supabase,
     alumno,
-    ciclo,
+    cicloPago,
     pagos,
     esReinscrito
   )
 
   return {
-    ciclo,
+    ciclo: cicloPago,
     alumno,
     esReinscrito,
     tituloPago: esReinscrito ? 'Pago de reinscripción' : 'Pago de inscripción',
     gradoEtiqueta: etiquetaGradoEscolar(alumno.alumno_nivel, alumno.alumno_grado),
     solicitudCompleta: solCompleta,
-    inscripcionPagada: inscripcionCompletaPagada(pagos, alumno.alumno_ref, cicloPago),
+    inscripcionPagada: inscripcionCompletaPagada(
+      pagos,
+      alumno.alumno_ref,
+      cicloPago.valor
+    ),
     filas,
   }
 }

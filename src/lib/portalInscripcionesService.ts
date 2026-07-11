@@ -22,6 +22,7 @@ import {
   obtenerReglamento,
 } from './reglamentosEscolaresService'
 import { construirFilasInscripcionPortal } from './portalPagosMatrizService'
+import { resolverCicloPagoInscripcionPortal } from './portalInscripcionesCiclo'
 import { calcularReinscripcionDiferido } from './portalReinscripcionService'
 import {
   inscripcionCompletaPagada,
@@ -139,7 +140,12 @@ export async function construirEstadoPortalInscripciones(
     : null
 
   const cen = calcReinscripcion?.cicloReinscripcion ?? cea
-  const cicloPago = esReinscrito ? cen : Number(alumno.alumno_ciclo_escolar) || cea
+  const cicloPagoReg = await resolverCicloPagoInscripcionPortal(
+    alumno,
+    ciclo,
+    calcReinscripcion?.cicloReinscripcion
+  )
+  const cicloPago = cicloPagoReg.valor
 
   const insPagada = calcReinscripcion
     ? calcReinscripcion.completa
@@ -212,7 +218,7 @@ export async function construirEstadoPortalInscripciones(
         const filas = await construirFilasInscripcionPortal(
           supabase,
           alumno,
-          ciclo,
+          cicloPagoReg,
           pagos,
           false
         )
@@ -286,7 +292,7 @@ export async function construirEstadoPortalInscripciones(
         const filasInscripcion = await construirFilasInscripcionPortal(
           supabase,
           alumno,
-          ciclo,
+          cicloPagoReg,
           pagos,
           false
         )

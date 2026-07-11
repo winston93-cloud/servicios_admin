@@ -55,17 +55,15 @@ export async function GET(request: Request) {
 
     const alumno = auth.alumno
     const esReinscrito = formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 0
-    let cicloComprobante = ciclo.valor
+    const supabase = createSupabaseAdmin()
+    const calc = esReinscrito
+      ? await calcularReinscripcionDiferido(supabase, alumno)
+      : null
+    const cicloComprobante = esReinscrito
+      ? calc?.cicloReinscripcion ?? ciclo.valor
+      : Number(alumno.alumno_ciclo_escolar) || ciclo.valor
 
-    if (esReinscrito) {
-      const supabase = createSupabaseAdmin()
-      const calc = await calcularReinscripcionDiferido(supabase, alumno)
-      if (calc) cicloComprobante = calc.cicloReinscripcion
-    } else {
-      cicloComprobante = Number(alumno.alumno_ciclo_escolar) || ciclo.valor
-    }
-
-    const pagos = await listarPagosColegiaturaAlumno(alumno.alumno_id, ciclo.valor)
+    const pagos = await listarPagosColegiaturaAlumno(alumno.alumno_id, cicloComprobante)
     const filtrados = pagosInscripcion(pagos, cicloComprobante)
 
     const nombre = `${alumno.alumno_nombre ?? ''} ${alumno.alumno_app ?? ''} ${alumno.alumno_apm ?? ''}`.trim()
