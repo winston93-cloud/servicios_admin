@@ -494,6 +494,18 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .regl
 }
 
 /* ─── Costos ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .costos-tab {
+  background: var(--sx-surface-sunken);
+  border-color: var(--sx-card-border);
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .costos-tab.is-active {
+  background: linear-gradient(135deg, rgba(0, 227, 253, 0.35), rgba(30, 64, 175, 0.55));
+  border-color: transparent;
+  color: #fff;
+}
+
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .costos-field-hint,
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .costos-list-summary,
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .costos-nivel-empty,

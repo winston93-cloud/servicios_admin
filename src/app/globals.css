@@ -6702,6 +6702,30 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 /* Costos (pago_boucher_precio) */
+.costos-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 20px;
+}
+
+.costos-tab {
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.costos-tab.is-active {
+  background: linear-gradient(135deg, #1e40af, #1e3a5f);
+  border-color: transparent;
+  color: #fff;
+}
+
 .costos-layout {
   display: grid;
   grid-template-columns: minmax(340px, 1fr) minmax(280px, 0.9fr);

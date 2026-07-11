@@ -4,6 +4,9 @@ import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { CheckCircle2, Copy, Loader2, Save } from 'lucide-react'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import { NIVELES_ESCOLARES_OPCIONES, etiquetaNivelEscolar } from '@/lib/nivelEscolar'
+import ConceptosPagoCatalogo from './ConceptosPagoCatalogo'
+
+type TabCostos = 'precios' | 'conceptos'
 
 type CostoFila = {
   precio_id: number
@@ -72,6 +75,7 @@ function money(n: number): string {
 
 export default function CostosModulo() {
   const { cicloSeleccionado, cicloActualSistema, opcionesCatalogo } = useCicloEscolar()
+  const [tab, setTab] = useState<TabCostos>('precios')
   const [ciclo, setCiclo] = useState<number | null>(null)
   const [nivel, setNivel] = useState(1)
   const [lista, setLista] = useState<CostoFila[]>([])
@@ -246,11 +250,35 @@ export default function CostosModulo() {
       <header className="servicios-panel-header servicios-panel-header--compact">
         <h1 className="servicios-panel-title">Costos</h1>
         <p className="servicios-panel-lead">
-          Montos de <code>pago_boucher_precio</code> por ciclo y nivel. Los usa el portal de
-          inscripciones y colegiaturas.
+          Precios por ciclo/nivel (<code>pago_boucher_precio</code>) y catálogo de conceptos de
+          pago (<code>concepto_boucher</code>).
         </p>
       </header>
 
+      <div className="costos-tabs" role="tablist" aria-label="Secciones de costos">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'precios'}
+          className={`costos-tab${tab === 'precios' ? ' is-active' : ''}`}
+          onClick={() => setTab('precios')}
+        >
+          Precios por nivel
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'conceptos'}
+          className={`costos-tab${tab === 'conceptos' ? ' is-active' : ''}`}
+          onClick={() => setTab('conceptos')}
+        >
+          Conceptos de pago
+        </button>
+      </div>
+
+      {tab === 'conceptos' ? (
+        <ConceptosPagoCatalogo />
+      ) : (
       <div className="costos-layout">
         <section className="ciclos-crud-form-card costos-form-card" aria-labelledby="costos-form-titulo">
           <h2 id="costos-form-titulo" className="ciclos-crud-form-title">
@@ -490,6 +518,7 @@ export default function CostosModulo() {
           )}
         </section>
       </div>
+      )}
     </div>
   )
 }
