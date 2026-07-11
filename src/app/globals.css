@@ -6743,6 +6743,27 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   gap: 14px 16px;
 }
 
+.fd-fieldset {
+  margin: 0 0 18px;
+  padding: 14px 16px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.fd-fieldset legend {
+  padding: 0 6px;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: #0f172a;
+}
+
+.fd-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  margin-top: 10px;
+}
+
 .costos-field-hint {
   margin: 0 0 6px;
   font-size: 12px;
@@ -6891,7 +6912,8 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 
 @media (max-width: 700px) {
   .costos-fields-grid,
-  .costos-nivel-grid {
+  .costos-nivel-grid,
+  .fd-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -62,20 +62,22 @@ export async function obtenerVentanasInscripcion(
   if (error || !data) return vacio
 
   const fila = data as Record<string, unknown>
-  const usarCambioLv = alumnoMes === 1
+  // Plan 10 meses (mes=1) usa columnas legacy ins_cambio_lv_*;
+  // plan 11 meses usa ins_normal_* (igual que prorroga_inscripcion.php).
+  const usarPlan10Meses = alumnoMes === 1
 
   return {
     fechaIniDif1: fechaValida(
-      usarCambioLv ? fila.ins_cambio_lv_dif1_ini : fila.ins_normal_dif1_ini
+      usarPlan10Meses ? fila.ins_cambio_lv_dif1_ini : fila.ins_normal_dif1_ini
     ),
     fechaFinDif1: fechaValida(
-      usarCambioLv ? fila.ins_cambio_lv_dif1_fin : fila.ins_normal_dif1_fin
+      usarPlan10Meses ? fila.ins_cambio_lv_dif1_fin : fila.ins_normal_dif1_fin
     ),
     fechaIniDif2: fechaValida(
-      usarCambioLv ? fila.ins_cambio_lv_dif2_ini : fila.ins_normal_dif2_ini
+      usarPlan10Meses ? fila.ins_cambio_lv_dif2_ini : fila.ins_normal_dif2_ini
     ),
     fechaFinDif2: fechaValida(
-      usarCambioLv ? fila.ins_cambio_lv_dif2_fin : fila.ins_normal_dif2_fin
+      usarPlan10Meses ? fila.ins_cambio_lv_dif2_fin : fila.ins_normal_dif2_fin
     ),
   }
 }

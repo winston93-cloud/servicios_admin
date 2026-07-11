@@ -29,6 +29,7 @@ import CredencialesModulo from './modulos/CredencialesModulo'
 import BauchersModulo from './modulos/BauchersModulo'
 import ReglamentosEscolaresModulo from './modulos/ReglamentosEscolaresModulo'
 import CostosModulo from './modulos/CostosModulo'
+import FechasDiferidosModulo from './modulos/FechasDiferidosModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
 import ThemeToggle from '@/components/ThemeToggle'
 import { AlumnoSeleccionadoProvider } from '@/contexts/AlumnoSeleccionadoContext'
@@ -94,6 +95,8 @@ function ServiciosPanelContenido({
       return <ReglamentosEscolaresModulo />
     case 'costos':
       return <CostosModulo />
+    case 'fechas-diferidos':
+      return <FechasDiferidosModulo />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }
