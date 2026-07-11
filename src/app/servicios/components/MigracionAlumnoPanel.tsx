@@ -72,6 +72,8 @@ interface ProgresoMigracion {
   tablaActual: string | null
   tablaActualEtiqueta: string | null
   filas: Record<string, EstadoFilaProgreso>
+  /** Mensaje de error por tabla (para tooltip en la lista). */
+  detalleError?: Record<string, string>
   /** Trozos de la tabla grande en curso (p. ej. pago_detalle). */
   trozoActual?: number
   trozosEstimados?: number
@@ -862,8 +864,16 @@ export default function MigracionAlumnoPanel() {
             <ul className="migracion-pro-progreso-lista">
               {ordenarSeleccion(seleccion).map((t) => {
                 const est = progreso.filas[t.id] ?? 'pendiente'
+                const detalleError =
+                  est === 'error'
+                    ? progreso.detalleError?.[t.id] ?? 'Revisa el resumen al terminar'
+                    : undefined
                 return (
-                  <li key={t.id} className={`migracion-pro-progreso-item migracion-pro-progreso-item--${est}`}>
+                  <li
+                    key={t.id}
+                    className={`migracion-pro-progreso-item migracion-pro-progreso-item--${est}`}
+                    title={detalleError}
+                  >
                     {est === 'activa' && <Loader2 className="migracion-pro-spin" size={13} aria-hidden />}
                     {est === 'ok' && <CheckCircle2 size={13} aria-hidden />}
                     {est === 'discordancia' && <span aria-hidden>≠</span>}

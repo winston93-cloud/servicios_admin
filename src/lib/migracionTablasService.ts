@@ -32,6 +32,9 @@ const LOTE_UPSERT_MASIVO: Partial<Record<string, number>> = {
   pago_interno: 120,
   pago_prorroga: 150,
   usuario: 150,
+  alumno: 100,
+  alumno_detalles: 100,
+  alumno_beca: 120,
   alumno_familiar: 120,
   alumno_contacto: 120,
 }
@@ -287,18 +290,48 @@ async function eliminarHuérfanos(
   tabla: string,
   pk: string,
   pksOrigen: Set<number>
-): Promise<number> {
+): Promise<{ eliminados: number; advertencia?: string }> {
   const pksDestino = await obtenerPksDestino(sb, tabla, pk)
   const aEliminar = [...pksDestino].filter((id) => !pksOrigen.has(id))
-  if (aEliminar.length === 0) return 0
+  if (aEliminar.length === 0) return { eliminados: 0 }
+
+  let eliminados = 0
+  const fallidos: number[] = []
 
   for (let i = 0; i < aEliminar.length; i += LOTE_ELIMINAR_PK) {
     const slice = aEliminar.slice(i, i + LOTE_ELIMINAR_PK)
     await throttlePeticionDestino(tabla)
     const { error } = await sb.from(tabla).delete().in(pk, slice)
-    if (error) throw new Error(`${tabla} eliminar huérfanos: ${error.message}`)
+    if (!error) {
+      eliminados += slice.length
+      continue
+    }
+
+    const msg = error.message ?? ''
+    const esFk =
+      /foreign key|violates foreign|restrict|referencia/i.test(msg) ||
+      /23503/.test(msg)
+
+    if (!esFk) {
+      throw new Error(`${tabla} eliminar huérfanos: ${msg}`)
+    }
+
+    // FK: intentar uno a uno y saltar los que sigan referenciados
+    for (const id of slice) {
+      await throttlePeticionDestino(tabla)
+      const { error: e1 } = await sb.from(tabla).delete().eq(pk, id)
+      if (e1) fallidos.push(id)
+      else eliminados++
+    }
   }
-  return aEliminar.length
+
+  if (fallidos.length > 0) {
+    return {
+      eliminados,
+      advertencia: `${fallidos.length} huérfano(s) no eliminados (siguen referenciados, p. ej. pagos)`,
+    }
+  }
+  return { eliminados }
 }
 
 async function migrarUnaTabla(
@@ -361,8 +394,12 @@ async function migrarUnaTabla(
       return { ...base, mensaje: 'Limpieza de huérfanos solo aplica en modo espejo' }
     }
     const pksOrigen = await cargarPksMysql(mysql, def)
-    base.eliminados = await eliminarHuérfanos(sb, def.destino, pk, pksOrigen)
+    const limpia = await eliminarHuérfanos(sb, def.destino, pk, pksOrigen)
+    base.eliminados = limpia.eliminados
     base.mensaje = `${base.eliminados} huérfano(s) eliminado(s) en InsForge`
+    if (limpia.advertencia) {
+      base.mensaje += ` · ${limpia.advertencia}`
+    }
     return base
   }
 
@@ -460,7 +497,17 @@ async function migrarUnaTabla(
   }
 
   if (modo === 'espejo' && !opciones?.omitirHuérfanos && !hayMasChunk) {
-    base.eliminados = await eliminarHuérfanos(sb, def.destino, pk, pksOrigen)
+    try {
+      const limpia = await eliminarHuérfanos(sb, def.destino, pk, pksOrigen)
+      base.eliminados = limpia.eliminados
+      if (limpia.advertencia) {
+        base.mensaje = (base.mensaje ? `${base.mensaje} · ` : '') + limpia.advertencia
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Error al limpiar huérfanos'
+      // Los upserts ya corrieron; no tumbar toda la tabla por FK en huérfanos.
+      base.mensaje = (base.mensaje ? `${base.mensaje} · ` : '') + `Huérfanos: ${msg}`
+    }
   } else if (modo === 'espejo' && hayMasChunk) {
     const parte = (base.mensaje ? `${base.mensaje} · ` : '') + 'Trozo de datos (huérfanos al final)'
     base.mensaje = parte

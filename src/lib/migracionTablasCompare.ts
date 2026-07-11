@@ -57,6 +57,9 @@ export const TABLAS_UPSERT_SIN_PRELECTURA = new Set([
   'pago_interno',
   'pago_prorroga',
   'usuario',
+  'alumno',
+  'alumno_detalles',
+  'alumno_beca',
   'alumno_familiar',
   'alumno_contacto',
 ])
@@ -86,6 +89,9 @@ const CHUNK_MIGRACION_POR_TABLA: Partial<Record<string, number>> = {
   pago_interno: 2500,
   pago_prorroga: 3000,
   usuario: 3000,
+  alumno: 800,
+  alumno_detalles: 1200,
+  alumno_beca: 1500,
   alumno_familiar: 2500,
   alumno_contacto: 2500,
 }
