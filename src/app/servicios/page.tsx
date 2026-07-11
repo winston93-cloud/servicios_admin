@@ -364,7 +364,7 @@ function ServiciosPageInner() {
             </button>
           </div>
           <div className="servicios-toolbar-centro">
-            <CicloEscolarSelector etiqueta="Ciclo activo" />
+            <CicloEscolarSelector etiqueta="Ciclo activo" mostrarCicloSistema={false} />
           </div>
           <div className="servicios-toolbar-der">
             <ThemeToggle />
