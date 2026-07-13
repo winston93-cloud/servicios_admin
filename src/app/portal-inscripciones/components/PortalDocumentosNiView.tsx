@@ -1,15 +1,17 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import {
   ArrowLeft,
   CheckCircle2,
+  FileText,
   FileUp,
   Loader2,
   Mail,
   RefreshCw,
   Send,
+  ShieldCheck,
   Trash2,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
@@ -115,11 +117,14 @@ export default function PortalDocumentosNiView() {
   }, [cargar])
 
   const requisitos = estado?.requisitos ?? []
-
-  const listos = useMemo(
-    () => requisitos.every((r) => Boolean(subidas[r.id])),
+  const cargados = useMemo(
+    () => requisitos.filter((r) => Boolean(subidas[r.id])).length,
     [requisitos, subidas]
   )
+  const listos = requisitos.length > 0 && cargados === requisitos.length
+  const pct = requisitos.length
+    ? Math.round((cargados / requisitos.length) * 100)
+    : 0
 
   const quitar = (id: DocumentoNiTipoId) => {
     setOkMsg(null)
@@ -212,7 +217,7 @@ export default function PortalDocumentosNiView() {
   const refFmt = String(estado?.alumno.alumnoRef ?? session?.alumno_ref ?? '').padStart(5, '0')
 
   return (
-    <div className="dashboard-container dashboard-home portal-inscripciones-page">
+    <div className="dashboard-container dashboard-home portal-inscripciones-page portal-docs-page">
       <div className="dashboard-home-bg" aria-hidden />
       <div className="dashboard-main portal-inscripciones-main portal-inscripciones-main--form">
         <header className="portal-docs-head">
@@ -220,19 +225,12 @@ export default function PortalDocumentosNiView() {
             <ArrowLeft size={16} aria-hidden />
             Volver al proceso
           </Link>
-          <div className="portal-docs-head-text">
-            <p className="portal-inscripciones-kicker">Paso 04 · Nuevo ingreso</p>
-            <h1 className="portal-inscripciones-titulo">Carga de documentos</h1>
-            <p className="portal-inscripciones-lead">
-              Sube los PDF que pide tu nivel. Al enviar, se mandan por correo a control escolar.
-            </p>
-          </div>
         </header>
 
         {cargando && !estado && (
           <div className="portal-inscripciones-estado" role="status">
             <RefreshCw size={20} className="portal-inscripciones-spin" aria-hidden />
-            Cargando requisitos…
+            Cargando expediente…
           </div>
         )}
 
@@ -251,121 +249,199 @@ export default function PortalDocumentosNiView() {
 
         {estado && (
           <>
-            <section className="portal-docs-meta" aria-label="Datos del alumno">
-              <div>
-                <p className="portal-docs-meta-nombre">{estado.alumno.nombre}</p>
-                <p className="portal-docs-meta-sub">
-                  No. {refFmt} · {estado.alumno.gradoEtiqueta || estado.alumno.nivelEtiqueta} ·
-                  Ciclo {estado.ciclo.nombre}
+            <section className="portal-docs-hero" aria-labelledby="portal-docs-titulo">
+              <div className="portal-docs-hero-copy">
+                <p className="portal-docs-eyebrow">Paso 04 · Nuevo ingreso</p>
+                <h1 id="portal-docs-titulo" className="portal-docs-titulo">
+                  Expediente digital
+                </h1>
+                <p className="portal-docs-lead">
+                  Adjunta cada PDF. Cuando estén listos, se envían a control escolar de tu nivel.
                 </p>
-              </div>
-              {estado.correoDestino && (
-                <div className="portal-docs-meta-mail">
-                  <Mail size={16} aria-hidden />
-                  <span>
-                    Destino: <strong>{estado.correoDestino}</strong>
+                <div className="portal-docs-alumno">
+                  <span className="portal-docs-alumno-nombre">{estado.alumno.nombre}</span>
+                  <span className="portal-docs-alumno-meta">
+                    No. {refFmt} · {estado.alumno.gradoEtiqueta || estado.alumno.nivelEtiqueta} ·
+                    Ciclo {estado.ciclo.nombre}
                   </span>
                 </div>
-              )}
+              </div>
+
+              <div className="portal-docs-progreso" aria-label="Avance de carga">
+                <div
+                  className="portal-docs-progreso-ring"
+                  style={{ '--pd-pct': pct } as CSSProperties}
+                  role="progressbar"
+                  aria-valuenow={pct}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <div className="portal-docs-progreso-inner">
+                    <span className="portal-docs-progreso-num">
+                      {cargados}/{requisitos.length}
+                    </span>
+                    <span className="portal-docs-progreso-lbl">listos</span>
+                  </div>
+                </div>
+                <div className="portal-docs-progreso-side">
+                  <p className="portal-docs-progreso-title">
+                    {listos ? 'Todo listo para enviar' : 'Completa tu expediente'}
+                  </p>
+                  <div className="portal-docs-progreso-bar" aria-hidden>
+                    <div
+                      className="portal-docs-progreso-fill"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  {estado.correoDestino && (
+                    <p className="portal-docs-progreso-mail">
+                      <Mail size={14} aria-hidden />
+                      {estado.correoDestino}
+                    </p>
+                  )}
+                </div>
+              </div>
             </section>
 
             {estado.enviado && estado.envio && (
               <div className="portal-docs-enviado" role="status">
-                <CheckCircle2 size={18} aria-hidden />
+                <ShieldCheck size={22} aria-hidden />
                 <div>
-                  <p className="portal-docs-enviado-titulo">Expediente enviado</p>
+                  <p className="portal-docs-enviado-titulo">Expediente ya enviado</p>
                   <p className="portal-docs-enviado-desc">
                     Último envío el {fmtFecha(estado.envio.enviadoAt)} a{' '}
-                    {estado.envio.correoDestino}. Puedes volver a cargar los PDF si necesitas
-                    actualizarlos.
+                    {estado.envio.correoDestino}. Puedes volver a cargar y reenviar si hace falta.
                   </p>
                 </div>
               </div>
             )}
 
             <ol className="portal-docs-lista">
-              {requisitos.map((req) => {
+              {requisitos.map((req, idx) => {
                 const file = locales[req.id]
                 const subida = subidas[req.id]
                 const inputId = `doc-ni-${req.id}`
                 const ocupado = subiendoId === req.id
+                const estadoItem = ocupado ? 'subiendo' : subida ? 'listo' : 'pendiente'
+
                 return (
-                  <li key={req.id} className="portal-docs-item">
-                    <div className="portal-docs-item-text">
-                      <h2 className="portal-docs-item-titulo">{req.etiqueta}</h2>
-                      <p className="portal-docs-item-desc">{req.descripcion}</p>
-                    </div>
-                    <input
-                      id={inputId}
-                      className="portal-docs-file-input"
-                      type="file"
-                      accept="application/pdf,.pdf"
-                      disabled={ocupado || enviando}
-                      onChange={(e) => {
-                        const f = e.target.files?.[0]
-                        if (f) void subirUno(req.id, f)
-                        e.target.value = ''
-                      }}
-                    />
-                    <label
-                      htmlFor={inputId}
-                      className={`portal-docs-dropzone${subida ? ' has-file' : ''}${
-                        dragId === req.id ? ' is-dragging' : ''
-                      }`}
-                      onDragOver={(e) => {
-                        e.preventDefault()
-                        setDragId(req.id)
-                      }}
-                      onDragLeave={() => setDragId(null)}
-                      onDrop={(e) => {
-                        e.preventDefault()
-                        setDragId(null)
-                        const f = e.dataTransfer.files?.[0]
-                        if (f) void subirUno(req.id, f)
-                      }}
-                    >
-                      {ocupado ? (
-                        <>
-                          <Loader2 size={18} className="portal-inscripciones-spin" aria-hidden />
-                          <span className="portal-docs-dropzone-name">Subiendo…</span>
-                        </>
-                      ) : subida ? (
-                        <>
-                          <CheckCircle2 size={18} aria-hidden />
-                          <span className="portal-docs-dropzone-name">
-                            {file?.name ?? subida.nombreArchivo}
-                          </span>
-                          <span className="portal-docs-dropzone-meta">
-                            {fmtBytes(file?.size ?? subida.size)} · listo
-                          </span>
-                        </>
+                  <li
+                    key={req.id}
+                    className={`portal-docs-item portal-docs-item--${estadoItem}`}
+                    style={{ animationDelay: `${idx * 45}ms` }}
+                  >
+                    <div className="portal-docs-item-indice" aria-hidden>
+                      {subida && !ocupado ? (
+                        <CheckCircle2 size={20} />
                       ) : (
-                        <>
-                          <FileUp size={18} aria-hidden />
-                          <span className="portal-docs-dropzone-name">Elegir o soltar PDF</span>
-                          <span className="portal-docs-dropzone-meta">
-                            Máx. {DOCUMENTOS_NI_MAX_BYTES / (1024 * 1024)} MB
-                          </span>
-                        </>
+                        <span>{String(idx + 1).padStart(2, '0')}</span>
                       )}
-                    </label>
-                    {subida && !ocupado && (
-                      <button
-                        type="button"
-                        className="portal-docs-quitar"
-                        onClick={() => quitar(req.id)}
-                        aria-label={`Quitar ${req.etiqueta}`}
-                      >
-                        <Trash2 size={14} aria-hidden />
-                        Quitar
-                      </button>
-                    )}
+                    </div>
+
+                    <div className="portal-docs-item-cuerpo">
+                      <div className="portal-docs-item-cabecera">
+                        <div>
+                          <h2 className="portal-docs-item-titulo">{req.etiqueta}</h2>
+                          <p className="portal-docs-item-desc">{req.descripcion}</p>
+                        </div>
+                        <span className={`portal-docs-chip portal-docs-chip--${estadoItem}`}>
+                          {ocupado ? 'Subiendo' : subida ? 'Listo' : 'Pendiente'}
+                        </span>
+                      </div>
+
+                      <input
+                        id={inputId}
+                        className="portal-docs-file-input"
+                        type="file"
+                        accept="application/pdf,.pdf"
+                        disabled={ocupado || enviando}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0]
+                          if (f) void subirUno(req.id, f)
+                          e.target.value = ''
+                        }}
+                      />
+
+                      <div className="portal-docs-item-accion">
+                        <label
+                          htmlFor={inputId}
+                          className={`portal-docs-dropzone${subida ? ' has-file' : ''}${
+                            dragId === req.id ? ' is-dragging' : ''
+                          }`}
+                          onDragOver={(e) => {
+                            e.preventDefault()
+                            setDragId(req.id)
+                          }}
+                          onDragLeave={() => setDragId(null)}
+                          onDrop={(e) => {
+                            e.preventDefault()
+                            setDragId(null)
+                            const f = e.dataTransfer.files?.[0]
+                            if (f) void subirUno(req.id, f)
+                          }}
+                        >
+                          {ocupado ? (
+                            <>
+                              <Loader2 size={22} className="portal-inscripciones-spin" aria-hidden />
+                              <span className="portal-docs-dropzone-name">Subiendo PDF…</span>
+                              <span className="portal-docs-dropzone-meta">Un momento</span>
+                            </>
+                          ) : subida ? (
+                            <>
+                              <FileText size={22} aria-hidden />
+                              <span className="portal-docs-dropzone-name">
+                                {file?.name ?? subida.nombreArchivo}
+                              </span>
+                              <span className="portal-docs-dropzone-meta">
+                                {fmtBytes(file?.size ?? subida.size)} · toca para reemplazar
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <FileUp size={22} aria-hidden />
+                              <span className="portal-docs-dropzone-name">
+                                Elegir o soltar PDF
+                              </span>
+                              <span className="portal-docs-dropzone-meta">
+                                Solo PDF · máx. {DOCUMENTOS_NI_MAX_BYTES / (1024 * 1024)} MB
+                              </span>
+                            </>
+                          )}
+                        </label>
+
+                        {subida && !ocupado && (
+                          <button
+                            type="button"
+                            className="portal-docs-quitar"
+                            onClick={() => quitar(req.id)}
+                            aria-label={`Quitar ${req.etiqueta}`}
+                          >
+                            <Trash2 size={15} aria-hidden />
+                            Quitar
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </li>
                 )
               })}
             </ol>
 
-            <div className="portal-docs-acciones">
+            <div className={`portal-docs-footer${listos ? ' is-ready' : ''}`}>
+              <div className="portal-docs-footer-copy">
+                <p className="portal-docs-footer-title">
+                  {listos
+                    ? 'Expediente completo'
+                    : `Faltan ${requisitos.length - cargados} documento${
+                        requisitos.length - cargados === 1 ? '' : 's'
+                      }`}
+                </p>
+                <p className="portal-docs-footer-hint">
+                  {listos
+                    ? 'Al enviar, control escolar recibe los PDF por correo.'
+                    : 'Sube cada archivo para habilitar el envío.'}
+                </p>
+              </div>
               <button
                 type="button"
                 className="portal-docs-btn-enviar"
@@ -375,21 +451,15 @@ export default function PortalDocumentosNiView() {
                 {enviando ? (
                   <>
                     <Loader2 size={18} className="portal-inscripciones-spin" aria-hidden />
-                    Enviando a control escolar…
+                    Enviando…
                   </>
                 ) : (
                   <>
                     <Send size={18} aria-hidden />
-                    {estado.enviado ? 'Reenviar documentos' : 'Enviar documentos'}
+                    {estado.enviado ? 'Reenviar expediente' : 'Enviar a control escolar'}
                   </>
                 )}
               </button>
-              {!listos && (
-                <p className="portal-docs-hint">
-                  Sube {requisitos.length === 1 ? 'el PDF' : `los ${requisitos.length} PDF`} para
-                  habilitar el envío.
-                </p>
-              )}
             </div>
           </>
         )}
