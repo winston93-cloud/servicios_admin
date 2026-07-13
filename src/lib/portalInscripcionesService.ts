@@ -427,28 +427,33 @@ export async function construirEstadoPortalInscripciones(
   }
 
   const ordenRecibo = esReinscrito ? 4 : 5
-  const puedeRecibo =
-    pasosVisibles && insPagada && (reciboHabilitado || esReinscrito)
+  // NI: solicitud + pago + documentos. Reinscrito: pago (como legacy: sin a_inscritos).
+  // También respeta a_inscritos legacy si ya estaba marcado.
+  const pasosPreviosRecibo = Boolean(
+    solCapturada &&
+      insPagada &&
+      (esReinscrito || docsEnviados || reciboHabilitado)
+  )
+  const puedeRecibo = Boolean(pasosVisibles && pasosPreviosRecibo)
 
   pasos.push({
     id: 'recibo-final',
     orden: ordenRecibo,
     titulo: 'Recibo final',
-    descripcion: 'Comprobante de proceso de inscripción completado.',
-    estado: resolverEstadoPaso(reciboHabilitado && insPagada, puedeRecibo),
-    detalle: reciboHabilitado
-      ? 'Tu recibo final está disponible.'
-      : puedeRecibo
-        ? 'Disponible al cerrar todos los pasos anteriores.'
-        : 'Completa los pasos previos.',
-    accion:
-      puedeRecibo && insPagada
-        ? {
-            tipo: 'externo',
-            href: `/api/portal-inscripciones/recibo-final?alumnoId=${alumno.alumno_id}`,
-            etiqueta: 'Imprimir recibo final',
-          }
-        : null,
+    descripcion: 'Comprobante del proceso de inscripción con código QR de verificación.',
+    estado: resolverEstadoPaso(puedeRecibo, puedeRecibo),
+    detalle: puedeRecibo
+      ? 'Tu recibo final está listo para imprimir o guardar en PDF.'
+      : esReinscrito
+        ? 'Se habilita al completar la solicitud y el pago de reinscripción.'
+        : 'Se habilita al completar solicitud, pago y carga de documentos.',
+    accion: puedeRecibo
+      ? {
+          tipo: 'externo',
+          href: `/api/portal-inscripciones/recibo-final?alumnoId=${alumno.alumno_id}`,
+          etiqueta: 'Ver recibo final',
+        }
+      : null,
   })
 
   pasos.sort((a, b) => a.orden - b.orden)
