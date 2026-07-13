@@ -1,18 +1,14 @@
 #!/usr/bin/env node
 /**
  * Migra facturas PDF/XML del hosting Banorte → InsForge Storage (bucket `cfdi`).
- *
- * Lista pagos facturados en MySQL (winston_general) por rango de fecha, descarga
- * desde https://www.winston93.edu.mx/banorte/facturas/ y sube con el mismo nombre.
- *
- * Uso (desde servicios_admin, con MYSQL_* + INSFORGE_* en .env.local):
+ * Origen solo para la copia inicial; el portal ya no usa hosting en runtime.
  *
  *   node scripts/migrar-facturas-cfdi-insforge.mjs --dry-run
  *   node scripts/migrar-facturas-cfdi-insforge.mjs --limit=50
  *   node scripts/migrar-facturas-cfdi-insforge.mjs
- *   node scripts/migrar-facturas-cfdi-insforge.mjs --from=2026-01-01 --to=2026-07-13
  *
- * Reanudable: lee/escribe scripts/.cache/migrar-facturas-cfdi-manifest.json
+ * Reanudable: scripts/.cache/migrar-facturas-cfdi-manifest.json
+ * Los fallos por rate-limit se reintentan; host_missing se conserva.
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -24,7 +20,10 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const MANIFEST = path.join(ROOT, 'scripts/.cache/migrar-facturas-cfdi-manifest.json')
 const BUCKET = 'cfdi'
 const HOSTING_BASE = 'https://www.winston93.edu.mx/banorte/facturas'
-const CONCURRENCY = 4
+/** InsForge rate-limit: 1 worker + pausa fija + backoff 429. */
+const CONCURRENCY = 1
+const PAUSE_MS = 900
+const MAX_RETRIES = 8
 
 function loadEnvLocal() {
   const p = path.join(ROOT, '.env.local')
@@ -50,9 +49,11 @@ function parseArgs(argv) {
     from: '2026-01-01',
     to: '2026-07-13',
     limit: 0,
+    keepRateFails: false,
   }
   for (const a of argv) {
     if (a === '--dry-run') out.dryRun = true
+    else if (a === '--keep-rate-fails') out.keepRateFails = true
     else if (a.startsWith('--from=')) out.from = a.slice(7)
     else if (a.startsWith('--to=')) out.to = a.slice(5)
     else if (a.startsWith('--limit=')) out.limit = Number(a.slice(8)) || 0
@@ -60,7 +61,6 @@ function parseArgs(argv) {
   return out
 }
 
-/** factura{ref5}{concepto2}{ciclo2} desde pago_referencia (12 dígitos). */
 function nombreArchivoDesdeRef(ref) {
   const d = String(ref ?? '').replace(/\D/g, '')
   if (d.length < 9) return null
@@ -81,6 +81,33 @@ function saveManifest(m) {
   fs.writeFileSync(MANIFEST, JSON.stringify(m, null, 2))
 }
 
+function isRetriableFail(entry) {
+  if (!entry) return false
+  if (entry.reason === 'host_missing') return false
+  const r = String(entry.reason ?? '')
+  return (
+    /Too Many Requests/i.test(r) ||
+    /429/.test(r) ||
+    /Gateway Time-?out/i.test(r) ||
+    /ECONNRESET|ETIMEDOUT|fetch failed/i.test(r)
+  )
+}
+
+function clearRetriableFails(manifest) {
+  let cleared = 0
+  for (const [k, v] of Object.entries(manifest.failed || {})) {
+    if (isRetriableFail(v)) {
+      delete manifest.failed[k]
+      cleared++
+    }
+  }
+  return cleared
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms))
+}
+
 async function mapPool(items, concurrency, fn) {
   const results = []
   let i = 0
@@ -90,7 +117,8 @@ async function mapPool(items, concurrency, fn) {
       results[idx] = await fn(items[idx], idx)
     }
   }
-  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => worker()))
+  const n = Math.min(concurrency, Math.max(items.length, 1))
+  await Promise.all(Array.from({ length: n }, () => worker()))
   return results
 }
 
@@ -98,32 +126,35 @@ async function fetchHosting(fileName) {
   const url = `${HOSTING_BASE}/${fileName}`
   const res = await fetch(url, { redirect: 'follow' })
   if (!res.ok) {
-    return { ok: false, status: res.status, buffer: null, contentType: null }
+    return { ok: false, status: res.status, buffer: null }
   }
   const ab = await res.arrayBuffer()
-  return {
-    ok: true,
-    status: res.status,
-    buffer: Buffer.from(ab),
-    contentType: res.headers.get('content-type') || undefined,
-  }
+  return { ok: true, status: res.status, buffer: Buffer.from(ab) }
 }
 
-async function objectExists(client, key) {
-  try {
-    const { data, error } = await client.storage.from(BUCKET).download(key)
-    if (error || !data) return false
-    return true
-  } catch {
-    return false
+async function uploadWithRetry(client, key, buffer, contentType) {
+  let lastErr = null
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const blob = new Blob([buffer], { type: contentType || 'application/octet-stream' })
+      const { data, error } = await client.storage.from(BUCKET).upload(key, blob)
+      if (error) throw new Error(error.message)
+      return data
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e))
+      const msg = lastErr.message
+      const retriable =
+        /Too Many Requests/i.test(msg) ||
+        /429/.test(msg) ||
+        /Gateway Time-?out/i.test(msg) ||
+        /ECONNRESET|ETIMEDOUT|fetch failed/i.test(msg)
+      if (!retriable || attempt === MAX_RETRIES - 1) throw lastErr
+      const wait = Math.min(90_000, 2000 * 2 ** attempt)
+      console.warn(`backoff ${key} attempt=${attempt + 1} waitMs=${wait} :: ${msg}`)
+      await sleep(wait)
+    }
   }
-}
-
-async function uploadFile(client, key, buffer, contentType) {
-  const blob = new Blob([buffer], { type: contentType || 'application/octet-stream' })
-  const { data, error } = await client.storage.from(BUCKET).upload(key, blob)
-  if (error) throw new Error(error.message)
-  return data
+  throw lastErr ?? new Error('upload failed')
 }
 
 async function main() {
@@ -140,7 +171,9 @@ async function main() {
       dryRun: args.dryRun,
       limit: args.limit || null,
       bucket: BUCKET,
-      hosting: HOSTING_BASE,
+      concurrency: CONCURRENCY,
+      pauseMs: PAUSE_MS,
+      sourceCopy: HOSTING_BASE,
     })
   )
 
@@ -174,29 +207,25 @@ async function main() {
   let list = [...stems].sort()
   if (args.limit > 0) list = list.slice(0, args.limit)
 
-  console.log(`referencias_facturadas=${rows.length} archivos_unicos=${stems.size} a_procesar=${list.length}`)
+  console.log(
+    `referencias_facturadas=${rows.length} archivos_unicos=${stems.size} a_procesar=${list.length}`
+  )
 
   if (args.dryRun) {
-    const sample = list.slice(0, 8)
-    const heads = []
-    for (const stem of sample) {
-      for (const ext of ['pdf', 'xml']) {
-        const file = `${stem}.${ext}`
-        try {
-          const res = await fetch(`${HOSTING_BASE}/${file}`, { method: 'HEAD', redirect: 'follow' })
-          heads.push({ file, status: res.status })
-        } catch (e) {
-          heads.push({ file, status: 0, err: e instanceof Error ? e.message : String(e) })
-        }
-      }
-    }
-    console.log('dry_run_sample_head', JSON.stringify(heads, null, 2))
-    console.log('dry_run_ok')
+    console.log('dry_run_ok sample=', list.slice(0, 5))
     return
   }
 
   const client = createAdminClient({ baseUrl, apiKey })
   const manifest = loadManifest()
+  if (!args.keepRateFails) {
+    const cleared = clearRetriableFails(manifest)
+    if (cleared) {
+      saveManifest(manifest)
+      console.log(`cleared_retriable_fails=${cleared}`)
+    }
+  }
+
   let uploaded = 0
   let skipped = 0
   let failed = 0
@@ -209,12 +238,12 @@ async function main() {
         skipped++
         continue
       }
+      if (manifest.failed[file]?.reason === 'host_missing') {
+        missingHost++
+        failed++
+        continue
+      }
       try {
-        if (await objectExists(client, file)) {
-          manifest.done[file] = { at: new Date().toISOString(), skip: 'exists' }
-          skipped++
-          continue
-        }
         const remote = await fetchHosting(file)
         if (!remote.ok || !remote.buffer) {
           missingHost++
@@ -227,26 +256,34 @@ async function main() {
           continue
         }
         const ctype = ext === 'pdf' ? 'application/pdf' : 'application/xml; charset=utf-8'
-        await uploadFile(client, file, remote.buffer, ctype)
+        await uploadWithRetry(client, file, remote.buffer, ctype)
+        await sleep(PAUSE_MS)
         manifest.done[file] = {
           at: new Date().toISOString(),
           bytes: remote.buffer.length,
         }
         delete manifest.failed[file]
         uploaded++
-        if ((uploaded + skipped) % 25 === 0) {
+        if ((uploaded + skipped) % 10 === 0) {
           saveManifest(manifest)
           console.log(
-            `progress uploaded=${uploaded} skipped=${skipped} failed=${failed} missingHost=${missingHost}`
+            `progress uploaded=${uploaded} skipped=${skipped} failed=${failed} missingHost=${missingHost} doneTotal=${Object.keys(manifest.done).length}`
           )
         }
       } catch (e) {
-        failed++
-        manifest.failed[file] = {
-          at: new Date().toISOString(),
-          reason: e instanceof Error ? e.message : String(e),
+        const reason = e instanceof Error ? e.message : String(e)
+        if (/already exists|duplicate|conflict|409/i.test(reason)) {
+          manifest.done[file] = { at: new Date().toISOString(), skip: 'exists' }
+          delete manifest.failed[file]
+          skipped++
+          continue
         }
-        console.warn('fail', file, manifest.failed[file].reason)
+        failed++
+        manifest.failed[file] = { at: new Date().toISOString(), reason }
+        console.warn('fail', file, reason)
+        if (/Too Many Requests|429/i.test(reason)) {
+          await sleep(20_000)
+        }
       }
     }
   })
