@@ -7,7 +7,7 @@ export const PORTAL_PRUEBA_IMPORTES_POR_REF: Record<
   Partial<Record<string, number>>
 > = {
   /** Nuevo ingreso 1° primaria — inscripción concept 13 a $3.00 */
-  21887: {
+  21903: {
     '13': 3,
   },
 }

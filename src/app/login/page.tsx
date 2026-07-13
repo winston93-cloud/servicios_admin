@@ -7,11 +7,18 @@ import { loginPortal } from '@/lib/portalAuthService'
 import { useAuth } from '@/contexts/AuthContext'
 import ThemeToggle from '@/components/ThemeToggle'
 
+type VistaLogin = 'entrar' | 'activar-clave'
+
 export default function LoginPage() {
+  const [vista, setVista] = useState<VistaLogin>('entrar')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [claveRef, setClaveRef] = useState('')
+  const [claveNueva, setClaveNueva] = useState('')
+  const [claveConfirmacion, setClaveConfirmacion] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [exito, setExito] = useState('')
   const router = useRouter()
   const { login, isAuthenticated } = useAuth()
 
@@ -20,6 +27,11 @@ export default function LoginPage() {
       router.replace('/dashboard')
     }
   }, [isAuthenticated, router])
+
+  const limpiarMensajes = () => {
+    setError('')
+    setExito('')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,7 +42,7 @@ export default function LoginPage() {
     }
 
     setLoading(true)
-    setError('')
+    limpiarMensajes()
 
     try {
       const authSession = await loginPortal({
@@ -46,6 +58,52 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error('Error en login:', err)
+      setError('No se pudo conectar. Intenta de nuevo en unos momentos.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRegistrarClave = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!claveRef.trim() || !claveNueva.trim() || !claveConfirmacion.trim()) {
+      setError('Completa número de control, clave nueva y confirmación.')
+      return
+    }
+
+    setLoading(true)
+    limpiarMensajes()
+
+    try {
+      const res = await fetch('/api/auth/registrar-clave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          alumnoRef: claveRef.trim(),
+          claveNueva: claveNueva.trim(),
+          claveConfirmacion: claveConfirmacion.trim(),
+        }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(typeof data.error === 'string' ? data.error : 'No se pudo activar la clave.')
+        return
+      }
+
+      setExito(
+        typeof data.mensaje === 'string'
+          ? data.mensaje
+          : 'Tu clave ha sido activada con éxito.'
+      )
+      setUsername(claveRef.trim())
+      setPassword('')
+      setClaveNueva('')
+      setClaveConfirmacion('')
+      setVista('entrar')
+    } catch (err) {
+      console.error('Error al registrar clave:', err)
       setError('No se pudo conectar. Intenta de nuevo en unos momentos.')
     } finally {
       setLoading(false)
@@ -97,53 +155,166 @@ export default function LoginPage() {
             <h1 className="portal-access-title">Servicios Administrativos</h1>
           </header>
 
-          <form className="portal-access-form" onSubmit={handleSubmit}>
-            <div className="portal-access-field saas-reveal saas-reveal--2">
-              <label htmlFor="portal-username" className="portal-access-label">
-                Usuario
-              </label>
-              <input
-                id="portal-username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Usuario"
-                className="portal-access-input"
-                disabled={loading}
-                autoComplete="username"
-              />
-            </div>
-
-            <div className="portal-access-field saas-reveal saas-reveal--3">
-              <label htmlFor="portal-password" className="portal-access-label">
-                Clave de acceso
-              </label>
-              <input
-                id="portal-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Tu clave secreta"
-                className="portal-access-input"
-                disabled={loading}
-                autoComplete="current-password"
-              />
-            </div>
-
-            {error && (
-              <p className="portal-access-error saas-reveal saas-reveal--4" role="alert">
-                {error}
-              </p>
-            )}
-
+          <div className="portal-access-tabs" role="tablist" aria-label="Acceso al portal">
             <button
-              type="submit"
-              disabled={loading}
-              className="portal-access-submit saas-reveal saas-reveal--5"
+              type="button"
+              role="tab"
+              aria-selected={vista === 'entrar'}
+              className={`portal-access-tab${vista === 'entrar' ? ' is-active' : ''}`}
+              onClick={() => {
+                setVista('entrar')
+                limpiarMensajes()
+              }}
             >
-              {loading ? 'Verificando acceso…' : 'Entrar al sistema'}
+              Entrar
             </button>
-          </form>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={vista === 'activar-clave'}
+              className={`portal-access-tab${vista === 'activar-clave' ? ' is-active' : ''}`}
+              onClick={() => {
+                setVista('activar-clave')
+                limpiarMensajes()
+              }}
+            >
+              Activar clave
+            </button>
+          </div>
+
+          {vista === 'entrar' ? (
+            <form className="portal-access-form" onSubmit={handleSubmit}>
+              <div className="portal-access-field saas-reveal saas-reveal--2">
+                <label htmlFor="portal-username" className="portal-access-label">
+                  Usuario
+                </label>
+                <input
+                  id="portal-username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Número de control"
+                  className="portal-access-input"
+                  disabled={loading}
+                  autoComplete="username"
+                  maxLength={5}
+                  inputMode="numeric"
+                />
+              </div>
+
+              <div className="portal-access-field saas-reveal saas-reveal--3">
+                <label htmlFor="portal-password" className="portal-access-label">
+                  Clave de acceso
+                </label>
+                <input
+                  id="portal-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Tu clave secreta"
+                  className="portal-access-input"
+                  disabled={loading}
+                  autoComplete="current-password"
+                />
+              </div>
+
+              {error && (
+                <p className="portal-access-error saas-reveal saas-reveal--4" role="alert">
+                  {error}
+                </p>
+              )}
+
+              {exito && (
+                <p className="portal-access-success saas-reveal saas-reveal--4" role="status">
+                  {exito}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="portal-access-submit saas-reveal saas-reveal--5"
+              >
+                {loading ? 'Verificando acceso…' : 'Entrar al sistema'}
+              </button>
+
+              <p className="portal-access-hint portal-access-hint--mobile">
+                ¿Primera vez? Ve a <strong>Activar clave</strong> para registrar tu acceso.
+              </p>
+            </form>
+          ) : (
+            <form className="portal-access-form" onSubmit={handleRegistrarClave}>
+              <p className="portal-access-lead">
+                Si aún no tienes clave, regístrala aquí con tu número de control.
+              </p>
+
+              <div className="portal-access-field">
+                <label htmlFor="clave-ref" className="portal-access-label">
+                  Número de control
+                </label>
+                <input
+                  id="clave-ref"
+                  type="text"
+                  value={claveRef}
+                  onChange={(e) => setClaveRef(e.target.value)}
+                  placeholder="Ej. 21903"
+                  className="portal-access-input"
+                  disabled={loading}
+                  autoComplete="username"
+                  maxLength={5}
+                  inputMode="numeric"
+                />
+              </div>
+
+              <div className="portal-access-field">
+                <label htmlFor="clave-nueva" className="portal-access-label">
+                  Nueva clave
+                </label>
+                <input
+                  id="clave-nueva"
+                  type="password"
+                  value={claveNueva}
+                  onChange={(e) => setClaveNueva(e.target.value)}
+                  placeholder="Mínimo 5 caracteres"
+                  className="portal-access-input"
+                  disabled={loading}
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <div className="portal-access-field">
+                <label htmlFor="clave-confirm" className="portal-access-label">
+                  Confirmar clave
+                </label>
+                <input
+                  id="clave-confirm"
+                  type="password"
+                  value={claveConfirmacion}
+                  onChange={(e) => setClaveConfirmacion(e.target.value)}
+                  placeholder="Repite tu clave"
+                  className="portal-access-input"
+                  disabled={loading}
+                  autoComplete="new-password"
+                />
+              </div>
+
+              {error && (
+                <p className="portal-access-error" role="alert">
+                  {error}
+                </p>
+              )}
+
+              {exito && (
+                <p className="portal-access-success" role="status">
+                  {exito}
+                </p>
+              )}
+
+              <button type="submit" disabled={loading} className="portal-access-submit">
+                {loading ? 'Guardando clave…' : 'Registrar clave'}
+              </button>
+            </form>
+          )}
 
           <footer className="portal-access-foot">
             <span>Winston Churchill</span>
