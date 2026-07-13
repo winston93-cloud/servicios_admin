@@ -47,5 +47,15 @@ INSERT INTO public.iwc_gral_ins (
   (18, '2021-02-15', '2021-02-19', '2021-06-18', '2021-06-22', '2021-02-19', '2021-02-25', '2021-06-22', '2021-06-25'),
   (19, '2022-02-14', '2022-02-20', '2022-06-20', '2022-06-26', '2022-02-21', '2022-02-27', '2022-06-27', '2022-07-03'),
   (20, '2023-02-13', '2023-02-17', '2023-06-19', '2023-06-23', '2023-02-20', '2023-02-24', '2023-06-26', '2023-07-03'),
-  (21, '2024-02-12', '2024-05-31', '2024-06-17', '2024-06-22', '2024-02-19', '2024-05-31', '2024-06-24', '2024-06-29')
-ON CONFLICT (ins_ce) DO NOTHING;
+  (21, '2024-02-12', '2024-05-31', '2024-06-17', '2024-06-22', '2024-02-19', '2024-05-31', '2024-06-24', '2024-06-29'),
+  (22, '2025-02-10', '2025-02-15', '2025-06-16', '2025-06-21', '2025-02-17', '2025-02-22', '2025-06-23', '2025-06-28'),
+  (23, '2026-02-16', '2026-02-21', '2026-06-15', '2026-06-20', '2026-02-16', '2026-02-21', '2026-07-11', '2026-07-18')
+ON CONFLICT (ins_ce) DO UPDATE SET
+  ins_cambio_lv_dif1_ini = EXCLUDED.ins_cambio_lv_dif1_ini,
+  ins_cambio_lv_dif1_fin = EXCLUDED.ins_cambio_lv_dif1_fin,
+  ins_cambio_lv_dif2_ini = EXCLUDED.ins_cambio_lv_dif2_ini,
+  ins_cambio_lv_dif2_fin = EXCLUDED.ins_cambio_lv_dif2_fin,
+  ins_normal_dif1_ini = EXCLUDED.ins_normal_dif1_ini,
+  ins_normal_dif1_fin = EXCLUDED.ins_normal_dif1_fin,
+  ins_normal_dif2_ini = EXCLUDED.ins_normal_dif2_ini,
+  ins_normal_dif2_fin = EXCLUDED.ins_normal_dif2_fin;
