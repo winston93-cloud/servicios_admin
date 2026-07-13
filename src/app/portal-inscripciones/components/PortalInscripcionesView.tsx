@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -16,6 +16,11 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import type { EstadoPortalInscripciones, PasoEstadoInscripcion } from '@/lib/portalInscripcionesTypes'
 import type { MatrizPortalPagos } from '@/lib/portalPagosMatrizService'
+import {
+  aplicarReglamentoVistoEnEstado,
+  leerReglamentoVisto,
+  marcarReglamentoVisto,
+} from '@/lib/portalReglamentoVisto'
 import PortalColegiaturasSecciones from '@/app/portal-pagos/components/PortalColegiaturasSecciones'
 
 function nombreAlumno(estado: EstadoPortalInscripciones | null, fallback?: string): string {
@@ -93,6 +98,7 @@ export default function PortalInscripcionesView() {
   const alumnoId = session?.alumno_id
 
   const [estado, setEstado] = useState<EstadoPortalInscripciones | null>(null)
+  const [reglamentoVisto, setReglamentoVisto] = useState(false)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -120,7 +126,12 @@ export default function PortalInscripcionesView() {
         setEstado(null)
         setError(data.error ?? 'No se pudo cargar el portal de inscripciones.')
       } else {
-        setEstado(data.estado)
+        const siguiente = data.estado as EstadoPortalInscripciones
+        setEstado(siguiente)
+        const cicloValor = Number(siguiente.ciclo?.valor ?? 0)
+        setReglamentoVisto(
+          cicloValor > 0 ? leerReglamentoVisto(alumnoId, cicloValor) : false
+        )
       }
     } catch {
       setEstado(null)
@@ -170,6 +181,17 @@ export default function PortalInscripcionesView() {
     if (colegiaturasDesbloqueadas) void cargarMatriz()
   }, [colegiaturasDesbloqueadas, cargarMatriz])
 
+  const estadoVista = useMemo(() => {
+    if (!estado) return null
+    return aplicarReglamentoVistoEnEstado(estado, reglamentoVisto)
+  }, [estado, reglamentoVisto])
+
+  const marcarReglamentoConsultado = useCallback(() => {
+    if (alumnoId == null || !estado?.ciclo?.valor) return
+    marcarReglamentoVisto(alumnoId, Number(estado.ciclo.valor))
+    setReglamentoVisto(true)
+  }, [alumnoId, estado?.ciclo?.valor])
+
   const refFmt = String(session?.alumno_ref ?? '').padStart(5, '0')
 
   return (
@@ -195,28 +217,28 @@ export default function PortalInscripcionesView() {
               <p className="dashboard-subtitle portal-inscripciones-lead">
                 {esReinscrito
                   ? 'Reinscribe a tu hijo(a) y mantén al día el pago de sus colegiaturas.'
-                  : estado
+                  : estadoVista
                     ? 'Completa la inscripción de tu hijo(a) y continúa con el pago de sus colegiaturas.'
                     : 'Completa tu inscripción o reinscripción y continúa con el pago de colegiaturas.'}
               </p>
             </div>
-            {estado?.ciclo && (
+            {estadoVista?.ciclo && (
               <div className="portal-inscripciones-ciclo-badge" aria-label="Ciclo escolar vigente">
                 <span className="portal-inscripciones-ciclo-label">Ciclo vigente</span>
-                <span className="portal-inscripciones-ciclo-nombre">{estado.ciclo.nombre}</span>
+                <span className="portal-inscripciones-ciclo-nombre">{estadoVista.ciclo.nombre}</span>
               </div>
             )}
           </div>
 
-          {estado && (
+          {estadoVista && (
             <div className="portal-inscripciones-hero">
               <div className="portal-inscripciones-alumno-card">
                 <div className="portal-inscripciones-alumno-info">
                   <span className="portal-inscripciones-alumno-nombre">
-                    {nombreAlumno(estado, session?.displayName)}
+                    {nombreAlumno(estadoVista, session?.displayName)}
                   </span>
                   <span className="portal-inscripciones-alumno-meta">
-                    No. {refFmt} · {estado.gradoEtiqueta} · {estado.formaIngresoEtiqueta}
+                    No. {refFmt} · {estadoVista.gradoEtiqueta} · {estadoVista.formaIngresoEtiqueta}
                   </span>
                 </div>
                 <button
@@ -231,15 +253,15 @@ export default function PortalInscripcionesView() {
                 </button>
               </div>
               <ProgresoInscripcion
-                pct={estado.progresoPct}
-                completados={estado.pasosCompletados}
-                totales={estado.pasosTotales}
+                pct={estadoVista.progresoPct}
+                completados={estadoVista.pasosCompletados}
+                totales={estadoVista.pasosTotales}
               />
             </div>
           )}
         </header>
 
-        {cargando && !estado && (
+        {cargando && !estadoVista && (
           <div className="portal-inscripciones-estado" role="status">
             <RefreshCw size={20} className="portal-inscripciones-spin" aria-hidden />
             Cargando tu proceso de inscripción…
@@ -252,24 +274,24 @@ export default function PortalInscripcionesView() {
           </div>
         )}
 
-        {estado?.bloqueo && estado.mensajeBloqueo && (
+        {estadoVista?.bloqueo && estadoVista.mensajeBloqueo && (
           <div className="portal-inscripciones-alerta portal-inscripciones-alerta--bloqueo" role="alert">
             <AlertTriangle size={18} aria-hidden />
-            {estado.mensajeBloqueo}
+            {estadoVista.mensajeBloqueo}
           </div>
         )}
 
-        {estado?.aviso && !estado.bloqueo && (
+        {estadoVista?.aviso && !estadoVista.bloqueo && (
           <div className="portal-inscripciones-alerta portal-inscripciones-alerta--aviso" role="status">
             <Clock size={18} aria-hidden />
-            {estado.aviso}
+            {estadoVista.aviso}
           </div>
         )}
 
-        {estado && (
+        {estadoVista && (
           <>
             <ol className="portal-inscripciones-pasos">
-              {estado.pasos.map((paso) => (
+              {estadoVista.pasos.map((paso) => (
                 <li
                   key={paso.id}
                   className={`portal-inscripciones-paso portal-inscripciones-paso--${paso.estado}`}
@@ -324,6 +346,11 @@ export default function PortalInscripcionesView() {
                             className="portal-inscripciones-paso-link"
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={
+                              paso.id === 'reglamento'
+                                ? () => marcarReglamentoConsultado()
+                                : undefined
+                            }
                           >
                             {paso.accion.etiqueta}
                             <ArrowRight size={16} aria-hidden />
@@ -336,7 +363,7 @@ export default function PortalInscripcionesView() {
               ))}
             </ol>
 
-            {!estado.bloqueo && (
+            {!estadoVista.bloqueo && (
               <section
                 ref={colegiaturasRef}
                 id="colegiaturas"
