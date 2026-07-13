@@ -168,9 +168,11 @@ export default function FechasDiferidosModulo() {
       <header className="servicios-panel-header servicios-panel-header--compact">
         <h1 className="servicios-panel-title">Fechas de diferidos</h1>
         <p className="servicios-panel-lead">
-          Ventanas del 1.er y 2.º diferido de reinscripción por ciclo (
-          <code>iwc_gral_ins</code>). El portal las usa según el plan del alumno: 10 meses o 11
-          meses.
+          Ventanas del 1.er y 2.º diferido de <strong>reinscripción</strong> (
+          <code>iwc_gral_ins</code>). Aplican a alumnos del ciclo anterior que se reinscriben a
+          este ciclo (ej. ciclo 23 = reinscritos que vienen del 22). El{' '}
+          <strong>nuevo ingreso</strong> de este ciclo no paga diferidos: paga inscripción
+          completa (concepto 13).
         </p>
       </header>
 
@@ -196,8 +198,9 @@ export default function FechasDiferidosModulo() {
                 ))}
               </select>
               <p className="costos-field-hint">
-                Es el ciclo al que se reinscriben (ej. 23 = 2026-2027), no necesariamente el ciclo
-                activo del sistema.
+                Ciclo destino de la reinscripción (cen). Ej.: <strong>23</strong> = fechas para
+                alumnos del ciclo <strong>22</strong> que se reinscriben a 2026-2027. No es el
+                calendario de nuevo ingreso.
               </p>
             </div>
 
@@ -210,8 +213,8 @@ export default function FechasDiferidosModulo() {
                 <fieldset className="fd-fieldset">
                   <legend>Plan 10 meses</legend>
                   <p className="costos-field-hint">
-                    Alumnos con plan a 10 meses (<code>alumno.mes = 1</code>). El 2.º diferido suele
-                    abrir en junio.
+                    Reinscritos con plan a 10 meses (<code>alumno.mes = 1</code>). El 2.º diferido
+                    suele abrir en junio.
                   </p>
                   <div className="fd-grid">
                     <div className="ciclos-crud-field">
@@ -256,8 +259,8 @@ export default function FechasDiferidosModulo() {
                 <fieldset className="fd-fieldset">
                   <legend>Plan 11 meses</legend>
                   <p className="costos-field-hint">
-                    Alumnos con plan a 11 meses (<code>alumno.mes = 2</code>). El 2.º diferido suele
-                    abrir en julio.
+                    Reinscritos con plan a 11 meses (<code>alumno.mes = 2</code>). El 2.º diferido
+                    suele abrir en julio.
                   </p>
                   <div className="fd-grid">
                     <div className="ciclos-crud-field">
