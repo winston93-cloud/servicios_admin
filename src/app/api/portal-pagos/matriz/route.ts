@@ -1,22 +1,50 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { obtenerAlumnoPorId } from '@/lib/alumnoDatosService'
-import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
+import {
+  obtenerCicloEscolarActual,
+  obtenerCicloPorValor,
+  type CicloEscolarRegistro,
+} from '@/lib/ciclosEscolaresService'
+import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
 import { construirMatrizPortalPagos } from '@/lib/portalPagosMatrizService'
 
 export const runtime = 'nodejs'
 
+function cicloFallback(valor: number): CicloEscolarRegistro {
+  const anioInicio = 2003 + valor
+  return {
+    id: 0,
+    valor,
+    nombre: etiquetaCicloEscolar(valor) || `${anioInicio}-${anioInicio + 1}`,
+    anio_inicio: anioInicio,
+    anio_fin: anioInicio + 1,
+    activo: true,
+    es_actual: false,
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
     const alumnoId = Number(body.alumnoId)
+    const cicloValor = body.cicloValor != null ? Number(body.cicloValor) : null
+    const soloColegiatura = Boolean(body.soloColegiatura)
 
     if (!alumnoId) {
       return NextResponse.json({ error: 'alumnoId es obligatorio' }, { status: 400 })
     }
 
-    const ciclo = await obtenerCicloEscolarActual()
+    let ciclo: CicloEscolarRegistro | null =
+      cicloValor != null && Number.isFinite(cicloValor) && cicloValor > 0
+        ? await obtenerCicloPorValor(cicloValor)
+        : await obtenerCicloEscolarActual()
+
+    if (!ciclo && cicloValor != null && Number.isFinite(cicloValor) && cicloValor > 0) {
+      ciclo = cicloFallback(cicloValor)
+    }
+
     if (!ciclo) {
       return NextResponse.json(
         {
@@ -34,7 +62,9 @@ export async function POST(request: Request) {
 
     const supabase = createSupabaseAdmin()
     const pagos = await listarPagosColegiaturaAlumno(alumnoId, ciclo.valor)
-    const matriz = await construirMatrizPortalPagos(supabase, alumno, ciclo, pagos)
+    const matriz = await construirMatrizPortalPagos(supabase, alumno, ciclo, pagos, {
+      soloColegiatura,
+    })
 
     return NextResponse.json({ ok: true, matriz })
   } catch (e) {

@@ -285,62 +285,76 @@ export async function construirMatrizPortalPagos(
   supabase: AppDatabaseClient,
   alumno: AlumnoRegistro,
   ciclo: CicloEscolarRegistro,
-  pagos: PagoDetalleRegistro[]
+  pagos: PagoDetalleRegistro[],
+  opciones?: { soloColegiatura?: boolean }
 ): Promise<MatrizPortalPagos> {
   const planMeses = alumno.mes === 2 ? 2 : 1
   const planEtiqueta = etiquetaPlanPagos(planMeses)
+  const soloColegiatura = Boolean(opciones?.soloColegiatura)
 
-  const [conceptosColeg, conceptosCam, conceptosUsa] = await Promise.all([
-    listarConceptosColegiatura(supabase, planMeses),
-    listarConceptosPorNumeros(supabase, [...SECCION_CAMBRIDGE.conceptos]),
-    listarConceptosPorNumeros(supabase, [...SECCION_USA.conceptos]),
-  ])
-
-  const [filasColegRaw, filasCamRaw, filasUsaRaw] = await Promise.all([
-    construirFilas(supabase, alumno, ciclo, conceptosColeg, pagos, planMeses),
-    conceptosCam.length > 0
-      ? construirFilas(supabase, alumno, ciclo, conceptosCam, pagos, planMeses, true)
-      : Promise.resolve([]),
-    conceptosUsa.length > 0
-      ? construirFilas(supabase, alumno, ciclo, conceptosUsa, pagos, planMeses)
-      : Promise.resolve([]),
-  ])
-
+  const conceptosColeg = await listarConceptosColegiatura(supabase, planMeses)
+  const filasColegRaw = await construirFilas(
+    supabase,
+    alumno,
+    ciclo,
+    conceptosColeg,
+    pagos,
+    planMeses
+  )
   const filasColeg = filtrarFilasPorCandado(
     filasColegRaw,
     slotsColegiaturaPortal(planMeses)
-  )
-  const filasCam = filtrarFilasPorCandado(
-    filasCamRaw,
-    slotsLineales(SECCION_CAMBRIDGE.conceptos)
-  )
-  const filasUsa = filtrarFilasPorCandado(
-    filasUsaRaw,
-    slotsLineales(SECCION_USA.conceptos)
   )
 
   const secciones: SeccionMatrizPortal[] = [
     {
       id: SECCION_COLEGIATURA.id,
-      titulo: SECCION_COLEGIATURA.titulo,
+      titulo: soloColegiatura
+        ? `Cierre de ciclo ${ciclo.nombre}`
+        : SECCION_COLEGIATURA.titulo,
       filas: filasColeg,
     },
   ]
 
-  if (filasCam.length > 0) {
-    secciones.push({
-      id: SECCION_CAMBRIDGE.id,
-      titulo: SECCION_CAMBRIDGE.titulo,
-      filas: filasCam,
-    })
-  }
+  if (!soloColegiatura) {
+    const [conceptosCam, conceptosUsa] = await Promise.all([
+      listarConceptosPorNumeros(supabase, [...SECCION_CAMBRIDGE.conceptos]),
+      listarConceptosPorNumeros(supabase, [...SECCION_USA.conceptos]),
+    ])
 
-  if (filasUsa.length > 0) {
-    secciones.push({
-      id: SECCION_USA.id,
-      titulo: SECCION_USA.titulo,
-      filas: filasUsa,
-    })
+    const [filasCamRaw, filasUsaRaw] = await Promise.all([
+      conceptosCam.length > 0
+        ? construirFilas(supabase, alumno, ciclo, conceptosCam, pagos, planMeses, true)
+        : Promise.resolve([]),
+      conceptosUsa.length > 0
+        ? construirFilas(supabase, alumno, ciclo, conceptosUsa, pagos, planMeses)
+        : Promise.resolve([]),
+    ])
+
+    const filasCam = filtrarFilasPorCandado(
+      filasCamRaw,
+      slotsLineales(SECCION_CAMBRIDGE.conceptos)
+    )
+    const filasUsa = filtrarFilasPorCandado(
+      filasUsaRaw,
+      slotsLineales(SECCION_USA.conceptos)
+    )
+
+    if (filasCam.length > 0) {
+      secciones.push({
+        id: SECCION_CAMBRIDGE.id,
+        titulo: SECCION_CAMBRIDGE.titulo,
+        filas: filasCam,
+      })
+    }
+
+    if (filasUsa.length > 0) {
+      secciones.push({
+        id: SECCION_USA.id,
+        titulo: SECCION_USA.titulo,
+        filas: filasUsa,
+      })
+    }
   }
 
   return {

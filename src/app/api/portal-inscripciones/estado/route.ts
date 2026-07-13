@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server'
-import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
+import { obtenerCicloEscolarActual, obtenerCicloPorValor } from '@/lib/ciclosEscolaresService'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
 import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import { construirEstadoPortalInscripciones } from '@/lib/portalInscripcionesService'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
 import { formaIngresoPorDefecto } from '@/lib/alumnoFormaIngreso'
+import { cicloCierreValor } from '@/lib/portalCierreCicloAnterior'
+import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const runtime = 'nodejs'
@@ -32,16 +34,44 @@ export async function POST(request: Request) {
     const supabase = createSupabaseAdmin()
     const esReinscrito = formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 0
 
-    // NI: pagos del ciclo de la ficha. Reinscrito: del ciclo en curso (adeudos/cea).
+    // NI: pagos del ciclo de la ficha. Reinscrito: pagos del ciclo destino (reinscripción).
     const cicloPagos = esReinscrito
       ? cicloSistema
       : await resolverCicloPagoInscripcionPortal(alumno, cicloSistema)
     const pagos = await listarPagosColegiaturaAlumno(alumno.alumno_id, cicloPagos.valor)
+
+    let opciones:
+      | {
+          pagosCierre: Awaited<ReturnType<typeof listarPagosColegiaturaAlumno>>
+          cicloCierre: { valor: number; nombre: string }
+        }
+      | undefined
+
+    if (esReinscrito) {
+      const valorCierre = cicloCierreValor(cicloSistema.valor)
+      const cicloCierreReg = await obtenerCicloPorValor(valorCierre)
+      const cicloCierre = cicloCierreReg
+        ? { valor: cicloCierreReg.valor, nombre: cicloCierreReg.nombre }
+        : {
+            valor: valorCierre,
+            nombre: etiquetaCicloEscolar(valorCierre) || String(valorCierre),
+          }
+      const pagosCierre = await listarPagosColegiaturaAlumno(
+        alumno.alumno_id,
+        cicloCierre.valor
+      )
+      opciones = {
+        pagosCierre,
+        cicloCierre,
+      }
+    }
+
     const estado = await construirEstadoPortalInscripciones(
       supabase,
       alumno,
       cicloSistema,
-      pagos
+      pagos,
+      opciones
     )
 
     return NextResponse.json({ ok: true, estado })

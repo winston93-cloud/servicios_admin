@@ -19038,6 +19038,19 @@ html[data-theme='light'] .portal-doc-modal-cerrar:hover {
 
 
 
+
+.portal-inscripciones-cierre-ciclo {
+  border-color: rgba(251, 191, 36, 0.4);
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(245, 158, 11, 0.12), transparent 55%),
+    var(--portal-surface-card, rgba(15, 23, 42, 0.55));
+}
+
+html[data-theme='light'] .portal-inscripciones-cierre-ciclo {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
 /* ── Acordeón proceso completado (portal inscripciones) ───────────────── */
 .portal-inscripciones-proceso-wrap {
   display: flex;

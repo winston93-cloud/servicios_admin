@@ -10,6 +10,7 @@ import {
   parsearReferenciaPago,
 } from './pagoReferenciaColegiatura'
 import { esDeudorReinscrito } from './portalAdmisionesDeudor'
+import { resumenCierreCicloParaReinscrito } from './portalCierreCicloAnterior'
 import {
   evaluarVentanaPortalNuevoIngreso,
   evaluarVentanaPortalReinscrito,
@@ -34,6 +35,7 @@ import type {
   PasoEstadoInscripcion,
   PasoInscripcion,
   ReinscripcionPeriodo,
+  CierreCicloPortal,
 } from './portalInscripcionesTypes'
 
 function pagoVigente(p: PagoDetalleRegistro): boolean {
@@ -122,7 +124,11 @@ export async function construirEstadoPortalInscripciones(
   supabase: AppDatabaseClient,
   alumno: AlumnoRegistro,
   ciclo: CicloEscolarRegistro,
-  pagos: PagoDetalleRegistro[]
+  pagos: PagoDetalleRegistro[],
+  opciones?: {
+    pagosCierre?: PagoDetalleRegistro[]
+    cicloCierre?: { valor: number; nombre: string }
+  }
 ): Promise<EstadoPortalInscripciones> {
   const formaIngreso = formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso)
   const esReinscrito = formaIngreso === 0
@@ -132,6 +138,15 @@ export async function construirEstadoPortalInscripciones(
   let mensajeBloqueo: string | null = null
   let aviso: string | null = null
   let reinscripcionInfo: ReinscripcionPeriodo | null = null
+  let cierreCiclo: CierreCicloPortal | null = null
+
+  if (esReinscrito && opciones?.pagosCierre && opciones.cicloCierre) {
+    cierreCiclo = resumenCierreCicloParaReinscrito(
+      alumno,
+      opciones.pagosCierre,
+      opciones.cicloCierre
+    )
+  }
 
   const solCapturada = await solicitudCapturada(supabase, alumno)
   const calcReinscripcion = esReinscrito
@@ -165,6 +180,8 @@ export async function construirEstadoPortalInscripciones(
   let liberateInfo = false
   let errorPagoPendiente = false
 
+  const debeCerrarCicloAnterior = Boolean(cierreCiclo?.requerido)
+
   if (calcReinscripcion?.graduado) {
     bloqueo = 'egresado'
     mensajeBloqueo =
@@ -176,9 +193,20 @@ export async function construirEstadoPortalInscripciones(
       mensajeBloqueo = statusBloqueo.mensaje
     } else if (
       esReinscrito &&
+      debeCerrarCicloAnterior &&
+      Number(alumno.alumno_status) !== 2
+    ) {
+      bloqueo = 'adeudos'
+      mensajeBloqueo = cierreCiclo
+        ? `Debes liquidar las colegiaturas del ciclo ${cierreCiclo.ciclo.nombre} antes de reinscribirte. Paga un concepto a la vez según tu ${cierreCiclo.planEtiqueta.toLowerCase()}.`
+        : 'Tienes adeudos pendientes. Debes cubrir las colegiaturas requeridas para reinscribirte.'
+    } else if (
+      esReinscrito &&
+      !cierreCiclo &&
       (await esDeudorReinscrito(supabase, alumno, pagos, cea)) &&
       Number(alumno.alumno_status) !== 2
     ) {
+      // Fallback legacy si no llegó info de cierre.
       bloqueo = 'adeudos'
       mensajeBloqueo =
         'Tienes adeudos pendientes. Debes cubrir las colegiaturas requeridas para reinscribirte.'
@@ -488,5 +516,6 @@ export async function construirEstadoPortalInscripciones(
     showPayment,
     solicitudCapturada: solCapturada,
     inscripcionPagada: insPagada,
+    cierreCiclo,
   }
 }

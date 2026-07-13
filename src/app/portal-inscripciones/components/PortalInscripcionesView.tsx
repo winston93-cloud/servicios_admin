@@ -112,9 +112,13 @@ export default function PortalInscripcionesView() {
   const [error, setError] = useState<string | null>(null)
 
   const [matriz, setMatriz] = useState<MatrizPortalPagos | null>(null)
+  const [matrizCierre, setMatrizCierre] = useState<MatrizPortalPagos | null>(null)
   const [cargandoMatriz, setCargandoMatriz] = useState(false)
+  const [cargandoMatrizCierre, setCargandoMatrizCierre] = useState(false)
   const [errorMatriz, setErrorMatriz] = useState<string | null>(null)
+  const [errorMatrizCierre, setErrorMatrizCierre] = useState<string | null>(null)
   const colegiaturasRef = useRef<HTMLElement>(null)
+  const cierreRef = useRef<HTMLElement>(null)
 
   const cargar = useCallback(async () => {
     if (alumnoId == null) {
@@ -177,6 +181,37 @@ export default function PortalInscripcionesView() {
     setCargandoMatriz(false)
   }, [alumnoId])
 
+  const cargarMatrizCierre = useCallback(
+    async (cicloValor: number) => {
+      if (alumnoId == null) return
+      setCargandoMatrizCierre(true)
+      setErrorMatrizCierre(null)
+      try {
+        const res = await fetch('/api/portal-pagos/matriz', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            alumnoId,
+            cicloValor,
+            soloColegiatura: true,
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setMatrizCierre(null)
+          setErrorMatrizCierre(data.error ?? 'No se pudo cargar el cierre de ciclo.')
+        } else {
+          setMatrizCierre(data.matriz)
+        }
+      } catch {
+        setMatrizCierre(null)
+        setErrorMatrizCierre('Error de conexión al cargar el cierre de ciclo.')
+      }
+      setCargandoMatrizCierre(false)
+    },
+    [alumnoId]
+  )
+
   useEffect(() => {
     void cargar()
   }, [cargar])
@@ -189,18 +224,25 @@ export default function PortalInscripcionesView() {
     return aplicarReciboFinalVistoEnEstado(conReglamento, reciboFinalVisto)
   }, [estado, reglamentoVisto, reciboFinalVisto])
 
+  const cierrePendiente = Boolean(
+    estadoVista?.cierreCiclo?.requerido && !estadoVista.cierreCiclo.liquidado
+  )
+  const cicloCierreValorUi = estadoVista?.cierreCiclo?.ciclo.valor ?? null
+
   const reciboPaso = estadoVista?.pasos.find((p) => p.id === 'recibo-final') ?? null
   const reciboCompletado = reciboPaso?.estado === 'completado'
   // NI: colegiaturas solo tras abrir el recibo final 1 vez.
-  // Reinscritos: siguen viendo colegiaturas del ciclo vigente sin ese candado.
+  // Reinscritos: colegiaturas del ciclo vigente solo si ya liquidaron el cierre.
   const colegiaturasDesbloqueadas = Boolean(
     estadoVista &&
       !estadoVista.bloqueo &&
+      !cierrePendiente &&
       (esReinscrito || reciboCompletado)
   )
 
   const procesoCompleto = Boolean(
     estadoVista &&
+      !cierrePendiente &&
       estadoVista.pasos.length > 0 &&
       estadoVista.pasos.every((p) => p.estado === 'completado')
   )
@@ -208,6 +250,19 @@ export default function PortalInscripcionesView() {
   useEffect(() => {
     if (colegiaturasDesbloqueadas) void cargarMatriz()
   }, [colegiaturasDesbloqueadas, cargarMatriz])
+
+  useEffect(() => {
+    if (cierrePendiente && cicloCierreValorUi != null) {
+      void cargarMatrizCierre(cicloCierreValorUi)
+    } else {
+      setMatrizCierre(null)
+    }
+  }, [cierrePendiente, cicloCierreValorUi, cargarMatrizCierre])
+
+  const refrescarTrasPagoCierre = useCallback(async () => {
+    await cargar()
+    if (cicloCierreValorUi != null) await cargarMatrizCierre(cicloCierreValorUi)
+  }, [cargar, cargarMatrizCierre, cicloCierreValorUi])
 
   const marcarReglamentoConsultado = useCallback(() => {
     if (alumnoId == null || !estado?.ciclo?.valor) return
@@ -317,7 +372,55 @@ export default function PortalInscripcionesView() {
           </div>
         )}
 
-        {estadoVista && (
+        {estadoVista && cierrePendiente && estadoVista.cierreCiclo && (
+          <section
+            ref={cierreRef}
+            id="cierre-ciclo"
+            className="portal-inscripciones-colegiaturas-seccion portal-inscripciones-cierre-ciclo"
+            aria-label={`Cierre de ciclo ${estadoVista.cierreCiclo.ciclo.nombre}`}
+          >
+            <div className="portal-inscripciones-colegiaturas-head">
+              <div>
+                <h2 className="portal-inscripciones-colegiaturas-titulo">
+                  Cierre de ciclo {estadoVista.cierreCiclo.ciclo.nombre}
+                </h2>
+                <p className="portal-inscripciones-colegiaturas-sub">
+                  Liquida las colegiaturas pendientes de este ciclo (un pago a la vez) para
+                  habilitar tu reinscripción.
+                </p>
+              </div>
+              <span className="portal-inscripciones-plan-badge">
+                {estadoVista.cierreCiclo.planEtiqueta}
+              </span>
+            </div>
+
+            {cargandoMatrizCierre && !matrizCierre ? (
+              <div className="portal-inscripciones-estado" role="status">
+                <RefreshCw size={20} className="portal-inscripciones-spin" aria-hidden />
+                Cargando pagos del ciclo a cerrar…
+              </div>
+            ) : errorMatrizCierre ? (
+              <div
+                className="portal-inscripciones-alerta portal-inscripciones-alerta--error"
+                role="alert"
+              >
+                {errorMatrizCierre}
+              </div>
+            ) : matrizCierre ? (
+              <PortalColegiaturasSecciones
+                alumnoId={matrizCierre.alumno.alumno_id}
+                ciclo={matrizCierre.ciclo}
+                alumno={matrizCierre.alumno}
+                secciones={matrizCierre.secciones}
+                displayName={session?.displayName}
+                cargando={cargandoMatrizCierre}
+                onActualizar={() => void refrescarTrasPagoCierre()}
+              />
+            ) : null}
+          </section>
+        )}
+
+        {estadoVista && !cierrePendiente && (
           <>
             {procesoCompleto ? (
               <div className="portal-inscripciones-proceso-wrap">

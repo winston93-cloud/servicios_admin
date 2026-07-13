@@ -42,6 +42,14 @@ export interface ReinscripcionPeriodo {
   diferido: 1 | 2 | null
 }
 
+export interface CierreCicloPortal {
+  /** True si aún debe liquidar el ciclo anterior antes de reinscribirse. */
+  requerido: boolean
+  liquidado: boolean
+  ciclo: { valor: number; nombre: string }
+  planEtiqueta: string
+}
+
 export interface EstadoPortalInscripciones {
   alumno: AlumnoRegistro
   ciclo: CicloEscolarRegistro
@@ -63,4 +71,6 @@ export interface EstadoPortalInscripciones {
   showPayment?: boolean
   solicitudCapturada?: boolean
   inscripcionPagada?: boolean
+  /** Reinscritos: liquidar ciclo anterior antes de la admisión. NI = null. */
+  cierreCiclo?: CierreCicloPortal | null
 }
