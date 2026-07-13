@@ -1,0 +1,205 @@
+import { NextResponse } from 'next/server'
+import { createInsforgeAdmin } from '@/lib/insforgeAdmin'
+import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
+import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
+import { formaIngresoPorDefecto } from '@/lib/alumnoFormaIngreso'
+import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
+import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
+import {
+  enviarDocumentosNiDesdeStorage,
+  obtenerUltimoEnvioDocumentosNi,
+  subirDocumentoNiTemporal,
+  validarArchivoPdf,
+  type DocumentoNiSubidaTemp,
+} from '@/lib/portalDocumentosNiService'
+import {
+  DOCUMENTOS_NI_TIPOS,
+  correoControlEscolarPorNivel,
+  esDocumentoNiTipoId,
+} from '@/lib/portalDocumentosNiTipos'
+
+export const runtime = 'nodejs'
+
+function nombreAlumno(a: {
+  alumno_nombre?: string | null
+  alumno_app?: string | null
+  alumno_apm?: string | null
+}): string {
+  return `${a.alumno_nombre ?? ''} ${a.alumno_app ?? ''} ${a.alumno_apm ?? ''}`.trim() || 'Alumno'
+}
+
+async function contextoNi(alumnoId: number) {
+  const auth = await validarAlumnoPortal(alumnoId)
+  if (!auth.ok) return { ok: false as const, response: auth.response }
+
+  if (formaIngresoPorDefecto(auth.alumno.alumno_nuevo_ingreso) === 0) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { error: 'La carga de documentos solo aplica a nuevo ingreso.' },
+        { status: 403 }
+      ),
+    }
+  }
+
+  const cicloSistema = await obtenerCicloEscolarActual()
+  if (!cicloSistema) {
+    return {
+      ok: false as const,
+      response: NextResponse.json({ error: 'No hay ciclo escolar vigente.' }, { status: 503 }),
+    }
+  }
+
+  const ciclo = await resolverCicloPagoInscripcionPortal(auth.alumno, cicloSistema)
+  const nivel = Number(auth.alumno.alumno_nivel)
+  if (!correoControlEscolarPorNivel(nivel)) {
+    return {
+      ok: false as const,
+      response: NextResponse.json(
+        { error: 'Nivel escolar no válido para el envío.' },
+        { status: 400 }
+      ),
+    }
+  }
+
+  return { ok: true as const, alumno: auth.alumno, ciclo, nivel }
+}
+
+export async function GET(request: Request) {
+  try {
+    const alumnoId = Number(new URL(request.url).searchParams.get('alumnoId'))
+    const ctx = await contextoNi(alumnoId)
+    if (!ctx.ok) return ctx.response
+
+    const client = createInsforgeAdmin()
+    const envio = await obtenerUltimoEnvioDocumentosNi(
+      client.database,
+      alumnoId,
+      Number(ctx.ciclo.valor)
+    )
+
+    return NextResponse.json({
+      ok: true,
+      alumno: {
+        alumnoId: ctx.alumno.alumno_id,
+        alumnoRef: ctx.alumno.alumno_ref,
+        nombre: nombreAlumno(ctx.alumno),
+        nivel: ctx.nivel,
+        nivelEtiqueta: etiquetaNivelEscolar(ctx.nivel),
+      },
+      ciclo: { valor: ctx.ciclo.valor, nombre: ctx.ciclo.nombre },
+      requisitos: DOCUMENTOS_NI_TIPOS,
+      correoDestino: correoControlEscolarPorNivel(ctx.nivel),
+      enviado: Boolean(envio),
+      envio: envio
+        ? {
+            id: envio.id,
+            enviadoAt: envio.enviado_at,
+            correoDestino: envio.correo_destino,
+            documentos: envio.documentos,
+          }
+        : null,
+    })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Error al cargar documentos'
+    console.error('portal-inscripciones/documentos GET:', e)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
+}
+
+/** Sube un solo PDF (evita el límite de 4.5 MB de Vercel al enviar los 5 juntos). */
+export async function PUT(request: Request) {
+  try {
+    const form = await request.formData()
+    const alumnoId = Number(form.get('alumnoId'))
+    const tipoRaw = String(form.get('tipo') ?? '')
+    const file = form.get('archivo')
+
+    const ctx = await contextoNi(alumnoId)
+    if (!ctx.ok) return ctx.response
+
+    if (!(file instanceof File)) {
+      return NextResponse.json({ error: 'archivo PDF requerido' }, { status: 400 })
+    }
+
+    const check = validarArchivoPdf(file, tipoRaw)
+    if (!check.ok) {
+      return NextResponse.json({ error: check.error }, { status: 400 })
+    }
+
+    const client = createInsforgeAdmin()
+    const subida = await subirDocumentoNiTemporal({
+      client,
+      alumnoId: ctx.alumno.alumno_id,
+      cicloValor: Number(ctx.ciclo.valor),
+      tipo: check.tipo,
+      buffer: Buffer.from(await file.arrayBuffer()),
+      nombreArchivo: file.name,
+    })
+
+    return NextResponse.json({ ok: true, subida })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Error al subir documento'
+    console.error('portal-inscripciones/documentos PUT:', e)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
+}
+
+/** Confirma los 5 archivos ya subidos y los envía por correo a control escolar. */
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+    const alumnoId = Number(body.alumnoId)
+    const subidasRaw = Array.isArray(body.subidas) ? body.subidas : []
+
+    const ctx = await contextoNi(alumnoId)
+    if (!ctx.ok) return ctx.response
+
+    const subidas: DocumentoNiSubidaTemp[] = []
+    for (const item of subidasRaw) {
+      const tipo = String(item?.tipo ?? '')
+      if (!esDocumentoNiTipoId(tipo)) {
+        return NextResponse.json({ error: `Tipo inválido: ${tipo}` }, { status: 400 })
+      }
+      const storageKey = String(item?.storageKey ?? '')
+      if (!storageKey) {
+        return NextResponse.json({ error: `Falta storageKey para ${tipo}` }, { status: 400 })
+      }
+      subidas.push({
+        tipo,
+        etiqueta: String(item?.etiqueta ?? tipo),
+        nombreArchivo: String(item?.nombreArchivo ?? `${tipo}.pdf`),
+        storageKey,
+        storageUrl: String(item?.storageUrl ?? ''),
+        size: Number(item?.size) || 0,
+      })
+    }
+
+    const client = createInsforgeAdmin()
+    const envio = await enviarDocumentosNiDesdeStorage({
+      client,
+      alumnoId: ctx.alumno.alumno_id,
+      alumnoRef: Number(ctx.alumno.alumno_ref),
+      alumnoNombre: nombreAlumno(ctx.alumno),
+      nivel: ctx.nivel,
+      cicloValor: Number(ctx.ciclo.valor),
+      cicloNombre: ctx.ciclo.nombre,
+      subidas,
+    })
+
+    return NextResponse.json({
+      ok: true,
+      enviado: true,
+      envio: {
+        id: envio.id,
+        enviadoAt: envio.enviado_at,
+        correoDestino: envio.correo_destino,
+        documentos: envio.documentos,
+      },
+    })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Error al enviar documentos'
+    console.error('portal-inscripciones/documentos POST:', e)
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
+}

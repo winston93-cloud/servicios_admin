@@ -15,8 +15,8 @@ import {
   evaluarVentanaPortalReinscrito,
   puedeVerPasosInscripcion,
 } from './portalAdmisionesEstadoService'
-import { generarUrlPortalDocumentos } from './portalAdmisionesJwt'
 import { urlReglamentoEscolarLegacy } from './portalAdmisionesConfig'
+import { documentosNiYaEnviados } from './portalDocumentosNiService'
 import {
   hrefReglamentoArchivo,
   obtenerReglamento,
@@ -290,7 +290,19 @@ export async function construirEstadoPortalInscripciones(
   if (!urlReglamento) {
     urlReglamento = urlReglamentoEscolarLegacy(nivelReglamento, cicloReglamento)
   }
-  const urlDocumentos = generarUrlPortalDocumentos(alumno.alumno_ref)
+
+  let docsEnviados = false
+  if (!esReinscrito) {
+    try {
+      docsEnviados = await documentosNiYaEnviados(
+        supabase,
+        alumno.alumno_id,
+        Number(cicloPago)
+      )
+    } catch {
+      docsEnviados = false
+    }
+  }
 
   let montoInscripcion: number | null = null
   if (flujoActivo && solCapturada && !insPagada && showPayment) {
@@ -391,19 +403,26 @@ export async function construirEstadoPortalInscripciones(
   })
 
   if (!esReinscrito) {
+    const docsDisponibles = Boolean(pasosVisibles && solCapturada && insPagada)
     pasos.push({
       id: 'documentos',
       orden: 4,
       titulo: 'Carga de documentos',
-      descripcion: 'Solo alumnos de nuevo ingreso: expediente digital.',
-      estado: resolverEstadoPaso(false, pasosVisibles && solCapturada && insPagada),
-      detalle: urlDocumentos
-        ? 'Accede al portal seguro de carga de documentos (enlace con vigencia de 1 hora).'
-        : 'Configura JWT_DOCUMENTOS_SECRET en el servidor para habilitar el enlace.',
-      accion:
-        pasosVisibles && solCapturada && insPagada && urlDocumentos
-          ? { tipo: 'externo', href: urlDocumentos, etiqueta: 'Cargar documentos' }
-          : null,
+      descripcion:
+        'Sube en PDF el acta, CURP, CURP de mamá/papá, constancia de no adeudo y carta de buena conducta.',
+      estado: resolverEstadoPaso(docsEnviados, docsDisponibles),
+      detalle: docsEnviados
+        ? 'Documentos enviados a control escolar. Puedes volver a cargarlos si necesitas actualizarlos.'
+        : docsDisponibles
+          ? 'Carga los 5 PDF y se enviarán automáticamente al correo de control escolar de tu nivel.'
+          : 'Se habilita al completar la solicitud y el pago de inscripción.',
+      accion: docsDisponibles
+        ? {
+            tipo: 'ruta-interna',
+            href: '/portal-inscripciones/documentos',
+            etiqueta: docsEnviados ? 'Ver o actualizar documentos' : 'Cargar documentos',
+          }
+        : null,
     })
   }
 
