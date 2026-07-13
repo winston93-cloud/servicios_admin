@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { Eye, EyeOff } from 'lucide-react'
 import { loginPortal } from '@/lib/portalAuthService'
 import { useAuth } from '@/contexts/AuthContext'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -16,6 +17,9 @@ export default function LoginPage() {
   const [claveRef, setClaveRef] = useState('')
   const [claveNueva, setClaveNueva] = useState('')
   const [claveConfirmacion, setClaveConfirmacion] = useState('')
+  const [mostrarPassword, setMostrarPassword] = useState(false)
+  const [mostrarClaveNueva, setMostrarClaveNueva] = useState(false)
+  const [mostrarClaveConfirm, setMostrarClaveConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [exito, setExito] = useState('')
@@ -206,16 +210,31 @@ export default function LoginPage() {
                 <label htmlFor="portal-password" className="portal-access-label">
                   Clave de acceso
                 </label>
-                <input
-                  id="portal-password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Tu clave secreta"
-                  className="portal-access-input"
-                  disabled={loading}
-                  autoComplete="current-password"
-                />
+                <div className="portal-access-clave-fila">
+                  <input
+                    id="portal-password"
+                    type={mostrarPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Tu clave secreta"
+                    className="portal-access-input"
+                    disabled={loading}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    className="portal-access-clave-btn"
+                    onClick={() => setMostrarPassword((v) => !v)}
+                    aria-label={mostrarPassword ? 'Ocultar clave' : 'Ver clave'}
+                    aria-pressed={mostrarPassword}
+                  >
+                    {mostrarPassword ? (
+                      <EyeOff size={18} aria-hidden />
+                    ) : (
+                      <Eye size={18} aria-hidden />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {error && (
@@ -270,32 +289,64 @@ export default function LoginPage() {
                 <label htmlFor="clave-nueva" className="portal-access-label">
                   Nueva clave
                 </label>
-                <input
-                  id="clave-nueva"
-                  type="password"
-                  value={claveNueva}
-                  onChange={(e) => setClaveNueva(e.target.value)}
-                  placeholder="Mínimo 5 caracteres"
-                  className="portal-access-input"
-                  disabled={loading}
-                  autoComplete="new-password"
-                />
+                <div className="portal-access-clave-fila">
+                  <input
+                    id="clave-nueva"
+                    type={mostrarClaveNueva ? 'text' : 'password'}
+                    value={claveNueva}
+                    onChange={(e) => setClaveNueva(e.target.value)}
+                    placeholder="Mínimo 5 caracteres"
+                    className="portal-access-input"
+                    disabled={loading}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    className="portal-access-clave-btn"
+                    onClick={() => setMostrarClaveNueva((v) => !v)}
+                    aria-label={mostrarClaveNueva ? 'Ocultar clave' : 'Ver clave'}
+                    aria-pressed={mostrarClaveNueva}
+                  >
+                    {mostrarClaveNueva ? (
+                      <EyeOff size={18} aria-hidden />
+                    ) : (
+                      <Eye size={18} aria-hidden />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="portal-access-field">
                 <label htmlFor="clave-confirm" className="portal-access-label">
                   Confirmar clave
                 </label>
-                <input
-                  id="clave-confirm"
-                  type="password"
-                  value={claveConfirmacion}
-                  onChange={(e) => setClaveConfirmacion(e.target.value)}
-                  placeholder="Repite tu clave"
-                  className="portal-access-input"
-                  disabled={loading}
-                  autoComplete="new-password"
-                />
+                <div className="portal-access-clave-fila">
+                  <input
+                    id="clave-confirm"
+                    type={mostrarClaveConfirm ? 'text' : 'password'}
+                    value={claveConfirmacion}
+                    onChange={(e) => setClaveConfirmacion(e.target.value)}
+                    placeholder="Repite tu clave"
+                    className="portal-access-input"
+                    disabled={loading}
+                    autoComplete="new-password"
+                  />
+                  <button
+                    type="button"
+                    className="portal-access-clave-btn"
+                    onClick={() => setMostrarClaveConfirm((v) => !v)}
+                    aria-label={
+                      mostrarClaveConfirm ? 'Ocultar confirmación' : 'Ver confirmación'
+                    }
+                    aria-pressed={mostrarClaveConfirm}
+                  >
+                    {mostrarClaveConfirm ? (
+                      <EyeOff size={18} aria-hidden />
+                    ) : (
+                      <Eye size={18} aria-hidden />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {error && (

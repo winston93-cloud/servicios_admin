@@ -23,6 +23,19 @@ async function obtenerAlumnoActivoPorRef(
   return data
 }
 
+/** `detalle_id` no siempre usa DEFAULT; si la secuencia va atrasada, hay que asignar max+1. */
+async function siguienteDetalleId(db: AppDatabaseClient): Promise<number> {
+  const { data, error } = await db
+    .from('alumno_detalles')
+    .select('detalle_id')
+    .order('detalle_id', { ascending: false })
+    .limit(1)
+
+  if (error) throw new Error(error.message)
+  const max = data?.[0]?.detalle_id != null ? Number(data[0].detalle_id) : 0
+  return max + 1
+}
+
 /**
  * Activa la clave del alumno en `alumno_detalles.alumno_clave` (legacy admisiones).
  * Solo si aún no tiene clave de al menos 5 caracteres.
@@ -89,9 +102,12 @@ export async function registrarClaveAlumnoPortal(
 
     if (errUpdate) throw new Error(errUpdate.message)
   } else {
-    const { error: errInsert } = await db
-      .from('alumno_detalles')
-      .insert({ alumno_id: alumno.alumno_id, alumno_clave: clave })
+    const detalleId = await siguienteDetalleId(db)
+    const { error: errInsert } = await db.from('alumno_detalles').insert({
+      detalle_id: detalleId,
+      alumno_id: alumno.alumno_id,
+      alumno_clave: clave,
+    })
 
     if (errInsert) throw new Error(errInsert.message)
   }

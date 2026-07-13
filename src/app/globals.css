@@ -15156,6 +15156,42 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   color: #64748b;
 }
 
+.portal-access-clave-fila {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.portal-access-clave-fila .portal-access-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.portal-access-clave-btn {
+  flex-shrink: 0;
+  width: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.55);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.portal-access-clave-btn:hover {
+  color: #e2e8f0;
+  border-color: rgba(250, 204, 21, 0.4);
+  background: rgba(250, 204, 21, 0.08);
+}
+
+.portal-access-clave-btn:focus-visible {
+  outline: 2px solid rgba(250, 204, 21, 0.55);
+  outline-offset: 2px;
+}
+
 .portal-access-input:focus {
   outline: none;
   border-color: var(--winston-cyan);
