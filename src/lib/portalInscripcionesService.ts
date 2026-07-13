@@ -409,12 +409,12 @@ export async function construirEstadoPortalInscripciones(
       orden: 4,
       titulo: 'Carga de documentos',
       descripcion:
-        'Sube en PDF el acta, CURP, CURP de mamá/papá, constancia de no adeudo y carta de buena conducta.',
+        'Sube en PDF los documentos que pide control escolar según el nivel del alumno.',
       estado: resolverEstadoPaso(docsEnviados, docsDisponibles),
       detalle: docsEnviados
         ? 'Documentos enviados a control escolar. Puedes volver a cargarlos si necesitas actualizarlos.'
         : docsDisponibles
-          ? 'Carga los 5 PDF y se enviarán automáticamente al correo de control escolar de tu nivel.'
+          ? 'Carga los PDF requeridos; se enviarán al correo de control escolar de tu nivel.'
           : 'Se habilita al completar la solicitud y el pago de inscripción.',
       accion: docsDisponibles
         ? {

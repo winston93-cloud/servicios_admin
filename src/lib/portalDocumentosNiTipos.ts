@@ -30,6 +30,37 @@ export const DOCUMENTOS_NI_TIPOS = [
 
 export type DocumentoNiTipoId = (typeof DOCUMENTOS_NI_TIPOS)[number]['id']
 
+/** Maternal solo acta + CURP; el resto de niveles pide el expediente completo. */
+const DOCUMENTOS_NI_POR_NIVEL: Record<number, readonly DocumentoNiTipoId[]> = {
+  1: ['acta_nacimiento', 'curp_alumno'],
+  2: [
+    'acta_nacimiento',
+    'curp_alumno',
+    'curp_tutor',
+    'constancia_no_adeudo',
+    'carta_buena_conducta',
+  ],
+  3: [
+    'acta_nacimiento',
+    'curp_alumno',
+    'curp_tutor',
+    'constancia_no_adeudo',
+    'carta_buena_conducta',
+  ],
+  4: [
+    'acta_nacimiento',
+    'curp_alumno',
+    'curp_tutor',
+    'constancia_no_adeudo',
+    'carta_buena_conducta',
+  ],
+}
+
+export function documentosNiRequeridosPorNivel(nivel: number) {
+  const ids = DOCUMENTOS_NI_POR_NIVEL[nivel] ?? DOCUMENTOS_NI_POR_NIVEL[3]
+  return DOCUMENTOS_NI_TIPOS.filter((d) => ids.includes(d.id))
+}
+
 export const DOCUMENTOS_NI_MAX_BYTES = 4 * 1024 * 1024
 export const DOCUMENTOS_NI_BUCKET = 'portal-documentos-ni'
 

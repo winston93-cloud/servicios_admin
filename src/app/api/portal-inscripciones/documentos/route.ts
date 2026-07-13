@@ -13,7 +13,7 @@ import {
   type DocumentoNiSubidaTemp,
 } from '@/lib/portalDocumentosNiService'
 import {
-  DOCUMENTOS_NI_TIPOS,
+  documentosNiRequeridosPorNivel,
   correoControlEscolarPorNivel,
   esDocumentoNiTipoId,
 } from '@/lib/portalDocumentosNiTipos'
@@ -88,7 +88,7 @@ export async function GET(request: Request) {
         nivelEtiqueta: etiquetaNivelEscolar(ctx.nivel),
       },
       ciclo: { valor: ctx.ciclo.valor, nombre: ctx.ciclo.nombre },
-      requisitos: DOCUMENTOS_NI_TIPOS,
+      requisitos: documentosNiRequeridosPorNivel(ctx.nivel),
       correoDestino: correoControlEscolarPorNivel(ctx.nivel),
       enviado: Boolean(envio),
       envio: envio
@@ -107,7 +107,7 @@ export async function GET(request: Request) {
   }
 }
 
-/** Sube un solo PDF (evita el límite de 4.5 MB de Vercel al enviar los 5 juntos). */
+/** Sube un solo PDF (evita el límite de 4.5 MB de Vercel al mandar varios juntos). */
 export async function PUT(request: Request) {
   try {
     const form = await request.formData()
@@ -125,6 +125,14 @@ export async function PUT(request: Request) {
     const check = validarArchivoPdf(file, tipoRaw)
     if (!check.ok) {
       return NextResponse.json({ error: check.error }, { status: 400 })
+    }
+
+    const requeridos = documentosNiRequeridosPorNivel(ctx.nivel)
+    if (!requeridos.some((r) => r.id === check.tipo)) {
+      return NextResponse.json(
+        { error: 'Ese documento no es requerido para este nivel.' },
+        { status: 400 }
+      )
     }
 
     const client = createInsforgeAdmin()
@@ -145,7 +153,7 @@ export async function PUT(request: Request) {
   }
 }
 
-/** Confirma los 5 archivos ya subidos y los envía por correo a control escolar. */
+/** Confirma los archivos ya subidos y los envía por correo a control escolar. */
 export async function POST(request: Request) {
   try {
     const body = await request.json()

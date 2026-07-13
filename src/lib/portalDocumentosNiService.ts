@@ -4,8 +4,8 @@ import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import {
   DOCUMENTOS_NI_BUCKET,
   DOCUMENTOS_NI_MAX_BYTES,
-  DOCUMENTOS_NI_TIPOS,
   correoDocumentosNiEfectivo,
+  documentosNiRequeridosPorNivel,
   esDocumentoNiTipoId,
   etiquetaDocumentoNi,
   type DocumentoNiTipoId,
@@ -205,7 +205,8 @@ export async function enviarDocumentosNiDesdeStorage(opts: {
   }
 
   const porTipo = new Map(opts.subidas.map((s) => [s.tipo, s]))
-  for (const tipo of DOCUMENTOS_NI_TIPOS) {
+  const requeridos = documentosNiRequeridosPorNivel(opts.nivel)
+  for (const tipo of requeridos) {
     if (!porTipo.has(tipo.id)) {
       throw new Error(`Falta el documento: ${tipo.etiqueta}`)
     }
@@ -214,7 +215,7 @@ export async function enviarDocumentosNiDesdeStorage(opts: {
   const metas: DocumentoNiArchivoMeta[] = []
   const adjuntos: { filename: string; content: Buffer; contentType: string }[] = []
 
-  for (const tipo of DOCUMENTOS_NI_TIPOS) {
+  for (const tipo of requeridos) {
     const subida = porTipo.get(tipo.id)!
     if (!storageKeyPerteneceAlumno(subida.storageKey, opts.cicloValor, opts.alumnoId)) {
       throw new Error(`Archivo inválido para ${tipo.etiqueta}`)

@@ -15,7 +15,6 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import {
   DOCUMENTOS_NI_MAX_BYTES,
-  DOCUMENTOS_NI_TIPOS,
   type DocumentoNiTipoId,
 } from '@/lib/portalDocumentosNiTipos'
 
@@ -113,7 +112,7 @@ export default function PortalDocumentosNiView() {
     void cargar()
   }, [cargar])
 
-  const requisitos = estado?.requisitos ?? [...DOCUMENTOS_NI_TIPOS]
+  const requisitos = estado?.requisitos ?? []
 
   const listos = useMemo(
     () => requisitos.every((r) => Boolean(subidas[r.id])),
@@ -223,8 +222,7 @@ export default function PortalDocumentosNiView() {
             <p className="portal-inscripciones-kicker">Paso 04 · Nuevo ingreso</p>
             <h1 className="portal-inscripciones-titulo">Carga de documentos</h1>
             <p className="portal-inscripciones-lead">
-              Sube los 5 PDF requeridos. Al enviar, se mandan por correo a control escolar según el
-              nivel del alumno.
+              Sube los PDF que pide tu nivel. Al enviar, se mandan por correo a control escolar.
             </p>
           </div>
         </header>
@@ -385,7 +383,8 @@ export default function PortalDocumentosNiView() {
               </button>
               {!listos && (
                 <p className="portal-docs-hint">
-                  Sube los 5 PDF para habilitar el envío.
+                  Sube {requisitos.length === 1 ? 'el PDF' : `los ${requisitos.length} PDF`} para
+                  habilitar el envío.
                 </p>
               )}
             </div>
