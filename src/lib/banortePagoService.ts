@@ -123,11 +123,18 @@ export interface ResultadoRegistroPagoBanorte {
   ok: boolean
   mensaje: string
   duplicado?: boolean
+  factura?: {
+    ok: boolean
+    mensaje: string
+    uuid?: string
+    pdfUrl?: string | null
+    xmlUrl?: string | null
+  }
 }
 
 /**
- * Registra pago en Supabase tras Payworks exitoso.
- * Facturación CFDI: en pausa (no se timbra aquí).
+ * Registra pago en InsForge tras Payworks exitoso y intenta timbrar CFDI.
+ * Si el PAC falla, el pago queda registrado (facturo vacío) para reintento admin.
  */
 export async function registrarPagoBanorteExitoso(
   supabase: AppDatabaseClient,
@@ -183,9 +190,57 @@ export async function registrarPagoBanorteExitoso(
 
   await supabase.from('banorte_pago_pendiente').delete().eq('referencia', ref)
 
+  const factura = await intentarTimbrarTrasBanorte(supabase, ref)
+
   return {
     ok: true,
-    mensaje: 'Pago registrado correctamente. La factura se emitirá cuando el proceso esté activo.',
+    mensaje: factura.ok
+      ? 'Pago registrado y factura electrónica emitida.'
+      : `Pago registrado correctamente. ${factura.mensaje}`,
+    factura,
+  }
+}
+
+async function intentarTimbrarTrasBanorte(
+  supabase: AppDatabaseClient,
+  referencia: string
+): Promise<NonNullable<ResultadoRegistroPagoBanorte['factura']>> {
+  try {
+    const { pacConfigurado, timbrarReferencia } = await import('./cfdi/cfdiTimbradoService')
+    if (!pacConfigurado()) {
+      return {
+        ok: false,
+        mensaje:
+          'La factura queda pendiente: faltan credenciales PAC en el servidor. Puede timbrarse desde administración.',
+      }
+    }
+    const r = await timbrarReferencia(
+      supabase,
+      referencia,
+      'Comercio Electronico',
+      'banorte-ce'
+    )
+    if (r.ok) {
+      return {
+        ok: true,
+        mensaje: r.uuid ? `CFDI UUID ${r.uuid}` : r.mensaje,
+        uuid: r.uuid,
+        pdfUrl: r.pdfUrl,
+        xmlUrl: r.xmlUrl,
+      }
+    }
+    console.error('Banorte CFDI:', r.codigo, r.mensaje, r.errorTecnico)
+    return {
+      ok: false,
+      mensaje: `Factura pendiente (${r.codigo ?? 'PAC'}): ${r.mensaje}. El cargo sí quedó registrado.`,
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Error al timbrar'
+    console.error('Banorte CFDI exception:', msg)
+    return {
+      ok: false,
+      mensaje: `Factura pendiente: ${msg}. El cargo sí quedó registrado.`,
+    }
   }
 }
 

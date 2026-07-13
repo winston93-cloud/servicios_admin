@@ -22,6 +22,8 @@ export interface CfdiTimbradoResultado {
   uuid?: string
   emisor: CfdiEmisorClave
   errorTecnico?: string
+  pdfUrl?: string | null
+  xmlUrl?: string | null
 }
 
 export interface CfdiTimbradoLoteResultado {

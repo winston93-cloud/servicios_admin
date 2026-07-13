@@ -53,10 +53,17 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 
 ### Pendiente para terminar el sistema nuevo
 
-1. **Storage XML/PDF** — Bucket `cfdi` en InsForge; persistir archivos tras timbrado y nota de crédito (hoy solo rutas legacy en auditoría).
-2. **Pruebas PAC en Vercel** — Smoke test de las 6 operaciones en preview/prod; si 401, renovar bearer FacturoPorTi.
-3. **Logo Churchill** — `FACTUROPORTI_CHURCHILL_LOGO_BASE64` (falta `escudo.png` en legacy); opcional.
-4. **Reporte contadores** — Sustituir `winston93.edu.mx/xml` (Fase 5).
+1. **Pruebas PAC en Vercel** — Smoke test Banorte CE + timbrado; si 401, renovar bearer FacturoPorTi.
+2. **Logo Churchill** — `FACTUROPORTI_CHURCHILL_LOGO_BASE64` (falta `escudo.png` en legacy); opcional.
+3. **Reporte contadores** — Sustituir `winston93.edu.mx/xml` (Fase 5).
+4. **Nota de crédito** — Persistencia XML/PDF en bucket `cfdi` (timbrado Banorte/admin ya sube a Storage).
+
+### Hecho reciente (Banorte CE + Storage)
+
+- Bucket InsForge `cfdi` (público).
+- Tras pago Banorte aprobado: `timbrarReferencia` + upload XML/PDF; falló PAC → pago queda, factura pendiente.
+- Proxy `/api/facturacion/archivo?f=factura….pdf|xml` (Storage → fallback hosting legacy).
+- Portal matriz abre facturas vía ese proxy.
 
 ### Go-live (cuando Mario lo pida)
 

@@ -23,8 +23,9 @@ No se usa un proyecto InsForge aparte: mismo backend que pagos y alumnos.
 - [x] Portal papás `/portal-facturacion` → InsForge (reemplaza `pagos/guardar_alumno.php`)
 - [x] `datos_facturacion` en manifiesto de migración MySQL → InsForge
 - [x] Migración inicial desde MySQL (625 registros)
+- [x] Bucket Storage `cfdi` para XML/PDF
+- [x] Persistencia tras timbrado (admin + Banorte CE automático)
 - [ ] Re-sync `datos_facturacion` al go-live (pedido por Mario en ese momento)
-- [ ] Bucket Storage `cfdi` para XML/PDF (opcional hasta Fase 5)
 
 ## Fase 3 — Timbrado core ✅
 
@@ -32,8 +33,9 @@ No se usa un proyecto InsForge aparte: mismo backend que pagos y alumnos.
 - [x] API `POST /api/facturacion/timbrar` — individual, por mes, público en general
 - [x] UI mes / individual / público general (tema Totality)
 - [x] `pago_detalle.facturo` + auditoría `cfdi_timbrado`
-- [x] Credenciales PAC en Vercel
-- [ ] Persistir XML/PDF en Storage
+- [x] Persistir XML/PDF en Storage (`cfdi`)
+- [x] Timbrado automático post Banorte CE (`registrarPagoBanorteExitoso`)
+- [ ] Smoke PAC en Vercel / preview
 
 ## Fase 4 — Operaciones SAT ✅
 

@@ -68,6 +68,9 @@ export function htmlResultadoBanorte(opts: {
   mensaje: string
   referencia?: string
   detalle?: string
+  facturaPdf?: string | null
+  facturaXml?: string | null
+  facturaPendiente?: string | null
 }): string {
   const clase = opts.exito ? 'banorte-result--ok' : 'banorte-result--error'
   const ref = opts.referencia
@@ -76,6 +79,25 @@ export function htmlResultadoBanorte(opts: {
   const detalle = opts.detalle ? `<p class="banorte-result-detail">${esc(opts.detalle)}</p>` : ''
   const portal = esc(urlPortalPagosAlumno())
 
+  let facturaBlock = ''
+  if (opts.exito) {
+    if (opts.facturaPdf || opts.facturaXml) {
+      const links = [
+        opts.facturaPdf
+          ? `<a class="banorte-btn banorte-btn--ghost" href="${esc(opts.facturaPdf)}" target="_blank" rel="noopener">Descargar PDF</a>`
+          : '',
+        opts.facturaXml
+          ? `<a class="banorte-btn banorte-btn--ghost" href="${esc(opts.facturaXml)}" target="_blank" rel="noopener">Descargar XML</a>`
+          : '',
+      ]
+        .filter(Boolean)
+        .join('')
+      facturaBlock = `<div class="banorte-factura-ok"><p>Factura electrónica emitida.</p><div class="banorte-result-actions">${links}</div></div>`
+    } else if (opts.facturaPendiente) {
+      facturaBlock = `<p class="banorte-factura-pausa">${esc(opts.facturaPendiente)}</p>`
+    }
+  }
+
   const contenido = `
     <section class="banorte-card banorte-result ${clase}">
       <div class="banorte-result-icon" aria-hidden="true">${opts.exito ? '✓' : '!'}</div>
@@ -83,7 +105,7 @@ export function htmlResultadoBanorte(opts: {
       <p class="banorte-result-msg">${esc(opts.mensaje)}</p>
       ${ref}
       ${detalle}
-      ${opts.exito ? '<p class="banorte-factura-pausa">La factura electrónica se habilitará próximamente; su pago ya quedó registrado.</p>' : ''}
+      ${facturaBlock}
       <a href="${portal}" class="banorte-btn banorte-btn--primary">Volver al portal de pagos</a>
     </section>`
 

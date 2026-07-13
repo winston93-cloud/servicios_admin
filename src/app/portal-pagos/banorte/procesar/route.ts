@@ -8,6 +8,7 @@ import {
   registrarPagoBanorteExitoso,
 } from '@/lib/banortePagoService'
 import { ejecutarVentaPayw2 } from '@/lib/banortePayw2'
+import { rutasFacturaDesdeReferencia } from '@/lib/portalFacturaRutas'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const runtime = 'nodejs'
@@ -161,6 +162,11 @@ export async function POST(request: Request) {
     )
   }
 
+  const rutasFactura = rutasFacturaDesdeReferencia(referencia, referencia.slice(0, 5), referencia.slice(5, 7), Number(referencia.slice(7, 9)) || 0)
+  const facturaOk = Boolean(registro.factura?.ok)
+  const pdfHref = facturaOk ? registro.factura?.pdfUrl || rutasFactura.pdf : null
+  const xmlHref = facturaOk ? registro.factura?.xmlUrl || rutasFactura.xml : null
+
   return respuestaHtml(
     htmlResultadoBanorte({
       exito: true,
@@ -168,6 +174,12 @@ export async function POST(request: Request) {
       mensaje: registro.mensaje,
       referencia,
       detalle: payw.authCode ? `Autorización bancaria: ${payw.authCode}` : undefined,
+      facturaPdf: pdfHref,
+      facturaXml: xmlHref,
+      facturaPendiente: facturaOk
+        ? null
+        : registro.factura?.mensaje ||
+          'La factura se puede completar desde administración si quedó pendiente.',
     })
   )
 }

@@ -1,10 +1,12 @@
 import type { AppDatabaseClient } from '../dbTypes'
+import { createInsforgeAdmin } from '../insforgeAdmin'
 import { obtenerDatosFacturacionPorRef } from '../datosFacturacionService'
-import { construirRutaFactura } from '../portalFacturaRutas'
+import { crearNombreArchivoFactura } from '../portalFacturaRutas'
 import { resolverConcepto, formaPagoDesdeMetodo } from './cfdiConcepto'
 import { emisorClavePorNivel, obtenerConfigEmisor } from './cfdiEmisor'
 import { institucionPorNivel } from './cfdiInstitucion'
 import { construirPayloadFacturoPorTi, receptorDesdeDatosFacturacion, RECEPTOR_PUBLICO_GENERAL } from './cfdiPayload'
+import { guardarArchivosCfdi } from './cfdiStorage'
 import { timbrarConFacturoPorTi } from './facturoPorTiClient'
 import type { CfdiTimbradoLoteResultado, CfdiTimbradoResultado } from './cfdiTypes'
 
@@ -184,11 +186,37 @@ async function ejecutarTimbradoPago(
 
   const resp = await timbrarConFacturoPorTi(payload, emisor.bearer)
 
-  const rutaLegacy = construirRutaFactura(
+  const nombreBase = crearNombreArchivoFactura(
     String(alumno.alumno_ref),
     referencia.slice(5, 7),
     Number(referencia.slice(7, 9)) || 0
   )
+
+  let xmlPath: string | null = nombreBase ? `${nombreBase}.xml` : null
+  let pdfPath: string | null = nombreBase ? `${nombreBase}.pdf` : null
+  let pdfUrl: string | null = null
+  let xmlUrl: string | null = null
+
+  if (resp.ok && (resp.xml || resp.pdfBase64)) {
+    try {
+      const archivos = await guardarArchivosCfdi(createInsforgeAdmin(), {
+        alumnoRef: alumno.alumno_ref,
+        conceptoNo: referencia.slice(5, 7),
+        ciclo: Number(referencia.slice(7, 9)) || 0,
+        xml: resp.xml,
+        pdfBase64: resp.pdfBase64,
+      })
+      if (archivos.xmlKey) xmlPath = archivos.xmlKey
+      if (archivos.pdfKey) pdfPath = archivos.pdfKey
+      xmlUrl = archivos.xmlUrl
+      pdfUrl = archivos.pdfUrl
+    } catch (e) {
+      console.error(
+        'guardarArchivosCfdi:',
+        e instanceof Error ? e.message : e
+      )
+    }
+  }
 
   await db.from('cfdi_timbrado').insert({
     uuid: resp.uuid ?? null,
@@ -203,8 +231,8 @@ async function ejecutarTimbradoPago(
     estado: resp.ok ? 'timbrado' : 'error',
     pac_codigo: resp.codigo,
     pac_mensaje: resp.mensaje,
-    xml_storage_path: resp.ok && rutaLegacy ? `${rutaLegacy}.xml` : null,
-    pdf_storage_path: resp.ok && rutaLegacy ? `${rutaLegacy}.pdf` : null,
+    xml_storage_path: resp.ok ? xmlPath : null,
+    pdf_storage_path: resp.ok ? pdfPath : null,
     creado_por: creadoPor ?? null,
   })
 
@@ -232,6 +260,8 @@ async function ejecutarTimbradoPago(
       mensaje: `Timbrado OK pero falló actualizar pago_detalle: ${updErr.message}`,
       uuid: resp.uuid,
       emisor: clave,
+      pdfUrl,
+      xmlUrl,
     }
   }
 
@@ -242,6 +272,8 @@ async function ejecutarTimbradoPago(
     mensaje: resp.mensaje,
     uuid: resp.uuid,
     emisor: clave,
+    pdfUrl: pdfUrl ?? (pdfPath ? `/api/facturacion/archivo?f=${encodeURIComponent(pdfPath)}` : null),
+    xmlUrl: xmlUrl ?? (xmlPath ? `/api/facturacion/archivo?f=${encodeURIComponent(xmlPath)}` : null),
   }
 }
 
