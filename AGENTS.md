@@ -62,8 +62,8 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 
 - Bucket InsForge `cfdi` (público).
 - Tras pago Banorte aprobado: `timbrarReferencia` + upload XML/PDF; falló PAC → pago queda, factura pendiente.
-- Proxy `/api/facturacion/archivo?f=factura….pdf|xml` (Storage → fallback hosting legacy).
-- Portal matriz abre facturas vía ese proxy.
+- Proxy `/api/facturacion/archivo?f=factura….pdf|xml` **solo InsForge** (sin fallback hosting).
+- Migración script `scripts/migrar-facturas-cfdi-insforge.mjs` (copia inicial desde hosting → bucket `cfdi`).
 
 ### Go-live (cuando Mario lo pida)
 

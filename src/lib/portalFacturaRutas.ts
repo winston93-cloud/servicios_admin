@@ -31,7 +31,7 @@ export function crearNombreArchivoFactura(
   return `factura${c}${concepto}${ciclo}`
 }
 
-/** URL absoluta vía proxy de la app (InsForge Storage → legacy). */
+/** URL absoluta vía proxy de la app → InsForge Storage (sin hosting). */
 export function urlFacturaApp(nombreConExt: string): string {
   return `${appBaseUrl()}/api/facturacion/archivo?f=${encodeURIComponent(nombreConExt)}`
 }
