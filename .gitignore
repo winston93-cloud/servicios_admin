@@ -46,6 +46,9 @@ next-env.d.ts
 # exportaciones MySQL (regenerar con scripts/)
 data/*.csv
 
+# manifiestos de migración locales
+scripts/.cache/
+
 # InsForge & AI agent skills
 .insforge
 .agent

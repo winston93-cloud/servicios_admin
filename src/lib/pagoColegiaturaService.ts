@@ -30,12 +30,13 @@ export interface PagoDetalleRegistro {
   pago_emisora: string | null
   pago_cancelado: number
   pago_registro: string | null
+  facturo?: string | null
 }
 
 export type EstatusVisualPago = 'normal' | 'cancelado' | 'devolucion' | 'manual'
 
 const SELECT_PAGO =
-  'pago_id, alumno_id, pago_nombre, pago_referencia, pago_importe, pago_recargo, pago_forma, pago_folio, pago_fecha, pago_hora, pago_emisora, pago_cancelado, pago_registro'
+  'pago_id, alumno_id, pago_nombre, pago_referencia, pago_importe, pago_recargo, pago_forma, pago_folio, pago_fecha, pago_hora, pago_emisora, pago_cancelado, pago_registro, facturo'
 
 export function etiquetaEstatusPago(pago_cancelado: number): string | null {
   switch (pago_cancelado) {

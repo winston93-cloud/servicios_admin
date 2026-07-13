@@ -9,7 +9,8 @@ import {
   nivelPrecioBoucher,
   referenciaSemibase,
 } from './boucherCore'
-import { normalizarConceptoNo, parsearReferenciaPago } from './pagoReferenciaColegiatura'
+import { normalizarConceptoNo, parsearReferenciaPago, formatearAlumnoRefParaReferencia } from './pagoReferenciaColegiatura'
+import { rutasFacturaDesdeReferencia } from './portalFacturaRutas'
 import type { FilaMatrizPortal } from './portalPagosMatrizService'
 
 /**
@@ -123,14 +124,20 @@ export async function calcularReinscripcionDiferido(
   for (const c of ['11', '12', '13'] as const) {
     const p = pagos.find((x) => x.concepto === c)
     if (p) {
+      const facturas = rutasFacturaDesdeReferencia(
+        p.referencia,
+        formatearAlumnoRefParaReferencia(alumno.alumno_ref),
+        c,
+        cen
+      )
       filasPagadas.push({
         conceptoNo: c,
         conceptoClase: getPaymentConcept(c),
         pagado: true,
         importe: p.importe,
         referencia: p.referencia,
-        facturaPdf: null,
-        facturaXml: null,
+        facturaPdf: facturas.pdf,
+        facturaXml: facturas.xml,
       })
     }
   }

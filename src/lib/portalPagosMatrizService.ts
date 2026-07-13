@@ -261,8 +261,8 @@ async function construirFilas(
       recargo,
       referencia,
       referenciaLinea,
-      facturaPdf: facturas.pdf,
-      facturaXml: facturas.xml,
+      facturaPdf: null,
+      facturaXml: null,
     })
   }
 
