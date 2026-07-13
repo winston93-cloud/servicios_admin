@@ -17,9 +17,14 @@ export const DOCUMENTOS_NI_TIPOS = [
     descripcion: 'CURP de la madre o del padre (PDF).',
   },
   {
+    id: 'boleta_sep',
+    etiqueta: 'Boleta SEP',
+    descripcion: 'Boleta o cartilla de calificaciones SEP (PDF).',
+  },
+  {
     id: 'constancia_no_adeudo',
-    etiqueta: 'Constancia de no adeudo',
-    descripcion: 'Constancia de no adeudo de la escuela de procedencia (PDF).',
+    etiqueta: 'Carta de no adeudo',
+    descripcion: 'Carta o constancia de no adeudo de la escuela de procedencia (PDF).',
   },
   {
     id: 'carta_buena_conducta',
@@ -30,35 +35,53 @@ export const DOCUMENTOS_NI_TIPOS = [
 
 export type DocumentoNiTipoId = (typeof DOCUMENTOS_NI_TIPOS)[number]['id']
 
-/** Maternal solo acta + CURP; el resto de niveles pide el expediente completo. */
-const DOCUMENTOS_NI_POR_NIVEL: Record<number, readonly DocumentoNiTipoId[]> = {
-  1: ['acta_nacimiento', 'curp_alumno'],
-  2: [
-    'acta_nacimiento',
-    'curp_alumno',
-    'curp_tutor',
-    'constancia_no_adeudo',
-    'carta_buena_conducta',
-  ],
-  3: [
-    'acta_nacimiento',
-    'curp_alumno',
-    'curp_tutor',
-    'constancia_no_adeudo',
-    'carta_buena_conducta',
-  ],
-  4: [
-    'acta_nacimiento',
-    'curp_alumno',
-    'curp_tutor',
-    'constancia_no_adeudo',
-    'carta_buena_conducta',
-  ],
+const ACTA_CURP: readonly DocumentoNiTipoId[] = ['acta_nacimiento', 'curp_alumno']
+
+const KINDER_2_3: readonly DocumentoNiTipoId[] = [
+  'acta_nacimiento',
+  'curp_alumno',
+  'boleta_sep',
+  'carta_buena_conducta',
+  'constancia_no_adeudo',
+]
+
+const EXPEDIENTE_COMPLETO: readonly DocumentoNiTipoId[] = [
+  'acta_nacimiento',
+  'curp_alumno',
+  'curp_tutor',
+  'constancia_no_adeudo',
+  'carta_buena_conducta',
+]
+
+/**
+ * Requisitos por nivel/grado (nuevo ingreso).
+ * - Maternal: acta + CURP
+ * - Kinder 1: acta + CURP
+ * - Kinder 2 y 3: acta, CURP, boleta SEP, buena conducta, no adeudo
+ * - Primaria / Secundaria: expediente completo (incluye CURP tutor)
+ */
+export function documentosNiRequeridosPorNivelGrado(
+  nivel: number,
+  grado: number
+): (typeof DOCUMENTOS_NI_TIPOS)[number][] {
+  let ids: readonly DocumentoNiTipoId[]
+
+  if (nivel === 1) {
+    ids = ACTA_CURP
+  } else if (nivel === 2) {
+    ids = grado <= 1 ? ACTA_CURP : KINDER_2_3
+  } else if (nivel === 3 || nivel === 4) {
+    ids = EXPEDIENTE_COMPLETO
+  } else {
+    ids = EXPEDIENTE_COMPLETO
+  }
+
+  return DOCUMENTOS_NI_TIPOS.filter((d) => ids.includes(d.id))
 }
 
+/** @deprecated Preferir documentosNiRequeridosPorNivelGrado */
 export function documentosNiRequeridosPorNivel(nivel: number) {
-  const ids = DOCUMENTOS_NI_POR_NIVEL[nivel] ?? DOCUMENTOS_NI_POR_NIVEL[3]
-  return DOCUMENTOS_NI_TIPOS.filter((d) => ids.includes(d.id))
+  return documentosNiRequeridosPorNivelGrado(nivel, 1)
 }
 
 export const DOCUMENTOS_NI_MAX_BYTES = 4 * 1024 * 1024

@@ -5,7 +5,7 @@ import {
   DOCUMENTOS_NI_BUCKET,
   DOCUMENTOS_NI_MAX_BYTES,
   correoDocumentosNiEfectivo,
-  documentosNiRequeridosPorNivel,
+  documentosNiRequeridosPorNivelGrado,
   esDocumentoNiTipoId,
   etiquetaDocumentoNi,
   type DocumentoNiTipoId,
@@ -195,6 +195,7 @@ export async function enviarDocumentosNiDesdeStorage(opts: {
   alumnoRef: number
   alumnoNombre: string
   nivel: number
+  grado: number
   cicloValor: number
   cicloNombre: string
   subidas: DocumentoNiSubidaTemp[]
@@ -205,7 +206,7 @@ export async function enviarDocumentosNiDesdeStorage(opts: {
   }
 
   const porTipo = new Map(opts.subidas.map((s) => [s.tipo, s]))
-  const requeridos = documentosNiRequeridosPorNivel(opts.nivel)
+  const requeridos = documentosNiRequeridosPorNivelGrado(opts.nivel, opts.grado)
   for (const tipo of requeridos) {
     if (!porTipo.has(tipo.id)) {
       throw new Error(`Falta el documento: ${tipo.etiqueta}`)

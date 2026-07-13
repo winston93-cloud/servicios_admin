@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createInsforgeAdmin } from '@/lib/insforgeAdmin'
+import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import { formaIngresoPorDefecto } from '@/lib/alumnoFormaIngreso'
@@ -13,7 +14,7 @@ import {
   type DocumentoNiSubidaTemp,
 } from '@/lib/portalDocumentosNiService'
 import {
-  documentosNiRequeridosPorNivel,
+  documentosNiRequeridosPorNivelGrado,
   correoControlEscolarPorNivel,
   esDocumentoNiTipoId,
 } from '@/lib/portalDocumentosNiTipos'
@@ -52,6 +53,7 @@ async function contextoNi(alumnoId: number) {
 
   const ciclo = await resolverCicloPagoInscripcionPortal(auth.alumno, cicloSistema)
   const nivel = Number(auth.alumno.alumno_nivel)
+  const grado = Number(auth.alumno.alumno_grado) || 1
   if (!correoControlEscolarPorNivel(nivel)) {
     return {
       ok: false as const,
@@ -62,7 +64,7 @@ async function contextoNi(alumnoId: number) {
     }
   }
 
-  return { ok: true as const, alumno: auth.alumno, ciclo, nivel }
+  return { ok: true as const, alumno: auth.alumno, ciclo, nivel, grado }
 }
 
 export async function GET(request: Request) {
@@ -85,10 +87,12 @@ export async function GET(request: Request) {
         alumnoRef: ctx.alumno.alumno_ref,
         nombre: nombreAlumno(ctx.alumno),
         nivel: ctx.nivel,
+        grado: ctx.grado,
         nivelEtiqueta: etiquetaNivelEscolar(ctx.nivel),
+        gradoEtiqueta: etiquetaGradoEscolar(ctx.nivel, ctx.grado),
       },
       ciclo: { valor: ctx.ciclo.valor, nombre: ctx.ciclo.nombre },
-      requisitos: documentosNiRequeridosPorNivel(ctx.nivel),
+      requisitos: documentosNiRequeridosPorNivelGrado(ctx.nivel, ctx.grado),
       correoDestino: correoControlEscolarPorNivel(ctx.nivel),
       enviado: Boolean(envio),
       envio: envio
@@ -127,10 +131,10 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: check.error }, { status: 400 })
     }
 
-    const requeridos = documentosNiRequeridosPorNivel(ctx.nivel)
+    const requeridos = documentosNiRequeridosPorNivelGrado(ctx.nivel, ctx.grado)
     if (!requeridos.some((r) => r.id === check.tipo)) {
       return NextResponse.json(
-        { error: 'Ese documento no es requerido para este nivel.' },
+        { error: 'Ese documento no es requerido para este grado.' },
         { status: 400 }
       )
     }
@@ -190,6 +194,7 @@ export async function POST(request: Request) {
       alumnoRef: Number(ctx.alumno.alumno_ref),
       alumnoNombre: nombreAlumno(ctx.alumno),
       nivel: ctx.nivel,
+      grado: ctx.grado,
       cicloValor: Number(ctx.ciclo.valor),
       cicloNombre: ctx.ciclo.nombre,
       subidas,

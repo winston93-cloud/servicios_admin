@@ -39,7 +39,9 @@ type EstadoDocumentos = {
     alumnoRef: number
     nombre: string
     nivel: number
+    grado: number
     nivelEtiqueta: string
+    gradoEtiqueta: string
   }
   ciclo: { valor: number; nombre: string }
   requisitos: RequisitoDoc[]
@@ -253,7 +255,8 @@ export default function PortalDocumentosNiView() {
               <div>
                 <p className="portal-docs-meta-nombre">{estado.alumno.nombre}</p>
                 <p className="portal-docs-meta-sub">
-                  No. {refFmt} · {estado.alumno.nivelEtiqueta} · Ciclo {estado.ciclo.nombre}
+                  No. {refFmt} · {estado.alumno.gradoEtiqueta || estado.alumno.nivelEtiqueta} ·
+                  Ciclo {estado.ciclo.nombre}
                 </p>
               </div>
               {estado.correoDestino && (
