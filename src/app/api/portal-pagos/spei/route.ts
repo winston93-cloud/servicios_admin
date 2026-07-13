@@ -34,7 +34,7 @@ export async function POST(request: Request) {
 
     const supabase = createSupabaseAdmin()
     const planMeses = alumno.mes === 2 ? 2 : 1
-    const { importe } = await calcularBoucher(supabase, {
+    const { importe, importeLinea, recargo } = await calcularBoucher(supabase, {
       alumnoId,
       alumnoRef: alumno.alumno_ref,
       alumnoNivel: alumno.alumno_nivel,
@@ -44,7 +44,9 @@ export async function POST(request: Request) {
       planMeses,
     })
 
-    if (importe <= 0) {
+    const montoSpei = importeLinea > 0 ? importeLinea : importe
+
+    if (montoSpei <= 0) {
       return NextResponse.json({ error: 'Importe inválido para SPEI' }, { status: 400 })
     }
 
@@ -67,8 +69,11 @@ export async function POST(request: Request) {
     const config = obtenerConfigOpenpay(alumno.alumno_nivel)
     const cargo = await crearCargoSpeiOpenpay({
       config,
-      amount: importe,
-      description: conceptoClase,
+      amount: montoSpei,
+      description:
+        recargo > 0
+          ? `${conceptoClase} (incluye recargo $${recargo.toFixed(2)})`
+          : conceptoClase,
       orderId: referenciaSpei,
       customerName: nombreAlumno || 'Alumno Winston',
       deviceSessionId,
@@ -77,7 +82,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       referenciaSpei: cargo.orderId,
-      importe,
+      importe: montoSpei,
+      recargo,
       speiPdfUrl: cargo.speiPdfUrl,
       chargeId: cargo.chargeId,
     })

@@ -226,7 +226,7 @@ function dibujarAvisoLegal(
 
   if (datos.aplicarRecargos) {
     avisos.push(
-      'El pago de colegiaturas y material de enero es del 1 al 10 de cada mes (días naturales). A partir del día 11 se aplicará recargo de $50.00 por mes hasta su liquidación.'
+      'El pago de colegiaturas es del 1 al 10 de cada mes (días naturales). A partir del día 11 se aplicará recargo de $75.00 por mes hasta su liquidación. La beca Winston no aplica después del día 10; la beca SEP se respeta y solo suma recargos.'
     )
   }
 

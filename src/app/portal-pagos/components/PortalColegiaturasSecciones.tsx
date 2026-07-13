@@ -126,8 +126,12 @@ export default function PortalColegiaturasSecciones({
     setTransferModal({ abierto: true, cargando: true, datos: null })
     setError(null)
     try {
-      let referencia = fila.referencia
-      let importe = fila.importe ?? 0
+      let referencia =
+        (fila.recargo ?? 0) > 0
+          ? (fila.referenciaLinea ?? fila.referencia)
+          : fila.referencia
+      let importe =
+        fila.importeLinea != null ? fila.importeLinea : (fila.importe ?? 0)
       if (!referencia) {
         const calcRes = await fetch('/api/bauchers/calcular', {
           method: 'POST',
@@ -140,8 +144,8 @@ export default function PortalColegiaturasSecciones({
         })
         const calc = await calcRes.json()
         if (!calcRes.ok) throw new Error(calc.error ?? 'No se pudo calcular la referencia.')
-        referencia = calc.referencia as string
-        importe = calc.importe
+        referencia = (calc.referenciaLinea ?? calc.referencia) as string
+        importe = Number(calc.importeLinea ?? calc.importe)
       }
       if (!referencia) throw new Error('No se obtuvo referencia de pago.')
       setTransferModal({

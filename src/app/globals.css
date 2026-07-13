@@ -16196,6 +16196,14 @@ html[data-theme='light'] .portal-inscripciones-page {
   font-variant-numeric: tabular-nums;
 }
 
+.portal-matriz-recargo-nota {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  line-height: 1.25;
+}
+
 .portal-matriz-pagado {
   font-weight: 800;
   color: var(--text-primary);

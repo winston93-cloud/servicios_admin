@@ -8,6 +8,7 @@ import {
   obtenerPorcentajeBeca,
 } from './boucherService'
 import { getDigVerif, getPaymentConcept, referenciaSemibase, nivelPrecioBoucher } from './boucherCore'
+import { calcularRecargoPesos } from './colegiaturaPrecioReglas'
 import {
   conceptoFacturaCambridge,
   rutasFacturaDesdeReferencia,
@@ -29,8 +30,14 @@ export interface FilaMatrizPortal {
   conceptoNo: string
   conceptoClase: string
   pagado: boolean
+  /** Monto ventanilla / baucher (sin recargo de atraso). */
   importe: number | null
+  /** Monto pago en línea = importe + recargo. Si null, usar importe. */
+  importeLinea?: number | null
+  recargo?: number
   referencia: string | null
+  /** Referencia Banorte calculada con importeLinea (si hay recargo). */
+  referenciaLinea?: string | null
   facturaPdf: string | null
   facturaXml: string | null
 }
@@ -225,23 +232,35 @@ async function construirFilas(
         conceptoClase: etiquetaConceptoPortal(conceptoNo, row.concepto_clase),
         pagado: true,
         importe: pago.pago_importe + pago.pago_recargo,
+        importeLinea: pago.pago_importe + pago.pago_recargo,
+        recargo: Number(pago.pago_recargo) || 0,
         referencia: pago.pago_referencia,
+        referenciaLinea: pago.pago_referencia,
         facturaPdf: facturas.pdf,
         facturaXml: facturas.xml,
       })
       continue
     }
 
-    const importe = calcularImporteConcepto(conceptoNo, precio, becaPct, planMeses)
+    const importe = calcularImporteConcepto(conceptoNo, precio, becaPct, planMeses, {
+      alumnoRef: alumno.alumno_ref,
+    })
+    const recargo = calcularRecargoPesos(conceptoNo)
+    const importeLinea = Math.round((importe + recargo) * 100) / 100
     const semibase = referenciaSemibase(alumno.alumno_ref, conceptoNo, ciclo.valor)
     const referencia = getDigVerif(importe, semibase)
+    const referenciaLinea =
+      recargo > 0 ? getDigVerif(importeLinea, semibase) : referencia
 
     filas.push({
       conceptoNo,
       conceptoClase: etiquetaConceptoPortal(conceptoNo, row.concepto_clase),
       pagado: false,
       importe,
+      importeLinea,
+      recargo,
       referencia,
+      referenciaLinea,
       facturaPdf: facturas.pdf,
       facturaXml: facturas.xml,
     })
@@ -373,7 +392,7 @@ export async function recalcularReferenciaPortal(
   conceptoNo: string,
   cicloValor: number,
   importe?: number
-): Promise<{ importe: number; referencia: string }> {
+): Promise<{ importe: number; importeLinea: number; recargo: number; referencia: string; referenciaLinea: string }> {
   return calcularBoucher(supabase, {
     alumnoId: alumno.alumno_id,
     alumnoRef: alumno.alumno_ref,

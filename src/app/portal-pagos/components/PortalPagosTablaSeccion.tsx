@@ -85,8 +85,17 @@ export default function PortalPagosTablaSeccion({
                   ) : (
                     <div className="portal-matriz-accion-grupo">
                       <span className="portal-matriz-monto">
-                        {fila.importe != null ? formatearMontoPortal(fila.importe) : '—'}
+                        {fila.importeLinea != null
+                          ? formatearMontoPortal(fila.importeLinea)
+                          : fila.importe != null
+                            ? formatearMontoPortal(fila.importe)
+                            : '—'}
                       </span>
+                      {(fila.recargo ?? 0) > 0 && (
+                        <span className="portal-matriz-recargo-nota">
+                          Incluye recargo {formatearMontoPortal(fila.recargo ?? 0)}
+                        </span>
+                      )}
                       <button
                         type="button"
                         className="portal-pagos-btn-linea"
@@ -142,9 +151,21 @@ export default function PortalPagosTablaSeccion({
             {fila.pagado ? (
               <p className="portal-matriz-pagado portal-matriz-pagado--card">Pagado</p>
             ) : (
-              <p className="portal-matriz-monto portal-matriz-monto--card">
-                {fila.importe != null ? formatearMontoPortal(fila.importe) : '—'}
-              </p>
+              <>
+                <p className="portal-matriz-monto portal-matriz-monto--card">
+                  {fila.importeLinea != null
+                    ? formatearMontoPortal(fila.importeLinea)
+                    : fila.importe != null
+                      ? formatearMontoPortal(fila.importe)
+                      : '—'}
+                </p>
+                {(fila.recargo ?? 0) > 0 && (
+                  <p className="portal-matriz-recargo-nota">
+                    Ventanilla {fila.importe != null ? formatearMontoPortal(fila.importe) : '—'} ·
+                    recargo {formatearMontoPortal(fila.recargo ?? 0)}
+                  </p>
+                )}
+              </>
             )}
             <div className="portal-matriz-card-acciones">
               {!fila.pagado && (

@@ -1,5 +1,4 @@
 import type { AppDatabaseClient } from '@/lib/dbTypes'
-import { numeroCicloEscolarAdmin } from './cicloEscolarAdmin'
 import { normalizarConceptoNo, compararConceptoNoAsc } from './pagoReferenciaColegiatura'
 import {
   getDigVerif,
@@ -8,6 +7,12 @@ import {
   referenciaSemibase,
   nivelPrecioBoucher,
 } from './boucherCore'
+import {
+  becaWinstonAplicaEnFecha,
+  calcularRecargoPesos,
+  conceptoAplicaSepYRecargo,
+} from './colegiaturaPrecioReglas'
+import { montoBecaSep } from './integracionSep'
 
 export interface PrecioBoucherRow {
   precio_id: number
@@ -128,65 +133,106 @@ export async function obtenerPrecioFila(
 export async function obtenerPorcentajeBeca(
   supabase: AppDatabaseClient,
   alumnoId: number,
-  cicloActual: number
+  cicloEscolar: number
 ): Promise<number> {
   const { data } = await supabase
     .from('alumno_beca')
     .select('beca_porcentaje')
     .eq('alumno_id', alumnoId)
     .eq('beca_estatus', 1)
-    .eq('beca_ciclo_escolar', cicloActual)
+    .eq('beca_ciclo_escolar', cicloEscolar)
     .maybeSingle()
 
   return data?.beca_porcentaje != null ? Number(data.beca_porcentaje) : 0
 }
 
+/** Monto de lista (sin beca) y si el concepto admite descuento Winston. */
+export function montoBaseConcepto(
+  conceptoNo: string,
+  precio: PrecioBoucherRow,
+  planMeses = 1
+): { montoNormal: number; admiteBecaWinston: boolean } {
+  const c = normalizarConceptoNo(conceptoNo)
+  let montoNormal = 0
+  let admiteBecaWinston = true
+
+  if (c === '11' || c === '12' || c === '13') {
+    montoNormal = precio.precio_inscripcion
+    admiteBecaWinston = false
+  } else if (c === '00') {
+    montoNormal = precio.precio_agosto
+    admiteBecaWinston = false
+  } else if (c === '16') {
+    montoNormal = precio.precio_material
+    admiteBecaWinston = false
+  } else if (c === '17') {
+    montoNormal = precio.precio_material + precio.precio_seguro
+    admiteBecaWinston = false
+  } else if (c === '18' || c === '19') {
+    montoNormal = precio.precio_cambridge > 0 ? precio.precio_cambridge / 2 : 975
+    admiteBecaWinston = false
+  } else if (c === '20') {
+    montoNormal = precio.precio_cambridge
+    admiteBecaWinston = false
+  } else if (c === '21') {
+    montoNormal = precio.precio_cuota_padres
+    admiteBecaWinston = false
+  } else if (c === '26') {
+    montoNormal = precio.precio_colegiatura2
+    admiteBecaWinston = true
+  } else if (c === '23' || c === '24' || c === '25') {
+    const tercio = precio.precio_dtitulacion > 0 ? precio.precio_dtitulacion / 3 : 0
+    montoNormal = tercio
+    admiteBecaWinston = false
+  } else {
+    montoNormal =
+      planMeses === 2 ? precio.precio_colegiatura2 : precio.precio_colegiatura
+    admiteBecaWinston = c !== '00' && c !== '16'
+  }
+
+  return { montoNormal, admiteBecaWinston }
+}
+
+/**
+ * Importe ventanilla (sin recargo).
+ * - SEP: monto fijo de la lista (siempre).
+ * - Winston: % de alumno_beca solo hasta el día 10 del mes del concepto.
+ */
 export function calcularImporteConcepto(
   conceptoNo: string,
   precio: PrecioBoucherRow,
   porcentajeBeca: number,
-  planMeses = 1
+  planMeses = 1,
+  opts?: {
+    alumnoRef?: string | number
+    fecha?: Date
+  }
 ): number {
+  const fecha = opts?.fecha ?? new Date()
   const c = normalizarConceptoNo(conceptoNo)
-  let montoNormal = 0
-  let aplicaDescuento = true
+  const { montoNormal, admiteBecaWinston } = montoBaseConcepto(c, precio, planMeses)
 
-  if (c === '11' || c === '12' || c === '13') {
-    montoNormal = precio.precio_inscripcion
-    aplicaDescuento = false
-  } else if (c === '00') {
-    montoNormal = precio.precio_agosto
-    aplicaDescuento = false
-  } else if (c === '16') {
-    montoNormal = precio.precio_material
-    aplicaDescuento = false
-  } else if (c === '17') {
-    montoNormal = precio.precio_material + precio.precio_seguro
-    aplicaDescuento = false
-  } else if (c === '18' || c === '19') {
-    montoNormal = precio.precio_cambridge > 0 ? precio.precio_cambridge / 2 : 975
-    aplicaDescuento = false
-  } else if (c === '20') {
-    montoNormal = precio.precio_cambridge
-    aplicaDescuento = false
-  } else if (c === '21') {
-    montoNormal = precio.precio_cuota_padres
-    aplicaDescuento = false
-  } else if (c === '26') {
-    montoNormal = precio.precio_colegiatura2
-    aplicaDescuento = true
-  } else if (c === '23' || c === '24' || c === '25') {
-    const tercio = precio.precio_dtitulacion > 0 ? precio.precio_dtitulacion / 3 : 0
-    montoNormal = tercio
-    aplicaDescuento = false
-  } else {
-    montoNormal =
-      planMeses === 2 ? precio.precio_colegiatura2 : precio.precio_colegiatura
-    aplicaDescuento = c !== '00' && c !== '16'
+  if (opts?.alumnoRef != null && conceptoAplicaSepYRecargo(c)) {
+    const sep = montoBecaSep(opts.alumnoRef)
+    if (sep != null) return sep
   }
 
-  const pct = aplicaDescuento && porcentajeBeca > 0 ? porcentajeBeca : 0
-  return getDiscount(montoNormal, pct)
+  const aplicarWinston =
+    admiteBecaWinston &&
+    porcentajeBeca > 0 &&
+    becaWinstonAplicaEnFecha(c, fecha)
+
+  return getDiscount(montoNormal, aplicarWinston ? porcentajeBeca : 0)
+}
+
+export type ResultadoCalculoBoucher = {
+  /** Monto ventanilla / baucher (sin recargo). */
+  importe: number
+  /** Monto pago en línea = importe + recargo. */
+  importeLinea: number
+  recargo: number
+  referencia: string
+  referenciaLinea: string
 }
 
 export async function calcularBoucher(
@@ -201,9 +247,11 @@ export async function calcularBoucher(
     importeManual?: number | null
     /** 1 = 10 meses, 2 = 11 meses (campo alumno.mes). */
     planMeses?: number
+    fecha?: Date
   }
-): Promise<{ importe: number; referencia: string }> {
+): Promise<ResultadoCalculoBoucher> {
   const nivelPrecio = nivelPrecioBoucher(params.alumnoNivel, params.alumnoGrado)
+  const fecha = params.fecha ?? new Date()
 
   const precio = await obtenerPrecioFila(supabase, nivelPrecio, params.cicloEscolar)
   if (!precio) {
@@ -212,8 +260,11 @@ export async function calcularBoucher(
     )
   }
 
-  const cicloActual = numeroCicloEscolarAdmin()
-  const becaPct = await obtenerPorcentajeBeca(supabase, params.alumnoId, cicloActual)
+  const becaPct = await obtenerPorcentajeBeca(
+    supabase,
+    params.alumnoId,
+    params.cicloEscolar
+  )
   const planMeses = params.planMeses ?? 1
 
   const manual =
@@ -221,7 +272,16 @@ export async function calcularBoucher(
   const importe =
     manual != null && manual > 0
       ? manual
-      : calcularImporteConcepto(params.conceptoNo, precio, becaPct, planMeses)
+      : calcularImporteConcepto(params.conceptoNo, precio, becaPct, planMeses, {
+          alumnoRef: params.alumnoRef,
+          fecha,
+        })
+
+  const recargo =
+    manual != null && manual > 0
+      ? 0
+      : calcularRecargoPesos(params.conceptoNo, fecha)
+  const importeLinea = Math.round((importe + recargo) * 100) / 100
 
   const semibase = referenciaSemibase(
     params.alumnoRef,
@@ -229,6 +289,8 @@ export async function calcularBoucher(
     params.cicloEscolar
   )
   const referencia = getDigVerif(importe, semibase)
+  const referenciaLinea =
+    recargo > 0 ? getDigVerif(importeLinea, semibase) : referencia
 
-  return { importe, referencia }
+  return { importe, importeLinea, recargo, referencia, referenciaLinea }
 }
