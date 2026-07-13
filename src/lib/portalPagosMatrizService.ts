@@ -7,7 +7,7 @@ import {
   obtenerPrecioFila,
   obtenerPorcentajeBeca,
 } from './boucherService'
-import { getDigVerif, referenciaSemibase, nivelPrecioBoucher } from './boucherCore'
+import { getDigVerif, getPaymentConcept, referenciaSemibase, nivelPrecioBoucher } from './boucherCore'
 import {
   conceptoFacturaCambridge,
   rutasFacturaDesdeReferencia,
@@ -95,6 +95,14 @@ const ORDEN_COLEGIATURA_PORTAL = [
 
 export function etiquetaPlanPagos(planMeses: number): string {
   return planMeses === 2 ? 'Plan de pagos: 11 meses' : 'Plan de pagos: 10 meses'
+}
+
+function etiquetaConceptoPortal(conceptoNo: string, conceptoClase: string): string {
+  const c = normalizarConceptoNo(conceptoNo)
+  // Concepto 00 en BD a veces sigue como "Cuota de Mantenimiento".
+  if (c === '00') return getPaymentConcept('00')
+  const canon = getPaymentConcept(c)
+  return canon !== '-None-' ? canon : conceptoClase
 }
 
 function ordenColegiaturaPortal(conceptoNo: string): number {
@@ -214,7 +222,7 @@ async function construirFilas(
     if (pago) {
       filas.push({
         conceptoNo,
-        conceptoClase: row.concepto_clase,
+        conceptoClase: etiquetaConceptoPortal(conceptoNo, row.concepto_clase),
         pagado: true,
         importe: pago.pago_importe + pago.pago_recargo,
         referencia: pago.pago_referencia,
@@ -230,7 +238,7 @@ async function construirFilas(
 
     filas.push({
       conceptoNo,
-      conceptoClase: row.concepto_clase,
+      conceptoClase: etiquetaConceptoPortal(conceptoNo, row.concepto_clase),
       pagado: false,
       importe,
       referencia,

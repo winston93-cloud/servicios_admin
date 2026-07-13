@@ -427,8 +427,8 @@ export async function construirEstadoPortalInscripciones(
   }
 
   const ordenRecibo = esReinscrito ? 4 : 5
-  // NI: solicitud + pago + documentos. Reinscrito: pago (como legacy: sin a_inscritos).
-  // También respeta a_inscritos legacy si ya estaba marcado.
+  // NI: solicitud + pago + documentos. Reinscrito: pago (como legacy).
+  // Completado solo cuando el papá abre el recibo al menos 1 vez (cliente / localStorage).
   const pasosPreviosRecibo = Boolean(
     solCapturada &&
       insPagada &&
@@ -441,9 +441,9 @@ export async function construirEstadoPortalInscripciones(
     orden: ordenRecibo,
     titulo: 'Recibo final',
     descripcion: 'Comprobante del proceso de inscripción con código QR de verificación.',
-    estado: resolverEstadoPaso(puedeRecibo, puedeRecibo),
+    estado: resolverEstadoPaso(false, puedeRecibo),
     detalle: puedeRecibo
-      ? 'Tu recibo final está listo para imprimir o guardar en PDF.'
+      ? 'Ábrelo al menos una vez para marcarlo como completado y desbloquear las colegiaturas del ciclo.'
       : esReinscrito
         ? 'Se habilita al completar la solicitud y el pago de reinscripción.'
         : 'Se habilita al completar solicitud, pago y carga de documentos.',

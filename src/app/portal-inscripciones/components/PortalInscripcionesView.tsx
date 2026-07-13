@@ -7,6 +7,8 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Circle,
   Clock,
   AlertTriangle,
@@ -21,6 +23,11 @@ import {
   leerReglamentoVisto,
   marcarReglamentoVisto,
 } from '@/lib/portalReglamentoVisto'
+import {
+  aplicarReciboFinalVistoEnEstado,
+  leerReciboFinalVisto,
+  marcarReciboFinalVisto,
+} from '@/lib/portalReciboFinalVisto'
 import PortalColegiaturasSecciones from '@/app/portal-pagos/components/PortalColegiaturasSecciones'
 
 function nombreAlumno(estado: EstadoPortalInscripciones | null, fallback?: string): string {
@@ -99,6 +106,8 @@ export default function PortalInscripcionesView() {
 
   const [estado, setEstado] = useState<EstadoPortalInscripciones | null>(null)
   const [reglamentoVisto, setReglamentoVisto] = useState(false)
+  const [reciboFinalVisto, setReciboFinalVisto] = useState(false)
+  const [pasosExpandidos, setPasosExpandidos] = useState(false)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -129,9 +138,13 @@ export default function PortalInscripcionesView() {
         const siguiente = data.estado as EstadoPortalInscripciones
         setEstado(siguiente)
         const cicloValor = Number(siguiente.ciclo?.valor ?? 0)
-        setReglamentoVisto(
-          cicloValor > 0 ? leerReglamentoVisto(alumnoId, cicloValor) : false
-        )
+        if (cicloValor > 0) {
+          setReglamentoVisto(leerReglamentoVisto(alumnoId, cicloValor))
+          setReciboFinalVisto(leerReciboFinalVisto(alumnoId, cicloValor))
+        } else {
+          setReglamentoVisto(false)
+          setReciboFinalVisto(false)
+        }
       }
     } catch {
       setEstado(null)
@@ -168,28 +181,44 @@ export default function PortalInscripcionesView() {
     void cargar()
   }, [cargar])
 
-  const pagoInscripcionPaso = estado?.pasos.find((p) => p.id === 'pago-inscripcion') ?? null
-  const inscripcionPagada = pagoInscripcionPaso?.estado === 'completado'
   const esReinscrito = estado?.formaIngreso === 0
-  // Reinscritos ya cursan el ciclo vigente: sus colegiaturas actuales no dependen de la
-  // reinscripción del ciclo siguiente. El candado de "concepto 00" aplica a nuevo ingreso.
+
+  const estadoVista = useMemo(() => {
+    if (!estado) return null
+    const conReglamento = aplicarReglamentoVistoEnEstado(estado, reglamentoVisto)
+    return aplicarReciboFinalVistoEnEstado(conReglamento, reciboFinalVisto)
+  }, [estado, reglamentoVisto, reciboFinalVisto])
+
+  const reciboPaso = estadoVista?.pasos.find((p) => p.id === 'recibo-final') ?? null
+  const reciboCompletado = reciboPaso?.estado === 'completado'
+  // NI: colegiaturas solo tras abrir el recibo final 1 vez.
+  // Reinscritos: siguen viendo colegiaturas del ciclo vigente sin ese candado.
   const colegiaturasDesbloqueadas = Boolean(
-    estado && !estado.bloqueo && (esReinscrito || inscripcionPagada)
+    estadoVista &&
+      !estadoVista.bloqueo &&
+      (esReinscrito || reciboCompletado)
+  )
+
+  const procesoCompleto = Boolean(
+    estadoVista &&
+      estadoVista.pasos.length > 0 &&
+      estadoVista.pasos.every((p) => p.estado === 'completado')
   )
 
   useEffect(() => {
     if (colegiaturasDesbloqueadas) void cargarMatriz()
   }, [colegiaturasDesbloqueadas, cargarMatriz])
 
-  const estadoVista = useMemo(() => {
-    if (!estado) return null
-    return aplicarReglamentoVistoEnEstado(estado, reglamentoVisto)
-  }, [estado, reglamentoVisto])
-
   const marcarReglamentoConsultado = useCallback(() => {
     if (alumnoId == null || !estado?.ciclo?.valor) return
     marcarReglamentoVisto(alumnoId, Number(estado.ciclo.valor))
     setReglamentoVisto(true)
+  }, [alumnoId, estado?.ciclo?.valor])
+
+  const marcarReciboConsultado = useCallback(() => {
+    if (alumnoId == null || !estado?.ciclo?.valor) return
+    marcarReciboFinalVisto(alumnoId, Number(estado.ciclo.valor))
+    setReciboFinalVisto(true)
   }, [alumnoId, estado?.ciclo?.valor])
 
   const refFmt = String(session?.alumno_ref ?? '').padStart(5, '0')
@@ -290,80 +319,184 @@ export default function PortalInscripcionesView() {
 
         {estadoVista && (
           <>
-            <ol className="portal-inscripciones-pasos">
-              {estadoVista.pasos.map((paso) => (
-                <li
-                  key={paso.id}
-                  className={`portal-inscripciones-paso portal-inscripciones-paso--${paso.estado}`}
+            {procesoCompleto ? (
+              <div className="portal-inscripciones-proceso-wrap">
+                <button
+                  type="button"
+                  className={`portal-inscripciones-proceso-toggle${
+                    pasosExpandidos ? ' is-open' : ''
+                  }`}
+                  aria-expanded={pasosExpandidos}
+                  onClick={() => setPasosExpandidos((v) => !v)}
                 >
-                  <div
-                    className="portal-inscripciones-paso-indice"
-                    aria-hidden
-                  >
-                    <span className="portal-inscripciones-paso-numero">
-                      {String(paso.orden).padStart(2, '0')}
-                    </span>
-                    <span className="portal-inscripciones-paso-indice-icono">
-                      {iconoPaso(paso.estado)}
-                    </span>
-                  </div>
-                  <div className="portal-inscripciones-paso-cuerpo">
-                    <div className="portal-inscripciones-paso-cabecera">
-                      <h2 className="portal-inscripciones-paso-titulo">{paso.titulo}</h2>
-                      <span
-                        className={`portal-inscripciones-paso-badge portal-inscripciones-paso-badge--${paso.estado}`}
+                  <span className="portal-inscripciones-proceso-toggle-icon" aria-hidden>
+                    <CheckCircle2 size={20} />
+                  </span>
+                  <span className="portal-inscripciones-proceso-toggle-text">
+                    {esReinscrito
+                      ? 'Proceso de reinscripción completado'
+                      : 'Proceso de admisión completado'}
+                  </span>
+                  <span className="portal-inscripciones-proceso-toggle-chevron" aria-hidden>
+                    {pasosExpandidos ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  </span>
+                </button>
+
+                {pasosExpandidos && (
+                  <ol className="portal-inscripciones-pasos portal-inscripciones-pasos--acordeon">
+                    {estadoVista.pasos.map((paso) => (
+                      <li
+                        key={paso.id}
+                        className={`portal-inscripciones-paso portal-inscripciones-paso--${paso.estado}`}
                       >
-                        {etiquetaEstado(paso.estado)}
+                        <div className="portal-inscripciones-paso-indice" aria-hidden>
+                          <span className="portal-inscripciones-paso-numero">
+                            {String(paso.orden).padStart(2, '0')}
+                          </span>
+                          <span className="portal-inscripciones-paso-indice-icono">
+                            {iconoPaso(paso.estado)}
+                          </span>
+                        </div>
+                        <div className="portal-inscripciones-paso-cuerpo">
+                          <div className="portal-inscripciones-paso-cabecera">
+                            <h2 className="portal-inscripciones-paso-titulo">{paso.titulo}</h2>
+                            <span
+                              className={`portal-inscripciones-paso-badge portal-inscripciones-paso-badge--${paso.estado}`}
+                            >
+                              {etiquetaEstado(paso.estado)}
+                            </span>
+                          </div>
+                          <p className="portal-inscripciones-paso-desc">{paso.descripcion}</p>
+                          {paso.detalle && (
+                            <p className="portal-inscripciones-paso-detalle">{paso.detalle}</p>
+                          )}
+                          {paso.accion && (
+                            <div className="portal-inscripciones-paso-accion">
+                              {paso.accion.tipo === 'proximo' ? (
+                                <button
+                                  type="button"
+                                  className="portal-inscripciones-paso-link portal-inscripciones-paso-link--proximo"
+                                  disabled
+                                  aria-disabled="true"
+                                  title="Disponible próximamente"
+                                >
+                                  {paso.accion.etiqueta}
+                                  <span className="portal-inscripciones-paso-proximo-tag">
+                                    Próximamente
+                                  </span>
+                                </button>
+                              ) : paso.accion.tipo === 'ruta-interna' ? (
+                                <Link
+                                  href={paso.accion.href}
+                                  className="portal-inscripciones-paso-link"
+                                >
+                                  {paso.accion.etiqueta}
+                                  <ArrowRight size={16} aria-hidden />
+                                </Link>
+                              ) : (
+                                <a
+                                  href={paso.accion.href}
+                                  className="portal-inscripciones-paso-link"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={
+                                    paso.id === 'reglamento'
+                                      ? () => marcarReglamentoConsultado()
+                                      : paso.id === 'recibo-final'
+                                        ? () => marcarReciboConsultado()
+                                        : undefined
+                                  }
+                                >
+                                  {paso.accion.etiqueta}
+                                  <ArrowRight size={16} aria-hidden />
+                                </a>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            ) : (
+              <ol className="portal-inscripciones-pasos">
+                {estadoVista.pasos.map((paso) => (
+                  <li
+                    key={paso.id}
+                    className={`portal-inscripciones-paso portal-inscripciones-paso--${paso.estado}`}
+                  >
+                    <div className="portal-inscripciones-paso-indice" aria-hidden>
+                      <span className="portal-inscripciones-paso-numero">
+                        {String(paso.orden).padStart(2, '0')}
+                      </span>
+                      <span className="portal-inscripciones-paso-indice-icono">
+                        {iconoPaso(paso.estado)}
                       </span>
                     </div>
-                    <p className="portal-inscripciones-paso-desc">{paso.descripcion}</p>
-                    {paso.detalle && (
-                      <p className="portal-inscripciones-paso-detalle">{paso.detalle}</p>
-                    )}
-                    {paso.accion && (
-                      <div className="portal-inscripciones-paso-accion">
-                        {paso.accion.tipo === 'proximo' ? (
-                          <button
-                            type="button"
-                            className="portal-inscripciones-paso-link portal-inscripciones-paso-link--proximo"
-                            disabled
-                            aria-disabled="true"
-                            title="Disponible próximamente"
-                          >
-                            {paso.accion.etiqueta}
-                            <span className="portal-inscripciones-paso-proximo-tag">
-                              Próximamente
-                            </span>
-                          </button>
-                        ) : paso.accion.tipo === 'ruta-interna' ? (
-                          <Link href={paso.accion.href} className="portal-inscripciones-paso-link">
-                            {paso.accion.etiqueta}
-                            <ArrowRight size={16} aria-hidden />
-                          </Link>
-                        ) : (
-                          <a
-                            href={paso.accion.href}
-                            className="portal-inscripciones-paso-link"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={
-                              paso.id === 'reglamento'
-                                ? () => marcarReglamentoConsultado()
-                                : undefined
-                            }
-                          >
-                            {paso.accion.etiqueta}
-                            <ArrowRight size={16} aria-hidden />
-                          </a>
-                        )}
+                    <div className="portal-inscripciones-paso-cuerpo">
+                      <div className="portal-inscripciones-paso-cabecera">
+                        <h2 className="portal-inscripciones-paso-titulo">{paso.titulo}</h2>
+                        <span
+                          className={`portal-inscripciones-paso-badge portal-inscripciones-paso-badge--${paso.estado}`}
+                        >
+                          {etiquetaEstado(paso.estado)}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ol>
+                      <p className="portal-inscripciones-paso-desc">{paso.descripcion}</p>
+                      {paso.detalle && (
+                        <p className="portal-inscripciones-paso-detalle">{paso.detalle}</p>
+                      )}
+                      {paso.accion && (
+                        <div className="portal-inscripciones-paso-accion">
+                          {paso.accion.tipo === 'proximo' ? (
+                            <button
+                              type="button"
+                              className="portal-inscripciones-paso-link portal-inscripciones-paso-link--proximo"
+                              disabled
+                              aria-disabled="true"
+                              title="Disponible próximamente"
+                            >
+                              {paso.accion.etiqueta}
+                              <span className="portal-inscripciones-paso-proximo-tag">
+                                Próximamente
+                              </span>
+                            </button>
+                          ) : paso.accion.tipo === 'ruta-interna' ? (
+                            <Link
+                              href={paso.accion.href}
+                              className="portal-inscripciones-paso-link"
+                            >
+                              {paso.accion.etiqueta}
+                              <ArrowRight size={16} aria-hidden />
+                            </Link>
+                          ) : (
+                            <a
+                              href={paso.accion.href}
+                              className="portal-inscripciones-paso-link"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={
+                                paso.id === 'reglamento'
+                                  ? () => marcarReglamentoConsultado()
+                                  : paso.id === 'recibo-final'
+                                    ? () => marcarReciboConsultado()
+                                    : undefined
+                              }
+                            >
+                              {paso.accion.etiqueta}
+                              <ArrowRight size={16} aria-hidden />
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
 
-            {!estadoVista.bloqueo && (
+            {!estadoVista.bloqueo && (esReinscrito || reciboPaso != null) && (
               <section
                 ref={colegiaturasRef}
                 id="colegiaturas"
@@ -393,9 +526,25 @@ export default function PortalInscripcionesView() {
                         Colegiaturas bloqueadas
                       </p>
                       <p className="portal-inscripciones-colegiaturas-bloqueo-desc">
-                        Completa tu {esReinscrito ? 'reinscripción' : 'inscripción'} y su pago para
-                        desbloquear la <strong>cuota de inicio de curso (concepto 00)</strong> y las
-                        mensualidades del ciclo.
+                        {esReinscrito ? (
+                          <>
+                            Completa tu reinscripción y su pago para desbloquear la{' '}
+                            <strong>cuota de inicio de curso (concepto 00)</strong> y las
+                            mensualidades del ciclo.
+                          </>
+                        ) : reciboPaso?.estado === 'disponible' || reciboPaso?.estado === 'completado' ? (
+                          <>
+                            Abre el <strong>recibo final (paso 5)</strong> al menos una vez para
+                            marcarlo como completado y desbloquear la{' '}
+                            <strong>cuota de inicio de curso</strong> y las mensualidades del ciclo.
+                          </>
+                        ) : (
+                          <>
+                            Completa los pasos de inscripción (incluido el recibo final) para
+                            desbloquear la <strong>cuota de inicio de curso</strong> y las
+                            mensualidades del ciclo.
+                          </>
+                        )}
                       </p>
                     </div>
                   </div>
