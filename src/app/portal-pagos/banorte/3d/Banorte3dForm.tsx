@@ -42,7 +42,34 @@ export default function Banorte3dForm({
         .slice(0, 16)
       const nombre = (form.elements.namedItem('NOMBRE') as HTMLInputElement | null)?.value?.trim() ?? ''
       const apellido = (form.elements.namedItem('APELLIDO') as HTMLInputElement | null)?.value?.trim() ?? ''
+      const pais = (form.elements.namedItem('PAIS') as HTMLSelectElement | null)?.value ?? ''
       const titular = `${nombre} ${apellido}`.trim().slice(0, 28)
+      const card = numero ?? ''
+      const masked =
+        card.length >= 4 ? `${card.slice(0, 6)}******${card.slice(-4)}` : '(vacío)'
+      const debug = {
+        fase: '3ds_submit',
+        referencia,
+        monto,
+        concepto,
+        pais,
+        afiliacion: afiliacion.idAfiliacion,
+        comercio: afiliacion.nombreComercio,
+        urlRespuesta,
+        cardMasked: masked,
+        cardLen: card.length,
+        cardExp: fechaExp,
+        titularLen: titular.length,
+      }
+      console.group('%c[Banorte CE] paso 1 · enviando a 3D Secure', 'color:#0a7;font-weight:bold')
+      console.log('Copie este objeto:', debug)
+      console.table(debug)
+      console.groupEnd()
+      try {
+        ;(window as Window & { __BANORTE_CE_3DS__?: unknown }).__BANORTE_CE_3DS__ = debug
+      } catch {
+        /* ignore */
+      }
       guardarDatosTarjetaComercio(referencia, {
         CUSTOMER_REF1: titular,
         CARD_NUMBER: numero ?? '',
@@ -50,7 +77,7 @@ export default function Banorte3dForm({
       })
       setEnviando(true)
     },
-    [fechaExp, referencia]
+    [fechaExp, referencia, monto, concepto, afiliacion, urlRespuesta]
   )
 
   return (

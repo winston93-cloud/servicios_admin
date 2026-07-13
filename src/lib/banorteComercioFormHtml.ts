@@ -29,6 +29,126 @@ export interface PrefillComercio {
   customerRef1?: string
 }
 
+/** Payload seguro para console.log (sin CVV ni PAN completo). */
+export type BanorteDebugPayw = {
+  fase: 'comercio_3ds_ok' | 'payw_rechazo' | 'payw_error'
+  referencia: string
+  monto: string
+  nivel: number
+  eci: string
+  status3d: string
+  xidLen: number
+  cavvLen: number
+  xidTail?: string
+  cavvTail?: string
+  paywResult?: string | null
+  authResult?: string | null
+  paywCode?: string | null
+  authCode?: string | null
+  text?: string | null
+  controlNumber?: string | null
+  titulo?: string
+  mensaje?: string
+  categoria?: string
+}
+
+function scriptDebugBanorte(
+  datos: DatosFormularioComercio,
+  opts?: { error?: DetalleErrorPayw2; debug?: BanorteDebugPayw }
+): string {
+  const status3d = datos.status3d || '200'
+  const base: BanorteDebugPayw = {
+    fase: opts?.error ? 'payw_rechazo' : 'comercio_3ds_ok',
+    referencia: datos.referencia,
+    monto: datos.montoFmt,
+    nivel: datos.nivel,
+    eci: datos.eci,
+    status3d,
+    xidLen: datos.xid.length,
+    cavvLen: datos.cavv.length,
+    xidTail: datos.xid ? datos.xid.slice(-6) : undefined,
+    cavvTail: datos.cavv ? datos.cavv.slice(-6) : undefined,
+    ...(opts?.debug ?? {}),
+    ...(opts?.error
+      ? {
+          titulo: opts.error.titulo,
+          mensaje: opts.error.mensaje,
+          categoria: opts.error.categoria,
+          paywCode: opts.error.paywCode,
+          authResult: opts.error.authResult,
+        }
+      : {}),
+  }
+  const json = JSON.stringify(base).replace(/</g, '\\u003c')
+  return `<script>
+(function () {
+  var PAGE = ${json};
+  console.group("%c[Banorte CE] paso 2 · diagnóstico", "color:#0b5;font-weight:bold");
+  console.log("Copie este objeto y péguelo en el chat:", PAGE);
+  console.table({
+    referencia: PAGE.referencia,
+    monto: PAGE.monto,
+    nivel: PAGE.nivel,
+    eci: PAGE.eci,
+    status3d: PAGE.status3d,
+    xidLen: PAGE.xidLen,
+    cavvLen: PAGE.cavvLen,
+    paywResult: PAGE.paywResult || "(aún no enviado)",
+    authResult: PAGE.authResult || "—",
+    paywCode: PAGE.paywCode || "—",
+    text: PAGE.text || "—"
+  });
+  if (PAGE.fase === "payw_rechazo") {
+    console.warn("[Banorte CE] Payworks rechazó el cargo", {
+      titulo: PAGE.titulo,
+      mensaje: PAGE.mensaje,
+      categoria: PAGE.categoria,
+      paywCode: PAGE.paywCode,
+      authResult: PAGE.authResult,
+      authCode: PAGE.authCode,
+      text: PAGE.text,
+      controlNumber: PAGE.controlNumber
+    });
+  }
+  console.groupEnd();
+  try { window.__BANORTE_CE_DEBUG__ = PAGE; } catch (e) {}
+
+  var form = document.getElementById("banorte-pay-form");
+  if (!form) return;
+  form.addEventListener("submit", function () {
+    var cardEl = document.getElementById("CARD_NUMBER");
+    var expEl = document.getElementById("CARD_EXP");
+    var nameEl = document.getElementById("CUSTOMER_REF1");
+    var cvvEl = document.getElementById("SECURITY_CODE");
+    var card = cardEl && cardEl.value ? String(cardEl.value).replace(/\\D/g, "") : "";
+    var masked = card.length >= 4
+      ? card.slice(0, 6) + "******" + card.slice(-4)
+      : "(vacío)";
+    var payload = {
+      fase: "payw_submit",
+      referencia: PAGE.referencia,
+      monto: PAGE.monto,
+      nivel: PAGE.nivel,
+      eci: PAGE.eci,
+      status3d: PAGE.status3d,
+      xidLen: PAGE.xidLen,
+      cavvLen: PAGE.cavvLen,
+      customerRef1Len: nameEl && nameEl.value ? nameEl.value.length : 0,
+      cardMasked: masked,
+      cardLen: card.length,
+      cardExp: expEl ? expEl.value : "",
+      cvvLen: cvvEl && cvvEl.value ? String(cvvEl.value).replace(/\\D/g, "").length : 0
+    };
+    console.group("%c[Banorte CE] enviando a /procesar (Payworks)", "color:#06c;font-weight:bold");
+    console.log("Copie este objeto:", payload);
+    console.table(payload);
+    console.groupEnd();
+    try { window.__BANORTE_CE_LAST_SUBMIT__ = payload; } catch (e) {}
+  });
+})();
+</script>`
+}
+
 function scriptPersistenciaTarjeta(referencia: string): string {
   const ref = esc(referencia)
   return `<script>
@@ -112,7 +232,7 @@ function htmlBannerErrorPayw(detalle: DetalleErrorPayw2, referencia: string): st
 
 export function htmlFormularioComercioElectronico(
   datos: DatosFormularioComercio,
-  opts?: { prefill?: PrefillComercio; error?: DetalleErrorPayw2 }
+  opts?: { prefill?: PrefillComercio; error?: DetalleErrorPayw2; debug?: BanorteDebugPayw }
 ): string {
   const nombre = opts?.prefill?.customerRef1 ?? ''
   const errorBlock = opts?.error ? htmlBannerErrorPayw(opts.error, datos.referencia) : ''
@@ -132,6 +252,7 @@ export function htmlFormularioComercioElectronico(
     <section class="banorte-card">
       <h1 class="banorte-card-title">Formulario 2 de 2 · Comercio electrónico</h1>
       <p class="banorte-card-lead">${opts?.error ? 'Corrija los datos y vuelva a intentar el cargo. No necesita repetir 3D Secure.' : 'Confirme el cargo. Si ya verificó su tarjeta en el paso anterior, los datos se cargan automáticamente; solo confirme el CVV.'}</p>
+      <p class="banorte-secure-note" style="margin:0 0 0.75rem">Abra la consola del navegador (F12 → Consola). Busque <code>[Banorte CE]</code> y copie el objeto si falla el cargo.</p>
       <dl class="banorte-summary">
         <div><dt>Referencia</dt><dd><code>${esc(datos.referencia)}</code></dd></div>
         <div><dt>Total</dt><dd class="banorte-amount">$${esc(datos.montoFmt)}</dd></div>
@@ -169,7 +290,8 @@ export function htmlFormularioComercioElectronico(
       </form>
       <p class="banorte-secure-note"><span aria-hidden="true">🔒</span> Comercio electrónico Banorte · cargo seguro vía Payworks.</p>
     </section>
-    ${scriptPersistenciaTarjeta(datos.referencia)}`
+    ${scriptPersistenciaTarjeta(datos.referencia)}
+    ${scriptDebugBanorte(datos, opts)}`
 
   return htmlShellBanorte('Comercio electrónico', 2, contenido, '/portal-pagos/banorte/comercio.png')
 }

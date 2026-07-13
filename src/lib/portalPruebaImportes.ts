@@ -6,9 +6,9 @@ export const PORTAL_PRUEBA_IMPORTES_POR_REF: Record<
   number,
   Partial<Record<string, number>>
 > = {
-  /** Nuevo ingreso 1° primaria — inscripción concept 13 a $50 (mínimo típico comercio Banorte). */
+  /** Nuevo ingreso 1° primaria — inscripción concept 13 a $3.00 (prueba Banorte). */
   21903: {
-    '13': 50,
+    '13': 3,
   },
 }
 

@@ -120,6 +120,24 @@ export async function POST(request: Request) {
       {
         error: detalle,
         prefill: { customerRef1: campos.CUSTOMER_REF1 },
+        debug: {
+          fase: 'payw_rechazo',
+          referencia,
+          monto: amount,
+          nivel,
+          eci: campos.ECI,
+          status3d: campos.STATUS_3D || '200',
+          xidLen: campos.XID.length,
+          cavvLen: campos.CAVV.length,
+          xidTail: campos.XID ? campos.XID.slice(-6) : undefined,
+          cavvTail: campos.CAVV ? campos.CAVV.slice(-6) : undefined,
+          paywResult: payw.paywResult,
+          authResult: payw.authResult,
+          paywCode: payw.paywCode,
+          authCode: payw.authCode,
+          text: payw.text,
+          controlNumber: payw.controlNumber,
+        },
       }
     )
     return respuestaHtml(html)
