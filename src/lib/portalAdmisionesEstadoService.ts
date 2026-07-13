@@ -1,14 +1,15 @@
 import type { AppDatabaseClient } from '@/lib/dbTypes'
 import type { AlumnoRegistro } from './alumnoDatosService'
 import type { PagoDetalleRegistro } from './pagoColegiaturaService'
-import { cambioCicloMmDd, admisionesLegacyBaseUrl } from './portalAdmisionesConfig'
-import { hoyIso, mmddHoy } from './portalAdmisionesCiclo'
+import { admisionesLegacyBaseUrl } from './portalAdmisionesConfig'
+import { hoyIso } from './portalAdmisionesCiclo'
 import { colegiaturaRequeridaCubierta } from './portalAdmisionesColegiatura'
 import {
   obtenerAutorizacionPortalDif2,
   tieneAccesoProrrogaDif1,
 } from './portalAdmisionesProrroga'
 import { tieneDiferido1Pagado } from './portalInscripcionesSolicitud'
+import { proyectarReinscripcionAlumno } from './portalReinscripcionProyeccion'
 import type { ReinscripcionDiferido } from './portalReinscripcionService'
 
 export interface VentanasInscripcion {
@@ -90,42 +91,15 @@ function proyectarAlumnoReinscripcion(alumno: AlumnoRegistro): {
   graduado: boolean
   mensaje: string | null
 } {
-  let nivel = Number(alumno.alumno_nivel) || 0
-  let grado = Number(alumno.alumno_grado) || 0
-  let ciclo = Number(alumno.alumno_ciclo_escolar) || 0
-  let cambioNivel = false
-  let graduado = false
-  let mensaje: string | null = null
-
-  if (mmddHoy() < cambioCicloMmDd()) {
-    ciclo++
-    if (nivel === 1 && grado === 2) {
-      nivel = 2
-      grado = 1
-      cambioNivel = true
-      mensaje = 'Cambia de nivel a Kinder 1.'
-    } else if (nivel === 2 && grado === 3) {
-      nivel = 3
-      grado = 1
-      cambioNivel = true
-      mensaje = 'Cambia de nivel a Primaria.'
-    } else if (nivel === 3 && grado === 6) {
-      nivel = 4
-      grado = 1
-      cambioNivel = true
-      mensaje = 'Cambia de nivel a Secundaria.'
-    } else if (nivel === 4 && grado === 3) {
-      graduado = true
-      mensaje = '¡Felicidades! El alumno ha egresado del Instituto Winston Churchill.'
-    } else {
-      grado++
-    }
-  } else if (nivel === 4 && grado === 3) {
-    graduado = true
-    mensaje = '¡Felicidades! El alumno ha egresado del Instituto Winston Churchill.'
+  const proy = proyectarReinscripcionAlumno(alumno)
+  return {
+    nivel: proy.nivel,
+    grado: proy.grado,
+    ciclo: proy.cicloDestino,
+    cambioNivel: proy.cambioNivel,
+    graduado: proy.graduado,
+    mensaje: proy.mensaje,
   }
-
-  return { nivel, grado, ciclo, cambioNivel, graduado, mensaje }
 }
 
 /**

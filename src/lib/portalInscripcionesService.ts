@@ -127,7 +127,6 @@ export async function construirEstadoPortalInscripciones(
   const formaIngreso = formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso)
   const esReinscrito = formaIngreso === 0
   const cea = ciclo.valor
-  const gradoEtiqueta = etiquetaGradoEscolar(alumno.alumno_nivel, alumno.alumno_grado)
 
   let bloqueo: BloqueoInscripcion | null = null
   let mensajeBloqueo: string | null = null
@@ -138,6 +137,16 @@ export async function construirEstadoPortalInscripciones(
   const calcReinscripcion = esReinscrito
     ? await calcularReinscripcionDiferido(supabase, alumno)
     : null
+
+  const gradoEtiqueta =
+    esReinscrito && calcReinscripcion
+      ? calcReinscripcion.graduado
+        ? 'Egresado'
+        : etiquetaGradoEscolar(
+            calcReinscripcion.nivelDestino,
+            calcReinscripcion.gradoDestino
+          )
+      : etiquetaGradoEscolar(alumno.alumno_nivel, alumno.alumno_grado)
 
   const cen = calcReinscripcion?.cicloReinscripcion ?? cea
   const cicloPagoReg = await resolverCicloPagoInscripcionPortal(

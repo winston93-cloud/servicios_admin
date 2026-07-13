@@ -67,11 +67,21 @@ export async function GET(request: Request) {
     const filtrados = pagosInscripcion(pagos, cicloComprobante)
 
     const nombre = `${alumno.alumno_nombre ?? ''} ${alumno.alumno_app ?? ''} ${alumno.alumno_apm ?? ''}`.trim()
+    const nivelPdf = esReinscrito
+      ? Number(calc?.nivelDestino ?? alumno.alumno_nivel)
+      : Number(alumno.alumno_nivel)
+    const gradoPdf = esReinscrito
+      ? Number(
+          calc?.graduado
+            ? alumno.alumno_grado
+            : (calc?.gradoDestino ?? alumno.alumno_grado)
+        )
+      : Number(alumno.alumno_grado)
     const pdf = generarPdfComprobanteInscripcion({
       nombreAlumno: nombre,
       alumnoRef: Number(alumno.alumno_ref),
-      nivel: Number(alumno.alumno_nivel),
-      grado: Number(alumno.alumno_grado),
+      nivel: nivelPdf,
+      grado: gradoPdf,
       cicloEscolar: cicloComprobante,
       pagos: filtrados,
     })

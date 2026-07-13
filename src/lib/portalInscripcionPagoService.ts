@@ -49,7 +49,9 @@ export async function construirVistaPagoInscripcion(
         alumno,
         esReinscrito,
         tituloPago: 'Pago de reinscripción',
-        gradoEtiqueta: etiquetaGradoEscolar(alumno.alumno_nivel, alumno.alumno_grado),
+        gradoEtiqueta: calc.graduado
+          ? 'Egresado'
+          : etiquetaGradoEscolar(calc.nivelDestino, calc.gradoDestino),
         solicitudCompleta: solCompleta,
         inscripcionPagada: calc.completa,
         filas,

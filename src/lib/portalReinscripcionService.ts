@@ -17,19 +17,17 @@ import type { FilaMatrizPortal } from './portalPagosMatrizService'
  * `admisiones_monto_baucher_reinscrito` + prorroga_inscripcion.php).
  *
  * Reglas clave (verificadas con datos reales):
- *  - La reinscripción es para el ciclo SIGUIENTE (cen = alumno_ciclo_escolar + 1)
- *    mientras estemos antes del cambio de ciclo (20 de julio).
+ *  - Destino = ciclo de la ficha + 1 mientras la ficha no haya avanzado al
+ *    ciclo de inscripción de la temporada (ej. 22 → 23). Tras el cambio de
+ *    ciclo administrativo (ficha ya en 23) no se vuelve a promover grado/nivel.
  *  - Concepto 11 = Diferido 1 (mitad del importe con descuento de reinscripción).
- *  - Concepto 12 = Diferido 2 (resto = importe de lista − lo pagado en Dif1, sin descuento).
+ *  - Concepto 12 = Diferido 2 (resto = importe de lista − lo pagado en Dif1).
  *  - Concepto 13 = Inscripción completa (pago en una sola exhibición).
- *  - El descuento aplica sobre el precio de inscripción del cen:
- *      cambio de nivel  → descuento_cambio_nivel
- *      promoción normal → descuento_cambio_grado
+ *  - Costos / referencias / reglamentos usan el ciclo destino y nivel/grado proyectados.
  *  - La reinscripción está CUBIERTA solo con: concepto 13, o 11 + 12.
  */
 
-import { cambioCicloMmDd } from './portalAdmisionesConfig'
-import { mmddHoy } from './portalAdmisionesCiclo'
+import { proyectarReinscripcionAlumno } from './portalReinscripcionProyeccion'
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100
@@ -42,10 +40,12 @@ interface PagoInscripcionCiclo {
 }
 
 export interface ReinscripcionDiferido {
-  /** Ciclo escolar al que se reinscribe (alumno_ciclo_escolar + 1 antes del cambio de ciclo). */
+  /** Ciclo escolar al que se reinscribe (costos, reglamentos, referencias). */
   cicloReinscripcion: number
   nivelDestino: number
   gradoDestino: number
+  /** true si la ficha aún no avanzó y se proyectó grado/nivel al destino. */
+  proyectaPromocion: boolean
   cambioNivel: boolean
   graduado: boolean
   /** Reinscripción cubierta (13, o 11 + 12). */
@@ -62,48 +62,6 @@ export interface ReinscripcionDiferido {
   dif1Importe: number
   filasPagadas: FilaMatrizPortal[]
   filaPendiente: FilaMatrizPortal | null
-}
-
-/**
- * Proyecta nivel/grado/ciclo al ciclo de reinscripción (misma promoción que el viejito).
- */
-function proyectarReinscripcion(alumno: AlumnoRegistro): {
-  cen: number
-  nivel: number
-  grado: number
-  cambioNivel: boolean
-  graduado: boolean
-} {
-  let nivel = Number(alumno.alumno_nivel) || 0
-  let grado = Number(alumno.alumno_grado) || 0
-  let cen = Number(alumno.alumno_ciclo_escolar) || 0
-  let cambioNivel = false
-  let graduado = false
-
-  if (mmddHoy() < cambioCicloMmDd()) {
-    cen++
-    if (nivel === 1 && grado === 2) {
-      nivel = 2
-      grado = 1
-      cambioNivel = true
-    } else if (nivel === 2 && grado === 3) {
-      nivel = 3
-      grado = 1
-      cambioNivel = true
-    } else if (nivel === 3 && grado === 6) {
-      nivel = 4
-      grado = 1
-      cambioNivel = true
-    } else if (nivel === 4 && grado === 3) {
-      graduado = true
-    } else {
-      grado++
-    }
-  } else if (nivel === 4 && grado === 3) {
-    graduado = true
-  }
-
-  return { cen, nivel, grado, cambioNivel, graduado }
 }
 
 async function pagosInscripcionCiclo(
@@ -147,7 +105,11 @@ export async function calcularReinscripcionDiferido(
 ): Promise<ReinscripcionDiferido | null> {
   if (formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) !== 0) return null
 
-  const { cen, nivel, grado, cambioNivel, graduado } = proyectarReinscripcion(alumno)
+  const proy = proyectarReinscripcionAlumno(alumno)
+  const cen = proy.cicloDestino
+  const nivel = proy.nivel
+  const grado = proy.grado
+  const { cambioNivel, graduado } = proy
   const pagos = await pagosInscripcionCiclo(supabase, alumno.alumno_id, cen)
 
   const pago11 = pagos.find((p) => p.concepto === '11') ?? null
@@ -177,6 +139,7 @@ export async function calcularReinscripcionDiferido(
     cicloReinscripcion: cen,
     nivelDestino: nivel,
     gradoDestino: grado,
+    proyectaPromocion: proy.proyectaPromocion,
     cambioNivel,
     graduado,
     completa,
