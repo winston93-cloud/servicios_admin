@@ -25,7 +25,7 @@ export async function ejecutarVentaPayw2(
     CMD_TRANS: 'VENTA',
     MODE: 'PRD',
     ENTRY_MODE: 'MANUAL',
-    RESPONSE_LANGUAGE: 'ES',
+    RESPONSE_LANGUAGE: 'EN',
     ...campos,
   })
 

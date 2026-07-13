@@ -21,6 +21,8 @@ export interface DatosFormularioComercio {
   eci: string
   xid: string
   cavv: string
+  /** Estatus 3DS aprobado (legacy reenvía el mismo valor a Payworks). */
+  status3d?: string
 }
 
 export interface PrefillComercio {
@@ -137,7 +139,7 @@ export function htmlFormularioComercioElectronico(
       <form method="POST" action="${esc(datos.procesarUrl)}" accept-charset="UTF-8" class="banorte-form-grid" id="banorte-pay-form">
         <input type="hidden" name="CONTROL_NUMBER" value="${esc(datos.referencia)}" />
         <input type="hidden" name="ECI" value="${esc(datos.eci)}" />
-        <input type="hidden" name="STATUS_3D" value="200" />
+        <input type="hidden" name="STATUS_3D" value="${esc(datos.status3d || '200')}" />
         <input type="hidden" name="XID" value="${esc(datos.xid)}" />
         <input type="hidden" name="CAVV" value="${esc(datos.cavv)}" />
         <input type="hidden" name="VERSION_3D" value="2" />

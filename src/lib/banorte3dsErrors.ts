@@ -196,7 +196,7 @@ const POR_CODIGO: Record<number, PlantillaError> = {
     mensaje:
       'Algún dato de contacto o dirección no es válido para 3D Secure (país, correo, celular, etc.).',
     sugerencia:
-      'Use México como país (MEX), correo válido, celular de 10 dígitos sin espacios y dirección completa.',
+      'Use México como país (MX), correo válido, celular de 10 dígitos sin espacios y dirección completa.',
     categoria: 'datos',
   },
   498: {

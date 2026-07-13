@@ -176,9 +176,9 @@ export default function Banorte3dForm({
 
         <div className="banorte-field banorte-field--third">
           <label htmlFor="PAIS">País</label>
-          <select name="PAIS" id="PAIS" defaultValue="MEX" required>
-            <option value="MEX">México</option>
-            <option value="USA">Estados Unidos</option>
+          <select name="PAIS" id="PAIS" defaultValue="MX" required>
+            <option value="MX">México</option>
+            <option value="US">Estados Unidos</option>
           </select>
         </div>
 

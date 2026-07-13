@@ -106,6 +106,7 @@ export async function POST(request: Request) {
     eci,
     xid,
     cavv,
+    status3d: estatus3d || '200',
   })
 
   return respuestaHtml(html)

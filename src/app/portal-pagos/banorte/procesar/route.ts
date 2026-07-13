@@ -32,6 +32,7 @@ function datosFormularioDesdePost(
     eci: campos.ECI,
     xid: campos.XID,
     cavv: campos.CAVV,
+    status3d: campos.STATUS_3D || '200',
   }
 }
 
@@ -41,15 +42,22 @@ export async function POST(request: Request) {
   const nivel = parseInt(str(form, 'ALUMNO_NIVEL'), 10) || 0
   const amount = str(form, 'AMOUNT')
 
+  const cardExpRaw = str(form, 'CARD_EXP')
+  const cardExpDigits = cardExpRaw.replace(/\D/g, '')
+  const cardExp =
+    cardExpDigits.length === 4
+      ? `${cardExpDigits.slice(0, 2)}/${cardExpDigits.slice(2)}`
+      : cardExpRaw
+
   const campos = {
     CONTROL_NUMBER: referencia,
     CUSTOMER_REF1: str(form, 'CUSTOMER_REF1').slice(0, 28),
     CARD_NUMBER: str(form, 'CARD_NUMBER').replace(/\D/g, '').slice(0, 16),
-    CARD_EXP: str(form, 'CARD_EXP'),
+    CARD_EXP: cardExp,
     SECURITY_CODE: str(form, 'SECURITY_CODE').replace(/\D/g, '').slice(0, 4),
     AMOUNT: amount,
     ECI: str(form, 'ECI'),
-    STATUS_3D: str(form, 'STATUS_3D'),
+    STATUS_3D: str(form, 'STATUS_3D') || '200',
     XID: str(form, 'XID'),
     CAVV: str(form, 'CAVV'),
     VERSION_3D: str(form, 'VERSION_3D') || '2',
