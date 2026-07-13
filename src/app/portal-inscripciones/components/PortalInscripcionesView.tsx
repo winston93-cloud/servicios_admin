@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -10,44 +10,13 @@ import {
   Circle,
   Clock,
   AlertTriangle,
-  CreditCard,
-  FileSignature,
   Lock,
-  PartyPopper,
   RefreshCw,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import type { EstadoPortalInscripciones, PasoEstadoInscripcion } from '@/lib/portalInscripcionesTypes'
 import type { MatrizPortalPagos } from '@/lib/portalPagosMatrizService'
-import { formatearMontoPortal } from '@/lib/portalPagosService'
 import PortalColegiaturasSecciones from '@/app/portal-pagos/components/PortalColegiaturasSecciones'
-
-const MESES_ES = [
-  'enero',
-  'febrero',
-  'marzo',
-  'abril',
-  'mayo',
-  'junio',
-  'julio',
-  'agosto',
-  'septiembre',
-  'octubre',
-  'noviembre',
-  'diciembre',
-]
-
-/** Convierte "YYYY-MM-DD" a "3 de julio de 2026" sin depender de la zona horaria. */
-function formatearFechaLarga(iso: string | null | undefined): string | null {
-  if (!iso) return null
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
-  if (!m) return null
-  const anio = Number(m[1])
-  const mes = Number(m[2]) - 1
-  const dia = Number(m[3])
-  if (mes < 0 || mes > 11) return null
-  return `${dia} de ${MESES_ES[mes]} de ${anio}`
-}
 
 function nombreAlumno(estado: EstadoPortalInscripciones | null, fallback?: string): string {
   if (!estado) return fallback?.trim() || 'Alumno'
@@ -107,10 +76,7 @@ function ProgresoInscripcion({
         </div>
       </div>
       <div className="portal-inscripciones-progreso-meta">
-        <div
-          className="portal-inscripciones-progreso-bar"
-          aria-hidden
-        >
+        <div className="portal-inscripciones-progreso-bar" aria-hidden>
           <div className="portal-inscripciones-progreso-fill" style={{ width: `${pct}%` }} />
         </div>
         <p className="portal-inscripciones-progreso-hint">
@@ -119,32 +85,6 @@ function ProgresoInscripcion({
       </div>
     </section>
   )
-}
-
-type SiguientePasoTono = 'accion' | 'exito' | 'espera'
-type SiguientePasoIcono = 'solicitud' | 'pago' | 'exito' | 'espera'
-
-interface SiguientePasoInfo {
-  tono: SiguientePasoTono
-  icono: SiguientePasoIcono
-  titulo: string
-  descripcion: string
-  monto?: number | null
-  fechaLimite?: string | null
-  cta?: { etiqueta: string; tipo: 'ruta' | 'scroll' | 'externo'; href?: string }
-}
-
-function iconoSiguientePaso(icono: SiguientePasoIcono) {
-  switch (icono) {
-    case 'solicitud':
-      return <FileSignature size={26} aria-hidden />
-    case 'pago':
-      return <CreditCard size={26} aria-hidden />
-    case 'exito':
-      return <PartyPopper size={26} aria-hidden />
-    default:
-      return <Clock size={26} aria-hidden />
-  }
 }
 
 export default function PortalInscripcionesView() {
@@ -159,6 +99,7 @@ export default function PortalInscripcionesView() {
   const [matriz, setMatriz] = useState<MatrizPortalPagos | null>(null)
   const [cargandoMatriz, setCargandoMatriz] = useState(false)
   const [errorMatriz, setErrorMatriz] = useState<string | null>(null)
+  const colegiaturasRef = useRef<HTMLElement>(null)
 
   const cargar = useCallback(async () => {
     if (alumnoId == null) {
@@ -229,109 +170,6 @@ export default function PortalInscripcionesView() {
     if (colegiaturasDesbloqueadas) void cargarMatriz()
   }, [colegiaturasDesbloqueadas, cargarMatriz])
 
-  const colegiaturasRef = useRef<HTMLElement>(null)
-
-  const irAColegiaturas = useCallback(() => {
-    colegiaturasRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [])
-
-  const colegiaturaPendiente = useMemo(() => {
-    const seccion = matriz?.secciones.find((s) => s.id === 'colegiatura')
-    return seccion?.filas.find((f) => !f.pagado) ?? null
-  }, [matriz])
-
-  const siguientePaso = useMemo<SiguientePasoInfo | null>(() => {
-    if (!estado || estado.bloqueo) return null
-
-    const paso = (id: string) => estado.pasos.find((p) => p.id === id) ?? null
-    const solicitud = paso('solicitud')
-
-    if (solicitud && solicitud.estado !== 'completado') {
-      return {
-        tono: 'accion',
-        icono: 'solicitud',
-        titulo: 'Completa la solicitud de inscripción',
-        descripcion:
-          'Captura los datos del alumno y de la familia. Al terminar se habilita el pago.',
-        cta: {
-          etiqueta: 'Completar solicitud',
-          tipo: 'ruta',
-          href: '/portal-inscripciones/solicitud',
-        },
-      }
-    }
-
-    if (!inscripcionPagada && estado.showPayment !== false) {
-      const pagoDisponible =
-        estado.showPayment === true ||
-        (estado.montoInscripcion != null && estado.montoInscripcion > 0)
-
-      if (pagoDisponible) {
-        return {
-          tono: 'accion',
-          icono: 'pago',
-          titulo: esReinscrito ? 'Realiza el pago de reinscripción' : 'Realiza el pago de inscripción',
-          descripcion:
-            'Paga en ventanilla (baucher), con tarjeta (comercio electrónico) o por transferencia SPEI.',
-          monto: estado.montoInscripcion,
-          fechaLimite: esReinscrito ? estado.reinscripcion?.fechaLimite ?? null : null,
-          cta: {
-            etiqueta: esReinscrito ? 'Pagar reinscripción' : 'Pagar inscripción',
-            tipo: 'ruta',
-            href: '/portal-inscripciones/pago',
-          },
-        }
-      }
-    }
-
-    const reglamento = paso('reglamento')
-    if (reglamento?.estado === 'disponible' && reglamento.accion?.tipo === 'externo') {
-      return {
-        tono: 'accion',
-        icono: 'solicitud',
-        titulo: 'Imprime el reglamento escolar',
-        descripcion: reglamento.descripcion,
-        cta: {
-          etiqueta: reglamento.accion.etiqueta,
-          tipo: 'externo',
-          href: reglamento.accion.href,
-        },
-      }
-    }
-
-    if (cargandoMatriz && !matriz) {
-      return {
-        tono: 'espera',
-        icono: 'espera',
-        titulo: 'Preparando tus colegiaturas…',
-        descripcion: 'Estamos cargando los conceptos del ciclo escolar.',
-      }
-    }
-
-    if (colegiaturaPendiente) {
-      const esInicio = colegiaturaPendiente.conceptoNo === '00'
-      return {
-        tono: 'accion',
-        icono: 'pago',
-        titulo: esInicio
-          ? 'Paga la cuota de inicio de curso'
-          : `Paga: ${colegiaturaPendiente.conceptoClase}`,
-        descripcion: esInicio
-          ? 'Con este pago se activa el ciclo y se habilitan las mensualidades.'
-          : 'Mantén al día las colegiaturas de tu hijo(a).',
-        monto: colegiaturaPendiente.importe,
-        cta: { etiqueta: 'Ir a colegiaturas', tipo: 'scroll' },
-      }
-    }
-
-    return {
-      tono: 'exito',
-      icono: 'exito',
-      titulo: '¡Estás al corriente!',
-      descripcion: 'No tienes pagos pendientes por ahora. Gracias por tu puntualidad.',
-    }
-  }, [estado, inscripcionPagada, esReinscrito, cargandoMatriz, matriz, colegiaturaPendiente])
-
   const refFmt = String(session?.alumno_ref ?? '').padStart(5, '0')
 
   return (
@@ -401,63 +239,6 @@ export default function PortalInscripcionesView() {
           )}
         </header>
 
-        {siguientePaso && (
-          <section
-            className={`portal-inscripciones-siguiente portal-inscripciones-siguiente--${siguientePaso.tono}`}
-            aria-label="Tu siguiente paso"
-          >
-            <div className="portal-inscripciones-siguiente-icono">
-              {iconoSiguientePaso(siguientePaso.icono)}
-            </div>
-            <div className="portal-inscripciones-siguiente-cuerpo">
-              <p className="portal-inscripciones-siguiente-kicker">Tu siguiente paso</p>
-              <h2 className="portal-inscripciones-siguiente-titulo">{siguientePaso.titulo}</h2>
-              <p className="portal-inscripciones-siguiente-desc">{siguientePaso.descripcion}</p>
-              {(siguientePaso.monto != null || siguientePaso.fechaLimite) && (
-                <div className="portal-inscripciones-siguiente-meta">
-                  {siguientePaso.monto != null && (
-                    <span className="portal-inscripciones-siguiente-monto">
-                      {formatearMontoPortal(siguientePaso.monto)}
-                    </span>
-                  )}
-                  {siguientePaso.fechaLimite && formatearFechaLarga(siguientePaso.fechaLimite) && (
-                    <span className="portal-inscripciones-siguiente-limite">
-                      <Clock size={14} aria-hidden />
-                      Fecha límite: {formatearFechaLarga(siguientePaso.fechaLimite)}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-            {siguientePaso.cta &&
-              (siguientePaso.cta.tipo === 'ruta' && siguientePaso.cta.href ? (
-                <Link href={siguientePaso.cta.href} className="portal-inscripciones-siguiente-cta">
-                  {siguientePaso.cta.etiqueta}
-                  <ArrowRight size={18} aria-hidden />
-                </Link>
-              ) : siguientePaso.cta.tipo === 'externo' && siguientePaso.cta.href ? (
-                <a
-                  href={siguientePaso.cta.href}
-                  className="portal-inscripciones-siguiente-cta"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {siguientePaso.cta.etiqueta}
-                  <ArrowRight size={18} aria-hidden />
-                </a>
-              ) : (
-                <button
-                  type="button"
-                  className="portal-inscripciones-siguiente-cta"
-                  onClick={irAColegiaturas}
-                >
-                  {siguientePaso.cta.etiqueta}
-                  <ArrowRight size={18} aria-hidden />
-                </button>
-              ))}
-          </section>
-        )}
-
         {cargando && !estado && (
           <div className="portal-inscripciones-estado" role="status">
             <RefreshCw size={20} className="portal-inscripciones-spin" aria-hidden />
@@ -493,14 +274,23 @@ export default function PortalInscripcionesView() {
                   key={paso.id}
                   className={`portal-inscripciones-paso portal-inscripciones-paso--${paso.estado}`}
                 >
-                  <div className="portal-inscripciones-paso-indice" aria-hidden>
-                    {String(paso.orden).padStart(2, '0')}
+                  <div
+                    className="portal-inscripciones-paso-indice"
+                    aria-hidden
+                  >
+                    <span className="portal-inscripciones-paso-numero">
+                      {String(paso.orden).padStart(2, '0')}
+                    </span>
+                    <span className="portal-inscripciones-paso-indice-icono">
+                      {iconoPaso(paso.estado)}
+                    </span>
                   </div>
-                  <div className="portal-inscripciones-paso-icono">{iconoPaso(paso.estado)}</div>
                   <div className="portal-inscripciones-paso-cuerpo">
                     <div className="portal-inscripciones-paso-cabecera">
                       <h2 className="portal-inscripciones-paso-titulo">{paso.titulo}</h2>
-                      <span className={`portal-inscripciones-paso-badge portal-inscripciones-paso-badge--${paso.estado}`}>
+                      <span
+                        className={`portal-inscripciones-paso-badge portal-inscripciones-paso-badge--${paso.estado}`}
+                      >
                         {etiquetaEstado(paso.estado)}
                       </span>
                     </div>
@@ -519,7 +309,9 @@ export default function PortalInscripcionesView() {
                             title="Disponible próximamente"
                           >
                             {paso.accion.etiqueta}
-                            <span className="portal-inscripciones-paso-proximo-tag">Próximamente</span>
+                            <span className="portal-inscripciones-paso-proximo-tag">
+                              Próximamente
+                            </span>
                           </button>
                         ) : paso.accion.tipo === 'ruta-interna' ? (
                           <Link href={paso.accion.href} className="portal-inscripciones-paso-link">
@@ -557,7 +349,8 @@ export default function PortalInscripcionesView() {
                       Colegiaturas del ciclo
                     </h2>
                     <p className="portal-inscripciones-colegiaturas-sub">
-                      Cuota de inicio de curso (concepto 00), mensualidades, Cambridge y Winston USA.
+                      Cuota de inicio de curso (concepto 00), mensualidades, Cambridge y Winston
+                      USA.
                     </p>
                   </div>
                   {colegiaturasDesbloqueadas && matriz?.planEtiqueta && (

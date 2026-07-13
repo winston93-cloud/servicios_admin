@@ -17229,9 +17229,9 @@ html[data-theme='light'] .portal-inscripciones-page {
 .portal-inscripciones-paso {
   position: relative;
   display: grid;
-  grid-template-columns: 38px 28px minmax(0, 1fr);
-  gap: 8px 14px;
-  padding: clamp(12px, 1.6vw, 16px) clamp(14px, 2vw, 20px);
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px 16px;
+  padding: clamp(14px, 1.8vw, 18px) clamp(14px, 2vw, 20px);
   padding-left: clamp(16px, 2vw, 22px);
   border-radius: 14px;
   border: 2px solid var(--portal-paso-border);
@@ -17293,19 +17293,37 @@ html[data-theme='light'] .portal-inscripciones-paso--bloqueado {
 
 .portal-inscripciones-paso-indice {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  gap: 4px;
+  min-width: 56px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
   color: #e2e8f0;
   background: rgba(30, 41, 59, 0.9);
   border: 1px solid rgba(148, 163, 184, 0.35);
   font-variant-numeric: tabular-nums;
   align-self: start;
+  flex-shrink: 0;
+}
+
+.portal-inscripciones-paso-numero {
+  font-size: clamp(1.25rem, 2.4vw, 1.55rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.portal-inscripciones-paso-indice-icono {
+  display: flex;
+  line-height: 0;
+}
+
+.portal-inscripciones-paso-indice-icono .pi-paso-icon {
+  width: 14px;
+  height: 14px;
 }
 
 .portal-inscripciones-paso--completado .portal-inscripciones-paso-indice {
@@ -17322,7 +17340,7 @@ html[data-theme='light'] .portal-inscripciones-paso--bloqueado {
 }
 
 .portal-inscripciones-paso-icono {
-  padding-top: 2px;
+  display: none;
 }
 
 .pi-paso-icon--ok {
@@ -17451,144 +17469,6 @@ html[data-theme='light'] .portal-inscripciones-paso--bloqueado {
   color: rgba(148, 163, 184, 0.85);
 }
 
-/* ── Tu siguiente paso (acción destacada para el papá) ────────────────── */
-.portal-inscripciones-siguiente {
-  display: flex;
-  align-items: center;
-  gap: 16px 20px;
-  flex-wrap: wrap;
-  margin-bottom: 22px;
-  padding: clamp(18px, 2.4vw, 24px) clamp(20px, 3vw, 28px);
-  border-radius: 18px;
-  border: 2px solid var(--portal-paso-activo-border);
-  background: var(--portal-paso-activo-bg);
-  box-shadow: var(--portal-surface-card-shadow);
-}
-
-.portal-inscripciones-siguiente--exito {
-  border-color: var(--portal-paso-completado-border);
-  background: var(--portal-paso-completado-bg);
-}
-
-.portal-inscripciones-siguiente--espera {
-  border-color: var(--portal-paso-bloqueado-border);
-  background: var(--portal-paso-bloqueado-bg);
-}
-
-.portal-inscripciones-siguiente-icono {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 52px;
-  height: 52px;
-  flex-shrink: 0;
-  border-radius: 14px;
-  background: rgba(56, 189, 248, 0.16);
-  color: #38bdf8;
-}
-
-.portal-inscripciones-siguiente--exito .portal-inscripciones-siguiente-icono {
-  background: rgba(16, 185, 129, 0.16);
-  color: #34d399;
-}
-
-.portal-inscripciones-siguiente--espera .portal-inscripciones-siguiente-icono {
-  background: rgba(148, 163, 184, 0.18);
-  color: #94a3b8;
-}
-
-.portal-inscripciones-siguiente-cuerpo {
-  flex: 1;
-  min-width: 200px;
-}
-
-.portal-inscripciones-siguiente-kicker {
-  margin: 0 0 2px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--portal-paso-link);
-}
-
-.portal-inscripciones-siguiente-titulo {
-  margin: 0 0 4px;
-  font-size: clamp(18px, 2.6vw, 22px);
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.portal-inscripciones-siguiente-desc {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--portal-paso-desc);
-}
-
-.portal-inscripciones-siguiente-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 14px;
-  margin-top: 10px;
-}
-
-.portal-inscripciones-siguiente-monto {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--text-primary);
-  background: rgba(56, 189, 248, 0.14);
-}
-
-.portal-inscripciones-siguiente-limite {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--portal-paso-detalle);
-}
-
-.portal-inscripciones-siguiente-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 700;
-  color: #fff;
-  cursor: pointer;
-  text-decoration: none;
-  background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
-  box-shadow: 0 6px 18px rgba(14, 165, 233, 0.35);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, gap 0.18s ease;
-}
-
-.portal-inscripciones-siguiente-cta:hover {
-  transform: translateY(-1px);
-  gap: 12px;
-  box-shadow: 0 8px 22px rgba(14, 165, 233, 0.45);
-}
-
-@media (max-width: 640px) {
-  .portal-inscripciones-siguiente {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .portal-inscripciones-siguiente-cta {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
 /* ── Colegiaturas integradas en el portal unificado ───────────────────── */
 .portal-inscripciones-colegiaturas-seccion {
   display: flex;
@@ -17705,9 +17585,20 @@ html[data-theme='light'] .portal-inscripciones-paso--bloqueado {
 
 @media (max-width: 640px) {
   .portal-inscripciones-paso {
-    grid-template-columns: 32px 28px 1fr;
-    gap: 10px 12px;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px 14px;
     padding: 16px 14px;
+  }
+
+  .portal-inscripciones-paso-indice {
+    min-width: 52px;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+  }
+
+  .portal-inscripciones-paso-numero {
+    font-size: 1.35rem;
   }
 
   .portal-inscripciones-paso:hover {
