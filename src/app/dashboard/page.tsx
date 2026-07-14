@@ -1,6 +1,6 @@
 'use client'
 
-import { urlBecasAlumnoApp, urlBoletasAlumnoApp } from '@/lib/dashboardModulosConfig'
+import { urlBecasAlumnoApp } from '@/lib/dashboardModulosConfig'
 import {
   NAV_ITEMS_ADMIN,
   abrirNavItem,
@@ -55,7 +55,7 @@ const NAV_ITEMS_ALUMNO: DashboardNavItem[] = [
   {
     label: 'Desayunos, Estancias y Comidas',
     desc: 'Servicios de alimentación y cuidado escolar',
-    path: '/portal-desayunos',
+    path: '/proximamente?m=desayunos',
     accent: 'amber',
     icon: ICON_DESAYUNOS,
   },
@@ -90,7 +90,7 @@ const NAV_ITEMS_ALUMNO: DashboardNavItem[] = [
   {
     label: 'Boletas',
     desc: 'Consulta de boletas y calificaciones escolares',
-    href: urlBoletasAlumnoApp(),
+    path: '/proximamente?m=boletas',
     accent: 'indigo',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">

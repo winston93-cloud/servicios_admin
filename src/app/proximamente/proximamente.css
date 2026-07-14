@@ -1,0 +1,382 @@
+.proximamente-page {
+  --px-accent: 245, 158, 11;
+  --px-accent-2: 251, 191, 36;
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  color: #f8fafc;
+  background: #07090f;
+  font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+}
+
+.proximamente-page[data-accent='indigo'] {
+  --px-accent: 99, 102, 241;
+  --px-accent-2: 129, 140, 248;
+}
+
+.proximamente-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.proximamente-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(50px);
+  opacity: 0.45;
+  animation: proximamente-float 9s ease-in-out infinite;
+}
+
+.proximamente-orb--a {
+  width: min(48vw, 420px);
+  height: min(48vw, 420px);
+  top: -8%;
+  right: -6%;
+  background: radial-gradient(
+    circle,
+    rgba(var(--px-accent), 0.55),
+    transparent 70%
+  );
+}
+
+.proximamente-orb--b {
+  width: min(42vw, 360px);
+  height: min(42vw, 360px);
+  bottom: -12%;
+  left: -8%;
+  background: radial-gradient(
+    circle,
+    rgba(0, 227, 253, 0.28),
+    transparent 70%
+  );
+  animation-delay: -3.5s;
+}
+
+.proximamente-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 20%, transparent 75%);
+  opacity: 0.55;
+}
+
+.proximamente-top {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 1.35rem;
+}
+
+.proximamente-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  text-decoration: none;
+  color: #e2e8f0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(10px);
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.proximamente-back:hover {
+  border-color: rgba(var(--px-accent), 0.55);
+  background: rgba(15, 23, 42, 0.8);
+  transform: translateX(-2px);
+}
+
+.proximamente-main {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 1rem 1.25rem 3.5rem;
+  min-height: calc(100vh - 5rem);
+}
+
+.proximamente-card {
+  width: min(100%, 620px);
+  padding: 2rem 1.75rem 1.75rem;
+  border-radius: 24px;
+  border: 1px solid rgba(var(--px-accent), 0.28);
+  background:
+    linear-gradient(
+      155deg,
+      rgba(var(--px-accent), 0.14) 0%,
+      rgba(26, 27, 33, 0.78) 38%,
+      rgba(10, 12, 18, 0.92) 100%
+    );
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 24px 80px rgba(0, 0, 0, 0.45),
+    0 0 60px rgba(var(--px-accent), 0.12);
+  text-align: center;
+  animation: proximamente-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.proximamente-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff7ed;
+  background: rgba(var(--px-accent), 0.22);
+  border: 1px solid rgba(var(--px-accent), 0.4);
+}
+
+.proximamente-icon-wrap {
+  position: relative;
+  width: 5.25rem;
+  height: 5.25rem;
+  margin: 0 auto 1.15rem;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  color: rgb(var(--px-accent-2));
+  background: rgba(var(--px-accent), 0.12);
+  border: 1px solid rgba(var(--px-accent), 0.35);
+  box-shadow: 0 0 28px rgba(var(--px-accent), 0.22);
+}
+
+.proximamente-icon-ring {
+  position: absolute;
+  inset: -8px;
+  border-radius: 28px;
+  border: 1px dashed rgba(var(--px-accent), 0.35);
+  animation: proximamente-spin 18s linear infinite;
+}
+
+.proximamente-kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(var(--px-accent-2), 0.95);
+}
+
+.proximamente-card h1 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.55rem, 3.4vw, 2.05rem);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: #f8fafc;
+}
+
+.proximamente-lead {
+  margin: 0 auto 1.35rem;
+  max-width: 34rem;
+  font-size: 1.02rem;
+  line-height: 1.55;
+  color: #cbd5e1;
+}
+
+.proximamente-list {
+  list-style: none;
+  margin: 0 auto 1.5rem;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+  text-align: left;
+  max-width: 26rem;
+}
+
+.proximamente-list li {
+  position: relative;
+  padding: 0.7rem 0.85rem 0.7rem 2.2rem;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  color: #e2e8f0;
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.proximamente-list li::before {
+  content: '';
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  transform: translateY(-50%);
+  background: rgb(var(--px-accent-2));
+  box-shadow: 0 0 10px rgba(var(--px-accent), 0.7);
+}
+
+.proximamente-ticker {
+  overflow: hidden;
+  margin: 0 -0.25rem 1.4rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(2, 6, 23, 0.45);
+  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+
+.proximamente-ticker-track {
+  display: flex;
+  gap: 0.85rem;
+  width: max-content;
+  padding: 0.55rem 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  animation: proximamente-marquee 22s linear infinite;
+}
+
+.proximamente-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.proximamente-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.85rem;
+  padding: 0.7rem 1.35rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #0b1220;
+  background: linear-gradient(
+    135deg,
+    rgb(var(--px-accent-2)),
+    rgb(var(--px-accent))
+  );
+  box-shadow: 0 10px 28px rgba(var(--px-accent), 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.proximamente-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(var(--px-accent), 0.45);
+}
+
+.proximamente-footnote {
+  margin: 0;
+  max-width: 28rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+
+.proximamente-loading {
+  margin: 0;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: #94a3b8;
+}
+
+@keyframes proximamente-float {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(18px) scale(1.05);
+  }
+}
+
+@keyframes proximamente-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes proximamente-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes proximamente-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+html[data-theme='light'] .proximamente-page {
+  background: #f4f7fb;
+  color: #0f172a;
+}
+
+html[data-theme='light'] .proximamente-card {
+  background:
+    linear-gradient(
+      155deg,
+      rgba(var(--px-accent), 0.12) 0%,
+      rgba(255, 255, 255, 0.95) 42%,
+      #fff 100%
+    );
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme='light'] .proximamente-card h1 {
+  color: #0f172a;
+}
+
+html[data-theme='light'] .proximamente-lead,
+html[data-theme='light'] .proximamente-footnote {
+  color: #475569;
+}
+
+html[data-theme='light'] .proximamente-list li {
+  background: #f8fafc;
+  color: #1e293b;
+  border-color: #e2e8f0;
+}
+
+html[data-theme='light'] .proximamente-back {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proximamente-orb,
+  .proximamente-icon-ring,
+  .proximamente-ticker-track,
+  .proximamente-card {
+    animation: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .proximamente-card {
+    padding: 1.55rem 1.2rem 1.35rem;
+    border-radius: 20px;
+  }
+}
