@@ -8,16 +8,19 @@ import {
   obtenerAutorizacionPortalDif2,
   tieneAccesoProrrogaDif1,
 } from './portalAdmisionesProrroga'
+import {
+  obtenerVentanasInscripcion,
+  type VentanasInscripcion,
+} from './portalAdmisionesVentanas'
 import { tieneDiferido1Pagado } from './portalInscripcionesSolicitud'
 import { proyectarReinscripcionAlumno } from './portalReinscripcionProyeccion'
-import type { ReinscripcionDiferido } from './portalReinscripcionService'
+import {
+  corteDiciembrePostDif2,
+  type ReinscripcionDiferido,
+} from './portalReinscripcionService'
 
-export interface VentanasInscripcion {
-  fechaIniDif1: string | null
-  fechaFinDif1: string | null
-  fechaIniDif2: string | null
-  fechaFinDif2: string | null
-}
+export type { VentanasInscripcion }
+export { obtenerVentanasInscripcion }
 
 export interface EstadoVentanaPortal {
   showInfo: boolean
@@ -35,52 +38,6 @@ export interface EstadoVentanaPortal {
   nivelProyectado: number
   gradoProyectado: number
   cicloProyectado: number
-}
-
-function fechaValida(valor: unknown): string | null {
-  const s = String(valor ?? '').slice(0, 10)
-  return s && s !== '0000-00-00' ? s : null
-}
-
-export async function obtenerVentanasInscripcion(
-  supabase: AppDatabaseClient,
-  cen: number,
-  alumnoMes: number
-): Promise<VentanasInscripcion> {
-  const vacio: VentanasInscripcion = {
-    fechaIniDif1: null,
-    fechaFinDif1: null,
-    fechaIniDif2: null,
-    fechaFinDif2: null,
-  }
-
-  const { data, error } = await supabase
-    .from('iwc_gral_ins')
-    .select('*')
-    .eq('ins_ce', cen)
-    .maybeSingle()
-
-  if (error || !data) return vacio
-
-  const fila = data as Record<string, unknown>
-  // Plan 10 meses (mes=1) usa columnas legacy ins_cambio_lv_*;
-  // plan 11 meses usa ins_normal_* (igual que prorroga_inscripcion.php).
-  const usarPlan10Meses = alumnoMes === 1
-
-  return {
-    fechaIniDif1: fechaValida(
-      usarPlan10Meses ? fila.ins_cambio_lv_dif1_ini : fila.ins_normal_dif1_ini
-    ),
-    fechaFinDif1: fechaValida(
-      usarPlan10Meses ? fila.ins_cambio_lv_dif1_fin : fila.ins_normal_dif1_fin
-    ),
-    fechaIniDif2: fechaValida(
-      usarPlan10Meses ? fila.ins_cambio_lv_dif2_ini : fila.ins_normal_dif2_ini
-    ),
-    fechaFinDif2: fechaValida(
-      usarPlan10Meses ? fila.ins_cambio_lv_dif2_fin : fila.ins_normal_dif2_fin
-    ),
-  }
 }
 
 function proyectarAlumnoReinscripcion(alumno: AlumnoRegistro): {
@@ -103,8 +60,8 @@ function proyectarAlumnoReinscripcion(alumno: AlumnoRegistro): {
 }
 
 /**
- * Port de admisiones_estado_portal_inscripcion (reinscritos) + reglas loader.php
- * sin listas hardcodeadas de refs.
+ * Port de admisiones_estado_portal_inscripcion (reinscritos) + reglas portal:
+ * hueco Dif1→Dif2 cerrado; post-Dif2 abierto hasta 31-dic; luego mensaje de fechas.
  */
 export async function evaluarVentanaPortalReinscrito(
   supabase: AppDatabaseClient,
@@ -117,7 +74,7 @@ export async function evaluarVentanaPortalReinscrito(
   const alumnoMes = Number(alumno.mes ?? 0)
   const alumnoRef = Number(alumno.alumno_ref)
   const proy = proyectarAlumnoReinscripcion(alumno)
-  const ventanas = await obtenerVentanasInscripcion(supabase, cen, alumnoMes)
+  const ventanas = calc.ventanas ?? (await obtenerVentanasInscripcion(supabase, cen, alumnoMes))
 
   const base: EstadoVentanaPortal = {
     showInfo: false,
@@ -148,7 +105,14 @@ export async function evaluarVentanaPortalReinscrito(
   let portalAbierto = false
   let showInfo = false
 
-  if (fechaIniDif1 && cd < fechaIniDif1 && !prorrogaDif1) {
+  if (!fechaIniDif1 || !fechaFinDif1 || !fechaIniDif2 || !fechaFinDif2) {
+    base.msg2 = 'Aún no hay fechas de reinscripción registradas para este ciclo.'
+    showInfo = true
+  } else if (fechaFinDif2 && cd > corteDiciembrePostDif2(fechaFinDif2)) {
+    // Regla 9: a partir del año siguiente, solo mensaje de fechas.
+    base.msg2 = `El portal de reinscripción se abre en las fechas registradas: primer periodo del ${fechaIniDif1} al ${fechaFinDif1}; segundo periodo del ${fechaIniDif2} al ${fechaFinDif2}.`
+    showInfo = true
+  } else if (fechaIniDif1 && cd < fechaIniDif1 && !prorrogaDif1) {
     const col = colegiaturaRequeridaCubierta(pagos, alumnoRef, 'febrero', cen)
     base.msg2 = `Su primer periodo de reinscripción es de ${fechaIniDif1} al ${fechaFinDif1}.`
     if (!col.ok) {
@@ -158,6 +122,7 @@ export async function evaluarVentanaPortalReinscrito(
       base.msg3 =
         'Recuerde que es necesario no tener adeudos hasta este mes para validar su descuento de reinscripción.'
     }
+    showInfo = true
   } else if (
     fechaIniDif2 &&
     fechaFinDif2 &&
@@ -169,6 +134,7 @@ export async function evaluarVentanaPortalReinscrito(
     if (!col.ok && !authDif2.activa) {
       base.errorPagoPendiente = true
       base.msg3 = col.mensaje
+      showInfo = true
     } else {
       base.msg2 = `Bienvenido al segundo periodo de reinscripción del ${fechaIniDif2} al ${fechaFinDif2}.`
       portalAbierto = true
@@ -190,6 +156,7 @@ export async function evaluarVentanaPortalReinscrito(
       if (!col.ok) {
         base.errorPagoPendiente = true
         base.msg3 = col.mensaje
+        showInfo = true
       } else {
         portalAbierto = true
         showInfo = true
@@ -211,32 +178,39 @@ export async function evaluarVentanaPortalReinscrito(
     cd > fechaFinDif1 &&
     cd < fechaIniDif2
   ) {
+    // Regla 7: hueco cerrado para reinscritos (salvo autorización Dif2).
     if (hasDif && authDif2.activa) {
       base.msg2 = `Autorización especial: puede realizar su pago de segundo diferido hasta el ${authDif2.vigenciaHasta}.`
       portalAbierto = true
       showInfo = true
-    } else if (alumnoMes === 2 && hasDif) {
-      base.msg2 = `Su segundo periodo de reinscripción será del ${fechaIniDif2} al ${fechaFinDif2}.`
-      base.msg3 =
-        'Su plan de pago es de 11 meses; el segundo diferido se habilitará en julio.'
-      showInfo = true
-    } else if (alumnoMes === 2 && !hasDif) {
-      base.msg2 = 'Debe cubrir su inscripción completa (sin descuento de reinscripción).'
+    } else if (prorrogaDif1 && !hasDif) {
       portalAbierto = true
       showInfo = true
     } else {
-      const tipoCol = alumnoMes === 1 ? 'junio' : 'julio'
-      const col = colegiaturaRequeridaCubierta(pagos, alumnoRef, tipoCol, cen)
-      base.msg2 = `Su segundo periodo de reinscripción es del ${fechaIniDif2} al ${fechaFinDif2}.`
-      if (!col.ok) {
-        base.errorPagoPendiente = true
-        base.msg3 = col.mensaje
+      base.msg2 =
+        'Por el momento no son las fechas para reinscripción. El segundo periodo será del ' +
+        `${fechaIniDif2} al ${fechaFinDif2}.`
+      if (hasDif) {
+        base.msg3 =
+          alumnoMes === 2
+            ? 'Su plan de pago es de 11 meses; el segundo diferido se habilitará en julio.'
+            : 'Conserve su comprobante del primer diferido para el segundo periodo.'
+      } else {
+        base.msg3 =
+          'Si no cubrió el primer diferido, podrá pagar la inscripción completa (sin descuento) en el segundo periodo o después.'
       }
+      showInfo = true
     }
   } else if (fechaFinDif2 && cd > fechaFinDif2) {
+    // Regla 8 + 9: abierto hasta 31-dic del año de los diferidos.
     portalAbierto = true
     showInfo = true
     base.msg1 = null
+    if (pagable) {
+      base.msg2 = hasDif
+        ? 'Periodo de descuento cerrado. Debe cubrir el restante de su reinscripción (segundo diferido).'
+        : 'Periodo de descuento cerrado. Debe cubrir su inscripción completa (sin descuento de reinscripción).'
+    }
   }
 
   base.showInfo = showInfo || portalAbierto
@@ -278,13 +252,11 @@ export function urlReciboFinalLegacy(): string {
   return `${admisionesLegacyBaseUrl().replace(/\/admisiones$/, '')}/recibo_final/alumno/alu.php`
 }
 
+/** Visibilidad de pasos: solo depende de liberateInfo (ya no bloquea ene–feb). */
 export function puedeVerPasosInscripcion(
-  alumno: AlumnoRegistro,
-  esReinscrito: boolean,
+  _alumno: AlumnoRegistro,
+  _esReinscrito: boolean,
   liberateInfo: boolean
 ): boolean {
-  if (!liberateInfo) return false
-  const mes = new Date().getMonth() + 1
-  if (esReinscrito && mes < 3) return false
-  return true
+  return liberateInfo
 }

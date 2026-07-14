@@ -115,7 +115,7 @@ export default function PortalInscripcionPagoView() {
           alumnoId,
           conceptoNo: fila.conceptoNo,
           cicloEscolar: vista.ciclo.valor,
-          // Reinscripción por diferidos: el importe ya viene calculado (Dif1/Dif2).
+          // Importe ya calculado (Dif1/Dif2/inscripción completa 13).
           importe: fila.importe ?? undefined,
         }),
       })

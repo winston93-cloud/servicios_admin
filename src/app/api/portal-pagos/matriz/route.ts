@@ -8,6 +8,7 @@ import {
 } from '@/lib/ciclosEscolaresService'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
+import { asegurarColegiaturasPreviasIngresoCero } from '@/lib/colegiaturasPreviasIngresoService'
 import { construirMatrizPortalPagos } from '@/lib/portalPagosMatrizService'
 
 export const runtime = 'nodejs'
@@ -61,12 +62,25 @@ export async function POST(request: Request) {
     }
 
     const supabase = createSupabaseAdmin()
-    const pagos = await listarPagosColegiaturaAlumno(alumnoId, ciclo.valor)
+    let pagos = await listarPagosColegiaturaAlumno(alumnoId, ciclo.valor)
+    const previos = await asegurarColegiaturasPreviasIngresoCero(
+      supabase,
+      alumno,
+      ciclo.valor,
+      pagos
+    )
+    if (previos.insertados.length > 0) {
+      pagos = await listarPagosColegiaturaAlumno(alumnoId, ciclo.valor)
+    }
     const matriz = await construirMatrizPortalPagos(supabase, alumno, ciclo, pagos, {
       soloColegiatura,
     })
 
-    return NextResponse.json({ ok: true, matriz })
+    return NextResponse.json({
+      ok: true,
+      matriz,
+      colegiaturasPreviasCero: previos.insertados,
+    })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al cargar matriz de pagos'
     console.error('portal-pagos/matriz:', e)

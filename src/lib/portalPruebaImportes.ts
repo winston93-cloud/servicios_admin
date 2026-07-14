@@ -6,10 +6,7 @@ export const PORTAL_PRUEBA_IMPORTES_POR_REF: Record<
   number,
   Partial<Record<string, number>>
 > = {
-  /** Nuevo ingreso 1° primaria — inscripción concept 13 a $50 (prueba Banorte). */
-  21903: {
-    '13': 50,
-  },
+  // Vacío: se eliminó el alumno de prueba INSCRIPCION TRES / PRUEBA (ref 21903).
 }
 
 export function importePruebaPortal(

@@ -3,14 +3,19 @@ import { createInsforgeAdmin } from '@/lib/insforgeAdmin'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
-import { formaIngresoPorDefecto } from '@/lib/alumnoFormaIngreso'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
+import {
+  nivelGradoDocumentosAdmision,
+  requiereDocumentosAdmision,
+} from '@/lib/portalDocumentosAdmision'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
+import { calcularReinscripcionDiferido } from '@/lib/portalReinscripcionService'
 import {
   enviarDocumentosNiDesdeStorage,
   obtenerUltimoEnvioDocumentosNi,
   subirDocumentoNiTemporal,
   validarArchivoPdf,
+  validarExpedienteDocumentosNi,
   type DocumentoNiSubidaTemp,
 } from '@/lib/portalDocumentosNiService'
 import {
@@ -33,11 +38,14 @@ async function contextoNi(alumnoId: number) {
   const auth = await validarAlumnoPortal(alumnoId)
   if (!auth.ok) return { ok: false as const, response: auth.response }
 
-  if (formaIngresoPorDefecto(auth.alumno.alumno_nuevo_ingreso) === 0) {
+  if (!requiereDocumentosAdmision(auth.alumno)) {
     return {
       ok: false as const,
       response: NextResponse.json(
-        { error: 'La carga de documentos solo aplica a nuevo ingreso.' },
+        {
+          error:
+            'La carga de documentos solo aplica a nuevo ingreso o reinscritos con cambio de nivel (Kinder 3 → 1º / 6º → secundaria).',
+        },
         { status: 403 }
       ),
     }
@@ -51,9 +59,14 @@ async function contextoNi(alumnoId: number) {
     }
   }
 
-  const ciclo = await resolverCicloPagoInscripcionPortal(auth.alumno, cicloSistema)
-  const nivel = Number(auth.alumno.alumno_nivel)
-  const grado = Number(auth.alumno.alumno_grado) || 1
+  const client = createInsforgeAdmin()
+  const calc = await calcularReinscripcionDiferido(client.database, auth.alumno)
+  const ciclo = await resolverCicloPagoInscripcionPortal(
+    auth.alumno,
+    cicloSistema,
+    calc?.cicloReinscripcion
+  )
+  const { nivel, grado } = nivelGradoDocumentosAdmision(auth.alumno)
   if (!correoControlEscolarPorNivel(nivel)) {
     return {
       ok: false as const,
@@ -177,14 +190,30 @@ export async function POST(request: Request) {
       if (!storageKey) {
         return NextResponse.json({ error: `Falta storageKey para ${tipo}` }, { status: 400 })
       }
+      const size = Number(item?.size) || 0
+      if (size <= 0) {
+        return NextResponse.json(
+          { error: `El archivo de "${tipo}" está vacío. Carga un PDF válido.` },
+          { status: 400 }
+        )
+      }
       subidas.push({
         tipo,
         etiqueta: String(item?.etiqueta ?? tipo),
         nombreArchivo: String(item?.nombreArchivo ?? `${tipo}.pdf`),
         storageKey,
         storageUrl: String(item?.storageUrl ?? ''),
-        size: Number(item?.size) || 0,
+        size,
       })
+    }
+
+    const validacion = validarExpedienteDocumentosNi({
+      nivel: ctx.nivel,
+      grado: ctx.grado,
+      subidas,
+    })
+    if (!validacion.ok) {
+      return NextResponse.json({ error: validacion.error }, { status: 400 })
     }
 
     const client = createInsforgeAdmin()

@@ -116,3 +116,11 @@ export function esDocumentoNiTipoId(v: string): v is DocumentoNiTipoId {
 export function etiquetaDocumentoNi(id: DocumentoNiTipoId): string {
   return DOCUMENTOS_NI_TIPOS.find((d) => d.id === id)?.etiqueta ?? id
 }
+
+/** Nombre de archivo comparable (sin ruta, minúsculas). */
+export function normalizarNombreArchivoDoc(nombre: string): string {
+  return String(nombre ?? '')
+    .trim()
+    .replace(/^.*[/\\]/, '')
+    .toLowerCase()
+}

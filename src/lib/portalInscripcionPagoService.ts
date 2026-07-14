@@ -33,8 +33,7 @@ export async function construirVistaPagoInscripcion(
   const esReinscrito = formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 0
   const solCompleta = await solicitudCapturada(supabase, alumno)
 
-  // Reinscritos: la reinscripción es para el ciclo SIGUIENTE (cen = alu_ce + 1) y se
-  // cobra por diferidos (concepto 11 → 12), igual que en el sistema de admisiones.
+  // Reinscritos: ciclo destino y montos calendáricos (11 / 12 / 13 según ventanas).
   if (esReinscrito) {
     const calc = await calcularReinscripcionDiferido(supabase, alumno)
     if (calc) {
@@ -44,11 +43,20 @@ export async function construirVistaPagoInscripcion(
         ? [...calc.filasPagadas, calc.filaPendiente]
         : calc.filasPagadas
 
+      const tituloPago =
+        calc.concepto === '13'
+          ? 'Pago de inscripción'
+          : calc.concepto === '12'
+            ? 'Pago de reinscripción (2.º diferido)'
+            : calc.concepto === '11'
+              ? 'Pago de reinscripción (1.er diferido)'
+              : 'Pago de reinscripción'
+
       return {
         ciclo: cicloReinscripcion,
         alumno,
         esReinscrito,
-        tituloPago: 'Pago de reinscripción',
+        tituloPago,
         gradoEtiqueta: calc.graduado
           ? 'Egresado'
           : etiquetaGradoEscolar(calc.nivelDestino, calc.gradoDestino),

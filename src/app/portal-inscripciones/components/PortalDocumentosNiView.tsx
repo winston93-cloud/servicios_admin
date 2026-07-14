@@ -17,6 +17,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import {
   DOCUMENTOS_NI_MAX_BYTES,
+  normalizarNombreArchivoDoc,
   type DocumentoNiTipoId,
 } from '@/lib/portalDocumentosNiTipos'
 
@@ -152,8 +153,38 @@ export default function PortalDocumentosNiView() {
       setError('Solo se aceptan archivos PDF.')
       return
     }
+    if (!file.size || file.size < 64) {
+      setError('El archivo está vacío o no es un PDF válido. Elige otro.')
+      return
+    }
     if (file.size > DOCUMENTOS_NI_MAX_BYTES) {
       setError(`Cada PDF puede pesar máximo ${DOCUMENTOS_NI_MAX_BYTES / (1024 * 1024)} MB.`)
+      return
+    }
+
+    const nombreNorm = normalizarNombreArchivoDoc(file.name)
+    const duplicado = requisitos.find((r) => {
+      if (r.id === id) return false
+      const otroLocal = locales[r.id]
+      const otraSubida = subidas[r.id]
+      if (otroLocal) {
+        return (
+          normalizarNombreArchivoDoc(otroLocal.name) === nombreNorm &&
+          otroLocal.size === file.size
+        )
+      }
+      if (otraSubida) {
+        return (
+          normalizarNombreArchivoDoc(otraSubida.nombreArchivo) === nombreNorm &&
+          otraSubida.size === file.size
+        )
+      }
+      return false
+    })
+    if (duplicado) {
+      setError(
+        `Ese archivo ya está asignado a "${duplicado.etiqueta}". Cada documento debe ser un PDF distinto.`
+      )
       return
     }
 
@@ -183,14 +214,46 @@ export default function PortalDocumentosNiView() {
   }
 
   const enviar = async () => {
-    if (alumnoId == null || !listos) return
+    if (alumnoId == null) return
     setEnviando(true)
     setError(null)
     setOkMsg(null)
+
+    const faltantes = requisitos.filter((r) => !subidas[r.id] || (subidas[r.id]?.size ?? 0) <= 0)
+    if (faltantes.length > 0) {
+      setError(
+        faltantes.length === 1
+          ? `Falta cargar: ${faltantes[0].etiqueta}.`
+          : `Faltan documentos: ${faltantes.map((f) => f.etiqueta).join(', ')}.`
+      )
+      setEnviando(false)
+      return
+    }
+
+    const nombres = new Map<string, string>()
+    for (const r of requisitos) {
+      const s = subidas[r.id]!
+      const key = `${normalizarNombreArchivoDoc(s.nombreArchivo)}::${s.size}`
+      const prev = nombres.get(key)
+      if (prev) {
+        setError(
+          `Archivos duplicados: "${s.nombreArchivo}" está en "${prev}" y "${r.etiqueta}". Usa un PDF distinto para cada uno.`
+        )
+        setEnviando(false)
+        return
+      }
+      nombres.set(key, r.etiqueta)
+    }
+
     try {
       const payload = {
         alumnoId,
         subidas: requisitos.map((r) => subidas[r.id]).filter(Boolean),
+      }
+      if (payload.subidas.length !== requisitos.length) {
+        setError('Debes cargar todos los documentos requeridos, sin dejar ninguno vacío.')
+        setEnviando(false)
+        return
       }
       const res = await fetch('/api/portal-inscripciones/documentos', {
         method: 'POST',
@@ -256,7 +319,7 @@ export default function PortalDocumentosNiView() {
                   Expediente digital
                 </h1>
                 <p className="portal-docs-lead">
-                  Adjunta cada PDF. Cuando estén listos, se envían a control escolar de tu nivel.
+                  Adjunta un PDF distinto en cada casilla (ninguna vacía). Al completarlas, se envían a control escolar de tu nivel.
                 </p>
                 <div className="portal-docs-alumno">
                   <span className="portal-docs-alumno-nombre">{estado.alumno.nombre}</span>
@@ -438,8 +501,8 @@ export default function PortalDocumentosNiView() {
                 </p>
                 <p className="portal-docs-footer-hint">
                   {listos
-                    ? 'Al enviar, control escolar recibe los PDF por correo.'
-                    : 'Sube cada archivo para habilitar el envío.'}
+                    ? 'Al enviar, control escolar recibe los PDF por correo. Cada documento debe ser un archivo distinto.'
+                    : 'Sube todos los PDF requeridos (sin vacíos ni archivos repetidos) para habilitar el envío.'}
                 </p>
               </div>
               <button

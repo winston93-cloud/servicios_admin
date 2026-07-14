@@ -8,6 +8,7 @@ import {
   documentosNiRequeridosPorNivelGrado,
   esDocumentoNiTipoId,
   etiquetaDocumentoNi,
+  normalizarNombreArchivoDoc,
   type DocumentoNiTipoId,
 } from '@/lib/portalDocumentosNiTipos'
 
@@ -62,6 +63,117 @@ export function storageKeyPerteneceAlumno(
   alumnoId: number
 ): boolean {
   return key.startsWith(prefijoStorageAlumno(cicloValor, alumnoId))
+}
+
+/**
+ * Valida expediente completo: todos los requisitos, sin vacíos ni tipos/archivos duplicados.
+ */
+export function validarExpedienteDocumentosNi(opts: {
+  nivel: number
+  grado: number
+  subidas: Array<{
+    tipo: string
+    nombreArchivo?: string
+    storageKey?: string
+    size?: number
+  }>
+}): { ok: true; porTipo: Map<DocumentoNiTipoId, (typeof opts.subidas)[number]> } | { ok: false; error: string } {
+  const requeridos = documentosNiRequeridosPorNivelGrado(opts.nivel, opts.grado)
+  if (requeridos.length === 0) {
+    return { ok: false, error: 'No hay documentos requeridos para este nivel.' }
+  }
+
+  if (!Array.isArray(opts.subidas) || opts.subidas.length === 0) {
+    return { ok: false, error: 'Debes cargar todos los documentos requeridos.' }
+  }
+
+  const idsVistos = new Set<string>()
+  const nombresVistos = new Map<string, string>()
+  const keysVistas = new Map<string, string>()
+  const porTipo = new Map<DocumentoNiTipoId, (typeof opts.subidas)[number]>()
+
+  for (const item of opts.subidas) {
+    const tipoRaw = String(item?.tipo ?? '')
+    if (!esDocumentoNiTipoId(tipoRaw)) {
+      return { ok: false, error: `Tipo de documento inválido: ${tipoRaw || '(vacío)'}` }
+    }
+    const etiqueta = etiquetaDocumentoNi(tipoRaw)
+
+    if (idsVistos.has(tipoRaw)) {
+      return {
+        ok: false,
+        error: `Documento duplicado: "${etiqueta}" aparece más de una vez.`,
+      }
+    }
+    idsVistos.add(tipoRaw)
+
+    const size = Number(item.size) || 0
+    if (size <= 0) {
+      return { ok: false, error: `El archivo de "${etiqueta}" está vacío. Carga un PDF válido.` }
+    }
+    if (size < 64) {
+      return {
+        ok: false,
+        error: `El archivo de "${etiqueta}" parece vacío o inválido. Carga un PDF correcto.`,
+      }
+    }
+
+    const storageKey = String(item.storageKey ?? '').trim()
+    if (!storageKey) {
+      return { ok: false, error: `Falta el archivo de "${etiqueta}".` }
+    }
+    const keyPrev = keysVistas.get(storageKey)
+    if (keyPrev) {
+      return {
+        ok: false,
+        error: `El mismo archivo está asignado a "${keyPrev}" y "${etiqueta}". Cada documento debe ser distinto.`,
+      }
+    }
+    keysVistas.set(storageKey, etiqueta)
+
+    const nombre = normalizarNombreArchivoDoc(String(item.nombreArchivo ?? ''))
+    if (!nombre || nombre === '.pdf') {
+      return { ok: false, error: `El archivo de "${etiqueta}" no tiene un nombre válido.` }
+    }
+    const nombrePrev = nombresVistos.get(nombre)
+    if (nombrePrev) {
+      return {
+        ok: false,
+        error: `Archivo duplicado: "${item.nombreArchivo}" ya está en "${nombrePrev}". No uses el mismo PDF en dos documentos.`,
+      }
+    }
+    nombresVistos.set(nombre, etiqueta)
+
+    porTipo.set(tipoRaw, item)
+  }
+
+  const faltantes = requeridos.filter((r) => !porTipo.has(r.id))
+  if (faltantes.length > 0) {
+    const lista = faltantes.map((f) => f.etiqueta).join(', ')
+    return {
+      ok: false,
+      error:
+        faltantes.length === 1
+          ? `Falta cargar: ${lista}.`
+          : `Faltan documentos por cargar: ${lista}.`,
+    }
+  }
+
+  // Extra no requerido
+  for (const tipo of idsVistos) {
+    if (!requeridos.some((r) => r.id === tipo)) {
+      return {
+        ok: false,
+        error: `El documento "${etiquetaDocumentoNi(tipo as DocumentoNiTipoId)}" no aplica para este grado.`,
+      }
+    }
+  }
+
+  if (porTipo.size !== requeridos.length) {
+    return { ok: false, error: 'Debes cargar exactamente todos los documentos requeridos, sin omitir ni duplicar.' }
+  }
+
+  return { ok: true, porTipo }
 }
 
 export async function obtenerUltimoEnvioDocumentosNi(
@@ -205,19 +317,24 @@ export async function enviarDocumentosNiDesdeStorage(opts: {
     throw new Error(`Nivel inválido para envío de documentos: ${opts.nivel}`)
   }
 
-  const porTipo = new Map(opts.subidas.map((s) => [s.tipo, s]))
-  const requeridos = documentosNiRequeridosPorNivelGrado(opts.nivel, opts.grado)
-  for (const tipo of requeridos) {
-    if (!porTipo.has(tipo.id)) {
-      throw new Error(`Falta el documento: ${tipo.etiqueta}`)
-    }
+  const validacion = validarExpedienteDocumentosNi({
+    nivel: opts.nivel,
+    grado: opts.grado,
+    subidas: opts.subidas,
+  })
+  if (!validacion.ok) {
+    throw new Error(validacion.error)
   }
 
+  const requeridos = documentosNiRequeridosPorNivelGrado(opts.nivel, opts.grado)
   const metas: DocumentoNiArchivoMeta[] = []
   const adjuntos: { filename: string; content: Buffer; contentType: string }[] = []
 
   for (const tipo of requeridos) {
-    const subida = porTipo.get(tipo.id)!
+    const subida = opts.subidas.find((s) => s.tipo === tipo.id)
+    if (!subida) {
+      throw new Error(`Falta el documento: ${tipo.etiqueta}`)
+    }
     if (!storageKeyPerteneceAlumno(subida.storageKey, opts.cicloValor, opts.alumnoId)) {
       throw new Error(`Archivo inválido para ${tipo.etiqueta}`)
     }
@@ -233,6 +350,12 @@ export async function enviarDocumentosNiDesdeStorage(opts: {
     }
 
     const buffer = Buffer.from(await blob.arrayBuffer())
+    if (buffer.length < 64) {
+      throw new Error(
+        `El archivo de "${tipo.etiqueta}" está vacío o dañado. Vuelve a cargarlo.`
+      )
+    }
+
     const meta: DocumentoNiArchivoMeta = {
       tipo: tipo.id,
       etiqueta: tipo.etiqueta,

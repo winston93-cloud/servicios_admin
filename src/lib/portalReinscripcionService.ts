@@ -9,26 +9,30 @@ import {
   nivelPrecioBoucher,
   referenciaSemibase,
 } from './boucherCore'
+import { hoyIso } from './portalAdmisionesCiclo'
+import {
+  obtenerVentanasInscripcion,
+  type VentanasInscripcion,
+} from './portalAdmisionesVentanas'
+import {
+  obtenerAutorizacionPortalDif2,
+  tieneAccesoProrrogaDif1,
+} from './portalAdmisionesProrroga'
 import { normalizarConceptoNo, parsearReferenciaPago, formatearAlumnoRefParaReferencia } from './pagoReferenciaColegiatura'
 import { rutasFacturaDesdeReferencia } from './portalFacturaRutas'
 import type { FilaMatrizPortal } from './portalPagosMatrizService'
+import { proyectarReinscripcionAlumno } from './portalReinscripcionProyeccion'
 
 /**
  * Reinscripción por diferidos — port de `admisiones` (loader.php
  * `admisiones_monto_baucher_reinscrito` + prorroga_inscripcion.php).
  *
- * Reglas clave (verificadas con datos reales):
- *  - Destino = ciclo de la ficha + 1 mientras la ficha no haya avanzado al
- *    ciclo de inscripción de la temporada (ej. 22 → 23). Tras el cambio de
- *    ciclo administrativo (ficha ya en 23) no se vuelve a promover grado/nivel.
- *  - Concepto 11 = Diferido 1 (mitad del importe con descuento de reinscripción).
- *  - Concepto 12 = Diferido 2 (resto = importe de lista − lo pagado en Dif1).
- *  - Concepto 13 = Inscripción completa (pago en una sola exhibición).
- *  - Costos / referencias / reglamentos usan el ciclo destino y nivel/grado proyectados.
- *  - La reinscripción está CUBIERTA solo con: concepto 13, o 11 + 12.
+ * Montos calendáricos:
+ *  - Ventana Dif1 (o prórroga 11): concepto 11 = mitad con descuento.
+ *  - Ventana Dif2 / post-Dif2 hasta 31-dic: con Dif1 → 12 resto; sin Dif1 → 13 lista.
+ *  - Hueco Dif1→Dif2: no pagable (salvo auth Dif2, que cobra como Dif2).
+ *  - Cubierta: 13, o 11 + 12.
  */
-
-import { proyectarReinscripcionAlumno } from './portalReinscripcionProyeccion'
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100
@@ -39,6 +43,15 @@ interface PagoInscripcionCiclo {
   concepto: string
   importe: number
 }
+
+export type FaseCobroReinscripcion =
+  | 'pre-dif1'
+  | 'dif1'
+  | 'hueco'
+  | 'dif2'
+  | 'post-dif2'
+  | 'cerrado-anual'
+  | 'sin-fechas'
 
 export interface ReinscripcionDiferido {
   /** Ciclo escolar al que se reinscribe (costos, reglamentos, referencias). */
@@ -51,9 +64,9 @@ export interface ReinscripcionDiferido {
   graduado: boolean
   /** Reinscripción cubierta (13, o 11 + 12). */
   completa: boolean
-  /** Hay un diferido pendiente por cobrar. */
+  /** Hay un concepto pendiente por cobrar en la fase actual. */
   pagable: boolean
-  /** Diferido vigente: 1 = concepto 11, 2 = concepto 12, null si completa/graduado. */
+  /** Diferido vigente: 1 = 11, 2 = 12, null si completa / 13 / fuera de cobro. */
   diferido: 1 | 2 | null
   concepto: string
   conceptoClase: string
@@ -61,8 +74,48 @@ export interface ReinscripcionDiferido {
   referencia: string
   dif1Pagado: boolean
   dif1Importe: number
+  fase: FaseCobroReinscripcion
+  ventanas: VentanasInscripcion
   filasPagadas: FilaMatrizPortal[]
   filaPendiente: FilaMatrizPortal | null
+}
+
+/** Corte inclusivo: portal post-Dif2 abierto hasta el 31-dic del año de fin Dif2. */
+export function corteDiciembrePostDif2(fechaFinDif2: string): string {
+  return `${fechaFinDif2.slice(0, 4)}-12-31`
+}
+
+export function resolverFaseCobroReinscripcion(
+  cd: string,
+  ventanas: VentanasInscripcion,
+  opts: { prorrogaDif1: boolean; authDif2: boolean }
+): FaseCobroReinscripcion {
+  const { fechaIniDif1, fechaFinDif1, fechaIniDif2, fechaFinDif2 } = ventanas
+  if (!fechaIniDif1 || !fechaFinDif1 || !fechaIniDif2 || !fechaFinDif2) {
+    return 'sin-fechas'
+  }
+
+  const corteDic = corteDiciembrePostDif2(fechaFinDif2)
+  if (cd > corteDic) return 'cerrado-anual'
+  if (cd > fechaFinDif2) return 'post-dif2'
+  if (cd >= fechaIniDif2 && cd <= fechaFinDif2) return 'dif2'
+
+  // Hueco Dif1 → Dif2
+  if (cd > fechaFinDif1 && cd < fechaIniDif2) {
+    if (opts.authDif2) return 'dif2'
+    if (opts.prorrogaDif1) return 'dif1'
+    return 'hueco'
+  }
+
+  if (
+    (cd >= fechaIniDif1 && cd <= fechaFinDif1) ||
+    (opts.prorrogaDif1 && cd < fechaIniDif2)
+  ) {
+    return 'dif1'
+  }
+
+  if (cd < fechaIniDif1) return 'pre-dif1'
+  return 'sin-fechas'
 }
 
 async function pagosInscripcionCiclo(
@@ -120,6 +173,16 @@ export async function calcularReinscripcionDiferido(
   const dif1Importe = pago11?.importe ?? 0
   const completa = pago13 != null || (pago11 != null && pago12 != null)
 
+  const alumnoMes = Number(alumno.mes ?? 0)
+  const ventanas = await obtenerVentanasInscripcion(supabase, cen, alumnoMes)
+  const cd = hoyIso()
+  const prorrogaDif1 = await tieneAccesoProrrogaDif1(supabase, Number(alumno.alumno_ref), cen)
+  const authDif2 = await obtenerAutorizacionPortalDif2(supabase, Number(alumno.alumno_ref), cen)
+  const fase = resolverFaseCobroReinscripcion(cd, ventanas, {
+    prorrogaDif1,
+    authDif2: authDif2.activa,
+  })
+
   const filasPagadas: FilaMatrizPortal[] = []
   for (const c of ['11', '12', '13'] as const) {
     const p = pagos.find((x) => x.concepto === c)
@@ -152,12 +215,14 @@ export async function calcularReinscripcionDiferido(
     completa,
     pagable: false,
     diferido: null,
-    concepto: pago13 ? '13' : pago12 ? '12' : '11',
+    concepto: pago13 ? '13' : pago12 ? '12' : dif1Pagado ? '11' : '13',
     conceptoClase: '',
     monto: 0,
     referencia: '',
     dif1Pagado,
     dif1Importe,
+    fase,
+    ventanas,
     filasPagadas,
     filaPendiente: null,
   }
@@ -170,35 +235,45 @@ export async function calcularReinscripcionDiferido(
   const nivelPrecio = nivelPrecioBoucher(nivel, grado)
   const precio = await obtenerPrecioFila(supabase, nivelPrecio, cen)
   if (!precio) {
-    // Sin precio configurado para el ciclo/nivel: no se puede cobrar todavía.
-    base.concepto = dif1Pagado ? '12' : '11'
     base.conceptoClase = getPaymentConcept(base.concepto)
-    base.diferido = dif1Pagado ? 2 : 1
     return base
   }
 
   const percent = cambioNivel ? precio.descuento_cambio_nivel : precio.descuento_cambio_grado
   const montoIns = precio.precio_inscripcion
 
-  let concepto: string
-  let monto: number
-  let diferido: 1 | 2
-  if (dif1Pagado) {
-    // Diferido 2: resto sin descuento (importe de lista − lo pagado en Dif1).
-    concepto = '12'
-    diferido = 2
-    monto = Math.max(0, round2(montoIns - dif1Importe))
-  } else {
-    // Diferido 1: mitad del importe con descuento de reinscripción.
-    concepto = '11'
-    diferido = 1
-    monto = Math.round(getDiscount(montoIns, percent) / 2)
-  }
+  let concepto: string | null = null
+  let monto = 0
+  let diferido: 1 | 2 | null = null
 
-  if (monto <= 0) {
-    base.completa = true
-    base.concepto = concepto
-    base.conceptoClase = getPaymentConcept(concepto)
+  if (fase === 'dif1') {
+    if (!dif1Pagado) {
+      concepto = '11'
+      diferido = 1
+      monto = Math.round(getDiscount(montoIns, percent) / 2)
+    }
+  } else if (fase === 'dif2' || fase === 'post-dif2') {
+    if (dif1Pagado) {
+      concepto = '12'
+      diferido = 2
+      monto = Math.max(0, round2(montoIns - dif1Importe))
+    } else {
+      concepto = '13'
+      diferido = null
+      monto = round2(montoIns)
+    }
+  }
+  // pre-dif1 | hueco | cerrado-anual | sin-fechas → no pagable
+
+  if (!concepto || monto <= 0) {
+    if (concepto && monto <= 0) {
+      base.completa = true
+      base.concepto = concepto
+      base.conceptoClase = getPaymentConcept(concepto)
+      base.diferido = diferido
+    } else {
+      base.conceptoClase = getPaymentConcept(base.concepto)
+    }
     return base
   }
 

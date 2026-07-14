@@ -17,6 +17,7 @@ import {
   puedeVerPasosInscripcion,
 } from './portalAdmisionesEstadoService'
 import { urlReglamentoEscolarLegacy } from './portalAdmisionesConfig'
+import { requiereDocumentosAdmision } from './portalDocumentosAdmision'
 import { documentosNiYaEnviados } from './portalDocumentosNiService'
 import {
   hrefReglamentoArchivo,
@@ -319,8 +320,9 @@ export async function construirEstadoPortalInscripciones(
     urlReglamento = urlReglamentoEscolarLegacy(nivelReglamento, cicloReglamento)
   }
 
+  const requiereDocs = requiereDocumentosAdmision(alumno)
   let docsEnviados = false
-  if (!esReinscrito) {
+  if (requiereDocs) {
     try {
       docsEnviados = await documentosNiYaEnviados(
         supabase,
@@ -430,7 +432,7 @@ export async function construirEstadoPortalInscripciones(
           : null,
   })
 
-  if (!esReinscrito) {
+  if (requiereDocs) {
     const docsDisponibles = Boolean(pasosVisibles && solCapturada && insPagada)
     pasos.push({
       id: 'documentos',
@@ -454,13 +456,13 @@ export async function construirEstadoPortalInscripciones(
     })
   }
 
-  const ordenRecibo = esReinscrito ? 4 : 5
-  // NI: solicitud + pago + documentos. Reinscrito: pago (como legacy).
-  // Completado solo cuando el papá abre el recibo al menos 1 vez (cliente / localStorage).
+  const ordenRecibo = requiereDocs ? 5 : 4
+  // NI / cambio de nivel (K3→1º, 6º→sec): solicitud + pago + documentos.
+  // Reinscrito regular: solicitud + pago.
   const pasosPreviosRecibo = Boolean(
     solCapturada &&
       insPagada &&
-      (esReinscrito || docsEnviados || reciboHabilitado)
+      (!requiereDocs || docsEnviados || reciboHabilitado)
   )
   const puedeRecibo = Boolean(pasosVisibles && pasosPreviosRecibo)
 
@@ -472,9 +474,9 @@ export async function construirEstadoPortalInscripciones(
     estado: resolverEstadoPaso(false, puedeRecibo),
     detalle: puedeRecibo
       ? 'Ábrelo al menos una vez para marcarlo como completado y desbloquear las colegiaturas del ciclo.'
-      : esReinscrito
-        ? 'Se habilita al completar la solicitud y el pago de reinscripción.'
-        : 'Se habilita al completar solicitud, pago y carga de documentos.',
+      : requiereDocs
+        ? 'Se habilita al completar solicitud, pago y carga de documentos.'
+        : 'Se habilita al completar la solicitud y el pago de reinscripción.',
     accion: puedeRecibo
       ? {
           tipo: 'externo',
