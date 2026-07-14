@@ -293,14 +293,35 @@ export default function PortalInscripcionPagoView() {
         )}
 
         {!cargando && vista && vista.solicitudCompleta && vista.inscripcionPagada && (
-          <div className="portal-inscripciones-alerta portal-inscripciones-alerta--aviso" role="status">
-            Tu pago de inscripción ya está registrado. Puedes continuar con los siguientes pasos del proceso.
+          <>
+            <div className="portal-inscripciones-alerta portal-inscripciones-alerta--aviso" role="status">
+              Tu pago de inscripción ya está registrado
+              {vista.filas.some((f) => f.facturaPdf)
+                ? '. Descarga tu factura electrónica (PDF y XML).'
+                : '. La factura aparecerá al terminar el timbrado.'}
+            </div>
+            {vista.filas.length > 0 && (
+              <div className="portal-matriz-contenedor">
+                <PortalPagosTablaSeccion
+                  seccion={{
+                    id: 'inscripcion',
+                    titulo: vista.tituloPago,
+                    filas: vista.filas,
+                  }}
+                  generandoBoucher={null}
+                  onImprimirBoucher={() => {}}
+                  onPagoEnLinea={() => {}}
+                  onVerPdf={(url, c) => abrirDoc('pdf', url, c)}
+                  onVerXml={(url, c) => abrirDoc('xml', url, c)}
+                />
+              </div>
+            )}
             <div style={{ marginTop: 12 }}>
               <Link href="/portal-inscripciones" className="portal-inscripciones-paso-link">
                 Volver al portal de inscripciones
               </Link>
             </div>
-          </div>
+          </>
         )}
 
         {!cargando && vista && vista.solicitudCompleta && !vista.inscripcionPagada && (

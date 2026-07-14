@@ -30,9 +30,12 @@ import {
   inscripcionCompletaPagada,
   solicitudCapturada,
 } from './portalInscripcionesSolicitud'
+import { getPaymentConcept } from './boucherCore'
+import { rutasFacturaDesdeReferencia } from './portalFacturaRutas'
 import type {
   BloqueoInscripcion,
   EstadoPortalInscripciones,
+  FacturaPasoInscripcion,
   PasoEstadoInscripcion,
   PasoInscripcion,
   ReinscripcionPeriodo,
@@ -43,13 +46,48 @@ function pagoVigente(p: PagoDetalleRegistro): boolean {
   return p.pago_cancelado !== 1 && p.pago_cancelado !== 2
 }
 
+/** Facturas CFDI de conceptos 11/12/13 ya pagados en el ciclo de inscripción. */
+export function facturasPagoInscripcion(
+  pagos: PagoDetalleRegistro[],
+  alumnoRef: string | number,
+  cicloEscolar: number
+): FacturaPasoInscripcion[] {
+  const control = formatearAlumnoRefParaReferencia(alumnoRef)
+  const out: FacturaPasoInscripcion[] = []
+  for (const c of ['11', '12', '13'] as const) {
+    const pago = pagos.find((p) => {
+      if (!pagoVigente(p)) return false
+      const parsed = parsearReferenciaPago(p.pago_referencia)
+      if (!parsed) return false
+      return (
+        normalizarConceptoNo(parsed.conceptoNo) === c &&
+        parsed.cicloEscolar === cicloEscolar
+      )
+    })
+    if (!pago) continue
+    const rutas = rutasFacturaDesdeReferencia(
+      pago.pago_referencia,
+      control,
+      c,
+      cicloEscolar
+    )
+    if (!rutas.pdf) continue
+    out.push({
+      conceptoNo: c,
+      etiqueta: getPaymentConcept(c),
+      pdf: rutas.pdf,
+      xml: rutas.xml ?? rutas.pdf.replace(/\.pdf$/i, '.xml'),
+    })
+  }
+  return out
+}
+
 export function tienePagoConcepto(
   pagos: PagoDetalleRegistro[],
   alumnoRef: string | number,
   conceptoNo: string,
   cicloEscolar: number
 ): boolean {
-  const ref5 = formatearAlumnoRefParaReferencia(String(alumnoRef).replace(/\D/g, '').slice(-5))
   const concepto = normalizarConceptoNo(conceptoNo)
 
   return pagos.some((p) => {
@@ -57,7 +95,6 @@ export function tienePagoConcepto(
     const parsed = parsearReferenciaPago(p.pago_referencia)
     if (!parsed) return false
     return (
-      parsed.alumnoRef === ref5 &&
       normalizarConceptoNo(parsed.conceptoNo) === concepto &&
       parsed.cicloEscolar === cicloEscolar
     )
@@ -354,6 +391,21 @@ export async function construirEstadoPortalInscripciones(
     }
   }
 
+  const facturasInscripcion: FacturaPasoInscripcion[] = (() => {
+    if (!insPagada) return []
+    if (calcReinscripcion?.filasPagadas?.length) {
+      return calcReinscripcion.filasPagadas
+        .filter((f) => Boolean(f.facturaPdf))
+        .map((f) => ({
+          conceptoNo: f.conceptoNo,
+          etiqueta: f.conceptoClase,
+          pdf: f.facturaPdf as string,
+          xml: (f.facturaXml ?? (f.facturaPdf as string).replace(/\.pdf$/i, '.xml')) as string,
+        }))
+    }
+    return facturasPagoInscripcion(pagos, alumno.alumno_ref, cicloPago)
+  })()
+
   const pasos: PasoInscripcion[] = []
 
   pasos.push({
@@ -410,12 +462,15 @@ export async function construirEstadoPortalInscripciones(
       pasosVisibles && solCapturada && showPayment && !insPagada
     ),
     detalle: insPagada
-      ? 'Pago registrado correctamente.'
+      ? facturasInscripcion.length > 0
+        ? 'Pago registrado y timbrado. Descarga tu factura electrónica (PDF y XML).'
+        : 'Pago registrado correctamente. La factura aparecerá aquí al terminar el timbrado.'
       : showPayment
         ? 'Pendiente de pago.'
         : solCapturada
           ? 'El pago se habilitará en la ventana oficial de reinscripción.'
           : 'Completa la solicitud para habilitar el pago.',
+    // Si ya pagó: PDF/XML (no el comprobante genérico). Si no: enlace a pagar.
     accion:
       pasosVisibles && solCapturada && showPayment && !insPagada
         ? {
@@ -423,13 +478,8 @@ export async function construirEstadoPortalInscripciones(
             href: '/portal-inscripciones/pago',
             etiqueta: esReinscrito ? 'Pagar reinscripción' : 'Pagar inscripción',
           }
-        : insPagada
-          ? {
-              tipo: 'externo',
-              href: `/api/portal-inscripciones/comprobante?alumnoId=${alumno.alumno_id}`,
-              etiqueta: 'Ver comprobante',
-            }
-          : null,
+        : null,
+    facturas: insPagada && facturasInscripcion.length > 0 ? facturasInscripcion : null,
   })
 
   if (requiereDocs) {

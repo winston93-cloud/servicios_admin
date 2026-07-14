@@ -17530,6 +17530,35 @@ html[data-theme='light'] .portal-inscripciones-paso--bloqueado {
 
 .portal-inscripciones-paso-accion {
   margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.portal-inscripciones-paso-facturas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.portal-inscripciones-paso-factura-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.portal-inscripciones-paso-factura-etiq {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--portal-paso-detalle);
+}
+
+.portal-inscripciones-paso-btn-factura {
+  padding: 10px 16px !important;
+  font-size: 14px !important;
+  border-radius: 10px !important;
 }
 
 .portal-inscripciones-paso-link {

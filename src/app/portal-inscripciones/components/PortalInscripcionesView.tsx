@@ -12,11 +12,18 @@ import {
   Circle,
   Clock,
   AlertTriangle,
+  Code2,
+  FileText,
   Lock,
   RefreshCw,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import type { EstadoPortalInscripciones, PasoEstadoInscripcion } from '@/lib/portalInscripcionesTypes'
+import type {
+  EstadoPortalInscripciones,
+  FacturaPasoInscripcion,
+  PasoEstadoInscripcion,
+  PasoInscripcion,
+} from '@/lib/portalInscripcionesTypes'
 import type { MatrizPortalPagos } from '@/lib/portalPagosMatrizService'
 import {
   aplicarReglamentoVistoEnEstado,
@@ -29,6 +36,9 @@ import {
   marcarReciboFinalVisto,
 } from '@/lib/portalReciboFinalVisto'
 import PortalColegiaturasSecciones from '@/app/portal-pagos/components/PortalColegiaturasSecciones'
+import PortalDocumentoModal, {
+  type TipoDocumentoPortal,
+} from '@/app/portal-pagos/components/PortalDocumentoModal'
 
 function nombreAlumno(estado: EstadoPortalInscripciones | null, fallback?: string): string {
   if (!estado) return fallback?.trim() || 'Alumno'
@@ -61,6 +71,92 @@ function etiquetaEstado(estado: PasoEstadoInscripcion): string {
     default:
       return 'Bloqueado'
   }
+}
+
+function AccionesPasoInscripcion({
+  paso,
+  onReglamento,
+  onRecibo,
+  onVerFactura,
+}: {
+  paso: PasoInscripcion
+  onReglamento: () => void
+  onRecibo: () => void
+  onVerFactura: (tipo: TipoDocumentoPortal, factura: FacturaPasoInscripcion) => void
+}) {
+  const facturas = paso.facturas?.filter((f) => f.pdf) ?? []
+  if (!paso.accion && facturas.length === 0) return null
+
+  return (
+    <div className="portal-inscripciones-paso-accion">
+      {paso.accion?.tipo === 'proximo' ? (
+        <button
+          type="button"
+          className="portal-inscripciones-paso-link portal-inscripciones-paso-link--proximo"
+          disabled
+          aria-disabled="true"
+          title="Disponible próximamente"
+        >
+          {paso.accion.etiqueta}
+          <span className="portal-inscripciones-paso-proximo-tag">Próximamente</span>
+        </button>
+      ) : paso.accion?.tipo === 'ruta-interna' ? (
+        <Link href={paso.accion.href} className="portal-inscripciones-paso-link">
+          {paso.accion.etiqueta}
+          <ArrowRight size={20} aria-hidden />
+        </Link>
+      ) : paso.accion ? (
+        <a
+          href={paso.accion.href}
+          className="portal-inscripciones-paso-link"
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={
+            paso.id === 'reglamento'
+              ? onReglamento
+              : paso.id === 'recibo-final'
+                ? onRecibo
+                : undefined
+          }
+        >
+          {paso.accion.etiqueta}
+          <ArrowRight size={20} aria-hidden />
+        </a>
+      ) : null}
+
+      {facturas.length > 0 && (
+        <div className="portal-inscripciones-paso-facturas" role="group" aria-label="Facturas CFDI">
+          {facturas.map((f) => (
+            <div key={f.conceptoNo} className="portal-inscripciones-paso-factura-grupo">
+              {facturas.length > 1 && (
+                <span className="portal-inscripciones-paso-factura-etiq">{f.etiqueta}</span>
+              )}
+              <div className="portal-matriz-facturas">
+                <button
+                  type="button"
+                  className="portal-pagos-btn-pdf portal-inscripciones-paso-btn-factura"
+                  onClick={() => onVerFactura('pdf', f)}
+                >
+                  <FileText size={16} aria-hidden />
+                  PDF
+                </button>
+                {f.xml && (
+                  <button
+                    type="button"
+                    className="portal-pagos-btn-xml portal-inscripciones-paso-btn-factura"
+                    onClick={() => onVerFactura('xml', f)}
+                  >
+                    <Code2 size={16} aria-hidden />
+                    XML
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function ProgresoInscripcion({
@@ -117,6 +213,12 @@ export default function PortalInscripcionesView() {
   const [cargandoMatrizCierre, setCargandoMatrizCierre] = useState(false)
   const [errorMatriz, setErrorMatriz] = useState<string | null>(null)
   const [errorMatrizCierre, setErrorMatrizCierre] = useState<string | null>(null)
+  const [docModal, setDocModal] = useState<{
+    abierto: boolean
+    tipo: TipoDocumentoPortal
+    url: string
+    titulo: string
+  }>({ abierto: false, tipo: 'pdf', url: '', titulo: '' })
   const colegiaturasRef = useRef<HTMLElement>(null)
   const cierreRef = useRef<HTMLElement>(null)
   const revalidarCierreRef = useRef(false)
@@ -287,6 +389,23 @@ export default function PortalInscripcionesView() {
     marcarReciboFinalVisto(alumnoId, Number(estado.ciclo.valor))
     setReciboFinalVisto(true)
   }, [alumnoId, estado?.ciclo?.valor])
+
+  const abrirFacturaPaso = useCallback(
+    (tipo: TipoDocumentoPortal, factura: FacturaPasoInscripcion) => {
+      const url = tipo === 'pdf' ? factura.pdf : factura.xml
+      if (!url) return
+      setDocModal({
+        abierto: true,
+        tipo,
+        url,
+        titulo:
+          tipo === 'pdf'
+            ? `Factura PDF — ${factura.etiqueta}`
+            : `Factura XML — ${factura.etiqueta}`,
+      })
+    },
+    []
+  )
 
   const refFmt = String(session?.alumno_ref ?? '').padStart(5, '0')
 
@@ -485,49 +604,12 @@ export default function PortalInscripcionesView() {
                           {paso.detalle && (
                             <p className="portal-inscripciones-paso-detalle">{paso.detalle}</p>
                           )}
-                          {paso.accion && (
-                            <div className="portal-inscripciones-paso-accion">
-                              {paso.accion.tipo === 'proximo' ? (
-                                <button
-                                  type="button"
-                                  className="portal-inscripciones-paso-link portal-inscripciones-paso-link--proximo"
-                                  disabled
-                                  aria-disabled="true"
-                                  title="Disponible próximamente"
-                                >
-                                  {paso.accion.etiqueta}
-                                  <span className="portal-inscripciones-paso-proximo-tag">
-                                    Próximamente
-                                  </span>
-                                </button>
-                              ) : paso.accion.tipo === 'ruta-interna' ? (
-                                <Link
-                                  href={paso.accion.href}
-                                  className="portal-inscripciones-paso-link"
-                                >
-                                  {paso.accion.etiqueta}
-                                  <ArrowRight size={20} aria-hidden />
-                                </Link>
-                              ) : (
-                                <a
-                                  href={paso.accion.href}
-                                  className="portal-inscripciones-paso-link"
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  onClick={
-                                    paso.id === 'reglamento'
-                                      ? () => marcarReglamentoConsultado()
-                                      : paso.id === 'recibo-final'
-                                        ? () => marcarReciboConsultado()
-                                        : undefined
-                                  }
-                                >
-                                  {paso.accion.etiqueta}
-                                  <ArrowRight size={20} aria-hidden />
-                                </a>
-                              )}
-                            </div>
-                          )}
+                          <AccionesPasoInscripcion
+                            paso={paso}
+                            onReglamento={marcarReglamentoConsultado}
+                            onRecibo={marcarReciboConsultado}
+                            onVerFactura={abrirFacturaPaso}
+                          />
                         </div>
                       </li>
                     ))}
@@ -562,49 +644,12 @@ export default function PortalInscripcionesView() {
                       {paso.detalle && (
                         <p className="portal-inscripciones-paso-detalle">{paso.detalle}</p>
                       )}
-                      {paso.accion && (
-                        <div className="portal-inscripciones-paso-accion">
-                          {paso.accion.tipo === 'proximo' ? (
-                            <button
-                              type="button"
-                              className="portal-inscripciones-paso-link portal-inscripciones-paso-link--proximo"
-                              disabled
-                              aria-disabled="true"
-                              title="Disponible próximamente"
-                            >
-                              {paso.accion.etiqueta}
-                              <span className="portal-inscripciones-paso-proximo-tag">
-                                Próximamente
-                              </span>
-                            </button>
-                          ) : paso.accion.tipo === 'ruta-interna' ? (
-                            <Link
-                              href={paso.accion.href}
-                              className="portal-inscripciones-paso-link"
-                            >
-                              {paso.accion.etiqueta}
-                              <ArrowRight size={20} aria-hidden />
-                            </Link>
-                          ) : (
-                            <a
-                              href={paso.accion.href}
-                              className="portal-inscripciones-paso-link"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={
-                                paso.id === 'reglamento'
-                                  ? () => marcarReglamentoConsultado()
-                                  : paso.id === 'recibo-final'
-                                    ? () => marcarReciboConsultado()
-                                    : undefined
-                              }
-                            >
-                              {paso.accion.etiqueta}
-                              <ArrowRight size={20} aria-hidden />
-                            </a>
-                          )}
-                        </div>
-                      )}
+                      <AccionesPasoInscripcion
+                        paso={paso}
+                        onReglamento={marcarReglamentoConsultado}
+                        onRecibo={marcarReciboConsultado}
+                        onVerFactura={abrirFacturaPaso}
+                      />
                     </div>
                   </li>
                 ))}
@@ -698,6 +743,14 @@ export default function PortalInscripcionesView() {
           </>
         )}
       </div>
+
+      <PortalDocumentoModal
+        abierto={docModal.abierto}
+        tipo={docModal.tipo}
+        url={docModal.url}
+        titulo={docModal.titulo}
+        onCerrar={() => setDocModal((s) => ({ ...s, abierto: false }))}
+      />
     </div>
   )
 }

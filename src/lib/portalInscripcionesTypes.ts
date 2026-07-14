@@ -25,6 +25,14 @@ export interface AccionPasoInscripcion {
   etiqueta: string
 }
 
+/** Factura CFDI del pago de inscripción/reinscripción (mismo flujo que colegiaturas). */
+export interface FacturaPasoInscripcion {
+  conceptoNo: string
+  etiqueta: string
+  pdf: string
+  xml: string
+}
+
 export interface PasoInscripcion {
   id: PasoInscripcionId
   orden: number
@@ -34,6 +42,8 @@ export interface PasoInscripcion {
   detalle?: string | null
   fechaCompletado?: string | null
   accion?: AccionPasoInscripcion | null
+  /** Si ya pagó e ingresó factura: botones PDF/XML en lugar del comprobante genérico. */
+  facturas?: FacturaPasoInscripcion[] | null
 }
 
 export interface ReinscripcionPeriodo {
