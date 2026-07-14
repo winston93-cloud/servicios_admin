@@ -16571,6 +16571,28 @@ html[data-theme='light'] .portal-inscripciones-page {
   background: #fff;
 }
 
+.portal-doc-modal-xml {
+  margin: 0;
+  width: 100%;
+  height: min(70vh, 640px);
+  overflow: auto;
+  padding: 1rem 1.1rem;
+  border-radius: 8px;
+  background: #0b1220;
+  color: #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  white-space: pre;
+  tab-size: 2;
+}
+
+html[data-theme='light'] .portal-doc-modal-xml {
+  background: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+}
+
 .portal-doc-modal-fallback {
   padding: 2rem;
   text-align: center;

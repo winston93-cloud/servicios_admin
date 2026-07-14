@@ -19,7 +19,8 @@ export async function GET(request: Request) {
 
     const key = storageKeyFactura(f)
     const isPdf = f.toLowerCase().endsWith('.pdf')
-    const contentType = isPdf ? 'application/pdf' : 'application/xml; charset=utf-8'
+    // text/xml se ve mejor al abrir en pestaña; el modal ya hace fetch→texto.
+    const contentType = isPdf ? 'application/pdf' : 'text/xml; charset=utf-8'
 
     const client = createInsforgeAdmin()
     const { data, error } = await client.storage.from(CFDI_BUCKET).download(key)
