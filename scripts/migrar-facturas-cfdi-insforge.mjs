@@ -17,13 +17,16 @@ import mysql from 'mysql2/promise'
 import { createAdminClient } from '@insforge/sdk'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const MANIFEST = path.join(ROOT, 'scripts/.cache/migrar-facturas-cfdi-manifest.json')
+const DEFAULT_MANIFEST = path.join(ROOT, 'scripts/.cache/migrar-facturas-cfdi-manifest.json')
 const BUCKET = 'cfdi'
 const HOSTING_BASE = 'https://www.winston93.edu.mx/banorte/facturas'
 /** InsForge rate-limit: 1 worker + pausa fija + backoff 429. */
 const CONCURRENCY = 1
 const PAUSE_MS = 900
 const MAX_RETRIES = 8
+
+/** Ruta activa del manifiesto (se fija en main vía --manifest). */
+let MANIFEST = DEFAULT_MANIFEST
 
 function loadEnvLocal() {
   const p = path.join(ROOT, '.env.local')
@@ -50,6 +53,7 @@ function parseArgs(argv) {
     to: '2026-07-13',
     limit: 0,
     keepRateFails: false,
+    manifest: DEFAULT_MANIFEST,
   }
   for (const a of argv) {
     if (a === '--dry-run') out.dryRun = true
@@ -57,6 +61,10 @@ function parseArgs(argv) {
     else if (a.startsWith('--from=')) out.from = a.slice(7)
     else if (a.startsWith('--to=')) out.to = a.slice(5)
     else if (a.startsWith('--limit=')) out.limit = Number(a.slice(8)) || 0
+    else if (a.startsWith('--manifest=')) {
+      const p = a.slice(11).trim()
+      out.manifest = path.isAbsolute(p) ? p : path.join(ROOT, p)
+    }
   }
   return out
 }
@@ -159,6 +167,7 @@ async function uploadWithRetry(client, key, buffer, contentType) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2))
+  MANIFEST = args.manifest
   const env = loadEnvLocal()
   const baseUrl = env.NEXT_PUBLIC_INSFORGE_URL ?? env.INSFORGE_URL
   const apiKey = env.INSFORGE_API_KEY
@@ -174,6 +183,7 @@ async function main() {
       concurrency: CONCURRENCY,
       pauseMs: PAUSE_MS,
       sourceCopy: HOSTING_BASE,
+      manifest: MANIFEST,
     })
   )
 
