@@ -15,7 +15,10 @@ import DashboardModuleCard from '@/components/dashboard/DashboardModuleCard'
 import Image from 'next/image'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
+import DashboardAyudaModal from '@/components/dashboard/DashboardAyudaModal'
+import { CircleHelp } from 'lucide-react'
 import './dashboard-module-card.css'
+import '@/components/dashboard/dashboard-ayuda.css'
 
 const ChevronRight = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -120,6 +123,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [cicloVigenteNombre, setCicloVigenteNombre] = useState<string | null>(null)
+  const [ayudaAbierta, setAyudaAbierta] = useState(false)
 
   const handleLogout = async () => {
     try {
@@ -295,6 +299,16 @@ export default function DashboardPage() {
                     <span className="dashboard-ciclo-vigente-label">Ciclo escolar vigente</span>
                     <span className="dashboard-ciclo-vigente-nombre">{cicloVigenteNombre}</span>
                   </p>
+                )}
+                {isAlumno && (
+                  <button
+                    type="button"
+                    className="dash-ayuda-inline-btn"
+                    onClick={() => setAyudaAbierta(true)}
+                  >
+                    <CircleHelp size={16} aria-hidden />
+                    Centro de ayuda del portal
+                  </button>
                 )}
               </div>
 
@@ -477,6 +491,27 @@ export default function DashboardPage() {
             <span>Cerrar sesión</span>
           </button>
         </nav>
+
+        {isAlumno && (
+          <>
+            <button
+              type="button"
+              className="dash-ayuda-fab"
+              onClick={() => setAyudaAbierta(true)}
+              aria-haspopup="dialog"
+              aria-expanded={ayudaAbierta}
+            >
+              <span className="dash-ayuda-fab-icon" aria-hidden>
+                <CircleHelp size={20} />
+              </span>
+              <span className="dash-ayuda-fab-label">Ayuda</span>
+            </button>
+            <DashboardAyudaModal
+              abierto={ayudaAbierta}
+              onCerrar={() => setAyudaAbierta(false)}
+            />
+          </>
+        )}
 
       </div>
     </ProtectedRoute>
