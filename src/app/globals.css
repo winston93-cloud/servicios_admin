@@ -17528,34 +17528,98 @@ html[data-theme='light'] .portal-inscripciones-paso--bloqueado {
   color: var(--portal-paso-detalle);
 }
 
+.portal-inscripciones-paso-accion {
+  margin-top: 10px;
+}
+
 .portal-inscripciones-paso-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--portal-paso-link);
+  gap: 10px;
+  margin-top: 2px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  background: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.28) 0%,
+    rgba(37, 99, 235, 0.22) 100%
+  );
+  box-shadow:
+    0 0 0 1px rgba(56, 189, 248, 0.12),
+    0 8px 20px rgba(14, 165, 233, 0.18);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  color: #e0f2fe;
   text-decoration: none;
-  transition: color 0.2s ease, gap 0.2s ease;
+  transition:
+    color 0.2s ease,
+    gap 0.2s ease,
+    transform 0.15s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .portal-inscripciones-paso-link:hover {
-  color: var(--portal-paso-link-hover);
-  gap: 10px;
+  color: #fff;
+  gap: 14px;
+  transform: translateY(-1px);
+  border-color: rgba(125, 211, 252, 0.7);
+  background: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.42) 0%,
+    rgba(37, 99, 235, 0.36) 100%
+  );
+  box-shadow:
+    0 0 0 1px rgba(125, 211, 252, 0.2),
+    0 12px 28px rgba(14, 165, 233, 0.28);
+}
+
+.portal-inscripciones-paso-link:focus-visible {
+  outline: 2px solid #38bdf8;
+  outline-offset: 3px;
 }
 
 .portal-inscripciones-paso-link--proximo {
-  background: none;
-  border: none;
-  padding: 0;
+  background: rgba(148, 163, 184, 0.12);
+  border-color: rgba(148, 163, 184, 0.28);
+  box-shadow: none;
   cursor: not-allowed;
   color: var(--portal-paso-detalle);
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .portal-inscripciones-paso-link--proximo:hover {
   color: var(--portal-paso-detalle);
-  gap: 6px;
+  gap: 10px;
+  transform: none;
+  border-color: rgba(148, 163, 184, 0.28);
+  background: rgba(148, 163, 184, 0.12);
+  box-shadow: none;
+}
+
+html[data-theme='light'] .portal-inscripciones-paso-link {
+  border-color: rgba(2, 132, 199, 0.35);
+  background: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.16) 0%,
+    rgba(37, 99, 235, 0.12) 100%
+  );
+  color: #0369a1;
+  box-shadow: 0 6px 16px rgba(14, 165, 233, 0.12);
+}
+
+html[data-theme='light'] .portal-inscripciones-paso-link:hover {
+  color: #0c4a6e;
+  border-color: rgba(2, 132, 199, 0.55);
+  background: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.26) 0%,
+    rgba(37, 99, 235, 0.2) 100%
+  );
 }
 
 .portal-inscripciones-paso-proximo-tag {

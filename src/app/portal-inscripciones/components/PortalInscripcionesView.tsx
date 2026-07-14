@@ -506,7 +506,7 @@ export default function PortalInscripcionesView() {
                                   className="portal-inscripciones-paso-link"
                                 >
                                   {paso.accion.etiqueta}
-                                  <ArrowRight size={16} aria-hidden />
+                                  <ArrowRight size={20} aria-hidden />
                                 </Link>
                               ) : (
                                 <a
@@ -523,7 +523,7 @@ export default function PortalInscripcionesView() {
                                   }
                                 >
                                   {paso.accion.etiqueta}
-                                  <ArrowRight size={16} aria-hidden />
+                                  <ArrowRight size={20} aria-hidden />
                                 </a>
                               )}
                             </div>
@@ -583,7 +583,7 @@ export default function PortalInscripcionesView() {
                               className="portal-inscripciones-paso-link"
                             >
                               {paso.accion.etiqueta}
-                              <ArrowRight size={16} aria-hidden />
+                              <ArrowRight size={20} aria-hidden />
                             </Link>
                           ) : (
                             <a
@@ -600,7 +600,7 @@ export default function PortalInscripcionesView() {
                               }
                             >
                               {paso.accion.etiqueta}
-                              <ArrowRight size={16} aria-hidden />
+                              <ArrowRight size={20} aria-hidden />
                             </a>
                           )}
                         </div>
