@@ -473,7 +473,7 @@ export async function construirEstadoPortalInscripciones(
     descripcion: 'Comprobante del proceso de inscripción con código QR de verificación.',
     estado: resolverEstadoPaso(false, puedeRecibo),
     detalle: puedeRecibo
-      ? 'Ábrelo al menos una vez para marcarlo como completado y desbloquear las colegiaturas del ciclo.'
+      ? 'Ábrelo al menos una vez para marcarlo como completado. Las colegiaturas del ciclo nuevo se desbloquean cuando los 4 pasos estén completados.'
       : requiereDocs
         ? 'Se habilita al completar solicitud, pago y carga de documentos.'
         : 'Se habilita al completar la solicitud y el pago de reinscripción.',

@@ -235,21 +235,16 @@ export default function PortalInscripcionesView() {
   const cicloCierreValorUi = estadoVista?.cierreCiclo?.ciclo.valor ?? null
 
   const reciboPaso = estadoVista?.pasos.find((p) => p.id === 'recibo-final') ?? null
-  const reciboCompletado = reciboPaso?.estado === 'completado'
-  // NI: colegiaturas solo tras abrir el recibo final 1 vez.
-  // Reinscritos: colegiaturas del ciclo vigente solo si ya liquidaron el cierre.
-  const colegiaturasDesbloqueadas = Boolean(
-    estadoVista &&
-      !estadoVista.bloqueo &&
-      !cierrePendiente &&
-      (esReinscrito || reciboCompletado)
-  )
-
+  // Colegiaturas del ciclo nuevo: solo con el proceso completo (todos los pasos
+  // en completado). "Disponible" = aún falta generar/abrir algo.
   const procesoCompleto = Boolean(
     estadoVista &&
       !cierrePendiente &&
       estadoVista.pasos.length > 0 &&
       estadoVista.pasos.every((p) => p.estado === 'completado')
+  )
+  const colegiaturasDesbloqueadas = Boolean(
+    estadoVista && !estadoVista.bloqueo && procesoCompleto
   )
 
   useEffect(() => {
@@ -654,19 +649,20 @@ export default function PortalInscripcionesView() {
                       <p className="portal-inscripciones-colegiaturas-bloqueo-desc">
                         {esReinscrito ? (
                           <>
-                            Completa tu reinscripción y su pago para desbloquear la{' '}
-                            <strong>cuota de inicio de curso (concepto 00)</strong> y las
-                            mensualidades del ciclo.
+                            Completa los <strong>4 pasos de reinscripción</strong> (solicitud,
+                            reglamento, pago y recibo final). Mientras algún paso siga en
+                            Disponible, la cuota de inicio de curso y las mensualidades del ciclo
+                            nuevo permanecen bloqueadas.
                           </>
                         ) : reciboPaso?.estado === 'disponible' || reciboPaso?.estado === 'completado' ? (
                           <>
-                            Abre el <strong>recibo final (paso 5)</strong> al menos una vez para
-                            marcarlo como completado y desbloquear la{' '}
+                            Abre el <strong>recibo final</strong> al menos una vez para marcarlo
+                            como completado y, con el resto de pasos terminados, desbloquear la{' '}
                             <strong>cuota de inicio de curso</strong> y las mensualidades del ciclo.
                           </>
                         ) : (
                           <>
-                            Completa los pasos de inscripción (incluido el recibo final) para
+                            Completa todos los pasos de inscripción (incluido el recibo final) para
                             desbloquear la <strong>cuota de inicio de curso</strong> y las
                             mensualidades del ciclo.
                           </>
