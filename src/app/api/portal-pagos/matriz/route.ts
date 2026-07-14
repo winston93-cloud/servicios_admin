@@ -60,7 +60,8 @@ export async function POST(request: Request) {
     if (cicloValor != null && Number.isFinite(cicloValor) && cicloValor > 0) {
       ciclo = (await obtenerCicloPorValor(cicloValor)) ?? cicloFallback(cicloValor)
     } else if (cicloSistema && !soloColegiatura) {
-      // Colegiaturas del ciclo a pagar: reinscrito → destino (ej. 23); NI → ficha.
+      // Colegiaturas del ciclo a pagar (permanente): reinscrito → destino de
+      // temporada (22→23, 23→24, …); NI → ciclo de la ficha.
       const proy =
         formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 0
           ? proyectarReinscripcionAlumno(alumno)

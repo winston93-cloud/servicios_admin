@@ -170,10 +170,11 @@ export function montoBaseConcepto(
     montoNormal = precio.precio_material + precio.precio_seguro
     admiteBecaWinston = false
   } else if (c === '18' || c === '19') {
-    montoNormal = precio.precio_cambridge > 0 ? precio.precio_cambridge / 2 : 975
+    // Mitad del total Cambridge; 0 si el ciclo aún no tiene precio cargado (no inventar $975).
+    montoNormal = precio.precio_cambridge > 0 ? precio.precio_cambridge / 2 : 0
     admiteBecaWinston = false
   } else if (c === '20') {
-    montoNormal = precio.precio_cambridge
+    montoNormal = precio.precio_cambridge > 0 ? precio.precio_cambridge : 0
     admiteBecaWinston = false
   } else if (c === '21') {
     montoNormal = precio.precio_cuota_padres
@@ -207,6 +208,7 @@ export function calcularImporteConcepto(
   opts?: {
     alumnoRef?: string | number
     fecha?: Date
+    cicloEscolar?: number
   }
 ): number {
   const fecha = opts?.fecha ?? new Date()
@@ -225,7 +227,7 @@ export function calcularImporteConcepto(
   const aplicarWinston =
     admiteBecaWinston &&
     porcentajeBeca > 0 &&
-    becaWinstonAplicaEnFecha(c, fecha)
+    becaWinstonAplicaEnFecha(c, fecha, opts?.cicloEscolar)
 
   return getDiscount(montoNormal, aplicarWinston ? porcentajeBeca : 0)
 }
@@ -280,12 +282,13 @@ export async function calcularBoucher(
       : calcularImporteConcepto(params.conceptoNo, precio, becaPct, planMeses, {
           alumnoRef: params.alumnoRef,
           fecha,
+          cicloEscolar: params.cicloEscolar,
         })
 
   const recargo =
     manual != null && manual > 0
       ? 0
-      : calcularRecargoPesos(params.conceptoNo, fecha)
+      : calcularRecargoPesos(params.conceptoNo, fecha, params.cicloEscolar)
   const importeLinea = Math.round((importe + recargo) * 100) / 100
 
   const semibase = referenciaSemibase(

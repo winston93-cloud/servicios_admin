@@ -104,6 +104,16 @@ export function etiquetaPlanPagos(planMeses: number): string {
   return planMeses === 2 ? 'Plan de pagos: 11 meses' : 'Plan de pagos: 10 meses'
 }
 
+/** Hay pago registrado o un importe real configurado (no sección fantasma a $0). */
+function seccionTieneCobroReal(filas: FilaMatrizPortal[]): boolean {
+  return filas.some(
+    (f) =>
+      f.pagado ||
+      (Number(f.importe) || 0) > 0 ||
+      (Number(f.importeLinea) || 0) > 0
+  )
+}
+
 function etiquetaConceptoPortal(conceptoNo: string, conceptoClase: string): string {
   const c = normalizarConceptoNo(conceptoNo)
   // Concepto 00 en BD a veces sigue como "Cuota de Mantenimiento".
@@ -244,8 +254,9 @@ async function construirFilas(
 
     const importe = calcularImporteConcepto(conceptoNo, precio, becaPct, planMeses, {
       alumnoRef: alumno.alumno_ref,
+      cicloEscolar: ciclo.valor,
     })
-    const recargo = calcularRecargoPesos(conceptoNo)
+    const recargo = calcularRecargoPesos(conceptoNo, new Date(), ciclo.valor)
     const importeLinea = Math.round((importe + recargo) * 100) / 100
     const semibase = referenciaSemibase(alumno.alumno_ref, conceptoNo, ciclo.valor)
     const referencia = getDigVerif(importe, semibase)
@@ -359,7 +370,9 @@ export async function construirMatrizPortalPagos(
       slotsLineales(SECCION_USA.conceptos)
     )
 
-    if (filasCam.length > 0) {
+    // No mostrar Cambridge/USA si el ciclo aún no tiene precio (antes inventaba $975)
+    // ni renglones a $0 sin pago registrado.
+    if (seccionTieneCobroReal(filasCam)) {
       secciones.push({
         id: SECCION_CAMBRIDGE.id,
         titulo: SECCION_CAMBRIDGE.titulo,
@@ -367,7 +380,7 @@ export async function construirMatrizPortalPagos(
       })
     }
 
-    if (filasUsa.length > 0) {
+    if (seccionTieneCobroReal(filasUsa)) {
       secciones.push({
         id: SECCION_USA.id,
         titulo: SECCION_USA.titulo,
