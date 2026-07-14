@@ -63,3 +63,7 @@ scripts/.cache/
 .roo
 .trae
 .windsurf
+
+# deps locales para scripts
+.pydeps/
+.venv-pptx/
