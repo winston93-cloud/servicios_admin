@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { obtenerAlumnoPorId } from '@/lib/alumnoDatosService'
+import { formaIngresoPorDefecto } from '@/lib/alumnoFormaIngreso'
 import {
   obtenerCicloEscolarActual,
   obtenerCicloPorValor,
@@ -10,6 +11,8 @@ import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
 import { asegurarColegiaturasPreviasIngresoCero } from '@/lib/colegiaturasPreviasIngresoService'
 import { construirMatrizPortalPagos } from '@/lib/portalPagosMatrizService'
+import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
+import { proyectarReinscripcionAlumno } from '@/lib/portalReinscripcionProyeccion'
 
 export const runtime = 'nodejs'
 
@@ -37,13 +40,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'alumnoId es obligatorio' }, { status: 400 })
     }
 
-    let ciclo: CicloEscolarRegistro | null =
-      cicloValor != null && Number.isFinite(cicloValor) && cicloValor > 0
-        ? await obtenerCicloPorValor(cicloValor)
-        : await obtenerCicloEscolarActual()
+    const alumno = await obtenerAlumnoPorId(alumnoId)
+    if (!alumno) {
+      return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
+    }
 
-    if (!ciclo && cicloValor != null && Number.isFinite(cicloValor) && cicloValor > 0) {
-      ciclo = cicloFallback(cicloValor)
+    const cicloSistema = await obtenerCicloEscolarActual()
+    if (!cicloSistema && !(cicloValor != null && Number.isFinite(cicloValor) && cicloValor > 0)) {
+      return NextResponse.json(
+        {
+          error:
+            'No hay ciclo escolar vigente configurado. Contacta a servicios escolares.',
+        },
+        { status: 503 }
+      )
+    }
+
+    let ciclo: CicloEscolarRegistro | null = null
+    if (cicloValor != null && Number.isFinite(cicloValor) && cicloValor > 0) {
+      ciclo = (await obtenerCicloPorValor(cicloValor)) ?? cicloFallback(cicloValor)
+    } else if (cicloSistema && !soloColegiatura) {
+      // Colegiaturas del ciclo a pagar: reinscrito → destino (ej. 23); NI → ficha.
+      const proy =
+        formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 0
+          ? proyectarReinscripcionAlumno(alumno)
+          : null
+      ciclo = await resolverCicloPagoInscripcionPortal(
+        alumno,
+        cicloSistema,
+        proy?.cicloDestino
+      )
+    } else {
+      ciclo = cicloSistema
     }
 
     if (!ciclo) {
@@ -54,11 +82,6 @@ export async function POST(request: Request) {
         },
         { status: 503 }
       )
-    }
-
-    const alumno = await obtenerAlumnoPorId(alumnoId)
-    if (!alumno) {
-      return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
     }
 
     const supabase = createSupabaseAdmin()

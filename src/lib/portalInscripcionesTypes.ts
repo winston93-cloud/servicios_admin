@@ -73,4 +73,9 @@ export interface EstadoPortalInscripciones {
   inscripcionPagada?: boolean
   /** Reinscritos: liquidar ciclo anterior antes de la admisión. NI = null. */
   cierreCiclo?: CierreCicloPortal | null
+  /**
+   * Ciclo cuyas colegiaturas se muestran al desbloquear pagos
+   * (reinscrito = destino 23; NI = ciclo de la ficha).
+   */
+  cicloColegiaturas?: { valor: number; nombre: string } | null
 }

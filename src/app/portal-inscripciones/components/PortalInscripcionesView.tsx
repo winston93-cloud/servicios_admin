@@ -159,13 +159,17 @@ export default function PortalInscripcionesView() {
 
   const cargarMatriz = useCallback(async () => {
     if (alumnoId == null) return
+    const cicloColeg = Number(estado?.cicloColegiaturas?.valor ?? 0)
     setCargandoMatriz(true)
     setErrorMatriz(null)
     try {
       const res = await fetch('/api/portal-pagos/matriz', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ alumnoId }),
+        body: JSON.stringify({
+          alumnoId,
+          ...(cicloColeg > 0 ? { cicloValor: cicloColeg } : {}),
+        }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -179,7 +183,7 @@ export default function PortalInscripcionesView() {
       setErrorMatriz('Error de conexión al cargar colegiaturas.')
     }
     setCargandoMatriz(false)
-  }, [alumnoId])
+  }, [alumnoId, estado?.cicloColegiaturas?.valor])
 
   const cargarMatrizCierre = useCallback(
     async (cicloValor: number) => {
@@ -610,10 +614,16 @@ export default function PortalInscripcionesView() {
                   <div>
                     <h2 className="portal-inscripciones-colegiaturas-titulo">
                       Colegiaturas del ciclo
+                      {matriz?.ciclo?.nombre
+                        ? ` ${matriz.ciclo.nombre}`
+                        : estadoVista.cicloColegiaturas?.nombre
+                          ? ` ${estadoVista.cicloColegiaturas.nombre}`
+                          : ''}
                     </h2>
                     <p className="portal-inscripciones-colegiaturas-sub">
-                      Cuota de inicio de curso (concepto 00), mensualidades, Cambridge y Winston
-                      USA.
+                      {esReinscrito
+                        ? 'Tras la reinscripción: cuota de inicio de curso (concepto 00) y mensualidades del ciclo nuevo.'
+                        : 'Cuota de inicio de curso (concepto 00), mensualidades, Cambridge y Winston USA.'}
                     </p>
                   </div>
                   {colegiaturasDesbloqueadas && matriz?.planEtiqueta && (

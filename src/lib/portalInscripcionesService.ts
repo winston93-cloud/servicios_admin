@@ -519,5 +519,9 @@ export async function construirEstadoPortalInscripciones(
     solicitudCapturada: solCapturada,
     inscripcionPagada: insPagada,
     cierreCiclo,
+    cicloColegiaturas: {
+      valor: cicloPagoReg.valor,
+      nombre: cicloPagoReg.nombre,
+    },
   }
 }
