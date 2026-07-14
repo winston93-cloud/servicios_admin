@@ -87,14 +87,21 @@ export async function POST(request: Request) {
 
     const supabase = createSupabaseAdmin()
     let pagos = await listarPagosColegiaturaAlumno(alumnoId, ciclo.valor)
-    const previos = await asegurarColegiaturasPreviasIngresoCero(
-      supabase,
-      alumno,
-      ciclo.valor,
-      pagos
-    )
-    if (previos.insertados.length > 0) {
-      pagos = await listarPagosColegiaturaAlumno(alumnoId, ciclo.valor)
+    // Cierre de ciclo (soloColegiatura): no inventar ceros mid-ciclo; eso
+    // hacía “todo pagado” en la matriz mientras el estado seguía en adeudo.
+    let previos: Awaited<ReturnType<typeof asegurarColegiaturasPreviasIngresoCero>> = {
+      insertados: [],
+    }
+    if (!soloColegiatura) {
+      previos = await asegurarColegiaturasPreviasIngresoCero(
+        supabase,
+        alumno,
+        ciclo.valor,
+        pagos
+      )
+      if (previos.insertados.length > 0) {
+        pagos = await listarPagosColegiaturaAlumno(alumnoId, ciclo.valor)
+      }
     }
     const matriz = await construirMatrizPortalPagos(supabase, alumno, ciclo, pagos, {
       soloColegiatura,

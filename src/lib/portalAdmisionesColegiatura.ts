@@ -1,21 +1,23 @@
 import type { PagoDetalleRegistro } from './pagoColegiaturaService'
-import {
-  formatearAlumnoRefParaReferencia,
-  normalizarConceptoNo,
-  parsearReferenciaPago,
-} from './pagoReferenciaColegiatura'
+import { normalizarConceptoNo, parsearReferenciaPago } from './pagoReferenciaColegiatura'
 
 function pagoVigente(p: PagoDetalleRegistro): boolean {
   return p.pago_cancelado !== 1 && p.pago_cancelado !== 2
 }
 
+/**
+ * ¿Hay pago vigente del concepto en el ciclo?
+ * Los `pagos` ya vienen filtrados por `alumno_id`: se compara concepto + ciclo
+ * (igual que la matriz del portal). No exigir dígitos de ref en la referencia —
+ * en legacies a veces no coinciden y el alumno veía “Pagado” en la matriz
+ * pero el cierre seguía exigiendo liquidar.
+ */
 export function alumnoTienePagoSemiref(
   pagos: PagoDetalleRegistro[],
-  alumnoRef: string | number,
+  _alumnoRef: string | number,
   conceptoNo: string,
   cicloEscolar: number
 ): boolean {
-  const ref5 = formatearAlumnoRefParaReferencia(String(alumnoRef).replace(/\D/g, '').slice(-5))
   const concepto = normalizarConceptoNo(conceptoNo)
 
   return pagos.some((p) => {
@@ -23,7 +25,6 @@ export function alumnoTienePagoSemiref(
     const parsed = parsearReferenciaPago(p.pago_referencia)
     if (!parsed) return false
     return (
-      parsed.alumnoRef === ref5 &&
       normalizarConceptoNo(parsed.conceptoNo) === concepto &&
       parsed.cicloEscolar === cicloEscolar
     )

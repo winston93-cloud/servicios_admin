@@ -96,13 +96,16 @@ export async function listarPagosColegiaturaAlumno(
   alumnoId: number,
   cicloEscolar: number
 ): Promise<PagoDetalleRegistro[]> {
+  // Sin filtro SQL de ciclo (ciclo va en dígitos 8–9 de la referencia).
+  // Límite amplio: con 500 se truncaban historiales y el cierre “no veía”
+  // pagos que la matriz sí alcanzaba a mostrar según orden/fecha.
   const { data, error } = await supabase
     .from('pago_detalle')
     .select(SELECT_PAGO)
     .eq('alumno_id', alumnoId)
     .order('pago_fecha', { ascending: false })
     .order('pago_id', { ascending: false })
-    .limit(500)
+    .limit(2500)
 
   if (error) {
     console.error('Error al listar pago_detalle:', error)

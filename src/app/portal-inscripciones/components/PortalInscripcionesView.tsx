@@ -119,6 +119,7 @@ export default function PortalInscripcionesView() {
   const [errorMatrizCierre, setErrorMatrizCierre] = useState<string | null>(null)
   const colegiaturasRef = useRef<HTMLElement>(null)
   const cierreRef = useRef<HTMLElement>(null)
+  const revalidarCierreRef = useRef(false)
 
   const cargar = useCallback(async () => {
     if (alumnoId == null) {
@@ -260,10 +261,22 @@ export default function PortalInscripcionesView() {
       void cargarMatrizCierre(cicloCierreValorUi)
     } else {
       setMatrizCierre(null)
+      revalidarCierreRef.current = false
     }
   }, [cierrePendiente, cicloCierreValorUi, cargarMatrizCierre])
 
+  // Si la matriz de cierre ya trae todos los conceptos pagados pero el estado
+  // aún marca adeudo, revalidar una vez (misma fuente de verdad al estado).
+  useEffect(() => {
+    if (!cierrePendiente || !matrizCierre || revalidarCierreRef.current) return
+    const filas = matrizCierre.secciones.flatMap((s) => s.filas)
+    if (filas.length === 0 || filas.some((f) => !f.pagado)) return
+    revalidarCierreRef.current = true
+    void cargar()
+  }, [cierrePendiente, matrizCierre, cargar])
+
   const refrescarTrasPagoCierre = useCallback(async () => {
+    revalidarCierreRef.current = false
     await cargar()
     if (cicloCierreValorUi != null) await cargarMatrizCierre(cicloCierreValorUi)
   }, [cargar, cargarMatrizCierre, cicloCierreValorUi])
