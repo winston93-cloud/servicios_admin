@@ -54,3 +54,45 @@ export const MONEDAS = [
   { value: 'USD', label: 'Dólar Americano (USD)' },
   { value: 'EUR', label: 'Euro (EUR)' },
 ] as const
+
+/** Entidades federativas (como suelen aparecer en CSF / CFDI). */
+export const ENTIDADES_FEDERATIVAS = [
+  'Aguascalientes',
+  'Baja California',
+  'Baja California Sur',
+  'Campeche',
+  'Chiapas',
+  'Chihuahua',
+  'Ciudad de México',
+  'Coahuila',
+  'Colima',
+  'Durango',
+  'Estado de México',
+  'Guanajuato',
+  'Guerrero',
+  'Hidalgo',
+  'Jalisco',
+  'Michoacán',
+  'Morelos',
+  'Nayarit',
+  'Nuevo León',
+  'Oaxaca',
+  'Puebla',
+  'Querétaro',
+  'Quintana Roo',
+  'San Luis Potosí',
+  'Sinaloa',
+  'Sonora',
+  'Tabasco',
+  'Tamaulipas',
+  'Tlaxcala',
+  'Veracruz',
+  'Yucatán',
+  'Zacatecas',
+] as const
+
+/** Validación básica de RFC (persona física 13 / moral 12). */
+export function rfcValidoFormato(rfc: string): boolean {
+  const r = rfc.trim().toUpperCase()
+  return /^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(r)
+}

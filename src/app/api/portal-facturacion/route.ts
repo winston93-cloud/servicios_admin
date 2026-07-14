@@ -25,10 +25,16 @@ export async function GET(request: Request) {
     const db = createDbAdmin()
     const datos = await obtenerDatosFacturacionPorRef(db, alumnoRef)
 
+    const nombreAlumno =
+      `${alumno.alumno_app ?? ''} ${alumno.alumno_apm ?? ''} ${alumno.alumno_nombre ?? ''}`.trim() ||
+      null
+
     return NextResponse.json({
       ok: true,
       alumnoRef,
+      nombreAlumno,
       datos,
+      existeAlta: Boolean(datos),
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al cargar datos fiscales'

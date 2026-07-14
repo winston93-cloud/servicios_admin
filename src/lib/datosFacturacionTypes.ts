@@ -72,15 +72,27 @@ export function validarDatosFacturacion(
   if (!datos.alumno_ref || Number.isNaN(datos.alumno_ref)) {
     errores.push('Referencia de alumno no válida.')
   }
-  if (!datos.rfc) errores.push('RFC es obligatorio.')
+  if (!datos.rfc) {
+    errores.push('RFC es obligatorio.')
+  } else if (!/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(datos.rfc)) {
+    errores.push('RFC con formato inválido (12 o 13 caracteres según constancia).')
+  }
   if (!datos.razsocial) errores.push('Razón social es obligatoria.')
   if (!datos.regfiscal) errores.push('Régimen fiscal es obligatorio.')
   if (!datos.usocfdi) errores.push('Uso de CFDI es obligatorio.')
-  if (!datos.codpostal) errores.push('Código postal es obligatorio.')
+  if (!datos.codpostal) {
+    errores.push('Código postal es obligatorio.')
+  } else if (!/^\d{5}$/.test(datos.codpostal)) {
+    errores.push('Código postal debe ser de 5 dígitos.')
+  }
   if (!datos.calle) errores.push('Calle es obligatoria.')
   if (!datos.ncolonia) errores.push('Colonia es obligatoria.')
   if (!datos.nmunicipio) errores.push('Municipio es obligatorio.')
   if (!datos.nentidad) errores.push('Entidad es obligatoria.')
-  if (!datos.email) errores.push('Correo electrónico es obligatorio.')
+  if (!datos.email) {
+    errores.push('Correo electrónico es obligatorio.')
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.email)) {
+    errores.push('Correo electrónico no válido.')
+  }
   return errores
 }
