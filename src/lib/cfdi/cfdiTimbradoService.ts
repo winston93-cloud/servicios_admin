@@ -2,6 +2,7 @@ import type { AppDatabaseClient } from '../dbTypes'
 import { createInsforgeAdmin } from '../insforgeAdmin'
 import { obtenerDatosFacturacionPorRef } from '../datosFacturacionService'
 import { crearNombreArchivoFactura } from '../portalFacturaRutas'
+import { nivelCobroDesdeReferencia } from '../nivelCobroElectronico'
 import { resolverConcepto, formaPagoDesdeMetodo } from './cfdiConcepto'
 import { emisorClavePorNivel, obtenerConfigEmisor } from './cfdiEmisor'
 import { institucionPorNivel } from './cfdiInstitucion'
@@ -127,7 +128,9 @@ async function ejecutarTimbradoPago(
 
   const { data: alumno, error: errAl } = await db
     .from('alumno')
-    .select('alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel')
+    .select(
+      'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_ciclo_escolar'
+    )
     .eq('alumno_ref', alumnoRef)
     .maybeSingle()
 
@@ -141,7 +144,14 @@ async function ejecutarTimbradoPago(
     }
   }
 
-  const nivel = Number(alumno.alumno_nivel ?? 0)
+  const nivel = nivelCobroDesdeReferencia(
+    {
+      alumno_nivel: Number(alumno.alumno_nivel ?? 0),
+      alumno_grado: Number(alumno.alumno_grado ?? 0),
+      alumno_ciclo_escolar: Number(alumno.alumno_ciclo_escolar ?? 0),
+    },
+    referencia
+  )
   const clave = emisorClavePorNivel(nivel)
   const emisor = obtenerConfigEmisor(clave)
   if (!emisor) {

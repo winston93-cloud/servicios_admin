@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, Banknote, CreditCard, RefreshCw, Smartphone } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
+import { nivelCobroElectronico } from '@/lib/nivelCobroElectronico'
 import type { FilaMatrizPortal } from '@/lib/portalPagosMatrizService'
 import type { VistaPagoInscripcionPortal } from '@/lib/portalInscripcionPagoService'
 import { vigenciaBoucherPorDefecto } from '@/lib/boucherCore'
@@ -185,14 +186,14 @@ export default function PortalInscripcionPagoView() {
         cargando: false,
         datos: {
           alumno: nombreAlumnoTransferencia(vista, session?.displayName),
-          grado: etiquetaGradoEscolar(vista.alumno.alumno_nivel, vista.alumno.alumno_grado),
+          grado: vista.gradoEtiqueta,
           referenciaVentanilla: referencia,
           concepto: fila.conceptoClase,
           importe,
           alumnoId,
           conceptoNo: fila.conceptoNo,
           cicloEscolar: vista.ciclo.valor,
-          alumnoNivel: vista.alumno.alumno_nivel,
+          alumnoNivel: nivelCobroElectronico(vista.alumno, fila.conceptoNo),
         },
       })
     } catch (e) {

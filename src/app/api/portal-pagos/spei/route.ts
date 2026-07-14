@@ -4,6 +4,7 @@ import { normalizarConceptoNo } from '@/lib/boucherCore'
 import { calcularBoucher } from '@/lib/boucherService'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { crearCargoSpeiOpenpay } from '@/lib/openpaySpeiService'
+import { nivelCobroElectronico } from '@/lib/nivelCobroElectronico'
 import {
   generarReferenciaSpeiDesdePago,
   obtenerConfigOpenpay,
@@ -66,7 +67,8 @@ export async function POST(request: Request) {
         ? body.nombreAlumno.trim()
         : `${alumno.alumno_app ?? ''} ${alumno.alumno_apm ?? ''} ${alumno.alumno_nombre ?? ''}`.trim()
 
-    const config = obtenerConfigOpenpay(alumno.alumno_nivel)
+    const nivelCobro = nivelCobroElectronico(alumno, conceptoNo)
+    const config = obtenerConfigOpenpay(nivelCobro)
     const cargo = await crearCargoSpeiOpenpay({
       config,
       amount: montoSpei,

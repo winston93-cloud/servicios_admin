@@ -9,6 +9,7 @@ import {
   normalizarReferenciaBanorte,
   obtenerMontoPendienteBanorte,
 } from '@/lib/banortePagoService'
+import { nivelCobroDesdeReferencia } from '@/lib/nivelCobroElectronico'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const runtime = 'nodejs'
@@ -71,11 +72,20 @@ export async function POST(request: Request) {
   const ref5 = referencia3d.slice(0, 5)
   const { data: alumno } = await supabase
     .from('alumno')
-    .select('alumno_nivel')
+    .select('alumno_nivel, alumno_grado, alumno_ciclo_escolar')
     .eq('alumno_ref', parseInt(ref5, 10))
     .maybeSingle()
 
-  const nivel = Number(alumno?.alumno_nivel ?? 0)
+  const nivel = alumno
+    ? nivelCobroDesdeReferencia(
+        {
+          alumno_nivel: Number(alumno.alumno_nivel ?? 0),
+          alumno_grado: Number(alumno.alumno_grado ?? 0),
+          alumno_ciclo_escolar: Number(alumno.alumno_ciclo_escolar ?? 0),
+        },
+        referencia3d
+      )
+    : 0
 
   try {
     obtenerCredencialesPayw2(nivel)

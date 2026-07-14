@@ -6,6 +6,7 @@ import type { AlumnoRegistro } from '@/lib/alumnoDatosService'
 import type { CicloEscolarRegistro } from '@/lib/ciclosEscolaresService'
 import type { FilaMatrizPortal, SeccionMatrizPortal } from '@/lib/portalPagosMatrizService'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
+import { nivelCobroElectronico } from '@/lib/nivelCobroElectronico'
 import { vigenciaBoucherPorDefecto } from '@/lib/boucherCore'
 import PortalDocumentoModal, { type TipoDocumentoPortal } from './PortalDocumentoModal'
 import PortalBoucherModal from './PortalBoucherModal'
@@ -160,7 +161,7 @@ export default function PortalColegiaturasSecciones({
           alumnoId,
           conceptoNo: fila.conceptoNo,
           cicloEscolar: ciclo.valor,
-          alumnoNivel: alumno.alumno_nivel,
+          alumnoNivel: nivelCobroElectronico(alumno, fila.conceptoNo),
         },
       })
     } catch (e) {
