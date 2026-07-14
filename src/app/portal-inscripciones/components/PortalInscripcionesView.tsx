@@ -571,8 +571,11 @@ export default function PortalInscripcionesView() {
                       ? 'Proceso de reinscripción completado'
                       : 'Proceso de admisión completado'}
                   </span>
-                  <span className="portal-inscripciones-proceso-toggle-chevron" aria-hidden>
-                    {pasosExpandidos ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                  <span className="portal-inscripciones-proceso-toggle-chevron">
+                    <span className="portal-inscripciones-proceso-toggle-hint">
+                      {pasosExpandidos ? 'Collapsar' : 'Expandir'}
+                    </span>
+                    {pasosExpandidos ? <ChevronUp size={20} aria-hidden /> : <ChevronDown size={20} aria-hidden />}
                   </span>
                 </button>
 

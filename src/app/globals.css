@@ -19527,10 +19527,20 @@ html[data-theme='light'] .portal-inscripciones-cierre-ciclo {
 }
 
 .portal-inscripciones-proceso-toggle-chevron {
-  display: grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: #a7f3d0;
   flex-shrink: 0;
+}
+
+.portal-inscripciones-proceso-toggle-hint {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  color: #a7f3d0;
+  opacity: 0.95;
 }
 
 .portal-inscripciones-pasos--acordeon {
@@ -19546,7 +19556,8 @@ html[data-theme='light'] .portal-inscripciones-proceso-toggle-text {
   color: #065f46;
 }
 
-html[data-theme='light'] .portal-inscripciones-proceso-toggle-chevron {
+html[data-theme='light'] .portal-inscripciones-proceso-toggle-chevron,
+html[data-theme='light'] .portal-inscripciones-proceso-toggle-hint {
   color: #047857;
 }
 
