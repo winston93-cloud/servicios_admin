@@ -1,33 +1,5 @@
 /* Centro de ayuda del dashboard alumno — contraste editorial sobre el home */
 
-.dash-ayuda-inline-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin-top: 0.85rem;
-  padding: 0.45rem 0.85rem;
-  border-radius: 999px;
-  border: 1px solid rgba(251, 146, 60, 0.45);
-  background: rgba(245, 158, 11, 0.12);
-  color: #fdba74;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-}
-
-.dash-ayuda-inline-btn:hover {
-  background: rgba(245, 158, 11, 0.22);
-  border-color: rgba(253, 186, 116, 0.7);
-  transform: translateY(-1px);
-}
-
-html[data-theme='light'] .dash-ayuda-inline-btn {
-  background: rgba(234, 88, 12, 0.08);
-  border-color: rgba(234, 88, 12, 0.28);
-  color: #c2410c;
-}
-
 .dash-ayuda-fab {
   position: fixed;
   right: max(1rem, env(safe-area-inset-right));

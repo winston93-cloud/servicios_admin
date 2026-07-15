@@ -300,16 +300,6 @@ export default function DashboardPage() {
                     <span className="dashboard-ciclo-vigente-nombre">{cicloVigenteNombre}</span>
                   </p>
                 )}
-                {isAlumno && (
-                  <button
-                    type="button"
-                    className="dash-ayuda-inline-btn"
-                    onClick={() => setAyudaAbierta(true)}
-                  >
-                    <CircleHelp size={16} aria-hidden />
-                    Centro de ayuda del portal
-                  </button>
-                )}
               </div>
 
               <div className="dashboard-nav-grid">
