@@ -6,6 +6,7 @@ import {
   urlPortalPagosAlumno,
 } from '@/lib/banorteConfig'
 import { guardarMontoPendienteBanorte, normalizarReferenciaBanorte } from '@/lib/banortePagoService'
+import { nivelCobroDesdeReferencia } from '@/lib/nivelCobroElectronico'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const dynamic = 'force-dynamic'
@@ -24,7 +25,7 @@ export default async function Banorte3dPage({ searchParams }: PageProps) {
   const referencia = normalizarReferenciaBanorte(param(q.referencia))
   const montoRaw = param(q.monto)
   const concepto = param(q.concepto) || 'Pago escolar'
-  const nivel = parseInt(param(q.nivel), 10) || 0
+  const nivelQuery = parseInt(param(q.nivel), 10) || 0
   const monto = Number.parseFloat(montoRaw)
 
   if (referencia.length !== 12 || !Number.isFinite(monto) || monto <= 0) {
@@ -51,6 +52,27 @@ export default async function Banorte3dPage({ searchParams }: PageProps) {
   try {
     const supabase = createSupabaseAdmin()
     await guardarMontoPendienteBanorte(supabase, referencia, monto)
+
+    // Misma regla que comercio.php / callback: nivel desde ficha + concepto de la referencia.
+    // No confiar solo en ?nivel= del portal (evita cruce Winston ↔ Educativo 3DS/Payw).
+    const ref5 = referencia.slice(0, 5)
+    const { data: alumno } = await supabase
+      .from('alumno')
+      .select('alumno_nivel, alumno_grado, alumno_ciclo_escolar')
+      .eq('alumno_ref', parseInt(ref5, 10))
+      .maybeSingle()
+
+    const nivel = alumno
+      ? nivelCobroDesdeReferencia(
+          {
+            alumno_nivel: Number(alumno.alumno_nivel ?? 0),
+            alumno_grado: Number(alumno.alumno_grado ?? 0),
+            alumno_ciclo_escolar: Number(alumno.alumno_ciclo_escolar ?? 0),
+          },
+          referencia
+        )
+      : nivelQuery
+
     const afiliacion = obtenerAfiliacion3ds(nivel)
     const urlRespuesta = urlRespuestaBanorteComercio()
 

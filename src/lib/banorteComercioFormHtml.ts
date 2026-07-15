@@ -41,6 +41,10 @@ export type BanorteDebugPayw = {
   cavvLen: number
   xidTail?: string
   cavvTail?: string
+  via?: 'proxy' | 'direct'
+  merchantId?: string
+  terminalId?: string
+  cuenta?: string
   paywResult?: string | null
   authResult?: string | null
   paywCode?: string | null

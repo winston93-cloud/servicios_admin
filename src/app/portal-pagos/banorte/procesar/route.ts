@@ -68,8 +68,8 @@ export async function POST(request: Request) {
     return respuestaHtml(
       htmlResultadoBanorte({
         exito: false,
-        titulo: 'Datos inválidos',
-        mensaje: 'Referencia de control inválida.',
+        titulo: 'Datos inv?lidos',
+        mensaje: 'Referencia de control inv?lida.',
       })
     )
   }
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     return respuestaHtml(
       htmlResultadoBanorte({
         exito: false,
-        titulo: 'Error de configuración',
+        titulo: 'Error de configuraci?n',
         mensaje: msg,
         referencia,
       })
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     return respuestaHtml(
       htmlResultadoBanorte({
         exito: false,
-        titulo: 'Error de conexión',
+        titulo: 'Error de conexi?n',
         mensaje: msg,
         referencia,
       })
@@ -123,6 +123,10 @@ export async function POST(request: Request) {
         prefill: { customerRef1: campos.CUSTOMER_REF1 },
         debug: {
           fase: 'payw_rechazo',
+          via: payw.via,
+          merchantId: cred.merchantId,
+          terminalId: cred.terminalId,
+          cuenta: cred.cuenta,
           referencia,
           monto: amount,
           nivel,
@@ -155,9 +159,9 @@ export async function POST(request: Request) {
       htmlResultadoBanorte({
         exito: false,
         titulo: 'Cargo aprobado, registro pendiente',
-        mensaje: `Banorte aprobó el pago, pero hubo un problema al guardarlo: ${registro.mensaje}. Guarde su comprobante y contacte al plantel.`,
+        mensaje: `Banorte aprob? el pago, pero hubo un problema al guardarlo: ${registro.mensaje}. Guarde su comprobante y contacte al plantel.`,
         referencia,
-        detalle: payw.authCode ? `Código de autorización: ${payw.authCode}` : undefined,
+        detalle: payw.authCode ? `C?digo de autorizaci?n: ${payw.authCode}` : undefined,
       })
     )
   }
@@ -170,16 +174,16 @@ export async function POST(request: Request) {
   return respuestaHtml(
     htmlResultadoBanorte({
       exito: true,
-      titulo: registro.duplicado ? 'Pago ya registrado' : '¡Pago exitoso!',
+      titulo: registro.duplicado ? 'Pago ya registrado' : '?Pago exitoso!',
       mensaje: registro.mensaje,
       referencia,
-      detalle: payw.authCode ? `Autorización bancaria: ${payw.authCode}` : undefined,
+      detalle: payw.authCode ? `Autorizaci?n bancaria: ${payw.authCode}` : undefined,
       facturaPdf: pdfHref,
       facturaXml: xmlHref,
       facturaPendiente: facturaOk
         ? null
         : registro.factura?.mensaje ||
-          'La factura se puede completar desde administración si quedó pendiente.',
+          'La factura se puede completar desde administraci?n si qued? pendiente.',
     })
   )
 }
@@ -188,8 +192,8 @@ export async function GET() {
   return respuestaHtml(
     htmlResultadoBanorte({
       exito: false,
-      titulo: 'Método no permitido',
-      mensaje: 'Use el formulario de comercio electrónico para procesar el pago.',
+      titulo: 'M?todo no permitido',
+      mensaje: 'Use el formulario de comercio electr?nico para procesar el pago.',
     }),
     405
   )
