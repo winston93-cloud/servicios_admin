@@ -7,6 +7,10 @@ import {
   generarReferenciaPagoAleatoria,
   semibaseDesdeReferenciaCompleta,
 } from '@/lib/pagoReferenciaColegiatura'
+import {
+  abrirBanorte3dsLegacyIndex,
+  usar3dsViaIndexLegacy,
+} from '@/lib/banorteConfig'
 
 export interface DatosTransferenciaPortal {
   alumno: string
@@ -265,9 +269,15 @@ export default function PortalTransferenciaModal({
                       if (!datos) return
                       const semibase = semibaseDesdeReferenciaCompleta(datos.referenciaVentanilla)
                       const refBanorte = generarReferenciaPagoAleatoria(semibase)
+                      const monto = Number(datos.importe).toFixed(2)
+                      // A/B: 3DS completo vía index.php del hosting (como admisiones).
+                      if (usar3dsViaIndexLegacy()) {
+                        abrirBanorte3dsLegacyIndex({ referencia: refBanorte, monto })
+                        return
+                      }
                       const params = new URLSearchParams({
                         referencia: refBanorte,
-                        monto: Number(datos.importe).toFixed(2),
+                        monto,
                         concepto: datos.concepto,
                         nivel: String(datos.alumnoNivel),
                       })

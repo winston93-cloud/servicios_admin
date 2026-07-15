@@ -70,6 +70,10 @@ function normalizarPasswordEnv(raw: string): string {
 }
 
 export function urlRespuestaBanorteComercio(): string {
+  // A/B: forzar callback 3DS al comercio.php registrado en Banorte (hosting).
+  const override = String(process.env.BANORTE_3DS_URL_RESPUESTA ?? '').trim()
+  if (override) return override
+
   const base = (
     process.env.NEXT_PUBLIC_APP_URL ??
     process.env.VERCEL_URL ??
@@ -77,6 +81,57 @@ export function urlRespuestaBanorteComercio(): string {
   ).replace(/\/$/, '')
   const origin = base.startsWith('http') ? base : `https://${base}`
   return `${origin}/portal-pagos/banorte/comercio`
+}
+
+/** Index.php legacy (admisiones POST amount+reference). Client-visible. */
+export const BANORTE_LEGACY_INDEX_URL_DEFAULT =
+  'https://www.winston93.edu.mx/banorte/index.php'
+
+export const BANORTE_LEGACY_COMERCIO_URL_DEFAULT =
+  'https://www.winston93.edu.mx/banorte/comercio.php'
+
+/**
+ * Si true, el portal abre el 3DS vía index.php del hosting (mismo que admisiones).
+ * Variable pública: el click es en el cliente.
+ */
+export function usar3dsViaIndexLegacy(): boolean {
+  const flag = String(process.env.NEXT_PUBLIC_BANORTE_3DS_VIA_LEGACY_INDEX ?? '0')
+    .trim()
+    .toLowerCase()
+  return flag === '1' || flag === 'true' || flag === 'on'
+}
+
+export function urlIndexBanorteLegacy(): string {
+  return (
+    String(process.env.NEXT_PUBLIC_BANORTE_LEGACY_INDEX_URL ?? '').trim() ||
+    BANORTE_LEGACY_INDEX_URL_DEFAULT
+  )
+}
+
+/** Abre el formulario 3DS del hosting (POST navigational, como admisiones). */
+export function abrirBanorte3dsLegacyIndex(opts: {
+  referencia: string
+  monto: number | string
+}): void {
+  if (typeof document === 'undefined') return
+  const form = document.createElement('form')
+  form.method = 'POST'
+  form.action = urlIndexBanorteLegacy()
+  form.target = '_blank'
+  form.acceptCharset = 'UTF-8'
+  const amount = document.createElement('input')
+  amount.type = 'hidden'
+  amount.name = 'amount'
+  amount.value = Number(opts.monto).toFixed(2)
+  const reference = document.createElement('input')
+  reference.type = 'hidden'
+  reference.name = 'reference'
+  reference.value = opts.referencia
+  form.appendChild(amount)
+  form.appendChild(reference)
+  document.body.appendChild(form)
+  form.submit()
+  form.remove()
 }
 
 export function urlPortalPagosAlumno(): string {
