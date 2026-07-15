@@ -39,6 +39,7 @@ import {
 import {
   leerPlanPagosConfirmado,
   marcarPlanPagosConfirmado,
+  limpiarPlanPagosConfirmado,
   planMesesNormalizado,
 } from '@/lib/portalPlanPagosConfirmado'
 import PortalColegiaturasSecciones from '@/app/portal-pagos/components/PortalColegiaturasSecciones'
@@ -371,7 +372,8 @@ export default function PortalInscripcionesView() {
     estadoVista && !estadoVista.bloqueo && procesoCompleto
   )
 
-  // Antes de armar la matriz del ciclo nuevo: confirmar / cambiar plan 10 u 11.
+  // Antes de armar la matriz del ciclo nuevo: confirmar / elegir plan 10 u 11
+  // (reinscritos y nuevo ingreso). Abrir modal en sync; no saltar en silencio.
   useEffect(() => {
     if (!colegiaturasDesbloqueadas || alumnoId == null) {
       setPlanModalAbierto(false)
@@ -380,10 +382,15 @@ export default function PortalInscripcionesView() {
     const cicloColeg = Number(estadoVista?.cicloColegiaturas?.valor ?? 0)
     if (cicloColeg <= 0) return
 
-    if (planConfirmado || leerPlanPagosConfirmado(alumnoId, cicloColeg)) {
+    const yaConfirmado =
+      planConfirmado || leerPlanPagosConfirmado(alumnoId, cicloColeg)
+
+    if (yaConfirmado) {
       setPlanConfirmado(true)
       setPlanModalAbierto(false)
-      return
+    } else {
+      // Abrir ya: no esperar al GET (evita saltarse la modal si el fetch falla / se cancela).
+      setPlanModalAbierto(true)
     }
 
     let cancelado = false
@@ -394,21 +401,11 @@ export default function PortalInscripcionesView() {
         )
         const data = await res.json().catch(() => null)
         if (cancelado) return
-        if (res.ok && data?.bloqueadoPorPagos) {
-          // Ya hay pagos: no hay elección, marcar confirmado y seguir.
-          marcarPlanPagosConfirmado(alumnoId, cicloColeg)
-          setPlanConfirmado(true)
-          setPlanPuedeCambiar(false)
-          setPlanModalAbierto(false)
-          return
+        if (res.ok) {
+          setPlanPuedeCambiar(data?.puedeCambiar !== false)
         }
-        setPlanPuedeCambiar(data?.puedeCambiar !== false)
-        setPlanModalAbierto(true)
       } catch {
-        if (!cancelado) {
-          setPlanPuedeCambiar(true)
-          setPlanModalAbierto(true)
-        }
+        /* modal ya abierta si hace falta */
       }
     })()
 
@@ -463,6 +460,7 @@ export default function PortalInscripcionesView() {
             : prev
         )
         setPlanPuedeCambiar(!data.bloqueadoPorPagos)
+        setMatriz(null)
         setPlanConfirmado(true)
         setPlanModalAbierto(false)
       } catch {
@@ -472,6 +470,16 @@ export default function PortalInscripcionesView() {
     },
     [alumnoId, estado?.cicloColegiaturas?.valor]
   )
+
+  const abrirCambioPlan = useCallback(() => {
+    if (alumnoId == null || !planPuedeCambiar) return
+    const cicloColeg = Number(estado?.cicloColegiaturas?.valor ?? 0)
+    if (cicloColeg <= 0) return
+    limpiarPlanPagosConfirmado(alumnoId, cicloColeg)
+    setPlanConfirmado(false)
+    setPlanError(null)
+    setPlanModalAbierto(true)
+  }, [alumnoId, planPuedeCambiar, estado?.cicloColegiaturas?.valor])
 
   useEffect(() => {
     if (cierrePendiente && cicloCierreValorUi != null) {
@@ -802,8 +810,26 @@ export default function PortalInscripcionesView() {
                         : 'Cuota de inicio de curso (concepto 00), mensualidades, Cambridge y Winston USA.'}
                     </p>
                   </div>
-                  {colegiaturasDesbloqueadas && matriz?.planEtiqueta && (
-                    <span className="portal-inscripciones-plan-badge">{matriz.planEtiqueta}</span>
+                  {colegiaturasDesbloqueadas && planConfirmado && (
+                    <div className="portal-inscripciones-plan-acciones">
+                      {(matriz?.planEtiqueta || estadoVista.alumno.mes != null) && (
+                        <span className="portal-inscripciones-plan-badge">
+                          {matriz?.planEtiqueta ??
+                            (planMesesNormalizado(estadoVista.alumno.mes) === 2
+                              ? 'Plan de pagos: 11 meses'
+                              : 'Plan de pagos: 10 meses')}
+                        </span>
+                      )}
+                      {planPuedeCambiar && (
+                        <button
+                          type="button"
+                          className="portal-inscripciones-plan-cambiar"
+                          onClick={abrirCambioPlan}
+                        >
+                          Cambiar plan
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -892,6 +918,7 @@ export default function PortalInscripcionesView() {
         abierto={planModalAbierto}
         planActual={planMesesNormalizado(estadoVista?.alumno.mes) as PlanMesesOpcion}
         cicloNombre={estadoVista?.cicloColegiaturas?.nombre ?? matriz?.ciclo?.nombre}
+        esNuevoIngreso={!esReinscrito}
         puedeCambiar={planPuedeCambiar}
         guardando={planGuardando}
         error={planError}

@@ -1,8 +1,11 @@
 import type { AppDatabaseClient } from '@/lib/dbTypes'
 import { etiquetaPlanMeses } from '@/lib/alumnoPlanMeses'
-import { alumnoTienePagoSemiref } from '@/lib/portalAdmisionesColegiatura'
 import { slotsColegiaturaPortal } from '@/lib/portalPagosCandados'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
+import {
+  normalizarConceptoNo,
+  parsearReferenciaPago,
+} from '@/lib/pagoReferenciaColegiatura'
 import { planMesesNormalizado } from '@/lib/portalPlanPagosConfirmado'
 import type { AlumnoRegistro } from '@/lib/alumnoDatosService'
 
@@ -20,20 +23,23 @@ export type ResultadoPlanPagos =
 /**
  * ¿Ya hay al menos un pago de colegiatura del ciclo nuevo?
  * Si sí, el plan 10/11 no debe cambiarse (afectaría slots ya iniciados).
+ * Solo cuenta pagos vigentes de conceptos de colegiatura (00…10 y 26),
+ * con importe > 0 — no confunde tip fantasma $0 ni inscripción 11/12/13.
  */
 export async function alumnoTienePagosColegiaturaCiclo(
   alumno: AlumnoRegistro,
   cicloValor: number
 ): Promise<boolean> {
   const pagos = await listarPagosColegiaturaAlumno(alumno.alumno_id, cicloValor)
-  const ref = alumno.alumno_ref
-  // Plan 11 es el conjunto más amplio (incluye concepto 26).
-  for (const slot of slotsColegiaturaPortal(2)) {
-    for (const concepto of slot) {
-      if (alumnoTienePagoSemiref(pagos, ref, concepto, cicloValor)) return true
-    }
-  }
-  return false
+  const conceptos = new Set(slotsColegiaturaPortal(2).flat().map((c) => normalizarConceptoNo(c)))
+
+  return pagos.some((p) => {
+    if (p.pago_cancelado === 1 || p.pago_cancelado === 2) return false
+    if (!(Number(p.pago_importe) > 0)) return false
+    const parsed = parsearReferenciaPago(p.pago_referencia)
+    if (!parsed || parsed.cicloEscolar !== cicloValor) return false
+    return conceptos.has(normalizarConceptoNo(parsed.conceptoNo))
+  })
 }
 
 export async function actualizarPlanMesesPortal(

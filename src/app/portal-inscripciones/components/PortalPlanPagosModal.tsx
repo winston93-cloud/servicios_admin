@@ -9,6 +9,8 @@ interface PortalPlanPagosModalProps {
   abierto: boolean
   planActual: PlanMesesOpcion
   cicloNombre?: string | null
+  /** Texto adaptado: NI elige; reinscrito confirma/cambia el que ya trae. */
+  esNuevoIngreso?: boolean
   puedeCambiar?: boolean
   guardando?: boolean
   error?: string | null
@@ -36,6 +38,7 @@ export default function PortalPlanPagosModal({
   abierto,
   planActual,
   cicloNombre,
+  esNuevoIngreso = false,
   puedeCambiar = true,
   guardando = false,
   error = null,
@@ -74,8 +77,9 @@ export default function PortalPlanPagosModal({
           Plan de pagos del ciclo{cicloTxt}
         </h2>
         <p className="portal-plan-modal-sub">
-          Antes de ver las colegiaturas, confirma si mantienes o cambias el plan. De esto
-          dependen las mensualidades del alumno.
+          {esNuevoIngreso
+            ? 'Antes de ver las colegiaturas, elige el plan de pagos del alumno (10 u 11 meses). De eso dependen las mensualidades.'
+            : 'Antes de ver las colegiaturas, confirma si mantienes o cambias el plan que ya trae el reinscrito (10 u 11 meses). De eso dependen las mensualidades.'}
         </p>
 
         <div className="portal-plan-modal-opciones" role="radiogroup" aria-label="Plan de pagos">
