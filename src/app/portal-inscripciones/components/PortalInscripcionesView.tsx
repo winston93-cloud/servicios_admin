@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   ArrowRight,
+  CalendarRange,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -35,10 +36,18 @@ import {
   leerReciboFinalVisto,
   marcarReciboFinalVisto,
 } from '@/lib/portalReciboFinalVisto'
+import {
+  leerPlanPagosConfirmado,
+  marcarPlanPagosConfirmado,
+  planMesesNormalizado,
+} from '@/lib/portalPlanPagosConfirmado'
 import PortalColegiaturasSecciones from '@/app/portal-pagos/components/PortalColegiaturasSecciones'
 import PortalDocumentoModal, {
   type TipoDocumentoPortal,
 } from '@/app/portal-pagos/components/PortalDocumentoModal'
+import PortalPlanPagosModal, {
+  type PlanMesesOpcion,
+} from '@/app/portal-inscripciones/components/PortalPlanPagosModal'
 
 function nombreAlumno(estado: EstadoPortalInscripciones | null, fallback?: string): string {
   if (!estado) return fallback?.trim() || 'Alumno'
@@ -219,6 +228,11 @@ export default function PortalInscripcionesView() {
     url: string
     titulo: string
   }>({ abierto: false, tipo: 'pdf', url: '', titulo: '' })
+  const [planConfirmado, setPlanConfirmado] = useState(false)
+  const [planModalAbierto, setPlanModalAbierto] = useState(false)
+  const [planGuardando, setPlanGuardando] = useState(false)
+  const [planError, setPlanError] = useState<string | null>(null)
+  const [planPuedeCambiar, setPlanPuedeCambiar] = useState(true)
   const colegiaturasRef = useRef<HTMLElement>(null)
   const cierreRef = useRef<HTMLElement>(null)
   const revalidarCierreRef = useRef(false)
@@ -245,6 +259,7 @@ export default function PortalInscripcionesView() {
         const siguiente = data.estado as EstadoPortalInscripciones
         setEstado(siguiente)
         const cicloValor = Number(siguiente.ciclo?.valor ?? 0)
+        const cicloColeg = Number(siguiente.cicloColegiaturas?.valor ?? 0)
         if (cicloValor > 0) {
           setReglamentoVisto(leerReglamentoVisto(alumnoId, cicloValor))
           setReciboFinalVisto(leerReciboFinalVisto(alumnoId, cicloValor))
@@ -252,6 +267,13 @@ export default function PortalInscripcionesView() {
           setReglamentoVisto(false)
           setReciboFinalVisto(false)
         }
+        if (cicloColeg > 0) {
+          setPlanConfirmado(leerPlanPagosConfirmado(alumnoId, cicloColeg))
+        } else {
+          setPlanConfirmado(false)
+        }
+        setPlanError(null)
+        setPlanModalAbierto(false)
       }
     } catch {
       setEstado(null)
@@ -349,9 +371,107 @@ export default function PortalInscripcionesView() {
     estadoVista && !estadoVista.bloqueo && procesoCompleto
   )
 
+  // Antes de armar la matriz del ciclo nuevo: confirmar / cambiar plan 10 u 11.
   useEffect(() => {
-    if (colegiaturasDesbloqueadas) void cargarMatriz()
-  }, [colegiaturasDesbloqueadas, cargarMatriz])
+    if (!colegiaturasDesbloqueadas || alumnoId == null) {
+      setPlanModalAbierto(false)
+      return
+    }
+    const cicloColeg = Number(estadoVista?.cicloColegiaturas?.valor ?? 0)
+    if (cicloColeg <= 0) return
+
+    if (planConfirmado || leerPlanPagosConfirmado(alumnoId, cicloColeg)) {
+      setPlanConfirmado(true)
+      setPlanModalAbierto(false)
+      return
+    }
+
+    let cancelado = false
+    ;(async () => {
+      try {
+        const res = await fetch(
+          `/api/portal-inscripciones/plan-pagos?alumnoId=${alumnoId}&cicloValor=${cicloColeg}`
+        )
+        const data = await res.json().catch(() => null)
+        if (cancelado) return
+        if (res.ok && data?.bloqueadoPorPagos) {
+          // Ya hay pagos: no hay elección, marcar confirmado y seguir.
+          marcarPlanPagosConfirmado(alumnoId, cicloColeg)
+          setPlanConfirmado(true)
+          setPlanPuedeCambiar(false)
+          setPlanModalAbierto(false)
+          return
+        }
+        setPlanPuedeCambiar(data?.puedeCambiar !== false)
+        setPlanModalAbierto(true)
+      } catch {
+        if (!cancelado) {
+          setPlanPuedeCambiar(true)
+          setPlanModalAbierto(true)
+        }
+      }
+    })()
+
+    return () => {
+      cancelado = true
+    }
+  }, [
+    colegiaturasDesbloqueadas,
+    alumnoId,
+    planConfirmado,
+    estadoVista?.cicloColegiaturas?.valor,
+  ])
+
+  useEffect(() => {
+    if (colegiaturasDesbloqueadas && planConfirmado) void cargarMatriz()
+  }, [colegiaturasDesbloqueadas, planConfirmado, cargarMatriz])
+
+  const confirmarPlanPagos = useCallback(
+    async (plan: PlanMesesOpcion) => {
+      if (alumnoId == null) return
+      const cicloColeg = Number(estado?.cicloColegiaturas?.valor ?? 0)
+      if (cicloColeg <= 0) {
+        setPlanError('No se pudo determinar el ciclo de colegiaturas.')
+        return
+      }
+      setPlanGuardando(true)
+      setPlanError(null)
+      try {
+        const res = await fetch('/api/portal-inscripciones/plan-pagos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            alumnoId,
+            planMeses: plan,
+            cicloValor: cicloColeg,
+          }),
+        })
+        const data = await res.json().catch(() => null)
+        if (!res.ok || !data?.ok) {
+          setPlanError(data?.error ?? 'No se pudo guardar el plan de pagos.')
+          setPlanGuardando(false)
+          return
+        }
+        const planFinal = planMesesNormalizado(data.planMeses ?? plan)
+        marcarPlanPagosConfirmado(alumnoId, cicloColeg)
+        setEstado((prev) =>
+          prev
+            ? {
+                ...prev,
+                alumno: { ...prev.alumno, mes: planFinal },
+              }
+            : prev
+        )
+        setPlanPuedeCambiar(!data.bloqueadoPorPagos)
+        setPlanConfirmado(true)
+        setPlanModalAbierto(false)
+      } catch {
+        setPlanError('Error de conexión al guardar el plan.')
+      }
+      setPlanGuardando(false)
+    },
+    [alumnoId, estado?.cicloColegiaturas?.valor]
+  )
 
   useEffect(() => {
     if (cierrePendiente && cicloCierreValorUi != null) {
@@ -718,6 +838,19 @@ export default function PortalInscripcionesView() {
                       </p>
                     </div>
                   </div>
+                ) : !planConfirmado ? (
+                  <div className="portal-inscripciones-colegiaturas-bloqueo" role="status">
+                    <CalendarRange size={20} aria-hidden />
+                    <div>
+                      <p className="portal-inscripciones-colegiaturas-bloqueo-titulo">
+                        Confirma tu plan de pagos
+                      </p>
+                      <p className="portal-inscripciones-colegiaturas-bloqueo-desc">
+                        Elige mantener o cambiar el plan (10 u 11 meses). Con eso se arman las
+                        colegiaturas del ciclo nuevo.
+                      </p>
+                    </div>
+                  </div>
                 ) : cargandoMatriz && !matriz ? (
                   <div className="portal-inscripciones-estado" role="status">
                     <RefreshCw size={20} className="portal-inscripciones-spin" aria-hidden />
@@ -753,6 +886,16 @@ export default function PortalInscripcionesView() {
         url={docModal.url}
         titulo={docModal.titulo}
         onCerrar={() => setDocModal((s) => ({ ...s, abierto: false }))}
+      />
+
+      <PortalPlanPagosModal
+        abierto={planModalAbierto}
+        planActual={planMesesNormalizado(estadoVista?.alumno.mes) as PlanMesesOpcion}
+        cicloNombre={estadoVista?.cicloColegiaturas?.nombre ?? matriz?.ciclo?.nombre}
+        puedeCambiar={planPuedeCambiar}
+        guardando={planGuardando}
+        error={planError}
+        onConfirmar={(plan) => void confirmarPlanPagos(plan)}
       />
     </div>
   )
