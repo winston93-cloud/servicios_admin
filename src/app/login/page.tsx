@@ -276,7 +276,7 @@ export default function LoginPage() {
                   type="text"
                   value={claveRef}
                   onChange={(e) => setClaveRef(e.target.value)}
-                  placeholder="Ej. 21903"
+                  placeholder="Ej. 21904"
                   className="portal-access-input"
                   disabled={loading}
                   autoComplete="username"

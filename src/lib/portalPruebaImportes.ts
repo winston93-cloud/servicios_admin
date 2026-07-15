@@ -6,7 +6,8 @@ export const PORTAL_PRUEBA_IMPORTES_POR_REF: Record<
   number,
   Partial<Record<string, number>>
 > = {
-  // Vacío: se eliminó el alumno de prueba INSCRIPCION TRES / PRUEBA (ref 21903).
+  // Alumno NI de prueba Banorte / inscripción $3 (1° primaria).
+  21904: { '13': 3 },
 }
 
 export function importePruebaPortal(
