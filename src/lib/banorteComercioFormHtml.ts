@@ -104,6 +104,12 @@ function scriptDebugBanorte(
   });
   if (PAGE.fase === "payw_rechazo") {
     console.warn("[Banorte CE] Payworks rechazó el cargo", {
+      via: PAGE.via || "—",
+      merchantId: PAGE.merchantId || "—",
+      terminalId: PAGE.terminalId || "—",
+      cuenta: PAGE.cuenta || "—",
+      nivel: PAGE.nivel,
+      monto: PAGE.monto,
       titulo: PAGE.titulo,
       mensaje: PAGE.mensaje,
       categoria: PAGE.categoria,
