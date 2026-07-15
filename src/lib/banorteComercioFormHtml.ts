@@ -23,6 +23,10 @@ export interface DatosFormularioComercio {
   cavv: string
   /** Estatus 3DS aprobado (legacy reenvía el mismo valor a Payworks). */
   status3d?: string
+  /** Credenciales Payw en hidden (solo modo A/B form→process_payment.php legacy). */
+  paywHiddens?: Record<string, string>
+  /** Etiqueta de diagnóstico en consola. */
+  modoProcesar?: 'vercel' | 'legacy_process'
 }
 
 export interface PrefillComercio {
@@ -72,6 +76,13 @@ function scriptDebugBanorte(
     cavvLen: datos.cavv.length,
     xidTail: datos.xid ? datos.xid.slice(-6) : undefined,
     cavvTail: datos.cavv ? datos.cavv.slice(-6) : undefined,
+    ...(datos.modoProcesar === 'legacy_process'
+      ? {
+          cuenta: 'legacy_process_payment',
+          merchantId: datos.paywHiddens?.MERCHANT_ID,
+          terminalId: datos.paywHiddens?.TERMINAL_ID,
+        }
+      : {}),
     ...(opts?.debug ?? {}),
     ...(opts?.error
       ? {
@@ -89,6 +100,7 @@ function scriptDebugBanorte(
   var PAGE = ${json};
   console.group("%c[Banorte CE] paso 2 · diagnóstico", "color:#0b5;font-weight:bold");
   console.log("Copie este objeto y péguelo en el chat:", PAGE);
+  console.log("modoProcesar:", ${JSON.stringify(datos.modoProcesar || 'vercel')}, "action:", ${JSON.stringify(datos.procesarUrl)});
   console.table({
     referencia: PAGE.referencia,
     monto: PAGE.monto,
@@ -268,6 +280,9 @@ export function htmlFormularioComercioElectronico(
         <div><dt>Total</dt><dd class="banorte-amount">$${esc(datos.montoFmt)}</dd></div>
       </dl>
       <form method="POST" action="${esc(datos.procesarUrl)}" accept-charset="UTF-8" class="banorte-form-grid" id="banorte-pay-form">
+        ${Object.entries(datos.paywHiddens || {})
+          .map(([k, v]) => `<input type="hidden" name="${esc(k)}" value="${esc(v)}" />`)
+          .join('\n        ')}
         <input type="hidden" name="CONTROL_NUMBER" value="${esc(datos.referencia)}" />
         <input type="hidden" name="ECI" value="${esc(datos.eci)}" />
         <input type="hidden" name="STATUS_3D" value="${esc(datos.status3d || '200')}" />
@@ -276,7 +291,11 @@ export function htmlFormularioComercioElectronico(
         <input type="hidden" name="VERSION_3D" value="2" />
         <input type="hidden" name="AMOUNT" value="${esc(datos.montoFmt)}" />
         <input type="hidden" name="ALUMNO_NIVEL" value="${esc(String(datos.nivel))}" />
-        <div class="banorte-field">
+        ${
+          datos.modoProcesar === 'legacy_process'
+            ? '<p class="banorte-secure-note" style="grid-column:1/-1;margin:0 0 0.5rem">Modo prueba A/B: el cargo va a <code>process_payment.php</code> del hosting Winston (mismo flujo del viejito).</p>'
+            : ''
+        }        <div class="banorte-field">
           <label for="CUSTOMER_REF1">Nombre del cliente (máx. 28 caracteres)</label>
           <input type="text" name="CUSTOMER_REF1" id="CUSTOMER_REF1" maxlength="28" required placeholder="Como aparece en la tarjeta" value="${esc(nombre)}" />
           <span class="banorte-char-count" id="char-count">28 caracteres restantes</span>

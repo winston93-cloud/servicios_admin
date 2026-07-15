@@ -3,7 +3,7 @@ import {
   obtenerDetalleError3dSecure,
 } from '@/lib/banorte3dsErrors'
 import { htmlFormularioComercioElectronico } from '@/lib/banorteComercioFormHtml'
-import { obtenerCredencialesPayw2 } from '@/lib/banorteConfig'
+import { obtenerCredencialesPayw2, urlForm2Procesar } from '@/lib/banorteConfig'
 import { htmlResultado3dSecureRechazo, htmlShellBanorte, respuestaHtml } from '@/lib/banorteHtml'
 import {
   normalizarReferenciaBanorte,
@@ -108,8 +108,9 @@ export async function POST(request: Request) {
   }
 
   const montoFmt = monto.toFixed(2)
+  const destino = urlForm2Procesar(request.url, nivel)
   const html = htmlFormularioComercioElectronico({
-    procesarUrl: new URL('/portal-pagos/banorte/procesar', request.url).toString(),
+    procesarUrl: destino.actionUrl,
     referencia: referencia3d,
     montoFmt,
     nivel,
@@ -117,6 +118,8 @@ export async function POST(request: Request) {
     xid,
     cavv,
     status3d: estatus3d || '200',
+    paywHiddens: destino.hiddens,
+    modoProcesar: destino.modo,
   })
 
   return respuestaHtml(html)

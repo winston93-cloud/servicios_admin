@@ -158,6 +158,50 @@ export function claveProxyPayw2(): string {
   )
 }
 
+/**
+ * Diagnóstico A/B: el form 2 posta al process_payment.php del hosting
+ * (mismo curl legacy). Activar solo para prueba: BANORTE_FORM2_LEGACY_PROCESS=1
+ */
+export const BANORTE_LEGACY_PROCESS_URL_DEFAULT =
+  'https://www.winston93.edu.mx/banorte/process_payment.php'
+
+export function usarForm2LegacyProcess(): boolean {
+  const flag = String(process.env.BANORTE_FORM2_LEGACY_PROCESS ?? '0').trim().toLowerCase()
+  return flag === '1' || flag === 'true' || flag === 'on'
+}
+
+export function urlForm2Procesar(requestUrl: string, nivel: number): {
+  actionUrl: string
+  hiddens: Record<string, string>
+  modo: 'vercel' | 'legacy_process'
+} {
+  if (!usarForm2LegacyProcess()) {
+    return {
+      actionUrl: new URL('/portal-pagos/banorte/procesar', requestUrl).toString(),
+      hiddens: {},
+      modo: 'vercel',
+    }
+  }
+
+  const cred = obtenerCredencialesPayw2(nivel)
+  return {
+    actionUrl:
+      String(process.env.BANORTE_LEGACY_PROCESS_URL ?? '').trim() ||
+      BANORTE_LEGACY_PROCESS_URL_DEFAULT,
+    hiddens: {
+      MERCHANT_ID: cred.merchantId,
+      USER: cred.user,
+      PASSWORD: cred.password,
+      TERMINAL_ID: cred.terminalId,
+      CMD_TRANS: 'VENTA',
+      MODE: 'PRD',
+      ENTRY_MODE: 'MANUAL',
+      RESPONSE_LANGUAGE: 'EN',
+    },
+    modo: 'legacy_process',
+  }
+}
+
 /** Años de vencimiento (dos dígitos) para el select del formulario 3DS. */
 export function opcionesAnioExpiracion(): string[] {
   const actual = new Date().getFullYear() % 100
