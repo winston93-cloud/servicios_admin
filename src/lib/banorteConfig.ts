@@ -4,11 +4,14 @@ export type BanorteCuenta = 'winston' | 'educativo'
 export const BANORTE_3DS_URL = 'https://via.banorte.com/secure3d/Solucion3DSecure.htm'
 export const BANORTE_PAYW2_URL = 'https://via.pagosbanorte.com/payw2'
 
-/** Proxy opcional (InsForge). Por defecto NO se usa: el cobro sale directo desde Vercel. */
+/**
+ * Proxy opcional con IP fija (transitorio mientras exista el hosting viejo
+ * o un VPS permanente). El sistema nuevo cobra directo desde Vercel por defecto.
+ */
 export const BANORTE_PAYW2_PROXY_URL_DEFAULT =
-  'https://g4ta4bfg.us-east.insforge.app/functions/banorte-payw2'
+  'https://www.winston93.edu.mx/banorte/payw2_proxy.php'
 
-/** Misma clave que functions/banorte-payw2.ts y el viejo payw2_proxy.php */
+/** Misma clave que el default en payw2_proxy.php */
 export const BANORTE_PAYW2_PROXY_KEY_DEFAULT = 'WinstonBanortePayw2Proxy-2026-v1'
 
 /**
@@ -133,7 +136,10 @@ export function etiquetaCuentaBanorte(cuenta: BanorteCuenta): string {
   return cuenta === 'winston' ? 'Winston Churchill' : 'Instituto Educativo Winston'
 }
 
-/** Por defecto cobro DIRECTO desde Vercel (no depende del hosting). Proxy InsForge solo si BANORTE_PAYW2_USE_PROXY=1. */
+/**
+ * Cobro directo Vercel→Payworks por defecto (hosting Winston se da de baja).
+ * Solo si BANORTE_PAYW2_USE_PROXY=1 se usa un proxy con IP fija (viejo hosting o VPS).
+ */
 export function usarProxyPayw2(): boolean {
   if (String(process.env.BANORTE_PAYW2_DIRECT ?? '').trim() === '1') return false
   const flag = String(process.env.BANORTE_PAYW2_USE_PROXY ?? '0').trim().toLowerCase()

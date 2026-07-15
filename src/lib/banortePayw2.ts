@@ -155,7 +155,10 @@ async function postPayw2ViaProxy(body: string): Promise<RespuestaPayw2> {
   return { ...pickHeaders(json.headers), via: 'proxy' }
 }
 
-/** POST servidor a Payworks (legacy process_payment.php), preferente vía IP Winston. */
+/**
+ * POST servidor a Payworks (igual que process_payment.php).
+ * Por defecto sale directo desde Vercel. Proxy solo si se activa a propósito.
+ */
 export async function ejecutarVentaPayw2(
   campos: Record<string, string>,
   credenciales: BanorteCredencialesPayw2
@@ -163,22 +166,7 @@ export async function ejecutarVentaPayw2(
   const body = construirBodyVentaPayw2(campos, credenciales)
 
   if (usarProxyPayw2()) {
-    try {
-      return await postPayw2ViaProxy(body)
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
-      console.error('[Banorte] proxy payw2 falló, intentando directo:', msg)
-      // Fallback: no dejar sin cobro si el FTP del proxy aún no está.
-      try {
-        const direct = await postPayw2Direct(body)
-        console.warn('[Banorte] cobro vía directo Vercel (fallback tras fallo de proxy)')
-        return direct
-      } catch (e2) {
-        throw new Error(
-          `${msg} | Fallback directo también falló: ${e2 instanceof Error ? e2.message : String(e2)}`
-        )
-      }
-    }
+    return postPayw2ViaProxy(body)
   }
 
   return postPayw2Direct(body)
