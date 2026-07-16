@@ -126,6 +126,8 @@ export interface ResultadoRegistroPagoBanorte {
   factura?: {
     ok: boolean
     mensaje: string
+    /** Detalle PAC / técnico (secundario, no mezcla con el mensaje al papá). */
+    detalleTecnico?: string
     uuid?: string
     pdfUrl?: string | null
     xmlUrl?: string | null
@@ -195,10 +197,30 @@ export async function registrarPagoBanorteExitoso(
   return {
     ok: true,
     mensaje: factura.ok
-      ? 'Pago registrado y factura electrónica emitida.'
-      : `Pago registrado correctamente. ${factura.mensaje}`,
+      ? 'Su pago con tarjeta quedó registrado correctamente.'
+      : 'Su pago con tarjeta quedó registrado correctamente. El cargo a su tarjeta sí se realizó.',
     factura,
   }
+}
+
+/** Texto claro para el papá; el detalle PAC queda aparte. */
+function mensajeFacturaPendienteParaPadre(codigo: string | null | undefined, tecnico?: string): {
+  mensaje: string
+  detalleTecnico?: string
+} {
+  const t = (tecnico ?? '').trim()
+  const lower = t.toLowerCase()
+  let mensaje =
+    'La factura electrónica (CFDI) no se pudo emitir en este momento. Su pago ya está registrado; la escuela puede completar la factura después.'
+  if (lower.includes('curp')) {
+    mensaje =
+      'La factura electrónica no se pudo emitir porque el CURP del alumno no es válido o está incompleto. Su pago ya quedó registrado; actualice el CURP en datos del alumno o solicite ayuda en caja.'
+  } else if (lower.includes('rfc') || lower.includes('razón') || lower.includes('razon')) {
+    mensaje =
+      'La factura electrónica no se pudo emitir por un dato fiscal (RFC o razón social). Su pago ya quedó registrado; revise Alta de facturación o solicite ayuda en caja.'
+  }
+  const detalleTecnico = [codigo ? `Código PAC ${codigo}` : null, t || null].filter(Boolean).join(' — ') || undefined
+  return { mensaje, detalleTecnico }
 }
 
 async function intentarTimbrarTrasBanorte(
@@ -211,7 +233,8 @@ async function intentarTimbrarTrasBanorte(
       return {
         ok: false,
         mensaje:
-          'La factura queda pendiente: faltan credenciales PAC en el servidor. Puede timbrarse desde administración.',
+          'La factura electrónica no se pudo emitir ahora (configuración del servidor). Su pago ya quedó registrado.',
+        detalleTecnico: 'Faltan credenciales PAC',
       }
     }
     const r = await timbrarReferencia(
@@ -223,26 +246,30 @@ async function intentarTimbrarTrasBanorte(
     if (r.ok) {
       return {
         ok: true,
-        mensaje: r.uuid ? `CFDI UUID ${r.uuid}` : r.mensaje,
+        mensaje: 'Factura electrónica emitida correctamente.',
         uuid: r.uuid,
         pdfUrl: r.pdfUrl,
         xmlUrl: r.xmlUrl,
       }
     }
     console.error('Banorte CFDI:', r.codigo, r.mensaje, r.errorTecnico)
-    // Igual que legacy process_payment.php: mostrar descripcion + informacionTecnica del PAC.
-    const tecnico = r.errorTecnico?.trim()
-    const detallePac = tecnico && tecnico !== r.mensaje ? ` — ${tecnico}` : ''
+    const padre = mensajeFacturaPendienteParaPadre(
+      r.codigo,
+      [r.mensaje, r.errorTecnico].filter(Boolean).join(' — ')
+    )
     return {
       ok: false,
-      mensaje: `Factura pendiente (${r.codigo ?? 'PAC'}): ${r.mensaje}${detallePac}. El cargo sí quedó registrado; se puede retimbrar desde administración.`,
+      mensaje: padre.mensaje,
+      detalleTecnico: padre.detalleTecnico,
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al timbrar'
     console.error('Banorte CFDI exception:', msg)
     return {
       ok: false,
-      mensaje: `Factura pendiente: ${msg}. El cargo sí quedó registrado.`,
+      mensaje:
+        'La factura electrónica no se pudo emitir por un error temporal. Su pago ya quedó registrado.',
+      detalleTecnico: msg,
     }
   }
 }

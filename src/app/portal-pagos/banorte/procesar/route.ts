@@ -188,7 +188,8 @@ export async function POST(request: Request) {
       facturaPendiente: facturaOk
         ? null
         : registro.factura?.mensaje ||
-          'La factura se puede completar desde administración si quedó pendiente.',
+          'La factura electrónica quedó pendiente. Su pago sí está registrado.',
+      facturaDetalleTecnico: facturaOk ? null : registro.factura?.detalleTecnico || null,
     })
   )
 }

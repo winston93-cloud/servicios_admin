@@ -71,6 +71,7 @@ export function htmlResultadoBanorte(opts: {
   facturaPdf?: string | null
   facturaXml?: string | null
   facturaPendiente?: string | null
+  facturaDetalleTecnico?: string | null
 }): string {
   const clase = opts.exito ? 'banorte-result--ok' : 'banorte-result--error'
   const ref = opts.referencia
@@ -92,9 +93,22 @@ export function htmlResultadoBanorte(opts: {
       ]
         .filter(Boolean)
         .join('')
-      facturaBlock = `<div class="banorte-factura-ok"><p>Factura electrónica emitida.</p><div class="banorte-result-actions">${links}</div></div>`
+      facturaBlock = `<aside class="banorte-factura-box banorte-factura-box--ok" aria-label="Factura electrónica">
+        <p class="banorte-factura-box-label">Factura electrónica</p>
+        <p class="banorte-factura-box-title">Emitida correctamente</p>
+        <p class="banorte-factura-box-text">Ya puede descargar su CFDI.</p>
+        <div class="banorte-result-actions">${links}</div>
+      </aside>`
     } else if (opts.facturaPendiente) {
-      facturaBlock = `<p class="banorte-factura-pausa">${esc(opts.facturaPendiente)}</p>`
+      const tecnico = opts.facturaDetalleTecnico
+        ? `<p class="banorte-factura-box-tecnico"><span>Detalle técnico:</span> ${esc(opts.facturaDetalleTecnico)}</p>`
+        : ''
+      facturaBlock = `<aside class="banorte-factura-box banorte-factura-box--pendiente" aria-label="Factura pendiente">
+        <p class="banorte-factura-box-label">Factura electrónica</p>
+        <p class="banorte-factura-box-title">Pendiente</p>
+        <p class="banorte-factura-box-text">${esc(opts.facturaPendiente)}</p>
+        ${tecnico}
+      </aside>`
     }
   }
 

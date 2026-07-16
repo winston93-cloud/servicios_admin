@@ -386,6 +386,74 @@
   background: rgba(212, 175, 106, 0.1);
 }
 
+.banorte-factura-box {
+  text-align: left;
+  margin: 1.25rem 0 1.5rem;
+  padding: 1rem 1.15rem;
+  border-radius: 10px;
+  border: 1px solid var(--bn-border);
+}
+
+.banorte-factura-box--ok {
+  background: rgba(95, 212, 164, 0.1);
+  border-color: rgba(95, 212, 164, 0.4);
+}
+
+.banorte-factura-box--pendiente {
+  background: rgba(212, 175, 106, 0.08);
+  border-color: rgba(212, 175, 106, 0.45);
+}
+
+.banorte-factura-box-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bn-muted);
+}
+
+.banorte-factura-box-title {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--bn-text);
+}
+
+.banorte-factura-box--ok .banorte-factura-box-title {
+  color: #5fd4a4;
+}
+
+.banorte-factura-box--pendiente .banorte-factura-box-title {
+  color: var(--bn-gold-soft);
+}
+
+.banorte-factura-box-text {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--bn-text);
+}
+
+.banorte-factura-box-tecnico {
+  margin: 0.75rem 0 0;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--bn-border);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--bn-muted);
+  word-break: break-word;
+}
+
+.banorte-factura-box-tecnico span {
+  font-weight: 600;
+  color: var(--bn-gold);
+}
+
+.banorte-factura-box .banorte-result-actions {
+  margin-top: 0.85rem;
+}
+
 .banorte-footer {
   text-align: center;
   padding: 1.5rem;
