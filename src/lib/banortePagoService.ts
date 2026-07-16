@@ -230,9 +230,12 @@ async function intentarTimbrarTrasBanorte(
       }
     }
     console.error('Banorte CFDI:', r.codigo, r.mensaje, r.errorTecnico)
+    // Igual que legacy process_payment.php: mostrar descripcion + informacionTecnica del PAC.
+    const tecnico = r.errorTecnico?.trim()
+    const detallePac = tecnico && tecnico !== r.mensaje ? ` — ${tecnico}` : ''
     return {
       ok: false,
-      mensaje: `Factura pendiente (${r.codigo ?? 'PAC'}): ${r.mensaje}. El cargo sí quedó registrado.`,
+      mensaje: `Factura pendiente (${r.codigo ?? 'PAC'}): ${r.mensaje}${detallePac}. El cargo sí quedó registrado; se puede retimbrar desde administración.`,
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al timbrar'

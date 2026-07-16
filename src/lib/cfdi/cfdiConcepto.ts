@@ -28,11 +28,26 @@ const MAP_EDUCATIVO: Record<string, CfdiConceptoResuelto> = {
   '13': { descripcion: 'Inscripcion', codigoProducto: '86121500' },
 }
 
+/** Churchill: mismos textos; catálogo SAT 86121503 en colegiaturas/inscripción (legacy process_payment.php). */
 const MAP_CHURCHILL: Record<string, CfdiConceptoResuelto> = {
   ...MAP_EDUCATIVO,
   '00': { descripcion: 'Cuota Extraodinaria', codigoProducto: '86121500' },
   '16': { descripcion: 'Cuota Extraodinaria', codigoProducto: '86121500' },
   '17': { descripcion: 'Cuota Extraodinaria', codigoProducto: '86121500' },
+  '01': { descripcion: 'Colegiatura Septiembre', codigoProducto: '86121503' },
+  '02': { descripcion: 'Colegiatura Octubre', codigoProducto: '86121503' },
+  '03': { descripcion: 'Colegiatura Noviembre', codigoProducto: '86121503' },
+  '04': { descripcion: 'Colegiatura Diciembre', codigoProducto: '86121503' },
+  '05': { descripcion: 'Colegiatura Enero', codigoProducto: '86121503' },
+  '06': { descripcion: 'Colegiatura Febrero', codigoProducto: '86121503' },
+  '07': { descripcion: 'Colegiatura Marzo', codigoProducto: '86121503' },
+  '08': { descripcion: 'Colegiatura Abril', codigoProducto: '86121503' },
+  '09': { descripcion: 'Colegiatura Mayo', codigoProducto: '86121503' },
+  '10': { descripcion: 'Colegiatura Junio', codigoProducto: '86121503' },
+  '26': { descripcion: 'Colegiatura Julio', codigoProducto: '86121503' },
+  '11': { descripcion: 'Anticipo Inscripcion', codigoProducto: '86121503' },
+  '12': { descripcion: 'Liquidacion Inscripcion', codigoProducto: '86121503' },
+  '13': { descripcion: 'Inscripcion', codigoProducto: '86121503' },
 }
 
 export function resolverConcepto(

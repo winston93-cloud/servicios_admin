@@ -228,6 +228,13 @@ async function ejecutarTimbradoPago(
     }
   }
 
+  const pacMensaje = resp.ok
+    ? resp.mensaje
+    : [resp.mensaje, resp.informacionTecnica?.trim()]
+        .filter(Boolean)
+        .filter((v, i, a) => a.indexOf(v) === i)
+        .join(' — ')
+
   await db.from('cfdi_timbrado').insert({
     uuid: resp.uuid ?? null,
     pago_referencia: referencia,
@@ -240,7 +247,7 @@ async function ejecutarTimbradoPago(
     tipo_operacion: tipoOperacion,
     estado: resp.ok ? 'timbrado' : 'error',
     pac_codigo: resp.codigo,
-    pac_mensaje: resp.mensaje,
+    pac_mensaje: pacMensaje,
     xml_storage_path: resp.ok ? xmlPath : null,
     pdf_storage_path: resp.ok ? pdfPath : null,
     creado_por: creadoPor ?? null,

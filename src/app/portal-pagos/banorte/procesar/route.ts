@@ -68,8 +68,8 @@ export async function POST(request: Request) {
     return respuestaHtml(
       htmlResultadoBanorte({
         exito: false,
-        titulo: 'Datos inv?lidos',
-        mensaje: 'Referencia de control inv?lida.',
+        titulo: 'Datos inválidos',
+        mensaje: 'Referencia de control inválida.',
       })
     )
   }
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     return respuestaHtml(
       htmlResultadoBanorte({
         exito: false,
-        titulo: 'Error de configuraci?n',
+        titulo: 'Error de configuración',
         mensaje: msg,
         referencia,
       })
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     return respuestaHtml(
       htmlResultadoBanorte({
         exito: false,
-        titulo: 'Error de conexi?n',
+        titulo: 'Error de conexión',
         mensaje: msg,
         referencia,
       })
@@ -159,14 +159,19 @@ export async function POST(request: Request) {
       htmlResultadoBanorte({
         exito: false,
         titulo: 'Cargo aprobado, registro pendiente',
-        mensaje: `Banorte aprob? el pago, pero hubo un problema al guardarlo: ${registro.mensaje}. Guarde su comprobante y contacte al plantel.`,
+        mensaje: `Banorte aprobó el pago, pero hubo un problema al guardarlo: ${registro.mensaje}. Guarde su comprobante y contacte al plantel.`,
         referencia,
-        detalle: payw.authCode ? `C?digo de autorizaci?n: ${payw.authCode}` : undefined,
+        detalle: payw.authCode ? `Código de autorización: ${payw.authCode}` : undefined,
       })
     )
   }
 
-  const rutasFactura = rutasFacturaDesdeReferencia(referencia, referencia.slice(0, 5), referencia.slice(5, 7), Number(referencia.slice(7, 9)) || 0)
+  const rutasFactura = rutasFacturaDesdeReferencia(
+    referencia,
+    referencia.slice(0, 5),
+    referencia.slice(5, 7),
+    Number(referencia.slice(7, 9)) || 0
+  )
   const facturaOk = Boolean(registro.factura?.ok)
   const pdfHref = facturaOk ? registro.factura?.pdfUrl || rutasFactura.pdf : null
   const xmlHref = facturaOk ? registro.factura?.xmlUrl || rutasFactura.xml : null
@@ -174,16 +179,16 @@ export async function POST(request: Request) {
   return respuestaHtml(
     htmlResultadoBanorte({
       exito: true,
-      titulo: registro.duplicado ? 'Pago ya registrado' : '?Pago exitoso!',
+      titulo: registro.duplicado ? 'Pago ya registrado' : '¡Pago exitoso!',
       mensaje: registro.mensaje,
       referencia,
-      detalle: payw.authCode ? `Autorizaci?n bancaria: ${payw.authCode}` : undefined,
+      detalle: payw.authCode ? `Autorización bancaria: ${payw.authCode}` : undefined,
       facturaPdf: pdfHref,
       facturaXml: xmlHref,
       facturaPendiente: facturaOk
         ? null
         : registro.factura?.mensaje ||
-          'La factura se puede completar desde administraci?n si qued? pendiente.',
+          'La factura se puede completar desde administración si quedó pendiente.',
     })
   )
 }
@@ -192,8 +197,8 @@ export async function GET() {
   return respuestaHtml(
     htmlResultadoBanorte({
       exito: false,
-      titulo: 'M?todo no permitido',
-      mensaje: 'Use el formulario de comercio electr?nico para procesar el pago.',
+      titulo: 'Método no permitido',
+      mensaje: 'Use el formulario de comercio electrónico para procesar el pago.',
     }),
     405
   )
