@@ -6,9 +6,9 @@ export const PORTAL_PRUEBA_IMPORTES_POR_REF: Record<
   number,
   Partial<Record<string, number>>
 > = {
-  // NI prueba Banorte / inscripción $3 (1° primaria).
+  // NI prueba Banorte/SPEI inscripción $3 — ahora Kinder 2 (Openpay Educativo).
   21904: { '13': 3 },
-  // NI prueba Openpay SPEI Bancomer / inscripción $3 (1° primaria).
+  // NI prueba Openpay SPEI Bancomer / inscripción $3 — Kinder 2 (Educativo).
   21905: { '13': 3 },
 }
 
