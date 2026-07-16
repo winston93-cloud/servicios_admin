@@ -5,6 +5,7 @@ import {
   CFDI_EMISOR_EDUCATIVO_RFC,
   bearerFacturoPorTi,
 } from '../cfdiConfig'
+import { CFDI_LOGO_CHURCHILL_BASE64, CFDI_LOGO_EDUCATIVO_BASE64 } from './cfdiLogosEmbedded'
 import type { CfdiEmisorClave } from './cfdiTypes'
 
 export function emisorClavePorNivel(alumnoNivel: number): CfdiEmisorClave {
@@ -41,8 +42,17 @@ function logoBase64DesdeArchivo(clave: CfdiEmisorClave): string {
   return ''
 }
 
+function logoEmbebido(clave: CfdiEmisorClave): string {
+  return clave === 'churchill' ? CFDI_LOGO_CHURCHILL_BASE64 : CFDI_LOGO_EDUCATIVO_BASE64
+}
+
+/** Prioridad: env → embebido (Vercel) → archivo en disco (local). */
 function resolverLogoBase64(clave: CfdiEmisorClave, prefix: 'CHURCHILL' | 'EDUCATIVO'): string {
-  return env(prefix, 'LOGO_BASE64') || logoBase64DesdeArchivo(clave)
+  const fromEnv = env(prefix, 'LOGO_BASE64')
+  if (fromEnv.length > 100) return fromEnv
+  const embedded = logoEmbebido(clave)
+  if (embedded.length > 100) return embedded
+  return logoBase64DesdeArchivo(clave)
 }
 
 export interface CfdiEmisorPacConfig {

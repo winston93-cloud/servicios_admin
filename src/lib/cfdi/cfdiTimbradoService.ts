@@ -194,6 +194,12 @@ async function ejecutarTimbradoPago(
     formaPago: formaPagoDesdeMetodo(metodoPago),
   })
 
+  if (!emisor.logoBase64) {
+    console.warn(`[cfdi] Logotipo vacío para emisor ${clave}; el PDF saldrá sin escudo`)
+  } else {
+    console.info(`[cfdi] Logotipo ${clave}: ${emisor.logoBase64.length} chars base64`)
+  }
+
   const resp = await timbrarConFacturoPorTi(payload, emisor.bearer)
 
   const nombreBase = crearNombreArchivoFactura(
