@@ -45,6 +45,11 @@ export async function guardarArchivosCfdi(
   if (opts.xml?.trim()) {
     const key = claveFactura(base, 'xml')
     const blob = new Blob([opts.xml], { type: 'application/xml; charset=utf-8' })
+    try {
+      await client.storage.from(CFDI_BUCKET).remove(key)
+    } catch {
+      /* no existía */
+    }
     const { data, error } = await client.storage.from(CFDI_BUCKET).upload(key, blob)
     if (error) {
       console.error('cfdiStorage XML:', error.message)
@@ -59,6 +64,11 @@ export async function guardarArchivosCfdi(
     try {
       const bin = Buffer.from(opts.pdfBase64.replace(/\s/g, ''), 'base64')
       const blob = new Blob([bin], { type: 'application/pdf' })
+      try {
+        await client.storage.from(CFDI_BUCKET).remove(key)
+      } catch {
+        /* no existía */
+      }
       const { data, error } = await client.storage.from(CFDI_BUCKET).upload(key, blob)
       if (error) {
         console.error('cfdiStorage PDF:', error.message)
