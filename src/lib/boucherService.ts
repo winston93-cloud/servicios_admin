@@ -13,7 +13,6 @@ import {
   conceptoAplicaSepYRecargo,
 } from './colegiaturaPrecioReglas'
 import { montoBecaSep } from './integracionSep'
-import { importePruebaPortal } from './portalPruebaImportes'
 
 export interface PrecioBoucherRow {
   precio_id: number
@@ -213,9 +212,6 @@ export function calcularImporteConcepto(
 ): number {
   const fecha = opts?.fecha ?? new Date()
   const c = normalizarConceptoNo(conceptoNo)
-
-  const prueba = importePruebaPortal(opts?.alumnoRef, c)
-  if (prueba != null) return prueba
 
   const { montoNormal, admiteBecaWinston } = montoBaseConcepto(c, precio, planMeses)
 
