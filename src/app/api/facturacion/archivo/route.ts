@@ -1,9 +1,35 @@
 import { NextResponse } from 'next/server'
-import { createInsforgeAdmin } from '@/lib/insforgeAdmin'
+import { createInsforgeAdmin, createDbAdmin } from '@/lib/insforgeAdmin'
 import { CFDI_BUCKET } from '@/lib/cfdi/cfdiStorage'
 import { storageKeyFactura } from '@/lib/portalFacturaRutas'
 
 export const runtime = 'nodejs'
+
+async function descargarClave(key: string) {
+  const client = createInsforgeAdmin()
+  return client.storage.from(CFDI_BUCKET).download(key)
+}
+
+/** Si el canónico no existe, busca la ruta real en cfdi_timbrado (p. ej. variantes). */
+async function claveAlternaDesdeTimbrado(f: string): Promise<string | null> {
+  const base = f.replace(/\.(pdf|xml)$/i, '')
+  const esPdf = /\.pdf$/i.test(f)
+  const col = esPdf ? 'pdf_storage_path' : 'xml_storage_path'
+  const db = createDbAdmin()
+  const { data, error } = await db
+    .from('cfdi_timbrado')
+    .select('pdf_storage_path,xml_storage_path')
+    .eq('estado', 'timbrado')
+    .or(`${col}.eq.${f},${col}.ilike.${base}%`)
+    .order('timbrado_id', { ascending: false })
+    .limit(5)
+  if (error || !data?.length) return null
+  for (const row of data) {
+    const path = esPdf ? row.pdf_storage_path : row.xml_storage_path
+    if (typeof path === 'string' && path.length > 0) return path
+  }
+  return null
+}
 
 /** Sirve PDF/XML solo desde InsForge Storage (bucket `cfdi`). Sin hosting. */
 export async function GET(request: Request) {
@@ -19,11 +45,16 @@ export async function GET(request: Request) {
 
     const key = storageKeyFactura(f)
     const isPdf = f.toLowerCase().endsWith('.pdf')
-    // text/xml se ve mejor al abrir en pestaña; el modal ya hace fetch→texto.
     const contentType = isPdf ? 'application/pdf' : 'text/xml; charset=utf-8'
 
-    const client = createInsforgeAdmin()
-    const { data, error } = await client.storage.from(CFDI_BUCKET).download(key)
+    let { data, error } = await descargarClave(key)
+    if (error || !data) {
+      const alt = await claveAlternaDesdeTimbrado(f)
+      if (alt && alt !== key) {
+        ;({ data, error } = await descargarClave(alt))
+      }
+    }
+
     if (error || !data) {
       return NextResponse.json(
         {
