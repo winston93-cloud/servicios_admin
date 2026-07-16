@@ -59,9 +59,26 @@ export interface TimbradoPayloadInput {
   receptorEmail?: string
 }
 
+export function fechaCfdiMexicoAhora(ahora = new Date()): string {
+  // Vercel corre en UTC; el PAC valida ±72h con hora de México (como el hosting legacy).
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Mexico_City',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(ahora)
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? '00'
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:${get('second')}`
+}
+
 export function construirPayloadFacturoPorTi(input: TimbradoPayloadInput): object {
   const montoStr = input.monto.toFixed(2)
-  const fecha = new Date().toISOString().slice(0, 19)
+  const fecha = fechaCfdiMexicoAhora()
 
   return {
     DatosGenerales: {
