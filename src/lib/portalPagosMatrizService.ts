@@ -68,11 +68,19 @@ const SECCION_CAMBRIDGE = {
   conceptos: ['19', '20', '22'],
 } as const
 
+/** En UI: Doble titulación (conceptos 23/24/25). */
 const SECCION_USA = {
   id: 'winston-usa',
   titulo: 'Winston USA Program',
   conceptos: ['23', '24', '25'],
 } as const
+
+/**
+ * Temporal: no mostrar Cambridge ni Doble titulación en el portal de pagos.
+ * Más adelante un módulo abrirá cada uno con sus reglas
+ * (Cambridge → 9.º secundaria; Doble titulación → 1.º primaria a 9.º, opcional).
+ */
+export const PORTAL_MOSTRAR_CAMBRIDGE_Y_DOBLE_TITULACION = false
 
 /** Solo en su tabla aparte (también están en concepto_tipo=2 en BD). */
 const CONCEPTOS_SECCION_PROPIA = new Set([
@@ -346,7 +354,7 @@ export async function construirMatrizPortalPagos(
     },
   ]
 
-  if (!soloColegiatura) {
+  if (!soloColegiatura && PORTAL_MOSTRAR_CAMBRIDGE_Y_DOBLE_TITULACION) {
     const [conceptosCam, conceptosUsa] = await Promise.all([
       listarConceptosPorNumeros(supabase, [...SECCION_CAMBRIDGE.conceptos]),
       listarConceptosPorNumeros(supabase, [...SECCION_USA.conceptos]),
