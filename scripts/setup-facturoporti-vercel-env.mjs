@@ -49,9 +49,15 @@ function parseLegacyTimbrar(php) {
 }
 
 function logoBase64IfExists(filename) {
-  const p = path.resolve(ROOT, '../cfdiwinston', filename)
-  if (!fs.existsSync(p)) return ''
-  return fs.readFileSync(p).toString('base64')
+  const candidates = [
+    path.resolve(ROOT, 'assets/cfdi', filename),
+    path.resolve(ROOT, '../cfdiwinston', filename),
+    path.resolve(ROOT, '../banorte', filename),
+  ]
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return fs.readFileSync(p).toString('base64')
+  }
+  return ''
 }
 
 if (!fs.existsSync(LEGACY_PHP)) {

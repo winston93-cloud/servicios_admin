@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import {
   CFDI_EMISOR_CHURCHILL_RFC,
   CFDI_EMISOR_EDUCATIVO_RFC,
@@ -18,6 +20,29 @@ export function emisorClavePorRfc(rfc: string): CfdiEmisorClave | null {
 
 function env(prefix: string, suffix: string): string {
   return process.env[`FACTUROPORTI_${prefix}_${suffix}`]?.trim() ?? ''
+}
+
+/** Logos FacturoPorTi: mismos PNG que Banorte/cfdiwinston (escudo 200×200, educativo 84×76). */
+function logoBase64DesdeArchivo(clave: CfdiEmisorClave): string {
+  const file = clave === 'churchill' ? 'escudo.png' : 'educativo.png'
+  const candidates = [
+    path.join(process.cwd(), 'assets', 'cfdi', file),
+    path.join(process.cwd(), 'public', 'cfdi', file),
+    path.join(process.cwd(), '..', 'cfdiwinston', file),
+    path.join(process.cwd(), '..', 'banorte', file),
+  ]
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p)) return fs.readFileSync(p).toString('base64')
+    } catch {
+      /* siguiente ruta */
+    }
+  }
+  return ''
+}
+
+function resolverLogoBase64(clave: CfdiEmisorClave, prefix: 'CHURCHILL' | 'EDUCATIVO'): string {
+  return env(prefix, 'LOGO_BASE64') || logoBase64DesdeArchivo(clave)
 }
 
 export interface CfdiEmisorPacConfig {
@@ -69,7 +94,7 @@ export function obtenerConfigEmisor(clave: CfdiEmisorClave): CfdiEmisorPacConfig
       csd,
       llavePrivada,
       csdPassword,
-      logoBase64: env('CHURCHILL', 'LOGO_BASE64'),
+      logoBase64: resolverLogoBase64('churchill', 'CHURCHILL'),
       bearer,
       emailMensaje: 'Envio de Factura Instituto Winston Churchill',
     }
@@ -91,7 +116,7 @@ export function obtenerConfigEmisor(clave: CfdiEmisorClave): CfdiEmisorPacConfig
     csd,
     llavePrivada,
     csdPassword,
-    logoBase64: env('EDUCATIVO', 'LOGO_BASE64'),
+    logoBase64: resolverLogoBase64('educativo', 'EDUCATIVO'),
     bearer,
     emailMensaje: 'Envio de Factura',
   }

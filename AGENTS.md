@@ -54,7 +54,7 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 ### Pendiente para terminar el sistema nuevo
 
 1. **Pruebas PAC en Vercel** — Smoke test Banorte CE + timbrado; si 401, renovar bearer FacturoPorTi.
-2. **Logo Churchill** — `FACTUROPORTI_CHURCHILL_LOGO_BASE64` (falta `escudo.png` en legacy); opcional.
+2. **Logos CFDI** — `assets/cfdi/escudo.png` (Winston 200×200) y `educativo.png` (IEW 84×76); mismos del Banorte legacy. Env `*_LOGO_BASE64` opcional.
 3. **Reporte contadores** — Sustituir `winston93.edu.mx/xml` (Fase 5).
 4. **Nota de crédito** — Persistencia XML/PDF en bucket `cfdi` (timbrado Banorte/admin ya sube a Storage).
 
