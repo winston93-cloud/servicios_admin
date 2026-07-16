@@ -16,6 +16,7 @@ import {
   ScrollText,
   CircleDollarSign,
   CalendarClock,
+  BookOpenCheck,
 } from 'lucide-react'
 
 export type ServiciosModuloId =
@@ -36,6 +37,7 @@ export type ServiciosModuloId =
   | 'reglamentos-escolares'
   | 'costos'
   | 'fechas-diferidos'
+  | 'apertura-cambridge-doble'
 
 export interface ServiciosSubMenuItem {
   id: ServiciosModuloId
@@ -85,6 +87,12 @@ export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
   { type: 'leaf', id: 'reglamentos-escolares', label: 'Reglamentos', icon: ScrollText },
   { type: 'leaf', id: 'costos', label: 'Costos', icon: CircleDollarSign },
   { type: 'leaf', id: 'fechas-diferidos', label: 'Fechas de diferidos', icon: CalendarClock },
+  {
+    type: 'leaf',
+    id: 'apertura-cambridge-doble',
+    label: 'Apertura Cambridge / Doble titulación',
+    icon: BookOpenCheck,
+  },
 ]
 
 const MODULO_IDS = new Set<ServiciosModuloId>(

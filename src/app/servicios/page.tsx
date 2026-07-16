@@ -30,6 +30,7 @@ import BauchersModulo from './modulos/BauchersModulo'
 import ReglamentosEscolaresModulo from './modulos/ReglamentosEscolaresModulo'
 import CostosModulo from './modulos/CostosModulo'
 import FechasDiferidosModulo from './modulos/FechasDiferidosModulo'
+import AperturaCambridgeDobleModulo from './modulos/AperturaCambridgeDobleModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
 import ThemeToggle from '@/components/ThemeToggle'
 import { AlumnoSeleccionadoProvider } from '@/contexts/AlumnoSeleccionadoContext'
@@ -97,6 +98,8 @@ function ServiciosPanelContenido({
       return <CostosModulo />
     case 'fechas-diferidos':
       return <FechasDiferidosModulo />
+    case 'apertura-cambridge-doble':
+      return <AperturaCambridgeDobleModulo />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }

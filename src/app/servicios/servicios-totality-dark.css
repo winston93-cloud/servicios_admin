@@ -513,6 +513,14 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cost
   color: var(--sx-text-muted) !important;
 }
 
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .apertura-toggle {
+  border-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .apertura-toggle strong {
+  color: var(--sx-text);
+}
+
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .costos-copy-block {
   border-top-color: var(--sx-card-border);
 }

@@ -6764,6 +6764,35 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   margin-top: 10px;
 }
 
+.apertura-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.apertura-toggle input[type='checkbox'] {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.apertura-toggle strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #0f172a;
+}
+
+.apertura-toggle .costos-field-hint {
+  display: block;
+  margin: 0;
+}
+
 .costos-field-hint {
   margin: 0 0 6px;
   font-size: 12px;

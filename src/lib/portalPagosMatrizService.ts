@@ -25,6 +25,7 @@ import {
   slotsColegiaturaPortal,
   slotsLineales,
 } from './portalPagosCandados'
+import { obtenerAperturaConceptosPortal } from './portalAperturaConceptosService'
 
 export interface FilaMatrizPortal {
   conceptoNo: string
@@ -75,14 +76,7 @@ const SECCION_USA = {
   conceptos: ['23', '24', '25'],
 } as const
 
-/**
- * Temporal: no mostrar Cambridge ni Doble titulación en el portal de pagos.
- * Más adelante un módulo abrirá cada uno con sus reglas
- * (Cambridge → 9.º secundaria; Doble titulación → 1.º primaria a 9.º, opcional).
- */
-export const PORTAL_MOSTRAR_CAMBRIDGE_Y_DOBLE_TITULACION = false
-
-/** Solo en su tabla aparte (también están en concepto_tipo=2 en BD). */
+/** Solo en su tabla aparte (también pasan en concepto_tipo=2 en BD). */
 const CONCEPTOS_SECCION_PROPIA = new Set([
   ...SECCION_CAMBRIDGE.conceptos,
   ...SECCION_USA.conceptos,
@@ -354,46 +348,54 @@ export async function construirMatrizPortalPagos(
     },
   ]
 
-  if (!soloColegiatura && PORTAL_MOSTRAR_CAMBRIDGE_Y_DOBLE_TITULACION) {
-    const [conceptosCam, conceptosUsa] = await Promise.all([
-      listarConceptosPorNumeros(supabase, [...SECCION_CAMBRIDGE.conceptos]),
-      listarConceptosPorNumeros(supabase, [...SECCION_USA.conceptos]),
-    ])
+  if (!soloColegiatura) {
+    const apertura = await obtenerAperturaConceptosPortal(supabase)
 
-    const [filasCamRaw, filasUsaRaw] = await Promise.all([
-      conceptosCam.length > 0
-        ? construirFilas(supabase, alumno, ciclo, conceptosCam, pagos, planMeses, true)
-        : Promise.resolve([]),
-      conceptosUsa.length > 0
-        ? construirFilas(supabase, alumno, ciclo, conceptosUsa, pagos, planMeses)
-        : Promise.resolve([]),
-    ])
+    if (apertura.cambridge_abierto || apertura.doble_titulacion_abierto) {
+      const [conceptosCam, conceptosUsa] = await Promise.all([
+        apertura.cambridge_abierto
+          ? listarConceptosPorNumeros(supabase, [...SECCION_CAMBRIDGE.conceptos])
+          : Promise.resolve([]),
+        apertura.doble_titulacion_abierto
+          ? listarConceptosPorNumeros(supabase, [...SECCION_USA.conceptos])
+          : Promise.resolve([]),
+      ])
 
-    const filasCam = filtrarFilasPorCandado(
-      filasCamRaw,
-      slotsLineales(SECCION_CAMBRIDGE.conceptos)
-    )
-    const filasUsa = filtrarFilasPorCandado(
-      filasUsaRaw,
-      slotsLineales(SECCION_USA.conceptos)
-    )
+      const [filasCamRaw, filasUsaRaw] = await Promise.all([
+        conceptosCam.length > 0
+          ? construirFilas(supabase, alumno, ciclo, conceptosCam, pagos, planMeses, true)
+          : Promise.resolve([]),
+        conceptosUsa.length > 0
+          ? construirFilas(supabase, alumno, ciclo, conceptosUsa, pagos, planMeses)
+          : Promise.resolve([]),
+      ])
 
-    // No mostrar Cambridge/USA si el ciclo aún no tiene precio (antes inventaba $975)
-    // ni renglones a $0 sin pago registrado.
-    if (seccionTieneCobroReal(filasCam)) {
-      secciones.push({
-        id: SECCION_CAMBRIDGE.id,
-        titulo: SECCION_CAMBRIDGE.titulo,
-        filas: filasCam,
-      })
-    }
+      const filasCam = filtrarFilasPorCandado(
+        filasCamRaw,
+        slotsLineales(SECCION_CAMBRIDGE.conceptos)
+      )
+      const filasUsa = filtrarFilasPorCandado(
+        filasUsaRaw,
+        slotsLineales(SECCION_USA.conceptos)
+      )
 
-    if (seccionTieneCobroReal(filasUsa)) {
-      secciones.push({
-        id: SECCION_USA.id,
-        titulo: SECCION_USA.titulo,
-        filas: filasUsa,
-      })
+      // No mostrar Cambridge/USA si el ciclo aún no tiene precio (antes inventaba $975)
+      // ni renglones a $0 sin pago registrado.
+      if (apertura.cambridge_abierto && seccionTieneCobroReal(filasCam)) {
+        secciones.push({
+          id: SECCION_CAMBRIDGE.id,
+          titulo: SECCION_CAMBRIDGE.titulo,
+          filas: filasCam,
+        })
+      }
+
+      if (apertura.doble_titulacion_abierto && seccionTieneCobroReal(filasUsa)) {
+        secciones.push({
+          id: SECCION_USA.id,
+          titulo: SECCION_USA.titulo,
+          filas: filasUsa,
+        })
+      }
     }
   }
 
