@@ -155,6 +155,42 @@ async function insertarPagoOpenpay(
   if (error) throw new Error(error.message)
 }
 
+/**
+ * Timbrado CFDI tras SPEI en firme (mismo flujo que Banorte CE).
+ * El emisor (Winston / Educativo) lo resuelve timbrarReferencia por nivel del alumno.
+ */
+async function intentarTimbrarTrasOpenpay(
+  supabase: AppDatabaseClient,
+  referencia: string
+): Promise<{ ok: boolean; detalle: string }> {
+  try {
+    const { pacConfigurado, timbrarReferencia } = await import('./cfdi/cfdiTimbradoService')
+    if (!pacConfigurado()) {
+      return { ok: false, detalle: 'PAC no configurado' }
+    }
+    const r = await timbrarReferencia(supabase, referencia, 'Openpay', 'openpay-spei')
+    if (r.ok) {
+      return { ok: true, detalle: `CFDI emitido${r.uuid ? ` ${r.uuid}` : ''}` }
+    }
+    if ((r.mensaje ?? '').toLowerCase().includes('ya estaba facturado')) {
+      return { ok: true, detalle: 'CFDI ya existía' }
+    }
+    console.error('Openpay CFDI:', r.codigo, r.mensaje, r.errorTecnico)
+    return {
+      ok: false,
+      detalle: [r.codigo, r.mensaje, r.errorTecnico].filter(Boolean).join(' — ') || 'timbrado falló',
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('Openpay CFDI exception:', msg)
+    return { ok: false, detalle: msg }
+  }
+}
+
+function sufijoFactura(factura: { ok: boolean; detalle: string }): string {
+  return factura.ok ? `; ${factura.detalle}` : `; factura pendiente: ${factura.detalle}`
+}
+
 async function procesarChargeSucceeded(
   supabase: AppDatabaseClient,
   cuenta: OpenpayCuenta,
@@ -180,9 +216,11 @@ async function procesarChargeSucceeded(
   }
 
   if (await existePagoPorReferencia(supabase, referencia)) {
+    // Reintento: si el pago ya estaba pero falló el PAC, intenta timbrar de nuevo.
+    const factura = await intentarTimbrarTrasOpenpay(supabase, referencia)
     return {
       ok: true,
-      mensaje: `Pago ya registrado (${referencia})`,
+      mensaje: `Pago ya registrado (${referencia})${sufijoFactura(factura)}`,
       tipo: tipoEvento,
     }
   }
@@ -200,9 +238,11 @@ async function procesarChargeSucceeded(
 
   await insertarPagoOpenpay(supabase, alumno.alumno_id, alumno.pago_nombre, referencia, importe)
 
+  const factura = await intentarTimbrarTrasOpenpay(supabase, referencia)
+
   return {
     ok: true,
-    mensaje: `Pago registrado (${etiquetaCuentaOpenpay(cuenta)}) ref=${referencia} txn=${transactionId}`,
+    mensaje: `Pago registrado (${etiquetaCuentaOpenpay(cuenta)}) ref=${referencia} txn=${transactionId}${sufijoFactura(factura)}`,
     tipo: tipoEvento,
   }
 }
