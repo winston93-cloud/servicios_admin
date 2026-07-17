@@ -19065,10 +19065,10 @@ html[data-theme='light'] .portal-doc-modal-cerrar:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 18px;
   margin-bottom: 22px;
   width: 100%;
-  padding: 12px 16px;
+  padding: 14px 16px;
   border-radius: 16px;
   border: 1px solid rgba(56, 189, 248, 0.22);
   background:
@@ -19079,14 +19079,23 @@ html[data-theme='light'] .portal-doc-modal-cerrar:hover {
 .reportes-search {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 1;
-  max-width: 520px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  background: rgba(0, 0, 0, 0.28);
+  gap: 12px;
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: none;
+  min-height: 52px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: rgba(0, 0, 0, 0.35);
   color: #7dd3fc;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.reportes-search svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 .reportes-search input {
@@ -19094,19 +19103,29 @@ html[data-theme='light'] .portal-doc-modal-cerrar:hover {
   border: none;
   background: transparent;
   color: var(--text-primary);
-  font-size: 0.9375rem;
+  font-size: 1.0625rem;
+  line-height: 1.4;
   font-family: inherit;
   outline: none;
   min-width: 0;
+  min-height: 1.5em;
+}
+
+.reportes-search input::placeholder {
+  color: rgba(148, 163, 184, 0.9);
 }
 
 .reportes-count {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 800;
   color: #e0f2fe;
   white-space: nowrap;
-  padding: 7px 14px;
-  border-radius: 999px;
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 18px;
+  min-height: 52px;
+  border-radius: 14px;
   background: linear-gradient(135deg, rgba(14, 116, 144, 0.55), rgba(2, 132, 199, 0.4));
   border: 1px solid rgba(125, 211, 252, 0.35);
 }

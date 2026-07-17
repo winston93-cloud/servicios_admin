@@ -282,7 +282,7 @@ export default function ReportesPage() {
 
           <div className="reportes-toolbar">
             <label className="reportes-search">
-              <Search size={15} aria-hidden />
+              <Search size={20} aria-hidden />
               <input
                 type="search"
                 placeholder="Buscar reporte…"
