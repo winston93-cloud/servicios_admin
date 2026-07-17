@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { getCicloEscolarActual, proyectarCicloInscripcion } from './ciclosEscolares'
 
 export interface CicloEscolarRegistro {
   id: number
@@ -49,6 +50,24 @@ export async function obtenerCicloEscolarActual(): Promise<CicloEscolarRegistro 
   }
 
   return data as CicloEscolarRegistro | null
+}
+
+/**
+ * Ciclo de temporada (`es_actual`). Si no hay fila en BD, fallback por fecha.
+ * No hardcodear un valor numérico de ciclo.
+ */
+export async function resolverCicloEscolarSistemaValor(): Promise<number> {
+  const actual = await obtenerCicloEscolarActual()
+  if (actual?.valor != null && Number.isFinite(Number(actual.valor))) {
+    return Number(actual.valor)
+  }
+  return getCicloEscolarActual()
+}
+
+/** Inscripción / próximo ciclo = origen + 1 (desde temporada actual). */
+export async function resolverCicloInscripcionSistemaValor(): Promise<number> {
+  const origen = await resolverCicloEscolarSistemaValor()
+  return proyectarCicloInscripcion(origen)
 }
 
 export async function obtenerCicloPorValor(
@@ -150,7 +169,7 @@ export function ciclosParaSelector(
     valorBase ??
     ciclos.find((c) => c.es_actual)?.valor ??
     ciclos.filter((c) => c.activo).at(-1)?.valor ??
-    22
+    getCicloEscolarActual()
 
   return ciclos.filter((c) => c.activo && c.valor >= base)
 }

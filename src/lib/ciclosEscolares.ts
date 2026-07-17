@@ -1,6 +1,7 @@
 /**
- * Ciclos escolares Winston (numérico: 22 = 2025-2026).
- * Misma lógica que reportes/index.php del portal PHP legacy.
+ * Ciclos escolares Winston (numérico: 22→23→24… = 2025-2026 → 2026-2027 → …).
+ * El ciclo “de temporada” lo marca `ciclos_escolares.es_actual` en BD;
+ * la fecha solo es fallback si aún no hay catálogo.
  */
 
 export type CicloEscolar = {
@@ -15,7 +16,10 @@ function fechaReferencia(ref?: Date): Date {
   return ref ?? new Date()
 }
 
-/** Ciclo escolar en curso según mes (corte agosto). */
+/**
+ * Fallback por calendario (corte agosto). Preferir `es_actual` vía
+ * `obtenerCicloEscolarActual` / CicloEscolarContext.
+ */
 export function getCicloEscolarActual(ref?: Date): number {
   const d = fechaReferencia(ref)
   const y = d.getFullYear()
@@ -23,7 +27,10 @@ export function getCicloEscolarActual(ref?: Date): number {
   return m < 8 ? y - 2004 : y - 2003
 }
 
-/** Ciclo de inscripción / reinscripción hacia el siguiente año escolar. */
+/**
+ * Fallback por calendario (corte admisiones). Preferir proyectar desde
+ * el ciclo de temporada: `proyectarCicloInscripcion(cicloOrigen)`.
+ */
 export function getCicloInscripcion(ref?: Date): number {
   const d = fechaReferencia(ref)
   const cmd = `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -31,6 +38,11 @@ export function getCicloInscripcion(ref?: Date): number {
   const cambioCiclo = process.env.ADMISIONES_CAMBIO_CICLO?.trim() || '07-25'
   const cea = cmd < cambioCiclo ? y - 4 : y - 3
   return cmd < cambioCiclo ? cea + 1 : cea
+}
+
+/** Destino de inscripción/reinscripción: origen + 1 (22→23, 23→24, …). */
+export function proyectarCicloInscripcion(cicloOrigen: number): number {
+  return cicloOrigen + 1
 }
 
 export function cicloEscolarEtiqueta(numero: number): string {
@@ -48,15 +60,28 @@ export function toCicloEscolar(numero: number): CicloEscolar {
   }
 }
 
-/** Lista para &lt;select&gt;: actual ± rango (sin tocar código cada agosto). */
+/** Lista para &lt;select&gt;: actual ± rango (sin tocar código cada temporada). */
 export function getCiclosEscolaresOpciones(
   ref?: Date,
   rangoAtras = 2,
-  rangoAdelante = 1
+  rangoAdelante = 2
 ): CicloEscolar[] {
   const actual = getCicloEscolarActual(ref)
   const opciones: CicloEscolar[] = []
   for (let n = actual - rangoAtras; n <= actual + rangoAdelante; n++) {
+    if (n > 0) opciones.push(toCicloEscolar(n))
+  }
+  return opciones
+}
+
+/** Opciones de select centradas en un ciclo de temporada (p. ej. `es_actual`). */
+export function getCiclosEscolaresOpcionesDesdeBase(
+  cicloBase: number,
+  rangoAtras = 2,
+  rangoAdelante = 2
+): CicloEscolar[] {
+  const opciones: CicloEscolar[] = []
+  for (let n = cicloBase - rangoAtras; n <= cicloBase + rangoAdelante; n++) {
     if (n > 0) opciones.push(toCicloEscolar(n))
   }
   return opciones

@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { getCicloEscolarActual, proyectarCicloInscripcion } from '@/lib/ciclosEscolares'
 import {
   ciclosParaSelector,
   listarCiclosEscolares,
@@ -16,15 +17,16 @@ import {
   type CicloEscolarRegistro,
 } from '@/lib/ciclosEscolaresService'
 
-const CICLO_FALLBACK = 22
-
 interface CicloEscolarContextValue {
   ciclos: CicloEscolarRegistro[]
   /** Ciclo con el que se filtran alumnos (cambiable en el selector superior). */
   cicloSeleccionado: number
   /** Ciclo marcado como actual en BD (`es_actual`); solo se edita en el catálogo. */
   cicloActualSistema: number
+  /** Próximo ciclo de inscripción = origen + 1. */
+  cicloInscripcionSistema: number
   etiquetaCicloActualSistema: string
+  etiquetaCicloInscripcionSistema: string
   opcionesSelector: { valor: number; etiqueta: string }[]
   opcionesCatalogo: { valor: number; etiqueta: string }[]
   cargando: boolean
@@ -37,21 +39,37 @@ const CicloEscolarContext = createContext<CicloEscolarContextValue | null>(null)
 
 function valorCicloActualSistema(ciclos: CicloEscolarRegistro[]): number {
   const actual = ciclos.find((c) => c.es_actual)
-  return actual?.valor ?? CICLO_FALLBACK
+  return actual?.valor ?? getCicloEscolarActual()
+}
+
+function etiquetaDeValor(ciclos: CicloEscolarRegistro[], valor: number): string {
+  const hit = ciclos.find((c) => c.valor === valor)
+  if (hit?.nombre) return hit.nombre
+  const inicio = valor + 2003
+  return `${inicio}-${inicio + 1}`
 }
 
 export function CicloEscolarProvider({ children }: { children: ReactNode }) {
   const [ciclos, setCiclos] = useState<CicloEscolarRegistro[]>([])
-  const [cicloSeleccionado, setCicloSeleccionadoState] = useState(CICLO_FALLBACK)
+  const [cicloSeleccionado, setCicloSeleccionadoState] = useState(() => getCicloEscolarActual())
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const cicloActualSistema = useMemo(() => valorCicloActualSistema(ciclos), [ciclos])
+  const cicloInscripcionSistema = useMemo(
+    () => proyectarCicloInscripcion(cicloActualSistema),
+    [cicloActualSistema]
+  )
 
-  const etiquetaCicloActualSistema = useMemo(() => {
-    const hit = ciclos.find((c) => c.valor === cicloActualSistema)
-    return hit?.nombre ?? '—'
-  }, [ciclos, cicloActualSistema])
+  const etiquetaCicloActualSistema = useMemo(
+    () => etiquetaDeValor(ciclos, cicloActualSistema),
+    [ciclos, cicloActualSistema]
+  )
+
+  const etiquetaCicloInscripcionSistema = useMemo(
+    () => etiquetaDeValor(ciclos, cicloInscripcionSistema),
+    [ciclos, cicloInscripcionSistema]
+  )
 
   const opcionesSelector = useMemo(() => {
     const lista = ciclosParaSelector(ciclos, cicloActualSistema)
@@ -96,7 +114,9 @@ export function CicloEscolarProvider({ children }: { children: ReactNode }) {
       ciclos,
       cicloSeleccionado,
       cicloActualSistema,
+      cicloInscripcionSistema,
       etiquetaCicloActualSistema,
+      etiquetaCicloInscripcionSistema,
       opcionesSelector,
       opcionesCatalogo,
       cargando,
@@ -108,7 +128,9 @@ export function CicloEscolarProvider({ children }: { children: ReactNode }) {
       ciclos,
       cicloSeleccionado,
       cicloActualSistema,
+      cicloInscripcionSistema,
       etiquetaCicloActualSistema,
+      etiquetaCicloInscripcionSistema,
       opcionesSelector,
       opcionesCatalogo,
       cargando,

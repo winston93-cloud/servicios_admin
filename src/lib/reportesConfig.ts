@@ -1,8 +1,8 @@
 import {
   cicloEscolarEtiqueta,
   getCicloEscolarActual,
-  getCicloInscripcion,
   getCicloEscolarDefault,
+  proyectarCicloInscripcion,
 } from '@/lib/ciclosEscolares'
 
 export const REPORTE_BECADOS_API_PATH = '/api/reportes/becados'
@@ -63,10 +63,11 @@ export function etiquetaCicloReporte(
 
 export function cicloSugeridoParaReporte(
   tipo: 'escolar' | 'inscripcion' | 'libre' | undefined,
-  ref?: Date
+  cicloTemporada?: number
 ): number {
-  if (tipo === 'inscripcion') return getCicloInscripcion(ref)
-  return getCicloEscolarActual(ref)
+  const origen = cicloTemporada ?? getCicloEscolarActual()
+  if (tipo === 'inscripcion') return proyectarCicloInscripcion(origen)
+  return origen
 }
 
 /** @deprecated usar reporteAlumnosCicloPdfPath */

@@ -2,11 +2,11 @@
 
 import ThemeToggle from '@/components/ThemeToggle'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import { CicloEscolarProvider, useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import {
-  cicloEscolarEtiqueta,
-  getCicloEscolarActual,
-  getCicloInscripcion,
-  getCiclosEscolaresOpciones,
+  getCiclosEscolaresOpcionesDesdeBase,
+  toCicloEscolar,
+  type CicloEscolar,
 } from '@/lib/ciclosEscolares'
 import {
   REPORTE_CATEGORIAS,
@@ -15,7 +15,7 @@ import {
   type NivelId,
   type ReporteCatalogEntry,
 } from '@/lib/reportesCatalogData'
-import { etiquetaCicloReporte } from '@/lib/reportesConfig'
+import { cicloSugeridoParaReporte, etiquetaCicloReporte } from '@/lib/reportesConfig'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
@@ -51,12 +51,8 @@ const CAT_ICONS: Record<string, LucideIcon> = {
   otros: LayoutGrid,
 }
 
-function paramsIniciales(entry: ReporteCatalogEntry): ParametrosReporte {
-  const ciclo =
-    entry.usaCiclo === 'inscripcion'
-      ? getCicloInscripcion()
-      : getCicloEscolarActual()
-  return { nivel: 'primaria', ciclo }
+function catsAbiertasIniciales(): Record<string, boolean> {
+  return Object.fromEntries(REPORTE_CATEGORIAS.map((c) => [c.id, true]))
 }
 
 function buildUrls(
@@ -98,50 +94,73 @@ function metaReporte(entry: ReporteCatalogEntry, params: ParametrosReporte): str
   return parts.join(' · ')
 }
 
-function catsAbiertasIniciales(): Record<string, boolean> {
-  return Object.fromEntries(REPORTE_CATEGORIAS.map((c) => [c.id, true]))
-}
-
-export default function ReportesPage() {
+function ReportesPageInner() {
   const router = useRouter()
+  const {
+    cicloActualSistema,
+    cicloInscripcionSistema,
+    etiquetaCicloActualSistema,
+    etiquetaCicloInscripcionSistema,
+    opcionesCatalogo,
+    cargando: cargandoCiclos,
+  } = useCicloEscolar()
+
   const [copiado, setCopiado] = useState<string | null>(null)
   const [origin, setOrigin] = useState('')
   const [busqueda, setBusqueda] = useState('')
   const [paramsById, setParamsById] = useState<Record<string, ParametrosReporte>>({})
-  /** Categorías abiertas (por defecto todas abiertas, como el grid legacy). */
   const [catsAbiertas, setCatsAbiertas] = useState<Record<string, boolean>>(catsAbiertasIniciales)
 
-  const cicloActual = useMemo(() => getCicloEscolarActual(), [])
-  const cicloInscripcion = useMemo(() => getCicloInscripcion(), [])
-  const ciclosOpciones = useMemo(() => getCiclosEscolaresOpciones(), [])
+  const ciclosOpciones = useMemo((): CicloEscolar[] => {
+    if (opcionesCatalogo.length > 0) {
+      return opcionesCatalogo.map((o) => ({
+        ...toCicloEscolar(o.valor),
+        etiqueta: o.etiqueta || toCicloEscolar(o.valor).etiqueta,
+      }))
+    }
+    return getCiclosEscolaresOpcionesDesdeBase(cicloActualSistema)
+  }, [opcionesCatalogo, cicloActualSistema])
+
+  const paramsIniciales = useCallback(
+    (entry: ReporteCatalogEntry): ParametrosReporte => ({
+      nivel: 'primaria',
+      ciclo: cicloSugeridoParaReporte(entry.usaCiclo, cicloActualSistema),
+    }),
+    [cicloActualSistema]
+  )
 
   useEffect(() => {
     if (typeof window !== 'undefined') setOrigin(window.location.origin)
   }, [])
 
+  // Al cargar / cambiar temporada (`es_actual`), reiniciar defaults de cada tile.
   useEffect(() => {
+    if (cargandoCiclos) return
     const initial: Record<string, ParametrosReporte> = {}
     for (const entry of REPORTE_ENTRADAS) {
       initial[entry.id] = paramsIniciales(entry)
     }
     setParamsById(initial)
-  }, [])
+  }, [cargandoCiclos, paramsIniciales])
 
   const getParams = useCallback(
     (entry: ReporteCatalogEntry): ParametrosReporte => {
       return paramsById[entry.id] ?? paramsIniciales(entry)
     },
-    [paramsById]
+    [paramsById, paramsIniciales]
   )
 
   const setParam = useCallback(
     (id: string, patch: Partial<ParametrosReporte>) => {
-      setParamsById((prev) => ({
-        ...prev,
-        [id]: { ...(prev[id] ?? paramsIniciales(REPORTE_ENTRADAS.find((e) => e.id === id)!)), ...patch },
-      }))
+      setParamsById((prev) => {
+        const entry = REPORTE_ENTRADAS.find((e) => e.id === id)!
+        return {
+          ...prev,
+          [id]: { ...(prev[id] ?? paramsIniciales(entry)), ...patch },
+        }
+      })
     },
-    []
+    [paramsIniciales]
   )
 
   const copiarUrl = useCallback(async (id: string, url: string) => {
@@ -160,12 +179,7 @@ export default function ReportesPage() {
     if (!q) return REPORTE_ENTRADAS
     return REPORTE_ENTRADAS.filter((item) => {
       const cat = REPORTE_CATEGORIAS.find((c) => c.id === item.categoriaId)
-      const blob = [
-        item.titulo,
-        item.descripcion,
-        cat?.titulo ?? '',
-        ...item.keywords,
-      ]
+      const blob = [item.titulo, item.descripcion, cat?.titulo ?? '', ...item.keywords]
         .join(' ')
         .toLowerCase()
       return blob.includes(q)
@@ -174,9 +188,7 @@ export default function ReportesPage() {
 
   const categoriasVisibles = useMemo(() => {
     const ids = new Set(entradasFiltradas.map((e) => e.categoriaId))
-    return REPORTE_CATEGORIAS.filter((c) => ids.has(c.id)).sort(
-      (a, b) => a.orden - b.orden
-    )
+    return REPORTE_CATEGORIAS.filter((c) => ids.has(c.id)).sort((a, b) => a.orden - b.orden)
   }, [entradasFiltradas])
 
   useEffect(() => {
@@ -231,17 +243,6 @@ export default function ReportesPage() {
               cicloLabel={cicloLabel}
               ciclosOpciones={ciclosOpciones}
             />
-          ) : entry.usaCiclo ? (
-            <ReporteParametros
-              nivel={params.nivel}
-              onNivelChange={() => {}}
-              mostrarNivel={false}
-              ciclo={params.ciclo}
-              onCicloChange={(c) => setParam(entry.id, { ciclo: c })}
-              mostrarCiclo
-              cicloLabel={cicloLabel}
-              ciclosOpciones={ciclosOpciones}
-            />
           ) : null
         }
       />
@@ -249,107 +250,117 @@ export default function ReportesPage() {
   }
 
   return (
-    <ProtectedRoute>
-      <div className="dashboard-container">
-        <div className="dashboard-main reportes-page">
-          <div className="reportes-hero">
-            <div className="reportes-hero-glow" aria-hidden />
-            <div className="dashboard-heading reportes-heading">
-              <button
-                type="button"
-                className="servicios-back-btn"
-                onClick={() => router.push('/dashboard')}
-              >
-                <ArrowLeft size={16} aria-hidden />
-                Volver al inicio
-              </button>
-              <p className="reportes-eyebrow">Instituto Winston Churchill</p>
-              <h1 className="dashboard-title">Reportes</h1>
-              <p className="dashboard-subtitle">
-                Ciclo escolar {cicloEscolarEtiqueta(cicloActual)} · inscripción{' '}
-                {cicloEscolarEtiqueta(cicloInscripcion)}
-              </p>
-              <p className="reportes-legacy-hint">
-                Mismos reportes del índice legacy, agrupados por categoría. Elige
-                nivel y ciclo; se generan aquí (InsForge + Vercel).
-              </p>
-              <div className="reportes-hero-bar" aria-hidden />
-              <div className="reportes-theme-row">
-                <ThemeToggle />
-              </div>
+    <div className="dashboard-container">
+      <div className="dashboard-main reportes-page">
+        <div className="reportes-hero">
+          <div className="reportes-hero-glow" aria-hidden />
+          <div className="dashboard-heading reportes-heading">
+            <button
+              type="button"
+              className="servicios-back-btn"
+              onClick={() => router.push('/dashboard')}
+            >
+              <ArrowLeft size={16} aria-hidden />
+              Volver al inicio
+            </button>
+            <p className="reportes-eyebrow">Instituto Winston Churchill</p>
+            <h1 className="dashboard-title">Reportes</h1>
+            <p className="dashboard-subtitle">
+              Ciclo escolar {etiquetaCicloActualSistema}
+              {cargandoCiclos ? '' : ` (${cicloActualSistema})`} · inscripción{' '}
+              {etiquetaCicloInscripcionSistema}
+              {cargandoCiclos ? '' : ` (${cicloInscripcionSistema})`}
+            </p>
+            <p className="reportes-legacy-hint">
+              Temporada según el ciclo marcado como actual en el catálogo. Inscripción =
+              siguiente (origen→origen+1). Cada reporte lleva su propio select de ciclo.
+            </p>
+            <div className="reportes-hero-bar" aria-hidden />
+            <div className="reportes-theme-row">
+              <ThemeToggle />
             </div>
           </div>
-
-          <div className="reportes-toolbar">
-            <label className="reportes-search">
-              <Search size={20} aria-hidden />
-              <input
-                type="search"
-                placeholder="Buscar reporte…"
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-              />
-            </label>
-            <span className="reportes-count">
-              {entradasFiltradas.length} de {REPORTE_ENTRADAS.length}
-            </span>
-          </div>
-
-          {entradasFiltradas.length === 0 ? (
-            <p className="reportes-empty">No hay reportes que coincidan con la búsqueda.</p>
-          ) : (
-            <div className="reportes-categories">
-              {categoriasVisibles.map((cat) => {
-                const items = entradasFiltradas.filter((e) => e.categoriaId === cat.id)
-                if (!items.length) return null
-                const abierta = Boolean(catsAbiertas[cat.id])
-                const panelId = `reportes-cat-${cat.id}`
-                const Icon = CAT_ICONS[cat.id] ?? LayoutGrid
-                return (
-                  <section
-                    key={cat.id}
-                    className={`reportes-section reportes-section--${cat.id}${
-                      items.length > 3 ? ' reportes-section--wide' : ''
-                    }${abierta ? ' reportes-section--open' : ' reportes-section--collapsed'}`}
-                    data-cat={cat.id}
-                  >
-                    <header className="reportes-section-head">
-                      <button
-                        type="button"
-                        className="reportes-section-toggle"
-                        aria-expanded={abierta}
-                        aria-controls={panelId}
-                        onClick={() => toggleCategoria(cat.id)}
-                      >
-                        <span className="reportes-section-icon" aria-hidden>
-                          <Icon size={16} />
-                        </span>
-                        <ChevronDown
-                          className={`reportes-section-chevron${abierta ? ' reportes-section-chevron--open' : ''}`}
-                          size={16}
-                          aria-hidden
-                        />
-                        <div className="reportes-section-head-text">
-                          <h2 className="reportes-section-title">{cat.titulo}</h2>
-                          {abierta && cat.subtitulo ? (
-                            <p className="reportes-section-sub">{cat.subtitulo}</p>
-                          ) : null}
-                        </div>
-                      </button>
-                      <span className="reportes-section-count">{items.length}</span>
-                    </header>
-                    {abierta ? (
-                      <div className="reportes-cat-grid" id={panelId}>
-                        {items.map(renderTile)}
-                      </div>
-                    ) : null}
-                  </section>
-                )
-              })}
-            </div>
-          )}
         </div>
+
+        <div className="reportes-toolbar">
+          <label className="reportes-search">
+            <Search size={20} aria-hidden />
+            <input
+              type="search"
+              placeholder="Buscar reporte…"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+          </label>
+          <span className="reportes-count">
+            {entradasFiltradas.length} de {REPORTE_ENTRADAS.length}
+          </span>
+        </div>
+
+        {entradasFiltradas.length === 0 ? (
+          <p className="reportes-empty">No hay reportes que coincidan con la búsqueda.</p>
+        ) : (
+          <div className="reportes-categories">
+            {categoriasVisibles.map((cat) => {
+              const items = entradasFiltradas.filter((e) => e.categoriaId === cat.id)
+              if (!items.length) return null
+              const abierta = Boolean(catsAbiertas[cat.id])
+              const panelId = `reportes-cat-${cat.id}`
+              const Icon = CAT_ICONS[cat.id] ?? LayoutGrid
+              return (
+                <section
+                  key={cat.id}
+                  className={`reportes-section reportes-section--${cat.id}${
+                    items.length > 3 ? ' reportes-section--wide' : ''
+                  }${abierta ? ' reportes-section--open' : ' reportes-section--collapsed'}`}
+                  data-cat={cat.id}
+                >
+                  <header className="reportes-section-head">
+                    <button
+                      type="button"
+                      className="reportes-section-toggle"
+                      aria-expanded={abierta}
+                      aria-controls={panelId}
+                      onClick={() => toggleCategoria(cat.id)}
+                    >
+                      <span className="reportes-section-icon" aria-hidden>
+                        <Icon size={16} />
+                      </span>
+                      <ChevronDown
+                        className={`reportes-section-chevron${abierta ? ' reportes-section-chevron--open' : ''}`}
+                        size={16}
+                        aria-hidden
+                      />
+                      <div className="reportes-section-head-text">
+                        <h2 className="reportes-section-title">{cat.titulo}</h2>
+                        {abierta && cat.subtitulo ? (
+                          <p className="reportes-section-sub">{cat.subtitulo}</p>
+                        ) : null}
+                      </div>
+                    </button>
+                    <span className="reportes-section-count">{items.length}</span>
+                  </header>
+                  {abierta ? (
+                    <div className="reportes-cat-grid" id={panelId}>
+                      {items.map(renderTile)}
+                    </div>
+                  ) : null}
+                </section>
+              )
+            })}
+          </div>
+        )}
       </div>
+    </div>
+  )
+}
+
+export default function ReportesPage() {
+  return (
+    <ProtectedRoute>
+      <CicloEscolarProvider>
+        <ReportesPageInner />
+      </CicloEscolarProvider>
     </ProtectedRoute>
   )
 }

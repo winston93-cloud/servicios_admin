@@ -51,10 +51,9 @@ import { cargarReporteBecados, cargarReporteBecadosSexto } from '@/lib/reporteBe
 import { construirHtmlReporteBecados } from '@/lib/reporteBecadosDocument'
 import { generarPdfReporteBecados } from '@/lib/reporteBecadosPdf'
 import {
-  getCicloEscolarActual,
-  getCicloInscripcion,
-} from '@/lib/ciclosEscolares'
-import { getCicloBecadosDefault } from '@/lib/reportesConfig'
+  resolverCicloEscolarSistemaValor,
+  resolverCicloInscripcionSistemaValor,
+} from '@/lib/ciclosEscolaresService'
 
 export type ReporteFormato = 'html' | 'pdf'
 
@@ -74,12 +73,16 @@ function requiereNivel(searchParams: URLSearchParams): number {
   return nivel
 }
 
-function cicloEscolarParam(searchParams: URLSearchParams): number {
-  return parseCicloParam(searchParams.get('ciclo')) ?? getCicloEscolarActual()
+async function cicloEscolarParam(searchParams: URLSearchParams): Promise<number> {
+  return (
+    parseCicloParam(searchParams.get('ciclo')) ?? (await resolverCicloEscolarSistemaValor())
+  )
 }
 
-function cicloInscripcionParam(searchParams: URLSearchParams): number {
-  return parseCicloParam(searchParams.get('ciclo')) ?? getCicloInscripcion()
+async function cicloInscripcionParam(searchParams: URLSearchParams): Promise<number> {
+  return (
+    parseCicloParam(searchParams.get('ciclo')) ?? (await resolverCicloInscripcionSistemaValor())
+  )
 }
 
 function formatoParam(searchParams: URLSearchParams): ReporteFormato {
@@ -120,20 +123,19 @@ function respuestaTabla(opts: {
   }
 }
 
-function respuestaInscripcionesAdmin(
+async function respuestaInscripcionesAdmin(
   slug: string,
   modo: 'dif1' | 'dif2' | 'general',
   searchParams: URLSearchParams
 ): Promise<ReporteHandlerResult> {
-  const cicloIns = cicloInscripcionParam(searchParams)
+  const cicloIns = await cicloInscripcionParam(searchParams)
   const format = formatoParam(searchParams)
-  return cargarMatrizInscripciones(cicloIns, modo).then((resumen) => {
-    const filename = `${slug}-ciclo-${cicloIns}.pdf`
-    if (format === 'pdf') {
-      return { filename, pdf: generarPdfReporteInscripciones(resumen) }
-    }
-    return { filename, html: construirHtmlReporteInscripciones(resumen) }
-  })
+  const resumen = await cargarMatrizInscripciones(cicloIns, modo)
+  const filename = `${slug}-ciclo-${cicloIns}.pdf`
+  if (format === 'pdf') {
+    return { filename, pdf: generarPdfReporteInscripciones(resumen) }
+  }
+  return { filename, html: construirHtmlReporteInscripciones(resumen) }
 }
 
 function handlerNuevoIngreso(modo: 'completo' | 'deben', ambito: 'actual' | 'siguiente'): ReporteHandler {
@@ -141,7 +143,9 @@ function handlerNuevoIngreso(modo: 'completo' | 'deben', ambito: 'actual' | 'sig
     const nivel = requiereNivel(searchParams)
     const format = formatoParam(searchParams)
     const cicloPago =
-      ambito === 'actual' ? cicloEscolarParam(searchParams) : cicloInscripcionParam(searchParams)
+      ambito === 'actual'
+        ? await cicloEscolarParam(searchParams)
+        : await cicloInscripcionParam(searchParams)
     const cicloAlumnos = cicloPago
     const resumen = await cargarNuevoIngreso(nivel, cicloAlumnos, cicloPago, modo)
     const tabla = nuevoIngresoATabla(resumen)
@@ -160,7 +164,7 @@ function handlerNuevoIngreso(modo: 'completo' | 'deben', ambito: 'actual' | 'sig
 export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   'alumnos-lista': async (searchParams) => {
     const nivel = requiereNivel(searchParams)
-    const ciclo = cicloEscolarParam(searchParams)
+    const ciclo = await cicloEscolarParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarAlumnosLista(nivel, ciclo)
     const tabla = alumnosListaATabla(resumen)
@@ -177,7 +181,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
 
   curp: async (searchParams) => {
     const nivel = requiereNivel(searchParams)
-    const ciclo = cicloEscolarParam(searchParams)
+    const ciclo = await cicloEscolarParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarReporteCurp(nivel, ciclo)
     const tabla = curpATabla(resumen)
@@ -199,7 +203,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
 
   'reinscritos-1': async (searchParams) => {
     const nivel = requiereNivel(searchParams)
-    const cicloIns = cicloInscripcionParam(searchParams)
+    const cicloIns = await cicloInscripcionParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarReinscritos1Pago(nivel, cicloIns)
     const tabla = reinscritosPagosATabla(resumen, false)
@@ -216,7 +220,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
 
   'reinscritos-2': async (searchParams) => {
     const nivel = requiereNivel(searchParams)
-    const cicloIns = cicloInscripcionParam(searchParams)
+    const cicloIns = await cicloInscripcionParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarReinscritos2Pagos(nivel, cicloIns)
     const tabla = reinscritosPagosATabla(resumen, true)
@@ -232,7 +236,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   },
 
   becados: async (searchParams) => {
-    const ciclo = parseCicloParam(searchParams.get('ciclo')) ?? getCicloBecadosDefault()
+    const ciclo = parseCicloParam(searchParams.get('ciclo')) ?? (await resolverCicloEscolarSistemaValor())
     const format = formatoParam(searchParams)
     const resumen = await cargarReporteBecados(ciclo)
     if (format === 'pdf') {
@@ -248,7 +252,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   },
 
   'becados-sexto': async (searchParams) => {
-    const ciclo = parseCicloParam(searchParams.get('ciclo')) ?? getCicloBecadosDefault()
+    const ciclo = parseCicloParam(searchParams.get('ciclo')) ?? (await resolverCicloEscolarSistemaValor())
     const format = formatoParam(searchParams)
     const resumen = await cargarReporteBecadosSexto(ciclo)
     if (format === 'pdf') {
@@ -268,7 +272,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
 
   bajas: async (searchParams) => {
     const nivel = requiereNivel(searchParams)
-    const ciclo = cicloEscolarParam(searchParams)
+    const ciclo = await cicloEscolarParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarReporteBajas(nivel, ciclo)
     const tabla = bajasATabla(resumen)
@@ -284,7 +288,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   },
 
   cambridge: async (searchParams) => {
-    const ciclo = cicloEscolarParam(searchParams)
+    const ciclo = await cicloEscolarParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarReporteCambridge(ciclo)
     const tabla = cambridgeATabla(resumen)
@@ -300,7 +304,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   },
 
   talleres: async (searchParams) => {
-    const ciclo = cicloEscolarParam(searchParams)
+    const ciclo = await cicloEscolarParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarTalleres(ciclo)
     const tabla = talleresATabla(resumen)
@@ -316,7 +320,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   },
 
   'suspendidos-iwc': async (searchParams) => {
-    const ciclo = cicloEscolarParam(searchParams)
+    const ciclo = await cicloEscolarParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarSuspendidosReporte(2, ciclo, 3)
     const tabla = suspendidosATabla(resumen)
@@ -332,7 +336,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   },
 
   'suspendidos-iew': async (searchParams) => {
-    const ciclo = cicloEscolarParam(searchParams)
+    const ciclo = await cicloEscolarParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarSuspendidosReporte(1, ciclo, 3)
     const tabla = suspendidosATabla(resumen)
@@ -350,7 +354,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   inscripciones: (searchParams) => respuestaInscripcionesAdmin('inscripciones', 'general', searchParams),
 
   'cuota-fecha': async (searchParams) => {
-    const ciclo = cicloEscolarParam(searchParams)
+    const ciclo = await cicloEscolarParam(searchParams)
     const fecha = searchParams.get('fecha')?.trim() || new Date().toISOString().slice(0, 10)
     const format = formatoParam(searchParams)
     const resumen = await cargarCuotaPadres(ciclo, fecha)
@@ -367,7 +371,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   },
 
   'deudores-iew-1mes': async (searchParams) => {
-    const ciclo = cicloEscolarParam(searchParams)
+    const ciclo = await cicloEscolarParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarSuspendidosReporte(1, ciclo, 2)
     const tabla = suspendidosATabla(resumen)
@@ -383,7 +387,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   },
 
   'deudores-iwch-1mes': async (searchParams) => {
-    const ciclo = cicloEscolarParam(searchParams)
+    const ciclo = await cicloEscolarParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarSuspendidosReporte(2, ciclo, 2)
     const tabla = suspendidosATabla(resumen)
@@ -399,7 +403,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   },
 
   'reinscritos-kinder-pend': async (searchParams) => {
-    const cicloIns = cicloInscripcionParam(searchParams)
+    const cicloIns = await cicloInscripcionParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarKinderSinPago(cicloIns - 1, cicloIns)
     const tabla = conceptoPagoATabla(resumen, false)
@@ -415,7 +419,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   },
 
   'cuota-padres-general': async (searchParams) => {
-    const ciclo = cicloEscolarParam(searchParams)
+    const ciclo = await cicloEscolarParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarCuotaPadres(ciclo)
     const tabla = cuotaPadresATabla(resumen)
@@ -437,7 +441,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
     respuestaInscripcionesAdmin('insc-admin-dif2', 'dif2', searchParams),
 
   ems: async (searchParams) => {
-    const cicloIns = cicloInscripcionParam(searchParams)
+    const cicloIns = await cicloInscripcionParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarReporteEms(cicloIns)
     const tabla = conceptoPagoATabla(resumen)
@@ -453,7 +457,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   },
 
   'doble-titulacion': async (searchParams) => {
-    const ciclo = cicloEscolarParam(searchParams)
+    const ciclo = await cicloEscolarParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarReporteDoble(ciclo)
     const tabla = dobleATabla(resumen)
@@ -469,7 +473,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   },
 
   'nuevo-ingreso-mes': async (searchParams) => {
-    const ciclo = cicloEscolarParam(searchParams)
+    const ciclo = await cicloEscolarParam(searchParams)
     const now = new Date()
     const mes = parseInt(searchParams.get('mes') ?? String(now.getMonth() + 1), 10)
     const anio = parseInt(searchParams.get('anio') ?? String(now.getFullYear()), 10)
@@ -489,7 +493,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   },
 
   'familias-winston': async (searchParams) => {
-    const ciclo = cicloEscolarParam(searchParams)
+    const ciclo = await cicloEscolarParam(searchParams)
     const nivel = nivelIdToValor(searchParams.get('nivel'))
     const format = formatoParam(searchParams)
     const resumen = await cargarFamiliasWinston(ciclo, nivel ?? undefined)
