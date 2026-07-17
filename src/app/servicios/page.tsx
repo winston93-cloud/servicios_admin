@@ -31,6 +31,7 @@ import ReglamentosEscolaresModulo from './modulos/ReglamentosEscolaresModulo'
 import CostosModulo from './modulos/CostosModulo'
 import FechasDiferidosModulo from './modulos/FechasDiferidosModulo'
 import AperturaCambridgeDobleModulo from './modulos/AperturaCambridgeDobleModulo'
+import CsdVencimientosModulo from './modulos/CsdVencimientosModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
 import ThemeToggle from '@/components/ThemeToggle'
 import { AlumnoSeleccionadoProvider } from '@/contexts/AlumnoSeleccionadoContext'
@@ -100,6 +101,8 @@ function ServiciosPanelContenido({
       return <FechasDiferidosModulo />
     case 'apertura-cambridge-doble':
       return <AperturaCambridgeDobleModulo />
+    case 'csd-vencimientos':
+      return <CsdVencimientosModulo />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }

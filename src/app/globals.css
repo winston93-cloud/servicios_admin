@@ -7070,6 +7070,51 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   background: #f8fafc;
 }
 
+/* Vencimiento CSD — días restantes */
+.csd-vencimientos-table .csd-dias {
+  display: inline-block;
+  font-weight: 700;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.csd-dias--rojo {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.csd-dias--amarillo {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.csd-dias--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.csd-dias--neutro {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.csd-leyenda {
+  font-weight: 700;
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+}
+
+.csd-leyenda--rojo {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.csd-leyenda--amarillo {
+  background: #fef3c7;
+  color: #92400e;
+}
+
 .ciclos-crud-row--active {
   background: #eff6ff;
 }

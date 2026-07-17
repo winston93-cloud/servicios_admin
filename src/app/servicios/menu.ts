@@ -17,6 +17,7 @@ import {
   CircleDollarSign,
   CalendarClock,
   BookOpenCheck,
+  ShieldAlert,
 } from 'lucide-react'
 
 export type ServiciosModuloId =
@@ -38,6 +39,7 @@ export type ServiciosModuloId =
   | 'costos'
   | 'fechas-diferidos'
   | 'apertura-cambridge-doble'
+  | 'csd-vencimientos'
 
 export interface ServiciosSubMenuItem {
   id: ServiciosModuloId
@@ -92,6 +94,12 @@ export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
     id: 'apertura-cambridge-doble',
     label: 'Apertura Cambridge / Doble titulación',
     icon: BookOpenCheck,
+  },
+  {
+    type: 'leaf',
+    id: 'csd-vencimientos',
+    label: 'Vencimiento de CSD',
+    icon: ShieldAlert,
   },
 ]
 
