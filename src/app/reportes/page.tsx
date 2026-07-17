@@ -17,7 +17,7 @@ import {
 } from '@/lib/reportesCatalogData'
 import { etiquetaCicloReporte } from '@/lib/reportesConfig'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Search } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Search } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import ReporteParametros from './ReporteParametros'
 import ReporteTile from './ReporteTile'
@@ -80,6 +80,8 @@ export default function ReportesPage() {
   const [origin, setOrigin] = useState('')
   const [busqueda, setBusqueda] = useState('')
   const [paramsById, setParamsById] = useState<Record<string, ParametrosReporte>>({})
+  /** Categorías abiertas (por defecto todas colapsadas). */
+  const [catsAbiertas, setCatsAbiertas] = useState<Record<string, boolean>>({})
 
   const cicloActual = useMemo(() => getCicloEscolarActual(), [])
   const cicloInscripcion = useMemo(() => getCicloInscripcion(), [])
@@ -149,6 +151,22 @@ export default function ReportesPage() {
     )
   }, [entradasFiltradas])
 
+  // Con búsqueda, abrir categorías que tienen coincidencias.
+  useEffect(() => {
+    if (!q) return
+    setCatsAbiertas((prev) => {
+      const next = { ...prev }
+      for (const cat of categoriasVisibles) {
+        next[cat.id] = true
+      }
+      return next
+    })
+  }, [q, categoriasVisibles])
+
+  const toggleCategoria = useCallback((catId: string) => {
+    setCatsAbiertas((prev) => ({ ...prev, [catId]: !prev[catId] }))
+  }, [])
+
   const renderTile = (entry: ReporteCatalogEntry) => {
     const params = getParams(entry)
     const urls = buildUrls(entry, params, origin)
@@ -173,6 +191,7 @@ export default function ReportesPage() {
         copiado={copiado}
         onCopy={copiarUrl}
         deshabilitado={!urls.disponible}
+        defaultExpanded={Boolean(q)}
         extra={
           entry.requiereNivel || mostrarCiclo ? (
             <ReporteParametros
@@ -251,24 +270,43 @@ export default function ReportesPage() {
               {categoriasVisibles.map((cat) => {
                 const items = entradasFiltradas.filter((e) => e.categoriaId === cat.id)
                 if (!items.length) return null
+                const abierta = Boolean(catsAbiertas[cat.id])
+                const panelId = `reportes-cat-${cat.id}`
                 return (
                   <section
                     key={cat.id}
                     className={`reportes-section reportes-section--${cat.id}${
                       items.length > 3 ? ' reportes-section--wide' : ''
-                    }`}
+                    }${abierta ? ' reportes-section--open' : ' reportes-section--collapsed'}`}
                     data-cat={cat.id}
                   >
                     <header className="reportes-section-head">
-                      <div className="reportes-section-head-text">
-                        <h2 className="reportes-section-title">{cat.titulo}</h2>
-                        {cat.subtitulo ? (
-                          <p className="reportes-section-sub">{cat.subtitulo}</p>
-                        ) : null}
-                      </div>
+                      <button
+                        type="button"
+                        className="reportes-section-toggle"
+                        aria-expanded={abierta}
+                        aria-controls={panelId}
+                        onClick={() => toggleCategoria(cat.id)}
+                      >
+                        <ChevronDown
+                          className={`reportes-section-chevron${abierta ? ' reportes-section-chevron--open' : ''}`}
+                          size={16}
+                          aria-hidden
+                        />
+                        <div className="reportes-section-head-text">
+                          <h2 className="reportes-section-title">{cat.titulo}</h2>
+                          {abierta && cat.subtitulo ? (
+                            <p className="reportes-section-sub">{cat.subtitulo}</p>
+                          ) : null}
+                        </div>
+                      </button>
                       <span className="reportes-section-count">{items.length}</span>
                     </header>
-                    <div className="reportes-cat-grid">{items.map(renderTile)}</div>
+                    {abierta ? (
+                      <div className="reportes-cat-grid" id={panelId}>
+                        {items.map(renderTile)}
+                      </div>
+                    ) : null}
                   </section>
                 )
               })}
