@@ -12,7 +12,12 @@ export function etiquetaCicloLargo(ciclo: number): string {
   return `${ciclo}-${ciclo + 1}`
 }
 
-export function construirHtmlReporteBecados(resumen: ReporteBecadosResumen): string {
+export function construirHtmlReporteBecados(
+  resumen: ReporteBecadosResumen,
+  opciones?: { titulo?: string; etiquetaTotal?: string }
+): string {
+  const titulo = opciones?.titulo ?? 'Alumnos becados'
+  const etiquetaTotal = opciones?.etiquetaTotal ?? 'Becados activos'
   const fecha = new Date().toLocaleDateString('es-MX', {
     weekday: 'long',
     year: 'numeric',
@@ -66,7 +71,7 @@ export function construirHtmlReporteBecados(resumen: ReporteBecadosResumen): str
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>Becados Ciclo ${escapeHtml(String(resumen.ciclo))} — Servicios Admin</title>
+  <title>${escapeHtml(titulo)} · Ciclo ${escapeHtml(String(resumen.ciclo))} — Servicios Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
   <style>
@@ -211,10 +216,10 @@ export function construirHtmlReporteBecados(resumen: ReporteBecadosResumen): str
   <div class="page">
     <header class="hero">
       <p class="eyebrow">Servicios Admin · Winston Servicios</p>
-      <h1>Alumnos becados</h1>
+      <h1>${escapeHtml(titulo)}</h1>
       <p class="sub">Ciclo escolar ${escapeHtml(etiquetaCicloLargo(resumen.ciclo))} · ${escapeHtml(fecha)}</p>
       <div class="stats">
-        <div class="stat"><div class="val">${resumen.total}</div><div class="lbl">Becados activos</div></div>
+        <div class="stat"><div class="val">${resumen.total}</div><div class="lbl">${escapeHtml(etiquetaTotal)}</div></div>
         <div class="stat"><div class="val">${resumen.niveles}</div><div class="lbl">Niveles</div></div>
         <div class="stat"><div class="val">${resumen.ciclo}</div><div class="lbl">Ciclo</div></div>
       </div>

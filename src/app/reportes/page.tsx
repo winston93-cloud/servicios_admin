@@ -17,7 +17,20 @@ import {
 } from '@/lib/reportesCatalogData'
 import { etiquetaCicloReporte } from '@/lib/reportesConfig'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ChevronDown, Search } from 'lucide-react'
+import {
+  ArrowLeft,
+  Award,
+  CalendarPlus,
+  ChevronDown,
+  Fingerprint,
+  LayoutGrid,
+  RefreshCw,
+  Search,
+  UserMinus,
+  UserPlus,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import ReporteParametros from './ReporteParametros'
 import ReporteTile from './ReporteTile'
@@ -25,6 +38,17 @@ import ReporteTile from './ReporteTile'
 type ParametrosReporte = {
   nivel: NivelId
   ciclo: number
+}
+
+const CAT_ICONS: Record<string, LucideIcon> = {
+  curp: Fingerprint,
+  listas: Users,
+  'nuevo-ingreso-actual': UserPlus,
+  'nuevo-ingreso-siguiente': CalendarPlus,
+  reinscritos: RefreshCw,
+  becados: Award,
+  bajas: UserMinus,
+  otros: LayoutGrid,
 }
 
 function paramsIniciales(entry: ReporteCatalogEntry): ParametrosReporte {
@@ -74,14 +98,18 @@ function metaReporte(entry: ReporteCatalogEntry, params: ParametrosReporte): str
   return parts.join(' · ')
 }
 
+function catsAbiertasIniciales(): Record<string, boolean> {
+  return Object.fromEntries(REPORTE_CATEGORIAS.map((c) => [c.id, true]))
+}
+
 export default function ReportesPage() {
   const router = useRouter()
   const [copiado, setCopiado] = useState<string | null>(null)
   const [origin, setOrigin] = useState('')
   const [busqueda, setBusqueda] = useState('')
   const [paramsById, setParamsById] = useState<Record<string, ParametrosReporte>>({})
-  /** Categorías abiertas (por defecto todas colapsadas). */
-  const [catsAbiertas, setCatsAbiertas] = useState<Record<string, boolean>>({})
+  /** Categorías abiertas (por defecto todas abiertas, como el grid legacy). */
+  const [catsAbiertas, setCatsAbiertas] = useState<Record<string, boolean>>(catsAbiertasIniciales)
 
   const cicloActual = useMemo(() => getCicloEscolarActual(), [])
   const cicloInscripcion = useMemo(() => getCicloInscripcion(), [])
@@ -151,7 +179,6 @@ export default function ReportesPage() {
     )
   }, [entradasFiltradas])
 
-  // Con búsqueda, abrir categorías que tienen coincidencias.
   useEffect(() => {
     if (!q) return
     setCatsAbiertas((prev) => {
@@ -225,26 +252,31 @@ export default function ReportesPage() {
     <ProtectedRoute>
       <div className="dashboard-container">
         <div className="dashboard-main reportes-page">
-          <div className="dashboard-heading reportes-heading">
-            <button
-              type="button"
-              className="servicios-back-btn"
-              onClick={() => router.push('/dashboard')}
-            >
-              <ArrowLeft size={16} aria-hidden />
-              Volver al inicio
-            </button>
-            <h1 className="dashboard-title">Reportes</h1>
-            <p className="dashboard-subtitle">
-              Ciclo escolar {cicloEscolarEtiqueta(cicloActual)} · inscripción{' '}
-              {cicloEscolarEtiqueta(cicloInscripcion)}
-            </p>
-            <p className="reportes-legacy-hint">
-              Los reportes se generan en Servicios Admin (InsForge + Vercel). Elige
-              nivel y ciclo; no dependen del hosting PHP legacy.
-            </p>
-            <div className="reportes-theme-row">
-              <ThemeToggle />
+          <div className="reportes-hero">
+            <div className="reportes-hero-glow" aria-hidden />
+            <div className="dashboard-heading reportes-heading">
+              <button
+                type="button"
+                className="servicios-back-btn"
+                onClick={() => router.push('/dashboard')}
+              >
+                <ArrowLeft size={16} aria-hidden />
+                Volver al inicio
+              </button>
+              <p className="reportes-eyebrow">Instituto Winston Churchill</p>
+              <h1 className="dashboard-title">Reportes</h1>
+              <p className="dashboard-subtitle">
+                Ciclo escolar {cicloEscolarEtiqueta(cicloActual)} · inscripción{' '}
+                {cicloEscolarEtiqueta(cicloInscripcion)}
+              </p>
+              <p className="reportes-legacy-hint">
+                Mismos reportes del índice legacy, agrupados por categoría. Elige
+                nivel y ciclo; se generan aquí (InsForge + Vercel).
+              </p>
+              <div className="reportes-hero-bar" aria-hidden />
+              <div className="reportes-theme-row">
+                <ThemeToggle />
+              </div>
             </div>
           </div>
 
@@ -272,6 +304,7 @@ export default function ReportesPage() {
                 if (!items.length) return null
                 const abierta = Boolean(catsAbiertas[cat.id])
                 const panelId = `reportes-cat-${cat.id}`
+                const Icon = CAT_ICONS[cat.id] ?? LayoutGrid
                 return (
                   <section
                     key={cat.id}
@@ -288,6 +321,9 @@ export default function ReportesPage() {
                         aria-controls={panelId}
                         onClick={() => toggleCategoria(cat.id)}
                       >
+                        <span className="reportes-section-icon" aria-hidden>
+                          <Icon size={16} />
+                        </span>
                         <ChevronDown
                           className={`reportes-section-chevron${abierta ? ' reportes-section-chevron--open' : ''}`}
                           size={16}

@@ -182,3 +182,30 @@ export async function cargarReporteBecados(ciclo: number): Promise<ReporteBecado
     gruposPorNivel,
   }
 }
+
+/** Legacy `becadosSextoPrimaria.php`: Primaria 6° con beca Winston activa. */
+export async function cargarReporteBecadosSexto(
+  ciclo: number
+): Promise<ReporteBecadosResumen> {
+  const resumen = await cargarReporteBecados(ciclo)
+  const filas = resumen.filas.filter((f) => f.nivel === 3 && f.gradoNum === 6)
+  const gruposPorNivel =
+    filas.length === 0
+      ? []
+      : [
+          {
+            nivel: 3,
+            nivelLabel: filas[0].nivelLabel,
+            plantel: filas[0].plantel,
+            filas,
+          },
+        ]
+
+  return {
+    ciclo,
+    total: filas.length,
+    niveles: gruposPorNivel.length,
+    filas,
+    gruposPorNivel,
+  }
+}

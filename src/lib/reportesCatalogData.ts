@@ -339,4 +339,14 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     usaCiclo: 'escolar',
     keywords: ['familias', 'winston'],
   },
+  {
+    id: 'becados-sexto',
+    categoriaId: 'otros',
+    titulo: 'Becados de sexto año',
+    descripcion: 'Primaria 6° con beca Winston (legacy becadosSextoPrimaria).',
+    accent: 'rose',
+    motor: 'api-next',
+    usaCiclo: 'escolar',
+    keywords: ['becados', 'sexto', 'sexto año', '6', 'primaria'],
+  },
 ]

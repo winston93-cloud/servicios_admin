@@ -47,7 +47,7 @@ import {
   suspendidosATabla,
   talleresATabla,
 } from '@/lib/reportes/otrosReportesService'
-import { cargarReporteBecados } from '@/lib/reporteBecadosService'
+import { cargarReporteBecados, cargarReporteBecadosSexto } from '@/lib/reporteBecadosService'
 import { construirHtmlReporteBecados } from '@/lib/reporteBecadosDocument'
 import { generarPdfReporteBecados } from '@/lib/reporteBecadosPdf'
 import {
@@ -244,6 +244,25 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
     return {
       filename: `becados-ciclo-${ciclo}.pdf`,
       html: construirHtmlReporteBecados(resumen),
+    }
+  },
+
+  'becados-sexto': async (searchParams) => {
+    const ciclo = parseCicloParam(searchParams.get('ciclo')) ?? getCicloBecadosDefault()
+    const format = formatoParam(searchParams)
+    const resumen = await cargarReporteBecadosSexto(ciclo)
+    if (format === 'pdf') {
+      return {
+        filename: `becados-sexto-ciclo-${ciclo}.pdf`,
+        pdf: generarPdfReporteBecados(resumen, { titulo: 'Becados de 6° de Primaria' }),
+      }
+    }
+    return {
+      filename: `becados-sexto-ciclo-${ciclo}.pdf`,
+      html: construirHtmlReporteBecados(resumen, {
+        titulo: 'Becados de 6° de Primaria',
+        etiquetaTotal: 'Becados 6°',
+      }),
     }
   },
 

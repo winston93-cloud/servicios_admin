@@ -3,14 +3,18 @@ import autoTable from 'jspdf-autotable'
 import type { ReporteBecadosResumen } from './reporteBecadosService'
 import { etiquetaCicloLargo } from './reporteBecadosDocument'
 
-export function generarPdfReporteBecados(resumen: ReporteBecadosResumen): Buffer {
+export function generarPdfReporteBecados(
+  resumen: ReporteBecadosResumen,
+  opciones?: { titulo?: string }
+): Buffer {
+  const titulo = opciones?.titulo ?? 'Alumnos becados'
   const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
   let y = 16
 
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(16)
-  pdf.setTextColor(146, 64, 14)
-  pdf.text('Alumnos becados', 105, y, { align: 'center' })
+  pdf.setTextColor(0, 51, 102)
+  pdf.text(titulo, 105, y, { align: 'center' })
   y += 7
 
   pdf.setFont('helvetica', 'normal')
