@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Loader2, Plus, Settings2, Wallet } from 'lucide-react'
+import { Loader2, Plus, Printer, Settings2, Wallet } from 'lucide-react'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { useAlumnoSeleccionado } from '@/contexts/AlumnoSeleccionadoContext'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
@@ -144,7 +144,7 @@ export default function PagosInternosModulo() {
         conceptosOrdenados.find((c) => c.concepto_id === conceptoIdPago)?.concepto_clase ?? ''
 
       const datos: DatosValePagoInterno = {
-        fecha,
+        fecha: fecha.slice(0, 10),
         importe: importePago,
         concepto,
         conceptoExtra,
@@ -161,6 +161,27 @@ export default function PagosInternosModulo() {
       imprimirValePagoInterno(datos)
     },
     [alumnoSeleccionado, cicloSeleccionado, conceptosOrdenados, opcionesCatalogo]
+  )
+
+  const onReimprimirPago = useCallback(
+    async (pago: PagoInternoRegistro) => {
+      if (!alumnoSeleccionado) {
+        setError('Selecciona un alumno para reimprimir.')
+        return
+      }
+      setError(null)
+      setMensaje(null)
+      const cicloVale = pago.pago_ciclo_escolar ?? cicloPago
+      await prepararValeImpresion(
+        pago.concepto_id,
+        Number(pago.pago_importe),
+        String(pago.pago_fecha ?? hoyIso()),
+        cicloVale,
+        pago.concepto_otro ?? undefined
+      )
+      setMensaje(`Reimpresión folio ${pago.pago_folio} (sin nuevo registro).`)
+    },
+    [alumnoSeleccionado, cicloPago, prepararValeImpresion]
   )
 
   const onCambioConcepto = useCallback(
@@ -472,6 +493,7 @@ export default function PagosInternosModulo() {
                         <th>Extra</th>
                         <th>Monto</th>
                         <th>Fecha</th>
+                        <th className="pi-historial-col-accion">Recibo</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -484,7 +506,18 @@ export default function PagosInternosModulo() {
                           </td>
                           <td>{p.concepto_otro ?? '—'}</td>
                           <td>${Number(p.pago_importe).toFixed(2)}</td>
-                          <td>{p.pago_fecha ?? '—'}</td>
+                          <td>{p.pago_fecha?.slice(0, 10) ?? '—'}</td>
+                          <td className="pi-historial-col-accion">
+                            <button
+                              type="button"
+                              className="pi-icon-btn pi-icon-btn--print"
+                              title={`Reimprimir folio ${p.pago_folio}`}
+                              aria-label={`Reimprimir recibo folio ${p.pago_folio}`}
+                              onClick={() => onReimprimirPago(p)}
+                            >
+                              <Printer size={16} aria-hidden />
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

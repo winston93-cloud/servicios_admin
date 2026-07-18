@@ -11460,9 +11460,39 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   color: #334155;
 }
 
+.pi-icon-btn:hover {
+  background: #e2e8f0;
+}
+
 .pi-icon-btn--danger {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.pi-icon-btn--print {
+  margin-right: 0;
+  background: rgba(14, 116, 144, 0.12);
+  color: #0e7490;
+}
+
+.pi-icon-btn--print:hover {
+  background: rgba(14, 116, 144, 0.22);
+}
+
+.pi-historial-col-accion {
+  width: 3rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+html[data-theme='dark'] .pi-icon-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}
+
+html[data-theme='dark'] .pi-icon-btn--print {
+  background: rgba(56, 189, 248, 0.14);
+  color: #7dd3fc;
 }
 
 /* Vale de pago interno: la impresión va por iframe (ValePagoInternoPrint.tsx).
