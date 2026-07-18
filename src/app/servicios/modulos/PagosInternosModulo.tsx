@@ -143,7 +143,7 @@ export default function PagosInternosModulo() {
       const concepto =
         conceptosOrdenados.find((c) => c.concepto_id === conceptoIdPago)?.concepto_clase ?? ''
 
-      setValeImpresion({
+      const datos: DatosValePagoInterno = {
         fecha,
         importe: importePago,
         concepto,
@@ -155,8 +155,10 @@ export default function PagosInternosModulo() {
         alumnoNivel: alumno.alumno_nivel,
         alumnoGrado: alumno.alumno_grado ?? null,
         cicloEtiqueta: etiquetaCicloEscolar(ciclo, opcionesCatalogo),
-      })
-      imprimirValePagoInterno()
+      }
+      setValeImpresion(datos)
+      // Imprime con los datos ya armados (iframe), sin esperar el paint de React.
+      imprimirValePagoInterno(datos)
     },
     [alumnoSeleccionado, cicloSeleccionado, conceptosOrdenados, opcionesCatalogo]
   )
