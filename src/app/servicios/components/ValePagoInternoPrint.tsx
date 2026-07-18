@@ -81,7 +81,7 @@ function textoConcepto(datos: DatosValePagoInterno): string {
 
 /**
  * PDF del vale — mismas medidas que `servicios/module/callback_3.php` (FPDF Letter landscape).
- * Solo datos; el marco va en el talón preimpreso.
+ * Dos páginas idénticas: original + copia del talón.
  */
 export function generarPdfValePagoInterno(datos: DatosValePagoInterno): jsPDF {
   const pdf = new jsPDF({
@@ -90,6 +90,14 @@ export function generarPdfValePagoInterno(datos: DatosValePagoInterno): jsPDF {
     format: 'letter',
   })
 
+  dibujarPaginaVale(pdf, datos)
+  pdf.addPage('letter', 'landscape')
+  dibujarPaginaVale(pdf, datos)
+
+  return pdf
+}
+
+function dibujarPaginaVale(pdf: jsPDF, datos: DatosValePagoInterno): void {
   const { dia, mes, anio } = partesFecha(datos.fecha)
   const letras = importeEnLetrasPesos(datos.importe)
   const concepto = textoConcepto(datos)
@@ -105,7 +113,7 @@ export function generarPdfValePagoInterno(datos: DatosValePagoInterno): jsPDF {
   pdf.setFont('helvetica', 'normal')
   pdf.setTextColor(0, 0, 0)
 
-  // Fecha: −3mm vertical (base −2 −1), horizontal base −1 +1 = 185
+  // Fecha: −3mm vertical, horizontal 185
   const yFecha = yBase - 3
   pdf.setFontSize(10)
   let x = L_MARGIN + 185
@@ -138,19 +146,17 @@ export function generarPdfValePagoInterno(datos: DatosValePagoInterno): jsPDF {
   x = L_MARGIN + 115
   pdf.text(nombre, x, yNombre + 4, { align: 'left', maxWidth: 150 })
 
-  // Grado + ciclo: −0.9mm (−0.5 previos − ~0.4); ciclo inicio →1mm, fin →0.5mm
+  // Grado + ciclo: −0.9mm; ciclo inicio →2mm, fin →0.5mm
   const yGrado = yBase + 9 + 15 + cellH + cellH + 8 - 0.9
   x = L_MARGIN + 115
   pdf.text(grado, x, yGrado + 4, { align: 'left' })
   x += 40 + 20
-  pdf.text(inicio, x + 30 / 2 + 1, yGrado + 4, { align: 'center' })
+  pdf.text(inicio, x + 30 / 2 + 2, yGrado + 4, { align: 'center' })
   x += 30 + 20
   pdf.text(fin, x + 30 / 2 + 0.5, yGrado + 4, { align: 'center' })
-
-  return pdf
 }
 
-/** Una sola impresión del vale (PDF alineado al talón). */
+/** Imprime original + copia (2 páginas del mismo vale). */
 export function imprimirValePagoInterno(datos: DatosValePagoInterno): void {
   if (typeof window === 'undefined' || typeof document === 'undefined') return
 
