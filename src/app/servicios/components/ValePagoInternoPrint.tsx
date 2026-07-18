@@ -105,19 +105,19 @@ export function generarPdfValePagoInterno(datos: DatosValePagoInterno): jsPDF {
   pdf.setFont('helvetica', 'normal')
   pdf.setTextColor(0, 0, 0)
 
-  // Fecha: −2mm vertical, −1mm horizontal
-  const yFecha = yBase - 2
+  // Fecha: −3mm vertical (base −2 −1), horizontal base −1 +1 = 185
+  const yFecha = yBase - 3
   pdf.setFontSize(10)
-  let x = L_MARGIN + 185 - 1
+  let x = L_MARGIN + 185
   pdf.text(dia, x + 13 / 2, yFecha + 4, { align: 'center' })
   x += 13
   pdf.text(mes, x + 13 / 2, yFecha + 4, { align: 'center' })
   x += 13
   pdf.text(anio, x + 13 / 2, yFecha + 4, { align: 'center' })
 
-  // Importe numérico (caja $): +1 pt
-  const yImporte = yBase + 9
-  pdf.setFontSize(12)
+  // Importe numérico (caja $): 13pt, −1.5mm
+  const yImporte = yBase + 9 - 1.5
+  pdf.setFontSize(13)
   x = L_MARGIN + 200
   pdf.text(importeFmt, x, yImporte + 4, { align: 'left' })
 
