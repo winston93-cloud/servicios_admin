@@ -111,7 +111,7 @@ export function generarPdfValePagoInterno(datos: DatosValePagoInterno): jsPDF {
   let x = L_MARGIN + 185
   pdf.text(dia, x + 13 / 2, yFecha + 4, { align: 'center' })
   x += 13
-  pdf.text(mes, x + 13 / 2, yFecha + 4, { align: 'center' })
+  pdf.text(mes, x + 13 / 2 - 0.5, yFecha + 4, { align: 'center' })
   x += 13
   pdf.text(anio, x + 13 / 2, yFecha + 4, { align: 'center' })
 
