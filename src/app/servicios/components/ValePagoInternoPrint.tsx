@@ -98,8 +98,8 @@ export function generarPdfValePagoInterno(datos: DatosValePagoInterno): jsPDF {
   const { inicio, fin } = aniosCiclo(datos.cicloEtiqueta)
   const importeFmt = importeNumericoLegacy(datos.importe)
 
-  // Port de FPDF Ln(73) + ~1 línea (6mm) para calzar el talón físico.
-  let y = T_MARGIN + 73 + 6
+  // Port de FPDF Ln(73) + 4mm para calzar el talón físico.
+  let y = T_MARGIN + 73 + 4
   const cellH = 6
 
   pdf.setFont('helvetica', 'normal')
