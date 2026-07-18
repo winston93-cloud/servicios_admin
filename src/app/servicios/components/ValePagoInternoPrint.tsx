@@ -98,53 +98,54 @@ export function generarPdfValePagoInterno(datos: DatosValePagoInterno): jsPDF {
   const { inicio, fin } = aniosCiclo(datos.cicloEtiqueta)
   const importeFmt = importeNumericoLegacy(datos.importe)
 
-  // Port de FPDF Ln(73) + 4mm para calzar el talón físico.
-  let y = T_MARGIN + 73 + 4
+  // Port de FPDF Ln(73) + 4mm base; ajustes finos por campo abajo.
+  const yBase = T_MARGIN + 73 + 4
   const cellH = 6
 
   pdf.setFont('helvetica', 'normal')
   pdf.setTextColor(0, 0, 0)
 
-  // Fecha (derecha del talón)
+  // Fecha: −2mm vertical, −1mm horizontal
+  const yFecha = yBase - 2
   pdf.setFontSize(10)
-  let x = L_MARGIN + 185
-  pdf.text(dia, x + 13 / 2, y + 4, { align: 'center' })
+  let x = L_MARGIN + 185 - 1
+  pdf.text(dia, x + 13 / 2, yFecha + 4, { align: 'center' })
   x += 13
-  pdf.text(mes, x + 13 / 2, y + 4, { align: 'center' })
+  pdf.text(mes, x + 13 / 2, yFecha + 4, { align: 'center' })
   x += 13
-  pdf.text(anio, x + 13 / 2, y + 4, { align: 'center' })
+  pdf.text(anio, x + 13 / 2, yFecha + 4, { align: 'center' })
 
-  // Importe numérico (caja $)
-  y += 9
-  pdf.setFontSize(11)
+  // Importe numérico (caja $): +1 pt
+  const yImporte = yBase + 9
+  pdf.setFontSize(12)
   x = L_MARGIN + 200
-  pdf.text(importeFmt, x, y + 4, { align: 'left' })
+  pdf.text(importeFmt, x, yImporte + 4, { align: 'left' })
 
-  // Importe en letras
-  y += 15
+  // Importe en letras: −0.5mm
+  const yLetras = yBase + 9 + 15 - 0.5
   pdf.setFontSize(10)
   x = L_MARGIN + 115
-  pdf.text(letras, x, y + 4, { align: 'left', maxWidth: 150 })
+  pdf.text(letras, x, yLetras + 4, { align: 'left', maxWidth: 150 })
 
   // Concepto
-  y += cellH
+  const yConcepto = yBase + 9 + 15 + cellH
   pdf.setFontSize(10)
   x = L_MARGIN + 115
-  pdf.text(concepto, x, y + 4, { align: 'left', maxWidth: 150 })
+  pdf.text(concepto, x, yConcepto + 4, { align: 'left', maxWidth: 150 })
 
-  // Nombre
-  y += cellH
+  // Nombre: +0.5mm
+  const yNombre = yBase + 9 + 15 + cellH + cellH + 0.5
   x = L_MARGIN + 115
-  pdf.text(nombre, x, y + 4, { align: 'left', maxWidth: 150 })
+  pdf.text(nombre, x, yNombre + 4, { align: 'left', maxWidth: 150 })
 
-  // Grado + ciclo
-  y += 8
+  // Grado + ciclo: −0.5mm
+  const yGrado = yBase + 9 + 15 + cellH + cellH + 8 - 0.5
   x = L_MARGIN + 115
-  pdf.text(grado, x, y + 4, { align: 'left' })
+  pdf.text(grado, x, yGrado + 4, { align: 'left' })
   x += 40 + 20
-  pdf.text(inicio, x + 30 / 2, y + 4, { align: 'center' })
+  pdf.text(inicio, x + 30 / 2, yGrado + 4, { align: 'center' })
   x += 30 + 20
-  pdf.text(fin, x + 30 / 2, y + 4, { align: 'center' })
+  pdf.text(fin, x + 30 / 2, yGrado + 4, { align: 'center' })
 
   return pdf
 }
