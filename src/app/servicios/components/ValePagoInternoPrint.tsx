@@ -138,14 +138,14 @@ export function generarPdfValePagoInterno(datos: DatosValePagoInterno): jsPDF {
   x = L_MARGIN + 115
   pdf.text(nombre, x, yNombre + 4, { align: 'left', maxWidth: 150 })
 
-  // Grado + ciclo: −0.5mm
-  const yGrado = yBase + 9 + 15 + cellH + cellH + 8 - 0.5
+  // Grado + ciclo: −0.9mm (−0.5 previos − ~0.4); ciclo inicio →1mm, fin →0.5mm
+  const yGrado = yBase + 9 + 15 + cellH + cellH + 8 - 0.9
   x = L_MARGIN + 115
   pdf.text(grado, x, yGrado + 4, { align: 'left' })
   x += 40 + 20
-  pdf.text(inicio, x + 30 / 2, yGrado + 4, { align: 'center' })
+  pdf.text(inicio, x + 30 / 2 + 1, yGrado + 4, { align: 'center' })
   x += 30 + 20
-  pdf.text(fin, x + 30 / 2, yGrado + 4, { align: 'center' })
+  pdf.text(fin, x + 30 / 2 + 0.5, yGrado + 4, { align: 'center' })
 
   return pdf
 }
