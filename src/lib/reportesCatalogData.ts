@@ -22,6 +22,11 @@ export type ReporteCatalogEntry = {
   requiereNivel?: boolean
   /** Ciclo mostrado en UI / APIs nativas */
   usaCiclo?: 'escolar' | 'inscripcion' | 'libre'
+  /**
+   * Sin select de ciclo en el tile: usa el ciclo de temporada/sistema
+   * (como el link PHP legacy sin query params).
+   */
+  cicloSistema?: boolean
   /** Ruta API bajo /api/reportes/{slug} */
   apiSlug?: string
 }
@@ -34,6 +39,12 @@ export type ReporteCategoria = {
 }
 
 export const REPORTE_CATEGORIAS: ReporteCategoria[] = [
+  {
+    id: 'mis-reportes',
+    titulo: 'Mis reportes',
+    subtitulo: 'Inscripciones admin · matriz RI / NI (sin filtro de nivel)',
+    orden: 0,
+  },
   { id: 'curp', titulo: 'CURP', orden: 1 },
   { id: 'listas', titulo: 'Listas de alumnos', orden: 2 },
   {
@@ -61,6 +72,31 @@ export function apiPathReporte(entry: ReporteCatalogEntry): string | null {
 }
 
 export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
+  // Mis reportes (inicio)
+  {
+    id: 'insc-admin-dif1',
+    categoriaId: 'mis-reportes',
+    titulo: 'Inscripciones admin (1er. diferido)',
+    descripcion:
+      'Matriz legada inscripcionesreales.php — RI y NI por grado (todo el colegio). Pagos 11/13.',
+    accent: 'amber',
+    motor: 'api-next',
+    usaCiclo: 'inscripcion',
+    cicloSistema: true,
+    keywords: ['inscripciones', 'diferido 1', 'admin', 'reales', 'inicio'],
+  },
+  {
+    id: 'insc-admin-dif2',
+    categoriaId: 'mis-reportes',
+    titulo: 'Inscripciones admin (2do. diferido)',
+    descripcion:
+      'Matriz legada inscripcionesreales2.php — RI y NI por grado (todo el colegio). Pagos 12/13.',
+    accent: 'amber',
+    motor: 'api-next',
+    usaCiclo: 'inscripcion',
+    cicloSistema: true,
+    keywords: ['inscripciones', 'diferido 2', 'admin', 'reales', 'inicio'],
+  },
   // CURP
   {
     id: 'curp',
@@ -278,26 +314,6 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     motor: 'api-next',
     usaCiclo: 'escolar',
     keywords: ['cuota', 'padres'],
-  },
-  {
-    id: 'insc-admin-dif1',
-    categoriaId: 'otros',
-    titulo: 'Inscripciones admin (1er. diferido)',
-    descripcion: 'Inscripciones reales — primer diferido.',
-    accent: 'amber',
-    motor: 'api-next',
-    usaCiclo: 'inscripcion',
-    keywords: ['inscripciones', 'diferido 1', 'admin'],
-  },
-  {
-    id: 'insc-admin-dif2',
-    categoriaId: 'otros',
-    titulo: 'Inscripciones admin (2do. diferido)',
-    descripcion: 'Inscripciones reales — segundo diferido.',
-    accent: 'amber',
-    motor: 'api-next',
-    usaCiclo: 'inscripcion',
-    keywords: ['inscripciones', 'diferido 2', 'admin'],
   },
   {
     id: 'ems',

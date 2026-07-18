@@ -19125,6 +19125,21 @@ html[data-theme='light'] .portal-doc-modal-cerrar:hover {
   flex: 2 1 460px;
 }
 
+.reportes-section--mis-reportes {
+  border-top-color: #f59e0b;
+  background: linear-gradient(165deg, rgba(245, 158, 11, 0.22) 0%, rgba(180, 83, 9, 0.08) 100%);
+}
+.reportes-section--mis-reportes .reportes-section-icon {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fde68a;
+  border-color: rgba(251, 191, 36, 0.45);
+}
+.reportes-section--mis-reportes .reportes-section-count {
+  background: rgba(180, 83, 9, 0.4);
+  border-color: rgba(251, 191, 36, 0.45);
+  color: #fffbeb;
+}
+
 .reportes-section--curp {
   border-top-color: #38bdf8;
   background: linear-gradient(165deg, rgba(56, 189, 248, 0.16) 0%, rgba(2, 132, 199, 0.04) 100%);
@@ -19415,6 +19430,9 @@ html[data-theme='light'] .reportes-section-head {
   border-bottom-color: rgba(15, 23, 42, 0.08);
 }
 
+html[data-theme='light'] .reportes-section--mis-reportes {
+  background: linear-gradient(165deg, rgba(245, 158, 11, 0.14) 0%, rgba(255, 251, 235, 0.9) 100%);
+}
 html[data-theme='light'] .reportes-section--curp {
   background: linear-gradient(165deg, rgba(56, 189, 248, 0.14) 0%, #fff 72%);
 }

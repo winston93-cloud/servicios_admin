@@ -29,6 +29,7 @@ import {
   UserMinus,
   UserPlus,
   Users,
+  Star,
   type LucideIcon,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -41,6 +42,7 @@ type ParametrosReporte = {
 }
 
 const CAT_ICONS: Record<string, LucideIcon> = {
+  'mis-reportes': Star,
   curp: Fingerprint,
   listas: Users,
   'nuevo-ingreso-actual': UserPlus,
@@ -91,6 +93,9 @@ function metaReporte(entry: ReporteCatalogEntry, params: ParametrosReporte): str
   if (entry.usaCiclo) {
     parts.push(etiquetaCicloReporte(entry.usaCiclo, params.ciclo))
   }
+  if (entry.cicloSistema) {
+    parts.push('temporada actual')
+  }
   return parts.join(' · ')
 }
 
@@ -124,9 +129,13 @@ function ReportesPageInner() {
   const paramsIniciales = useCallback(
     (entry: ReporteCatalogEntry): ParametrosReporte => ({
       nivel: 'primaria',
-      ciclo: cicloSugeridoParaReporte(entry.usaCiclo, cicloActualSistema),
+      ciclo: entry.cicloSistema
+        ? entry.usaCiclo === 'inscripcion'
+          ? cicloInscripcionSistema
+          : cicloActualSistema
+        : cicloSugeridoParaReporte(entry.usaCiclo, cicloActualSistema),
     }),
-    [cicloActualSistema]
+    [cicloActualSistema, cicloInscripcionSistema]
   )
 
   useEffect(() => {
@@ -209,7 +218,7 @@ function ReportesPageInner() {
   const renderTile = (entry: ReporteCatalogEntry) => {
     const params = getParams(entry)
     const urls = buildUrls(entry, params, origin)
-    const mostrarCiclo = Boolean(entry.usaCiclo)
+    const mostrarCiclo = Boolean(entry.usaCiclo) && !entry.cicloSistema
     const cicloLabel = entry.usaCiclo === 'inscripcion' ? 'Ciclo inscripción' : 'Ciclo'
 
     return (
@@ -230,13 +239,13 @@ function ReportesPageInner() {
         copiado={copiado}
         onCopy={copiarUrl}
         deshabilitado={!urls.disponible}
-        defaultExpanded={Boolean(q)}
+        defaultExpanded={entry.categoriaId === 'mis-reportes' || Boolean(q)}
         extra={
           entry.requiereNivel || mostrarCiclo ? (
             <ReporteParametros
               nivel={params.nivel}
               onNivelChange={(n) => setParam(entry.id, { nivel: n })}
-              mostrarNivel={entry.requiereNivel}
+              mostrarNivel={Boolean(entry.requiereNivel)}
               ciclo={params.ciclo}
               onCicloChange={(c) => setParam(entry.id, { ciclo: c })}
               mostrarCiclo={mostrarCiclo}

@@ -92,23 +92,21 @@ function mapaDesdeFilas(filas: { alumno_nivel: number; alumno_grado: number }[])
 
 async function contarAlumnos(
   ciclo: number,
-  nuevoIngreso: 0 | 1,
-  excluirStatus = true
+  nuevoIngreso: 0 | 1
 ): Promise<Map<string, number>> {
   const db = createDbAdmin()
   const filas: { alumno_nivel: number; alumno_grado: number }[] = []
   let offset = 0
 
   while (true) {
-    let q = db
+    // Legacy: alumno_status != 0
+    const { data, error } = await db
       .from('alumno')
       .select('alumno_nivel, alumno_grado')
       .eq('alumno_ciclo_escolar', ciclo)
       .eq('alumno_nuevo_ingreso', nuevoIngreso)
-
-    if (excluirStatus) q = q.not('alumno_status', 'in', '(0,2)')
-
-    const { data, error } = await q.range(offset, offset + PAGE_ALUMNO - 1)
+      .neq('alumno_status', 0)
+      .range(offset, offset + PAGE_ALUMNO - 1)
     if (error) throw new Error(error.message)
     const chunk = data ?? []
     filas.push(...chunk.map((r) => ({
@@ -125,20 +123,29 @@ async function contarAlumnos(
 async function contarReinscritosPagados(
   cicloAlumnos: number,
   cicloInscripcion: number,
-  conceptos: string[]
+  conceptos: string[],
+  modo: 'dif1' | 'dif2' | 'general'
 ): Promise<Map<string, number>> {
   const db = createDbAdmin()
   const alumnos: { alumno_id: number; alumno_nivel: number; alumno_grado: number }[] = []
   let offset = 0
 
   while (true) {
-    const { data, error } = await db
+    let q = db
       .from('alumno')
       .select('alumno_id, alumno_nivel, alumno_grado')
       .eq('alumno_ciclo_escolar', cicloAlumnos)
       .eq('alumno_nuevo_ingreso', 0)
-      .not('alumno_status', 'in', '(0,2)')
-      .range(offset, offset + PAGE_ALUMNO - 1)
+
+    // dif1 (inscripcionesreales.php): status != 5,0,2
+    // dif2 (inscripcionesreales2.php): status != 0
+    if (modo === 'dif1' || modo === 'general') {
+      q = q.not('alumno_status', 'in', '(0,2,5)')
+    } else {
+      q = q.neq('alumno_status', 0)
+    }
+
+    const { data, error } = await q.range(offset, offset + PAGE_ALUMNO - 1)
 
     if (error) throw new Error(error.message)
     const chunk = data ?? []
@@ -256,8 +263,8 @@ export async function cargarMatrizInscripciones(cicloInscripcion: number, modo: 
 
   const [riEst, riPag, niEst, niPag] = await Promise.all([
     contarAlumnos(cicloAlumnos, 0),
-    contarReinscritosPagados(cicloAlumnos, cicloInscripcion, conceptos),
-    contarAlumnos(cicloInscripcion, 1, false),
+    contarReinscritosPagados(cicloAlumnos, cicloInscripcion, conceptos, modo),
+    contarAlumnos(cicloInscripcion, 1),
     contarNuevoIngresoPagado(cicloInscripcion),
   ])
 
