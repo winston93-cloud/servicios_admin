@@ -17,7 +17,8 @@ const HEADERS = [
   'TOTAL INSCRITOS',
 ] as const
 
-const LOGO_PATH = path.join(process.cwd(), 'public/logos/logo-winston-churchill.png')
+const LOGO_IWC_PATH = path.join(process.cwd(), 'public/logos/logo-winston-churchill.png')
+const LOGO_IEW_PATH = path.join(process.cwd(), 'public/logos/logo-winston-educativo.png')
 
 function etiquetaCicloLegacy(cicloLabel: string): string {
   return cicloLabel.replace('-', ' - ')
@@ -107,22 +108,16 @@ export function construirHtmlReporteInscripciones(resumen: ResumenInscripcionesA
     }
     .top {
       display: grid;
-      grid-template-columns: 110px 1fr;
+      grid-template-columns: 96px 1fr 96px;
       gap: 12px;
-      align-items: start;
+      align-items: center;
       margin-bottom: 16px;
     }
-    .logo { width: 96px; height: auto; display: block; }
-    .head-block { text-align: right; padding-top: 2px; }
+    .logo { width: 88px; height: auto; display: block; margin: 0 auto; }
+    .head-block { text-align: center; padding: 0 4px; }
     .head-block .t1 {
-      margin: 0 0 4px;
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: #111827;
-    }
-    .head-block .t2 {
-      margin: 0 0 4px;
-      font-size: 1.15rem;
+      margin: 0 0 6px;
+      font-size: 1.35rem;
       font-weight: 700;
       color: #111827;
     }
@@ -176,10 +171,10 @@ export function construirHtmlReporteInscripciones(resumen: ResumenInscripcionesA
     <img class="logo" src="/logos/logo-winston-churchill.png" alt="Instituto Winston Churchill" />
     <div class="head-block">
       <p class="t1">Inscripciones</p>
-      <p class="t2">Nuevo Ingreso</p>
       <p>Ciclo Escolar ${escapeHtml(ciclo)}</p>
       <p>${escapeHtml(fecha)}</p>
     </div>
+    <img class="logo" src="/logos/logo-winston-educativo.png" alt="Winston Educativo" />
   </div>
   ${tablas}
   <p class="legend">Donde: NI= Nuevo Ingreso; RI= Reinscritos</p>
@@ -187,10 +182,10 @@ export function construirHtmlReporteInscripciones(resumen: ResumenInscripcionesA
 </html>`
 }
 
-function leerLogoBase64(): string | null {
+function leerLogoBase64(filePath: string): string | null {
   try {
-    if (!fs.existsSync(LOGO_PATH)) return null
-    return fs.readFileSync(LOGO_PATH).toString('base64')
+    if (!fs.existsSync(filePath)) return null
+    return fs.readFileSync(filePath).toString('base64')
   } catch {
     return null
   }
@@ -202,23 +197,29 @@ export function generarPdfReporteInscripciones(resumen: ResumenInscripcionesAdmi
   const ciclo = etiquetaCicloLegacy(resumen.cicloLabel)
   const fecha = fechaLegacyReporte()
 
-  const logo = leerLogoBase64()
-  if (logo) {
-    pdf.addImage(logo, 'PNG', 14, 10, 26, 26)
+  const logoIzq = leerLogoBase64(LOGO_IWC_PATH)
+  const logoDer = leerLogoBase64(LOGO_IEW_PATH)
+  const logoW = 24
+  const logoY = 10
+  if (logoIzq) {
+    pdf.addImage(logoIzq, 'PNG', 12, logoY, logoW, logoW)
+  }
+  if (logoDer) {
+    pdf.addImage(logoDer, 'PNG', pageW - 12 - logoW, logoY, logoW, logoW)
   }
 
+  const midX = pageW / 2
   pdf.setFont('helvetica', 'bold')
-  pdf.setFontSize(14)
+  pdf.setFontSize(16)
   pdf.setTextColor(17, 24, 39)
-  pdf.text('Inscripciones', pageW - 14, 16, { align: 'right' })
-  pdf.text('Nuevo Ingreso', pageW - 14, 22, { align: 'right' })
+  pdf.text('Inscripciones', midX, 18, { align: 'center' })
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(11)
-  pdf.text(`Ciclo Escolar ${ciclo}`, pageW - 14, 28, { align: 'right' })
+  pdf.text(`Ciclo Escolar ${ciclo}`, midX, 26, { align: 'center' })
   pdf.setFontSize(10)
-  pdf.text(fecha, pageW - 14, 34, { align: 'right' })
+  pdf.text(fecha, midX, 32, { align: 'center' })
 
-  let startY = 42
+  let startY = 40
   const bloques = bloquesDesdeFilas(resumen.filas)
 
   for (const bloque of bloques) {

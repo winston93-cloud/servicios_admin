@@ -280,7 +280,7 @@ export async function cargarMatrizInscripciones(cicloInscripcion: number, modo: 
     }
   })
 
-  const titulo = 'Inscripciones Nuevo Ingreso'
+  const titulo = 'Inscripciones'
 
   return {
     titulo,
