@@ -45,6 +45,10 @@ export interface ResumenArchivoPagoEfectivo {
   omitidos: number
   errores: number
   alumnosActivados: number
+  /** CFDI emitidos en esta carga (insertados, actualizados o reintento de ya registrados). */
+  facturados: number
+  /** Intentos de timbrado que no emitieron CFDI (PAC, datos fiscales, etc.). */
+  facturaPendiente: number
   omisionesPorMotivo: Partial<Record<MotivoOmision, number>>
   muestras: MuestraFilaPago[]
   mensaje?: string
@@ -358,6 +362,55 @@ function contarOmision(resumen: ResumenArchivoPagoEfectivo, motivo: MotivoOmisio
   resumen.omitidos += 1
 }
 
+/**
+ * Misma ruta que Banorte CE / OpenPay: timbrar tras dejar el pago en pago_detalle.
+ * No aborta el lote si el PAC falla; el pago ya quedó registrado.
+ */
+async function intentarTimbrarTrasPagoBanco(
+  supabase: AppDatabaseClient,
+  referencia: string,
+  formaPago: string
+): Promise<{ ok: boolean; yaExistia?: boolean; detalle: string }> {
+  try {
+    const { pacConfigurado, timbrarReferencia } = await import('./cfdi/cfdiTimbradoService')
+    if (!pacConfigurado()) {
+      return { ok: false, detalle: 'PAC no configurado' }
+    }
+    const metodo = formaPago.trim() || 'Efectivo'
+    const r = await timbrarReferencia(supabase, referencia, metodo, 'actualizar-pagos')
+    if (r.ok) {
+      return { ok: true, detalle: `CFDI emitido${r.uuid ? ` ${r.uuid}` : ''}` }
+    }
+    if ((r.mensaje ?? '').toLowerCase().includes('ya estaba facturado')) {
+      return { ok: true, yaExistia: true, detalle: 'CFDI ya existía' }
+    }
+    console.error('Actualizar-pagos CFDI:', r.codigo, r.mensaje, r.errorTecnico)
+    return {
+      ok: false,
+      detalle: [r.codigo, r.mensaje, r.errorTecnico].filter(Boolean).join(' — ') || 'timbrado falló',
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('Actualizar-pagos CFDI exception:', msg)
+    return { ok: false, detalle: msg }
+  }
+}
+
+function registrarResultadoFactura(
+  resumen: ResumenArchivoPagoEfectivo,
+  factura: { ok: boolean; yaExistia?: boolean; detalle: string }
+): string {
+  if (factura.yaExistia) {
+    return factura.detalle
+  }
+  if (factura.ok) {
+    resumen.facturados += 1
+    return factura.detalle
+  }
+  resumen.facturaPendiente += 1
+  return `factura pendiente: ${factura.detalle}`
+}
+
 export async function procesarArchivoPagoEfectivo(
   supabase: AppDatabaseClient,
   archivo: ArchivoPagoEfectivo,
@@ -377,6 +430,8 @@ export async function procesarArchivoPagoEfectivo(
     omitidos: 0,
     errores: 0,
     alumnosActivados: 0,
+    facturados: 0,
+    facturaPendiente: 0,
     omisionesPorMotivo: {},
     muestras: [],
   }
@@ -450,13 +505,15 @@ export async function procesarArchivoPagoEfectivo(
       const upd = await actualizarPagoManual(supabase, alumnoId, fila.referenciaParcial9, fila)
       if (upd.ok) {
         resumen.actualizados += 1
+        const factura = await intentarTimbrarTrasPagoBanco(supabase, fila.referencia, fila.forma)
+        const detalleFactura = registrarResultadoFactura(resumen, factura)
         agregarMuestra(resumen, {
           linea: fila.linea,
           alumnoRef: fila.alumnoRef,
           referencia: fila.referencia,
           nombre: fila.nombre,
           accion: 'actualizado',
-          detalle: 'Pago manual (sin folio)',
+          detalle: `Pago manual (sin folio); ${detalleFactura}`,
         })
       } else {
         resumen.errores += 1
@@ -480,6 +537,9 @@ export async function procesarArchivoPagoEfectivo(
       fila.folio
     )
     if (yaRegistrado) {
+      // Reintento PAC (igual que OpenPay): si el pago ya estaba sin factura, intenta timbrar.
+      const factura = await intentarTimbrarTrasPagoBanco(supabase, fila.referencia, fila.forma)
+      const detalleFactura = registrarResultadoFactura(resumen, factura)
       contarOmision(resumen, 'registrado')
       agregarMuestra(resumen, {
         linea: fila.linea,
@@ -488,6 +548,7 @@ export async function procesarArchivoPagoEfectivo(
         nombre: fila.nombre,
         accion: 'omitido',
         motivo: 'registrado',
+        detalle: detalleFactura,
       })
       continue
     }
@@ -496,12 +557,15 @@ export async function procesarArchivoPagoEfectivo(
     const ins = await insertarPago(supabase, alumnoId, fila, nextPagoId)
     if (ins.ok) {
       resumen.insertados += 1
+      const factura = await intentarTimbrarTrasPagoBanco(supabase, fila.referencia, fila.forma)
+      const detalleFactura = registrarResultadoFactura(resumen, factura)
       agregarMuestra(resumen, {
         linea: fila.linea,
         alumnoRef: fila.alumnoRef,
         referencia: fila.referencia,
         nombre: fila.nombre,
         accion: 'insertado',
+        detalle: detalleFactura,
       })
 
       if (esConceptoInscripcionAlta(fila.referencia, ceActivo, ceSiguiente)) {
@@ -521,7 +585,7 @@ export async function procesarArchivoPagoEfectivo(
     }
   }
 
-  resumen.mensaje = `Procesado ${archivo}: ${resumen.insertados} insertados, ${resumen.actualizados} actualizados.`
+  resumen.mensaje = `Procesado ${archivo}: ${resumen.insertados} insertados, ${resumen.actualizados} actualizados, ${resumen.facturados} facturados.`
   return resumen
 }
 
@@ -560,6 +624,8 @@ export async function procesarCargaPagosEfectivo(
         omitidos: 0,
         errores: 1,
         alumnosActivados: 0,
+        facturados: 0,
+        facturaPendiente: 0,
         omisionesPorMotivo: {},
         muestras: [],
         mensaje: `Falló el procesamiento: ${msg}`,

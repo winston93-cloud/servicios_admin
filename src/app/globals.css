@@ -13342,7 +13342,7 @@ html[data-theme='dark'] .pi-icon-btn--print {
 
 .ap-stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.65rem;
 }
 
@@ -13391,6 +13391,11 @@ html[data-theme='dark'] .pi-icon-btn--print {
 .ap-stat--err {
   background: #fef2f2;
   color: #b91c1c;
+}
+
+.ap-stat--warn {
+  background: #fffbeb;
+  color: #b45309;
 }
 
 .ap-archivo-meta {

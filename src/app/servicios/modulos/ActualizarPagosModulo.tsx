@@ -120,6 +120,14 @@ function TarjetaResumenArchivo({ resumen }: { resumen: ResumenArchivoPagoEfectiv
           <span className="ap-stat-valor">{resumen.actualizados}</span>
           <span className="ap-stat-etiqueta">Actualizados</span>
         </div>
+        <div className="ap-stat ap-stat--ok">
+          <span className="ap-stat-valor">{resumen.facturados}</span>
+          <span className="ap-stat-etiqueta">Facturados</span>
+        </div>
+        <div className={`ap-stat ${resumen.facturaPendiente > 0 ? 'ap-stat--warn' : 'ap-stat--muted'}`}>
+          <span className="ap-stat-valor">{resumen.facturaPendiente}</span>
+          <span className="ap-stat-etiqueta">Factura pendiente</span>
+        </div>
         <div className="ap-stat ap-stat--muted">
           <span className="ap-stat-valor">{resumen.omitidos}</span>
           <span className="ap-stat-etiqueta">Omitidos</span>
@@ -134,6 +142,10 @@ function TarjetaResumenArchivo({ resumen }: { resumen: ResumenArchivoPagoEfectiv
         {resumen.lineasLeidas} líneas leídas · {resumen.filasProcesables} procesables
         {resumen.alumnosActivados > 0 && (
           <> · {resumen.alumnosActivados} alumnos activados por inscripción</>
+        )}
+        {resumen.facturados > 0 && <> · {resumen.facturados} CFDI emitidos</>}
+        {resumen.facturaPendiente > 0 && (
+          <> · {resumen.facturaPendiente} con factura pendiente</>
         )}
       </p>
 
@@ -352,7 +364,8 @@ export default function ActualizarPagosModulo() {
         <div className="ap-carga-bar__col ap-carga-bar__col--texto">
           <p className="ap-carga-bar__desc">
             Carga los archivos del banco con pagos en ventanilla. Se registran en{' '}
-            <code>pago_detalle</code> con la misma lógica del sistema anterior.
+            <code>pago_detalle</code> y se facturan automáticamente (igual que comercio
+            electrónico y OpenPay).
           </p>
         </div>
 
