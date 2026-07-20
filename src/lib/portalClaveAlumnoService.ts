@@ -1,4 +1,5 @@
 import type { AppDatabaseClient } from '@/lib/dbTypes'
+import { puedeAccederPortalAlumno } from '@/lib/alumnoStatus'
 
 const CLAVE_MIN_LENGTH = 5
 
@@ -14,13 +15,14 @@ async function obtenerAlumnoActivoPorRef(
     .from('alumno')
     .select('alumno_id, alumno_ref, alumno_status, alumno_ciclo_escolar')
     .eq('alumno_ref', alumnoRef)
-    .eq('alumno_status', 1)
     .order('alumno_ciclo_escolar', { ascending: false })
-    .limit(1)
-    .maybeSingle()
+    .limit(5)
 
   if (error) throw new Error(error.message)
-  return data
+  const fila = (data ?? []).find((r) =>
+    puedeAccederPortalAlumno(Number(r.alumno_status))
+  )
+  return fila ?? null
 }
 
 /** `detalle_id` no siempre usa DEFAULT; si la secuencia va atrasada, hay que asignar max+1. */

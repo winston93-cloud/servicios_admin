@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
+import { formaIngresoPorDefecto } from '@/lib/alumnoFormaIngreso'
+import { esEstatusBloqueo } from '@/lib/alumnoStatus'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
 import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import { construirVistaPagoInscripcion } from '@/lib/portalInscripcionPagoService'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
 import { calcularReinscripcionDiferido } from '@/lib/portalReinscripcionService'
-import { formaIngresoPorDefecto } from '@/lib/alumnoFormaIngreso'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const runtime = 'nodejs'
@@ -17,6 +18,16 @@ export async function POST(request: Request) {
 
     const auth = await validarAlumnoPortal(alumnoId)
     if (!auth.ok) return auth.response
+
+    if (esEstatusBloqueo(auth.alumno.alumno_status)) {
+      return NextResponse.json(
+        {
+          error:
+            'No puedes pagar inscripción mientras tengas bloqueo académico o psicológico. Liquida solo pendientes del ciclo anterior o solicita la liberación del estatus.',
+        },
+        { status: 403 }
+      )
+    }
 
     const cicloSistema = await obtenerCicloEscolarActual()
     if (!cicloSistema) {

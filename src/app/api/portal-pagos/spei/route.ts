@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server'
 import { obtenerAlumnoPorId } from '@/lib/alumnoDatosService'
+import { esEstatusBloqueo } from '@/lib/alumnoStatus'
 import { normalizarConceptoNo } from '@/lib/boucherCore'
 import { calcularBoucher } from '@/lib/boucherService'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { crearCargoSpeiOpenpay } from '@/lib/openpaySpeiService'
-import { nivelCobroElectronico } from '@/lib/nivelCobroElectronico'
+import {
+  esConceptoInscripcionReinscripcion,
+  nivelCobroElectronico,
+} from '@/lib/nivelCobroElectronico'
 import {
   generarReferenciaSpeiDesdePago,
   obtenerConfigOpenpay,
@@ -32,6 +36,39 @@ export async function POST(request: Request) {
     const alumno = await obtenerAlumnoPorId(alumnoId)
     if (!alumno) {
       return NextResponse.json({ error: 'Alumno no encontrado' }, { status: 404 })
+    }
+
+    const cicloSistema = await obtenerCicloEscolarActual()
+    const cicloTemporada =
+      body.cicloTemporada != null && Number.isFinite(Number(body.cicloTemporada))
+        ? Number(body.cicloTemporada)
+        : cicloSistema?.valor
+
+    // Bloqueo 4/5: solo colegiaturas del ciclo anterior; no inscripción del ciclo nuevo.
+    if (
+      esEstatusBloqueo(alumno.alumno_status) &&
+      esConceptoInscripcionReinscripcion(conceptoNo)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            'No puedes pagar inscripción con bloqueo académico o psicológico. Solo colegiaturas pendientes del ciclo anterior.',
+        },
+        { status: 403 }
+      )
+    }
+    if (
+      esEstatusBloqueo(alumno.alumno_status) &&
+      cicloTemporada != null &&
+      cicloEscolar >= cicloTemporada
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            'Con bloqueo académico o psicológico solo puedes pagar pendientes del ciclo anterior.',
+        },
+        { status: 403 }
+      )
     }
 
     const supabase = createSupabaseAdmin()
@@ -67,12 +104,6 @@ export async function POST(request: Request) {
       typeof body.nombreAlumno === 'string' && body.nombreAlumno.trim()
         ? body.nombreAlumno.trim()
         : `${alumno.alumno_app ?? ''} ${alumno.alumno_apm ?? ''} ${alumno.alumno_nombre ?? ''}`.trim()
-
-    const cicloSistema = await obtenerCicloEscolarActual()
-    const cicloTemporada =
-      body.cicloTemporada != null && Number.isFinite(Number(body.cicloTemporada))
-        ? Number(body.cicloTemporada)
-        : cicloSistema?.valor
 
     const nivelCobro = nivelCobroElectronico(alumno, conceptoNo, cicloTemporada)
     const config = obtenerConfigOpenpay(nivelCobro)

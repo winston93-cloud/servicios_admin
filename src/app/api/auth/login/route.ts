@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
+import { puedeAccederPortalAlumno } from '@/lib/alumnoStatus'
 import type { AuthSession } from '@/lib/portalAuthService'
 
 export const runtime = 'nodejs'
@@ -74,7 +75,7 @@ async function loginAlumno(refInput: string, password: string): Promise<AuthSess
     throw new Error('Error de conexión con la base de datos')
   }
 
-  if (!alumno || alumno.alumno_status !== 1) return null
+  if (!alumno || !puedeAccederPortalAlumno(alumno.alumno_status)) return null
 
   const claveMaestra = password === ALUMNO_CLAVE_MAESTRA
 

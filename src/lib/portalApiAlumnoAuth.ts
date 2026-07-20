@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
 import { obtenerAlumnoPorId } from './alumnoDatosService'
 import type { AlumnoRegistro } from './alumnoDatosService'
+import { puedeAccederPortalAlumno } from './alumnoStatus'
 
 export type AlumnoAuthResult =
   | { ok: true; alumno: AlumnoRegistro }
   | { ok: false; response: NextResponse }
 
 /**
- * Valida que el alumno exista y pueda usar portales (status 1 o 2).
+ * Valida que el alumno exista y pueda usar portales (1, 2, 4 o 5).
  * La sesión del dashboard envía alumnoId desde AuthContext; aquí evitamos IDs inválidos.
  */
 export async function validarAlumnoPortal(alumnoId: number): Promise<AlumnoAuthResult> {
@@ -26,8 +27,7 @@ export async function validarAlumnoPortal(alumnoId: number): Promise<AlumnoAuthR
     }
   }
 
-  const status = Number(alumno.alumno_status)
-  if (status !== 1 && status !== 2) {
+  if (!puedeAccederPortalAlumno(alumno.alumno_status)) {
     return {
       ok: false,
       response: NextResponse.json(

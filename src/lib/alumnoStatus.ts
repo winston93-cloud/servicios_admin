@@ -17,6 +17,14 @@ export function esEstatusBloqueo(status: number | null | undefined): boolean {
   return status === ESTATUS_ALUMNO_BLOQUEO || status === ESTATUS_ALUMNO_BLOQUEO_PSICO
 }
 
+/** Pueden entrar al portal: activo, inactivo, o bloqueo psico/académico. */
+export function puedeAccederPortalAlumno(
+  status: number | null | undefined
+): boolean {
+  const n = Number(status)
+  return n === 1 || n === 2 || esEstatusBloqueo(n)
+}
+
 export type EstatusAlumnoValor = (typeof ESTATUS_ALUMNO_OPCIONES)[number]['valor']
 
 export function parseEstatusAlumno(

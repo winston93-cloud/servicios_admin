@@ -1,6 +1,7 @@
 import type { AppDatabaseClient } from '@/lib/dbTypes'
 import type { AlumnoRegistro } from './alumnoDatosService'
 import { formaIngresoPorDefecto } from './alumnoFormaIngreso'
+import { esEstatusBloqueo } from './alumnoStatus'
 import type { CicloEscolarRegistro } from './ciclosEscolaresService'
 import { etiquetaGradoEscolar } from './gradoEscolar'
 import type { PagoDetalleRegistro } from './pagoColegiaturaService'
@@ -137,7 +138,7 @@ function bloqueoPorStatus(status: number | null | undefined): {
       return {
         bloqueo: 'psicologia',
         mensaje:
-          'Este servicio no está disponible por bloqueo académico o psicológico. Comunícate al Departamento de Psicología.',
+          'Tienes un bloqueo académico o psicológico: no puedes pagar la inscripción del ciclo nuevo hasta que Psicología/Académico libere tu estatus. Sí puedes liquidar colegiaturas pendientes del ciclo anterior.',
       }
     default:
       return null
@@ -329,9 +330,15 @@ export async function construirEstadoPortalInscripciones(
   if (showPayment && calcReinscripcion && !calcReinscripcion.pagable) {
     showPayment = false
   }
+  // Bloqueo 4/5: nunca habilitar pago de inscripción del ciclo nuevo.
+  if (esEstatusBloqueo(alumno.alumno_status)) {
+    showPayment = false
+  }
 
   const flujoActivo = bloqueo == null
-  const pasosVisibles = flujoActivo && puedeVerPasosInscripcion(alumno, esReinscrito, liberateInfo)
+  // Con bloqueo psico/académico aún pueden liquidar el ciclo anterior (cierre).
+  const pasosVisibles =
+    flujoActivo && puedeVerPasosInscripcion(alumno, esReinscrito, liberateInfo)
   const reciboHabilitado = await enReciboFinal(supabase, alumno.alumno_ref)
 
   const cicloReglamento = esReinscrito

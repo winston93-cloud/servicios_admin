@@ -6,7 +6,13 @@ import {
   urlPortalPagosAlumno,
 } from '@/lib/banorteConfig'
 import { guardarMontoPendienteBanorte, normalizarReferenciaBanorte } from '@/lib/banortePagoService'
-import { nivelCobroDesdeReferencia } from '@/lib/nivelCobroElectronico'
+import { esEstatusBloqueo } from '@/lib/alumnoStatus'
+import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
+import {
+  esConceptoInscripcionReinscripcion,
+  nivelCobroDesdeReferencia,
+} from '@/lib/nivelCobroElectronico'
+import { parsearReferenciaPago } from '@/lib/pagoReferenciaColegiatura'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const dynamic = 'force-dynamic'
@@ -58,9 +64,53 @@ export default async function Banorte3dPage({ searchParams }: PageProps) {
     const ref5 = referencia.slice(0, 5)
     const { data: alumno } = await supabase
       .from('alumno')
-      .select('alumno_nivel, alumno_grado, alumno_ciclo_escolar')
+      .select('alumno_nivel, alumno_grado, alumno_ciclo_escolar, alumno_status')
       .eq('alumno_ref', parseInt(ref5, 10))
       .maybeSingle()
+
+    if (alumno && esEstatusBloqueo(Number(alumno.alumno_status))) {
+      const parsed = parsearReferenciaPago(referencia)
+      const cicloSistema = await obtenerCicloEscolarActual()
+      const cicloPago = parsed?.cicloEscolar ?? 0
+      const conceptoNo = parsed?.conceptoNo ?? ''
+      if (esConceptoInscripcionReinscripcion(conceptoNo)) {
+        return (
+          <div className="banorte-body">
+            <link rel="stylesheet" href="/banorte-flow.css" />
+            <main className="banorte-main">
+              <section className="banorte-card banorte-result banorte-result--error">
+                <h1 className="banorte-result-title">Pago no permitido</h1>
+                <p className="banorte-result-msg">
+                  Con bloqueo académico o psicológico no puedes pagar inscripción del ciclo nuevo.
+                </p>
+                <Link href={urlPortalPagosAlumno()} className="banorte-btn banorte-btn--primary">
+                  Ir al portal
+                </Link>
+              </section>
+            </main>
+          </div>
+        )
+      }
+      if (cicloSistema && cicloPago >= cicloSistema.valor) {
+        return (
+          <div className="banorte-body">
+            <link rel="stylesheet" href="/banorte-flow.css" />
+            <main className="banorte-main">
+              <section className="banorte-card banorte-result banorte-result--error">
+                <h1 className="banorte-result-title">Pago no permitido</h1>
+                <p className="banorte-result-msg">
+                  Con bloqueo académico o psicológico solo puedes pagar pendientes del ciclo
+                  anterior.
+                </p>
+                <Link href={urlPortalPagosAlumno()} className="banorte-btn banorte-btn--primary">
+                  Ir al portal
+                </Link>
+              </section>
+            </main>
+          </div>
+        )
+      }
+    }
 
     const nivel = alumno
       ? nivelCobroDesdeReferencia(
