@@ -6,6 +6,7 @@ import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { useAlumnoSeleccionado } from '@/contexts/AlumnoSeleccionadoContext'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
+import { nombreVisibleAlumno } from '@/lib/alumnoBusquedaServicios'
 import {
   alumnoTieneCuotaPadresPagada,
   crearPagoInterno,
@@ -152,10 +153,13 @@ export default function PagosInternosModulo() {
         importe: importePago,
         concepto,
         conceptoExtra,
-        nombreAlumno: alumnoSeleccionado.nombre_completo,
+        nombreAlumno: nombreVisibleAlumno(alumnoSeleccionado),
         alumnoApp: alumno.alumno_app,
         alumnoApm: alumno.alumno_apm,
-        alumnoNombre: alumno.alumno_nombre,
+        alumnoNombre:
+          String(alumno.alumno_ref) === '11404'
+            ? 'Externo'
+            : alumno.alumno_nombre,
         alumnoNivel: alumno.alumno_nivel,
         alumnoGrado: alumno.alumno_grado ?? null,
         cicloEtiqueta: etiquetaCicloEscolar(ciclo, opcionesCatalogo),
@@ -311,7 +315,9 @@ export default function PagosInternosModulo() {
     )
   }
 
-  const nombreAlumno = alumnoSeleccionado?.nombre_completo ?? ''
+  const nombreAlumno = alumnoSeleccionado
+    ? nombreVisibleAlumno(alumnoSeleccionado)
+    : ''
 
   return (
     <div className="servicios-panel-inner servicios-panel-inner--pagos-internos">

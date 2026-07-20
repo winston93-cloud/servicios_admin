@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from 'react'
 import {
-  construirNombreCompleto,
+  nombreVisibleAlumno,
   type AlumnoBusquedaResultado,
 } from '@/lib/alumnoBusquedaServicios'
 import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
@@ -35,8 +35,12 @@ function alumnoDesdeRegistro(
   const app = canon.alumno_app ?? ''
   const apm = canon.alumno_apm ?? ''
   const ref = String(canon.alumno_ref)
-  const nombreCompleto =
-    construirNombreCompleto(nombre, app, apm) || `No. control ${ref}`
+  const nombreCompleto = nombreVisibleAlumno({
+    alumno_ref: ref,
+    alumno_nombre: nombre,
+    alumno_app: app,
+    alumno_apm: apm,
+  })
   return {
     alumno_id: canon.alumno_id,
     alumno_ref: ref,

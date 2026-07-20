@@ -12,7 +12,7 @@ import {
 import { Search, Loader2, X } from 'lucide-react'
 import {
   buscarAlumnosServicios,
-  construirNombreCompleto,
+  nombreVisibleAlumno,
   MIN_CARACTERES,
   type AlumnoBusquedaResultado,
   type CampoBusquedaAlumno,
@@ -148,10 +148,13 @@ export default function AlumnoAutocomplete({
     if (!alumnoControlado) return
     setSeleccionado(alumnoControlado)
     setConsulta(
-      alumnoControlado.nombre_completo?.trim() ||
-        (alumnoControlado.alumno_ref
-          ? `No. control ${alumnoControlado.alumno_ref}`
-          : '')
+      nombreVisibleAlumno({
+        alumno_ref: alumnoControlado.alumno_ref,
+        alumno_nombre: alumnoControlado.alumno_nombre,
+        alumno_app: alumnoControlado.alumno_app,
+        alumno_apm: alumnoControlado.alumno_apm,
+        nombre_completo: alumnoControlado.nombre_completo,
+      })
     )
   }, [alumnoControlado])
 
@@ -182,14 +185,17 @@ export default function AlumnoAutocomplete({
               canon.alumno_grupo != null ? String(canon.alumno_grupo) : null,
             alumno_ciclo_escolar: canon.alumno_ciclo_escolar,
             alumno_status: canon.alumno_status,
-            nombre_completo:
-              construirNombreCompleto(
-                canon.alumno_nombre,
-                canon.alumno_app,
-                canon.alumno_apm
-              ) || `No. control ${String(canon.alumno_ref)}`,
+            nombre_completo: nombreVisibleAlumno({
+              alumno_ref: canon.alumno_ref,
+              alumno_nombre: canon.alumno_nombre,
+              alumno_app: canon.alumno_app,
+              alumno_apm: canon.alumno_apm,
+            }),
           }
-        : pick
+        : {
+            ...pick,
+            nombre_completo: nombreVisibleAlumno(pick),
+          }
 
       setSeleccionado(alumno)
       setConsulta(alumno.nombre_completo)

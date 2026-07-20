@@ -76,6 +76,33 @@ export function construirNombreCompleto(
   return [nombre, app, apm].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
 }
 
+/** Control especial de pagos externos / pre-ingreso (solo etiqueta UI). */
+export const ALUMNO_REF_EXTERNO = '11404'
+
+/**
+ * Nombre para mostrar en UI. El 11404 se etiqueta «Externo»;
+ * el resto usa nombre completo o «No. control …» si no hay nombre.
+ */
+export function nombreVisibleAlumno(opts: {
+  alumno_ref?: string | number | null
+  alumno_nombre?: string | null
+  alumno_app?: string | null
+  alumno_apm?: string | null
+  nombre_completo?: string | null
+}): string {
+  const ref = String(opts.alumno_ref ?? '').trim()
+  if (ref === ALUMNO_REF_EXTERNO) return 'Externo'
+  const completo =
+    (opts.nombre_completo ?? '').trim() ||
+    construirNombreCompleto(
+      opts.alumno_nombre ?? '',
+      opts.alumno_app ?? '',
+      opts.alumno_apm ?? ''
+    )
+  if (completo) return completo
+  return ref ? `No. control ${ref}` : 'Sin nombre'
+}
+
 /** Grupo numérico en BD → letra (1 = A, 2 = B, 3 = C, …). */
 export function grupoALetra(grupo: string | number | null | undefined): string | null {
   if (grupo == null || grupo === '') return null
@@ -304,11 +331,10 @@ export async function buscarAlumnosServicios(
       )
       return {
         ...alumno,
-        nombre_completo:
-          nombreCompleto ||
-          (String(alumno.alumno_ref ?? '').trim()
-            ? `No. control ${String(alumno.alumno_ref).trim()}`
-            : 'Sin nombre'),
+        nombre_completo: nombreVisibleAlumno({
+          alumno_ref: alumno.alumno_ref,
+          nombre_completo: nombreCompleto,
+        }),
         puntuacion,
         campos_coincidentes: campos,
       }
