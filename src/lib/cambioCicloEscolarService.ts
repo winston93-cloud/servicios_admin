@@ -299,6 +299,58 @@ export async function migrarAlumnosCambioCiclo(
   return { ok: true, migrados }
 }
 
+/**
+ * Pasa al ciclo destino (con avance de grado) a alumnos con bloqueo
+ * académico/psicológico (estatus 4 o 5), conservando ese estatus para que
+ * no puedan pagar inscripción del ciclo nuevo.
+ */
+export async function migrarAlumnosBloqueoCambioCiclo(
+  alumnoIds?: number[]
+): Promise<
+  | { ok: true; migrados: number; detalle: { alumno_id: number; alumno_ref: string }[] }
+  | { ok: false; mensaje: string; migrados: number }
+> {
+  let query = supabase
+    .from('alumno')
+    .select(SELECT_ALUMNO)
+    .eq('alumno_ciclo_escolar', CICLO_CAMBIO_ORIGEN)
+    .in('alumno_status', [4, 5])
+
+  if (alumnoIds?.length) {
+    query = query.in('alumno_id', alumnoIds)
+  }
+
+  const { data, error } = await query
+  if (error) {
+    return { ok: false, mensaje: mensajeDb(error), migrados: 0 }
+  }
+
+  const alumnos = (data ?? []).map((r) => mapFila(r as Record<string, unknown>))
+  const detalle: { alumno_id: number; alumno_ref: string }[] = []
+  let migrados = 0
+
+  for (const alumno of alumnos) {
+    const dest = calcularDestinoCambioCiclo(alumno.alumno_nivel, alumno.alumno_grado)
+    if (dest.egresa) {
+      // 9no con bloqueo: no egresar a baja; se deja en origen.
+      continue
+    }
+
+    const res = await migrarUnAlumno(
+      alumno,
+      alumno.alumno_nivel,
+      alumno.alumno_grado
+    )
+    if (!res.ok) {
+      return { ok: false, mensaje: res.mensaje, migrados }
+    }
+    migrados += 1
+    detalle.push({ alumno_id: alumno.alumno_id, alumno_ref: alumno.alumno_ref })
+  }
+
+  return { ok: true, migrados, detalle }
+}
+
 export async function revertirAlumnosCambioCiclo(
   alumnoIds: number[]
 ): Promise<

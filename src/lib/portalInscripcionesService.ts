@@ -132,10 +132,12 @@ function bloqueoPorStatus(status: number | null | undefined): {
         mensaje:
           'El alumno está en baja temporal por adeudos. Comunícate a Administración.',
       }
+    case 4:
     case 5:
       return {
         bloqueo: 'psicologia',
-        mensaje: 'Este servicio no está disponible. Comunícate al Departamento de Psicología.',
+        mensaje:
+          'Este servicio no está disponible por bloqueo académico o psicológico. Comunícate al Departamento de Psicología.',
       }
     default:
       return null
