@@ -74,7 +74,11 @@ export async function registrarClaveAlumnoPortal(
 
   const alumno = await obtenerAlumnoActivoPorRef(db, ref)
   if (!alumno) {
-    return { ok: false, mensaje: 'No encontramos un alumno activo con ese número de control.' }
+    return {
+      ok: false,
+      mensaje:
+        'No encontramos un alumno con acceso al portal para ese número de control.',
+    }
   }
 
   const { data: detalle, error: errDetalle } = await db
