@@ -7521,6 +7521,11 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   color: #854d0e;
 }
 
+.alumno-ac-tag--estatus-bloqueo {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
 .servicios-panel-inner--alumnos {
   width: 100%;
   max-width: none;
@@ -10043,6 +10048,25 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 
 .alumno-form--estatus-baja-temporal .alumno-form-input:read-only {
   background-color: #fef9c3;
+}
+
+/* Estatus 4 — Bloqueo psicológico / académico */
+.alumno-form--estatus-bloqueo .alumno-form-select--estatus {
+  background-color: #ffedd5;
+  border-color: #fb923c;
+  color: #9a3412;
+}
+
+.alumno-form--estatus-bloqueo .alumno-form-identidad .alumno-form-input,
+.alumno-form--estatus-bloqueo .alumno-form-grid-datos .alumno-form-input,
+.alumno-form--estatus-bloqueo .alumno-form-grid-datos .alumno-form-select:not(.alumno-form-select--estatus) {
+  background-color: #fff7ed;
+  border-color: #fdba74;
+  color: #7c2d12;
+}
+
+.alumno-form--estatus-bloqueo .alumno-form-input:read-only {
+  background-color: #ffedd5;
 }
 
 .alumno-form-input:focus {

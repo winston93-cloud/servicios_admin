@@ -1,3 +1,5 @@
+import { construirNombreCompleto } from '@/lib/alumnoBusquedaServicios'
+import { ESTATUS_ALUMNO_BLOQUEO } from '@/lib/alumnoStatus'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import {
   cicloFichaAlumnosParaInscripcion,
@@ -33,12 +35,29 @@ export type FilaInscripcionesAdmin = {
   esTotales?: boolean
 }
 
+export type AlumnoBloqueoInscripciones = {
+  noCtrl: string
+  nombre: string
+  nivel: number
+  grado: number
+  nivelLabel: string
+}
+
+export type GrupoBloqueoInscripciones = {
+  nivelLabel: string
+  nivel: number
+  grado: number
+  alumnos: AlumnoBloqueoInscripciones[]
+}
+
 export type ResumenInscripcionesAdmin = {
   titulo: string
   cicloInscripcion: number
   cicloLabel: string
   modo: 'dif1' | 'dif2' | 'general'
   filas: FilaInscripcionesAdmin[]
+  /** Estatus 4: bloqueo psicológico / académico, agrupados por grado de ficha. */
+  bloqueos: GrupoBloqueoInscripciones[]
 }
 
 function sumarFilas(filas: FilaInscripcionesAdmin[]): FilaInscripcionesAdmin {
@@ -260,6 +279,74 @@ const NIVELES_GRADOS: Celda[] = [
   { nivel: 4, grado: 3 },
 ]
 
+async function cargarBloqueosPsicoAcademico(
+  cicloAlumnos: number,
+  cicloInscripcion: number
+): Promise<GrupoBloqueoInscripciones[]> {
+  // Tras el cambio de ciclo los bloqueados suelen quedar en el origen (cen-1).
+  const ciclos = new Set<number>([cicloAlumnos])
+  if (cicloInscripcion > 1) ciclos.add(cicloInscripcion - 1)
+
+  const db = createDbAdmin()
+  const vistos = new Set<number>()
+  const filas: AlumnoBloqueoInscripciones[] = []
+
+  for (const ciclo of ciclos) {
+    let offset = 0
+    while (true) {
+      const { data, error } = await db
+        .from('alumno')
+        .select(
+          'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado'
+        )
+        .eq('alumno_ciclo_escolar', ciclo)
+        .eq('alumno_status', ESTATUS_ALUMNO_BLOQUEO)
+        .eq('alumno_nuevo_ingreso', 0)
+        .range(offset, offset + PAGE_ALUMNO - 1)
+      if (error) throw new Error(error.message)
+      const chunk = data ?? []
+      for (const r of chunk) {
+        const id = Number(r.alumno_id)
+        if (vistos.has(id)) continue
+        vistos.add(id)
+        const nivel = Number(r.alumno_nivel)
+        const grado = Number(r.alumno_grado)
+        filas.push({
+          noCtrl: String(r.alumno_ref ?? '').trim(),
+          nombre: construirNombreCompleto(r.alumno_nombre, r.alumno_app, r.alumno_apm),
+          nivel,
+          grado,
+          nivelLabel: etiquetaNivelInscripciones(nivel, grado),
+        })
+      }
+      if (chunk.length < PAGE_ALUMNO) break
+      offset += PAGE_ALUMNO
+    }
+  }
+
+  filas.sort((a, b) => {
+    if (a.nivel !== b.nivel) return a.nivel - b.nivel
+    if (a.grado !== b.grado) return a.grado - b.grado
+    return a.nombre.localeCompare(b.nombre, 'es')
+  })
+
+  const grupos: GrupoBloqueoInscripciones[] = []
+  for (const f of filas) {
+    const last = grupos[grupos.length - 1]
+    if (last && last.nivel === f.nivel && last.grado === f.grado) {
+      last.alumnos.push(f)
+    } else {
+      grupos.push({
+        nivelLabel: f.nivelLabel,
+        nivel: f.nivel,
+        grado: f.grado,
+        alumnos: [f],
+      })
+    }
+  }
+  return grupos
+}
+
 export async function cargarMatrizInscripciones(cicloInscripcion: number, modo: 'dif1' | 'dif2' | 'general') {
   // Tras cambio de ciclo las fichas ya están en el grado destino (= cen).
   // Antes: aún en origen (cen - 1).
@@ -268,11 +355,12 @@ export async function cargarMatrizInscripciones(cicloInscripcion: number, modo: 
   const conceptos =
     modo === 'dif2' ? ['12', '13'] : ['11', '13']
 
-  const [riEst, riPag, niEst, niPag] = await Promise.all([
+  const [riEst, riPag, niEst, niPag, bloqueos] = await Promise.all([
     contarAlumnos(cicloAlumnos, 0),
     contarReinscritosPagados(cicloAlumnos, cicloInscripcion, conceptos, modo),
     contarAlumnos(cicloInscripcion, 1),
     contarNuevoIngresoPagado(cicloInscripcion),
+    cargarBloqueosPsicoAcademico(cicloAlumnos, cicloInscripcion),
   ])
 
   const celdas = NIVELES_GRADOS.map(({ nivel, grado }) => {
@@ -295,6 +383,7 @@ export async function cargarMatrizInscripciones(cicloInscripcion: number, modo: 
     cicloLabel: etiquetaCicloReporte(cicloInscripcion),
     modo,
     filas: construirFilasConTotales(celdas),
+    bloqueos,
   }
 }
 

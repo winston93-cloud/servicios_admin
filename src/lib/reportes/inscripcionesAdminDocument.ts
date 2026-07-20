@@ -2,7 +2,11 @@ import fs from 'fs'
 import path from 'path'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import type { FilaInscripcionesAdmin, ResumenInscripcionesAdmin } from './inscripcionesAdminService'
+import type {
+  GrupoBloqueoInscripciones,
+  ResumenInscripcionesAdmin,
+  FilaInscripcionesAdmin,
+} from './inscripcionesAdminService'
 import { escapeHtml } from './renderDocument'
 
 const HEADERS = [
@@ -85,11 +89,40 @@ function tablaHtml(bloque: FilaInscripcionesAdmin[]): string {
   return `<table class="bloque"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`
 }
 
+function bloqueosHtml(grupos: GrupoBloqueoInscripciones[]): string {
+  if (!grupos.length) return ''
+  const total = grupos.reduce((n, g) => n + g.alumnos.length, 0)
+  const secciones = grupos
+    .map((g) => {
+      const filas = g.alumnos
+        .map(
+          (a, i) =>
+            `<tr><td class="num">${i + 1}</td><td class="ctrl">${escapeHtml(a.noCtrl)}</td><td class="nom">${escapeHtml(a.nombre)}</td></tr>`
+        )
+        .join('')
+      return `<div class="bloqueo-grupo">
+  <h3>${escapeHtml(g.nivelLabel)} <span>(${g.alumnos.length})</span></h3>
+  <table class="bloqueo-tabla">
+    <thead><tr><th>#</th><th>No. Ctrl</th><th>Nombre</th></tr></thead>
+    <tbody>${filas}</tbody>
+  </table>
+</div>`
+    })
+    .join('')
+
+  return `<section class="bloqueos">
+  <h2>Bloqueo psicológico / académico (estatus 4) — ${total}</h2>
+  <p class="bloqueo-nota">Alumnos que no avanzan de ciclo por bloqueo de psicología o académico.</p>
+  ${secciones}
+</section>`
+}
+
 export function construirHtmlReporteInscripciones(resumen: ResumenInscripcionesAdmin): string {
   const bloques = bloquesDesdeFilas(resumen.filas)
   const tablas = bloques.map(tablaHtml).join('')
   const ciclo = etiquetaCicloLegacy(resumen.cicloLabel)
   const fecha = fechaLegacyReporte()
+  const bloqueos = bloqueosHtml(resumen.bloqueos ?? [])
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -164,6 +197,46 @@ export function construirHtmlReporteInscripciones(resumen: ResumenInscripcionesA
       font-weight: 600;
       display: inline-block;
     }
+    .bloqueos {
+      margin-top: 22px;
+      page-break-inside: avoid;
+    }
+    .bloqueos h2 {
+      margin: 0 0 4px;
+      font-size: 0.95rem;
+      color: #7c2d12;
+    }
+    .bloqueo-nota {
+      margin: 0 0 10px;
+      font-size: 0.78rem;
+      color: #6b7280;
+    }
+    .bloqueo-grupo { margin: 0 0 12px; }
+    .bloqueo-grupo h3 {
+      margin: 0 0 4px;
+      font-size: 0.82rem;
+      color: #1e3a5f;
+    }
+    .bloqueo-grupo h3 span { font-weight: 600; color: #6b7280; }
+    .bloqueo-tabla {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+    }
+    .bloqueo-tabla th {
+      background: #7c2d12;
+      color: #fff;
+      padding: 4px 6px;
+      text-align: left;
+      border: 1px solid #9a3412;
+    }
+    .bloqueo-tabla td {
+      border: 1px solid #d6d3d1;
+      padding: 3px 6px;
+    }
+    .bloqueo-tabla td.num { width: 28px; text-align: center; color: #6b7280; }
+    .bloqueo-tabla td.ctrl { width: 72px; font-weight: 600; }
+    .bloqueo-tabla tbody tr:nth-child(even) td { background: #fff7ed; }
   </style>
 </head>
 <body>
@@ -178,6 +251,7 @@ export function construirHtmlReporteInscripciones(resumen: ResumenInscripcionesA
   </div>
   ${tablas}
   <p class="legend">Donde: NI= Nuevo Ingreso; RI= Reinscritos</p>
+  ${bloqueos}
 </body>
 </html>`
 }
@@ -257,6 +331,60 @@ export function generarPdfReporteInscripciones(resumen: ResumenInscripcionesAdmi
   pdf.setFontSize(7)
   pdf.setTextColor(255, 255, 255)
   pdf.text('Donde: NI= Nuevo Ingreso; RI= Reinscritos', 14, startY + 4.8)
+
+  const grupos = resumen.bloqueos ?? []
+  if (grupos.length) {
+    let y = startY + 12
+    const total = grupos.reduce((n, g) => n + g.alumnos.length, 0)
+    const pageH = pdf.internal.pageSize.getHeight()
+
+    const asegurarEspacio = (mm: number) => {
+      if (y + mm <= pageH - 12) return
+      pdf.addPage()
+      y = 16
+    }
+
+    asegurarEspacio(18)
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(10)
+    pdf.setTextColor(124, 45, 18)
+    pdf.text(`Bloqueo psicológico / académico (estatus 4) — ${total}`, 12, y)
+    y += 5
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(8)
+    pdf.setTextColor(107, 114, 128)
+    pdf.text('Alumnos que no avanzan de ciclo por bloqueo de psicología o académico.', 12, y)
+    y += 4
+
+    for (const g of grupos) {
+      asegurarEspacio(22)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(9)
+      pdf.setTextColor(30, 58, 95)
+      pdf.text(`${g.nivelLabel} (${g.alumnos.length})`, 12, y)
+      y += 2
+      autoTable(pdf, {
+        startY: y,
+        head: [['#', 'No. Ctrl', 'Nombre']],
+        body: g.alumnos.map((a, i) => [String(i + 1), a.noCtrl, a.nombre]),
+        styles: { fontSize: 7.5, cellPadding: 1.4, valign: 'middle', lineColor: [214, 211, 209] },
+        headStyles: {
+          fillColor: [124, 45, 18],
+          textColor: 255,
+          fontStyle: 'bold',
+          fontSize: 7.5,
+        },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center', textColor: [107, 114, 128] },
+          1: { cellWidth: 24, fontStyle: 'bold' },
+        },
+        alternateRowStyles: { fillColor: [255, 247, 237] },
+        margin: { left: 12, right: 12 },
+        theme: 'grid',
+      })
+      y = ((pdf as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y) + 5
+    }
+  }
 
   return Buffer.from(pdf.output('arraybuffer'))
 }
