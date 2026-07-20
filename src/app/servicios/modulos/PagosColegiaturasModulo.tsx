@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  Code2,
   CreditCard,
+  FileDown,
   FileText,
   Loader2,
   PlusCircle,
@@ -15,6 +17,7 @@ import { clasePlanMeses, etiquetaPlanMeses } from '@/lib/alumnoPlanMeses'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { obtenerAlumnoPorRef, type AlumnoRegistro } from '@/lib/alumnoDatosService'
 import { normalizarConceptoNo, parsearReferenciaPago } from '@/lib/pagoReferenciaColegiatura'
+import { rutasFacturaDesdeReferencia } from '@/lib/portalFacturaRutas'
 import {
   actualizarEstatusPagoColegiatura,
   estatusVisualPago,
@@ -54,6 +57,50 @@ function conceptoDesdeReferencia(
   if (!p) return '—'
   const no = normalizarConceptoNo(p.conceptoNo)
   return mapa.get(no) ?? `Concepto ${no}`
+}
+
+function AccionesFactura({ pago }: { pago: PagoDetalleRegistro }) {
+  const parsed = parsearReferenciaPago(pago.pago_referencia)
+  if (!parsed) {
+    return <span className="pc-factura-vacia">—</span>
+  }
+  const rutas = rutasFacturaDesdeReferencia(
+    pago.pago_referencia,
+    parsed.alumnoRef,
+    parsed.conceptoNo,
+    parsed.cicloEscolar
+  )
+  if (!rutas.pdf && !rutas.xml) {
+    return <span className="pc-factura-vacia">—</span>
+  }
+  return (
+    <div className="pc-factura-links" role="group" aria-label="Factura CFDI">
+      {rutas.pdf ? (
+        <a
+          className="pc-accion pc-accion--pdf"
+          href={rutas.pdf}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Descargar PDF de la factura"
+        >
+          <FileDown size={15} aria-hidden />
+          <span className="pc-accion-txt">PDF</span>
+        </a>
+      ) : null}
+      {rutas.xml ? (
+        <a
+          className="pc-accion pc-accion--xml"
+          href={rutas.xml}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Descargar XML de la factura"
+        >
+          <Code2 size={15} aria-hidden />
+          <span className="pc-accion-txt">XML</span>
+        </a>
+      ) : null}
+    </div>
+  )
 }
 
 function AccionesPago({
@@ -333,6 +380,7 @@ export default function PagosColegiaturasModulo() {
                 <col className="pc-w--forma" />
                 <col className="pc-w--estatus" />
                 <col className="pc-w--acciones" />
+                <col className="pc-w--factura" />
               </colgroup>
               <thead>
                 <tr>
@@ -353,6 +401,9 @@ export default function PagosColegiaturasModulo() {
                   <th scope="col">Estatus</th>
                   <th scope="col" className="pc-col--acciones">
                     Acciones
+                  </th>
+                  <th scope="col" className="pc-col--factura">
+                    Factura
                   </th>
                 </tr>
               </thead>
@@ -396,6 +447,9 @@ export default function PagosColegiaturasModulo() {
                           busy={busy}
                           onCambiarEstatus={cambiarEstatus}
                         />
+                      </td>
+                      <td className="pc-col--factura">
+                        <AccionesFactura pago={p} />
                       </td>
                     </tr>
                   )
@@ -449,11 +503,14 @@ export default function PagosColegiaturasModulo() {
                         <dd>{p.pago_forma ?? '—'}</dd>
                       </div>
                     </dl>
-                    <AccionesPago
-                      pago={p}
-                      busy={busy}
-                      onCambiarEstatus={cambiarEstatus}
-                    />
+                    <div className="pc-pago-card-acciones">
+                      <AccionesPago
+                        pago={p}
+                        busy={busy}
+                        onCambiarEstatus={cambiarEstatus}
+                      />
+                      <AccionesFactura pago={p} />
+                    </div>
                   </li>
                 )
               })}

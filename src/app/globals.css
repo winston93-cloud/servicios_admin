@@ -11975,6 +11975,10 @@ html[data-theme='dark'] .pi-icon-btn--print {
   width: 8.5rem;
 }
 
+.pc-w--factura {
+  width: 6.5rem;
+}
+
 .pc-tabla thead {
   position: sticky;
   top: 0;
@@ -12001,6 +12005,7 @@ html[data-theme='dark'] .pi-icon-btn--print {
 }
 
 .pc-tabla th.pc-col--acciones,
+.pc-tabla th.pc-col--factura,
 .pc-tabla th.pc-col--num {
   text-align: center;
 }
@@ -12230,6 +12235,69 @@ html[data-theme='dark'] .pi-icon-btn--print {
 
 .pc-accion--restaurar:hover:not(:disabled) {
   background: #dbeafe;
+}
+
+.pc-col--factura {
+  text-align: center;
+  padding: 0.45rem 0.35rem;
+  vertical-align: middle;
+}
+
+.pc-factura-links {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.pc-factura-vacia {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+a.pc-accion {
+  text-decoration: none;
+  width: auto;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  gap: 0.2rem;
+}
+
+.pc-accion-txt {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.pc-accion--pdf {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.pc-accion--pdf:hover {
+  background: #fee2e2;
+}
+
+.pc-accion--xml {
+  color: #0f766e;
+  border-color: #99f6e4;
+  background: #f0fdfa;
+}
+
+.pc-accion--xml:hover {
+  background: #ccfbf1;
+}
+
+.pc-pago-card-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
 }
 
 /* Vista móvil: tarjetas por pago */
