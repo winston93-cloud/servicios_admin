@@ -97,13 +97,13 @@ function bloqueosHtml(grupos: GrupoBloqueoInscripciones[]): string {
       const filas = g.alumnos
         .map(
           (a, i) =>
-            `<tr><td class="num">${i + 1}</td><td class="ctrl">${escapeHtml(a.noCtrl)}</td><td class="nom">${escapeHtml(a.nombre)}</td><td class="act">${escapeHtml(a.nivelActualLabel)}</td></tr>`
+            `<tr><td class="num">${i + 1}</td><td class="ctrl">${escapeHtml(a.noCtrl)}</td><td class="nom">${escapeHtml(a.nombre)}</td><td class="act">${escapeHtml(a.nivelActualLabel)}</td><td class="st">${a.status}</td></tr>`
         )
         .join('')
       return `<div class="bloqueo-grupo">
   <h3>${escapeHtml(g.tituloGrupo)} <span>(${g.alumnos.length})</span></h3>
   <table class="bloqueo-tabla">
-    <thead><tr><th>#</th><th>No. Ctrl</th><th>Nombre</th><th>Grado actual</th></tr></thead>
+    <thead><tr><th>#</th><th>No. Ctrl</th><th>Nombre</th><th>Grado actual</th><th>Est.</th></tr></thead>
     <tbody>${filas}</tbody>
   </table>
 </div>`
@@ -111,8 +111,8 @@ function bloqueosHtml(grupos: GrupoBloqueoInscripciones[]): string {
     .join('')
 
   return `<section class="bloqueos">
-  <h2>Bloqueo psicológico / académico (estatus 4) — ${total}</h2>
-  <p class="bloqueo-nota">Alumnos con bloqueo de psicología o académico (estatus 4), de Maternal A a 9° Secundaria. Se indica el ciclo/grado en el que deberían estar.</p>
+  <h2>Bloqueo psicológico / académico (estatus 4 o 5) — ${total}</h2>
+  <p class="bloqueo-nota">Alumnos con bloqueo académico o psicológico (estatus 4 o 5), de Maternal A a 9° Secundaria. Se indica el ciclo/grado en el que deberían estar.</p>
   ${secciones}
 </section>`
 }
@@ -237,6 +237,7 @@ export function construirHtmlReporteInscripciones(resumen: ResumenInscripcionesA
     .bloqueo-tabla td.num { width: 28px; text-align: center; color: #6b7280; }
     .bloqueo-tabla td.ctrl { width: 72px; font-weight: 600; }
     .bloqueo-tabla td.act { width: 110px; color: #6b7280; font-size: 9.5px; }
+    .bloqueo-tabla td.st { width: 36px; text-align: center; font-weight: 700; color: #9a3412; }
     .bloqueo-tabla tbody tr:nth-child(even) td { background: #fff7ed; }
   </style>
 </head>
@@ -349,13 +350,13 @@ export function generarPdfReporteInscripciones(resumen: ResumenInscripcionesAdmi
     pdf.setFont('helvetica', 'bold')
     pdf.setFontSize(10)
     pdf.setTextColor(124, 45, 18)
-    pdf.text(`Bloqueo psicológico / académico (estatus 4) — ${total}`, 12, y)
+    pdf.text(`Bloqueo psicológico / académico (estatus 4 o 5) — ${total}`, 12, y)
     y += 5
     pdf.setFont('helvetica', 'normal')
     pdf.setFontSize(8)
     pdf.setTextColor(107, 114, 128)
     pdf.text(
-      'Bloqueo psico/académico (estatus 4), Maternal A a 9° Sec. Ciclo/grado en el que deberían estar.',
+      'Bloqueo académico/psicológico (4 o 5), Maternal A a 9° Sec. Ciclo/grado en el que deberían estar.',
       12,
       y
     )
@@ -370,12 +371,13 @@ export function generarPdfReporteInscripciones(resumen: ResumenInscripcionesAdmi
       y += 2
       autoTable(pdf, {
         startY: y,
-        head: [['#', 'No. Ctrl', 'Nombre', 'Grado actual']],
+        head: [['#', 'No. Ctrl', 'Nombre', 'Grado actual', 'Est.']],
         body: g.alumnos.map((a, i) => [
           String(i + 1),
           a.noCtrl,
           a.nombre,
           a.nivelActualLabel,
+          String(a.status),
         ]),
         styles: { fontSize: 7.5, cellPadding: 1.4, valign: 'middle', lineColor: [214, 211, 209] },
         headStyles: {
@@ -388,6 +390,7 @@ export function generarPdfReporteInscripciones(resumen: ResumenInscripcionesAdmi
           0: { cellWidth: 10, halign: 'center', textColor: [107, 114, 128] },
           1: { cellWidth: 22, fontStyle: 'bold' },
           3: { cellWidth: 28, textColor: [107, 114, 128] },
+          4: { cellWidth: 12, halign: 'center', fontStyle: 'bold', textColor: [154, 52, 18] },
         },
         alternateRowStyles: { fillColor: [255, 247, 237] },
         margin: { left: 12, right: 12 },

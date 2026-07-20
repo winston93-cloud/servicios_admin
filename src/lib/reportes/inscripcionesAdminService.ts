@@ -1,5 +1,5 @@
 import { construirNombreCompleto } from '@/lib/alumnoBusquedaServicios'
-import { ESTATUS_ALUMNO_BLOQUEO } from '@/lib/alumnoStatus'
+import { ESTATUS_ALUMNO_BLOQUEOS } from '@/lib/alumnoStatus'
 import {
   calcularDestinoCambioCiclo,
 } from '@/lib/cambioCicloEscolarAdvance'
@@ -42,6 +42,7 @@ export type FilaInscripcionesAdmin = {
 export type AlumnoBloqueoInscripciones = {
   noCtrl: string
   nombre: string
+  status: number
   /** Grado actual en ficha (aún no avanzaron). */
   nivelActual: number
   gradoActual: number
@@ -71,7 +72,7 @@ export type ResumenInscripcionesAdmin = {
   cicloLabel: string
   modo: 'dif1' | 'dif2' | 'general'
   filas: FilaInscripcionesAdmin[]
-  /** Estatus 4: bloqueo psicológico / académico, agrupados por grado destino. */
+  /** Estatus 4 o 5: bloqueo psicológico / académico, agrupados por grado destino. */
   bloqueos: GrupoBloqueoInscripciones[]
 }
 
@@ -298,7 +299,7 @@ async function cargarBloqueosPsicoAcademico(
   cicloAlumnos: number,
   cicloInscripcion: number
 ): Promise<GrupoBloqueoInscripciones[]> {
-  // Maternal A → 9° Sec: todos los estatus 4 del colegio (origen y/o destino).
+  // Maternal A → 9° Sec: estatus 4 y 5 (bloqueo académico / psicológico).
   const ciclos = new Set<number>([cicloAlumnos, cicloInscripcion])
   if (cicloInscripcion > 1) ciclos.add(cicloInscripcion - 1)
 
@@ -316,10 +317,10 @@ async function cargarBloqueosPsicoAcademico(
       const { data, error } = await db
         .from('alumno')
         .select(
-          'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_ciclo_escolar'
+          'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_ciclo_escolar, alumno_status'
         )
         .eq('alumno_ciclo_escolar', ciclo)
-        .eq('alumno_status', ESTATUS_ALUMNO_BLOQUEO)
+        .in('alumno_status', [...ESTATUS_ALUMNO_BLOQUEOS])
         .range(offset, offset + PAGE_ALUMNO - 1)
       if (error) throw new Error(error.message)
       const chunk = data ?? []
@@ -348,6 +349,7 @@ async function cargarBloqueosPsicoAcademico(
         filas.push({
           noCtrl: String(r.alumno_ref ?? '').trim(),
           nombre: construirNombreCompleto(r.alumno_nombre, r.alumno_app, r.alumno_apm),
+          status: Number(r.alumno_status),
           nivelActual,
           gradoActual,
           nivelActualLabel: etiquetaNivelInscripciones(nivelActual, gradoActual),
