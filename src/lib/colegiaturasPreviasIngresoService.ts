@@ -1,5 +1,6 @@
 import type { AppDatabaseClient } from '@/lib/dbTypes'
 import type { AlumnoRegistro } from './alumnoDatosService'
+import { formaIngresoPorDefecto } from './alumnoFormaIngreso'
 import { getDigVerif, referenciaSemibase } from './boucherCore'
 import { CONCEPTO_MES } from './colegiaturaPrecioReglas'
 import { normalizarConceptoNo, parsearReferenciaPago } from './pagoReferenciaColegiatura'
@@ -8,7 +9,7 @@ import { slotsColegiaturaPortal } from './portalPagosCandados'
 /** Orden ago→jul del ciclo escolar. */
 const ORDEN_MES_CICLO = [8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7] as const
 
-const FORMA_PAGO_PREVIOS = 'Ingreso mid-ciclo'
+export const FORMA_PAGO_PREVIOS_INGRESO = 'Ingreso mid-ciclo'
 const NOMBRE_PAGO_PREVIOS = 'Colegiatura previa al ingreso (importe 0)'
 
 function indiceMesCiclo(mes: number): number {
@@ -81,17 +82,26 @@ async function siguientePagoId(supabase: AppDatabaseClient): Promise<number> {
  * Registra colegiaturas de meses anteriores al alta con importe 0
  * (no entró dinero a cuenta). Idempotente. No toca concepto 00.
  *
- * Solo aplica al ciclo de la ficha del alumno (`alumno_ciclo_escolar`).
+ * Solo para **nuevo ingreso** en el ciclo de su ficha. Los reinscritos
+ * conservan `alumno_alta` antigua; no deben recibir ceros mid-ciclo.
  */
 export async function asegurarColegiaturasPreviasIngresoCero(
   supabase: AppDatabaseClient,
   alumno: Pick<
     AlumnoRegistro,
-    'alumno_id' | 'alumno_ref' | 'alumno_alta' | 'alumno_ciclo_escolar' | 'mes'
+    | 'alumno_id'
+    | 'alumno_ref'
+    | 'alumno_alta'
+    | 'alumno_ciclo_escolar'
+    | 'mes'
+    | 'alumno_nuevo_ingreso'
   >,
   cicloValor: number,
   pagosExistentes: Array<{ pago_referencia?: string | null; pago_cancelado?: number | null }>
 ): Promise<{ insertados: string[] }> {
+  if (formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) !== 1) {
+    return { insertados: [] }
+  }
   if (Number(cicloValor) !== Number(alumno.alumno_ciclo_escolar)) {
     return { insertados: [] }
   }
@@ -127,7 +137,7 @@ export async function asegurarColegiaturasPreviasIngresoCero(
       pago_referencia: referencia,
       pago_importe: 0,
       pago_recargo: 0,
-      pago_forma: FORMA_PAGO_PREVIOS,
+      pago_forma: FORMA_PAGO_PREVIOS_INGRESO,
       pago_folio: null,
       pago_fecha: fechaPago,
       pago_hora: hora,
@@ -142,7 +152,6 @@ export async function asegurarColegiaturasPreviasIngresoCero(
     const { error } = await supabase.from('pago_detalle').insert(fila)
     if (error) {
       console.error('asegurarColegiaturasPreviasIngresoCero:', concepto, error.message)
-      // Reintentar con nuevo id por colisión
       pagoId = await siguientePagoId(supabase)
       const retry = await supabase.from('pago_detalle').insert({ ...fila, pago_id: pagoId })
       if (retry.error) {
