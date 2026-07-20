@@ -101,9 +101,9 @@ function bloqueosHtml(grupos: GrupoBloqueoInscripciones[]): string {
 
   return `<section class="bloqueos">
   <h2>Bloqueo psicológico / académico (estatus 4 o 5) — ${total}</h2>
-  <p class="bloqueo-nota">Incluidos en RI ESTIMADOS según el grado en el que deberían estar (Maternal A a 9° Secundaria).</p>
+  <p class="bloqueo-nota">Incluidos en RI ESTIMADOS según el grado al que van (Maternal A a 9° Secundaria).</p>
   <table class="bloqueo-tabla">
-    <thead><tr><th>Grado destino</th><th>Cantidad</th></tr></thead>
+    <thead><tr><th>Grado</th><th>Cantidad</th></tr></thead>
     <tbody>${filas}</tbody>
   </table>
 </section>`
@@ -340,14 +340,14 @@ export function generarPdfReporteInscripciones(resumen: ResumenInscripcionesAdmi
     pdf.setFontSize(8)
     pdf.setTextColor(107, 114, 128)
     pdf.text(
-      'Incluidos en RI ESTIMADOS según el grado destino (Maternal A a 9° Sec).',
+      'Incluidos en RI ESTIMADOS según el grado al que van (Maternal A a 9° Sec).',
       12,
       y
     )
     y += 3
     autoTable(pdf, {
       startY: y,
-      head: [['Grado destino', 'Cantidad']],
+      head: [['Grado', 'Cantidad']],
       body: grupos.map((g) => [
         g.nivelLabel,
         `${g.alumnos.length} alumno${g.alumnos.length === 1 ? '' : 's'}`,

@@ -409,7 +409,7 @@ async function cargarBloqueosPsicoAcademico(
       grado,
       cicloDestino,
       cicloDestinoLabel,
-      tituloGrupo: `Deberían estar en ${nivelLabel} · Ciclo ${cicloDestinoLabel}`,
+      tituloGrupo: nivelLabel,
       alumnos,
     })
   }
