@@ -9103,6 +9103,27 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   margin-bottom: 18px;
 }
 
+.migracion-pro-acciones-huerfanos {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.migracion-pro-acciones-huerfanos p {
+  margin: 0;
+  flex: 1 1 220px;
+  font-size: 0.875rem;
+  color: #92400e;
+  line-height: 1.45;
+}
+
 .migracion-pro-stat {
   padding: 14px 12px;
   border-radius: 12px;

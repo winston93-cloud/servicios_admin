@@ -577,6 +577,52 @@ export default function MigracionAlumnoPanel() {
     }
   }, [secreto, seleccion])
 
+  const tablasConSobrantes = useMemo(() => {
+    if (!resultadoVerificacion) return []
+    return resultadoVerificacion.tablas.filter(
+      (t) =>
+        t.sobranEnDestino > 0 && t.faltanEnDestino === 0 && t.contenidoDistinto === 0
+    )
+  }, [resultadoVerificacion])
+
+  const ejecutarLimpiarHuerfanos = useCallback(async () => {
+    if (!tablasConSobrantes.length) return
+    setCargando(true)
+    setOperacion('migrar')
+    setError(null)
+
+    const headers: HeadersInit = { 'Content-Type': 'application/json' }
+    if (secreto.trim()) headers['x-migracion-secret'] = secreto.trim()
+
+    try {
+      for (const t of tablasConSobrantes) {
+        const res = await fetchMigracion('/api/migracion-tablas', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            modo: 'espejo',
+            soloHuérfanos: true,
+            tablas: [t.id],
+          }),
+        })
+        const { data, ok } = await parsearRespuestaMigracion<
+          ResultadoMigracionTablas & { error?: string }
+        >(res)
+        if (!ok) throw new Error(data.error ?? res.statusText)
+        const fila = data.tablas?.[0]
+        if (fila?.estado === 'error') {
+          throw new Error(fila.mensaje ?? `Error limpiando ${t.etiqueta}`)
+        }
+      }
+      await ejecutarVerificacion()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al limpiar huérfanos')
+    } finally {
+      setCargando(false)
+      setOperacion(null)
+    }
+  }, [ejecutarVerificacion, secreto, tablasConSobrantes])
+
   const porcentajeProgreso = useMemo(() => {
     if (!progreso || progreso.total === 0) return 0
     if (progreso.pesoTotal && progreso.pesoTotal > 0 && progreso.pesoCompletado != null) {
@@ -1094,6 +1140,26 @@ export default function MigracionAlumnoPanel() {
                 </div>
               </div>
             )}
+
+            {tablasConSobrantes.length > 0 &&
+              totalesVerificacion &&
+              totalesVerificacion.faltan === 0 &&
+              totalesVerificacion.distintas === 0 && (
+                <div className="migracion-pro-acciones-huerfanos">
+                  <p>
+                    Hay {totalesVerificacion.sobran} PK huérfana(s) en InsForge (restos de migraciones
+                    anteriores). El contenido en común coincide con MySQL.
+                  </p>
+                  <button
+                    type="button"
+                    className="migracion-pro-btn migracion-pro-btn--ghost"
+                    disabled={cargando}
+                    onClick={() => void ejecutarLimpiarHuerfanos()}
+                  >
+                    Limpiar huérfanos y reverificar
+                  </button>
+                </div>
+              )}
 
             <div className="migracion-pro-tabla-wrap">
               <table className="migracion-pro-tabla">

@@ -395,13 +395,7 @@ async function migrarUnaTabla(
     if (modo !== 'espejo') {
       return { ...base, mensaje: 'Limpieza de huérfanos solo aplica en modo espejo' }
     }
-    if (TABLAS_SIN_LIMPIEZA_HUERFANOS.has(def.destino)) {
-      return {
-        ...base,
-        mensaje:
-          'Limpieza de huérfanos omitida en esta tabla (muy grande). Usa Verificar espejo para auditar.',
-      }
-    }
+    // En migración completa se omite en tablas enormes (timeout). Con soloHuérfanos sí se ejecuta.
     const pksOrigen = await cargarPksMysql(mysql, def)
     const limpia = await eliminarHuérfanos(sb, def.destino, pk, pksOrigen)
     base.eliminados = limpia.eliminados
