@@ -669,6 +669,7 @@ export default function PortalInscripcionesView() {
               <PortalColegiaturasSecciones
                 alumnoId={matrizCierre.alumno.alumno_id}
                 ciclo={matrizCierre.ciclo}
+                cicloTemporada={estadoVista?.ciclo.valor}
                 alumno={matrizCierre.alumno}
                 secciones={matrizCierre.secciones}
                 displayName={session?.displayName}
@@ -893,6 +894,7 @@ export default function PortalInscripcionesView() {
                   <PortalColegiaturasSecciones
                     alumnoId={matriz.alumno.alumno_id}
                     ciclo={matriz.ciclo}
+                    cicloTemporada={estadoVista?.ciclo.valor}
                     alumno={matriz.alumno}
                     secciones={matriz.secciones}
                     displayName={session?.displayName}

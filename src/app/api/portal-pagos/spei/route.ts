@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { obtenerAlumnoPorId } from '@/lib/alumnoDatosService'
 import { normalizarConceptoNo } from '@/lib/boucherCore'
 import { calcularBoucher } from '@/lib/boucherService'
+import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { crearCargoSpeiOpenpay } from '@/lib/openpaySpeiService'
 import { nivelCobroElectronico } from '@/lib/nivelCobroElectronico'
@@ -67,7 +68,13 @@ export async function POST(request: Request) {
         ? body.nombreAlumno.trim()
         : `${alumno.alumno_app ?? ''} ${alumno.alumno_apm ?? ''} ${alumno.alumno_nombre ?? ''}`.trim()
 
-    const nivelCobro = nivelCobroElectronico(alumno, conceptoNo)
+    const cicloSistema = await obtenerCicloEscolarActual()
+    const cicloTemporada =
+      body.cicloTemporada != null && Number.isFinite(Number(body.cicloTemporada))
+        ? Number(body.cicloTemporada)
+        : cicloSistema?.valor
+
+    const nivelCobro = nivelCobroElectronico(alumno, conceptoNo, cicloTemporada)
     const config = obtenerConfigOpenpay(nivelCobro)
     const cargo = await crearCargoSpeiOpenpay({
       config,

@@ -1,5 +1,5 @@
 import type { AlumnoRegistro } from './alumnoDatosService'
-import { normalizarConceptoNo } from './boucherCore'
+import { normalizarConceptoNo, parsearReferenciaPago } from './pagoReferenciaColegiatura'
 import { proyectarReinscripcionAlumno } from './portalReinscripcionProyeccion'
 
 /** Diferidos e inscripción/reinscripción completa (legacy admisiones). */
@@ -25,21 +25,36 @@ type AlumnoNivelCobro = Pick<
  */
 export function nivelCobroElectronico(
   alumno: AlumnoNivelCobro,
-  conceptoNo: string
+  conceptoNo: string,
+  cicloTemporadaActual?: number
 ): number {
   const nivelFicha = Number(alumno.alumno_nivel) || 0
   if (!esConceptoInscripcionReinscripcion(conceptoNo)) {
     return nivelFicha
   }
-  return proyectarReinscripcionAlumno(alumno).nivel || nivelFicha
+  if (cicloTemporadaActual == null || !Number.isFinite(cicloTemporadaActual)) {
+    return nivelFicha
+  }
+  return proyectarReinscripcionAlumno(alumno, cicloTemporadaActual).nivel || nivelFicha
 }
 
 /** Concepto en posiciones 6–7 de la referencia de 12 dígitos. */
 export function nivelCobroDesdeReferencia(
   alumno: AlumnoNivelCobro,
-  referencia: string
+  referencia: string,
+  cicloTemporadaActual?: number
 ): number {
   const digits = String(referencia ?? '').replace(/\D/g, '')
   const concepto = digits.length >= 7 ? digits.slice(5, 7) : ''
-  return nivelCobroElectronico(alumno, concepto)
+  let temporada = cicloTemporadaActual
+  if (
+    (temporada == null || !Number.isFinite(temporada)) &&
+    esConceptoInscripcionReinscripcion(concepto)
+  ) {
+    const parsed = parsearReferenciaPago(referencia)
+    if (parsed?.cicloEscolar != null && parsed.cicloEscolar > 0) {
+      temporada = parsed.cicloEscolar - 1
+    }
+  }
+  return nivelCobroElectronico(alumno, concepto, temporada)
 }

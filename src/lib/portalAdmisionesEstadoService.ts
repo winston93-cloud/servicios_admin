@@ -40,7 +40,10 @@ export interface EstadoVentanaPortal {
   cicloProyectado: number
 }
 
-function proyectarAlumnoReinscripcion(alumno: AlumnoRegistro): {
+function proyectarAlumnoReinscripcion(
+  alumno: AlumnoRegistro,
+  cicloTemporadaActual: number
+): {
   nivel: number
   grado: number
   ciclo: number
@@ -48,7 +51,7 @@ function proyectarAlumnoReinscripcion(alumno: AlumnoRegistro): {
   graduado: boolean
   mensaje: string | null
 } {
-  const proy = proyectarReinscripcionAlumno(alumno)
+  const proy = proyectarReinscripcionAlumno(alumno, cicloTemporadaActual)
   return {
     nivel: proy.nivel,
     grado: proy.grado,
@@ -68,12 +71,13 @@ export async function evaluarVentanaPortalReinscrito(
   alumno: AlumnoRegistro,
   pagos: PagoDetalleRegistro[],
   cen: number,
-  calc: ReinscripcionDiferido
+  calc: ReinscripcionDiferido,
+  cicloTemporadaActual: number
 ): Promise<EstadoVentanaPortal> {
   const cd = hoyIso()
   const alumnoMes = Number(alumno.mes ?? 0)
   const alumnoRef = Number(alumno.alumno_ref)
-  const proy = proyectarAlumnoReinscripcion(alumno)
+  const proy = proyectarAlumnoReinscripcion(alumno, cicloTemporadaActual)
   const ventanas = calc.ventanas ?? (await obtenerVentanasInscripcion(supabase, cen, alumnoMes))
 
   const base: EstadoVentanaPortal = {

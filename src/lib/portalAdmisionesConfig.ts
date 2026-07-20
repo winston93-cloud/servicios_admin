@@ -1,10 +1,5 @@
 /** Configuración del portal de inscripciones (env / tablas — sin listas hardcodeadas). */
 
-export function cambioCicloMmDd(): string {
-  // Alineado con admisiones/servicios legacy (corte 25 de julio).
-  return process.env.ADMISIONES_CAMBIO_CICLO?.trim() || '07-25'
-}
-
 export function admisionesLegacyBaseUrl(): string {
   const base =
     process.env.NEXT_PUBLIC_ADMISIONES_LEGACY_URL?.trim() ||

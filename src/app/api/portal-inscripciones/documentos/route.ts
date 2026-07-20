@@ -38,7 +38,15 @@ async function contextoNi(alumnoId: number) {
   const auth = await validarAlumnoPortal(alumnoId)
   if (!auth.ok) return { ok: false as const, response: auth.response }
 
-  if (!requiereDocumentosAdmision(auth.alumno)) {
+  const cicloSistema = await obtenerCicloEscolarActual()
+  if (!cicloSistema) {
+    return {
+      ok: false as const,
+      response: NextResponse.json({ error: 'No hay ciclo escolar vigente.' }, { status: 503 }),
+    }
+  }
+
+  if (!requiereDocumentosAdmision(auth.alumno, cicloSistema.valor)) {
     return {
       ok: false as const,
       response: NextResponse.json(
@@ -51,22 +59,14 @@ async function contextoNi(alumnoId: number) {
     }
   }
 
-  const cicloSistema = await obtenerCicloEscolarActual()
-  if (!cicloSistema) {
-    return {
-      ok: false as const,
-      response: NextResponse.json({ error: 'No hay ciclo escolar vigente.' }, { status: 503 }),
-    }
-  }
-
   const client = createInsforgeAdmin()
-  const calc = await calcularReinscripcionDiferido(client.database, auth.alumno)
+  const calc = await calcularReinscripcionDiferido(client.database, auth.alumno, cicloSistema.valor)
   const ciclo = await resolverCicloPagoInscripcionPortal(
     auth.alumno,
     cicloSistema,
     calc?.cicloReinscripcion
   )
-  const { nivel, grado } = nivelGradoDocumentosAdmision(auth.alumno)
+  const { nivel, grado } = nivelGradoDocumentosAdmision(auth.alumno, cicloSistema.valor)
   if (!correoControlEscolarPorNivel(nivel)) {
     return {
       ok: false as const,

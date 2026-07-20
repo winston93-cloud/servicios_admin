@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const supabase = createSupabaseAdmin()
     const esReinscrito = formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 0
     const calcReinscripcion = esReinscrito
-      ? await calcularReinscripcionDiferido(supabase, alumno)
+      ? await calcularReinscripcionDiferido(supabase, alumno, cicloSistema.valor)
       : null
     const ciclo = await resolverCicloPagoInscripcionPortal(
       alumno,

@@ -15,6 +15,8 @@ import { obtenerCicloPorValor } from './ciclosEscolaresService'
 
 export interface VistaPagoInscripcionPortal {
   ciclo: CicloEscolarRegistro
+  /** Temporada activa (`es_actual`) — proyección de reinscripción y cobro electrónico. */
+  cicloTemporada: number
   alumno: AlumnoRegistro
   esReinscrito: boolean
   tituloPago: string
@@ -35,7 +37,7 @@ export async function construirVistaPagoInscripcion(
 
   // Reinscritos: ciclo destino y montos calendáricos (11 / 12 / 13 según ventanas).
   if (esReinscrito) {
-    const calc = await calcularReinscripcionDiferido(supabase, alumno)
+    const calc = await calcularReinscripcionDiferido(supabase, alumno, ciclo.valor)
     if (calc) {
       const cicloReinscripcion =
         (await obtenerCicloPorValor(calc.cicloReinscripcion)) ?? ciclo
@@ -54,6 +56,7 @@ export async function construirVistaPagoInscripcion(
 
       return {
         ciclo: cicloReinscripcion,
+        cicloTemporada: ciclo.valor,
         alumno,
         esReinscrito,
         tituloPago,
@@ -78,6 +81,7 @@ export async function construirVistaPagoInscripcion(
 
   return {
     ciclo: cicloPago,
+    cicloTemporada: ciclo.valor,
     alumno,
     esReinscrito,
     tituloPago: esReinscrito ? 'Pago de reinscripción' : 'Pago de inscripción',

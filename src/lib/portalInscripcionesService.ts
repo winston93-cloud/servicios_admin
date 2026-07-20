@@ -188,7 +188,7 @@ export async function construirEstadoPortalInscripciones(
 
   const solCapturada = await solicitudCapturada(supabase, alumno)
   const calcReinscripcion = esReinscrito
-    ? await calcularReinscripcionDiferido(supabase, alumno)
+    ? await calcularReinscripcionDiferido(supabase, alumno, cea)
     : null
 
   const gradoEtiqueta =
@@ -254,7 +254,8 @@ export async function construirEstadoPortalInscripciones(
         alumno,
         pagos,
         cen,
-        calcReinscripcion
+        calcReinscripcion,
+        cea
       )
 
       showInfo = ventana.showInfo
@@ -357,7 +358,7 @@ export async function construirEstadoPortalInscripciones(
     urlReglamento = urlReglamentoEscolarLegacy(nivelReglamento, cicloReglamento)
   }
 
-  const requiereDocs = requiereDocumentosAdmision(alumno)
+  const requiereDocs = requiereDocumentosAdmision(alumno, cea)
   let docsEnviados = false
   if (requiereDocs) {
     try {

@@ -17,6 +17,8 @@ import PortalPagosTablaSeccion from './PortalPagosTablaSeccion'
 interface PortalColegiaturasSeccionesProps {
   alumnoId: number
   ciclo: CicloEscolarRegistro
+  /** Temporada activa (`es_actual`) para cobro electrónico en inscripción/reinscripción. */
+  cicloTemporada?: number
   alumno: AlumnoRegistro
   secciones: SeccionMatrizPortal[]
   displayName?: string
@@ -38,6 +40,7 @@ function nombreAlumnoTransferencia(alumno: AlumnoRegistro, fallback?: string): s
 export default function PortalColegiaturasSecciones({
   alumnoId,
   ciclo,
+  cicloTemporada,
   alumno,
   secciones,
   displayName,
@@ -161,7 +164,8 @@ export default function PortalColegiaturasSecciones({
           alumnoId,
           conceptoNo: fila.conceptoNo,
           cicloEscolar: ciclo.valor,
-          alumnoNivel: nivelCobroElectronico(alumno, fila.conceptoNo),
+          cicloTemporada,
+          alumnoNivel: nivelCobroElectronico(alumno, fila.conceptoNo, cicloTemporada),
         },
       })
     } catch (e) {

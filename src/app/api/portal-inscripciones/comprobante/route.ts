@@ -57,7 +57,7 @@ export async function GET(request: Request) {
     const esReinscrito = formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 0
     const supabase = createSupabaseAdmin()
     const calc = esReinscrito
-      ? await calcularReinscripcionDiferido(supabase, alumno)
+      ? await calcularReinscripcionDiferido(supabase, alumno, ciclo.valor)
       : null
     const cicloComprobante = esReinscrito
       ? calc?.cicloReinscripcion ?? ciclo.valor

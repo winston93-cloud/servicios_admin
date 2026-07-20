@@ -193,7 +193,8 @@ export default function PortalInscripcionPagoView() {
           alumnoId,
           conceptoNo: fila.conceptoNo,
           cicloEscolar: vista.ciclo.valor,
-          alumnoNivel: nivelCobroElectronico(vista.alumno, fila.conceptoNo),
+          cicloTemporada: vista.cicloTemporada,
+          alumnoNivel: nivelCobroElectronico(vista.alumno, fila.conceptoNo, vista.cicloTemporada),
         },
       })
     } catch (e) {

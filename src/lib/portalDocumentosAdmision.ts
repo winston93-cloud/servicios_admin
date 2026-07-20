@@ -27,16 +27,24 @@ export function esTransicionDocumentosReinscrito(
 }
 
 export function requiereDocumentosAdmision(
-  alumno: Pick<AlumnoRegistro, 'alumno_nuevo_ingreso' | 'alumno_nivel' | 'alumno_grado' | 'alumno_ciclo_escolar'>
+  alumno: Pick<
+    AlumnoRegistro,
+    'alumno_nuevo_ingreso' | 'alumno_nivel' | 'alumno_grado' | 'alumno_ciclo_escolar'
+  >,
+  cicloTemporadaActual: number
 ): boolean {
   if (formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 1) return true
-  const proy = proyectarReinscripcionAlumno(alumno)
+  const proy = proyectarReinscripcionAlumno(alumno, cicloTemporadaActual)
   return esTransicionDocumentosReinscrito(proy, alumno)
 }
 
 /** Nivel/grado usados para requisitos y correo de control escolar. */
 export function nivelGradoDocumentosAdmision(
-  alumno: Pick<AlumnoRegistro, 'alumno_nuevo_ingreso' | 'alumno_nivel' | 'alumno_grado' | 'alumno_ciclo_escolar'>
+  alumno: Pick<
+    AlumnoRegistro,
+    'alumno_nuevo_ingreso' | 'alumno_nivel' | 'alumno_grado' | 'alumno_ciclo_escolar'
+  >,
+  cicloTemporadaActual: number
 ): { nivel: number; grado: number } {
   if (formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 1) {
     return {
@@ -44,6 +52,6 @@ export function nivelGradoDocumentosAdmision(
       grado: Number(alumno.alumno_grado) || 1,
     }
   }
-  const proy = proyectarReinscripcionAlumno(alumno)
+  const proy = proyectarReinscripcionAlumno(alumno, cicloTemporadaActual)
   return { nivel: proy.nivel, grado: proy.grado || 1 }
 }

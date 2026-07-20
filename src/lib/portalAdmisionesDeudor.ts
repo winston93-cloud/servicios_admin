@@ -2,7 +2,7 @@ import type { AppDatabaseClient } from '@/lib/dbTypes'
 import type { AlumnoRegistro } from './alumnoDatosService'
 import { formaIngresoPorDefecto } from './alumnoFormaIngreso'
 import type { PagoDetalleRegistro } from './pagoColegiaturaService'
-import { cicloInscripcionValor } from './portalAdmisionesCiclo'
+import { cicloCierreValor } from './portalCierreCicloAnterior'
 import { alumnoTienePagoSemiref } from './portalAdmisionesColegiatura'
 
 async function tieneBecaCompletaCea(
@@ -23,25 +23,23 @@ async function tieneBecaCompletaCea(
 }
 
 /**
- * Port de loader.php ($debtor) para reinscritos.
- * Bloquea el portal si faltan pagos de material (feb) o junio según calendario.
- *
- * Junio se exige del ciclo que se está cerrando (= ciclo de inscripción − 1),
- * no de `cea` de BD: si `es_actual` aún no avanzó pero la fecha de corte ya
- * pasó, `cea - 1` pedía el junio del año anterior (falso adeudo).
+ * Fallback de adeudos para reinscritos (material feb / junio).
+ * Usa la temporada activa (`es_actual`) como ciclo a cerrar.
  */
 export async function esDeudorReinscrito(
   supabase: AppDatabaseClient,
   alumno: AlumnoRegistro,
   pagos: PagoDetalleRegistro[],
-  cea: number
+  cicloTemporadaActual: number
 ): Promise<boolean> {
   if (formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) !== 0) return false
-  if (await tieneBecaCompletaCea(supabase, alumno.alumno_id, cea)) return false
+  if (await tieneBecaCompletaCea(supabase, alumno.alumno_id, cicloTemporadaActual)) {
+    return false
+  }
 
   const mes = new Date().getMonth() + 1
   const ref = alumno.alumno_ref
-  const cicloCierre = cicloInscripcionValor() - 1
+  const cicloCierre = cicloCierreValor(cicloTemporadaActual)
 
   if (mes === 2 && cicloCierre !== 17) {
     const materialFeb = alumnoTienePagoSemiref(pagos, ref, '16', cicloCierre)

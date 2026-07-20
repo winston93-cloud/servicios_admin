@@ -155,11 +155,12 @@ async function pagosInscripcionCiclo(
  */
 export async function calcularReinscripcionDiferido(
   supabase: AppDatabaseClient,
-  alumno: AlumnoRegistro
+  alumno: AlumnoRegistro,
+  cicloTemporadaActual: number
 ): Promise<ReinscripcionDiferido | null> {
   if (formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) !== 0) return null
 
-  const proy = proyectarReinscripcionAlumno(alumno)
+  const proy = proyectarReinscripcionAlumno(alumno, cicloTemporadaActual)
   const cen = proy.cicloDestino
   const nivel = proy.nivel
   const grado = proy.grado

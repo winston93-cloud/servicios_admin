@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       // temporada (22→23, 23→24, …); NI → ciclo de la ficha.
       const proy =
         formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 0
-          ? proyectarReinscripcionAlumno(alumno)
+          ? proyectarReinscripcionAlumno(alumno, cicloSistema.valor)
           : null
       ciclo = await resolverCicloPagoInscripcionPortal(
         alumno,
@@ -110,6 +110,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       matriz,
+      cicloTemporada: cicloSistema?.valor ?? ciclo.valor,
       colegiaturasPreviasCero: previos.insertados,
     })
   } catch (e) {

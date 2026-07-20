@@ -1,14 +1,19 @@
 import type { AlumnoRegistro } from './alumnoDatosService'
 import { formaIngresoPorDefecto } from './alumnoFormaIngreso'
 import type { PagoDetalleRegistro } from './pagoColegiaturaService'
-import { cicloInscripcionValor } from './portalAdmisionesCiclo'
 import { alumnoTienePagoSemiref } from './portalAdmisionesColegiatura'
 import { slotsColegiaturaPortal } from './portalPagosCandados'
 import { normalizarConceptoNo } from './pagoReferenciaColegiatura'
 
-/** Ciclo escolar que el reinscrito debe liquidar antes de reinscribirse. */
-export function cicloCierreValor(cea?: number): number {
-  return cicloInscripcionValor(cea) - 1
+/**
+ * Ciclo que el reinscrito debe liquidar antes de reinscribirse.
+ * Coincide con la temporada activa (`ciclos_escolares.es_actual`).
+ */
+export function cicloCierreValor(cicloTemporadaActual: number): number {
+  if (!Number.isFinite(cicloTemporadaActual) || cicloTemporadaActual <= 0) {
+    throw new Error('cicloTemporadaActual requerido')
+  }
+  return cicloTemporadaActual
 }
 
 export function planMesesAlumno(alumno: Pick<AlumnoRegistro, 'mes'>): 1 | 2 {
@@ -26,16 +31,15 @@ function etiquetaPlan(planMeses: 1 | 2): string {
 export function cicloCierreLiquidado(
   pagosCierre: PagoDetalleRegistro[],
   alumno: Pick<AlumnoRegistro, 'alumno_ref' | 'mes'>,
-  cicloValor?: number
+  cicloValor: number
 ): boolean {
   const plan = planMesesAlumno(alumno)
   const slots = slotsColegiaturaPortal(plan)
   const ref = alumno.alumno_ref
-  const ciclo = cicloValor ?? cicloCierreValor()
 
   for (const slot of slots) {
     for (const concepto of slot) {
-      if (!alumnoTienePagoSemiref(pagosCierre, ref, normalizarConceptoNo(concepto), ciclo)) {
+      if (!alumnoTienePagoSemiref(pagosCierre, ref, normalizarConceptoNo(concepto), cicloValor)) {
         return false
       }
     }

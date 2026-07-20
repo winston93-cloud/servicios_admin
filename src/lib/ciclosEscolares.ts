@@ -28,16 +28,11 @@ export function getCicloEscolarActual(ref?: Date): number {
 }
 
 /**
- * Fallback por calendario (corte admisiones). Preferir proyectar desde
- * el ciclo de temporada: `proyectarCicloInscripcion(cicloOrigen)`.
+ * Fallback si no hay catálogo en BD. Preferir `proyectarCicloInscripcion`
+ * desde el ciclo de temporada (`es_actual`).
  */
 export function getCicloInscripcion(ref?: Date): number {
-  const d = fechaReferencia(ref)
-  const cmd = `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  const y = d.getFullYear() % 100
-  const cambioCiclo = process.env.ADMISIONES_CAMBIO_CICLO?.trim() || '07-25'
-  const cea = cmd < cambioCiclo ? y - 4 : y - 3
-  return cmd < cambioCiclo ? cea + 1 : cea
+  return proyectarCicloInscripcion(getCicloEscolarActual(ref))
 }
 
 /** Destino de inscripción/reinscripción: origen + 1 (22→23, 23→24, …). */

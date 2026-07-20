@@ -1,6 +1,6 @@
 import type { AlumnoRegistro } from './alumnoDatosService'
 import { calcularDestinoCambioCiclo } from './cambioCicloEscolarAdvance'
-import { cicloInscripcionValor } from './portalAdmisionesCiclo'
+import { proyectarCicloInscripcion } from './ciclosEscolares'
 
 export type ProyeccionReinscripcion = {
   cicloOrigen: number
@@ -21,18 +21,19 @@ export type ProyeccionReinscripcion = {
 
 /**
  * Destino de reinscripción según la ficha del alumno vs el ciclo de inscripción
- * de la temporada (`cicloInscripcionValor`), no solo por la fecha de corte.
+ * de la temporada (`es_actual` → origen+1), definido en catálogo / módulo cambio de ciclo.
  *
  * - Reinscrito aún en 22 → destino 23, costos/reglamento 23, grado/nivel proyectados.
  * - Tras cambio de ciclo (ficha ya en 23) → destino 23, sin nueva promoción.
  */
 export function proyectarReinscripcionAlumno(
-  alumno: Pick<AlumnoRegistro, 'alumno_ciclo_escolar' | 'alumno_nivel' | 'alumno_grado'>
+  alumno: Pick<AlumnoRegistro, 'alumno_ciclo_escolar' | 'alumno_nivel' | 'alumno_grado'>,
+  cicloTemporadaActual: number
 ): ProyeccionReinscripcion {
   const cicloOrigen = Number(alumno.alumno_ciclo_escolar) || 0
   const nivelOrigen = Number(alumno.alumno_nivel) || 0
   const gradoOrigen = Number(alumno.alumno_grado) || 0
-  const cenTemporada = cicloInscripcionValor()
+  const cenTemporada = proyectarCicloInscripcion(cicloTemporadaActual)
 
   const proyectaPromocion = cicloOrigen > 0 && cicloOrigen < cenTemporada
 

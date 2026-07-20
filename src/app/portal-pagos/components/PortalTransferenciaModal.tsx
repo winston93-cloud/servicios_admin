@@ -22,6 +22,8 @@ export interface DatosTransferenciaPortal {
   alumnoId: number
   conceptoNo: string
   cicloEscolar: number
+  /** Temporada activa (`es_actual`) para proyección en cobro electrónico. */
+  cicloTemporada?: number
   alumnoNivel: number
 }
 
@@ -144,6 +146,7 @@ export default function PortalTransferenciaModal({
           alumnoId: datos.alumnoId,
           conceptoNo: datos.conceptoNo,
           cicloEscolar: datos.cicloEscolar,
+          cicloTemporada: datos.cicloTemporada,
           conceptoClase: datos.concepto,
           nombreAlumno: datos.alumno,
           deviceSessionId: deviceSessionId || undefined,
