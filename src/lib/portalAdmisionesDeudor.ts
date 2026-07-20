@@ -24,7 +24,7 @@ async function tieneBecaCompletaCea(
 
 /**
  * Fallback de adeudos para reinscritos (material feb / junio).
- * Usa la temporada activa (`es_actual`) como ciclo a cerrar.
+ * Usa el ciclo de cierre (`cicloInscripcionDesdeTemporada(es_actual) - 1`).
  */
 export async function esDeudorReinscrito(
   supabase: AppDatabaseClient,

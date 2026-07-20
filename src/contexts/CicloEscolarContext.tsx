@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { getCicloEscolarActual, proyectarCicloInscripcion } from '@/lib/ciclosEscolares'
+import { cicloInscripcionDesdeTemporada, getCicloEscolarActual } from '@/lib/ciclosEscolares'
 import {
   ciclosParaSelector,
   listarCiclosEscolares,
@@ -23,7 +23,7 @@ interface CicloEscolarContextValue {
   cicloSeleccionado: number
   /** Ciclo marcado como actual en BD (`es_actual`); solo se edita en el catálogo. */
   cicloActualSistema: number
-  /** Próximo ciclo de inscripción = origen + 1. */
+  /** Ciclo de inscripción (cen) según temporada / fase de cambio de ciclo. */
   cicloInscripcionSistema: number
   etiquetaCicloActualSistema: string
   etiquetaCicloInscripcionSistema: string
@@ -57,7 +57,7 @@ export function CicloEscolarProvider({ children }: { children: ReactNode }) {
 
   const cicloActualSistema = useMemo(() => valorCicloActualSistema(ciclos), [ciclos])
   const cicloInscripcionSistema = useMemo(
-    () => proyectarCicloInscripcion(cicloActualSistema),
+    () => cicloInscripcionDesdeTemporada(cicloActualSistema),
     [cicloActualSistema]
   )
 

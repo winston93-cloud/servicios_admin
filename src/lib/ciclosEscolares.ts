@@ -27,15 +27,56 @@ export function getCicloEscolarActual(ref?: Date): number {
   return m < 8 ? y - 2004 : y - 2003
 }
 
-/**
- * Fallback si no hay catálogo en BD. Preferir `proyectarCicloInscripcion`
- * desde el ciclo de temporada (`es_actual`).
- */
-export function getCicloInscripcion(ref?: Date): number {
-  return proyectarCicloInscripcion(getCicloEscolarActual(ref))
+/** Corte MM-DD del cambio de ciclo administrativo (reinscripciones → año nuevo). */
+function corteCambioCicloMmDd(): string {
+  return process.env.ADMISIONES_CAMBIO_CICLO?.trim() || '07-25'
 }
 
-/** Destino de inscripción/reinscripción: origen + 1 (22→23, 23→24, …). */
+function mmDd(d: Date): string {
+  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/**
+ * cea “natural” por calendario (corte admisiones, default 07-25).
+ * Distinto del corte agosto de `getCicloEscolarActual`.
+ */
+export function cicloEscolarActualPorCorteAdmisiones(ref?: Date): number {
+  const d = fechaReferencia(ref)
+  const y = d.getFullYear()
+  return mmDd(d) < corteCambioCicloMmDd() ? y - 2004 : y - 2003
+}
+
+/**
+ * Ciclo de inscripción (cen) a partir del cea de catálogo (`es_actual`).
+ *
+ * - Antes del corte: cen = cea + 1 (p. ej. temporada 22 → reinscripción a 23).
+ * - Después del corte: cen = cea (ya estamos en el ciclo nuevo).
+ * - Si el catálogo adelantó `es_actual` respecto al calendario (cambio ya
+ *   aplicado), cen = cea — evita tratar el ciclo vigente como si fuera el
+ *   siguiente año (p. ej. julio 2027).
+ */
+export function cicloInscripcionDesdeTemporada(cea: number, ref?: Date): number {
+  if (!Number.isFinite(cea) || cea <= 0) {
+    throw new Error('cea (ciclo de temporada) requerido')
+  }
+  const d = fechaReferencia(ref)
+  const ceaNatural = cicloEscolarActualPorCorteAdmisiones(d)
+  if (cea > ceaNatural) return cea
+  return mmDd(d) < corteCambioCicloMmDd() ? cea + 1 : cea
+}
+
+/**
+ * Fallback si no hay catálogo en BD. Preferir
+ * `cicloInscripcionDesdeTemporada(es_actual)`.
+ */
+export function getCicloInscripcion(ref?: Date): number {
+  return cicloInscripcionDesdeTemporada(cicloEscolarActualPorCorteAdmisiones(ref), ref)
+}
+
+/**
+ * Avance de ficha alumno: origen + 1 (22→23, 23→24, …).
+ * No usar como cen de temporada; para eso: `cicloInscripcionDesdeTemporada`.
+ */
 export function proyectarCicloInscripcion(cicloOrigen: number): number {
   return cicloOrigen + 1
 }

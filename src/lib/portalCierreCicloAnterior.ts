@@ -1,5 +1,6 @@
 import type { AlumnoRegistro } from './alumnoDatosService'
 import { formaIngresoPorDefecto } from './alumnoFormaIngreso'
+import { cicloInscripcionDesdeTemporada } from './ciclosEscolares'
 import type { PagoDetalleRegistro } from './pagoColegiaturaService'
 import { alumnoTienePagoSemiref } from './portalAdmisionesColegiatura'
 import { slotsColegiaturaPortal } from './portalPagosCandados'
@@ -7,13 +8,11 @@ import { normalizarConceptoNo } from './pagoReferenciaColegiatura'
 
 /**
  * Ciclo que el reinscrito debe liquidar antes de reinscribirse.
- * Coincide con la temporada activa (`ciclos_escolares.es_actual`).
+ * Es el anterior al cen de temporada: `cicloInscripcionDesdeTemporada(cea) - 1`
+ * (p. ej. cen 23 → cierre 22; no el `es_actual` a ciegas).
  */
-export function cicloCierreValor(cicloTemporadaActual: number): number {
-  if (!Number.isFinite(cicloTemporadaActual) || cicloTemporadaActual <= 0) {
-    throw new Error('cicloTemporadaActual requerido')
-  }
-  return cicloTemporadaActual
+export function cicloCierreValor(cicloTemporadaActual: number, ref?: Date): number {
+  return cicloInscripcionDesdeTemporada(cicloTemporadaActual, ref) - 1
 }
 
 export function planMesesAlumno(alumno: Pick<AlumnoRegistro, 'mes'>): 1 | 2 {

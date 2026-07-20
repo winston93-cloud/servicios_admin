@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { getCicloEscolarActual, proyectarCicloInscripcion } from './ciclosEscolares'
+import { cicloInscripcionDesdeTemporada, getCicloEscolarActual } from './ciclosEscolares'
 
 export interface CicloEscolarRegistro {
   id: number
@@ -64,10 +64,10 @@ export async function resolverCicloEscolarSistemaValor(): Promise<number> {
   return getCicloEscolarActual()
 }
 
-/** Inscripción / próximo ciclo = origen + 1 (desde temporada actual). */
+/** Ciclo de inscripción (cen) según temporada / fase de cambio de ciclo. */
 export async function resolverCicloInscripcionSistemaValor(): Promise<number> {
   const origen = await resolverCicloEscolarSistemaValor()
-  return proyectarCicloInscripcion(origen)
+  return cicloInscripcionDesdeTemporada(origen)
 }
 
 export async function obtenerCicloPorValor(
