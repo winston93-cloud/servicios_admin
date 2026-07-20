@@ -27,8 +27,8 @@ import { construirFilasInscripcionPortal } from './portalPagosMatrizService'
 import { resolverCicloPagoInscripcionPortal } from './portalInscripcionesCiclo'
 import { calcularReinscripcionDiferido } from './portalReinscripcionService'
 import {
+  evaluarSolicitudCapturada,
   inscripcionCompletaPagada,
-  solicitudCapturada,
 } from './portalInscripcionesSolicitud'
 import { getPaymentConcept } from './boucherCore'
 import { rutasFacturaDesdeReferencia } from './portalFacturaRutas'
@@ -186,7 +186,8 @@ export async function construirEstadoPortalInscripciones(
     )
   }
 
-  const solCapturada = await solicitudCapturada(supabase, alumno)
+  const solEval = await evaluarSolicitudCapturada(supabase, alumno)
+  const solCapturada = solEval.completa
   const calcReinscripcion = esReinscrito
     ? await calcularReinscripcionDiferido(supabase, alumno, cea)
     : null
@@ -419,10 +420,12 @@ export async function construirEstadoPortalInscripciones(
       ? alumno.alumno_registro
         ? `Registrada el ${alumno.alumno_registro}`
         : 'Datos capturados correctamente'
-      : showInfo
-        ? 'Completa el formulario para habilitar los pagos.'
-        : 'Disponible cuando abra el periodo de inscripción.',
-    fechaCompletado: alumno.alumno_registro ?? null,
+      : solEval.faltantesResumen
+        ? solEval.faltantesResumen
+        : showInfo
+          ? 'Completa las 5 secciones del formulario (todas en amarillo) y guarda.'
+          : 'Disponible cuando abra el periodo de inscripción.',
+    fechaCompletado: solCapturada ? (alumno.alumno_registro ?? null) : null,
     accion:
       flujoActivo && (pasosVisibles || !esReinscrito)
         ? {

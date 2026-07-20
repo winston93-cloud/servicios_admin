@@ -2,23 +2,49 @@ import type { AppDatabaseClient } from '@/lib/dbTypes'
 import type { AlumnoRegistro } from './alumnoDatosService'
 import type { PagoDetalleRegistro } from './pagoColegiaturaService'
 import { alumnoTienePagoSemiref } from './portalAdmisionesColegiatura'
+import { cargarSolicitudInscripcion } from './portalInscripcionesSolicitudService'
+import {
+  resumenSeccionesFaltantes,
+  solicitudFormularioCompleta,
+} from './portalInscripcionesValidacion'
 
-/** Port de admisiones_solicitud_capturada + alumno_registro. */
+export type EstadoSolicitudCaptura = {
+  completa: boolean
+  /** Mensaje corto de secciones pendientes, o null si está completa. */
+  faltantesResumen: string | null
+}
+
+/**
+ * La solicitud solo cuenta como capturada si las 5 secciones pasan validación.
+ * Ya no basta con `alumno_registro` o un CURP parcial en alumno_detalles.
+ */
+export async function evaluarSolicitudCapturada(
+  supabase: AppDatabaseClient,
+  alumno: AlumnoRegistro
+): Promise<EstadoSolicitudCaptura> {
+  try {
+    const form = await cargarSolicitudInscripcion(supabase, alumno.alumno_id)
+    const completa = solicitudFormularioCompleta(form)
+    return {
+      completa,
+      faltantesResumen: completa ? null : resumenSeccionesFaltantes(form),
+    }
+  } catch (e) {
+    console.error('evaluarSolicitudCapturada:', e)
+    return {
+      completa: false,
+      faltantesResumen: 'No se pudo verificar la solicitud. Ábrela y completa las 5 secciones.',
+    }
+  }
+}
+
+/** Port de admisiones_solicitud_capturada (estricto: formulario completo). */
 export async function solicitudCapturada(
   supabase: AppDatabaseClient,
   alumno: AlumnoRegistro
 ): Promise<boolean> {
-  if (alumno.alumno_registro) return true
-
-  const { count, error } = await supabase
-    .from('alumno_detalles')
-    .select('alumno_id', { count: 'exact', head: true })
-    .eq('alumno_id', alumno.alumno_id)
-    .not('alumno_curp', 'is', null)
-    .neq('alumno_curp', '')
-
-  if (error) return false
-  return (count ?? 0) > 0
+  const estado = await evaluarSolicitudCapturada(supabase, alumno)
+  return estado.completa
 }
 
 /** Port de admisiones_tiene_inscripcion_completa_pagada. */

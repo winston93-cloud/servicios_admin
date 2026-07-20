@@ -18275,6 +18275,42 @@ html[data-theme='light'] .pi-form-step--visitada .pi-form-step-num {
   color: #047857;
 }
 
+/* Sección con datos obligatorios cubiertos → amarillo */
+.pi-form-step--completa:not(.pi-form-step--activa) {
+  border-color: rgba(251, 191, 36, 0.75);
+  background: linear-gradient(
+    165deg,
+    rgba(251, 191, 36, 0.22) 0%,
+    rgba(12, 22, 42, 0.92) 100%
+  );
+  color: #fde68a;
+}
+
+.pi-form-step--completa:not(.pi-form-step--activa) .pi-form-step-num {
+  background: rgba(251, 191, 36, 0.28);
+  border-color: rgba(251, 191, 36, 0.7);
+  color: #fbbf24;
+}
+
+.pi-form-step--completa.pi-form-step--activa {
+  border-color: rgba(251, 191, 36, 0.9);
+  box-shadow:
+    0 8px 24px rgba(245, 158, 11, 0.25),
+    0 0 0 1px rgba(251, 191, 36, 0.35);
+}
+
+html[data-theme='light'] .pi-form-step--completa:not(.pi-form-step--activa) {
+  border-color: #f59e0b;
+  background: linear-gradient(165deg, #fef3c7 0%, #fffbeb 100%);
+  color: #92400e;
+}
+
+html[data-theme='light'] .pi-form-step--completa:not(.pi-form-step--activa) .pi-form-step-num {
+  background: #fde68a;
+  border-color: #f59e0b;
+  color: #b45309;
+}
+
 .pi-form-step--activa {
   border-color: var(--pi-accent-hex, var(--portal-form-step-activa-border));
   background: linear-gradient(

@@ -21,16 +21,23 @@ import { useAuth } from '@/contexts/AuthContext'
 import { SEXO_ALUMNO_OPCIONES } from '@/lib/alumnoSexo'
 import type { SolicitudInscripcionFormulario } from '@/lib/portalInscripcionesSolicitudTypes'
 import { SOLICITUD_CONTACTO_VACIO } from '@/lib/portalInscripcionesSolicitudTypes'
+import {
+  ETIQUETA_SECCION_SOLICITUD,
+  SECCIONES_SOLICITUD_ORDEN,
+  mapaErroresPorSeccion,
+  seccionSolicitudCompleta,
+  type SeccionSolicitudId,
+} from '@/lib/portalInscripcionesValidacion'
 
 const SECCIONES = [
-  { id: 'alumno', label: 'Alumno', hint: 'Datos personales y domicilio', icon: User, accent: 'sky' },
-  { id: 'salud', label: 'Salud', hint: 'Ficha médica escolar', icon: HeartPulse, accent: 'emerald' },
-  { id: 'mama', label: 'Mamá', hint: 'Datos de la madre', icon: Users, accent: 'violet' },
-  { id: 'papa', label: 'Papá', hint: 'Datos del padre', icon: Users, accent: 'indigo' },
-  { id: 'contactos', label: 'Contactos', hint: 'Emergencia y autorizados', icon: Phone, accent: 'amber' },
-] as const
+  { id: 'alumno' as const, label: 'Alumno', hint: 'Datos personales y domicilio', icon: User, accent: 'sky' },
+  { id: 'salud' as const, label: 'Salud', hint: 'Ficha médica escolar', icon: HeartPulse, accent: 'emerald' },
+  { id: 'mama' as const, label: 'Mamá', hint: 'Datos de la madre', icon: Users, accent: 'violet' },
+  { id: 'papa' as const, label: 'Papá', hint: 'Datos del padre', icon: Users, accent: 'indigo' },
+  { id: 'contactos' as const, label: 'Contactos', hint: 'Emergencia y autorizados', icon: Phone, accent: 'amber' },
+]
 
-type SeccionId = (typeof SECCIONES)[number]['id']
+type SeccionId = SeccionSolicitudId
 
 function iconoSeccion(id: SeccionId): LucideIcon {
   return SECCIONES.find((s) => s.id === id)?.icon ?? User
@@ -184,8 +191,13 @@ export default function SolicitudInscripcionForm() {
       })
       const data = await res.json()
       if (!res.ok) {
-        if (data.errores?.length) setErroresValidacion(data.errores)
-        else setError(data.error ?? 'No se pudo guardar.')
+        if (data.errores?.length) {
+          setErroresValidacion(data.errores)
+          const primeraFalta = SECCIONES_SOLICITUD_ORDEN.find(
+            (id) => !seccionSolicitudCompleta(form, id)
+          )
+          if (primeraFalta) setSeccion(primeraFalta)
+        } else setError(data.error ?? 'No se pudo guardar.')
       } else {
         setExito(true)
         setTimeout(() => router.push('/portal-inscripciones'), 1200)
@@ -230,6 +242,13 @@ export default function SolicitudInscripcionForm() {
   const indiceSeccion = SECCIONES.findIndex((s) => s.id === seccion)
   const seccionActual = SECCIONES[indiceSeccion] ?? SECCIONES[0]
   const progresoSeccion = Math.round(((indiceSeccion + 1) / SECCIONES.length) * 100)
+  const erroresPorSeccion = mapaErroresPorSeccion(form)
+  const seccionesCompletas = Object.fromEntries(
+    SECCIONES_SOLICITUD_ORDEN.map((id) => [id, seccionSolicitudCompleta(form, id)])
+  ) as Record<SeccionSolicitudId, boolean>
+  const faltanEtiquetas = SECCIONES_SOLICITUD_ORDEN.filter((id) => !seccionesCompletas[id]).map(
+    (id) => ETIQUETA_SECCION_SOLICITUD[id]
+  )
   const IconoSeccion = iconoSeccion(seccion)
 
   const irSeccion = (dir: -1 | 1) => {
@@ -260,7 +279,8 @@ export default function SolicitudInscripcionForm() {
             <p className="portal-inscripciones-kicker">Formulario en línea</p>
             <h1 className="dashboard-title portal-inscripciones-titulo">Solicitud de inscripción</h1>
             <p className="dashboard-subtitle portal-inscripciones-lead">
-              Completa las 5 secciones. Al guardar se habilitan los pagos del ciclo.
+              Completa las 5 secciones (deben quedar en amarillo). Al guardar se habilitan los
+              pagos del ciclo.
             </p>
           </div>
           <div
@@ -284,15 +304,20 @@ export default function SolicitudInscripcionForm() {
         {SECCIONES.map((s, i) => {
           const Icon = s.icon
           const activa = seccion === s.id
-          const visitada = i < indiceSeccion
+          const completa = seccionesCompletas[s.id]
           return (
             <button
               key={s.id}
               type="button"
-              className={`pi-form-step${activa ? ' pi-form-step--activa' : ''}${visitada ? ' pi-form-step--visitada' : ''}`}
-              data-accent={s.accent}
+              className={`pi-form-step${activa ? ' pi-form-step--activa' : ''}${completa ? ' pi-form-step--completa' : ''}`}
+              data-accent={completa ? 'amber' : s.accent}
               onClick={() => setSeccion(s.id)}
               aria-current={activa ? 'step' : undefined}
+              title={
+                completa
+                  ? `${s.label}: completa`
+                  : `${s.label}: pendiente (${erroresPorSeccion[s.id].length} dato(s) faltante(s))`
+              }
             >
               <span className="pi-form-step-num">{i + 1}</span>
               <span className="pi-form-step-icon" aria-hidden>
@@ -305,6 +330,14 @@ export default function SolicitudInscripcionForm() {
       </nav>
 
       <div className="pi-form-shell">
+      {faltanEtiquetas.length > 0 && !exito && (
+        <div className="portal-inscripciones-alerta portal-inscripciones-alerta--aviso" role="status">
+          {faltanEtiquetas.length === 1
+            ? `Te falta completar la sección ${faltanEtiquetas[0]} (debe quedar en amarillo).`
+            : `Te falta completar: ${faltanEtiquetas.join(', ')}. Todas las pestañas deben quedar en amarillo antes de guardar.`}
+        </div>
+      )}
+
       {error && (
         <div className="portal-inscripciones-alerta portal-inscripciones-alerta--error" role="alert">
           {error}
