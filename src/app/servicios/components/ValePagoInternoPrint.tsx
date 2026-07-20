@@ -156,39 +156,79 @@ function dibujarPaginaVale(pdf: jsPDF, datos: DatosValePagoInterno): void {
   pdf.text(fin, x + 30 / 2 + 0.5, yGrado + 4, { align: 'center' })
 }
 
-/** Imprime original + copia (2 páginas del mismo vale). */
+/** Imprime original + copia (2 páginas). Un solo disparo de print por llamada. */
+let ultimaImpresionValeMs = 0
+
 export function imprimirValePagoInterno(datos: DatosValePagoInterno): void {
   if (typeof window === 'undefined' || typeof document === 'undefined') return
 
+  // Evita doble job si el guardado dispara imprimir dos veces seguidas.
+  const ahora = Date.now()
+  if (ahora - ultimaImpresionValeMs < 2500) return
+  ultimaImpresionValeMs = ahora
+
   const pdf = generarPdfValePagoInterno(datos)
+  // Confirmar serie: exactamente 2 páginas (original + copia).
+  if (pdf.getNumberOfPages() !== 2) {
+    while (pdf.getNumberOfPages() > 2) {
+      pdf.deletePage(pdf.getNumberOfPages())
+    }
+  }
+
   const blob = pdf.output('blob')
   const url = URL.createObjectURL(blob)
 
+  // Quitar iframes de impresiones anteriores para no acumular jobs.
+  document
+    .querySelectorAll('iframe[data-vale-pago-interno="1"]')
+    .forEach((el) => el.remove())
+
   const iframe = document.createElement('iframe')
   iframe.setAttribute('title', 'vale-pago-interno')
+  iframe.setAttribute('data-vale-pago-interno', '1')
   iframe.style.cssText =
     'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;'
   document.body.appendChild(iframe)
 
+  let limpiado = false
   const cleanup = () => {
-    window.setTimeout(() => {
-      try {
-        iframe.remove()
-        URL.revokeObjectURL(url)
-      } catch {
-        /* ignore */
-      }
-    }, 2000)
+    if (limpiado) return
+    limpiado = true
+    try {
+      iframe.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      /* ignore */
+    }
   }
 
-  iframe.onload = () => {
+  let impreso = false
+  const dispararPrint = () => {
+    if (impreso) return
+    impreso = true
+    const win = iframe.contentWindow
+    if (!win) {
+      cleanup()
+      return
+    }
+    const onAfterPrint = () => {
+      win.removeEventListener('afterprint', onAfterPrint)
+      // Dar tiempo a que la cola de la impresora tome el job.
+      window.setTimeout(cleanup, 1500)
+    }
+    win.addEventListener('afterprint', onAfterPrint)
+    // Fallback si el navegador no dispara afterprint (p. ej. algunos PDF viewers).
+    window.setTimeout(cleanup, 120_000)
     try {
-      iframe.contentWindow?.focus()
-      iframe.contentWindow?.print()
-    } finally {
+      win.focus()
+      win.print()
+    } catch {
       cleanup()
     }
   }
+
+  // `once: true` evita el doble onload (Chrome/PDF) que imprimía 4 hojas.
+  iframe.addEventListener('load', dispararPrint, { once: true })
   iframe.src = url
 }
 
