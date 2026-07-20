@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server'
 import { REPORTE_HANDLERS } from '@/lib/reportes/registry'
-import {
-  autorizacionReportePdfValida,
-  reporteRequiereClave,
-  respuestaLoginReportePdf,
-} from '@/lib/reportes/reportePdfAuth'
+import { cookieDif2Valida, reporteRequiereClave } from '@/lib/reportes/reportePdfAuth'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -26,14 +22,20 @@ export async function GET(request: Request, context: RouteContext) {
       )
     }
 
+    const { searchParams } = new URL(request.url)
+
+    // insc-admin-dif2: modal en /dif2 (sin Basic Auth del navegador)
     if (reporteRequiereClave(slug)) {
-      const auth = request.headers.get('authorization')
-      if (!autorizacionReportePdfValida(auth)) {
-        return respuestaLoginReportePdf()
+      if (!cookieDif2Valida(request.headers.get('cookie'))) {
+        const q = new URLSearchParams()
+        const ciclo = searchParams.get('ciclo')?.trim()
+        if (ciclo) q.set('ciclo', ciclo)
+        if (searchParams.get('format') === 'html') q.set('format', 'html')
+        const dest = q.toString() ? `/dif2?${q}` : '/dif2'
+        return NextResponse.redirect(new URL(dest, request.url), 302)
       }
     }
 
-    const { searchParams } = new URL(request.url)
     const result = await handler(searchParams)
 
     if (result.pdf) {

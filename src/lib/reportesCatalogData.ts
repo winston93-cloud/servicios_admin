@@ -67,6 +67,8 @@ export const REPORTE_CATEGORIAS: ReporteCategoria[] = [
 
 export function apiPathReporte(entry: ReporteCatalogEntry): string | null {
   if (entry.motor !== 'api-next') return null
+  // Modal profesional (solo contraseña); evita Basic Auth del navegador.
+  if (entry.id === 'insc-admin-dif2') return '/dif2'
   const slug = entry.apiSlug ?? entry.id
   return `/api/reportes/${slug}`
 }

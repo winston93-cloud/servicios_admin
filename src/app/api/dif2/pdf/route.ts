@@ -1,24 +1,15 @@
 import { NextResponse } from 'next/server'
 import { resolverCicloInscripcionSistemaValor } from '@/lib/ciclosEscolaresService'
-import {
-  autorizacionReportePdfValida,
-  respuestaLoginReportePdf,
-} from '@/lib/reportes/reportePdfAuth'
+import { cookieDif2Valida } from '@/lib/reportes/reportePdfAuth'
 import { REPORTE_HANDLERS } from '@/lib/reportes/registry'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-/**
- * URL corta para el PDF de Inscripciones admin (2º diferido).
- * Ej.: https://servicios-admin.vercel.app/dif2
- * Login: cualquier usuario / clave admin123
- */
 export async function GET(request: Request) {
   try {
-    const auth = request.headers.get('authorization')
-    if (!autorizacionReportePdfValida(auth)) {
-      return respuestaLoginReportePdf()
+    if (!cookieDif2Valida(request.headers.get('cookie'))) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -56,7 +47,7 @@ export async function GET(request: Request) {
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al generar reporte'
-    console.error('GET /dif2:', e)
+    console.error('GET /api/dif2/pdf:', e)
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
