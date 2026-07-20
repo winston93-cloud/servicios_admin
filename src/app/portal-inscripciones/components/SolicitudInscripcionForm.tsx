@@ -457,7 +457,13 @@ export default function SolicitudInscripcionForm() {
               <input className="pi-form-input" value={form.medico.estatura} onChange={(e) => setMedico({ estatura: e.target.value })} />
             </Campo>
             <Campo label="Tipo de sangre" required>
-              <input className="pi-form-input" value={form.medico.tipoSangre} onChange={(e) => setMedico({ tipoSangre: e.target.value })} />
+              <input
+                className="pi-form-input"
+                value={form.medico.tipoSangre}
+                onChange={(e) => setMedico({ tipoSangre: e.target.value.toUpperCase() })}
+                placeholder="Ej. O+, A POSITIVO"
+                maxLength={30}
+              />
             </Campo>
             <Campo label="¿Alérgico a algún medicamento?" required>
               <input className="pi-form-input" value={form.medico.alergias} onChange={(e) => setMedico({ alergias: e.target.value })} />

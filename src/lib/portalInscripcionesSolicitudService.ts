@@ -26,6 +26,30 @@ function fechaIso(val: string | null | undefined): string {
   return String(val).slice(0, 10)
 }
 
+/** Textos legacy tipo NINGUNO / NINGUNA / NO → se tratan como vacío (respuesta No). */
+function textoMedicoSignificativo(val: unknown): string {
+  const s = String(val ?? '').trim()
+  if (!s) return ''
+  const n = s
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toUpperCase()
+    .replace(/\s+/g, ' ')
+  if (
+    n === 'NINGUNO' ||
+    n === 'NINGUNA' ||
+    n === 'NINGUN' ||
+    n === 'NO' ||
+    n === 'N/A' ||
+    n === 'NA' ||
+    n === '.' ||
+    n === '-'
+  ) {
+    return ''
+  }
+  return s
+}
+
 function mapFamiliar(
   reg: Record<string, unknown> | null
 ): SolicitudInscripcionFormulario['mama'] {
@@ -117,22 +141,26 @@ export async function cargarSolicitudInscripcion(
         }
       : { ...SOLICITUD_ALUMNO_VACIO },
     medico: med
-      ? {
-          peso: String(med.alumno_peso ?? ''),
-          estatura: String(med.alumno_estatura ?? ''),
-          tipoSangre: String(med.alumno_sangre_tipo ?? ''),
-          alergias: String(med.alumno_alergia ?? ''),
-          tienePadecimiento: med.alumno_padecimiento ? '1' : '0',
-          padecimiento: String(med.alumno_padecimiento ?? ''),
-          requiereMedicina: med.alumno_medicina ? '1' : '0',
-          medicina: String(med.alumno_medicina ?? ''),
-          suministrar: String(med.alumno_suministrar ?? ''),
-          medicamentos: String(med.alumno_medicamentos ?? ''),
-          atencionInterna: String(med.alumno_atencion_interna ?? ''),
-          afiliacion: String(med.alumno_afiliacion ?? ''),
-          afiliacionExterna: String(med.alumno_afiliacion_externa ?? ''),
-          servicioMedico: String(med.alumno_servicio_medico ?? ''),
-        }
+      ? (() => {
+          const padecimiento = textoMedicoSignificativo(med.alumno_padecimiento)
+          const medicina = textoMedicoSignificativo(med.alumno_medicina)
+          return {
+            peso: String(med.alumno_peso ?? ''),
+            estatura: String(med.alumno_estatura ?? ''),
+            tipoSangre: String(med.alumno_sangre_tipo ?? ''),
+            alergias: String(med.alumno_alergia ?? ''),
+            tienePadecimiento: padecimiento ? '1' : '0',
+            padecimiento,
+            requiereMedicina: medicina ? '1' : '0',
+            medicina,
+            suministrar: String(med.alumno_suministrar ?? ''),
+            medicamentos: String(med.alumno_medicamentos ?? ''),
+            atencionInterna: String(med.alumno_atencion_interna ?? ''),
+            afiliacion: String(med.alumno_afiliacion ?? ''),
+            afiliacionExterna: String(med.alumno_afiliacion_externa ?? ''),
+            servicioMedico: String(med.alumno_servicio_medico ?? ''),
+          }
+        })()
       : { ...SOLICITUD_MEDICO_VACIO },
     mama: mapFamiliar(mamaRow),
     papa: mapFamiliar(papaRow),
@@ -229,14 +257,14 @@ async function upsertMedico(
       .from('alumno_dato_medico')
       .update(fila)
       .eq('dato_medico_id', datoMedicoId)
-    if (error) throw new Error(error.message)
+    if (error) throw new Error(`Ficha médica (actualizar): ${error.message}`)
     return
   }
 
   const { error } = await supabase
     .from('alumno_dato_medico')
     .insert({ alumno_id: alumnoId, ...fila })
-  if (error) throw new Error(error.message)
+  if (error) throw new Error(`Ficha médica (guardar): ${error.message}`)
 }
 
 async function upsertFamiliar(
