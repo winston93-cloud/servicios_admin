@@ -1,5 +1,7 @@
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { construirNombreCompleto } from '@/lib/alumnoBusquedaServicios'
+import { cicloFichaAlumnosParaInscripcion } from '@/lib/ciclosEscolares'
+import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaGrupoEscolar } from '@/lib/grupoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
@@ -165,9 +167,11 @@ export function conceptoPagoATabla(resumen: ResumenConceptoPago, conNivel = true
 }
 
 export async function cargarReporteEms(cicloInscripcion: number) {
+  const cea = await resolverCicloEscolarSistemaValor()
+  const cicloEscolar = cicloFichaAlumnosParaInscripcion(cicloInscripcion, cea)
   return cargarReporteConceptoUnion({
     titulo: 'Herramientas, material y seguro (EMS)',
-    cicloEscolar: cicloInscripcion - 1,
+    cicloEscolar,
     cicloInscripcion,
     conceptosPagados: ['17'],
     soloReinscritos: true,

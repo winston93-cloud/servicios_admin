@@ -66,6 +66,30 @@ export function cicloInscripcionDesdeTemporada(cea: number, ref?: Date): number 
 }
 
 /**
+ * Ciclo de la ficha `alumno` para reportes de inscripción / diferidos.
+ *
+ * - Antes del cambio de ciclo (cen = cea+1): fichas aún en origen → cen - 1.
+ * - Tras el cambio (cen = cea, fichas ya en destino): usar cen.
+ *
+ * Ej.: temporada 22 → inscripción 23 → fichas en 22; temporada 23 →
+ * inscripción 23 → fichas en 23.
+ */
+export function cicloFichaAlumnosParaInscripcion(
+  cicloInscripcion: number,
+  cicloTemporada: number
+): number {
+  if (!Number.isFinite(cicloInscripcion) || cicloInscripcion <= 0) {
+    throw new Error('cicloInscripcion requerido')
+  }
+  if (!Number.isFinite(cicloTemporada) || cicloTemporada <= 0) {
+    return cicloInscripcion - 1
+  }
+  return cicloTemporada >= cicloInscripcion
+    ? cicloInscripcion
+    : cicloInscripcion - 1
+}
+
+/**
  * Fallback si no hay catálogo en BD. Preferir
  * `cicloInscripcionDesdeTemporada(es_actual)`.
  */

@@ -1,4 +1,8 @@
 import { createDbAdmin } from '@/lib/insforgeAdmin'
+import {
+  cicloFichaAlumnosParaInscripcion,
+} from '@/lib/ciclosEscolares'
+import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { parsearReferenciaPago } from '@/lib/pagoReferenciaColegiatura'
 import { PAGE_ALUMNO } from './dbChunks'
@@ -257,7 +261,10 @@ const NIVELES_GRADOS: Celda[] = [
 ]
 
 export async function cargarMatrizInscripciones(cicloInscripcion: number, modo: 'dif1' | 'dif2' | 'general') {
-  const cicloAlumnos = cicloInscripcion - 1
+  // Tras cambio de ciclo las fichas ya están en el grado destino (= cen).
+  // Antes: aún en origen (cen - 1).
+  const cea = await resolverCicloEscolarSistemaValor()
+  const cicloAlumnos = cicloFichaAlumnosParaInscripcion(cicloInscripcion, cea)
   const conceptos =
     modo === 'dif2' ? ['12', '13'] : ['11', '13']
 

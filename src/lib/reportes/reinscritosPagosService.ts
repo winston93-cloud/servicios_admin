@@ -2,6 +2,10 @@ import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaGrupoEscolar } from '@/lib/grupoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import {
+  cicloFichaAlumnosParaInscripcion,
+} from '@/lib/ciclosEscolares'
+import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
+import {
   formatearAlumnoRefParaReferencia,
   normalizarConceptoNo,
   parsearReferenciaPago,
@@ -238,9 +242,11 @@ export async function cargarReinscritos2Pagos(
   nivel: number,
   cicloInscripcion: number
 ): Promise<ResumenReinscritosPagos> {
+  const cea = await resolverCicloEscolarSistemaValor()
+  const cicloAlumnos = cicloFichaAlumnosParaInscripcion(cicloInscripcion, cea)
   return cargarReinscritosUnion(
     nivel,
-    cicloInscripcion - 1,
+    cicloAlumnos,
     cicloInscripcion,
     'Reinscritos — 2 pagos (diferidos)',
     '2-pagos'
@@ -251,9 +257,11 @@ export async function cargarReinscritos1Pago(
   nivel: number,
   cicloInscripcion: number
 ): Promise<ResumenReinscritosPagos> {
+  const cea = await resolverCicloEscolarSistemaValor()
+  const cicloAlumnos = cicloFichaAlumnosParaInscripcion(cicloInscripcion, cea)
   return cargarReinscritosUnion(
     nivel,
-    cicloInscripcion - 1,
+    cicloAlumnos,
     cicloInscripcion,
     'Reinscritos — 1 pago',
     '1-pago'
