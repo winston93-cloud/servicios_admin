@@ -38,6 +38,7 @@ function validarFamiliar(rol: string, f: SolicitudFamiliarCampos): string[] {
     const v = validarFormatoCurp(f.curp)
     if (!v.valido) errs.push(`${rol}: ${v.mensaje}`)
   }
+  // RFC de mamá/papá: opcional (en blanco o «*»); no se valida ni exige.
   return errs
 }
 

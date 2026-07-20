@@ -18591,6 +18591,15 @@ html[data-theme='light'] .pi-form-step--completa:not(.pi-form-step--activa) .pi-
   color: #fb7185;
 }
 
+.pi-form-hint {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: #64748b;
+  font-weight: 500;
+}
+
 .pi-form-input {
   width: 100%;
   padding: 12px 14px;

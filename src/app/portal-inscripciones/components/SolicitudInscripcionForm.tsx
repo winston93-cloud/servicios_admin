@@ -122,10 +122,12 @@ function Campo({
   label,
   children,
   required,
+  hint,
 }: {
   label: string
   children: React.ReactNode
   required?: boolean
+  hint?: string
 }) {
   return (
     <label className="pi-form-field">
@@ -134,6 +136,7 @@ function Campo({
         {required ? <span className="pi-form-req"> *</span> : null}
       </span>
       {children}
+      {hint ? <span className="pi-form-hint">{hint}</span> : null}
     </label>
   )
 }
@@ -530,8 +533,18 @@ export default function SolicitudInscripcionForm() {
               <Campo label="CURP">
                 <input className="pi-form-input" value={f.curp} onChange={(e) => setF({ curp: e.target.value.toUpperCase() })} maxLength={18} />
               </Campo>
-              <Campo label="RFC">
-                <input className="pi-form-input" value={f.rfc} onChange={(e) => setF({ rfc: e.target.value.toUpperCase() })} />
+              <Campo
+                label="RFC"
+                hint="Opcional. Puedes dejarlo en blanco o poner *."
+              >
+                <input
+                  className="pi-form-input"
+                  value={f.rfc}
+                  onChange={(e) => setF({ rfc: e.target.value.toUpperCase() })}
+                  placeholder="En blanco o *"
+                  maxLength={13}
+                  autoComplete="off"
+                />
               </Campo>
               <Campo label="Fecha de nacimiento">
                 <input type="date" className="pi-form-input" value={f.fechaNacimiento} onChange={(e) => setF({ fechaNacimiento: e.target.value })} />
