@@ -112,7 +112,7 @@ function bloqueosHtml(grupos: GrupoBloqueoInscripciones[]): string {
 
   return `<section class="bloqueos">
   <h2>Bloqueo psicológico / académico (estatus 4) — ${total}</h2>
-  <p class="bloqueo-nota">Alumnos que no avanzan de ciclo por bloqueo de psicología o académico. Se indica el ciclo/grado en el que deberían estar.</p>
+  <p class="bloqueo-nota">Alumnos con bloqueo de psicología o académico (estatus 4), de Maternal A a 9° Secundaria. Se indica el ciclo/grado en el que deberían estar.</p>
   ${secciones}
 </section>`
 }
@@ -355,7 +355,7 @@ export function generarPdfReporteInscripciones(resumen: ResumenInscripcionesAdmi
     pdf.setFontSize(8)
     pdf.setTextColor(107, 114, 128)
     pdf.text(
-      'Alumnos que no avanzan de ciclo. Se indica el ciclo/grado en el que deberían estar.',
+      'Bloqueo psico/académico (estatus 4), Maternal A a 9° Sec. Ciclo/grado en el que deberían estar.',
       12,
       y
     )

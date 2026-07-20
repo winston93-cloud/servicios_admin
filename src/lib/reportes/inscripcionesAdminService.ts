@@ -2,7 +2,6 @@ import { construirNombreCompleto } from '@/lib/alumnoBusquedaServicios'
 import { ESTATUS_ALUMNO_BLOQUEO } from '@/lib/alumnoStatus'
 import {
   calcularDestinoCambioCiclo,
-  etiquetaDestinoCambioCiclo,
 } from '@/lib/cambioCicloEscolarAdvance'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import {
@@ -299,12 +298,13 @@ async function cargarBloqueosPsicoAcademico(
   cicloAlumnos: number,
   cicloInscripcion: number
 ): Promise<GrupoBloqueoInscripciones[]> {
-  // Tras el cambio de ciclo los bloqueados suelen quedar en el origen (cen-1).
-  const ciclos = new Set<number>([cicloAlumnos])
+  // Maternal A → 9° Sec: todos los estatus 4 del colegio (origen y/o destino).
+  const ciclos = new Set<number>([cicloAlumnos, cicloInscripcion])
   if (cicloInscripcion > 1) ciclos.add(cicloInscripcion - 1)
 
   const cicloDestino = cicloInscripcion
   const cicloDestinoLabel = `${cicloEscolarEtiqueta(cicloDestino)} (${cicloDestino})`
+  const gradosColegio = new Set(NIVELES_GRADOS.map((c) => key(c.nivel, c.grado)))
 
   const db = createDbAdmin()
   const vistos = new Set<number>()
@@ -316,32 +316,43 @@ async function cargarBloqueosPsicoAcademico(
       const { data, error } = await db
         .from('alumno')
         .select(
-          'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado'
+          'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_ciclo_escolar'
         )
         .eq('alumno_ciclo_escolar', ciclo)
         .eq('alumno_status', ESTATUS_ALUMNO_BLOQUEO)
-        .eq('alumno_nuevo_ingreso', 0)
         .range(offset, offset + PAGE_ALUMNO - 1)
       if (error) throw new Error(error.message)
       const chunk = data ?? []
       for (const r of chunk) {
         const id = Number(r.alumno_id)
         if (vistos.has(id)) continue
-        vistos.add(id)
         const nivelActual = Number(r.alumno_nivel)
         const gradoActual = Number(r.alumno_grado)
-        const dest = calcularDestinoCambioCiclo(nivelActual, gradoActual)
+        // Solo Maternal A … 9° Sec (excluye egresados grado 4).
+        if (!gradosColegio.has(key(nivelActual, gradoActual))) continue
+        vistos.add(id)
+
+        const cicloFicha = Number(r.alumno_ciclo_escolar)
+        const yaEnCicloDestino = cicloFicha === cicloDestino
+        const dest = yaEnCicloDestino
+          ? { nivel: nivelActual, grado: gradoActual, egresa: false }
+          : calcularDestinoCambioCiclo(nivelActual, gradoActual)
+
+        // Si el avance los mandaría a egresados, se reportan como 9° (tope del reporte).
+        const nivelDestino = dest.egresa ? 4 : dest.nivel
+        const gradoDestino = dest.egresa ? 3 : dest.grado
         const nivelDestinoLabel = dest.egresa
-          ? etiquetaDestinoCambioCiclo(dest)
-          : etiquetaNivelInscripciones(dest.nivel, dest.grado)
+          ? etiquetaNivelInscripciones(4, 3)
+          : etiquetaNivelInscripciones(nivelDestino, gradoDestino)
+
         filas.push({
           noCtrl: String(r.alumno_ref ?? '').trim(),
           nombre: construirNombreCompleto(r.alumno_nombre, r.alumno_app, r.alumno_apm),
           nivelActual,
           gradoActual,
           nivelActualLabel: etiquetaNivelInscripciones(nivelActual, gradoActual),
-          nivelDestino: dest.nivel,
-          gradoDestino: dest.grado,
+          nivelDestino,
+          gradoDestino,
           nivelDestinoLabel,
           cicloDestino,
           cicloDestinoLabel,
@@ -352,32 +363,29 @@ async function cargarBloqueosPsicoAcademico(
     }
   }
 
-  filas.sort((a, b) => {
-    if (a.nivelDestino !== b.nivelDestino) return a.nivelDestino - b.nivelDestino
-    if (a.gradoDestino !== b.gradoDestino) return a.gradoDestino - b.gradoDestino
-    return a.nombre.localeCompare(b.nombre, 'es')
-  })
+  const porDestino = new Map<string, AlumnoBloqueoInscripciones[]>()
+  for (const f of filas) {
+    const k = key(f.nivelDestino, f.gradoDestino)
+    const list = porDestino.get(k) ?? []
+    list.push(f)
+    porDestino.set(k, list)
+  }
 
   const grupos: GrupoBloqueoInscripciones[] = []
-  for (const f of filas) {
-    const last = grupos[grupos.length - 1]
-    if (
-      last &&
-      last.nivel === f.nivelDestino &&
-      last.grado === f.gradoDestino
-    ) {
-      last.alumnos.push(f)
-    } else {
-      grupos.push({
-        nivelLabel: f.nivelDestinoLabel,
-        nivel: f.nivelDestino,
-        grado: f.gradoDestino,
-        cicloDestino: f.cicloDestino,
-        cicloDestinoLabel: f.cicloDestinoLabel,
-        tituloGrupo: `Deberían estar en ${f.nivelDestinoLabel} · Ciclo ${f.cicloDestinoLabel}`,
-        alumnos: [f],
-      })
-    }
+  for (const { nivel, grado } of NIVELES_GRADOS) {
+    const alumnos = porDestino.get(key(nivel, grado))
+    if (!alumnos?.length) continue
+    alumnos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+    const nivelLabel = etiquetaNivelInscripciones(nivel, grado)
+    grupos.push({
+      nivelLabel,
+      nivel,
+      grado,
+      cicloDestino,
+      cicloDestinoLabel,
+      tituloGrupo: `Deberían estar en ${nivelLabel} · Ciclo ${cicloDestinoLabel}`,
+      alumnos,
+    })
   }
   return grupos
 }
