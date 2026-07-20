@@ -1,5 +1,5 @@
 import { construirNombreCompleto } from '@/lib/alumnoBusquedaServicios'
-import { ESTATUS_ALUMNO_BLOQUEOS } from '@/lib/alumnoStatus'
+import { ESTATUS_ALUMNO_BLOQUEOS, esEstatusBloqueo } from '@/lib/alumnoStatus'
 import {
   calcularDestinoCambioCiclo,
 } from '@/lib/cambioCicloEscolarAdvance'
@@ -131,32 +131,56 @@ function mapaDesdeFilas(filas: { alumno_nivel: number; alumno_grado: number }[])
 
 async function contarAlumnos(
   ciclo: number,
-  nuevoIngreso: 0 | 1
+  nuevoIngreso: 0 | 1,
+  opts?: { excluirBloqueos?: boolean }
 ): Promise<Map<string, number>> {
   const db = createDbAdmin()
   const filas: { alumno_nivel: number; alumno_grado: number }[] = []
   let offset = 0
 
   while (true) {
-    // Legacy: alumno_status != 0
-    const { data, error } = await db
+    // Legacy: alumno_status != 0. RI estimados excluye 4/5 (se suman aparte por grado destino).
+    let q = db
       .from('alumno')
-      .select('alumno_nivel, alumno_grado')
+      .select('alumno_nivel, alumno_grado, alumno_status')
       .eq('alumno_ciclo_escolar', ciclo)
       .eq('alumno_nuevo_ingreso', nuevoIngreso)
       .neq('alumno_status', 0)
-      .range(offset, offset + PAGE_ALUMNO - 1)
+
+    const { data, error } = await q.range(offset, offset + PAGE_ALUMNO - 1)
     if (error) throw new Error(error.message)
     const chunk = data ?? []
-    filas.push(...chunk.map((r) => ({
-      alumno_nivel: Number(r.alumno_nivel),
-      alumno_grado: Number(r.alumno_grado),
-    })))
+    for (const r of chunk) {
+      const status = Number(r.alumno_status)
+      if (opts?.excluirBloqueos && esEstatusBloqueo(status)) {
+        continue
+      }
+      filas.push({
+        alumno_nivel: Number(r.alumno_nivel),
+        alumno_grado: Number(r.alumno_grado),
+      })
+    }
     if (chunk.length < PAGE_ALUMNO) break
     offset += PAGE_ALUMNO
   }
 
   return mapaDesdeFilas(filas)
+}
+
+function sumarMapas(a: Map<string, number>, b: Map<string, number>): Map<string, number> {
+  const out = new Map(a)
+  for (const [k, n] of b) {
+    out.set(k, (out.get(k) ?? 0) + n)
+  }
+  return out
+}
+
+function mapaBloqueosPorDestino(grupos: GrupoBloqueoInscripciones[]): Map<string, number> {
+  const m = new Map<string, number>()
+  for (const g of grupos) {
+    m.set(key(g.nivel, g.grado), g.alumnos.length)
+  }
+  return m
 }
 
 async function contarReinscritosPagados(
@@ -400,13 +424,16 @@ export async function cargarMatrizInscripciones(cicloInscripcion: number, modo: 
   const conceptos =
     modo === 'dif2' ? ['12', '13'] : ['11', '13']
 
-  const [riEst, riPag, niEst, niPag, bloqueos] = await Promise.all([
-    contarAlumnos(cicloAlumnos, 0),
+  const [riEstBase, riPag, niEst, niPag, bloqueos] = await Promise.all([
+    contarAlumnos(cicloAlumnos, 0, { excluirBloqueos: true }),
     contarReinscritosPagados(cicloAlumnos, cicloInscripcion, conceptos, modo),
     contarAlumnos(cicloInscripcion, 1),
     contarNuevoIngresoPagado(cicloInscripcion),
     cargarBloqueosPsicoAcademico(cicloAlumnos, cicloInscripcion),
   ])
+
+  // RI estimados = activos/otros + bloqueos 4/5 atribuidos al grado destino.
+  const riEst = sumarMapas(riEstBase, mapaBloqueosPorDestino(bloqueos))
 
   const celdas = NIVELES_GRADOS.map(({ nivel, grado }) => {
     const k = key(nivel, grado)

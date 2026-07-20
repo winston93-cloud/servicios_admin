@@ -92,28 +92,20 @@ function tablaHtml(bloque: FilaInscripcionesAdmin[]): string {
 function bloqueosHtml(grupos: GrupoBloqueoInscripciones[]): string {
   if (!grupos.length) return ''
   const total = grupos.reduce((n, g) => n + g.alumnos.length, 0)
-  const secciones = grupos
-    .map((g) => {
-      const filas = g.alumnos
-        .map(
-          (a, i) =>
-            `<tr><td class="num">${i + 1}</td><td class="ctrl">${escapeHtml(a.noCtrl)}</td><td class="nom">${escapeHtml(a.nombre)}</td><td class="act">${escapeHtml(a.nivelActualLabel)}</td><td class="st">${a.status}</td></tr>`
-        )
-        .join('')
-      return `<div class="bloqueo-grupo">
-  <h3>${escapeHtml(g.tituloGrupo)} <span>(${g.alumnos.length})</span></h3>
-  <table class="bloqueo-tabla">
-    <thead><tr><th>#</th><th>No. Ctrl</th><th>Nombre</th><th>Grado actual</th><th>Est.</th></tr></thead>
-    <tbody>${filas}</tbody>
-  </table>
-</div>`
-    })
+  const filas = grupos
+    .map(
+      (g) =>
+        `<tr><td class="grado">${escapeHtml(g.nivelLabel)}</td><td class="cant">${g.alumnos.length} alumno${g.alumnos.length === 1 ? '' : 's'}</td></tr>`
+    )
     .join('')
 
   return `<section class="bloqueos">
   <h2>Bloqueo psicológico / académico (estatus 4 o 5) — ${total}</h2>
-  <p class="bloqueo-nota">Alumnos con bloqueo académico o psicológico (estatus 4 o 5), de Maternal A a 9° Secundaria. Se indica el ciclo/grado en el que deberían estar.</p>
-  ${secciones}
+  <p class="bloqueo-nota">Incluidos en RI ESTIMADOS según el grado en el que deberían estar (Maternal A a 9° Secundaria).</p>
+  <table class="bloqueo-tabla">
+    <thead><tr><th>Grado destino</th><th>Cantidad</th></tr></thead>
+    <tbody>${filas}</tbody>
+  </table>
 </section>`
 }
 
@@ -211,33 +203,25 @@ export function construirHtmlReporteInscripciones(resumen: ResumenInscripcionesA
       font-size: 0.78rem;
       color: #6b7280;
     }
-    .bloqueo-grupo { margin: 0 0 12px; }
-    .bloqueo-grupo h3 {
-      margin: 0 0 4px;
-      font-size: 0.82rem;
-      color: #1e3a5f;
-    }
-    .bloqueo-grupo h3 span { font-weight: 600; color: #6b7280; }
     .bloqueo-tabla {
-      width: 100%;
+      width: auto;
+      min-width: 280px;
       border-collapse: collapse;
-      font-size: 10px;
+      font-size: 10.5px;
     }
     .bloqueo-tabla th {
       background: #7c2d12;
       color: #fff;
-      padding: 4px 6px;
+      padding: 5px 10px;
       text-align: left;
       border: 1px solid #9a3412;
     }
     .bloqueo-tabla td {
       border: 1px solid #d6d3d1;
-      padding: 3px 6px;
+      padding: 4px 10px;
     }
-    .bloqueo-tabla td.num { width: 28px; text-align: center; color: #6b7280; }
-    .bloqueo-tabla td.ctrl { width: 72px; font-weight: 600; }
-    .bloqueo-tabla td.act { width: 110px; color: #6b7280; font-size: 9.5px; }
-    .bloqueo-tabla td.st { width: 36px; text-align: center; font-weight: 700; color: #9a3412; }
+    .bloqueo-tabla td.grado { font-weight: 700; }
+    .bloqueo-tabla td.cant { text-align: right; white-space: nowrap; }
     .bloqueo-tabla tbody tr:nth-child(even) td { background: #fff7ed; }
   </style>
 </head>
@@ -356,48 +340,34 @@ export function generarPdfReporteInscripciones(resumen: ResumenInscripcionesAdmi
     pdf.setFontSize(8)
     pdf.setTextColor(107, 114, 128)
     pdf.text(
-      'Bloqueo académico/psicológico (4 o 5), Maternal A a 9° Sec. Ciclo/grado en el que deberían estar.',
+      'Incluidos en RI ESTIMADOS según el grado destino (Maternal A a 9° Sec).',
       12,
       y
     )
-    y += 4
-
-    for (const g of grupos) {
-      asegurarEspacio(22)
-      pdf.setFont('helvetica', 'bold')
-      pdf.setFontSize(9)
-      pdf.setTextColor(30, 58, 95)
-      pdf.text(`${g.tituloGrupo} (${g.alumnos.length})`, 12, y)
-      y += 2
-      autoTable(pdf, {
-        startY: y,
-        head: [['#', 'No. Ctrl', 'Nombre', 'Grado actual', 'Est.']],
-        body: g.alumnos.map((a, i) => [
-          String(i + 1),
-          a.noCtrl,
-          a.nombre,
-          a.nivelActualLabel,
-          String(a.status),
-        ]),
-        styles: { fontSize: 7.5, cellPadding: 1.4, valign: 'middle', lineColor: [214, 211, 209] },
-        headStyles: {
-          fillColor: [124, 45, 18],
-          textColor: 255,
-          fontStyle: 'bold',
-          fontSize: 7.5,
-        },
-        columnStyles: {
-          0: { cellWidth: 10, halign: 'center', textColor: [107, 114, 128] },
-          1: { cellWidth: 22, fontStyle: 'bold' },
-          3: { cellWidth: 28, textColor: [107, 114, 128] },
-          4: { cellWidth: 12, halign: 'center', fontStyle: 'bold', textColor: [154, 52, 18] },
-        },
-        alternateRowStyles: { fillColor: [255, 247, 237] },
-        margin: { left: 12, right: 12 },
-        theme: 'grid',
-      })
-      y = ((pdf as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? y) + 5
-    }
+    y += 3
+    autoTable(pdf, {
+      startY: y,
+      head: [['Grado destino', 'Cantidad']],
+      body: grupos.map((g) => [
+        g.nivelLabel,
+        `${g.alumnos.length} alumno${g.alumnos.length === 1 ? '' : 's'}`,
+      ]),
+      styles: { fontSize: 8, cellPadding: 1.6, valign: 'middle', lineColor: [214, 211, 209] },
+      headStyles: {
+        fillColor: [124, 45, 18],
+        textColor: 255,
+        fontStyle: 'bold',
+        fontSize: 8,
+      },
+      columnStyles: {
+        0: { cellWidth: 55, fontStyle: 'bold' },
+        1: { cellWidth: 30, halign: 'right' },
+      },
+      alternateRowStyles: { fillColor: [255, 247, 237] },
+      margin: { left: 12, right: 12 },
+      theme: 'grid',
+      tableWidth: 85,
+    })
   }
 
   return Buffer.from(pdf.output('arraybuffer'))
