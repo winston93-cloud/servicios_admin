@@ -2,8 +2,20 @@
 
 const PREFIX = 'portal_inscripciones_plan_confirmado_v2'
 
+/**
+ * Generación de reset por alumno+ciclo (soporte / pruebas).
+ * Al subir el número, la confirmación anterior en localStorage deja de contar
+ * y el portal vuelve a pedir elegir plan (sin tocar pagos ni `alumno.mes`).
+ */
+const PLAN_CONFIRMACION_RESET_GEN: Record<string, number> = {
+  // 21752 Solano Soto — reset prueba 20-jul-2026 (antes confirmó 10 meses)
+  '2375_23': 1,
+}
+
 export function clavePlanPagosConfirmado(alumnoId: number, cicloValor: number): string {
-  return `${PREFIX}_${alumnoId}_${cicloValor}`
+  const gen = PLAN_CONFIRMACION_RESET_GEN[`${alumnoId}_${cicloValor}`] ?? 0
+  const sufijo = gen > 0 ? `_r${gen}` : ''
+  return `${PREFIX}${sufijo}_${alumnoId}_${cicloValor}`
 }
 
 export function leerPlanPagosConfirmado(alumnoId: number, cicloValor: number): boolean {
