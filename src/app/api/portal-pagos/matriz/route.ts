@@ -10,6 +10,7 @@ import {
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
 import { asegurarColegiaturasPreviasIngresoCero } from '@/lib/colegiaturasPreviasIngresoService'
+import { asegurarColegiaturasBecaCompletaCero } from '@/lib/colegiaturasBecaCompletaService'
 import { construirMatrizPortalPagos } from '@/lib/portalPagosMatrizService'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
 import { proyectarReinscripcionAlumno } from '@/lib/portalReinscripcionProyeccion'
@@ -103,6 +104,18 @@ export async function POST(request: Request) {
         pagos = await listarPagosColegiaturaAlumno(alumnoId, ciclo.valor)
       }
     }
+
+    // Becados al 100%: colegiaturas del ciclo quedan cubiertas (importe 0).
+    const becaCero = await asegurarColegiaturasBecaCompletaCero(
+      supabase,
+      alumno,
+      ciclo.valor,
+      pagos
+    )
+    if (becaCero.insertados.length > 0) {
+      pagos = await listarPagosColegiaturaAlumno(alumnoId, ciclo.valor)
+    }
+
     const matriz = await construirMatrizPortalPagos(supabase, alumno, ciclo, pagos, {
       soloColegiatura,
     })
@@ -112,6 +125,7 @@ export async function POST(request: Request) {
       matriz,
       cicloTemporada: cicloSistema?.valor ?? ciclo.valor,
       colegiaturasPreviasCero: previos.insertados,
+      colegiaturasBecaCompletaCero: becaCero.insertados,
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al cargar matriz de pagos'

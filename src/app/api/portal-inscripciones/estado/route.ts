@@ -8,6 +8,7 @@ import { formaIngresoPorDefecto } from '@/lib/alumnoFormaIngreso'
 import { cicloCierreValor } from '@/lib/portalCierreCicloAnterior'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
+import { asegurarColegiaturasBecaCompletaCero } from '@/lib/colegiaturasBecaCompletaService'
 
 export const runtime = 'nodejs'
 
@@ -56,10 +57,23 @@ export async function POST(request: Request) {
             valor: valorCierre,
             nombre: etiquetaCicloEscolar(valorCierre) || String(valorCierre),
           }
-      const pagosCierre = await listarPagosColegiaturaAlumno(
+      let pagosCierre = await listarPagosColegiaturaAlumno(
         alumno.alumno_id,
         cicloCierre.valor
       )
+      // Becados 100% del ciclo a cerrar: cubre colegiaturas pendientes con importe 0.
+      const becaCero = await asegurarColegiaturasBecaCompletaCero(
+        supabase,
+        alumno,
+        cicloCierre.valor,
+        pagosCierre
+      )
+      if (becaCero.insertados.length > 0) {
+        pagosCierre = await listarPagosColegiaturaAlumno(
+          alumno.alumno_id,
+          cicloCierre.valor
+        )
+      }
       opciones = {
         pagosCierre,
         cicloCierre,

@@ -1,4 +1,6 @@
 import { supabase } from './supabase'
+import type { AppDatabaseClient } from '@/lib/dbTypes'
+import { BECA_ESTATUS_ACTIVA } from './becaEstatus'
 
 const SELECT_BECA =
   'alumno_beca_id, alumno_id, beca_id, beca_porcentaje, beca_estatus, beca_ciclo_escolar, beca_p'
@@ -47,6 +49,27 @@ export async function obtenerBecaPorAlumnoId(
   }
 
   return data as AlumnoBecaRegistro | null
+}
+
+/** Beca Winston activa al 100% en el ciclo indicado (no paga colegiaturas). */
+export async function alumnoTieneBecaCompletaActiva(
+  db: AppDatabaseClient,
+  alumnoId: number,
+  cicloEscolar: number
+): Promise<boolean> {
+  const { count, error } = await db
+    .from('alumno_beca')
+    .select('beca_id', { count: 'exact', head: true })
+    .eq('alumno_id', alumnoId)
+    .eq('beca_porcentaje', 100)
+    .eq('beca_ciclo_escolar', cicloEscolar)
+    .eq('beca_estatus', BECA_ESTATUS_ACTIVA)
+
+  if (error) {
+    console.error('alumnoTieneBecaCompletaActiva:', error.message)
+    return false
+  }
+  return (count ?? 0) > 0
 }
 
 export interface GuardarBecaAlumnoPayload {
