@@ -7851,6 +7851,26 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   font-weight: 600;
 }
 
+.cambio-ciclo-egresados-aviso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  font-size: 0.875rem;
+}
+
+.cambio-ciclo-egresados-aviso p {
+  margin: 0;
+  flex: 1 1 200px;
+  line-height: 1.45;
+}
+
 .cambio-ciclo-field-progreso {
   grid-column: span 1;
 }

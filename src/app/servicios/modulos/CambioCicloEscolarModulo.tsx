@@ -20,11 +20,13 @@ import {
   listarAlumnosOrigenCambioCiclo,
   listarResumenGradosCambioCiclo,
   migrarAlumnosCambioCiclo,
+  corregirEgresadosSinBajaGeneral,
   revertirAlumnosCambioCiclo,
   type AlumnoCambioCicloRow,
   type ResumenGradoCambioCiclo,
 } from '@/lib/cambioCicloEscolarService'
 import { FORMA_INGRESO_OPCIONES } from '@/lib/alumnoFormaIngreso'
+import { etiquetaEstatusAlumno } from '@/lib/alumnoStatus'
 import {
   gradoEscolarPorDefecto,
   gradoOpcionesPorNivel,
@@ -81,6 +83,7 @@ function TablaAlumnos({
                 <th>No control</th>
                 <th>Nombre</th>
                 <th>Ingreso</th>
+                <th>Estatus</th>
                 <th>Grupo</th>
                 {mostrarRevertir && <th>Nota</th>}
               </tr>
@@ -109,6 +112,7 @@ function TablaAlumnos({
                     {f.alumno_app} {f.alumno_apm} {f.alumno_nombre}
                   </td>
                   <td>{etiquetaFormaIngresoLocal(f.alumno_nuevo_ingreso)}</td>
+                  <td>{etiquetaEstatusAlumno(f.alumno_status)}</td>
                   <td>{etiquetaGrupoEscolar(f.alumno_grupo)}</td>
                   {mostrarRevertir && (
                     <td className="cambio-ciclo-nota">
@@ -159,6 +163,14 @@ export default function CambioCicloEscolarModulo() {
     const gradoEtiqueta = etiquetaDestinoCambioCiclo(dest)
     return `${gradoEtiqueta} · ciclo ${CICLO_CAMBIO_DESTINO} · grupo A`
   }, [destinoCalculado])
+
+  const egresadosSinBaja = useMemo(
+    () =>
+      destino.filter(
+        (f) => f.alumno_nivel === 4 && f.alumno_grado === 4 && f.alumno_status === 1
+      ),
+    [destino]
+  )
 
   useEffect(() => {
     setGrado((g) => gradoEscolarPorDefecto(nivel, g))
@@ -266,7 +278,9 @@ export default function CambioCicloEscolarModulo() {
       }
 
       setMensaje(
-        `${res.migrados} alumno(s) pasados al ciclo ${CICLO_CAMBIO_DESTINO} en ${etiquetaDestino}.`
+        destinoCalculado.egresa
+          ? `${res.migrados} egresado(s) pasados al ciclo ${CICLO_CAMBIO_DESTINO} con estatus baja general.`
+          : `${res.migrados} alumno(s) pasados al ciclo ${CICLO_CAMBIO_DESTINO} en ${etiquetaDestino}.`
       )
       await cargarListas()
     } catch (e) {
@@ -274,7 +288,30 @@ export default function CambioCicloEscolarModulo() {
     } finally {
       setProcesando(false)
     }
-  }, [selOrigen, nivel, grado, cargarListas, etiquetaDestino])
+  }, [selOrigen, nivel, grado, cargarListas, etiquetaDestino, destinoCalculado.egresa])
+
+  const corregirEgresados = useCallback(async () => {
+    setProcesando(true)
+    setError(null)
+    setMensaje(null)
+    try {
+      const res = await corregirEgresadosSinBajaGeneral()
+      if (!res.ok) {
+        setError(res.mensaje)
+        return
+      }
+      setMensaje(
+        res.actualizados > 0
+          ? `${res.actualizados} egresado(s) marcados con baja general.`
+          : 'Todos los egresados del ciclo destino ya tienen baja general.'
+      )
+      await cargarListas()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al corregir egresados.')
+    } finally {
+      setProcesando(false)
+    }
+  }, [cargarListas])
 
   const regresarSeleccionados = useCallback(async () => {
     if (selDestino.size === 0) {
@@ -315,7 +352,9 @@ export default function CambioCicloEscolarModulo() {
           Migra alumnos activos del ciclo <strong>{CICLO_CAMBIO_ORIGEN} (2025-2026)</strong> al
           ciclo <strong>{CICLO_CAMBIO_DESTINO} (2026-2027)</strong> por nivel y grado. Al pasar,
           avanzan de grado (o de nivel), quedan en <strong>grupo A</strong> y los de nuevo ingreso
-          pasan a <strong>reinscrito</strong>. Solo puedes regresar los que migres aquí.
+          pasan a <strong>reinscrito</strong>. El <strong>9no</strong> pasa a{' '}
+          <strong>Egresados</strong> con estatus <strong>baja general</strong>. Solo puedes regresar
+          los que migres aquí.
         </p>
       </header>
 
@@ -413,6 +452,24 @@ export default function CambioCicloEscolarModulo() {
         <div className="asignar-grupos-alerta asignar-grupos-alerta--ok" role="status">
           <Check size={18} aria-hidden />
           {mensaje}
+        </div>
+      )}
+
+      {egresadosSinBaja.length > 0 && (
+        <div className="cambio-ciclo-egresados-aviso" role="status">
+          <AlertTriangle size={18} aria-hidden />
+          <p>
+            {egresadosSinBaja.length} egresado(s) siguen como <strong>Activo</strong>; deben estar en{' '}
+            <strong>baja general</strong>.
+          </p>
+          <button
+            type="button"
+            className="asignar-grupos-btn asignar-grupos-btn--ghost"
+            onClick={() => void corregirEgresados()}
+            disabled={procesando}
+          >
+            Marcar egresados con baja general
+          </button>
         </div>
       )}
 

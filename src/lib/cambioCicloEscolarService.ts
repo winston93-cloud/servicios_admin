@@ -244,7 +244,7 @@ async function migrarUnAlumno(
 
   if (dest.egresa) {
     payload.alumno_grado = 4
-    payload.alumno_status = 0
+    payload.alumno_status = 0 // Baja general (egresados)
   }
 
   const { error } = await supabase
@@ -358,4 +358,25 @@ export async function revertirAlumnosCambioCiclo(
   }
 
   return { ok: true, revertidos }
+}
+
+/** Egresados (secundaria grado 4, ciclo destino) que quedaron activos por error. */
+export async function corregirEgresadosSinBajaGeneral(): Promise<
+  | { ok: true; actualizados: number }
+  | { ok: false; mensaje: string; actualizados: number }
+> {
+  const { data, error } = await supabase
+    .from('alumno')
+    .update({ alumno_status: 0 })
+    .eq('alumno_ciclo_escolar', CICLO_CAMBIO_DESTINO)
+    .eq('alumno_nivel', 4)
+    .eq('alumno_grado', 4)
+    .eq('alumno_status', 1)
+    .select('alumno_id')
+
+  if (error) {
+    return { ok: false, mensaje: mensajeDb(error), actualizados: 0 }
+  }
+
+  return { ok: true, actualizados: data?.length ?? 0 }
 }
