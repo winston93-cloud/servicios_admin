@@ -1,7 +1,12 @@
 import { construirNombreCompleto } from '@/lib/alumnoBusquedaServicios'
 import { ESTATUS_ALUMNO_BLOQUEO } from '@/lib/alumnoStatus'
+import {
+  calcularDestinoCambioCiclo,
+  etiquetaDestinoCambioCiclo,
+} from '@/lib/cambioCicloEscolarAdvance'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import {
+  cicloEscolarEtiqueta,
   cicloFichaAlumnosParaInscripcion,
 } from '@/lib/ciclosEscolares'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
@@ -38,15 +43,26 @@ export type FilaInscripcionesAdmin = {
 export type AlumnoBloqueoInscripciones = {
   noCtrl: string
   nombre: string
-  nivel: number
-  grado: number
-  nivelLabel: string
+  /** Grado actual en ficha (aún no avanzaron). */
+  nivelActual: number
+  gradoActual: number
+  nivelActualLabel: string
+  /** Grado / ciclo en el que deberían estar. */
+  nivelDestino: number
+  gradoDestino: number
+  nivelDestinoLabel: string
+  cicloDestino: number
+  cicloDestinoLabel: string
 }
 
 export type GrupoBloqueoInscripciones = {
+  /** Etiqueta del grado destino (donde deberían estar). */
   nivelLabel: string
   nivel: number
   grado: number
+  cicloDestino: number
+  cicloDestinoLabel: string
+  tituloGrupo: string
   alumnos: AlumnoBloqueoInscripciones[]
 }
 
@@ -56,7 +72,7 @@ export type ResumenInscripcionesAdmin = {
   cicloLabel: string
   modo: 'dif1' | 'dif2' | 'general'
   filas: FilaInscripcionesAdmin[]
-  /** Estatus 4: bloqueo psicológico / académico, agrupados por grado de ficha. */
+  /** Estatus 4: bloqueo psicológico / académico, agrupados por grado destino. */
   bloqueos: GrupoBloqueoInscripciones[]
 }
 
@@ -287,6 +303,9 @@ async function cargarBloqueosPsicoAcademico(
   const ciclos = new Set<number>([cicloAlumnos])
   if (cicloInscripcion > 1) ciclos.add(cicloInscripcion - 1)
 
+  const cicloDestino = cicloInscripcion
+  const cicloDestinoLabel = `${cicloEscolarEtiqueta(cicloDestino)} (${cicloDestino})`
+
   const db = createDbAdmin()
   const vistos = new Set<number>()
   const filas: AlumnoBloqueoInscripciones[] = []
@@ -309,14 +328,23 @@ async function cargarBloqueosPsicoAcademico(
         const id = Number(r.alumno_id)
         if (vistos.has(id)) continue
         vistos.add(id)
-        const nivel = Number(r.alumno_nivel)
-        const grado = Number(r.alumno_grado)
+        const nivelActual = Number(r.alumno_nivel)
+        const gradoActual = Number(r.alumno_grado)
+        const dest = calcularDestinoCambioCiclo(nivelActual, gradoActual)
+        const nivelDestinoLabel = dest.egresa
+          ? etiquetaDestinoCambioCiclo(dest)
+          : etiquetaNivelInscripciones(dest.nivel, dest.grado)
         filas.push({
           noCtrl: String(r.alumno_ref ?? '').trim(),
           nombre: construirNombreCompleto(r.alumno_nombre, r.alumno_app, r.alumno_apm),
-          nivel,
-          grado,
-          nivelLabel: etiquetaNivelInscripciones(nivel, grado),
+          nivelActual,
+          gradoActual,
+          nivelActualLabel: etiquetaNivelInscripciones(nivelActual, gradoActual),
+          nivelDestino: dest.nivel,
+          gradoDestino: dest.grado,
+          nivelDestinoLabel,
+          cicloDestino,
+          cicloDestinoLabel,
         })
       }
       if (chunk.length < PAGE_ALUMNO) break
@@ -325,21 +353,28 @@ async function cargarBloqueosPsicoAcademico(
   }
 
   filas.sort((a, b) => {
-    if (a.nivel !== b.nivel) return a.nivel - b.nivel
-    if (a.grado !== b.grado) return a.grado - b.grado
+    if (a.nivelDestino !== b.nivelDestino) return a.nivelDestino - b.nivelDestino
+    if (a.gradoDestino !== b.gradoDestino) return a.gradoDestino - b.gradoDestino
     return a.nombre.localeCompare(b.nombre, 'es')
   })
 
   const grupos: GrupoBloqueoInscripciones[] = []
   for (const f of filas) {
     const last = grupos[grupos.length - 1]
-    if (last && last.nivel === f.nivel && last.grado === f.grado) {
+    if (
+      last &&
+      last.nivel === f.nivelDestino &&
+      last.grado === f.gradoDestino
+    ) {
       last.alumnos.push(f)
     } else {
       grupos.push({
-        nivelLabel: f.nivelLabel,
-        nivel: f.nivel,
-        grado: f.grado,
+        nivelLabel: f.nivelDestinoLabel,
+        nivel: f.nivelDestino,
+        grado: f.gradoDestino,
+        cicloDestino: f.cicloDestino,
+        cicloDestinoLabel: f.cicloDestinoLabel,
+        tituloGrupo: `Deberían estar en ${f.nivelDestinoLabel} · Ciclo ${f.cicloDestinoLabel}`,
         alumnos: [f],
       })
     }

@@ -97,13 +97,13 @@ function bloqueosHtml(grupos: GrupoBloqueoInscripciones[]): string {
       const filas = g.alumnos
         .map(
           (a, i) =>
-            `<tr><td class="num">${i + 1}</td><td class="ctrl">${escapeHtml(a.noCtrl)}</td><td class="nom">${escapeHtml(a.nombre)}</td></tr>`
+            `<tr><td class="num">${i + 1}</td><td class="ctrl">${escapeHtml(a.noCtrl)}</td><td class="nom">${escapeHtml(a.nombre)}</td><td class="act">${escapeHtml(a.nivelActualLabel)}</td></tr>`
         )
         .join('')
       return `<div class="bloqueo-grupo">
-  <h3>${escapeHtml(g.nivelLabel)} <span>(${g.alumnos.length})</span></h3>
+  <h3>${escapeHtml(g.tituloGrupo)} <span>(${g.alumnos.length})</span></h3>
   <table class="bloqueo-tabla">
-    <thead><tr><th>#</th><th>No. Ctrl</th><th>Nombre</th></tr></thead>
+    <thead><tr><th>#</th><th>No. Ctrl</th><th>Nombre</th><th>Grado actual</th></tr></thead>
     <tbody>${filas}</tbody>
   </table>
 </div>`
@@ -112,7 +112,7 @@ function bloqueosHtml(grupos: GrupoBloqueoInscripciones[]): string {
 
   return `<section class="bloqueos">
   <h2>Bloqueo psicológico / académico (estatus 4) — ${total}</h2>
-  <p class="bloqueo-nota">Alumnos que no avanzan de ciclo por bloqueo de psicología o académico.</p>
+  <p class="bloqueo-nota">Alumnos que no avanzan de ciclo por bloqueo de psicología o académico. Se indica el ciclo/grado en el que deberían estar.</p>
   ${secciones}
 </section>`
 }
@@ -236,6 +236,7 @@ export function construirHtmlReporteInscripciones(resumen: ResumenInscripcionesA
     }
     .bloqueo-tabla td.num { width: 28px; text-align: center; color: #6b7280; }
     .bloqueo-tabla td.ctrl { width: 72px; font-weight: 600; }
+    .bloqueo-tabla td.act { width: 110px; color: #6b7280; font-size: 9.5px; }
     .bloqueo-tabla tbody tr:nth-child(even) td { background: #fff7ed; }
   </style>
 </head>
@@ -353,7 +354,11 @@ export function generarPdfReporteInscripciones(resumen: ResumenInscripcionesAdmi
     pdf.setFont('helvetica', 'normal')
     pdf.setFontSize(8)
     pdf.setTextColor(107, 114, 128)
-    pdf.text('Alumnos que no avanzan de ciclo por bloqueo de psicología o académico.', 12, y)
+    pdf.text(
+      'Alumnos que no avanzan de ciclo. Se indica el ciclo/grado en el que deberían estar.',
+      12,
+      y
+    )
     y += 4
 
     for (const g of grupos) {
@@ -361,12 +366,17 @@ export function generarPdfReporteInscripciones(resumen: ResumenInscripcionesAdmi
       pdf.setFont('helvetica', 'bold')
       pdf.setFontSize(9)
       pdf.setTextColor(30, 58, 95)
-      pdf.text(`${g.nivelLabel} (${g.alumnos.length})`, 12, y)
+      pdf.text(`${g.tituloGrupo} (${g.alumnos.length})`, 12, y)
       y += 2
       autoTable(pdf, {
         startY: y,
-        head: [['#', 'No. Ctrl', 'Nombre']],
-        body: g.alumnos.map((a, i) => [String(i + 1), a.noCtrl, a.nombre]),
+        head: [['#', 'No. Ctrl', 'Nombre', 'Grado actual']],
+        body: g.alumnos.map((a, i) => [
+          String(i + 1),
+          a.noCtrl,
+          a.nombre,
+          a.nivelActualLabel,
+        ]),
         styles: { fontSize: 7.5, cellPadding: 1.4, valign: 'middle', lineColor: [214, 211, 209] },
         headStyles: {
           fillColor: [124, 45, 18],
@@ -376,7 +386,8 @@ export function generarPdfReporteInscripciones(resumen: ResumenInscripcionesAdmi
         },
         columnStyles: {
           0: { cellWidth: 10, halign: 'center', textColor: [107, 114, 128] },
-          1: { cellWidth: 24, fontStyle: 'bold' },
+          1: { cellWidth: 22, fontStyle: 'bold' },
+          3: { cellWidth: 28, textColor: [107, 114, 128] },
         },
         alternateRowStyles: { fillColor: [255, 247, 237] },
         margin: { left: 12, right: 12 },
