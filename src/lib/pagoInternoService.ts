@@ -196,12 +196,16 @@ export async function eliminarPrecioInterno(
   return { ok: true }
 }
 
-/** Busca precio: exacto nivel+grado → nivel+grado 0 → 0+0. */
+/** Busca precio: exacto nivel+grado → nivel+grado 0 → 0+0.
+ *  Con `cualquierNivel` (p. ej. control Externo 11404): si no hay match,
+ *  usa cualquier tarifa del concepto en el ciclo (prioriza grado 0).
+ */
 export async function resolverPrecioInterno(
   conceptoId: number,
   cicloEscolar: number,
   nivel: number | null,
-  grado: number | null
+  grado: number | null,
+  opts?: { cualquierNivel?: boolean }
 ): Promise<number | null> {
   const n = nivel ?? 0
   const g = grado ?? 0
@@ -224,6 +228,12 @@ export async function resolverPrecioInterno(
     const hit = filas.find(match)
     if (hit) return Number(hit.precio_interno)
   }
+
+  if (opts?.cualquierNivel) {
+    const porGradoCero = filas.find((f) => Number(f.alumno_grado) === 0)
+    return Number((porGradoCero ?? filas[0]).precio_interno)
+  }
+
   return null
 }
 

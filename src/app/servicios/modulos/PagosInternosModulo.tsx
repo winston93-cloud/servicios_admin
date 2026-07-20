@@ -6,7 +6,7 @@ import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { useAlumnoSeleccionado } from '@/contexts/AlumnoSeleccionadoContext'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
-import { nombreVisibleAlumno } from '@/lib/alumnoBusquedaServicios'
+import { nombreVisibleAlumno, ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
 import {
   alumnoTieneCuotaPadresPagada,
   crearPagoInterno,
@@ -192,21 +192,41 @@ export default function PagosInternosModulo() {
     [alumnoSeleccionado, cicloPago, prepararValeImpresion]
   )
 
+  const aplicarPrecioConcepto = useCallback(
+    async (conceptoIdPago: number) => {
+      if (!alumnoSeleccionado || conceptoIdPago <= 0) return
+      const esExterno =
+        String(alumnoSeleccionado.alumno_ref ?? '').trim() === ALUMNO_REF_EXTERNO
+      const { nivel, grado } = nivelGradoDesdeAlumno(
+        alumnoSeleccionado.alumno_nivel,
+        alumnoSeleccionado.alumno_grado
+      )
+      const precio = await resolverPrecioInterno(
+        conceptoIdPago,
+        cicloPago,
+        nivel,
+        grado,
+        { cualquierNivel: esExterno }
+      )
+      if (precio != null) setImporte(precio)
+    },
+    [alumnoSeleccionado, cicloPago]
+  )
+
   const onCambioConcepto = useCallback(
     async (id: number) => {
       setConceptoId(id)
-      if (!alumnoSeleccionado || id <= 0) return
-      const alumno = await obtenerAlumnoPorRef(
-        alumnoSeleccionado.alumno_ref,
-        cicloSeleccionado
-      )
-      if (!alumno) return
-      const { nivel, grado } = nivelGradoDesdeAlumno(alumno.alumno_nivel, alumno.alumno_grado)
-      const precio = await resolverPrecioInterno(id, cicloPago, nivel, grado)
-      if (precio != null) setImporte(precio)
+      await aplicarPrecioConcepto(id)
     },
-    [alumnoSeleccionado, cicloSeleccionado, cicloPago]
+    [aplicarPrecioConcepto]
   )
+
+  // Al cambiar alumno o ciclo del pago, recalcular monto del concepto elegido.
+  useEffect(() => {
+    if (conceptoId > 0 && alumnoSeleccionado) {
+      void aplicarPrecioConcepto(conceptoId)
+    }
+  }, [alumnoSeleccionado, cicloPago, conceptoId, aplicarPrecioConcepto])
 
   const onAgregarPago = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -274,18 +294,21 @@ export default function PagosInternosModulo() {
       setError('No hay concepto de cuota de padres en el catálogo.')
       return
     }
-    const alumno = await obtenerAlumnoPorRef(
-      alumnoSeleccionado!.alumno_ref,
-      cicloSeleccionado
-    )
+    const alumno =
+      (await obtenerAlumnoPorRef(
+        alumnoSeleccionado!.alumno_ref,
+        cicloSeleccionado
+      )) ?? (await obtenerAlumnoPorRef(alumnoSeleccionado!.alumno_ref))
     let monto = typeof importe === 'number' ? importe : 0
     if (alumno) {
+      const esExterno = String(alumno.alumno_ref ?? '').trim() === ALUMNO_REF_EXTERNO
       const { nivel, grado } = nivelGradoDesdeAlumno(alumno.alumno_nivel, alumno.alumno_grado)
       const precio = await resolverPrecioInterno(
         conceptoCuota.concepto_id,
         cicloPago,
         nivel,
-        grado
+        grado,
+        { cualquierNivel: esExterno }
       )
       if (precio != null) monto = precio
     }
