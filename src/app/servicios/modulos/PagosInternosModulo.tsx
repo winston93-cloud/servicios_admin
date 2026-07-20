@@ -94,13 +94,16 @@ export default function PagosInternosModulo() {
     async (ref: string, ciclo: number) => {
       setCargandoPagos(true)
       setError(null)
-      const alumno = await obtenerAlumnoPorRef(ref, ciclo)
+      // Preferir ficha del ciclo consultado; si no hay (pre-ingreso), tomar la existente
+      // sin alterar estatus/ciclo/grado.
+      const alumno =
+        (await obtenerAlumnoPorRef(ref, ciclo)) ?? (await obtenerAlumnoPorRef(ref))
       if (!alumno) {
         setAlumnoId(null)
         setPagos([])
         setCuotaPadresPagada(false)
         setCargandoPagos(false)
-        setError('El alumno no tiene registro en el ciclo de consulta.')
+        setError('No se encontró el alumno con ese número de control.')
         return
       }
       setAlumnoId(alumno.alumno_id)
@@ -134,10 +137,11 @@ export default function PagosInternosModulo() {
       conceptoExtra?: string
     ) => {
       if (!alumnoSeleccionado) return
-      const alumno = await obtenerAlumnoPorRef(
-        alumnoSeleccionado.alumno_ref,
-        cicloSeleccionado
-      )
+      const alumno =
+        (await obtenerAlumnoPorRef(
+          alumnoSeleccionado.alumno_ref,
+          cicloSeleccionado
+        )) ?? (await obtenerAlumnoPorRef(alumnoSeleccionado.alumno_ref))
       if (!alumno) return
 
       const concepto =
@@ -330,6 +334,7 @@ export default function PagosInternosModulo() {
             alumnoSeleccionado={alumnoSeleccionado}
             onSeleccionar={setAlumnoSeleccionado}
             autoFocus
+            cualquierCiclo
           />
         </div>
         {alumnoSeleccionado && !resolviendoCiclo && !cargandoPagos && (

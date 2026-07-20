@@ -104,6 +104,11 @@ interface AlumnoAutocompleteProps {
   alumnoSeleccionado?: AlumnoBusquedaResultado | null
   autoFocus?: boolean
   etiqueta?: string
+  /**
+   * Pagos internos: busca sin filtrar por ciclo (pre-ingreso, ciclo 0, etc.).
+   * No modifica estatus/ciclo/grado del alumno.
+   */
+  cualquierCiclo?: boolean
 }
 
 export default function AlumnoAutocomplete({
@@ -111,6 +116,7 @@ export default function AlumnoAutocomplete({
   alumnoSeleccionado: alumnoControlado = null,
   autoFocus = true,
   etiqueta = 'Buscar alumno',
+  cualquierCiclo = false,
 }: AlumnoAutocompleteProps) {
   const baseId = useId()
   const listboxId = `${baseId}-listbox`
@@ -128,6 +134,7 @@ export default function AlumnoAutocomplete({
   const { cicloSeleccionado, opcionesSelector } = useCicloEscolar()
   const etiquetaCiclo =
     opcionesSelector.find((o) => o.valor === cicloSeleccionado)?.etiqueta ?? 'ciclo actual'
+  const etiquetaCicloUi = cualquierCiclo ? 'cualquier ciclo / pre-ingreso' : etiquetaCiclo
 
   const alumnoVisible = alumnoControlado ?? seleccionado
 
@@ -140,7 +147,12 @@ export default function AlumnoAutocomplete({
   useEffect(() => {
     if (!alumnoControlado) return
     setSeleccionado(alumnoControlado)
-    setConsulta(alumnoControlado.nombre_completo)
+    setConsulta(
+      alumnoControlado.nombre_completo?.trim() ||
+        (alumnoControlado.alumno_ref
+          ? `No. control ${alumnoControlado.alumno_ref}`
+          : '')
+    )
   }, [alumnoControlado])
 
   const cerrarLista = useCallback(() => {
@@ -150,7 +162,11 @@ export default function AlumnoAutocomplete({
 
   const elegir = useCallback(
     async (pick: AlumnoBusquedaResultado) => {
-      const canon = await obtenerAlumnoPorRef(pick.alumno_ref, cicloSeleccionado)
+      // Con cualquierCiclo: no exigir ficha del ciclo consultado (pre-ingreso).
+      const canon = cualquierCiclo
+        ? (await obtenerAlumnoPorRef(pick.alumno_ref, cicloSeleccionado)) ??
+          (await obtenerAlumnoPorRef(pick.alumno_ref))
+        : await obtenerAlumnoPorRef(pick.alumno_ref, cicloSeleccionado)
       const alumno: AlumnoBusquedaResultado = canon
         ? {
             ...pick,
@@ -164,11 +180,14 @@ export default function AlumnoAutocomplete({
               canon.alumno_grado != null ? String(canon.alumno_grado) : null,
             alumno_grupo:
               canon.alumno_grupo != null ? String(canon.alumno_grupo) : null,
-            nombre_completo: construirNombreCompleto(
-              canon.alumno_nombre,
-              canon.alumno_app,
-              canon.alumno_apm
-            ),
+            alumno_ciclo_escolar: canon.alumno_ciclo_escolar,
+            alumno_status: canon.alumno_status,
+            nombre_completo:
+              construirNombreCompleto(
+                canon.alumno_nombre,
+                canon.alumno_app,
+                canon.alumno_apm
+              ) || `No. control ${String(canon.alumno_ref)}`,
           }
         : pick
 
@@ -178,7 +197,7 @@ export default function AlumnoAutocomplete({
       setResultados([])
       onSeleccionar?.(alumno)
     },
-    [cerrarLista, onSeleccionar, cicloSeleccionado]
+    [cerrarLista, onSeleccionar, cicloSeleccionado, cualquierCiclo]
   )
 
   useEffect(() => {
@@ -203,7 +222,10 @@ export default function AlumnoAutocomplete({
       setMensajeVacio(null)
 
       try {
-        const lista = await buscarAlumnosServicios(texto, cicloSeleccionado, controller.signal)
+        const lista = await buscarAlumnosServicios(texto, cicloSeleccionado, {
+          signal: controller.signal,
+          cualquierCiclo,
+        })
         if (controller.signal.aborted) return
         setResultados(lista)
         setAbierto(true)
@@ -224,7 +246,7 @@ export default function AlumnoAutocomplete({
     }, 110)
 
     return () => window.clearTimeout(timer)
-  }, [consulta, alumnoVisible, cicloSeleccionado])
+  }, [consulta, alumnoVisible, cicloSeleccionado, cualquierCiclo])
 
   useEffect(() => {
     if (indiceActivo < 0 || !listRef.current) return
@@ -296,7 +318,7 @@ export default function AlumnoAutocomplete({
     <div className="alumno-ac">
       <label htmlFor={`${baseId}-input`} className="alumno-ac-label">
         {etiqueta}
-        <span className="alumno-ac-label-ciclo"> · Ciclo {etiquetaCiclo}</span>
+        <span className="alumno-ac-label-ciclo"> · Ciclo {etiquetaCicloUi}</span>
       </label>
 
       <div className="alumno-ac-input-wrap">

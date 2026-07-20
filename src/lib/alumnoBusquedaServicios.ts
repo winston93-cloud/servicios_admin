@@ -208,7 +208,7 @@ function puntuarAlumno(
 
 async function consultarCandidatos(
   termino: string,
-  cicloEscolar: number,
+  cicloEscolar: number | null,
   signal?: AbortSignal
 ): Promise<AlumnoBusquedaRow[]> {
   const esc = escaparIlike(termino)
@@ -229,9 +229,13 @@ async function consultarCandidatos(
     .select(
       'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_ciclo_escolar, alumno_status'
     )
-    .eq('alumno_ciclo_escolar', cicloEscolar)
     .or(or)
     .limit(CANDIDATOS_POR_CONSULTA)
+
+  // null = no filtrar por ciclo (p. ej. pagos internos / pre-ingreso)
+  if (cicloEscolar != null) {
+    query = query.eq('alumno_ciclo_escolar', cicloEscolar)
+  }
 
   if (signal) {
     query = query.abortSignal(signal)
@@ -246,6 +250,15 @@ async function consultarCandidatos(
   return (data ?? []) as AlumnoBusquedaRow[]
 }
 
+export type BuscarAlumnosServiciosOpciones = {
+  /**
+   * Si true, no filtra por ciclo escolar (útil en pagos internos para
+   * controles pre-ingreso u otros ciclos). No altera la ficha del alumno.
+   */
+  cualquierCiclo?: boolean
+  signal?: AbortSignal
+}
+
 /**
  * Búsqueda por nombre, apellidos o número de control (alumno_ref).
  * Devuelve hasta 15 coincidencias ordenadas por relevancia.
@@ -253,8 +266,15 @@ async function consultarCandidatos(
 export async function buscarAlumnosServicios(
   consulta: string,
   cicloEscolar: number,
-  signal?: AbortSignal
+  signalOrOpts?: AbortSignal | BuscarAlumnosServiciosOpciones
 ): Promise<AlumnoBusquedaResultado[]> {
+  const opts: BuscarAlumnosServiciosOpciones =
+    signalOrOpts instanceof AbortSignal
+      ? { signal: signalOrOpts }
+      : (signalOrOpts ?? {})
+  const signal = opts.signal
+  const cicloFiltro = opts.cualquierCiclo ? null : cicloEscolar
+
   const limpia = consulta.replace(/\s+/g, ' ').trim()
   if (limpia.length < MIN_CARACTERES) return []
 
@@ -266,7 +286,7 @@ export async function buscarAlumnosServicios(
   const terminosValidos = [...terminosBusqueda].filter((t) => t.length >= MIN_CARACTERES)
 
   const lotes = await Promise.all(
-    terminosValidos.map((termino) => consultarCandidatos(termino, cicloEscolar, signal))
+    terminosValidos.map((termino) => consultarCandidatos(termino, cicloFiltro, signal))
   )
   for (const filas of lotes) {
     for (const fila of filas) {
@@ -277,13 +297,18 @@ export async function buscarAlumnosServicios(
   const rankeados = Array.from(mapa.values())
     .map((alumno) => {
       const { puntuacion, campos } = puntuarAlumno(alumno, limpia)
+      const nombreCompleto = construirNombreCompleto(
+        alumno.alumno_nombre,
+        alumno.alumno_app,
+        alumno.alumno_apm
+      )
       return {
         ...alumno,
-        nombre_completo: construirNombreCompleto(
-          alumno.alumno_nombre,
-          alumno.alumno_app,
-          alumno.alumno_apm
-        ),
+        nombre_completo:
+          nombreCompleto ||
+          (String(alumno.alumno_ref ?? '').trim()
+            ? `No. control ${String(alumno.alumno_ref).trim()}`
+            : 'Sin nombre'),
         puntuacion,
         campos_coincidentes: campos,
       }

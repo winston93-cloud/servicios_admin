@@ -34,9 +34,12 @@ function alumnoDesdeRegistro(
   const nombre = canon.alumno_nombre ?? ''
   const app = canon.alumno_app ?? ''
   const apm = canon.alumno_apm ?? ''
+  const ref = String(canon.alumno_ref)
+  const nombreCompleto =
+    construirNombreCompleto(nombre, app, apm) || `No. control ${ref}`
   return {
     alumno_id: canon.alumno_id,
-    alumno_ref: String(canon.alumno_ref),
+    alumno_ref: ref,
     alumno_nombre: nombre,
     alumno_app: app,
     alumno_apm: apm,
@@ -45,7 +48,7 @@ function alumnoDesdeRegistro(
     alumno_grupo: canon.alumno_grupo != null ? String(canon.alumno_grupo) : null,
     alumno_ciclo_escolar: canon.alumno_ciclo_escolar,
     alumno_status: canon.alumno_status,
-    nombre_completo: construirNombreCompleto(nombre, app, apm),
+    nombre_completo: nombreCompleto,
     puntuacion: prev?.puntuacion ?? 0,
     campos_coincidentes: prev?.campos_coincidentes ?? ['nombre'],
   }
@@ -93,12 +96,16 @@ export function AlumnoSeleccionadoProvider({ children }: { children: ReactNode }
     let cancelado = false
     setResolviendoCiclo(true)
 
-    obtenerAlumnoPorRef(ref, cicloSeleccionado).then((canon) => {
+    obtenerAlumnoPorRef(ref, cicloSeleccionado).then(async (canon) => {
       if (cancelado) return
-      if (!canon) {
+      // Si no hay ficha en el ciclo consultado (p. ej. pre-ingreso), conservar el
+      // registro existente sin exigir cambio de ciclo/estatus/grado.
+      const resuelto = canon ?? (await obtenerAlumnoPorRef(ref))
+      if (cancelado) return
+      if (!resuelto) {
         setAlumnoSeleccionadoState(null)
       } else {
-        setAlumnoSeleccionadoState((prev) => alumnoDesdeRegistro(canon, prev))
+        setAlumnoSeleccionadoState((prev) => alumnoDesdeRegistro(resuelto, prev))
       }
       setResolviendoCiclo(false)
     })
