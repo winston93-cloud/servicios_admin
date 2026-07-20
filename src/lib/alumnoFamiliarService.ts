@@ -159,21 +159,62 @@ export async function guardarDatosFamiliar(
     return { ok: true, familiarId: payload.familiarId }
   }
 
-  const { data, error } = await supabase
+  const { data: existente } = await supabase
     .from('alumno_familiar')
-    .insert({
-      alumno_id: payload.alumnoId,
-      tutor_id: payload.tutorId,
-      ...fila,
-      familiar_vive: 1,
-      familiar_factura: 0,
-    })
+    .select('familiar_id')
+    .eq('alumno_id', payload.alumnoId)
+    .eq('tutor_id', payload.tutorId)
+    .order('familiar_id', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (existente?.familiar_id != null) {
+    const familiarId = Number(existente.familiar_id)
+    const { error } = await supabase
+      .from('alumno_familiar')
+      .update(fila)
+      .eq('familiar_id', familiarId)
+    if (error) {
+      console.error('Error al actualizar familiar existente:', error)
+      return { ok: false, mensaje: error.message }
+    }
+    return { ok: true, familiarId }
+  }
+
+  const filaInsert = {
+    alumno_id: payload.alumnoId,
+    tutor_id: payload.tutorId,
+    ...fila,
+    familiar_vive: 1,
+    familiar_factura: 0,
+  }
+
+  let { data, error } = await supabase
+    .from('alumno_familiar')
+    .insert(filaInsert)
     .select('familiar_id')
     .single()
 
-  if (error) {
+  if (error && (error.code === '23505' || error.message?.includes('duplicate key'))) {
+    const { data: maxRow } = await supabase
+      .from('alumno_familiar')
+      .select('familiar_id')
+      .order('familiar_id', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const siguienteId = (maxRow?.familiar_id ?? 0) + 1
+    const reintento = await supabase
+      .from('alumno_familiar')
+      .insert({ ...filaInsert, familiar_id: siguienteId })
+      .select('familiar_id')
+      .single()
+    data = reintento.data
+    error = reintento.error
+  }
+
+  if (error || data == null) {
     console.error('Error al crear familiar:', error)
-    return { ok: false, mensaje: error.message }
+    return { ok: false, mensaje: error?.message ?? 'No se pudo crear el familiar.' }
   }
 
   return { ok: true, familiarId: data.familiar_id }

@@ -267,6 +267,22 @@ async function upsertMedico(
   if (error) throw new Error(`Ficha médica (guardar): ${error.message}`)
 }
 
+function esErrorClaveDuplicada(error: { code?: string; message?: string }): boolean {
+  return error.code === '23505' || (error.message?.includes('duplicate key') ?? false)
+}
+
+/** Tras migraciones con ids explícitos la secuencia suele quedar atrás del MAX. */
+async function siguienteFamiliarId(supabase: AppDatabaseClient): Promise<number | null> {
+  const { data, error } = await supabase
+    .from('alumno_familiar')
+    .select('familiar_id')
+    .order('familiar_id', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) return null
+  return (data?.familiar_id != null ? Number(data.familiar_id) : 0) + 1
+}
+
 async function upsertFamiliar(
   supabase: AppDatabaseClient,
   alumnoId: number,
@@ -295,16 +311,47 @@ async function upsertFamiliar(
     familiar_registro: new Date().toISOString().slice(0, 10),
   }
 
-  if (familiarId != null) {
-    const { error } = await supabase.from('alumno_familiar').update(fila).eq('familiar_id', familiarId)
+  let id = familiarId
+  if (id == null) {
+    const { data: existente } = await supabase
+      .from('alumno_familiar')
+      .select('familiar_id')
+      .eq('alumno_id', alumnoId)
+      .eq('tutor_id', tutorId)
+      .order('familiar_id', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (existente?.familiar_id != null) id = Number(existente.familiar_id)
+  }
+
+  if (id != null) {
+    const { error } = await supabase.from('alumno_familiar').update(fila).eq('familiar_id', id)
     if (error) throw new Error(error.message)
     return
   }
 
-  const { error } = await supabase
-    .from('alumno_familiar')
-    .insert({ alumno_id: alumnoId, tutor_id: tutorId, ...fila })
+  const filaInsert = { alumno_id: alumnoId, tutor_id: tutorId, ...fila }
+  let { error } = await supabase.from('alumno_familiar').insert(filaInsert)
+  if (error && esErrorClaveDuplicada(error)) {
+    const siguienteId = await siguienteFamiliarId(supabase)
+    if (siguienteId != null) {
+      ;({ error } = await supabase
+        .from('alumno_familiar')
+        .insert({ ...filaInsert, familiar_id: siguienteId }))
+    }
+  }
   if (error) throw new Error(error.message)
+}
+
+async function siguienteContactoId(supabase: AppDatabaseClient): Promise<number | null> {
+  const { data, error } = await supabase
+    .from('alumno_contacto')
+    .select('contacto_id')
+    .order('contacto_id', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) return null
+  return (data?.contacto_id != null ? Number(data.contacto_id) : 0) + 1
 }
 
 async function upsertContacto(
@@ -331,11 +378,20 @@ async function upsertContacto(
     return
   }
 
-  const { error } = await supabase.from('alumno_contacto').insert({
+  const filaInsert = {
     alumno_id: alumnoId,
     ...fila,
     contacto_alta: new Date().toISOString(),
-  })
+  }
+  let { error } = await supabase.from('alumno_contacto').insert(filaInsert)
+  if (error && esErrorClaveDuplicada(error)) {
+    const siguienteId = await siguienteContactoId(supabase)
+    if (siguienteId != null) {
+      ;({ error } = await supabase
+        .from('alumno_contacto')
+        .insert({ ...filaInsert, contacto_id: siguienteId }))
+    }
+  }
   if (error) throw new Error(error.message)
 }
 
