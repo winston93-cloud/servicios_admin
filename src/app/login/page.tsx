@@ -197,12 +197,10 @@ export default function LoginPage() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Número de control"
+                  placeholder="No. de control o usuario"
                   className="portal-access-input"
                   disabled={loading}
                   autoComplete="username"
-                  maxLength={5}
-                  inputMode="numeric"
                 />
               </div>
 
