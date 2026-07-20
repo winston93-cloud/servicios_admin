@@ -160,16 +160,12 @@ export function opcionesDesdeCiclos(
   return ciclos.map((c) => ({ valor: c.valor, etiqueta: c.nombre }))
 }
 
-/** Ciclos activos con valor >= al ciclo marcado como actual (hacia adelante). */
+/** Ciclos con `activo=true` para el selector de filtro (todos, no solo ≥ es_actual). */
 export function ciclosParaSelector(
   ciclos: CicloEscolarRegistro[],
-  valorBase?: number
+  _valorBase?: number
 ): CicloEscolarRegistro[] {
-  const base =
-    valorBase ??
-    ciclos.find((c) => c.es_actual)?.valor ??
-    ciclos.filter((c) => c.activo).at(-1)?.valor ??
-    getCicloEscolarActual()
-
-  return ciclos.filter((c) => c.activo && c.valor >= base)
+  const activos = ciclos.filter((c) => c.activo).sort((a, b) => a.valor - b.valor)
+  if (activos.length > 0) return activos
+  return [...ciclos].sort((a, b) => a.valor - b.valor)
 }

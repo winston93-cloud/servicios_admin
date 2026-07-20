@@ -67,7 +67,7 @@ export default function CicloEscolarSelector({
             {opcionesSelector.map((opcion) => (
               <option key={opcion.valor} value={opcion.valor}>
                 {opcion.etiqueta}
-                {opcion.valor === cicloActualSistema ? ' (activo)' : ''}
+                {opcion.valor === cicloActualSistema ? ' (actual)' : ''}
               </option>
             ))}
           </select>
