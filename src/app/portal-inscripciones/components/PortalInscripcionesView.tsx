@@ -680,6 +680,25 @@ export default function PortalInscripcionesView() {
           </section>
         )}
 
+        {estadoVista && !cierrePendiente && !procesoCompleto && (
+          <div
+            className="portal-inscripciones-alerta portal-inscripciones-alerta--destacado"
+            role="status"
+          >
+            <AlertTriangle size={22} aria-hidden />
+            <div>
+              <p className="portal-inscripciones-alerta-destacado-titulo">
+                Debes tener todos los pasos completados para acceder a los pagos del próximo ciclo.
+              </p>
+              <p className="portal-inscripciones-alerta-destacado-sub">
+                Completa solicitud, reglamento, pago
+                {estadoVista.pasos.some((p) => p.id === 'documentos') ? ', documentos' : ''} y
+                recibo final. Hasta entonces no se desbloquean las colegiaturas del ciclo nuevo.
+              </p>
+            </div>
+          </div>
+        )}
+
         {estadoVista && !cierrePendiente && (
           <>
             {procesoCompleto ? (

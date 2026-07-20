@@ -17293,6 +17293,91 @@ html[data-theme='light'] .portal-doc-modal-xml {
   color: var(--portal-alerta-aviso-text);
 }
 
+.portal-inscripciones-alerta--destacado {
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 24px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  border: 2px solid rgba(245, 158, 11, 0.85);
+  background: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.28) 0%,
+    rgba(217, 119, 6, 0.18) 45%,
+    rgba(15, 23, 42, 0.92) 100%
+  );
+  color: #fef3c7;
+  box-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.35),
+    0 12px 32px rgba(245, 158, 11, 0.22);
+  animation: portal-inscripciones-destacado-pulse 2.4s ease-in-out infinite;
+}
+
+.portal-inscripciones-alerta--destacado > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #fbbf24;
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.55));
+}
+
+.portal-inscripciones-alerta-destacado-titulo {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  color: #fffbeb;
+  text-wrap: balance;
+}
+
+.portal-inscripciones-alerta-destacado-sub {
+  margin: 8px 0 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: #fde68a;
+  opacity: 0.95;
+}
+
+@keyframes portal-inscripciones-destacado-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(251, 191, 36, 0.35),
+      0 12px 32px rgba(245, 158, 11, 0.22);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px rgba(251, 191, 36, 0.55),
+      0 16px 40px rgba(245, 158, 11, 0.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portal-inscripciones-alerta--destacado {
+    animation: none;
+  }
+}
+
+html[data-theme='light'] .portal-inscripciones-alerta--destacado {
+  border-color: #d97706;
+  background: linear-gradient(135deg, #fef3c7 0%, #ffedd5 55%, #fff7ed 100%);
+  color: #92400e;
+  box-shadow: 0 8px 28px rgba(217, 119, 6, 0.2);
+}
+
+html[data-theme='light'] .portal-inscripciones-alerta--destacado > svg {
+  color: #d97706;
+  filter: none;
+}
+
+html[data-theme='light'] .portal-inscripciones-alerta-destacado-titulo {
+  color: #78350f;
+}
+
+html[data-theme='light'] .portal-inscripciones-alerta-destacado-sub {
+  color: #92400e;
+}
+
 .portal-inscripciones-progreso {
   display: flex;
   flex-direction: column;
