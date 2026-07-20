@@ -295,6 +295,7 @@ export default function PagosInternosModulo() {
       return
     }
     setMensaje('Cuota de padres registrada.')
+    setFolio(await obtenerSiguienteFolioPago())
     if (alumnoSeleccionado) {
       await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
     }
@@ -389,12 +390,12 @@ export default function PagosInternosModulo() {
                   Folio
                   <input
                     type="number"
-                    min={1}
-                    className="pi-input"
+                    min={26550}
+                    className="pi-input pi-input--ro"
                     value={folio}
-                    onChange={(e) =>
-                      setFolio(e.target.value === '' ? '' : Number(e.target.value))
-                    }
+                    readOnly
+                    title="Asignado automáticamente (desde 26550)"
+                    aria-label="Folio del recibo (automático)"
                   />
                 </label>
                 <label>

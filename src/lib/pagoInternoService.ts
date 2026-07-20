@@ -272,16 +272,24 @@ export async function listarPagosPorAlumno(
   })) as PagoInternoRegistro[]
 }
 
+/** Primer folio de recibos de pagos internos en el sistema nuevo. */
+export const PAGO_INTERNO_FOLIO_INICIAL = 26550
+
 export async function obtenerSiguienteFolioPago(): Promise<number> {
   const { data, error } = await supabase
     .from('pago_interno')
     .select('pago_folio')
+    .gte('pago_folio', PAGO_INTERNO_FOLIO_INICIAL)
     .order('pago_folio', { ascending: false })
     .limit(1)
     .maybeSingle()
 
-  if (error || !data) return 1
-  return Number(data.pago_folio) + 1
+  if (error || !data?.pago_folio) return PAGO_INTERNO_FOLIO_INICIAL
+  const max = Number(data.pago_folio)
+  if (!Number.isFinite(max) || max < PAGO_INTERNO_FOLIO_INICIAL) {
+    return PAGO_INTERNO_FOLIO_INICIAL
+  }
+  return max + 1
 }
 
 export interface CrearPagoInternoPayload {
@@ -297,7 +305,8 @@ export interface CrearPagoInternoPayload {
 export async function crearPagoInterno(
   payload: CrearPagoInternoPayload
 ): Promise<{ ok: true; pago_id: number; pago_folio: number } | { ok: false; mensaje: string }> {
-  const folio = payload.pago_folio ?? (await obtenerSiguienteFolioPago())
+  // Folio autoincremental desde 26550 (no depende del valor del formulario).
+  const folio = await obtenerSiguienteFolioPago()
 
   const { data: maxRow } = await supabase
     .from('pago_interno')
