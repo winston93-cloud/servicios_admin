@@ -169,6 +169,28 @@
   cursor: not-allowed;
 }
 
+.pos-login-back {
+  margin-top: 2px;
+  border: 0;
+  background: transparent;
+  color: #d6b896;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.pos-login-back:hover:not(:disabled) {
+  color: #fff7ed;
+}
+
+.pos-login-back:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .pos-login-loading {
   display: inline-flex;
   align-items: center;

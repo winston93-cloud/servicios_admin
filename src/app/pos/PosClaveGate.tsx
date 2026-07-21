@@ -1,11 +1,13 @@
 'use client'
 
 import { FormEvent, type ReactNode, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import './pos-login.css'
 
 type Fase = 'cargando' | 'login' | 'ok'
 
 export default function PosClaveGate({ children }: { children: ReactNode }) {
+  const router = useRouter()
   const [fase, setFase] = useState<Fase>('cargando')
   const [clave, setClave] = useState('')
   const [mostrarClave, setMostrarClave] = useState(false)
@@ -43,7 +45,7 @@ export default function PosClaveGate({ children }: { children: ReactNode }) {
         setError(data.error || 'Contraseña incorrecta.')
         return
       }
-      setFase('ok')
+      router.replace('/dashboard')
     } catch {
       setError('No se pudo validar la contraseña. Intenta de nuevo.')
     } finally {
@@ -193,6 +195,14 @@ export default function PosClaveGate({ children }: { children: ReactNode }) {
             ) : (
               'Entrar'
             )}
+          </button>
+          <button
+            type="button"
+            className="pos-login-back"
+            onClick={() => router.push('/dashboard')}
+            disabled={enviando}
+          >
+            Volver al dashboard
           </button>
         </form>
       </div>
