@@ -138,7 +138,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     accent: 'violet',
     motor: 'api-next',
     requiereNivel: true,
-    usaCiclo: 'libre',
+    usaCiclo: 'escolar',
     keywords: ['nuevo', 'ingreso', 'completo'],
   },
   {
@@ -149,7 +149,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     accent: 'violet',
     motor: 'api-next',
     requiereNivel: true,
-    usaCiclo: 'libre',
+    usaCiclo: 'escolar',
     keywords: ['nuevo', 'ingreso', 'deben', 'pendiente', 'inscripcion'],
   },
   // Reinscritos

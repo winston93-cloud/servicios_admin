@@ -141,6 +141,11 @@ function ReportesPageInner() {
         ciclo = Math.max(1, cicloActualSistema - 1)
       }
 
+      // Nuevo ingreso: siempre temporada vigente (hoy 23 = 2026-2027).
+      if (entry.categoriaId === 'nuevo-ingreso') {
+        ciclo = cicloActualSistema
+      }
+
       return { nivel: 'primaria', ciclo }
     },
     [cicloActualSistema, cicloInscripcionSistema]
