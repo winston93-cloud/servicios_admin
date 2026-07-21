@@ -134,7 +134,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     id: 'ni-completo',
     categoriaId: 'nuevo-ingreso',
     titulo: 'Nuevo ingreso — reporte completo',
-    descripcion: 'Alumnos de nuevo ingreso del ciclo seleccionado.',
+    descripcion: 'Alumnos de nuevo ingreso del ciclo (contactos mamá/papá y resumen por grado).',
     accent: 'violet',
     motor: 'api-next',
     requiereNivel: true,

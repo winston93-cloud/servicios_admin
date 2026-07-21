@@ -26,9 +26,10 @@ import {
   generarPdfReporteInscripciones,
 } from '@/lib/reportes/inscripcionesAdminDocument'
 import {
-  cargarNuevoIngreso,
-  nuevoIngresoATabla,
-} from '@/lib/reportes/nuevoIngresoService'
+  construirHtmlReporteNuevoIngreso,
+  generarPdfReporteNuevoIngreso,
+} from '@/lib/reportes/nuevoIngresoDocument'
+import { cargarNuevoIngreso } from '@/lib/reportes/nuevoIngresoService'
 import { nivelIdToValor, parseCicloParam } from '@/lib/reportes/params'
 import {
   construirHtmlReporteTabla,
@@ -145,16 +146,11 @@ function handlerNuevoIngreso(modo: 'completo' | 'deben'): ReporteHandler {
     // Ciclo del select = ficha NI y pago de inscripción (13) del mismo ciclo.
     const ciclo = await cicloEscolarParam(searchParams)
     const resumen = await cargarNuevoIngreso(nivel, ciclo, ciclo, modo)
-    const tabla = nuevoIngresoATabla(resumen)
-    return respuestaTabla({
-      titulo: resumen.titulo,
-      subtitulo: `${resumen.nivelLabel} · Ciclo ${resumen.cicloLabel}`,
-      meta: `${resumen.filas.length} alumno(s)`,
-      ...tabla,
-      slug: `ni-${modo}`,
-      ciclo,
-      format,
-    })
+    const filename = `ni-${modo}-ciclo-${ciclo}.pdf`
+    if (format === 'pdf') {
+      return { filename, pdf: generarPdfReporteNuevoIngreso(resumen) }
+    }
+    return { filename, html: construirHtmlReporteNuevoIngreso(resumen) }
   }
 }
 
