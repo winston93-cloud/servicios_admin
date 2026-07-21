@@ -175,7 +175,9 @@ export async function cargarReporteDoble(cicloEscolar: number) {
         grupo: string
         noCtrl: string
         nombre: string
-        pagos: string
+        pago23: string
+        pago24: string
+        pago25: string
       }[],
     }
   }
@@ -203,7 +205,9 @@ export async function cargarReporteDoble(cicloEscolar: number) {
     grupo: string
     noCtrl: string
     nombre: string
-    pagos: string
+    pago23: string
+    pago24: string
+    pago25: string
   }[] = []
 
   for (const r of alumnos) {
@@ -215,6 +219,14 @@ export async function cargarReporteDoble(cicloEscolar: number) {
       cicloEscolar
     )
     if (!hits.length) continue
+
+    const porConcepto = (concepto: string) => {
+      const list = hits.filter((h) => h.concepto === concepto)
+      if (!list.length) return '—'
+      return list
+        .map((h) => `${h.fecha}${h.importe ? ` $${h.importe}` : ''}`)
+        .join(' · ')
+    }
 
     const nivel = r.alumno_nivel
     filas.push({
@@ -231,9 +243,9 @@ export async function cargarReporteDoble(cicloEscolar: number) {
       grupo: etiquetaGrupoEscolar(r.alumno_grupo),
       noCtrl: r.alumno_ref,
       nombre: construirNombreCompleto(r.alumno_nombre, r.alumno_app, r.alumno_apm),
-      pagos: hits
-        .map((h) => `${h.fecha} ${h.concepto}${h.importe ? ` $${h.importe}` : ''}`)
-        .join('; '),
+      pago23: porConcepto('23'),
+      pago24: porConcepto('24'),
+      pago25: porConcepto('25'),
     })
   }
 
@@ -246,7 +258,7 @@ export async function cargarReporteDoble(cicloEscolar: number) {
 
 export function dobleATabla(resumen: Awaited<ReturnType<typeof cargarReporteDoble>>) {
   return {
-    headers: ['#', 'Nivel', 'Grado', 'Grupo', 'No. Ctrl', 'Nombre', 'Pagos'],
+    headers: ['#', 'Nivel', 'Grado', 'Grupo', 'No. Ctrl', 'Nombre', 'Pago 23', 'Pago 24', 'Pago 25'],
     rows: resumen.filas.map((f) => [
       String(f.no),
       f.nivel,
@@ -254,7 +266,9 @@ export function dobleATabla(resumen: Awaited<ReturnType<typeof cargarReporteDobl
       f.grupo,
       f.noCtrl,
       f.nombre,
-      f.pagos,
+      f.pago23,
+      f.pago24,
+      f.pago25,
     ]),
   }
 }
