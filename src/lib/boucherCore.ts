@@ -39,6 +39,16 @@ export function vigenciaBoucherPorDefecto(fecha = new Date()): string {
   return `${yyyy}-${mm}-${String(dd).padStart(2, '0')}`
 }
 
+/**
+ * Placeholder del UI admin (`0` / vacío). No confundir con concepto `00`
+ * (Cuota de Inicio de Curso), que sí es válido.
+ */
+export function conceptoBoucherAusente(raw: unknown): boolean {
+  if (raw == null) return true
+  const s = String(raw).trim()
+  return !s || s === '0'
+}
+
 export function getPaymentConcept(conceptoNo: string): string {
   const c = normalizarConceptoNo(conceptoNo)
   switch (c) {

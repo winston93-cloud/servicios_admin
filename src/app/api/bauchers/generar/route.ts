@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { calcularBoucher } from '@/lib/boucherService'
-import { getPaymentConcept, normalizarConceptoNo, parseImporteBoucher } from '@/lib/boucherCore'
+import {
+  conceptoBoucherAusente,
+  getPaymentConcept,
+  normalizarConceptoNo,
+  parseImporteBoucher,
+} from '@/lib/boucherCore'
 import { generarPdfBoucher } from '@/lib/boucherPdf'
 import { obtenerAlumnoPorId } from '@/lib/alumnoDatosService'
 
@@ -23,7 +28,7 @@ export async function POST(request: Request) {
     const ignorarMesPago = Boolean(body.ignorarMesPago)
     const nombreAlumno = String(body.nombreAlumno ?? '')
 
-    if (!alumnoId || conceptoNo === '00' || !cicloEscolar || !vigencia) {
+    if (!alumnoId || conceptoBoucherAusente(body.conceptoNo) || !cicloEscolar || !vigencia) {
       return NextResponse.json(
         { error: 'Completa alumno, concepto, ciclo y vigencia' },
         { status: 400 }

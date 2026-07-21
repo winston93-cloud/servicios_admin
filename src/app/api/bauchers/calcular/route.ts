@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
-import { normalizarConceptoNo, parseImporteBoucher } from '@/lib/boucherCore'
+import {
+  conceptoBoucherAusente,
+  normalizarConceptoNo,
+  parseImporteBoucher,
+} from '@/lib/boucherCore'
 import { calcularBoucher } from '@/lib/boucherService'
 import { obtenerAlumnoPorId } from '@/lib/alumnoDatosService'
 
@@ -10,7 +14,6 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const alumnoId = Number(body.alumnoId)
-    const conceptoRaw = String(body.conceptoNo ?? '0')
     const cicloEscolar = Number(body.cicloEscolar)
     const importeManual =
       body.importe != null && body.importe !== ''
@@ -21,10 +24,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Alumno y ciclo escolar son obligatorios' }, { status: 400 })
     }
 
-    const conceptoNo = normalizarConceptoNo(conceptoRaw)
-    if (conceptoRaw === '0' || conceptoNo === '00') {
+    if (conceptoBoucherAusente(body.conceptoNo)) {
       return NextResponse.json({ ok: true, importe: 0, referencia: '' })
     }
+
+    const conceptoNo = normalizarConceptoNo(body.conceptoNo)
 
     const supabase = createSupabaseAdmin()
     const alumno = await obtenerAlumnoPorId(alumnoId)
