@@ -51,6 +51,7 @@ const UNIDADES = [
 const DECENAS = [
   '',
   '',
+  '',
   'TREINTA',
   'CUARENTA',
   'CINCUENTA',
@@ -108,10 +109,9 @@ function numeroALetras(n: number): string {
     } else {
       const dec = Math.floor(n / 10)
       const uni = n % 10
+      // DECENAS[dec] indexa por decena (3=30 … 9=90).
       if (uni === 0) {
         partes.push(DECENAS[dec])
-      } else if (n < 30) {
-        partes.push(UNIDADES[n])
       } else {
         partes.push(`${DECENAS[dec]} Y ${UNIDADES[uni]}`)
       }
