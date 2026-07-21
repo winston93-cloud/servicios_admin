@@ -65,27 +65,45 @@ function nombreInstitucion(nivel: number): string {
     : 'Instituto Winston Churchill'
 }
 
+function aspectRatioPng(buf: Buffer): number {
+  if (buf.length < 24) return 1
+  const w = buf.readUInt32BE(16)
+  const h = buf.readUInt32BE(20)
+  if (!w || !h) return 1
+  return w / h
+}
+
 function logoDataUrl(nivel: number): { data: string; w: number; h: number } | null {
-  const file = esEducativo(nivel) ? 'educativo.png' : 'logo_full.png'
-  const full = path.join(process.cwd(), 'public', 'bauchers', file)
-  if (!fs.existsSync(full)) {
-    const alt = path.join(
-      process.cwd(),
-      'public',
-      'logos',
-      esEducativo(nivel) ? 'logo-winston-educativo.png' : 'logo-winston-churchill.png'
-    )
-    if (!fs.existsSync(alt)) return null
-    const buf = fs.readFileSync(alt)
-    return {
-      data: `data:image/png;base64,${buf.toString('base64')}`,
-      w: esEducativo(nivel) ? 44 : 40,
-      h: esEducativo(nivel) ? 14 : 16,
-    }
+  const educativo = esEducativo(nivel)
+  const candidatos = educativo
+    ? [
+        path.join(process.cwd(), 'public', 'logos', 'logo-winston-educativo.png'),
+        path.join(process.cwd(), 'public', 'bauchers', 'educativo.png'),
+      ]
+    : [
+        path.join(process.cwd(), 'public', 'bauchers', 'logo_full.png'),
+        path.join(process.cwd(), 'public', 'logos', 'logo-winston-churchill.png'),
+      ]
+
+  const ruta = candidatos.find((r) => fs.existsSync(r)) ?? null
+  if (!ruta) return null
+
+  const buf = fs.readFileSync(ruta)
+  const aspect = aspectRatioPng(buf)
+  const maxH = educativo ? 28 : 16
+  const maxW = educativo ? 24 : 42
+  let h = maxH
+  let w = h * aspect
+  if (w > maxW) {
+    w = maxW
+    h = w / aspect
   }
-  const buf = fs.readFileSync(full)
-  const data = `data:image/png;base64,${buf.toString('base64')}`
-  return esEducativo(nivel) ? { data, w: 44, h: 11 } : { data, w: 40, h: 15 }
+
+  return {
+    data: `data:image/png;base64,${buf.toString('base64')}`,
+    w,
+    h,
+  }
 }
 
 function formatearFechaCorta(iso: string): string {
@@ -115,7 +133,8 @@ function dibujarEncabezado(
 
   if (logo) {
     try {
-      pdf.addImage(logo.data, 'PNG', MARGIN, 10, logo.w, logo.h)
+      const logoY = Math.max(6, (headerH - 2.8 - logo.h) / 2)
+      pdf.addImage(logo.data, 'PNG', MARGIN, logoY, logo.w, logo.h)
     } catch {
       /* logo opcional */
     }

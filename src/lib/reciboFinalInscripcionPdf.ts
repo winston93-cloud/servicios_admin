@@ -55,22 +55,50 @@ function nombreInstitucion(nivel: number): string {
     : 'Instituto Winston Churchill'
 }
 
+/** Lee width/height del IHDR PNG para conservar proporción al dibujar. */
+function aspectRatioPng(buf: Buffer): number {
+  if (buf.length < 24) return 1
+  const w = buf.readUInt32BE(16)
+  const h = buf.readUInt32BE(20)
+  if (!w || !h) return 1
+  return w / h
+}
+
+/**
+ * Educativo: escudo vertical (bauchers/educativo.png ~133×167).
+ * Churchill: logo horizontal (bauchers/logo_full.png ~688×311).
+ * Antes el educativo se dibujaba 44×11 y salía aplastado.
+ */
 function logoDataUrl(nivel: number): { data: string; w: number; h: number } | null {
-  const file = esEducativo(nivel) ? 'educativo.png' : 'logo_full.png'
-  const full = path.join(process.cwd(), 'public', 'bauchers', file)
-  const alt = path.join(
-    process.cwd(),
-    'public',
-    'logos',
-    esEducativo(nivel) ? 'logo-winston-educativo.png' : 'logo-winston-churchill.png'
-  )
-  const ruta = fs.existsSync(full) ? full : fs.existsSync(alt) ? alt : null
+  const educativo = esEducativo(nivel)
+  const candidatos = educativo
+    ? [
+        path.join(process.cwd(), 'public', 'logos', 'logo-winston-educativo.png'),
+        path.join(process.cwd(), 'public', 'bauchers', 'educativo.png'),
+      ]
+    : [
+        path.join(process.cwd(), 'public', 'bauchers', 'logo_full.png'),
+        path.join(process.cwd(), 'public', 'logos', 'logo-winston-churchill.png'),
+      ]
+
+  const ruta = candidatos.find((r) => fs.existsSync(r)) ?? null
   if (!ruta) return null
+
   const buf = fs.readFileSync(ruta)
+  const aspect = aspectRatioPng(buf)
+  const maxH = educativo ? 28 : 16
+  const maxW = educativo ? 24 : 42
+  let h = maxH
+  let w = h * aspect
+  if (w > maxW) {
+    w = maxW
+    h = w / aspect
+  }
+
   return {
     data: `data:image/png;base64,${buf.toString('base64')}`,
-    w: esEducativo(nivel) ? 44 : 40,
-    h: esEducativo(nivel) ? (fs.existsSync(full) ? 11 : 14) : fs.existsSync(full) ? 15 : 16,
+    w,
+    h,
   }
 }
 
@@ -147,7 +175,9 @@ export async function generarPdfReciboFinalInscripcion(
 
   if (logo) {
     try {
-      pdf.addImage(logo.data, 'PNG', MARGIN, 10, logo.w, logo.h)
+      // Centrar verticalmente el escudo en el header (educativo es más alto).
+      const logoY = Math.max(6, (headerH - 2.8 - logo.h) / 2)
+      pdf.addImage(logo.data, 'PNG', MARGIN, logoY, logo.w, logo.h)
     } catch {
       /* logo opcional */
     }
