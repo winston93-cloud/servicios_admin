@@ -123,7 +123,7 @@ function ProximamenteContent() {
               Regresar al dashboard
             </Link>
             <p className="proximamente-footnote">
-              Mientras tanto puedes usar Inscripciones, Alta de Facturación y Becas.
+              Mientras tanto puedes usar Inscripciones y Alta de Facturación.
             </p>
           </div>
         </section>

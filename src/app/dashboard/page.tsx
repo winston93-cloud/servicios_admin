@@ -1,6 +1,5 @@
 'use client'
 
-import { urlBecasAlumnoApp } from '@/lib/dashboardModulosConfig'
 import {
   NAV_ITEMS_ADMIN,
   abrirNavItem,
@@ -102,17 +101,6 @@ const NAV_ITEMS_ALUMNO: DashboardNavItem[] = [
         <line x1="8" y1="7" x2="16" y2="7"/>
         <line x1="8" y1="11" x2="16" y2="11"/>
         <line x1="8" y1="15" x2="12" y2="15"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Becas',
-    desc: 'Portal de becas integrales y solicitud en línea',
-    href: urlBecasAlumnoApp(),
-    accent: 'amber',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
       </svg>
     ),
   },
