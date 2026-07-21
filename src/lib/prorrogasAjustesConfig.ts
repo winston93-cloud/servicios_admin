@@ -1,10 +1,13 @@
 export function urlProrrogasAjustesApp(): string {
   const explicit = process.env.NEXT_PUBLIC_PRORROGAS_AJUSTES_URL?.trim()
-  if (explicit) return explicit.replace(/\/$/, '')
+  const base = (
+    explicit ||
+    (process.env.NODE_ENV === 'development'
+      ? 'http://localhost:3001'
+      : 'https://prorrogas-ajustes.vercel.app')
+  ).replace(/\/$/, '')
 
-  if (process.env.NODE_ENV === 'development') {
-    return 'http://localhost:3001'
-  }
-
-  return 'https://prorrogas-ajustes.vercel.app'
+  // Entrada directa al módulo (sin hub de dos tarjetas).
+  if (base.endsWith('/prorrogas')) return base
+  return `${base}/prorrogas`
 }

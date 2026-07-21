@@ -74,12 +74,12 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
-    label: 'Prórrogas y Ajustes',
-    desc: 'Gestión de prórrogas y ajustes de pago escolar.',
+    label: 'Prórrogas',
+    desc: 'Registro y seguimiento de prórrogas de pago escolar.',
     href: urlProrrogasAjustesApp(),
     accent: 'rose',
     kicker: 'Pagos',
-    tags: ['Prórrogas', 'Ajustes'],
+    tags: ['Prórrogas'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2" />
