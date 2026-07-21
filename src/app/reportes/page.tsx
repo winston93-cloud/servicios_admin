@@ -29,6 +29,7 @@ import {
   UserMinus,
   UserPlus,
   Users,
+  Sparkles,
   Star,
   type LucideIcon,
 } from 'lucide-react'
@@ -43,6 +44,7 @@ type ParametrosReporte = {
 
 const CAT_ICONS: Record<string, LucideIcon> = {
   'mis-reportes': Star,
+  'reportes-especiales': Sparkles,
   curp: Fingerprint,
   listas: Users,
   'nuevo-ingreso-actual': UserPlus,
@@ -127,14 +129,20 @@ function ReportesPageInner() {
   }, [opcionesCatalogo, cicloActualSistema])
 
   const paramsIniciales = useCallback(
-    (entry: ReporteCatalogEntry): ParametrosReporte => ({
-      nivel: 'primaria',
-      ciclo: entry.cicloSistema
+    (entry: ReporteCatalogEntry): ParametrosReporte => {
+      let ciclo = entry.cicloSistema
         ? entry.usaCiclo === 'inscripcion'
           ? cicloInscripcionSistema
           : cicloActualSistema
-        : cicloSugeridoParaReporte(entry.usaCiclo, cicloActualSistema),
-    }),
+        : cicloSugeridoParaReporte(entry.usaCiclo, cicloActualSistema)
+
+      // Doble titulación: el ciclo vigente suele ir vacío; sugerir el anterior (pagos históricos).
+      if (entry.id === 'doble-titulacion') {
+        ciclo = Math.max(1, cicloActualSistema - 1)
+      }
+
+      return { nivel: 'primaria', ciclo }
+    },
     [cicloActualSistema, cicloInscripcionSistema]
   )
 
@@ -239,7 +247,11 @@ function ReportesPageInner() {
         copiado={copiado}
         onCopy={copiarUrl}
         deshabilitado={!urls.disponible}
-        defaultExpanded={entry.categoriaId === 'mis-reportes' || Boolean(q)}
+        defaultExpanded={
+          entry.categoriaId === 'mis-reportes' ||
+          entry.categoriaId === 'reportes-especiales' ||
+          Boolean(q)
+        }
         extra={
           entry.requiereNivel || mostrarCiclo ? (
             <ReporteParametros
