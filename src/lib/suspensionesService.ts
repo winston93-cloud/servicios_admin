@@ -151,6 +151,8 @@ export async function generarListaDeudoresSuspension(
         'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, mes'
       )
       .eq('alumno_ciclo_escolar', cicloFicha)
+      // Solo reinscritos: nuevo ingreso empieza en agosto con cuota 00.
+      .eq('alumno_nuevo_ingreso', 0)
       .in('alumno_nivel', niveles)
       .not('alumno_status', 'in', '(0,2)')
       .range(offset, offset + PAGE_ALUMNO - 1)
