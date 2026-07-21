@@ -1,0 +1,188 @@
+.pos-login-shell {
+  min-height: 100dvh;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(1100px 560px at 8% -8%, rgba(180, 83, 9, 0.28), transparent 55%),
+    radial-gradient(900px 480px at 100% 0%, rgba(120, 53, 15, 0.2), transparent 50%),
+    #1c1410;
+  color: #f5e6d3;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.pos-login-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 20, 16, 0.4);
+  backdrop-filter: blur(6px);
+}
+
+.pos-login-modal {
+  position: relative;
+  z-index: 1;
+  width: min(420px, calc(100vw - 32px));
+  padding: 28px 26px 24px;
+  border-radius: 16px;
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  background: linear-gradient(180deg, rgba(55, 40, 28, 0.96), rgba(28, 20, 16, 0.98));
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+}
+
+.pos-login-brand {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 22px;
+}
+
+.pos-login-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #78350f;
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+
+.pos-login-eyebrow {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #d6b896;
+  font-weight: 600;
+}
+
+.pos-login-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff7ed;
+  letter-spacing: -0.02em;
+}
+
+.pos-login-lead {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  color: #d6b896;
+}
+
+.pos-login-form {
+  display: grid;
+  gap: 10px;
+}
+
+.pos-login-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #f5e6d3;
+}
+
+.pos-login-clave-fila {
+  display: grid;
+  grid-template-columns: 36px 1fr 40px;
+  align-items: center;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 10px;
+  background: rgba(28, 20, 16, 0.85);
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pos-login-clave-fila:focus-within {
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.22);
+}
+
+.pos-login-clave-lock {
+  display: grid;
+  place-items: center;
+  color: #a16207;
+}
+
+.pos-login-input {
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #fff7ed;
+  font-size: 0.95rem;
+  padding: 12px 4px;
+  min-width: 0;
+}
+
+.pos-login-input::placeholder {
+  color: #a16207;
+}
+
+.pos-login-eye {
+  border: 0;
+  background: transparent;
+  color: #d6b896;
+  height: 100%;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.pos-login-eye:hover {
+  color: #fff7ed;
+}
+
+.pos-login-error {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(127, 29, 29, 0.35);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  color: #fecaca;
+  font-size: 0.85rem;
+}
+
+.pos-login-submit {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #d97706, #92400e);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.pos-login-submit:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.pos-login-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pos-login-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #f5e6d3;
+  font-size: 0.95rem;
+}
+
+.pos-login-spin {
+  animation: pos-login-spin 0.8s linear infinite;
+}
+
+@keyframes pos-login-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

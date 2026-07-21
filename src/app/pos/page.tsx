@@ -15,13 +15,12 @@ import ProductoModal from '../components/ProductoModal';
 import PersonalModal from '../components/PersonalModal';
 import ConsultaDiariaModal from '../components/ConsultaDiariaModal';
 import ReporteContableModal from '../components/ReporteContableModal';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import { ProductoSearchResult } from '@/lib/productoService';
 import { CombinedSearchResult } from '@/lib/alumnoService';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { generarReporteLudy } from '@/lib/reporteLudyServicePDF';
 import ThemeToggle from '@/components/ThemeToggle';
+import PosClaveGate from './PosClaveGate';
 
 interface ProductWithDate extends ProductoSearchResult {
   date?: Date;
@@ -29,7 +28,6 @@ interface ProductWithDate extends ProductoSearchResult {
 }
 
 export default function Home() {
-  const { user } = useAuth();
   const router = useRouter();
   const [selectedProducts, setSelectedProducts] = useState<ProductoSearchResult[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<{
@@ -43,9 +41,19 @@ export default function Home() {
   
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const productoInputRef = useRef<ProductoSearchRef>(null);
+  const [gateKey, setGateKey] = useState(0);
 
   const handleBackToDashboard = () => {
     router.push('/dashboard');
+  };
+
+  const handleCerrarSesionPos = async () => {
+    try {
+      await fetch('/api/pos/auth', { method: 'DELETE', cache: 'no-store' });
+    } catch {
+      // Igual forzamos el re-login
+    }
+    setGateKey((k) => k + 1);
   };
 
   const handleReporteLudy = async () => {
@@ -108,7 +116,7 @@ export default function Home() {
   const [allProductsInTable, setAllProductsInTable] = useState<ProductWithDate[]>([]);
 
   return (
-    <ProtectedRoute>
+    <PosClaveGate key={gateKey}>
       <div className="pos-app">
         <div className="pos-header-strip" aria-hidden="false">
           <span className="pos-header-kicker">Punto de venta</span>
@@ -160,7 +168,7 @@ export default function Home() {
               <ThemeToggle />
               <div className="pos-user-info">
                 <User className="w-4 h-4" />
-                <span className="pos-user-name">{user?.usuario_nombre_completo}</span>
+                <span className="pos-user-name">Caja</span>
               </div>
               <button 
                 onClick={handleBackToDashboard}
@@ -168,6 +176,14 @@ export default function Home() {
                 title="Volver al Dashboard"
               >
                 <LogOut className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleCerrarSesionPos}
+                className="pos-logout-btn"
+                title="Cerrar sesión del POS"
+                type="button"
+              >
+                Salir
               </button>
             </div>
           </div>
@@ -252,6 +268,6 @@ export default function Home() {
           onClose={() => setIsReporteContableModalOpen(false)}
         />
       </div>
-    </ProtectedRoute>
+    </PosClaveGate>
   );
 }
