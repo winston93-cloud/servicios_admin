@@ -16,6 +16,7 @@ import {
 } from './portalAdmisionesVentanas'
 import {
   obtenerAutorizacionPortalDif2,
+  obtenerProrrogaInscripcionActiva,
   tieneAccesoProrrogaDif1,
 } from './portalAdmisionesProrroga'
 import { normalizarConceptoNo, parsearReferenciaPago, formatearAlumnoRefParaReferencia } from './pagoReferenciaColegiatura'
@@ -275,6 +276,23 @@ export async function calcularReinscripcionDiferido(
     } else {
       base.conceptoClase = getPaymentConcept(base.concepto)
     }
+    return base
+  }
+
+  // Corrección / prórroga vigente en pago_prorroga sustituye el monto calendárico.
+  const prMonto = await obtenerProrrogaInscripcionActiva(
+    supabase,
+    Number(alumno.alumno_ref),
+    Number(concepto),
+    [cen]
+  )
+  if (prMonto) monto = round2(prMonto.monto)
+
+  if (!(monto > 0)) {
+    base.completa = true
+    base.concepto = concepto
+    base.conceptoClase = getPaymentConcept(concepto)
+    base.diferido = diferido
     return base
   }
 

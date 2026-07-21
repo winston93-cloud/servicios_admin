@@ -1,10 +1,63 @@
 import type { AppDatabaseClient } from '@/lib/dbTypes'
 import { hoyIso } from './portalAdmisionesCiclo'
+import { normalizarConceptoNo } from './pagoReferenciaColegiatura'
 
 export interface ProrrogaInscripcionActiva {
   monto: number
   vigenciaHasta: string
   concepto: number
+}
+
+export interface CorreccionManualActiva {
+  monto: number
+  vigenciaHasta: string
+  conceptoNo: string
+}
+
+/**
+ * Correcciones manuales vigentes (`correccion=1`) por concepto (00 = Agosto, 01…).
+ * La más reciente por concepto gana; vigencia = `prorroga_fecha` (compromiso).
+ */
+export async function mapCorreccionesManualesVigentes(
+  supabase: AppDatabaseClient,
+  alumnoRef: number,
+  cicloEscolar: number
+): Promise<Map<string, CorreccionManualActiva>> {
+  const out = new Map<string, CorreccionManualActiva>()
+  if (!(alumnoRef > 0) || !(cicloEscolar > 0)) return out
+
+  const hoy = hoyIso()
+  const { data, error } = await supabase
+    .from('pago_prorroga')
+    .select('pago_importe, prorroga_fecha, pago_concepto, prorroga_registro')
+    .eq('alumno_ref', alumnoRef)
+    .eq('prorroga_ciclo_escolar', cicloEscolar)
+    .eq('prorroga_status', 1)
+    .eq('correccion', 1)
+    .order('prorroga_registro', { ascending: false })
+
+  if (error || !data) return out
+
+  for (const row of data as Record<string, unknown>[]) {
+    const conceptoNo = normalizarConceptoNo(row.pago_concepto as string | number | null)
+    if (out.has(conceptoNo)) continue
+    const vigencia = String(row.prorroga_fecha ?? '').slice(0, 10)
+    const monto = Number(row.pago_importe ?? 0)
+    if (!vigencia || hoy > vigencia || !(monto > 0)) continue
+    out.set(conceptoNo, { monto, vigenciaHasta: vigencia, conceptoNo })
+  }
+
+  return out
+}
+
+export async function obtenerCorreccionManualActiva(
+  supabase: AppDatabaseClient,
+  alumnoRef: number,
+  conceptoNo: string | number,
+  cicloEscolar: number
+): Promise<CorreccionManualActiva | null> {
+  const map = await mapCorreccionesManualesVigentes(supabase, alumnoRef, cicloEscolar)
+  return map.get(normalizarConceptoNo(conceptoNo)) ?? null
 }
 
 /** Prórroga vigente en pago_prorroga (conceptos 11/12/13) — sin listas hardcodeadas. */

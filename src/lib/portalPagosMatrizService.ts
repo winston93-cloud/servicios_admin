@@ -26,6 +26,7 @@ import {
   slotsLineales,
 } from './portalPagosCandados'
 import { obtenerAperturaConceptosPortal } from './portalAperturaConceptosService'
+import { mapCorreccionesManualesVigentes } from './portalAdmisionesProrroga'
 
 export interface FilaMatrizPortal {
   conceptoNo: string
@@ -218,6 +219,11 @@ async function construirFilas(
   }
 
   const becaPct = await obtenerPorcentajeBeca(supabase, alumno.alumno_id, ciclo.valor)
+  const correcciones = await mapCorreccionesManualesVigentes(
+    supabase,
+    Number(alumno.alumno_ref),
+    ciclo.valor
+  )
   const control = formatearAlumnoRefParaReferencia(alumno.alumno_ref)
   const filas: FilaMatrizPortal[] = []
 
@@ -254,11 +260,17 @@ async function construirFilas(
       continue
     }
 
-    const importe = calcularImporteConcepto(conceptoNo, precio, becaPct, planMeses, {
-      alumnoRef: alumno.alumno_ref,
-      cicloEscolar: ciclo.valor,
-    })
-    const recargo = calcularRecargoPesos(conceptoNo, new Date(), ciclo.valor)
+    const correccion = correcciones.get(conceptoNo)
+    const importe =
+      correccion != null
+        ? correccion.monto
+        : calcularImporteConcepto(conceptoNo, precio, becaPct, planMeses, {
+            alumnoRef: alumno.alumno_ref,
+            cicloEscolar: ciclo.valor,
+          })
+    // Importe de corrección es el monto pactado; no sumar recargo de atraso.
+    const recargo =
+      correccion != null ? 0 : calcularRecargoPesos(conceptoNo, new Date(), ciclo.valor)
     const importeLinea = Math.round((importe + recargo) * 100) / 100
     const semibase = referenciaSemibase(alumno.alumno_ref, conceptoNo, ciclo.valor)
     const referencia = getDigVerif(importe, semibase)

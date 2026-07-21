@@ -13,6 +13,7 @@ import {
   conceptoAplicaSepYRecargo,
 } from './colegiaturaPrecioReglas'
 import { montoBecaSep } from './integracionSep'
+import { obtenerCorreccionManualActiva } from './portalAdmisionesProrroga'
 
 export interface PrecioBoucherRow {
   precio_id: number
@@ -272,17 +273,31 @@ export async function calcularBoucher(
 
   const manual =
     params.importeManual != null ? parseImporteBoucher(params.importeManual) : null
+
+  let importeCorreccion: number | null = null
+  if (!(manual != null && manual > 0)) {
+    const corr = await obtenerCorreccionManualActiva(
+      supabase,
+      Number(params.alumnoRef),
+      params.conceptoNo,
+      params.cicloEscolar
+    )
+    if (corr) importeCorreccion = corr.monto
+  }
+
   const importe =
     manual != null && manual > 0
       ? manual
-      : calcularImporteConcepto(params.conceptoNo, precio, becaPct, planMeses, {
-          alumnoRef: params.alumnoRef,
-          fecha,
-          cicloEscolar: params.cicloEscolar,
-        })
+      : importeCorreccion != null
+        ? importeCorreccion
+        : calcularImporteConcepto(params.conceptoNo, precio, becaPct, planMeses, {
+            alumnoRef: params.alumnoRef,
+            fecha,
+            cicloEscolar: params.cicloEscolar,
+          })
 
   const recargo =
-    manual != null && manual > 0
+    (manual != null && manual > 0) || importeCorreccion != null
       ? 0
       : calcularRecargoPesos(params.conceptoNo, fecha, params.cicloEscolar)
   const importeLinea = Math.round((importe + recargo) * 100) / 100
