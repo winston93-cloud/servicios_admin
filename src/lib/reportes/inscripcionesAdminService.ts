@@ -12,7 +12,7 @@ import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { parsearReferenciaPago } from '@/lib/pagoReferenciaColegiatura'
 import { PAGE_ALUMNO } from './dbChunks'
-import { fetchPagosPorAlumnos } from './fetchDb'
+import { fetchPagosPorConceptosCiclo } from './fetchDb'
 import { etiquetaCicloReporte } from './renderDocument'
 
 type Celda = { nivel: number; grado: number }
@@ -120,51 +120,101 @@ function construirFilasConTotales(
   return out
 }
 
-function mapaDesdeFilas(filas: { alumno_nivel: number; alumno_grado: number }[]): Map<string, number> {
-  const m = new Map<string, number>()
-  for (const f of filas) {
-    const k = key(Number(f.alumno_nivel), Number(f.alumno_grado))
-    m.set(k, (m.get(k) ?? 0) + 1)
-  }
-  return m
+type AlumnoCeldaRow = {
+  alumno_id: number
+  alumno_nivel: number
+  alumno_grado: number
+  alumno_status: number
 }
 
-async function contarAlumnos(
+async function fetchAlumnosCicloNuevoIngreso(
   ciclo: number,
   nuevoIngreso: 0 | 1,
-  opts?: { excluirBloqueos?: boolean }
-): Promise<Map<string, number>> {
+  modoStatus: 'dif1' | 'dif2' | 'general' | 'ni'
+): Promise<AlumnoCeldaRow[]> {
   const db = createDbAdmin()
-  const filas: { alumno_nivel: number; alumno_grado: number }[] = []
+  const out: AlumnoCeldaRow[] = []
   let offset = 0
 
   while (true) {
-    // Legacy: alumno_status != 0. RI estimados excluye 4/5 (se suman aparte por grado destino).
     let q = db
       .from('alumno')
-      .select('alumno_nivel, alumno_grado, alumno_status')
+      .select('alumno_id, alumno_nivel, alumno_grado, alumno_status')
       .eq('alumno_ciclo_escolar', ciclo)
       .eq('alumno_nuevo_ingreso', nuevoIngreso)
-      .neq('alumno_status', 0)
+
+    if (modoStatus === 'ni') {
+      q = q.eq('alumno_status', 1)
+    } else {
+      // Legacy: alumno_status != 0 (filtros 2/5 de pagados RI se aplican en memoria).
+      q = q.neq('alumno_status', 0)
+    }
 
     const { data, error } = await q.range(offset, offset + PAGE_ALUMNO - 1)
     if (error) throw new Error(error.message)
     const chunk = data ?? []
-    for (const r of chunk) {
-      const status = Number(r.alumno_status)
-      if (opts?.excluirBloqueos && esEstatusBloqueo(status)) {
-        continue
-      }
-      filas.push({
-        alumno_nivel: Number(r.alumno_nivel),
-        alumno_grado: Number(r.alumno_grado),
+    for (const a of chunk) {
+      out.push({
+        alumno_id: Number(a.alumno_id),
+        alumno_nivel: Number(a.alumno_nivel),
+        alumno_grado: Number(a.alumno_grado),
+        alumno_status: Number(a.alumno_status),
       })
     }
     if (chunk.length < PAGE_ALUMNO) break
     offset += PAGE_ALUMNO
   }
 
-  return mapaDesdeFilas(filas)
+  return out
+}
+
+function mapaDesdeAlumnos(
+  alumnos: AlumnoCeldaRow[],
+  pred?: (a: AlumnoCeldaRow) => boolean
+): Map<string, number> {
+  const m = new Map<string, number>()
+  for (const a of alumnos) {
+    if (pred && !pred(a)) continue
+    const k = key(a.alumno_nivel, a.alumno_grado)
+    m.set(k, (m.get(k) ?? 0) + 1)
+  }
+  return m
+}
+
+function pagoVigente(cancelado: number | null | undefined): boolean {
+  return cancelado === 0 || cancelado == null
+}
+
+function idsPagadosPorConceptos(
+  pagos: Awaited<ReturnType<typeof fetchPagosPorConceptosCiclo>>,
+  cicloInscripcion: number,
+  conceptos: string[]
+): Set<number> {
+  const vistos = new Set<number>()
+  for (const p of pagos) {
+    if (!pagoVigente(p.pago_cancelado)) continue
+    const parsed = parsearReferenciaPago(p.pago_referencia)
+    if (!parsed) continue
+    if (parsed.cicloEscolar !== cicloInscripcion) continue
+    if (!conceptos.includes(parsed.conceptoNo)) continue
+    vistos.add(p.alumno_id)
+  }
+  return vistos
+}
+
+function mapaPagadosPorNivelGrado(
+  alumnos: AlumnoCeldaRow[],
+  pagados: Set<number>,
+  pred?: (a: AlumnoCeldaRow) => boolean
+): Map<string, number> {
+  const m = new Map<string, number>()
+  for (const a of alumnos) {
+    if (pred && !pred(a)) continue
+    if (!pagados.has(a.alumno_id)) continue
+    const k = key(a.alumno_nivel, a.alumno_grado)
+    m.set(k, (m.get(k) ?? 0) + 1)
+  }
+  return m
 }
 
 function sumarMapas(a: Map<string, number>, b: Map<string, number>): Map<string, number> {
@@ -179,125 +229,6 @@ function mapaBloqueosPorDestino(grupos: GrupoBloqueoInscripciones[]): Map<string
   const m = new Map<string, number>()
   for (const g of grupos) {
     m.set(key(g.nivel, g.grado), g.alumnos.length)
-  }
-  return m
-}
-
-async function contarReinscritosPagados(
-  cicloAlumnos: number,
-  cicloInscripcion: number,
-  conceptos: string[],
-  modo: 'dif1' | 'dif2' | 'general'
-): Promise<Map<string, number>> {
-  const db = createDbAdmin()
-  const alumnos: { alumno_id: number; alumno_nivel: number; alumno_grado: number }[] = []
-  let offset = 0
-
-  while (true) {
-    let q = db
-      .from('alumno')
-      .select('alumno_id, alumno_nivel, alumno_grado')
-      .eq('alumno_ciclo_escolar', cicloAlumnos)
-      .eq('alumno_nuevo_ingreso', 0)
-
-    // dif1 (inscripcionesreales.php): status != 5,0,2
-    // dif2 (inscripcionesreales2.php): status != 0
-    if (modo === 'dif1' || modo === 'general') {
-      q = q.not('alumno_status', 'in', '(0,2,5)')
-    } else {
-      q = q.neq('alumno_status', 0)
-    }
-
-    const { data, error } = await q.range(offset, offset + PAGE_ALUMNO - 1)
-
-    if (error) throw new Error(error.message)
-    const chunk = data ?? []
-    for (const a of chunk) {
-      alumnos.push({
-        alumno_id: Number(a.alumno_id),
-        alumno_nivel: Number(a.alumno_nivel),
-        alumno_grado: Number(a.alumno_grado),
-      })
-    }
-    if (chunk.length < PAGE_ALUMNO) break
-    offset += PAGE_ALUMNO
-  }
-
-  if (!alumnos.length) return new Map()
-
-  const pagos = await fetchPagosPorAlumnos(alumnos.map((a) => a.alumno_id))
-
-  const nivelGrado = new Map<number, { nivel: number; grado: number }>()
-  for (const a of alumnos) {
-    nivelGrado.set(a.alumno_id, { nivel: a.alumno_nivel, grado: a.alumno_grado })
-  }
-
-  const m = new Map<string, number>()
-  const vistos = new Set<number>()
-
-  for (const p of pagos) {
-    if (p.pago_cancelado !== 0 && p.pago_cancelado != null) continue
-    const alumnoId = p.alumno_id
-    if (vistos.has(alumnoId)) continue
-    const parsed = parsearReferenciaPago(p.pago_referencia)
-    if (!parsed) continue
-    if (parsed.cicloEscolar !== cicloInscripcion) continue
-    if (!conceptos.includes(parsed.conceptoNo)) continue
-    const ng = nivelGrado.get(alumnoId)
-    if (!ng) continue
-    vistos.add(alumnoId)
-    const k = key(ng.nivel, ng.grado)
-    m.set(k, (m.get(k) ?? 0) + 1)
-  }
-
-  return m
-}
-
-async function contarNuevoIngresoPagado(cicloInscripcion: number): Promise<Map<string, number>> {
-  const db = createDbAdmin()
-  const alumnos: { alumno_id: number; alumno_nivel: number; alumno_grado: number }[] = []
-  let offset = 0
-
-  while (true) {
-    const { data, error } = await db
-      .from('alumno')
-      .select('alumno_id, alumno_nivel, alumno_grado, alumno_ref')
-      .eq('alumno_ciclo_escolar', cicloInscripcion)
-      .eq('alumno_nuevo_ingreso', 1)
-      .eq('alumno_status', 1)
-      .range(offset, offset + PAGE_ALUMNO - 1)
-
-    if (error) throw new Error(error.message)
-    const chunk = data ?? []
-    for (const a of chunk) {
-      alumnos.push({
-        alumno_id: Number(a.alumno_id),
-        alumno_nivel: Number(a.alumno_nivel),
-        alumno_grado: Number(a.alumno_grado),
-      })
-    }
-    if (chunk.length < PAGE_ALUMNO) break
-    offset += PAGE_ALUMNO
-  }
-
-  if (!alumnos.length) return new Map()
-
-  const pagos = await fetchPagosPorAlumnos(alumnos.map((a) => a.alumno_id))
-  const pagados = new Set<number>()
-
-  for (const p of pagos) {
-    if (p.pago_cancelado !== 0 && p.pago_cancelado != null) continue
-    const parsed = parsearReferenciaPago(p.pago_referencia)
-    if (!parsed) continue
-    if (parsed.cicloEscolar !== cicloInscripcion || parsed.conceptoNo !== '13') continue
-    pagados.add(p.alumno_id)
-  }
-
-  const m = new Map<string, number>()
-  for (const a of alumnos) {
-    if (!pagados.has(a.alumno_id)) continue
-    const k = key(a.alumno_nivel, a.alumno_grado)
-    m.set(k, (m.get(k) ?? 0) + 1)
   }
   return m
 }
@@ -332,60 +263,68 @@ async function cargarBloqueosPsicoAcademico(
   const gradosColegio = new Set(NIVELES_GRADOS.map((c) => key(c.nivel, c.grado)))
 
   const db = createDbAdmin()
+  const chunksPorCiclo = await Promise.all(
+    [...ciclos].map(async (ciclo) => {
+      const rows: Record<string, unknown>[] = []
+      let offset = 0
+      while (true) {
+        const { data, error } = await db
+          .from('alumno')
+          .select(
+            'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_ciclo_escolar, alumno_status'
+          )
+          .eq('alumno_ciclo_escolar', ciclo)
+          .in('alumno_status', [...ESTATUS_ALUMNO_BLOQUEOS])
+          .range(offset, offset + PAGE_ALUMNO - 1)
+        if (error) throw new Error(error.message)
+        const chunk = data ?? []
+        for (const r of chunk) rows.push(r as Record<string, unknown>)
+        if (chunk.length < PAGE_ALUMNO) break
+        offset += PAGE_ALUMNO
+      }
+      return rows
+    })
+  )
+
   const vistos = new Set<number>()
   const filas: AlumnoBloqueoInscripciones[] = []
 
-  for (const ciclo of ciclos) {
-    let offset = 0
-    while (true) {
-      const { data, error } = await db
-        .from('alumno')
-        .select(
-          'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_ciclo_escolar, alumno_status'
-        )
-        .eq('alumno_ciclo_escolar', ciclo)
-        .in('alumno_status', [...ESTATUS_ALUMNO_BLOQUEOS])
-        .range(offset, offset + PAGE_ALUMNO - 1)
-      if (error) throw new Error(error.message)
-      const chunk = data ?? []
-      for (const r of chunk) {
-        const id = Number(r.alumno_id)
-        if (vistos.has(id)) continue
-        const nivelActual = Number(r.alumno_nivel)
-        const gradoActual = Number(r.alumno_grado)
-        // Solo Maternal A … 9° Sec (excluye egresados grado 4).
-        if (!gradosColegio.has(key(nivelActual, gradoActual))) continue
-        vistos.add(id)
+  for (const chunk of chunksPorCiclo) {
+    for (const r of chunk) {
+      const id = Number(r.alumno_id)
+      if (vistos.has(id)) continue
+      const nivelActual = Number(r.alumno_nivel)
+      const gradoActual = Number(r.alumno_grado)
+      // Solo Maternal A … 9° Sec (excluye egresados grado 4).
+      if (!gradosColegio.has(key(nivelActual, gradoActual))) continue
+      vistos.add(id)
 
-        const cicloFicha = Number(r.alumno_ciclo_escolar)
-        const yaEnCicloDestino = cicloFicha === cicloDestino
-        const dest = yaEnCicloDestino
-          ? { nivel: nivelActual, grado: gradoActual, egresa: false }
-          : calcularDestinoCambioCiclo(nivelActual, gradoActual)
+      const cicloFicha = Number(r.alumno_ciclo_escolar)
+      const yaEnCicloDestino = cicloFicha === cicloDestino
+      const dest = yaEnCicloDestino
+        ? { nivel: nivelActual, grado: gradoActual, egresa: false }
+        : calcularDestinoCambioCiclo(nivelActual, gradoActual)
 
-        // Si el avance los mandaría a egresados, se reportan como 9° (tope del reporte).
-        const nivelDestino = dest.egresa ? 4 : dest.nivel
-        const gradoDestino = dest.egresa ? 3 : dest.grado
-        const nivelDestinoLabel = dest.egresa
-          ? etiquetaNivelInscripciones(4, 3)
-          : etiquetaNivelInscripciones(nivelDestino, gradoDestino)
+      // Si el avance los mandaría a egresados, se reportan como 9° (tope del reporte).
+      const nivelDestino = dest.egresa ? 4 : dest.nivel
+      const gradoDestino = dest.egresa ? 3 : dest.grado
+      const nivelDestinoLabel = dest.egresa
+        ? etiquetaNivelInscripciones(4, 3)
+        : etiquetaNivelInscripciones(nivelDestino, gradoDestino)
 
-        filas.push({
-          noCtrl: String(r.alumno_ref ?? '').trim(),
-          nombre: construirNombreCompleto(r.alumno_nombre, r.alumno_app, r.alumno_apm),
-          status: Number(r.alumno_status),
-          nivelActual,
-          gradoActual,
-          nivelActualLabel: etiquetaNivelInscripciones(nivelActual, gradoActual),
-          nivelDestino,
-          gradoDestino,
-          nivelDestinoLabel,
-          cicloDestino,
-          cicloDestinoLabel,
-        })
-      }
-      if (chunk.length < PAGE_ALUMNO) break
-      offset += PAGE_ALUMNO
+      filas.push({
+        noCtrl: String(r.alumno_ref ?? '').trim(),
+        nombre: construirNombreCompleto(r.alumno_nombre, r.alumno_app, r.alumno_apm),
+        status: Number(r.alumno_status),
+        nivelActual,
+        gradoActual,
+        nivelActualLabel: etiquetaNivelInscripciones(nivelActual, gradoActual),
+        nivelDestino,
+        gradoDestino,
+        nivelDestinoLabel,
+        cicloDestino,
+        cicloDestinoLabel,
+      })
     }
   }
 
@@ -424,16 +363,35 @@ export async function cargarMatrizInscripciones(cicloInscripcion: number, modo: 
   const conceptos =
     modo === 'dif2' ? ['12', '13'] : ['11', '13']
 
-  const [riEstBase, riPag, niEst, niPag, bloqueos] = await Promise.all([
-    contarAlumnos(cicloAlumnos, 0, { excluirBloqueos: true }),
-    contarReinscritosPagados(cicloAlumnos, cicloInscripcion, conceptos, modo),
-    contarAlumnos(cicloInscripcion, 1),
-    contarNuevoIngresoPagado(cicloInscripcion),
+  // Un solo barrido RI + NI + pagos del ciclo (por patrón de referencia) + bloqueos.
+  const [riAlumnos, niAlumnos, pagos, bloqueos] = await Promise.all([
+    fetchAlumnosCicloNuevoIngreso(cicloAlumnos, 0, modo),
+    fetchAlumnosCicloNuevoIngreso(cicloInscripcion, 1, 'ni'),
+    fetchPagosPorConceptosCiclo(conceptos, cicloInscripcion),
     cargarBloqueosPsicoAcademico(cicloAlumnos, cicloInscripcion),
   ])
 
-  // RI estimados = activos/otros + bloqueos 4/5 atribuidos al grado destino.
+  // RI estimados = activos/otros (sin 4/5) + bloqueos atribuidos al grado destino.
+  const riEstBase = mapaDesdeAlumnos(
+    riAlumnos,
+    (a) => !esEstatusBloqueo(a.alumno_status)
+  )
   const riEst = sumarMapas(riEstBase, mapaBloqueosPorDestino(bloqueos))
+
+  const elegiblesRi =
+    modo === 'dif1' || modo === 'general'
+      ? riAlumnos.filter((a) => ![0, 2, 5].includes(a.alumno_status))
+      : riAlumnos.filter((a) => a.alumno_status !== 0)
+  const riPag = mapaPagadosPorNivelGrado(
+    elegiblesRi,
+    idsPagadosPorConceptos(pagos, cicloInscripcion, conceptos)
+  )
+
+  const niEst = mapaDesdeAlumnos(niAlumnos)
+  const niPag = mapaPagadosPorNivelGrado(
+    niAlumnos,
+    idsPagadosPorConceptos(pagos, cicloInscripcion, ['13'])
+  )
 
   const celdas = NIVELES_GRADOS.map(({ nivel, grado }) => {
     const k = key(nivel, grado)

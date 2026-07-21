@@ -117,19 +117,51 @@ export async function fetchAlumnosActivosNivel(
   return out
 }
 
+function mapPagoReporteRow(r: Record<string, unknown>): PagoReporteRow {
+  return {
+    alumno_id: Number(r.alumno_id),
+    pago_referencia: (r.pago_referencia as string | null) ?? null,
+    pago_fecha: (r.pago_fecha as string | null) ?? null,
+    pago_importe: r.pago_importe == null ? null : Number(r.pago_importe),
+    pago_cancelado: r.pago_cancelado == null ? null : Number(r.pago_cancelado),
+  }
+}
+
+/** Concurrencia acotada para no saturar InsForge (502 con IN grandes / ráfagas). */
+async function mapPool<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const out: R[] = new Array(items.length)
+  let next = 0
+  async function worker() {
+    while (true) {
+      const i = next++
+      if (i >= items.length) return
+      out[i] = await fn(items[i])
+    }
+  }
+  const n = Math.max(1, Math.min(concurrency, items.length))
+  await Promise.all(Array.from({ length: n }, () => worker()))
+  return out
+}
+
 export async function fetchPagosPorAlumnos(
   alumnoIds: number[]
 ): Promise<PagoReporteRow[]> {
   if (!alumnoIds.length) return []
   const db = createDbAdmin()
-  const out: PagoReporteRow[] = []
   const chunkSize = CHUNK_ALUMNO_ID_PAGO
-
+  const slices: number[][] = []
   for (let i = 0; i < alumnoIds.length; i += chunkSize) {
-    const ids = alumnoIds.slice(i, i + chunkSize)
+    slices.push(alumnoIds.slice(i, i + chunkSize))
+  }
+
+  const pages = await mapPool(slices, 4, async (ids) => {
+    const out: PagoReporteRow[] = []
     let offset = 0
     const pageSize = 1000
-
     while (true) {
       const { data, error } = await db
         .from('pago_detalle')
@@ -140,18 +172,62 @@ export async function fetchPagosPorAlumnos(
       if (error) throw new Error(error.message)
       const chunk = data ?? []
       for (const r of chunk) {
-        out.push({
-          alumno_id: Number(r.alumno_id),
-          pago_referencia: r.pago_referencia as string | null,
-          pago_fecha: r.pago_fecha as string | null,
-          pago_importe: r.pago_importe == null ? null : Number(r.pago_importe),
-          pago_cancelado: r.pago_cancelado == null ? null : Number(r.pago_cancelado),
-        })
+        out.push(mapPagoReporteRow(r as Record<string, unknown>))
       }
       if (chunk.length < pageSize) break
       offset += pageSize
     }
-  }
+    return out
+  })
 
-  return out
+  return pages.flat()
+}
+
+/**
+ * Pagos de inscripción/reinscripción por patrón de referencia
+ * (5 ref + 2 concepto + 2 ciclo + 3 dv). Evita barrer el historial completo del alumno.
+ */
+export async function fetchPagosPorConceptosCiclo(
+  conceptos: string[],
+  cicloEscolar: number
+): Promise<PagoReporteRow[]> {
+  const conceptosNorm = [
+    ...new Set(
+      conceptos
+        .map((c) => String(c ?? '').replace(/\D/g, '').padStart(2, '0').slice(-2))
+        .filter((c) => c.length === 2)
+    ),
+  ]
+  if (!conceptosNorm.length || !(cicloEscolar > 0)) return []
+
+  const ciclo2 = String(cicloEscolar).padStart(2, '0').slice(-2)
+  const db = createDbAdmin()
+  const pageSize = 1000
+
+  const porConcepto = await Promise.all(
+    conceptosNorm.map(async (concepto) => {
+      const out: PagoReporteRow[] = []
+      let offset = 0
+      // _____ = alumno_ref (5); luego concepto+ciclo; % = dígito verificador
+      const patron = `_____${concepto}${ciclo2}%`
+      while (true) {
+        const { data, error } = await db
+          .from('pago_detalle')
+          .select('alumno_id, pago_referencia, pago_fecha, pago_importe, pago_cancelado')
+          .like('pago_referencia', patron)
+          .range(offset, offset + pageSize - 1)
+
+        if (error) throw new Error(error.message)
+        const chunk = data ?? []
+        for (const r of chunk) {
+          out.push(mapPagoReporteRow(r as Record<string, unknown>))
+        }
+        if (chunk.length < pageSize) break
+        offset += pageSize
+      }
+      return out
+    })
+  )
+
+  return porConcepto.flat()
 }
