@@ -1,4 +1,5 @@
 import type { AppDatabaseClient } from '@/lib/dbTypes'
+import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 import {
   CHUNK_ALUMNO_ID_GENERAL,
   CHUNK_ALUMNO_ID_PAGO,
@@ -95,6 +96,29 @@ async function cargarPagosDetalleAlumnos(
   return filas
 }
 
+async function resolverCicloFichaDeudores(
+  supabase: AppDatabaseClient,
+  cicloReporte: number
+): Promise<number> {
+  // Tras el cambio de ciclo las fichas ya están en es_actual; el select del
+  // reporte sigue siendo el ciclo de pagos (p. ej. 22) y no debe quedar vacío.
+  const { count, error } = await supabase
+    .from('alumno')
+    .select('alumno_id', { count: 'exact', head: true })
+    .eq('alumno_ciclo_escolar', cicloReporte)
+    .not('alumno_status', 'in', '(0,2)')
+
+  if (!error && (count ?? 0) > 0) return cicloReporte
+
+  try {
+    const cea = await resolverCicloEscolarSistemaValor()
+    if (cea > 0 && cea !== cicloReporte) return cea
+  } catch {
+    // Sin catálogo: quedarse con el ciclo pedido.
+  }
+  return cicloReporte
+}
+
 export async function generarListaDeudoresSuspension(
   supabase: AppDatabaseClient,
   input: GenerarSuspensionesInput
@@ -103,6 +127,7 @@ export async function generarListaDeudoresSuspension(
   const cicloLargo = cicloLargoDesdeValorCiclo(cicloEscolar)
   const niveles = nivelesPorPlantel(plantel)
   const inscripcionBloques = bloqueInscripcionCiclo(cicloEscolar)
+  const cicloFicha = await resolverCicloFichaDeudores(supabase, cicloEscolar)
 
   type AlumnoSuspRow = {
     alumno_id: number
@@ -125,7 +150,7 @@ export async function generarListaDeudoresSuspension(
       .select(
         'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, mes'
       )
-      .eq('alumno_ciclo_escolar', cicloEscolar)
+      .eq('alumno_ciclo_escolar', cicloFicha)
       .in('alumno_nivel', niveles)
       .not('alumno_status', 'in', '(0,2)')
       .range(offset, offset + PAGE_ALUMNO - 1)
