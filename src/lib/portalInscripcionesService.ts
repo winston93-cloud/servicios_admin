@@ -182,7 +182,8 @@ export async function construirEstadoPortalInscripciones(
   let cierreCiclo: CierreCicloPortal | null = null
 
   if (esReinscrito && opciones?.pagosCierre && opciones.cicloCierre) {
-    cierreCiclo = resumenCierreCicloParaReinscrito(
+    cierreCiclo = await resumenCierreCicloParaReinscrito(
+      supabase,
       alumno,
       opciones.pagosCierre,
       opciones.cicloCierre

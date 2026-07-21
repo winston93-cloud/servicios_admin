@@ -6,7 +6,7 @@ import {
   actualizarPlanMesesPortal,
 } from '@/lib/portalPlanPagosService'
 import { etiquetaPlanMeses } from '@/lib/alumnoPlanMeses'
-import { planMesesNormalizado } from '@/lib/portalPlanPagosConfirmado'
+import { resolverPlanMesesParaCiclo } from '@/lib/portalPlanMesesCiclo'
 
 export const runtime = 'nodejs'
 
@@ -24,7 +24,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'cicloValor es obligatorio' }, { status: 400 })
     }
 
-    const planMeses = planMesesNormalizado(auth.alumno.mes)
+    const supabase = createSupabaseAdmin()
+    const planMeses = await resolverPlanMesesParaCiclo(supabase, auth.alumno, cicloValor)
     const bloqueadoPorPagos = await alumnoTienePagosColegiaturaCiclo(auth.alumno, cicloValor)
 
     return NextResponse.json({
@@ -80,6 +81,7 @@ export async function POST(request: Request) {
       planEtiqueta: resultado.planEtiqueta,
       bloqueadoPorPagos: resultado.bloqueadoPorPagos,
       cambiado: resultado.cambiado,
+      mesFichaConservado: Boolean(resultado.mesFichaConservado),
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al guardar plan de pagos'

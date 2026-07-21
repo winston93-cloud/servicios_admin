@@ -455,7 +455,11 @@ export default function PortalInscripcionesView() {
           prev
             ? {
                 ...prev,
-                alumno: { ...prev.alumno, mes: planFinal },
+                // Si el plan es del ciclo nuevo y la ficha sigue en el anterior,
+                // no pisar alumno.mes (plan del ciclo a cerrar).
+                alumno: data.mesFichaConservado
+                  ? prev.alumno
+                  : { ...prev.alumno, mes: planFinal },
               }
             : prev
         )

@@ -72,7 +72,8 @@ export async function POST(request: Request) {
     }
 
     const supabase = createSupabaseAdmin()
-    const planMeses = alumno.mes === 2 ? 2 : 1
+    const { resolverPlanMesesParaCiclo } = await import('@/lib/portalPlanMesesCiclo')
+    const planMeses = await resolverPlanMesesParaCiclo(supabase, alumno, cicloEscolar)
     const { importe, importeLinea, recargo } = await calcularBoucher(supabase, {
       alumnoId,
       alumnoRef: alumno.alumno_ref,

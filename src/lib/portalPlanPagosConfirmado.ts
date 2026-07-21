@@ -1,6 +1,6 @@
 /** Confirmación local del plan 10/11 antes de armar colegiaturas del ciclo nuevo. */
 
-const PREFIX = 'portal_inscripciones_plan_confirmado_v2'
+const PREFIX = 'portal_inscripciones_plan_confirmado_v3'
 
 /**
  * Generación de reset por alumno+ciclo (soporte / pruebas).

@@ -27,6 +27,10 @@ import {
 } from './portalPagosCandados'
 import { obtenerAperturaConceptosPortal } from './portalAperturaConceptosService'
 import { mapCorreccionesManualesVigentes } from './portalAdmisionesProrroga'
+import {
+  resolverPlanMesesCierre,
+  resolverPlanMesesParaCiclo,
+} from './portalPlanMesesCiclo'
 
 export interface FilaMatrizPortal {
   conceptoNo: string
@@ -332,9 +336,15 @@ export async function construirMatrizPortalPagos(
   pagos: PagoDetalleRegistro[],
   opciones?: { soloColegiatura?: boolean }
 ): Promise<MatrizPortalPagos> {
-  const planMeses = alumno.mes === 2 ? 2 : 1
-  const planEtiqueta = etiquetaPlanPagos(planMeses)
   const soloColegiatura = Boolean(opciones?.soloColegiatura)
+
+  // Cierre: plan del ciclo a liquidar (no el elegido para el ciclo nuevo).
+  // Colegiaturas del ciclo en curso/destino: plan de ese ciclo.
+  const planMeses = soloColegiatura
+    ? await resolverPlanMesesCierre(supabase, alumno, ciclo.valor, pagos)
+    : await resolverPlanMesesParaCiclo(supabase, alumno, ciclo.valor, pagos)
+
+  const planEtiqueta = etiquetaPlanPagos(planMeses)
 
   const conceptosColeg = await listarConceptosColegiatura(supabase, planMeses)
   const filasColegRaw = await construirFilas(
