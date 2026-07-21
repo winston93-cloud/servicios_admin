@@ -20,7 +20,6 @@ import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   Award,
-  CalendarPlus,
   ChevronDown,
   Fingerprint,
   LayoutGrid,
@@ -47,10 +46,9 @@ const CAT_ICONS: Record<string, LucideIcon> = {
   'mis-reportes': Star,
   'reportes-especiales': Sparkles,
   deudores: Wallet,
+  'nuevo-ingreso': UserPlus,
   curp: Fingerprint,
   listas: Users,
-  'nuevo-ingreso-actual': UserPlus,
-  'nuevo-ingreso-siguiente': CalendarPlus,
   reinscritos: RefreshCw,
   becados: Award,
   bajas: UserMinus,
@@ -253,6 +251,7 @@ function ReportesPageInner() {
           entry.categoriaId === 'mis-reportes' ||
           entry.categoriaId === 'reportes-especiales' ||
           entry.categoriaId === 'deudores' ||
+          entry.categoriaId === 'nuevo-ingreso' ||
           Boolean(q)
         }
         extra={

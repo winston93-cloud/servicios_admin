@@ -138,24 +138,21 @@ async function respuestaInscripcionesAdmin(
   return { filename, html: construirHtmlReporteInscripciones(resumen) }
 }
 
-function handlerNuevoIngreso(modo: 'completo' | 'deben', ambito: 'actual' | 'siguiente'): ReporteHandler {
+function handlerNuevoIngreso(modo: 'completo' | 'deben'): ReporteHandler {
   return async (searchParams) => {
     const nivel = requiereNivel(searchParams)
     const format = formatoParam(searchParams)
-    const cicloPago =
-      ambito === 'actual'
-        ? await cicloEscolarParam(searchParams)
-        : await cicloInscripcionParam(searchParams)
-    const cicloAlumnos = cicloPago
-    const resumen = await cargarNuevoIngreso(nivel, cicloAlumnos, cicloPago, modo)
+    // Ciclo del select = ficha NI y pago de inscripción (13) del mismo ciclo.
+    const ciclo = await cicloEscolarParam(searchParams)
+    const resumen = await cargarNuevoIngreso(nivel, ciclo, ciclo, modo)
     const tabla = nuevoIngresoATabla(resumen)
     return respuestaTabla({
       titulo: resumen.titulo,
       subtitulo: `${resumen.nivelLabel} · Ciclo ${resumen.cicloLabel}`,
       meta: `${resumen.filas.length} alumno(s)`,
       ...tabla,
-      slug: `ni-${modo}-${ambito}`,
-      ciclo: cicloPago,
+      slug: `ni-${modo}`,
+      ciclo,
       format,
     })
   }
@@ -196,10 +193,13 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
     })
   },
 
-  'ni-completo-actual': handlerNuevoIngreso('completo', 'actual'),
-  'ni-deben-actual': handlerNuevoIngreso('deben', 'actual'),
-  'ni-completo-sig': handlerNuevoIngreso('completo', 'siguiente'),
-  'ni-deben-sig': handlerNuevoIngreso('deben', 'siguiente'),
+  'ni-completo': handlerNuevoIngreso('completo'),
+  'ni-deben': handlerNuevoIngreso('deben'),
+  // Alias de URLs anteriores (ciclo en curso / próximo)
+  'ni-completo-actual': handlerNuevoIngreso('completo'),
+  'ni-deben-actual': handlerNuevoIngreso('deben'),
+  'ni-completo-sig': handlerNuevoIngreso('completo'),
+  'ni-deben-sig': handlerNuevoIngreso('deben'),
 
   'reinscritos-1': async (searchParams) => {
     const nivel = requiereNivel(searchParams)
