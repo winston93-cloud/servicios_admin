@@ -314,7 +314,11 @@ async function cargarBloqueosPsicoAcademico(
 
       filas.push({
         noCtrl: String(r.alumno_ref ?? '').trim(),
-        nombre: construirNombreCompleto(r.alumno_nombre, r.alumno_app, r.alumno_apm),
+        nombre: construirNombreCompleto(
+          r.alumno_nombre as string | null | undefined,
+          r.alumno_app as string | null | undefined,
+          r.alumno_apm as string | null | undefined
+        ),
         status: Number(r.alumno_status),
         nivelActual,
         gradoActual,
