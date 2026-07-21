@@ -16,10 +16,12 @@ export async function cargarSuspendidosReporte(
     fechaCartas: new Date().toISOString().slice(0, 10),
   })
 
-  const plantelLabel = plantel === 1 ? 'IEW (Educativo)' : 'IWC (Winston)'
+  const plantelLabel = plantel === 1 ? 'Educativo (IEW)' : 'Winston (IWC)'
+  const tipoLabel =
+    tipo === 2 ? 'Deudores 1 mes' : tipo === 3 ? 'Suspendidos' : 'Deudores'
 
   return {
-    titulo: `Suspendidos / deudores — ${plantelLabel}`,
+    titulo: `${tipoLabel} — ${plantelLabel}`,
     cicloLabel: etiquetaCicloReporte(cicloEscolar),
     filas: res.deudores.map((d, i) => ({
       no: i + 1,

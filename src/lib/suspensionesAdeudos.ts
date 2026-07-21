@@ -91,12 +91,16 @@ function conceptosEsperadosAcumulados(
   const mesActual = mesCalendarioEfectivo(fechaRef)
   const tabla = TABLA_CONCEPTOS_POR_MES_INSCRIPCION[mi] ?? []
   const conceptoMesActual = MES_A_CONCEPTO[mesActual]
-  if (!conceptoMesActual) return []
 
-  const idx = tabla.indexOf(conceptoMesActual)
-  if (idx < 0) return [...tabla]
-
-  let esperados = tabla.slice(0, idx + 1)
+  // Julio/agosto: legacy `$mes` vacío → array_search falla → solo el 1.er concepto esperado.
+  let esperados: string[]
+  if (!conceptoMesActual) {
+    esperados = tabla.length ? [tabla[0]] : []
+  } else {
+    const idx = tabla.indexOf(conceptoMesActual)
+    if (idx < 0) esperados = [...tabla]
+    else esperados = tabla.slice(0, idx + 1)
+  }
 
   if (planMes === 2 && mesActual >= 7 && !esperados.includes(CONCEPTO_JULIO)) {
     esperados = [...esperados, CONCEPTO_JULIO]

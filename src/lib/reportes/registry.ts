@@ -376,9 +376,9 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
     const resumen = await cargarSuspendidosReporte(1, ciclo, 2)
     const tabla = suspendidosATabla(resumen)
     return respuestaTabla({
-      titulo: 'Deudores 1 mes — IEW',
+      titulo: resumen.titulo,
       subtitulo: `Ciclo ${resumen.cicloLabel}`,
-      meta: `${resumen.filas.length} deudor(es)`,
+      meta: `${resumen.filas.length} deudor(es) · ${resumen.totalRevisados} revisados`,
       ...tabla,
       slug: 'deudores-iew-1mes',
       ciclo,
@@ -392,9 +392,9 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
     const resumen = await cargarSuspendidosReporte(2, ciclo, 2)
     const tabla = suspendidosATabla(resumen)
     return respuestaTabla({
-      titulo: 'Deudores 1 mes — IWCH',
+      titulo: resumen.titulo,
       subtitulo: `Ciclo ${resumen.cicloLabel}`,
-      meta: `${resumen.filas.length} deudor(es)`,
+      meta: `${resumen.filas.length} deudor(es) · ${resumen.totalRevisados} revisados`,
       ...tabla,
       slug: 'deudores-iwch-1mes',
       ciclo,

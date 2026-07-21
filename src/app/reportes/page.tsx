@@ -31,6 +31,7 @@ import {
   Users,
   Sparkles,
   Star,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -45,6 +46,7 @@ type ParametrosReporte = {
 const CAT_ICONS: Record<string, LucideIcon> = {
   'mis-reportes': Star,
   'reportes-especiales': Sparkles,
+  deudores: Wallet,
   curp: Fingerprint,
   listas: Users,
   'nuevo-ingreso-actual': UserPlus,
@@ -250,6 +252,7 @@ function ReportesPageInner() {
         defaultExpanded={
           entry.categoriaId === 'mis-reportes' ||
           entry.categoriaId === 'reportes-especiales' ||
+          entry.categoriaId === 'deudores' ||
           Boolean(q)
         }
         extra={
