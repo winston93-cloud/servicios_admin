@@ -31,6 +31,7 @@ import {
   resolverPlanMesesCierre,
   resolverPlanMesesParaCiclo,
 } from './portalPlanMesesCiclo'
+import { debeMostrarAdeudoDobleTitulacionCiclo } from './portalDobleTitulacionAdeudo'
 
 export interface FilaMatrizPortal {
   conceptoNo: string
@@ -334,9 +335,38 @@ export async function construirMatrizPortalPagos(
   alumno: AlumnoRegistro,
   ciclo: CicloEscolarRegistro,
   pagos: PagoDetalleRegistro[],
-  opciones?: { soloColegiatura?: boolean }
+  opciones?: { soloColegiatura?: boolean; soloDobleAdeudoPrevio?: boolean }
 ): Promise<MatrizPortalPagos> {
   const soloColegiatura = Boolean(opciones?.soloColegiatura)
+  const soloDobleAdeudoPrevio = Boolean(opciones?.soloDobleAdeudoPrevio)
+
+  // Adeudo opcional de doble titulación de un ciclo anterior (no bloquea inscripción).
+  if (soloDobleAdeudoPrevio) {
+    const planMeses = await resolverPlanMesesParaCiclo(supabase, alumno, ciclo.valor, pagos)
+    const conceptosUsa = await listarConceptosPorNumeros(supabase, [...SECCION_USA.conceptos])
+    const filasUsaRaw =
+      conceptosUsa.length > 0
+        ? await construirFilas(supabase, alumno, ciclo, conceptosUsa, pagos, planMeses)
+        : []
+    const filasUsa = filtrarFilasPorCandado(filasUsaRaw, slotsLineales(SECCION_USA.conceptos))
+
+    return {
+      ciclo,
+      alumno,
+      planMeses,
+      planEtiqueta: etiquetaPlanPagos(planMeses),
+      secciones:
+        seccionTieneCobroReal(filasUsa) || filasUsa.some((f) => f.pagado)
+          ? [
+              {
+                id: 'doble-adeudo-previo',
+                titulo: `Doble titulación · ciclo ${ciclo.nombre}`,
+                filas: filasUsa,
+              },
+            ]
+          : [],
+    }
+  }
 
   // Cierre: plan del ciclo a liquidar (no el elegido para el ciclo nuevo).
   // Colegiaturas del ciclo en curso/destino: plan de ese ciclo.
@@ -428,6 +458,15 @@ export async function construirMatrizPortalPagos(
     planEtiqueta,
     secciones,
   }
+}
+
+/** ¿Hay tercios 23/24/25 pendientes de un ciclo en el que ya empezó el programa? */
+export function alumnoTieneDobleAdeudoPrevio(
+  pagos: PagoDetalleRegistro[],
+  alumno: Pick<AlumnoRegistro, 'alumno_ref'>,
+  cicloValor: number
+): boolean {
+  return debeMostrarAdeudoDobleTitulacionCiclo(pagos, alumno.alumno_ref, cicloValor)
 }
 
 /** Recalcula referencia con dígito verificador (misma lógica que bauchers). */

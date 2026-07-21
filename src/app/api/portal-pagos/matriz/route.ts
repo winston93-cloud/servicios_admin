@@ -36,6 +36,7 @@ export async function POST(request: Request) {
     const alumnoId = Number(body.alumnoId)
     const cicloValor = body.cicloValor != null ? Number(body.cicloValor) : null
     const soloColegiatura = Boolean(body.soloColegiatura)
+    const soloDobleAdeudoPrevio = Boolean(body.soloDobleAdeudoPrevio)
 
     if (!alumnoId) {
       return NextResponse.json({ error: 'alumnoId es obligatorio' }, { status: 400 })
@@ -90,10 +91,11 @@ export async function POST(request: Request) {
     let pagos = await listarPagosColegiaturaAlumno(alumnoId, ciclo.valor)
     // Cierre de ciclo (soloColegiatura): no inventar ceros mid-ciclo; eso
     // hacía “todo pagado” en la matriz mientras el estado seguía en adeudo.
+    // Adeudo doble previo: solo conceptos 23/24/25 del ciclo indicado.
     let previos: Awaited<ReturnType<typeof asegurarColegiaturasPreviasIngresoCero>> = {
       insertados: [],
     }
-    if (!soloColegiatura) {
+    if (!soloColegiatura && !soloDobleAdeudoPrevio) {
       previos = await asegurarColegiaturasPreviasIngresoCero(
         supabase,
         alumno,
@@ -106,18 +108,26 @@ export async function POST(request: Request) {
     }
 
     // Becados al 100%: colegiaturas del ciclo quedan cubiertas (importe 0).
-    const becaCero = await asegurarColegiaturasBecaCompletaCero(
-      supabase,
-      alumno,
-      ciclo.valor,
-      pagos
-    )
-    if (becaCero.insertados.length > 0) {
-      pagos = await listarPagosColegiaturaAlumno(alumnoId, ciclo.valor)
+    // No aplica al adeudo opcional de doble titulación.
+    let becaCero: Awaited<ReturnType<typeof asegurarColegiaturasBecaCompletaCero>> = {
+      insertados: [],
+      becaCompleta: false,
+    }
+    if (!soloDobleAdeudoPrevio) {
+      becaCero = await asegurarColegiaturasBecaCompletaCero(
+        supabase,
+        alumno,
+        ciclo.valor,
+        pagos
+      )
+      if (becaCero.insertados.length > 0) {
+        pagos = await listarPagosColegiaturaAlumno(alumnoId, ciclo.valor)
+      }
     }
 
     const matriz = await construirMatrizPortalPagos(supabase, alumno, ciclo, pagos, {
       soloColegiatura,
+      soloDobleAdeudoPrevio,
     })
 
     return NextResponse.json({

@@ -84,6 +84,14 @@ export interface EstadoPortalInscripciones {
   /** Reinscritos: liquidar ciclo anterior antes de la admisión. NI = null. */
   cierreCiclo?: CierreCicloPortal | null
   /**
+   * Adeudo opcional de doble titulación (23/24/25) de un ciclo anterior.
+   * No bloquea inscripción ni colegiaturas del ciclo nuevo.
+   */
+  dobleAdeudoPrevio?: {
+    ciclo: { valor: number; nombre: string }
+    pendientes: string[]
+  } | null
+  /**
    * Ciclo cuyas colegiaturas se muestran al desbloquear pagos
    * (reinscrito = destino 23; NI = ciclo de la ficha).
    */

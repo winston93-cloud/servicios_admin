@@ -219,10 +219,13 @@ export default function PortalInscripcionesView() {
 
   const [matriz, setMatriz] = useState<MatrizPortalPagos | null>(null)
   const [matrizCierre, setMatrizCierre] = useState<MatrizPortalPagos | null>(null)
+  const [matrizDoble, setMatrizDoble] = useState<MatrizPortalPagos | null>(null)
   const [cargandoMatriz, setCargandoMatriz] = useState(false)
   const [cargandoMatrizCierre, setCargandoMatrizCierre] = useState(false)
+  const [cargandoMatrizDoble, setCargandoMatrizDoble] = useState(false)
   const [errorMatriz, setErrorMatriz] = useState<string | null>(null)
   const [errorMatrizCierre, setErrorMatrizCierre] = useState<string | null>(null)
+  const [errorMatrizDoble, setErrorMatrizDoble] = useState<string | null>(null)
   const [docModal, setDocModal] = useState<{
     abierto: boolean
     tipo: TipoDocumentoPortal
@@ -342,6 +345,39 @@ export default function PortalInscripcionesView() {
     [alumnoId]
   )
 
+  const cargarMatrizDoble = useCallback(
+    async (cicloValor: number) => {
+      if (alumnoId == null) return
+      setCargandoMatrizDoble(true)
+      setErrorMatrizDoble(null)
+      try {
+        const res = await fetch('/api/portal-pagos/matriz', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            alumnoId,
+            cicloValor,
+            soloDobleAdeudoPrevio: true,
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          setMatrizDoble(null)
+          setErrorMatrizDoble(data.error ?? 'No se pudo cargar doble titulación.')
+        } else {
+          const m = data.matriz as MatrizPortalPagos
+          // Si ya liquidó los 3, la sección viene vacía → ocultar.
+          setMatrizDoble(m?.secciones?.length ? m : null)
+        }
+      } catch {
+        setMatrizDoble(null)
+        setErrorMatrizDoble('Error de conexión al cargar doble titulación.')
+      }
+      setCargandoMatrizDoble(false)
+    },
+    [alumnoId]
+  )
+
   useEffect(() => {
     void cargar()
   }, [cargar])
@@ -358,6 +394,8 @@ export default function PortalInscripcionesView() {
     estadoVista?.cierreCiclo?.requerido && !estadoVista.cierreCiclo.liquidado
   )
   const cicloCierreValorUi = estadoVista?.cierreCiclo?.ciclo.valor ?? null
+  const dobleAdeudo = estadoVista?.dobleAdeudoPrevio ?? null
+  const cicloDobleValorUi = dobleAdeudo?.ciclo.valor ?? null
 
   const reciboPaso = estadoVista?.pasos.find((p) => p.id === 'recibo-final') ?? null
   // Colegiaturas del ciclo nuevo: solo con el proceso completo (todos los pasos
@@ -494,6 +532,14 @@ export default function PortalInscripcionesView() {
     }
   }, [cierrePendiente, cicloCierreValorUi, cargarMatrizCierre])
 
+  useEffect(() => {
+    if (cicloDobleValorUi != null) {
+      void cargarMatrizDoble(cicloDobleValorUi)
+    } else {
+      setMatrizDoble(null)
+    }
+  }, [cicloDobleValorUi, cargarMatrizDoble])
+
   // Si la matriz de cierre ya trae todos los conceptos pagados pero el estado
   // aún marca adeudo, revalidar una vez (misma fuente de verdad al estado).
   useEffect(() => {
@@ -509,6 +555,11 @@ export default function PortalInscripcionesView() {
     await cargar()
     if (cicloCierreValorUi != null) await cargarMatrizCierre(cicloCierreValorUi)
   }, [cargar, cargarMatrizCierre, cicloCierreValorUi])
+
+  const refrescarTrasPagoDoble = useCallback(async () => {
+    await cargar()
+    if (cicloDobleValorUi != null) await cargarMatrizDoble(cicloDobleValorUi)
+  }, [cargar, cargarMatrizDoble, cicloDobleValorUi])
 
   const marcarReglamentoConsultado = useCallback(() => {
     if (alumnoId == null || !estado?.ciclo?.valor) return
@@ -633,6 +684,53 @@ export default function PortalInscripcionesView() {
             <Clock size={18} aria-hidden />
             {estadoVista.aviso}
           </div>
+        )}
+
+        {estadoVista && dobleAdeudo && (
+          <section
+            id="doble-adeudo-previo"
+            className="portal-inscripciones-colegiaturas-seccion"
+            aria-label={`Doble titulación ciclo ${dobleAdeudo.ciclo.nombre}`}
+          >
+            <div className="portal-inscripciones-colegiaturas-head">
+              <div>
+                <h2 className="portal-inscripciones-colegiaturas-titulo">
+                  Doble titulación · ciclo {dobleAdeudo.ciclo.nombre}
+                </h2>
+                <p className="portal-inscripciones-colegiaturas-sub">
+                  Tienes pagos pendientes de Doble titulación (Winston USA) de ese ciclo. Es
+                  opcional: no bloquea tu inscripción ni las colegiaturas del ciclo actual.
+                  Cuando liquides los 3 pagos, esta sección desaparece.
+                </p>
+              </div>
+              <span className="portal-inscripciones-plan-badge">Opcional</span>
+            </div>
+
+            {cargandoMatrizDoble && !matrizDoble ? (
+              <div className="portal-inscripciones-estado" role="status">
+                <RefreshCw size={20} className="portal-inscripciones-spin" aria-hidden />
+                Cargando pagos de doble titulación…
+              </div>
+            ) : errorMatrizDoble ? (
+              <div
+                className="portal-inscripciones-alerta portal-inscripciones-alerta--error"
+                role="alert"
+              >
+                {errorMatrizDoble}
+              </div>
+            ) : matrizDoble ? (
+              <PortalColegiaturasSecciones
+                alumnoId={matrizDoble.alumno.alumno_id}
+                ciclo={matrizDoble.ciclo}
+                cicloTemporada={estadoVista?.ciclo.valor}
+                alumno={matrizDoble.alumno}
+                secciones={matrizDoble.secciones}
+                displayName={session?.displayName}
+                cargando={cargandoMatrizDoble}
+                onActualizar={() => void refrescarTrasPagoDoble()}
+              />
+            ) : null}
+          </section>
         )}
 
         {estadoVista && cierrePendiente && estadoVista.cierreCiclo && (

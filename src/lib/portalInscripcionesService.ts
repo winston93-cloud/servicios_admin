@@ -12,6 +12,7 @@ import {
 } from './pagoReferenciaColegiatura'
 import { esDeudorReinscrito } from './portalAdmisionesDeudor'
 import { resumenCierreCicloParaReinscrito } from './portalCierreCicloAnterior'
+import { resumenAdeudoDobleTitulacionCiclo } from './portalDobleTitulacionAdeudo'
 import {
   evaluarVentanaPortalNuevoIngreso,
   evaluarVentanaPortalReinscrito,
@@ -180,6 +181,7 @@ export async function construirEstadoPortalInscripciones(
   let aviso: string | null = null
   let reinscripcionInfo: ReinscripcionPeriodo | null = null
   let cierreCiclo: CierreCicloPortal | null = null
+  let dobleAdeudoPrevio: EstadoPortalInscripciones['dobleAdeudoPrevio'] = null
 
   if (esReinscrito && opciones?.pagosCierre && opciones.cicloCierre) {
     cierreCiclo = await resumenCierreCicloParaReinscrito(
@@ -188,6 +190,18 @@ export async function construirEstadoPortalInscripciones(
       opciones.pagosCierre,
       opciones.cicloCierre
     )
+
+    const doble = resumenAdeudoDobleTitulacionCiclo(
+      opciones.pagosCierre,
+      alumno.alumno_ref,
+      opciones.cicloCierre.valor
+    )
+    if (doble.tienePrograma && !doble.liquidado) {
+      dobleAdeudoPrevio = {
+        ciclo: opciones.cicloCierre,
+        pendientes: doble.pendientes,
+      }
+    }
   }
 
   const solEval = await evaluarSolicitudCapturada(supabase, alumno)
@@ -583,6 +597,7 @@ export async function construirEstadoPortalInscripciones(
     solicitudCapturada: solCapturada,
     inscripcionPagada: insPagada,
     cierreCiclo,
+    dobleAdeudoPrevio,
     cicloColegiaturas: {
       valor: cicloPagoReg.valor,
       nombre: cicloPagoReg.nombre,
