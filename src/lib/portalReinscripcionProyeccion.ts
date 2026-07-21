@@ -39,7 +39,9 @@ export function proyectarReinscripcionAlumno(
   const proyectaPromocion = cicloOrigen > 0 && cicloOrigen < cenTemporada
 
   if (!proyectaPromocion) {
-    const graduado = nivelOrigen === 4 && (gradoOrigen === 3 || gradoOrigen === 4)
+    // Tras el cambio de ciclo, 9° (grado 3) sigue activo en el ciclo vigente.
+    // Egresados quedan en grado 4 (y normalmente baja general).
+    const graduado = nivelOrigen === 4 && gradoOrigen >= 4
     return {
       cicloOrigen,
       cicloDestino: cicloOrigen || cenTemporada,
