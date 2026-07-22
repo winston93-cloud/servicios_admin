@@ -18976,6 +18976,24 @@ html[data-theme='light'] .pi-form-step--completa:not(.pi-form-step--activa) .pi-
   font-weight: 500;
 }
 
+.pi-form-field-error {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.pi-form-field--error .pi-form-input {
+  border-color: #f87171;
+}
+
+.pi-form-field--error .pi-form-input:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
 .pi-form-input {
   width: 100%;
   padding: 12px 14px;

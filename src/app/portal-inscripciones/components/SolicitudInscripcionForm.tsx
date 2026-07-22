@@ -28,6 +28,7 @@ import {
   seccionSolicitudCompleta,
   type SeccionSolicitudId,
 } from '@/lib/portalInscripcionesValidacion'
+import { CURP_LONGITUD, normalizarCurp, validarFormatoCurp } from '@/lib/curp'
 
 const SECCIONES = [
   { id: 'alumno' as const, label: 'Alumno', hint: 'Datos personales y domicilio', icon: User, accent: 'sky' },
@@ -123,22 +124,36 @@ function Campo({
   children,
   required,
   hint,
+  error,
 }: {
   label: string
   children: React.ReactNode
   required?: boolean
   hint?: string
+  error?: string | null
 }) {
   return (
-    <label className="pi-form-field">
+    <label className={`pi-form-field${error ? ' pi-form-field--error' : ''}`}>
       <span className="pi-form-label">
         {label}
         {required ? <span className="pi-form-req"> *</span> : null}
       </span>
       {children}
-      {hint ? <span className="pi-form-hint">{hint}</span> : null}
+      {error ? <span className="pi-form-field-error">{error}</span> : null}
+      {!error && hint ? <span className="pi-form-hint">{hint}</span> : null}
     </label>
   )
+}
+
+function hintCurp(valor: string, opcional?: boolean): string {
+  const n = valor.replace(/[^A-Z0-9]/gi, '').length
+  const base = `${n}/${CURP_LONGITUD} caracteres`
+  if (opcional && n === 0) {
+    return `Opcional. Si lo capturas, debe tener ${CURP_LONGITUD} caracteres (el último se completa solo si faltaba).`
+  }
+  if (n === 17) return `${base}. Al salir del campo se completa el dígito verificador.`
+  if (n > 0 && n < CURP_LONGITUD) return `${base}. Faltan ${CURP_LONGITUD - n}.`
+  return base
 }
 
 export default function SolicitudInscripcionForm() {
@@ -392,12 +407,27 @@ export default function SolicitudInscripcionForm() {
                 onChange={(e) => setAlumno({ lugarNacimiento: e.target.value })}
               />
             </Campo>
-            <Campo label="CURP" required>
+            <Campo
+              label="CURP"
+              required
+              hint={hintCurp(form.alumno.curp)}
+              error={(() => {
+                if (!form.alumno.curp.trim()) return null
+                const v = validarFormatoCurp(form.alumno.curp)
+                return v.valido ? null : (v.mensaje ?? 'CURP inválido')
+              })()}
+            >
               <input
                 className="pi-form-input"
                 value={form.alumno.curp}
-                onChange={(e) => setAlumno({ curp: e.target.value.toUpperCase() })}
-                maxLength={18}
+                onChange={(e) => {
+                  const raw = e.target.value.toUpperCase()
+                  setAlumno({ curp: raw.length >= 17 ? normalizarCurp(raw) : raw })
+                }}
+                onBlur={(e) => setAlumno({ curp: normalizarCurp(e.target.value) })}
+                maxLength={CURP_LONGITUD}
+                autoComplete="off"
+                spellCheck={false}
               />
             </Campo>
             <Campo label="Sexo" required>
@@ -536,8 +566,28 @@ export default function SolicitudInscripcionForm() {
               <Campo label="Correo electrónico" required>
                 <input type="email" className="pi-form-input" value={f.email} onChange={(e) => setF({ email: e.target.value })} />
               </Campo>
-              <Campo label="CURP">
-                <input className="pi-form-input" value={f.curp} onChange={(e) => setF({ curp: e.target.value.toUpperCase() })} maxLength={18} />
+              <Campo
+                label="CURP"
+                hint={hintCurp(f.curp, true)}
+                error={(() => {
+                  if (!f.curp.trim()) return null
+                  const v = validarFormatoCurp(f.curp)
+                  return v.valido ? null : (v.mensaje ?? 'CURP inválido')
+                })()}
+              >
+                <input
+                  className="pi-form-input"
+                  value={f.curp}
+                  onChange={(e) => {
+                    const raw = e.target.value.toUpperCase()
+                    setF({ curp: raw.length >= 17 ? normalizarCurp(raw) : raw })
+                  }}
+                  onBlur={(e) => setF({ curp: normalizarCurp(e.target.value) })}
+                  maxLength={CURP_LONGITUD}
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="18 caracteres"
+                />
               </Campo>
               <Campo
                 label="RFC"
