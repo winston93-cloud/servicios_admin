@@ -11355,6 +11355,50 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   border-bottom: 1px solid #e2e8f0;
 }
 
+.pi-listado-plantel-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 22px 0;
+}
+
+.pi-listado-plantel-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pi-listado-plantel-tabs button.active {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #ecfdf5;
+}
+
+.pi-listado-plantel-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.pi-listado-plantel-tabs button.active .pi-listado-plantel-count {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 .pi-listado-busqueda {
   flex: 1 1 140px;
   min-width: 120px;

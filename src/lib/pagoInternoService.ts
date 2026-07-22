@@ -1,6 +1,29 @@
 import { supabase } from './supabase'
 import { parseGradoEscolar } from './gradoEscolar'
 import { parseNivelEscolar } from './nivelEscolar'
+import {
+  folioInicialPlantel,
+  plantelSerieDesdeFolio,
+  type PlantelPagosInternos,
+  PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL,
+  PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO,
+  PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
+} from './pagoInternoPlantel'
+
+export {
+  accesoPagosInternosUsuario,
+  ETIQUETA_PLANTEL_PAGOS_INTERNOS,
+  folioInicialPlantel,
+  plantelPagoDesdeNivel,
+  plantelSerieDesdeFolio,
+  resolverPlantelFolioPagoInterno,
+  PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL,
+  PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO,
+  PAGO_INTERNO_FOLIO_INICIAL,
+  PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
+  type AccesoPagosInternosUsuario,
+  type PlantelPagosInternos,
+} from './pagoInternoPlantel'
 
 // --- Conceptos ---
 
@@ -282,50 +305,19 @@ export async function listarPagosPorAlumno(
   })) as PagoInternoRegistro[]
 }
 
-/** Primer folio de recibos de pagos internos en el sistema nuevo. */
-export const PAGO_INTERNO_FOLIO_INICIAL = 26550
-
 export type PagoInternoListadoFila = PagoInternoRegistro & {
   alumno_ref: string | null
   alumno_nombre: string | null
   alumno_app: string | null
   alumno_apm: string | null
+  alumno_nivel: number | null
   concepto_clase: string | null
+  plantel_serie: PlantelPagosInternos | null
 }
 
-export async function listarPagosInternosSerieNueva(opts?: {
-  folioExacto?: number | null
-  limite?: number
-}): Promise<PagoInternoListadoFila[]> {
-  const limite = Math.min(Math.max(opts?.limite ?? 500, 1), 1000)
-  const folioExacto =
-    opts?.folioExacto != null && Number.isFinite(opts.folioExacto) && opts.folioExacto > 0
-      ? Math.floor(opts.folioExacto)
-      : null
-
-  let q = supabase
-    .from('pago_interno')
-    .select(SELECT_PAGO)
-    .eq('pago_cancelado', 0)
-    .gte('pago_folio', PAGO_INTERNO_FOLIO_INICIAL)
-    .order('pago_folio', { ascending: true })
-    .limit(limite)
-
-  if (folioExacto != null) {
-    q = q.eq('pago_folio', folioExacto)
-  }
-
-  const { data, error } = await q
-  if (error) {
-    console.error('Error al listar pagos internos (serie nueva):', error)
-    return []
-  }
-
-  const pagos = (data ?? []).map((r) => ({
-    ...r,
-    pago_importe: Number(r.pago_importe),
-  })) as PagoInternoRegistro[]
-
+async function enriquecerPagosListado(
+  pagos: PagoInternoRegistro[]
+): Promise<PagoInternoListadoFila[]> {
   if (pagos.length === 0) return []
 
   const alumnoIds = [
@@ -339,14 +331,20 @@ export async function listarPagosInternosSerieNueva(opts?: {
 
   const alumnosMap = new Map<
     number,
-    { alumno_ref: string | null; alumno_nombre: string | null; alumno_app: string | null; alumno_apm: string | null }
+    {
+      alumno_ref: string | null
+      alumno_nombre: string | null
+      alumno_app: string | null
+      alumno_apm: string | null
+      alumno_nivel: number | null
+    }
   >()
   const conceptosMap = new Map<number, string | null>()
 
   if (alumnoIds.length > 0) {
     const { data: alumnos } = await supabase
       .from('alumno')
-      .select('alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm')
+      .select('alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel')
       .in('alumno_id', alumnoIds)
     for (const a of alumnos ?? []) {
       alumnosMap.set(Number(a.alumno_id), {
@@ -354,6 +352,10 @@ export async function listarPagosInternosSerieNueva(opts?: {
         alumno_nombre: (a.alumno_nombre as string | null) ?? null,
         alumno_app: (a.alumno_app as string | null) ?? null,
         alumno_apm: (a.alumno_apm as string | null) ?? null,
+        alumno_nivel:
+          a.alumno_nivel != null && Number.isFinite(Number(a.alumno_nivel))
+            ? Number(a.alumno_nivel)
+            : null,
       })
     }
   }
@@ -376,25 +378,115 @@ export async function listarPagosInternosSerieNueva(opts?: {
       alumno_nombre: alum?.alumno_nombre ?? null,
       alumno_app: alum?.alumno_app ?? null,
       alumno_apm: alum?.alumno_apm ?? null,
+      alumno_nivel: alum?.alumno_nivel ?? null,
       concepto_clase: conceptosMap.get(p.concepto_id) ?? null,
+      plantel_serie: plantelSerieDesdeFolio(p.pago_folio),
     }
   })
 }
 
-export async function obtenerSiguienteFolioPago(): Promise<number> {
-  const { data, error } = await supabase
+async function listarPagosRangoFolio(opts: {
+  folioMin: number
+  folioMaxExclusivo?: number
+  folioExacto?: number | null
+  limite: number
+}): Promise<PagoInternoRegistro[]> {
+  let q = supabase
+    .from('pago_interno')
+    .select(SELECT_PAGO)
+    .eq('pago_cancelado', 0)
+    .gte('pago_folio', opts.folioMin)
+    .order('pago_folio', { ascending: false })
+    .limit(opts.limite)
+
+  if (opts.folioMaxExclusivo != null) {
+    q = q.lt('pago_folio', opts.folioMaxExclusivo)
+  }
+  if (opts.folioExacto != null) {
+    q = q.eq('pago_folio', opts.folioExacto)
+  }
+
+  const { data, error } = await q
+  if (error) {
+    console.error('Error al listar pagos internos por rango:', error)
+    return []
+  }
+  return (data ?? []).map((r) => ({
+    ...r,
+    pago_importe: Number(r.pago_importe),
+  })) as PagoInternoRegistro[]
+}
+
+/** Lista series nuevas (Winston y/o Educativo), folio mayor → menor. */
+export async function listarPagosInternosPorPlanteles(
+  planteles: PlantelPagosInternos[],
+  opts?: { folioExacto?: number | null; limite?: number }
+): Promise<PagoInternoListadoFila[]> {
+  const limite = Math.min(Math.max(opts?.limite ?? 500, 1), 1000)
+  const folioExacto =
+    opts?.folioExacto != null && Number.isFinite(opts.folioExacto) && opts.folioExacto > 0
+      ? Math.floor(opts.folioExacto)
+      : null
+
+  const unicos = [...new Set(planteles)]
+  if (unicos.length === 0) return []
+
+  const bloques: PagoInternoRegistro[] = []
+  for (const plantel of unicos) {
+    if (plantel === 'winston') {
+      bloques.push(
+        ...(await listarPagosRangoFolio({
+          folioMin: PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
+          folioExacto,
+          limite,
+        }))
+      )
+    } else {
+      bloques.push(
+        ...(await listarPagosRangoFolio({
+          folioMin: PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL,
+          folioMaxExclusivo: PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO,
+          folioExacto,
+          limite,
+        }))
+      )
+    }
+  }
+
+  const porId = new Map<number, PagoInternoRegistro>()
+  for (const p of bloques) porId.set(p.pago_id, p)
+  const pagos = [...porId.values()].sort((a, b) => b.pago_folio - a.pago_folio)
+  return enriquecerPagosListado(pagos.slice(0, limite))
+}
+
+/** @deprecated Usar listarPagosInternosPorPlanteles */
+export async function listarPagosInternosSerieNueva(opts?: {
+  folioExacto?: number | null
+  limite?: number
+}): Promise<PagoInternoListadoFila[]> {
+  return listarPagosInternosPorPlanteles(['winston'], opts)
+}
+
+export async function obtenerSiguienteFolioPago(
+  plantel: PlantelPagosInternos = 'winston'
+): Promise<number> {
+  const inicial = folioInicialPlantel(plantel)
+  let q = supabase
     .from('pago_interno')
     .select('pago_folio')
-    .gte('pago_folio', PAGO_INTERNO_FOLIO_INICIAL)
+    .gte('pago_folio', inicial)
     .order('pago_folio', { ascending: false })
     .limit(1)
-    .maybeSingle()
 
-  if (error || !data?.pago_folio) return PAGO_INTERNO_FOLIO_INICIAL
-  const max = Number(data.pago_folio)
-  if (!Number.isFinite(max) || max < PAGO_INTERNO_FOLIO_INICIAL) {
-    return PAGO_INTERNO_FOLIO_INICIAL
+  if (plantel === 'educativo') {
+    q = q.lt('pago_folio', PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO)
   }
+
+  const { data, error } = await q.maybeSingle()
+
+  if (error || !data?.pago_folio) return inicial
+  const max = Number(data.pago_folio)
+  if (!Number.isFinite(max) || max < inicial) return inicial
   return max + 1
 }
 
@@ -406,13 +498,14 @@ export interface CrearPagoInternoPayload {
   pago_importe: number
   pago_fecha: string
   pago_ciclo_escolar: number
+  /** Serie de folio (Winston / Educativo). */
+  plantel_serie: PlantelPagosInternos
 }
 
 export async function crearPagoInterno(
   payload: CrearPagoInternoPayload
 ): Promise<{ ok: true; pago_id: number; pago_folio: number } | { ok: false; mensaje: string }> {
-  // Folio autoincremental desde 26550 (no depende del valor del formulario).
-  const folio = await obtenerSiguienteFolioPago()
+  const folio = await obtenerSiguienteFolioPago(payload.plantel_serie)
 
   const { data: maxRow } = await supabase
     .from('pago_interno')

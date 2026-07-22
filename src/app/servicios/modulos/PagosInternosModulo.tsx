@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ListOrdered, Loader2, Plus, Printer, Settings2, Wallet } from 'lucide-react'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
+import { useAuth } from '@/contexts/AuthContext'
 import { useAlumnoSeleccionado } from '@/contexts/AlumnoSeleccionadoContext'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
@@ -17,9 +18,11 @@ import {
   mensajeManualesRequiereCuotaPadres,
   nivelGradoDesdeAlumno,
   obtenerSiguienteFolioPago,
+  resolverPlantelFolioPagoInterno,
   resolverPrecioInterno,
   type ConceptoInterno,
   type PagoInternoRegistro,
+  type PlantelPagosInternos,
 } from '@/lib/pagoInternoService'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
 import PagosInternosCatalogoModal from '../components/PagosInternosCatalogoModal'
@@ -34,6 +37,7 @@ function hoyIso(): string {
 }
 
 export default function PagosInternosModulo() {
+  const { user } = useAuth()
   const { cicloSeleccionado, opcionesCatalogo } = useCicloEscolar()
   const { alumnoSeleccionado, setAlumnoSeleccionado, resolviendoCiclo } =
     useAlumnoSeleccionado()
@@ -61,6 +65,18 @@ export default function PagosInternosModulo() {
 
   const conceptosOrdenados = useMemo(() => ordenarConceptosAz(conceptos), [conceptos])
 
+  const plantelSerieActual = useMemo((): PlantelPagosInternos => {
+    return resolverPlantelFolioPagoInterno({
+      alumnoRef: alumnoSeleccionado?.alumno_ref,
+      alumnoNivel: alumnoSeleccionado?.alumno_nivel,
+      usuarioUsername: user?.usuario_username,
+    })
+  }, [alumnoSeleccionado, user?.usuario_username])
+
+  const refrescarFolio = useCallback(async (plantel: PlantelPagosInternos) => {
+    setFolio(await obtenerSiguienteFolioPago(plantel))
+  }, [])
+
   const recargarConceptos = useCallback(async () => {
     const lista = ordenarConceptosAz(await listarConceptosInternos(true))
     setConceptos(lista)
@@ -71,8 +87,11 @@ export default function PagosInternosModulo() {
 
   useEffect(() => {
     recargarConceptos()
-    obtenerSiguienteFolioPago().then((f) => setFolio(f))
   }, [recargarConceptos])
+
+  useEffect(() => {
+    void refrescarFolio(plantelSerieActual)
+  }, [plantelSerieActual, refrescarFolio])
 
   useEffect(() => {
     setCicloPago(cicloSeleccionado)
@@ -263,6 +282,7 @@ export default function PagosInternosModulo() {
       pago_importe: Number(importe),
       pago_fecha: fechaPago,
       pago_ciclo_escolar: cicloPago,
+      plantel_serie: plantelSerieActual,
     })
 
     setGuardando(false)
@@ -273,7 +293,7 @@ export default function PagosInternosModulo() {
     }
 
     setMensaje(`Pago registrado. Folio ${res.pago_folio}.`)
-    setFolio(await obtenerSiguienteFolioPago())
+    await refrescarFolio(plantelSerieActual)
     if (alumnoSeleccionado) {
       await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
     }
@@ -315,20 +335,26 @@ export default function PagosInternosModulo() {
       if (precio != null) monto = precio
     }
     setGuardando(true)
+    const plantelCuota = resolverPlantelFolioPagoInterno({
+      alumnoRef: alumnoSeleccionado?.alumno_ref,
+      alumnoNivel: alumno?.alumno_nivel ?? alumnoSeleccionado?.alumno_nivel,
+      usuarioUsername: user?.usuario_username,
+    })
     const res = await crearPagoInterno({
       alumno_id: alumnoId,
       concepto_id: conceptoCuota.concepto_id,
       pago_importe: monto,
       pago_fecha: fechaPago,
       pago_ciclo_escolar: cicloPago,
+      plantel_serie: plantelCuota,
     })
     setGuardando(false)
     if (!res.ok) {
       setError(res.mensaje)
       return
     }
-    setMensaje('Cuota de padres registrada.')
-    setFolio(await obtenerSiguienteFolioPago())
+    setMensaje(`Cuota de padres registrada. Folio ${res.pago_folio}.`)
+    await refrescarFolio(plantelCuota)
     if (alumnoSeleccionado) {
       await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
     }

@@ -377,6 +377,18 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-l
   border-bottom-color: var(--sx-table-border);
 }
 
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-listado-plantel-tabs button {
+  background: rgba(148, 163, 184, 0.12);
+  border-color: var(--sx-table-border);
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-listado-plantel-tabs button.active {
+  background: #0f766e;
+  border-color: #14b8a6;
+  color: #ecfdf5;
+}
+
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-listado-busqueda-input {
   background: var(--sx-input-bg);
   border-color: var(--sx-input-border);

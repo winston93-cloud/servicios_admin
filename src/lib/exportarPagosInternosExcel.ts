@@ -1,6 +1,9 @@
 import ExcelJS from 'exceljs'
 import type { PagoInternoListadoFila } from '@/lib/pagoInternoService'
-import { PAGO_INTERNO_FOLIO_INICIAL } from '@/lib/pagoInternoService'
+import {
+  folioInicialPlantel,
+  type PlantelPagosInternos,
+} from '@/lib/pagoInternoPlantel'
 
 export type FilaExportPagoInterno = {
   folio: number
@@ -10,6 +13,12 @@ export type FilaExportPagoInterno = {
   concepto: string
   ciclo: string
   importe: number
+}
+
+export type HojaExportPagoInterno = {
+  plantel: PlantelPagosInternos
+  nombreHoja: string
+  filas: FilaExportPagoInterno[]
 }
 
 /** Anchos en unidades Excel (~caracteres). Suficientes para no empalmar en Calc/Excel. */
@@ -54,16 +63,13 @@ function estiloBordeFino(): Partial<ExcelJS.Borders> {
   return { top: side, left: side, bottom: side, right: side }
 }
 
-export async function exportarPagosInternosExcel(opts: {
-  filas: FilaExportPagoInterno[]
-  folioDesde?: number
-}): Promise<void> {
-  const folioDesde = opts.folioDesde ?? PAGO_INTERNO_FOLIO_INICIAL
-  const workbook = new ExcelJS.Workbook()
-  workbook.creator = 'Servicios Administrativos'
-  workbook.created = new Date()
-
-  const ws = workbook.addWorksheet('Pagos internos', {
+function escribirHoja(
+  workbook: ExcelJS.Workbook,
+  hoja: HojaExportPagoInterno,
+  fechaGen: string
+) {
+  const folioDesde = folioInicialPlantel(hoja.plantel)
+  const ws = workbook.addWorksheet(hoja.nombreHoja.slice(0, 31), {
     views: [{ state: 'frozen', ySplit: 4, showGridLines: false }],
     properties: { defaultRowHeight: 20 },
   })
@@ -78,7 +84,7 @@ export async function exportarPagosInternosExcel(opts: {
     { key: 'importe', width: ANCHOS.importe },
   ]
 
-  const titulo = ws.addRow(['Listado de pagos internos'])
+  const titulo = ws.addRow([`Listado de pagos internos — ${hoja.nombreHoja}`])
   ws.mergeCells(1, 1, 1, 7)
   titulo.getCell(1).font = { bold: true, size: 16, color: { argb: 'FF065F46' } }
   titulo.getCell(1).alignment = { vertical: 'middle', horizontal: 'left', wrapText: false }
@@ -89,14 +95,8 @@ export async function exportarPagosInternosExcel(opts: {
   }
   titulo.height = 28
 
-  const hoy = new Date()
-  const fechaGen = hoy.toLocaleDateString('es-MX', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  })
   const sub = ws.addRow([
-    `Folios desde ${folioDesde} · ${opts.filas.length} registro${opts.filas.length === 1 ? '' : 's'} · Generado el ${fechaGen}`,
+    `Serie desde folio ${folioDesde} · ${hoja.filas.length} registro${hoja.filas.length === 1 ? '' : 's'} · Generado el ${fechaGen}`,
   ])
   ws.mergeCells(2, 1, 2, 7)
   sub.getCell(1).font = { size: 10, color: { argb: 'FF475569' } }
@@ -135,8 +135,8 @@ export async function exportarPagosInternosExcel(opts: {
   const blanco = 'FFFFFFFF'
   const borde = estiloBordeFino()
 
-  for (let i = 0; i < opts.filas.length; i++) {
-    const f = opts.filas[i]
+  for (let i = 0; i < hoja.filas.length; i++) {
+    const f = hoja.filas[i]
     const alumno = (f.alumno || '—').trim() || '—'
     const concepto = (f.concepto || '—').trim() || '—'
     const ciclo = (f.ciclo || '—').trim() || '—'
@@ -146,7 +146,6 @@ export async function exportarPagosInternosExcel(opts: {
     const row = ws.addRow([f.folio, fecha, ref, alumno, concepto, ciclo, f.importe])
     const bg = i % 2 === 0 ? blanco : zebra
 
-    // Relleno + borde en las 7 columnas fuerza el recorte del texto (evita empalme en Calc).
     for (let col = 1; col <= 7; col++) {
       const cell = row.getCell(col)
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } }
@@ -164,7 +163,7 @@ export async function exportarPagosInternosExcel(opts: {
     row.height = alturaFila([alumno, ANCHOS.alumno], [concepto, ANCHOS.concepto])
   }
 
-  const totalImporte = opts.filas.reduce((acc, f) => acc + (Number(f.importe) || 0), 0)
+  const totalImporte = hoja.filas.reduce((acc, f) => acc + (Number(f.importe) || 0), 0)
   const totalRow = ws.addRow(['', '', '', '', '', 'Total', totalImporte])
   totalRow.height = 24
   for (let col = 1; col <= 7; col++) {
@@ -192,11 +191,10 @@ export async function exportarPagosInternosExcel(opts: {
   }
   totalRow.getCell(7).numFmt = '"$"#,##0.00'
 
-  // Filtro solo sobre encabezado + datos (no el total).
-  if (opts.filas.length > 0) {
+  if (hoja.filas.length > 0) {
     ws.autoFilter = {
       from: { row: 4, column: 1 },
-      to: { row: 4 + opts.filas.length, column: 7 },
+      to: { row: 4 + hoja.filas.length, column: 7 },
     }
   }
 
@@ -206,6 +204,28 @@ export async function exportarPagosInternosExcel(opts: {
     fitToWidth: 1,
     fitToHeight: 0,
     margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 },
+  }
+}
+
+export async function exportarPagosInternosExcel(opts: {
+  hojas: HojaExportPagoInterno[]
+}): Promise<void> {
+  const hojas = opts.hojas.filter((h) => h.filas.length >= 0)
+  if (hojas.length === 0) return
+
+  const workbook = new ExcelJS.Workbook()
+  workbook.creator = 'Servicios Administrativos'
+  workbook.created = new Date()
+
+  const hoy = new Date()
+  const fechaGen = hoy.toLocaleDateString('es-MX', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  })
+
+  for (const hoja of hojas) {
+    escribirHoja(workbook, hoja, fechaGen)
   }
 
   const stamp = hoy.toISOString().slice(0, 10).replace(/-/g, '')

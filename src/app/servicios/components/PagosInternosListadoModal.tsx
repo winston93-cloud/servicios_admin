@@ -3,11 +3,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FileSpreadsheet, Loader2, Search, X } from 'lucide-react'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
+import { useAuth } from '@/contexts/AuthContext'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import {
-  listarPagosInternosSerieNueva,
-  PAGO_INTERNO_FOLIO_INICIAL,
+  accesoPagosInternosUsuario,
+  ETIQUETA_PLANTEL_PAGOS_INTERNOS,
+  folioInicialPlantel,
+  listarPagosInternosPorPlanteles,
   type PagoInternoListadoFila,
+  type PlantelPagosInternos,
 } from '@/lib/pagoInternoService'
 import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
 import {
@@ -70,7 +74,15 @@ function refAlumno(p: PagoInternoListadoFila): string {
 }
 
 export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) {
+  const { user } = useAuth()
   const { opcionesCatalogo } = useCicloEscolar()
+  const acceso = useMemo(
+    () => accesoPagosInternosUsuario(user?.usuario_username),
+    [user?.usuario_username]
+  )
+  const planteles = acceso.plantelesVisibles
+
+  const [plantelTab, setPlantelTab] = useState<PlantelPagosInternos>(planteles[0] ?? 'winston')
   const [filas, setFilas] = useState<PagoInternoListadoFila[]>([])
   const [cargando, setCargando] = useState(false)
   const [exportando, setExportando] = useState(false)
@@ -82,12 +94,12 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
   const cargar = useCallback(async () => {
     setCargando(true)
     try {
-      const lista = await listarPagosInternosSerieNueva({ limite: 1000 })
+      const lista = await listarPagosInternosPorPlanteles(planteles, { limite: 1000 })
       setFilas(lista)
     } finally {
       setCargando(false)
     }
-  }, [])
+  }, [planteles])
 
   useEffect(() => {
     if (!abierto) return
@@ -95,14 +107,15 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
     setBusquedaNombre('')
     setBusquedaControl('')
     setErrorExport(null)
+    setPlantelTab(planteles[0] ?? 'winston')
     void cargar()
-  }, [abierto, cargar])
+  }, [abierto, cargar, planteles])
 
   const hayFiltros = Boolean(
     busquedaFolio.trim() || busquedaNombre.trim() || busquedaControl.trim()
   )
 
-  const filtradas = useMemo(() => {
+  const filtradasBase = useMemo(() => {
     const folioQ = busquedaFolio.trim()
     const nombreQ = normalizarTexto(busquedaNombre)
     const controlQ = busquedaControl.trim().toLowerCase()
@@ -125,9 +138,13 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
     })
   }, [filas, busquedaFolio, busquedaNombre, busquedaControl])
 
+  const filtradasTab = useMemo(() => {
+    return filtradasBase.filter((p) => p.plantel_serie === plantelTab)
+  }, [filtradasBase, plantelTab])
+
   const totalVisible = useMemo(
-    () => filtradas.reduce((acc, p) => acc + (Number(p.pago_importe) || 0), 0),
-    [filtradas]
+    () => filtradasTab.reduce((acc, p) => acc + (Number(p.pago_importe) || 0), 0),
+    [filtradasTab]
   )
 
   const etiquetaCicloFila = useCallback(
@@ -139,21 +156,31 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
     [opcionesCatalogo]
   )
 
+  const mapExcel = useMemo(
+    () => ({
+      nombre: nombreAlumnoFila,
+      concepto: conceptoVisible,
+      fecha: formatearFecha,
+      ciclo: etiquetaCicloFila,
+      ref: refAlumno,
+    }),
+    [etiquetaCicloFila]
+  )
+
   const onExcel = async () => {
-    if (filtradas.length === 0 || exportando) return
+    if (filtradasBase.length === 0 || exportando) return
     setErrorExport(null)
     setExportando(true)
     try {
-      await exportarPagosInternosExcel({
-        filas: mapFilasParaExcel(filtradas, {
-          nombre: nombreAlumnoFila,
-          concepto: conceptoVisible,
-          fecha: formatearFecha,
-          ciclo: etiquetaCicloFila,
-          ref: refAlumno,
-        }),
-        folioDesde: PAGO_INTERNO_FOLIO_INICIAL,
-      })
+      const hojas = planteles.map((plantel) => ({
+        plantel,
+        nombreHoja: ETIQUETA_PLANTEL_PAGOS_INTERNOS[plantel],
+        filas: mapFilasParaExcel(
+          filtradasBase.filter((p) => p.plantel_serie === plantel),
+          mapExcel
+        ),
+      }))
+      await exportarPagosInternosExcel({ hojas })
     } catch (e) {
       console.error(e)
       setErrorExport('No se pudo generar el Excel. Intenta de nuevo.')
@@ -163,6 +190,8 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
   }
 
   if (!abierto) return null
+
+  const folioEjemplo = folioInicialPlantel(plantelTab)
 
   return (
     <div className="pi-modal-backdrop" role="presentation" onClick={onCerrar}>
@@ -180,6 +209,26 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
           </button>
         </header>
 
+        {planteles.length > 1 && (
+          <div className="pi-listado-plantel-tabs" role="tablist" aria-label="Plantel">
+            {planteles.map((p) => (
+              <button
+                key={p}
+                type="button"
+                role="tab"
+                aria-selected={plantelTab === p}
+                className={plantelTab === p ? 'active' : ''}
+                onClick={() => setPlantelTab(p)}
+              >
+                {ETIQUETA_PLANTEL_PAGOS_INTERNOS[p]}
+                <span className="pi-listado-plantel-count">
+                  {filtradasBase.filter((f) => f.plantel_serie === p).length}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="pi-listado-toolbar">
           <label className="pi-catalogo-busqueda pi-listado-busqueda">
             <span className="pi-catalogo-busqueda-label">Folio</span>
@@ -190,7 +239,7 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
                 inputMode="numeric"
                 value={busquedaFolio}
                 onChange={(e) => setBusquedaFolio(e.target.value.replace(/[^\d]/g, ''))}
-                placeholder={`Ej. ${PAGO_INTERNO_FOLIO_INICIAL}`}
+                placeholder={`Ej. ${folioEjemplo}`}
                 autoComplete="off"
                 autoFocus
               />
@@ -231,7 +280,7 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
               type="button"
               className="pi-btn pi-btn--excel"
               onClick={() => void onExcel()}
-              disabled={cargando || exportando || filtradas.length === 0}
+              disabled={cargando || exportando || filtradasBase.length === 0}
               title="Exportar la relación visible a Excel"
             >
               {exportando ? (
@@ -255,11 +304,11 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
             <Loader2 className="pi-spin" size={22} aria-hidden />
             Cargando pagos…
           </div>
-        ) : filtradas.length === 0 ? (
+        ) : filtradasTab.length === 0 ? (
           <p className="pi-empty pi-listado-empty">
             {hayFiltros
               ? 'Sin pagos que coincidan con los filtros.'
-              : `Sin pagos internos desde el folio ${PAGO_INTERNO_FOLIO_INICIAL}.`}
+              : `Sin pagos internos en ${ETIQUETA_PLANTEL_PAGOS_INTERNOS[plantelTab]} (serie desde ${folioEjemplo}).`}
           </p>
         ) : (
           <>
@@ -278,7 +327,7 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
                   </tr>
                 </thead>
                 <tbody>
-                  {filtradas.map((p) => (
+                  {filtradasTab.map((p) => (
                     <tr key={p.pago_id}>
                       <td>
                         <span className="pi-tabla-folio-badge">{p.pago_folio}</span>
@@ -304,7 +353,10 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
             </div>
             <footer className="pi-listado-footer">
               <span>
-                {filtradas.length} registro{filtradas.length === 1 ? '' : 's'}
+                {filtradasTab.length} registro{filtradasTab.length === 1 ? '' : 's'}
+                {planteles.length > 1
+                  ? ` · ${ETIQUETA_PLANTEL_PAGOS_INTERNOS[plantelTab]}`
+                  : ''}
               </span>
               <strong>Total: {formatearMonto(totalVisible)}</strong>
             </footer>
