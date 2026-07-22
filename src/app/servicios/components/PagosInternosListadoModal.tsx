@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Loader2, Search, X } from 'lucide-react'
+import { FileSpreadsheet, Loader2, Search, X } from 'lucide-react'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import {
@@ -10,6 +10,10 @@ import {
   type PagoInternoListadoFila,
 } from '@/lib/pagoInternoService'
 import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
+import {
+  exportarPagosInternosExcel,
+  mapFilasParaExcel,
+} from '@/lib/exportarPagosInternosExcel'
 
 type Props = {
   abierto: boolean
@@ -51,11 +55,19 @@ function formatearMonto(n: number): string {
   })
 }
 
+function refAlumno(p: PagoInternoListadoFila): string {
+  const ref = (p.alumno_ref ?? '').trim()
+  if (!ref || ref === ALUMNO_REF_EXTERNO || ref.toLowerCase() === 'externo') return '—'
+  return ref
+}
+
 export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) {
   const { opcionesCatalogo } = useCicloEscolar()
   const [filas, setFilas] = useState<PagoInternoListadoFila[]>([])
   const [cargando, setCargando] = useState(false)
+  const [exportando, setExportando] = useState(false)
   const [busquedaFolio, setBusquedaFolio] = useState('')
+  const [errorExport, setErrorExport] = useState<string | null>(null)
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -70,6 +82,7 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
   useEffect(() => {
     if (!abierto) return
     setBusquedaFolio('')
+    setErrorExport(null)
     void cargar()
   }, [abierto, cargar])
 
@@ -78,6 +91,43 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
     if (!q) return filas
     return filas.filter((p) => String(p.pago_folio).includes(q))
   }, [filas, busquedaFolio])
+
+  const totalVisible = useMemo(
+    () => filtradas.reduce((acc, p) => acc + (Number(p.pago_importe) || 0), 0),
+    [filtradas]
+  )
+
+  const etiquetaCicloFila = useCallback(
+    (p: PagoInternoListadoFila) =>
+      p.pago_ciclo_escolar != null
+        ? etiquetaCicloEscolar(p.pago_ciclo_escolar, opcionesCatalogo) ||
+          String(p.pago_ciclo_escolar)
+        : '—',
+    [opcionesCatalogo]
+  )
+
+  const onExcel = async () => {
+    if (filtradas.length === 0 || exportando) return
+    setErrorExport(null)
+    setExportando(true)
+    try {
+      await exportarPagosInternosExcel({
+        filas: mapFilasParaExcel(filtradas, {
+          nombre: nombreAlumnoFila,
+          concepto: conceptoVisible,
+          fecha: formatearFecha,
+          ciclo: etiquetaCicloFila,
+          ref: refAlumno,
+        }),
+        folioDesde: PAGO_INTERNO_FOLIO_INICIAL,
+      })
+    } catch (e) {
+      console.error(e)
+      setErrorExport('No se pudo generar el Excel. Intenta de nuevo.')
+    } finally {
+      setExportando(false)
+    }
+  }
 
   if (!abierto) return null
 
@@ -97,8 +147,8 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
           </button>
         </header>
 
-        <div className="pi-catalogo-toolbar">
-          <label className="pi-catalogo-busqueda">
+        <div className="pi-listado-toolbar">
+          <label className="pi-catalogo-busqueda pi-listado-busqueda">
             <span className="pi-catalogo-busqueda-label">Buscar por folio</span>
             <span className="pi-listado-busqueda-input">
               <Search size={16} aria-hidden />
@@ -113,11 +163,36 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
               />
             </span>
           </label>
-          <p className="pi-listado-hint">
-            Folios desde {PAGO_INTERNO_FOLIO_INICIAL}, orden ascendente
-            {!cargando ? ` · ${filtradas.length} registro${filtradas.length === 1 ? '' : 's'}` : ''}
-          </p>
+
+          <div className="pi-listado-toolbar-meta">
+            <p className="pi-listado-hint">
+              Folios desde {PAGO_INTERNO_FOLIO_INICIAL}, orden ascendente
+              {!cargando
+                ? ` · ${filtradas.length} registro${filtradas.length === 1 ? '' : 's'}`
+                : ''}
+            </p>
+            <button
+              type="button"
+              className="pi-btn pi-btn--excel"
+              onClick={() => void onExcel()}
+              disabled={cargando || exportando || filtradas.length === 0}
+              title="Exportar la relación visible a Excel"
+            >
+              {exportando ? (
+                <Loader2 className="pi-spin" size={16} aria-hidden />
+              ) : (
+                <FileSpreadsheet size={16} aria-hidden />
+              )}
+              Excel
+            </button>
+          </div>
         </div>
+
+        {errorExport && (
+          <p className="pi-listado-export-error" role="alert">
+            {errorExport}
+          </p>
+        )}
 
         {cargando ? (
           <div className="pi-modal-loading">
@@ -125,52 +200,59 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
             Cargando pagos…
           </div>
         ) : filtradas.length === 0 ? (
-          <p className="pi-empty" style={{ margin: '12px 22px 28px' }}>
+          <p className="pi-empty pi-listado-empty">
             {busquedaFolio.trim()
               ? `Sin pagos con folio que contenga «${busquedaFolio.trim()}».`
               : `Sin pagos internos desde el folio ${PAGO_INTERNO_FOLIO_INICIAL}.`}
           </p>
         ) : (
-          <div className="pi-listado-tabla-wrap">
-            <table className="pi-tabla pi-tabla--listado">
-              <thead>
-                <tr>
-                  <th scope="col">Folio</th>
-                  <th scope="col">Fecha</th>
-                  <th scope="col">Alumno</th>
-                  <th scope="col">Concepto</th>
-                  <th scope="col">Ciclo</th>
-                  <th scope="col" className="pi-tabla-num">
-                    Importe
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtradas.map((p) => (
-                  <tr key={p.pago_id}>
-                    <td className="pi-tabla-folio">{p.pago_folio}</td>
-                    <td>{formatearFecha(p.pago_fecha)}</td>
-                    <td>
-                      <span className="pi-listado-alumno">{nombreAlumnoFila(p)}</span>
-                      {p.alumno_ref &&
-                      p.alumno_ref.trim() !== ALUMNO_REF_EXTERNO &&
-                      p.alumno_ref.trim().toLowerCase() !== 'externo' ? (
-                        <span className="pi-listado-ref">{p.alumno_ref}</span>
-                      ) : null}
-                    </td>
-                    <td>{conceptoVisible(p)}</td>
-                    <td>
-                      {p.pago_ciclo_escolar != null
-                        ? etiquetaCicloEscolar(p.pago_ciclo_escolar, opcionesCatalogo) ||
-                          String(p.pago_ciclo_escolar)
-                        : '—'}
-                    </td>
-                    <td className="pi-tabla-num">{formatearMonto(p.pago_importe)}</td>
+          <>
+            <div className="pi-listado-tabla-wrap">
+              <table className="pi-tabla pi-tabla--listado">
+                <thead>
+                  <tr>
+                    <th scope="col">Folio</th>
+                    <th scope="col">Fecha</th>
+                    <th scope="col">Alumno</th>
+                    <th scope="col">Concepto</th>
+                    <th scope="col">Ciclo</th>
+                    <th scope="col" className="pi-tabla-num">
+                      Importe
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filtradas.map((p) => (
+                    <tr key={p.pago_id}>
+                      <td>
+                        <span className="pi-tabla-folio-badge">{p.pago_folio}</span>
+                      </td>
+                      <td className="pi-listado-fecha">{formatearFecha(p.pago_fecha)}</td>
+                      <td>
+                        <span className="pi-listado-alumno">{nombreAlumnoFila(p)}</span>
+                        {refAlumno(p) !== '—' ? (
+                          <span className="pi-listado-ref">{refAlumno(p)}</span>
+                        ) : null}
+                      </td>
+                      <td className="pi-listado-concepto">{conceptoVisible(p)}</td>
+                      <td>
+                        <span className="pi-listado-ciclo">{etiquetaCicloFila(p)}</span>
+                      </td>
+                      <td className="pi-tabla-num pi-listado-importe">
+                        {formatearMonto(p.pago_importe)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <footer className="pi-listado-footer">
+              <span>
+                {filtradas.length} registro{filtradas.length === 1 ? '' : 's'}
+              </span>
+              <strong>Total: {formatearMonto(totalVisible)}</strong>
+            </footer>
+          </>
         )}
       </div>
     </div>

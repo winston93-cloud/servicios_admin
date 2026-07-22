@@ -372,6 +372,109 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-m
   border-bottom-color: var(--sx-accent);
 }
 
+/* ─── Pagos internos: listado modal ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-listado-toolbar {
+  border-bottom-color: var(--sx-table-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-listado-busqueda-input {
+  background: var(--sx-input-bg);
+  border-color: var(--sx-input-border);
+  box-shadow: none;
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-listado-busqueda-input svg {
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-listado-hint {
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-btn--excel {
+  background: #059669;
+  border-color: #34d399;
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.25);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-btn--excel:hover:not(:disabled) {
+  background: #10b981;
+  border-color: #6ee7b7;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-listado-export-error {
+  background: rgba(127, 29, 29, 0.35);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #fca5a5;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-listado-tabla-wrap {
+  background: rgba(15, 23, 42, 0.35);
+  border-color: var(--sx-table-border);
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-tabla--listado {
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-tabla--listado th,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-tabla--listado td {
+  border-bottom-color: var(--sx-table-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-tabla--listado th {
+  background: #0f766e;
+  color: #ecfdf5;
+  border-bottom-color: #0d9488;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-tabla--listado tbody tr:nth-child(even) {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-tabla--listado tbody tr:hover {
+  background: rgba(45, 212, 191, 0.12);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-tabla-folio-badge {
+  color: #99f6e4;
+  background: rgba(15, 118, 110, 0.45);
+  border-color: rgba(45, 212, 191, 0.45);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-listado-fecha,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-listado-concepto {
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-listado-alumno {
+  color: #f8fafc;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-listado-ref {
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-listado-ciclo {
+  color: #bfdbfe;
+  background: rgba(30, 64, 175, 0.35);
+  border-color: rgba(96, 165, 250, 0.4);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-listado-importe {
+  color: #a7f3d0;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .pi-listado-footer {
+  background: rgba(6, 95, 70, 0.35);
+  border-color: rgba(52, 211, 153, 0.35);
+  border-top-color: rgba(52, 211, 153, 0.35);
+  color: #a7f3d0;
+}
+
 /* ─── Becas ─── */
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .becas-estatus--activa {
   background: rgba(22, 101, 52, 0.3);

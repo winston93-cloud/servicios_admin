@@ -11346,14 +11346,41 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   flex-direction: column;
 }
 
+.pi-listado-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px 16px;
+  padding: 4px 22px 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.pi-listado-busqueda {
+  flex: 1 1 220px;
+  min-width: 200px;
+  margin: 0;
+}
+
+.pi-listado-toolbar-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px 14px;
+  flex: 1 1 260px;
+  padding-bottom: 2px;
+}
+
 .pi-listado-busqueda-input {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 10px;
+  min-height: 40px;
+  padding: 0 12px;
   border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #fff;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .pi-listado-busqueda-input svg {
@@ -11366,48 +11393,118 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   box-shadow: none !important;
   padding-left: 0 !important;
   background: transparent !important;
+  color: inherit;
+  width: 100%;
+  min-height: 38px;
 }
 
 .pi-listado-hint {
   margin: 0;
-  flex: 1 1 180px;
-  align-self: flex-end;
-  padding-bottom: 8px;
   font-size: 0.8125rem;
+  line-height: 1.35;
   color: #64748b;
+}
+
+.pi-btn--excel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #fff;
+  background: #059669;
+  border: 1px solid #047857;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(4, 120, 87, 0.25);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pi-btn--excel:hover:not(:disabled) {
+  background: #047857;
+  border-color: #065f46;
+}
+
+.pi-btn--excel:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pi-btn--excel .lucide,
+.pi-btn--excel svg {
+  width: 16px;
+  height: 16px;
+}
+
+.pi-listado-export-error {
+  margin: 0 22px 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 0.8125rem;
+}
+
+.pi-listado-empty {
+  margin: 16px 22px 28px;
 }
 
 .pi-listado-tabla-wrap {
   overflow: auto;
-  padding: 0 22px 22px;
+  margin: 14px 22px 0;
+  padding: 0;
   flex: 1 1 auto;
   min-height: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .pi-tabla--listado {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 0.875rem;
+  color: #1e293b;
 }
 
 .pi-tabla--listado th,
 .pi-tabla--listado td {
-  padding: 8px 10px;
+  padding: 11px 12px;
   text-align: left;
   border-bottom: 1px solid #e2e8f0;
-  vertical-align: top;
+  vertical-align: middle;
+}
+
+.pi-tabla--listado tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .pi-tabla--listado th {
   position: sticky;
   top: 0;
-  background: #f8fafc;
-  font-size: 0.75rem;
+  background: #0f766e;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #64748b;
+  letter-spacing: 0.05em;
+  color: #ecfdf5;
   z-index: 1;
+  border-bottom: 1px solid #0f766e;
+}
+
+.pi-tabla--listado tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.pi-tabla--listado tbody tr:hover {
+  background: #ecfdf5;
 }
 
 .pi-tabla--listado .pi-tabla-num {
@@ -11416,24 +11513,94 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   font-variant-numeric: tabular-nums;
 }
 
-.pi-tabla--listado .pi-tabla-folio {
+.pi-tabla-folio-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.5rem;
+  padding: 4px 8px;
+  border-radius: 999px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+  color: #0f766e;
+  background: #ccfbf1;
+  border: 1px solid #99f6e4;
+}
+
+.pi-listado-fecha {
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  color: #334155;
 }
 
 .pi-listado-alumno {
   display: block;
   font-weight: 600;
   color: #0f172a;
+  line-height: 1.35;
 }
 
 .pi-listado-ref {
   display: block;
-  margin-top: 2px;
+  margin-top: 3px;
   font-size: 0.75rem;
   color: #64748b;
   font-variant-numeric: tabular-nums;
+}
+
+.pi-listado-concepto {
+  color: #334155;
+  line-height: 1.35;
+}
+
+.pi-listado-ciclo {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1e40af;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  white-space: nowrap;
+}
+
+.pi-listado-importe {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.pi-listado-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: 0 22px 18px;
+  padding: 12px 14px;
+  border: 1px solid #d1fae5;
+  border-radius: 0 0 12px 12px;
+  border-top: none;
+  background: #ecfdf5;
+  color: #065f46;
+  font-size: 0.875rem;
+}
+
+.pi-listado-footer strong {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.9375rem;
+}
+
+/* El footer visualmente continúa la tarjeta: acercar wrap + footer */
+.pi-modal--listado .pi-listado-tabla-wrap {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  margin-bottom: 0;
+}
+
+.pi-modal--listado .pi-listado-footer {
+  border-top: 1px solid #a7f3d0;
 }
 
 .pi-catalogo-toolbar {
