@@ -97,13 +97,14 @@ export default function CorreoMasivoModulo() {
       return
     }
     setCicloFiltro(cicloSeleccionado)
+    // cicloFiltro solo se lee en rama restaurada; no debe re-disparar al elegir otro ciclo en el select.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intencional
   }, [
     cicloSeleccionado,
     inicializado,
     sesionRestaurada,
     cargandoCiclos,
     opcionesCatalogo,
-    cicloFiltro,
   ])
 
   useEffect(() => {
