@@ -285,6 +285,102 @@ export async function listarPagosPorAlumno(
 /** Primer folio de recibos de pagos internos en el sistema nuevo. */
 export const PAGO_INTERNO_FOLIO_INICIAL = 26550
 
+export type PagoInternoListadoFila = PagoInternoRegistro & {
+  alumno_ref: string | null
+  alumno_nombre: string | null
+  alumno_app: string | null
+  alumno_apm: string | null
+  concepto_clase: string | null
+}
+
+export async function listarPagosInternosSerieNueva(opts?: {
+  folioExacto?: number | null
+  limite?: number
+}): Promise<PagoInternoListadoFila[]> {
+  const limite = Math.min(Math.max(opts?.limite ?? 500, 1), 1000)
+  const folioExacto =
+    opts?.folioExacto != null && Number.isFinite(opts.folioExacto) && opts.folioExacto > 0
+      ? Math.floor(opts.folioExacto)
+      : null
+
+  let q = supabase
+    .from('pago_interno')
+    .select(SELECT_PAGO)
+    .eq('pago_cancelado', 0)
+    .gte('pago_folio', PAGO_INTERNO_FOLIO_INICIAL)
+    .order('pago_folio', { ascending: true })
+    .limit(limite)
+
+  if (folioExacto != null) {
+    q = q.eq('pago_folio', folioExacto)
+  }
+
+  const { data, error } = await q
+  if (error) {
+    console.error('Error al listar pagos internos (serie nueva):', error)
+    return []
+  }
+
+  const pagos = (data ?? []).map((r) => ({
+    ...r,
+    pago_importe: Number(r.pago_importe),
+  })) as PagoInternoRegistro[]
+
+  if (pagos.length === 0) return []
+
+  const alumnoIds = [
+    ...new Set(
+      pagos
+        .map((p) => p.alumno_id)
+        .filter((id): id is number => id != null && Number.isFinite(id))
+    ),
+  ]
+  const conceptoIds = [...new Set(pagos.map((p) => p.concepto_id))]
+
+  const alumnosMap = new Map<
+    number,
+    { alumno_ref: string | null; alumno_nombre: string | null; alumno_app: string | null; alumno_apm: string | null }
+  >()
+  const conceptosMap = new Map<number, string | null>()
+
+  if (alumnoIds.length > 0) {
+    const { data: alumnos } = await supabase
+      .from('alumno')
+      .select('alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm')
+      .in('alumno_id', alumnoIds)
+    for (const a of alumnos ?? []) {
+      alumnosMap.set(Number(a.alumno_id), {
+        alumno_ref: a.alumno_ref != null ? String(a.alumno_ref) : null,
+        alumno_nombre: (a.alumno_nombre as string | null) ?? null,
+        alumno_app: (a.alumno_app as string | null) ?? null,
+        alumno_apm: (a.alumno_apm as string | null) ?? null,
+      })
+    }
+  }
+
+  if (conceptoIds.length > 0) {
+    const { data: conceptos } = await supabase
+      .from('concepto_interno')
+      .select('concepto_id, concepto_clase')
+      .in('concepto_id', conceptoIds)
+    for (const c of conceptos ?? []) {
+      conceptosMap.set(Number(c.concepto_id), (c.concepto_clase as string | null) ?? null)
+    }
+  }
+
+  return pagos.map((p) => {
+    const alum = p.alumno_id != null ? alumnosMap.get(p.alumno_id) : undefined
+    return {
+      ...p,
+      alumno_ref: alum?.alumno_ref ?? null,
+      alumno_nombre: alum?.alumno_nombre ?? null,
+      alumno_app: alum?.alumno_app ?? null,
+      alumno_apm: alum?.alumno_apm ?? null,
+      concepto_clase: conceptosMap.get(p.concepto_id) ?? null,
+    }
+  })
+}
+
 export async function obtenerSiguienteFolioPago(): Promise<number> {
   const { data, error } = await supabase
     .from('pago_interno')

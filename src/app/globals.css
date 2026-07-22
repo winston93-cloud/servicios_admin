@@ -10960,6 +10960,43 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   box-shadow: 0 1px 4px rgba(161, 98, 7, 0.12);
 }
 
+.pi-header-acciones {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.pi-header-acciones .pi-btn--catalogo,
+.pi-header-acciones .pi-btn--listado {
+  margin-left: 0;
+  width: 100%;
+  justify-content: center;
+}
+
+.pi-btn--listado {
+  padding: 7px 12px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.1);
+}
+
+.pi-btn--listado:hover:not(:disabled) {
+  background: #dbeafe;
+  border-color: #60a5fa;
+  color: #1e3a8a;
+}
+
+.pi-btn--listado .lucide,
+.pi-btn--listado svg {
+  width: 16px;
+  height: 16px;
+}
+
 .pi-btn--catalogo:hover:not(:disabled) {
   background: #fef08a;
   border-color: #facc15;
@@ -11300,6 +11337,103 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 
 .pi-modal--catalogo {
   max-width: min(960px, 96vw);
+}
+
+.pi-modal--listado {
+  max-width: min(1100px, 96vw);
+  max-height: min(90vh, 900px);
+  display: flex;
+  flex-direction: column;
+}
+
+.pi-listado-busqueda-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.pi-listado-busqueda-input svg {
+  flex-shrink: 0;
+  color: #64748b;
+}
+
+.pi-listado-busqueda-input input {
+  border: none !important;
+  box-shadow: none !important;
+  padding-left: 0 !important;
+  background: transparent !important;
+}
+
+.pi-listado-hint {
+  margin: 0;
+  flex: 1 1 180px;
+  align-self: flex-end;
+  padding-bottom: 8px;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.pi-listado-tabla-wrap {
+  overflow: auto;
+  padding: 0 22px 22px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.pi-tabla--listado {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.pi-tabla--listado th,
+.pi-tabla--listado td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+
+.pi-tabla--listado th {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  z-index: 1;
+}
+
+.pi-tabla--listado .pi-tabla-num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pi-tabla--listado .pi-tabla-folio {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pi-listado-alumno {
+  display: block;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.pi-listado-ref {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
 }
 
 .pi-catalogo-toolbar {
@@ -14902,6 +15036,15 @@ a.pc-accion {
 
   .pi-btn--catalogo {
     margin-left: 0;
+    width: 100%;
+  }
+
+  .pi-header-acciones {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .pi-btn--listado {
     width: 100%;
   }
 

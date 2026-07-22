@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Loader2, Plus, Printer, Settings2, Wallet } from 'lucide-react'
+import { ListOrdered, Loader2, Plus, Printer, Settings2, Wallet } from 'lucide-react'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { useAlumnoSeleccionado } from '@/contexts/AlumnoSeleccionadoContext'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
@@ -23,6 +23,7 @@ import {
 } from '@/lib/pagoInternoService'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
 import PagosInternosCatalogoModal from '../components/PagosInternosCatalogoModal'
+import PagosInternosListadoModal from '../components/PagosInternosListadoModal'
 import ValePagoInternoPrint, {
   imprimirValePagoInterno,
   type DatosValePagoInterno,
@@ -51,6 +52,7 @@ export default function PagosInternosModulo() {
   const [cicloPago, setCicloPago] = useState(cicloSeleccionado)
 
   const [catalogoAbierto, setCatalogoAbierto] = useState(false)
+  const [listadoAbierto, setListadoAbierto] = useState(false)
   const [valeImpresion, setValeImpresion] = useState<DatosValePagoInterno | null>(null)
 
   const [guardando, setGuardando] = useState(false)
@@ -346,14 +348,24 @@ export default function PagosInternosModulo() {
     <div className="servicios-panel-inner servicios-panel-inner--pagos-internos">
       <header className="servicios-panel-header servicios-panel-header--compact">
         <h1 className="servicios-panel-title">Pagos internos</h1>
-        <button
-          type="button"
-          className="pi-btn pi-btn--secondary pi-btn--catalogo"
-          onClick={() => setCatalogoAbierto(true)}
-        >
-          <Settings2 size={16} aria-hidden />
-          Conceptos y precios
-        </button>
+        <div className="pi-header-acciones">
+          <button
+            type="button"
+            className="pi-btn pi-btn--secondary pi-btn--catalogo"
+            onClick={() => setCatalogoAbierto(true)}
+          >
+            <Settings2 size={16} aria-hidden />
+            Conceptos y precios
+          </button>
+          <button
+            type="button"
+            className="pi-btn pi-btn--secondary pi-btn--listado"
+            onClick={() => setListadoAbierto(true)}
+          >
+            <ListOrdered size={16} aria-hidden />
+            Listado de pagos internos
+          </button>
+        </div>
       </header>
 
       <div className="pi-busqueda-fila">
@@ -574,6 +586,11 @@ export default function PagosInternosModulo() {
         abierto={catalogoAbierto}
         onCerrar={() => setCatalogoAbierto(false)}
         onActualizado={recargarConceptos}
+      />
+
+      <PagosInternosListadoModal
+        abierto={listadoAbierto}
+        onCerrar={() => setListadoAbierto(false)}
       />
 
       <ValePagoInternoPrint datos={valeImpresion} />
