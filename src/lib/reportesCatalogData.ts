@@ -163,7 +163,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     id: 'reinscritos-1',
     categoriaId: 'reinscritos',
     titulo: 'Reinscritos — 1 pago',
-    descripcion: 'Primer diferido / primer pago de reinscripción.',
+    descripcion:
+      'Primer diferido / pago único de reinscripción. Incluye pendientes (SIN PAGO) y totales por grado.',
     accent: 'amber',
     motor: 'api-next',
     requiereNivel: true,
@@ -174,7 +175,8 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     id: 'reinscritos-2',
     categoriaId: 'reinscritos',
     titulo: 'Reinscritos — 2 pagos',
-    descripcion: 'Segundo diferido; incluye 1er dif, 2do dif y plan de meses.',
+    descripcion:
+      'Segundo diferido; muestra 1er/2do dif, plan de meses, pendientes y totales por grado.',
     accent: 'amber',
     motor: 'api-next',
     requiereNivel: true,

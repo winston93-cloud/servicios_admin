@@ -38,8 +38,11 @@ import {
 import {
   cargarReinscritos1Pago,
   cargarReinscritos2Pagos,
-  reinscritosPagosATabla,
 } from '@/lib/reportes/reinscritosPagosService'
+import {
+  construirHtmlReporteReinscritos,
+  generarPdfReporteReinscritos,
+} from '@/lib/reportes/reinscritosPagosDocument'
 import {
   cargarNuevoIngresoMes,
   cargarSuspendidosReporte,
@@ -202,16 +205,11 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
     const cicloIns = await cicloInscripcionParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarReinscritos1Pago(nivel, cicloIns)
-    const tabla = reinscritosPagosATabla(resumen, false)
-    return respuestaTabla({
-      titulo: resumen.titulo,
-      subtitulo: `${resumen.nivelLabel} · Inscripción ${resumen.cicloLabel}`,
-      meta: `${resumen.filas.length} reinscrito(s)`,
-      ...tabla,
-      slug: 'reinscritos-1',
-      ciclo: cicloIns,
-      format,
-    })
+    const filename = `reinscritos-1-${searchParams.get('nivel') ?? 'nivel'}-c${cicloIns}.${format === 'pdf' ? 'pdf' : 'html'}`
+    if (format === 'pdf') {
+      return { filename, pdf: generarPdfReporteReinscritos(resumen) }
+    }
+    return { filename, html: construirHtmlReporteReinscritos(resumen) }
   },
 
   'reinscritos-2': async (searchParams) => {
@@ -219,16 +217,11 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
     const cicloIns = await cicloInscripcionParam(searchParams)
     const format = formatoParam(searchParams)
     const resumen = await cargarReinscritos2Pagos(nivel, cicloIns)
-    const tabla = reinscritosPagosATabla(resumen, true)
-    return respuestaTabla({
-      titulo: resumen.titulo,
-      subtitulo: `${resumen.nivelLabel} · Inscripción ${resumen.cicloLabel}`,
-      meta: `${resumen.filas.length} reinscrito(s)`,
-      ...tabla,
-      slug: 'reinscritos-2',
-      ciclo: cicloIns,
-      format,
-    })
+    const filename = `reinscritos-2-${searchParams.get('nivel') ?? 'nivel'}-c${cicloIns}.${format === 'pdf' ? 'pdf' : 'html'}`
+    if (format === 'pdf') {
+      return { filename, pdf: generarPdfReporteReinscritos(resumen) }
+    }
+    return { filename, html: construirHtmlReporteReinscritos(resumen) }
   },
 
   becados: async (searchParams) => {

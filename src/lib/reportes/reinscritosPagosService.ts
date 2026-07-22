@@ -1,9 +1,7 @@
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaGrupoEscolar } from '@/lib/grupoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
-import {
-  cicloFichaAlumnosParaInscripcion,
-} from '@/lib/ciclosEscolares'
+import { cicloFichaAlumnosParaInscripcion } from '@/lib/ciclosEscolares'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 import {
   formatearAlumnoRefParaReferencia,
@@ -13,8 +11,11 @@ import {
 import { fetchAlumnosReinscritos, fetchPagosPorAlumnos } from './fetchDb'
 import { etiquetaCicloReporte } from './renderDocument'
 
+export type ModoReinscritosPagos = '1-pago' | '2-pagos'
+
 export type FilaReinscritosPagos = {
   no: number
+  gradoNum: number
   grado: string
   grupo: string
   noCtrl: string
@@ -23,16 +24,31 @@ export type FilaReinscritosPagos = {
   fechaDif2: string
   fechaPago: string
   plan: string
+  /** Pagó el concepto objetivo del reporte (1er dif / 2do dif). */
+  pagado: boolean
+}
+
+export type ResumenGradoReinscritos = {
+  gradoNum: number
+  grado: string
+  pendientes: number
+  pagados: number
+  total: number
 }
 
 export type ResumenReinscritosPagos = {
+  modo: ModoReinscritosPagos
   cicloEscolar: number
   cicloInscripcion: number
   cicloLabel: string
+  cicloEscolarLabel: string
   nivel: number
   nivelLabel: string
   titulo: string
   filas: FilaReinscritosPagos[]
+  resumenGrados: ResumenGradoReinscritos[]
+  totalPendientes: number
+  totalPagados: number
 }
 
 function pagoVigente(cancelado: number | null): boolean {
@@ -61,24 +77,6 @@ function pagosAlumnoVigentes(
   }[]
 ) {
   return pagos.filter((p) => pagoVigente(p.pago_cancelado))
-}
-
-function tieneConceptoEnCiclo(
-  pagos: ReturnType<typeof pagosAlumnoVigentes>,
-  alumnoRef: string,
-  conceptos: string[],
-  cicloInscripcion: number
-): boolean {
-  const ref5 = formatearAlumnoRefParaReferencia(alumnoRef)
-  return pagos.some((p) => {
-    const parsed = parsearReferenciaPago(p.pago_referencia)
-    if (!parsed) return false
-    return (
-      parsed.alumnoRef === ref5 &&
-      conceptos.includes(normalizarConceptoNo(parsed.conceptoNo)) &&
-      parsed.cicloEscolar === cicloInscripcion
-    )
-  })
 }
 
 function buscarFechaConcepto(
@@ -112,7 +110,7 @@ async function cargarReinscritosUnion(
   cicloEscolar: number,
   cicloInscripcion: number,
   titulo: string,
-  modo: '1-pago' | '2-pagos'
+  modo: ModoReinscritosPagos
 ): Promise<ResumenReinscritosPagos> {
   const alumnos = await fetchAlumnosReinscritos(nivel, cicloEscolar)
   const pagos = await fetchPagosPorAlumnos(alumnos.map((a) => a.alumno_id))
@@ -124,77 +122,55 @@ async function cargarReinscritosUnion(
     pagosPorAlumno.set(p.alumno_id, list)
   }
 
-  const conceptosPagados =
-    modo === '1-pago' ? ['11', '13'] : ['12', '13']
+  const conceptosObjetivo = modo === '1-pago' ? ['11', '13'] : ['12', '13']
   const conceptosDif1 = ['11']
   const conceptosDif2 = ['12', '13']
 
   const filas: FilaReinscritosPagos[] = []
-  const incluidos = new Set<number>()
+  const contadores = new Map<number, { pendientes: number; pagados: number }>()
 
   for (const a of alumnos) {
     const vigentes = pagosAlumnoVigentes(pagosPorAlumno.get(a.alumno_id) ?? [])
-    if (!vigentes.length) continue
-
-    const pagoObjetivo = tieneConceptoEnCiclo(
+    const fechaDif1 = buscarFechaConcepto(
       vigentes,
       a.alumno_ref,
-      conceptosPagados,
+      conceptosDif1,
       cicloInscripcion
     )
+    const fechaObjetivo = buscarFechaConcepto(
+      vigentes,
+      a.alumno_ref,
+      conceptosObjetivo,
+      cicloInscripcion
+    )
+    const fechaDif2 =
+      modo === '2-pagos'
+        ? buscarFechaConcepto(vigentes, a.alumno_ref, conceptosDif2, cicloInscripcion)
+        : ''
+    const pagado = Boolean(fechaObjetivo)
 
-    if (pagoObjetivo) {
-      incluidos.add(a.alumno_id)
-      const fechaPago =
-        modo === '1-pago'
-          ? buscarFechaConcepto(vigentes, a.alumno_ref, conceptosPagados, cicloInscripcion)
-          : buscarFechaConcepto(vigentes, a.alumno_ref, conceptosDif2, cicloInscripcion)
-
-      filas.push({
-        no: 0,
-        grado: etiquetaGradoEscolar(a.alumno_nivel, a.alumno_grado),
-        grupo: etiquetaGrupoEscolar(a.alumno_grupo),
-        noCtrl: a.alumno_ref,
-        nombre: a.nombre,
-        fechaDif1: buscarFechaConcepto(
-          vigentes,
-          a.alumno_ref,
-          conceptosDif1,
-          cicloInscripcion
-        ),
-        fechaDif2: modo === '2-pagos' ? fechaPago : '',
-        fechaPago: modo === '1-pago' ? fechaPago : '',
-        plan: etiquetaPlanMeses(a.mes),
-      })
-    }
-  }
-
-  for (const a of alumnos) {
-    if (incluidos.has(a.alumno_id)) continue
-    const vigentes = pagosAlumnoVigentes(pagosPorAlumno.get(a.alumno_id) ?? [])
-    if (!vigentes.length) continue
+    const prev = contadores.get(a.alumno_grado) ?? { pendientes: 0, pagados: 0 }
+    if (pagado) prev.pagados += 1
+    else prev.pendientes += 1
+    contadores.set(a.alumno_grado, prev)
 
     filas.push({
       no: 0,
+      gradoNum: a.alumno_grado,
       grado: etiquetaGradoEscolar(a.alumno_nivel, a.alumno_grado),
       grupo: etiquetaGrupoEscolar(a.alumno_grupo),
       noCtrl: a.alumno_ref,
       nombre: a.nombre,
-      fechaDif1: buscarFechaConcepto(
-        vigentes,
-        a.alumno_ref,
-        conceptosDif1,
-        cicloInscripcion
-      ),
-      fechaDif2: '',
-      fechaPago: '',
+      fechaDif1,
+      fechaDif2: modo === '2-pagos' ? fechaDif2 : '',
+      fechaPago: modo === '1-pago' ? fechaObjetivo : '',
       plan: etiquetaPlanMeses(a.mes),
+      pagado,
     })
   }
 
   filas.sort((x, y) => {
-    const g = x.grado.localeCompare(y.grado, 'es')
-    if (g !== 0) return g
+    if (x.gradoNum !== y.gradoNum) return x.gradoNum - y.gradoNum
     const gp = x.grupo.localeCompare(y.grupo, 'es')
     if (gp !== 0) return gp
     return x.nombre.localeCompare(y.nombre, 'es')
@@ -204,14 +180,32 @@ async function cargarReinscritosUnion(
     f.no = i + 1
   })
 
+  const resumenGrados: ResumenGradoReinscritos[] = [...contadores.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([gradoNum, c]) => ({
+      gradoNum,
+      grado: etiquetaGradoEscolar(nivel, gradoNum),
+      pendientes: c.pendientes,
+      pagados: c.pagados,
+      total: c.pendientes + c.pagados,
+    }))
+
+  const totalPendientes = resumenGrados.reduce((s, g) => s + g.pendientes, 0)
+  const totalPagados = resumenGrados.reduce((s, g) => s + g.pagados, 0)
+
   return {
+    modo,
     cicloEscolar,
     cicloInscripcion,
     cicloLabel: etiquetaCicloReporte(cicloInscripcion),
+    cicloEscolarLabel: etiquetaCicloReporte(cicloEscolar),
     nivel,
     nivelLabel: etiquetaNivelEscolar(nivel),
     titulo,
     filas,
+    resumenGrados,
+    totalPendientes,
+    totalPagados,
   }
 }
 
@@ -228,14 +222,42 @@ export function reinscritosPagosATabla(resumen: ResumenReinscritosPagos, dosPago
           f.grupo,
           f.noCtrl,
           f.nombre,
-          f.fechaDif1,
-          f.fechaDif2,
+          f.fechaDif1 || 'SIN PAGO',
+          f.fechaDif2 || 'SIN PAGO',
           f.plan,
         ]
-      : [String(f.no), f.grado, f.grupo, f.noCtrl, f.nombre, f.fechaPago, f.plan]
+      : [
+          String(f.no),
+          f.grado,
+          f.grupo,
+          f.noCtrl,
+          f.nombre,
+          f.fechaPago || 'SIN PAGO',
+          f.plan,
+        ]
   )
 
   return { headers, rows }
+}
+
+export function reinscritosResumenATabla(resumen: ResumenReinscritosPagos) {
+  return {
+    headers: ['Grado', 'Pendientes', 'Pagados', 'Total'],
+    rows: [
+      ...resumen.resumenGrados.map((g) => [
+        g.grado,
+        String(g.pendientes),
+        String(g.pagados),
+        String(g.total),
+      ]),
+      [
+        'Total',
+        String(resumen.totalPendientes),
+        String(resumen.totalPagados),
+        String(resumen.totalPendientes + resumen.totalPagados),
+      ],
+    ],
+  }
 }
 
 export async function cargarReinscritos2Pagos(
