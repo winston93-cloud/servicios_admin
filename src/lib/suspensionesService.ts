@@ -6,6 +6,7 @@ import {
   PAGE_ALUMNO,
   chunkArray,
 } from '@/lib/reportes/dbChunks'
+import { pagoVigente } from '@/lib/reportes/pagoReporteHelpers'
 import {
   calcularAdeudosAlumno,
   cicloLargoDesdeValorCiclo,
@@ -68,11 +69,19 @@ const PAGOS_PAGE_SIZE = 1000
 async function cargarPagosDetalleAlumnos(
   supabase: AppDatabaseClient,
   alumnoIds: number[]
-): Promise<Array<{ alumno_id: number; pago_referencia: string | null; pago_fecha: string | null }>> {
+): Promise<
+  Array<{
+    alumno_id: number
+    pago_referencia: string | null
+    pago_fecha: string | null
+    pago_cancelado: number | null
+  }>
+> {
   const filas: Array<{
     alumno_id: number
     pago_referencia: string | null
     pago_fecha: string | null
+    pago_cancelado: number | null
   }> = []
 
   for (const slice of chunkArray(alumnoIds, CHUNK_ALUMNO_ID_PAGO)) {
@@ -80,14 +89,26 @@ async function cargarPagosDetalleAlumnos(
     while (true) {
       const { data, error } = await supabase
         .from('pago_detalle')
-        .select('alumno_id, pago_referencia, pago_fecha')
+        .select('alumno_id, pago_referencia, pago_fecha, pago_cancelado')
         .in('alumno_id', slice)
-        .eq('pago_cancelado', 0)
+        // Vigentes: 0 normal, 3 beca/$0 (mismo criterio que portal).
+        // Excluir solo cancelados 1 y 2.
+        .not('pago_cancelado', 'in', '(1,2)')
         .range(from, from + PAGOS_PAGE_SIZE - 1)
 
       if (error) throw new Error(error.message)
       const chunk = data ?? []
-      filas.push(...chunk)
+      for (const row of chunk) {
+        const cancelado =
+          row.pago_cancelado == null ? null : Number(row.pago_cancelado)
+        if (!pagoVigente(cancelado)) continue
+        filas.push({
+          alumno_id: Number(row.alumno_id),
+          pago_referencia: (row.pago_referencia as string | null) ?? null,
+          pago_fecha: (row.pago_fecha as string | null) ?? null,
+          pago_cancelado: cancelado,
+        })
+      }
       if (chunk.length < PAGOS_PAGE_SIZE) break
       from += PAGOS_PAGE_SIZE
     }
