@@ -20,6 +20,14 @@ type Props = {
   onCerrar: () => void
 }
 
+function normalizarTexto(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .trim()
+}
+
 function nombreAlumnoFila(p: PagoInternoListadoFila): string {
   if (p.alumno_id == null) return 'Externo / sin alumno'
   const ref = (p.alumno_ref ?? '').trim()
@@ -67,6 +75,8 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
   const [cargando, setCargando] = useState(false)
   const [exportando, setExportando] = useState(false)
   const [busquedaFolio, setBusquedaFolio] = useState('')
+  const [busquedaNombre, setBusquedaNombre] = useState('')
+  const [busquedaControl, setBusquedaControl] = useState('')
   const [errorExport, setErrorExport] = useState<string | null>(null)
 
   const cargar = useCallback(async () => {
@@ -82,15 +92,38 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
   useEffect(() => {
     if (!abierto) return
     setBusquedaFolio('')
+    setBusquedaNombre('')
+    setBusquedaControl('')
     setErrorExport(null)
     void cargar()
   }, [abierto, cargar])
 
+  const hayFiltros = Boolean(
+    busquedaFolio.trim() || busquedaNombre.trim() || busquedaControl.trim()
+  )
+
   const filtradas = useMemo(() => {
-    const q = busquedaFolio.trim()
-    if (!q) return filas
-    return filas.filter((p) => String(p.pago_folio).includes(q))
-  }, [filas, busquedaFolio])
+    const folioQ = busquedaFolio.trim()
+    const nombreQ = normalizarTexto(busquedaNombre)
+    const controlQ = busquedaControl.trim().toLowerCase()
+
+    return filas.filter((p) => {
+      if (folioQ && !String(p.pago_folio).includes(folioQ)) return false
+
+      if (nombreQ) {
+        const nombre = normalizarTexto(nombreAlumnoFila(p))
+        if (!nombre.includes(nombreQ)) return false
+      }
+
+      if (controlQ) {
+        const ref = (p.alumno_ref ?? '').trim().toLowerCase()
+        if (!ref || ref === ALUMNO_REF_EXTERNO || ref === 'externo') return false
+        if (!ref.includes(controlQ)) return false
+      }
+
+      return true
+    })
+  }, [filas, busquedaFolio, busquedaNombre, busquedaControl])
 
   const totalVisible = useMemo(
     () => filtradas.reduce((acc, p) => acc + (Number(p.pago_importe) || 0), 0),
@@ -149,7 +182,7 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
 
         <div className="pi-listado-toolbar">
           <label className="pi-catalogo-busqueda pi-listado-busqueda">
-            <span className="pi-catalogo-busqueda-label">Buscar por folio</span>
+            <span className="pi-catalogo-busqueda-label">Folio</span>
             <span className="pi-listado-busqueda-input">
               <Search size={16} aria-hidden />
               <input
@@ -164,13 +197,36 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
             </span>
           </label>
 
+          <label className="pi-catalogo-busqueda pi-listado-busqueda pi-listado-busqueda--nombre">
+            <span className="pi-catalogo-busqueda-label">Nombre del alumno</span>
+            <span className="pi-listado-busqueda-input">
+              <Search size={16} aria-hidden />
+              <input
+                type="search"
+                value={busquedaNombre}
+                onChange={(e) => setBusquedaNombre(e.target.value)}
+                placeholder="Nombre o apellido…"
+                autoComplete="off"
+              />
+            </span>
+          </label>
+
+          <label className="pi-catalogo-busqueda pi-listado-busqueda pi-listado-busqueda--control">
+            <span className="pi-catalogo-busqueda-label">No. de control</span>
+            <span className="pi-listado-busqueda-input">
+              <Search size={16} aria-hidden />
+              <input
+                type="search"
+                inputMode="numeric"
+                value={busquedaControl}
+                onChange={(e) => setBusquedaControl(e.target.value.replace(/[^\d]/g, ''))}
+                placeholder="Ej. 21805"
+                autoComplete="off"
+              />
+            </span>
+          </label>
+
           <div className="pi-listado-toolbar-meta">
-            <p className="pi-listado-hint">
-              Folios desde {PAGO_INTERNO_FOLIO_INICIAL}, orden ascendente
-              {!cargando
-                ? ` · ${filtradas.length} registro${filtradas.length === 1 ? '' : 's'}`
-                : ''}
-            </p>
             <button
               type="button"
               className="pi-btn pi-btn--excel"
@@ -201,8 +257,8 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
           </div>
         ) : filtradas.length === 0 ? (
           <p className="pi-empty pi-listado-empty">
-            {busquedaFolio.trim()
-              ? `Sin pagos con folio que contenga «${busquedaFolio.trim()}».`
+            {hayFiltros
+              ? 'Sin pagos que coincidan con los filtros.'
               : `Sin pagos internos desde el folio ${PAGO_INTERNO_FOLIO_INICIAL}.`}
           </p>
         ) : (
