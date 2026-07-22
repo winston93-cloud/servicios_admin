@@ -26,10 +26,13 @@ export type AccesoPagosInternosUsuario = {
 }
 
 /**
- * Juanita (caja Winston): ve ambos planteles; Externo usa serie Winston.
- * Karla (caja Educativo): solo Educativo; Externo usa serie Educativo.
- * Resto del personal admin: ambos (Externo → Winston).
+ * Cuentas que ven Winston + Educativo en listado/Excel.
+ * Externo en esas cuentas usa serie Winston.
+ * Karla: solo Educativo (Externo → Educativo).
+ * Resto del personal: ambos (Externo → Winston).
  */
+const USUARIOS_AMBOS_PLANTELES = new Set(['juanita', 'laura', 'mario'])
+
 export function accesoPagosInternosUsuario(
   username: string | null | undefined
 ): AccesoPagosInternosUsuario {
@@ -37,7 +40,7 @@ export function accesoPagosInternosUsuario(
   if (u === 'karla') {
     return { plantelesVisibles: ['educativo'], plantelExterno: 'educativo' }
   }
-  if (u === 'juanita') {
+  if (USUARIOS_AMBOS_PLANTELES.has(u)) {
     return { plantelesVisibles: ['winston', 'educativo'], plantelExterno: 'winston' }
   }
   return { plantelesVisibles: ['winston', 'educativo'], plantelExterno: 'winston' }
