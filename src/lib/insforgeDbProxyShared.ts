@@ -1,4 +1,5 @@
 import type { AuthSession } from '@/lib/portalAuthService'
+import { normalizarSesion } from '@/lib/portalAuthService'
 import { requireDesayunosAdminEnv } from '@/lib/desayunosInsforge'
 
 const PORTAL_SESSION_HEADER = 'x-portal-session'
@@ -6,8 +7,7 @@ const PORTAL_SESSION_HEADER = 'x-portal-session'
 export function parsePortalSessionHeader(raw: string | null): AuthSession | null {
   if (!raw) return null
   try {
-    const parsed = JSON.parse(raw) as AuthSession
-    if (parsed?.role === 'alumno' || parsed?.role === 'usuario') return parsed
+    return normalizarSesion(JSON.parse(raw) as unknown)
   } catch {
     /* sesión inválida */
   }
@@ -17,7 +17,7 @@ export function parsePortalSessionHeader(raw: string | null): AuthSession | null
 export function readPortalSessionForFetch(): string | null {
   if (typeof window === 'undefined') return null
   try {
-    return localStorage.getItem('portal_auth_session')
+    return sessionStorage.getItem('portal_auth_session')
   } catch {
     return null
   }

@@ -12,6 +12,7 @@ import {
   type AuthSession,
   clearSession,
   getStoredSession,
+  normalizarSesion,
   sessionToLegacyUser,
   storeSession,
 } from '@/lib/portalAuthService'
@@ -43,8 +44,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const login = useCallback((next: AuthSession) => {
-    storeSession(next)
-    setSession(next)
+    // Nueva sesión siempre reemplaza la anterior (no mezclar alumno/admin).
+    clearSession()
+    const clean = normalizarSesion(next)
+    if (!clean) {
+      setSession(null)
+      return
+    }
+    storeSession(clean)
+    setSession(clean)
   }, [])
 
   const logout = useCallback(() => {
@@ -57,6 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [session]
   )
 
+  const isAlumno = session?.role === 'alumno'
+  const isUsuario = session?.role === 'usuario'
+
   const value = useMemo(
     () => ({
       session,
@@ -64,11 +75,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       login,
       logout,
-      isAuthenticated: !!session,
-      isAlumno: session?.role === 'alumno',
-      isUsuario: session?.role === 'usuario',
+      isAuthenticated: !!session && (isAlumno || isUsuario),
+      isAlumno,
+      isUsuario,
     }),
-    [session, user, loading, login, logout]
+    [session, user, loading, login, logout, isAlumno, isUsuario]
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

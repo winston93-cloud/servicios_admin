@@ -27,9 +27,9 @@ export default function LoginPage() {
   const { login, isAuthenticated } = useAuth()
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.replace('/dashboard')
-    }
+    if (!isAuthenticated) return
+    // Ambos roles aterrizan en /dashboard; el dashboard elige el panel por rol.
+    router.replace('/dashboard')
   }, [isAuthenticated, router])
 
   const limpiarMensajes = () => {
@@ -56,6 +56,9 @@ export default function LoginPage() {
 
       if (authSession) {
         login(authSession)
+        // Limpia campos para que el navegador no reutilice credenciales en pantalla.
+        setUsername('')
+        setPassword('')
         router.push('/dashboard')
       } else {
         setError('Acceso no válido. Verifica tu usuario y tu clave.')
@@ -187,7 +190,13 @@ export default function LoginPage() {
           </div>
 
           {vista === 'entrar' ? (
-            <form className="portal-access-form" onSubmit={handleSubmit}>
+            <form
+              className="portal-access-form"
+              onSubmit={handleSubmit}
+              autoComplete="off"
+              data-lpignore="true"
+              data-1p-ignore
+            >
               <div className="portal-access-field saas-reveal saas-reveal--2">
                 <label htmlFor="portal-username" className="portal-access-label">
                   Usuario
@@ -195,12 +204,16 @@ export default function LoginPage() {
                 <input
                   id="portal-username"
                   type="text"
+                  name="portal-username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="No. de control o usuario"
                   className="portal-access-input"
                   disabled={loading}
-                  autoComplete="username"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck={false}
                 />
               </div>
 
@@ -212,12 +225,13 @@ export default function LoginPage() {
                   <input
                     id="portal-password"
                     type={mostrarPassword ? 'text' : 'password'}
+                    name="portal-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Tu clave secreta"
                     className="portal-access-input"
                     disabled={loading}
-                    autoComplete="current-password"
+                    autoComplete="off"
                   />
                   <button
                     type="button"

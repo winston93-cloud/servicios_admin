@@ -64,18 +64,23 @@ async function loginAlumno(refInput: string, password: string): Promise<AuthSess
   if (!Number.isFinite(ref) || ref <= 0) return null
 
   const supabase = createDbAdmin()
-  const { data: alumno, error: errAlumno } = await supabase
+  // Misma ref puede existir en varios ciclos: tomar el más reciente con acceso al portal.
+  const { data: filas, error: errAlumno } = await supabase
     .from('alumno')
-    .select('alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_status')
+    .select(
+      'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_status, alumno_ciclo_escolar'
+    )
     .eq('alumno_ref', ref)
-    .maybeSingle()
+    .order('alumno_ciclo_escolar', { ascending: false })
+    .limit(20)
 
-  if (errAlumno && errAlumno.code !== 'PGRST116') {
+  if (errAlumno) {
     console.error('loginAlumno alumno:', errAlumno)
     throw new Error('Error de conexión con la base de datos')
   }
 
-  if (!alumno || !puedeAccederPortalAlumno(alumno.alumno_status)) return null
+  const alumno = (filas ?? []).find((a) => puedeAccederPortalAlumno(a.alumno_status))
+  if (!alumno) return null
 
   const claveMaestra = password === ALUMNO_CLAVE_MAESTRA
 
@@ -112,14 +117,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Usuario y clave son obligatorios' }, { status: 400 })
     }
 
-    const staff = await loginUsuario(username, password)
-    if (staff) {
-      return NextResponse.json({ ok: true, session: staff })
-    }
+    // No. de control (solo dígitos) → portal alumno.
+    // Usuario de texto → personal administrativo.
+    // Así no se cruzan los dashboards.
+    const esNumeroControl = /^\d+$/.test(username)
 
-    const alumno = await loginAlumno(username, password)
-    if (alumno) {
-      return NextResponse.json({ ok: true, session: alumno })
+    if (esNumeroControl) {
+      const alumno = await loginAlumno(username, password)
+      if (alumno) {
+        return NextResponse.json({ ok: true, session: alumno })
+      }
+      // Fallback raro: usuario staff con username numérico
+      const staff = await loginUsuario(username, password)
+      if (staff) {
+        return NextResponse.json({ ok: true, session: staff })
+      }
+    } else {
+      const staff = await loginUsuario(username, password)
+      if (staff) {
+        return NextResponse.json({ ok: true, session: staff })
+      }
     }
 
     return NextResponse.json({ ok: false, error: 'Acceso no válido' }, { status: 401 })

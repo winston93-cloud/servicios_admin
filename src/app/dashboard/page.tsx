@@ -107,15 +107,29 @@ const NAV_ITEMS_ALUMNO: DashboardNavItem[] = [
 ]
 
 export default function DashboardPage() {
-  const { user, session, logout, isAlumno } = useAuth()
+  const { user, session, logout, isAlumno, isUsuario, loading } = useAuth()
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [cicloVigenteNombre, setCicloVigenteNombre] = useState<string | null>(null)
   const [ayudaAbierta, setAyudaAbierta] = useState(false)
 
+  // Solo un panel: alumno XOR personal (nunca mezclar módulos).
+  const mostrarPanelAlumno = isAlumno && !isUsuario
+  const mostrarPanelAdmin = isUsuario && !isAlumno
+
+  // Sesión inválida o rol desconocido → pedir credenciales de nuevo.
+  useEffect(() => {
+    if (loading) return
+    if (!session) return
+    if (!isAlumno && !isUsuario) {
+      logout()
+      router.replace('/login')
+    }
+  }, [loading, session, isAlumno, isUsuario, logout, router])
+
   const handleLogout = async () => {
     try {
-      await logout()
+      logout()
       router.replace('/login')
     } catch {
       router.replace('/login')
@@ -143,7 +157,7 @@ export default function DashboardPage() {
   const closeMenu = () => setIsMenuOpen(false)
 
   useEffect(() => {
-    if (!isAlumno) {
+    if (!mostrarPanelAlumno) {
       setCicloVigenteNombre(null)
       return
     }
@@ -154,7 +168,7 @@ export default function DashboardPage() {
     return () => {
       cancelado = true
     }
-  }, [isAlumno])
+  }, [mostrarPanelAlumno])
 
   useEffect(() => {
     if (!isMenuOpen) return
@@ -184,7 +198,7 @@ export default function DashboardPage() {
   const navItemsAdmin = useMemo(() => [...NAV_ITEMS_ADMIN], [])
   const navItemsAlumno = useMemo(() => [...NAV_ITEMS_ALUMNO], [])
 
-  const subtituloDashboard = isAlumno
+  const subtituloDashboard = mostrarPanelAlumno
     ? 'Accede a tus portales en línea'
     : 'Selecciona un módulo para continuar'
 
@@ -284,7 +298,7 @@ export default function DashboardPage() {
                 </p>
                 <h1 className="dashboard-title">Servicios Administrativos</h1>
                 <p className="dashboard-subtitle">{subtituloDashboard}</p>
-                {isAlumno && cicloVigenteNombre && (
+                {mostrarPanelAlumno && cicloVigenteNombre && (
                   <p className="dashboard-ciclo-vigente" role="status">
                     <span className="dashboard-ciclo-vigente-label">Ciclo escolar vigente</span>
                     <span className="dashboard-ciclo-vigente-nombre">{cicloVigenteNombre}</span>
@@ -293,7 +307,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="dashboard-nav-grid">
-                {isAlumno
+                {mostrarPanelAlumno
                   ? navItemsAlumno.map((item) => (
                       <div
                         key={navItemKey(item)}
@@ -316,7 +330,8 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     ))
-                  : navItemsAdmin.map((item) => (
+                  : mostrarPanelAdmin
+                    ? navItemsAdmin.map((item) => (
                       <DashboardModuleCard
                         key={navItemKey(item)}
                         label={item.label}
@@ -330,7 +345,8 @@ export default function DashboardPage() {
                         external={Boolean(item.href)}
                         onActivate={() => handleNavItemAdmin(item)}
                       />
-                    ))}
+                    ))
+                    : null}
               </div>
             </div>
 
@@ -415,7 +431,7 @@ export default function DashboardPage() {
                 <p>Panel principal</p>
               </div>
             </button>
-            {isAlumno
+            {mostrarPanelAlumno
               ? navItemsAlumno.map((item) => (
                   <button
                     key={navItemKey(item)}
@@ -433,7 +449,8 @@ export default function DashboardPage() {
                     </div>
                   </button>
                 ))
-              : navItemsAdmin.map((item) => (
+              : mostrarPanelAdmin
+                ? navItemsAdmin.map((item) => (
                   <button
                     key={navItemKey(item)}
                     type="button"
@@ -449,7 +466,8 @@ export default function DashboardPage() {
                       <p>{item.desc}</p>
                     </div>
                   </button>
-                ))}
+                ))
+                : null}
           </div>
 
           <button type="button" onClick={handleLogout} className="dashboard-sidebar-logout">
@@ -472,7 +490,7 @@ export default function DashboardPage() {
           </button>
         </nav>
 
-        {isAlumno && (
+        {mostrarPanelAlumno && (
           <>
             <button
               type="button"

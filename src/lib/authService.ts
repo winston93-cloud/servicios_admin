@@ -58,7 +58,8 @@ export async function loginUser(credentials: LoginCredentials): Promise<AuthUser
 export function getStoredUser(): AuthUser | null {
   if (typeof window === 'undefined') return null
   try {
-    const raw = localStorage.getItem('portal_auth_session')
+    // Misma fuente que el portal: sessionStorage (no localStorage).
+    const raw = sessionStorage.getItem('portal_auth_session')
     if (!raw) return null
     const session = JSON.parse(raw) as AuthSession
     if (session?.role !== 'usuario') return null
@@ -76,11 +77,23 @@ export function storeUser(user: AuthUser): void {
     usuario_id: user.usuario_id,
     usuario_username: user.usuario_username,
   }
-  localStorage.setItem('portal_auth_session', JSON.stringify(session))
+  try {
+    localStorage.removeItem('portal_auth_session')
+    localStorage.removeItem('auth_user')
+    sessionStorage.setItem('portal_auth_session', JSON.stringify(session))
+  } catch {
+    /* ignore */
+  }
 }
 
 export function clearStoredUser(): void {
   if (typeof window === 'undefined') return
-  localStorage.removeItem('portal_auth_session')
-  localStorage.removeItem('auth_user')
+  try {
+    sessionStorage.removeItem('portal_auth_session')
+    sessionStorage.removeItem('auth_user')
+    localStorage.removeItem('portal_auth_session')
+    localStorage.removeItem('auth_user')
+  } catch {
+    /* ignore */
+  }
 }
