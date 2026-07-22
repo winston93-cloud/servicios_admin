@@ -86,9 +86,25 @@ export default function CorreoMasivoModulo() {
   }, [])
 
   useEffect(() => {
-    if (!inicializado || sesionRestaurada) return
+    if (!inicializado || cargandoCiclos) return
+    // Sesión restaurada: si el ciclo guardado ya no está en el catálogo
+    // (p. ej. tras avanzar temporada), alinear al ciclo vigente del sistema.
+    if (sesionRestaurada) {
+      const valores = new Set(opcionesCatalogo.map((o) => o.valor))
+      if (valores.size > 0 && !valores.has(cicloFiltro)) {
+        setCicloFiltro(cicloSeleccionado)
+      }
+      return
+    }
     setCicloFiltro(cicloSeleccionado)
-  }, [cicloSeleccionado, inicializado, sesionRestaurada])
+  }, [
+    cicloSeleccionado,
+    inicializado,
+    sesionRestaurada,
+    cargandoCiclos,
+    opcionesCatalogo,
+    cicloFiltro,
+  ])
 
   useEffect(() => {
     setGrado(0)

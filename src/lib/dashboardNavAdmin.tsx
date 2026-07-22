@@ -92,6 +92,22 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    label: 'Bajas administrativas',
+    desc: 'Baja general de alumnos y aviso por correo al equipo institucional.',
+    path: '/bajas-administrativas',
+    accent: 'rose',
+    kicker: 'Alumnos',
+    tags: ['Bajas', 'Estatus'],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <line x1="17" y1="8" x2="22" y2="13" />
+        <line x1="22" y1="8" x2="17" y2="13" />
+      </svg>
+    ),
+  },
+  {
     label: 'Agenda psicólogas',
     desc: 'Calendario y citas del área de psicología.',
     href: 'https://agendaw.vercel.app/admin/',
@@ -249,14 +265,14 @@ export function navItemKey(item: Pick<DashboardAdminNavItem, 'label' | 'path' | 
 export function abrirNavItem(
   item: Pick<DashboardAdminNavItem, 'path' | 'href'>,
   push: (path: string) => void,
-  opts?: { operador?: string | null }
+  opts?: { usuario?: string | null; operador?: string | null }
 ) {
   if (item.href) {
     let href = item.href
-    const op = (opts?.operador ?? '').trim()
-    // Prórrogas identifica al autor con ?operador= del dashboard.
-    if (op && /prorrogas/i.test(href)) {
-      href = urlProrrogasAjustesApp(op)
+    const user = (opts?.usuario ?? opts?.operador ?? '').trim()
+    // Prórrogas identifica al autor con ?usuario= del dashboard.
+    if (user && /prorrogas/i.test(href)) {
+      href = urlProrrogasAjustesApp(user)
     }
     window.open(href, '_blank', 'noopener,noreferrer')
     return
