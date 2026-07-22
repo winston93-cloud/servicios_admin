@@ -77,9 +77,22 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(
   .cred-form-titulo,
   .bch-card-titulo,
   .bch-tabla-head h2,
-  .cm-destinatarios-titulo,
-  .cm-grupo-card-header h3
+  .cm-destinatarios-titulo
 ) {
+  color: var(--sx-totality-gold) !important;
+}
+
+/* Correo masivo: cintillo de grupo legible en dark (antes fondo claro + texto claro). */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-grupo-card-header {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+  border-bottom-color: rgba(212, 175, 55, 0.35) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-grupo-card-header h3 {
+  color: #f8fafc !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-grupo-count {
   color: var(--sx-totality-gold) !important;
 }
 
