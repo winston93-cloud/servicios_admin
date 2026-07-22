@@ -37,5 +37,22 @@ export async function GET(request: Request) {
     filtroAdicional,
   })
 
-  return NextResponse.json({ destinatarios })
+  let aviso: string | null = null
+  if (!destinatarios.length) {
+    if (filtroAdicional === 'becados') {
+      aviso =
+        'No hay becas activas para ese ciclo, o los alumnos becados ya no están activos. En «Becados», el ciclo es el de la beca (p. ej. 22), no hace falta que coincida con la ficha actual del alumno.'
+    } else if (filtroAdicional === 'nuevo-ingreso') {
+      aviso =
+        'No hay alumnos de nuevo ingreso activos en ese ciclo escolar. Prueba el ciclo vigente.'
+    } else if (filtroAdicional === 'reinscritos') {
+      aviso =
+        'No hay reinscritos activos en ese ciclo escolar. Prueba el ciclo vigente.'
+    } else {
+      aviso =
+        'No hay alumnos activos con esos filtros. Tras el avance de temporada, usa el ciclo vigente para listados generales (sin filtro / nuevo ingreso / reinscritos).'
+    }
+  }
+
+  return NextResponse.json({ destinatarios, aviso })
 }

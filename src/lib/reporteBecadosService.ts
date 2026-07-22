@@ -86,7 +86,7 @@ async function cargarBecasCiclo(ciclo: number) {
   return filas
 }
 
-async function cargarAlumnosPorIds(ciclo: number, ids: number[]) {
+async function cargarAlumnosPorIds(ids: number[]) {
   const db = createDbAdmin()
   type FilaAlumno = {
     alumno_id: number
@@ -104,11 +104,11 @@ async function cargarAlumnosPorIds(ciclo: number, ids: number[]) {
 
   for (let i = 0; i < ids.length; i += ALUMNO_CHUNK) {
     const slice = ids.slice(i, i + ALUMNO_CHUNK)
+    // Tras avance de temporada la ficha sigue con el mismo alumno_id pero otro ciclo.
     const { data, error } = await db
       .from('alumno')
       .select(SELECT_ALUMNO)
       .in('alumno_id', slice)
-      .eq('alumno_ciclo_escolar', ciclo)
       .eq('alumno_status', 1)
 
     if (error) throw new Error(error.message)
@@ -124,7 +124,7 @@ async function cargarAlumnosPorIds(ciclo: number, ids: number[]) {
 export async function cargarReporteBecados(ciclo: number): Promise<ReporteBecadosResumen> {
   const [becas, conceptos] = await Promise.all([cargarBecasCiclo(ciclo), cargarConceptosBeca()])
   const alumnoIds = [...new Set(becas.map((b) => b.alumno_id))]
-  const alumnos = await cargarAlumnosPorIds(ciclo, alumnoIds)
+  const alumnos = await cargarAlumnosPorIds(alumnoIds)
 
   const filas: ReporteBecadoFila[] = []
 

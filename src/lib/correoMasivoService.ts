@@ -120,6 +120,85 @@ async function idsAlumnosBecadosCiclo(ciclo: number): Promise<Set<number>> {
   return ids
 }
 
+/**
+ * Becas quedan ligadas al ciclo de la beca; tras el avance de temporada la ficha
+ * del alumno ya está en el ciclo vigente (mismo alumno_id). No exigir
+ * alumno_ciclo_escolar = beca_ciclo_escolar.
+ */
+async function listarAlumnosBecados(
+  filtros: FiltrosCorreoMasivo
+): Promise<DestinatarioCorreoMasivo[]> {
+  const becadosIds = [...(await idsAlumnosBecadosCiclo(filtros.cicloEscolar))]
+  if (!becadosIds.length) return []
+
+  const alumnos: {
+    alumno_id: number
+    alumno_ref: string
+    alumno_nombre: string
+    alumno_app: string
+    alumno_apm: string
+    alumno_nivel: number
+    alumno_grado: string | number
+    alumno_grupo: string | number
+    alumno_nuevo_ingreso: number
+  }[] = []
+
+  const CHUNK = 150
+  for (let i = 0; i < becadosIds.length; i += CHUNK) {
+    const slice = becadosIds.slice(i, i + CHUNK)
+    let q = supabase
+      .from('alumno')
+      .select(SELECT_ALUMNO)
+      .in('alumno_id', slice)
+      .eq('alumno_status', 1)
+
+    if (filtros.nivel != null && filtros.nivel > 0) {
+      q = q.eq('alumno_nivel', filtros.nivel)
+    }
+    if (filtros.grado != null && filtros.grado > 0) {
+      q = q.eq('alumno_grado', filtros.grado)
+    }
+    if (filtros.grupo != null && filtros.grupo > 0) {
+      q = q.eq('alumno_grupo', filtros.grupo)
+    }
+
+    const { data, error } = await q
+    if (error) {
+      console.error('Error alumnos becados correo masivo:', error)
+      continue
+    }
+    for (const f of data ?? []) {
+      alumnos.push(f as (typeof alumnos)[0])
+    }
+  }
+
+  alumnos.sort((a, b) => {
+    const na = parseNum(a.alumno_nivel)
+    const nb = parseNum(b.alumno_nivel)
+    if (na !== nb) return na - nb
+    const ga = parseNum(a.alumno_grado)
+    const gb = parseNum(b.alumno_grado)
+    if (ga !== gb) return ga - gb
+    const gra = parseNum(a.alumno_grupo)
+    const grb = parseNum(b.alumno_grupo)
+    if (gra !== grb) return gra - grb
+    return construirNombreCompleto(
+      a.alumno_nombre ?? '',
+      a.alumno_app ?? '',
+      a.alumno_apm ?? ''
+    ).localeCompare(
+      construirNombreCompleto(
+        b.alumno_nombre ?? '',
+        b.alumno_app ?? '',
+        b.alumno_apm ?? ''
+      ),
+      'es'
+    )
+  })
+
+  return mapearDestinatarios(alumnos)
+}
+
 async function cargarEmailsPorAlumno(alumnoIds: number[]): Promise<Map<number, string[]>> {
   const mapa = new Map<number, string[]>()
   if (!alumnoIds.length) return mapa
@@ -150,13 +229,56 @@ async function cargarEmailsPorAlumno(alumnoIds: number[]): Promise<Map<number, s
   return mapa
 }
 
+async function mapearDestinatarios(
+  alumnos: {
+    alumno_id: number
+    alumno_ref: string
+    alumno_nombre: string
+    alumno_app: string
+    alumno_apm: string
+    alumno_nivel: number
+    alumno_grado: string | number
+    alumno_grupo: string | number
+  }[]
+): Promise<DestinatarioCorreoMasivo[]> {
+  const emailsMap = await cargarEmailsPorAlumno(alumnos.map((a) => a.alumno_id))
+
+  return alumnos.map((a) => {
+    const nivel = parseNum(a.alumno_nivel)
+    const grado = parseNum(a.alumno_grado)
+    const grupo = parseNum(a.alumno_grupo)
+    const emails = emailsMap.get(a.alumno_id) ?? []
+    const estado: EstadoEnvioCorreo = emails.length ? 'pendiente' : 'sin-correo'
+    const mensaje_estado =
+      emails.length > 0
+        ? `${emails.length} correo(s) listo(s)`
+        : 'Sin correo autorizado (padre/madre)'
+
+    return {
+      alumno_id: a.alumno_id,
+      alumno_ref: String(a.alumno_ref ?? ''),
+      nombre_completo: construirNombreCompleto(
+        a.alumno_nombre ?? '',
+        a.alumno_app ?? '',
+        a.alumno_apm ?? ''
+      ),
+      nivel,
+      grado,
+      grupo,
+      grupo_letra: grupoALetra(grupo) ?? '—',
+      emails,
+      estado,
+      mensaje_estado,
+    }
+  })
+}
+
 export async function listarDestinatariosCorreoMasivo(
   filtros: FiltrosCorreoMasivo
 ): Promise<DestinatarioCorreoMasivo[]> {
-  const becadosIds =
-    filtros.filtroAdicional === 'becados'
-      ? await idsAlumnosBecadosCiclo(filtros.cicloEscolar)
-      : null
+  if (filtros.filtroAdicional === 'becados') {
+    return listarAlumnosBecados(filtros)
+  }
 
   const alumnos: {
     alumno_id: number
@@ -208,7 +330,6 @@ export async function listarDestinatariosCorreoMasivo(
 
     const filas = data ?? []
     for (const f of filas) {
-      if (becadosIds && !becadosIds.has(f.alumno_id)) continue
       alumnos.push(f as (typeof alumnos)[0])
     }
 
@@ -216,36 +337,7 @@ export async function listarDestinatariosCorreoMasivo(
     from += PAGE_SIZE
   }
 
-  const emailsMap = await cargarEmailsPorAlumno(alumnos.map((a) => a.alumno_id))
-
-  return alumnos.map((a) => {
-    const nivel = parseNum(a.alumno_nivel)
-    const grado = parseNum(a.alumno_grado)
-    const grupo = parseNum(a.alumno_grupo)
-    const emails = emailsMap.get(a.alumno_id) ?? []
-    const estado: EstadoEnvioCorreo = emails.length ? 'pendiente' : 'sin-correo'
-    const mensaje_estado =
-      emails.length > 0
-        ? `${emails.length} correo(s) listo(s)`
-        : 'Sin correo autorizado (padre/madre)'
-
-    return {
-      alumno_id: a.alumno_id,
-      alumno_ref: String(a.alumno_ref ?? ''),
-      nombre_completo: construirNombreCompleto(
-        a.alumno_nombre ?? '',
-        a.alumno_app ?? '',
-        a.alumno_apm ?? ''
-      ),
-      nivel,
-      grado,
-      grupo,
-      grupo_letra: grupoALetra(grupo) ?? '—',
-      emails,
-      estado,
-      mensaje_estado,
-    }
-  })
+  return mapearDestinatarios(alumnos)
 }
 
 export function agruparDestinatariosPorSeccion(
@@ -320,7 +412,7 @@ export const GRUPO_TODOS = 0
 
 export function gradoCorreoOpciones(nivel: number | null) {
   if (!nivel || nivel === 0) {
-    return [{ valor: 0, etiqueta: 'Seleccione nivel primero' }]
+    return [{ valor: 0, etiqueta: 'Todos (elija nivel para filtrar)' }]
   }
   return [
     { valor: 0, etiqueta: 'Todos los grados' },

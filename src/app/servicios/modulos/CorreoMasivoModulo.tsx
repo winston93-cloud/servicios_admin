@@ -115,7 +115,7 @@ export default function CorreoMasivoModulo() {
   const gradosOpciones = useMemo(() => gradoCorreoOpciones(nivel || null), [nivel])
   const gruposOpciones = useMemo(() => {
     const base = [{ valor: 0, etiqueta: 'Todos los grupos' }]
-    if (!nivel) return [{ valor: 0, etiqueta: 'Seleccione nivel primero' }]
+    if (!nivel) return [{ valor: 0, etiqueta: 'Todos (elija nivel para filtrar)' }]
     return [...base, ...gruposOpcionesPorNivel(nivel)]
   }, [nivel])
 
@@ -145,6 +145,11 @@ export default function CorreoMasivoModulo() {
     setFaseEnvio('preview')
   }, [])
 
+  /** Al tocar un filtro se suelta el progreso restaurado para que la lista se recargue. */
+  const tocarFiltro = useCallback(() => {
+    if (sesionRestaurada) descartarProgresoGuardado()
+  }, [descartarProgresoGuardado, sesionRestaurada])
+
   const cargarDestinatarios = useCallback(async () => {
     if (!cicloFiltro) return
     setCargandoLista(true)
@@ -169,6 +174,9 @@ export default function CorreoMasivoModulo() {
       }
       setDestinatarios(json.destinatarios ?? [])
       setFaseEnvio('preview')
+      if (typeof json.aviso === 'string' && json.aviso && !(json.destinatarios ?? []).length) {
+        setError(json.aviso)
+      }
     } catch {
       setError('Error de red al cargar destinatarios')
       setDestinatarios([])
@@ -178,7 +186,8 @@ export default function CorreoMasivoModulo() {
   }, [cicloFiltro, nivel, grado, grupo, filtroAdicional])
 
   useEffect(() => {
-    if (!inicializado || sesionRestaurada || cargandoCiclos || !cicloFiltro) return
+    if (!inicializado || cargandoCiclos || !cicloFiltro) return
+    if (sesionRestaurada) return
     const t = setTimeout(() => cargarDestinatarios(), 280)
     return () => clearTimeout(t)
   }, [cargarDestinatarios, cargandoCiclos, cicloFiltro, inicializado, sesionRestaurada])
@@ -460,7 +469,10 @@ export default function CorreoMasivoModulo() {
                 Ciclo escolar
                 <select
                   value={String(cicloFiltro)}
-                  onChange={(e) => setCicloFiltro(Number(e.target.value))}
+                  onChange={(e) => {
+                    tocarFiltro()
+                    setCicloFiltro(Number(e.target.value))
+                  }}
                   disabled={cargandoCiclos}
                 >
                   {opcionesCatalogo.map((o) => (
@@ -474,7 +486,10 @@ export default function CorreoMasivoModulo() {
                 Nivel
                 <select
                   value={String(nivel)}
-                  onChange={(e) => setNivel(Number(e.target.value))}
+                  onChange={(e) => {
+                    tocarFiltro()
+                    setNivel(Number(e.target.value))
+                  }}
                 >
                   {NIVEL_CORREO_OPCIONES.map((o) => (
                     <option key={o.valor} value={o.valor}>
@@ -487,7 +502,10 @@ export default function CorreoMasivoModulo() {
                 Grado
                 <select
                   value={String(grado)}
-                  onChange={(e) => setGrado(Number(e.target.value))}
+                  onChange={(e) => {
+                    tocarFiltro()
+                    setGrado(Number(e.target.value))
+                  }}
                   disabled={!nivel}
                 >
                   {gradosOpciones.map((o) => (
@@ -501,7 +519,10 @@ export default function CorreoMasivoModulo() {
                 Grupo
                 <select
                   value={String(grupo)}
-                  onChange={(e) => setGrupo(Number(e.target.value))}
+                  onChange={(e) => {
+                    tocarFiltro()
+                    setGrupo(Number(e.target.value))
+                  }}
                   disabled={!nivel}
                 >
                   {gruposOpciones.map((o) => (
@@ -515,9 +536,10 @@ export default function CorreoMasivoModulo() {
                 Filtro adicional
                 <select
                   value={filtroAdicional}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    tocarFiltro()
                     setFiltroAdicional(e.target.value as FiltroAdicionalCorreo)
-                  }
+                  }}
                 >
                   {FILTROS_ADICIONALES_OPCIONES.map((o) => (
                     <option key={o.valor} value={o.valor}>
