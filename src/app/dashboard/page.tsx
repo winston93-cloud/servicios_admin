@@ -128,7 +128,9 @@ export default function DashboardPage() {
   }
 
   const handleNavItemAdmin = (item: DashboardAdminNavItem) => {
-    abrirNavItem(item, router.push)
+    abrirNavItem(item, router.push, {
+      operador: user?.usuario_username ?? session?.usuario_username ?? null,
+    })
     setIsMenuOpen(false)
   }
 

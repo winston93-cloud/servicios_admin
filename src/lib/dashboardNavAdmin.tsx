@@ -248,10 +248,17 @@ export function navItemKey(item: Pick<DashboardAdminNavItem, 'label' | 'path' | 
 
 export function abrirNavItem(
   item: Pick<DashboardAdminNavItem, 'path' | 'href'>,
-  push: (path: string) => void
+  push: (path: string) => void,
+  opts?: { operador?: string | null }
 ) {
   if (item.href) {
-    window.open(item.href, '_blank', 'noopener,noreferrer')
+    let href = item.href
+    const op = (opts?.operador ?? '').trim()
+    // Prórrogas identifica al autor con ?operador= del dashboard.
+    if (op && /prorrogas/i.test(href)) {
+      href = urlProrrogasAjustesApp(op)
+    }
+    window.open(href, '_blank', 'noopener,noreferrer')
     return
   }
   if (item.path) push(item.path)
