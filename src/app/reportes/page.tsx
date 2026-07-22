@@ -165,6 +165,18 @@ function ReportesPageInner() {
         ciclo = Math.max(1, cicloActualSistema - 1)
       }
 
+      // Becas: tras el avance de temporada las becas activas suelen seguir en el
+      // ciclo anterior (ej. fichas 23, beca_ciclo 22) hasta que se renueven.
+      if (entry.id === 'becados' || entry.id === 'becados-sexto') {
+        ciclo = Math.max(1, cicloActualSistema - 1)
+      }
+
+      // Bajas: las del año que acaba de cerrar quedan en el ciclo anterior;
+      // el vigente arranca casi vacío (salvo secundarias recientes).
+      if (entry.id === 'bajas') {
+        ciclo = Math.max(1, cicloActualSistema - 1)
+      }
+
       // Nuevo ingreso: temporada vigente; el select solo ofrece vigente + activos adelante.
       if (entry.categoriaId === 'nuevo-ingreso') {
         ciclo = cicloActualSistema
