@@ -18,6 +18,7 @@ import {
   CalendarClock,
   BookOpenCheck,
   ShieldAlert,
+  UserCog,
 } from 'lucide-react'
 
 export type ServiciosModuloId =
@@ -40,6 +41,7 @@ export type ServiciosModuloId =
   | 'fechas-diferidos'
   | 'apertura-cambridge-doble'
   | 'csd-vencimientos'
+  | 'usuarios-catalogo'
 
 export interface ServiciosSubMenuItem {
   id: ServiciosModuloId
@@ -100,6 +102,12 @@ export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
     id: 'csd-vencimientos',
     label: 'Vencimiento de CSD',
     icon: ShieldAlert,
+  },
+  {
+    type: 'leaf',
+    id: 'usuarios-catalogo',
+    label: 'Usuarios',
+    icon: UserCog,
   },
 ]
 

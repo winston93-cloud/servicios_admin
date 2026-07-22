@@ -32,6 +32,7 @@ import CostosModulo from './modulos/CostosModulo'
 import FechasDiferidosModulo from './modulos/FechasDiferidosModulo'
 import AperturaCambridgeDobleModulo from './modulos/AperturaCambridgeDobleModulo'
 import CsdVencimientosModulo from './modulos/CsdVencimientosModulo'
+import UsuariosCatalogoModulo from './modulos/UsuariosCatalogoModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
 import ThemeToggle from '@/components/ThemeToggle'
 import { AlumnoSeleccionadoProvider } from '@/contexts/AlumnoSeleccionadoContext'
@@ -103,6 +104,8 @@ function ServiciosPanelContenido({
       return <AperturaCambridgeDobleModulo />
     case 'csd-vencimientos':
       return <CsdVencimientosModulo />
+    case 'usuarios-catalogo':
+      return <UsuariosCatalogoModulo />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }
