@@ -700,6 +700,12 @@ export default function CorreoMasivoModulo() {
                         <th>No. control</th>
                         <th>Alumno</th>
                         <th>Correos</th>
+                        {filtroAdicional === 'becados' && (
+                          <>
+                            <th>Tipo de beca</th>
+                            <th>Porcentaje</th>
+                          </>
+                        )}
                         {faseEnvio === 'resultado' && <th>Estado</th>}
                       </tr>
                     </thead>
@@ -711,6 +717,16 @@ export default function CorreoMasivoModulo() {
                           <td className="cm-correos-celda">
                             {d.emails.length ? d.emails.join(', ') : '—'}
                           </td>
+                          {filtroAdicional === 'becados' && (
+                            <>
+                              <td>{d.beca_tipo?.trim() || '—'}</td>
+                              <td>
+                                {d.beca_porcentaje != null && Number.isFinite(d.beca_porcentaje)
+                                  ? `${d.beca_porcentaje}%`
+                                  : '—'}
+                              </td>
+                            </>
+                          )}
                           {faseEnvio === 'resultado' && (
                             <td>
                               <span className={claseEstadoEnvio(d.estado)}>

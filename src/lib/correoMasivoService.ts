@@ -36,6 +36,9 @@ export interface DestinatarioCorreoMasivo {
   emails: string[]
   estado: EstadoEnvioCorreo
   mensaje_estado: string
+  /** Solo con filtro «Becados». */
+  beca_tipo?: string | null
+  beca_porcentaje?: number | null
 }
 
 export interface GrupoDestinatariosCorreo {
@@ -97,13 +100,29 @@ function emailValido(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
 }
 
-async function idsAlumnosBecadosCiclo(ciclo: number): Promise<Set<number>> {
-  const ids = new Set<number>()
+async function mapaConceptosBeca(): Promise<Map<number, string>> {
+  const mapa = new Map<number, string>()
+  const { data, error } = await supabase.from('concepto_beca').select('beca_id, beca_clase')
+  if (error) {
+    console.error('Error conceptos beca correo masivo:', error)
+    return mapa
+  }
+  for (const row of data ?? []) {
+    mapa.set(Number(row.beca_id), String(row.beca_clase ?? '').trim() || `Beca ${row.beca_id}`)
+  }
+  return mapa
+}
+
+type BecaCorreoInfo = { beca_id: number; porcentaje: number }
+
+/** Becas activas del ciclo → alumno_id (si hay varias, se queda la de mayor %). */
+async function mapaBecasActivasCiclo(ciclo: number): Promise<Map<number, BecaCorreoInfo>> {
+  const mapa = new Map<number, BecaCorreoInfo>()
   let from = 0
   while (true) {
     const { data, error } = await supabase
       .from('alumno_beca')
-      .select('alumno_id')
+      .select('alumno_id, beca_id, beca_porcentaje')
       .eq('beca_ciclo_escolar', ciclo)
       .eq('beca_estatus', BECA_ESTATUS_ACTIVA)
       .range(from, from + PAGE_SIZE - 1)
@@ -113,11 +132,21 @@ async function idsAlumnosBecadosCiclo(ciclo: number): Promise<Set<number>> {
       break
     }
     const filas = data ?? []
-    for (const f of filas) ids.add(f.alumno_id)
+    for (const f of filas) {
+      const alumnoId = Number(f.alumno_id)
+      const info: BecaCorreoInfo = {
+        beca_id: Number(f.beca_id),
+        porcentaje: Number(f.beca_porcentaje) || 0,
+      }
+      const prev = mapa.get(alumnoId)
+      if (!prev || info.porcentaje > prev.porcentaje) {
+        mapa.set(alumnoId, info)
+      }
+    }
     if (filas.length < PAGE_SIZE) break
     from += PAGE_SIZE
   }
-  return ids
+  return mapa
 }
 
 /**
@@ -128,7 +157,11 @@ async function idsAlumnosBecadosCiclo(ciclo: number): Promise<Set<number>> {
 async function listarAlumnosBecados(
   filtros: FiltrosCorreoMasivo
 ): Promise<DestinatarioCorreoMasivo[]> {
-  const becadosIds = [...(await idsAlumnosBecadosCiclo(filtros.cicloEscolar))]
+  const [becasMap, conceptos] = await Promise.all([
+    mapaBecasActivasCiclo(filtros.cicloEscolar),
+    mapaConceptosBeca(),
+  ])
+  const becadosIds = [...becasMap.keys()]
   if (!becadosIds.length) return []
 
   const alumnos: {
@@ -196,7 +229,16 @@ async function listarAlumnosBecados(
     )
   })
 
-  return mapearDestinatarios(alumnos)
+  const lista = await mapearDestinatarios(alumnos)
+  return lista.map((d) => {
+    const beca = becasMap.get(d.alumno_id)
+    if (!beca) return d
+    return {
+      ...d,
+      beca_tipo: conceptos.get(beca.beca_id) ?? `Beca ${beca.beca_id}`,
+      beca_porcentaje: beca.porcentaje,
+    }
+  })
 }
 
 async function cargarEmailsPorAlumno(alumnoIds: number[]): Promise<Map<number, string[]>> {
