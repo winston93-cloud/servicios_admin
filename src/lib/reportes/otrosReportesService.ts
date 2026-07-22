@@ -1,13 +1,15 @@
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { generarListaDeudoresSuspension } from '@/lib/suspensionesService'
+import { etiquetaModalidadPlan } from '@/lib/suspensionesAdeudos'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import { etiquetaCicloReporte } from './renderDocument'
+import type { ResumenDeudoresReporte } from './deudoresSuspendidosDocument'
 
 export async function cargarSuspendidosReporte(
   plantel: 1 | 2,
   cicloEscolar: number,
   tipo: 2 | 3 = 3
-) {
+): Promise<ResumenDeudoresReporte> {
   const db = createDbAdmin()
   const res = await generarListaDeudoresSuspension(db, {
     plantel,
@@ -23,12 +25,16 @@ export async function cargarSuspendidosReporte(
   return {
     titulo: `${tipoLabel} — ${plantelLabel}`,
     cicloLabel: etiquetaCicloReporte(cicloEscolar),
+    tipo,
+    plantel,
     filas: res.deudores.map((d, i) => ({
       no: i + 1,
       noCtrl: d.alumnoRef,
       nombre: d.nombre,
       nivel: etiquetaNivelEscolar(d.nivel),
       gradoEtiqueta: d.gradoEtiqueta,
+      modalidad: etiquetaModalidadPlan(d.planMes),
+      planMes: d.planMes,
       adeudos: d.adeudos,
       prorroga: d.prorroga ?? '',
     })),
@@ -36,15 +42,16 @@ export async function cargarSuspendidosReporte(
   }
 }
 
-export function suspendidosATabla(resumen: Awaited<ReturnType<typeof cargarSuspendidosReporte>>) {
+export function suspendidosATabla(resumen: ResumenDeudoresReporte) {
   return {
-    headers: ['#', 'No. Ctrl', 'Nombre', 'Nivel', 'Grado', 'Adeudos', 'Prórroga'],
+    headers: ['#', 'No. Ctrl', 'Nombre', 'Nivel', 'Grado', 'Modalidad', 'Adeudos', 'Prórroga'],
     rows: resumen.filas.map((f) => [
       String(f.no),
       f.noCtrl,
       f.nombre,
       f.nivel,
       f.gradoEtiqueta,
+      f.modalidad,
       f.adeudos,
       f.prorroga,
     ]),

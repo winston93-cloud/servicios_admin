@@ -64,12 +64,13 @@ export function generarPdfListaSuspendidos(opts: {
 
   autoTable(pdf, {
     startY: 42,
-    head: [['#', 'Control', 'Alumno', 'Grado', 'Deudas', 'Prórroga']],
+    head: [['#', 'Control', 'Alumno', 'Grado', 'Modalidad', 'Deudas', 'Prórroga']],
     body: deudores.map((d, i) => [
       String(i + 1),
       d.alumnoRef,
       d.nombre,
       d.gradoEtiqueta,
+      d.planMes === 1 ? '10 meses' : d.planMes === 2 ? '11 meses' : 'N/D',
       d.adeudos,
       d.prorroga ?? '—',
     ]),
@@ -77,11 +78,12 @@ export function generarPdfListaSuspendidos(opts: {
     headStyles: { fillColor: [41, 128, 185], textColor: 255 },
     columnStyles: {
       0: { cellWidth: 8 },
-      1: { cellWidth: 18 },
-      2: { cellWidth: 55 },
-      3: { cellWidth: 28 },
-      4: { cellWidth: 48 },
-      5: { cellWidth: 22 },
+      1: { cellWidth: 16 },
+      2: { cellWidth: 48 },
+      3: { cellWidth: 26 },
+      4: { cellWidth: 20 },
+      5: { cellWidth: 48 },
+      6: { cellWidth: 22 },
     },
   })
 

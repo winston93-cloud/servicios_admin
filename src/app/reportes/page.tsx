@@ -177,6 +177,12 @@ function ReportesPageInner() {
         ciclo = Math.max(1, cicloActualSistema - 1)
       }
 
+      // Deudores / suspendidos: las colegiaturas del ciclo que cierra (ej. 22)
+      // siguen siendo las relevantes en julio; el vigente aún no tiene meses.
+      if (entry.categoriaId === 'deudores') {
+        ciclo = Math.max(1, cicloActualSistema - 1)
+      }
+
       // Nuevo ingreso: temporada vigente; el select solo ofrece vigente + activos adelante.
       if (entry.categoriaId === 'nuevo-ingreso') {
         ciclo = cicloActualSistema

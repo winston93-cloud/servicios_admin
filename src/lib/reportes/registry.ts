@@ -48,9 +48,12 @@ import {
   cargarSuspendidosReporte,
   cargarTalleres,
   nuevoIngresoMesATabla,
-  suspendidosATabla,
   talleresATabla,
 } from '@/lib/reportes/otrosReportesService'
+import {
+  construirHtmlDeudoresSuspendidos,
+  generarPdfDeudoresSuspendidos,
+} from '@/lib/reportes/deudoresSuspendidosDocument'
 import { cargarReporteBecados, cargarReporteBecadosSexto } from '@/lib/reporteBecadosService'
 import { construirHtmlReporteBecados } from '@/lib/reporteBecadosDocument'
 import { generarPdfReporteBecados } from '@/lib/reporteBecadosPdf'
@@ -155,6 +158,22 @@ function handlerNuevoIngreso(modo: 'completo' | 'deben'): ReporteHandler {
     }
     return { filename, html: construirHtmlReporteNuevoIngreso(resumen) }
   }
+}
+
+async function respuestaDeudoresSuspendidos(
+  slug: string,
+  plantel: 1 | 2,
+  tipo: 2 | 3,
+  searchParams: URLSearchParams
+): Promise<ReporteHandlerResult> {
+  const ciclo = await cicloEscolarParam(searchParams)
+  const format = formatoParam(searchParams)
+  const resumen = await cargarSuspendidosReporte(plantel, ciclo, tipo)
+  const filename = `${slug}-ciclo-${ciclo}.pdf`
+  if (format === 'pdf') {
+    return { filename, pdf: generarPdfDeudoresSuspendidos(resumen) }
+  }
+  return { filename, html: construirHtmlDeudoresSuspendidos(resumen) }
 }
 
 export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
@@ -308,37 +327,11 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
     })
   },
 
-  'suspendidos-iwc': async (searchParams) => {
-    const ciclo = await cicloEscolarParam(searchParams)
-    const format = formatoParam(searchParams)
-    const resumen = await cargarSuspendidosReporte(2, ciclo, 3)
-    const tabla = suspendidosATabla(resumen)
-    return respuestaTabla({
-      titulo: resumen.titulo,
-      subtitulo: `Ciclo ${resumen.cicloLabel}`,
-      meta: `${resumen.filas.length} deudor(es) · ${resumen.totalRevisados} revisados`,
-      ...tabla,
-      slug: 'suspendidos-iwc',
-      ciclo,
-      format,
-    })
-  },
+  'suspendidos-iwc': (searchParams) =>
+    respuestaDeudoresSuspendidos('suspendidos-iwc', 2, 3, searchParams),
 
-  'suspendidos-iew': async (searchParams) => {
-    const ciclo = await cicloEscolarParam(searchParams)
-    const format = formatoParam(searchParams)
-    const resumen = await cargarSuspendidosReporte(1, ciclo, 3)
-    const tabla = suspendidosATabla(resumen)
-    return respuestaTabla({
-      titulo: resumen.titulo,
-      subtitulo: `Ciclo ${resumen.cicloLabel}`,
-      meta: `${resumen.filas.length} deudor(es) · ${resumen.totalRevisados} revisados`,
-      ...tabla,
-      slug: 'suspendidos-iew',
-      ciclo,
-      format,
-    })
-  },
+  'suspendidos-iew': (searchParams) =>
+    respuestaDeudoresSuspendidos('suspendidos-iew', 1, 3, searchParams),
 
   inscripciones: (searchParams) => respuestaInscripcionesAdmin('inscripciones', 'general', searchParams),
 
@@ -359,37 +352,11 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
     })
   },
 
-  'deudores-iew-1mes': async (searchParams) => {
-    const ciclo = await cicloEscolarParam(searchParams)
-    const format = formatoParam(searchParams)
-    const resumen = await cargarSuspendidosReporte(1, ciclo, 2)
-    const tabla = suspendidosATabla(resumen)
-    return respuestaTabla({
-      titulo: resumen.titulo,
-      subtitulo: `Ciclo ${resumen.cicloLabel}`,
-      meta: `${resumen.filas.length} deudor(es) · ${resumen.totalRevisados} revisados`,
-      ...tabla,
-      slug: 'deudores-iew-1mes',
-      ciclo,
-      format,
-    })
-  },
+  'deudores-iew-1mes': (searchParams) =>
+    respuestaDeudoresSuspendidos('deudores-iew-1mes', 1, 2, searchParams),
 
-  'deudores-iwch-1mes': async (searchParams) => {
-    const ciclo = await cicloEscolarParam(searchParams)
-    const format = formatoParam(searchParams)
-    const resumen = await cargarSuspendidosReporte(2, ciclo, 2)
-    const tabla = suspendidosATabla(resumen)
-    return respuestaTabla({
-      titulo: resumen.titulo,
-      subtitulo: `Ciclo ${resumen.cicloLabel}`,
-      meta: `${resumen.filas.length} deudor(es) · ${resumen.totalRevisados} revisados`,
-      ...tabla,
-      slug: 'deudores-iwch-1mes',
-      ciclo,
-      format,
-    })
-  },
+  'deudores-iwch-1mes': (searchParams) =>
+    respuestaDeudoresSuspendidos('deudores-iwch-1mes', 2, 2, searchParams),
 
   'reinscritos-kinder-pend': async (searchParams) => {
     const cicloIns = await cicloInscripcionParam(searchParams)

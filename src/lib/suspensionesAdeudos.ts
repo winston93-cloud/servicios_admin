@@ -23,15 +23,19 @@ const MESES_CONCEPTO: Record<string, string> = {
   '08': 'ABR',
   '09': 'MAY',
   '10': 'JUN',
-  '11': 'JUL',
-  '16': 'MAT ENE',
+  '11': 'DIF1',
   '12': 'DIF2',
   '13': 'INS',
+  '16': 'MAT ENE',
   '17': 'M&S',
+  '26': 'JUL',
 }
 
-/** concepto 11 en referencia = colegiatura julio (plan 11 meses). */
-const CONCEPTO_JULIO = '11'
+/**
+ * Colegiatura de julio: solo plan 11 meses (`alumno.mes = 2`).
+ * Concepto en referencia = 26 (no confundir con 11 = DIF1).
+ */
+const CONCEPTO_JULIO = '26'
 
 const TABLA_CONCEPTOS_POR_MES_INSCRIPCION: string[][] = [
   [''],
@@ -77,6 +81,11 @@ function mesCalendarioEfectivo(fecha = new Date()): number {
   return m
 }
 
+/**
+ * Conceptos de colegiatura acumulados hasta la fecha.
+ * - Plan 10 meses (`mes=1`): llegan hasta junio (10).
+ * - Plan 11 meses (`mes=2`): además julio (26), solo desde julio calendario.
+ */
 function conceptosEsperadosAcumulados(
   fechaInscripcion: string,
   cicloLargo: number,
@@ -92,18 +101,30 @@ function conceptosEsperadosAcumulados(
   const tabla = TABLA_CONCEPTOS_POR_MES_INSCRIPCION[mi] ?? []
   const conceptoMesActual = MES_A_CONCEPTO[mesActual]
 
-  // Julio/agosto: legacy `$mes` vacío → array_search falla → solo el 1.er concepto esperado.
   let esperados: string[]
   if (!conceptoMesActual) {
-    esperados = tabla.length ? [tabla[0]] : []
+    // Julio/agosto: sin concepto “del mes”. En fin de ciclo exigir el plan
+    // completo hasta junio (ambos planes); julio se suma aparte si aplica.
+    if (mesActual === 7 || mesActual === 8) {
+      esperados = [...tabla]
+    } else {
+      // Misma heurística legacy cuando `$mes` queda vacío.
+      esperados = tabla.length ? [tabla[0]] : []
+    }
   } else {
     const idx = tabla.indexOf(conceptoMesActual)
     if (idx < 0) esperados = [...tabla]
     else esperados = tabla.slice(0, idx + 1)
   }
 
+  // Julio (26) solo plan 11 meses y solo desde julio.
   if (planMes === 2 && mesActual >= 7 && !esperados.includes(CONCEPTO_JULIO)) {
     esperados = [...esperados, CONCEPTO_JULIO]
+  }
+
+  // Plan 10 meses nunca debe exigir julio.
+  if (planMes !== 2) {
+    esperados = esperados.filter((c) => c !== CONCEPTO_JULIO)
   }
 
   return esperados
@@ -117,6 +138,13 @@ function adeudosInscripcionMaterial(pagos: string[]): string[] | null {
   }
   if (!pagos.includes('17')) adeudos.push('M&S')
   return adeudos.length ? adeudos : null
+}
+
+export function etiquetaModalidadPlan(planMes: number | null | undefined): string {
+  const m = Number(planMes)
+  if (m === 1) return '10 meses'
+  if (m === 2) return '11 meses'
+  return 'N/D'
 }
 
 export function calcularAdeudosAlumno(
