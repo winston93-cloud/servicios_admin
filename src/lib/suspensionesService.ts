@@ -1,4 +1,5 @@
 import type { AppDatabaseClient } from '@/lib/dbTypes'
+import { BECA_ESTATUS_ACTIVA } from '@/lib/becaEstatus'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 import {
   CHUNK_ALUMNO_ID_GENERAL,
@@ -44,6 +45,8 @@ export interface GenerarSuspensionesResultado {
   fechaCartas: string
   deudores: AlumnoDeudorSuspension[]
   totalAlumnosRevisados: number
+  /** Becados al 100% omitidos del listado (legacy NOT IN). */
+  excluidosBecados100: number
 }
 
 function conceptoDesdeReferencia(ref: string | null): string | null {
@@ -65,6 +68,46 @@ function bloqueInscripcionCiclo(ciclo: number): string[] {
 }
 
 const PAGOS_PAGE_SIZE = 1000
+
+/**
+ * Ciclos donde buscar beca 100% (legacy: mismo ciclo del reporte).
+ * Tras el avance las fichas van a es_actual pero la beca suele seguir
+ * un ciclo atrás — no exigir solo el ciclo del select.
+ */
+function ciclosParaBeca100(cicloReporte: number, cicloFicha: number): number[] {
+  const set = new Set<number>([cicloReporte, cicloFicha])
+  if (cicloReporte > 1) set.add(cicloReporte - 1)
+  if (cicloFicha > 1) set.add(cicloFicha - 1)
+  return [...set].filter((n) => n > 0)
+}
+
+async function cargarBecados100Porcentaje(
+  supabase: AppDatabaseClient,
+  alumnoIds: number[],
+  ciclosBeca: number[]
+): Promise<Set<number>> {
+  const becados100 = new Set<number>()
+  if (!alumnoIds.length || !ciclosBeca.length) return becados100
+
+  for (const slice of chunkArray(alumnoIds, CHUNK_ALUMNO_ID_GENERAL)) {
+    const { data: becas100, error } = await supabase
+      .from('alumno_beca')
+      .select('alumno_id, beca_porcentaje')
+      .in('beca_ciclo_escolar', ciclosBeca)
+      .eq('beca_estatus', BECA_ESTATUS_ACTIVA)
+      .gte('beca_porcentaje', 100)
+      .in('alumno_id', slice)
+
+    if (error) throw new Error(error.message)
+    for (const b of becas100 ?? []) {
+      if (Number(b.beca_porcentaje) >= 100) {
+        becados100.add(Number(b.alumno_id))
+      }
+    }
+  }
+
+  return becados100
+}
 
 async function cargarPagosDetalleAlumnos(
   supabase: AppDatabaseClient,
@@ -195,23 +238,16 @@ export async function generarListaDeudoresSuspension(
       fechaCartas,
       deudores: [],
       totalAlumnosRevisados: 0,
+      excluidosBecados100: 0,
     }
   }
 
-  const becados100 = new Set<number>()
-  for (const slice of chunkArray(ids, CHUNK_ALUMNO_ID_GENERAL)) {
-    const { data: becas100 } = await supabase
-      .from('alumno_beca')
-      .select('alumno_id')
-      .eq('beca_ciclo_escolar', cicloEscolar)
-      .eq('beca_estatus', 1)
-      .eq('beca_porcentaje', 100)
-      .in('alumno_id', slice)
-
-    for (const b of becas100 ?? []) {
-      becados100.add(b.alumno_id as number)
-    }
-  }
+  // Legacy deudores*: tipo 2/3 → NOT IN becados 100%; tipo 1 → solo ellos.
+  const becados100 = await cargarBecados100Porcentaje(
+    supabase,
+    ids,
+    ciclosParaBeca100(cicloEscolar, cicloFicha)
+  )
 
   const pagos = await cargarPagosDetalleAlumnos(supabase, ids)
 
@@ -246,6 +282,7 @@ export async function generarListaDeudoresSuspension(
   const emailsPorAlumno = await cargarEmailsPadres(supabase, ids)
 
   const deudores: AlumnoDeudorSuspension[] = []
+  let excluidosBecados100 = 0
 
   for (const a of listaAlumnos) {
     const alumnoId = a.alumno_id as number
@@ -255,10 +292,15 @@ export async function generarListaDeudoresSuspension(
     if (!bucket) continue
 
     if (tipo === 1) {
+      // Solo becados 100% sin inscripción (monitoreo MyS / insc).
       if (!esBecado100) continue
       if (bucket.fechaInscripcion) continue
     } else {
-      if (esBecado100) continue
+      // Deudores 1 mes / suspendidos: no pagan colegiatura → fuera del listado.
+      if (esBecado100) {
+        excluidosBecados100++
+        continue
+      }
       if (!bucket.fechaInscripcion) continue
     }
 
@@ -306,6 +348,7 @@ export async function generarListaDeudoresSuspension(
     fechaCartas,
     deudores,
     totalAlumnosRevisados: listaAlumnos.length,
+    excluidosBecados100,
   }
 }
 

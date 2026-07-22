@@ -38,6 +38,7 @@ interface ResultadoGenerar {
   ok: boolean
   deudores: AlumnoDeudorSuspension[]
   totalAlumnosRevisados: number
+  excluidosBecados100?: number
   pdfListaBase64: string
   cicloEscolar: number
   cicloLargo: number
@@ -415,7 +416,11 @@ export default function SuspensionesModulo() {
           <div className="sus-tabla-head">
             <p className="sus-resumen">
               {resultado.deudores.length} deudor(es) de {resultado.totalAlumnosRevisados}{' '}
-              alumnos revisados · {ETIQUETAS_TIPO_SUSPENSION[resultado.tipo]}
+              alumnos revisados
+              {(resultado.excluidosBecados100 ?? 0) > 0
+                ? ` · ${resultado.excluidosBecados100} becado(s) 100% excluidos`
+                : ''}{' '}
+              · {ETIQUETAS_TIPO_SUSPENSION[resultado.tipo]}
             </p>
             <div className="sus-tabla-acciones">
               {faseEnvio === 'hecho' && contadoresEnvio.err > 0 && (

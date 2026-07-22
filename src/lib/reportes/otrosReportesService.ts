@@ -39,6 +39,7 @@ export async function cargarSuspendidosReporte(
       prorroga: d.prorroga ?? '',
     })),
     totalRevisados: res.totalAlumnosRevisados,
+    excluidosBecados100: res.excluidosBecados100,
   }
 }
 

@@ -21,6 +21,7 @@ export type ResumenDeudoresReporte = {
   plantel: 1 | 2
   filas: FilaDeudorReporte[]
   totalRevisados: number
+  excluidosBecados100: number
 }
 
 function chipsAdeudosHtml(adeudos: string): string {
@@ -44,8 +45,8 @@ export function construirHtmlDeudoresSuspendidos(resumen: ResumenDeudoresReporte
   const tono = resumen.tipo === 2 ? 'amber' : 'rose'
   const leyenda =
     resumen.tipo === 2
-      ? 'Deudores desde 1 colegiatura pendiente · plan 10 meses hasta junio · plan 11 meses hasta julio'
-      : 'Suspendidos: 2 o más colegiaturas pendientes · plan 10 meses hasta junio · plan 11 meses hasta julio'
+      ? 'Deudores desde 1 colegiatura pendiente · plan 10 meses hasta junio · plan 11 meses hasta julio · becados al 100% excluidos (no pagan colegiatura)'
+      : 'Suspendidos: 2 o más colegiaturas pendientes · plan 10 meses hasta junio · plan 11 meses hasta julio · becados al 100% excluidos (no pagan colegiatura)'
 
   const rows = resumen.filas
     .map(
@@ -171,7 +172,11 @@ export function construirHtmlDeudoresSuspendidos(resumen: ResumenDeudoresReporte
   <header class="hero">
     <h1>${escapeHtml(resumen.titulo)}</h1>
     <p>Ciclo ${escapeHtml(resumen.cicloLabel)}</p>
-    <p class="meta">${resumen.filas.length} deudor(es) · ${resumen.totalRevisados} revisados</p>
+    <p class="meta">${resumen.filas.length} deudor(es) · ${resumen.totalRevisados} revisados${
+      resumen.excluidosBecados100 > 0
+        ? ` · ${resumen.excluidosBecados100} becado(s) 100% excluidos`
+        : ''
+    }</p>
   </header>
   <p class="leyenda">${escapeHtml(leyenda)}</p>
   <section class="block">
@@ -216,7 +221,7 @@ export function generarPdfDeudoresSuspendidos(resumen: ResumenDeudoresReporte): 
   y += 5
   pdf.setFontSize(8)
   pdf.text(
-    `${resumen.filas.length} deudor(es) · ${resumen.totalRevisados} revisados · 10 meses → jun · 11 meses → jul`,
+    `${resumen.filas.length} deudor(es) · ${resumen.totalRevisados} revisados · 10→jun · 11→jul · sin becados 100%`,
     148,
     y,
     { align: 'center' }
