@@ -4,16 +4,17 @@ import {
   type UsuarioRegistro,
 } from '@/lib/usuarioCatalogoService'
 
+/** Anchos en caracteres Excel; email/clave amplios para no empalmar. */
 const ANCHOS = {
   id: 8,
   username: 16,
-  nombre: 36,
-  email: 28,
-  password: 16,
+  nombre: 34,
+  email: 42,
+  password: 22,
   perfil: 10,
   nivel: 8,
-  status: 10,
-  alta: 18,
+  status: 11,
+  alta: 20,
 } as const
 
 function descargarBuffer(buffer: ArrayBuffer | ExcelJS.Buffer, nombre: string) {
@@ -37,6 +38,12 @@ function statusLabel(s: number | null | undefined): string {
   return Number(s) === 1 ? 'Activo' : 'Inactivo'
 }
 
+function anchoParaTexto(texto: string, min: number, max: number): number {
+  const len = String(texto ?? '').trim().length
+  // Excel: ~1 unidad ≈ 1 carácter + margen
+  return Math.min(max, Math.max(min, len + 2))
+}
+
 export async function exportarUsuariosExcel(usuarios: UsuarioRegistro[]) {
   const workbook = new ExcelJS.Workbook()
   workbook.creator = 'Servicios Administrativos'
@@ -47,17 +54,42 @@ export async function exportarUsuariosExcel(usuarios: UsuarioRegistro[]) {
     timeStyle: 'short',
   })
 
+  const ordenados = [...usuarios].sort((a, b) => a.usuario_id - b.usuario_id)
+
+  const anchoEmail = Math.max(
+    ANCHOS.email,
+    ...ordenados.map((u) => anchoParaTexto(u.usuario_email ?? '', ANCHOS.email, 55))
+  )
+  const anchoClave = Math.max(
+    ANCHOS.password,
+    ...ordenados.map((u) => anchoParaTexto(u.usuario_password ?? '', ANCHOS.password, 36))
+  )
+  const anchoNombre = Math.max(
+    ANCHOS.nombre,
+    ...ordenados.map((u) => anchoParaTexto(nombreCompletoUsuario(u), ANCHOS.nombre, 48))
+  )
+  const anchoUser = Math.max(
+    ANCHOS.username,
+    ...ordenados.map((u) => anchoParaTexto(u.usuario_username ?? '', ANCHOS.username, 24))
+  )
+
   const ws = workbook.addWorksheet('Usuarios', {
     views: [{ state: 'frozen', ySplit: 4, showGridLines: false }],
-    properties: { defaultRowHeight: 20 },
+    properties: { defaultRowHeight: 22 },
+    pageSetup: {
+      orientation: 'landscape',
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+    },
   })
 
   ws.columns = [
     { key: 'id', width: ANCHOS.id },
-    { key: 'username', width: ANCHOS.username },
-    { key: 'nombre', width: ANCHOS.nombre },
-    { key: 'email', width: ANCHOS.email },
-    { key: 'password', width: ANCHOS.password },
+    { key: 'username', width: anchoUser },
+    { key: 'nombre', width: anchoNombre },
+    { key: 'email', width: anchoEmail },
+    { key: 'password', width: anchoClave },
     { key: 'perfil', width: ANCHOS.perfil },
     { key: 'nivel', width: ANCHOS.nivel },
     { key: 'status', width: ANCHOS.status },
@@ -96,12 +128,10 @@ export async function exportarUsuariosExcel(usuarios: UsuarioRegistro[]) {
       fgColor: { argb: 'FF1E3A5F' },
     }
     cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10 }
-    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
+    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: false }
     cell.border = bordeFino()
   })
-  header.height = 22
-
-  const ordenados = [...usuarios].sort((a, b) => a.usuario_id - b.usuario_id)
+  header.height = 24
 
   ordenados.forEach((u, idx) => {
     const row = ws.addRow([
@@ -120,10 +150,13 @@ export async function exportarUsuariosExcel(usuarios: UsuarioRegistro[]) {
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: zebra } }
       cell.border = bordeFino()
       cell.font = { size: 10, color: { argb: 'FF0F172A' } }
+      // Sin wrap: email/clave en una sola línea (ancho ya calculado).
+      const izq = col === 3 || col === 4 || col === 5
       cell.alignment = {
         vertical: 'middle',
-        horizontal: col === 3 || col === 4 ? 'left' : 'center',
-        wrapText: true,
+        horizontal: izq ? 'left' : 'center',
+        wrapText: false,
+        shrinkToFit: false,
       }
     })
     if (Number(u.usuario_status) !== 1) {
@@ -131,7 +164,7 @@ export async function exportarUsuariosExcel(usuarios: UsuarioRegistro[]) {
     } else {
       row.getCell(8).font = { size: 10, color: { argb: 'FF047857' }, bold: true }
     }
-    row.height = 20
+    row.height = 22
   })
 
   ws.autoFilter = {
