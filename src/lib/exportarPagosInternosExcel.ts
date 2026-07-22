@@ -12,6 +12,17 @@ export type FilaExportPagoInterno = {
   importe: number
 }
 
+/** Anchos en unidades Excel (~caracteres). Suficientes para no empalmar en Calc/Excel. */
+const ANCHOS = {
+  folio: 11,
+  fecha: 13,
+  alumnoRef: 14,
+  alumno: 36,
+  concepto: 48,
+  ciclo: 13,
+  importe: 12,
+} as const
+
 function descargarBuffer(buffer: ArrayBuffer | ExcelJS.Buffer, nombre: string) {
   const blob = new Blob([buffer as BlobPart], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -24,6 +35,25 @@ function descargarBuffer(buffer: ArrayBuffer | ExcelJS.Buffer, nombre: string) {
   window.URL.revokeObjectURL(url)
 }
 
+function lineasEstimadas(texto: string, anchoCol: number): number {
+  const t = String(texto ?? '').trim()
+  if (!t) return 1
+  const charsPorLinea = Math.max(10, Math.floor(anchoCol * 0.95))
+  return t.split(/\r?\n/).reduce((acc, linea) => {
+    return acc + Math.max(1, Math.ceil(linea.length / charsPorLinea))
+  }, 0)
+}
+
+function alturaFila(...pares: Array<[string, number]>): number {
+  const lineas = Math.max(1, ...pares.map(([t, w]) => lineasEstimadas(t, w)))
+  return Math.min(90, Math.max(20, 6 + lineas * 14))
+}
+
+function estiloBordeFino(): Partial<ExcelJS.Borders> {
+  const side: Partial<ExcelJS.Border> = { style: 'thin', color: { argb: 'FFCBD5E1' } }
+  return { top: side, left: side, bottom: side, right: side }
+}
+
 export async function exportarPagosInternosExcel(opts: {
   filas: FilaExportPagoInterno[]
   folioDesde?: number
@@ -34,24 +64,30 @@ export async function exportarPagosInternosExcel(opts: {
   workbook.created = new Date()
 
   const ws = workbook.addWorksheet('Pagos internos', {
-    views: [{ state: 'frozen', ySplit: 4 }],
+    views: [{ state: 'frozen', ySplit: 4, showGridLines: false }],
+    properties: { defaultRowHeight: 20 },
   })
 
   ws.columns = [
-    { key: 'folio', width: 12 },
-    { key: 'fecha', width: 12 },
-    { key: 'alumnoRef', width: 14 },
-    { key: 'alumno', width: 38 },
-    { key: 'concepto', width: 42 },
-    { key: 'ciclo', width: 14 },
-    { key: 'importe', width: 14 },
+    { key: 'folio', width: ANCHOS.folio },
+    { key: 'fecha', width: ANCHOS.fecha },
+    { key: 'alumnoRef', width: ANCHOS.alumnoRef },
+    { key: 'alumno', width: ANCHOS.alumno },
+    { key: 'concepto', width: ANCHOS.concepto },
+    { key: 'ciclo', width: ANCHOS.ciclo },
+    { key: 'importe', width: ANCHOS.importe },
   ]
 
   const titulo = ws.addRow(['Listado de pagos internos'])
   ws.mergeCells(1, 1, 1, 7)
   titulo.getCell(1).font = { bold: true, size: 16, color: { argb: 'FF065F46' } }
-  titulo.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' }
-  titulo.height = 26
+  titulo.getCell(1).alignment = { vertical: 'middle', horizontal: 'left', wrapText: false }
+  titulo.getCell(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFECFDF5' },
+  }
+  titulo.height = 28
 
   const hoy = new Date()
   const fechaGen = hoy.toLocaleDateString('es-MX', {
@@ -63,8 +99,9 @@ export async function exportarPagosInternosExcel(opts: {
     `Folios desde ${folioDesde} · ${opts.filas.length} registro${opts.filas.length === 1 ? '' : 's'} · Generado el ${fechaGen}`,
   ])
   ws.mergeCells(2, 1, 2, 7)
-  sub.getCell(1).font = { size: 10, color: { argb: 'FF64748B' } }
-  sub.height = 18
+  sub.getCell(1).font = { size: 10, color: { argb: 'FF475569' } }
+  sub.getCell(1).alignment = { vertical: 'middle', wrapText: true }
+  sub.height = 20
 
   ws.addRow([])
 
@@ -77,7 +114,7 @@ export async function exportarPagosInternosExcel(opts: {
     'Ciclo',
     'Importe',
   ])
-  header.height = 22
+  header.height = 24
   header.eachCell((cell) => {
     cell.fill = {
       type: 'pattern',
@@ -85,7 +122,7 @@ export async function exportarPagosInternosExcel(opts: {
       fgColor: { argb: 'FF059669' },
     }
     cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 }
-    cell.alignment = { vertical: 'middle', horizontal: 'center' }
+    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
     cell.border = {
       top: { style: 'thin', color: { argb: 'FF047857' } },
       left: { style: 'thin', color: { argb: 'FF047857' } },
@@ -96,63 +133,79 @@ export async function exportarPagosInternosExcel(opts: {
 
   const zebra = 'FFF0FDF4'
   const blanco = 'FFFFFFFF'
-  const borde = { style: 'thin' as const, color: { argb: 'FFD1D5DB' } }
+  const borde = estiloBordeFino()
 
   for (let i = 0; i < opts.filas.length; i++) {
     const f = opts.filas[i]
-    const row = ws.addRow([
-      f.folio,
-      f.fecha,
-      f.alumnoRef,
-      f.alumno,
-      f.concepto,
-      f.ciclo,
-      f.importe,
-    ])
+    const alumno = (f.alumno || '—').trim() || '—'
+    const concepto = (f.concepto || '—').trim() || '—'
+    const ciclo = (f.ciclo || '—').trim() || '—'
+    const ref = (f.alumnoRef || '—').trim() || '—'
+    const fecha = (f.fecha || '—').trim() || '—'
+
+    const row = ws.addRow([f.folio, fecha, ref, alumno, concepto, ciclo, f.importe])
     const bg = i % 2 === 0 ? blanco : zebra
-    row.eachCell((cell, col) => {
+
+    // Relleno + borde en las 7 columnas fuerza el recorte del texto (evita empalme en Calc).
+    for (let col = 1; col <= 7; col++) {
+      const cell = row.getCell(col)
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } }
-      cell.border = { top: borde, left: borde, bottom: borde, right: borde }
+      cell.border = borde
       cell.font = { size: 10, color: { argb: 'FF0F172A' } }
       cell.alignment = {
         vertical: 'middle',
         horizontal: col === 7 ? 'right' : col === 1 || col === 2 || col === 6 ? 'center' : 'left',
-        wrapText: col === 4 || col === 5,
+        wrapText: true,
+        shrinkToFit: false,
       }
-    })
+    }
+
     row.getCell(7).numFmt = '"$"#,##0.00'
+    row.height = alturaFila([alumno, ANCHOS.alumno], [concepto, ANCHOS.concepto])
   }
 
   const totalImporte = opts.filas.reduce((acc, f) => acc + (Number(f.importe) || 0), 0)
   const totalRow = ws.addRow(['', '', '', '', '', 'Total', totalImporte])
-  totalRow.height = 22
-  totalRow.eachCell((cell, col) => {
+  totalRow.height = 24
+  for (let col = 1; col <= 7; col++) {
+    const cell = totalRow.getCell(col)
+    if (col < 6 && (cell.value == null || cell.value === '')) {
+      cell.value = ''
+    }
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: 'FFECFDF5' },
     }
-    cell.font = {
-      bold: true,
-      size: 11,
-      color: { argb: 'FF065F46' },
-    }
+    cell.font = { bold: true, size: 11, color: { argb: 'FF065F46' } }
     cell.border = {
       top: { style: 'medium', color: { argb: 'FF059669' } },
-      left: borde,
-      bottom: borde,
-      right: borde,
+      left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
     }
     cell.alignment = {
       vertical: 'middle',
-      horizontal: col === 7 ? 'right' : col === 6 ? 'right' : 'left',
+      horizontal: col === 7 ? 'right' : col === 6 ? 'right' : 'center',
+      wrapText: false,
     }
-  })
+  }
   totalRow.getCell(7).numFmt = '"$"#,##0.00'
 
-  ws.autoFilter = {
-    from: { row: 4, column: 1 },
-    to: { row: 4 + opts.filas.length, column: 7 },
+  // Filtro solo sobre encabezado + datos (no el total).
+  if (opts.filas.length > 0) {
+    ws.autoFilter = {
+      from: { row: 4, column: 1 },
+      to: { row: 4 + opts.filas.length, column: 7 },
+    }
+  }
+
+  ws.pageSetup = {
+    orientation: 'landscape',
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+    margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.2, footer: 0.2 },
   }
 
   const stamp = hoy.toISOString().slice(0, 10).replace(/-/g, '')
