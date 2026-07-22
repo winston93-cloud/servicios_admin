@@ -1,19 +1,13 @@
 import { createHmac } from 'crypto'
 
 /**
- * Acceso temporal por clave compartida a reportes PDF externos.
- * Más adelante: login específico / sesión de staff.
+ * Acceso por clave compartida solo en la URL pública `/dif2`
+ * (p. ej. enlace del jefe). Desde /reportes el mismo reporte sale
+ * por `/api/reportes/insc-admin-dif2` sin esta clave.
  */
 export const REPORTE_PDF_CLAVE = 'admin123'
 
 export const DIF2_AUTH_COOKIE = 'dif2_reporte_auth'
-
-/** Reportes que exigen la clave al abrirse por URL directa. */
-export const REPORTES_CON_CLAVE = new Set(['insc-admin-dif2'])
-
-export function reporteRequiereClave(slug: string): boolean {
-  return REPORTES_CON_CLAVE.has(slug)
-}
 
 export function claveReportePdfValida(clave: string | null | undefined): boolean {
   return String(clave ?? '').trim() === REPORTE_PDF_CLAVE
