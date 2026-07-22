@@ -104,6 +104,7 @@ function metaReporte(entry: ReporteCatalogEntry, params: ParametrosReporte): str
 function ReportesPageInner() {
   const router = useRouter()
   const {
+    ciclos,
     cicloActualSistema,
     cicloInscripcionSistema,
     etiquetaCicloActualSistema,
@@ -128,6 +129,29 @@ function ReportesPageInner() {
     return getCiclosEscolaresOpcionesDesdeBase(cicloActualSistema)
   }, [opcionesCatalogo, cicloActualSistema])
 
+  /** Nuevo ingreso: solo ciclo vigente (`es_actual`) y activos hacia adelante. */
+  const ciclosOpcionesNuevoIngreso = useMemo((): CicloEscolar[] => {
+    const adelante = ciclos
+      .filter((c) => c.activo && c.valor >= cicloActualSistema)
+      .sort((a, b) => a.valor - b.valor)
+    const lista =
+      adelante.length > 0
+        ? adelante
+        : ciclos.filter((c) => c.es_actual || c.valor === cicloActualSistema)
+    if (lista.length === 0) {
+      return [
+        {
+          ...toCicloEscolar(cicloActualSistema),
+          etiqueta: etiquetaCicloActualSistema || toCicloEscolar(cicloActualSistema).etiqueta,
+        },
+      ]
+    }
+    return lista.map((c) => ({
+      ...toCicloEscolar(c.valor),
+      etiqueta: c.nombre || toCicloEscolar(c.valor).etiqueta,
+    }))
+  }, [ciclos, cicloActualSistema, etiquetaCicloActualSistema])
+
   const paramsIniciales = useCallback(
     (entry: ReporteCatalogEntry): ParametrosReporte => {
       let ciclo = entry.cicloSistema
@@ -141,7 +165,7 @@ function ReportesPageInner() {
         ciclo = Math.max(1, cicloActualSistema - 1)
       }
 
-      // Nuevo ingreso: siempre temporada vigente (hoy 23 = 2026-2027).
+      // Nuevo ingreso: temporada vigente; el select solo ofrece vigente + activos adelante.
       if (entry.categoriaId === 'nuevo-ingreso') {
         ciclo = cicloActualSistema
       }
@@ -269,7 +293,11 @@ function ReportesPageInner() {
               onCicloChange={(c) => setParam(entry.id, { ciclo: c })}
               mostrarCiclo={mostrarCiclo}
               cicloLabel={cicloLabel}
-              ciclosOpciones={ciclosOpciones}
+              ciclosOpciones={
+                entry.categoriaId === 'nuevo-ingreso'
+                  ? ciclosOpcionesNuevoIngreso
+                  : ciclosOpciones
+              }
             />
           ) : null
         }

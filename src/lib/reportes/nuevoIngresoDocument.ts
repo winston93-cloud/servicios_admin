@@ -14,9 +14,17 @@ import {
 export function construirHtmlReporteNuevoIngreso(resumen: ResumenNuevoIngreso): string {
   const esDeben = resumen.modo === 'deben'
   const meta = `${resumen.filas.length} alumno(s)`
+  const sinPagoCount = resumen.filas.filter((f) => !f.pagado).length
 
   const bodyRows = resumen.filas
     .map((f) => {
+      const sinPago = !esDeben && !f.pagado
+      const fechaPagoCell = esDeben
+        ? ''
+        : sinPago
+          ? '<span class="badge-sin-pago">SIN PAGO</span>'
+          : escapeHtml(f.fechaPago)
+
       const main = esDeben
         ? `<tr class="alumno">
             <td>${escapeHtml(String(f.no))}</td>
@@ -25,20 +33,20 @@ export function construirHtmlReporteNuevoIngreso(resumen: ResumenNuevoIngreso): 
             <td>${escapeHtml(f.alta)}</td>
             <td>${escapeHtml(f.nombre)}</td>
           </tr>`
-        : `<tr class="alumno">
+        : `<tr class="alumno${sinPago ? ' sin-pago' : ''}">
             <td>${escapeHtml(String(f.no))}</td>
             <td>${escapeHtml(f.grado)}</td>
             <td>${escapeHtml(f.noCtrl)}</td>
             <td>${escapeHtml(f.alta)}</td>
             <td>${escapeHtml(f.nombre)}</td>
-            <td>${escapeHtml(f.fechaPago)}</td>
+            <td class="fecha-pago">${fechaPagoCell}</td>
           </tr>`
 
       if (esDeben || f.familiares.length === 0) return main
 
       const famRows = f.familiares
         .map(
-          (fam) => `<tr class="familiar">
+          (fam) => `<tr class="familiar${sinPago ? ' familiar-sin-pago' : ''}">
             <td></td>
             <td class="rol">${escapeHtml(fam.rol)}:</td>
             <td colspan="2">${escapeHtml(fam.nombre)}</td>
@@ -67,6 +75,11 @@ export function construirHtmlReporteNuevoIngreso(resumen: ResumenNuevoIngreso): 
     })
     .join('')
 
+  const metaPago =
+    !esDeben && sinPagoCount > 0
+      ? ` · <span class="meta-sin-pago">${sinPagoCount} sin pago de inscripción</span>`
+      : ''
+
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -78,25 +91,46 @@ export function construirHtmlReporteNuevoIngreso(resumen: ResumenNuevoIngreso): 
     .hero { text-align: center; margin-bottom: 24px; padding: 20px; background: linear-gradient(135deg, #0f2744, #1e3a5f); color: #fff; border-radius: 12px; }
     .hero h1 { margin: 0 0 6px; font-size: 1.5rem; }
     .hero p { margin: 0; opacity: 0.9; font-size: 0.9rem; }
+    .meta-sin-pago { color: #fecaca; font-weight: 700; opacity: 1; }
     .block { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
     .block h2 { margin: 0 0 12px; font-size: 1rem; color: #334155; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th, td { border: 1px solid #e2e8f0; padding: 6px 8px; text-align: left; }
     th { background: #f1f5f9; font-weight: 700; }
     tr.alumno td { border-top: 2px solid #cbd5e1; }
+    tr.alumno.sin-pago td { background: #fef2f2; }
+    tr.alumno.sin-pago td.fecha-pago { font-weight: 800; color: #b91c1c; text-align: center; }
+    .badge-sin-pago {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #dc2626;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
     tr.familiar td { background: #f8fafc; color: #475569; font-size: 11px; border-top: none; }
+    tr.familiar.familiar-sin-pago td { background: #fff1f2; }
     tr.familiar td.rol { font-weight: 600; color: #334155; }
     tr.totales td { font-weight: 700; background: #f1f5f9; }
     .foot { text-align: center; font-size: 11px; color: #64748b; margin-top: 20px; }
+    .leyenda { margin: 0 0 12px; font-size: 12px; color: #7f1d1d; }
+    .leyenda strong { color: #dc2626; }
   </style>
 </head>
 <body>
   <header class="hero">
     <h1>${escapeHtml(resumen.titulo)}</h1>
     <p>${escapeHtml(resumen.nivelLabel)} · Ciclo ${escapeHtml(resumen.cicloLabel)}</p>
-    <p style="margin-top:8px;font-size:0.8rem">${escapeHtml(meta)}</p>
+    <p style="margin-top:8px;font-size:0.8rem">${escapeHtml(meta)}${metaPago}</p>
   </header>
   <section class="block">
+    ${
+      !esDeben && sinPagoCount > 0
+        ? `<p class="leyenda"><strong>SIN PAGO</strong> = inscripción (concepto 13) pendiente. Filas en rojo.</p>`
+        : ''
+    }
     <table>
       <thead><tr>${head}</tr></thead>
       <tbody>${bodyRows}</tbody>
@@ -137,7 +171,12 @@ export function generarPdfReporteNuevoIngreso(resumen: ResumenNuevoIngreso): Buf
   })
   y += 5
   pdf.setFontSize(8)
-  pdf.text(`${resumen.filas.length} alumno(s)`, pageW / 2, y, { align: 'center' })
+  const sinPagoCount = resumen.filas.filter((f) => !f.pagado).length
+  const metaLine =
+    sinPagoCount > 0
+      ? `${resumen.filas.length} alumno(s) · ${sinPagoCount} SIN PAGO de inscripción`
+      : `${resumen.filas.length} alumno(s)`
+  pdf.text(metaLine, pageW / 2, y, { align: 'center' })
   y += 6
 
   if (resumen.modo === 'completo') {
@@ -150,17 +189,10 @@ export function generarPdfReporteNuevoIngreso(resumen: ResumenNuevoIngreso): Buf
         f.noCtrl,
         f.alta,
         f.nombre,
-        f.fechaPago,
+        f.pagado ? f.fechaPago : 'SIN PAGO',
       ])
       for (const fam of f.familiares) {
-        body.push([
-          '',
-          fam.rol + ':',
-          fam.nombre,
-          fam.cel,
-          fam.email,
-          '',
-        ])
+        body.push(['', fam.rol + ':', fam.nombre, fam.cel, fam.email, ''])
       }
     }
 
@@ -173,12 +205,21 @@ export function generarPdfReporteNuevoIngreso(resumen: ResumenNuevoIngreso): Buf
       margin: { left: 10, right: 10 },
       theme: 'striped',
       didParseCell: (data) => {
-        if (data.section === 'body' && data.row.raw) {
-          const first = String((data.row.raw as string[])[0] ?? '')
-          if (first === '') {
-            data.cell.styles.fillColor = [248, 250, 252]
-            data.cell.styles.textColor = [71, 85, 105]
-            data.cell.styles.fontSize = 6.5
+        if (data.section !== 'body' || !data.row.raw) return
+        const raw = data.row.raw as string[]
+        const first = String(raw[0] ?? '')
+        if (first === '') {
+          data.cell.styles.fillColor = [248, 250, 252]
+          data.cell.styles.textColor = [71, 85, 105]
+          data.cell.styles.fontSize = 6.5
+          return
+        }
+        if (String(raw[5] ?? '') === 'SIN PAGO') {
+          data.cell.styles.fillColor = [254, 226, 226]
+          if (data.column.index === 5) {
+            data.cell.styles.textColor = [185, 28, 28]
+            data.cell.styles.fontStyle = 'bold'
+            data.cell.styles.halign = 'center'
           }
         }
       },
