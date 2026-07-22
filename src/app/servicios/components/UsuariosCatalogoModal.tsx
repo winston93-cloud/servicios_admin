@@ -227,7 +227,7 @@ export default function UsuariosCatalogoModal({ abierto, onCerrar }: Props) {
 
         <div className="usr-modal-toolbar">
           <label className="usr-search">
-            <Search size={16} aria-hidden />
+            <Search size={20} aria-hidden />
             <input
               type="search"
               value={busqueda}
@@ -242,11 +242,11 @@ export default function UsuariosCatalogoModal({ abierto, onCerrar }: Props) {
               onClick={() => void onExcel()}
               disabled={exportando || cargando}
             >
-              {exportando ? <Loader2 size={16} className="usr-spin" /> : <FileSpreadsheet size={16} />}
+              {exportando ? <Loader2 size={18} className="usr-spin" /> : <FileSpreadsheet size={18} />}
               Generar Excel
             </button>
             <button type="button" className="usr-btn usr-btn--primary" onClick={abrirAlta}>
-              <Plus size={16} />
+              <Plus size={18} />
               Nuevo usuario
             </button>
           </div>
