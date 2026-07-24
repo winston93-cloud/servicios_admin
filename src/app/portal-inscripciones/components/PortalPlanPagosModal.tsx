@@ -25,12 +25,14 @@ const OPCIONES: {
   {
     valor: 1,
     titulo: '10 meses',
-    detalle: 'Cuota de inicio de curso y colegiaturas de agosto a mayo (sin julio).',
+    detalle:
+      '10 colegiaturas: de septiembre a junio. No incluye la colegiatura de julio. La Cuota de Inicio de Curso (agosto) se paga aparte y no cuenta como colegiatura.',
   },
   {
     valor: 2,
     titulo: '11 meses',
-    detalle: 'Cuota de inicio de curso y colegiaturas de agosto a julio (incluye julio).',
+    detalle:
+      '11 colegiaturas: de septiembre a julio (sí incluye la colegiatura de julio). La Cuota de Inicio de Curso (agosto) se paga aparte y no cuenta como colegiatura.',
   },
 ]
 

@@ -109,7 +109,7 @@ export const PORTAL_AYUDA_FAQ: PortalAyudaItem[] = [
     categoria: 'colegiaturas',
     pregunta: '¿Qué es el plan de 10 u 11 meses?',
     respuesta:
-      'Depende del plan registrado del alumno (campo de meses). 10 meses cubre agosto a junio (+ material en enero según catálogo). 11 meses incluye también julio. El portal te muestra el plan en la etiqueta de la sección.',
+      'Se refiere al número de colegiaturas del ciclo. Plan de 10 meses: 10 colegiaturas, de septiembre a junio (no incluye julio). Plan de 11 meses: 11 colegiaturas, de septiembre a julio. La Cuota de Inicio de Curso (agosto) se paga aparte en ambos planes y no cuenta como colegiatura (+ material en enero según catálogo). El portal te muestra el plan en la etiqueta de la sección.',
   },
   {
     id: 'fac-1',
