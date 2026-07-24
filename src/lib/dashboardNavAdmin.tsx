@@ -198,11 +198,11 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   },
   {
     label: 'Cheques',
-    desc: 'Emisión, impresión y control de cheques escolares.',
+    desc: 'Emisión, impresión y control de cheques (Winston, Educativo y Sociedades de Padres).',
     href: urlChequesApp(),
     accent: 'sky',
     kicker: 'Tesorería',
-    tags: ['Cheques', 'Impresión'],
+    tags: ['Cheques', 'Pólizas', 'InsForge'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="6" width="20" height="12" rx="2" />

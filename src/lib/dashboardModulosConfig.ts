@@ -1,9 +1,10 @@
-/** Cheques — emisión y control de cheques (legacy PHP). */
+/** Cheques — emisión y control (cheques_new en Vercel / InsForge). */
 export function urlChequesApp(): string {
   const explicit = process.env.NEXT_PUBLIC_CHEQUES_URL?.trim()
   if (explicit) return explicit.replace(/\/$/, '')
 
-  return 'https://www.winston93.edu.mx/cheques'
+  // Producción Vercel (override con NEXT_PUBLIC_CHEQUES_URL si el dominio cambia).
+  return 'https://cheques-new.vercel.app'
 }
 
 /** Boletas — captura y envío de boletas escolares (personal administrativo). */
