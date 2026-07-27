@@ -9,7 +9,11 @@ import {
 } from '@/lib/ciclosEscolaresService'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
-import { asegurarColegiaturasPreviasIngresoCero } from '@/lib/colegiaturasPreviasIngresoService'
+import {
+  FORMA_PAGO_PREVIOS_INGRESO,
+  aplicaCerosPreviosIngreso,
+  asegurarColegiaturasPreviasIngresoCero,
+} from '@/lib/colegiaturasPreviasIngresoService'
 import { asegurarColegiaturasBecaCompletaCero } from '@/lib/colegiaturasBecaCompletaService'
 import { construirMatrizPortalPagos } from '@/lib/portalPagosMatrizService'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
@@ -123,6 +127,23 @@ export async function POST(request: Request) {
       if (becaCero.insertados.length > 0) {
         pagos = await listarPagosColegiaturaAlumno(alumnoId, ciclo.valor)
       }
+    }
+
+    // Defensa: ceros “Ingreso mid-ciclo” ilegítimos no cuentan como pagado en la UI
+    // (aunque quedara algún fantasma viejo en BD).
+    const altaIso = String(alumno.alumno_alta ?? '').slice(0, 10)
+    const previosLegitimos = aplicaCerosPreviosIngreso({
+      cicloValor: ciclo.valor,
+      altaIso,
+    })
+    if (!previosLegitimos) {
+      pagos = pagos.filter(
+        (p) =>
+          !(
+            String(p.pago_forma ?? '') === FORMA_PAGO_PREVIOS_INGRESO &&
+            !(Number(p.pago_importe) > 0)
+          )
+      )
     }
 
     const matriz = await construirMatrizPortalPagos(supabase, alumno, ciclo, pagos, {

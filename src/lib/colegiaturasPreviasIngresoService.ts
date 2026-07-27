@@ -12,6 +12,27 @@ const ORDEN_MES_CICLO = [8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6, 7] as const
 export const FORMA_PAGO_PREVIOS_INGRESO = 'Ingreso mid-ciclo'
 const NOMBRE_PAGO_PREVIOS = 'Colegiatura previa al ingreso (importe 0)'
 
+/** Arranque operativo del ciclo N ≈ 1 ago del año (2003+N). */
+export function fechaInicioCicloIso(cicloValor: number): string {
+  return `${2003 + Number(cicloValor)}-08-01`
+}
+
+/**
+ * ¿Pueden existir meses “previos al ingreso” en este ciclo?
+ * No, si el ciclo aún no arranca o el alta es anterior al arranque.
+ */
+export function aplicaCerosPreviosIngreso(opts: {
+  cicloValor: number
+  altaIso: string
+  hoyIso?: string
+}): boolean {
+  const inicio = fechaInicioCicloIso(opts.cicloValor)
+  const hoy = opts.hoyIso ?? new Date().toISOString().slice(0, 10)
+  if (hoy < inicio) return false
+  if (opts.altaIso < inicio) return false
+  return true
+}
+
 function indiceMesCiclo(mes: number): number {
   return ORDEN_MES_CICLO.indexOf(mes as (typeof ORDEN_MES_CICLO)[number])
 }
@@ -112,9 +133,9 @@ export async function asegurarColegiaturasPreviasIngresoCero(
   const altaIso = String(alumno.alumno_alta ?? '').slice(0, 10)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(altaIso)) return { insertados: [] }
 
-  // Ciclo N = (2003+N)–(2004+N); arranque ≈ 1 ago. Alta previa → sin meses previos.
-  const inicioCicloIso = `${2003 + Number(cicloValor)}-08-01`
-  if (altaIso < inicioCicloIso) {
+  // Candado fuerte: ciclo sin arrancar o alta pre-ciclo → NUNCA inventar colegiaturas $0.
+  // (El fix del 20-jul solo bloqueaba reinscritos; los nuevo ingreso feb–jul seguían rotos.)
+  if (!aplicaCerosPreviosIngreso({ cicloValor, altaIso })) {
     return { insertados: [] }
   }
 
