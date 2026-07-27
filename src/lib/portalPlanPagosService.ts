@@ -14,6 +14,7 @@ import {
   obtenerPlanMesesCiclo,
   type PlanMeses,
 } from '@/lib/portalPlanMesesCiclo'
+import { marcarPortalInscripcionProgreso } from '@/lib/portalInscripcionProgreso'
 
 export type ResultadoPlanPagos =
   | {
@@ -73,6 +74,19 @@ export async function actualizarPlanMesesPortal(
   const fichaCiclo = Number(alumno.alumno_ciclo_escolar) || 0
   const planParaCicloFuturo = fichaCiclo > 0 && cicloColegiaturasValor > fichaCiclo
 
+  const cerrarProgresoVistaInscripcion = async () => {
+    await marcarPortalInscripcionProgreso(
+      db,
+      alumno.alumno_id,
+      cicloColegiaturasValor,
+      {
+        plan_confirmado: true,
+        reglamento_visto: true,
+        recibo_final_visto: true,
+      }
+    )
+  }
+
   const tienePagos = await alumnoTienePagosColegiaturaCiclo(alumno, cicloColegiaturasValor)
   if (tienePagos) {
     if (planMeses !== actual) {
@@ -90,6 +104,7 @@ export async function actualizarPlanMesesPortal(
     } catch {
       /* degradar si la tabla no existe aún */
     }
+    await cerrarProgresoVistaInscripcion()
     return {
       ok: true,
       planMeses: actual,
@@ -125,6 +140,7 @@ export async function actualizarPlanMesesPortal(
 
   if (planParaCicloFuturo && planCicloGuardado) {
     // Ficha sigue en el ciclo anterior: alumno.mes = plan de ese ciclo.
+    await cerrarProgresoVistaInscripcion()
     return {
       ok: true,
       planMeses,
@@ -136,6 +152,7 @@ export async function actualizarPlanMesesPortal(
   }
 
   if (planMeses === planFicha && (planCicloGuardado || planParaCicloFuturo)) {
+    await cerrarProgresoVistaInscripcion()
     return {
       ok: true,
       planMeses,
@@ -159,6 +176,7 @@ export async function actualizarPlanMesesPortal(
     }
   }
 
+  await cerrarProgresoVistaInscripcion()
   return {
     ok: true,
     planMeses,

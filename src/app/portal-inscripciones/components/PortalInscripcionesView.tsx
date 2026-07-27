@@ -264,14 +264,18 @@ export default function PortalInscripcionesView() {
         setEstado(siguiente)
         const cicloValor = Number(siguiente.ciclo?.valor ?? 0)
         const cicloColeg = Number(siguiente.cicloColegiaturas?.valor ?? 0)
-        if (cicloValor > 0) {
+        const prog = siguiente.progresoInscripcion
+        if (cicloValor > 0 || cicloColeg > 0) {
+          const cicloLocal = cicloValor > 0 ? cicloValor : cicloColeg
           setReglamentoVisto(
-            Boolean(siguiente.cuotaInicioCursoPagada) ||
-              leerReglamentoVisto(alumnoId, cicloValor)
+            Boolean(prog?.reglamentoVisto) ||
+              Boolean(siguiente.cuotaInicioCursoPagada) ||
+              leerReglamentoVisto(alumnoId, cicloLocal)
           )
           setReciboFinalVisto(
-            Boolean(siguiente.cuotaInicioCursoPagada) ||
-              leerReciboFinalVisto(alumnoId, cicloValor)
+            Boolean(prog?.reciboFinalVisto) ||
+              Boolean(siguiente.cuotaInicioCursoPagada) ||
+              leerReciboFinalVisto(alumnoId, cicloLocal)
           )
         } else {
           setReglamentoVisto(false)
@@ -279,9 +283,10 @@ export default function PortalInscripcionesView() {
         }
         if (cicloColeg > 0) {
           const planOk =
+            Boolean(prog?.planConfirmado) ||
             Boolean(siguiente.cuotaInicioCursoPagada) ||
             leerPlanPagosConfirmado(alumnoId, cicloColeg)
-          if (planOk && siguiente.cuotaInicioCursoPagada) {
+          if (planOk) {
             marcarPlanPagosConfirmado(alumnoId, cicloColeg)
           }
           setPlanConfirmado(planOk)
@@ -434,14 +439,13 @@ export default function PortalInscripcionesView() {
 
     const yaConfirmado =
       planConfirmado ||
+      Boolean(estadoVista?.progresoInscripcion?.planConfirmado) ||
       Boolean(estadoVista?.cuotaInicioCursoPagada) ||
       leerPlanPagosConfirmado(alumnoId, cicloColeg)
 
     if (yaConfirmado) {
       setPlanConfirmado(true)
-      if (estadoVista?.cuotaInicioCursoPagada) {
-        marcarPlanPagosConfirmado(alumnoId, cicloColeg)
-      }
+      marcarPlanPagosConfirmado(alumnoId, cicloColeg)
       setPlanModalAbierto(false)
     } else {
       // Abrir ya: no esperar al GET (evita saltarse la modal si el fetch falla / se cancela).
@@ -473,6 +477,7 @@ export default function PortalInscripcionesView() {
     planConfirmado,
     estadoVista?.cicloColegiaturas?.valor,
     estadoVista?.cuotaInicioCursoPagada,
+    estadoVista?.progresoInscripcion?.planConfirmado,
   ])
 
   useEffect(() => {
@@ -507,6 +512,17 @@ export default function PortalInscripcionesView() {
         }
         const planFinal = planMesesNormalizado(data.planMeses ?? plan)
         marcarPlanPagosConfirmado(alumnoId, cicloColeg)
+        void fetch('/api/portal-inscripciones/progreso', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            alumnoId,
+            cicloValor: cicloColeg,
+            plan_confirmado: true,
+            reglamento_visto: true,
+            recibo_final_visto: true,
+          }),
+        }).catch(() => {})
         setEstado((prev) =>
           prev
             ? {
@@ -516,9 +532,16 @@ export default function PortalInscripcionesView() {
                 alumno: data.mesFichaConservado
                   ? prev.alumno
                   : { ...prev.alumno, mes: planFinal },
+                progresoInscripcion: {
+                  reglamentoVisto: true,
+                  reciboFinalVisto: true,
+                  planConfirmado: true,
+                },
               }
             : prev
         )
+        setReglamentoVisto(true)
+        setReciboFinalVisto(true)
         setPlanPuedeCambiar(!data.bloqueadoPorPagos)
         setMatriz(null)
         setPlanConfirmado(true)
@@ -579,17 +602,63 @@ export default function PortalInscripcionesView() {
     if (cicloDobleValorUi != null) await cargarMatrizDoble(cicloDobleValorUi)
   }, [cargar, cargarMatrizDoble, cicloDobleValorUi])
 
+  const persistirProgreso = useCallback(
+    (marca: {
+      reglamento_visto?: boolean
+      recibo_final_visto?: boolean
+      plan_confirmado?: boolean
+    }) => {
+      if (alumnoId == null) return
+      const cicloValor = Number(
+        estado?.cicloColegiaturas?.valor ?? estado?.ciclo?.valor ?? 0
+      )
+      if (cicloValor <= 0) return
+      void fetch('/api/portal-inscripciones/progreso', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ alumnoId, cicloValor, ...marca }),
+      }).catch(() => {})
+    },
+    [alumnoId, estado?.cicloColegiaturas?.valor, estado?.ciclo?.valor]
+  )
+
   const marcarReglamentoConsultado = useCallback(() => {
     if (alumnoId == null || !estado?.ciclo?.valor) return
     marcarReglamentoVisto(alumnoId, Number(estado.ciclo.valor))
     setReglamentoVisto(true)
-  }, [alumnoId, estado?.ciclo?.valor])
+    persistirProgreso({ reglamento_visto: true })
+    setEstado((prev) =>
+      prev
+        ? {
+            ...prev,
+            progresoInscripcion: {
+              reglamentoVisto: true,
+              reciboFinalVisto: Boolean(prev.progresoInscripcion?.reciboFinalVisto),
+              planConfirmado: Boolean(prev.progresoInscripcion?.planConfirmado),
+            },
+          }
+        : prev
+    )
+  }, [alumnoId, estado?.ciclo?.valor, persistirProgreso])
 
   const marcarReciboConsultado = useCallback(() => {
     if (alumnoId == null || !estado?.ciclo?.valor) return
     marcarReciboFinalVisto(alumnoId, Number(estado.ciclo.valor))
     setReciboFinalVisto(true)
-  }, [alumnoId, estado?.ciclo?.valor])
+    persistirProgreso({ recibo_final_visto: true })
+    setEstado((prev) =>
+      prev
+        ? {
+            ...prev,
+            progresoInscripcion: {
+              reglamentoVisto: Boolean(prev.progresoInscripcion?.reglamentoVisto),
+              reciboFinalVisto: true,
+              planConfirmado: Boolean(prev.progresoInscripcion?.planConfirmado),
+            },
+          }
+        : prev
+    )
+  }, [alumnoId, estado?.ciclo?.valor, persistirProgreso])
 
   const abrirFacturaPaso = useCallback(
     (tipo: TipoDocumentoPortal, factura: FacturaPasoInscripcion) => {

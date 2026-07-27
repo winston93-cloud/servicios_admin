@@ -34,6 +34,11 @@ import {
 } from './portalInscripcionesSolicitud'
 import { getPaymentConcept } from './boucherCore'
 import { rutasFacturaDesdeReferencia } from './portalFacturaRutas'
+import {
+  marcarPortalInscripcionProgreso,
+  obtenerPortalInscripcionProgreso,
+} from './portalInscripcionProgreso'
+import { obtenerPlanMesesCiclo } from './portalPlanMesesCiclo'
 import type {
   BloqueoInscripcion,
   EstadoPortalInscripciones,
@@ -397,8 +402,8 @@ export async function construirEstadoPortalInscripciones(
     }
   }
 
-  // Cuota 00 del ciclo de colegiaturas: si ya pagó, la inscripción y el plan
-  // quedaron cerrados en la práctica (no exigir localStorage de reglamento/recibo).
+  // Progreso multi-dispositivo: BD + respaldo (cuota 00 o plan ya elegido).
+  // Antes solo vivía en localStorage → al abrir en otra PC pedía reglamento/recibo otra vez.
   const cicloColegiaturasValor = Number(cicloPagoReg.valor)
   const cuotaInicioCursoPagada = pagos.some((p) => {
     if (Number(p.pago_cancelado) === 1 || Number(p.pago_cancelado) === 2) return false
@@ -407,8 +412,49 @@ export async function construirEstadoPortalInscripciones(
     if (!parsed || parsed.cicloEscolar !== cicloColegiaturasValor) return false
     return normalizarConceptoNo(parsed.conceptoNo) === '00'
   })
-  const pasosVistaCerradosPorCuota = cuotaInicioCursoPagada
-  if (pasosVistaCerradosPorCuota && requiereDocs) {
+  const planGuardadoCiclo =
+    (await obtenerPlanMesesCiclo(supabase, alumno.alumno_id, cicloColegiaturasValor)) !=
+    null
+  let progresoRow = await obtenerPortalInscripcionProgreso(
+    supabase,
+    alumno.alumno_id,
+    cicloColegiaturasValor
+  )
+  // Backfill: quien ya eligió plan o pagó cuota 00 cerró el proceso en la práctica.
+  if (
+    (cuotaInicioCursoPagada || planGuardadoCiclo) &&
+    (!progresoRow?.reglamento_visto ||
+      !progresoRow?.recibo_final_visto ||
+      !progresoRow?.plan_confirmado)
+  ) {
+    await marcarPortalInscripcionProgreso(
+      supabase,
+      alumno.alumno_id,
+      cicloColegiaturasValor,
+      {
+        reglamento_visto: true,
+        recibo_final_visto: true,
+        plan_confirmado: true,
+      }
+    )
+    progresoRow = await obtenerPortalInscripcionProgreso(
+      supabase,
+      alumno.alumno_id,
+      cicloColegiaturasValor
+    )
+  }
+  const reglamentoVistoServidor = Boolean(
+    progresoRow?.reglamento_visto || cuotaInicioCursoPagada || planGuardadoCiclo
+  )
+  const reciboFinalVistoServidor = Boolean(
+    progresoRow?.recibo_final_visto || cuotaInicioCursoPagada || planGuardadoCiclo
+  )
+  const planConfirmadoServidor = Boolean(
+    progresoRow?.plan_confirmado || cuotaInicioCursoPagada || planGuardadoCiclo
+  )
+  const pasosVistaCerrados =
+    reglamentoVistoServidor && reciboFinalVistoServidor
+  if (pasosVistaCerrados && requiereDocs) {
     docsEnviados = true
   }
 
@@ -481,11 +527,13 @@ export async function construirEstadoPortalInscripciones(
     titulo: 'Reglamento escolar',
     descripcion: 'Imprime el reglamento, la carta compromiso y fírmala.',
     estado: resolverEstadoPaso(
-      pasosVistaCerradosPorCuota,
+      reglamentoVistoServidor,
       pasosVisibles && solCapturada
     ),
-    detalle: pasosVistaCerradosPorCuota
-      ? 'Paso cerrado: ya hay cuota de inicio de curso pagada en este ciclo.'
+    detalle: reglamentoVistoServidor
+      ? planGuardadoCiclo || cuotaInicioCursoPagada
+        ? 'Paso cerrado: el proceso de inscripción de este ciclo ya quedó registrado.'
+        : 'Reglamento consultado.'
       : urlReglamento
         ? 'Descarga el reglamento y la carta compromiso para imprimir y firmar.'
         : solCapturada
@@ -569,15 +617,20 @@ export async function construirEstadoPortalInscripciones(
     orden: ordenRecibo,
     titulo: 'Recibo final',
     descripcion: 'Comprobante del proceso de inscripción con código QR de verificación.',
-    estado: resolverEstadoPaso(pasosVistaCerradosPorCuota, puedeRecibo || pasosVistaCerradosPorCuota),
-    detalle: pasosVistaCerradosPorCuota
-      ? 'Paso cerrado: ya hay cuota de inicio de curso pagada en este ciclo. Las colegiaturas están desbloqueadas.'
+    estado: resolverEstadoPaso(
+      reciboFinalVistoServidor,
+      puedeRecibo || reciboFinalVistoServidor
+    ),
+    detalle: reciboFinalVistoServidor
+      ? planGuardadoCiclo || cuotaInicioCursoPagada
+        ? 'Paso cerrado: el proceso de inscripción de este ciclo ya quedó registrado. Las colegiaturas están desbloqueadas.'
+        : 'Recibo final consultado. Las colegiaturas del ciclo nuevo se desbloquean con todos los pasos completados.'
       : puedeRecibo
-        ? 'Ábrelo al menos una vez para marcarlo como completado. Las colegiaturas del ciclo nuevo se desbloquean cuando los 4 pasos estén completados.'
+        ? 'Ábrelo al menos una vez para marcarlo como completado. Las colegiaturas del ciclo nuevo se desbloquean cuando los pasos estén completados.'
         : requiereDocs
           ? 'Se habilita al completar solicitud, pago y carga de documentos.'
           : 'Se habilita al completar la solicitud y el pago de reinscripción.',
-    accion: puedeRecibo || pasosVistaCerradosPorCuota
+    accion: puedeRecibo || reciboFinalVistoServidor
       ? {
           tipo: 'externo',
           href: `/api/portal-inscripciones/recibo-final?alumnoId=${alumno.alumno_id}`,
@@ -619,6 +672,11 @@ export async function construirEstadoPortalInscripciones(
     solicitudCapturada: solCapturada,
     inscripcionPagada: insPagada,
     cuotaInicioCursoPagada,
+    progresoInscripcion: {
+      reglamentoVisto: reglamentoVistoServidor,
+      reciboFinalVisto: reciboFinalVistoServidor,
+      planConfirmado: planConfirmadoServidor,
+    },
     cierreCiclo,
     dobleAdeudoPrevio,
     cicloColegiaturas: {

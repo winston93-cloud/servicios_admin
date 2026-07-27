@@ -86,6 +86,15 @@ export interface EstadoPortalInscripciones {
    * Implica proceso de inscripción cerrado + plan elegido (no depender de localStorage).
    */
   cuotaInicioCursoPagada?: boolean
+  /**
+   * Progreso de pasos de vista (reglamento / recibo / plan) persistido en servidor
+   * para que no se pidan de nuevo al abrir en otra PC.
+   */
+  progresoInscripcion?: {
+    reglamentoVisto: boolean
+    reciboFinalVisto: boolean
+    planConfirmado: boolean
+  }
   /** Reinscritos: liquidar ciclo anterior antes de la admisión. NI = null. */
   cierreCiclo?: CierreCicloPortal | null
   /**
