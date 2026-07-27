@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { parseGradoEscolar } from './gradoEscolar'
 import { parseNivelEscolar } from './nivelEscolar'
+import { TUTOR_ID_MADRE, TUTOR_ID_PADRE } from './alumnoFamiliarTutor'
 import {
   folioInicialPlantel,
   folioTechoPlantel,
@@ -571,15 +572,108 @@ export interface CrearPagoInternoPayload {
    * Si se omite, cuota (ids 1 y 2) usa `cuota_padres`.
    */
   tipo_serie_folio?: TipoSerieFolioPagoInterno
+  /**
+   * Si true, no replica la cuota a hermanos del mismo nivel.
+   * Usar en el registro espejo para evitar recursión.
+   */
+  omitir_espejo_hermanos?: boolean
+}
+
+export type HermanoMismoNivelCuota = {
+  alumno_id: number
+  alumno_ref: string
+  alumno_nivel: number
+}
+
+/**
+ * Hermanos del mismo nivel (misma familia por cel/CURP de mamá/papá),
+ * activos en el ciclo, excluyendo al alumno dado.
+ * Regla de negocio: una sola cuota de padres cubre a todos los del mismo nivel.
+ */
+export async function listarHermanosMismoNivelParaCuota(
+  alumnoId: number,
+  cicloEscolar: number
+): Promise<HermanoMismoNivelCuota[]> {
+  const { data: alumno, error: alumnoErr } = await supabase
+    .from('alumno')
+    .select('alumno_id, alumno_nivel, alumno_ciclo_escolar')
+    .eq('alumno_id', alumnoId)
+    .maybeSingle()
+
+  if (alumnoErr || !alumno) return []
+  const nivel = Number(alumno.alumno_nivel) || 0
+  if (!nivel) return []
+
+  const { data: familiars } = await supabase
+    .from('alumno_familiar')
+    .select('familiar_cel, familiar_curp')
+    .eq('alumno_id', alumnoId)
+    .in('tutor_id', [TUTOR_ID_MADRE, TUTOR_ID_PADRE])
+
+  const cels = new Set<string>()
+  const curps = new Set<string>()
+  for (const f of familiars ?? []) {
+    const cel = String(f.familiar_cel ?? '').trim()
+    const curp = String(f.familiar_curp ?? '').trim().toUpperCase()
+    if (cel) cels.add(cel)
+    if (curp) curps.add(curp)
+  }
+  if (cels.size === 0 && curps.size === 0) return []
+
+  const ids = new Set<number>()
+  for (const cel of cels) {
+    const { data } = await supabase
+      .from('alumno_familiar')
+      .select('alumno_id')
+      .eq('familiar_cel', cel)
+      .in('tutor_id', [TUTOR_ID_MADRE, TUTOR_ID_PADRE])
+    for (const r of data ?? []) ids.add(Number(r.alumno_id))
+  }
+  for (const curp of curps) {
+    const { data } = await supabase
+      .from('alumno_familiar')
+      .select('alumno_id')
+      .eq('familiar_curp', curp)
+      .in('tutor_id', [TUTOR_ID_MADRE, TUTOR_ID_PADRE])
+    for (const r of data ?? []) ids.add(Number(r.alumno_id))
+  }
+  ids.delete(alumnoId)
+  if (ids.size === 0) return []
+
+  const { data: hermanos, error } = await supabase
+    .from('alumno')
+    .select('alumno_id, alumno_ref, alumno_nivel, alumno_status, alumno_ciclo_escolar')
+    .in('alumno_id', [...ids])
+    .eq('alumno_ciclo_escolar', cicloEscolar)
+    .eq('alumno_nivel', nivel)
+    .not('alumno_status', 'in', '(0,2)')
+
+  if (error || !hermanos?.length) return []
+  return hermanos.map((h) => ({
+    alumno_id: Number(h.alumno_id),
+    alumno_ref: String(h.alumno_ref ?? '').trim(),
+    alumno_nivel: Number(h.alumno_nivel) || 0,
+  }))
 }
 
 export async function crearPagoInterno(
   payload: CrearPagoInternoPayload
-): Promise<{ ok: true; pago_id: number; pago_folio: number } | { ok: false; mensaje: string }> {
+): Promise<
+  | { ok: true; pago_id: number; pago_folio: number; hermanos_cuota?: number }
+  | { ok: false; mensaje: string }
+> {
   const tipoSerie: TipoSerieFolioPagoInterno =
     payload.tipo_serie_folio ??
     (esConceptoSerieCuotaPadres(payload.concepto_id) ? 'cuota_padres' : 'general')
-  const folio = await obtenerSiguienteFolioPago(payload.plantel_serie, tipoSerie)
+
+  const folioForzado =
+    payload.omitir_espejo_hermanos &&
+    payload.pago_folio != null &&
+    Number.isFinite(Number(payload.pago_folio))
+      ? Number(payload.pago_folio)
+      : null
+  const folio =
+    folioForzado ?? (await obtenerSiguienteFolioPago(payload.plantel_serie, tipoSerie))
 
   const { data: maxRow } = await supabase
     .from('pago_interno')
@@ -610,7 +704,42 @@ export async function crearPagoInterno(
     return { ok: false, mensaje: error.message }
   }
 
-  return { ok: true, pago_id: nuevoId, pago_folio: folio }
+  let hermanosCuota = 0
+  const debeEspejarCuota =
+    !payload.omitir_espejo_hermanos && esConceptoSerieCuotaPadres(payload.concepto_id)
+
+  if (debeEspejarCuota) {
+    const { data: pagador } = await supabase
+      .from('alumno')
+      .select('alumno_ref')
+      .eq('alumno_id', payload.alumno_id)
+      .maybeSingle()
+    const refPagador = String(pagador?.alumno_ref ?? '').trim() || String(payload.alumno_id)
+
+    const hermanos = await listarHermanosMismoNivelParaCuota(
+      payload.alumno_id,
+      payload.pago_ciclo_escolar
+    )
+    for (const h of hermanos) {
+      const yaTiene = await alumnoTieneCuotaPadresPagada(h.alumno_id, payload.pago_ciclo_escolar)
+      if (yaTiene) continue
+      const espejo = await crearPagoInterno({
+        alumno_id: h.alumno_id,
+        concepto_id: CONCEPTO_ID_CUOTA_PADRES,
+        concepto_otro: `Cuota compartida c/ hermano ${refPagador}`,
+        pago_folio: folio,
+        pago_importe: 0,
+        pago_fecha: payload.pago_fecha,
+        pago_ciclo_escolar: payload.pago_ciclo_escolar,
+        plantel_serie: payload.plantel_serie,
+        tipo_serie_folio: 'cuota_padres',
+        omitir_espejo_hermanos: true,
+      })
+      if (espejo.ok) hermanosCuota += 1
+    }
+  }
+
+  return { ok: true, pago_id: nuevoId, pago_folio: folio, hermanos_cuota: hermanosCuota }
 }
 
 export function mensajeManualesRequiereCuotaPadres(): string {

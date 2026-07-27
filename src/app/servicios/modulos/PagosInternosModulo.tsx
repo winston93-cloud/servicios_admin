@@ -371,7 +371,11 @@ export default function PagosInternosModulo() {
       }
 
       setMensaje(
-        `Combo registrado. Cuota folio ${resCuota.pago_folio} ($${partes.cuota.toFixed(2)}) · Manuales folio ${resManuales.pago_folio} ($${partes.manuales.toFixed(2)}).`
+        `Combo registrado. Cuota folio ${resCuota.pago_folio} ($${partes.cuota.toFixed(2)}) · Manuales folio ${resManuales.pago_folio} ($${partes.manuales.toFixed(2)})${
+          resCuota.hermanos_cuota
+            ? ` · Cuota replicada a ${resCuota.hermanos_cuota} hermano(s) mismo nivel`
+            : ''
+        }.`
       )
       await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
       if (alumnoSeleccionado) {
@@ -418,7 +422,13 @@ export default function PagosInternosModulo() {
       return
     }
 
-    setMensaje(`Pago registrado. Folio ${res.pago_folio}.`)
+    setMensaje(
+      `Pago registrado. Folio ${res.pago_folio}.${
+        res.hermanos_cuota
+          ? ` Cuota replicada a ${res.hermanos_cuota} hermano(s) del mismo nivel (mismo folio).`
+          : ''
+      }`
+    )
     await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
     if (alumnoSeleccionado) {
       await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
@@ -483,7 +493,13 @@ export default function PagosInternosModulo() {
       setError(res.mensaje)
       return
     }
-    setMensaje(`Cuota de padres registrada. Folio ${res.pago_folio}.`)
+    setMensaje(
+      `Cuota de padres registrada. Folio ${res.pago_folio}.${
+        res.hermanos_cuota
+          ? ` Replicada a ${res.hermanos_cuota} hermano(s) del mismo nivel (mismo folio).`
+          : ''
+      }`
+    )
     await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
     if (alumnoSeleccionado) {
       await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
