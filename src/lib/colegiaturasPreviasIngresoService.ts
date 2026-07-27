@@ -116,7 +116,7 @@ export async function asegurarColegiaturasPreviasIngresoCero(
 
   if (pendientes.length === 0) return { insertados: [] }
 
-  const fechaPago = String(alumno.alumno_alta).slice(0, 10)
+  const fechaPago = altaIso
   const ahora = new Date().toISOString()
   const hora = new Date().toLocaleTimeString('es-MX', {
     hour: '2-digit',
