@@ -19,6 +19,7 @@ import {
   getPaymentConcept,
   normalizarConceptoNo,
   parseImporteBoucher,
+  vigenciaBoucherParaConcepto,
   vigenciaBoucherPorDefecto,
 } from '@/lib/boucherCore'
 import { listarConceptosBoucher, conceptosBoucherParaSelect } from '@/lib/pagoColegiaturaService'
@@ -87,6 +88,12 @@ export default function BauchersModulo() {
   useEffect(() => {
     setCicloBoucher(cicloSeleccionado)
   }, [cicloSeleccionado])
+
+  // Cuota 00: validez = 10 ago del ciclo (no la vigencia corta hoy+2).
+  useEffect(() => {
+    if (normalizarConceptoNo(concepto) !== '00' || !cicloBoucher) return
+    setVigencia(vigenciaBoucherParaConcepto('00', cicloBoucher))
+  }, [concepto, cicloBoucher])
 
   const cargarPrecios = useCallback(async (ciclo: number) => {
     setCargandoPrecios(true)

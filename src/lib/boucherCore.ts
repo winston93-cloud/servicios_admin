@@ -1,5 +1,6 @@
 /** Utilidades legacy para bauchers (port de core.php). */
 
+import { anioCalendarioConcepto } from './colegiaturaPrecioReglas'
 import { normalizarConceptoNo } from './pagoReferenciaColegiatura'
 
 export { normalizarConceptoNo }
@@ -37,6 +38,25 @@ export function vigenciaBoucherPorDefecto(fecha = new Date()): string {
   let dd = fecha.getDate()
   if (dd < 29) dd += 2
   return `${yyyy}-${mm}-${String(dd).padStart(2, '0')}`
+}
+
+/**
+ * Validez impresa en baucher según concepto.
+ * Cuota de Inicio de Curso (00): siempre el 10 de agosto del año de inicio
+ * del ciclo (N → N+2003), p. ej. ciclo 23 → 10 ago 2026. Así el banco no
+ * cobra recargos creyendo que la fecha límite es julio.
+ */
+export function vigenciaBoucherParaConcepto(
+  conceptoNo: string,
+  cicloEscolar: number,
+  fecha = new Date()
+): string {
+  const c = normalizarConceptoNo(conceptoNo)
+  if (c === '00' && Number.isFinite(cicloEscolar) && cicloEscolar > 0) {
+    const anio = anioCalendarioConcepto(c, cicloEscolar)
+    if (anio != null) return `${anio}-08-10`
+  }
+  return vigenciaBoucherPorDefecto(fecha)
 }
 
 /**

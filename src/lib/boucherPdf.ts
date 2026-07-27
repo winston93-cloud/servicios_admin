@@ -10,6 +10,7 @@ import {
   getFullLevel,
   getPaymentConcept,
   gradoPdfBoucher,
+  normalizarConceptoNo,
 } from './boucherCore'
 
 export interface DatosPdfBoucher {
@@ -223,6 +224,12 @@ function dibujarAvisoLegal(
 ): number {
   let avisoH = 18
   const avisos: string[] = []
+
+  if (normalizarConceptoNo(datos.conceptoNo) === '00') {
+    avisos.push(
+      `Cuota de Inicio de Curso: la fecha límite de pago es el ${formatearFechaBoucher(datos.vigencia)}. No aplicar recargos bancarios antes de esa fecha.`
+    )
+  }
 
   if (datos.aplicarRecargos) {
     avisos.push(

@@ -8,7 +8,7 @@ import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { nivelCobroElectronico } from '@/lib/nivelCobroElectronico'
 import type { FilaMatrizPortal } from '@/lib/portalPagosMatrizService'
 import type { VistaPagoInscripcionPortal } from '@/lib/portalInscripcionPagoService'
-import { vigenciaBoucherPorDefecto } from '@/lib/boucherCore'
+import { vigenciaBoucherParaConcepto } from '@/lib/boucherCore'
 import PortalDocumentoModal, { type TipoDocumentoPortal } from '@/app/portal-pagos/components/PortalDocumentoModal'
 import PortalBoucherModal from '@/app/portal-pagos/components/PortalBoucherModal'
 import PortalTransferenciaModal, { type DatosTransferenciaPortal } from '@/app/portal-pagos/components/PortalTransferenciaModal'
@@ -130,7 +130,10 @@ export default function PortalInscripcionPagoView() {
           conceptoNo: fila.conceptoNo,
           conceptoClase: fila.conceptoClase,
           cicloEscolar: vista.ciclo.valor,
-          vigencia: vigenciaBoucherPorDefecto(),
+          vigencia: vigenciaBoucherParaConcepto(
+            fila.conceptoNo,
+            vista.ciclo.valor
+          ),
           importe: calc.importe,
           referencia: calc.referencia,
           nombreAlumno: nombreCompletoAlumno(vista, session?.displayName),

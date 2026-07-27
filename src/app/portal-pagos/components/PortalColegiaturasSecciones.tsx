@@ -7,7 +7,7 @@ import type { CicloEscolarRegistro } from '@/lib/ciclosEscolaresService'
 import type { FilaMatrizPortal, SeccionMatrizPortal } from '@/lib/portalPagosMatrizService'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { nivelCobroElectronico } from '@/lib/nivelCobroElectronico'
-import { vigenciaBoucherPorDefecto } from '@/lib/boucherCore'
+import { vigenciaBoucherParaConcepto } from '@/lib/boucherCore'
 import PortalDocumentoModal, { type TipoDocumentoPortal } from './PortalDocumentoModal'
 import PortalBoucherModal from './PortalBoucherModal'
 import PortalTransferenciaModal, { type DatosTransferenciaPortal } from './PortalTransferenciaModal'
@@ -102,7 +102,7 @@ export default function PortalColegiaturasSecciones({
           conceptoNo: fila.conceptoNo,
           conceptoClase: fila.conceptoClase,
           cicloEscolar: ciclo.valor,
-          vigencia: vigenciaBoucherPorDefecto(),
+          vigencia: vigenciaBoucherParaConcepto(fila.conceptoNo, ciclo.valor),
           importe: calc.importe,
           referencia: calc.referencia,
           nombreAlumno: nombreCompletoAlumno(alumno, displayName),
