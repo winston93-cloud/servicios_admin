@@ -109,7 +109,16 @@ export async function asegurarColegiaturasPreviasIngresoCero(
     return { insertados: [] }
   }
 
-  const mesIngreso = mesDesdeAlta(alumno.alumno_alta)
+  const altaIso = String(alumno.alumno_alta ?? '').slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(altaIso)) return { insertados: [] }
+
+  // Ciclo N = (2003+N)–(2004+N); arranque ≈ 1 ago. Alta previa → sin meses previos.
+  const inicioCicloIso = `${2003 + Number(cicloValor)}-08-01`
+  if (altaIso < inicioCicloIso) {
+    return { insertados: [] }
+  }
+
+  const mesIngreso = mesDesdeAlta(altaIso)
   if (mesIngreso == null) return { insertados: [] }
 
   const planMeses: 1 | 2 = Number(alumno.mes) === 2 ? 2 : 1
