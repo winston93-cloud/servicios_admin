@@ -33,7 +33,7 @@ export const DOCUMENTOS_NI_TIPOS = [
   },
   {
     id: 'certificado_primaria',
-    etiqueta: 'Certificado de primaria',
+    etiqueta: 'Certificado',
     descripcion:
       'Certificado de terminación de estudios de primaria (PDF). Obligatorio al ingresar a secundaria.',
   },
