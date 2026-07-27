@@ -31,6 +31,12 @@ export const DOCUMENTOS_NI_TIPOS = [
     etiqueta: 'Carta de buena conducta',
     descripcion: 'Carta de buena conducta de la escuela de procedencia (PDF).',
   },
+  {
+    id: 'certificado_primaria',
+    etiqueta: 'Certificado de primaria',
+    descripcion:
+      'Certificado de terminación de estudios de primaria (PDF). Obligatorio al ingresar a secundaria.',
+  },
 ] as const
 
 export type DocumentoNiTipoId = (typeof DOCUMENTOS_NI_TIPOS)[number]['id']
@@ -45,7 +51,7 @@ const KINDER_2_3: readonly DocumentoNiTipoId[] = [
   'constancia_no_adeudo',
 ]
 
-const EXPEDIENTE_COMPLETO: readonly DocumentoNiTipoId[] = [
+const EXPEDIENTE_PRIMARIA: readonly DocumentoNiTipoId[] = [
   'acta_nacimiento',
   'curp_alumno',
   'curp_tutor',
@@ -53,12 +59,19 @@ const EXPEDIENTE_COMPLETO: readonly DocumentoNiTipoId[] = [
   'carta_buena_conducta',
 ]
 
+/** Nuevo ingreso / cambio a secundaria: expediente + certificado de primaria. */
+const EXPEDIENTE_SECUNDARIA: readonly DocumentoNiTipoId[] = [
+  ...EXPEDIENTE_PRIMARIA,
+  'certificado_primaria',
+]
+
 /**
- * Requisitos por nivel/grado (nuevo ingreso).
+ * Requisitos por nivel/grado (nuevo ingreso o cambio de nivel).
  * - Maternal: acta + CURP
  * - Kinder 1: acta + CURP
  * - Kinder 2 y 3: acta, CURP, boleta SEP, buena conducta, no adeudo
- * - Primaria / Secundaria: expediente completo (incluye CURP tutor)
+ * - Primaria: expediente (acta, CURPs, no adeudo, buena conducta)
+ * - Secundaria: lo mismo + certificado de primaria
  */
 export function documentosNiRequeridosPorNivelGrado(
   nivel: number,
@@ -70,10 +83,12 @@ export function documentosNiRequeridosPorNivelGrado(
     ids = ACTA_CURP
   } else if (nivel === 2) {
     ids = grado <= 1 ? ACTA_CURP : KINDER_2_3
-  } else if (nivel === 3 || nivel === 4) {
-    ids = EXPEDIENTE_COMPLETO
+  } else if (nivel === 3) {
+    ids = EXPEDIENTE_PRIMARIA
+  } else if (nivel === 4) {
+    ids = EXPEDIENTE_SECUNDARIA
   } else {
-    ids = EXPEDIENTE_COMPLETO
+    ids = EXPEDIENTE_PRIMARIA
   }
 
   return DOCUMENTOS_NI_TIPOS.filter((d) => ids.includes(d.id))
