@@ -2,15 +2,30 @@ import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
 
 /**
  * Series de folio de pagos internos (sistema nuevo):
- * - Winston (primaria/secundaria): desde 26550
- * - Educativo (maternal/kinder): desde 2849, en el hueco libre antes del legacy (~3480)
+ * - Winston general (primaria/secundaria): desde 26550
+ * - Educativo general (maternal/kinder): desde 2849, techo 3480
+ * - Cuota de padres Winston: desde 2140 (hasta antes de la serie general Winston)
+ * - Cuota de padres Educativo: desde 1121 (hasta antes de la serie cuota Winston)
  */
 export type PlantelPagosInternos = 'winston' | 'educativo'
+
+/** Serie de numeración: general (manuales y demás) vs cuota de padres. */
+export type TipoSerieFolioPagoInterno = 'general' | 'cuota_padres'
 
 export const PAGO_INTERNO_FOLIO_WINSTON_INICIAL = 26550
 export const PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL = 2849
 /** Exclusivo: a partir de aquí hay folios legacy que no son la serie nueva educativa. */
 export const PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO = 3480
+
+/** Cuota de padres — Winston (primaria/secundaria). */
+export const PAGO_INTERNO_FOLIO_CUOTA_WINSTON_INICIAL = 2140
+/** Exclusivo: choca con el inicio de la serie general Winston. */
+export const PAGO_INTERNO_FOLIO_CUOTA_WINSTON_TECHO = PAGO_INTERNO_FOLIO_WINSTON_INICIAL
+
+/** Cuota de padres — Educativo (maternal/kinder). */
+export const PAGO_INTERNO_FOLIO_CUOTA_EDUCATIVO_INICIAL = 1121
+/** Exclusivo: choca con el inicio de la serie cuota Winston. */
+export const PAGO_INTERNO_FOLIO_CUOTA_EDUCATIVO_TECHO = PAGO_INTERNO_FOLIO_CUOTA_WINSTON_INICIAL
 
 /** @deprecated Usar PAGO_INTERNO_FOLIO_WINSTON_INICIAL */
 export const PAGO_INTERNO_FOLIO_INICIAL = PAGO_INTERNO_FOLIO_WINSTON_INICIAL
@@ -55,17 +70,50 @@ export function plantelPagoDesdeNivel(nivel: number): PlantelPagosInternos {
 export function plantelSerieDesdeFolio(folio: number): PlantelPagosInternos | null {
   const f = Number(folio)
   if (!Number.isFinite(f)) return null
+  // Serie general Winston
   if (f >= PAGO_INTERNO_FOLIO_WINSTON_INICIAL) return 'winston'
+  // Serie general Educativo (hueco; tiene prioridad sobre cuota Winston en ese rango)
   if (f >= PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL && f < PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO) {
+    return 'educativo'
+  }
+  // Serie cuota Winston (2140 … 26549, excl. hueco educativo ya capturado)
+  if (f >= PAGO_INTERNO_FOLIO_CUOTA_WINSTON_INICIAL && f < PAGO_INTERNO_FOLIO_CUOTA_WINSTON_TECHO) {
+    return 'winston'
+  }
+  // Serie cuota Educativo
+  if (
+    f >= PAGO_INTERNO_FOLIO_CUOTA_EDUCATIVO_INICIAL &&
+    f < PAGO_INTERNO_FOLIO_CUOTA_EDUCATIVO_TECHO
+  ) {
     return 'educativo'
   }
   return null
 }
 
-export function folioInicialPlantel(plantel: PlantelPagosInternos): number {
+export function folioInicialPlantel(
+  plantel: PlantelPagosInternos,
+  tipoSerie: TipoSerieFolioPagoInterno = 'general'
+): number {
+  if (tipoSerie === 'cuota_padres') {
+    return plantel === 'educativo'
+      ? PAGO_INTERNO_FOLIO_CUOTA_EDUCATIVO_INICIAL
+      : PAGO_INTERNO_FOLIO_CUOTA_WINSTON_INICIAL
+  }
   return plantel === 'educativo'
     ? PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL
     : PAGO_INTERNO_FOLIO_WINSTON_INICIAL
+}
+
+export function folioTechoPlantel(
+  plantel: PlantelPagosInternos,
+  tipoSerie: TipoSerieFolioPagoInterno = 'general'
+): number | null {
+  if (tipoSerie === 'cuota_padres') {
+    return plantel === 'educativo'
+      ? PAGO_INTERNO_FOLIO_CUOTA_EDUCATIVO_TECHO
+      : PAGO_INTERNO_FOLIO_CUOTA_WINSTON_TECHO
+  }
+  return plantel === 'educativo' ? PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO : null
 }
 
 /**

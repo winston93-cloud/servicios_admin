@@ -15,6 +15,7 @@ import {
   crearPagoInterno,
   esConceptoCuotaPadresMasManuales,
   esConceptoManuales,
+  esConceptoSerieCuotaPadres,
   listarConceptosInternos,
   ordenarConceptosAz,
   listarPagosPorAlumno,
@@ -27,6 +28,7 @@ import {
   type ConceptoInterno,
   type PagoInternoRegistro,
   type PlantelPagosInternos,
+  type TipoSerieFolioPagoInterno,
 } from '@/lib/pagoInternoService'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
 import PagosInternosCatalogoModal from '../components/PagosInternosCatalogoModal'
@@ -78,9 +80,17 @@ export default function PagosInternosModulo() {
     })
   }, [alumnoSeleccionado, user?.usuario_username])
 
-  const refrescarFolio = useCallback(async (plantel: PlantelPagosInternos) => {
-    setFolio(await obtenerSiguienteFolioPago(plantel))
-  }, [])
+  const tipoSerieFolioActual = useMemo((): TipoSerieFolioPagoInterno => {
+    if (esConceptoSerieCuotaPadres(conceptoId)) return 'cuota_padres'
+    return 'general'
+  }, [conceptoId])
+
+  const refrescarFolio = useCallback(
+    async (plantel: PlantelPagosInternos, tipoSerie: TipoSerieFolioPagoInterno = 'general') => {
+      setFolio(await obtenerSiguienteFolioPago(plantel, tipoSerie))
+    },
+    []
+  )
 
   const recargarConceptos = useCallback(async () => {
     const lista = ordenarConceptosAz(await listarConceptosInternos(true))
@@ -95,8 +105,8 @@ export default function PagosInternosModulo() {
   }, [recargarConceptos])
 
   useEffect(() => {
-    void refrescarFolio(plantelSerieActual)
-  }, [plantelSerieActual, refrescarFolio])
+    void refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
+  }, [plantelSerieActual, tipoSerieFolioActual, refrescarFolio])
 
   useEffect(() => {
     setCicloPago(cicloSeleccionado)
@@ -330,6 +340,7 @@ export default function PagosInternosModulo() {
         pago_fecha: fechaPago,
         pago_ciclo_escolar: cicloPago,
         plantel_serie: plantelSerieActual,
+        tipo_serie_folio: 'cuota_padres',
       })
       if (!resCuota.ok) {
         setGuardando(false)
@@ -345,13 +356,14 @@ export default function PagosInternosModulo() {
         pago_fecha: fechaPago,
         pago_ciclo_escolar: cicloPago,
         plantel_serie: plantelSerieActual,
+        tipo_serie_folio: 'general',
       })
       setGuardando(false)
       if (!resManuales.ok) {
         setError(
           `Cuota registrada (folio ${resCuota.pago_folio}), pero falló manuales: ${resManuales.mensaje}`
         )
-        await refrescarFolio(plantelSerieActual)
+        await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
         if (alumnoSeleccionado) {
           await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
         }
@@ -361,7 +373,7 @@ export default function PagosInternosModulo() {
       setMensaje(
         `Combo registrado. Cuota folio ${resCuota.pago_folio} ($${partes.cuota.toFixed(2)}) · Manuales folio ${resManuales.pago_folio} ($${partes.manuales.toFixed(2)}).`
       )
-      await refrescarFolio(plantelSerieActual)
+      await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
       if (alumnoSeleccionado) {
         await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
       }
@@ -396,6 +408,7 @@ export default function PagosInternosModulo() {
       pago_fecha: fechaPago,
       pago_ciclo_escolar: cicloPago,
       plantel_serie: plantelSerieActual,
+      tipo_serie_folio: tipoSerieFolioActual,
     })
 
     setGuardando(false)
@@ -406,7 +419,7 @@ export default function PagosInternosModulo() {
     }
 
     setMensaje(`Pago registrado. Folio ${res.pago_folio}.`)
-    await refrescarFolio(plantelSerieActual)
+    await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
     if (alumnoSeleccionado) {
       await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
     }
@@ -463,6 +476,7 @@ export default function PagosInternosModulo() {
       pago_fecha: fechaPago,
       pago_ciclo_escolar: cicloPago,
       plantel_serie: plantelCuota,
+      tipo_serie_folio: 'cuota_padres',
     })
     setGuardando(false)
     if (!res.ok) {
@@ -470,7 +484,7 @@ export default function PagosInternosModulo() {
       return
     }
     setMensaje(`Cuota de padres registrada. Folio ${res.pago_folio}.`)
-    await refrescarFolio(plantelCuota)
+    await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
     if (alumnoSeleccionado) {
       await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
     }
@@ -579,11 +593,16 @@ export default function PagosInternosModulo() {
                   Folio
                   <input
                     type="number"
-                    min={26550}
                     className="pi-input pi-input--ro"
                     value={folio}
                     readOnly
-                    title="Asignado automáticamente (desde 26550)"
+                    title={
+                      esComboCuotaManuales
+                        ? 'Cuota usa serie propia; manuales usan serie general del plantel'
+                        : tipoSerieFolioActual === 'cuota_padres'
+                          ? `Serie cuota de padres (${plantelSerieActual === 'educativo' ? 'desde 1121' : 'desde 2140'})`
+                          : `Serie general ${plantelSerieActual === 'educativo' ? '(desde 2849)' : '(desde 26550)'}`
+                    }
                     aria-label="Folio del recibo (automático)"
                   />
                 </label>

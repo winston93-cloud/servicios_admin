@@ -3,8 +3,10 @@ import { parseGradoEscolar } from './gradoEscolar'
 import { parseNivelEscolar } from './nivelEscolar'
 import {
   folioInicialPlantel,
+  folioTechoPlantel,
   plantelSerieDesdeFolio,
   type PlantelPagosInternos,
+  type TipoSerieFolioPagoInterno,
   PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL,
   PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO,
   PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
@@ -14,15 +16,21 @@ export {
   accesoPagosInternosUsuario,
   ETIQUETA_PLANTEL_PAGOS_INTERNOS,
   folioInicialPlantel,
+  folioTechoPlantel,
   plantelPagoDesdeNivel,
   plantelSerieDesdeFolio,
   resolverPlantelFolioPagoInterno,
+  PAGO_INTERNO_FOLIO_CUOTA_EDUCATIVO_INICIAL,
+  PAGO_INTERNO_FOLIO_CUOTA_EDUCATIVO_TECHO,
+  PAGO_INTERNO_FOLIO_CUOTA_WINSTON_INICIAL,
+  PAGO_INTERNO_FOLIO_CUOTA_WINSTON_TECHO,
   PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL,
   PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO,
   PAGO_INTERNO_FOLIO_INICIAL,
   PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
   type AccesoPagosInternosUsuario,
   type PlantelPagosInternos,
+  type TipoSerieFolioPagoInterno,
 } from './pagoInternoPlantel'
 
 // --- Conceptos ---
@@ -467,10 +475,56 @@ export async function listarPagosInternosSerieNueva(opts?: {
   return listarPagosInternosPorPlanteles(['winston'], opts)
 }
 
+/** Conceptos que cuentan como cuota de padres pagada (legacy). */
+export const CONCEPTOS_CUOTA_PADRES = [1, 2] as const
+
+/** Concepto individual CUOTA DE PADRES. */
+export const CONCEPTO_ID_CUOTA_PADRES = 2
+
+/** Concepto MANUALES en catálogo legacy. */
+export const CONCEPTO_ID_MANUALES = 5
+
+/**
+ * Combo legacy «* CUOTA DE PADRES + MANUALES» (concepto_id 1):
+ * se cobra junto pero se registran e imprimen dos recibos (cuota + manuales).
+ */
+export const CONCEPTO_ID_CUOTA_PADRES_MAS_MANUALES = 1
+
+/** True si el concepto usa la numeración propia de cuota de padres. */
+export function esConceptoSerieCuotaPadres(conceptoId: number): boolean {
+  return (CONCEPTOS_CUOTA_PADRES as readonly number[]).includes(conceptoId)
+}
+
+export function esConceptoCuotaPadresMasManuales(
+  conceptoId: number,
+  conceptoClase?: string | null
+): boolean {
+  if (conceptoId === CONCEPTO_ID_CUOTA_PADRES_MAS_MANUALES) return true
+  const nombre = (conceptoClase ?? '').replace(/^\*\s*/, '').trim().toUpperCase()
+  return (
+    nombre.includes('CUOTA DE PADRES') &&
+    nombre.includes('MANUALES') &&
+    nombre.includes('+')
+  )
+}
+
+export function esConceptoManuales(
+  conceptoId: number,
+  conceptoClase?: string | null
+): boolean {
+  if (esConceptoCuotaPadresMasManuales(conceptoId, conceptoClase)) return false
+  if (conceptoId === CONCEPTO_ID_MANUALES) return true
+  const nombre = (conceptoClase ?? '').replace(/^\*\s*/, '').trim().toUpperCase()
+  return nombre === 'MANUALES'
+}
+
 export async function obtenerSiguienteFolioPago(
-  plantel: PlantelPagosInternos = 'winston'
+  plantel: PlantelPagosInternos = 'winston',
+  tipoSerie: TipoSerieFolioPagoInterno = 'general'
 ): Promise<number> {
-  const inicial = folioInicialPlantel(plantel)
+  const inicial = folioInicialPlantel(plantel, tipoSerie)
+  const techo = folioTechoPlantel(plantel, tipoSerie)
+
   let q = supabase
     .from('pago_interno')
     .select('pago_folio')
@@ -478,8 +532,13 @@ export async function obtenerSiguienteFolioPago(
     .order('pago_folio', { ascending: false })
     .limit(1)
 
-  if (plantel === 'educativo') {
-    q = q.lt('pago_folio', PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO)
+  if (techo != null) {
+    q = q.lt('pago_folio', techo)
+  }
+
+  // Cuota: solo conceptos de cuota (1/2) para no “saltar” por otros conceptos en el rango.
+  if (tipoSerie === 'cuota_padres') {
+    q = q.in('concepto_id', [...CONCEPTOS_CUOTA_PADRES])
   }
 
   const { data, error } = await q.maybeSingle()
@@ -487,7 +546,14 @@ export async function obtenerSiguienteFolioPago(
   if (error || !data?.pago_folio) return inicial
   const max = Number(data.pago_folio)
   if (!Number.isFinite(max) || max < inicial) return inicial
-  return max + 1
+  const siguiente = max + 1
+  if (techo != null && siguiente >= techo) {
+    console.error(
+      `Serie de folio ${tipoSerie}/${plantel} agotada (siguiente ${siguiente} ≥ techo ${techo})`
+    )
+    return inicial
+  }
+  return siguiente
 }
 
 export interface CrearPagoInternoPayload {
@@ -500,12 +566,20 @@ export interface CrearPagoInternoPayload {
   pago_ciclo_escolar: number
   /** Serie de folio (Winston / Educativo). */
   plantel_serie: PlantelPagosInternos
+  /**
+   * Numeración: general (manuales y demás) o cuota de padres.
+   * Si se omite, cuota (ids 1 y 2) usa `cuota_padres`.
+   */
+  tipo_serie_folio?: TipoSerieFolioPagoInterno
 }
 
 export async function crearPagoInterno(
   payload: CrearPagoInternoPayload
 ): Promise<{ ok: true; pago_id: number; pago_folio: number } | { ok: false; mensaje: string }> {
-  const folio = await obtenerSiguienteFolioPago(payload.plantel_serie)
+  const tipoSerie: TipoSerieFolioPagoInterno =
+    payload.tipo_serie_folio ??
+    (esConceptoSerieCuotaPadres(payload.concepto_id) ? 'cuota_padres' : 'general')
+  const folio = await obtenerSiguienteFolioPago(payload.plantel_serie, tipoSerie)
 
   const { data: maxRow } = await supabase
     .from('pago_interno')
@@ -537,44 +611,6 @@ export async function crearPagoInterno(
   }
 
   return { ok: true, pago_id: nuevoId, pago_folio: folio }
-}
-
-/** Conceptos que cuentan como cuota de padres pagada (legacy). */
-export const CONCEPTOS_CUOTA_PADRES = [1, 2] as const
-
-/** Concepto individual CUOTA DE PADRES. */
-export const CONCEPTO_ID_CUOTA_PADRES = 2
-
-/** Concepto MANUALES en catálogo legacy. */
-export const CONCEPTO_ID_MANUALES = 5
-
-/**
- * Combo legacy «* CUOTA DE PADRES + MANUALES» (concepto_id 1):
- * se cobra junto pero se registran e imprimen dos recibos (cuota + manuales).
- */
-export const CONCEPTO_ID_CUOTA_PADRES_MAS_MANUALES = 1
-
-export function esConceptoCuotaPadresMasManuales(
-  conceptoId: number,
-  conceptoClase?: string | null
-): boolean {
-  if (conceptoId === CONCEPTO_ID_CUOTA_PADRES_MAS_MANUALES) return true
-  const nombre = (conceptoClase ?? '').replace(/^\*\s*/, '').trim().toUpperCase()
-  return (
-    nombre.includes('CUOTA DE PADRES') &&
-    nombre.includes('MANUALES') &&
-    nombre.includes('+')
-  )
-}
-
-export function esConceptoManuales(
-  conceptoId: number,
-  conceptoClase?: string | null
-): boolean {
-  if (esConceptoCuotaPadresMasManuales(conceptoId, conceptoClase)) return false
-  if (conceptoId === CONCEPTO_ID_MANUALES) return true
-  const nombre = (conceptoClase ?? '').replace(/^\*\s*/, '').trim().toUpperCase()
-  return nombre === 'MANUALES'
 }
 
 export function mensajeManualesRequiereCuotaPadres(): string {
