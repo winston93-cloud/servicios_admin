@@ -265,14 +265,26 @@ export default function PortalInscripcionesView() {
         const cicloValor = Number(siguiente.ciclo?.valor ?? 0)
         const cicloColeg = Number(siguiente.cicloColegiaturas?.valor ?? 0)
         if (cicloValor > 0) {
-          setReglamentoVisto(leerReglamentoVisto(alumnoId, cicloValor))
-          setReciboFinalVisto(leerReciboFinalVisto(alumnoId, cicloValor))
+          setReglamentoVisto(
+            Boolean(siguiente.cuotaInicioCursoPagada) ||
+              leerReglamentoVisto(alumnoId, cicloValor)
+          )
+          setReciboFinalVisto(
+            Boolean(siguiente.cuotaInicioCursoPagada) ||
+              leerReciboFinalVisto(alumnoId, cicloValor)
+          )
         } else {
           setReglamentoVisto(false)
           setReciboFinalVisto(false)
         }
         if (cicloColeg > 0) {
-          setPlanConfirmado(leerPlanPagosConfirmado(alumnoId, cicloColeg))
+          const planOk =
+            Boolean(siguiente.cuotaInicioCursoPagada) ||
+            leerPlanPagosConfirmado(alumnoId, cicloColeg)
+          if (planOk && siguiente.cuotaInicioCursoPagada) {
+            marcarPlanPagosConfirmado(alumnoId, cicloColeg)
+          }
+          setPlanConfirmado(planOk)
         } else {
           setPlanConfirmado(false)
         }
@@ -421,10 +433,15 @@ export default function PortalInscripcionesView() {
     if (cicloColeg <= 0) return
 
     const yaConfirmado =
-      planConfirmado || leerPlanPagosConfirmado(alumnoId, cicloColeg)
+      planConfirmado ||
+      Boolean(estadoVista?.cuotaInicioCursoPagada) ||
+      leerPlanPagosConfirmado(alumnoId, cicloColeg)
 
     if (yaConfirmado) {
       setPlanConfirmado(true)
+      if (estadoVista?.cuotaInicioCursoPagada) {
+        marcarPlanPagosConfirmado(alumnoId, cicloColeg)
+      }
       setPlanModalAbierto(false)
     } else {
       // Abrir ya: no esperar al GET (evita saltarse la modal si el fetch falla / se cancela).
@@ -455,6 +472,7 @@ export default function PortalInscripcionesView() {
     alumnoId,
     planConfirmado,
     estadoVista?.cicloColegiaturas?.valor,
+    estadoVista?.cuotaInicioCursoPagada,
   ])
 
   useEffect(() => {

@@ -81,6 +81,11 @@ export interface EstadoPortalInscripciones {
   showPayment?: boolean
   solicitudCapturada?: boolean
   inscripcionPagada?: boolean
+  /**
+   * Ya pagó cuota de inicio de curso (00) del ciclo de colegiaturas.
+   * Implica proceso de inscripción cerrado + plan elegido (no depender de localStorage).
+   */
+  cuotaInicioCursoPagada?: boolean
   /** Reinscritos: liquidar ciclo anterior antes de la admisión. NI = null. */
   cierreCiclo?: CierreCicloPortal | null
   /**
