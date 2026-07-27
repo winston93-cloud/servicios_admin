@@ -542,13 +542,36 @@ export async function crearPagoInterno(
 /** Conceptos que cuentan como cuota de padres pagada (legacy). */
 export const CONCEPTOS_CUOTA_PADRES = [1, 2] as const
 
+/** Concepto individual CUOTA DE PADRES. */
+export const CONCEPTO_ID_CUOTA_PADRES = 2
+
 /** Concepto MANUALES en catálogo legacy. */
 export const CONCEPTO_ID_MANUALES = 5
+
+/**
+ * Combo legacy «* CUOTA DE PADRES + MANUALES» (concepto_id 1):
+ * se cobra junto pero se registran e imprimen dos recibos (cuota + manuales).
+ */
+export const CONCEPTO_ID_CUOTA_PADRES_MAS_MANUALES = 1
+
+export function esConceptoCuotaPadresMasManuales(
+  conceptoId: number,
+  conceptoClase?: string | null
+): boolean {
+  if (conceptoId === CONCEPTO_ID_CUOTA_PADRES_MAS_MANUALES) return true
+  const nombre = (conceptoClase ?? '').replace(/^\*\s*/, '').trim().toUpperCase()
+  return (
+    nombre.includes('CUOTA DE PADRES') &&
+    nombre.includes('MANUALES') &&
+    nombre.includes('+')
+  )
+}
 
 export function esConceptoManuales(
   conceptoId: number,
   conceptoClase?: string | null
 ): boolean {
+  if (esConceptoCuotaPadresMasManuales(conceptoId, conceptoClase)) return false
   if (conceptoId === CONCEPTO_ID_MANUALES) return true
   const nombre = (conceptoClase ?? '').replace(/^\*\s*/, '').trim().toUpperCase()
   return nombre === 'MANUALES'
@@ -556,6 +579,25 @@ export function esConceptoManuales(
 
 export function mensajeManualesRequiereCuotaPadres(): string {
   return 'Registra primero la cuota de padres en este ciclo escolar antes de pagar manuales.'
+}
+
+/** Precios separados del combo (nivel/grado). Null si falta alguno. */
+export async function resolverPreciosCuotaYManuales(
+  cicloEscolar: number,
+  nivel: number | null,
+  grado: number | null,
+  opts?: { cualquierNivel?: boolean }
+): Promise<{ cuota: number; manuales: number; total: number } | null> {
+  const [cuota, manuales] = await Promise.all([
+    resolverPrecioInterno(CONCEPTO_ID_CUOTA_PADRES, cicloEscolar, nivel, grado, opts),
+    resolverPrecioInterno(CONCEPTO_ID_MANUALES, cicloEscolar, nivel, grado, opts),
+  ])
+  if (cuota == null || manuales == null) return null
+  return {
+    cuota,
+    manuales,
+    total: Math.round((cuota + manuales) * 100) / 100,
+  }
 }
 
 export async function alumnoTieneCuotaPadresPagada(

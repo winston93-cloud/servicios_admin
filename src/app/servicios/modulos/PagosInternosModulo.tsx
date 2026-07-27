@@ -10,7 +10,10 @@ import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
 import { nombreVisibleAlumno, ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
 import {
   alumnoTieneCuotaPadresPagada,
+  CONCEPTO_ID_CUOTA_PADRES,
+  CONCEPTO_ID_MANUALES,
   crearPagoInterno,
+  esConceptoCuotaPadresMasManuales,
   esConceptoManuales,
   listarConceptosInternos,
   ordenarConceptosAz,
@@ -20,6 +23,7 @@ import {
   obtenerSiguienteFolioPago,
   resolverPlantelFolioPagoInterno,
   resolverPrecioInterno,
+  resolverPreciosCuotaYManuales,
   type ConceptoInterno,
   type PagoInternoRegistro,
   type PlantelPagosInternos,
@@ -29,6 +33,7 @@ import PagosInternosCatalogoModal from '../components/PagosInternosCatalogoModal
 import PagosInternosListadoModal from '../components/PagosInternosListadoModal'
 import ValePagoInternoPrint, {
   imprimirValePagoInterno,
+  imprimirVariosValesPagoInterno,
   type DatosValePagoInterno,
 } from '../components/ValePagoInternoPrint'
 
@@ -112,6 +117,13 @@ export default function PagosInternosModulo() {
     esConceptoManuales(conceptoSeleccionado.concepto_id, conceptoSeleccionado.concepto_clase) &&
     !cuotaPadresPagada
 
+  const esComboCuotaManuales =
+    conceptoSeleccionado != null &&
+    esConceptoCuotaPadresMasManuales(
+      conceptoSeleccionado.concepto_id,
+      conceptoSeleccionado.concepto_clase
+    )
+
   const cargarDatosAlumno = useCallback(
     async (ref: string, ciclo: number) => {
       setCargandoPagos(true)
@@ -157,14 +169,14 @@ export default function PagosInternosModulo() {
       fecha: string,
       ciclo: number,
       conceptoExtra?: string
-    ) => {
-      if (!alumnoSeleccionado) return
+    ): Promise<DatosValePagoInterno | null> => {
+      if (!alumnoSeleccionado) return null
       const alumno =
         (await obtenerAlumnoPorRef(
           alumnoSeleccionado.alumno_ref,
           cicloSeleccionado
         )) ?? (await obtenerAlumnoPorRef(alumnoSeleccionado.alumno_ref))
-      if (!alumno) return
+      if (!alumno) return null
 
       const concepto =
         conceptosOrdenados.find((c) => c.concepto_id === conceptoIdPago)?.concepto_clase ?? ''
@@ -186,8 +198,7 @@ export default function PagosInternosModulo() {
         cicloEtiqueta: etiquetaCicloEscolar(ciclo, opcionesCatalogo),
       }
       setValeImpresion(datos)
-      // Imprime con los datos ya armados (iframe), sin esperar el paint de React.
-      imprimirValePagoInterno(datos)
+      return datos
     },
     [alumnoSeleccionado, cicloSeleccionado, conceptosOrdenados, opcionesCatalogo]
   )
@@ -201,13 +212,14 @@ export default function PagosInternosModulo() {
       setError(null)
       setMensaje(null)
       const cicloVale = pago.pago_ciclo_escolar ?? cicloPago
-      await prepararValeImpresion(
+      const datos = await prepararValeImpresion(
         pago.concepto_id,
         Number(pago.pago_importe),
         String(pago.pago_fecha ?? hoyIso()),
         cicloVale,
         pago.concepto_otro ?? undefined
       )
+      if (datos) imprimirValePagoInterno(datos)
       setMensaje(`Reimpresión folio ${pago.pago_folio} (sin nuevo registro).`)
     },
     [alumnoSeleccionado, cicloPago, prepararValeImpresion]
@@ -222,6 +234,17 @@ export default function PagosInternosModulo() {
         alumnoSeleccionado.alumno_nivel,
         alumnoSeleccionado.alumno_grado
       )
+      const concepto = conceptosOrdenados.find((c) => c.concepto_id === conceptoIdPago)
+      if (
+        concepto &&
+        esConceptoCuotaPadresMasManuales(concepto.concepto_id, concepto.concepto_clase)
+      ) {
+        const partes = await resolverPreciosCuotaYManuales(cicloPago, nivel, grado, {
+          cualquierNivel: esExterno,
+        })
+        if (partes) setImporte(partes.total)
+        return
+      }
       const precio = await resolverPrecioInterno(
         conceptoIdPago,
         cicloPago,
@@ -231,7 +254,7 @@ export default function PagosInternosModulo() {
       )
       if (precio != null) setImporte(precio)
     },
-    [alumnoSeleccionado, cicloPago]
+    [alumnoSeleccionado, cicloPago, conceptosOrdenados]
   )
 
   const onCambioConcepto = useCallback(
@@ -274,6 +297,96 @@ export default function PagosInternosModulo() {
     setMensaje(null)
     setError(null)
 
+    // Combo legacy: 2 registros (cuota + manuales) y 2 recibos (orig+copia c/u).
+    if (
+      conceptoSeleccionado &&
+      esConceptoCuotaPadresMasManuales(
+        conceptoSeleccionado.concepto_id,
+        conceptoSeleccionado.concepto_clase
+      )
+    ) {
+      const esExterno =
+        String(alumnoSeleccionado?.alumno_ref ?? '').trim() === ALUMNO_REF_EXTERNO
+      const { nivel, grado } = nivelGradoDesdeAlumno(
+        alumnoSeleccionado?.alumno_nivel,
+        alumnoSeleccionado?.alumno_grado
+      )
+      const partes = await resolverPreciosCuotaYManuales(cicloPago, nivel, grado, {
+        cualquierNivel: esExterno,
+      })
+      if (!partes) {
+        setGuardando(false)
+        setError(
+          'No hay precio de cuota de padres o manuales para el nivel/grado de este alumno.'
+        )
+        return
+      }
+
+      const resCuota = await crearPagoInterno({
+        alumno_id: alumnoId,
+        concepto_id: CONCEPTO_ID_CUOTA_PADRES,
+        concepto_otro: conceptoOtro,
+        pago_importe: partes.cuota,
+        pago_fecha: fechaPago,
+        pago_ciclo_escolar: cicloPago,
+        plantel_serie: plantelSerieActual,
+      })
+      if (!resCuota.ok) {
+        setGuardando(false)
+        setError(resCuota.mensaje)
+        return
+      }
+
+      const resManuales = await crearPagoInterno({
+        alumno_id: alumnoId,
+        concepto_id: CONCEPTO_ID_MANUALES,
+        concepto_otro: conceptoOtro,
+        pago_importe: partes.manuales,
+        pago_fecha: fechaPago,
+        pago_ciclo_escolar: cicloPago,
+        plantel_serie: plantelSerieActual,
+      })
+      setGuardando(false)
+      if (!resManuales.ok) {
+        setError(
+          `Cuota registrada (folio ${resCuota.pago_folio}), pero falló manuales: ${resManuales.mensaje}`
+        )
+        await refrescarFolio(plantelSerieActual)
+        if (alumnoSeleccionado) {
+          await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
+        }
+        return
+      }
+
+      setMensaje(
+        `Combo registrado. Cuota folio ${resCuota.pago_folio} ($${partes.cuota.toFixed(2)}) · Manuales folio ${resManuales.pago_folio} ($${partes.manuales.toFixed(2)}).`
+      )
+      await refrescarFolio(plantelSerieActual)
+      if (alumnoSeleccionado) {
+        await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
+      }
+
+      const [valeCuota, valeManuales] = await Promise.all([
+        prepararValeImpresion(
+          CONCEPTO_ID_CUOTA_PADRES,
+          partes.cuota,
+          fechaPago,
+          cicloPago,
+          conceptoOtro
+        ),
+        prepararValeImpresion(
+          CONCEPTO_ID_MANUALES,
+          partes.manuales,
+          fechaPago,
+          cicloPago,
+          conceptoOtro
+        ),
+      ])
+      const vales = [valeCuota, valeManuales].filter(Boolean) as DatosValePagoInterno[]
+      if (vales.length) imprimirVariosValesPagoInterno(vales)
+      return
+    }
+
     const res = await crearPagoInterno({
       alumno_id: alumnoId,
       concepto_id: conceptoId,
@@ -297,13 +410,14 @@ export default function PagosInternosModulo() {
     if (alumnoSeleccionado) {
       await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
     }
-    await prepararValeImpresion(
+    const vale = await prepararValeImpresion(
       conceptoId,
       Number(importe),
       fechaPago,
       cicloPago,
       conceptoOtro
     )
+    if (vale) imprimirValePagoInterno(vale)
   }
 
   const onCuotaPadresRapida = async () => {
@@ -311,7 +425,9 @@ export default function PagosInternosModulo() {
       setError('Selecciona un alumno primero.')
       return
     }
-    const conceptoCuota = conceptosOrdenados.find((c) => c.concepto_id === 2) ?? conceptosOrdenados[0]
+    const conceptoCuota =
+      conceptosOrdenados.find((c) => c.concepto_id === CONCEPTO_ID_CUOTA_PADRES) ??
+      conceptosOrdenados[0]
     if (!conceptoCuota) {
       setError('No hay concepto de cuota de padres en el catálogo.')
       return
@@ -358,12 +474,13 @@ export default function PagosInternosModulo() {
     if (alumnoSeleccionado) {
       await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
     }
-    await prepararValeImpresion(
+    const vale = await prepararValeImpresion(
       conceptoCuota.concepto_id,
       monto,
       fechaPago,
       cicloPago
     )
+    if (vale) imprimirValePagoInterno(vale)
   }
 
   const nombreAlumno = alumnoSeleccionado
@@ -485,6 +602,13 @@ export default function PagosInternosModulo() {
                     ))}
                   </select>
                 </label>
+                {esComboCuotaManuales && (
+                  <p className="pi-hint" role="note">
+                    Este concepto registra e imprime dos recibos: cuota de padres
+                    y manuales (cada uno original + copia), con el precio de su
+                    nivel y grado.
+                  </p>
+                )}
                 <label>
                   Concepto extra
                   <input
