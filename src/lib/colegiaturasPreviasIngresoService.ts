@@ -84,6 +84,9 @@ async function siguientePagoId(supabase: AppDatabaseClient): Promise<number> {
  *
  * Solo para **nuevo ingreso** en el ciclo de su ficha. Los reinscritos
  * conservan `alumno_alta` antigua; no deben recibir ceros mid-ciclo.
+ *
+ * Si el alta es antes del arranque del ciclo (1 ago del año del ciclo),
+ * no hay meses previos (inscripción feb–jul para ciclo que inicia en ago).
  */
 export async function asegurarColegiaturasPreviasIngresoCero(
   supabase: AppDatabaseClient,
