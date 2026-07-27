@@ -4,8 +4,9 @@ import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
  * Series de folio de pagos internos (sistema nuevo):
  * - Winston general (primaria/secundaria): desde 26550
  * - Educativo general (maternal/kinder): desde 2849, techo 3480
- * - Cuota de padres Winston: desde 2140 (hasta antes de la serie general Winston)
- * - Cuota de padres Educativo: desde 1037 (hasta antes de la serie cuota Winston)
+ * - Cuota de padres Winston: desde 2140 hasta antes de la serie general Educativo (2849)
+ *   (no reutilizar el histórico legacy de combo ~6000–7000)
+ * - Cuota de padres Educativo: desde 1037 hasta antes de la serie cuota Winston (2140)
  */
 export type PlantelPagosInternos = 'winston' | 'educativo'
 
@@ -19,8 +20,11 @@ export const PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO = 3480
 
 /** Cuota de padres — Winston (primaria/secundaria). */
 export const PAGO_INTERNO_FOLIO_CUOTA_WINSTON_INICIAL = 2140
-/** Exclusivo: choca con el inicio de la serie general Winston. */
-export const PAGO_INTERNO_FOLIO_CUOTA_WINSTON_TECHO = PAGO_INTERNO_FOLIO_WINSTON_INICIAL
+/**
+ * Exclusivo: techo = inicio serie general Educativo.
+ * Así la cuota Winston no “salta” al histórico legacy (~6000+) ni choca con Educativo.
+ */
+export const PAGO_INTERNO_FOLIO_CUOTA_WINSTON_TECHO = PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL
 
 /** Cuota de padres — Educativo (maternal/kinder). */
 export const PAGO_INTERNO_FOLIO_CUOTA_EDUCATIVO_INICIAL = 1037
