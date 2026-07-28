@@ -4,6 +4,7 @@ import { formaIngresoPorDefecto } from '@/lib/alumnoFormaIngreso'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
 import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import { documentosNiYaEnviados } from '@/lib/portalDocumentosNiService'
+import { alumnoDocumentacionAutorizada } from '@/lib/controlEscolarService'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
 import {
   inscripcionCompletaPagada,
@@ -46,11 +47,13 @@ export async function GET(request: Request) {
 
     let docsOk = true
     if (!esReinscrito) {
-      docsOk = await documentosNiYaEnviados(
+      const docsPortal = await documentosNiYaEnviados(
         supabase,
         alumno.alumno_id,
         Number(cicloPago.valor)
       )
+      // Control Escolar (a_inscritos) o carga PDF en portal.
+      docsOk = docsPortal || (await alumnoDocumentacionAutorizada(alumno.alumno_ref))
     }
 
     if (!solOk || !insPagada || !docsOk) {

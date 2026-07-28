@@ -21,6 +21,7 @@ import {
 import { urlReglamentoEscolarLegacy } from './portalAdmisionesConfig'
 import { requiereDocumentosAdmision } from './portalDocumentosAdmision'
 import { documentosNiYaEnviados } from './portalDocumentosNiService'
+import { alumnoDocumentacionAutorizada } from './controlEscolarService'
 import {
   hrefReglamentoArchivo,
   obtenerReglamento,
@@ -109,17 +110,10 @@ export function tienePagoConcepto(
 }
 
 async function enReciboFinal(
-  supabase: AppDatabaseClient,
+  _supabase: AppDatabaseClient,
   alumnoRef: string | number
 ): Promise<boolean> {
-  const ref = String(alumnoRef).replace(/\D/g, '').slice(-5)
-  const { count, error } = await supabase
-    .from('a_inscritos')
-    .select('ctrl', { count: 'exact', head: true })
-    .eq('ctrl', ref)
-
-  if (error) return false
-  return (count ?? 0) > 0
+  return alumnoDocumentacionAutorizada(alumnoRef)
 }
 
 function bloqueoPorStatus(status: number | null | undefined): {

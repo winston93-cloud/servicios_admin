@@ -21443,6 +21443,62 @@ html[data-theme='light'] .portal-docs-item--listo {
   color: #fecaca;
 }
 
+/* —— Control Escolar —— */
+.control-escolar-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border, #334155) 80%, transparent);
+  background: color-mix(in srgb, var(--surface, #0f172a) 92%, transparent);
+  cursor: pointer;
+  color: var(--text, #f1f5f9);
+}
+
+.control-escolar-check input {
+  margin-top: 0.2rem;
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: #0284c7;
+  flex-shrink: 0;
+}
+
+.control-escolar-check-hint {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--muted, #94a3b8);
+  line-height: 1.45;
+}
+
+.control-escolar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.25rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #f0f9ff;
+  background: linear-gradient(135deg, #0284c7, #0369a1);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.control-escolar-btn:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
+.control-escolar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* —— Catálogo usuarios (modal CRUD) —— */
 .usr-modulo .servicios-panel-title {
   display: inline-flex;
