@@ -22075,23 +22075,28 @@ html[data-theme='dark'] .ce-detalle-value--status {
 }
 
 /* Autocomplete dentro del panel CE: contraste legible en light/dark */
-.ce-panel .alumno-autocomplete-label,
-.ce-search .alumno-autocomplete-label {
+.ce-panel .alumno-ac-label,
+.ce-search .alumno-ac-label {
   color: var(--ce-muted) !important;
 }
 
-.ce-panel .alumno-autocomplete-input,
-.ce-search .alumno-autocomplete-input {
+.ce-panel .alumno-ac-input,
+.ce-search .alumno-ac-input {
   color: var(--ce-ink) !important;
   background: var(--ce-card) !important;
   border-color: var(--ce-line) !important;
 }
 
-html[data-theme='light'] .ce-panel .alumno-autocomplete-input,
-html[data-theme='light'] .ce-search .alumno-autocomplete-input {
+html[data-theme='light'] .ce-panel .alumno-ac-input,
+html[data-theme='light'] .ce-search .alumno-ac-input {
   background: #fff !important;
   color: #0f172a !important;
   border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-theme='light'] .ce-panel .alumno-ac-label-ciclo,
+html[data-theme='light'] .ce-search .alumno-ac-label-ciclo {
+  color: #64748b !important;
 }
 
 /* —— Catálogo usuarios (modal CRUD) —— */
