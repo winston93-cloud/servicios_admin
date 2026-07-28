@@ -21756,7 +21756,46 @@ html[data-theme='light'] .portal-docs-item--listo {
   display: flex;
   align-items: flex-start;
   gap: 0.9rem;
+  flex-wrap: wrap;
 }
+
+.ce-heading-copy {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.ce-panel-open-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-left: auto;
+  min-height: 2.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(2, 132, 199, 0.28);
+  background: linear-gradient(145deg, #0284c7, #0369a1);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(2, 132, 199, 0.22);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.ce-panel-open-btn:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 12px 26px rgba(2, 132, 199, 0.28);
+}
+
+.ce-panel-open-btn:active {
+  transform: translateY(1px);
+}
+
+html[data-theme='dark'] .ce-panel-open-btn {
+  border-color: rgba(56, 189, 248, 0.35);
+  background: linear-gradient(145deg, #0ea5e9, #0284c7);
+}
+
 
 .ce-heading-icon {
   flex-shrink: 0;
@@ -22097,6 +22136,443 @@ html[data-theme='light'] .ce-search .alumno-ac-input {
 html[data-theme='light'] .ce-panel .alumno-ac-label-ciclo,
 html[data-theme='light'] .ce-search .alumno-ac-label-ciclo {
   color: #64748b !important;
+}
+
+/* —— Panel documentación CE (modal) —— */
+.ce-panel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(14, 165, 233, 0.18), transparent 42%),
+    rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(8px);
+  animation: ce-panel-fade 0.18s ease-out;
+}
+
+@keyframes ce-panel-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.ce-panel-modal {
+  width: min(980px, 100%);
+  max-height: min(92vh, 860px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  color: #0f172a;
+  box-shadow: 0 28px 64px rgba(2, 6, 23, 0.35);
+  animation: ce-panel-pop 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+}
+
+html[data-theme='dark'] .ce-panel-modal {
+  background: linear-gradient(180deg, #121826 0%, #0b1220 100%);
+  color: #e2e8f0;
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+@keyframes ce-panel-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ce-panel-modal__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1.1rem 1.15rem 0.75rem;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme='dark'] .ce-panel-modal__head {
+  border-bottom-color: rgba(148, 163, 184, 0.14);
+}
+
+.ce-panel-modal__badge {
+  flex-shrink: 0;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #0369a1;
+  background: linear-gradient(145deg, rgba(14, 165, 233, 0.2), rgba(2, 132, 199, 0.1));
+  border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
+html[data-theme='dark'] .ce-panel-modal__badge {
+  color: #7dd3fc;
+}
+
+.ce-panel-modal__titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.ce-panel-modal__eyebrow {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.ce-panel-modal__titles h2 {
+  margin: 0.15rem 0 0;
+  font-size: 1.2rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.ce-panel-modal__sub {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.ce-panel-modal__head-actions {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+.ce-panel-icon-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: #fff;
+  color: #475569;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+html[data-theme='dark'] .ce-panel-icon-btn {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(148, 163, 184, 0.18);
+  color: #cbd5e1;
+}
+
+.ce-panel-icon-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.ce-panel-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  padding: 0.85rem 1.15rem 0.25rem;
+}
+
+.ce-panel-stat {
+  text-align: left;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #fff;
+  padding: 0.7rem 0.85rem;
+  cursor: pointer;
+  color: inherit;
+}
+
+html[data-theme='dark'] .ce-panel-stat {
+  background: rgba(30, 41, 59, 0.55);
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+.ce-panel-stat__label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.ce-panel-stat__value {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 1.35rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.ce-panel-stat.is-active {
+  border-color: rgba(2, 132, 199, 0.45);
+  box-shadow: 0 0 0 1px rgba(2, 132, 199, 0.18);
+}
+
+.ce-panel-stat.is-active.is-warn {
+  border-color: rgba(217, 119, 6, 0.45);
+  background: #fffbeb;
+}
+
+.ce-panel-stat.is-active.is-ok {
+  border-color: rgba(5, 150, 105, 0.4);
+  background: #ecfdf5;
+}
+
+html[data-theme='dark'] .ce-panel-stat.is-active.is-warn {
+  background: rgba(120, 53, 15, 0.35);
+}
+
+html[data-theme='dark'] .ce-panel-stat.is-active.is-ok {
+  background: rgba(6, 78, 59, 0.35);
+}
+
+.ce-panel-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0.85rem 1.15rem;
+}
+
+@media (max-width: 720px) {
+  .ce-panel-stats,
+  .ce-panel-filters {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ce-panel-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: #64748b;
+}
+
+.ce-panel-field select,
+.ce-panel-search {
+  min-height: 2.45rem;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #fff;
+  color: #0f172a;
+}
+
+.ce-panel-field select {
+  padding: 0 0.75rem;
+  font: inherit;
+  font-weight: 560;
+}
+
+.ce-panel-search {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 0.75rem;
+  color: #64748b;
+}
+
+.ce-panel-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 560;
+}
+
+html[data-theme='dark'] .ce-panel-field select,
+html[data-theme='dark'] .ce-panel-search {
+  background: rgba(15, 23, 42, 0.65);
+  border-color: rgba(148, 163, 184, 0.18);
+  color: #e2e8f0;
+}
+
+.ce-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 1.15rem 0.5rem;
+}
+
+.ce-panel-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 1.5rem 0;
+  padding: 1.25rem;
+  border-radius: 14px;
+  background: rgba(148, 163, 184, 0.08);
+  color: #64748b;
+  text-align: center;
+}
+
+.ce-panel-empty--err {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.ce-panel-table-wrap {
+  overflow: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme='dark'] .ce-panel-table-wrap {
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+.ce-panel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.ce-panel-table th {
+  text-align: left;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+  background: rgba(148, 163, 184, 0.12);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.ce-panel-table td {
+  padding: 0.75rem 0.85rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.06);
+  vertical-align: top;
+}
+
+html[data-theme='dark'] .ce-panel-table td {
+  border-top-color: rgba(148, 163, 184, 0.1);
+}
+
+.ce-panel-alumno,
+.ce-panel-nivel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ce-panel-alumno strong {
+  font-weight: 700;
+}
+
+.ce-panel-alumno span,
+.ce-panel-nivel span:last-child,
+.ce-panel-meta,
+.ce-panel-fecha {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.ce-panel-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 1.5rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.ce-panel-badge--warn {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fcd34d;
+}
+
+.ce-panel-badge--ok {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #6ee7b7;
+}
+
+html[data-theme='dark'] .ce-panel-badge--warn {
+  background: rgba(120, 53, 15, 0.4);
+  color: #fcd34d;
+}
+
+html[data-theme='dark'] .ce-panel-badge--ok {
+  background: rgba(6, 78, 59, 0.4);
+  color: #6ee7b7;
+}
+
+.ce-panel-meta {
+  display: block;
+  margin-top: 0.25rem;
+}
+
+.ce-panel-row-btn {
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(2, 132, 199, 0.3);
+  background: rgba(2, 132, 199, 0.08);
+  color: #0369a1;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+html[data-theme='dark'] .ce-panel-row-btn {
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.ce-panel-modal__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.15rem 1.05rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+html[data-theme='dark'] .ce-panel-modal__foot {
+  border-top-color: rgba(148, 163, 184, 0.14);
+}
+
+.ce-panel-close-btn {
+  min-height: 2.35rem;
+  padding: 0.45rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: #fff;
+  color: #0f172a;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+html[data-theme='dark'] .ce-panel-close-btn {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
 }
 
 /* —— Catálogo usuarios (modal CRUD) —— */

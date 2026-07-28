@@ -5,23 +5,31 @@ import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   ClipboardCheck,
+  ClipboardList,
   FileCheck2,
   Loader2,
   Sparkles,
   UserRound,
 } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import { CicloEscolarProvider } from '@/contexts/CicloEscolarContext'
+import {
+  CicloEscolarProvider,
+  useCicloEscolar,
+} from '@/contexts/CicloEscolarContext'
 import { useAuth } from '@/contexts/AuthContext'
 import AlumnoAutocomplete from '@/app/servicios/components/AlumnoAutocomplete'
-import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
+import ControlEscolarPanelModal from '@/app/control-escolar/ControlEscolarPanelModal'
+import {
+  buscarAlumnosServicios,
+  grupoALetra,
+  type AlumnoBusquedaResultado,
+} from '@/lib/alumnoBusquedaServicios'
 import {
   etiquetaEstatusAlumno,
   parseEstatusAlumno,
 } from '@/lib/alumnoStatus'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
-import { grupoALetra } from '@/lib/alumnoBusquedaServicios'
 
 export default function ControlEscolarPage() {
   return (
@@ -36,6 +44,7 @@ export default function ControlEscolarPage() {
 function ControlEscolarView() {
   const router = useRouter()
   const { user, session } = useAuth()
+  const { cicloSeleccionado } = useCicloEscolar()
   const usuarioNombre =
     user?.usuario_nombre_completo?.trim() ||
     user?.usuario_username?.trim() ||
@@ -45,6 +54,7 @@ function ControlEscolarView() {
   const [alumno, setAlumno] = useState<AlumnoBusquedaResultado | null>(null)
   const [docsCompleta, setDocsCompleta] = useState(false)
   const [procesando, setProcesando] = useState(false)
+  const [panelAbierto, setPanelAbierto] = useState(false)
   const [mensaje, setMensaje] = useState<{
     tipo: 'ok' | 'warn' | 'err'
     texto: string
@@ -58,6 +68,37 @@ function ControlEscolarView() {
     setDocsCompleta(false)
     setMensaje(null)
   }, [])
+
+  const elegirDesdePanel = useCallback(
+    async (alumnoRef: string) => {
+      const ref = String(alumnoRef ?? '').trim()
+      if (!ref) return
+      try {
+        const hits = await buscarAlumnosServicios(ref, cicloSeleccionado, {
+          cualquierCiclo: true,
+        })
+        const exacto =
+          hits.find((h) => String(h.alumno_ref).trim() === ref) ?? hits[0] ?? null
+        if (!exacto) {
+          setMensaje({
+            tipo: 'warn',
+            texto: `No se pudo cargar al alumno ${ref} en el buscador. Intenta buscarlo manualmente.`,
+          })
+          return
+        }
+        onSeleccionar(exacto)
+      } catch (e) {
+        setMensaje({
+          tipo: 'err',
+          texto:
+            e instanceof Error
+              ? e.message
+              : 'No se pudo cargar el alumno desde el panel.',
+        })
+      }
+    },
+    [cicloSeleccionado, onSeleccionar]
+  )
 
   async function guardarAutorizacion() {
     if (!alumno || !puedeGuardar) return
@@ -155,13 +196,21 @@ function ControlEscolarView() {
             <span className="ce-heading-icon" aria-hidden>
               <FileCheck2 size={22} />
             </span>
-            <div>
+            <div className="ce-heading-copy">
               <h1 className="dashboard-title">Control Escolar</h1>
               <p className="dashboard-subtitle">
                 Autoriza la documentación completa de nuevo ingreso y libera el
                 recibo final.
               </p>
             </div>
+            <button
+              type="button"
+              className="ce-panel-open-btn"
+              onClick={() => setPanelAbierto(true)}
+            >
+              <ClipboardList size={17} aria-hidden />
+              Panel de documentación
+            </button>
           </div>
         </div>
 
@@ -272,6 +321,14 @@ function ControlEscolarView() {
           </p>
         </div>
       </div>
+
+      <ControlEscolarPanelModal
+        abierto={panelAbierto}
+        onCerrar={() => setPanelAbierto(false)}
+        onElegirAlumno={(ref) => {
+          void elegirDesdePanel(ref)
+        }}
+      />
     </div>
   )
 }
