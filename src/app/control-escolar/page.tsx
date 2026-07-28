@@ -147,7 +147,7 @@ function ControlEscolarView() {
           <h1 className="dashboard-title">Control Escolar</h1>
           <p className="dashboard-subtitle">
             Autoriza documentación completa de nuevo ingreso para habilitar el
-            recibo final de inscripción.
+            recibo final (junto con solicitud, pago y docs del portal).
           </p>
         </div>
 
@@ -207,8 +207,9 @@ function ControlEscolarView() {
             <span>
               <strong>Documentación completa</strong>
               <span className="control-escolar-check-hint">
-                Marca esta opción cuando el alumno de nuevo ingreso entregó toda
-                la documentación. Habilita el recibo final en el portal.
+                Marca esta opción cuando el alumno entregó toda la documentación.
+                Sin esta autorización no se genera el recibo final (aunque ya
+                haya cargado los PDF en el portal).
               </span>
             </span>
           </label>

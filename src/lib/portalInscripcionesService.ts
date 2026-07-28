@@ -597,14 +597,42 @@ export async function construirEstadoPortalInscripciones(
   }
 
   const ordenRecibo = requiereDocs ? 5 : 4
-  // NI / cambio de nivel (K3→1º, 6º→sec): solicitud + pago + documentos.
-  // Reinscrito regular: solicitud + pago.
+  // NI / cambio de nivel: solicitud + pago + docs portal + autorización Control Escolar (Y, no O).
+  // Reinscrito regular (sin docs): solicitud + pago.
+  const docsPortalOk = !requiereDocs || docsEnviados
+  const autorizacionControlEscolarOk = !requiereDocs || reciboHabilitado
   const pasosPreviosRecibo = Boolean(
-    solCapturada &&
-      insPagada &&
-      (!requiereDocs || docsEnviados || reciboHabilitado)
+    solCapturada && insPagada && docsPortalOk && autorizacionControlEscolarOk
   )
   const puedeRecibo = Boolean(pasosVisibles && pasosPreviosRecibo)
+
+  let detalleRecibo: string
+  if (reciboFinalVistoServidor) {
+    detalleRecibo =
+      planGuardadoCiclo || cuotaInicioCursoPagada
+        ? 'Paso cerrado: el proceso de inscripción de este ciclo ya quedó registrado. Las colegiaturas están desbloqueadas.'
+        : 'Recibo final consultado. Las colegiaturas del ciclo nuevo se desbloquean con todos los pasos completados.'
+  } else if (puedeRecibo) {
+    detalleRecibo =
+      'Ábrelo al menos una vez para marcarlo como completado. Las colegiaturas del ciclo nuevo se desbloquean cuando los pasos estén completados.'
+  } else if (requiereDocs) {
+    if (!solCapturada || !insPagada) {
+      detalleRecibo =
+        'Se habilita al completar solicitud, pago, carga de documentos y autorización de Control Escolar.'
+    } else if (!docsEnviados) {
+      detalleRecibo =
+        'Falta la carga de documentos en el portal. Después Control Escolar debe autorizar la documentación completa.'
+    } else if (!reciboHabilitado) {
+      detalleRecibo =
+        'Documentos cargados. Falta la autorización de Control Escolar (documentación completa) para generar el recibo final.'
+    } else {
+      detalleRecibo =
+        'Se habilita al completar solicitud, pago, carga de documentos y autorización de Control Escolar.'
+    }
+  } else {
+    detalleRecibo =
+      'Se habilita al completar la solicitud y el pago de reinscripción.'
+  }
 
   pasos.push({
     id: 'recibo-final',
@@ -615,15 +643,7 @@ export async function construirEstadoPortalInscripciones(
       reciboFinalVistoServidor,
       puedeRecibo || reciboFinalVistoServidor
     ),
-    detalle: reciboFinalVistoServidor
-      ? planGuardadoCiclo || cuotaInicioCursoPagada
-        ? 'Paso cerrado: el proceso de inscripción de este ciclo ya quedó registrado. Las colegiaturas están desbloqueadas.'
-        : 'Recibo final consultado. Las colegiaturas del ciclo nuevo se desbloquean con todos los pasos completados.'
-      : puedeRecibo
-        ? 'Ábrelo al menos una vez para marcarlo como completado. Las colegiaturas del ciclo nuevo se desbloquean cuando los pasos estén completados.'
-        : requiereDocs
-          ? 'Se habilita al completar solicitud, pago y carga de documentos.'
-          : 'Se habilita al completar la solicitud y el pago de reinscripción.',
+    detalle: detalleRecibo,
     accion: puedeRecibo || reciboFinalVistoServidor
       ? {
           tipo: 'externo',

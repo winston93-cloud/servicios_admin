@@ -4,6 +4,7 @@ import { formaIngresoPorDefecto } from '@/lib/alumnoFormaIngreso'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
 import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import { documentosNiYaEnviados } from '@/lib/portalDocumentosNiService'
+import { requiereDocumentosAdmision } from '@/lib/portalDocumentosAdmision'
 import { alumnoDocumentacionAutorizada } from '@/lib/controlEscolarService'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
 import {
@@ -45,23 +46,27 @@ export async function GET(request: Request) {
       ? Boolean(calc.completa)
       : inscripcionCompletaPagada(pagos, alumno.alumno_ref, cicloPago.valor)
 
-    let docsOk = true
-    if (!esReinscrito) {
-      const docsPortal = await documentosNiYaEnviados(
+    const requiereDocs = requiereDocumentosAdmision(alumno, cicloSistema.valor)
+    let docsPortalOk = true
+    let autorizacionOk = true
+    if (requiereDocs) {
+      docsPortalOk = await documentosNiYaEnviados(
         supabase,
         alumno.alumno_id,
         Number(cicloPago.valor)
       )
-      // Control Escolar (a_inscritos) o carga PDF en portal.
-      docsOk = docsPortal || (await alumnoDocumentacionAutorizada(alumno.alumno_ref))
+      // Docs portal Y autorización Control Escolar (ambas obligatorias).
+      autorizacionOk = await alumnoDocumentacionAutorizada(alumno.alumno_ref)
     }
 
-    if (!solOk || !insPagada || !docsOk) {
+    if (!solOk || !insPagada || !docsPortalOk || !autorizacionOk) {
       return NextResponse.json(
         {
           error:
             'Aún no puedes imprimir el recibo final. Completa solicitud, pago' +
-            (esReinscrito ? '' : ' y documentos') +
+            (requiereDocs
+              ? ', carga de documentos y espera la autorización de Control Escolar'
+              : '') +
             '.',
         },
         { status: 403 }
