@@ -10,15 +10,15 @@ import {
   construirNombreCompleto,
   grupoALetra,
 } from '@/lib/alumnoBusquedaServicios'
-import { ctrlDesdeAlumnoRef } from '@/lib/controlEscolarService'
+import {
+  CE_MODULO_LIBERAR_DESDE_ISO,
+  ctrlDesdeAlumnoRef,
+} from '@/lib/controlEscolarService'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 
-/**
- * Lanzamiento del módulo Control Escolar (liberar docs) — 28 jul 2026, ~10:55 CDMX.
- * El panel ignora envíos anteriores a esta fecha.
- */
-export const CE_PANEL_DESDE_ISO = '2026-07-28T16:55:00.000Z'
+/** @deprecated Preferir CE_MODULO_LIBERAR_DESDE_ISO */
+export const CE_PANEL_DESDE_ISO = CE_MODULO_LIBERAR_DESDE_ISO
 
 export type FilaPanelControlEscolar = {
   alumnoRef: string

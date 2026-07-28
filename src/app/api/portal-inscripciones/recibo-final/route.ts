@@ -5,7 +5,8 @@ import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
 import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import { documentosNiYaEnviados } from '@/lib/portalDocumentosNiService'
 import { requiereDocumentosAdmision } from '@/lib/portalDocumentosAdmision'
-import { alumnoDocumentacionAutorizada } from '@/lib/controlEscolarService'
+import { documentacionOkParaReciboFinal } from '@/lib/controlEscolarService'
+import { obtenerPortalInscripcionProgreso } from '@/lib/portalInscripcionProgreso'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
 import {
   inscripcionCompletaPagada,
@@ -55,8 +56,22 @@ export async function GET(request: Request) {
         alumno.alumno_id,
         Number(cicloPago.valor)
       )
-      // Docs portal Y autorización Control Escolar (ambas obligatorias).
-      autorizacionOk = await alumnoDocumentacionAutorizada(alumno.alumno_ref)
+      const progreso = await obtenerPortalInscripcionProgreso(
+        supabase,
+        alumno.alumno_id,
+        Number(cicloPago.valor)
+      )
+      // Ya generaron recibo antes del módulo → se respeta.
+      if (progreso?.recibo_final_visto) {
+        autorizacionOk = true
+      } else {
+        const docsOk = await documentacionOkParaReciboFinal({
+          alumnoRef: alumno.alumno_ref,
+          alumnoId: alumno.alumno_id,
+          cicloValor: Number(cicloPago.valor),
+        })
+        autorizacionOk = docsOk.ok
+      }
     }
 
     if (!solOk || !insPagada || !docsPortalOk || !autorizacionOk) {
@@ -65,7 +80,7 @@ export async function GET(request: Request) {
           error:
             'Aún no puedes imprimir el recibo final. Completa solicitud, pago' +
             (requiereDocs
-              ? ', carga de documentos y espera la autorización de Control Escolar'
+              ? ' y carga de documentos (si enviaste hoy, espera la autorización de Control Escolar)'
               : '') +
             '.',
         },

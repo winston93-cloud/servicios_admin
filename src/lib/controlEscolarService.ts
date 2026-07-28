@@ -209,6 +209,72 @@ export async function alumnoDocumentacionAutorizada(
   return (count ?? 0) > 0
 }
 
+/**
+ * Lanzamiento del módulo Control Escolar (liberar docs) — 28 jul 2026, ~10:55 CDMX.
+ * Envíos de documentos anteriores no exigen autorización CE para el recibo final.
+ */
+export const CE_MODULO_LIBERAR_DESDE_ISO = '2026-07-28T16:55:00.000Z'
+
+/**
+ * ¿El recibo final exige autorización CE?
+ * - Sí, si el primer envío de docs del ciclo es ≥ lanzamiento del módulo.
+ * - No (abuelo), si enviaron docs antes del módulo o ya están en a_inscritos.
+ */
+export async function envioDocsExigeAutorizacionControlEscolar(
+  alumnoId: number,
+  cicloValor: number
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('portal_documentos_ni')
+    .select('enviado_at')
+    .eq('alumno_id', alumnoId)
+    .eq('ciclo_valor', cicloValor)
+    .order('enviado_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.error('portal_documentos_ni primer envío:', error)
+    // Ante duda, exigir autorización (flujo nuevo).
+    return true
+  }
+  if (!data?.enviado_at) return true
+
+  const enviadoAt = Date.parse(String(data.enviado_at))
+  const corte = Date.parse(CE_MODULO_LIBERAR_DESDE_ISO)
+  if (!Number.isFinite(enviadoAt) || !Number.isFinite(corte)) return true
+  return enviadoAt >= corte
+}
+
+/**
+ * Docs OK para recibo final: autorizado en CE, o envío anterior al módulo
+ * (papás que ya podían ver el recibo solo con cargar documentos).
+ */
+export async function documentacionOkParaReciboFinal(opts: {
+  alumnoRef: string | number
+  alumnoId: number
+  cicloValor: number
+}): Promise<{
+  ok: boolean
+  autorizadoCe: boolean
+  exigeAutorizacionCe: boolean
+}> {
+  const autorizadoCe = await alumnoDocumentacionAutorizada(opts.alumnoRef)
+  if (autorizadoCe) {
+    return { ok: true, autorizadoCe: true, exigeAutorizacionCe: false }
+  }
+
+  const exigeAutorizacionCe = await envioDocsExigeAutorizacionControlEscolar(
+    opts.alumnoId,
+    opts.cicloValor
+  )
+  if (!exigeAutorizacionCe) {
+    return { ok: true, autorizadoCe: false, exigeAutorizacionCe: false }
+  }
+
+  return { ok: false, autorizadoCe: false, exigeAutorizacionCe: true }
+}
+
 async function cargarAlumnoPorRef(ref: string): Promise<AlumnoControlEscolar | null> {
   const { data, error } = await supabase
     .from('alumno')
