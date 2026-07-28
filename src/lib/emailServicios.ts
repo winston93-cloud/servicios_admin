@@ -120,6 +120,9 @@ export interface AdjuntoCorreo {
   filename: string
   content: Buffer
   contentType?: string
+  /** Content-ID para incrustar en HTML (cid:...). */
+  cid?: string
+  contentDisposition?: 'attachment' | 'inline'
 }
 
 export interface ResultadoEnvioCorreo {
@@ -158,6 +161,8 @@ export async function enviarCorreoMasivo(opts: {
       filename: a.filename,
       content: a.content,
       contentType: a.contentType,
+      cid: a.cid,
+      contentDisposition: a.contentDisposition ?? (a.cid ? 'inline' : 'attachment'),
     })),
   }
 

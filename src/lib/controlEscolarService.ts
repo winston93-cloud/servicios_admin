@@ -8,7 +8,14 @@ import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import {
   enviarCorreoMasivo,
+  type AdjuntoCorreo,
 } from '@/lib/emailServicios'
+import fs from 'node:fs'
+import path from 'node:path'
+
+const URL_PORTAL_SERVICIOS = 'https://servicios-admin.vercel.app'
+const URL_CONFETI_HOSTED = `${URL_PORTAL_SERVICIOS}/control-escolar/confeti.gif`
+const CID_CONFETI = 'confeti-bienvenida@winston'
 
 function emailValido(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
@@ -78,28 +85,130 @@ function institucionPorNivel(nivel: number): string {
 }
 
 /**
- * Cuerpo legacy de bienvenida (texto + pie con fondoe/fondow).
- * Exportado para pruebas de envío.
+ * Cuerpo de bienvenida tipo “aceptación universitaria”: confeti animado + enlace al portal.
+ * El GIF se incrusta inline (cid) porque el JS no corre en clientes de correo.
  */
 export function htmlCorreoBienvenidaControlEscolar(nivel: number): string {
   const n = Number(nivel) || 3
-  const img = urlPieCorreoBienvenida(n)
+  const imgPie = urlPieCorreoBienvenida(n)
   const institucion = institucionPorNivel(n)
   const coord = coordinacionPorNivel(n)
+  const portal = URL_PORTAL_SERVICIOS
 
-  return `<div style="font-family: helvetica; font-size:14px;">Por medio del presente le damos la mas Cordial Bienvenida. Ya puede imprimir su recibo final con código QR en la dirección www.winston93.edu.mx/admisiones
-<br><br>
-</div>
-<br><br>
-<div align="center">
-</div><br><br>
-<p align="center"><i><font size="4" face="Times New Roman"><b></b></font></i><br>
-<img src="${escapeHtml(img)}" alt=""><br><br>
-<font size="4" style="color:#6aa84f; font-family: helvetica;">${escapeHtml(institucion)}<br>
-<font size="4" style="color:#073763; font-family: helvetica;">${escapeHtml(coord)}<br>
-<i>
-<strong style="color: #B00; font-size: 12px;">Este correo ha sido enviado de manera automática, no responder este correo porque no será leído.</strong>
-</font></i></p>`
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bienvenida</title>
+<!--[if !mso]><!-->
+<style>
+  @keyframes confeti-fall {
+    0% { transform: translateY(-12px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(28px) rotate(120deg); opacity: 0.85; }
+  }
+  .confeti-css span {
+    display: inline-block;
+    animation: confeti-fall 1.1s ease-in infinite alternate;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .confeti-css span:nth-child(2n) { animation-delay: 0.15s; }
+  .confeti-css span:nth-child(3n) { animation-delay: 0.35s; }
+  .confeti-css span:nth-child(5n) { animation-delay: 0.55s; }
+</style>
+<!--<![endif]-->
+</head>
+<body style="margin:0;padding:0;background:#fff8f0;font-family:Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fff8f0;">
+    <tr>
+      <td align="center" style="padding:16px 12px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #fde68a;">
+          <tr>
+            <td align="center" style="padding:0;background:#fffbeb;">
+              <!-- Confeti animado (GIF): efecto al abrir el correo -->
+              <img src="cid:${CID_CONFETI}" alt="¡Felicidades!" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;" />
+              <!-- Fallback remoto si el cliente no muestra cid -->
+              <!--[if !mso]><!-->
+              <div style="display:none;max-height:0;overflow:hidden;">
+                <img src="${escapeHtml(URL_CONFETI_HOSTED)}" alt="" width="1" height="1" />
+              </div>
+              <!--<![endif]-->
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:8px 20px 0;">
+              <div class="confeti-css" aria-hidden="true" style="letter-spacing:4px;">
+                <span>🎊</span><span>🎉</span><span>✨</span><span>🎈</span><span>🎊</span><span>🎉</span><span>✨</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:12px 28px 8px;">
+              <p style="margin:0;font-size:28px;font-weight:800;color:#0f172a;letter-spacing:-0.02em;">
+                ¡Felicidades!
+              </p>
+              <p style="margin:8px 0 0;font-size:16px;font-weight:600;color:#b45309;">
+                Ya formas parte de la comunidad Winston
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:12px 28px 8px;font-size:15px;line-height:1.65;color:#334155;">
+              <p style="margin:0 0 14px;">
+                Por medio del presente le damos la más cordial bienvenida.
+              </p>
+              <p style="margin:0 0 18px;">
+                Ya puede imprimir su <strong>recibo final con código QR</strong> en el portal de Servicios Administrativos:
+              </p>
+              <p style="margin:0 0 22px;text-align:center;">
+                <a href="${escapeHtml(portal)}" target="_blank" rel="noopener noreferrer"
+                  style="display:inline-block;background:linear-gradient(135deg,#0369a1,#0284c7);color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 28px;border-radius:999px;">
+                  Abrir portal · Recibo final
+                </a>
+              </p>
+              <p style="margin:0;text-align:center;font-size:13px;color:#64748b;">
+                <a href="${escapeHtml(portal)}" style="color:#0369a1;word-break:break-all;">${escapeHtml(portal)}</a>
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:20px 24px 28px;">
+              <img src="${escapeHtml(imgPie)}" alt="" style="max-width:220px;height:auto;border:0;" /><br><br>
+              <font size="4" style="color:#6aa84f;font-family:helvetica;">${escapeHtml(institucion)}<br>
+              <font size="4" style="color:#073763;font-family:helvetica;">${escapeHtml(coord)}<br>
+              <i><strong style="color:#B00;font-size:12px;">Este correo ha sido enviado de manera automática, no responder este correo porque no será leído.</strong></i></font></font>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+}
+
+function adjuntoConfetiBienvenida(): AdjuntoCorreo | null {
+  const candidatos = [
+    path.join(process.cwd(), 'public/control-escolar/confeti.gif'),
+    path.join(process.cwd(), 'public', 'control-escolar', 'confeti.gif'),
+  ]
+  for (const p of candidatos) {
+    try {
+      if (fs.existsSync(p)) {
+        return {
+          filename: 'confeti.gif',
+          content: fs.readFileSync(p),
+          contentType: 'image/gif',
+          cid: CID_CONFETI,
+          contentDisposition: 'inline',
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  return null
 }
 
 export async function alumnoDocumentacionAutorizada(
@@ -265,11 +374,13 @@ export async function autorizarDocumentacionCompleta(opts: {
     }
   }
 
+  const confeti = adjuntoConfetiBienvenida()
   const correo = await enviarCorreoMasivo({
     to: destinatarios,
     subject: 'Correo de Bienvenida',
     html: htmlCorreoBienvenidaControlEscolar(nivel),
     nivel,
+    attachments: confeti ? [confeti] : undefined,
   })
 
   if (!correo.ok) {
@@ -300,11 +411,13 @@ export async function enviarPruebaCorreoBienvenida(opts: {
   nivel?: number
 }): Promise<{ ok: boolean; error?: string }> {
   const nivel = opts.nivel ?? 3
+  const confeti = adjuntoConfetiBienvenida()
   const result = await enviarCorreoMasivo({
     to: [opts.to],
     subject: '[PRUEBA] Correo de Bienvenida — Control Escolar',
     html: htmlCorreoBienvenidaControlEscolar(nivel),
     nivel,
+    attachments: confeti ? [confeti] : undefined,
   })
   return { ok: result.ok, error: result.error }
 }

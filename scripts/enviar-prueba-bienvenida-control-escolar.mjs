@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba del correo de bienvenida (Control Escolar) hacia un destinatario.
+ * Prueba del correo de bienvenida (Control Escolar) con confeti + URL Vercel.
  * Uso: node scripts/enviar-prueba-bienvenida-control-escolar.mjs [email] [nivel]
  */
 import nodemailer from 'nodemailer'
@@ -11,6 +11,8 @@ import { fileURLToPath } from 'node:url'
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const to = process.argv[2] || 'sistemas.desarrollo@winston93.edu.mx'
 const nivel = Number(process.argv[3] || 3)
+const PORTAL = 'https://servicios-admin.vercel.app'
+const CID = 'confeti-bienvenida@winston'
 
 function loadEnvLocal() {
   const p = path.join(ROOT, '.env.local')
@@ -36,7 +38,7 @@ loadEnvLocal()
 
 function htmlBienvenida(n) {
   const archivo = n <= 2 ? 'fondoe.png' : 'fondow.png'
-  const img = `https://www.winston93.edu.mx/control_escolar/${archivo}`
+  const imgPie = `https://www.winston93.edu.mx/control_escolar/${archivo}`
   const institucion =
     n <= 2 ? 'INSTITUTO EDUCATIVO WINSTON' : 'INSTITUTO WINSTON CHURCHILL'
   const coord =
@@ -46,20 +48,52 @@ function htmlBienvenida(n) {
         ? 'COORDINACIÓN PRIMARIA'
         : 'COORDINACIÓN SECUNDARIA'
 
-  return `<div style="font-family: helvetica; font-size:14px;">Por medio del presente le damos la mas Cordial Bienvenida. Ya puede imprimir su recibo final con código QR en la dirección www.winston93.edu.mx/admisiones
-<br><br>
-</div>
-<br><br>
-<div align="center">
-</div><br><br>
-<p align="center"><i><font size="4" face="Times New Roman"><b></b></font></i><br>
-<img src="${img}" alt=""><br><br>
-<font size="4" style="color:#6aa84f; font-family: helvetica;">${institucion}<br>
-<font size="4" style="color:#073763; font-family: helvetica;">${coord}<br>
-<i>
-<strong style="color: #B00; font-size: 12px;">Este correo ha sido enviado de manera automática, no responder este correo porque no será leído.</strong>
-</font></i></p>
-<p style="margin-top:24px;color:#64748b;font-size:12px;">[PRUEBA Control Escolar] Destinatario de prueba: ${to}. Nivel simulado: ${n}.</p>`
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#fff8f0;font-family:Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fff8f0;">
+    <tr>
+      <td align="center" style="padding:16px 12px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #fde68a;">
+          <tr>
+            <td align="center" style="padding:0;background:#fffbeb;">
+              <img src="cid:${CID}" alt="¡Felicidades!" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;" />
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:12px 28px 8px;">
+              <p style="margin:0;font-size:28px;font-weight:800;color:#0f172a;">¡Felicidades!</p>
+              <p style="margin:8px 0 0;font-size:16px;font-weight:600;color:#b45309;">Ya formas parte de la comunidad Winston</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:12px 28px 8px;font-size:15px;line-height:1.65;color:#334155;">
+              <p style="margin:0 0 14px;">Por medio del presente le damos la más cordial bienvenida.</p>
+              <p style="margin:0 0 18px;">Ya puede imprimir su <strong>recibo final con código QR</strong> en el portal de Servicios Administrativos:</p>
+              <p style="margin:0 0 22px;text-align:center;">
+                <a href="${PORTAL}" style="display:inline-block;background:#0284c7;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 28px;border-radius:999px;">Abrir portal · Recibo final</a>
+              </p>
+              <p style="margin:0;text-align:center;font-size:13px;color:#64748b;">
+                <a href="${PORTAL}" style="color:#0369a1;">${PORTAL}</a>
+              </p>
+              <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;text-align:center;">[PRUEBA Control Escolar] Nivel simulado: ${n}</p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:20px 24px 28px;">
+              <img src="${imgPie}" alt="" style="max-width:220px;height:auto;border:0;" /><br><br>
+              <font size="4" style="color:#6aa84f;font-family:helvetica;">${institucion}<br>
+              <font size="4" style="color:#073763;font-family:helvetica;">${coord}<br>
+              <i><strong style="color:#B00;font-size:12px;">Este correo ha sido enviado de manera automática, no responder este correo porque no será leído.</strong></i></font></font>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
 }
 
 async function main() {
@@ -67,6 +101,12 @@ async function main() {
   const mailPass = process.env.MAIL_PASS
   if (!mailPass) {
     console.error('Falta MAIL_PASS en .env.local')
+    process.exit(1)
+  }
+
+  const gifPath = path.join(ROOT, 'public/control-escolar/confeti.gif')
+  if (!fs.existsSync(gifPath)) {
+    console.error('Falta confeti.gif en public/control-escolar/')
     process.exit(1)
   }
 
@@ -81,8 +121,17 @@ async function main() {
   const info = await transporter.sendMail({
     from: `"${nombre}" <${mailUser}>`,
     to,
-    subject: '[PRUEBA] Correo de Bienvenida — Control Escolar',
+    subject: '[PRUEBA] Correo de Bienvenida — Control Escolar (confeti)',
     html: htmlBienvenida(nivel),
+    attachments: [
+      {
+        filename: 'confeti.gif',
+        content: fs.readFileSync(gifPath),
+        contentType: 'image/gif',
+        cid: CID,
+        contentDisposition: 'inline',
+      },
+    ],
   })
 
   console.log('OK enviado a', to)
