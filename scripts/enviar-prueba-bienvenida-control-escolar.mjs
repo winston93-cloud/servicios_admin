@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba del correo de bienvenida (Control Escolar) con confeti + URL Vercel.
+ * Prueba del correo de bienvenida (fondo ampliado + confeti).
  * Uso: node scripts/enviar-prueba-bienvenida-control-escolar.mjs [email] [nivel]
  */
 import nodemailer from 'nodemailer'
@@ -13,6 +13,7 @@ const to = process.argv[2] || 'sistemas.desarrollo@winston93.edu.mx'
 const nivel = Number(process.argv[3] || 3)
 const PORTAL = 'https://servicios-admin.vercel.app'
 const CID = 'confeti-bienvenida@winston'
+const gifName = nivel <= 2 ? 'confeti-educativo.gif' : 'confeti.gif'
 
 function loadEnvLocal() {
   const p = path.join(ROOT, '.env.local')
@@ -37,8 +38,6 @@ function loadEnvLocal() {
 loadEnvLocal()
 
 function htmlBienvenida(n) {
-  const archivo = n <= 2 ? 'fondoe.png' : 'fondow.png'
-  const imgPie = `https://www.winston93.edu.mx/control_escolar/${archivo}`
   const institucion =
     n <= 2 ? 'INSTITUTO EDUCATIVO WINSTON' : 'INSTITUTO WINSTON CHURCHILL'
   const coord =
@@ -54,16 +53,16 @@ function htmlBienvenida(n) {
 <body style="margin:0;padding:0;background:#fff8f0;font-family:Helvetica,Arial,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fff8f0;">
     <tr>
-      <td align="center" style="padding:16px 12px;">
-        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #fde68a;">
+      <td align="center" style="padding:12px 8px;">
+        <table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="max-width:640px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #fde68a;">
           <tr>
-            <td align="center" style="padding:0;background:#fffbeb;">
-              <img src="cid:${CID}" alt="¡Felicidades!" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;" />
+            <td align="center" style="padding:0;background:#fffbeb;line-height:0;">
+              <img src="cid:${CID}" alt="¡Felicidades!" width="640" style="display:block;width:100%;max-width:640px;height:auto;border:0;" />
             </td>
           </tr>
           <tr>
-            <td align="center" style="padding:12px 28px 8px;">
-              <p style="margin:0;font-size:28px;font-weight:800;color:#0f172a;">¡Felicidades!</p>
+            <td align="center" style="padding:18px 28px 8px;">
+              <p style="margin:0;font-size:30px;font-weight:800;color:#0f172a;">¡Felicidades!</p>
               <p style="margin:8px 0 0;font-size:16px;font-weight:600;color:#b45309;">Ya formas parte de la comunidad Winston</p>
             </td>
           </tr>
@@ -77,12 +76,11 @@ function htmlBienvenida(n) {
               <p style="margin:0;text-align:center;font-size:13px;color:#64748b;">
                 <a href="${PORTAL}" style="color:#0369a1;">${PORTAL}</a>
               </p>
-              <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;text-align:center;">[PRUEBA Control Escolar] Nivel simulado: ${n}</p>
+              <p style="margin:16px 0 0;font-size:12px;color:#94a3b8;text-align:center;">[PRUEBA] Fondo ampliado + confeti · nivel ${n}</p>
             </td>
           </tr>
           <tr>
-            <td align="center" style="padding:20px 24px 28px;">
-              <img src="${imgPie}" alt="" style="max-width:220px;height:auto;border:0;" /><br><br>
+            <td align="center" style="padding:16px 24px 28px;">
               <font size="4" style="color:#6aa84f;font-family:helvetica;">${institucion}<br>
               <font size="4" style="color:#073763;font-family:helvetica;">${coord}<br>
               <i><strong style="color:#B00;font-size:12px;">Este correo ha sido enviado de manera automática, no responder este correo porque no será leído.</strong></i></font></font>
@@ -104,9 +102,9 @@ async function main() {
     process.exit(1)
   }
 
-  const gifPath = path.join(ROOT, 'public/control-escolar/confeti.gif')
+  const gifPath = path.join(ROOT, 'public/control-escolar', gifName)
   if (!fs.existsSync(gifPath)) {
-    console.error('Falta confeti.gif en public/control-escolar/')
+    console.error('Falta', gifPath)
     process.exit(1)
   }
 
@@ -121,11 +119,11 @@ async function main() {
   const info = await transporter.sendMail({
     from: `"${nombre}" <${mailUser}>`,
     to,
-    subject: '[PRUEBA] Correo de Bienvenida — Control Escolar (confeti)',
+    subject: '[PRUEBA] Bienvenida — fondo + confeti ampliado',
     html: htmlBienvenida(nivel),
     attachments: [
       {
-        filename: 'confeti.gif',
+        filename: gifName,
         content: fs.readFileSync(gifPath),
         contentType: 'image/gif',
         cid: CID,
@@ -134,9 +132,8 @@ async function main() {
     ],
   })
 
-  console.log('OK enviado a', to)
+  console.log('OK enviado a', to, 'gif=', gifName)
   console.log('messageId:', info.messageId)
-  console.log('accepted:', info.accepted)
 }
 
 main().catch((e) => {
