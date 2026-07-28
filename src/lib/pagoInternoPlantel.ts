@@ -121,13 +121,26 @@ export function folioTechoPlantel(
 }
 
 /**
- * Serie de folio al cobrar: Externo según cuenta; alumno regular según nivel.
+ * Cuentas que, al cobrar, siempre usan serie Winston
+ * (aunque el alumno sea maternal/kinder / Educativo).
+ */
+const USUARIOS_FOLIO_SIEMPRE_WINSTON = new Set(['juanita', 'laura'])
+
+/**
+ * Serie de folio al cobrar:
+ * - Laura / Juanita → siempre Winston
+ * - Externo → según cuenta (plantelExterno)
+ * - Resto → según nivel del alumno (Educativo / Winston)
  */
 export function resolverPlantelFolioPagoInterno(opts: {
   alumnoRef: string | number | null | undefined
   alumnoNivel: number | null | undefined
   usuarioUsername: string | null | undefined
 }): PlantelPagosInternos {
+  const u = (opts.usuarioUsername ?? '').trim().toLowerCase()
+  if (USUARIOS_FOLIO_SIEMPRE_WINSTON.has(u)) {
+    return 'winston'
+  }
   const ref = String(opts.alumnoRef ?? '').trim()
   if (ref === ALUMNO_REF_EXTERNO || ref.toLowerCase() === 'externo') {
     return accesoPagosInternosUsuario(opts.usuarioUsername).plantelExterno
