@@ -3,5 +3,11 @@
     "env": {
       "NODE_VERSION": "20"
     }
-  }
-} 
+  },
+  "crons": [
+    {
+      "path": "/api/cron/recordatorio-liberacion-docs",
+      "schedule": "0 15 * * *"
+    }
+  ]
+}
