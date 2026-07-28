@@ -11863,6 +11863,310 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   background: rgba(14, 116, 144, 0.22);
 }
 
+.pi-icon-btn--cancel {
+  color: #fecaca;
+  background: rgba(220, 38, 38, 0.16);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.pi-icon-btn--cancel:hover {
+  background: rgba(220, 38, 38, 0.28);
+  color: #fff;
+}
+
+html[data-theme='light'] .pi-icon-btn--cancel {
+  color: #b91c1c;
+  background: rgba(254, 226, 226, 0.9);
+  border-color: rgba(248, 113, 113, 0.55);
+}
+
+/* —— Cancelar pago interno (modal) —— */
+.pi-cancel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background:
+    radial-gradient(ellipse at 30% 20%, rgba(248, 113, 113, 0.18), transparent 45%),
+    radial-gradient(ellipse at 80% 80%, rgba(14, 165, 233, 0.12), transparent 40%),
+    rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(8px);
+  animation: pi-cancel-fade 0.18s ease-out;
+}
+
+@keyframes pi-cancel-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.pi-cancel-modal {
+  width: min(520px, 100%);
+  border-radius: 18px;
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  background:
+    linear-gradient(165deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 24px 60px rgba(0, 0, 0, 0.45);
+  color: #e2e8f0;
+  animation: pi-cancel-pop 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes pi-cancel-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.pi-cancel-modal__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1.15rem 1.15rem 0.5rem;
+}
+
+.pi-cancel-modal__badge {
+  flex-shrink: 0;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #fecaca;
+  background: linear-gradient(145deg, rgba(239, 68, 68, 0.35), rgba(127, 29, 29, 0.45));
+  border: 1px solid rgba(252, 165, 165, 0.35);
+}
+
+.pi-cancel-modal__titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.pi-cancel-modal__titles h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: #f8fafc;
+}
+
+.pi-cancel-modal__titles p {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.pi-cancel-modal__close {
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.pi-cancel-modal__close:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+}
+
+.pi-cancel-modal__lead {
+  margin: 0;
+  padding: 0.35rem 1.2rem 0.85rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: #cbd5e1;
+}
+
+.pi-cancel-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0 1.15rem;
+}
+
+.pi-cancel-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  text-align: left;
+  padding: 0.9rem 0.95rem;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(15, 23, 42, 0.55);
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.pi-cancel-option:hover:not(:disabled) {
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(30, 41, 59, 0.85);
+  transform: translateY(-1px);
+}
+
+.pi-cancel-option--on {
+  border-color: rgba(248, 113, 113, 0.65);
+  background: linear-gradient(135deg, rgba(127, 29, 29, 0.35), rgba(30, 41, 59, 0.9));
+  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.2);
+}
+
+.pi-cancel-option--on.pi-cancel-option--shift {
+  border-color: rgba(56, 189, 248, 0.55);
+  background: linear-gradient(135deg, rgba(12, 74, 110, 0.45), rgba(30, 41, 59, 0.9));
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.2);
+}
+
+.pi-cancel-option__icon {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+}
+
+.pi-cancel-option__icon--ban {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.pi-cancel-option__icon--shift {
+  color: #7dd3fc;
+  background: rgba(14, 165, 233, 0.18);
+}
+
+.pi-cancel-option__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.pi-cancel-option__body strong {
+  font-size: 0.95rem;
+  color: #f8fafc;
+}
+
+.pi-cancel-option__body span {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+
+.pi-cancel-option__body em {
+  font-style: normal;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.pi-cancel-option__check {
+  flex-shrink: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.2rem;
+  border-radius: 999px;
+  border: 2px solid rgba(148, 163, 184, 0.45);
+}
+
+.pi-cancel-option--on .pi-cancel-option__check {
+  border-color: #f87171;
+  background: #ef4444;
+  box-shadow: inset 0 0 0 3px rgba(15, 23, 42, 0.85);
+}
+
+.pi-cancel-option--on.pi-cancel-option--shift .pi-cancel-option__check {
+  border-color: #38bdf8;
+  background: #0ea5e9;
+}
+
+.pi-cancel-modal__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  padding: 1.15rem;
+  margin-top: 0.35rem;
+}
+
+.pi-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 1.05rem;
+  font-size: 0.9rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.pi-cancel-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pi-cancel-btn--ghost {
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+}
+
+.pi-cancel-btn--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.pi-cancel-btn--danger {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(185, 28, 28, 0.35);
+}
+
+.pi-cancel-btn--danger:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+html[data-theme='light'] .pi-cancel-modal {
+  background: linear-gradient(165deg, #fff, #fff7f7);
+  color: #0f172a;
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+html[data-theme='light'] .pi-cancel-modal__titles h2 {
+  color: #0f172a;
+}
+
+html[data-theme='light'] .pi-cancel-modal__titles p,
+html[data-theme='light'] .pi-cancel-modal__lead,
+html[data-theme='light'] .pi-cancel-option__body span {
+  color: #64748b;
+}
+
+html[data-theme='light'] .pi-cancel-option {
+  background: #fff;
+  border-color: #e2e8f0;
+}
+
+html[data-theme='light'] .pi-cancel-option__body strong,
+html[data-theme='light'] .pi-cancel-option__body em {
+  color: #0f172a;
+}
+
+html[data-theme='light'] .pi-cancel-btn--ghost {
+  background: #f1f5f9;
+  color: #334155;
+}
+
 .pi-historial-col-accion {
   width: 3rem;
   text-align: center;

@@ -791,3 +791,227 @@ export function nivelGradoDesdeAlumno(
     grado: parseGradoEscolar(alumnoGrado) ?? 0,
   }
 }
+
+export type ModoCancelacionPagoInterno = 'solo' | 'recorrer'
+
+export type ResultadoCancelacionPagoInterno =
+  | {
+      ok: true
+      modo: ModoCancelacionPagoInterno
+      folioCancelado: number
+      folioNuevo?: number
+      filasAfectadas: number
+      mensaje: string
+    }
+  | { ok: false; mensaje: string }
+
+function resolverSerieDePago(pago: PagoInternoRegistro): {
+  plantel: PlantelPagosInternos
+  tipoSerie: TipoSerieFolioPagoInterno
+  folioMin: number
+  folioMaxExclusivo: number | null
+} | null {
+  const folio = Number(pago.pago_folio)
+  const plantel = plantelSerieDesdeFolio(folio)
+  if (!plantel) return null
+  const tipoSerie: TipoSerieFolioPagoInterno = esConceptoSerieCuotaPadres(
+    pago.concepto_id
+  )
+    ? 'cuota_padres'
+    : 'general'
+  return {
+    plantel,
+    tipoSerie,
+    folioMin: folioInicialPlantel(plantel, tipoSerie),
+    folioMaxExclusivo: folioTechoPlantel(plantel, tipoSerie),
+  }
+}
+
+async function siguientePagoId(): Promise<number> {
+  const { data } = await supabase
+    .from('pago_interno')
+    .select('pago_id')
+    .order('pago_id', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return (data?.pago_id ?? 0) + 1
+}
+
+function notaCancelacion(prev: string | null | undefined, motivo: string): string {
+  const base = (prev ?? '').trim()
+  const tag = `CANCELADO: ${motivo}`
+  if (!base) return tag
+  if (base.includes('CANCELADO:')) return base
+  return `${base} · ${tag}`.slice(0, 250)
+}
+
+/**
+ * Cancela el pago (pago_cancelado = 1). El folio queda «quemado» (ya no se reutiliza).
+ * En cuota de padres también cancela espejos de hermanos con el mismo folio.
+ */
+export async function cancelarPagoInternoSolo(opts: {
+  pagoId: number
+  motivo?: string
+}): Promise<ResultadoCancelacionPagoInterno> {
+  const { data: pago, error } = await supabase
+    .from('pago_interno')
+    .select(SELECT_PAGO)
+    .eq('pago_id', opts.pagoId)
+    .maybeSingle()
+
+  if (error || !pago) {
+    return { ok: false, mensaje: error?.message ?? 'Pago no encontrado' }
+  }
+
+  const reg = pago as PagoInternoRegistro
+  if (Number(reg.pago_cancelado) === 1) {
+    return { ok: false, mensaje: 'Este pago ya está cancelado' }
+  }
+
+  const folio = Number(reg.pago_folio)
+  const motivo = (opts.motivo ?? 'cancelación administrativa').trim()
+  const ahora = new Date().toISOString()
+  const nota = notaCancelacion(reg.concepto_otro, motivo)
+
+  let q = supabase
+    .from('pago_interno')
+    .update({
+      pago_cancelado: 1,
+      concepto_otro: nota,
+      pago_actualizacion: ahora,
+    })
+    .eq('pago_folio', folio)
+    .eq('pago_cancelado', 0)
+
+  if (esConceptoSerieCuotaPadres(reg.concepto_id)) {
+    q = q.in('concepto_id', [...CONCEPTOS_CUOTA_PADRES])
+  } else {
+    q = q.eq('pago_id', reg.pago_id)
+  }
+
+  const { data: updated, error: upErr } = await q.select('pago_id')
+  if (upErr) {
+    return { ok: false, mensaje: upErr.message }
+  }
+
+  const n = updated?.length ?? 0
+  return {
+    ok: true,
+    modo: 'solo',
+    folioCancelado: folio,
+    filasAfectadas: n,
+    mensaje: `Folio ${folio} cancelado. Ese número queda fuera de uso.`,
+  }
+}
+
+/**
+ * Cancela el folio actual (queda stub cancelado) y recorre +1 todos los vigentes
+ * de la misma serie desde ese folio (contenido → folio siguiente).
+ */
+export async function cancelarPagoInternoYRecorrer(opts: {
+  pagoId: number
+  motivo?: string
+}): Promise<ResultadoCancelacionPagoInterno> {
+  const { data: pago, error } = await supabase
+    .from('pago_interno')
+    .select(SELECT_PAGO)
+    .eq('pago_id', opts.pagoId)
+    .maybeSingle()
+
+  if (error || !pago) {
+    return { ok: false, mensaje: error?.message ?? 'Pago no encontrado' }
+  }
+
+  const reg = pago as PagoInternoRegistro
+  if (Number(reg.pago_cancelado) === 1) {
+    return { ok: false, mensaje: 'Este pago ya está cancelado' }
+  }
+
+  const serie = resolverSerieDePago(reg)
+  if (!serie) {
+    return {
+      ok: false,
+      mensaje: `No se pudo determinar la serie del folio ${reg.pago_folio}`,
+    }
+  }
+
+  const folioOrig = Number(reg.pago_folio)
+  const motivo = (opts.motivo ?? 'impresora / reimpresión con recorrido').trim()
+  const ahora = new Date().toISOString()
+
+  let listQ = supabase
+    .from('pago_interno')
+    .select(SELECT_PAGO)
+    .gte('pago_folio', folioOrig)
+    .eq('pago_cancelado', 0)
+    .order('pago_folio', { ascending: false })
+
+  if (serie.folioMaxExclusivo != null) {
+    listQ = listQ.lt('pago_folio', serie.folioMaxExclusivo)
+  }
+  if (serie.tipoSerie === 'cuota_padres') {
+    listQ = listQ.in('concepto_id', [...CONCEPTOS_CUOTA_PADRES])
+  }
+
+  const { data: filasRaw, error: listErr } = await listQ
+  if (listErr) return { ok: false, mensaje: listErr.message }
+
+  const filas = ((filasRaw ?? []) as PagoInternoRegistro[]).filter((f) => {
+    if (serie.tipoSerie === 'cuota_padres') return true
+    return !esConceptoSerieCuotaPadres(f.concepto_id)
+  })
+  if (!filas.length) {
+    return { ok: false, mensaje: 'No hay pagos vigentes para recorrer' }
+  }
+  // Recorrer de mayor a menor para evitar choques mentales (no hay unique en folio).
+  let desplazados = 0
+  for (const fila of filas) {
+    const { error: shiftErr } = await supabase
+      .from('pago_interno')
+      .update({
+        pago_folio: Number(fila.pago_folio) + 1,
+        pago_actualizacion: ahora,
+      })
+      .eq('pago_id', fila.pago_id)
+      .eq('pago_cancelado', 0)
+
+    if (shiftErr) {
+      return {
+        ok: false,
+        mensaje: `Error al recorrer folio ${fila.pago_folio}: ${shiftErr.message}`,
+      }
+    }
+    desplazados += 1
+  }
+
+  const stubId = await siguientePagoId()
+  const { error: insErr } = await supabase.from('pago_interno').insert({
+    pago_id: stubId,
+    alumno_id: reg.alumno_id,
+    concepto_id: reg.concepto_id,
+    concepto_otro: notaCancelacion(reg.concepto_otro, motivo),
+    pago_folio: folioOrig,
+    pago_importe: reg.pago_importe,
+    pago_fecha: reg.pago_fecha,
+    pago_cancelado: 1,
+    pago_ciclo_escolar: reg.pago_ciclo_escolar,
+    pago_registro: ahora,
+    pago_actualizacion: ahora,
+  })
+
+  if (insErr) {
+    return {
+      ok: false,
+      mensaje: `Recorrido hecho, pero falló el stub cancelado del ${folioOrig}: ${insErr.message}`,
+    }
+  }
+
+  return {
+    ok: true,
+    modo: 'recorrer',
+    folioCancelado: folioOrig,
+    folioNuevo: folioOrig + 1,
+    filasAfectadas: desplazados,
+    mensaje: `Folio ${folioOrig} cancelado. El contenido pasó al ${folioOrig + 1} y se recorrieron ${desplazados} pago(s) de la serie.`,
+  }
+}

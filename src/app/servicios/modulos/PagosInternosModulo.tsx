@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ListOrdered, Loader2, Plus, Printer, Settings2, Wallet } from 'lucide-react'
+import { ListOrdered, Loader2, Plus, Printer, Settings2, Wallet, Ban } from 'lucide-react'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { useAuth } from '@/contexts/AuthContext'
 import { useAlumnoSeleccionado } from '@/contexts/AlumnoSeleccionadoContext'
@@ -13,6 +13,8 @@ import {
   CONCEPTO_ID_CUOTA_PADRES,
   CONCEPTO_ID_MANUALES,
   crearPagoInterno,
+  cancelarPagoInternoSolo,
+  cancelarPagoInternoYRecorrer,
   esConceptoCuotaPadresMasManuales,
   esConceptoManuales,
   esConceptoSerieCuotaPadres,
@@ -26,12 +28,14 @@ import {
   resolverPrecioInterno,
   resolverPreciosCuotaYManuales,
   type ConceptoInterno,
+  type ModoCancelacionPagoInterno,
   type PagoInternoRegistro,
   type PlantelPagosInternos,
   type TipoSerieFolioPagoInterno,
 } from '@/lib/pagoInternoService'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
 import PagosInternosCatalogoModal from '../components/PagosInternosCatalogoModal'
+import PagosInternosCancelarModal from '../components/PagosInternosCancelarModal'
 import PagosInternosListadoModal from '../components/PagosInternosListadoModal'
 import ValePagoInternoPrint, {
   imprimirValePagoInterno,
@@ -65,6 +69,8 @@ export default function PagosInternosModulo() {
   const [catalogoAbierto, setCatalogoAbierto] = useState(false)
   const [listadoAbierto, setListadoAbierto] = useState(false)
   const [valeImpresion, setValeImpresion] = useState<DatosValePagoInterno | null>(null)
+  const [pagoCancelar, setPagoCancelar] = useState<PagoInternoRegistro | null>(null)
+  const [cancelando, setCancelando] = useState(false)
 
   const [guardando, setGuardando] = useState(false)
   const [mensaje, setMensaje] = useState<string | null>(null)
@@ -233,6 +239,52 @@ export default function PagosInternosModulo() {
       setMensaje(`Reimpresión folio ${pago.pago_folio} (sin nuevo registro).`)
     },
     [alumnoSeleccionado, cicloPago, prepararValeImpresion]
+  )
+
+  const onConfirmarCancelacion = useCallback(
+    async (modo: ModoCancelacionPagoInterno) => {
+      if (!pagoCancelar) return
+      setCancelando(true)
+      setError(null)
+      setMensaje(null)
+      try {
+        const res =
+          modo === 'solo'
+            ? await cancelarPagoInternoSolo({
+                pagoId: pagoCancelar.pago_id,
+                motivo: 'cancelación desde pagos internos',
+              })
+            : await cancelarPagoInternoYRecorrer({
+                pagoId: pagoCancelar.pago_id,
+                motivo: 'cancelación con recorrido de folio',
+              })
+
+        if (!res.ok) {
+          setError(res.mensaje)
+          return
+        }
+
+        setMensaje(res.mensaje)
+        setPagoCancelar(null)
+        if (alumnoSeleccionado) {
+          await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
+        }
+        await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'No se pudo cancelar el pago')
+      } finally {
+        setCancelando(false)
+      }
+    },
+    [
+      pagoCancelar,
+      alumnoSeleccionado,
+      cicloSeleccionado,
+      cargarDatosAlumno,
+      refrescarFolio,
+      plantelSerieActual,
+      tipoSerieFolioActual,
+    ]
   )
 
   const aplicarPrecioConcepto = useCallback(
@@ -726,6 +778,7 @@ export default function PagosInternosModulo() {
                         <th>Monto</th>
                         <th>Fecha</th>
                         <th className="pi-historial-col-accion">Recibo</th>
+                        <th className="pi-historial-col-accion">Cancelar</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -748,6 +801,21 @@ export default function PagosInternosModulo() {
                               onClick={() => onReimprimirPago(p)}
                             >
                               <Printer size={16} aria-hidden />
+                            </button>
+                          </td>
+                          <td className="pi-historial-col-accion">
+                            <button
+                              type="button"
+                              className="pi-icon-btn pi-icon-btn--cancel"
+                              title={`Cancelar folio ${p.pago_folio}`}
+                              aria-label={`Cancelar folio ${p.pago_folio}`}
+                              onClick={() => {
+                                setError(null)
+                                setMensaje(null)
+                                setPagoCancelar(p)
+                              }}
+                            >
+                              <Ban size={16} aria-hidden />
                             </button>
                           </td>
                         </tr>
@@ -776,6 +844,22 @@ export default function PagosInternosModulo() {
       <PagosInternosListadoModal
         abierto={listadoAbierto}
         onCerrar={() => setListadoAbierto(false)}
+      />
+
+      <PagosInternosCancelarModal
+        abierto={pagoCancelar != null}
+        pago={pagoCancelar}
+        conceptoEtiqueta={
+          pagoCancelar
+            ? conceptosOrdenados.find((c) => c.concepto_id === pagoCancelar.concepto_id)
+                ?.concepto_clase ?? undefined
+            : undefined
+        }
+        procesando={cancelando}
+        onCerrar={() => {
+          if (!cancelando) setPagoCancelar(null)
+        }}
+        onConfirmar={(modo) => void onConfirmarCancelacion(modo)}
       />
 
       <ValePagoInternoPrint datos={valeImpresion} />
