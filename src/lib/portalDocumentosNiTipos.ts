@@ -18,8 +18,8 @@ export const DOCUMENTOS_NI_TIPOS = [
   },
   {
     id: 'boleta_sep',
-    etiqueta: 'Boleta SEP',
-    descripcion: 'Boleta o cartilla de calificaciones SEP (PDF).',
+    etiqueta: 'Boleta',
+    descripcion: 'Boleta o cartilla de calificaciones (PDF).',
   },
   {
     id: 'constancia_no_adeudo',
@@ -35,7 +35,7 @@ export const DOCUMENTOS_NI_TIPOS = [
     id: 'certificado_primaria',
     etiqueta: 'Certificado',
     descripcion:
-      'Certificado de terminación de estudios de primaria (PDF). Obligatorio al ingresar a secundaria.',
+      'Certificado de terminación de estudios de primaria (PDF). Obligatorio al ingresar a 7mo de secundaria.',
   },
 ] as const
 
@@ -59,10 +59,16 @@ const EXPEDIENTE_PRIMARIA: readonly DocumentoNiTipoId[] = [
   'carta_buena_conducta',
 ]
 
-/** Nuevo ingreso / cambio a secundaria: expediente + certificado de primaria. */
-const EXPEDIENTE_SECUNDARIA: readonly DocumentoNiTipoId[] = [
+/** Nuevo ingreso a 7mo (1.º de secundaria): expediente + certificado de primaria. */
+const EXPEDIENTE_SECUNDARIA_7MO: readonly DocumentoNiTipoId[] = [
   ...EXPEDIENTE_PRIMARIA,
   'certificado_primaria',
+]
+
+/** Nuevo ingreso a 8vo / 9no: expediente + boleta (no certificado). */
+const EXPEDIENTE_SECUNDARIA_8_9: readonly DocumentoNiTipoId[] = [
+  ...EXPEDIENTE_PRIMARIA,
+  'boleta_sep',
 ]
 
 /**
@@ -71,7 +77,8 @@ const EXPEDIENTE_SECUNDARIA: readonly DocumentoNiTipoId[] = [
  * - Kinder 1: acta + CURP
  * - Kinder 2 y 3: acta, CURP, boleta SEP, buena conducta, no adeudo
  * - Primaria: expediente (acta, CURPs, no adeudo, buena conducta)
- * - Secundaria: lo mismo + certificado de primaria
+ * - Secundaria 7mo: expediente + certificado de primaria
+ * - Secundaria 8vo / 9no: expediente + boleta (en lugar de certificado)
  */
 export function documentosNiRequeridosPorNivelGrado(
   nivel: number,
@@ -86,7 +93,8 @@ export function documentosNiRequeridosPorNivelGrado(
   } else if (nivel === 3) {
     ids = EXPEDIENTE_PRIMARIA
   } else if (nivel === 4) {
-    ids = EXPEDIENTE_SECUNDARIA
+    // 7mo = grado 1 → certificado; 8vo/9no (2/3) → boleta
+    ids = grado <= 1 ? EXPEDIENTE_SECUNDARIA_7MO : EXPEDIENTE_SECUNDARIA_8_9
   } else {
     ids = EXPEDIENTE_PRIMARIA
   }
