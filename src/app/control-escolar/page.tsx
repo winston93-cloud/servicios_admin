@@ -245,7 +245,8 @@ function ControlEscolarView() {
 
           <p className="bajas-admin-hint">
             Queda registrado quién autorizó (tu sesión del dashboard), la fecha y
-            la hora. El aviso de bienvenida se envía desde el buzón de Servicios.
+            la hora. Al guardar se envía el correo de bienvenida a mamá/papá
+            (recibir email activo) desde el mismo buzón de los envíos masivos.
           </p>
         </div>
       </div>

@@ -3,20 +3,16 @@ import {
   construirNombreCompleto,
   grupoALetra,
 } from '@/lib/alumnoBusquedaServicios'
+import { TUTOR_ID_MADRE, TUTOR_ID_PADRE } from '@/lib/alumnoFamiliarTutor'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import {
   enviarCorreoMasivo,
-  brandingCorreoPorNivel,
-  remitenteCorreoInstitucional,
 } from '@/lib/emailServicios'
 
-/** Mismos BCC internos que el legacy control_escolar/cambiar.php (familia comentada). */
-const DESTINATARIOS_BIENVENIDA = [
-  'alexx_mario33@hotmail.com',
-  'isc.escobedo@gmail.com',
-  'sistemas.desarrollo@winston93.edu.mx',
-]
+function emailValido(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
 
 export type AlumnoControlEscolar = {
   alumno_id: number
@@ -40,6 +36,7 @@ export type ResultadoAutorizacionDocs = {
   errorCorreo?: string
   alumnoNombre?: string
   ctrl?: string
+  destinatarios?: string[]
 }
 
 /** Últimos 5 dígitos de la referencia — misma clave que `enReciboFinal` del portal. */
@@ -60,6 +57,49 @@ function escapeHtml(text: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+}
+
+/** Imágenes del pie legacy (`fondoe.png` / `fondow.png`) — URL pública del hosting escolar. */
+export function urlPieCorreoBienvenida(nivel: number): string {
+  const archivo = nivel <= 2 ? 'fondoe.png' : 'fondow.png'
+  // Mismas URLs que control_escolar/cambiar.php (fiables en clientes de correo).
+  // Copia local en public/control-escolar/ por si se retira el PHP.
+  return `https://www.winston93.edu.mx/control_escolar/${archivo}`
+}
+
+function coordinacionPorNivel(nivel: number): string {
+  if (nivel <= 2) return 'COORDINACIÓN KINDER'
+  if (nivel === 3) return 'COORDINACIÓN PRIMARIA'
+  return 'COORDINACIÓN SECUNDARIA'
+}
+
+function institucionPorNivel(nivel: number): string {
+  return nivel <= 2 ? 'INSTITUTO EDUCATIVO WINSTON' : 'INSTITUTO WINSTON CHURCHILL'
+}
+
+/**
+ * Cuerpo legacy de bienvenida (texto + pie con fondoe/fondow).
+ * Exportado para pruebas de envío.
+ */
+export function htmlCorreoBienvenidaControlEscolar(nivel: number): string {
+  const n = Number(nivel) || 3
+  const img = urlPieCorreoBienvenida(n)
+  const institucion = institucionPorNivel(n)
+  const coord = coordinacionPorNivel(n)
+
+  return `<div style="font-family: helvetica; font-size:14px;">Por medio del presente le damos la mas Cordial Bienvenida. Ya puede imprimir su recibo final con código QR en la dirección www.winston93.edu.mx/admisiones
+<br><br>
+</div>
+<br><br>
+<div align="center">
+</div><br><br>
+<p align="center"><i><font size="4" face="Times New Roman"><b></b></font></i><br>
+<img src="${escapeHtml(img)}" alt=""><br><br>
+<font size="4" style="color:#6aa84f; font-family: helvetica;">${escapeHtml(institucion)}<br>
+<font size="4" style="color:#073763; font-family: helvetica;">${escapeHtml(coord)}<br>
+<i>
+<strong style="color: #B00; font-size: 12px;">Este correo ha sido enviado de manera automática, no responder este correo porque no será leído.</strong>
+</font></i></p>`
 }
 
 export async function alumnoDocumentacionAutorizada(
@@ -99,44 +139,37 @@ async function cargarAlumnoPorRef(ref: string): Promise<AlumnoControlEscolar | n
   return row ? (row as AlumnoControlEscolar) : null
 }
 
-function htmlBienvenida(opts: {
-  alumno: AlumnoControlEscolar
-  nombreCompleto: string
-  autorizadoPor: string
-}): string {
-  const { alumno, nombreCompleto, autorizadoPor } = opts
-  const nivel = Number(alumno.alumno_nivel) || 3
-  const { nombreInstitucion, logoUrl, logoAlt } = brandingCorreoPorNivel(nivel)
-  const coordinacion =
-    nivel <= 2 ? 'COORDINACIÓN KINDER' : nivel === 3 ? 'COORDINACIÓN PRIMARIA' : 'COORDINACIÓN SECUNDARIA'
-  const from = remitenteCorreoInstitucional()
+/** Correos de mamá/papá con `familiar_recibir_email = 1` (mismo criterio que correo masivo). */
+export async function emailsPadresParaBienvenida(
+  alumnoId: number
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('alumno_familiar')
+    .select('familiar_email, tutor_id, familiar_recibir_email, familiar_nombre')
+    .eq('alumno_id', alumnoId)
+    .in('tutor_id', [TUTOR_ID_MADRE, TUTOR_ID_PADRE])
+    .eq('familiar_recibir_email', 1)
+    .order('familiar_id', { ascending: true })
 
-  return `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="font-family:Helvetica,Arial,sans-serif;color:#1e293b;line-height:1.55;font-size:14px;">
-  <p>Por medio del presente le damos la más cordial bienvenida.</p>
-  <p>
-    La documentación de <strong>${escapeHtml(nombreCompleto)}</strong>
-    (ref. ${escapeHtml(String(alumno.alumno_ref))}) quedó marcada como completa.
-    Ya puede imprimir su recibo final con código QR en el portal de inscripciones.
-  </p>
-  <p style="margin:20px 0 8px;color:#64748b;font-size:0.85rem;">
-    Autorizado por: ${escapeHtml(autorizadoPor)} · ${escapeHtml(from)}
-  </p>
-  <p align="center" style="margin-top:28px;">
-    <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(logoAlt)}" style="max-height:72px;" /><br><br>
-    <span style="color:#6aa84f;font-size:16px;">${escapeHtml(nombreInstitucion)}</span><br>
-    <span style="color:#073763;font-size:15px;">${escapeHtml(coordinacion)}</span><br>
-    <strong style="color:#B00;font-size:12px;">Este correo ha sido enviado de manera automática; no responder.</strong>
-  </p>
-</body>
-</html>`
+  if (error) {
+    console.error('Error emails padres bienvenida:', error)
+    return []
+  }
+
+  const emails: string[] = []
+  for (const row of data ?? []) {
+    const email = String(row.familiar_email ?? '').trim()
+    if (!emailValido(email)) continue
+    if (!emails.includes(email.toLowerCase())) {
+      emails.push(email.toLowerCase())
+    }
+  }
+  return emails
 }
 
 /**
  * Autoriza documentación completa: inserta en `a_inscritos` (desbloquea recibo final)
- * y envía aviso de bienvenida (BCC internos, como el legacy).
+ * y envía correo de bienvenida a papás (buzón de correos masivos).
  */
 export async function autorizarDocumentacionCompleta(opts: {
   alumnoRef: string
@@ -194,7 +227,6 @@ export async function autorizarDocumentacionCompleta(opts: {
   })
 
   if (insertError) {
-    // Carrera: otro usuario autorizó al mismo tiempo.
     if (/unique|duplicate/i.test(insertError.message)) {
       return {
         ok: true,
@@ -215,23 +247,37 @@ export async function autorizarDocumentacionCompleta(opts: {
   }
 
   const nivel = Number(alumno.alumno_nivel) || 3
-  const correo = await enviarCorreoMasivo({
-    to: DESTINATARIOS_BIENVENIDA,
-    subject: 'Correo de Bienvenida',
-    html: htmlBienvenida({ alumno, nombreCompleto, autorizadoPor }),
-    nivel,
-  })
-
   const nivelLbl = etiquetaNivelEscolar(alumno.alumno_nivel) || '—'
   const gradoLbl =
     etiquetaGradoEscolar(alumno.alumno_nivel, alumno.alumno_grado) || '—'
   const grupoLbl = grupoALetra(alumno.alumno_grupo) ?? '—'
+
+  const destinatarios = await emailsPadresParaBienvenida(alumno.alumno_id)
+  if (!destinatarios.length) {
+    return {
+      ok: true,
+      correoEnviado: false,
+      errorCorreo: 'Sin correo de mamá/papá con recibir email activo',
+      message: `${nombreCompleto} (${nivelLbl} · ${gradoLbl} · ${grupoLbl}): documentación autorizada, pero no hay correo de padres para enviar la bienvenida.`,
+      alumnoNombre: nombreCompleto,
+      ctrl,
+      destinatarios: [],
+    }
+  }
+
+  const correo = await enviarCorreoMasivo({
+    to: destinatarios,
+    subject: 'Correo de Bienvenida',
+    html: htmlCorreoBienvenidaControlEscolar(nivel),
+    nivel,
+  })
 
   if (!correo.ok) {
     return {
       ok: true,
       correoEnviado: false,
       errorCorreo: correo.error,
+      destinatarios,
       message: `${nombreCompleto} (${nivelLbl} · ${gradoLbl} · ${grupoLbl}): registro guardado, pero el correo de bienvenida falló.`,
       alumnoNombre: nombreCompleto,
       ctrl,
@@ -241,8 +287,24 @@ export async function autorizarDocumentacionCompleta(opts: {
   return {
     ok: true,
     correoEnviado: true,
-    message: `${nombreCompleto} (${nivelLbl} · ${gradoLbl} · ${grupoLbl}): documentación autorizada y correo de bienvenida enviado.`,
+    destinatarios,
+    message: `${nombreCompleto} (${nivelLbl} · ${gradoLbl} · ${grupoLbl}): documentación autorizada y correo de bienvenida enviado a papás.`,
     alumnoNombre: nombreCompleto,
     ctrl,
   }
+}
+
+/** Solo para prueba manual: envía el HTML de bienvenida sin tocar a_inscritos. */
+export async function enviarPruebaCorreoBienvenida(opts: {
+  to: string
+  nivel?: number
+}): Promise<{ ok: boolean; error?: string }> {
+  const nivel = opts.nivel ?? 3
+  const result = await enviarCorreoMasivo({
+    to: [opts.to],
+    subject: '[PRUEBA] Correo de Bienvenida — Control Escolar',
+    html: htmlCorreoBienvenidaControlEscolar(nivel),
+    nivel,
+  })
+  return { ok: result.ok, error: result.error }
 }
