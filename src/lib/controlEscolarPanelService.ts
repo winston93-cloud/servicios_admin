@@ -1,6 +1,9 @@
 /**
  * Panel Control Escolar: pendientes (docs NI enviados sin a_inscritos)
  * y aprobados (ya liberados en a_inscritos).
+ *
+ * Solo cuenta envíos/autorizaciones desde el lanzamiento del módulo de liberar
+ * (no el historial previo de portal_documentos_ni).
  */
 import { supabase } from '@/lib/insforge'
 import {
@@ -10,6 +13,12 @@ import {
 import { ctrlDesdeAlumnoRef } from '@/lib/controlEscolarService'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
+
+/**
+ * Lanzamiento del módulo Control Escolar (liberar docs) — 28 jul 2026, ~10:55 CDMX.
+ * El panel ignora envíos anteriores a esta fecha.
+ */
+export const CE_PANEL_DESDE_ISO = '2026-07-28T16:55:00.000Z'
 
 export type FilaPanelControlEscolar = {
   alumnoRef: string
@@ -158,26 +167,35 @@ async function cargarAlumnosPorRefs(refs: string[]): Promise<Map<string, AlumnoR
 
 /**
  * Último envío de docs NI por alumno+ciclo, cruzado con a_inscritos.
- * Pendiente = envió docs y aún no está liberado.
- * Aprobado = fila en a_inscritos (con enriquecimiento de alumno/nivel).
+ * Pendiente = envió docs (desde el lanzamiento del módulo) y aún no está liberado.
+ * Aprobado = fila en a_inscritos desde el lanzamiento del módulo.
  */
 export async function listarPanelDocumentacionControlEscolar(): Promise<PanelControlEscolar> {
-  const [{ data: envios, error: errEnvios }, { data: inscritos, error: errIns }] =
-    await Promise.all([
-      supabase
-        .from('portal_documentos_ni')
-        .select('id, alumno_id, alumno_ref, ciclo_valor, nivel, enviado_at')
-        .order('enviado_at', { ascending: false })
-        .limit(2500),
-      supabase
-        .from('a_inscritos')
-        .select('id, ctrl, nombre, estatus, autorizado_por, autorizado_en, fecha')
-        .order('autorizado_en', { ascending: false })
-        .limit(2500),
-    ])
+  const desde = CE_PANEL_DESDE_ISO
+  const [
+    { data: envios, error: errEnvios },
+    { data: inscritos, error: errIns },
+    { data: inscritosTodos, error: errInsTodos },
+  ] = await Promise.all([
+    supabase
+      .from('portal_documentos_ni')
+      .select('id, alumno_id, alumno_ref, ciclo_valor, nivel, enviado_at')
+      .gte('enviado_at', desde)
+      .order('enviado_at', { ascending: false })
+      .limit(2500),
+    supabase
+      .from('a_inscritos')
+      .select('id, ctrl, nombre, estatus, autorizado_por, autorizado_en, fecha')
+      .gte('autorizado_en', desde)
+      .order('autorizado_en', { ascending: false })
+      .limit(2500),
+    // Liberados reales (cualquier fecha) para no listar como pendiente a quien ya autorizaron.
+    supabase.from('a_inscritos').select('ctrl').limit(5000),
+  ])
 
   if (errEnvios) throw new Error(errEnvios.message)
   if (errIns) throw new Error(errIns.message)
+  if (errInsTodos) throw new Error(errInsTodos.message)
 
   const latestEnvios = new Map<string, EnvioNi>()
   for (const row of (envios ?? []) as EnvioNi[]) {
@@ -187,7 +205,7 @@ export async function listarPanelDocumentacionControlEscolar(): Promise<PanelCon
 
   const inscritosRows = (inscritos ?? []) as InscritoRow[]
   const ctrlsLiberados = new Set(
-    inscritosRows
+    (inscritosTodos ?? [])
       .map((r) => String(r.ctrl ?? '').replace(/\D/g, '').slice(-5))
       .filter(Boolean)
   )

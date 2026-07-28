@@ -156,7 +156,8 @@ export default function ControlEscolarPanelModal({
             <p className="ce-panel-modal__eyebrow">Minipanel</p>
             <h2 id="ce-panel-title">Documentación NI</h2>
             <p className="ce-panel-modal__sub">
-              Pendientes de liberar y ya autorizados, con filtro por nivel.
+              Solo envíos desde el módulo de liberar (28 jul 2026). Filtra por
+              nivel, estado o nombre.
             </p>
           </div>
           <div className="ce-panel-modal__head-actions">
