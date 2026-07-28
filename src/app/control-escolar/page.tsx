@@ -2,7 +2,14 @@
 
 import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ClipboardCheck, Loader2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  ClipboardCheck,
+  FileCheck2,
+  Loader2,
+  Sparkles,
+  UserRound,
+} from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { CicloEscolarProvider } from '@/contexts/CicloEscolarContext'
 import { useAuth } from '@/contexts/AuthContext'
@@ -133,9 +140,9 @@ function ControlEscolarView() {
     : null
 
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-container ce-page">
       <div className="dashboard-main">
-        <div className="dashboard-heading">
+        <div className="dashboard-heading ce-heading">
           <button
             type="button"
             className="servicios-back-btn"
@@ -144,22 +151,32 @@ function ControlEscolarView() {
             <ArrowLeft size={16} aria-hidden />
             Volver al inicio
           </button>
-          <h1 className="dashboard-title">Control Escolar</h1>
-          <p className="dashboard-subtitle">
-            Autoriza documentación completa de nuevo ingreso para habilitar el
-            recibo final (junto con solicitud, pago y docs del portal).
-          </p>
+          <div className="ce-heading-row">
+            <span className="ce-heading-icon" aria-hidden>
+              <FileCheck2 size={22} />
+            </span>
+            <div>
+              <h1 className="dashboard-title">Control Escolar</h1>
+              <p className="dashboard-subtitle">
+                Autoriza la documentación completa de nuevo ingreso y libera el
+                recibo final.
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="servicios-panel-card bajas-admin-card">
-          <div className="bajas-admin-usuario-bar">
-            <span className="bajas-admin-usuario-label">Usuario</span>
-            <span className="bajas-admin-usuario-name">
-              {usuarioNombre || '—'}
+        <div className="ce-panel">
+          <div className="ce-usuario">
+            <span className="ce-usuario-icon" aria-hidden>
+              <UserRound size={16} />
             </span>
+            <div className="ce-usuario-text">
+              <span className="ce-usuario-label">Sesión</span>
+              <span className="ce-usuario-name">{usuarioNombre || '—'}</span>
+            </div>
           </div>
 
-          <div className="bajas-admin-search">
+          <div className="ce-search">
             <AlumnoAutocomplete
               etiqueta="Usuario (No. Control / referencia)"
               alumnoSeleccionado={alumno}
@@ -169,32 +186,36 @@ function ControlEscolarView() {
           </div>
 
           {detalleAlumno && (
-            <div className="bajas-admin-detalle">
-              <div>
-                <span className="bajas-admin-detalle-label">Referencia</span>
-                <strong>{detalleAlumno.ref}</strong>
+            <div className="ce-detalle">
+              <div className="ce-detalle-item">
+                <span className="ce-detalle-label">Referencia</span>
+                <strong className="ce-detalle-value">{detalleAlumno.ref}</strong>
               </div>
-              <div>
-                <span className="bajas-admin-detalle-label">Nivel / grado</span>
-                <strong>
+              <div className="ce-detalle-item">
+                <span className="ce-detalle-label">Nivel / grado</span>
+                <strong className="ce-detalle-value">
                   {detalleAlumno.nivel} · {detalleAlumno.grado} · Grupo{' '}
                   {detalleAlumno.grupo}
                 </strong>
               </div>
-              <div>
-                <span className="bajas-admin-detalle-label">Estatus</span>
-                <strong>{detalleAlumno.estatus}</strong>
+              <div className="ce-detalle-item">
+                <span className="ce-detalle-label">Estatus</span>
+                <strong className="ce-detalle-value ce-detalle-value--status">
+                  {detalleAlumno.estatus}
+                </strong>
               </div>
             </div>
           )}
 
           {status === 0 && alumno && (
-            <p className="bajas-admin-hint bajas-admin-hint--warn">
+            <p className="ce-hint ce-hint--warn">
               Este alumno figura con baja general; revisa antes de autorizar.
             </p>
           )}
 
-          <label className="control-escolar-check">
+          <label
+            className={`ce-check ${docsCompleta ? 'ce-check--on' : ''} ${!alumno ? 'ce-check--disabled' : ''}`}
+          >
             <input
               type="checkbox"
               checked={docsCompleta}
@@ -204,50 +225,50 @@ function ControlEscolarView() {
                 setMensaje(null)
               }}
             />
-            <span>
-              <strong>Documentación completa</strong>
-              <span className="control-escolar-check-hint">
-                Marca esta opción cuando el alumno entregó toda la documentación.
-                Sin esta autorización no se genera el recibo final (aunque ya
-                haya cargado los PDF en el portal).
+            <span className="ce-check-body">
+              <span className="ce-check-title">
+                <ClipboardCheck size={18} aria-hidden />
+                Documentación completa
+              </span>
+              <span className="ce-check-hint">
+                Marca cuando el alumno entregó todo el expediente. Sin esta
+                autorización no se genera el recibo final, aunque ya haya
+                cargado los PDF en el portal.
               </span>
             </span>
           </label>
 
-          <div className="bajas-admin-actions">
+          <div className="ce-actions">
             <button
               type="button"
-              className="control-escolar-btn"
+              className="ce-btn"
               disabled={!puedeGuardar}
               onClick={() => void guardarAutorizacion()}
             >
               {procesando ? (
                 <>
-                  <Loader2 size={18} className="bajas-admin-spin" aria-hidden />
+                  <Loader2 size={18} className="ce-spin" aria-hidden />
                   Guardando…
                 </>
               ) : (
                 <>
-                  <ClipboardCheck size={18} aria-hidden />
-                  Guardar
+                  <Sparkles size={18} aria-hidden />
+                  Guardar y autorizar
                 </>
               )}
             </button>
           </div>
 
           {mensaje && (
-            <p
-              className={`bajas-admin-msg bajas-admin-msg--${mensaje.tipo}`}
-              role="status"
-            >
+            <p className={`ce-msg ce-msg--${mensaje.tipo}`} role="status">
               {mensaje.texto}
             </p>
           )}
 
-          <p className="bajas-admin-hint">
-            Queda registrado quién autorizó (tu sesión del dashboard), la fecha y
-            la hora. Al guardar se envía el correo de bienvenida a mamá/papá
-            (recibir email activo) desde el mismo buzón de los envíos masivos.
+          <p className="ce-hint">
+            Queda registrado quién autorizó (tu sesión), la fecha y la hora. Al
+            guardar se envía el correo de bienvenida a mamá/papá desde el buzón
+            de envíos masivos.
           </p>
         </div>
       </div>
