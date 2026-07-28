@@ -54,10 +54,10 @@ function htmlBienvenida(n) {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fff8f0;">
     <tr>
       <td align="center" style="padding:12px 8px;">
-        <table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="max-width:640px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #fde68a;">
+        <table role="presentation" width="680" cellpadding="0" cellspacing="0" border="0" style="max-width:680px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #fde68a;">
           <tr>
             <td align="center" style="padding:0;background:#fffbeb;line-height:0;">
-              <img src="cid:${CID}" alt="¡Felicidades!" width="640" style="display:block;width:100%;max-width:640px;height:auto;border:0;" />
+              <img src="cid:${CID}" alt="¡Felicidades!" width="680" style="display:block;width:100%;max-width:680px;height:auto;border:0;" />
             </td>
           </tr>
           <tr>
