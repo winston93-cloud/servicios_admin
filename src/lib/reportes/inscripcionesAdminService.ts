@@ -143,12 +143,9 @@ async function fetchAlumnosCicloNuevoIngreso(
       .eq('alumno_ciclo_escolar', ciclo)
       .eq('alumno_nuevo_ingreso', nuevoIngreso)
 
-    if (modoStatus === 'ni') {
-      q = q.eq('alumno_status', 1)
-    } else {
-      // Legacy: alumno_status != 0 (filtros 2/5 de pagados RI se aplican en memoria).
-      q = q.neq('alumno_status', 0)
-    }
+    // RI y NI: igual que reporte «Nuevo ingreso» — excluir solo inactivos (0).
+    // NI con status 2 (alta sin pago) deben entrar en NI ESTIMADOS.
+    q = q.neq('alumno_status', 0)
 
     const { data, error } = await q.range(offset, offset + PAGE_ALUMNO - 1)
     if (error) throw new Error(error.message)
