@@ -437,19 +437,16 @@ export default function PortalInscripcionesView() {
     const cicloColeg = Number(estadoVista?.cicloColegiaturas?.valor ?? 0)
     if (cicloColeg <= 0) return
 
-    const yaConfirmado =
+    const yaConfirmadoLocal =
       planConfirmado ||
       Boolean(estadoVista?.progresoInscripcion?.planConfirmado) ||
       Boolean(estadoVista?.cuotaInicioCursoPagada) ||
       leerPlanPagosConfirmado(alumnoId, cicloColeg)
 
-    if (yaConfirmado) {
+    if (yaConfirmadoLocal) {
       setPlanConfirmado(true)
       marcarPlanPagosConfirmado(alumnoId, cicloColeg)
       setPlanModalAbierto(false)
-    } else {
-      // Abrir ya: no esperar al GET (evita saltarse la modal si el fetch falla / se cancela).
-      setPlanModalAbierto(true)
     }
 
     let cancelado = false
@@ -462,9 +459,19 @@ export default function PortalInscripcionesView() {
         if (cancelado) return
         if (res.ok) {
           setPlanPuedeCambiar(data?.puedeCambiar !== false)
+          // Si ya registraron el plan del ciclo, no volver a pedirlo.
+          if (data?.planRegistrado || yaConfirmadoLocal) {
+            setPlanConfirmado(true)
+            marcarPlanPagosConfirmado(alumnoId, cicloColeg)
+            setPlanModalAbierto(false)
+          } else if (!yaConfirmadoLocal) {
+            setPlanModalAbierto(true)
+          }
+        } else if (!yaConfirmadoLocal) {
+          setPlanModalAbierto(true)
         }
       } catch {
-        /* modal ya abierta si hace falta */
+        if (!yaConfirmadoLocal) setPlanModalAbierto(true)
       }
     })()
 
@@ -519,8 +526,6 @@ export default function PortalInscripcionesView() {
             alumnoId,
             cicloValor: cicloColeg,
             plan_confirmado: true,
-            reglamento_visto: true,
-            recibo_final_visto: true,
           }),
         }).catch(() => {})
         setEstado((prev) =>
@@ -533,15 +538,13 @@ export default function PortalInscripcionesView() {
                   ? prev.alumno
                   : { ...prev.alumno, mes: planFinal },
                 progresoInscripcion: {
-                  reglamentoVisto: true,
-                  reciboFinalVisto: true,
+                  reglamentoVisto: Boolean(prev.progresoInscripcion?.reglamentoVisto),
+                  reciboFinalVisto: Boolean(prev.progresoInscripcion?.reciboFinalVisto),
                   planConfirmado: true,
                 },
               }
             : prev
         )
-        setReglamentoVisto(true)
-        setReciboFinalVisto(true)
         setPlanPuedeCambiar(!data.bloqueadoPorPagos)
         setMatriz(null)
         setPlanConfirmado(true)

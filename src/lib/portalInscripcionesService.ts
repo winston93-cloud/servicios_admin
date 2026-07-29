@@ -428,9 +428,10 @@ export async function construirEstadoPortalInscripciones(
     alumno.alumno_id,
     cicloColegiaturasValor
   )
-  // Backfill: quien ya eligió plan o pagó cuota 00 cerró el proceso en la práctica.
+  // Backfill: cuota 00 implica proceso de colegiaturas ya abierto (pasos previos OK).
+  // El plan solo no marca reglamento/recibo: se elige al final, no los sustituye.
   if (
-    (cuotaInicioCursoPagada || planGuardadoCiclo) &&
+    cuotaInicioCursoPagada &&
     (!progresoRow?.reglamento_visto ||
       !progresoRow?.recibo_final_visto ||
       !progresoRow?.plan_confirmado)
@@ -450,12 +451,24 @@ export async function construirEstadoPortalInscripciones(
       alumno.alumno_id,
       cicloColegiaturasValor
     )
+  } else if (planGuardadoCiclo && !progresoRow?.plan_confirmado) {
+    await marcarPortalInscripcionProgreso(
+      supabase,
+      alumno.alumno_id,
+      cicloColegiaturasValor,
+      { plan_confirmado: true }
+    )
+    progresoRow = await obtenerPortalInscripcionProgreso(
+      supabase,
+      alumno.alumno_id,
+      cicloColegiaturasValor
+    )
   }
   const reglamentoVistoServidor = Boolean(
-    progresoRow?.reglamento_visto || cuotaInicioCursoPagada || planGuardadoCiclo
+    progresoRow?.reglamento_visto || cuotaInicioCursoPagada
   )
   const reciboFinalVistoServidor = Boolean(
-    progresoRow?.recibo_final_visto || cuotaInicioCursoPagada || planGuardadoCiclo
+    progresoRow?.recibo_final_visto || cuotaInicioCursoPagada
   )
   const planConfirmadoServidor = Boolean(
     progresoRow?.plan_confirmado || cuotaInicioCursoPagada || planGuardadoCiclo
@@ -539,7 +552,7 @@ export async function construirEstadoPortalInscripciones(
       pasosVisibles && solCapturada
     ),
     detalle: reglamentoVistoServidor
-      ? planGuardadoCiclo || cuotaInicioCursoPagada
+      ? cuotaInicioCursoPagada
         ? 'Paso cerrado: el proceso de inscripción de este ciclo ya quedó registrado.'
         : 'Reglamento consultado.'
       : urlReglamento
@@ -623,10 +636,9 @@ export async function construirEstadoPortalInscripciones(
 
   let detalleRecibo: string
   if (reciboFinalVistoServidor) {
-    detalleRecibo =
-      planGuardadoCiclo || cuotaInicioCursoPagada
-        ? 'Paso cerrado: el proceso de inscripción de este ciclo ya quedó registrado. Las colegiaturas están desbloqueadas.'
-        : 'Recibo final consultado. Las colegiaturas del ciclo nuevo se desbloquean con todos los pasos completados.'
+    detalleRecibo = cuotaInicioCursoPagada
+      ? 'Paso cerrado: el proceso de inscripción de este ciclo ya quedó registrado. Las colegiaturas están desbloqueadas.'
+      : 'Recibo final consultado. Las colegiaturas del ciclo nuevo se desbloquean con todos los pasos completados.'
   } else if (puedeRecibo) {
     detalleRecibo =
       'Ábrelo al menos una vez para marcarlo como completado. Las colegiaturas del ciclo nuevo se desbloquean cuando los pasos estén completados.'

@@ -51,7 +51,7 @@ export async function guardarPlanMesesCiclo(
   return true
 }
 
-/** Guarda solo si no hay fila (congela el plan histórico del ciclo). */
+/** Guarda solo si no hay fila (conserva el plan histórico del ciclo). */
 export async function guardarPlanMesesCicloSiAusente(
   db: AppDatabaseClient,
   alumnoId: number,
@@ -66,11 +66,10 @@ export async function guardarPlanMesesCicloSiAusente(
 /**
  * Plan aplicable a un ciclo concreto.
  *
- * - Con fila en `alumno_plan_meses` → esa.
- * - Ciclo pasado / de cierre (menor que la ficha o con pagos de cierre):
- *   no heredar `alumno.mes` del ciclo nuevo; julio (26) solo si ya hay pago
- *   o quedó congelado el plan 11 de ese ciclo.
- * - Ciclo de la ficha o futuro → `alumno.mes` (legacy) si no hay fila.
+ * - Fila en `alumno_plan_meses` → esa (histórico por ciclo).
+ * - Si ya hay pago de julio (26) → 11 meses.
+ * - Si no → `alumno.mes` (plan de la ficha: el del ciclo en curso / anterior
+ *   hasta que se registre el del ciclo nuevo al terminar la inscripción).
  */
 export async function resolverPlanMesesParaCiclo(
   db: AppDatabaseClient,
@@ -81,27 +80,20 @@ export async function resolverPlanMesesParaCiclo(
   const stored = await obtenerPlanMesesCiclo(db, alumno.alumno_id, cicloValor)
   if (stored != null) return stored
 
-  const ficha = Number(alumno.alumno_ciclo_escolar) || 0
-  const planFicha = planMesesNormalizado(alumno.mes)
-
-  // Ciclo estrictamente anterior a la ficha (= cierre típico tras avance).
-  if (ficha > 0 && cicloValor < ficha) {
-    if (
-      pagosCiclo &&
-      alumnoTienePagoSemiref(pagosCiclo, alumno.alumno_ref, '26', cicloValor)
-    ) {
-      return 2
-    }
-    return 1
+  if (
+    pagosCiclo &&
+    alumnoTienePagoSemiref(pagosCiclo, alumno.alumno_ref, '26', cicloValor)
+  ) {
+    return 2
   }
 
-  return planFicha
+  return planMesesNormalizado(alumno.mes)
 }
 
 /**
- * Plan del ciclo de cierre (reinscripción).
- * Nunca hereda `alumno.mes` del ciclo nuevo: julio (26) solo si quedó
- * congelado el plan 11 de ese ciclo o ya hay pago de julio.
+ * Plan del ciclo de cierre (colegiaturas pendientes del ciclo que termina).
+ * Usa el plan de ESE ciclo: historial por ciclo si existe; si no, la ficha
+ * (`alumno.mes`). Un pago de julio (26) confirma 11 meses.
  */
 export async function resolverPlanMesesCierre(
   db: AppDatabaseClient,
@@ -116,5 +108,5 @@ export async function resolverPlanMesesCierre(
     return 2
   }
 
-  return 1
+  return planMesesNormalizado(alumno.mes)
 }

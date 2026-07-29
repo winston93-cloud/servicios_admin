@@ -15,6 +15,7 @@ import {
   type PlanMeses,
 } from '@/lib/portalPlanMesesCiclo'
 import { marcarPortalInscripcionProgreso } from '@/lib/portalInscripcionProgreso'
+import { elegibilidadParaRegistrarPlanColegiaturas } from '@/lib/portalPlanPagosElegibilidad'
 
 export type ResultadoPlanPagos =
   | {
@@ -53,8 +54,9 @@ export async function alumnoTienePagosColegiaturaCiclo(
 
 /**
  * Confirma / cambia plan 10 u 11 para un ciclo concreto.
- * El plan es independiente por ciclo: al elegir el del ciclo nuevo no se
- * reescribe el del ciclo a cerrar (`alumno.mes` de la ficha).
+ * Solo se registra al completar la inscripción (salvo que ya exista plan o
+ * colegiaturas del ciclo). Al registrar el del ciclo nuevo, se conserva el
+ * plan del ciclo anterior en `alumno_plan_meses` para no perder julio.
  */
 export async function actualizarPlanMesesPortal(
   db: AppDatabaseClient,
@@ -74,17 +76,22 @@ export async function actualizarPlanMesesPortal(
   const fichaCiclo = Number(alumno.alumno_ciclo_escolar) || 0
   const planParaCicloFuturo = fichaCiclo > 0 && cicloColegiaturasValor > fichaCiclo
 
-  const cerrarProgresoVistaInscripcion = async () => {
+  const marcarSoloPlanConfirmado = async () => {
     await marcarPortalInscripcionProgreso(
       db,
       alumno.alumno_id,
       cicloColegiaturasValor,
-      {
-        plan_confirmado: true,
-        reglamento_visto: true,
-        recibo_final_visto: true,
-      }
+      { plan_confirmado: true }
     )
+  }
+
+  const elegibilidad = await elegibilidadParaRegistrarPlanColegiaturas(
+    db,
+    alumno,
+    cicloColegiaturasValor
+  )
+  if (!elegibilidad.ok) {
+    return { ok: false, error: elegibilidad.error }
   }
 
   const tienePagos = await alumnoTienePagosColegiaturaCiclo(alumno, cicloColegiaturasValor)
@@ -98,13 +105,12 @@ export async function actualizarPlanMesesPortal(
     }
     try {
       await guardarPlanMesesCiclo(db, alumno.alumno_id, cicloColegiaturasValor, actual)
-      if (planParaCicloFuturo) {
-        await guardarPlanMesesCicloSiAusente(db, alumno.alumno_id, fichaCiclo, planFicha)
-      }
+      const cicloAnterior = Math.max(1, cicloColegiaturasValor - 1)
+      await guardarPlanMesesCicloSiAusente(db, alumno.alumno_id, cicloAnterior, planFicha)
     } catch {
       /* degradar si la tabla no existe aún */
     }
-    await cerrarProgresoVistaInscripcion()
+    await marcarSoloPlanConfirmado()
     return {
       ok: true,
       planMeses: actual,
@@ -115,21 +121,9 @@ export async function actualizarPlanMesesPortal(
     }
   }
 
-  // Ciclo nuevo (ficha aún en el anterior): congelar plan de la ficha solo
-  // si todavía refleja el ciclo a cerrar (p. ej. pasan de 10 → 11).
-  if (planParaCicloFuturo && planMeses !== planFicha) {
-    await guardarPlanMesesCicloSiAusente(db, alumno.alumno_id, fichaCiclo, planFicha)
-  }
-
-  // Mismo ciclo de la ficha y cambian plan: congelar el anterior en ciclo-1.
-  if (!planParaCicloFuturo && planMeses !== planFicha) {
-    await guardarPlanMesesCicloSiAusente(
-      db,
-      alumno.alumno_id,
-      Math.max(1, cicloColegiaturasValor - 1),
-      planFicha
-    )
-  }
+  // Conservar el plan del ciclo que termina (adeudos julio/sep–jun).
+  const cicloAnterior = Math.max(1, cicloColegiaturasValor - 1)
+  await guardarPlanMesesCicloSiAusente(db, alumno.alumno_id, cicloAnterior, planFicha)
 
   const planCicloGuardado = await guardarPlanMesesCiclo(
     db,
@@ -140,7 +134,7 @@ export async function actualizarPlanMesesPortal(
 
   if (planParaCicloFuturo && planCicloGuardado) {
     // Ficha sigue en el ciclo anterior: alumno.mes = plan de ese ciclo.
-    await cerrarProgresoVistaInscripcion()
+    await marcarSoloPlanConfirmado()
     return {
       ok: true,
       planMeses,
@@ -152,7 +146,7 @@ export async function actualizarPlanMesesPortal(
   }
 
   if (planMeses === planFicha && (planCicloGuardado || planParaCicloFuturo)) {
-    await cerrarProgresoVistaInscripcion()
+    await marcarSoloPlanConfirmado()
     return {
       ok: true,
       planMeses,
@@ -176,7 +170,7 @@ export async function actualizarPlanMesesPortal(
     }
   }
 
-  await cerrarProgresoVistaInscripcion()
+  await marcarSoloPlanConfirmado()
   return {
     ok: true,
     planMeses,

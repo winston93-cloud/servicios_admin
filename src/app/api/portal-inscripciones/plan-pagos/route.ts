@@ -6,7 +6,10 @@ import {
   actualizarPlanMesesPortal,
 } from '@/lib/portalPlanPagosService'
 import { etiquetaPlanMeses } from '@/lib/alumnoPlanMeses'
-import { resolverPlanMesesParaCiclo } from '@/lib/portalPlanMesesCiclo'
+import {
+  obtenerPlanMesesCiclo,
+  resolverPlanMesesParaCiclo,
+} from '@/lib/portalPlanMesesCiclo'
 
 export const runtime = 'nodejs'
 
@@ -27,6 +30,8 @@ export async function GET(request: Request) {
     const supabase = createSupabaseAdmin()
     const planMeses = await resolverPlanMesesParaCiclo(supabase, auth.alumno, cicloValor)
     const bloqueadoPorPagos = await alumnoTienePagosColegiaturaCiclo(auth.alumno, cicloValor)
+    const planRegistrado =
+      (await obtenerPlanMesesCiclo(supabase, auth.alumno.alumno_id, cicloValor)) != null
 
     return NextResponse.json({
       ok: true,
@@ -34,6 +39,8 @@ export async function GET(request: Request) {
       planEtiqueta: etiquetaPlanMeses(planMeses),
       bloqueadoPorPagos,
       puedeCambiar: !bloqueadoPorPagos,
+      /** Ya hay plan del ciclo: no volver a mostrar la modal de confirmación. */
+      planRegistrado,
     })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al consultar plan de pagos'
