@@ -1,6 +1,9 @@
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { enviarCorreoMasivo } from '@/lib/emailServicios'
-import { ctrlDesdeAlumnoRef } from '@/lib/controlEscolarService'
+import {
+  CE_MODULO_LIBERAR_DESDE_ISO,
+  ctrlDesdeAlumnoRef,
+} from '@/lib/controlEscolarService'
 import {
   correoControlEscolarPorNivel,
   correoDocumentosNiEfectivo,
@@ -57,6 +60,9 @@ function haceAlMenos24h(iso: string | null | undefined, ahora: number): boolean 
 /**
  * Último envío de docs por alumno+ciclo que aún no está en a_inscritos
  * y ya lleva ≥24 h sin liberar (y ≥24 h desde el último recordatorio).
+ *
+ * Mismo alcance que el minipanel de Control Escolar: solo envíos desde
+ * el lanzamiento del módulo de liberar (`CE_MODULO_LIBERAR_DESDE_ISO`).
  */
 export async function listarPendientesLiberacionDocumentosNi(
   ahora = Date.now()
@@ -68,6 +74,7 @@ export async function listarPendientesLiberacionDocumentosNi(
     .select(
       'id, alumno_id, alumno_ref, ciclo_valor, nivel, correo_destino, enviado_at, recordatorio_liberacion_at'
     )
+    .gte('enviado_at', CE_MODULO_LIBERAR_DESDE_ISO)
     .order('enviado_at', { ascending: false })
     .limit(2000)
 
@@ -194,8 +201,10 @@ function htmlRecordatorioLiberacion(
       <td style="background:#fff;border:1px solid #e2e8f0;border-top:none;padding:18px 20px;border-radius:0 0 14px 14px;">
         <p style="margin:0 0 14px;line-height:1.55;color:#334155;">
           Hay <strong>${pendientes.length}</strong> alumno(s) de nuevo ingreso / cambio de nivel
-          con documentos ya enviados por el papá y <strong>sin autorización de documentación completa</strong>
+          con documentos enviados desde el módulo de liberar (28 jul 2026) y
+          <strong>sin autorización de documentación completa</strong>
           en Control Escolar. Sin esa liberación no pueden generar el recibo final.
+          Es la misma lista que el minipanel de Control Escolar (pendientes ≥24&nbsp;h).
         </p>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:13px;">
           <thead>
