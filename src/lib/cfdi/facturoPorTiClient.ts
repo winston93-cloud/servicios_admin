@@ -142,12 +142,18 @@ export async function cancelarCfdiFacturoPorTi(
     }
   }
 
+  // Cancelación CSD: FacturoPorTi responde { codigo, mensaje, ... } en raíz
+  // (a diferencia de timbrar, que anida en estatus.codigo / estatus.descripcion).
   const estatus = raw.estatus as Record<string, unknown> | undefined
-  const codigo = String(estatus?.codigo ?? '').trim()
-  const mensaje = String(estatus?.descripcion ?? 'Sin descripción')
+  const codigo = String(estatus?.codigo ?? raw.codigo ?? '').trim()
+  const mensaje = String(
+    estatus?.descripcion ?? raw.mensaje ?? raw.descripcion ?? 'Sin descripción'
+  )
   const informacionTecnica = estatus?.informacionTecnica
     ? String(estatus.informacionTecnica)
-    : undefined
+    : raw.estatusCancelacion
+      ? String(raw.estatusCancelacion)
+      : undefined
 
   return {
     ok: codigo === '000',
