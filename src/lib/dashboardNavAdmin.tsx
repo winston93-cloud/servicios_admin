@@ -3,7 +3,7 @@ import type { DashboardModuleAccent } from '@/components/dashboard/DashboardModu
 import { urlProrrogasAjustesApp } from '@/lib/prorrogasAjustesConfig'
 import { urlCchicApp } from '@/lib/cchicConfig'
 import {
-  urlBecasAdminPath,
+  urlBecasPanelApp,
   urlBoletasApp,
   urlChequesApp,
   urlReportesConductaApp,
@@ -243,12 +243,12 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
-    label: 'Becas',
-    desc: 'Asignación y seguimiento de becas por alumno y ciclo.',
-    path: urlBecasAdminPath(),
+    label: 'Becas Panel',
+    desc: 'Dashboard de revisión de becas (renovaciones y solicitudes) con login de Control Escolar.',
+    href: urlBecasPanelApp(),
     accent: 'amber',
     kicker: 'Becas',
-    tags: ['Asignación', 'Ciclo'],
+    tags: ['Revisión', 'Admin', 'Login'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />

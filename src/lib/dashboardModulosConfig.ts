@@ -23,9 +23,17 @@ export function urlBoletasAlumnoApp(): string {
   return urlBoletasApp()
 }
 
-/** Becas — módulo interno en /servicios. */
+/** Becas Panel — dashboard de revisión (admin con login en becas-renovacion). */
+export function urlBecasPanelApp(): string {
+  const explicit = process.env.NEXT_PUBLIC_BECAS_PANEL_URL?.trim()
+  if (explicit) return explicit.replace(/\/$/, '')
+
+  return 'https://becas-renovacion.vercel.app/admin/login'
+}
+
+/** @deprecated Preferir urlBecasPanelApp (panel externo con login). */
 export function urlBecasAdminPath(): string {
-  return '/servicios?modulo=becas'
+  return urlBecasPanelApp()
 }
 
 /** Portal de becas integrales — solicitud en línea (alumnos / familias). */
