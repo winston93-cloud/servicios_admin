@@ -1,9 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Loader2, Mail, Paperclip, RotateCcw, Send, Users } from 'lucide-react'
+import { Loader2, Mail, Paperclip, RotateCcw, Send, UserRound, Users } from 'lucide-react'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
+import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 import {
   FILTROS_ADICIONALES_OPCIONES,
   NIVEL_CORREO_OPCIONES,
@@ -22,10 +23,14 @@ import {
   limpiarProgresoCorreoMasivo,
   resumenProgresoGuardado,
 } from '@/lib/correoMasivoProgresoStorage'
+import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
+
+type ModoEnvioCorreo = 'masivo' | 'individual'
 
 export default function CorreoMasivoModulo() {
   const { cicloSeleccionado, opcionesCatalogo, cargando: cargandoCiclos } = useCicloEscolar()
 
+  const [modoEnvio, setModoEnvio] = useState<ModoEnvioCorreo>('masivo')
   const [cicloFiltro, setCicloFiltro] = useState(cicloSeleccionado)
   const [nivel, setNivel] = useState(0)
   const [grado, setGrado] = useState(0)
@@ -35,6 +40,7 @@ export default function CorreoMasivoModulo() {
   const [mensaje, setMensaje] = useState('')
   const [archivos, setArchivos] = useState<File[]>([])
 
+  const [alumnoIndividual, setAlumnoIndividual] = useState<AlumnoBusquedaResultado | null>(null)
   const [destinatarios, setDestinatarios] = useState<DestinatarioCorreoMasivo[]>([])
   const [cargandoLista, setCargandoLista] = useState(false)
   const [enviando, setEnviando] = useState(false)
@@ -81,14 +87,13 @@ export default function CorreoMasivoModulo() {
       setMensajeOk(guardado.resumenTexto)
       setNombresArchivosRecordados(guardado.nombresArchivos ?? [])
       setSesionRestaurada(true)
+      setModoEnvio(guardado.destinatarios.length <= 1 ? 'individual' : 'masivo')
     }
     setInicializado(true)
   }, [])
 
   useEffect(() => {
     if (!inicializado || cargandoCiclos) return
-    // Sesión restaurada: si el ciclo guardado ya no está en el catálogo
-    // (p. ej. tras avanzar temporada), alinear al ciclo vigente del sistema.
     if (sesionRestaurada) {
       const valores = new Set(opcionesCatalogo.map((o) => o.valor))
       if (valores.size > 0 && !valores.has(cicloFiltro)) {
@@ -97,7 +102,6 @@ export default function CorreoMasivoModulo() {
       return
     }
     setCicloFiltro(cicloSeleccionado)
-    // cicloFiltro solo se lee en rama restaurada; no debe re-disparar al elegir otro ciclo en el select.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intencional
   }, [
     cicloSeleccionado,
@@ -145,12 +149,11 @@ export default function CorreoMasivoModulo() {
     setFaseEnvio('preview')
   }, [])
 
-  /** Al tocar un filtro se suelta el progreso restaurado para que la lista se recargue. */
   const tocarFiltro = useCallback(() => {
     if (sesionRestaurada) descartarProgresoGuardado()
   }, [descartarProgresoGuardado, sesionRestaurada])
 
-  const cargarDestinatarios = useCallback(async () => {
+  const cargarDestinatariosMasivo = useCallback(async () => {
     if (!cicloFiltro) return
     setCargandoLista(true)
     setError(null)
@@ -185,12 +188,80 @@ export default function CorreoMasivoModulo() {
     }
   }, [cicloFiltro, nivel, grado, grupo, filtroAdicional])
 
+  const cargarDestinatarioIndividual = useCallback(async (alumno: AlumnoBusquedaResultado | null) => {
+    if (!alumno?.alumno_id) {
+      setDestinatarios([])
+      setFaseEnvio('preview')
+      return
+    }
+    setCargandoLista(true)
+    setError(null)
+    limpiarProgresoCorreoMasivo()
+    setSesionRestaurada(false)
+    try {
+      const res = await fetch(
+        `/api/correo-masivo/destinatarios?alumnoId=${encodeURIComponent(String(alumno.alumno_id))}`
+      )
+      const json = await res.json()
+      if (!res.ok) {
+        setError(json.error ?? 'No se pudo cargar el alumno')
+        setDestinatarios([])
+        return
+      }
+      const lista = (json.destinatarios ?? []) as DestinatarioCorreoMasivo[]
+      setDestinatarios(lista)
+      setFaseEnvio('preview')
+      if (!lista.length) {
+        setError(json.aviso ?? 'No se encontró el alumno.')
+      } else if (!lista[0].emails.length) {
+        setError('El alumno no tiene correo autorizado de padre/madre.')
+      }
+    } catch {
+      setError('Error de red al cargar el alumno')
+      setDestinatarios([])
+    } finally {
+      setCargandoLista(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (!inicializado || cargandoCiclos || !cicloFiltro) return
     if (sesionRestaurada) return
-    const t = setTimeout(() => cargarDestinatarios(), 280)
+    if (modoEnvio !== 'masivo') return
+    const t = setTimeout(() => cargarDestinatariosMasivo(), 280)
     return () => clearTimeout(t)
-  }, [cargarDestinatarios, cargandoCiclos, cicloFiltro, inicializado, sesionRestaurada])
+  }, [
+    cargarDestinatariosMasivo,
+    cargandoCiclos,
+    cicloFiltro,
+    inicializado,
+    modoEnvio,
+    sesionRestaurada,
+  ])
+
+  const cambiarModo = useCallback(
+    (modo: ModoEnvioCorreo) => {
+      if (modo === modoEnvio) return
+      tocarFiltro()
+      setModoEnvio(modo)
+      setError(null)
+      setMensajeOk(null)
+      setFaseEnvio('preview')
+      setDestinatarios([])
+      setAlumnoIndividual(null)
+    },
+    [modoEnvio, tocarFiltro]
+  )
+
+  const onSeleccionarAlumnoIndividual = useCallback(
+    (alumno: AlumnoBusquedaResultado | null) => {
+      tocarFiltro()
+      setAlumnoIndividual(alumno)
+      setMensajeOk(null)
+      void cargarDestinatarioIndividual(alumno)
+    },
+    [cargarDestinatarioIndividual, tocarFiltro]
+  )
 
   const grupos = useMemo(() => agruparDestinatariosPorSeccion(destinatarios), [destinatarios])
   const resumen = useMemo(() => resumenDestinatarios(destinatarios), [destinatarios])
@@ -227,6 +298,7 @@ export default function CorreoMasivoModulo() {
       let totalEnviados = 0
       let totalErrores = 0
       const totalLotes = Math.ceil(conCorreo.length / TAMANO_LOTE_ENVIO) || 0
+      const esIndividual = modoEnvio === 'individual'
 
       persistirSesion(destinatarios, 'Iniciando envío…')
 
@@ -234,7 +306,9 @@ export default function CorreoMasivoModulo() {
         const lote = conCorreo.slice(i, i + TAMANO_LOTE_ENVIO)
         const numLote = Math.floor(i / TAMANO_LOTE_ENVIO) + 1
         setProgresoEnvio(
-          `Enviando lote ${numLote} de ${totalLotes} (${i + lote.length}/${conCorreo.length} alumnos). Gmail limita velocidad; espere…`
+          esIndividual
+            ? 'Enviando correo individual…'
+            : `Enviando lote ${numLote} de ${totalLotes} (${i + lote.length}/${conCorreo.length} alumnos). Gmail limita velocidad; espere…`
         )
 
         const fd = new FormData()
@@ -242,14 +316,21 @@ export default function CorreoMasivoModulo() {
         fd.set('mensaje', mensaje.trim())
         fd.set(
           'filtros',
-          JSON.stringify({
-            cicloEscolar: cicloFiltro,
-            nivel: nivel > 0 ? nivel : null,
-            grado: grado > 0 ? grado : null,
-            grupo: grupo > 0 ? grupo : null,
-            filtroAdicional,
-            soloAlumnoIds: lote.map((d) => d.alumno_id),
-          })
+          JSON.stringify(
+            esIndividual
+              ? {
+                  modo: 'individual',
+                  soloAlumnoIds: lote.map((d) => d.alumno_id),
+                }
+              : {
+                  cicloEscolar: cicloFiltro,
+                  nivel: nivel > 0 ? nivel : null,
+                  grado: grado > 0 ? grado : null,
+                  grupo: grupo > 0 ? grupo : null,
+                  filtroAdicional,
+                  soloAlumnoIds: lote.map((d) => d.alumno_id),
+                }
+          )
         )
         for (const f of archivos) fd.append('archivos', f)
 
@@ -282,10 +363,12 @@ export default function CorreoMasivoModulo() {
         setDestinatarios(ordenadosParcial)
         persistirSesion(
           ordenadosParcial,
-          `En progreso… lote ${numLote}/${totalLotes}`
+          esIndividual
+            ? 'Enviando correo individual…'
+            : `En progreso… lote ${numLote}/${totalLotes}`
         )
 
-        if (numLote < totalLotes) {
+        if (!esIndividual && numLote < totalLotes) {
           setProgresoEnvio(`Pausa ${PAUSA_ENTRE_LOTES_MS / 1000}s antes del siguiente lote (Gmail)…`)
           await new Promise((r) => setTimeout(r, PAUSA_ENTRE_LOTES_MS))
         }
@@ -316,6 +399,7 @@ export default function CorreoMasivoModulo() {
       grado,
       grupo,
       mensaje,
+      modoEnvio,
       nivel,
       persistirSesion,
     ]
@@ -330,17 +414,28 @@ export default function CorreoMasivoModulo() {
       setError('Captura asunto y mensaje.')
       return
     }
-    if (!cicloFiltro) {
+    if (modoEnvio === 'masivo' && !cicloFiltro) {
       setError('Selecciona el ciclo escolar.')
       return
     }
+    if (modoEnvio === 'individual' && !alumnoIndividual && destinatarios.length === 0) {
+      setError('Busca y selecciona un alumno.')
+      return
+    }
     if (resumen.conCorreo === 0) {
-      setError('No hay alumnos con correo autorizado para enviar.')
+      setError(
+        modoEnvio === 'individual'
+          ? 'El alumno no tiene correo autorizado para enviar.'
+          : 'No hay alumnos con correo autorizado para enviar.'
+      )
       return
     }
-    if (!window.confirm(`¿Enviar correo a ${resumen.conCorreo} alumno(s) con correo registrado?`)) {
-      return
-    }
+
+    const confirmMsg =
+      modoEnvio === 'individual'
+        ? `¿Enviar correo a ${destinatarios[0]?.nombre_completo ?? 'este alumno'} (${destinatarios[0]?.emails.join(', ')})?`
+        : `¿Enviar correo a ${resumen.conCorreo} alumno(s) con correo registrado?`
+    if (!window.confirm(confirmMsg)) return
 
     setEnviando(true)
     setProgresoEnvio(null)
@@ -349,7 +444,12 @@ export default function CorreoMasivoModulo() {
         destinatarios.filter((d) => d.emails.length > 0),
         false
       )
-      const texto = `Proceso terminado: ${totalEnviados} enviado(s), ${totalErrores} error(es), ${sinCorreo} sin correo.`
+      const texto =
+        modoEnvio === 'individual'
+          ? totalEnviados > 0
+            ? 'Correo individual enviado correctamente.'
+            : `No se pudo enviar (${totalErrores} error(es)).`
+          : `Proceso terminado: ${totalEnviados} enviado(s), ${totalErrores} error(es), ${sinCorreo} sin correo.`
       setMensajeOk(texto)
       persistirSesion(ordenados, texto)
     } catch {
@@ -368,7 +468,9 @@ export default function CorreoMasivoModulo() {
     }
     if (
       !window.confirm(
-        `¿Continuar envío a ${cantidadPorReenviar} alumno(s) pendiente(s) o con error? Espere a que termine cada lote.`
+        modoEnvio === 'individual'
+          ? '¿Reintentar el envío individual?'
+          : `¿Continuar envío a ${cantidadPorReenviar} alumno(s) pendiente(s) o con error? Espere a que termine cada lote.`
       )
     ) {
       return
@@ -387,7 +489,12 @@ export default function CorreoMasivoModulo() {
         pendientes,
         true
       )
-      const texto = `Reintento terminado: ${totalEnviados} enviado(s) en este ciclo, ${totalErrores} siguen con error.`
+      const texto =
+        modoEnvio === 'individual'
+          ? totalEnviados > 0
+            ? 'Reintento individual enviado.'
+            : 'El reintento falló.'
+          : `Reintento terminado: ${totalEnviados} enviado(s) en este ciclo, ${totalErrores} siguen con error.`
       setMensajeOk(texto)
       persistirSesion(ordenados, texto)
       setSesionRestaurada(false)
@@ -400,6 +507,7 @@ export default function CorreoMasivoModulo() {
   }
 
   const etiquetaCiclo = etiquetaCicloEscolar(cicloFiltro, opcionesCatalogo)
+  const destIndividual = destinatarios[0] ?? null
 
   return (
     <div className="servicios-panel-inner servicios-panel-inner--correo-masivo">
@@ -410,8 +518,9 @@ export default function CorreoMasivoModulo() {
             Correo masivo
           </h1>
           <p className="servicios-panel-lead">
-            Envía comunicados a padres y madres con correo autorizado desde{' '}
-            <strong>avisos_no-replay@winston93.edu.mx</strong>.
+            Comunicados a padres y madres con correo autorizado desde{' '}
+            <strong>avisos_no-replay@winston93.edu.mx</strong>. Puedes enviar a un grupo o a un
+            solo alumno.
           </p>
         </div>
       </header>
@@ -450,7 +559,8 @@ export default function CorreoMasivoModulo() {
                   )
                 ) {
                   descartarProgresoGuardado()
-                  cargarDestinatarios()
+                  if (modoEnvio === 'masivo') cargarDestinatariosMasivo()
+                  else void cargarDestinatarioIndividual(alumnoIndividual)
                 }
               }}
             >
@@ -461,95 +571,154 @@ export default function CorreoMasivoModulo() {
       )}
 
       <form className="cm-formulario" onSubmit={onEnviar}>
+        <div className="cm-modo-toggle" role="tablist" aria-label="Modo de envío">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={modoEnvio === 'masivo'}
+            className={`cm-modo-btn ${modoEnvio === 'masivo' ? 'cm-modo-btn--activo' : ''}`}
+            disabled={enviando}
+            onClick={() => cambiarModo('masivo')}
+          >
+            <Users size={16} aria-hidden />
+            Envío masivo
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={modoEnvio === 'individual'}
+            className={`cm-modo-btn ${modoEnvio === 'individual' ? 'cm-modo-btn--activo' : ''}`}
+            disabled={enviando}
+            onClick={() => cambiarModo('individual')}
+          >
+            <UserRound size={16} aria-hidden />
+            Envío individual
+          </button>
+        </div>
+
         <div className="cm-form-grid">
-          <fieldset className="cm-fieldset">
-            <legend>Filtros de destinatarios</legend>
-            <div className="cm-filtros-grid">
-              <label>
-                Ciclo escolar
-                <select
-                  value={String(cicloFiltro)}
-                  onChange={(e) => {
-                    tocarFiltro()
-                    setCicloFiltro(Number(e.target.value))
-                  }}
-                  disabled={cargandoCiclos}
-                >
-                  {opcionesCatalogo.map((o) => (
-                    <option key={o.valor} value={o.valor}>
-                      {o.etiqueta}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Nivel
-                <select
-                  value={String(nivel)}
-                  onChange={(e) => {
-                    tocarFiltro()
-                    setNivel(Number(e.target.value))
-                  }}
-                >
-                  {NIVEL_CORREO_OPCIONES.map((o) => (
-                    <option key={o.valor} value={o.valor}>
-                      {o.etiqueta}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Grado
-                <select
-                  value={String(grado)}
-                  onChange={(e) => {
-                    tocarFiltro()
-                    setGrado(Number(e.target.value))
-                  }}
-                  disabled={!nivel}
-                >
-                  {gradosOpciones.map((o) => (
-                    <option key={o.valor} value={o.valor}>
-                      {o.etiqueta}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Grupo
-                <select
-                  value={String(grupo)}
-                  onChange={(e) => {
-                    tocarFiltro()
-                    setGrupo(Number(e.target.value))
-                  }}
-                  disabled={!nivel}
-                >
-                  {gruposOpciones.map((o) => (
-                    <option key={o.valor} value={o.valor}>
-                      {o.etiqueta}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="cm-filtro-extra">
-                Filtro adicional
-                <select
-                  value={filtroAdicional}
-                  onChange={(e) => {
-                    tocarFiltro()
-                    setFiltroAdicional(e.target.value as FiltroAdicionalCorreo)
-                  }}
-                >
-                  {FILTROS_ADICIONALES_OPCIONES.map((o) => (
-                    <option key={o.valor} value={o.valor}>
-                      {o.etiqueta}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </fieldset>
+          <div className="cm-col-destinatarios">
+            {modoEnvio === 'masivo' ? (
+              <fieldset className="cm-fieldset">
+                <legend>Filtros de destinatarios</legend>
+                <div className="cm-filtros-grid">
+                  <label>
+                    Ciclo escolar
+                    <select
+                      value={String(cicloFiltro)}
+                      onChange={(e) => {
+                        tocarFiltro()
+                        setCicloFiltro(Number(e.target.value))
+                      }}
+                      disabled={cargandoCiclos}
+                    >
+                      {opcionesCatalogo.map((o) => (
+                        <option key={o.valor} value={o.valor}>
+                          {o.etiqueta}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Nivel
+                    <select
+                      value={String(nivel)}
+                      onChange={(e) => {
+                        tocarFiltro()
+                        setNivel(Number(e.target.value))
+                      }}
+                    >
+                      {NIVEL_CORREO_OPCIONES.map((o) => (
+                        <option key={o.valor} value={o.valor}>
+                          {o.etiqueta}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Grado
+                    <select
+                      value={String(grado)}
+                      onChange={(e) => {
+                        tocarFiltro()
+                        setGrado(Number(e.target.value))
+                      }}
+                      disabled={!nivel}
+                    >
+                      {gradosOpciones.map((o) => (
+                        <option key={o.valor} value={o.valor}>
+                          {o.etiqueta}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Grupo
+                    <select
+                      value={String(grupo)}
+                      onChange={(e) => {
+                        tocarFiltro()
+                        setGrupo(Number(e.target.value))
+                      }}
+                      disabled={!nivel}
+                    >
+                      {gruposOpciones.map((o) => (
+                        <option key={o.valor} value={o.valor}>
+                          {o.etiqueta}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="cm-filtro-extra">
+                    Filtro adicional
+                    <select
+                      value={filtroAdicional}
+                      onChange={(e) => {
+                        tocarFiltro()
+                        setFiltroAdicional(e.target.value as FiltroAdicionalCorreo)
+                      }}
+                    >
+                      {FILTROS_ADICIONALES_OPCIONES.map((o) => (
+                        <option key={o.valor} value={o.valor}>
+                          {o.etiqueta}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </fieldset>
+            ) : (
+              <fieldset className="cm-fieldset cm-fieldset--individual">
+                <legend>Envío individual</legend>
+                <p className="cm-hint cm-hint--compact">
+                  Busca por nombre o no. de control. Se usa el mismo asunto, mensaje y adjuntos.
+                </p>
+                <div className="cm-busqueda-individual">
+                  <AlumnoAutocomplete
+                    etiqueta="Buscar alumno"
+                    autoFocus={false}
+                    alumnoSeleccionado={alumnoIndividual}
+                    onSeleccionar={onSeleccionarAlumnoIndividual}
+                    cualquierCiclo
+                  />
+                </div>
+                {destIndividual && (
+                  <div className="cm-alumno-individual-card" aria-live="polite">
+                    <div className="cm-alumno-individual-main">
+                      <strong>{destIndividual.nombre_completo}</strong>
+                      <span>No. {destIndividual.alumno_ref}</span>
+                    </div>
+                    <div className="cm-alumno-individual-meta">
+                      Correos:{' '}
+                      {destIndividual.emails.length
+                        ? destIndividual.emails.join(', ')
+                        : 'Sin correo autorizado'}
+                    </div>
+                  </div>
+                )}
+              </fieldset>
+            )}
+          </div>
 
           <fieldset className="cm-fieldset">
             <legend>Contenido del correo</legend>
@@ -631,7 +800,9 @@ export default function CorreoMasivoModulo() {
               onClick={onReenviarErrores}
             >
               <RotateCcw size={18} aria-hidden />
-              Continuar envío ({cantidadPorReenviar})
+              {modoEnvio === 'individual'
+                ? 'Reintentar envío'
+                : `Continuar envío (${cantidadPorReenviar})`}
             </button>
           )}
           <button
@@ -644,7 +815,7 @@ export default function CorreoMasivoModulo() {
             ) : (
               <Send size={20} aria-hidden />
             )}
-            Enviar correo
+            {modoEnvio === 'individual' ? 'Enviar a este alumno' : 'Enviar correo'}
           </button>
         </div>
       </form>
@@ -661,12 +832,18 @@ export default function CorreoMasivoModulo() {
       <section className="cm-destinatarios" aria-labelledby="cm-dest-titulo">
         <div className="cm-destinatarios-header">
           <h2 id="cm-dest-titulo" className="cm-destinatarios-titulo">
-            <Users size={20} aria-hidden />
-            Destinatarios
-            {etiquetaCiclo ? ` · ${etiquetaCiclo}` : ''}
+            {modoEnvio === 'individual' ? (
+              <UserRound size={20} aria-hidden />
+            ) : (
+              <Users size={20} aria-hidden />
+            )}
+            {modoEnvio === 'individual' ? 'Destinatario' : 'Destinatarios'}
+            {modoEnvio === 'masivo' && etiquetaCiclo ? ` · ${etiquetaCiclo}` : ''}
           </h2>
           <div className="cm-resumen-chips">
-            <span className="cm-chip">{resumen.total} alumno(s)</span>
+            <span className="cm-chip">
+              {resumen.total} {resumen.total === 1 ? 'alumno' : 'alumno(s)'}
+            </span>
             <span className="cm-chip cm-chip--ok">{resumen.conCorreo} con correo</span>
             {resumen.sinCorreo > 0 && (
               <span className="cm-chip cm-chip--warn">{resumen.sinCorreo} sin correo</span>
@@ -677,11 +854,15 @@ export default function CorreoMasivoModulo() {
         {cargandoLista ? (
           <div className="cm-loading" role="status">
             <Loader2 size={24} className="cm-spin" aria-hidden />
-            <span>Cargando alumnos activos…</span>
+            <span>
+              {modoEnvio === 'individual' ? 'Cargando alumno…' : 'Cargando alumnos activos…'}
+            </span>
           </div>
         ) : grupos.length === 0 ? (
           <p className="cm-hint cm-hint--center">
-            No hay alumnos activos con los filtros seleccionados.
+            {modoEnvio === 'individual'
+              ? 'Busca y selecciona un alumno para ver sus correos.'
+              : 'No hay alumnos activos con los filtros seleccionados.'}
           </p>
         ) : (
           <div className="cm-grupos-lista">
@@ -700,7 +881,7 @@ export default function CorreoMasivoModulo() {
                         <th>No. control</th>
                         <th>Alumno</th>
                         <th>Correos</th>
-                        {filtroAdicional === 'becados' && (
+                        {modoEnvio === 'masivo' && filtroAdicional === 'becados' && (
                           <>
                             <th>Tipo de beca</th>
                             <th>Porcentaje</th>
@@ -717,7 +898,7 @@ export default function CorreoMasivoModulo() {
                           <td className="cm-correos-celda">
                             {d.emails.length ? d.emails.join(', ') : '—'}
                           </td>
-                          {filtroAdicional === 'becados' && (
+                          {modoEnvio === 'masivo' && filtroAdicional === 'becados' && (
                             <>
                               <td>{d.beca_tipo?.trim() || '—'}</td>
                               <td>

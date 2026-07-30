@@ -910,6 +910,34 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .ap-p
 }
 
 /* ─── Correo masivo (cm-) ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-modo-toggle {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--sx-border, rgba(255, 255, 255, 0.12));
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-modo-btn {
+  color: var(--sx-text-muted, #94a3b8);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-modo-btn--activo {
+  background: linear-gradient(135deg, #1e3a5f, #1e40af);
+  color: #fff;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-alumno-individual-card {
+  background: rgba(30, 64, 175, 0.18);
+  border-color: rgba(96, 165, 250, 0.35);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-alumno-individual-main {
+  color: var(--sx-text, #e2e8f0);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-alumno-individual-main span,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-alumno-individual-meta {
+  color: var(--sx-text-muted, #94a3b8);
+}
+
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cm-fieldset legend {
   color: var(--sx-totality-gold);
 }

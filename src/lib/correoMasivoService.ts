@@ -315,6 +315,44 @@ async function mapearDestinatarios(
   })
 }
 
+/** Un o varios alumnos por id (envío individual / lookup directo). */
+export async function obtenerDestinatariosPorAlumnoIds(
+  alumnoIds: number[]
+): Promise<DestinatarioCorreoMasivo[]> {
+  const ids = [...new Set(alumnoIds.map((id) => Number(id)).filter((id) => id > 0))]
+  if (!ids.length) return []
+
+  const alumnos: {
+    alumno_id: number
+    alumno_ref: string
+    alumno_nombre: string
+    alumno_app: string
+    alumno_apm: string
+    alumno_nivel: number
+    alumno_grado: string | number
+    alumno_grupo: string | number
+  }[] = []
+
+  const CHUNK = 80
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    const slice = ids.slice(i, i + CHUNK)
+    const { data, error } = await supabase.from('alumno').select(SELECT_ALUMNO).in('alumno_id', slice)
+    if (error) {
+      console.error('Error alumnos por id correo masivo:', error)
+      continue
+    }
+    for (const f of data ?? []) {
+      alumnos.push(f as (typeof alumnos)[0])
+    }
+  }
+
+  const orden = new Map(ids.map((id, idx) => [id, idx]))
+  alumnos.sort(
+    (a, b) => (orden.get(a.alumno_id) ?? 0) - (orden.get(b.alumno_id) ?? 0)
+  )
+  return mapearDestinatarios(alumnos)
+}
+
 export async function listarDestinatariosCorreoMasivo(
   filtros: FiltrosCorreoMasivo
 ): Promise<DestinatarioCorreoMasivo[]> {

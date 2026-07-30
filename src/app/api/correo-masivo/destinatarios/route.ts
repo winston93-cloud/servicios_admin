@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import {
   listarDestinatariosCorreoMasivo,
+  obtenerDestinatariosPorAlumnoIds,
   type FiltroAdicionalCorreo,
 } from '@/lib/correoMasivoService'
 
@@ -19,6 +20,18 @@ const FILTROS_VALIDOS: FiltroAdicionalCorreo[] = [
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
+
+  const alumnoId = parseInt(searchParams.get('alumnoId') ?? '', 10)
+  if (!Number.isNaN(alumnoId) && alumnoId > 0) {
+    const destinatarios = await obtenerDestinatariosPorAlumnoIds([alumnoId])
+    return NextResponse.json({
+      destinatarios,
+      aviso: destinatarios.length
+        ? null
+        : 'No se encontró el alumno o no tiene ficha en el sistema.',
+    })
+  }
+
   const ciclo = parseInt(searchParams.get('ciclo') ?? '', 10)
   if (Number.isNaN(ciclo) || ciclo <= 0) {
     return NextResponse.json({ error: 'Ciclo escolar inválido' }, { status: 400 })

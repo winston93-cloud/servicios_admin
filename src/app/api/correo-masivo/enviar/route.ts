@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { enviarCorreoMasivo, htmlCuerpoCorreoMasivo } from '@/lib/emailServicios'
 import {
   listarDestinatariosCorreoMasivo,
+  obtenerDestinatariosPorAlumnoIds,
   type DestinatarioCorreoMasivo,
   type EstadoEnvioCorreo,
   type FiltroAdicionalCorreo,
@@ -63,29 +64,47 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Asunto y mensaje son obligatorios' }, { status: 400 })
   }
 
-  const ciclo = Number(filtrosRaw?.cicloEscolar)
-  if (!ciclo || Number.isNaN(ciclo)) {
-    return NextResponse.json({ error: 'Ciclo escolar inválido' }, { status: 400 })
-  }
+  const soloIds = Array.isArray(filtrosRaw?.soloAlumnoIds)
+    ? (filtrosRaw!.soloAlumnoIds as unknown[])
+        .map((id) => Number(id))
+        .filter((id) => id > 0)
+    : []
+  const modoIndividual = String(filtrosRaw?.modo ?? '') === 'individual'
 
-  const filtroAdicional = FILTROS_VALIDOS.includes(
-    filtrosRaw?.filtroAdicional as FiltroAdicionalCorreo
-  )
-    ? (filtrosRaw!.filtroAdicional as FiltroAdicionalCorreo)
-    : 'sin-filtro'
+  let destinatarios: DestinatarioCorreoMasivo[]
 
-  let destinatarios = await listarDestinatariosCorreoMasivo({
-    cicloEscolar: ciclo,
-    nivel: filtrosRaw?.nivel ? Number(filtrosRaw.nivel) : null,
-    grado: filtrosRaw?.grado ? Number(filtrosRaw.grado) : null,
-    grupo: filtrosRaw?.grupo ? Number(filtrosRaw.grupo) : null,
-    filtroAdicional,
-  })
+  if (modoIndividual) {
+    if (!soloIds.length) {
+      return NextResponse.json(
+        { error: 'Selecciona un alumno para el envío individual.' },
+        { status: 400 }
+      )
+    }
+    destinatarios = await obtenerDestinatariosPorAlumnoIds(soloIds)
+  } else {
+    const ciclo = Number(filtrosRaw?.cicloEscolar)
+    if (!ciclo || Number.isNaN(ciclo)) {
+      return NextResponse.json({ error: 'Ciclo escolar inválido' }, { status: 400 })
+    }
 
-  const soloIds = filtrosRaw?.soloAlumnoIds
-  if (Array.isArray(soloIds) && soloIds.length > 0) {
-    const permitidos = new Set(soloIds.map((id) => Number(id)).filter((id) => id > 0))
-    destinatarios = destinatarios.filter((d) => permitidos.has(d.alumno_id))
+    const filtroAdicional = FILTROS_VALIDOS.includes(
+      filtrosRaw?.filtroAdicional as FiltroAdicionalCorreo
+    )
+      ? (filtrosRaw!.filtroAdicional as FiltroAdicionalCorreo)
+      : 'sin-filtro'
+
+    destinatarios = await listarDestinatariosCorreoMasivo({
+      cicloEscolar: ciclo,
+      nivel: filtrosRaw?.nivel ? Number(filtrosRaw.nivel) : null,
+      grado: filtrosRaw?.grado ? Number(filtrosRaw.grado) : null,
+      grupo: filtrosRaw?.grupo ? Number(filtrosRaw.grupo) : null,
+      filtroAdicional,
+    })
+
+    if (soloIds.length > 0) {
+      const permitidos = new Set(soloIds)
+      destinatarios = destinatarios.filter((d) => permitidos.has(d.alumno_id))
+    }
   }
 
   const archivos = form.getAll('archivos').filter((f): f is File => f instanceof File)

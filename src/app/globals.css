@@ -13121,6 +13121,91 @@ a.pc-accion {
   margin-bottom: 24px;
 }
 
+.cm-modo-toggle {
+  display: inline-flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.06);
+  border: 1px solid #e2e8f0;
+}
+
+.cm-modo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #475569;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.cm-modo-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cm-modo-btn--activo {
+  background: #1e40af;
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(30, 64, 175, 0.35);
+}
+
+.cm-col-destinatarios {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cm-hint--compact {
+  margin: 0 0 12px;
+}
+
+.cm-busqueda-individual {
+  margin-bottom: 12px;
+}
+
+.cm-busqueda-individual .alumno-ac {
+  width: 100%;
+}
+
+.cm-alumno-individual-card {
+  margin-top: 4px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cm-alumno-individual-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  color: #0f172a;
+}
+
+.cm-alumno-individual-main span {
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.cm-alumno-individual-meta {
+  font-size: 0.82rem;
+  color: #334155;
+  word-break: break-word;
+}
+
 .cm-form-grid {
   display: grid;
   grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.2fr) minmax(240px, 0.9fr);
