@@ -34,12 +34,23 @@ export function etiquetaGrupoEscolar(
   return hit?.etiqueta ?? String(grupo)
 }
 
+/**
+ * Valor de grupo para formularios al cargar desde BD.
+ * Conserva `0` (sin grupo). No inventa «A» si aún no está asignado.
+ */
+export function grupoEscolarDesdeBd(
+  grupo: string | number | null | undefined
+): number {
+  const n = parseGrupoEscolar(grupo)
+  if (n == null) return GRUPO_SIN_ASIGNAR
+  if (n === GRUPO_SIN_ASIGNAR) return GRUPO_SIN_ASIGNAR
+  if (GRUPOS_ESCOLARES_OPCIONES.some((o) => o.valor === n)) return n
+  return GRUPO_SIN_ASIGNAR
+}
+
+/** @deprecated Preferir grupoEscolarDesdeBd al cargar un alumno existente. */
 export function grupoEscolarPorDefecto(
   grupo: string | number | null | undefined
-): GrupoEscolarValor {
-  const n = parseGrupoEscolar(grupo)
-  if (n != null && GRUPOS_ESCOLARES_OPCIONES.some((o) => o.valor === n)) {
-    return n as GrupoEscolarValor
-  }
-  return GRUPOS_ESCOLARES_OPCIONES[0].valor
+): number {
+  return grupoEscolarDesdeBd(grupo)
 }

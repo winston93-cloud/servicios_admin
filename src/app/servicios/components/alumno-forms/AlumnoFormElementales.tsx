@@ -20,7 +20,11 @@ import {
   gradoEscolarPorDefecto,
   gradoOpcionesPorNivel,
 } from '@/lib/gradoEscolar'
-import { GRUPOS_ESCOLARES_OPCIONES, grupoEscolarPorDefecto } from '@/lib/grupoEscolar'
+import {
+  GRUPOS_ASIGNACION_OPCIONES,
+  GRUPOS_ESCOLARES_OPCIONES,
+  grupoEscolarDesdeBd,
+} from '@/lib/grupoEscolar'
 import { fechaNacAMostrar, fechaNacIsoDesdeBd } from '@/lib/fechaNacimiento'
 import {
   ESTATUS_ALUMNO_OPCIONES,
@@ -163,7 +167,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
         )
         setNivelEscolar(nivel)
         setGradoEscolar(gradoEscolarPorDefecto(nivel, registro.alumno.alumno_grado))
-        setGrupoEscolar(grupoEscolarPorDefecto(registro.alumno.alumno_grupo))
+        setGrupoEscolar(grupoEscolarDesdeBd(registro.alumno.alumno_grupo))
         setCurp(normalizarCurp(registro.detalles?.alumno_curp ?? ''))
         const fechaIso = fechaNacIsoDesdeBd(registro.detalles?.alumno_fecha_nac)
         setFechaNacimientoIso(fechaIso)
@@ -190,7 +194,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
           ),
           nivelEscolar: nivel,
           gradoEscolar: gradoEscolarPorDefecto(nivel, registro.alumno.alumno_grado),
-          grupoEscolar: grupoEscolarPorDefecto(registro.alumno.alumno_grupo),
+          grupoEscolar: grupoEscolarDesdeBd(registro.alumno.alumno_grupo),
           curp: normalizarCurp(registro.detalles?.alumno_curp ?? ''),
           fechaNacimientoIso: fechaIso,
           fechaAltaIso: altaIso,
@@ -483,7 +487,7 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
               value={String(grupoEscolar)}
               onChange={(e) => setGrupoEscolar(Number(e.target.value))}
             >
-              {GRUPOS_ESCOLARES_OPCIONES.map((opcion) => (
+              {GRUPOS_ASIGNACION_OPCIONES.map((opcion) => (
                 <option key={opcion.valor} value={opcion.valor}>
                   {opcion.etiqueta}
                 </option>
