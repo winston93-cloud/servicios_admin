@@ -73,7 +73,7 @@ export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
   { type: 'leaf', id: 'becas-sep', label: 'Becas SEP', icon: GraduationCap },
   { type: 'leaf', id: 'pagos-internos', label: 'Pagos Internos', icon: Wallet },
   { type: 'leaf', id: 'pagos-colegiaturas', label: 'Pagos de Colegiaturas', icon: CreditCard },
-  { type: 'leaf', id: 'correo-masivo', label: 'Correo Masivo', icon: Mail },
+  { type: 'leaf', id: 'correo-masivo', label: 'Correo masivo/individual', icon: Mail },
   { type: 'leaf', id: 'actualizar-pagos', label: 'Actualizar Pagos', icon: RefreshCw },
   { type: 'leaf', id: 'suspensiones', label: 'Suspensiones', icon: Ban },
   { type: 'leaf', id: 'credenciales', label: 'Credenciales', icon: KeyRound },

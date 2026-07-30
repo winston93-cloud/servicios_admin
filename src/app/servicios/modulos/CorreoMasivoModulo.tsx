@@ -515,7 +515,7 @@ export default function CorreoMasivoModulo() {
         <div className="cm-header-texto">
           <h1 className="servicios-panel-title">
             <Mail size={26} strokeWidth={1.75} aria-hidden />
-            Correo masivo
+            Correo masivo/individual
           </h1>
           <p className="servicios-panel-lead">
             Comunicados a padres y madres con correo autorizado desde{' '}
