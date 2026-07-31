@@ -1,7 +1,11 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { ReporteBecadosResumen } from './reporteBecadosService'
-import { etiquetaCicloLargo } from './reporteBecadosDocument'
+import {
+  etiquetaCicloLargo,
+  subtituloCicloEscolarBecados,
+  tituloReporteBecadosPromedio,
+} from './reporteBecadosDocument'
 
 export function generarPdfReporteBecados(
   resumen: ReporteBecadosResumen,
@@ -9,40 +13,55 @@ export function generarPdfReporteBecados(
 ): Buffer {
   const conPromedio = Boolean(resumen.conPromedio)
   const titulo =
-    opciones?.titulo ??
-    (conPromedio
-      ? `Becados · promedio ≥ ${resumen.umbralPromedio ?? 9}`
-      : 'Alumnos becados')
+    opciones?.titulo ?? (conPromedio ? tituloReporteBecadosPromedio() : 'Alumnos becados')
   const pdf = new jsPDF({
     orientation: conPromedio ? 'landscape' : 'portrait',
     unit: 'mm',
     format: 'a4',
   })
   let y = 16
+  const cx = conPromedio ? 148 : 105
 
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(16)
   pdf.setTextColor(0, 51, 102)
-  pdf.text(titulo, conPromedio ? 148 : 105, y, { align: 'center' })
+  pdf.text(titulo, cx, y, { align: 'center' })
   y += 7
 
   pdf.setFont('helvetica', 'normal')
-  pdf.setFontSize(10)
+  pdf.setFontSize(11)
   pdf.setTextColor(71, 85, 105)
-  const subParts = [
-    `Ciclo ${etiquetaCicloLargo(resumen.ciclo)}`,
-    resumen.nivelFiltroLabel,
-    `${resumen.total} becados`,
-  ]
   if (conPromedio) {
-    subParts.push(
+    pdf.text(subtituloCicloEscolarBecados(resumen.ciclo), cx, y, { align: 'center' })
+    y += 6
+    pdf.setFontSize(9)
+    const meta = [
+      resumen.nivelFiltroLabel,
+      `${resumen.total} becados`,
       `W:${resumen.totalWinston ?? 0}`,
       `SEP:${resumen.totalSep ?? 0}`,
-      `ambas:${resumen.totalAmbos ?? 0}`
+      `ambas:${resumen.totalAmbos ?? 0}`,
+      new Date().toLocaleDateString('es-MX'),
+    ]
+      .filter(Boolean)
+      .join(' · ')
+    pdf.text(meta, cx, y, { align: 'center' })
+  } else {
+    pdf.setFontSize(10)
+    pdf.text(
+      [
+        `Ciclo ${etiquetaCicloLargo(resumen.ciclo)}`,
+        resumen.nivelFiltroLabel,
+        `${resumen.total} becados`,
+        new Date().toLocaleDateString('es-MX'),
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      cx,
+      y,
+      { align: 'center' }
     )
   }
-  subParts.push(new Date().toLocaleDateString('es-MX'))
-  pdf.text(subParts.filter(Boolean).join(' · '), conPromedio ? 148 : 105, y, { align: 'center' })
   y += 8
 
   if (resumen.nota && resumen.total === 0) {
@@ -79,14 +98,7 @@ export function generarPdfReporteBecados(
           : f.tieneSep && f.montoSep != null
             ? `$${f.montoSep.toFixed(0)}`
             : '—'
-      const base = [
-        String(i + 1),
-        f.nombre,
-        f.grado,
-        f.grupo,
-        f.becaClase,
-        pct,
-      ]
+      const base = [String(i + 1), f.nombre, f.grado, f.grupo, f.becaClase, pct]
       if (!conPromedio) return base
       const en =
         f.letraEn && f.promedioEn != null

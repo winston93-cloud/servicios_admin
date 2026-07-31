@@ -1,4 +1,5 @@
 import type { ReporteBecadosResumen } from './reporteBecadosService'
+import { cicloEscolarEtiqueta } from './ciclosEscolares'
 
 function escapeHtml(s: string): string {
   return String(s)
@@ -8,8 +9,22 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;')
 }
 
+/** Legacy corto `22-23`. Preferir `etiquetaCicloEscolarAnios` en reportes. */
 export function etiquetaCicloLargo(ciclo: number): string {
   return `${ciclo}-${ciclo + 1}`
+}
+
+/** Ej. ciclo 22 → `2025-2026` (avanza con la temporada). */
+export function etiquetaCicloEscolarAnios(ciclo: number): string {
+  return cicloEscolarEtiqueta(ciclo)
+}
+
+export function tituloReporteBecadosPromedio(): string {
+  return 'Becados Promedio > 9'
+}
+
+export function subtituloCicloEscolarBecados(ciclo: number): string {
+  return `Ciclo Escolar ${etiquetaCicloEscolarAnios(ciclo)}`
 }
 
 export function construirHtmlReporteBecados(
@@ -18,12 +33,10 @@ export function construirHtmlReporteBecados(
 ): string {
   const conPromedio = Boolean(resumen.conPromedio)
   const titulo =
-    opciones?.titulo ??
-    (conPromedio
-      ? `Becados · promedio ≥ ${resumen.umbralPromedio ?? 9}`
-      : 'Alumnos becados')
+    opciones?.titulo ?? (conPromedio ? tituloReporteBecadosPromedio() : 'Alumnos becados')
   const etiquetaTotal =
-    opciones?.etiquetaTotal ?? (conPromedio ? 'Becados ≥ 9' : 'Becados activos')
+    opciones?.etiquetaTotal ?? (conPromedio ? 'Becados > 9' : 'Becados activos')
+  const cicloLabel = subtituloCicloEscolarBecados(resumen.ciclo)
   const fecha = new Date().toLocaleDateString('es-MX', {
     weekday: 'long',
     year: 'numeric',
@@ -36,7 +49,7 @@ export function construirHtmlReporteBecados(
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeHtml(titulo)} · Ciclo ${escapeHtml(String(resumen.ciclo))} — Servicios Admin</title>
+  <title>${escapeHtml(titulo)} · ${escapeHtml(cicloLabel)} — Servicios Admin</title>
   <style>
     body { font-family: system-ui, sans-serif; background:#f8fafc; color:#0f172a; padding:40px 24px; }
     .box { max-width:560px; margin:0 auto; background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:28px; }
@@ -48,7 +61,7 @@ export function construirHtmlReporteBecados(
   <div class="box">
     <h1>${escapeHtml(titulo)}</h1>
     <p>${escapeHtml(resumen.nota)}</p>
-    <p style="margin-top:12px;font-size:13px;color:#94a3b8">Ciclo ${escapeHtml(etiquetaCicloLargo(resumen.ciclo))} · ${escapeHtml(resumen.nivelFiltroLabel ?? '')}</p>
+    <p style="margin-top:12px;font-size:13px;color:#94a3b8">${escapeHtml(cicloLabel)} · ${escapeHtml(resumen.nivelFiltroLabel ?? '')}</p>
   </div>
 </body>
 </html>`
@@ -164,7 +177,7 @@ export function construirHtmlReporteBecados(
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>${escapeHtml(titulo)} · Ciclo ${escapeHtml(String(resumen.ciclo))} — Servicios Admin</title>
+  <title>${escapeHtml(titulo)} · ${escapeHtml(cicloLabel)} — Servicios Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
   <style>
@@ -324,7 +337,7 @@ export function construirHtmlReporteBecados(
     <header class="hero">
       <p class="eyebrow">Servicios Admin · Winston Servicios</p>
       <h1>${escapeHtml(titulo)}</h1>
-      <p class="sub">Ciclo escolar ${escapeHtml(etiquetaCicloLargo(resumen.ciclo))}${resumen.nivelFiltroLabel ? ` · ${escapeHtml(resumen.nivelFiltroLabel)}` : ''} · ${escapeHtml(fecha)}</p>
+      <p class="sub">${escapeHtml(cicloLabel)}${resumen.nivelFiltroLabel ? ` · ${escapeHtml(resumen.nivelFiltroLabel)}` : ''} · ${escapeHtml(fecha)}</p>
       <div class="stats">
         <div class="stat"><div class="val">${resumen.total}</div><div class="lbl">${escapeHtml(etiquetaTotal)}</div></div>
         ${statsExtra}
