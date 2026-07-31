@@ -4,7 +4,7 @@ import { etiquetaGradoEscolar } from './gradoEscolar'
 import { etiquetaNivelEscolar } from './nivelEscolar'
 import { etiquetaGrupoEscolar } from './grupoEscolar'
 import { createDbAdmin } from './insforgeAdmin'
-import { createMysqlLegacyConnection } from './mysqlLegacy'
+import { BECAS_SEP_CICLO_DATOS, BECAS_SEP_OPEN_HOUSE } from './becasSepOpenHouse'
 
 const PAGE_SIZE = 500
 const ALUMNO_CHUNK = 150
@@ -102,16 +102,15 @@ export function formatearEtiquetaBecaReporte(opts: {
   tieneWinston: boolean
   tieneSep: boolean
 }): string {
-  // SEP en open_house/gestion / enlinea3 (integracion_sep) prevalece sobre Winston residual.
+  // SEP en open_house/gestion (insertar-becas-sep.php) prevalece sobre Winston residual.
   if (opts.tieneSep) return 'SEP'
   if (opts.tieneWinston) return formatearEtiquetaWinston(opts.tiposWinston)
   return '—'
 }
 
 /**
- * Origen vigente para el reporte.
- * Si el alumno está en la relación SEP (open_house/gestion → alumno_beca_sep /
- * hardcode enlinea3), esa es la beca vigente aunque conserve Winston en InsForge.
+ * Si el alumno está en la lista SEP de open_house/gestion (hardcode),
+ * esa es la beca vigente aunque conserve Winston en InsForge.
  */
 function origenDesdeFlags(tieneWinston: boolean, tieneSep: boolean): OrigenBecaReporte {
   if (tieneSep) return 'sep'
@@ -162,35 +161,18 @@ async function cargarBecasCiclo(ciclo: number) {
   return filas
 }
 
-/** Becas SEP del ciclo (MySQL `alumno_beca_sep`, cargada desde open_house/gestion).
- * La lista vigente en cobros enlinea3 vive hardcodeada en
- * `reportes/resources/php/integracion_sep.php` (require desde module/callback.php)
- * y duplicada en `enlinea3/module/img/callback.php`.
+/**
+ * Becas SEP del ciclo: SOLO la lista hardcodeada de
+ * `open_house/gestion/insertar-becas-sep.php` (espejo en becasSepOpenHouse.ts).
+ * No usar MySQL `alumno_beca_sep` — tiene montos en 0 / datos viejos.
  */
 export async function cargarBecasSepMysql(ciclo: number): Promise<BecaSepFila[]> {
-  const mysql = await createMysqlLegacyConnection()
-  try {
-    const [rows] = await mysql.query(
-      `SELECT alumno_ref, monto_prorrateado, porcentaje
-       FROM alumno_beca_sep
-       WHERE ciclo_escolar = ?
-         AND estatus = 1`,
-      [ciclo]
-    )
-    return (
-      rows as {
-        alumno_ref: number
-        monto_prorrateado: string | number
-        porcentaje: number
-      }[]
-    ).map((r) => ({
-      alumno_ref: Number(r.alumno_ref),
-      monto_prorrateado: Number(r.monto_prorrateado),
-      porcentaje: Number(r.porcentaje ?? 0),
-    }))
-  } finally {
-    await mysql.end()
-  }
+  if (Number(ciclo) !== BECAS_SEP_CICLO_DATOS) return []
+  return BECAS_SEP_OPEN_HOUSE.map((b) => ({
+    alumno_ref: b.alumnoRef,
+    monto_prorrateado: b.monto,
+    porcentaje: 0,
+  }))
 }
 
 async function cargarAlumnosPorIds(ids: number[]) {

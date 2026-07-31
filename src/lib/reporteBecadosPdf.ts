@@ -94,7 +94,7 @@ export function generarPdfReporteBecados(
     const body = grupo.filas.map((f, i) => {
       const pct =
         f.origenBeca === 'sep' || f.tieneSep
-          ? f.montoSep != null
+          ? f.montoSep != null && f.montoSep > 0
             ? `$${f.montoSep.toFixed(0)}`
             : '—'
           : f.becaPorcentaje > 0

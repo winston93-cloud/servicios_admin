@@ -103,7 +103,7 @@ export function construirHtmlReporteBecados(
 
   const pctCell = (a: (typeof resumen.filas)[number]) => {
     if (a.origenBeca === 'sep' || a.tieneSep) {
-      return a.montoSep != null ? fmtMonto(a.montoSep) : '—'
+      return a.montoSep != null && a.montoSep > 0 ? fmtMonto(a.montoSep) : '—'
     }
     if (a.becaPorcentaje > 0) return `${a.becaPorcentaje}%`
     return '—'
