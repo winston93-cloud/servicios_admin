@@ -12,15 +12,16 @@ export function generarPdfReporteBecados(
   opciones?: { titulo?: string }
 ): Buffer {
   const conPromedio = Boolean(resumen.conPromedio)
+  const soloPromedioWinston = conPromedio && resumen.nivelFiltro === 4
   const titulo =
     opciones?.titulo ?? (conPromedio ? tituloReporteBecadosPromedio() : 'Alumnos becados')
   const pdf = new jsPDF({
-    orientation: conPromedio ? 'landscape' : 'portrait',
+    orientation: conPromedio && !soloPromedioWinston ? 'landscape' : 'portrait',
     unit: 'mm',
     format: 'a4',
   })
   let y = 16
-  const cx = conPromedio ? 148 : 105
+  const cx = conPromedio && !soloPromedioWinston ? 148 : 105
 
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(16)
@@ -88,7 +89,9 @@ export function generarPdfReporteBecados(
     y += 5
 
     const head = conPromedio
-      ? [['#', 'Nombre', 'Grado', 'Grupo', 'Beca', '%', 'ES', 'EN', 'Prom.']]
+      ? soloPromedioWinston
+        ? [['#', 'Nombre', 'Grado', 'Grupo', 'Beca', '%', 'Promedio']]
+        : [['#', 'Nombre', 'Grado', 'Grupo', 'Beca', '%', 'ES', 'EN', 'Prom.']]
       : [['#', 'Nombre', 'Grado', 'Grupo', 'Beca', '%']]
 
     const body = grupo.filas.map((f, i) => {
@@ -102,6 +105,7 @@ export function generarPdfReporteBecados(
             : '—'
       const base = [String(i + 1), f.nombre, f.grado, f.grupo, f.becaClase, pct]
       if (!conPromedio) return base
+      if (soloPromedioWinston) return [...base, fmt(f.promedio)]
       const en =
         f.letraEn && f.promedioEn != null
           ? `${fmt(f.promedioEn)} (${f.letraEn})`

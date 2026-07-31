@@ -34,6 +34,7 @@ export function construirHtmlReporteBecados(
   opciones?: { titulo?: string; etiquetaTotal?: string }
 ): string {
   const conPromedio = Boolean(resumen.conPromedio)
+  const soloPromedioWinston = conPromedio && resumen.nivelFiltro === 4
   const titulo =
     opciones?.titulo ?? (conPromedio ? tituloReporteBecadosPromedio() : 'Alumnos becados')
   const etiquetaTotal =
@@ -123,7 +124,9 @@ export function construirHtmlReporteBecados(
           <td class="pct">${pctCell(a)}</td>
           ${
             conPromedio
-              ? `<td class="avg">${fmt(a.promedioEs)}</td>
+              ? soloPromedioWinston
+                ? `<td class="avg strong">${fmt(a.promedio)}</td>`
+                : `<td class="avg">${fmt(a.promedioEs)}</td>
           <td class="avg">${fmt(a.promedioEn)}${a.letraEn ? ` <span class="letra">(${escapeHtml(a.letraEn)})</span>` : ''}</td>
           <td class="avg strong">${fmt(a.promedio)}</td>`
               : ''
@@ -152,7 +155,9 @@ export function construirHtmlReporteBecados(
               <th>% / monto</th>
               ${
                 conPromedio
-                  ? '<th>Prom. ES</th><th>Prom. EN</th><th>Promedio</th>'
+                  ? soloPromedioWinston
+                    ? '<th>Promedio</th>'
+                    : '<th>Prom. ES</th><th>Prom. EN</th><th>Promedio</th>'
                   : ''
               }
             </tr>
@@ -164,7 +169,9 @@ export function construirHtmlReporteBecados(
     .join('')
 
   const footerExtra = conPromedio
-    ? ' · Promedio: Kinder (ES materias / EN letras) o Primaria (ES todos los bloques incl. extracurriculares / EN AVERAGE FINAL 8 materias) · umbral ≥ 9 · Winston + SEP'
+    ? soloPromedioWinston
+      ? ' · Promedio Final Winston (boleta única, sin Mindfulness) · umbral ≥ 9 · Winston + SEP'
+      : ' · Promedio: Kinder (ES materias / EN letras) o Primaria (ES todos los bloques incl. extracurriculares / EN AVERAGE FINAL 8 materias) · umbral ≥ 9 · Winston + SEP'
     : ''
 
   const statsExtra =

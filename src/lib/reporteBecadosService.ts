@@ -347,13 +347,13 @@ type PromedioNivel = {
 
 /**
  * Becados Winston + SEP de un nivel con promedio ≥ 9.
- * Kinder / Primaria: calificaciones MySQL. Secundaria: pendiente.
+ * Kinder / Primaria / Secundaria: calificaciones MySQL.
  */
 export async function cargarReporteBecadosConPromedio(
   ciclo: number,
   nivelValor: number
 ): Promise<ReporteBecadosResumen> {
-  if (nivelValor !== 2 && nivelValor !== 3) {
+  if (nivelValor !== 2 && nivelValor !== 3 && nivelValor !== 4) {
     return {
       ciclo,
       total: 0,
@@ -364,8 +364,7 @@ export async function cargarReporteBecadosConPromedio(
       umbralPromedio: UMBRAL_PROMEDIO_BECADOS,
       nivelFiltro: nivelValor,
       nivelFiltroLabel: etiquetaNivelEscolar(nivelValor),
-      nota:
-        'Secundaria aún no tiene extracción de boletas en este reporte. Disponibles: Kinder y Primaria.',
+      nota: 'Nivel no soportado en este reporte. Disponibles: Kinder, Primaria y Secundaria.',
     }
   }
 
@@ -454,7 +453,7 @@ export async function cargarReporteBecadosConPromedio(
         promedio: p.promedio,
       })
     }
-  } else {
+  } else if (nivelValor === 3) {
     const { cargarPromediosPrimariaMysql } = await import('./primariaPromedioMysql')
     const promedios = await cargarPromediosPrimariaMysql(
       candidatos.map((c) => ({
@@ -467,6 +466,20 @@ export async function cargarReporteBecadosConPromedio(
       promediosPorAlumno.set(id, {
         promedioEs: p.promedioEs,
         promedioEn: p.promedioEn,
+        letraEn: null,
+        promedio: p.promedio,
+      })
+    }
+  } else {
+    const { cargarPromediosSecundariaMysql } = await import('./secundariaPromedioMysql')
+    const promedios = await cargarPromediosSecundariaMysql(
+      candidatos.map((c) => c.alumno.alumno_id),
+      ciclo
+    )
+    for (const [id, p] of promedios) {
+      promediosPorAlumno.set(id, {
+        promedioEs: null,
+        promedioEn: null,
         letraEn: null,
         promedio: p.promedio,
       })
