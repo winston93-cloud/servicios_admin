@@ -163,7 +163,7 @@ export function construirHtmlReporteBecados(
     .join('')
 
   const footerExtra = conPromedio
-    ? ' · Promedio Kinder ES: media de trimestres por materia → media general · EN: media de materias (sin Music/Mindfulness) por trimestre → media general · ponderador E=10 VG=9 G=8 R=7 S=6 NI=5 · umbral ≥ 9 · Winston + SEP'
+    ? ' · Promedio: Kinder (ES materias / EN letras) o Primaria (ES 4 bloques / EN AVERAGE FINAL 8 materias) · umbral ≥ 9 · Winston + SEP'
     : ''
 
   const statsExtra =
