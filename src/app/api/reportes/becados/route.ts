@@ -1,39 +1,34 @@
 import { NextResponse } from 'next/server'
-import { cargarReporteBecados } from '@/lib/reporteBecadosService'
-import { construirHtmlReporteBecados } from '@/lib/reporteBecadosDocument'
-import { generarPdfReporteBecados } from '@/lib/reporteBecadosPdf'
-import { getCicloBecadosDefault } from '@/lib/reportesConfig'
+import { REPORTE_HANDLERS } from '@/lib/reportes/registry'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
-function parseCiclo(value: string | null): number | null {
-  const n = Number(value)
-  if (!Number.isInteger(n) || n <= 0) return null
-  return n
-}
-
+/**
+ * Ruta fija /api/reportes/becados (tiene prioridad sobre [slug]).
+ * Delega al handler del registry: Winston + SEP, promedio ≥ 9, filtro por nivel.
+ */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const ciclo = parseCiclo(searchParams.get('ciclo')) ?? getCicloBecadosDefault()
-    const format = (searchParams.get('format') ?? 'html').toLowerCase()
+    const handler = REPORTE_HANDLERS.becados
+    if (!handler) {
+      return NextResponse.json({ error: 'Handler becados no registrado' }, { status: 500 })
+    }
 
-    const resumen = await cargarReporteBecados(ciclo)
+    const result = await handler(searchParams)
 
-    if (format === 'pdf') {
-      const pdf = generarPdfReporteBecados(resumen)
-      return new NextResponse(new Uint8Array(pdf), {
+    if (result.pdf) {
+      return new NextResponse(new Uint8Array(result.pdf), {
         headers: {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': `inline; filename="becados-ciclo-${ciclo}.pdf"`,
+          'Content-Disposition': `inline; filename="${result.filename}"`,
           'Cache-Control': 'private, no-store',
         },
       })
     }
 
-    const html = construirHtmlReporteBecados(resumen)
-    return new NextResponse(html, {
+    return new NextResponse(result.html ?? '', {
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': 'private, no-store',
