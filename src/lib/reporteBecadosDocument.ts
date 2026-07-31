@@ -163,7 +163,7 @@ export function construirHtmlReporteBecados(
     .join('')
 
   const footerExtra = conPromedio
-    ? ' · Promedio: Kinder (ES materias / EN letras) o Primaria (ES 4 bloques / EN AVERAGE FINAL 8 materias) · umbral ≥ 9 · Winston + SEP'
+    ? ' · Promedio: Kinder (ES materias / EN letras) o Primaria (ES todos los bloques incl. extracurriculares / EN AVERAGE FINAL 8 materias) · umbral ≥ 9 · Winston + SEP'
     : ''
 
   const statsExtra =

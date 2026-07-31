@@ -33,6 +33,16 @@ function redondear(n: number, dec: number): number {
   return Math.round(n * f) / f
 }
 
+/** Equivalente a PHP `bcdiv($n, 1, $dec)`: trunca (no redondea). */
+function truncar(n: number, dec: number): number {
+  const neg = n < 0
+  const abs = Math.abs(n)
+  const f = 10 ** dec
+  // Evitar basura flotante (p. ej. 9.39 * 10 = 93.899999…)
+  const truncado = Math.floor(abs * f + 1e-9) / f
+  return neg ? -truncado : truncado
+}
+
 function promedioLista(vals: number[], dec: number): number | null {
   if (vals.length === 0) return null
   return redondear(vals.reduce((a, b) => a + b, 0) / vals.length, dec)
@@ -44,6 +54,7 @@ function divisoresBloques(grado: number): {
   saberes: number
   humano: number
   etica: number
+  extra: number
 } {
   const g = Number(grado) || 1
   return {
@@ -51,6 +62,8 @@ function divisoresBloques(grado: number): {
     saberes: g < 3 ? 1 : 2,
     humano: 1,
     etica: g < 3 ? 1 : g === 3 ? 2 : 3,
+    // Computación, Robótica, Edu. Financiera
+    extra: 3,
   }
 }
 
@@ -60,17 +73,18 @@ function promedioBloqueTrimestre(
   dec: number
 ): number | null {
   if (divisor <= 0) return null
-  // Como el PDF: suma todas las filas (ceros placeholder incluidos) / divisor fijo.
+  // Como el PDF (`bcdiv`): suma todas las filas / divisor fijo, truncado.
+  if (notas.length === 0) return null
   const suma = notas.reduce((a, b) => a + b, 0)
-  if (notas.length === 0 && suma === 0) return null
-  return redondear(suma / divisor, dec)
+  return truncar(suma / divisor, dec)
 }
 
 /**
  * Promedios Primaria desde MySQL (`winston_general`).
  *
- * ES (`prim_*`): promedio de 4 bloques (Lenguajes, Saberes, Humano, Ética);
- * cada bloque = media de sus 3 trimestres. Extra/habilidades fuera.
+ * ES (`prim_*`): promedio de todos los bloques con calificación
+ * (Lenguajes, Saberes, Humano, Ética, Extracurriculares); cada bloque =
+ * media de sus 3 trimestres. Habilidades quedan fuera.
  *
  * EN (`ing_cal` por alu_ref): AVERAGE FINAL = media de 8 materias académicas
  * (mat_id 2–9), sin Mindfulness/Faith/skills.
@@ -123,11 +137,12 @@ export async function cargarPromediosPrimariaMysql(
       return rows as FilaPrim[]
     }
 
-    const [lenguajes, saberes, humano, etica] = await Promise.all([
+    const [lenguajes, saberes, humano, etica, extra] = await Promise.all([
       cargarTabla('prim_lenguajes'),
       cargarTabla('prim_saberes'),
       cargarTabla('prim_humano'),
       cargarTabla('prim_etica'),
+      cargarTabla('prim_extra'),
     ])
 
     type Bucket = Map<number, Map<number, number[]>> // alumno → trim → notas
@@ -152,6 +167,7 @@ export async function cargarPromediosPrimariaMysql(
     const buckSab = toBucket(saberes)
     const buckHum = toBucket(humano)
     const buckEti = toBucket(etica)
+    const buckExt = toBucket(extra)
 
     const promedioBloqueAnual = (
       bucket: Bucket,
@@ -176,11 +192,14 @@ export async function cargarPromediosPrimariaMysql(
       const sab = promedioBloqueAnual(buckSab, alumnoId, div.saberes)
       const hum = promedioBloqueAnual(buckHum, alumnoId, div.humano)
       const eti = promedioBloqueAnual(buckEti, alumnoId, div.etica)
+      const ext = promedioBloqueAnual(buckExt, alumnoId, div.extra)
       if (len != null) bloques.push(len)
       if (sab != null) bloques.push(sab)
       if (hum != null) bloques.push(hum)
       if (eti != null) bloques.push(eti)
+      if (ext != null) bloques.push(ext)
       const entry = mapa.get(alumnoId)!
+      // Suma de todos los bloques / total de bloques (incluye extracurriculares).
       entry.promedioEs = promedioLista(bloques, 1)
       entry.bloquesEs = bloques.length
     }
