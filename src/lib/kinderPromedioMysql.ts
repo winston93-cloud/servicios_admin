@@ -3,10 +3,8 @@ import { letraKinderEnANumero } from './kinderPromedioPonderador'
 
 const TABLA_ES = 'boleta_calificacionpke'
 const TABLA_EN = 'boleta_calificacionpkp'
-const TABLA_MATERIAS_ES = 'boletas_materiaske'
-const BIMESTRES_CAPTURA = [1, 2, 3]
-/** En el PDF legacy el bimestre 4 es el promedio final (a veces vacío). */
-const BIMESTRE_PROMEDIO_FINAL = 4
+/** Trimestres de la boleta ES (1º, 2º, 3º). */
+const TRIMESTRES_ES = [1, 2, 3]
 
 export type KinderPromedioAlumno = {
   alumnoId: number
@@ -17,12 +15,15 @@ export type KinderPromedioAlumno = {
   letraEn: string | null
   trimestresEs: number
   trimestresEn: number
+  materiasEs: number
 }
 
 function parseCalificacionNumerica(raw: string): number | null {
-  const s = String(raw ?? '').trim()
-  if (!s || s === '----' || s === '-' || s === 'N/A') return null
-  const n = Number(s.replace(',', '.'))
+  const s = String(raw ?? '')
+    .trim()
+    .replace(/,/g, '.')
+  if (!s || /^-+$/.test(s) || s === 'N/A' || s === '----') return null
+  const n = Number(s)
   if (!Number.isFinite(n) || n < 0 || n > 10) return null
   return n
 }
@@ -36,27 +37,13 @@ function promedioLista(vals: number[]): number | null {
   return redondear1(vals.reduce((a, b) => a + b, 0) / vals.length)
 }
 
-async function idsMateriasConductaEs(
-  mysql: Awaited<ReturnType<typeof createMysqlLegacyConnection>>
-): Promise<Set<string>> {
-  const [rows] = await mysql.query(
-    `SELECT id_materia FROM ${TABLA_MATERIAS_ES} WHERE UPPER(TRIM(boletas_materia)) = 'CONDUCTA'`
-  )
-  const set = new Set<string>()
-  for (const row of rows as { id_materia: number }[]) {
-    set.add(String(row.id_materia))
-  }
-  // Fallback histórico por si el catálogo no está alineado.
-  for (const id of [11, 34, 55]) set.add(String(id))
-  return set
-}
-
 /**
- * Promedios Kinder desde MySQL (`winston_general`).
- * - ES (`boleta_calificacionpke`): media de materias (sin conducta). Prefiere bimestre 4;
- *   si está vacío, media de trimestres 1–3 disponibles por materia.
- * - EN (`boleta_calificacionpkp`): materia AVERAGE con letras → ponderador.
- * El ciclo escolar se aplica vía becas/InsForge; aquí se consultan calificaciones por `alumno_id`.
+ * Promedio ES por alumno (boleta Kinder español):
+ * 1) Por materia: (T1 + T2 + T3) / trimestres con nota (ignora `--`).
+ * 2) Promedio general: suma de esos promedios / número de materias.
+ * Incluye todas las filas de la boleta (Conducta, Tecnología, etc.).
+ *
+ * EN: materia AVERAGE con letras → ponderador ENGLISH PRESCHOOL.
  */
 export async function cargarPromediosKinderMysql(
   alumnoIds: number[]
@@ -74,12 +61,12 @@ export async function cargarPromediosKinderMysql(
       letraEn: null,
       trimestresEs: 0,
       trimestresEn: 0,
+      materiasEs: 0,
     })
   }
 
   const mysql = await createMysqlLegacyConnection()
   try {
-    const conducta = await idsMateriasConductaEs(mysql)
     const placeholders = unicos.map(() => '?').join(',')
 
     type FilaCal = {
@@ -93,7 +80,7 @@ export async function cargarPromediosKinderMysql(
       `SELECT fk_alumno, fk_bimestre, fk_materia, calificacion
        FROM ${TABLA_ES}
        WHERE fk_alumno IN (${placeholders})
-         AND fk_bimestre IN (1, 2, 3, 4)`,
+         AND fk_bimestre IN (1, 2, 3)`,
       unicos
     )
 
@@ -102,13 +89,14 @@ export async function cargarPromediosKinderMysql(
     for (const row of rowsEs as FilaCal[]) {
       const alumnoId = Number(row.fk_alumno)
       const materia = String(row.fk_materia)
-      if (conducta.has(materia)) continue
+      const bim = Number(row.fk_bimestre)
+      if (!TRIMESTRES_ES.includes(bim)) continue
       const nota = parseCalificacionNumerica(row.calificacion)
       if (nota == null) continue
       if (!esPorAlumno.has(alumnoId)) esPorAlumno.set(alumnoId, new Map())
       const porMat = esPorAlumno.get(alumnoId)!
       if (!porMat.has(materia)) porMat.set(materia, new Map())
-      porMat.get(materia)!.set(Number(row.fk_bimestre), nota)
+      porMat.get(materia)!.set(bim, nota)
     }
 
     for (const [alumnoId, porMat] of esPorAlumno) {
@@ -118,26 +106,23 @@ export async function cargarPromediosKinderMysql(
       const trimestresUsados = new Set<number>()
 
       for (const porBim of porMat.values()) {
-        const final = porBim.get(BIMESTRE_PROMEDIO_FINAL)
-        if (final != null) {
-          promMaterias.push(final)
-          trimestresUsados.add(BIMESTRE_PROMEDIO_FINAL)
-          continue
-        }
         const trim: number[] = []
-        for (const b of BIMESTRES_CAPTURA) {
+        for (const b of TRIMESTRES_ES) {
           const n = porBim.get(b)
           if (n != null) {
             trim.push(n)
             trimestresUsados.add(b)
           }
         }
+        // (suma T1+T2+T3) / n_trimestres_con_nota
         const p = promedioLista(trim)
         if (p != null) promMaterias.push(p)
       }
 
+      // suma promedios materia / total materias
       entry.promedioEs = promedioLista(promMaterias)
       entry.trimestresEs = trimestresUsados.size
+      entry.materiasEs = promMaterias.length
     }
 
     const [rowsEn] = await mysql.query(
