@@ -230,11 +230,10 @@ async function cargarAlumnosPorRefs(refs: number[]) {
 
 function filaDesdeAlumno(
   alumno: FilaAlumno,
-  extras: Partial<ReporteBecadoFila> & Pick<ReporteBecadoFila, 'becaClase' | 'becaPorcentaje'>,
-  opts?: { gradoNum?: number }
+  extras: Partial<ReporteBecadoFila> & Pick<ReporteBecadoFila, 'becaClase' | 'becaPorcentaje'>
 ): ReporteBecadoFila {
   const nivel = Number(alumno.alumno_nivel)
-  const gradoNum = opts?.gradoNum ?? Number(alumno.alumno_grado)
+  const gradoNum = Number(alumno.alumno_grado)
   return {
     alumnoId: alumno.alumno_id,
     alumnoRef: String(alumno.alumno_ref ?? '').trim(),
@@ -259,19 +258,6 @@ function filaDesdeAlumno(
     letraEn: extras.letraEn,
     promedio: extras.promedio,
   }
-}
-
-/**
- * Grado académico del ciclo del reporte (no el de la ficha ya avanzada).
- * Ej. ficha ciclo 23 grado 2 + reporte ciclo 22 → Kinder-1.
- */
-export function gradoEnCicloReporte(alumno: FilaAlumno, cicloReporte: number): number {
-  const gradoFicha = Number(alumno.alumno_grado)
-  const cicloFicha = Number(alumno.alumno_ciclo_escolar)
-  if (!Number.isFinite(gradoFicha) || !Number.isFinite(cicloFicha)) return gradoFicha
-  const delta = cicloFicha - cicloReporte
-  if (delta <= 0) return gradoFicha
-  return Math.max(1, gradoFicha - delta)
 }
 
 export async function cargarReporteBecados(ciclo: number): Promise<ReporteBecadosResumen> {
@@ -477,27 +463,23 @@ export async function cargarReporteBecadosConPromedio(
     else totalAmbos++
 
     filas.push(
-      filaDesdeAlumno(
-        c.alumno,
-        {
-          becaId: 0,
-          becaClase: formatearEtiquetaBecaReporte({
-            tiposWinston: c.tiposWinston,
-            tieneWinston: c.tieneWinston,
-            tieneSep: c.tieneSep,
-          }),
-          becaPorcentaje: c.tieneWinston ? c.pctWinston : 0,
-          origenBeca: origen,
+      filaDesdeAlumno(c.alumno, {
+        becaId: 0,
+        becaClase: formatearEtiquetaBecaReporte({
           tiposWinston: c.tiposWinston,
+          tieneWinston: c.tieneWinston,
           tieneSep: c.tieneSep,
-          montoSep: c.montoSep,
-          promedioEs: p?.promedioEs ?? null,
-          promedioEn: p?.promedioEn ?? null,
-          letraEn: p?.letraEn ?? null,
-          promedio,
-        },
-        { gradoNum: gradoEnCicloReporte(c.alumno, ciclo) }
-      )
+        }),
+        becaPorcentaje: c.tieneWinston ? c.pctWinston : 0,
+        origenBeca: origen,
+        tiposWinston: c.tiposWinston,
+        tieneSep: c.tieneSep,
+        montoSep: c.montoSep,
+        promedioEs: p?.promedioEs ?? null,
+        promedioEn: p?.promedioEn ?? null,
+        letraEn: p?.letraEn ?? null,
+        promedio,
+      })
     )
   }
 
