@@ -1,10 +1,21 @@
 import { createMysqlLegacyConnection } from './mysqlLegacy'
-import { letraKinderEnANumero } from './kinderPromedioPonderador'
+import {
+  letraKinderEnANumero,
+  PONDERADOR_LETRA_KINDER_EN,
+} from './kinderPromedioPonderador'
 
 const TABLA_ES = 'boleta_calificacionpke'
-const TABLA_EN = 'boleta_calificacionpkp'
-/** Trimestres de la boleta ES (1º, 2º, 3º). */
-const TRIMESTRES_ES = [1, 2, 3]
+/** Materias académicas inglés Kinder (letras). */
+const TABLA_EN_PK = 'boleta_calificacionpk'
+/** AVERAGE guardado por trimestre (opcional, para etiqueta). */
+const TABLA_EN_PKP = 'boleta_calificacionpkp'
+/** Trimestres de la boleta (1º, 2º, 3º). */
+const TRIMESTRES = [1, 2, 3]
+/**
+ * Music + Mindfulness por grado (boletas_materiask): excluidos del promedio
+ * igual que `clausulaExclusionMusicMindfulnessPkBoletasIk` en boletasik.
+ */
+const MATERIAS_EN_EXCLUIDAS = new Set([6, 7, 13, 14, 20, 21])
 
 export type KinderPromedioAlumno = {
   alumnoId: number
@@ -37,13 +48,28 @@ function promedioLista(vals: number[]): number | null {
   return redondear1(vals.reduce((a, b) => a + b, 0) / vals.length)
 }
 
+/** Número → letra (misma escala ENGLISH PRESCHOOL). */
+function numeroALetraKinderEn(n: number | null): string | null {
+  if (n == null || !Number.isFinite(n) || n < 5 || n > 10) return null
+  const entero = Math.round(n)
+  const inv: Record<number, string> = {}
+  for (const [letra, val] of Object.entries(PONDERADOR_LETRA_KINDER_EN)) {
+    inv[val] = letra
+  }
+  return inv[entero] ?? null
+}
+
 /**
- * Promedio ES por alumno (boleta Kinder español):
- * 1) Por materia: (T1 + T2 + T3) / trimestres con nota (ignora `--`).
- * 2) Promedio general: suma de esos promedios / número de materias.
- * Incluye todas las filas de la boleta (Conducta, Tecnología, etc.).
+ * Promedios Kinder desde MySQL (`winston_general`).
  *
- * EN: materia AVERAGE con letras → ponderador ENGLISH PRESCHOOL.
+ * ES (`boleta_calificacionpke`):
+ * 1) Por materia: (T1+T2+T3) / trimestres con nota
+ * 2) General: media de esos promedios de materia (boleta completa)
+ *
+ * EN (`boleta_calificacionpk`, igual que boletasik/boleta_funciones.php):
+ * 1) Por trimestre: media de letras→número (sin Music/Mindfulness)
+ * 2) General: media de los trimestres disponibles
+ * Ponderador: E=10 VG=9 G=8 R=7 S=6 NI=5
  */
 export async function cargarPromediosKinderMysql(
   alumnoIds: number[]
@@ -76,6 +102,7 @@ export async function cargarPromediosKinderMysql(
       calificacion: string
     }
 
+    // ——— Español ———
     const [rowsEs] = await mysql.query(
       `SELECT fk_alumno, fk_bimestre, fk_materia, calificacion
        FROM ${TABLA_ES}
@@ -84,13 +111,12 @@ export async function cargarPromediosKinderMysql(
       unicos
     )
 
-    // alumnoId -> materia -> bimestre -> nota
     const esPorAlumno = new Map<number, Map<string, Map<number, number>>>()
     for (const row of rowsEs as FilaCal[]) {
       const alumnoId = Number(row.fk_alumno)
       const materia = String(row.fk_materia)
       const bim = Number(row.fk_bimestre)
-      if (!TRIMESTRES_ES.includes(bim)) continue
+      if (!TRIMESTRES.includes(bim)) continue
       const nota = parseCalificacionNumerica(row.calificacion)
       if (nota == null) continue
       if (!esPorAlumno.has(alumnoId)) esPorAlumno.set(alumnoId, new Map())
@@ -107,51 +133,89 @@ export async function cargarPromediosKinderMysql(
 
       for (const porBim of porMat.values()) {
         const trim: number[] = []
-        for (const b of TRIMESTRES_ES) {
+        for (const b of TRIMESTRES) {
           const n = porBim.get(b)
           if (n != null) {
             trim.push(n)
             trimestresUsados.add(b)
           }
         }
-        // (suma T1+T2+T3) / n_trimestres_con_nota
         const p = promedioLista(trim)
         if (p != null) promMaterias.push(p)
       }
 
-      // suma promedios materia / total materias
       entry.promedioEs = promedioLista(promMaterias)
       entry.trimestresEs = trimestresUsados.size
       entry.materiasEs = promMaterias.length
     }
 
+    // ——— Inglés: promedio por trimestre de materias pk ———
     const [rowsEn] = await mysql.query(
       `SELECT fk_alumno, fk_bimestre, fk_materia, calificacion
-       FROM ${TABLA_EN}
+       FROM ${TABLA_EN_PK}
        WHERE fk_alumno IN (${placeholders})
-         AND fk_bimestre IN (1, 2, 3)
-         AND CAST(fk_materia AS UNSIGNED) = 1`,
+         AND fk_bimestre IN (1, 2, 3)`,
       unicos
     )
 
-    const enPorAlumno = new Map<number, { notas: number[]; letraUltima: string | null }>()
+    // alumno -> bimestre -> notas de materias
+    const enPorAlumno = new Map<number, Map<number, number[]>>()
     for (const row of rowsEn as FilaCal[]) {
       const alumnoId = Number(row.fk_alumno)
-      const letra = String(row.calificacion ?? '').trim()
-      const nota = letraKinderEnANumero(letra)
+      const bim = Number(row.fk_bimestre)
+      const materia = Number(row.fk_materia)
+      if (!TRIMESTRES.includes(bim)) continue
+      if (MATERIAS_EN_EXCLUIDAS.has(materia)) continue
+      const nota = letraKinderEnANumero(row.calificacion)
       if (nota == null) continue
-      if (!enPorAlumno.has(alumnoId)) enPorAlumno.set(alumnoId, { notas: [], letraUltima: null })
-      const bucket = enPorAlumno.get(alumnoId)!
-      bucket.notas.push(nota)
-      bucket.letraUltima = letra.toUpperCase()
+      if (!enPorAlumno.has(alumnoId)) enPorAlumno.set(alumnoId, new Map())
+      const porBim = enPorAlumno.get(alumnoId)!
+      if (!porBim.has(bim)) porBim.set(bim, [])
+      porBim.get(bim)!.push(nota)
     }
 
-    for (const [alumnoId, bucket] of enPorAlumno) {
+    for (const [alumnoId, porBim] of enPorAlumno) {
       const entry = mapa.get(alumnoId)
       if (!entry) continue
-      entry.promedioEn = promedioLista(bucket.notas)
-      entry.letraEn = bucket.letraUltima
-      entry.trimestresEn = bucket.notas.length
+      const promTrimestres: number[] = []
+      for (const b of TRIMESTRES) {
+        const notas = porBim.get(b)
+        if (!notas || notas.length === 0) continue
+        const p = promedioLista(notas)
+        if (p != null) promTrimestres.push(p)
+      }
+      entry.promedioEn = promedioLista(promTrimestres)
+      entry.trimestresEn = promTrimestres.length
+      entry.letraEn = numeroALetraKinderEn(entry.promedioEn)
+    }
+
+    // Si no hubo pk pero sí AVERAGE en pkp, usar esa fila como respaldo.
+    const sinEn = unicos.filter((id) => mapa.get(id)?.promedioEn == null)
+    if (sinEn.length > 0) {
+      const ph = sinEn.map(() => '?').join(',')
+      const [rowsPkp] = await mysql.query(
+        `SELECT fk_alumno, fk_bimestre, calificacion
+         FROM ${TABLA_EN_PKP}
+         WHERE fk_alumno IN (${ph})
+           AND fk_bimestre IN (1, 2, 3)
+           AND CAST(fk_materia AS UNSIGNED) = 1`,
+        sinEn
+      )
+      const pkpPorAlumno = new Map<number, number[]>()
+      for (const row of rowsPkp as FilaCal[]) {
+        const alumnoId = Number(row.fk_alumno)
+        const nota = letraKinderEnANumero(row.calificacion)
+        if (nota == null) continue
+        if (!pkpPorAlumno.has(alumnoId)) pkpPorAlumno.set(alumnoId, [])
+        pkpPorAlumno.get(alumnoId)!.push(nota)
+      }
+      for (const [alumnoId, notas] of pkpPorAlumno) {
+        const entry = mapa.get(alumnoId)
+        if (!entry || entry.promedioEn != null) continue
+        entry.promedioEn = promedioLista(notas)
+        entry.trimestresEn = notas.length
+        entry.letraEn = numeroALetraKinderEn(entry.promedioEn)
+      }
     }
 
     for (const entry of mapa.values()) {
