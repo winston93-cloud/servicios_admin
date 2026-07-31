@@ -191,16 +191,16 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
   {
     id: 'becados',
     categoriaId: 'becados',
-    titulo: 'Alumnos becados',
+    titulo: 'Becados Promedio > 9',
     descripcion:
-      'Becados Winston + SEP con promedio ≥ 9 (Kinder activo; Primaria/Secundaria próximamente). Winston (IMSS, CFE, …) vs SEP.',
+      'Kinder activo (Primaria/Secundaria pronto). Winston (IMSS, CFE, …) y SEP. Promedio ES + EN ≥ 9. Grado de la ficha; beca y califs del ciclo elegido.',
     accent: 'rose',
     motor: 'api-next',
     requiereNivel: true,
     nivelesOpciones: ['kinder', 'primaria', 'secundaria'],
     nivelInicial: 'kinder',
     usaCiclo: 'libre',
-    keywords: ['becados', 'beca', 'promedio', 'winston', 'insforge'],
+    keywords: ['becados', 'beca', 'promedio', 'winston', 'sep', 'kinder'],
   },
   // Bajas
   {
