@@ -20,7 +20,7 @@ export function construirHtmlReporteBecados(
   const titulo =
     opciones?.titulo ??
     (conPromedio
-      ? `Becados Winston · promedio ≥ ${resumen.umbralPromedio ?? 9}`
+      ? `Becados · promedio ≥ ${resumen.umbralPromedio ?? 9}`
       : 'Alumnos becados')
   const etiquetaTotal =
     opciones?.etiquetaTotal ?? (conPromedio ? 'Becados ≥ 9' : 'Becados activos')
@@ -57,6 +57,42 @@ export function construirHtmlReporteBecados(
   const fmt = (n: number | null | undefined) =>
     n == null || Number.isNaN(n) ? '—' : n.toFixed(1)
 
+  const fmtMonto = (n: number | null | undefined) =>
+    n == null || Number.isNaN(n)
+      ? ''
+      : `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
+  const tagsBeca = (a: (typeof resumen.filas)[number]) => {
+    const tags: string[] = []
+    const tieneW = a.origenBeca === 'winston' || a.origenBeca === 'ambos'
+    const tieneS = a.origenBeca === 'sep' || a.origenBeca === 'ambos' || Boolean(a.tieneSep)
+
+    if (tieneW) {
+      const w =
+        a.tiposWinston && a.tiposWinston.length > 0
+          ? `Winston (${a.tiposWinston.join(', ')})`
+          : 'Winston'
+      tags.push(`<span class="beca-tag winston">${escapeHtml(w)}</span>`)
+    }
+    if (tieneS) {
+      const sepLabel =
+        a.montoSep != null && a.montoSep > 0 ? `SEP (${fmtMonto(a.montoSep)})` : 'SEP'
+      tags.push(`<span class="beca-tag sep">${escapeHtml(sepLabel)}</span>`)
+    }
+    if (tags.length === 0) {
+      tags.push(`<span class="beca-tag">${escapeHtml(a.becaClase)}</span>`)
+    }
+    return `<div class="beca-tags">${tags.join(' ')}</div>`
+  }
+
+  const pctCell = (a: (typeof resumen.filas)[number]) => {
+    if (a.origenBeca === 'sep' || (!a.becaPorcentaje && a.tieneSep && a.origenBeca !== 'ambos')) {
+      return a.tieneSep && a.montoSep != null ? fmtMonto(a.montoSep) : '—'
+    }
+    if (a.becaPorcentaje > 0) return `${a.becaPorcentaje}%`
+    return '—'
+  }
+
   const sections = resumen.gruposPorNivel
     .map(({ nivel, nivelLabel, plantel, filas }) => {
       const rows = filas
@@ -67,8 +103,8 @@ export function construirHtmlReporteBecados(
           <td class="name">${escapeHtml(a.nombre)}</td>
           <td><span class="pill nivel-${nivel}">${escapeHtml(a.grado)}</span></td>
           <td class="grp">${escapeHtml(a.grupo)}</td>
-          <td><span class="beca-tag">${escapeHtml(a.becaClase)}</span></td>
-          <td class="pct">${a.becaPorcentaje}%</td>
+          <td>${tagsBeca(a)}</td>
+          <td class="pct">${pctCell(a)}</td>
           ${
             conPromedio
               ? `<td class="avg">${fmt(a.promedioEs)}</td>
@@ -97,7 +133,7 @@ export function construirHtmlReporteBecados(
               <th>Grado</th>
               <th>Grupo</th>
               <th>Tipo de beca</th>
-              <th>%</th>
+              <th>% / monto</th>
               ${
                 conPromedio
                   ? '<th>Prom. ES</th><th>Prom. EN</th><th>Promedio</th>'
@@ -112,8 +148,17 @@ export function construirHtmlReporteBecados(
     .join('')
 
   const footerExtra = conPromedio
-    ? ' · Promedio Kinder: ES (boleta_calificacionpke, sin conducta) + EN AVERAGE con ponderador E=10 VG=9 G=8 R=7 · umbral ≥ 9 · sin becas SEP'
+    ? ' · Promedio Kinder: ES + EN (AVERAGE ponderado E=10 VG=9 G=8 R=7) · umbral ≥ 9 · Winston (InsForge) + SEP (alumno_beca_sep)'
     : ''
+
+  const statsExtra =
+    conPromedio &&
+    (resumen.totalWinston != null || resumen.totalSep != null || resumen.totalAmbos != null)
+      ? `
+        <div class="stat"><div class="val">${resumen.totalWinston ?? 0}</div><div class="lbl">Solo Winston</div></div>
+        <div class="stat"><div class="val">${resumen.totalSep ?? 0}</div><div class="lbl">Solo SEP</div></div>
+        <div class="stat"><div class="val">${resumen.totalAmbos ?? 0}</div><div class="lbl">Ambas</div></div>`
+      : ''
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -132,7 +177,7 @@ export function construirHtmlReporteBecados(
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    .page { max-width: 920px; margin: 0 auto; padding: 28px 24px 40px; }
+    .page { max-width: 960px; margin: 0 auto; padding: 28px 24px 40px; }
     .hero {
       background: linear-gradient(135deg, #422006 0%, #92400e 48%, #b45309 100%);
       color: #fff;
@@ -171,7 +216,7 @@ export function construirHtmlReporteBecados(
       border: 1px solid rgba(255,255,255,.16);
       border-radius: 12px;
       padding: 10px 14px;
-      min-width: 110px;
+      min-width: 100px;
     }
     .stat .val { font-size: 22px; font-weight: 700; }
     .stat .lbl { font-size: 11px; opacity: .75; margin-top: 2px; }
@@ -228,7 +273,7 @@ export function construirHtmlReporteBecados(
     .num { width: 32px; color: #94a3b8; font-weight: 600; }
     .name { font-weight: 500; }
     .grp { width: 48px; text-align: center; color: #475569; }
-    .pct { width: 44px; font-weight: 700; color: #b45309; text-align: center; }
+    .pct { width: 72px; font-weight: 700; color: #b45309; text-align: center; font-size: 10px; }
     .avg { text-align: center; font-variant-numeric: tabular-nums; color: #334155; }
     .avg.strong { font-weight: 700; color: #b45309; }
     .letra { font-size: 9px; color: #94a3b8; }
@@ -245,6 +290,7 @@ export function construirHtmlReporteBecados(
     .pill.nivel-2 { background: #fce7f3; color: #be185d; }
     .pill.nivel-3 { background: #dcfce7; color: #15803d; }
     .pill.nivel-4 { background: #ede9fe; color: #6d28d9; }
+    .beca-tags { display: flex; flex-wrap: wrap; gap: 4px; }
     .beca-tag {
       display: inline-block;
       padding: 3px 8px;
@@ -254,6 +300,16 @@ export function construirHtmlReporteBecados(
       background: #fef3c7;
       color: #92400e;
       border: 1px solid #fde68a;
+    }
+    .beca-tag.winston {
+      background: #fff7ed;
+      color: #c2410c;
+      border-color: #fed7aa;
+    }
+    .beca-tag.sep {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-color: #bfdbfe;
     }
     .footer {
       margin-top: 18px;
@@ -271,12 +327,12 @@ export function construirHtmlReporteBecados(
       <p class="sub">Ciclo escolar ${escapeHtml(etiquetaCicloLargo(resumen.ciclo))}${resumen.nivelFiltroLabel ? ` · ${escapeHtml(resumen.nivelFiltroLabel)}` : ''} · ${escapeHtml(fecha)}</p>
       <div class="stats">
         <div class="stat"><div class="val">${resumen.total}</div><div class="lbl">${escapeHtml(etiquetaTotal)}</div></div>
-        <div class="stat"><div class="val">${resumen.niveles}</div><div class="lbl">Niveles</div></div>
+        ${statsExtra}
         <div class="stat"><div class="val">${resumen.ciclo}</div><div class="lbl">Ciclo</div></div>
       </div>
     </header>
     ${sections || '<p class="footer">Sin alumnos que cumplan el criterio en este ciclo/nivel.</p>'}
-    <p class="footer">Solo alumnos activos con beca Winston activa en el ciclo indicado${footerExtra}</p>
+    <p class="footer">Alumnos activos con beca Winston y/o SEP en el ciclo indicado${footerExtra}</p>
   </div>
 </body>
 </html>`

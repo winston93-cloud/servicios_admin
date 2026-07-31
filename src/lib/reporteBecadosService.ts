@@ -4,6 +4,7 @@ import { etiquetaGradoEscolar } from './gradoEscolar'
 import { etiquetaNivelEscolar } from './nivelEscolar'
 import { etiquetaGrupoEscolar } from './grupoEscolar'
 import { createDbAdmin } from './insforgeAdmin'
+import { createMysqlLegacyConnection } from './mysqlLegacy'
 
 const PAGE_SIZE = 500
 const ALUMNO_CHUNK = 150
@@ -13,6 +14,8 @@ const SELECT_BECA =
 
 const SELECT_ALUMNO =
   'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_grado, alumno_grupo, alumno_status, alumno_ciclo_escolar'
+
+export type OrigenBecaReporte = 'winston' | 'sep' | 'ambos'
 
 export interface ReporteBecadoFila {
   alumnoId: number
@@ -25,17 +28,18 @@ export interface ReporteBecadoFila {
   gradoNum: number
   grupo: string
   becaId: number
+  /** Etiqueta visible: `Winston (IMSS)`, `SEP`, o combinada. */
   becaClase: string
   becaPorcentaje: number
   becaEstatus: number
   becaEstatusLabel: string
-  /** Promedio español Kinder (MySQL). */
+  origenBeca?: OrigenBecaReporte
+  tiposWinston?: string[]
+  tieneSep?: boolean
+  montoSep?: number | null
   promedioEs?: number | null
-  /** Promedio inglés Kinder ponderado (MySQL). */
   promedioEn?: number | null
-  /** Letra AVERAGE inglés (última disponible). */
   letraEn?: string | null
-  /** Promedio combinado usado para el filtro ≥ 9. */
   promedio?: number | null
 }
 
@@ -45,16 +49,69 @@ export interface ReporteBecadosResumen {
   niveles: number
   filas: ReporteBecadoFila[]
   gruposPorNivel: { nivel: number; nivelLabel: string; plantel: string; filas: ReporteBecadoFila[] }[]
-  /** true cuando el reporte incluye columnas de promedio. */
   conPromedio?: boolean
   umbralPromedio?: number
   nivelFiltro?: number
   nivelFiltroLabel?: string
   nota?: string
+  totalWinston?: number
+  totalSep?: number
+  totalAmbos?: number
+}
+
+type FilaAlumno = {
+  alumno_id: number
+  alumno_ref: string
+  alumno_app: string
+  alumno_apm: string
+  alumno_nombre: string
+  alumno_nivel: number
+  alumno_grado: number
+  alumno_grupo: number
+  alumno_status: number
+  alumno_ciclo_escolar: number
+}
+
+type BecaSepFila = {
+  alumno_ref: number
+  monto_prorrateado: number
+  porcentaje: number
 }
 
 function plantelPorNivel(nivel: number): string {
   return nivel <= 2 ? 'Instituto Educativo Winston' : 'Instituto Winston Churchill'
+}
+
+/** Normaliza clase de concepto_beca a tipo dentro de Winston (...). */
+export function tipoBecaWinstonDesdeClase(clase: string): string | null {
+  const c = String(clase ?? '').trim()
+  if (!c || c === '*') return null
+  if (/^winston$/i.test(c)) return null
+  return c
+}
+
+/** `Winston`, `Winston (IMSS)` o `Winston (IMSS, CFE)`. */
+export function formatearEtiquetaWinston(tipos: string[]): string {
+  const unicos = [...new Set(tipos.map((t) => t.trim()).filter(Boolean))]
+  if (unicos.length === 0) return 'Winston'
+  return `Winston (${unicos.join(', ')})`
+}
+
+export function formatearEtiquetaBecaReporte(opts: {
+  tiposWinston: string[]
+  tieneWinston: boolean
+  tieneSep: boolean
+}): string {
+  const partes: string[] = []
+  if (opts.tieneWinston) partes.push(formatearEtiquetaWinston(opts.tiposWinston))
+  if (opts.tieneSep) partes.push('SEP')
+  return partes.join(' · ') || '—'
+}
+
+function origenDesdeFlags(tieneWinston: boolean, tieneSep: boolean): OrigenBecaReporte {
+  if (tieneWinston && tieneSep) return 'ambos'
+  if (tieneSep) return 'sep'
+  return 'winston'
 }
 
 async function cargarConceptosBeca(): Promise<Map<number, string>> {
@@ -100,25 +157,39 @@ async function cargarBecasCiclo(ciclo: number) {
   return filas
 }
 
+/** Becas SEP del ciclo (MySQL `alumno_beca_sep`, origen open_house/gestion). */
+export async function cargarBecasSepMysql(ciclo: number): Promise<BecaSepFila[]> {
+  const mysql = await createMysqlLegacyConnection()
+  try {
+    const [rows] = await mysql.query(
+      `SELECT alumno_ref, monto_prorrateado, porcentaje
+       FROM alumno_beca_sep
+       WHERE ciclo_escolar = ?
+         AND estatus = 1`,
+      [ciclo]
+    )
+    return (
+      rows as {
+        alumno_ref: number
+        monto_prorrateado: string | number
+        porcentaje: number
+      }[]
+    ).map((r) => ({
+      alumno_ref: Number(r.alumno_ref),
+      monto_prorrateado: Number(r.monto_prorrateado),
+      porcentaje: Number(r.porcentaje ?? 0),
+    }))
+  } finally {
+    await mysql.end()
+  }
+}
+
 async function cargarAlumnosPorIds(ids: number[]) {
   const db = createDbAdmin()
-  type FilaAlumno = {
-    alumno_id: number
-    alumno_ref: string
-    alumno_app: string
-    alumno_apm: string
-    alumno_nombre: string
-    alumno_nivel: number
-    alumno_grado: number
-    alumno_grupo: number
-    alumno_status: number
-    alumno_ciclo_escolar: number
-  }
   const mapa = new Map<number, FilaAlumno>()
 
   for (let i = 0; i < ids.length; i += ALUMNO_CHUNK) {
     const slice = ids.slice(i, i + ALUMNO_CHUNK)
-    // Tras avance de temporada la ficha sigue con el mismo alumno_id pero otro ciclo.
     const { data, error } = await db
       .from('alumno')
       .select(SELECT_ALUMNO)
@@ -127,12 +198,66 @@ async function cargarAlumnosPorIds(ids: number[]) {
 
     if (error) throw new Error(error.message)
     for (const row of data ?? []) {
-      const fila = row as FilaAlumno
-      mapa.set(fila.alumno_id, fila)
+      mapa.set((row as FilaAlumno).alumno_id, row as FilaAlumno)
     }
   }
 
   return mapa
+}
+
+async function cargarAlumnosPorRefs(refs: number[]) {
+  const db = createDbAdmin()
+  const mapa = new Map<number, FilaAlumno>()
+  const unicos = [...new Set(refs.filter((r) => Number.isInteger(r) && r > 0))]
+
+  for (let i = 0; i < unicos.length; i += ALUMNO_CHUNK) {
+    const slice = unicos.slice(i, i + ALUMNO_CHUNK)
+    const { data, error } = await db
+      .from('alumno')
+      .select(SELECT_ALUMNO)
+      .in('alumno_ref', slice)
+      .eq('alumno_status', 1)
+
+    if (error) throw new Error(error.message)
+    for (const row of data ?? []) {
+      const fila = row as FilaAlumno
+      mapa.set(Number(fila.alumno_ref), fila)
+    }
+  }
+
+  return mapa
+}
+
+function filaDesdeAlumno(
+  alumno: FilaAlumno,
+  extras: Partial<ReporteBecadoFila> & Pick<ReporteBecadoFila, 'becaClase' | 'becaPorcentaje'>
+): ReporteBecadoFila {
+  const nivel = Number(alumno.alumno_nivel)
+  const gradoNum = Number(alumno.alumno_grado)
+  return {
+    alumnoId: alumno.alumno_id,
+    alumnoRef: String(alumno.alumno_ref ?? '').trim(),
+    nombre: construirNombreCompleto(alumno.alumno_nombre, alumno.alumno_app, alumno.alumno_apm),
+    nivel,
+    nivelLabel: etiquetaNivelEscolar(nivel),
+    plantel: plantelPorNivel(nivel),
+    grado: etiquetaGradoEscolar(nivel, gradoNum),
+    gradoNum,
+    grupo: etiquetaGrupoEscolar(alumno.alumno_grupo) || '—',
+    becaId: extras.becaId ?? 0,
+    becaClase: extras.becaClase,
+    becaPorcentaje: extras.becaPorcentaje,
+    becaEstatus: extras.becaEstatus ?? BECA_ESTATUS_ACTIVA,
+    becaEstatusLabel: etiquetaBecaEstatus(extras.becaEstatus ?? BECA_ESTATUS_ACTIVA),
+    origenBeca: extras.origenBeca,
+    tiposWinston: extras.tiposWinston,
+    tieneSep: extras.tieneSep,
+    montoSep: extras.montoSep,
+    promedioEs: extras.promedioEs,
+    promedioEn: extras.promedioEn,
+    letraEn: extras.letraEn,
+    promedio: extras.promedio,
+  }
 }
 
 export async function cargarReporteBecados(ciclo: number): Promise<ReporteBecadosResumen> {
@@ -146,25 +271,21 @@ export async function cargarReporteBecados(ciclo: number): Promise<ReporteBecado
     const alumno = alumnos.get(beca.alumno_id)
     if (!alumno) continue
 
-    const nivel = Number(alumno.alumno_nivel)
-    const gradoNum = Number(alumno.alumno_grado)
+    const claseRaw = conceptos.get(Number(beca.beca_id)) ?? `Beca ${beca.beca_id}`
+    const tipo = tipoBecaWinstonDesdeClase(claseRaw)
+    const tipos = tipo ? [tipo] : []
 
-    filas.push({
-      alumnoId: alumno.alumno_id,
-      alumnoRef: String(alumno.alumno_ref ?? '').trim(),
-      nombre: construirNombreCompleto(alumno.alumno_nombre, alumno.alumno_app, alumno.alumno_apm),
-      nivel,
-      nivelLabel: etiquetaNivelEscolar(nivel),
-      plantel: plantelPorNivel(nivel),
-      grado: etiquetaGradoEscolar(nivel, gradoNum),
-      gradoNum,
-      grupo: etiquetaGrupoEscolar(alumno.alumno_grupo) || '—',
-      becaId: Number(beca.beca_id),
-      becaClase: conceptos.get(Number(beca.beca_id)) ?? `Beca ${beca.beca_id}`,
-      becaPorcentaje: Number(beca.beca_porcentaje),
-      becaEstatus: Number(beca.beca_estatus),
-      becaEstatusLabel: etiquetaBecaEstatus(Number(beca.beca_estatus)),
-    })
+    filas.push(
+      filaDesdeAlumno(alumno, {
+        becaId: Number(beca.beca_id),
+        becaClase: formatearEtiquetaWinston(tipos),
+        becaPorcentaje: Number(beca.beca_porcentaje),
+        becaEstatus: Number(beca.beca_estatus),
+        origenBeca: 'winston',
+        tiposWinston: tipos,
+        tieneSep: false,
+      })
+    )
   }
 
   filas.sort((a, b) => {
@@ -227,7 +348,7 @@ export async function cargarReporteBecadosSexto(
 const UMBRAL_PROMEDIO_BECADOS = 9
 
 /**
- * Becados Winston de un nivel con promedio ≥ 9.
+ * Becados Winston + SEP de un nivel con promedio ≥ 9.
  * Kinder: calificaciones MySQL (ES numérico + EN letras ponderadas).
  * Primaria/Secundaria: pendiente de extracción de boletas.
  */
@@ -235,9 +356,6 @@ export async function cargarReporteBecadosConPromedio(
   ciclo: number,
   nivelValor: number
 ): Promise<ReporteBecadosResumen> {
-  const base = await cargarReporteBecados(ciclo)
-  const delNivel = base.filas.filter((f) => f.nivel === nivelValor)
-
   if (nivelValor !== 2) {
     return {
       ciclo,
@@ -254,21 +372,115 @@ export async function cargarReporteBecadosConPromedio(
     }
   }
 
+  const [becasWinston, conceptos, becasSep] = await Promise.all([
+    cargarBecasCiclo(ciclo),
+    cargarConceptosBeca(),
+    cargarBecasSepMysql(ciclo),
+  ])
+
+  const alumnoIdsWinston = [...new Set(becasWinston.map((b) => b.alumno_id))]
+  const refsSep = becasSep.map((b) => b.alumno_ref)
+  const [alumnosPorId, alumnosPorRef] = await Promise.all([
+    cargarAlumnosPorIds(alumnoIdsWinston),
+    cargarAlumnosPorRefs(refsSep),
+  ])
+
+  type Acum = {
+    alumno: FilaAlumno
+    tiposWinston: string[]
+    pctWinston: number
+    tieneWinston: boolean
+    tieneSep: boolean
+    montoSep: number | null
+  }
+
+  const porAlumno = new Map<number, Acum>()
+
+  for (const beca of becasWinston) {
+    const alumno = alumnosPorId.get(beca.alumno_id)
+    if (!alumno) continue
+    if (Number(alumno.alumno_nivel) !== nivelValor) continue
+
+    const claseRaw = conceptos.get(Number(beca.beca_id)) ?? `Beca ${beca.beca_id}`
+    const tipo = tipoBecaWinstonDesdeClase(claseRaw)
+    const prev = porAlumno.get(alumno.alumno_id)
+    if (!prev) {
+      porAlumno.set(alumno.alumno_id, {
+        alumno,
+        tiposWinston: tipo ? [tipo] : [],
+        pctWinston: Number(beca.beca_porcentaje),
+        tieneWinston: true,
+        tieneSep: false,
+        montoSep: null,
+      })
+    } else {
+      prev.tieneWinston = true
+      if (tipo && !prev.tiposWinston.includes(tipo)) prev.tiposWinston.push(tipo)
+      if (Number(beca.beca_porcentaje) > prev.pctWinston) {
+        prev.pctWinston = Number(beca.beca_porcentaje)
+      }
+    }
+  }
+
+  for (const sep of becasSep) {
+    const alumno = alumnosPorRef.get(sep.alumno_ref)
+    if (!alumno) continue
+    if (Number(alumno.alumno_nivel) !== nivelValor) continue
+
+    const prev = porAlumno.get(alumno.alumno_id)
+    if (!prev) {
+      porAlumno.set(alumno.alumno_id, {
+        alumno,
+        tiposWinston: [],
+        pctWinston: 0,
+        tieneWinston: false,
+        tieneSep: true,
+        montoSep: sep.monto_prorrateado,
+      })
+    } else {
+      prev.tieneSep = true
+      prev.montoSep = sep.monto_prorrateado
+    }
+  }
+
+  const candidatos = [...porAlumno.values()]
   const { cargarPromediosKinderMysql } = await import('./kinderPromedioMysql')
-  const promedios = await cargarPromediosKinderMysql(delNivel.map((f) => f.alumnoId))
+  const promedios = await cargarPromediosKinderMysql(candidatos.map((c) => c.alumno.alumno_id))
 
   const filas: ReporteBecadoFila[] = []
-  for (const fila of delNivel) {
-    const p = promedios.get(fila.alumnoId)
+  let totalWinston = 0
+  let totalSep = 0
+  let totalAmbos = 0
+
+  for (const c of candidatos) {
+    const p = promedios.get(c.alumno.alumno_id)
     const promedio = p?.promedio ?? null
     if (promedio == null || promedio < UMBRAL_PROMEDIO_BECADOS) continue
-    filas.push({
-      ...fila,
-      promedioEs: p?.promedioEs ?? null,
-      promedioEn: p?.promedioEn ?? null,
-      letraEn: p?.letraEn ?? null,
-      promedio,
-    })
+
+    const origen = origenDesdeFlags(c.tieneWinston, c.tieneSep)
+    if (origen === 'winston') totalWinston++
+    else if (origen === 'sep') totalSep++
+    else totalAmbos++
+
+    filas.push(
+      filaDesdeAlumno(c.alumno, {
+        becaId: 0,
+        becaClase: formatearEtiquetaBecaReporte({
+          tiposWinston: c.tiposWinston,
+          tieneWinston: c.tieneWinston,
+          tieneSep: c.tieneSep,
+        }),
+        becaPorcentaje: c.tieneWinston ? c.pctWinston : 0,
+        origenBeca: origen,
+        tiposWinston: c.tiposWinston,
+        tieneSep: c.tieneSep,
+        montoSep: c.montoSep,
+        promedioEs: p?.promedioEs ?? null,
+        promedioEn: p?.promedioEn ?? null,
+        letraEn: p?.letraEn ?? null,
+        promedio,
+      })
+    )
   }
 
   filas.sort((a, b) => {
@@ -301,5 +513,8 @@ export async function cargarReporteBecadosConPromedio(
     umbralPromedio: UMBRAL_PROMEDIO_BECADOS,
     nivelFiltro: 2,
     nivelFiltroLabel: etiquetaNivelEscolar(2),
+    totalWinston,
+    totalSep,
+    totalAmbos,
   }
 }

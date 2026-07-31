@@ -11,7 +11,7 @@ export function generarPdfReporteBecados(
   const titulo =
     opciones?.titulo ??
     (conPromedio
-      ? `Becados Winston · promedio ≥ ${resumen.umbralPromedio ?? 9}`
+      ? `Becados · promedio ≥ ${resumen.umbralPromedio ?? 9}`
       : 'Alumnos becados')
   const pdf = new jsPDF({
     orientation: conPromedio ? 'landscape' : 'portrait',
@@ -29,15 +29,20 @@ export function generarPdfReporteBecados(
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(10)
   pdf.setTextColor(71, 85, 105)
-  const sub = [
+  const subParts = [
     `Ciclo ${etiquetaCicloLargo(resumen.ciclo)}`,
     resumen.nivelFiltroLabel,
     `${resumen.total} becados`,
-    new Date().toLocaleDateString('es-MX'),
   ]
-    .filter(Boolean)
-    .join(' · ')
-  pdf.text(sub, conPromedio ? 148 : 105, y, { align: 'center' })
+  if (conPromedio) {
+    subParts.push(
+      `W:${resumen.totalWinston ?? 0}`,
+      `SEP:${resumen.totalSep ?? 0}`,
+      `ambas:${resumen.totalAmbos ?? 0}`
+    )
+  }
+  subParts.push(new Date().toLocaleDateString('es-MX'))
+  pdf.text(subParts.filter(Boolean).join(' · '), conPromedio ? 148 : 105, y, { align: 'center' })
   y += 8
 
   if (resumen.nota && resumen.total === 0) {
@@ -68,13 +73,19 @@ export function generarPdfReporteBecados(
       : [['#', 'Nombre', 'Grado', 'Grupo', 'Beca', '%']]
 
     const body = grupo.filas.map((f, i) => {
+      const pct =
+        f.becaPorcentaje > 0
+          ? `${f.becaPorcentaje}%`
+          : f.tieneSep && f.montoSep != null
+            ? `$${f.montoSep.toFixed(0)}`
+            : '—'
       const base = [
         String(i + 1),
         f.nombre,
         f.grado,
         f.grupo,
         f.becaClase,
-        `${f.becaPorcentaje}%`,
+        pct,
       ]
       if (!conPromedio) return base
       const en =

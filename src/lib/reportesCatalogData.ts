@@ -193,7 +193,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     categoriaId: 'becados',
     titulo: 'Alumnos becados',
     descripcion:
-      'Becados Winston con promedio ≥ 9 (Kinder activo; Primaria/Secundaria próximamente). Sin SEP.',
+      'Becados Winston + SEP con promedio ≥ 9 (Kinder activo; Primaria/Secundaria próximamente). Winston (IMSS, CFE, …) vs SEP.',
     accent: 'rose',
     motor: 'api-next',
     requiereNivel: true,
