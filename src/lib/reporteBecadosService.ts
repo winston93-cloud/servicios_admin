@@ -102,15 +102,20 @@ export function formatearEtiquetaBecaReporte(opts: {
   tieneWinston: boolean
   tieneSep: boolean
 }): string {
-  const partes: string[] = []
-  if (opts.tieneWinston) partes.push(formatearEtiquetaWinston(opts.tiposWinston))
-  if (opts.tieneSep) partes.push('SEP')
-  return partes.join(' · ') || '—'
+  // SEP en open_house/gestion / enlinea3 (integracion_sep) prevalece sobre Winston residual.
+  if (opts.tieneSep) return 'SEP'
+  if (opts.tieneWinston) return formatearEtiquetaWinston(opts.tiposWinston)
+  return '—'
 }
 
+/**
+ * Origen vigente para el reporte.
+ * Si el alumno está en la relación SEP (open_house/gestion → alumno_beca_sep /
+ * hardcode enlinea3), esa es la beca vigente aunque conserve Winston en InsForge.
+ */
 function origenDesdeFlags(tieneWinston: boolean, tieneSep: boolean): OrigenBecaReporte {
-  if (tieneWinston && tieneSep) return 'ambos'
   if (tieneSep) return 'sep'
+  if (tieneWinston) return 'winston'
   return 'winston'
 }
 
@@ -157,7 +162,11 @@ async function cargarBecasCiclo(ciclo: number) {
   return filas
 }
 
-/** Becas SEP del ciclo (MySQL `alumno_beca_sep`, origen open_house/gestion). */
+/** Becas SEP del ciclo (MySQL `alumno_beca_sep`, cargada desde open_house/gestion).
+ * La lista vigente en cobros enlinea3 vive hardcodeada en
+ * `reportes/resources/php/integracion_sep.php` (require desde module/callback.php)
+ * y duplicada en `enlinea3/module/img/callback.php`.
+ */
 export async function cargarBecasSepMysql(ciclo: number): Promise<BecaSepFila[]> {
   const mysql = await createMysqlLegacyConnection()
   try {
@@ -493,23 +502,26 @@ export async function cargarReporteBecadosConPromedio(
     if (promedio == null || promedio < UMBRAL_PROMEDIO_BECADOS) continue
 
     const origen = origenDesdeFlags(c.tieneWinston, c.tieneSep)
+    // Contamos “ambas” solo como dato interno: en UI/etiqueta la vigente es SEP.
+    if (c.tieneWinston && c.tieneSep) totalAmbos++
     if (origen === 'winston') totalWinston++
-    else if (origen === 'sep') totalSep++
-    else totalAmbos++
+    else totalSep++
 
+    const muestraSep = origen === 'sep'
     filas.push(
       filaDesdeAlumno(c.alumno, {
         becaId: 0,
         becaClase: formatearEtiquetaBecaReporte({
           tiposWinston: c.tiposWinston,
-          tieneWinston: c.tieneWinston,
-          tieneSep: c.tieneSep,
+          tieneWinston: c.tieneWinston && !muestraSep,
+          tieneSep: muestraSep,
         }),
-        becaPorcentaje: c.tieneWinston ? c.pctWinston : 0,
+        // Con SEP vigente no mostramos % Winston; va el monto SEP.
+        becaPorcentaje: muestraSep ? 0 : c.pctWinston,
         origenBeca: origen,
-        tiposWinston: c.tiposWinston,
-        tieneSep: c.tieneSep,
-        montoSep: c.montoSep,
+        tiposWinston: muestraSep ? [] : c.tiposWinston,
+        tieneSep: muestraSep,
+        montoSep: muestraSep ? c.montoSep : null,
         promedioEs: p?.promedioEs ?? null,
         promedioEn: p?.promedioEn ?? null,
         letraEn: p?.letraEn ?? null,

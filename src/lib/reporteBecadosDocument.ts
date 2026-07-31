@@ -79,17 +79,18 @@ export function construirHtmlReporteBecados(
 
   const tagsBeca = (a: (typeof resumen.filas)[number]) => {
     const tags: string[] = []
-    const tieneW = a.origenBeca === 'winston' || a.origenBeca === 'ambos'
-    const tieneS = a.origenBeca === 'sep' || a.origenBeca === 'ambos' || Boolean(a.tieneSep)
+    // SEP vigente (open_house / enlinea3) reemplaza a Winston residual.
+    const muestraSep = a.origenBeca === 'sep' || Boolean(a.tieneSep)
+    const muestraWinston = a.origenBeca === 'winston' && !muestraSep
 
-    if (tieneW) {
+    if (muestraWinston) {
       const w =
         a.tiposWinston && a.tiposWinston.length > 0
           ? `Winston (${a.tiposWinston.join(', ')})`
           : 'Winston'
       tags.push(`<span class="beca-tag winston">${escapeHtml(w)}</span>`)
     }
-    if (tieneS) {
+    if (muestraSep) {
       const sepLabel =
         a.montoSep != null && a.montoSep > 0 ? `SEP (${fmtMonto(a.montoSep)})` : 'SEP'
       tags.push(`<span class="beca-tag sep">${escapeHtml(sepLabel)}</span>`)
@@ -101,8 +102,8 @@ export function construirHtmlReporteBecados(
   }
 
   const pctCell = (a: (typeof resumen.filas)[number]) => {
-    if (a.origenBeca === 'sep' || (!a.becaPorcentaje && a.tieneSep && a.origenBeca !== 'ambos')) {
-      return a.tieneSep && a.montoSep != null ? fmtMonto(a.montoSep) : '—'
+    if (a.origenBeca === 'sep' || a.tieneSep) {
+      return a.montoSep != null ? fmtMonto(a.montoSep) : '—'
     }
     if (a.becaPorcentaje > 0) return `${a.becaPorcentaje}%`
     return '—'
@@ -170,9 +171,13 @@ export function construirHtmlReporteBecados(
     conPromedio &&
     (resumen.totalWinston != null || resumen.totalSep != null || resumen.totalAmbos != null)
       ? `
-        <div class="stat"><div class="val">${resumen.totalWinston ?? 0}</div><div class="lbl">Solo Winston</div></div>
-        <div class="stat"><div class="val">${resumen.totalSep ?? 0}</div><div class="lbl">Solo SEP</div></div>
-        <div class="stat"><div class="val">${resumen.totalAmbos ?? 0}</div><div class="lbl">Ambas</div></div>`
+        <div class="stat"><div class="val">${resumen.totalWinston ?? 0}</div><div class="lbl">Winston</div></div>
+        <div class="stat"><div class="val">${resumen.totalSep ?? 0}</div><div class="lbl">SEP</div></div>
+        ${
+          (resumen.totalAmbos ?? 0) > 0
+            ? `<div class="stat"><div class="val">${resumen.totalAmbos}</div><div class="lbl">W+SEP → SEP</div></div>`
+            : ''
+        }`
       : ''
 
   return `<!DOCTYPE html>

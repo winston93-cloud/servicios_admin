@@ -40,7 +40,7 @@ export function generarPdfReporteBecados(
       `${resumen.total} becados`,
       `W:${resumen.totalWinston ?? 0}`,
       `SEP:${resumen.totalSep ?? 0}`,
-      `ambas:${resumen.totalAmbos ?? 0}`,
+      ...(resumen.totalAmbos ? [`W→SEP:${resumen.totalAmbos}`] : []),
       new Date().toLocaleDateString('es-MX'),
     ]
       .filter(Boolean)
@@ -93,10 +93,12 @@ export function generarPdfReporteBecados(
 
     const body = grupo.filas.map((f, i) => {
       const pct =
-        f.becaPorcentaje > 0
-          ? `${f.becaPorcentaje}%`
-          : f.tieneSep && f.montoSep != null
+        f.origenBeca === 'sep' || f.tieneSep
+          ? f.montoSep != null
             ? `$${f.montoSep.toFixed(0)}`
+            : '—'
+          : f.becaPorcentaje > 0
+            ? `${f.becaPorcentaje}%`
             : '—'
       const base = [String(i + 1), f.nombre, f.grado, f.grupo, f.becaClase, pct]
       if (!conPromedio) return base
