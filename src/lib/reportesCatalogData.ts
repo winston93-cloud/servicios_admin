@@ -20,6 +20,10 @@ export type ReporteCatalogEntry = {
   motor: ReporteMotor
   keywords: string[]
   requiereNivel?: boolean
+  /** Subconjunto de niveles en el select (por defecto todos). */
+  nivelesOpciones?: NivelId[]
+  /** Nivel inicial del tile cuando requiereNivel. */
+  nivelInicial?: NivelId
   /** Ciclo mostrado en UI / APIs nativas */
   usaCiclo?: 'escolar' | 'inscripcion' | 'libre'
   /**
@@ -63,15 +67,15 @@ export const REPORTE_CATEGORIAS: ReporteCategoria[] = [
     subtitulo: '1 pago y 2 pagos',
     orden: 3,
   },
+  { id: 'becados', titulo: 'Becados Winston', orden: 4 },
   {
     id: 'reportes-especiales',
     titulo: 'Reportes especiales',
     subtitulo: 'Doble titulación y reportes de ciclo histórico',
-    orden: 4,
+    orden: 5,
   },
-  { id: 'curp', titulo: 'CURP', orden: 5 },
-  { id: 'listas', titulo: 'Listas de alumnos', orden: 6 },
-  { id: 'becados', titulo: 'Becados Winston', orden: 7 },
+  { id: 'curp', titulo: 'CURP', orden: 6 },
+  { id: 'listas', titulo: 'Listas de alumnos', orden: 7 },
   { id: 'bajas', titulo: 'Bajas por nivel', orden: 8 },
   { id: 'otros', titulo: 'Otros reportes', orden: 9 },
 ]
@@ -188,11 +192,15 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     id: 'becados',
     categoriaId: 'becados',
     titulo: 'Alumnos becados',
-    descripcion: 'Becas activas por ciclo — HTML/PDF nativo (InsForge).',
+    descripcion:
+      'Becados Winston con promedio ≥ 9 (Kinder activo; Primaria/Secundaria próximamente). Sin SEP.',
     accent: 'rose',
     motor: 'api-next',
+    requiereNivel: true,
+    nivelesOpciones: ['kinder', 'primaria', 'secundaria'],
+    nivelInicial: 'kinder',
     usaCiclo: 'libre',
-    keywords: ['becados', 'beca', 'insforge'],
+    keywords: ['becados', 'beca', 'promedio', 'winston', 'insforge'],
   },
   // Bajas
   {

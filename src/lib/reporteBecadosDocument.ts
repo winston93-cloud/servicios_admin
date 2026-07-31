@@ -16,14 +16,46 @@ export function construirHtmlReporteBecados(
   resumen: ReporteBecadosResumen,
   opciones?: { titulo?: string; etiquetaTotal?: string }
 ): string {
-  const titulo = opciones?.titulo ?? 'Alumnos becados'
-  const etiquetaTotal = opciones?.etiquetaTotal ?? 'Becados activos'
+  const conPromedio = Boolean(resumen.conPromedio)
+  const titulo =
+    opciones?.titulo ??
+    (conPromedio
+      ? `Becados Winston · promedio ≥ ${resumen.umbralPromedio ?? 9}`
+      : 'Alumnos becados')
+  const etiquetaTotal =
+    opciones?.etiquetaTotal ?? (conPromedio ? 'Becados ≥ 9' : 'Becados activos')
   const fecha = new Date().toLocaleDateString('es-MX', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   })
+
+  if (resumen.nota && resumen.total === 0) {
+    return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeHtml(titulo)} · Ciclo ${escapeHtml(String(resumen.ciclo))} — Servicios Admin</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background:#f8fafc; color:#0f172a; padding:40px 24px; }
+    .box { max-width:560px; margin:0 auto; background:#fff; border:1px solid #e2e8f0; border-radius:16px; padding:28px; }
+    h1 { font-size:22px; margin:0 0 8px; }
+    p { color:#475569; line-height:1.5; margin:0; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>${escapeHtml(titulo)}</h1>
+    <p>${escapeHtml(resumen.nota)}</p>
+    <p style="margin-top:12px;font-size:13px;color:#94a3b8">Ciclo ${escapeHtml(etiquetaCicloLargo(resumen.ciclo))} · ${escapeHtml(resumen.nivelFiltroLabel ?? '')}</p>
+  </div>
+</body>
+</html>`
+  }
+
+  const fmt = (n: number | null | undefined) =>
+    n == null || Number.isNaN(n) ? '—' : n.toFixed(1)
 
   const sections = resumen.gruposPorNivel
     .map(({ nivel, nivelLabel, plantel, filas }) => {
@@ -37,6 +69,13 @@ export function construirHtmlReporteBecados(
           <td class="grp">${escapeHtml(a.grupo)}</td>
           <td><span class="beca-tag">${escapeHtml(a.becaClase)}</span></td>
           <td class="pct">${a.becaPorcentaje}%</td>
+          ${
+            conPromedio
+              ? `<td class="avg">${fmt(a.promedioEs)}</td>
+          <td class="avg">${fmt(a.promedioEn)}${a.letraEn ? ` <span class="letra">(${escapeHtml(a.letraEn)})</span>` : ''}</td>
+          <td class="avg strong">${fmt(a.promedio)}</td>`
+              : ''
+          }
         </tr>`
         )
         .join('')
@@ -59,6 +98,11 @@ export function construirHtmlReporteBecados(
               <th>Grupo</th>
               <th>Tipo de beca</th>
               <th>%</th>
+              ${
+                conPromedio
+                  ? '<th>Prom. ES</th><th>Prom. EN</th><th>Promedio</th>'
+                  : ''
+              }
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -66,6 +110,10 @@ export function construirHtmlReporteBecados(
       </section>`
     })
     .join('')
+
+  const footerExtra = conPromedio
+    ? ' · Promedio Kinder: ES (boleta_calificacionpke, sin conducta) + EN AVERAGE con ponderador E=10 VG=9 G=8 R=7 · umbral ≥ 9 · sin becas SEP'
+    : ''
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -84,7 +132,7 @@ export function construirHtmlReporteBecados(
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
-    .page { max-width: 860px; margin: 0 auto; padding: 28px 24px 40px; }
+    .page { max-width: 920px; margin: 0 auto; padding: 28px 24px 40px; }
     .hero {
       background: linear-gradient(135deg, #422006 0%, #92400e 48%, #b45309 100%);
       color: #fff;
@@ -181,6 +229,9 @@ export function construirHtmlReporteBecados(
     .name { font-weight: 500; }
     .grp { width: 48px; text-align: center; color: #475569; }
     .pct { width: 44px; font-weight: 700; color: #b45309; text-align: center; }
+    .avg { text-align: center; font-variant-numeric: tabular-nums; color: #334155; }
+    .avg.strong { font-weight: 700; color: #b45309; }
+    .letra { font-size: 9px; color: #94a3b8; }
     .pill {
       display: inline-block;
       padding: 4px 10px;
@@ -217,15 +268,15 @@ export function construirHtmlReporteBecados(
     <header class="hero">
       <p class="eyebrow">Servicios Admin · Winston Servicios</p>
       <h1>${escapeHtml(titulo)}</h1>
-      <p class="sub">Ciclo escolar ${escapeHtml(etiquetaCicloLargo(resumen.ciclo))} · ${escapeHtml(fecha)}</p>
+      <p class="sub">Ciclo escolar ${escapeHtml(etiquetaCicloLargo(resumen.ciclo))}${resumen.nivelFiltroLabel ? ` · ${escapeHtml(resumen.nivelFiltroLabel)}` : ''} · ${escapeHtml(fecha)}</p>
       <div class="stats">
         <div class="stat"><div class="val">${resumen.total}</div><div class="lbl">${escapeHtml(etiquetaTotal)}</div></div>
         <div class="stat"><div class="val">${resumen.niveles}</div><div class="lbl">Niveles</div></div>
         <div class="stat"><div class="val">${resumen.ciclo}</div><div class="lbl">Ciclo</div></div>
       </div>
     </header>
-    ${sections}
-    <p class="footer">Solo alumnos activos con beca activa en el ciclo indicado · Instituto Educativo Winston / Instituto Winston Churchill</p>
+    ${sections || '<p class="footer">Sin alumnos que cumplan el criterio en este ciclo/nivel.</p>'}
+    <p class="footer">Solo alumnos activos con beca Winston activa en el ciclo indicado${footerExtra}</p>
   </div>
 </body>
 </html>`

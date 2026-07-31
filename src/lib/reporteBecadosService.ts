@@ -29,6 +29,14 @@ export interface ReporteBecadoFila {
   becaPorcentaje: number
   becaEstatus: number
   becaEstatusLabel: string
+  /** Promedio español Kinder (MySQL). */
+  promedioEs?: number | null
+  /** Promedio inglés Kinder ponderado (MySQL). */
+  promedioEn?: number | null
+  /** Letra AVERAGE inglés (última disponible). */
+  letraEn?: string | null
+  /** Promedio combinado usado para el filtro ≥ 9. */
+  promedio?: number | null
 }
 
 export interface ReporteBecadosResumen {
@@ -37,6 +45,12 @@ export interface ReporteBecadosResumen {
   niveles: number
   filas: ReporteBecadoFila[]
   gruposPorNivel: { nivel: number; nivelLabel: string; plantel: string; filas: ReporteBecadoFila[] }[]
+  /** true cuando el reporte incluye columnas de promedio. */
+  conPromedio?: boolean
+  umbralPromedio?: number
+  nivelFiltro?: number
+  nivelFiltroLabel?: string
+  nota?: string
 }
 
 function plantelPorNivel(nivel: number): string {
@@ -207,5 +221,85 @@ export async function cargarReporteBecadosSexto(
     niveles: gruposPorNivel.length,
     filas,
     gruposPorNivel,
+  }
+}
+
+const UMBRAL_PROMEDIO_BECADOS = 9
+
+/**
+ * Becados Winston de un nivel con promedio ≥ 9.
+ * Kinder: calificaciones MySQL (ES numérico + EN letras ponderadas).
+ * Primaria/Secundaria: pendiente de extracción de boletas.
+ */
+export async function cargarReporteBecadosConPromedio(
+  ciclo: number,
+  nivelValor: number
+): Promise<ReporteBecadosResumen> {
+  const base = await cargarReporteBecados(ciclo)
+  const delNivel = base.filas.filter((f) => f.nivel === nivelValor)
+
+  if (nivelValor !== 2) {
+    return {
+      ciclo,
+      total: 0,
+      niveles: 0,
+      filas: [],
+      gruposPorNivel: [],
+      conPromedio: true,
+      umbralPromedio: UMBRAL_PROMEDIO_BECADOS,
+      nivelFiltro: nivelValor,
+      nivelFiltroLabel: etiquetaNivelEscolar(nivelValor),
+      nota:
+        'Primaria y Secundaria aún no tienen extracción de boletas en este reporte. Por ahora solo Kinder.',
+    }
+  }
+
+  const { cargarPromediosKinderMysql } = await import('./kinderPromedioMysql')
+  const promedios = await cargarPromediosKinderMysql(delNivel.map((f) => f.alumnoId))
+
+  const filas: ReporteBecadoFila[] = []
+  for (const fila of delNivel) {
+    const p = promedios.get(fila.alumnoId)
+    const promedio = p?.promedio ?? null
+    if (promedio == null || promedio < UMBRAL_PROMEDIO_BECADOS) continue
+    filas.push({
+      ...fila,
+      promedioEs: p?.promedioEs ?? null,
+      promedioEn: p?.promedioEn ?? null,
+      letraEn: p?.letraEn ?? null,
+      promedio,
+    })
+  }
+
+  filas.sort((a, b) => {
+    if (a.gradoNum !== b.gradoNum) return a.gradoNum - b.gradoNum
+    const pa = a.promedio ?? 0
+    const pb = b.promedio ?? 0
+    if (pb !== pa) return pb - pa
+    return a.nombre.localeCompare(b.nombre, 'es')
+  })
+
+  const gruposPorNivel =
+    filas.length === 0
+      ? []
+      : [
+          {
+            nivel: 2,
+            nivelLabel: filas[0].nivelLabel,
+            plantel: filas[0].plantel,
+            filas,
+          },
+        ]
+
+  return {
+    ciclo,
+    total: filas.length,
+    niveles: gruposPorNivel.length,
+    filas,
+    gruposPorNivel,
+    conPromedio: true,
+    umbralPromedio: UMBRAL_PROMEDIO_BECADOS,
+    nivelFiltro: 2,
+    nivelFiltroLabel: etiquetaNivelEscolar(2),
   }
 }

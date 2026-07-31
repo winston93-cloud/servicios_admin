@@ -54,7 +54,7 @@ import {
   construirHtmlDeudoresSuspendidos,
   generarPdfDeudoresSuspendidos,
 } from '@/lib/reportes/deudoresSuspendidosDocument'
-import { cargarReporteBecados, cargarReporteBecadosSexto } from '@/lib/reporteBecadosService'
+import { cargarReporteBecadosConPromedio, cargarReporteBecadosSexto } from '@/lib/reporteBecadosService'
 import { construirHtmlReporteBecados } from '@/lib/reporteBecadosDocument'
 import { generarPdfReporteBecados } from '@/lib/reporteBecadosPdf'
 import {
@@ -246,15 +246,18 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   becados: async (searchParams) => {
     const ciclo = parseCicloParam(searchParams.get('ciclo')) ?? (await resolverCicloEscolarSistemaValor())
     const format = formatoParam(searchParams)
-    const resumen = await cargarReporteBecados(ciclo)
+    const nivelId = searchParams.get('nivel') || 'kinder'
+    const nivelValor = nivelIdToValor(nivelId) ?? 2
+    const resumen = await cargarReporteBecadosConPromedio(ciclo, nivelValor)
+    const nivelSlug = nivelId
     if (format === 'pdf') {
       return {
-        filename: `becados-ciclo-${ciclo}.pdf`,
+        filename: `becados-promedio-${nivelSlug}-ciclo-${ciclo}.pdf`,
         pdf: generarPdfReporteBecados(resumen),
       }
     }
     return {
-      filename: `becados-ciclo-${ciclo}.pdf`,
+      filename: `becados-promedio-${nivelSlug}-ciclo-${ciclo}.pdf`,
       html: construirHtmlReporteBecados(resumen),
     }
   },

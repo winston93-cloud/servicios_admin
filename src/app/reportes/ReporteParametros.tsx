@@ -10,6 +10,7 @@ type ReporteParametrosProps = {
   nivel: NivelId
   onNivelChange: (n: NivelId) => void
   mostrarNivel?: boolean
+  nivelesOpciones?: NivelId[]
   ciclo: number
   onCicloChange: (n: number) => void
   mostrarCiclo?: boolean
@@ -21,6 +22,7 @@ export default function ReporteParametros({
   nivel,
   onNivelChange,
   mostrarNivel = true,
+  nivelesOpciones,
   ciclo,
   onCicloChange,
   mostrarCiclo = false,
@@ -28,6 +30,10 @@ export default function ReporteParametros({
   ciclosOpciones,
 }: ReporteParametrosProps) {
   const opciones = ciclosOpciones ?? getCiclosEscolaresOpciones()
+  const niveles =
+    nivelesOpciones && nivelesOpciones.length > 0
+      ? NIVELES.filter((n) => nivelesOpciones.includes(n.id))
+      : NIVELES
 
   return (
     <div className="reporte-tile-params">
@@ -38,7 +44,7 @@ export default function ReporteParametros({
             value={nivel}
             onChange={(e) => onNivelChange(e.target.value as NivelId)}
           >
-            {NIVELES.map((n) => (
+            {niveles.map((n) => (
               <option key={n.id} value={n.id}>
                 {n.label}
               </option>

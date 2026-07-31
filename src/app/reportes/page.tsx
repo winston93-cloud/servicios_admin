@@ -188,7 +188,7 @@ function ReportesPageInner() {
         ciclo = cicloActualSistema
       }
 
-      return { nivel: 'primaria', ciclo }
+      return { nivel: entry.nivelInicial ?? 'primaria', ciclo }
     },
     [cicloActualSistema, cicloInscripcionSistema]
   )
@@ -296,6 +296,7 @@ function ReportesPageInner() {
         deshabilitado={!urls.disponible}
         defaultExpanded={
           entry.categoriaId === 'mis-reportes' ||
+          entry.categoriaId === 'becados' ||
           entry.categoriaId === 'reportes-especiales' ||
           entry.categoriaId === 'deudores' ||
           entry.categoriaId === 'nuevo-ingreso' ||
@@ -307,6 +308,7 @@ function ReportesPageInner() {
               nivel={params.nivel}
               onNivelChange={(n) => setParam(entry.id, { nivel: n })}
               mostrarNivel={Boolean(entry.requiereNivel)}
+              nivelesOpciones={entry.nivelesOpciones}
               ciclo={params.ciclo}
               onCicloChange={(c) => setParam(entry.id, { ciclo: c })}
               mostrarCiclo={mostrarCiclo}
