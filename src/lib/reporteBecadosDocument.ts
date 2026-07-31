@@ -23,8 +23,10 @@ export function tituloReporteBecadosPromedio(): string {
   return 'Becados Promedio > 9'
 }
 
-export function subtituloCicloEscolarBecados(ciclo: number): string {
-  return `Ciclo Escolar ${etiquetaCicloEscolarAnios(ciclo)}`
+export function subtituloCicloEscolarBecados(cicloDatos: number): string {
+  // Encabezado = temporada vigente (ficha). Datos del reporte = beca/califs del ciclo
+  // seleccionado, que suele ser el anterior (ej. datos 22 → encabezado 2026-2027).
+  return `Ciclo Escolar ${etiquetaCicloEscolarAnios(cicloDatos + 1)}`
 }
 
 export function construirHtmlReporteBecados(
