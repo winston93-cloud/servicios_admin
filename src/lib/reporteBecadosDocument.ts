@@ -148,7 +148,7 @@ export function construirHtmlReporteBecados(
     .join('')
 
   const footerExtra = conPromedio
-    ? ' · Promedio Kinder: ES + EN (AVERAGE ponderado E=10 VG=9 G=8 R=7) · umbral ≥ 9 · Winston (InsForge) + SEP (alumno_beca_sep)'
+    ? ' · Promedio Kinder: ES + EN (AVERAGE ponderado E=10 VG=9 G=8 R=7 S=6 NI=5) · umbral ≥ 9 · Winston (InsForge) + SEP (alumno_beca_sep)'
     : ''
 
   const statsExtra =

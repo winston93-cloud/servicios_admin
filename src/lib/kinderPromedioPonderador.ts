@@ -1,10 +1,13 @@
-/** Escala literal de inglés Kinder (`boleta_calificacionpkp`, materia AVERAGE). */
+/** Escala literal de inglés Kinder (`boleta_calificacionpkp`, materia AVERAGE).
+ * Fuente: ENGLISH PRESCHOOL — E=10, VG=9, G=8, R=7, S=6, NI=5.
+ */
 export const PONDERADOR_LETRA_KINDER_EN: Record<string, number> = {
   E: 10,
   VG: 9,
   G: 8,
   R: 7,
-  NI: 0,
+  S: 6,
+  NI: 5,
 }
 
 export function letraKinderEnANumero(raw: string): number | null {
