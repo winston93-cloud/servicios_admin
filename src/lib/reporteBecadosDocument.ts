@@ -170,8 +170,8 @@ export function construirHtmlReporteBecados(
 
   const footerExtra = conPromedio
     ? soloPromedioWinston
-      ? ' · Promedio Final Winston (boleta única, sin Mindfulness) · umbral ≥ 9 · Winston + SEP'
-      : ' · Promedio: Kinder (ES materias / EN letras) o Primaria (ES todos los bloques incl. extracurriculares / EN AVERAGE FINAL 8 materias) · umbral ≥ 9 · Winston + SEP'
+      ? ' · Promedio Final Winston del ciclo de datos (grado anterior a la ficha; 7mo ← 6° Primaria) · umbral ≥ 9 · Winston + SEP'
+      : ' · Promedio del ciclo de datos = grado anterior a la ficha (1°←Kinder 3, 2°←1°, …) · umbral ≥ 9 · Winston + SEP'
     : ''
 
   const statsExtra =

@@ -193,7 +193,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     categoriaId: 'becados',
     titulo: 'Becados Promedio > 9',
     descripcion:
-      'Kinder, Primaria y Secundaria activos. Winston (IMSS, CFE, …) y SEP. Promedio ≥ 9 (Secundaria: Promedio Final Winston de una sola boleta). Grado de la ficha; beca y califs del ciclo elegido.',
+      'Kinder, Primaria y Secundaria. Winston + SEP. Promedio ≥ 9 del ciclo de datos (= grado anterior a la ficha: 1°←K3, 7mo←6°, …). Grado mostrado: ficha actual.',
     accent: 'rose',
     motor: 'api-next',
     requiereNivel: true,

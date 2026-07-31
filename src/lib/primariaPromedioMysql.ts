@@ -82,6 +82,9 @@ function promedioBloqueTrimestre(
 /**
  * Promedios Primaria desde MySQL (`winston_general`).
  *
+ * `grado` = grado en que se cursaron las califs (origen del ciclo de datos),
+ * no el de la ficha ya avanzada (ej. ficha 6° → grado 5 para divisores).
+ *
  * ES (`prim_*`): promedio de todos los bloques con calificación
  * (Lenguajes, Saberes, Humano, Ética, Extracurriculares); cada bloque =
  * media de sus 3 trimestres. Habilidades quedan fuera.

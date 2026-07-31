@@ -5,6 +5,7 @@ import { etiquetaNivelEscolar } from './nivelEscolar'
 import { etiquetaGrupoEscolar } from './grupoEscolar'
 import { createDbAdmin } from './insforgeAdmin'
 import { BECAS_SEP_CICLO_DATOS, BECAS_SEP_OPEN_HOUSE } from './becasSepOpenHouse'
+import { origenCalifsDesdeFicha } from './origenCalifsBecados'
 
 const PAGE_SIZE = 500
 const ALUMNO_CHUNK = 150
@@ -347,7 +348,7 @@ type PromedioNivel = {
 
 /**
  * Becados Winston + SEP de un nivel con promedio ≥ 9.
- * Kinder / Primaria / Secundaria: calificaciones MySQL.
+ * Califs del ciclo elegido = grado anterior a la ficha (ej. 1° Primaria ← Kinder 3).
  */
 export async function cargarReporteBecadosConPromedio(
   ciclo: number,
@@ -442,49 +443,100 @@ export async function cargarReporteBecadosConPromedio(
   const candidatos = [...porAlumno.values()]
   const promediosPorAlumno = new Map<number, PromedioNivel>()
 
-  if (nivelValor === 2) {
-    const { cargarPromediosKinderMysql } = await import('./kinderPromedioMysql')
-    const promedios = await cargarPromediosKinderMysql(candidatos.map((c) => c.alumno.alumno_id))
-    for (const [id, p] of promedios) {
-      promediosPorAlumno.set(id, {
-        promedioEs: p.promedioEs,
-        promedioEn: p.promedioEn,
-        letraEn: p.letraEn,
-        promedio: p.promedio,
-      })
-    }
-  } else if (nivelValor === 3) {
-    const { cargarPromediosPrimariaMysql } = await import('./primariaPromedioMysql')
-    const promedios = await cargarPromediosPrimariaMysql(
-      candidatos.map((c) => ({
-        alumnoId: c.alumno.alumno_id,
-        alumnoRef: String(c.alumno.alumno_ref ?? '').trim(),
-        grado: Number(c.alumno.alumno_grado),
-      }))
-    )
-    for (const [id, p] of promedios) {
-      promediosPorAlumno.set(id, {
-        promedioEs: p.promedioEs,
-        promedioEn: p.promedioEn,
-        letraEn: null,
-        promedio: p.promedio,
-      })
-    }
-  } else {
-    const { cargarPromediosSecundariaMysql } = await import('./secundariaPromedioMysql')
-    const promedios = await cargarPromediosSecundariaMysql(
-      candidatos.map((c) => c.alumno.alumno_id),
-      ciclo
-    )
-    for (const [id, p] of promedios) {
-      promediosPorAlumno.set(id, {
-        promedioEs: null,
-        promedioEn: null,
-        letraEn: null,
-        promedio: p.promedio,
-      })
-    }
+  type ConOrigen = {
+    acum: (typeof candidatos)[number]
+    origen: NonNullable<ReturnType<typeof origenCalifsDesdeFicha>>
   }
+  const conOrigen: ConOrigen[] = []
+  for (const c of candidatos) {
+    const origen = origenCalifsDesdeFicha(nivelValor, Number(c.alumno.alumno_grado))
+    if (origen) conOrigen.push({ acum: c, origen })
+  }
+
+  const idsKinder = [
+    ...new Set(
+      conOrigen.filter((x) => x.origen.fuente === 'kinder').map((x) => x.acum.alumno.alumno_id)
+    ),
+  ]
+  const primInputs = conOrigen
+    .filter((x) => x.origen.fuente === 'primaria')
+    .map((x) => ({
+      alumnoId: x.acum.alumno.alumno_id,
+      alumnoRef: String(x.acum.alumno.alumno_ref ?? '').trim(),
+      grado: x.origen.gradoOrigen,
+    }))
+  const idsSec = [
+    ...new Set(
+      conOrigen
+        .filter((x) => x.origen.fuente === 'secundaria')
+        .map((x) => x.acum.alumno.alumno_id)
+    ),
+  ]
+
+  const cargas: Promise<void>[] = []
+
+  if (idsKinder.length > 0) {
+    cargas.push(
+      (async () => {
+        const { cargarPromediosKinderMysql } = await import('./kinderPromedioMysql')
+        const promedios = await cargarPromediosKinderMysql(idsKinder)
+        for (const [id, p] of promedios) {
+          promediosPorAlumno.set(id, {
+            promedioEs: p.promedioEs,
+            promedioEn: p.promedioEn,
+            letraEn: p.letraEn,
+            promedio: p.promedio,
+          })
+        }
+      })()
+    )
+  }
+
+  if (primInputs.length > 0) {
+    cargas.push(
+      (async () => {
+        const { cargarPromediosPrimariaMysql } = await import('./primariaPromedioMysql')
+        const promedios = await cargarPromediosPrimariaMysql(primInputs)
+        for (const [id, p] of promedios) {
+          // Secundaria 7mo: una sola columna (promedio); Primaria/Kinder: ES+EN.
+          if (nivelValor === 4) {
+            promediosPorAlumno.set(id, {
+              promedioEs: null,
+              promedioEn: null,
+              letraEn: null,
+              promedio: p.promedio,
+            })
+          } else {
+            promediosPorAlumno.set(id, {
+              promedioEs: p.promedioEs,
+              promedioEn: p.promedioEn,
+              letraEn: null,
+              promedio: p.promedio,
+            })
+          }
+        }
+      })()
+    )
+  }
+
+  if (idsSec.length > 0) {
+    cargas.push(
+      (async () => {
+        const { cargarPromediosSecundariaMysql } = await import('./secundariaPromedioMysql')
+        const promedios = await cargarPromediosSecundariaMysql(idsSec, ciclo)
+        for (const [id, p] of promedios) {
+          promediosPorAlumno.set(id, {
+            promedioEs: null,
+            promedioEn: null,
+            letraEn: null,
+            promedio: p.promedio,
+          })
+        }
+      })()
+    )
+  }
+
+  await Promise.all(cargas)
 
   const filas: ReporteBecadoFila[] = []
   let totalWinston = 0
