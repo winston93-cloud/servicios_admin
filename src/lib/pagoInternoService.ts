@@ -11,6 +11,7 @@ import {
   PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL,
   PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO,
   PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
+  PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR,
 } from './pagoInternoPlantel'
 
 export {
@@ -29,6 +30,7 @@ export {
   PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO,
   PAGO_INTERNO_FOLIO_INICIAL,
   PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
+  PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR,
   type AccesoPagosInternosUsuario,
   type PlantelPagosInternos,
   type TipoSerieFolioPagoInterno,
@@ -443,9 +445,16 @@ export async function listarPagosInternosPorPlanteles(
   const bloques: PagoInternoRegistro[] = []
   for (const plantel of unicos) {
     if (plantel === 'winston') {
+      // Talón actual (2671 … Educativo) + talón anterior (26550+)
       bloques.push(
         ...(await listarPagosRangoFolio({
           folioMin: PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
+          folioMaxExclusivo: PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL,
+          folioExacto,
+          limite,
+        })),
+        ...(await listarPagosRangoFolio({
+          folioMin: PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR,
           folioExacto,
           limite,
         }))
@@ -819,6 +828,21 @@ function resolverSerieDePago(pago: PagoInternoRegistro): {
   )
     ? 'cuota_padres'
     : 'general'
+
+  // Talón anterior Winston general: rango propio para cancelar/recorrer.
+  if (
+    plantel === 'winston' &&
+    tipoSerie === 'general' &&
+    folio >= PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR
+  ) {
+    return {
+      plantel,
+      tipoSerie,
+      folioMin: PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR,
+      folioMaxExclusivo: null,
+    }
+  }
+
   return {
     plantel,
     tipoSerie,

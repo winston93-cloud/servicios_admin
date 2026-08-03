@@ -2,7 +2,8 @@ import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
 
 /**
  * Series de folio de pagos internos (sistema nuevo):
- * - Winston general (primaria/secundaria): desde 26550
+ * - Winston general (primaria/secundaria): desde 2671 (talón actual).
+ *   El talón anterior (26550–26700) queda histórico; no se reasigna.
  * - Educativo general (maternal/kinder): desde 2849, techo 3480
  * - Cuota de padres Winston: desde 2140 hasta antes de la serie general Educativo (2849)
  *   (no reutilizar el histórico legacy de combo ~6000–7000)
@@ -13,7 +14,13 @@ export type PlantelPagosInternos = 'winston' | 'educativo'
 /** Serie de numeración: general (manuales y demás) vs cuota de padres. */
 export type TipoSerieFolioPagoInterno = 'general' | 'cuota_padres'
 
-export const PAGO_INTERNO_FOLIO_WINSTON_INICIAL = 26550
+/** Winston general — talón actual (cambio de talonario). */
+export const PAGO_INTERNO_FOLIO_WINSTON_INICIAL = 2671
+/**
+ * Winston general — inicio del talón anterior (histórico).
+ * El siguiente folio del talón actual no debe “saltar” a este rango.
+ */
+export const PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR = 26550
 export const PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL = 2849
 /** Exclusivo: a partir de aquí hay folios legacy que no son la serie nueva educativa. */
 export const PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO = 3480
@@ -74,13 +81,20 @@ export function plantelPagoDesdeNivel(nivel: number): PlantelPagosInternos {
 export function plantelSerieDesdeFolio(folio: number): PlantelPagosInternos | null {
   const f = Number(folio)
   if (!Number.isFinite(f)) return null
-  // Serie general Winston
-  if (f >= PAGO_INTERNO_FOLIO_WINSTON_INICIAL) return 'winston'
-  // Serie general Educativo (hueco; tiene prioridad sobre cuota Winston en ese rango)
+  // Talón anterior Winston general (26550+)
+  if (f >= PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR) return 'winston'
+  // Serie general Educativo (prioridad sobre cuota Winston y talón Winston actual)
   if (f >= PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL && f < PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO) {
     return 'educativo'
   }
-  // Serie cuota Winston (2140 … 26549, excl. hueco educativo ya capturado)
+  // Winston general talón actual (2671 … antes de Educativo)
+  if (
+    f >= PAGO_INTERNO_FOLIO_WINSTON_INICIAL &&
+    f < PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL
+  ) {
+    return 'winston'
+  }
+  // Serie cuota Winston (2140 … 2849)
   if (f >= PAGO_INTERNO_FOLIO_CUOTA_WINSTON_INICIAL && f < PAGO_INTERNO_FOLIO_CUOTA_WINSTON_TECHO) {
     return 'winston'
   }
@@ -117,7 +131,9 @@ export function folioTechoPlantel(
       ? PAGO_INTERNO_FOLIO_CUOTA_EDUCATIVO_TECHO
       : PAGO_INTERNO_FOLIO_CUOTA_WINSTON_TECHO
   }
-  return plantel === 'educativo' ? PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO : null
+  if (plantel === 'educativo') return PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO
+  // Winston general (talón actual 2671+): no invadir Educativo (2849) ni el talón anterior.
+  return PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL
 }
 
 /**

@@ -669,7 +669,7 @@ export default function PagosInternosModulo() {
                         ? 'Cuota usa serie propia; manuales usan serie general del plantel'
                         : tipoSerieFolioActual === 'cuota_padres'
                           ? `Serie cuota de padres (${plantelSerieActual === 'educativo' ? 'desde 1037' : 'desde 2140'})`
-                          : `Serie general ${plantelSerieActual === 'educativo' ? '(desde 2849)' : '(desde 26550)'}`
+                          : `Serie general ${plantelSerieActual === 'educativo' ? '(desde 2849)' : '(desde 2671)'}`
                     }
                     aria-label="Folio del recibo (automático)"
                   />
