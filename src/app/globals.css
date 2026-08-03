@@ -18686,26 +18686,6 @@ html[data-theme='light'] .portal-inscripciones-paso-link:hover {
   gap: 8px;
 }
 
-.portal-inscripciones-plan-cambiar {
-  border: 1px solid rgba(56, 189, 248, 0.45);
-  background: transparent;
-  color: #7dd3fc;
-  font-size: 12px;
-  font-weight: 700;
-  padding: 6px 12px;
-  border-radius: 999px;
-  cursor: pointer;
-}
-
-.portal-inscripciones-plan-cambiar:hover {
-  background: rgba(56, 189, 248, 0.12);
-}
-
-html[data-theme='light'] .portal-inscripciones-plan-cambiar {
-  border-color: rgba(2, 132, 199, 0.35);
-  color: #0369a1;
-}
-
 .portal-inscripciones-colegiaturas-bloqueo {
   display: flex;
   align-items: flex-start;

@@ -39,7 +39,6 @@ import {
 import {
   leerPlanPagosConfirmado,
   marcarPlanPagosConfirmado,
-  limpiarPlanPagosConfirmado,
   planMesesNormalizado,
 } from '@/lib/portalPlanPagosConfirmado'
 import PortalColegiaturasSecciones from '@/app/portal-pagos/components/PortalColegiaturasSecciones'
@@ -557,16 +556,6 @@ export default function PortalInscripcionesView() {
     [alumnoId, estado?.cicloColegiaturas?.valor]
   )
 
-  const abrirCambioPlan = useCallback(() => {
-    if (alumnoId == null || !planPuedeCambiar) return
-    const cicloColeg = Number(estado?.cicloColegiaturas?.valor ?? 0)
-    if (cicloColeg <= 0) return
-    limpiarPlanPagosConfirmado(alumnoId, cicloColeg)
-    setPlanConfirmado(false)
-    setPlanError(null)
-    setPlanModalAbierto(true)
-  }, [alumnoId, planPuedeCambiar, estado?.cicloColegiaturas?.valor])
-
   useEffect(() => {
     if (cierrePendiente && cicloCierreValorUi != null) {
       void cargarMatrizCierre(cicloCierreValorUi)
@@ -1022,27 +1011,18 @@ export default function PortalInscripcionesView() {
                         : 'Cuota de inicio de curso (concepto 00) y mensualidades del ciclo.'}
                     </p>
                   </div>
-                  {colegiaturasDesbloqueadas && planConfirmado && (
-                    <div className="portal-inscripciones-plan-acciones">
-                      {(matriz?.planEtiqueta || estadoVista.alumno.mes != null) && (
+                  {colegiaturasDesbloqueadas &&
+                    planConfirmado &&
+                    (matriz?.planEtiqueta || estadoVista.alumno.mes != null) && (
+                      <div className="portal-inscripciones-plan-acciones">
                         <span className="portal-inscripciones-plan-badge">
                           {matriz?.planEtiqueta ??
                             (planMesesNormalizado(estadoVista.alumno.mes) === 2
                               ? 'Plan de pagos: 11 meses'
                               : 'Plan de pagos: 10 meses')}
                         </span>
-                      )}
-                      {planPuedeCambiar && (
-                        <button
-                          type="button"
-                          className="portal-inscripciones-plan-cambiar"
-                          onClick={abrirCambioPlan}
-                        >
-                          Cambiar plan
-                        </button>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    )}
                 </div>
 
                 {!colegiaturasDesbloqueadas ? (
