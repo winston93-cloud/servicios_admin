@@ -427,7 +427,20 @@ async function listarPagosRangoFolio(opts: {
   })) as PagoInternoRegistro[]
 }
 
-/** Lista series nuevas (Winston y/o Educativo), folio mayor → menor. */
+/**
+ * Orden del listado: talón Winston actual (4 dígitos, desde 2671) arriba,
+ * talón anterior (26550+) abajo. Dentro de cada bloque: folio mayor → menor.
+ */
+function compararFoliosListadoPagosInternos(a: number, b: number): number {
+  const bloque = (f: number) =>
+    f >= PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR ? 0 : 1
+  const ba = bloque(a)
+  const bb = bloque(b)
+  if (bb !== ba) return bb - ba
+  return b - a
+}
+
+/** Lista series nuevas (Winston y/o Educativo), folio mayor → menor por bloque de talón. */
 export async function listarPagosInternosPorPlanteles(
   planteles: PlantelPagosInternos[],
   opts?: { folioExacto?: number | null; limite?: number }
@@ -472,7 +485,9 @@ export async function listarPagosInternosPorPlanteles(
 
   const porId = new Map<number, PagoInternoRegistro>()
   for (const p of bloques) porId.set(p.pago_id, p)
-  const pagos = [...porId.values()].sort((a, b) => b.pago_folio - a.pago_folio)
+  const pagos = [...porId.values()].sort((a, b) =>
+    compararFoliosListadoPagosInternos(a.pago_folio, b.pago_folio)
+  )
   return enriquecerPagosListado(pagos.slice(0, limite))
 }
 
