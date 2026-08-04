@@ -252,11 +252,11 @@ export default function PagosInternosModulo() {
           modo === 'solo'
             ? await cancelarPagoInternoSolo({
                 pagoId: pagoCancelar.pago_id,
-                motivo: 'cancelación desde pagos internos',
+                motivo: 'admin',
               })
             : await cancelarPagoInternoYRecorrer({
                 pagoId: pagoCancelar.pago_id,
-                motivo: 'cancelación con recorrido de folio',
+                motivo: 'recorrido',
               })
 
         if (!res.ok) {

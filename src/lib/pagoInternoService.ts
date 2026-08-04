@@ -861,12 +861,21 @@ async function siguientePagoId(): Promise<number> {
   return (data?.pago_id ?? 0) + 1
 }
 
+/** `concepto_otro` en BD es varchar(50). */
+const CONCEPTO_OTRO_MAX = 50
+
 function notaCancelacion(prev: string | null | undefined, motivo: string): string {
   const base = (prev ?? '').trim()
-  const tag = `CANCELADO: ${motivo}`
-  if (!base) return tag
-  if (base.includes('CANCELADO:')) return base
-  return `${base} · ${tag}`.slice(0, 250)
+  const motivoCorto = (motivo || 'admin').trim().slice(0, 20)
+  const tag = `CANCELADO:${motivoCorto}`
+  if (base.includes('CANCELADO')) return base.slice(0, CONCEPTO_OTRO_MAX)
+  if (!base) return tag.slice(0, CONCEPTO_OTRO_MAX)
+  const joined = `${base} · ${tag}`
+  if (joined.length <= CONCEPTO_OTRO_MAX) return joined
+  // Prioriza la marca de cancelado; recorta el texto extra previo.
+  const room = CONCEPTO_OTRO_MAX - tag.length - 3
+  if (room <= 0) return tag.slice(0, CONCEPTO_OTRO_MAX)
+  return `${base.slice(0, room)} · ${tag}`
 }
 
 /**
