@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ListOrdered, Loader2, Plus, Printer, Settings2, Wallet, Ban } from 'lucide-react'
+import { ListOrdered, Loader2, Plus, Printer, Settings2, Wallet, Trash2 } from 'lucide-react'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { useAuth } from '@/contexts/AuthContext'
 import { useAlumnoSeleccionado } from '@/contexts/AlumnoSeleccionadoContext'
@@ -815,7 +815,7 @@ export default function PagosInternosModulo() {
                                 setPagoCancelar(p)
                               }}
                             >
-                              <Ban size={16} aria-hidden />
+                              <Trash2 size={16} aria-hidden />
                             </button>
                           </td>
                         </tr>
