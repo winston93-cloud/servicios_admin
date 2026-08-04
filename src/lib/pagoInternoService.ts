@@ -297,7 +297,6 @@ export async function listarPagosPorAlumno(
     .from('pago_interno')
     .select(SELECT_PAGO)
     .eq('alumno_id', alumnoId)
-    .eq('pago_cancelado', 0)
     .order('pago_fecha', { ascending: false })
     .order('pago_id', { ascending: false })
 
@@ -861,25 +860,9 @@ async function siguientePagoId(): Promise<number> {
   return (data?.pago_id ?? 0) + 1
 }
 
-/** `concepto_otro` en BD es varchar(50). */
-const CONCEPTO_OTRO_MAX = 50
-
-function notaCancelacion(prev: string | null | undefined, motivo: string): string {
-  const base = (prev ?? '').trim()
-  const motivoCorto = (motivo || 'admin').trim().slice(0, 20)
-  const tag = `CANCELADO:${motivoCorto}`
-  if (base.includes('CANCELADO')) return base.slice(0, CONCEPTO_OTRO_MAX)
-  if (!base) return tag.slice(0, CONCEPTO_OTRO_MAX)
-  const joined = `${base} · ${tag}`
-  if (joined.length <= CONCEPTO_OTRO_MAX) return joined
-  // Prioriza la marca de cancelado; recorta el texto extra previo.
-  const room = CONCEPTO_OTRO_MAX - tag.length - 3
-  if (room <= 0) return tag.slice(0, CONCEPTO_OTRO_MAX)
-  return `${base.slice(0, room)} · ${tag}`
-}
-
 /**
  * Cancela el pago (pago_cancelado = 1). El folio queda «quemado» (ya no se reutiliza).
+ * No pide ni escribe nota en concepto_otro: el estado vive en pago_cancelado.
  * En cuota de padres también cancela espejos de hermanos con el mismo folio.
  */
 export async function cancelarPagoInternoSolo(opts: {
@@ -902,15 +885,12 @@ export async function cancelarPagoInternoSolo(opts: {
   }
 
   const folio = Number(reg.pago_folio)
-  const motivo = (opts.motivo ?? 'cancelación administrativa').trim()
   const ahora = new Date().toISOString()
-  const nota = notaCancelacion(reg.concepto_otro, motivo)
 
   let q = supabase
     .from('pago_interno')
     .update({
       pago_cancelado: 1,
-      concepto_otro: nota,
       pago_actualizacion: ahora,
     })
     .eq('pago_folio', folio)
@@ -969,7 +949,6 @@ export async function cancelarPagoInternoYRecorrer(opts: {
   }
 
   const folioOrig = Number(reg.pago_folio)
-  const motivo = (opts.motivo ?? 'impresora / reimpresión con recorrido').trim()
   const ahora = new Date().toISOString()
 
   let listQ = supabase
@@ -1022,7 +1001,7 @@ export async function cancelarPagoInternoYRecorrer(opts: {
     pago_id: stubId,
     alumno_id: reg.alumno_id,
     concepto_id: reg.concepto_id,
-    concepto_otro: notaCancelacion(reg.concepto_otro, motivo),
+    concepto_otro: reg.concepto_otro,
     pago_folio: folioOrig,
     pago_importe: reg.pago_importe,
     pago_fecha: reg.pago_fecha,

@@ -60,6 +60,22 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(
   border-color: var(--sx-table-border) !important;
 }
 
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app
+  .pi-historial-tabla tr.pi-historial-fila--cancelado td {
+  color: #fecaca !important;
+  background: rgba(185, 28, 28, 0.22) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app
+  .pi-historial-estado--cancelado {
+  color: #fecaca !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app
+  .pi-historial-estado--vigente {
+  color: #86efac !important;
+}
+
 /* ─── Títulos y encabezados de sección ─── */
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app :is(
   .pc-encabezado-h1,

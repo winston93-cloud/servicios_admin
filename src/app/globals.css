@@ -11246,6 +11246,36 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   color: #475569;
 }
 
+.pi-historial-tabla tr.pi-historial-fila--cancelado td {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.pi-historial-estado {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.pi-historial-estado--cancelado {
+  color: #b91c1c;
+}
+
+.pi-historial-estado--vigente {
+  color: #15803d;
+}
+
+.pi-historial-accion-vacia {
+  color: #94a3b8;
+}
+
+.pi-historial-tabla tr.pi-historial-fila--cancelado .pi-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 /* Modal catálogo */
 .pi-modal-backdrop {
   position: fixed;

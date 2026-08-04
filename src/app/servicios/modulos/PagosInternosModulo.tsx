@@ -777,13 +777,19 @@ export default function PagosInternosModulo() {
                         <th>Extra</th>
                         <th>Monto</th>
                         <th>Fecha</th>
+                        <th>Estado</th>
                         <th className="pi-historial-col-accion">Recibo</th>
                         <th className="pi-historial-col-accion">Cancelar</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {pagos.map((p) => (
-                        <tr key={p.pago_id}>
+                      {pagos.map((p) => {
+                        const cancelado = Number(p.pago_cancelado) === 1
+                        return (
+                        <tr
+                          key={p.pago_id}
+                          className={cancelado ? 'pi-historial-fila--cancelado' : undefined}
+                        >
                           <td>{p.pago_folio}</td>
                           <td>
                             {conceptosOrdenados.find((c) => c.concepto_id === p.concepto_id)
@@ -792,34 +798,53 @@ export default function PagosInternosModulo() {
                           <td>{p.concepto_otro ?? '—'}</td>
                           <td>${Number(p.pago_importe).toFixed(2)}</td>
                           <td>{p.pago_fecha?.slice(0, 10) ?? '—'}</td>
+                          <td>
+                            {cancelado ? (
+                              <span className="pi-historial-estado pi-historial-estado--cancelado">
+                                Cancelado
+                              </span>
+                            ) : (
+                              <span className="pi-historial-estado pi-historial-estado--vigente">
+                                Vigente
+                              </span>
+                            )}
+                          </td>
                           <td className="pi-historial-col-accion">
                             <button
                               type="button"
                               className="pi-icon-btn pi-icon-btn--print"
                               title={`Reimprimir folio ${p.pago_folio}`}
                               aria-label={`Reimprimir recibo folio ${p.pago_folio}`}
+                              disabled={cancelado}
                               onClick={() => onReimprimirPago(p)}
                             >
                               <Printer size={16} aria-hidden />
                             </button>
                           </td>
                           <td className="pi-historial-col-accion">
-                            <button
-                              type="button"
-                              className="pi-icon-btn pi-icon-btn--cancel"
-                              title={`Cancelar folio ${p.pago_folio}`}
-                              aria-label={`Cancelar folio ${p.pago_folio}`}
-                              onClick={() => {
-                                setError(null)
-                                setMensaje(null)
-                                setPagoCancelar(p)
-                              }}
-                            >
-                              <Trash2 size={16} aria-hidden />
-                            </button>
+                            {cancelado ? (
+                              <span className="pi-historial-accion-vacia" aria-hidden>
+                                —
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                className="pi-icon-btn pi-icon-btn--cancel"
+                                title={`Cancelar folio ${p.pago_folio}`}
+                                aria-label={`Cancelar folio ${p.pago_folio}`}
+                                onClick={() => {
+                                  setError(null)
+                                  setMensaje(null)
+                                  setPagoCancelar(p)
+                                }}
+                              >
+                                <Trash2 size={16} aria-hidden />
+                              </button>
+                            )}
                           </td>
                         </tr>
-                      ))}
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
