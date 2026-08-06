@@ -127,6 +127,20 @@ function metaReporte(entry: ReporteCatalogEntry, params: ParametrosReporte): str
   return parts.join(' · ')
 }
 
+function fechaAhoraMexico(): { mes: number; anio: number } {
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Mexico_City',
+    year: 'numeric',
+    month: 'numeric',
+  }).formatToParts(new Date())
+  const anio = parseInt(partes.find((p) => p.type === 'year')?.value ?? '', 10)
+  const mes = parseInt(partes.find((p) => p.type === 'month')?.value ?? '', 10)
+  return {
+    mes: Number.isFinite(mes) ? mes : new Date().getMonth() + 1,
+    anio: Number.isFinite(anio) ? anio : new Date().getFullYear(),
+  }
+}
+
 function ReportesPageInner() {
   const router = useRouter()
   const {
@@ -214,16 +228,22 @@ function ReportesPageInner() {
         ciclo = cicloActualSistema
       }
 
-      const now = new Date()
+      // Defaults de calendario en México: mes/año en curso.
+      // Para NI por mes el año debe pertenecer al ciclo (ej. 23 → 2026|2027).
+      const { mes: mesHoy, anio: anioHoy } = fechaAhoraMexico()
       const anioInicio = ciclo + 2003
       const anioFin = anioInicio + 1
-      const anioHoy = now.getFullYear()
       const anio =
-        anioHoy === anioInicio || anioHoy === anioFin ? anioHoy : anioInicio
+        entry.requiereMes
+          ? anioHoy === anioInicio || anioHoy === anioFin
+            ? anioHoy
+            : anioInicio
+          : anioHoy
+
       return {
         nivel: entry.nivelInicial ?? 'primaria',
         ciclo,
-        mes: now.getMonth() + 1,
+        mes: mesHoy,
         anio,
       }
     },
@@ -255,10 +275,16 @@ function ReportesPageInner() {
     (id: string, patch: Partial<ParametrosReporte>) => {
       setParamsById((prev) => {
         const entry = REPORTE_ENTRADAS.find((e) => e.id === id)!
-        return {
-          ...prev,
-          [id]: { ...(prev[id] ?? paramsIniciales(entry)), ...patch },
+        const base = { ...(prev[id] ?? paramsIniciales(entry)), ...patch }
+        // Si cambia el ciclo en NI por mes, el año solo puede ser inicio/fin de ese ciclo.
+        if (entry.requiereMes && patch.ciclo != null) {
+          const inicio = patch.ciclo + 2003
+          const fin = inicio + 1
+          if (base.anio !== inicio && base.anio !== fin) {
+            base.anio = inicio
+          }
         }
+        return { ...prev, [id]: base }
       })
     },
     [paramsIniciales]
@@ -358,8 +384,15 @@ function ReportesPageInner() {
                   : ciclosOpciones
               }
               mes={params.mes}
+              anio={params.anio}
               onMesChange={(m) => setParam(entry.id, { mes: m })}
+              onAnioChange={(a) => setParam(entry.id, { anio: a })}
               mostrarMes={Boolean(entry.requiereMes)}
+              aniosOpciones={
+                entry.requiereMes
+                  ? [params.ciclo + 2003, params.ciclo + 2004]
+                  : undefined
+              }
             />
           ) : null
         }
