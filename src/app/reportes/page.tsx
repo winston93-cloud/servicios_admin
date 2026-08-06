@@ -40,6 +40,8 @@ import ReporteTile from './ReporteTile'
 type ParametrosReporte = {
   nivel: NivelId
   ciclo: number
+  mes: number
+  anio: number
 }
 
 const CAT_ICONS: Record<string, LucideIcon> = {
@@ -47,6 +49,7 @@ const CAT_ICONS: Record<string, LucideIcon> = {
   'reportes-especiales': Sparkles,
   deudores: Wallet,
   'nuevo-ingreso': UserPlus,
+  'nuevo-ingreso-mes': UserPlus,
   curp: Fingerprint,
   listas: Users,
   reinscritos: RefreshCw,
@@ -71,6 +74,10 @@ function buildUrls(
 
   const qs = new URLSearchParams({ ciclo: String(params.ciclo) })
   if (entry.requiereNivel) qs.set('nivel', params.nivel)
+  if (entry.requiereMes) {
+    qs.set('mes', String(params.mes))
+    qs.set('anio', String(params.anio))
+  }
 
   const html = `${apiPath}?${qs.toString()}`
   const pdf = `${apiPath}?${qs.toString()}&format=pdf`
@@ -86,11 +93,30 @@ function buildUrls(
   }
 }
 
+const MESES_META = [
+  '',
+  'Ene',
+  'Feb',
+  'Mar',
+  'Abr',
+  'May',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dic',
+]
+
 function metaReporte(entry: ReporteCatalogEntry, params: ParametrosReporte): string {
   const parts = ['HTML/PDF nativo']
   if (entry.requiereNivel) {
     const n = params.nivel.charAt(0).toUpperCase() + params.nivel.slice(1)
     parts.push(n)
+  }
+  if (entry.requiereMes) {
+    parts.push(`${MESES_META[params.mes] ?? params.mes} ${params.anio}`)
   }
   if (entry.usaCiclo) {
     parts.push(etiquetaCicloReporte(entry.usaCiclo, params.ciclo))
@@ -184,11 +210,17 @@ function ReportesPageInner() {
       }
 
       // Nuevo ingreso: temporada vigente; el select solo ofrece vigente + activos adelante.
-      if (entry.categoriaId === 'nuevo-ingreso') {
+      if (entry.categoriaId === 'nuevo-ingreso' || entry.categoriaId === 'nuevo-ingreso-mes') {
         ciclo = cicloActualSistema
       }
 
-      return { nivel: entry.nivelInicial ?? 'primaria', ciclo }
+      const now = new Date()
+      return {
+        nivel: entry.nivelInicial ?? 'primaria',
+        ciclo,
+        mes: now.getMonth() + 1,
+        anio: now.getFullYear(),
+      }
     },
     [cicloActualSistema, cicloInscripcionSistema]
   )
@@ -300,10 +332,11 @@ function ReportesPageInner() {
           entry.categoriaId === 'reportes-especiales' ||
           entry.categoriaId === 'deudores' ||
           entry.categoriaId === 'nuevo-ingreso' ||
+          entry.categoriaId === 'nuevo-ingreso-mes' ||
           Boolean(q)
         }
         extra={
-          entry.requiereNivel || mostrarCiclo ? (
+          entry.requiereNivel || mostrarCiclo || entry.requiereMes ? (
             <ReporteParametros
               nivel={params.nivel}
               onNivelChange={(n) => setParam(entry.id, { nivel: n })}
@@ -314,10 +347,16 @@ function ReportesPageInner() {
               mostrarCiclo={mostrarCiclo}
               cicloLabel={cicloLabel}
               ciclosOpciones={
-                entry.categoriaId === 'nuevo-ingreso'
+                entry.categoriaId === 'nuevo-ingreso' ||
+                entry.categoriaId === 'nuevo-ingreso-mes'
                   ? ciclosOpcionesNuevoIngreso
                   : ciclosOpciones
               }
+              mes={params.mes}
+              anio={params.anio}
+              onMesChange={(m) => setParam(entry.id, { mes: m })}
+              onAnioChange={(a) => setParam(entry.id, { anio: a })}
+              mostrarMes={Boolean(entry.requiereMes)}
             />
           ) : null
         }

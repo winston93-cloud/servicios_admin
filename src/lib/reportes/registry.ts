@@ -29,7 +29,11 @@ import {
   construirHtmlReporteNuevoIngreso,
   generarPdfReporteNuevoIngreso,
 } from '@/lib/reportes/nuevoIngresoDocument'
-import { cargarNuevoIngreso } from '@/lib/reportes/nuevoIngresoService'
+import {
+  cargarNuevoIngreso,
+  etiquetaMesAnio,
+  rangoMesCalendario,
+} from '@/lib/reportes/nuevoIngresoService'
 import { nivelIdToValor, parseCicloParam } from '@/lib/reportes/params'
 import {
   construirHtmlReporteTabla,
@@ -44,10 +48,8 @@ import {
   generarPdfReporteReinscritos,
 } from '@/lib/reportes/reinscritosPagosDocument'
 import {
-  cargarNuevoIngresoMes,
   cargarSuspendidosReporte,
   cargarTalleres,
-  nuevoIngresoMesATabla,
   talleresATabla,
 } from '@/lib/reportes/otrosReportesService'
 import {
@@ -432,23 +434,25 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   },
 
   'nuevo-ingreso-mes': async (searchParams) => {
+    const nivel = requiereNivel(searchParams)
     const ciclo = await cicloEscolarParam(searchParams)
-    const now = new Date()
-    const mes = parseInt(searchParams.get('mes') ?? String(now.getMonth() + 1), 10)
-    const anio = parseInt(searchParams.get('anio') ?? String(now.getFullYear()), 10)
-    const nivel = nivelIdToValor(searchParams.get('nivel'))
     const format = formatoParam(searchParams)
-    const resumen = await cargarNuevoIngresoMes(ciclo, mes, anio, nivel ?? undefined)
-    const tabla = nuevoIngresoMesATabla(resumen)
-    return respuestaTabla({
-      titulo: resumen.titulo,
-      subtitulo: `Ciclo ${resumen.cicloLabel}`,
-      meta: `${resumen.filas.length} alumno(s)`,
-      ...tabla,
-      slug: 'nuevo-ingreso-mes',
-      ciclo,
-      format,
+    const now = new Date()
+    const mesRaw = parseInt(searchParams.get('mes') ?? String(now.getMonth() + 1), 10)
+    const anioRaw = parseInt(searchParams.get('anio') ?? String(now.getFullYear()), 10)
+    const mes = Number.isFinite(mesRaw) ? Math.min(12, Math.max(1, mesRaw)) : now.getMonth() + 1
+    const anio = Number.isFinite(anioRaw) && anioRaw >= 2000 ? anioRaw : now.getFullYear()
+    const rango = rangoMesCalendario(mes, anio)
+    const mesLabel = etiquetaMesAnio(mes, anio)
+    const resumen = await cargarNuevoIngreso(nivel, ciclo, ciclo, 'completo', {
+      rangoRegistro: rango,
+      titulo: `Nuevo ingreso — ${mesLabel}`,
     })
+    const filename = `ni-mes-${mes}-${anio}-ciclo-${ciclo}.pdf`
+    if (format === 'pdf') {
+      return { filename, pdf: generarPdfReporteNuevoIngreso(resumen) }
+    }
+    return { filename, html: construirHtmlReporteNuevoIngreso(resumen) }
   },
 
   'familias-winston': async (searchParams) => {

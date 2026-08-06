@@ -31,6 +31,8 @@ export type ReporteCatalogEntry = {
    * (como el link PHP legacy sin query params).
    */
   cicloSistema?: boolean
+  /** Selectores de mes y año calendario (legacy nuevoIngresoxmes). */
+  requiereMes?: boolean
   /** Ruta API bajo /api/reportes/{slug} */
   apiSlug?: string
 }
@@ -67,17 +69,23 @@ export const REPORTE_CATEGORIAS: ReporteCategoria[] = [
     subtitulo: '1 pago y 2 pagos',
     orden: 3,
   },
-  { id: 'becados', titulo: 'Becados Winston', orden: 4 },
+  {
+    id: 'nuevo-ingreso-mes',
+    titulo: 'Nuevo ingreso por mes',
+    subtitulo: 'Mes + año + nivel · fecha de registro (legacy)',
+    orden: 4,
+  },
+  { id: 'becados', titulo: 'Becados Winston', orden: 5 },
   {
     id: 'reportes-especiales',
     titulo: 'Reportes especiales',
     subtitulo: 'Doble titulación y reportes de ciclo histórico',
-    orden: 5,
+    orden: 6,
   },
-  { id: 'curp', titulo: 'CURP', orden: 6 },
-  { id: 'listas', titulo: 'Listas de alumnos', orden: 7 },
-  { id: 'bajas', titulo: 'Bajas por nivel', orden: 8 },
-  { id: 'otros', titulo: 'Otros reportes', orden: 9 },
+  { id: 'curp', titulo: 'CURP', orden: 7 },
+  { id: 'listas', titulo: 'Listas de alumnos', orden: 8 },
+  { id: 'bajas', titulo: 'Bajas por nivel', orden: 9 },
+  { id: 'otros', titulo: 'Otros reportes', orden: 10 },
 ]
 
 export function apiPathReporte(entry: ReporteCatalogEntry): string | null {
@@ -342,13 +350,17 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
   },
   {
     id: 'nuevo-ingreso-mes',
-    categoriaId: 'otros',
+    categoriaId: 'nuevo-ingreso-mes',
     titulo: 'Nuevo ingreso por mes',
-    descripcion: 'Reporte por mes (nuevo ingreso).',
+    descripcion:
+      'Igual que legacy: alumnos de nuevo ingreso registrados en el mes (familiares + pago inscripción).',
     accent: 'violet',
     motor: 'api-next',
     usaCiclo: 'escolar',
-    keywords: ['nuevo ingreso', 'mes'],
+    requiereNivel: true,
+    requiereMes: true,
+    nivelInicial: 'primaria',
+    keywords: ['nuevo ingreso', 'mes', 'registro', 'mensual'],
   },
   {
     id: 'familias-winston',

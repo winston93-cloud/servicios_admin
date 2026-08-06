@@ -60,7 +60,8 @@ function formatearAlta(alta: string | null): string {
 
 async function fetchNuevoIngresoNivel(
   nivel: number,
-  cicloAlumnos: number
+  cicloAlumnos: number,
+  rangoRegistro?: { desde: string; hasta: string }
 ): Promise<
   {
     alumno_id: number
@@ -69,6 +70,7 @@ async function fetchNuevoIngresoNivel(
     alumno_grado: number
     alumno_grupo: number
     alumno_alta: string | null
+    alumno_registro: string | null
   }[]
 > {
   const db = createDbAdmin()
@@ -79,15 +81,16 @@ async function fetchNuevoIngresoNivel(
     alumno_grado: number
     alumno_grupo: number
     alumno_alta: string | null
+    alumno_registro: string | null
   }[] = []
   let offset = 0
   const PAGE = 400
 
   while (true) {
-    const { data, error } = await db
+    let q = db
       .from('alumno')
       .select(
-        'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_alta'
+        'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_alta, alumno_registro'
       )
       .eq('alumno_nivel', nivel)
       .eq('alumno_ciclo_escolar', cicloAlumnos)
@@ -99,6 +102,14 @@ async function fetchNuevoIngresoNivel(
       .order('alumno_app', { ascending: true })
       .range(offset, offset + PAGE - 1)
 
+    if (rangoRegistro) {
+      q = q
+        .gte('alumno_registro', rangoRegistro.desde)
+        .lte('alumno_registro', rangoRegistro.hasta)
+    }
+
+    const { data, error } = await q
+
     if (error) throw new Error(error.message)
     const chunk = data ?? []
     for (const r of chunk) {
@@ -109,6 +120,7 @@ async function fetchNuevoIngresoNivel(
         alumno_grado: Number(r.alumno_grado),
         alumno_grupo: Number(r.alumno_grupo),
         alumno_alta: r.alumno_alta as string | null,
+        alumno_registro: r.alumno_registro as string | null,
       })
     }
     if (chunk.length < PAGE) break
@@ -164,9 +176,15 @@ export async function cargarNuevoIngreso(
   nivel: number,
   cicloAlumnos: number,
   cicloPago: number,
-  modo: 'completo' | 'deben'
+  modo: 'completo' | 'deben',
+  opts?: {
+    /** Filtro legacy: DATE(alumno_registro) entre desde..hasta (YYYY-MM-DD). */
+    rangoRegistro?: { desde: string; hasta: string }
+    /** Título override (ej. reporte por mes). */
+    titulo?: string
+  }
 ): Promise<ResumenNuevoIngreso> {
-  const alumnos = await fetchNuevoIngresoNivel(nivel, cicloAlumnos)
+  const alumnos = await fetchNuevoIngresoNivel(nivel, cicloAlumnos, opts?.rangoRegistro)
   const pagos = await fetchPagosPorAlumnos(alumnos.map((a) => a.alumno_id))
   const pagosPorAlumno = new Map<number, typeof pagos>()
   for (const p of pagos) {
@@ -182,6 +200,7 @@ export async function cargarNuevoIngreso(
 
   const filas: FilaNuevoIngreso[] = []
   const contadores = new Map<number, { pendientes: number; pagados: number }>()
+  const usarRegistroComoAlta = Boolean(opts?.rangoRegistro)
 
   for (const a of alumnos) {
     const fechaPago = buscarFechaConcepto(
@@ -204,7 +223,9 @@ export async function cargarNuevoIngreso(
       grado: etiquetaGradoEscolar(nivel, a.alumno_grado),
       grupo: etiquetaGrupoEscolar(a.alumno_grupo),
       noCtrl: a.alumno_ref,
-      alta: formatearAlta(a.alumno_alta),
+      alta: formatearAlta(
+        usarRegistroComoAlta ? a.alumno_registro : a.alumno_alta
+      ),
       nombre: a.nombre,
       fechaPago,
       pagado,
@@ -226,9 +247,10 @@ export async function cargarNuevoIngreso(
   const totalPagados = resumenGrados.reduce((s, g) => s + g.pagados, 0)
 
   const titulo =
-    modo === 'deben'
+    opts?.titulo ??
+    (modo === 'deben'
       ? 'Nuevo ingreso — deben inscripción'
-      : 'Nuevo ingreso — reporte completo'
+      : 'Nuevo ingreso — reporte completo')
 
   return {
     titulo,
@@ -243,6 +265,38 @@ export async function cargarNuevoIngreso(
     totalPendientes,
     totalPagados,
   }
+}
+
+const MESES_ES = [
+  '',
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+]
+
+/** Rango calendario del mes (legacy nuevoIngresoxmes). */
+export function rangoMesCalendario(mes: number, anio: number): { desde: string; hasta: string } {
+  const m = Math.min(12, Math.max(1, Math.floor(mes)))
+  const y = Math.floor(anio)
+  const desde = `${y}-${String(m).padStart(2, '0')}-01`
+  const ultimo = new Date(y, m, 0).getDate()
+  // Incluye todo el último día si alumno_registro es datetime.
+  const hasta = `${y}-${String(m).padStart(2, '0')}-${String(ultimo).padStart(2, '0')} 23:59:59`
+  return { desde, hasta }
+}
+
+export function etiquetaMesAnio(mes: number, anio: number): string {
+  const m = Math.min(12, Math.max(1, Math.floor(mes)))
+  return `${MESES_ES[m]} ${Math.floor(anio)}`
 }
 
 /** Tabla plana (compat); el render legacy usa construirHtml/PdfNuevoIngreso. */

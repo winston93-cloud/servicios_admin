@@ -6,6 +6,21 @@ import {
 } from '@/lib/ciclosEscolares'
 import { NIVELES, type NivelId } from '@/lib/reportesCatalogData'
 
+const MESES = [
+  { value: 1, label: 'Enero' },
+  { value: 2, label: 'Febrero' },
+  { value: 3, label: 'Marzo' },
+  { value: 4, label: 'Abril' },
+  { value: 5, label: 'Mayo' },
+  { value: 6, label: 'Junio' },
+  { value: 7, label: 'Julio' },
+  { value: 8, label: 'Agosto' },
+  { value: 9, label: 'Septiembre' },
+  { value: 10, label: 'Octubre' },
+  { value: 11, label: 'Noviembre' },
+  { value: 12, label: 'Diciembre' },
+]
+
 type ReporteParametrosProps = {
   nivel: NivelId
   onNivelChange: (n: NivelId) => void
@@ -16,6 +31,12 @@ type ReporteParametrosProps = {
   mostrarCiclo?: boolean
   cicloLabel?: string
   ciclosOpciones?: CicloEscolar[]
+  mes?: number
+  anio?: number
+  onMesChange?: (m: number) => void
+  onAnioChange?: (a: number) => void
+  mostrarMes?: boolean
+  aniosOpciones?: number[]
 }
 
 export default function ReporteParametros({
@@ -28,12 +49,23 @@ export default function ReporteParametros({
   mostrarCiclo = false,
   cicloLabel = 'Ciclo',
   ciclosOpciones,
+  mes = new Date().getMonth() + 1,
+  anio = new Date().getFullYear(),
+  onMesChange,
+  onAnioChange,
+  mostrarMes = false,
+  aniosOpciones,
 }: ReporteParametrosProps) {
   const opciones = ciclosOpciones ?? getCiclosEscolaresOpciones()
   const niveles =
     nivelesOpciones && nivelesOpciones.length > 0
       ? NIVELES.filter((n) => nivelesOpciones.includes(n.id))
       : NIVELES
+  const anioActual = new Date().getFullYear()
+  const anios =
+    aniosOpciones && aniosOpciones.length > 0
+      ? aniosOpciones
+      : Array.from({ length: 8 }, (_, i) => anioActual - 3 + i)
 
   return (
     <div className="reporte-tile-params">
@@ -66,6 +98,36 @@ export default function ReporteParametros({
             ))}
           </select>
         </label>
+      ) : null}
+      {mostrarMes ? (
+        <>
+          <label className="reporte-tile-field">
+            <span>Mes</span>
+            <select
+              value={mes}
+              onChange={(e) => onMesChange?.(parseInt(e.target.value, 10))}
+            >
+              {MESES.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="reporte-tile-field">
+            <span>Año</span>
+            <select
+              value={anio}
+              onChange={(e) => onAnioChange?.(parseInt(e.target.value, 10))}
+            >
+              {anios.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
       ) : null}
     </div>
   )
