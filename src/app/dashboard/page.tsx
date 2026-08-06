@@ -278,13 +278,13 @@ export default function DashboardPage() {
             <aside className="dashboard-flank dashboard-flank--start">
               <Image
                 src="/logos/logo-winston-w.png"
-                alt="Winston"
+                alt="Instituto Winston Churchill"
                 width={160}
                 height={116}
                 className="dashboard-flank-logo dashboard-flank-logo--winston saas-logo-glow"
                 priority
               />
-              <span className="dashboard-flank-label">Winston</span>
+              <span className="dashboard-flank-label">Instituto Winston Churchill</span>
             </aside>
 
             <div className="dashboard-main-center">
@@ -372,13 +372,13 @@ export default function DashboardPage() {
             <aside className="dashboard-flank dashboard-flank--end">
               <Image
                 src="/logos/logo-winston-educativo.png"
-                alt="Winston Educativo"
+                alt="Instituto Educativo Winston"
                 width={160}
                 height={120}
                 className="dashboard-flank-logo saas-logo-glow dashboard-flank-logo--end"
                 priority
               />
-              <span className="dashboard-flank-label">Winston Educativo</span>
+              <span className="dashboard-flank-label">Instituto Educativo Winston</span>
             </aside>
           </div>
         </div>
@@ -403,14 +403,14 @@ export default function DashboardPage() {
             <div className="dashboard-sidebar-logos">
               <Image
                 src="/logos/logo-winston-w.png"
-                alt="Winston"
+                alt="Instituto Winston Churchill"
                 width={48}
                 height={35}
                 className="dashboard-sidebar-institution-logo dashboard-sidebar-institution-logo--winston"
               />
               <Image
                 src="/logos/logo-winston-educativo.png"
-                alt="Winston Educativo"
+                alt="Instituto Educativo Winston"
                 width={56}
                 height={42}
                 className="dashboard-sidebar-institution-logo"
