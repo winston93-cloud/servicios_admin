@@ -7,6 +7,14 @@ export function urlChequesApp(): string {
   return 'https://cheques-new.vercel.app'
 }
 
+/** Contratos laborales — generación y gestión (contratos en Vercel). */
+export function urlContratosApp(): string {
+  const explicit = process.env.NEXT_PUBLIC_CONTRATOS_URL?.trim()
+  if (explicit) return explicit.replace(/\/$/, '')
+
+  return 'https://contratos-chi.vercel.app'
+}
+
 /** Boletas — captura y envío de boletas escolares (personal administrativo). */
 export function urlBoletasApp(): string {
   const explicit = process.env.NEXT_PUBLIC_BOLETAS_URL?.trim()
