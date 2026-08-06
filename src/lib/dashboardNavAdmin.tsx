@@ -226,7 +226,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   {
     label: 'Boletas',
     desc: 'Captura, consulta y envío de boletas escolares.',
-    href: urlBoletasApp(),
+    path: '/proximamente?m=boletas',
     accent: 'indigo',
     kicker: 'Control escolar',
     tags: ['Boletas', 'Calificaciones'],
@@ -256,7 +256,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   {
     label: 'Reportes de Conducta',
     desc: 'Captura y seguimiento de reportes de conducta escolar.',
-    href: urlReportesConductaApp(),
+    path: '/proximamente?m=conducta',
     accent: 'rose',
     kicker: 'Conducta',
     tags: ['Reportes', 'Seguimiento'],
