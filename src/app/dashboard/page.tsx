@@ -276,14 +276,16 @@ export default function DashboardPage() {
         <div className="dashboard-main">
           <div className="dashboard-main-stage">
             <aside className="dashboard-flank dashboard-flank--start">
-              <Image
-                src="/logos/logo-winston-w.png"
-                alt="Instituto Winston Churchill"
-                width={160}
-                height={116}
-                className="dashboard-flank-logo dashboard-flank-logo--winston saas-logo-glow"
-                priority
-              />
+              <div className="dashboard-flank-logo-slot">
+                <Image
+                  src="/logos/logo-winston-w.png"
+                  alt="Instituto Winston Churchill"
+                  width={160}
+                  height={116}
+                  className="dashboard-flank-logo dashboard-flank-logo--winston saas-logo-glow"
+                  priority
+                />
+              </div>
               <span className="dashboard-flank-label">Instituto Winston Churchill</span>
             </aside>
 
@@ -370,14 +372,16 @@ export default function DashboardPage() {
             </div>
 
             <aside className="dashboard-flank dashboard-flank--end">
-              <Image
-                src="/logos/logo-winston-educativo.png"
-                alt="Instituto Educativo Winston"
-                width={160}
-                height={120}
-                className="dashboard-flank-logo saas-logo-glow dashboard-flank-logo--end"
-                priority
-              />
+              <div className="dashboard-flank-logo-slot">
+                <Image
+                  src="/logos/logo-winston-educativo.png"
+                  alt="Instituto Educativo Winston"
+                  width={160}
+                  height={120}
+                  className="dashboard-flank-logo saas-logo-glow dashboard-flank-logo--end"
+                  priority
+                />
+              </div>
               <span className="dashboard-flank-label">Instituto Educativo Winston</span>
             </aside>
           </div>
