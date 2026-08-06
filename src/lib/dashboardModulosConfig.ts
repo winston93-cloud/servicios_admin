@@ -51,3 +51,10 @@ export function urlReportesConductaApp(): string {
 
   return 'https://www.winston93.edu.mx/secundaria_2.0'
 }
+
+/** SSIW — salida a pie / entregas (override con NEXT_PUBLIC_SSIW_URL). */
+export function urlSsiwApp(): string {
+  const explicit = process.env.NEXT_PUBLIC_SSIW_URL?.trim()
+  if (explicit) return explicit.replace(/\/$/, '')
+  return 'https://ssiw.vercel.app'
+}

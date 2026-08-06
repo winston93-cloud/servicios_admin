@@ -104,6 +104,21 @@ const NAV_ITEMS_ALUMNO: DashboardNavItem[] = [
       </svg>
     ),
   },
+  {
+    label: 'Salida a pie',
+    desc: 'Registra días de salida a pie y personas autorizadas (SSIW)',
+    path: '/ssiw/entrar?ambiente=salida',
+    accent: 'emerald',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="5" r="2"/>
+        <path d="M12 7v6"/>
+        <path d="M9 13l3 8 3-8"/>
+        <path d="M8 11h8"/>
+        <path d="M5 21h14"/>
+      </svg>
+    ),
+  },
 ]
 
 export default function DashboardPage() {
