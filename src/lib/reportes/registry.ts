@@ -31,6 +31,7 @@ import {
 } from '@/lib/reportes/nuevoIngresoDocument'
 import {
   cargarNuevoIngreso,
+  anioCalendarioMesEnCiclo,
   etiquetaMesAnio,
   rangoMesCalendario,
 } from '@/lib/reportes/nuevoIngresoService'
@@ -439,9 +440,9 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
     const format = formatoParam(searchParams)
     const now = new Date()
     const mesRaw = parseInt(searchParams.get('mes') ?? String(now.getMonth() + 1), 10)
-    const anioRaw = parseInt(searchParams.get('anio') ?? String(now.getFullYear()), 10)
     const mes = Number.isFinite(mesRaw) ? Math.min(12, Math.max(1, mesRaw)) : now.getMonth() + 1
-    const anio = Number.isFinite(anioRaw) && anioRaw >= 2000 ? anioRaw : now.getFullYear()
+    // Año lo marca el ciclo (ej. 23 → 2026-2027), no un select aparte.
+    const anio = anioCalendarioMesEnCiclo(mes, ciclo)
     const rango = rangoMesCalendario(mes, anio)
     const mesLabel = etiquetaMesAnio(mes, anio)
     const resumen = await cargarNuevoIngreso(nivel, ciclo, ciclo, 'completo', {
