@@ -23394,3 +23394,178 @@ html[data-theme='dark'] .ce-panel-close-btn {
     flex: 1;
   }
 }
+
+/* ---------- Cambiar plan (10/11 meses) ---------- */
+
+.cp-modulo .servicios-panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cp-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.cp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.cp-autocomplete {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.cp-ciclo-hint {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+.cp-ciclo-hint strong {
+  color: #e2e8f0;
+}
+
+.cp-alert {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+.cp-alert--error {
+  background: rgba(127, 29, 29, 0.35);
+  color: #fecaca;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.cp-alert--ok {
+  background: rgba(6, 78, 59, 0.35);
+  color: #a7f3d0;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.cp-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #94a3b8;
+  font-size: 0.95rem;
+}
+
+.cp-resultado {
+  display: grid;
+  gap: 1rem;
+}
+
+.cp-alumno {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+}
+
+.cp-alumno-ref {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 700;
+  color: #93c5fd;
+  font-size: 0.95rem;
+}
+
+.cp-alumno-nombre {
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.cp-bloqueado {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: rgba(120, 53, 15, 0.28);
+  color: #fde68a;
+}
+
+.cp-bloqueado strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #fef3c7;
+}
+
+.cp-bloqueado p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #fde68a;
+  line-height: 1.4;
+}
+
+.cp-planes {
+  margin: 0;
+  padding: 0;
+  border: none;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.cp-planes legend {
+  margin-bottom: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.cp-plan-opcion {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.55);
+  cursor: pointer;
+  color: #e2e8f0;
+}
+
+.cp-plan-opcion.is-active {
+  border-color: rgba(59, 130, 246, 0.65);
+  background: rgba(37, 99, 235, 0.18);
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.25);
+}
+
+.cp-plan-opcion input {
+  margin-top: 0.2rem;
+}
+
+.cp-plan-opcion strong {
+  display: block;
+  font-size: 0.98rem;
+}
+
+.cp-plan-opcion small {
+  display: block;
+  margin-top: 0.15rem;
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+html[data-theme='light'] .cp-ciclo-hint strong,
+html[data-theme='light'] .cp-alumno-nombre {
+  color: #0f172a;
+}
+
+html[data-theme='light'] .cp-plan-opcion {
+  background: #fff;
+  color: #0f172a;
+}
+
+html[data-theme='light'] .cp-plan-opcion.is-active {
+  background: rgba(37, 99, 235, 0.08);
+}

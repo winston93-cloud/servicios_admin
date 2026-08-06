@@ -33,6 +33,7 @@ import FechasDiferidosModulo from './modulos/FechasDiferidosModulo'
 import AperturaCambridgeDobleModulo from './modulos/AperturaCambridgeDobleModulo'
 import CsdVencimientosModulo from './modulos/CsdVencimientosModulo'
 import UsuariosCatalogoModulo from './modulos/UsuariosCatalogoModulo'
+import CambiarPlanModulo from './modulos/CambiarPlanModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
 import ThemeToggle from '@/components/ThemeToggle'
 import { AlumnoSeleccionadoProvider } from '@/contexts/AlumnoSeleccionadoContext'
@@ -106,6 +107,8 @@ function ServiciosPanelContenido({
       return <CsdVencimientosModulo />
     case 'usuarios-catalogo':
       return <UsuariosCatalogoModulo />
+    case 'cambiar-plan':
+      return <CambiarPlanModulo />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }

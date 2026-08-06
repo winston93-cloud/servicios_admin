@@ -42,6 +42,7 @@ export type ServiciosModuloId =
   | 'apertura-cambridge-doble'
   | 'csd-vencimientos'
   | 'usuarios-catalogo'
+  | 'cambiar-plan'
 
 export interface ServiciosSubMenuItem {
   id: ServiciosModuloId
@@ -108,6 +109,12 @@ export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
     id: 'usuarios-catalogo',
     label: 'Usuarios',
     icon: UserCog,
+  },
+  {
+    type: 'leaf',
+    id: 'cambiar-plan',
+    label: 'Cambiar plan',
+    icon: CalendarRange,
   },
 ]
 

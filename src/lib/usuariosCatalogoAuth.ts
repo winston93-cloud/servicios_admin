@@ -1,6 +1,6 @@
 import { createHmac } from 'crypto'
 
-/** PIN de acceso al catálogo CRUD de usuarios (servicios/usuarios). */
+/** PIN compartido: catálogo de usuarios y cambiar plan (servicios). */
 export const USUARIOS_PIN = '2671st'
 
 export const USUARIOS_AUTH_COOKIE = 'usuarios_catalogo_auth'

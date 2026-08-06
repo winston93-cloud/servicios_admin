@@ -6,7 +6,19 @@ import { KeyRound, Loader2 } from 'lucide-react'
 
 type Fase = 'cargando' | 'login' | 'ok'
 
-export default function UsuariosPinGate({ children }: { children: ReactNode }) {
+type Props = {
+  children: ReactNode
+  eyebrow?: string
+  titulo?: string
+  lead?: string
+}
+
+export default function UsuariosPinGate({
+  children,
+  eyebrow = 'Servicios · Usuarios',
+  titulo = 'Acceso al catálogo',
+  lead = 'Ingresa el PIN para crear, editar o eliminar usuarios.',
+}: Props) {
   const router = useRouter()
   const [fase, setFase] = useState<Fase>('cargando')
   const [pin, setPin] = useState('')
@@ -67,18 +79,23 @@ export default function UsuariosPinGate({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="usr-modal-overlay usr-pin-overlay" role="dialog" aria-modal="true" aria-labelledby="usr-pin-title">
+    <div
+      className="usr-modal-overlay usr-pin-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="usr-pin-title"
+    >
       <form className="usr-pin-caja" onSubmit={onSubmit}>
         <div className="usr-pin-brand">
           <div className="usr-pin-icon" aria-hidden>
             <KeyRound size={22} />
           </div>
           <div>
-            <p className="usr-pin-eyebrow">Servicios · Usuarios</p>
+            <p className="usr-pin-eyebrow">{eyebrow}</p>
             <h2 id="usr-pin-title" className="usr-pin-title">
-              Acceso al catálogo
+              {titulo}
             </h2>
-            <p className="usr-pin-lead">Ingresa el PIN para crear, editar o eliminar usuarios.</p>
+            <p className="usr-pin-lead">{lead}</p>
           </div>
         </div>
 
@@ -115,7 +132,11 @@ export default function UsuariosPinGate({ children }: { children: ReactNode }) {
           </p>
         ) : null}
 
-        <button className="usr-btn usr-btn-primary usr-pin-submit" type="submit" disabled={enviando || !pin.trim()}>
+        <button
+          className="usr-btn usr-btn-primary usr-pin-submit"
+          type="submit"
+          disabled={enviando || !pin.trim()}
+        >
           {enviando ? (
             <>
               <Loader2 className="usr-spin" size={16} aria-hidden />
