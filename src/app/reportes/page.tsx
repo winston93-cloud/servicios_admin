@@ -41,6 +41,7 @@ type ParametrosReporte = {
   nivel: NivelId
   ciclo: number
   mes: number
+  anio: number
 }
 
 const CAT_ICONS: Record<string, LucideIcon> = {
@@ -75,6 +76,7 @@ function buildUrls(
   if (entry.requiereNivel) qs.set('nivel', params.nivel)
   if (entry.requiereMes) {
     qs.set('mes', String(params.mes))
+    qs.set('anio', String(params.anio))
   }
 
   const html = `${apiPath}?${qs.toString()}`
@@ -114,7 +116,7 @@ function metaReporte(entry: ReporteCatalogEntry, params: ParametrosReporte): str
     parts.push(n)
   }
   if (entry.requiereMes) {
-    parts.push(MESES_META[params.mes] ?? String(params.mes))
+    parts.push(`${MESES_META[params.mes] ?? params.mes} ${params.anio}`)
   }
   if (entry.usaCiclo) {
     parts.push(etiquetaCicloReporte(entry.usaCiclo, params.ciclo))
@@ -213,10 +215,16 @@ function ReportesPageInner() {
       }
 
       const now = new Date()
+      const anioInicio = ciclo + 2003
+      const anioFin = anioInicio + 1
+      const anioHoy = now.getFullYear()
+      const anio =
+        anioHoy === anioInicio || anioHoy === anioFin ? anioHoy : anioInicio
       return {
         nivel: entry.nivelInicial ?? 'primaria',
         ciclo,
         mes: now.getMonth() + 1,
+        anio,
       }
     },
     [cicloActualSistema, cicloInscripcionSistema]

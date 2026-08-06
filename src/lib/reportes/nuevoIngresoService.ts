@@ -300,13 +300,22 @@ export function etiquetaMesAnio(mes: number, anio: number): string {
 }
 
 /**
- * Año calendario del mes dentro del ciclo escolar (N → ago N+2003 … jul N+2004).
- * Ej. ciclo 23 = 2026-2027: sep→2026, ene→2027.
+ * Años calendario del ciclo escolar (N → N+2003 y N+2004).
+ * Ej. ciclo 23 = 2026-2027 → [2026, 2027].
+ */
+export function aniosCalendarioDelCiclo(cicloValor: number): [number, number] {
+  const inicio = Math.floor(cicloValor) + 2003
+  return [inicio, inicio + 1]
+}
+
+/**
+ * @deprecated Preferir año explícito del select (solo años del ciclo).
+ * Año implícito por mes dentro del ciclo (ago→inicio, ene–jul→fin).
  */
 export function anioCalendarioMesEnCiclo(mes: number, cicloValor: number): number {
   const m = Math.min(12, Math.max(1, Math.floor(mes)))
-  const anioInicio = Math.floor(cicloValor) + 2003
-  return m >= 8 ? anioInicio : anioInicio + 1
+  const [inicio, fin] = aniosCalendarioDelCiclo(cicloValor)
+  return m >= 8 ? inicio : fin
 }
 
 /** Tabla plana (compat); el render legacy usa construirHtml/PdfNuevoIngreso. */

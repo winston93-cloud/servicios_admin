@@ -32,8 +32,12 @@ type ReporteParametrosProps = {
   cicloLabel?: string
   ciclosOpciones?: CicloEscolar[]
   mes?: number
+  anio?: number
   onMesChange?: (m: number) => void
+  onAnioChange?: (a: number) => void
   mostrarMes?: boolean
+  /** Años del ciclo seleccionado (ej. 23 → 2026 y 2027). */
+  aniosOpciones?: number[]
 }
 
 export default function ReporteParametros({
@@ -47,14 +51,21 @@ export default function ReporteParametros({
   cicloLabel = 'Ciclo',
   ciclosOpciones,
   mes = new Date().getMonth() + 1,
+  anio = new Date().getFullYear(),
   onMesChange,
+  onAnioChange,
   mostrarMes = false,
+  aniosOpciones,
 }: ReporteParametrosProps) {
   const opciones = ciclosOpciones ?? getCiclosEscolaresOpciones()
   const niveles =
     nivelesOpciones && nivelesOpciones.length > 0
       ? NIVELES.filter((n) => nivelesOpciones.includes(n.id))
       : NIVELES
+  const anios =
+    aniosOpciones && aniosOpciones.length > 0
+      ? aniosOpciones
+      : [ciclo + 2003, ciclo + 2004]
 
   return (
     <div className="reporte-tile-params">
@@ -89,19 +100,34 @@ export default function ReporteParametros({
         </label>
       ) : null}
       {mostrarMes ? (
-        <label className="reporte-tile-field">
-          <span>Mes</span>
-          <select
-            value={mes}
-            onChange={(e) => onMesChange?.(parseInt(e.target.value, 10))}
-          >
-            {MESES.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <>
+          <label className="reporte-tile-field">
+            <span>Mes</span>
+            <select
+              value={mes}
+              onChange={(e) => onMesChange?.(parseInt(e.target.value, 10))}
+            >
+              {MESES.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="reporte-tile-field">
+            <span>Año</span>
+            <select
+              value={anios.includes(anio) ? anio : anios[0]}
+              onChange={(e) => onAnioChange?.(parseInt(e.target.value, 10))}
+            >
+              {anios.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
       ) : null}
     </div>
   )
