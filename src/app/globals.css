@@ -22753,6 +22753,146 @@ html[data-theme='dark'] .ce-panel-close-btn {
   padding: 0;
 }
 
+.usr-pin-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  min-height: 12rem;
+  color: #94a3b8;
+  font-size: 0.95rem;
+}
+
+.usr-pin-overlay {
+  z-index: 90;
+}
+
+.usr-pin-caja {
+  width: min(420px, 100%);
+  padding: 1.6rem 1.45rem 1.35rem;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background:
+    radial-gradient(900px 320px at 0% -20%, rgba(37, 99, 235, 0.22), transparent 55%),
+    linear-gradient(165deg, #0f172a 0%, #111827 55%, #0b1220 100%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  display: grid;
+  gap: 0.65rem;
+}
+
+.usr-pin-brand {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  margin-bottom: 0.35rem;
+}
+
+.usr-pin-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.22);
+  color: #93c5fd;
+  flex-shrink: 0;
+}
+
+.usr-pin-eyebrow {
+  margin: 0 0 0.2rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.usr-pin-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.usr-pin-lead {
+  margin: 0.25rem 0 0;
+  font-size: 0.88rem;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+.usr-pin-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.usr-pin-fila {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.usr-pin-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.85);
+  color: #f8fafc;
+  font-size: 0.95rem;
+}
+
+.usr-pin-input:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.7);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+}
+
+.usr-pin-eye {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 10px;
+  background: rgba(30, 41, 59, 0.9);
+  color: #cbd5e1;
+  padding: 0 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.usr-pin-eye:hover {
+  color: #f8fafc;
+  border-color: rgba(148, 163, 184, 0.45);
+}
+
+.usr-pin-error {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  background: rgba(127, 29, 29, 0.35);
+  color: #fecaca;
+  font-size: 0.85rem;
+}
+
+.usr-pin-submit {
+  margin-top: 0.25rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.usr-pin-back {
+  width: 100%;
+  justify-content: center;
+  background: transparent;
+  border-color: rgba(148, 163, 184, 0.28);
+  color: #94a3b8;
+}
+
+.usr-pin-back:hover:not(:disabled) {
+  color: #e2e8f0;
+  border-color: rgba(148, 163, 184, 0.45);
+}
+
 .usr-modal-overlay {
   position: fixed;
   inset: 0;

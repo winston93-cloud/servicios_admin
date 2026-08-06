@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { cookieUsuariosValida } from '@/lib/usuariosCatalogoAuth'
 import {
   actualizarUsuarioAdmin,
   crearUsuarioAdmin,
@@ -8,7 +9,17 @@ import {
 
 export const runtime = 'nodejs'
 
-export async function GET() {
+function exigirPin(request: Request): NextResponse | null {
+  if (cookieUsuariosValida(request.headers.get('cookie'))) return null
+  return NextResponse.json(
+    { error: 'PIN requerido para acceder al catálogo de usuarios.' },
+    { status: 401 }
+  )
+}
+
+export async function GET(request: Request) {
+  const denegado = exigirPin(request)
+  if (denegado) return denegado
   try {
     const usuarios = await listarUsuariosAdmin()
     return NextResponse.json({ usuarios })
@@ -20,6 +31,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denegado = exigirPin(request)
+  if (denegado) return denegado
   try {
     const body = await request.json()
     const usuario = await crearUsuarioAdmin(body ?? {})
@@ -32,6 +45,8 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const denegado = exigirPin(request)
+  if (denegado) return denegado
   try {
     const body = await request.json()
     const id = Number(body?.usuario_id)
@@ -48,6 +63,8 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const denegado = exigirPin(request)
+  if (denegado) return denegado
   try {
     const { searchParams } = new URL(request.url)
     const id = Number(searchParams.get('id'))
