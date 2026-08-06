@@ -42,6 +42,6 @@ export function opcionesCookieUsuarios(): {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60 * 4,
+    maxAge: 60 * 30,
   }
 }

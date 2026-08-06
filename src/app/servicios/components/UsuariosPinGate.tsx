@@ -4,7 +4,7 @@ import { FormEvent, type ReactNode, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { KeyRound, Loader2 } from 'lucide-react'
 
-type Fase = 'cargando' | 'login' | 'ok'
+type Fase = 'login' | 'ok'
 
 type Props = {
   children: ReactNode
@@ -13,6 +13,18 @@ type Props = {
   lead?: string
 }
 
+async function cerrarSesionPin() {
+  try {
+    await fetch('/api/usuarios/auth', { method: 'DELETE', cache: 'no-store' })
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Pide el PIN en cada apertura del módulo.
+ * La cookie solo vive mientras el módulo está abierto (se borra al montar/desmontar).
+ */
 export default function UsuariosPinGate({
   children,
   eyebrow = 'Servicios · Usuarios',
@@ -20,7 +32,7 @@ export default function UsuariosPinGate({
   lead = 'Ingresa el PIN para crear, editar o eliminar usuarios.',
 }: Props) {
   const router = useRouter()
-  const [fase, setFase] = useState<Fase>('cargando')
+  const [fase, setFase] = useState<Fase>('login')
   const [pin, setPin] = useState('')
   const [mostrar, setMostrar] = useState(false)
   const [error, setError] = useState('')
@@ -29,16 +41,17 @@ export default function UsuariosPinGate({
   useEffect(() => {
     let cancelado = false
     ;(async () => {
-      try {
-        const res = await fetch('/api/usuarios/auth', { method: 'GET', cache: 'no-store' })
-        if (cancelado) return
-        setFase(res.ok ? 'ok' : 'login')
-      } catch {
-        if (!cancelado) setFase('login')
+      await cerrarSesionPin()
+      if (!cancelado) {
+        setFase('login')
+        setPin('')
+        setError('')
       }
     })()
+
     return () => {
       cancelado = true
+      void cerrarSesionPin()
     }
   }, [])
 
@@ -57,21 +70,13 @@ export default function UsuariosPinGate({
         setError(data.error || 'PIN incorrecto.')
         return
       }
+      setPin('')
       setFase('ok')
     } catch {
       setError('No se pudo validar el PIN. Intenta de nuevo.')
     } finally {
       setEnviando(false)
     }
-  }
-
-  if (fase === 'cargando') {
-    return (
-      <div className="usr-pin-shell" role="status">
-        <Loader2 className="usr-spin" size={22} aria-hidden />
-        <span>Verificando acceso…</span>
-      </div>
-    )
   }
 
   if (fase === 'ok') {
