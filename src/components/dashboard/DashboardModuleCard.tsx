@@ -15,6 +15,8 @@ export type DashboardModuleCardProps = {
   desc: string
   accent: DashboardModuleAccent
   icon: ReactNode
+  /** Número visible arriba a la izquierda (1-based). */
+  order?: number
   kicker?: string
   badge?: string
   tags?: string[]
@@ -44,6 +46,7 @@ export default function DashboardModuleCard({
   desc,
   accent,
   icon,
+  order,
   kicker,
   badge,
   tags = [],
@@ -68,8 +71,13 @@ export default function DashboardModuleCard({
       role="button"
       tabIndex={0}
       onKeyDown={handleKeyDown}
-      aria-label={`${actionLabel}: ${label}`}
+      aria-label={`${order != null ? `${order}. ` : ''}${actionLabel}: ${label}`}
     >
+      {order != null && (
+        <span className="dash-module-order" aria-hidden>
+          {order}
+        </span>
+      )}
       <div className="dash-module-glow" aria-hidden />
 
       <div className="dash-module-icon-wrap">

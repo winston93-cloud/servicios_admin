@@ -323,7 +323,7 @@ export default function DashboardPage() {
 
               <div className="dashboard-nav-grid">
                 {mostrarPanelAlumno
-                  ? navItemsAlumno.map((item) => (
+                  ? navItemsAlumno.map((item, index) => (
                       <div
                         key={navItemKey(item)}
                         className="dash-nav-item"
@@ -335,6 +335,9 @@ export default function DashboardPage() {
                           if (e.key === 'Enter' || e.key === ' ') handleNavItemAlumno(item)
                         }}
                       >
+                        <span className="dash-module-order" aria-hidden>
+                          {index + 1}
+                        </span>
                         <div className="dash-nav-icon">{item.icon}</div>
                         <div className="dash-nav-body">
                           <h2 className="dash-nav-title">{item.label}</h2>
@@ -346,9 +349,10 @@ export default function DashboardPage() {
                       </div>
                     ))
                   : mostrarPanelAdmin
-                    ? navItemsAdmin.map((item) => (
+                    ? navItemsAdmin.map((item, index) => (
                       <DashboardModuleCard
                         key={navItemKey(item)}
+                        order={index + 1}
                         label={item.label}
                         desc={item.desc}
                         accent={item.accent}
