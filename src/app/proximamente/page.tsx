@@ -2,13 +2,22 @@
 
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
-import { ArrowLeft, Coffee, NotebookPen, Sparkles } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import {
+  ArrowLeft,
+  ClipboardList,
+  Coffee,
+  Construction,
+  NotebookPen,
+  Sparkles,
+} from 'lucide-react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { Suspense } from 'react'
+import { Suspense, type ReactNode } from 'react'
 import './proximamente.css'
 
-type ModuloProximamente = 'desayunos' | 'boletas' | 'general'
+type ModuloProximamente = 'desayunos' | 'boletas' | 'conducta' | 'general'
+type Accent = 'amber' | 'indigo' | 'rose'
 
 const MODULOS: Record<
   ModuloProximamente,
@@ -16,8 +25,9 @@ const MODULOS: Record<
     titulo: string
     kicker: string
     lead: string
-    accent: 'amber' | 'indigo'
+    accent: Accent
     bullets: string[]
+    icon: ReactNode
   }
 > = {
   desayunos: {
@@ -30,17 +40,31 @@ const MODULOS: Record<
       'Pedidos y seguimiento en línea',
       'Todo desde tu cuenta familiar Winston',
     ],
+    icon: <Coffee size={34} strokeWidth={1.6} />,
   },
   boletas: {
     titulo: 'Boletas',
-    kicker: 'Calificaciones',
-    lead: 'La consulta de boletas y calificaciones se integra aquí con la misma experiencia del dashboard.',
+    kicker: 'Control escolar',
+    lead: 'Captura, consulta y envío de boletas se integran aquí con la misma experiencia del dashboard.',
     accent: 'indigo',
     bullets: [
-      'Boletas por periodo escolar',
-      'Vista clara para mamá, papá o tutor',
-      'Acceso seguro con tu número de control',
+      'Captura y envío por periodo escolar',
+      'Consulta clara para familias y personal',
+      'Acceso seguro con la sesión del portal',
     ],
+    icon: <NotebookPen size={34} strokeWidth={1.6} />,
+  },
+  conducta: {
+    titulo: 'Reportes de Conducta',
+    kicker: 'Seguimiento escolar',
+    lead: 'La captura y el seguimiento de reportes de conducta llegan a este portal con un flujo más ágil.',
+    accent: 'rose',
+    bullets: [
+      'Registro de incidencias por alumno',
+      'Seguimiento y historial institucional',
+      'Misma sesión, sin salir del dashboard',
+    ],
+    icon: <ClipboardList size={34} strokeWidth={1.6} />,
   },
   general: {
     titulo: 'Módulo en preparación',
@@ -49,19 +73,20 @@ const MODULOS: Record<
     accent: 'amber',
     bullets: [
       'Diseño unificado con el resto del portal',
-      'Acceso familiar con la misma sesión',
+      'Acceso con la misma sesión',
       'Pronto disponible en este dashboard',
     ],
+    icon: <Coffee size={34} strokeWidth={1.6} />,
   },
 }
 
 function ProximamenteContent() {
   const params = useSearchParams()
+  const { isUsuario } = useAuth()
   const raw = (params.get('m') || params.get('modulo') || '').toLowerCase()
   const key: ModuloProximamente =
-    raw === 'desayunos' || raw === 'boletas' ? raw : 'general'
+    raw === 'desayunos' || raw === 'boletas' || raw === 'conducta' ? raw : 'general'
   const mod = MODULOS[key]
-  const Icon = key === 'boletas' ? NotebookPen : Coffee
 
   return (
     <div className="proximamente-page" data-accent={mod.accent}>
@@ -69,6 +94,7 @@ function ProximamenteContent() {
         <span className="proximamente-orb proximamente-orb--a" />
         <span className="proximamente-orb proximamente-orb--b" />
         <span className="proximamente-grid" />
+        <span className="proximamente-beam" />
       </div>
 
       <header className="proximamente-top">
@@ -81,19 +107,32 @@ function ProximamenteContent() {
 
       <main className="proximamente-main">
         <section className="proximamente-card" aria-labelledby="proximamente-title">
-          <div className="proximamente-badge">
-            <Sparkles size={14} aria-hidden />
-            Próximamente
+          <div className="proximamente-status">
+            <div className="proximamente-badge">
+              <Sparkles size={14} aria-hidden />
+              Próximamente
+            </div>
+            <div className="proximamente-build">
+              <Construction size={14} aria-hidden />
+              En construcción
+            </div>
           </div>
 
           <div className="proximamente-icon-wrap" aria-hidden>
-            <Icon size={34} strokeWidth={1.6} />
+            {mod.icon}
             <span className="proximamente-icon-ring" />
           </div>
 
           <p className="proximamente-kicker">{mod.kicker}</p>
           <h1 id="proximamente-title">{mod.titulo}</h1>
           <p className="proximamente-lead">{mod.lead}</p>
+
+          <div className="proximamente-progress" aria-hidden>
+            <div className="proximamente-progress-bar">
+              <span className="proximamente-progress-fill" />
+            </div>
+            <p className="proximamente-progress-label">Integración en curso</p>
+          </div>
 
           <ul className="proximamente-list">
             {mod.bullets.map((item) => (
@@ -123,7 +162,9 @@ function ProximamenteContent() {
               Regresar al dashboard
             </Link>
             <p className="proximamente-footnote">
-              Mientras tanto puedes usar Inscripciones y Alta de Facturación.
+              {isUsuario
+                ? 'Mientras tanto puedes continuar con el resto de módulos administrativos.'
+                : 'Mientras tanto puedes usar Inscripciones y Alta de Facturación.'}
             </p>
           </div>
         </section>
@@ -134,7 +175,7 @@ function ProximamenteContent() {
 
 export default function ProximamentePage() {
   return (
-    <ProtectedRoute roles={['alumno']}>
+    <ProtectedRoute roles={['alumno', 'usuario']}>
       <Suspense
         fallback={
           <div className="proximamente-page">

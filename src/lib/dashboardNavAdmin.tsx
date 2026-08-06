@@ -4,9 +4,7 @@ import { urlProrrogasAjustesApp } from '@/lib/prorrogasAjustesConfig'
 import { urlCchicApp } from '@/lib/cchicConfig'
 import {
   urlBecasPanelApp,
-  urlBoletasApp,
   urlChequesApp,
-  urlReportesConductaApp,
 } from '@/lib/dashboardModulosConfig'
 
 export type DashboardAdminNavItem = {
