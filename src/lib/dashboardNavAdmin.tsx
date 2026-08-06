@@ -287,12 +287,12 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
-    label: 'Entregas SSIW',
+    label: 'Entregas a Pie',
     desc: 'Entrega de alumnos con salida a pie registrada para el día.',
     path: '/ssiw/entrar?ambiente=entregas',
     accent: 'emerald',
     kicker: 'Salida institucional',
-    tags: ['Entregas', 'SSIW'],
+    tags: ['Entregas', 'A pie'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
