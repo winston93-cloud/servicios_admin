@@ -239,11 +239,11 @@ export default function DashboardPage() {
 
           <div className="dashboard-header-brand" aria-hidden="true">
             <Image
-              src="/logos/logo-winston-churchill.png"
+              src="/logos/logo-winston.png"
               alt=""
-              width={120}
-              height={90}
-              className="dashboard-header-logo dashboard-header-logo--churchill"
+              width={160}
+              height={41}
+              className="dashboard-header-logo dashboard-header-logo--winston"
               priority
             />
             <Image
@@ -277,24 +277,24 @@ export default function DashboardPage() {
           <div className="dashboard-main-stage">
             <aside className="dashboard-flank dashboard-flank--start">
               <Image
-                src="/logos/logo-winston-churchill.png"
-                alt="Instituto Winston Churchill"
-                width={160}
-                height={120}
-                className="dashboard-flank-logo saas-logo-glow"
+                src="/logos/logo-winston.png"
+                alt="Winston"
+                width={220}
+                height={56}
+                className="dashboard-flank-logo dashboard-flank-logo--winston saas-logo-glow"
                 priority
               />
-              <span className="dashboard-flank-label">Instituto Winston Churchill</span>
+              <span className="dashboard-flank-label">Winston</span>
             </aside>
 
             <div className="dashboard-main-center">
               <div className="dashboard-mobile-logos" aria-hidden="true">
                 <Image
-                  src="/logos/logo-winston-churchill.png"
+                  src="/logos/logo-winston.png"
                   alt=""
-                  width={88}
-                  height={66}
-                  className="dashboard-mobile-logo saas-logo-glow"
+                  width={140}
+                  height={36}
+                  className="dashboard-mobile-logo dashboard-mobile-logo--winston saas-logo-glow"
                   priority
                 />
                 <Image
@@ -402,11 +402,11 @@ export default function DashboardPage() {
           <div className="dashboard-sidebar-header">
             <div className="dashboard-sidebar-logos">
               <Image
-                src="/logos/logo-winston-churchill.png"
-                alt="Instituto Winston Churchill"
-                width={56}
-                height={42}
-                className="dashboard-sidebar-institution-logo"
+                src="/logos/logo-winston.png"
+                alt="Winston"
+                width={96}
+                height={24}
+                className="dashboard-sidebar-institution-logo dashboard-sidebar-institution-logo--winston"
               />
               <Image
                 src="/logos/logo-winston-educativo.png"

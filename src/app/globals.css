@@ -2896,6 +2896,10 @@ body {
   flex-shrink: 0;
 }
 
+.dashboard-home .dashboard-flank--start {
+  width: clamp(160px, 18vw, 240px);
+}
+
 .dashboard-home .dashboard-flank-logo {
   width: auto;
   height: auto;
@@ -2903,6 +2907,19 @@ body {
   max-height: clamp(110px, 16vh, 168px);
   object-fit: contain;
   object-position: center;
+}
+
+.dashboard-home .dashboard-flank-logo--winston {
+  width: 100%;
+  max-width: 220px;
+  max-height: clamp(48px, 8vh, 64px);
+  height: auto;
+}
+
+.dashboard-home .dashboard-mobile-logo--winston {
+  width: clamp(120px, 42vw, 160px);
+  height: auto;
+  max-height: 40px;
 }
 
 .dashboard-home .dashboard-flank-label {
@@ -2913,6 +2930,10 @@ body {
   color: #94a3b8;
   letter-spacing: 0.02em;
   max-width: 140px;
+}
+
+.dashboard-home .dashboard-flank--start .dashboard-flank-label {
+  max-width: 200px;
 }
 
 .dashboard-home .dashboard-mobile-logos {
@@ -2949,6 +2970,11 @@ body {
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
 }
 
+.dashboard-home .dashboard-header-logo--winston {
+  height: 28px;
+  max-width: 140px;
+}
+
 .dashboard-home .dashboard-sidebar-logos {
   display: flex;
   align-items: center;
@@ -2961,6 +2987,11 @@ body {
   width: auto;
   max-width: 48px;
   object-fit: contain;
+}
+
+.dashboard-home .dashboard-sidebar-institution-logo--winston {
+  height: 22px;
+  max-width: 96px;
 }
 
 @media (min-width: 1100px) {
