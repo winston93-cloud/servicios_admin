@@ -15971,6 +15971,10 @@ a.pc-accion {
   object-fit: contain;
 }
 
+.portal-access-flank-logo--winston {
+  max-width: min(148px, 100%);
+}
+
 .portal-access-flank-label {
   font-size: 12px;
   font-weight: 600;
@@ -16001,6 +16005,11 @@ a.pc-accion {
   max-width: 100px;
   object-fit: contain;
   filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.35));
+}
+
+.portal-access-mobile-logo--winston {
+  height: 48px;
+  max-width: 72px;
 }
 
 .portal-access-card {

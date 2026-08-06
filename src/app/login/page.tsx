@@ -123,11 +123,11 @@ export default function LoginPage() {
 
       <aside className="portal-access-flank portal-access-flank--start">
         <Image
-          src="/logos/logo-winston-churchill.png"
+          src="/logos/logo-winston-w.png"
           alt="Instituto Winston Churchill"
           width={200}
           height={150}
-          className="portal-access-flank-logo saas-logo-glow"
+          className="portal-access-flank-logo portal-access-flank-logo--winston saas-logo-glow"
           priority
         />
         <p className="portal-access-flank-label">Instituto Winston Churchill</p>
@@ -139,11 +139,11 @@ export default function LoginPage() {
         </div>
         <div className="portal-access-mobile-logos" aria-hidden>
           <Image
-            src="/logos/logo-winston-churchill.png"
+            src="/logos/logo-winston-w.png"
             alt=""
             width={72}
             height={54}
-            className="portal-access-mobile-logo saas-logo-glow"
+            className="portal-access-mobile-logo portal-access-mobile-logo--winston saas-logo-glow"
             priority
           />
           <Image
@@ -380,9 +380,9 @@ export default function LoginPage() {
           )}
 
           <footer className="portal-access-foot">
-            <span>Winston Churchill</span>
+            <span>Instituto Winston Churchill</span>
             <span className="portal-access-foot-dot" aria-hidden />
-            <span>Winston Educativo</span>
+            <span>Instituto Educativo Winston</span>
           </footer>
         </div>
       </main>
@@ -390,13 +390,13 @@ export default function LoginPage() {
       <aside className="portal-access-flank portal-access-flank--end">
         <Image
           src="/logos/logo-winston-educativo.png"
-          alt="Winston Educativo"
+          alt="Instituto Educativo Winston"
           width={200}
           height={150}
           className="portal-access-flank-logo saas-logo-glow"
           priority
         />
-        <p className="portal-access-flank-label">Winston Educativo</p>
+        <p className="portal-access-flank-label">Instituto Educativo Winston</p>
       </aside>
     </div>
   )

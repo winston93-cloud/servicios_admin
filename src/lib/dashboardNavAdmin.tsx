@@ -42,21 +42,6 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     tags: ['POS', 'Estancias', 'Comidas'],
   },
   {
-    label: 'Servicios',
-    desc: 'Alumnos, pagos, becas y herramientas administrativas del ciclo escolar.',
-    path: '/servicios',
-    accent: 'indigo',
-    kicker: 'Administración',
-    tags: ['Alumnos', 'Pagos', 'Becas'],
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="12 2 2 7 12 12 22 7 12 2" />
-        <polyline points="2 17 12 22 22 17" />
-        <polyline points="2 12 12 17 22 12" />
-      </svg>
-    ),
-  },
-  {
     label: 'Reportes',
     desc: 'Consulta y generación de reportes administrativos por ciclo y área.',
     path: '/reportes',
@@ -68,6 +53,21 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
         <line x1="18" y1="20" x2="18" y2="10" />
         <line x1="12" y1="20" x2="12" y2="4" />
         <line x1="6" y1="20" x2="6" y2="14" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Servicios',
+    desc: 'Alumnos, pagos, becas y herramientas administrativas del ciclo escolar.',
+    path: '/servicios',
+    accent: 'indigo',
+    kicker: 'Administración',
+    tags: ['Alumnos', 'Pagos', 'Becas'],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="12 2 2 7 12 12 22 7 12 2" />
+        <polyline points="2 17 12 22 22 17" />
+        <polyline points="2 12 12 17 22 12" />
       </svg>
     ),
   },
@@ -102,6 +102,25 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
         <circle cx="9" cy="7" r="4" />
         <line x1="17" y1="8" x2="22" y2="13" />
         <line x1="22" y1="8" x2="17" y2="13" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Monitoreo y Control',
+    desc: 'Caja chica, egresos, fondos y reportes de control.',
+    href: urlCchicApp(),
+    accent: 'indigo',
+    kicker: 'Finanzas',
+    tags: ['Caja chica', 'Egresos'],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 20V10" />
+        <path d="M18 20V4" />
+        <path d="M6 20v-4" />
+        <rect x="3" y="2" width="18" height="4" rx="1" />
+        <path d="M7 6v2" />
+        <path d="M12 6v2" />
+        <path d="M17 6v2" />
       </svg>
     ),
   },
@@ -170,25 +189,6 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
         <path d="M9 20v-6h6v6" />
         <path d="M12 7v3" />
         <path d="M10.5 9.5h3" />
-      </svg>
-    ),
-  },
-  {
-    label: 'Monitoreo y Control',
-    desc: 'Caja chica, egresos, fondos y reportes de control.',
-    href: urlCchicApp(),
-    accent: 'indigo',
-    kicker: 'Finanzas',
-    tags: ['Caja chica', 'Egresos'],
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 20V10" />
-        <path d="M18 20V4" />
-        <path d="M6 20v-4" />
-        <rect x="3" y="2" width="18" height="4" rx="1" />
-        <path d="M7 6v2" />
-        <path d="M12 6v2" />
-        <path d="M17 6v2" />
       </svg>
     ),
   },
