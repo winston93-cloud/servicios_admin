@@ -9,9 +9,9 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 20px;
-  padding: 22px 24px;
-  min-height: 112px;
+  gap: 14px;
+  padding: 18px 16px 18px 18px;
+  min-height: 104px;
   border-radius: 16px;
   border-color: rgba(var(--dash-accent-rgb, 0, 227, 253), 0.24);
   background: linear-gradient(
@@ -147,9 +147,9 @@
 }
 
 .dashboard-home .dash-module-icon {
-  width: 56px;
-  height: 56px;
-  min-width: 56px;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
   border-radius: 14px;
   background: rgba(var(--dash-accent-rgb), 0.12);
   border: 1px solid rgba(var(--dash-accent-rgb), 0.32);

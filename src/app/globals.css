@@ -2876,7 +2876,7 @@ body {
   justify-content: center;
   gap: clamp(20px, 3vw, 40px);
   width: 100%;
-  max-width: 1320px;
+  max-width: 1480px;
   margin-inline: auto;
 }
 
@@ -3034,9 +3034,23 @@ body {
 }
 
 .dashboard-home .dashboard-nav-grid {
-  gap: 20px;
-  max-width: min(1080px, 100%);
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+  max-width: min(1200px, 100%);
+  width: 100%;
+  margin-inline: auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 1199px) {
+  .dashboard-home .dashboard-nav-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-home .dashboard-nav-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Acentos por módulo (iconos y borde lateral) */
