@@ -81,9 +81,10 @@ export async function POST(request: Request) {
       alumno.alumno_id,
       cicloEscolar
     )
-    // Pago anual (30) y otros: el modal ya trae el importe de la matriz.
+    // Solo concepto 30 (Pago Anual) puede traer importe de la matriz; el resto
+    // se recalcula en servidor para no afectar alumnos en clases.
     const importeCliente =
-      body.importe != null && body.importe !== ''
+      conceptoNo === '30' && body.importe != null && body.importe !== ''
         ? parseImporteBoucher(body.importe)
         : null
     const { importe, importeLinea, recargo } = await calcularBoucher(supabase, {

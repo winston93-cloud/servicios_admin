@@ -219,6 +219,14 @@ export async function activarAdeudoEgresado(
   _cicloValorIgnorado: number,
   conRecargos: boolean
 ): Promise<{ ok: true; estado: EstadoAdeudoEgresado } | { ok: false; error: string }> {
+  if (!esAlumnoEgresadoOBaja(alumno)) {
+    return {
+      ok: false,
+      error:
+        'Solo aplica a egresados o baja general. Los alumnos en clases no deben usarse en este módulo.',
+    }
+  }
+
   const cicloValor = cicloAdeudosSugerido(alumno)
   if (!Number.isFinite(cicloValor) || cicloValor <= 0) {
     return { ok: false, error: 'No se pudo determinar el ciclo de adeudos de la ficha.' }
