@@ -1,6 +1,6 @@
 /**
  * /servicios — Totality Festival (dark) + UI UX PRO MAX (light)
- * Modo claro: sidebar navy + área slate clara.
+ * Modo claro: sidebar clara + texto navy (legible).
  * Modo oscuro: obsidiana Totality + dorado/cian.
  */
 
@@ -22,13 +22,13 @@
 
   /* UI UX PRO MAX — tokens modo claro */
   --sx-surface: #e2e8f0;
-  --sx-sidebar: #1e3a5f;
-  --sx-sidebar-border: rgba(255, 255, 255, 0.12);
-  --sx-sidebar-text: #ffffff;
-  --sx-sidebar-muted: #e2e8f0;
-  --sx-sidebar-hover: rgba(255, 255, 255, 0.18);
-  --sx-sidebar-active: rgba(255, 255, 255, 0.26);
-  --sx-sidebar-accent: #7dd3fc;
+  --sx-sidebar: #f8fafc;
+  --sx-sidebar-border: #cbd5e1;
+  --sx-sidebar-text: #0f172a;
+  --sx-sidebar-muted: #334155;
+  --sx-sidebar-hover: #dbeafe;
+  --sx-sidebar-active: #1e40af;
+  --sx-sidebar-accent: #38bdf8;
   --sx-toolbar: #e2e8f0;
   --sx-text: #0f172a;
   --sx-text-secondary: #475569;
@@ -101,7 +101,7 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app {
   border-right: 1px solid var(--sx-sidebar-border);
   backdrop-filter: none;
   color: var(--sx-sidebar-text);
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+  box-shadow: 4px 0 20px rgba(15, 23, 42, 0.08);
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar-brand,
@@ -109,8 +109,9 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app {
   border-color: var(--sx-sidebar-border);
 }
 
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar-brand-text,
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar-user {
-  color: var(--sx-sidebar-muted);
+  color: var(--sx-sidebar-muted) !important;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar-collapse,
@@ -119,67 +120,103 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app {
   color: var(--sx-sidebar-text);
 }
 
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar-nav {
+  scrollbar-color: #94a3b8 transparent;
+}
+
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item,
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem {
-  color: var(--sx-sidebar-text);
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 0.015em;
+  color: var(--sx-sidebar-text) !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em;
+  margin-bottom: 3px;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem {
-  color: var(--sx-sidebar-muted);
-  font-size: 13.5px;
-  font-weight: 600;
+  color: var(--sx-sidebar-muted) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-label,
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem-label {
-  color: inherit;
-  font-weight: inherit;
-  opacity: 1;
+  color: inherit !important;
+  font-weight: inherit !important;
+  opacity: 1 !important;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-icon,
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-chevron {
-  color: var(--sx-sidebar-text);
-  opacity: 1;
+  color: #1e3a8a !important;
+  opacity: 1 !important;
+  stroke-width: 2.5px;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item:hover,
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem:hover {
-  background: var(--sx-sidebar-hover);
-  color: #ffffff;
+  background: var(--sx-sidebar-hover) !important;
+  color: #0f172a !important;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item:hover .servicios-nav-icon,
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item:hover .servicios-nav-chevron,
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem:hover .servicios-nav-chevron {
-  color: #ffffff;
+  color: #1d4ed8 !important;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item.active,
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem.active {
-  background: var(--sx-sidebar-active);
-  color: #ffffff;
+  background: var(--sx-sidebar-active) !important;
+  color: #ffffff !important;
   border-color: transparent;
-  box-shadow: inset 3px 0 0 var(--sx-sidebar-accent, #7dd3fc);
+  box-shadow: inset 3px 0 0 var(--sx-sidebar-accent, #38bdf8);
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item.active .servicios-nav-icon,
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item.active .servicios-nav-chevron,
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem.active .servicios-nav-chevron {
-  color: #ffffff;
+  color: #ffffff !important;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-submenu {
-  border-left-color: var(--sx-sidebar-accent, rgba(125, 211, 252, 0.55));
+  border-left-color: #2563eb;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar-logout {
-  background: rgba(0, 0, 0, 0.15);
+  background: #e2e8f0;
   border: 1px solid var(--sx-sidebar-border);
-  color: var(--sx-sidebar-text);
+  color: var(--sx-sidebar-text) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar {
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem {
+  color: #ffffff !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-icon,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-chevron {
+  color: #fff6df !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item:hover,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem:hover {
+  color: #ffffff !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item:hover .servicios-nav-icon,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item:hover .servicios-nav-chevron,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem:hover .servicios-nav-chevron {
+  color: #00e3fd !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar-logout {
+  background: rgba(0, 0, 0, 0.15);
+  color: #ffffff !important;
 }
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar-logout:hover {

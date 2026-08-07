@@ -301,10 +301,10 @@ function ServiciosPageInner() {
                   title={entry.label}
                   onClick={() => seleccionarModulo(entry.id)}
                 >
-                  <Icon className="servicios-nav-icon" size={18} strokeWidth={2.25} aria-hidden />
+                  <Icon className="servicios-nav-icon" size={20} strokeWidth={2.5} aria-hidden />
                   <span className="servicios-nav-label">{entry.label}</span>
                   {active && (
-                    <ChevronRight className="servicios-nav-chevron" size={16} aria-hidden />
+                    <ChevronRight className="servicios-nav-chevron" size={16} strokeWidth={2.5} aria-hidden />
                   )}
                 </button>
               )
@@ -327,11 +327,12 @@ function ServiciosPageInner() {
                   aria-expanded={abierto}
                   onClick={() => toggleGrupo(group.id)}
                 >
-                  <Icon className="servicios-nav-icon" size={18} strokeWidth={2.25} aria-hidden />
+                  <Icon className="servicios-nav-icon" size={20} strokeWidth={2.5} aria-hidden />
                   <span className="servicios-nav-label">{group.label}</span>
                   <ChevronDown
                     className={`servicios-nav-chevron servicios-nav-chevron--toggle ${abierto ? 'servicios-nav-chevron--open' : ''}`}
                     size={16}
+                    strokeWidth={2.5}
                     aria-hidden
                   />
                 </button>
