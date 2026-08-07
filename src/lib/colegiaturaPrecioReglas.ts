@@ -1,7 +1,8 @@
 /**
  * Reglas de colegiatura (portal / baucher):
  * - Beca Winston (alumno_beca: IMSS, Winston, etc.): se pierde después del día 10 del mes del concepto.
- * - Beca SEP (lista fija por alumno_ref): nunca se pierde; solo aplica recargo.
+ * - Beca SEP (lista fija por alumno_ref, solo su ciclo de datos p.ej. 22):
+ *   nunca se pierde dentro de ese ciclo; solo aplica recargo. No arrastra a 23+.
  * - Recargo: $75 por cada mes de atraso (a partir del día 11 del mes del concepto).
  *
  * El mes del concepto vive en un año calendario del ciclo (valor N → ago N+2003 … jul N+2004).

@@ -201,7 +201,7 @@ export function montoBaseConcepto(
 
 /**
  * Importe ventanilla (sin recargo).
- * - SEP: monto fijo de la lista (siempre).
+ * - SEP: monto fijo de la lista solo en su ciclo de datos (hoy 22 = 2025-2026).
  * - Winston: % de alumno_beca solo hasta el día 10 del mes del concepto.
  */
 export function calcularImporteConcepto(
@@ -221,7 +221,7 @@ export function calcularImporteConcepto(
   const { montoNormal, admiteBecaWinston } = montoBaseConcepto(c, precio, planMeses)
 
   if (opts?.alumnoRef != null && conceptoAplicaSepYRecargo(c)) {
-    const sep = montoBecaSep(opts.alumnoRef)
+    const sep = montoBecaSep(opts.alumnoRef, opts.cicloEscolar)
     if (sep != null) return sep
   }
 

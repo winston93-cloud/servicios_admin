@@ -1,4 +1,10 @@
-/** Montos fijos Beca SEP (ciclo 2025-2026). Fuente: reportes/resources/php/integracion_sep.php */
+import { BECAS_SEP_CICLO_DATOS } from './becasSepOpenHouse'
+
+/**
+ * Montos fijos Beca SEP del ciclo de datos 22 (2025-2026).
+ * Fuente: reportes/resources/php/integracion_sep.php
+ * Solo aplica cuando el ciclo cobrado es BECAS_SEP_CICLO_DATOS (22→23→… cada temporada).
+ */
 export const INTEGRACION_SEP_MONTO: Record<number, number> = {
   21592: 2795.63,
   21454: 2763.93,
@@ -113,7 +119,17 @@ export const INTEGRACION_SEP_MONTO: Record<number, number> = {
   20809: 3120.00,
 }
 
-export function montoBecaSep(alumnoRef: string | number): number | null {
+/**
+ * Monto fijo SEP para colegiatura. Exige el ciclo de cobro:
+ * la lista es del ciclo 22; en 23+ no debe pisar precio lista / Winston.
+ */
+export function montoBecaSep(
+  alumnoRef: string | number,
+  cicloEscolar?: number | null
+): number | null {
+  if (cicloEscolar == null || Number(cicloEscolar) !== BECAS_SEP_CICLO_DATOS) {
+    return null
+  }
   const ref = Number(alumnoRef)
   if (!Number.isFinite(ref)) return null
   const m = INTEGRACION_SEP_MONTO[ref]
