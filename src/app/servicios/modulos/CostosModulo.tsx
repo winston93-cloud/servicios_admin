@@ -8,6 +8,7 @@ import {
   etiquetaNivelPrecioBoucher,
 } from '@/lib/boucherCore'
 import ConceptosPagoCatalogo from './ConceptosPagoCatalogo'
+import UsuariosPinGate from '../components/UsuariosPinGate'
 
 type TabCostos = 'precios' | 'conceptos'
 
@@ -249,6 +250,11 @@ export default function CostosModulo() {
   ]
 
   return (
+    <UsuariosPinGate
+      eyebrow="Servicios · Costos"
+      titulo="Acceso a costos"
+      lead="Ingresa el PIN para consultar o editar precios y conceptos de pago."
+    >
     <div className="servicios-panel-inner">
       <header className="servicios-panel-header servicios-panel-header--compact">
         <h1 className="servicios-panel-title">Costos</h1>
@@ -529,5 +535,6 @@ export default function CostosModulo() {
       </div>
       )}
     </div>
+    </UsuariosPinGate>
   )
 }
