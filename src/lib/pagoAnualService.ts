@@ -60,6 +60,7 @@ export type EstadoPagoAnual = {
   conceptosCubiertos: string[]
   bloqueadoPorPagos: boolean
   puedeActivar: boolean
+  puedeDesactivar: boolean
   activo: boolean
   pagado: boolean
   vencimiento: string | null
@@ -241,7 +242,9 @@ export async function consultarEstadoPagoAnual(
     descuentoPct: DESCUENTO_PAGO_ANUAL * 100,
     conceptosCubiertos: conceptos,
     bloqueadoPorPagos,
-    puedeActivar: !bloqueadoPorPagos && !pagado && !vencido && !activo,
+    // Admin puede activar/desactivar para pruebas (aunque la fecha oficial ya haya pasado).
+    puedeActivar: !bloqueadoPorPagos && !activo && !pagado,
+    puedeDesactivar: Boolean(reg && (activo || pagado)),
     activo,
     pagado,
     vencimiento,
@@ -257,7 +260,10 @@ export async function activarPagoAnual(
 ): Promise<{ ok: true; estado: EstadoPagoAnual } | { ok: false; error: string }> {
   const estado = await consultarEstadoPagoAnual(db, alumno, cicloValor)
   if (estado.pagado) {
-    return { ok: false, error: 'El pago anual de este ciclo ya está pagado.' }
+    return {
+      ok: false,
+      error: 'El pago anual ya está cobrado. Desactívalo primero para revertir y volver a probar.',
+    }
   }
   if (estado.bloqueadoPorPagos) {
     return {
@@ -266,17 +272,20 @@ export async function activarPagoAnual(
         'Ya hay colegiaturas pagadas (septiembre–junio/julio). No se puede activar pago anual.',
     }
   }
-  if (estado.vencido) {
-    return {
-      ok: false,
-      error: `La fecha límite (${estado.vencimiento}) ya pasó. No se puede activar pago anual.`,
-    }
-  }
   if (estado.activo) {
     return { ok: true, estado }
   }
 
-  const vencimiento = vencimientoPagoAnual(cicloValor)
+  // Si la fecha oficial ya pasó, deja 14 días más para poder probar en admin.
+  const oficial = vencimientoPagoAnual(cicloValor)
+  const hoy = hoyIsoFecha()
+  let vencimiento = oficial
+  if (hoy > oficial) {
+    const d = new Date(`${hoy}T12:00:00`)
+    d.setDate(d.getDate() + 14)
+    vencimiento = d.toISOString().slice(0, 10)
+  }
+
   const ahora = new Date().toISOString()
   const fila = {
     alumno_id: alumno.alumno_id,
@@ -303,6 +312,10 @@ export async function activarPagoAnual(
   return { ok: true, estado: await consultarEstadoPagoAnual(db, alumno, cicloValor) }
 }
 
+/**
+ * Desactiva pago anual. Si ya estaba cobrado, cancela el concepto 30 y las
+ * coberturas en $0 (forma «Pago Anual») para poder volver a probar.
+ */
 export async function desactivarPagoAnual(
   db: AppDatabaseClient,
   alumno: AlumnoRegistro,
@@ -310,16 +323,45 @@ export async function desactivarPagoAnual(
   motivo = 'Desactivado manualmente desde Servicios.'
 ): Promise<{ ok: true; estado: EstadoPagoAnual } | { ok: false; error: string }> {
   const reg = await obtenerRegistroPagoAnual(db, alumno.alumno_id, cicloValor)
-  if (!reg) return { ok: false, error: 'No hay pago anual activo para este alumno.' }
-  if (reg.pagado) {
-    return { ok: false, error: 'El pago anual ya fue cobrado; no se puede desactivar.' }
-  }
+  if (!reg) return { ok: false, error: 'No hay registro de pago anual para este alumno.' }
 
   const ahora = new Date().toISOString()
+  const pagos = await listarPagosColegiaturaAlumno(alumno.alumno_id, cicloValor)
+  const planMeses = planMesesNormalizado(reg.plan_meses)
+  const conceptosCero = new Set(conceptosColegiaturaPagoAnual(planMeses))
+
+  for (const p of pagos) {
+    if (p.pago_cancelado === 1 || p.pago_cancelado === 2) continue
+    const parsed = parsearReferenciaPago(p.pago_referencia)
+    if (!parsed || parsed.cicloEscolar !== cicloValor) continue
+    const c = normalizarConceptoNo(parsed.conceptoNo)
+    const esConcepto30 = c === CONCEPTO_PAGO_ANUAL
+    const esCoberturaCero =
+      conceptosCero.has(c) &&
+      Number(p.pago_importe) === 0 &&
+      String(p.pago_forma ?? '').trim() === FORMA_CUBIERTA
+
+    if (!esConcepto30 && !esCoberturaCero) continue
+
+    const { error: cancelErr } = await db
+      .from('pago_detalle')
+      .update({
+        pago_cancelado: 1,
+        pago_actualizacion: ahora,
+      })
+      .eq('pago_id', p.pago_id)
+
+    if (cancelErr) {
+      console.error('desactivarPagoAnual cancel:', p.pago_id, cancelErr.message)
+    }
+  }
+
   const { error } = await db
     .from('alumno_pago_anual')
     .update({
       activo: false,
+      pagado: false,
+      pagado_en: null,
       desactivado_en: ahora,
       desactivado_motivo: motivo,
       actualizado_en: ahora,

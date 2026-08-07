@@ -24,6 +24,7 @@ type EstadoPagoAnual = {
   conceptosCubiertos: string[]
   bloqueadoPorPagos: boolean
   puedeActivar: boolean
+  puedeDesactivar: boolean
   activo: boolean
   pagado: boolean
   vencimiento: string | null
@@ -103,8 +104,12 @@ export default function PagoAnualModulo() {
         return
       }
       setEstado(data)
-      if (accion === 'activar') setMensaje('Pago anual activado. El alumno lo verá en el portal hasta el 15 de agosto.')
-      if (accion === 'desactivar') setMensaje('Pago anual desactivado. El portal vuelve al plan mensual.')
+      if (accion === 'activar') setMensaje('Pago anual activado. El alumno lo verá en el portal.')
+      if (accion === 'desactivar') {
+        setMensaje(
+          'Pago anual desactivado. Se revirtió la cobertura (concepto 30 y meses en $0 cancelados).'
+        )
+      }
       if (accion === 'pago-efectivo') {
         setMensaje(
           `Pago en efectivo registrado${data.referencia ? ` (${data.referencia})` : ''}. Colegiaturas del plan cubiertas.`
@@ -228,7 +233,8 @@ export default function PagoAnualModulo() {
 
               {estado.pagado ? (
                 <div className="pa-alert pa-alert--ok" role="status">
-                  Pago anual cobrado. Las colegiaturas del plan quedaron cubiertas.
+                  Pago anual cobrado. Las colegiaturas del plan quedaron cubiertas. Puedes
+                  desactivarlo para revertir y volver a probar.
                 </div>
               ) : null}
 
@@ -239,39 +245,58 @@ export default function PagoAnualModulo() {
                 </div>
               ) : null}
 
+              {!estado.activo && !estado.pagado && !estado.bloqueadoPorPagos ? (
+                <div className="pa-alert pa-alert--info" role="status">
+                  Listo para activar. El alumno verá el concepto 30 en el portal.
+                </div>
+              ) : null}
+
               <div className="pa-acciones">
-                {estado.puedeActivar ? (
+                <button
+                  type="button"
+                  className="usr-btn usr-btn-primary"
+                  disabled={guardando || !estado.puedeActivar}
+                  onClick={() => void postAccion('activar')}
+                  title={
+                    estado.puedeActivar
+                      ? 'Activar pago anual en el portal'
+                      : estado.activo
+                        ? 'Ya está activo'
+                        : estado.pagado
+                          ? 'Desactiva primero para volver a activar'
+                          : estado.bloqueadoPorPagos
+                            ? 'Hay colegiaturas pagadas'
+                            : 'No se puede activar'
+                  }
+                >
+                  {guardando ? <Loader2 className="usr-spin" size={16} /> : <Sparkles size={16} />}
+                  Activar pago anual
+                </button>
+
+                <button
+                  type="button"
+                  className="usr-btn"
+                  disabled={guardando || !estado.puedeDesactivar}
+                  onClick={() => void postAccion('desactivar')}
+                  title={
+                    estado.puedeDesactivar
+                      ? 'Desactivar y revertir cobertura de prueba'
+                      : 'No hay pago anual que desactivar'
+                  }
+                >
+                  Desactivar
+                </button>
+
+                {estado.activo && !estado.pagado ? (
                   <button
                     type="button"
                     className="usr-btn usr-btn-primary"
                     disabled={guardando}
-                    onClick={() => void postAccion('activar')}
+                    onClick={() => void postAccion('pago-efectivo')}
                   >
-                    {guardando ? <Loader2 className="usr-spin" size={16} /> : <Sparkles size={16} />}
-                    Activar pago anual
+                    {guardando ? <Loader2 className="usr-spin" size={16} /> : <Banknote size={16} />}
+                    Registrar pago en efectivo
                   </button>
-                ) : null}
-
-                {estado.activo && !estado.pagado ? (
-                  <>
-                    <button
-                      type="button"
-                      className="usr-btn usr-btn-primary"
-                      disabled={guardando}
-                      onClick={() => void postAccion('pago-efectivo')}
-                    >
-                      {guardando ? <Loader2 className="usr-spin" size={16} /> : <Banknote size={16} />}
-                      Registrar pago en efectivo
-                    </button>
-                    <button
-                      type="button"
-                      className="usr-btn"
-                      disabled={guardando}
-                      onClick={() => void postAccion('desactivar')}
-                    >
-                      Desactivar
-                    </button>
-                  </>
                 ) : null}
               </div>
 
