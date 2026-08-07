@@ -74,12 +74,18 @@ export async function POST(request: Request) {
 
     const supabase = createSupabaseAdmin()
     const { resolverPlanMesesParaCiclo } = await import('@/lib/portalPlanMesesCiclo')
+    const { parseImporteBoucher } = await import('@/lib/boucherCore')
     const planMeses = await resolverPlanMesesParaCiclo(supabase, alumno, cicloEscolar)
     const omitirRecargos = await omitirRecargosAdeudoEgresado(
       supabase,
       alumno.alumno_id,
       cicloEscolar
     )
+    // Pago anual (30) y otros: el modal ya trae el importe de la matriz.
+    const importeCliente =
+      body.importe != null && body.importe !== ''
+        ? parseImporteBoucher(body.importe)
+        : null
     const { importe, importeLinea, recargo } = await calcularBoucher(supabase, {
       alumnoId,
       alumnoRef: alumno.alumno_ref,
@@ -89,6 +95,7 @@ export async function POST(request: Request) {
       cicloEscolar,
       planMeses,
       omitirRecargos,
+      importeManual: importeCliente != null && importeCliente > 0 ? importeCliente : null,
     })
 
     const montoSpei = importeLinea > 0 ? importeLinea : importe

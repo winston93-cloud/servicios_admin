@@ -9,7 +9,6 @@ import {
   Wallet,
 } from 'lucide-react'
 import { useAlumnoSeleccionado } from '@/contexts/AlumnoSeleccionadoContext'
-import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
 import UsuariosPinGate from '../components/UsuariosPinGate'
@@ -23,6 +22,8 @@ type EstadoAdeudoEgresado = {
   cicloFicha: number
   cicloValor: number
   cicloEtiqueta: string
+  cicloSugerido: number
+  cicloSugeridoEtiqueta: string
   esEgresado: boolean
   activo: boolean
   conRecargos: boolean
@@ -31,7 +32,6 @@ type EstadoAdeudoEgresado = {
 }
 
 export default function AdeudosEgresadosModulo() {
-  const { cicloSeleccionado } = useCicloEscolar()
   const { alumnoSeleccionado, setAlumnoSeleccionado, resolviendoCiclo } =
     useAlumnoSeleccionado()
 
@@ -42,13 +42,13 @@ export default function AdeudosEgresadosModulo() {
   const [error, setError] = useState<string | null>(null)
   const [mensaje, setMensaje] = useState<string | null>(null)
 
-  const cargar = useCallback(async (alumnoId: number, cicloValor: number) => {
+  const cargar = useCallback(async (alumnoId: number) => {
     setCargando(true)
     setError(null)
     setMensaje(null)
     try {
       const res = await fetch(
-        `/api/servicios/adeudos-egresados?alumnoId=${alumnoId}&cicloValor=${cicloValor}`,
+        `/api/servicios/adeudos-egresados?alumnoId=${alumnoId}`,
         { cache: 'no-store' }
       )
       const data = (await res.json().catch(() => ({}))) as EstadoAdeudoEgresado & {
@@ -74,8 +74,8 @@ export default function AdeudosEgresadosModulo() {
       setEstado(null)
       return
     }
-    void cargar(alumnoSeleccionado.alumno_id, cicloSeleccionado)
-  }, [alumnoSeleccionado?.alumno_id, cicloSeleccionado, cargar])
+    void cargar(alumnoSeleccionado.alumno_id)
+  }, [alumnoSeleccionado?.alumno_id, cargar])
 
   const postAccion = async (accion: 'activar' | 'desactivar' | 'recargos') => {
     if (!estado) return
@@ -89,7 +89,6 @@ export default function AdeudosEgresadosModulo() {
         body: JSON.stringify({
           accion,
           alumnoId: estado.alumnoId,
-          cicloValor: cicloSeleccionado,
           conRecargos,
         }),
       })
@@ -104,7 +103,7 @@ export default function AdeudosEgresadosModulo() {
       setConRecargos(data.conRecargos !== false)
       if (accion === 'activar') {
         setMensaje(
-          'Acceso activado. El egresado puede entrar al portal y pagar adeudos del ciclo seleccionado. Su estatus y grado no cambian.'
+          `Acceso activado para adeudos del ciclo ${data.cicloEtiqueta}. El egresado puede entrar al portal; su estatus y grado no cambian.`
         )
       }
       if (accion === 'desactivar') {
@@ -137,8 +136,8 @@ export default function AdeudosEgresadosModulo() {
           </h1>
           <p className="servicios-panel-lead">
             Activa el acceso al portal para egresados (baja general) que aún deban conceptos del
-            ciclo en que terminaron. No cambia su estatus ni grado: solo pueden liquidar adeudos
-            con los costos de ese ciclo.
+            ciclo que cursaron. El ciclo de adeudos se toma de la ficha (no del selector del
+            menú). No cambia estatus ni grado.
           </p>
         </header>
 
@@ -158,22 +157,13 @@ export default function AdeudosEgresadosModulo() {
               className="usr-btn"
               disabled={!alumnoSeleccionado || cargando || guardando}
               onClick={() =>
-                alumnoSeleccionado &&
-                void cargar(alumnoSeleccionado.alumno_id, cicloSeleccionado)
+                alumnoSeleccionado && void cargar(alumnoSeleccionado.alumno_id)
               }
             >
               {cargando ? <Loader2 className="usr-spin" size={16} /> : <RefreshCw size={16} />}
               Actualizar
             </button>
           </div>
-
-          <p className="pa-ciclo-hint">
-            Ciclo de adeudos:{' '}
-            <strong>{etiquetaCicloEscolar(cicloSeleccionado)}</strong>
-            {' · '}
-            debe ser el ciclo que <em>cursó</em> (ej. 2025-2026), no el ciclo actual donde ya
-            figura como egresada.
-          </p>
 
           {error ? (
             <p className="pa-alert pa-alert--error" role="alert">
@@ -215,35 +205,19 @@ export default function AdeudosEgresadosModulo() {
                 </div>
                 <div>
                   <span className="pa-monto-label">Ciclo de adeudos</span>
-                  <strong>{estado.cicloEtiqueta}</strong>
+                  <strong>{estado.cicloSugeridoEtiqueta || estado.cicloEtiqueta}</strong>
                 </div>
               </div>
 
-              {!estado.esEgresado ? (
+              {estado.activo && estado.cicloValor !== estado.cicloSugerido ? (
                 <div className="pa-bloqueado" role="status">
                   <ShieldAlert size={18} aria-hidden />
                   <div>
-                    <strong>No parece egresado / baja general</strong>
+                    <strong>Ciclo activo incorrecto</strong>
                     <p>
-                      Puedes activarlo igual para pruebas. El acceso no modifica estatus ni grado.
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-
-              {estado.esEgresado && estado.cicloValor === estado.cicloFicha ? (
-                <div className="pa-bloqueado" role="status">
-                  <ShieldAlert size={18} aria-hidden />
-                  <div>
-                    <strong>Ciclo incorrecto para adeudos</strong>
-                    <p>
-                      En la ficha ya está en el ciclo{' '}
-                      <strong>{etiquetaCicloEscolar(estado.cicloFicha)}</strong> como egresada.
-                      Los adeudos son del ciclo que cursó (normalmente el anterior:{' '}
-                      <strong>
-                        {etiquetaCicloEscolar(estado.cicloFicha - 1) || estado.cicloFicha - 1}
-                      </strong>
-                      ). Cambia el ciclo de trabajo arriba y vuelve a activar.
+                      Tiene acceso en <strong>{estado.cicloEtiqueta}</strong>, pero según la
+                      ficha debe ser <strong>{estado.cicloSugeridoEtiqueta}</strong>. Desactiva y
+                      vuelve a activar para corregirlo.
                     </p>
                   </div>
                 </div>
@@ -251,13 +225,13 @@ export default function AdeudosEgresadosModulo() {
 
               {estado.activo ? (
                 <div className="pa-alert pa-alert--info" role="status">
-                  Acceso activo: puede iniciar sesión en el portal y pagar adeudos del ciclo{' '}
+                  Acceso activo: puede iniciar sesión y pagar adeudos del ciclo{' '}
                   <strong>{estado.cicloEtiqueta}</strong>. Sigue siendo egresado / baja general.
                 </div>
               ) : (
                 <div className="pa-alert pa-alert--info" role="status">
-                  Sin acceso. Al activar, el alumno entra al portal solo para liquidar pendientes
-                  del ciclo seleccionado (el que cursó, no el de egreso).
+                  Al activar, el portal abrirá adeudos del ciclo{' '}
+                  <strong>{estado.cicloSugeridoEtiqueta}</strong> (el que cursó según la ficha).
                 </div>
               )}
 
@@ -278,17 +252,8 @@ export default function AdeudosEgresadosModulo() {
                 <button
                   type="button"
                   className="usr-btn usr-btn-primary"
-                  disabled={
-                    guardando ||
-                    !estado.puedeActivar ||
-                    (estado.esEgresado && estado.cicloValor === estado.cicloFicha)
-                  }
+                  disabled={guardando || !estado.puedeActivar}
                   onClick={() => void postAccion('activar')}
-                  title={
-                    estado.esEgresado && estado.cicloValor === estado.cicloFicha
-                      ? 'Elige el ciclo anterior (el que cursó), no el de egreso'
-                      : undefined
-                  }
                 >
                   {guardando ? <Loader2 className="usr-spin" size={16} /> : <Wallet size={16} />}
                   Activar acceso

@@ -19,19 +19,13 @@ function exigirPin(request: Request): NextResponse | null {
   )
 }
 
-async function resolverAlumno(opts: {
-  alumnoId?: number
-  alumnoRef?: string
-  cicloValor: number
-}) {
+async function resolverAlumno(opts: { alumnoId?: number; alumnoRef?: string }) {
   if (opts.alumnoId && Number.isFinite(opts.alumnoId) && opts.alumnoId > 0) {
     return obtenerAlumnoPorId(opts.alumnoId)
   }
   const ref = String(opts.alumnoRef ?? '').trim()
   if (!ref) return null
-  return (
-    (await obtenerAlumnoPorRef(ref, opts.cicloValor)) ?? (await obtenerAlumnoPorRef(ref))
-  )
+  return obtenerAlumnoPorRef(ref)
 }
 
 export async function GET(request: Request) {
@@ -40,25 +34,19 @@ export async function GET(request: Request) {
 
   try {
     const url = new URL(request.url)
-    const cicloValor = Number(url.searchParams.get('cicloValor'))
     const alumnoId = Number(url.searchParams.get('alumnoId'))
     const alumnoRef = url.searchParams.get('alumnoRef') ?? ''
-
-    if (!Number.isFinite(cicloValor) || cicloValor <= 0) {
-      return NextResponse.json({ error: 'cicloValor es obligatorio' }, { status: 400 })
-    }
 
     const alumno = await resolverAlumno({
       alumnoId: Number.isFinite(alumnoId) ? alumnoId : undefined,
       alumnoRef,
-      cicloValor,
     })
     if (!alumno) {
       return NextResponse.json({ error: 'Alumno no encontrado.' }, { status: 404 })
     }
 
     const supabase = createSupabaseAdmin()
-    const estado = await consultarEstadoAdeudoEgresado(supabase, alumno, cicloValor)
+    const estado = await consultarEstadoAdeudoEgresado(supabase, alumno)
     return NextResponse.json({ ok: true, ...estado })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Error al consultar adeudo egresado'
@@ -76,21 +64,14 @@ export async function POST(request: Request) {
       accion?: string
       alumnoId?: number
       alumnoRef?: string
-      cicloValor?: number
       conRecargos?: boolean
     }
 
-    const cicloValor = Number(body.cicloValor)
     const accion = String(body.accion ?? 'activar').trim().toLowerCase()
-
-    if (!Number.isFinite(cicloValor) || cicloValor <= 0) {
-      return NextResponse.json({ error: 'cicloValor es obligatorio' }, { status: 400 })
-    }
 
     const alumno = await resolverAlumno({
       alumnoId: Number(body.alumnoId),
       alumnoRef: body.alumnoRef,
-      cicloValor,
     })
     if (!alumno) {
       return NextResponse.json({ error: 'Alumno no encontrado.' }, { status: 404 })
@@ -100,24 +81,19 @@ export async function POST(request: Request) {
     const conRecargos = body.conRecargos !== false
 
     if (accion === 'desactivar') {
-      const r = await desactivarAdeudoEgresado(supabase, alumno, cicloValor)
+      const r = await desactivarAdeudoEgresado(supabase, alumno)
       if (!r.ok) return NextResponse.json({ ok: false, error: r.error }, { status: 422 })
       return NextResponse.json({ ok: true, ...r.estado })
     }
 
     if (accion === 'activar') {
-      const r = await activarAdeudoEgresado(supabase, alumno, cicloValor, conRecargos)
+      const r = await activarAdeudoEgresado(supabase, alumno, 0, conRecargos)
       if (!r.ok) return NextResponse.json({ ok: false, error: r.error }, { status: 422 })
       return NextResponse.json({ ok: true, ...r.estado })
     }
 
     if (accion === 'recargos') {
-      const r = await actualizarRecargosAdeudoEgresado(
-        supabase,
-        alumno,
-        cicloValor,
-        conRecargos
-      )
+      const r = await actualizarRecargosAdeudoEgresado(supabase, alumno, 0, conRecargos)
       if (!r.ok) return NextResponse.json({ ok: false, error: r.error }, { status: 422 })
       return NextResponse.json({ ok: true, ...r.estado })
     }

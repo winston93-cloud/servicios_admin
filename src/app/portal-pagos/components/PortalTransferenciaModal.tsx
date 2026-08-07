@@ -149,6 +149,7 @@ export default function PortalTransferenciaModal({
           cicloTemporada: datos.cicloTemporada,
           conceptoClase: datos.concepto,
           nombreAlumno: datos.alumno,
+          importe: datos.importe,
           deviceSessionId: deviceSessionId || undefined,
         }),
       })
