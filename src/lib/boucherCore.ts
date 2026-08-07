@@ -122,6 +122,8 @@ export function getPaymentConcept(conceptoNo: string): string {
       return 'Doble Titulación 3'
     case '26':
       return 'Colegiatura Julio'
+    case '30':
+      return 'Pago Anual'
     default:
       return '-None-'
   }

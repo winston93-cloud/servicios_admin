@@ -20,6 +20,15 @@ export function slotsColegiaturaPortal(planMeses: number): string[][] {
   return slots
 }
 
+/**
+ * Con pago anual activo y pendiente: cuota 00 + concepto 30 (en lugar de sep–jun/jul).
+ * El material 16 queda fuera hasta que se liquide el anual (luego el candado normal lo muestra).
+ */
+export function slotsColegiaturaConPagoAnual(planMeses: number, pagoAnualPendiente: boolean): string[][] {
+  if (!pagoAnualPendiente) return slotsColegiaturaPortal(planMeses)
+  return [['00'], ['30']]
+}
+
 /** Cambridge / Winston USA: un concepto por paso. */
 export function slotsLineales(conceptos: readonly string[]): string[][] {
   return conceptos.map((c) => [normalizarConceptoNo(c)])

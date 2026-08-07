@@ -238,6 +238,13 @@ async function procesarChargeSucceeded(
 
   await insertarPagoOpenpay(supabase, alumno.alumno_id, alumno.pago_nombre, referencia, importe)
 
+  try {
+    const { talvezAplicarCoberturaPagoAnual } = await import('./pagoAnualCoberturaHook')
+    await talvezAplicarCoberturaPagoAnual(supabase, referencia, { importe })
+  } catch (e) {
+    console.error('cobertura pago anual (Openpay):', e)
+  }
+
   const factura = await intentarTimbrarTrasOpenpay(supabase, referencia)
 
   return {

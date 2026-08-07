@@ -22,9 +22,15 @@ import {
 import type { PagoDetalleRegistro } from './pagoColegiaturaService'
 import {
   filtrarFilasPorCandado,
-  slotsColegiaturaPortal,
+  slotsColegiaturaConPagoAnual,
   slotsLineales,
 } from './portalPagosCandados'
+import {
+  alumnoTienePagoAnualPendiente,
+  calcularMontoPagoAnual,
+  CONCEPTO_PAGO_ANUAL,
+  etiquetaPagoAnual,
+} from './pagoAnualService'
 import { obtenerAperturaConceptosPortal } from './portalAperturaConceptosService'
 import { mapCorreccionesManualesVigentes } from './portalAdmisionesProrroga'
 import {
@@ -88,8 +94,8 @@ const CONCEPTOS_SECCION_PROPIA = new Set([
   ...SECCION_USA.conceptos,
 ])
 
-/** Material y Seguro (17) no se lista en el portal alumno. */
-const CONCEPTOS_EXCLUIDOS_COLEGIATURA = new Set(['17', ...CONCEPTOS_SECCION_PROPIA])
+/** Material y Seguro (17) no se lista en el portal alumno. Pago anual (30) se inyecta aparte. */
+const CONCEPTOS_EXCLUIDOS_COLEGIATURA = new Set(['17', '30', ...CONCEPTOS_SECCION_PROPIA])
 
 /** Orden al construir filas (16 va junto a enero en pantalla vía slots). */
 const ORDEN_COLEGIATURA_PORTAL = [
@@ -106,6 +112,7 @@ const ORDEN_COLEGIATURA_PORTAL = [
   '09',
   '10',
   '26',
+  '30',
 ] as const
 
 export function etiquetaPlanPagos(planMeses: number): string {
@@ -377,6 +384,24 @@ export async function construirMatrizPortalPagos(
   const planEtiqueta = etiquetaPlanPagos(planMeses)
 
   const conceptosColeg = await listarConceptosColegiatura(supabase, planMeses)
+  const pagoAnualPendiente = await alumnoTienePagoAnualPendiente(
+    supabase,
+    alumno.alumno_id,
+    ciclo.valor
+  )
+
+  if (pagoAnualPendiente) {
+    const yaTiene30 = conceptosColeg.some(
+      (c) => normalizarConceptoNo(c.concepto_no) === CONCEPTO_PAGO_ANUAL
+    )
+    if (!yaTiene30) {
+      conceptosColeg.push({
+        concepto_no: CONCEPTO_PAGO_ANUAL,
+        concepto_clase: etiquetaPagoAnual(),
+      })
+    }
+  }
+
   const filasColegRaw = await construirFilas(
     supabase,
     alumno,
@@ -385,9 +410,29 @@ export async function construirMatrizPortalPagos(
     pagos,
     planMeses
   )
+
+  if (pagoAnualPendiente) {
+    const { montoConDescuento } = await calcularMontoPagoAnual(
+      supabase,
+      alumno,
+      ciclo.valor,
+      planMeses === 2 ? 2 : 1
+    )
+    for (const f of filasColegRaw) {
+      if (normalizarConceptoNo(f.conceptoNo) !== CONCEPTO_PAGO_ANUAL || f.pagado) continue
+      f.conceptoClase = etiquetaPagoAnual()
+      f.importe = montoConDescuento
+      f.importeLinea = montoConDescuento
+      f.recargo = 0
+      const semibase = referenciaSemibase(alumno.alumno_ref, CONCEPTO_PAGO_ANUAL, ciclo.valor)
+      f.referencia = getDigVerif(montoConDescuento, semibase)
+      f.referenciaLinea = f.referencia
+    }
+  }
+
   const filasColeg = filtrarFilasPorCandado(
     filasColegRaw,
-    slotsColegiaturaPortal(planMeses)
+    slotsColegiaturaConPagoAnual(planMeses, pagoAnualPendiente)
   )
 
   const secciones: SeccionMatrizPortal[] = [

@@ -19,6 +19,7 @@ import {
   BookOpenCheck,
   ShieldAlert,
   UserCog,
+  Sparkles,
 } from 'lucide-react'
 
 export type ServiciosModuloId =
@@ -43,6 +44,7 @@ export type ServiciosModuloId =
   | 'csd-vencimientos'
   | 'usuarios-catalogo'
   | 'cambiar-plan'
+  | 'pago-anual'
 
 export interface ServiciosSubMenuItem {
   id: ServiciosModuloId
@@ -115,6 +117,12 @@ export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
     id: 'cambiar-plan',
     label: 'Cambiar plan',
     icon: CalendarRange,
+  },
+  {
+    type: 'leaf',
+    id: 'pago-anual',
+    label: 'Pago Anual',
+    icon: Sparkles,
   },
 ]
 

@@ -34,6 +34,7 @@ import AperturaCambridgeDobleModulo from './modulos/AperturaCambridgeDobleModulo
 import CsdVencimientosModulo from './modulos/CsdVencimientosModulo'
 import UsuariosCatalogoModulo from './modulos/UsuariosCatalogoModulo'
 import CambiarPlanModulo from './modulos/CambiarPlanModulo'
+import PagoAnualModulo from './modulos/PagoAnualModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
 import ThemeToggle from '@/components/ThemeToggle'
 import { AlumnoSeleccionadoProvider } from '@/contexts/AlumnoSeleccionadoContext'
@@ -109,6 +110,8 @@ function ServiciosPanelContenido({
       return <UsuariosCatalogoModulo />
     case 'cambiar-plan':
       return <CambiarPlanModulo />
+    case 'pago-anual':
+      return <PagoAnualModulo />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }

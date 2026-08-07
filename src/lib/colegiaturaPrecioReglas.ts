@@ -27,6 +27,7 @@ export const CONCEPTO_MES: Record<string, number> = {
   '09': 5,
   '10': 6,
   '26': 7,
+  '30': 8,
 }
 
 /** Orden de meses dentro del ciclo escolar (ago → jul). */
@@ -134,6 +135,6 @@ export function calcularRecargoPesos(
 /** Conceptos de colegiatura mensuales donde aplica SEP / recargo de atraso. */
 export function conceptoAplicaSepYRecargo(conceptoNo: string): boolean {
   const c = normalizarConceptoNo(conceptoNo)
-  if (c === '00' || c === '16') return false
+  if (c === '00' || c === '16' || c === '30') return false
   return mesDeConcepto(c) != null
 }

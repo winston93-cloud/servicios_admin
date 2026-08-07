@@ -192,6 +192,13 @@ export async function registrarPagoBanorteExitoso(
 
   await supabase.from('banorte_pago_pendiente').delete().eq('referencia', ref)
 
+  try {
+    const { talvezAplicarCoberturaPagoAnual } = await import('./pagoAnualCoberturaHook')
+    await talvezAplicarCoberturaPagoAnual(supabase, ref, { importe, fechaPago: hoy })
+  } catch (e) {
+    console.error('cobertura pago anual (Banorte):', e)
+  }
+
   const factura = await intentarTimbrarTrasBanorte(supabase, ref)
 
   return {
