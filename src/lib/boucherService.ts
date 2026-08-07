@@ -13,6 +13,8 @@ import {
   conceptoAplicaSepYRecargo,
 } from './colegiaturaPrecioReglas'
 import { montoBecaSep } from './integracionSep'
+import { becasEnCobroSuspendidas } from './becasCobroPolitica'
+import { faltanteColegiaturaPendiente } from './faltantesColegiaturaCiclo23'
 import { obtenerCorreccionManualActiva } from './portalAdmisionesProrroga'
 
 export interface PrecioBoucherRow {
@@ -136,6 +138,9 @@ export async function obtenerPorcentajeBeca(
   alumnoId: number,
   cicloEscolar: number
 ): Promise<number> {
+  // Ciclo 23+: sin Winston en cobro hasta que Mario reactive / becas_renovacion autorice.
+  if (becasEnCobroSuspendidas(cicloEscolar)) return 0
+
   const { data } = await supabase
     .from('alumno_beca')
     .select('beca_porcentaje')
@@ -201,8 +206,9 @@ export function montoBaseConcepto(
 
 /**
  * Importe ventanilla (sin recargo).
- * - SEP: monto fijo de la lista solo en su ciclo de datos (hoy 22 = 2025-2026).
- * - Winston: % de alumno_beca solo hasta el día 10 del mes del concepto.
+ * - SEP: monto fijo solo en su ciclo de datos (22); suspendido en 23+.
+ * - Winston: % alumno_beca; suspendido en cobro ciclo 23+ hasta aviso.
+ * - Faltante SEP mal cobrado en sept. 23 → se suma a octubre desde 2026-10-01.
  */
 export function calcularImporteConcepto(
   conceptoNo: string,
@@ -217,20 +223,45 @@ export function calcularImporteConcepto(
 ): number {
   const fecha = opts?.fecha ?? new Date()
   const c = normalizarConceptoNo(conceptoNo)
+  const ciclo = opts?.cicloEscolar
 
   const { montoNormal, admiteBecaWinston } = montoBaseConcepto(c, precio, planMeses)
 
-  if (opts?.alumnoRef != null && conceptoAplicaSepYRecargo(c)) {
-    const sep = montoBecaSep(opts.alumnoRef, opts.cicloEscolar)
-    if (sep != null) return sep
+  let importe = montoNormal
+
+  if (
+    !becasEnCobroSuspendidas(ciclo) &&
+    opts?.alumnoRef != null &&
+    conceptoAplicaSepYRecargo(c)
+  ) {
+    const sep = montoBecaSep(opts.alumnoRef, ciclo)
+    if (sep != null) {
+      importe = sep
+    } else {
+      const aplicarWinston =
+        admiteBecaWinston &&
+        porcentajeBeca > 0 &&
+        becaWinstonAplicaEnFecha(c, fecha, ciclo)
+      importe = getDiscount(montoNormal, aplicarWinston ? porcentajeBeca : 0)
+    }
+  } else if (!becasEnCobroSuspendidas(ciclo)) {
+    const aplicarWinston =
+      admiteBecaWinston &&
+      porcentajeBeca > 0 &&
+      becaWinstonAplicaEnFecha(c, fecha, ciclo)
+    importe = getDiscount(montoNormal, aplicarWinston ? porcentajeBeca : 0)
   }
 
-  const aplicarWinston =
-    admiteBecaWinston &&
-    porcentajeBeca > 0 &&
-    becaWinstonAplicaEnFecha(c, fecha, opts?.cicloEscolar)
+  if (opts?.alumnoRef != null && ciclo != null) {
+    importe += faltanteColegiaturaPendiente({
+      alumnoRef: opts.alumnoRef,
+      conceptoNo: c,
+      cicloEscolar: ciclo,
+      fecha,
+    })
+  }
 
-  return getDiscount(montoNormal, aplicarWinston ? porcentajeBeca : 0)
+  return Math.round(importe * 100) / 100
 }
 
 export type ResultadoCalculoBoucher = {
