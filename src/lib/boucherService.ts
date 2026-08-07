@@ -256,6 +256,8 @@ export async function calcularBoucher(
     /** 1 = 10 meses, 2 = 11 meses (campo alumno.mes). */
     planMeses?: number
     fecha?: Date
+    /** Adeudos egresados: cobrar colegiatura sin recargo de atraso. */
+    omitirRecargos?: boolean
   }
 ): Promise<ResultadoCalculoBoucher> {
   const nivelPrecio = nivelPrecioBoucher(params.alumnoNivel, params.alumnoGrado)
@@ -301,7 +303,9 @@ export async function calcularBoucher(
           })
 
   const recargo =
-    (manual != null && manual > 0) || importeCorreccion != null
+    params.omitirRecargos ||
+    (manual != null && manual > 0) ||
+    importeCorreccion != null
       ? 0
       : calcularRecargoPesos(params.conceptoNo, fecha, params.cicloEscolar)
   const importeLinea = Math.round((importe + recargo) * 100) / 100

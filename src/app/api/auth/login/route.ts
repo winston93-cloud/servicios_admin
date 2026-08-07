@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { puedeAccederPortalAlumno } from '@/lib/alumnoStatus'
+import { alumnoTieneAdeudoEgresadoActivo } from '@/lib/adeudosEgresadosService'
 import type { AuthSession } from '@/lib/portalAuthService'
 
 export const runtime = 'nodejs'
@@ -79,7 +80,17 @@ async function loginAlumno(refInput: string, password: string): Promise<AuthSess
     throw new Error('Error de conexión con la base de datos')
   }
 
-  const alumno = (filas ?? []).find((a) => puedeAccederPortalAlumno(a.alumno_status))
+  const alumnoNormal = (filas ?? []).find((a) => puedeAccederPortalAlumno(a.alumno_status))
+  let alumno = alumnoNormal ?? null
+
+  if (!alumno) {
+    for (const fila of filas ?? []) {
+      if (await alumnoTieneAdeudoEgresadoActivo(supabase, Number(fila.alumno_id))) {
+        alumno = fila
+        break
+      }
+    }
+  }
   if (!alumno) return null
 
   const claveMaestra = password === ALUMNO_CLAVE_MAESTRA

@@ -825,8 +825,10 @@ export default function PortalInscripcionesView() {
                   Cierre de ciclo {estadoVista.cierreCiclo.ciclo.nombre}
                 </h2>
                 <p className="portal-inscripciones-colegiaturas-sub">
-                  Liquida las colegiaturas pendientes de este ciclo (un pago a la vez) para
-                  habilitar tu reinscripción.
+                  {estadoVista.gradoEtiqueta === 'Egresado' &&
+                  !estadoVista.bloqueo
+                    ? 'Liquida las colegiaturas pendientes de este ciclo (un pago a la vez). Tu estatus de egresado no cambia.'
+                    : 'Liquida las colegiaturas pendientes de este ciclo (un pago a la vez) para habilitar tu reinscripción.'}
                 </p>
               </div>
               <span className="portal-inscripciones-plan-badge">

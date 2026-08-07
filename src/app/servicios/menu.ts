@@ -45,6 +45,7 @@ export type ServiciosModuloId =
   | 'usuarios-catalogo'
   | 'cambiar-plan'
   | 'pago-anual'
+  | 'adeudos-egresados'
 
 export interface ServiciosSubMenuItem {
   id: ServiciosModuloId
@@ -123,6 +124,12 @@ export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
     id: 'pago-anual',
     label: 'Pago Anual',
     icon: Sparkles,
+  },
+  {
+    type: 'leaf',
+    id: 'adeudos-egresados',
+    label: 'Adeudos egresados',
+    icon: GraduationCap,
   },
 ]
 

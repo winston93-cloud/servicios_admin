@@ -1,5 +1,6 @@
 import type { AppDatabaseClient } from '@/lib/dbTypes'
 import { puedeAccederPortalAlumno } from '@/lib/alumnoStatus'
+import { alumnoTieneAdeudoEgresadoActivo } from '@/lib/adeudosEgresadosService'
 
 const CLAVE_MIN_LENGTH = 5
 
@@ -19,10 +20,17 @@ async function obtenerAlumnoActivoPorRef(
     .limit(5)
 
   if (error) throw new Error(error.message)
-  const fila = (data ?? []).find((r) =>
+  const normal = (data ?? []).find((r) =>
     puedeAccederPortalAlumno(Number(r.alumno_status))
   )
-  return fila ?? null
+  if (normal) return normal
+
+  for (const r of data ?? []) {
+    if (await alumnoTieneAdeudoEgresadoActivo(db, Number(r.alumno_id))) {
+      return r
+    }
+  }
+  return null
 }
 
 /** `detalle_id` no siempre usa DEFAULT; si la secuencia va atrasada, hay que asignar max+1. */

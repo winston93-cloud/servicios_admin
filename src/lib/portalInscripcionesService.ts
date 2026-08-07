@@ -4,7 +4,10 @@ import { formaIngresoPorDefecto } from './alumnoFormaIngreso'
 import { esEstatusBloqueo } from './alumnoStatus'
 import type { CicloEscolarRegistro } from './ciclosEscolaresService'
 import { etiquetaGradoEscolar } from './gradoEscolar'
-import type { PagoDetalleRegistro } from './pagoColegiaturaService'
+import {
+  listarPagosColegiaturaAlumno,
+  type PagoDetalleRegistro,
+} from './pagoColegiaturaService'
 import {
   formatearAlumnoRefParaReferencia,
   normalizarConceptoNo,
@@ -40,6 +43,11 @@ import {
   obtenerPortalInscripcionProgreso,
 } from './portalInscripcionProgreso'
 import { obtenerPlanMesesCiclo } from './portalPlanMesesCiclo'
+import {
+  obtenerAdeudoEgresadoActivoPorAlumno,
+  type AlumnoPagoEgresadoRegistro,
+} from './adeudosEgresadosService'
+import { etiquetaCicloEscolar } from './cicloEscolar'
 import type {
   BloqueoInscripcion,
   EstadoPortalInscripciones,
@@ -187,22 +195,41 @@ export async function construirEstadoPortalInscripciones(
   let cierreCiclo: CierreCicloPortal | null = null
   let dobleAdeudoPrevio: EstadoPortalInscripciones['dobleAdeudoPrevio'] = null
 
-  if (esReinscrito && opciones?.pagosCierre && opciones.cicloCierre) {
+  const adeudoEgresado: AlumnoPagoEgresadoRegistro | null =
+    await obtenerAdeudoEgresadoActivoPorAlumno(supabase, alumno.alumno_id)
+  const modoAdeudoEgresado = Boolean(adeudoEgresado?.activo)
+
+  // Acceso temporal egresado: forzar cierre del ciclo de adeudos (sin tocar ficha).
+  let pagosCierreEfectivos = opciones?.pagosCierre
+  let cicloCierreEfectivo = opciones?.cicloCierre
+  if (modoAdeudoEgresado && adeudoEgresado) {
+    const cicloAdeudo = adeudoEgresado.ciclo_valor
+    cicloCierreEfectivo = {
+      valor: cicloAdeudo,
+      nombre: etiquetaCicloEscolar(cicloAdeudo) || String(cicloAdeudo),
+    }
+    pagosCierreEfectivos = await listarPagosColegiaturaAlumno(
+      alumno.alumno_id,
+      cicloAdeudo
+    )
+  }
+
+  if ((esReinscrito || modoAdeudoEgresado) && pagosCierreEfectivos && cicloCierreEfectivo) {
     cierreCiclo = await resumenCierreCicloParaReinscrito(
       supabase,
       alumno,
-      opciones.pagosCierre,
-      opciones.cicloCierre
+      pagosCierreEfectivos,
+      cicloCierreEfectivo
     )
 
     const doble = resumenAdeudoDobleTitulacionCiclo(
-      opciones.pagosCierre,
+      pagosCierreEfectivos,
       alumno.alumno_ref,
-      opciones.cicloCierre.valor
+      cicloCierreEfectivo.valor
     )
     if (doble.tienePrograma && !doble.liquidado) {
       dobleAdeudoPrevio = {
-        ciclo: opciones.cicloCierre,
+        ciclo: cicloCierreEfectivo,
         pendientes: doble.pendientes,
       }
     }
@@ -215,14 +242,14 @@ export async function construirEstadoPortalInscripciones(
     : null
 
   const gradoEtiqueta =
-    esReinscrito && calcReinscripcion
-      ? calcReinscripcion.graduado
-        ? 'Egresado'
-        : etiquetaGradoEscolar(
+    modoAdeudoEgresado || (esReinscrito && calcReinscripcion?.graduado)
+      ? 'Egresado'
+      : esReinscrito && calcReinscripcion
+        ? etiquetaGradoEscolar(
             calcReinscripcion.nivelDestino,
             calcReinscripcion.gradoDestino
           )
-      : etiquetaGradoEscolar(alumno.alumno_nivel, alumno.alumno_grado)
+        : etiquetaGradoEscolar(alumno.alumno_nivel, alumno.alumno_grado)
 
   const cen = calcReinscripcion?.cicloReinscripcion ?? cea
   const cicloPagoReg = await resolverCicloPagoInscripcionPortal(
@@ -243,7 +270,19 @@ export async function construirEstadoPortalInscripciones(
 
   const debeCerrarCicloAnterior = Boolean(cierreCiclo?.requerido)
 
-  if (calcReinscripcion?.graduado) {
+  if (modoAdeudoEgresado && adeudoEgresado) {
+    // Solo liquidar adeudos del ciclo indicado; sin reinscripción ni cambio de ficha.
+    showPayment = false
+    liberateInfo = false
+    showInfo = false
+    if (cierreCiclo?.requerido) {
+      aviso = adeudoEgresado.con_recargos
+        ? `Acceso temporal de egresado: liquida las colegiaturas pendientes del ciclo ${cierreCiclo.ciclo.nombre} (con recargos). Tu estatus de egresado / baja general no cambia.`
+        : `Acceso temporal de egresado: liquida las colegiaturas pendientes del ciclo ${cierreCiclo.ciclo.nombre} (sin recargos). Tu estatus de egresado / baja general no cambia.`
+    } else {
+      aviso = `No hay colegiaturas pendientes del ciclo ${adeudoEgresado.ciclo_valor}. Puedes pedir a Servicios que desactive este acceso.`
+    }
+  } else if (calcReinscripcion?.graduado) {
     bloqueo = 'egresado'
     mensajeBloqueo =
       '¡Felicidades! El alumno ha egresado del Instituto Winston Churchill.'
@@ -354,8 +393,9 @@ export async function construirEstadoPortalInscripciones(
     showPayment = false
   }
 
-  const flujoActivo = bloqueo == null
+  const flujoActivo = bloqueo == null && !modoAdeudoEgresado
   // Con bloqueo psico/académico aún pueden liquidar el ciclo anterior (cierre).
+  // Adeudo egresado: solo matriz de cierre, sin pasos de reinscripción.
   const pasosVisibles =
     flujoActivo && puedeVerPasosInscripcion(alumno, esReinscrito, liberateInfo)
 
@@ -722,9 +762,16 @@ export async function construirEstadoPortalInscripciones(
     },
     cierreCiclo,
     dobleAdeudoPrevio,
-    cicloColegiaturas: {
-      valor: cicloPagoReg.valor,
-      nombre: cicloPagoReg.nombre,
-    },
+    cicloColegiaturas: modoAdeudoEgresado && adeudoEgresado
+      ? {
+          valor: adeudoEgresado.ciclo_valor,
+          nombre:
+            etiquetaCicloEscolar(adeudoEgresado.ciclo_valor) ||
+            String(adeudoEgresado.ciclo_valor),
+        }
+      : {
+          valor: cicloPagoReg.valor,
+          nombre: cicloPagoReg.nombre,
+        },
   }
 }

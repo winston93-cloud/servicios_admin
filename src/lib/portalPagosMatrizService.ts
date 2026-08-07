@@ -31,6 +31,7 @@ import {
   CONCEPTO_PAGO_ANUAL,
   etiquetaPagoAnual,
 } from './pagoAnualService'
+import { omitirRecargosAdeudoEgresado } from './adeudosEgresadosService'
 import { obtenerAperturaConceptosPortal } from './portalAperturaConceptosService'
 import { mapCorreccionesManualesVigentes } from './portalAdmisionesProrroga'
 import {
@@ -216,7 +217,8 @@ async function construirFilas(
   conceptos: { concepto_no: string; concepto_clase: string }[],
   pagos: PagoDetalleRegistro[],
   planMeses: number,
-  usarCodigoCambridge = false
+  usarCodigoCambridge = false,
+  omitirRecargos = false
 ): Promise<FilaMatrizPortal[]> {
   const nivelPrecio = nivelPrecioBoucher(
     alumno.alumno_nivel,
@@ -282,7 +284,9 @@ async function construirFilas(
           })
     // Importe de corrección es el monto pactado; no sumar recargo de atraso.
     const recargo =
-      correccion != null ? 0 : calcularRecargoPesos(conceptoNo, new Date(), ciclo.valor)
+      correccion != null || omitirRecargos
+        ? 0
+        : calcularRecargoPesos(conceptoNo, new Date(), ciclo.valor)
     const importeLinea = Math.round((importe + recargo) * 100) / 100
     const semibase = referenciaSemibase(alumno.alumno_ref, conceptoNo, ciclo.valor)
     const referencia = getDigVerif(importe, semibase)
@@ -346,6 +350,11 @@ export async function construirMatrizPortalPagos(
 ): Promise<MatrizPortalPagos> {
   const soloColegiatura = Boolean(opciones?.soloColegiatura)
   const soloDobleAdeudoPrevio = Boolean(opciones?.soloDobleAdeudoPrevio)
+  const omitirRecargos = await omitirRecargosAdeudoEgresado(
+    supabase,
+    alumno.alumno_id,
+    ciclo.valor
+  )
 
   // Adeudo opcional de doble titulación de un ciclo anterior (no bloquea inscripción).
   if (soloDobleAdeudoPrevio) {
@@ -353,7 +362,16 @@ export async function construirMatrizPortalPagos(
     const conceptosUsa = await listarConceptosPorNumeros(supabase, [...SECCION_USA.conceptos])
     const filasUsaRaw =
       conceptosUsa.length > 0
-        ? await construirFilas(supabase, alumno, ciclo, conceptosUsa, pagos, planMeses)
+        ? await construirFilas(
+            supabase,
+            alumno,
+            ciclo,
+            conceptosUsa,
+            pagos,
+            planMeses,
+            false,
+            omitirRecargos
+          )
         : []
     const filasUsa = filtrarFilasPorCandado(filasUsaRaw, slotsLineales(SECCION_USA.conceptos))
 
@@ -408,7 +426,9 @@ export async function construirMatrizPortalPagos(
     ciclo,
     conceptosColeg,
     pagos,
-    planMeses
+    planMeses,
+    false,
+    omitirRecargos
   )
 
   if (pagoAnualPendiente) {
@@ -460,10 +480,28 @@ export async function construirMatrizPortalPagos(
 
       const [filasCamRaw, filasUsaRaw] = await Promise.all([
         conceptosCam.length > 0
-          ? construirFilas(supabase, alumno, ciclo, conceptosCam, pagos, planMeses, true)
+          ? construirFilas(
+              supabase,
+              alumno,
+              ciclo,
+              conceptosCam,
+              pagos,
+              planMeses,
+              true,
+              omitirRecargos
+            )
           : Promise.resolve([]),
         conceptosUsa.length > 0
-          ? construirFilas(supabase, alumno, ciclo, conceptosUsa, pagos, planMeses)
+          ? construirFilas(
+              supabase,
+              alumno,
+              ciclo,
+              conceptosUsa,
+              pagos,
+              planMeses,
+              false,
+              omitirRecargos
+            )
           : Promise.resolve([]),
       ])
 
@@ -522,6 +560,11 @@ export async function recalcularReferenciaPortal(
   cicloValor: number,
   importe?: number
 ): Promise<{ importe: number; importeLinea: number; recargo: number; referencia: string; referenciaLinea: string }> {
+  const omitirRecargos = await omitirRecargosAdeudoEgresado(
+    supabase,
+    alumno.alumno_id,
+    cicloValor
+  )
   return calcularBoucher(supabase, {
     alumnoId: alumno.alumno_id,
     alumnoRef: alumno.alumno_ref,
@@ -531,5 +574,6 @@ export async function recalcularReferenciaPortal(
     cicloEscolar: cicloValor,
     importeManual: importe,
     planMeses: alumno.mes === 2 ? 2 : 1,
+    omitirRecargos,
   })
 }

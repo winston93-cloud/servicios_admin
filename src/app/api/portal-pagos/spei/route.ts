@@ -6,6 +6,7 @@ import { calcularBoucher } from '@/lib/boucherService'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { crearCargoSpeiOpenpay } from '@/lib/openpaySpeiService'
+import { omitirRecargosAdeudoEgresado } from '@/lib/adeudosEgresadosService'
 import {
   esConceptoInscripcionReinscripcion,
   nivelCobroElectronico,
@@ -74,6 +75,11 @@ export async function POST(request: Request) {
     const supabase = createSupabaseAdmin()
     const { resolverPlanMesesParaCiclo } = await import('@/lib/portalPlanMesesCiclo')
     const planMeses = await resolverPlanMesesParaCiclo(supabase, alumno, cicloEscolar)
+    const omitirRecargos = await omitirRecargosAdeudoEgresado(
+      supabase,
+      alumno.alumno_id,
+      cicloEscolar
+    )
     const { importe, importeLinea, recargo } = await calcularBoucher(supabase, {
       alumnoId,
       alumnoRef: alumno.alumno_ref,
@@ -82,6 +88,7 @@ export async function POST(request: Request) {
       conceptoNo,
       cicloEscolar,
       planMeses,
+      omitirRecargos,
     })
 
     const montoSpei = importeLinea > 0 ? importeLinea : importe
