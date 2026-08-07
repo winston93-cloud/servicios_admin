@@ -23,11 +23,12 @@
   /* UI UX PRO MAX — tokens modo claro */
   --sx-surface: #e2e8f0;
   --sx-sidebar: #1e3a5f;
-  --sx-sidebar-border: rgba(255, 255, 255, 0.08);
-  --sx-sidebar-text: #f8fafc;
-  --sx-sidebar-muted: rgba(248, 250, 252, 0.78);
-  --sx-sidebar-hover: rgba(255, 255, 255, 0.08);
-  --sx-sidebar-active: rgba(255, 255, 255, 0.14);
+  --sx-sidebar-border: rgba(255, 255, 255, 0.12);
+  --sx-sidebar-text: #ffffff;
+  --sx-sidebar-muted: #e2e8f0;
+  --sx-sidebar-hover: rgba(255, 255, 255, 0.18);
+  --sx-sidebar-active: rgba(255, 255, 255, 0.26);
+  --sx-sidebar-accent: #7dd3fc;
   --sx-toolbar: #e2e8f0;
   --sx-text: #0f172a;
   --sx-text-secondary: #475569;
@@ -55,11 +56,12 @@
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app {
   --sx-surface: #121318;
   --sx-sidebar: #0d0e13;
-  --sx-sidebar-border: rgba(255, 255, 255, 0.08);
-  --sx-sidebar-text: #e3e1e9;
-  --sx-sidebar-muted: #d0c6ab;
-  --sx-sidebar-hover: rgba(0, 227, 253, 0.1);
-  --sx-sidebar-active: rgba(255, 215, 0, 0.14);
+  --sx-sidebar-border: rgba(255, 255, 255, 0.14);
+  --sx-sidebar-text: #ffffff;
+  --sx-sidebar-muted: #f5f0e0;
+  --sx-sidebar-hover: rgba(0, 227, 253, 0.18);
+  --sx-sidebar-active: rgba(255, 215, 0, 0.28);
+  --sx-sidebar-accent: #ffd700;
   --sx-toolbar: rgba(26, 27, 33, 0.92);
   --sx-text: #e3e1e9;
   --sx-text-secondary: #d0c6ab;
@@ -120,27 +122,58 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app {
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item,
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem {
   color: var(--sx-sidebar-text);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.015em;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem {
   color: var(--sx-sidebar-muted);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-label,
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem-label {
+  color: inherit;
+  font-weight: inherit;
+  opacity: 1;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-icon,
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-chevron {
+  color: var(--sx-sidebar-text);
+  opacity: 1;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item:hover,
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem:hover {
   background: var(--sx-sidebar-hover);
-  color: var(--sx-sidebar-text);
+  color: #ffffff;
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item:hover .servicios-nav-icon,
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item:hover .servicios-nav-chevron,
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem:hover .servicios-nav-chevron {
+  color: #ffffff;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item.active,
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem.active {
   background: var(--sx-sidebar-active);
-  color: #fff;
+  color: #ffffff;
   border-color: transparent;
+  box-shadow: inset 3px 0 0 var(--sx-sidebar-accent, #7dd3fc);
+}
+
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item.active .servicios-nav-icon,
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-item.active .servicios-nav-chevron,
+.pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-subitem.active .servicios-nav-chevron {
+  color: #ffffff;
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-nav-submenu {
-  border-left-color: var(--sx-sidebar-border);
+  border-left-color: var(--sx-sidebar-accent, rgba(125, 211, 252, 0.55));
 }
 
 .pos-totality-theme.admin-app-shell .servicios-app .servicios-sidebar-logout {
