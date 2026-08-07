@@ -1,16 +1,15 @@
 /**
  * Política de becas en cobro (portal / baucher / pago anual).
  *
- * - SEP hardcodeada: solo ciclo de datos 22 (ver becasSepOpenHouse / integracionSep).
- * - Ciclo 23: de momento NO se aplica ninguna beca (SEP ni Winston) hasta aviso de Mario.
- *   Winston 23 se autorizará desde becas_renovacion («autoriza beca»).
- *   SEP 23 aún no está definida ni construida.
+ * - SEP hardcodeada: solo ciclo de datos 22. Ciclo 23+ no tiene módulo SEP.
+ * - Winston ciclo 23+: aplica solo si alumno_beca tiene beca_estatus=1 en ese ciclo
+ *   (se activa al pulsar «Autorizar beca» en becas_renovacion).
  */
 
-/** A partir de este ciclo el cobro ignora Winston/SEP hasta reactivar. */
-export const BECAS_EN_COBRO_SUSPENDIDAS_DESDE_CICLO = 23
+import { BECAS_SEP_CICLO_DATOS } from './becasSepOpenHouse'
 
-export function becasEnCobroSuspendidas(cicloEscolar: number | null | undefined): boolean {
+/** ¿Se puede aplicar la lista SEP hardcodeada a este ciclo de cobro? */
+export function sepAplicaEnCicloCobro(cicloEscolar: number | null | undefined): boolean {
   const c = Number(cicloEscolar)
-  return Number.isFinite(c) && c >= BECAS_EN_COBRO_SUSPENDIDAS_DESDE_CICLO
+  return Number.isFinite(c) && c === BECAS_SEP_CICLO_DATOS
 }

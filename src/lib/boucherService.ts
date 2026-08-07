@@ -13,7 +13,7 @@ import {
   conceptoAplicaSepYRecargo,
 } from './colegiaturaPrecioReglas'
 import { montoBecaSep } from './integracionSep'
-import { becasEnCobroSuspendidas } from './becasCobroPolitica'
+import { sepAplicaEnCicloCobro } from './becasCobroPolitica'
 import { faltanteColegiaturaPendiente } from './faltantesColegiaturaCiclo23'
 import { obtenerCorreccionManualActiva } from './portalAdmisionesProrroga'
 
@@ -138,9 +138,8 @@ export async function obtenerPorcentajeBeca(
   alumnoId: number,
   cicloEscolar: number
 ): Promise<number> {
-  // Ciclo 23+: sin Winston en cobro hasta que Mario reactive / becas_renovacion autorice.
-  if (becasEnCobroSuspendidas(cicloEscolar)) return 0
-
+  // Winston: solo si está autorizada en alumno_beca (estatus 1) para este ciclo.
+  // becas_renovacion «Autorizar beca» escribe esa fila.
   const { data } = await supabase
     .from('alumno_beca')
     .select('beca_porcentaje')
@@ -206,9 +205,9 @@ export function montoBaseConcepto(
 
 /**
  * Importe ventanilla (sin recargo).
- * - SEP: monto fijo solo en su ciclo de datos (22); suspendido en 23+.
- * - Winston: % alumno_beca; suspendido en cobro ciclo 23+ hasta aviso.
- * - Faltante SEP mal cobrado en sept. 23 → se suma a octubre desde 2026-10-01.
+ * - SEP: monto fijo solo en ciclo de datos 22 (no en 23+).
+ * - Winston: % de alumno_beca activa del ciclo (autorizada en becas_renovacion).
+ * - Faltante SEP mal cobrado en sept. 23 → se suma a octubre (02) ya.
  */
 export function calcularImporteConcepto(
   conceptoNo: string,
@@ -230,7 +229,7 @@ export function calcularImporteConcepto(
   let importe = montoNormal
 
   if (
-    !becasEnCobroSuspendidas(ciclo) &&
+    sepAplicaEnCicloCobro(ciclo) &&
     opts?.alumnoRef != null &&
     conceptoAplicaSepYRecargo(c)
   ) {
@@ -244,7 +243,7 @@ export function calcularImporteConcepto(
         becaWinstonAplicaEnFecha(c, fecha, ciclo)
       importe = getDiscount(montoNormal, aplicarWinston ? porcentajeBeca : 0)
     }
-  } else if (!becasEnCobroSuspendidas(ciclo)) {
+  } else {
     const aplicarWinston =
       admiteBecaWinston &&
       porcentajeBeca > 0 &&
@@ -257,7 +256,6 @@ export function calcularImporteConcepto(
       alumnoRef: opts.alumnoRef,
       conceptoNo: c,
       cicloEscolar: ciclo,
-      fecha,
     })
   }
 
