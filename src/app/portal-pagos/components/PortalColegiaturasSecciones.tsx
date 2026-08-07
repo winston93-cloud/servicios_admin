@@ -82,17 +82,29 @@ export default function PortalColegiaturasSecciones({
     setGenerandoBoucher(fila.conceptoNo)
     setError(null)
     try {
-      const calcRes = await fetch('/api/bauchers/calcular', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          alumnoId,
-          conceptoNo: fila.conceptoNo,
-          cicloEscolar: ciclo.valor,
-        }),
-      })
-      const calc = await calcRes.json()
-      if (!calcRes.ok) throw new Error(calc.error ?? 'No se pudo calcular la referencia.')
+      // Preferir importe/referencia de la matriz (pago anual 30 ya viene calculado ahí).
+      let importe = Number(fila.importe ?? 0)
+      let referencia = String(fila.referencia ?? '').replace(/\D/g, '')
+
+      if (!(importe > 0) || !referencia) {
+        const calcRes = await fetch('/api/bauchers/calcular', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            alumnoId,
+            conceptoNo: fila.conceptoNo,
+            cicloEscolar: ciclo.valor,
+          }),
+        })
+        const calc = await calcRes.json()
+        if (!calcRes.ok) throw new Error(calc.error ?? 'No se pudo calcular la referencia.')
+        importe = Number(calc.importe)
+        referencia = String(calc.referencia ?? '').replace(/\D/g, '')
+      }
+
+      if (!(importe > 0) || !referencia) {
+        throw new Error('Importe y referencia son obligatorios')
+      }
 
       const genRes = await fetch('/api/bauchers/generar', {
         method: 'POST',
@@ -103,8 +115,8 @@ export default function PortalColegiaturasSecciones({
           conceptoClase: fila.conceptoClase,
           cicloEscolar: ciclo.valor,
           vigencia: vigenciaBoucherParaConcepto(fila.conceptoNo, ciclo.valor),
-          importe: calc.importe,
-          referencia: calc.referencia,
+          importe,
+          referencia,
           nombreAlumno: nombreCompletoAlumno(alumno, displayName),
           aplicarRecargos: false,
           ignorarMesPago: false,

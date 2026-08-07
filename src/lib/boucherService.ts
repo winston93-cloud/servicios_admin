@@ -291,16 +291,42 @@ export async function calcularBoucher(
     if (corr) importeCorreccion = corr.monto
   }
 
+  let importePagoAnual: number | null = null
+  const conceptoNorm = normalizarConceptoNo(params.conceptoNo)
+  if (
+    conceptoNorm === '30' &&
+    !(manual != null && manual > 0) &&
+    importeCorreccion == null
+  ) {
+    // Concepto 30 no tiene precio fijo: suma del plan − 5% (mismo que la matriz).
+    const { calcularMontoPagoAnual } = await import('@/lib/pagoAnualService')
+    const { obtenerAlumnoPorId } = await import('@/lib/alumnoDatosService')
+    const alumno = await obtenerAlumnoPorId(params.alumnoId)
+    if (!alumno) {
+      throw new Error('Alumno no encontrado para calcular pago anual.')
+    }
+    const planAnual: 1 | 2 = planMeses === 2 ? 2 : 1
+    const monto = await calcularMontoPagoAnual(
+      supabase,
+      alumno,
+      params.cicloEscolar,
+      planAnual
+    )
+    importePagoAnual = monto.montoConDescuento
+  }
+
   const importe =
     manual != null && manual > 0
       ? manual
       : importeCorreccion != null
         ? importeCorreccion
-        : calcularImporteConcepto(params.conceptoNo, precio, becaPct, planMeses, {
-            alumnoRef: params.alumnoRef,
-            fecha,
-            cicloEscolar: params.cicloEscolar,
-          })
+        : importePagoAnual != null
+          ? importePagoAnual
+          : calcularImporteConcepto(params.conceptoNo, precio, becaPct, planMeses, {
+              alumnoRef: params.alumnoRef,
+              fecha,
+              cicloEscolar: params.cicloEscolar,
+            })
 
   const recargo =
     params.omitirRecargos ||
