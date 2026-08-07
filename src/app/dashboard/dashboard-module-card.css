@@ -1,16 +1,21 @@
 /**
  * Tarjetas de módulo del dashboard admin.
- * Totality Festival + Taste Skill.
+ * Totality Festival + hover tipo Netflix (vista previa expandida).
  */
+
+.dashboard-home .dashboard-nav-grid {
+  overflow: visible;
+}
 
 .dashboard-home .dash-nav-item--module {
   --dash-module-warm-rgb: 255, 246, 223;
 
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 16px 18px 18px;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
   min-height: 104px;
   border-radius: 16px;
   border-color: rgba(var(--dash-accent-rgb, 0, 227, 253), 0.24);
@@ -26,16 +31,17 @@
     0 0 0 1px rgba(var(--dash-accent-rgb, 0, 227, 253), 0.06);
   cursor: pointer;
   isolation: isolate;
+  overflow: hidden;
+  transform-origin: center top;
   transition:
-    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.42s cubic-bezier(0.16, 1, 0.3, 1),
     border-color 0.28s ease,
-    box-shadow 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+    z-index 0s linear 0.2s;
 }
 
 .dashboard-home .dash-nav-item--module.dash-nav-item--featured {
   grid-column: 1 / -1;
-  gap: 24px;
-  padding: 28px 30px;
   min-height: 132px;
   border-color: rgba(var(--dash-accent-rgb), 0.28);
   background: linear-gradient(
@@ -75,18 +81,74 @@
   opacity: 0.75;
 }
 
-.dashboard-home .dash-nav-item--module:hover {
-  transform: translateY(-3px);
-  border-color: rgba(var(--dash-accent-rgb), 0.5);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.1),
-    0 16px 44px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(var(--dash-accent-rgb), 0.18),
-    0 0 28px rgba(var(--dash-accent-rgb), 0.14);
+.dashboard-home .dash-module-top {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px 18px 18px;
+  min-height: 104px;
+}
+
+.dashboard-home .dash-nav-item--featured .dash-module-top {
+  gap: 24px;
+  padding: 28px 30px;
+  min-height: 132px;
+}
+
+/* —— Hover / preview Netflix —— */
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-home .dash-nav-item--module:hover,
+  .dashboard-home .dash-nav-item--module.is-previewing,
+  .dashboard-home .dash-nav-item--module:focus-within {
+    z-index: 30;
+    overflow: visible;
+    transform: translateY(-8px) scale(1.035);
+    border-color: rgba(var(--dash-accent-rgb), 0.62);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 28px 64px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(var(--dash-accent-rgb), 0.28),
+      0 0 48px rgba(var(--dash-accent-rgb), 0.22);
+    transition:
+      transform 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.28s ease,
+      box-shadow 0.42s cubic-bezier(0.16, 1, 0.3, 1),
+      z-index 0s;
+  }
+
+  .dashboard-home .dash-nav-item--module:hover .dash-module-preview,
+  .dashboard-home .dash-nav-item--module.is-previewing .dash-module-preview,
+  .dashboard-home .dash-nav-item--module:focus-within .dash-module-preview {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+
+  .dashboard-home .dash-nav-item--module:hover .dash-module-preview-inner,
+  .dashboard-home .dash-nav-item--module.is-previewing .dash-module-preview-inner,
+  .dashboard-home .dash-nav-item--module:focus-within .dash-module-preview-inner {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .dashboard-home .dash-nav-item--module:hover .dash-module-sheen,
+  .dashboard-home .dash-nav-item--module.is-previewing .dash-module-sheen,
+  .dashboard-home .dash-nav-item--module:focus-within .dash-module-sheen {
+    opacity: 1;
+    animation: dash-module-sheen-sweep 1.1s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .dashboard-home .dash-nav-item--module:hover .dash-module-desc,
+  .dashboard-home .dash-nav-item--module.is-previewing .dash-module-desc,
+  .dashboard-home .dash-nav-item--module:focus-within .dash-module-desc {
+    opacity: 0.55;
+  }
 }
 
 .dashboard-home .dash-nav-item--module:active {
-  transform: translateY(-1px) scale(0.996);
+  transform: translateY(-2px) scale(1.01);
 }
 
 .dashboard-home .dash-nav-item--module:focus-visible {
@@ -142,8 +204,38 @@
   transition: opacity 0.32s ease;
 }
 
-.dashboard-home .dash-nav-item--module:hover .dash-module-glow {
+.dashboard-home .dash-nav-item--module:hover .dash-module-glow,
+.dashboard-home .dash-nav-item--module.is-previewing .dash-module-glow {
   opacity: 1;
+}
+
+.dashboard-home .dash-module-sheen {
+  position: absolute;
+  inset: -20% -40%;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.14) 48%,
+    transparent 62%
+  );
+  transform: translateX(-30%);
+}
+
+@keyframes dash-module-sheen-sweep {
+  from {
+    transform: translateX(-40%);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    transform: translateX(45%);
+    opacity: 0;
+  }
 }
 
 .dashboard-home .dash-module-icon {
@@ -180,15 +272,17 @@
   height: 28px;
 }
 
-.dashboard-home .dash-nav-item--module:hover .dash-module-icon {
-  transform: scale(1.04);
+.dashboard-home .dash-nav-item--module:hover .dash-module-icon,
+.dashboard-home .dash-nav-item--module.is-previewing .dash-module-icon {
+  transform: scale(1.08) rotate(-2deg);
   background: rgba(var(--dash-accent-rgb), 0.22);
   border-color: rgba(var(--dash-accent-rgb), 0.45);
   box-shadow: 0 0 22px rgba(var(--dash-accent-rgb), 0.28);
   color: #fff6df;
 }
 
-.dashboard-home .dash-nav-item--module[data-accent='amber']:hover .dash-module-icon {
+.dashboard-home .dash-nav-item--module[data-accent='amber']:hover .dash-module-icon,
+.dashboard-home .dash-nav-item--module[data-accent='amber'].is-previewing .dash-module-icon {
   background: linear-gradient(145deg, rgba(255, 246, 223, 0.95) 0%, rgba(var(--dash-accent-rgb), 0.92) 100%);
   color: #3a3000;
   border-color: transparent;
@@ -259,6 +353,7 @@
   max-width: 48ch;
   margin-bottom: 10px;
   color: #d0c6ab;
+  transition: opacity 0.28s ease;
 }
 
 .dashboard-home .dash-nav-item--featured .dash-module-desc {
@@ -288,7 +383,8 @@
   transition: border-color 0.25s ease, background 0.25s ease;
 }
 
-.dashboard-home .dash-nav-item--module:hover .dash-module-tag {
+.dashboard-home .dash-nav-item--module:hover .dash-module-tag,
+.dashboard-home .dash-nav-item--module.is-previewing .dash-module-tag {
   border-color: rgba(var(--dash-accent-rgb), 0.38);
   background: rgba(var(--dash-accent-rgb), 0.14);
 }
@@ -313,7 +409,8 @@
   transition: color 0.25s ease;
 }
 
-.dashboard-home .dash-nav-item--module:hover .dash-module-action-label {
+.dashboard-home .dash-nav-item--module:hover .dash-module-action-label,
+.dashboard-home .dash-nav-item--module.is-previewing .dash-module-action-label {
   color: rgba(var(--dash-accent-rgb), 0.92);
 }
 
@@ -343,10 +440,141 @@
   height: 17px;
 }
 
-.dashboard-home .dash-nav-item--module:hover .dash-module-arrow {
+.dashboard-home .dash-nav-item--module:hover .dash-module-arrow,
+.dashboard-home .dash-nav-item--module.is-previewing .dash-module-arrow {
   transform: translateX(4px);
   background: rgba(var(--dash-accent-rgb), 0.2);
   border-color: rgba(var(--dash-accent-rgb), 0.4);
+}
+
+/* Panel de sinopsis (cartelera) */
+.dashboard-home .dash-module-preview {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.28s ease;
+}
+
+.dashboard-home .dash-module-preview > .dash-module-preview-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.dashboard-home .dash-module-preview-inner {
+  padding: 0 18px 18px;
+  border-top: 1px solid rgba(var(--dash-accent-rgb), 0.18);
+  background: linear-gradient(
+    180deg,
+    rgba(var(--dash-accent-rgb), 0.1) 0%,
+    rgba(12, 13, 18, 0.92) 55%,
+    rgba(12, 13, 18, 0.98) 100%
+  );
+  transform: translateY(10px);
+  opacity: 0;
+  transition:
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.04s,
+    opacity 0.32s ease 0.04s;
+}
+
+.dashboard-home .dash-module-preview-kicker {
+  margin: 12px 0 6px;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(var(--dash-accent-rgb), 0.85);
+}
+
+.dashboard-home .dash-module-preview-synopsis {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #f3efe4;
+  max-width: 52ch;
+}
+
+.dashboard-home .dash-module-preview-highlights {
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 7px;
+}
+
+.dashboard-home .dash-module-preview-highlights li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #d0c6ab;
+  animation: dash-module-highlight-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.dashboard-home .dash-nav-item--module:hover .dash-module-preview-highlights li:nth-child(1),
+.dashboard-home .dash-nav-item--module.is-previewing .dash-module-preview-highlights li:nth-child(1) {
+  animation-delay: 0.08s;
+}
+.dashboard-home .dash-nav-item--module:hover .dash-module-preview-highlights li:nth-child(2),
+.dashboard-home .dash-nav-item--module.is-previewing .dash-module-preview-highlights li:nth-child(2) {
+  animation-delay: 0.14s;
+}
+.dashboard-home .dash-nav-item--module:hover .dash-module-preview-highlights li:nth-child(3),
+.dashboard-home .dash-nav-item--module.is-previewing .dash-module-preview-highlights li:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+@keyframes dash-module-highlight-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.dashboard-home .dash-module-preview-dot {
+  margin-top: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: rgba(var(--dash-accent-rgb), 0.95);
+  box-shadow: 0 0 10px rgba(var(--dash-accent-rgb), 0.55);
+}
+
+.dashboard-home .dash-module-preview-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0b1220;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--dash-module-warm-rgb), 0.98) 0%,
+    rgba(var(--dash-accent-rgb), 0.92) 100%
+  );
+  box-shadow: 0 8px 20px rgba(var(--dash-accent-rgb), 0.25);
+}
+
+.dashboard-home .dash-module-preview-cta-arrow {
+  transition: transform 0.25s ease;
+}
+
+.dashboard-home .dash-nav-item--module:hover .dash-module-preview-cta-arrow,
+.dashboard-home .dash-nav-item--module.is-previewing .dash-module-preview-cta-arrow {
+  transform: translateX(3px);
 }
 
 .pos-totality-theme.admin-app-shell .dashboard-home .dash-nav-item--module {
@@ -372,8 +600,21 @@ html[data-theme='light'] .dashboard-home .dash-module-tag {
   color: #5c4d28;
 }
 
+html[data-theme='light'] .dashboard-home .dash-module-preview-inner {
+  background: linear-gradient(180deg, rgba(var(--dash-accent-rgb), 0.08) 0%, #fff 50%, #f8f6f0 100%);
+  border-top-color: rgba(58, 48, 0, 0.1);
+}
+
+html[data-theme='light'] .dashboard-home .dash-module-preview-synopsis {
+  color: #1a1b21;
+}
+
+html[data-theme='light'] .dashboard-home .dash-module-preview-highlights li {
+  color: #4a4538;
+}
+
 @media (max-width: 768px) {
-  .dashboard-home .dash-nav-item--module {
+  .dashboard-home .dash-module-top {
     grid-template-columns: auto 1fr;
     grid-template-rows: auto auto;
     gap: 14px;
@@ -392,6 +633,11 @@ html[data-theme='light'] .dashboard-home .dash-module-tag {
   .dashboard-home .dash-module-tags {
     display: none;
   }
+
+  /* En móvil no expandimos como Netflix; tocamos directo. */
+  .dashboard-home .dash-module-preview {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -401,8 +647,12 @@ html[data-theme='light'] .dashboard-home .dash-module-tag {
   .dashboard-home .dash-module-icon,
   .dashboard-home .dash-nav-item--module:hover .dash-module-icon,
   .dashboard-home .dash-module-arrow,
-  .dashboard-home .dash-nav-item--module:hover .dash-module-arrow {
+  .dashboard-home .dash-nav-item--module:hover .dash-module-arrow,
+  .dashboard-home .dash-module-preview,
+  .dashboard-home .dash-module-preview-inner,
+  .dashboard-home .dash-module-sheen {
     transition-duration: 0.01ms !important;
+    animation: none !important;
     transform: none !important;
   }
 }
