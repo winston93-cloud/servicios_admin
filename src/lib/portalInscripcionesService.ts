@@ -740,18 +740,22 @@ export async function construirEstadoPortalInscripciones(
     alumno,
     ciclo,
     formaIngreso,
-    formaIngresoEtiqueta: esReinscrito ? 'Reinscrito' : 'Nuevo ingreso',
+    formaIngresoEtiqueta: modoAdeudoEgresado
+      ? 'Adeudos'
+      : esReinscrito
+        ? 'Reinscrito'
+        : 'Nuevo ingreso',
     gradoEtiqueta,
     bloqueo,
     mensajeBloqueo,
     aviso,
-    pasos,
-    pasosCompletados,
-    pasosTotales,
-    progresoPct,
-    montoInscripcion,
-    reinscripcion: reinscripcionInfo,
-    showPayment,
+    pasos: modoAdeudoEgresado ? [] : pasos,
+    pasosCompletados: modoAdeudoEgresado ? 0 : pasosCompletados,
+    pasosTotales: modoAdeudoEgresado ? 0 : pasosTotales,
+    progresoPct: modoAdeudoEgresado ? 0 : progresoPct,
+    montoInscripcion: modoAdeudoEgresado ? null : montoInscripcion,
+    reinscripcion: modoAdeudoEgresado ? null : reinscripcionInfo,
+    showPayment: modoAdeudoEgresado ? false : showPayment,
     solicitudCapturada: solCapturada,
     inscripcionPagada: insPagada,
     cuotaInicioCursoPagada,
@@ -773,5 +777,6 @@ export async function construirEstadoPortalInscripciones(
           valor: cicloPagoReg.valor,
           nombre: cicloPagoReg.nombre,
         },
+    modoAdeudoEgresado,
   }
 }

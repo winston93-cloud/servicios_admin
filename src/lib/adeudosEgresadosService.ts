@@ -168,6 +168,18 @@ export async function activarAdeudoEgresado(
     return { ok: false, error: 'Ciclo inválido.' }
   }
 
+  const cicloFicha = Number(alumno.alumno_ciclo_escolar) || 0
+  if (
+    esAlumnoEgresadoOBaja(alumno) &&
+    cicloFicha > 0 &&
+    cicloValor === cicloFicha
+  ) {
+    return {
+      ok: false,
+      error: `Para egresados el ciclo de adeudos debe ser el que cursaron (p. ej. ${cicloFicha - 1}), no el ciclo de egreso (${cicloFicha}).`,
+    }
+  }
+
   const ahora = new Date().toISOString()
   const payload = {
     alumno_id: alumno.alumno_id,

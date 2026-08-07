@@ -729,11 +729,13 @@ export default function PortalInscripcionesView() {
                   Actualizar
                 </button>
               </div>
-              <ProgresoInscripcion
-                pct={estadoVista.progresoPct}
-                completados={estadoVista.pasosCompletados}
-                totales={estadoVista.pasosTotales}
-              />
+              {!estadoVista.modoAdeudoEgresado ? (
+                <ProgresoInscripcion
+                  pct={estadoVista.progresoPct}
+                  completados={estadoVista.pasosCompletados}
+                  totales={estadoVista.pasosTotales}
+                />
+              ) : null}
             </div>
           )}
         </header>
@@ -822,13 +824,16 @@ export default function PortalInscripcionesView() {
             <div className="portal-inscripciones-colegiaturas-head">
               <div>
                 <h2 className="portal-inscripciones-colegiaturas-titulo">
-                  Cierre de ciclo {estadoVista.cierreCiclo.ciclo.nombre}
+                  {estadoVista.modoAdeudoEgresado
+                    ? `Adeudos del ciclo ${estadoVista.cierreCiclo.ciclo.nombre}`
+                    : `Cierre de ciclo ${estadoVista.cierreCiclo.ciclo.nombre}`}
                 </h2>
                 <p className="portal-inscripciones-colegiaturas-sub">
-                  {estadoVista.gradoEtiqueta === 'Egresado' &&
-                  !estadoVista.bloqueo
-                    ? 'Liquida las colegiaturas pendientes de este ciclo (un pago a la vez). Tu estatus de egresado no cambia.'
-                    : 'Liquida las colegiaturas pendientes de este ciclo (un pago a la vez) para habilitar tu reinscripción.'}
+                  {estadoVista.modoAdeudoEgresado
+                    ? 'Liquida las colegiaturas pendientes del ciclo que cursaste (un pago a la vez). Tu estatus de egresado no cambia.'
+                    : estadoVista.gradoEtiqueta === 'Egresado' && !estadoVista.bloqueo
+                      ? 'Liquida las colegiaturas pendientes de este ciclo (un pago a la vez). Tu estatus de egresado no cambia.'
+                      : 'Liquida las colegiaturas pendientes de este ciclo (un pago a la vez) para habilitar tu reinscripción.'}
                 </p>
               </div>
               <span className="portal-inscripciones-plan-badge">
@@ -863,7 +868,7 @@ export default function PortalInscripcionesView() {
           </section>
         )}
 
-        {estadoVista && !cierrePendiente && !procesoCompleto && (
+        {estadoVista && !cierrePendiente && !procesoCompleto && !estadoVista.modoAdeudoEgresado && (
           <div
             className="portal-inscripciones-alerta portal-inscripciones-alerta--destacado"
             role="status"
@@ -882,7 +887,7 @@ export default function PortalInscripcionesView() {
           </div>
         )}
 
-        {estadoVista && !cierrePendiente && (
+        {estadoVista && !cierrePendiente && !estadoVista.modoAdeudoEgresado && (
           <>
             {procesoCompleto ? (
               <div className="portal-inscripciones-proceso-wrap">

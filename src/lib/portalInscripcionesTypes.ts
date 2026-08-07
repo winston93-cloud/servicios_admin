@@ -110,4 +110,9 @@ export interface EstadoPortalInscripciones {
    * (reinscrito = destino 23; NI = ciclo de la ficha).
    */
   cicloColegiaturas?: { valor: number; nombre: string } | null
+  /**
+   * Acceso temporal de egresado (adeudos del ciclo que terminó).
+   * No es reinscripción: solo matriz de pendientes de ese ciclo.
+   */
+  modoAdeudoEgresado?: boolean
 }
