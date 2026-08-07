@@ -6174,36 +6174,49 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: rgba(248, 250, 252, 0.92);
+  color: #ffffff;
   font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .servicios-nav-item:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
 }
 
 .servicios-nav-item.active {
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  box-shadow: inset 3px 0 0 #7dd3fc;
 }
 
 .servicios-nav-icon {
   flex-shrink: 0;
-  opacity: 0.9;
+  opacity: 1;
+  color: #e0f2fe;
+  stroke-width: 2.25;
+}
+
+.servicios-nav-item:hover .servicios-nav-icon,
+.servicios-nav-item.active .servicios-nav-icon {
+  color: #ffffff;
 }
 
 .servicios-nav-label {
   flex: 1;
   line-height: 1.35;
+  color: inherit;
+  font-weight: inherit;
 }
 
 .servicios-nav-chevron {
   flex-shrink: 0;
-  opacity: 0.85;
+  opacity: 1;
+  color: #bae6fd;
 }
 
 .servicios-nav-chevron--toggle {
@@ -6219,7 +6232,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 }
 
 .servicios-nav-item--group {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .servicios-nav-submenu {
@@ -6228,7 +6241,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   gap: 1px;
   margin: 2px 0 4px;
   padding-left: 8px;
-  border-left: 2px solid rgba(255, 255, 255, 0.12);
+  border-left: 2px solid rgba(125, 211, 252, 0.45);
   margin-left: 20px;
 }
 
@@ -6242,27 +6255,56 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: rgba(248, 250, 252, 0.78);
+  color: #f1f5f9;
   font-family: inherit;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   line-height: 1.35;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
 .servicios-nav-subitem:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(248, 250, 252, 0.95);
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
 }
 
 .servicios-nav-subitem.active {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  box-shadow: inset 3px 0 0 #7dd3fc;
 }
 
 .servicios-nav-subitem-label {
   flex: 1;
+  color: inherit;
+  font-weight: inherit;
+}
+
+/* Forzar contraste del menú en claro y oscuro (el sidebar es siempre navy). */
+html[data-theme='light'] .servicios-sidebar .servicios-nav-item,
+html[data-theme='dark'] .servicios-sidebar .servicios-nav-item,
+html[data-theme='light'] .servicios-sidebar .servicios-nav-subitem,
+html[data-theme='dark'] .servicios-sidebar .servicios-nav-subitem {
+  color: #ffffff;
+}
+
+html[data-theme='light'] .servicios-sidebar .servicios-nav-item,
+html[data-theme='dark'] .servicios-sidebar .servicios-nav-item {
+  font-weight: 600;
+}
+
+html[data-theme='light'] .servicios-sidebar .servicios-nav-icon,
+html[data-theme='dark'] .servicios-sidebar .servicios-nav-icon {
+  color: #e0f2fe;
+  opacity: 1;
+}
+
+html[data-theme='light'] .servicios-sidebar .servicios-nav-label,
+html[data-theme='dark'] .servicios-sidebar .servicios-nav-label,
+html[data-theme='light'] .servicios-sidebar .servicios-nav-subitem-label,
+html[data-theme='dark'] .servicios-sidebar .servicios-nav-subitem-label {
+  color: inherit;
 }
 
 .servicios-sidebar-footer {
@@ -6810,7 +6852,7 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 .fd-fieldset legend {
   padding: 0 6px;
   font-size: 0.95rem;
-  font-weight: 650;
+  font-weight: 600;
   color: #0f172a;
 }
 
@@ -12195,7 +12237,7 @@ html[data-theme='light'] .pi-icon-btn--cancel {
   border-radius: 10px;
   padding: 0.65rem 1.05rem;
   font-size: 0.9rem;
-  font-weight: 650;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -13229,7 +13271,7 @@ a.pc-accion {
   color: #475569;
   font: inherit;
   font-size: 0.9rem;
-  font-weight: 650;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -20985,7 +21027,7 @@ html[data-theme='light'] .reportes-section-toggle:hover .reportes-section-title 
 
 .portal-facturacion-section h2 {
   font-size: 0.95rem;
-  font-weight: 650;
+  font-weight: 600;
   margin: 0 0 0.9rem;
   letter-spacing: 0.01em;
   color: var(--text-primary, #f1f5f9);
@@ -21937,7 +21979,7 @@ html[data-theme='light'] .portal-docs-item--listo {
   background: linear-gradient(145deg, #0284c7, #0369a1);
   color: #fff;
   font-size: 0.875rem;
-  font-weight: 650;
+  font-weight: 600;
   cursor: pointer;
   box-shadow: 0 10px 22px rgba(2, 132, 199, 0.22);
   transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
@@ -22073,7 +22115,7 @@ html[data-theme='dark'] .ce-heading-icon {
 }
 
 .ce-usuario-name {
-  font-weight: 650;
+  font-weight: 600;
   font-size: 0.95rem;
   color: var(--ce-ink);
   overflow: hidden;
@@ -22461,7 +22503,7 @@ html[data-theme='dark'] .ce-panel-stat {
 .ce-panel-stat__label {
   display: block;
   font-size: 0.72rem;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #64748b;
@@ -22518,7 +22560,7 @@ html[data-theme='dark'] .ce-panel-stat.is-active.is-ok {
   gap: 0.35rem;
   margin: 0;
   font-size: 0.75rem;
-  font-weight: 650;
+  font-weight: 600;
   color: #64748b;
 }
 
@@ -22726,7 +22768,7 @@ html[data-theme='dark'] .ce-panel-modal__foot {
   border: 1px solid rgba(15, 23, 42, 0.12);
   background: #fff;
   color: #0f172a;
-  font-weight: 650;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -23057,7 +23099,7 @@ html[data-theme='dark'] .ce-panel-close-btn {
   border-radius: 12px;
   border: 1px solid transparent;
   font-size: 0.9rem;
-  font-weight: 650;
+  font-weight: 600;
   cursor: pointer;
   transition: transform 0.12s ease, filter 0.12s ease, opacity 0.12s ease;
 }
