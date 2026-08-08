@@ -1,6 +1,6 @@
 /** Utilidades legacy para bauchers (port de core.php). */
 
-import { anioCalendarioConcepto } from './colegiaturaPrecioReglas'
+import { anioCalendarioConcepto, mesDeConcepto } from './colegiaturaPrecioReglas'
 import { normalizarConceptoNo } from './pagoReferenciaColegiatura'
 
 export { normalizarConceptoNo }
@@ -32,19 +32,31 @@ export function formatearFechaBoucher(fechaIso: string): string {
   return `${parseInt(m[3], 10)} de ${MESES[mes] ?? m[2]} de ${m[1]}`
 }
 
+/** ISO YYYY-MM-DD en calendario local (evita corrimiento UTC). */
+function isoFechaLocal(d: Date): string {
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+/** Vigencia de cortesía: hoy + 7 días (tras el día 10 del concepto). */
+export function vigenciaBoucherMasUnaSemana(fecha = new Date()): string {
+  const d = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + 7)
+  return isoFechaLocal(d)
+}
+
+/** @deprecated Preferir vigenciaBoucherParaConcepto; queda como hoy+7. */
 export function vigenciaBoucherPorDefecto(fecha = new Date()): string {
-  const yyyy = fecha.getFullYear()
-  const mm = String(fecha.getMonth() + 1).padStart(2, '0')
-  let dd = fecha.getDate()
-  if (dd < 29) dd += 2
-  return `${yyyy}-${mm}-${String(dd).padStart(2, '0')}`
+  return vigenciaBoucherMasUnaSemana(fecha)
 }
 
 /**
- * Validez impresa en baucher según concepto.
- * Cuota de Inicio de Curso (00): siempre el 10 de agosto del año de inicio
- * del ciclo (N → N+2003), p. ej. ciclo 23 → 10 ago 2026. Así el banco no
- * cobra recargos creyendo que la fecha límite es julio.
+ * Validez impresa en baucher (ventanilla Banorte):
+ * - Con mes de concepto (00, 01…): hasta el día 10 de ese mes/año del ciclo.
+ * - Si ya pasó el 10: vigencia = hoy + 7 días (el banco ve una fecha futura;
+ *   el monto ventanilla sigue sin recargo $75; Winston ya no aplica).
+ * - Sin mes de concepto (inscripción, etc.): hoy + 7 días.
  */
 export function vigenciaBoucherParaConcepto(
   conceptoNo: string,
@@ -52,11 +64,22 @@ export function vigenciaBoucherParaConcepto(
   fecha = new Date()
 ): string {
   const c = normalizarConceptoNo(conceptoNo)
-  if (c === '00' && Number.isFinite(cicloEscolar) && cicloEscolar > 0) {
-    const anio = anioCalendarioConcepto(c, cicloEscolar)
-    if (anio != null) return `${anio}-08-10`
+  const mes = mesDeConcepto(c)
+  const anio =
+    Number.isFinite(cicloEscolar) && cicloEscolar > 0
+      ? anioCalendarioConcepto(c, cicloEscolar)
+      : null
+
+  if (mes != null && anio != null) {
+    const limite = new Date(anio, mes - 1, 10)
+    const hoy = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate())
+    if (hoy.getTime() <= limite.getTime()) {
+      return `${anio}-${String(mes).padStart(2, '0')}-10`
+    }
+    return vigenciaBoucherMasUnaSemana(fecha)
   }
-  return vigenciaBoucherPorDefecto(fecha)
+
+  return vigenciaBoucherMasUnaSemana(fecha)
 }
 
 /**

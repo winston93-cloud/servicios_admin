@@ -89,10 +89,10 @@ export default function BauchersModulo() {
     setCicloBoucher(cicloSeleccionado)
   }, [cicloSeleccionado])
 
-  // Cuota 00: validez = 10 ago del ciclo (no la vigencia corta hoy+2).
+  // Validez baucher: día 10 del mes del concepto; si ya pasó, hoy + 7 días.
   useEffect(() => {
-    if (normalizarConceptoNo(concepto) !== '00' || !cicloBoucher) return
-    setVigencia(vigenciaBoucherParaConcepto('00', cicloBoucher))
+    if (!cicloBoucher) return
+    setVigencia(vigenciaBoucherParaConcepto(concepto || '00', cicloBoucher))
   }, [concepto, cicloBoucher])
 
   const cargarPrecios = useCallback(async (ciclo: number) => {

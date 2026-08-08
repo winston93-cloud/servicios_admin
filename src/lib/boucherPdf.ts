@@ -229,6 +229,10 @@ function dibujarAvisoLegal(
     avisos.push(
       `Cuota de Inicio de Curso: la fecha límite de pago es el ${formatearFechaBoucher(datos.vigencia)}. No aplicar recargos bancarios antes de esa fecha.`
     )
+  } else {
+    avisos.push(
+      `Validez del comprobante: ${formatearFechaBoucher(datos.vigencia)}. Colegiaturas: del 1 al 10 de cada mes; si se genera después del día 10, la validez es de 7 días. En ventanilla no aplicar recargo de $75 (solo comercio electrónico / Openpay). La beca Winston no aplica después del día 10.`
+    )
   }
 
   if (datos.aplicarRecargos) {
