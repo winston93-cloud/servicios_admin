@@ -6,7 +6,7 @@ import { etiquetaGrupoEscolar } from '@/lib/grupoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import { CHUNK_ALUMNO_ID_GENERAL, chunkArray } from './dbChunks'
 import { fetchPagosPorAlumnos } from './fetchDb'
-import { buscarFechaConcepto } from './pagoReporteHelpers'
+import { buscarFechaConcepto, buscarFechaConceptoEnRango } from './pagoReporteHelpers'
 import { etiquetaCicloReporte } from './renderDocument'
 
 const REF_EXCLUIDO = '20705'
@@ -60,8 +60,7 @@ function formatearAlta(alta: string | null): string {
 
 async function fetchNuevoIngresoNivel(
   nivel: number,
-  cicloAlumnos: number,
-  rangoRegistro?: { desde: string; hasta: string }
+  cicloAlumnos: number
 ): Promise<
   {
     alumno_id: number
@@ -70,7 +69,6 @@ async function fetchNuevoIngresoNivel(
     alumno_grado: number
     alumno_grupo: number
     alumno_alta: string | null
-    alumno_registro: string | null
   }[]
 > {
   const db = createDbAdmin()
@@ -81,16 +79,15 @@ async function fetchNuevoIngresoNivel(
     alumno_grado: number
     alumno_grupo: number
     alumno_alta: string | null
-    alumno_registro: string | null
   }[] = []
   let offset = 0
   const PAGE = 400
 
   while (true) {
-    let q = db
+    const { data, error } = await db
       .from('alumno')
       .select(
-        'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_alta, alumno_registro'
+        'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_alta'
       )
       .eq('alumno_nivel', nivel)
       .eq('alumno_ciclo_escolar', cicloAlumnos)
@@ -102,14 +99,6 @@ async function fetchNuevoIngresoNivel(
       .order('alumno_app', { ascending: true })
       .range(offset, offset + PAGE - 1)
 
-    if (rangoRegistro) {
-      q = q
-        .gte('alumno_registro', rangoRegistro.desde)
-        .lte('alumno_registro', rangoRegistro.hasta)
-    }
-
-    const { data, error } = await q
-
     if (error) throw new Error(error.message)
     const chunk = data ?? []
     for (const r of chunk) {
@@ -120,7 +109,6 @@ async function fetchNuevoIngresoNivel(
         alumno_grado: Number(r.alumno_grado),
         alumno_grupo: Number(r.alumno_grupo),
         alumno_alta: r.alumno_alta as string | null,
-        alumno_registro: r.alumno_registro as string | null,
       })
     }
     if (chunk.length < PAGE) break
@@ -172,19 +160,24 @@ async function fetchFamiliaresPorAlumnos(
   return porAlumno
 }
 
+const CONCEPTOS_INSCRIPCION_NUEVO = ['13'] as const
+
 export async function cargarNuevoIngreso(
   nivel: number,
   cicloAlumnos: number,
   cicloPago: number,
   modo: 'completo' | 'deben',
   opts?: {
-    /** Filtro legacy: DATE(alumno_registro) entre desde..hasta (YYYY-MM-DD). */
-    rangoRegistro?: { desde: string; hasta: string }
+    /**
+     * Solo alumnos con pago de inscripción (concepto 13) en el rango.
+     * La columna Alta sigue siendo alumno_alta real.
+     */
+    rangoPago?: { desde: string; hasta: string }
     /** Título override (ej. reporte por mes). */
     titulo?: string
   }
 ): Promise<ResumenNuevoIngreso> {
-  const alumnos = await fetchNuevoIngresoNivel(nivel, cicloAlumnos, opts?.rangoRegistro)
+  const alumnos = await fetchNuevoIngresoNivel(nivel, cicloAlumnos)
   const pagos = await fetchPagosPorAlumnos(alumnos.map((a) => a.alumno_id))
   const pagosPorAlumno = new Map<number, typeof pagos>()
   for (const p of pagos) {
@@ -193,22 +186,31 @@ export async function cargarNuevoIngreso(
     pagosPorAlumno.set(p.alumno_id, list)
   }
 
-  const familiaresPorAlumno =
-    modo === 'completo'
-      ? await fetchFamiliaresPorAlumnos(alumnos.map((a) => a.alumno_id))
-      : new Map<number, FamiliarNuevoIngreso[]>()
-
-  const filas: FilaNuevoIngreso[] = []
+  const filasBase: (Omit<FilaNuevoIngreso, 'no' | 'familiares'> & {
+    alumno_id: number
+  })[] = []
   const contadores = new Map<number, { pendientes: number; pagados: number }>()
-  const usarRegistroComoAlta = Boolean(opts?.rangoRegistro)
 
   for (const a of alumnos) {
-    const fechaPago = buscarFechaConcepto(
-      pagosPorAlumno.get(a.alumno_id) ?? [],
-      a.alumno_ref,
-      ['13'],
-      cicloPago
-    )
+    const pagosAlumno = pagosPorAlumno.get(a.alumno_id) ?? []
+    const fechaPago = opts?.rangoPago
+      ? buscarFechaConceptoEnRango(
+          pagosAlumno,
+          a.alumno_ref,
+          [...CONCEPTOS_INSCRIPCION_NUEVO],
+          cicloPago,
+          opts.rangoPago
+        )
+      : buscarFechaConcepto(
+          pagosAlumno,
+          a.alumno_ref,
+          [...CONCEPTOS_INSCRIPCION_NUEVO],
+          cicloPago
+        )
+
+    // Por mes: solo quienes pagaron inscripción en ese mes.
+    if (opts?.rangoPago && !fechaPago) continue
+
     const pagado = Boolean(fechaPago)
     if (modo === 'deben' && pagado) continue
 
@@ -217,21 +219,29 @@ export async function cargarNuevoIngreso(
     else prev.pendientes += 1
     contadores.set(a.alumno_grado, prev)
 
-    filas.push({
-      no: filas.length + 1,
+    filasBase.push({
+      alumno_id: a.alumno_id,
       gradoNum: a.alumno_grado,
       grado: etiquetaGradoEscolar(nivel, a.alumno_grado),
       grupo: etiquetaGrupoEscolar(a.alumno_grupo),
       noCtrl: a.alumno_ref,
-      alta: formatearAlta(
-        usarRegistroComoAlta ? a.alumno_registro : a.alumno_alta
-      ),
+      alta: formatearAlta(a.alumno_alta),
       nombre: a.nombre,
       fechaPago,
       pagado,
-      familiares: familiaresPorAlumno.get(a.alumno_id) ?? [],
     })
   }
+
+  const familiaresPorAlumno =
+    modo === 'completo'
+      ? await fetchFamiliaresPorAlumnos(filasBase.map((f) => f.alumno_id))
+      : new Map<number, FamiliarNuevoIngreso[]>()
+
+  const filas: FilaNuevoIngreso[] = filasBase.map(({ alumno_id, ...f }, i) => ({
+    ...f,
+    no: i + 1,
+    familiares: familiaresPorAlumno.get(alumno_id) ?? [],
+  }))
 
   const resumenGrados: ResumenGradoNuevoIngreso[] = [...contadores.entries()]
     .sort((a, b) => a[0] - b[0])
@@ -283,13 +293,13 @@ const MESES_ES = [
   'Diciembre',
 ]
 
-/** Rango calendario del mes (legacy nuevoIngresoxmes). */
+/** Rango calendario del mes para filtrar pago_fecha. */
 export function rangoMesCalendario(mes: number, anio: number): { desde: string; hasta: string } {
   const m = Math.min(12, Math.max(1, Math.floor(mes)))
   const y = Math.floor(anio)
   const desde = `${y}-${String(m).padStart(2, '0')}-01`
   const ultimo = new Date(y, m, 0).getDate()
-  // Incluye todo el último día si alumno_registro es datetime.
+  // Incluye todo el último día si pago_fecha es datetime.
   const hasta = `${y}-${String(m).padStart(2, '0')}-${String(ultimo).padStart(2, '0')} 23:59:59`
   return { desde, hasta }
 }

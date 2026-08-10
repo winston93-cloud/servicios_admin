@@ -72,7 +72,7 @@ export const REPORTE_CATEGORIAS: ReporteCategoria[] = [
   {
     id: 'nuevo-ingreso-mes',
     titulo: 'Nuevo ingreso por mes',
-    subtitulo: 'Mes + año + nivel · fecha de registro (legacy)',
+    subtitulo: 'Mes + año + nivel · fecha de pago de inscripción',
     orden: 4,
   },
   { id: 'becados', titulo: 'Becados Winston', orden: 5 },
@@ -353,14 +353,14 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     categoriaId: 'nuevo-ingreso-mes',
     titulo: 'Nuevo ingreso por mes',
     descripcion:
-      'Igual que legacy: alumnos de nuevo ingreso registrados en el mes (familiares + pago inscripción).',
+      'Nuevos ingresos que pagaron inscripción (concepto 13) en el mes; muestra alta real y familiares.',
     accent: 'violet',
     motor: 'api-next',
     usaCiclo: 'escolar',
     requiereNivel: true,
     requiereMes: true,
     nivelInicial: 'primaria',
-    keywords: ['nuevo ingreso', 'mes', 'registro', 'mensual'],
+    keywords: ['nuevo ingreso', 'mes', 'pago', 'inscripcion', 'mensual'],
   },
   {
     id: 'familias-winston',

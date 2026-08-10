@@ -22,7 +22,7 @@ export function formatearFechaPago(fecha: string | null): string {
   return `${day}/${m}/${y}`
 }
 
-export function buscarFechaConcepto(
+function fechasConceptoCiclo(
   pagos: {
     pago_referencia: string | null
     pago_fecha: string | null
@@ -31,9 +31,9 @@ export function buscarFechaConcepto(
   alumnoRef: string,
   conceptos: string[],
   cicloInscripcion: number
-): string {
+): string[] {
   const ref5 = formatearAlumnoRefParaReferencia(alumnoRef)
-  const hits = pagos
+  return pagos
     .filter((p) => pagoVigente(p.pago_cancelado))
     .map((p) => {
       const parsed = parsearReferenciaPago(p.pago_referencia)
@@ -49,7 +49,42 @@ export function buscarFechaConcepto(
     })
     .filter((f): f is string => Boolean(f))
     .sort()
+}
 
+export function buscarFechaConcepto(
+  pagos: {
+    pago_referencia: string | null
+    pago_fecha: string | null
+    pago_cancelado: number | null
+  }[],
+  alumnoRef: string,
+  conceptos: string[],
+  cicloInscripcion: number
+): string {
+  const hits = fechasConceptoCiclo(pagos, alumnoRef, conceptos, cicloInscripcion)
+  return hits.length ? formatearFechaPago(hits[0]) : ''
+}
+
+/** Primera fecha de pago del concepto dentro del rango calendario (YYYY-MM-DD…). */
+export function buscarFechaConceptoEnRango(
+  pagos: {
+    pago_referencia: string | null
+    pago_fecha: string | null
+    pago_cancelado: number | null
+  }[],
+  alumnoRef: string,
+  conceptos: string[],
+  cicloInscripcion: number,
+  rango: { desde: string; hasta: string }
+): string {
+  const desde = rango.desde.slice(0, 10)
+  const hasta = rango.hasta.slice(0, 10)
+  const hits = fechasConceptoCiclo(pagos, alumnoRef, conceptos, cicloInscripcion).filter(
+    (f) => {
+      const d = f.slice(0, 10)
+      return d >= desde && d <= hasta
+    }
+  )
   return hits.length ? formatearFechaPago(hits[0]) : ''
 }
 
