@@ -2,11 +2,9 @@ import { NextResponse } from 'next/server'
 import { obtenerAlumnoPorId } from '@/lib/alumnoDatosService'
 import { esEstatusBloqueo } from '@/lib/alumnoStatus'
 import { normalizarConceptoNo } from '@/lib/boucherCore'
-import { calcularBoucher } from '@/lib/boucherService'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { crearCargoSpeiOpenpay } from '@/lib/openpaySpeiService'
-import { omitirRecargosAdeudoEgresado } from '@/lib/adeudosEgresadosService'
 import {
   esConceptoInscripcionReinscripcion,
   nivelCobroElectronico,
@@ -15,6 +13,7 @@ import {
   generarReferenciaSpeiDesdePago,
   obtenerConfigOpenpay,
 } from '@/lib/portalPagosSpei'
+import { resolverImportePagoElectronico } from '@/lib/portalPagoElectronicoImporte'
 
 export const runtime = 'nodejs'
 
@@ -74,32 +73,19 @@ export async function POST(request: Request) {
 
     const supabase = createSupabaseAdmin()
     const { resolverPlanMesesParaCiclo } = await import('@/lib/portalPlanMesesCiclo')
-    const { parseImporteBoucher } = await import('@/lib/boucherCore')
     const planMeses = await resolverPlanMesesParaCiclo(supabase, alumno, cicloEscolar)
-    const omitirRecargos = await omitirRecargosAdeudoEgresado(
-      supabase,
-      alumno.alumno_id,
-      cicloEscolar
-    )
-    // Solo concepto 30 (Pago Anual) puede traer importe de la matriz; el resto
-    // se recalcula en servidor para no afectar alumnos en clases.
-    const importeCliente =
-      conceptoNo === '30' && body.importe != null && body.importe !== ''
-        ? parseImporteBoucher(body.importe)
-        : null
-    const { importe, importeLinea, recargo } = await calcularBoucher(supabase, {
-      alumnoId,
-      alumnoRef: alumno.alumno_ref,
-      alumnoNivel: alumno.alumno_nivel,
-      alumnoGrado: Number(alumno.alumno_grado) || 0,
+
+    const { importe, importeLinea, recargo, montoCobro } = await resolverImportePagoElectronico({
+      db: supabase,
+      alumno,
       conceptoNo,
       cicloEscolar,
+      cicloTemporada,
       planMeses,
-      omitirRecargos,
-      importeManual: importeCliente != null && importeCliente > 0 ? importeCliente : null,
+      importeCliente: body.importe,
     })
 
-    const montoSpei = importeLinea > 0 ? importeLinea : importe
+    const montoSpei = montoCobro > 0 ? montoCobro : importeLinea > 0 ? importeLinea : importe
 
     if (montoSpei <= 0) {
       return NextResponse.json({ error: 'Importe inválido para SPEI' }, { status: 400 })
