@@ -15,6 +15,10 @@ import {
 import { tieneDiferido1Pagado } from './portalInscripcionesSolicitud'
 import { proyectarReinscripcionAlumno } from './portalReinscripcionProyeccion'
 import {
+  esAlumnoNuevoIngreso,
+  mensajePromoInscripcionNi,
+} from './inscripcionNuevoIngresoDescuento'
+import {
   corteDiciembrePostDif2,
   type ReinscripcionDiferido,
 } from './portalReinscripcionService'
@@ -239,12 +243,20 @@ export function evaluarVentanaPortalNuevoIngreso(
 ): EstadoVentanaNuevoIngreso {
   const status = Number(alumno.alumno_status)
   const showInfo = status === 1 || status === 2
+  const esNi = esAlumnoNuevoIngreso(alumno.alumno_nuevo_ingreso)
 
   return {
     showInfo,
     liberateInfo: showInfo,
     showPayment: inscripcionPagada || (pagable && showInfo),
-    msg1: null,
+    msg1:
+      !inscripcionPagada && esNi
+        ? mensajePromoInscripcionNi({
+            esNuevoIngreso: true,
+            alumnoAlta: alumno.alumno_alta,
+            cicloAlumno: Number(alumno.alumno_ciclo_escolar) || 0,
+          })
+        : null,
   }
 }
 

@@ -16,6 +16,10 @@ import { montoBecaSep } from './integracionSep'
 import { sepAplicaEnCicloCobro } from './becasCobroPolitica'
 import { faltanteColegiaturaPendiente } from './faltantesColegiaturaCiclo23'
 import { obtenerCorreccionManualActiva } from './portalAdmisionesProrroga'
+import {
+  esAlumnoNuevoIngreso,
+  importeInscripcionNuevoIngreso,
+} from './inscripcionNuevoIngresoDescuento'
 
 export interface PrecioBoucherRow {
   precio_id: number
@@ -218,6 +222,9 @@ export function calcularImporteConcepto(
     alumnoRef?: string | number
     fecha?: Date
     cicloEscolar?: number
+    /** Nuevo ingreso: 35% los primeros 15 días desde alta, 20% después. */
+    alumnoNuevoIngreso?: number | string | null
+    alumnoAlta?: string | null
   }
 ): number {
   const fecha = opts?.fecha ?? new Date()
@@ -259,6 +266,15 @@ export function calcularImporteConcepto(
     })
   }
 
+  if (c === '13' && esAlumnoNuevoIngreso(opts?.alumnoNuevoIngreso)) {
+    importe = importeInscripcionNuevoIngreso(importe, {
+      esNuevoIngreso: true,
+      alumnoAlta: opts?.alumnoAlta,
+      cicloAlumno: ciclo,
+      fecha,
+    })
+  }
+
   return Math.round(importe * 100) / 100
 }
 
@@ -287,6 +303,8 @@ export async function calcularBoucher(
     fecha?: Date
     /** Adeudos egresados: cobrar colegiatura sin recargo de atraso. */
     omitirRecargos?: boolean
+    alumnoNuevoIngreso?: number | string | null
+    alumnoAlta?: string | null
   }
 ): Promise<ResultadoCalculoBoucher> {
   const nivelPrecio = nivelPrecioBoucher(params.alumnoNivel, params.alumnoGrado)
@@ -344,6 +362,22 @@ export async function calcularBoucher(
     importePagoAnual = monto.montoConDescuento
   }
 
+  let alumnoNuevoIngreso = params.alumnoNuevoIngreso
+  let alumnoAlta = params.alumnoAlta
+  if (
+    conceptoNorm === '13' &&
+    !(manual != null && manual > 0) &&
+    importeCorreccion == null &&
+    (alumnoNuevoIngreso == null || alumnoAlta == null)
+  ) {
+    const { obtenerAlumnoPorId } = await import('@/lib/alumnoDatosService')
+    const alumno = await obtenerAlumnoPorId(params.alumnoId)
+    if (alumno) {
+      alumnoNuevoIngreso = alumnoNuevoIngreso ?? alumno.alumno_nuevo_ingreso
+      alumnoAlta = alumnoAlta ?? alumno.alumno_alta ?? null
+    }
+  }
+
   const importe =
     manual != null && manual > 0
       ? manual
@@ -355,6 +389,8 @@ export async function calcularBoucher(
               alumnoRef: params.alumnoRef,
               fecha,
               cicloEscolar: params.cicloEscolar,
+              alumnoNuevoIngreso,
+              alumnoAlta,
             })
 
   const recargo =

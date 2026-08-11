@@ -45,6 +45,8 @@ export async function POST(request: Request) {
       cicloEscolar,
       importeManual,
       planMeses: alumno.mes === 2 ? 2 : 1,
+      alumnoNuevoIngreso: alumno.alumno_nuevo_ingreso,
+      alumnoAlta: alumno.alumno_alta ?? null,
     })
 
     return NextResponse.json({ ok: true, ...resultado })

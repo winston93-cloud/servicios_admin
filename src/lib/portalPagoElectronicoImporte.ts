@@ -85,6 +85,8 @@ export async function resolverImportePagoElectronico(opts: {
       planMeses: opts.planMeses,
       omitirRecargos,
       importeManual: cliente != null && cliente > 0 ? cliente : null,
+      alumnoNuevoIngreso: opts.alumno.alumno_nuevo_ingreso,
+      alumnoAlta: opts.alumno.alumno_alta ?? null,
     })
     const montoCobro = calc.importeLinea > 0 ? calc.importeLinea : calc.importe
     return { ...calc, montoCobro }
@@ -100,6 +102,8 @@ export async function resolverImportePagoElectronico(opts: {
     planMeses: opts.planMeses,
     omitirRecargos,
     importeManual: null,
+    alumnoNuevoIngreso: opts.alumno.alumno_nuevo_ingreso,
+    alumnoAlta: opts.alumno.alumno_alta ?? null,
   })
   const montoCobro = calc.importeLinea > 0 ? calc.importeLinea : calc.importe
   return { ...calc, montoCobro }

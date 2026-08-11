@@ -281,6 +281,8 @@ async function construirFilas(
         : calcularImporteConcepto(conceptoNo, precio, becaPct, planMeses, {
             alumnoRef: alumno.alumno_ref,
             cicloEscolar: ciclo.valor,
+            alumnoNuevoIngreso: alumno.alumno_nuevo_ingreso,
+            alumnoAlta: alumno.alumno_alta ?? null,
           })
     // Importe de corrección es el monto pactado; no sumar recargo de atraso.
     const recargo =
@@ -575,5 +577,7 @@ export async function recalcularReferenciaPortal(
     importeManual: importe,
     planMeses: alumno.mes === 2 ? 2 : 1,
     omitirRecargos,
+    alumnoNuevoIngreso: alumno.alumno_nuevo_ingreso,
+    alumnoAlta: alumno.alumno_alta ?? null,
   })
 }
