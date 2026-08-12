@@ -53,9 +53,10 @@ export function vigenciaBoucherPorDefecto(fecha = new Date()): string {
 
 /**
  * Validez impresa en baucher (ventanilla Banorte):
- * - Con mes de concepto (00, 01…): hasta el día 10 de ese mes/año del ciclo.
- * - Si ya pasó el 10: vigencia = hoy + 7 días (el banco ve una fecha futura;
- *   el monto ventanilla sigue sin recargo $75; Winston ya no aplica).
+ * - Concepto 00 (Cuota de Inicio de Curso): siempre día 10 de agosto del ciclo
+ *   (límite real; no usar cortesía hoy+7).
+ * - Otros conceptos con mes (01…): hasta el día 10 de ese mes/año del ciclo.
+ * - Si ya pasó el 10 (colegiaturas): vigencia = hoy + 7 días.
  * - Sin mes de concepto (inscripción, etc.): hoy + 7 días.
  */
 export function vigenciaBoucherParaConcepto(
@@ -71,10 +72,15 @@ export function vigenciaBoucherParaConcepto(
       : null
 
   if (mes != null && anio != null) {
+    const limiteIso = `${anio}-${String(mes).padStart(2, '0')}-10`
+    // Cuota de inicio de curso: fecha límite fija (10 ago), aunque ya haya pasado.
+    if (c === '00') {
+      return limiteIso
+    }
     const limite = new Date(anio, mes - 1, 10)
     const hoy = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate())
     if (hoy.getTime() <= limite.getTime()) {
-      return `${anio}-${String(mes).padStart(2, '0')}-10`
+      return limiteIso
     }
     return vigenciaBoucherMasUnaSemana(fecha)
   }
