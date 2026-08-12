@@ -426,6 +426,13 @@ export default function PortalInscripcionesView() {
     estadoVista && !estadoVista.bloqueo && procesoCompleto
   )
 
+  /** Facturas 11/12/13: si el proceso ya está completo quedan dentro del acordeón
+   * colapsado y el papá no las ve. Se listan también fuera, siempre visibles. */
+  const facturasInscripcionVisibles = useMemo(() => {
+    const paso = estadoVista?.pasos.find((p) => p.id === 'pago-inscripcion')
+    return (paso?.facturas ?? []).filter((f) => Boolean(f.pdf))
+  }, [estadoVista?.pasos])
+
   // Antes de armar la matriz del ciclo nuevo: confirmar / elegir plan 10 u 11
   // (reinscritos y nuevo ingreso). Abrir modal en sync; no saltar en silencio.
   useEffect(() => {
@@ -886,6 +893,59 @@ export default function PortalInscripcionesView() {
             </div>
           </div>
         )}
+
+        {estadoVista &&
+          !cierrePendiente &&
+          !estadoVista.modoAdeudoEgresado &&
+          facturasInscripcionVisibles.length > 0 && (
+            <section
+              className="portal-inscripciones-facturas-destacadas"
+              aria-label="Facturas de inscripción o reinscripción"
+            >
+              <div className="portal-inscripciones-facturas-destacadas-head">
+                <FileText size={20} aria-hidden />
+                <div>
+                  <h2 className="portal-inscripciones-facturas-destacadas-titulo">
+                    {esReinscrito
+                      ? 'Facturas de reinscripción'
+                      : 'Facturas de inscripción'}
+                  </h2>
+                  <p className="portal-inscripciones-facturas-destacadas-sub">
+                    Descarga PDF y XML de tus pagos ya timbrados (InsForge Storage).
+                  </p>
+                </div>
+              </div>
+              <ul className="portal-inscripciones-facturas-destacadas-lista">
+                {facturasInscripcionVisibles.map((f) => (
+                  <li key={f.conceptoNo} className="portal-inscripciones-facturas-destacadas-item">
+                    <span className="portal-inscripciones-facturas-destacadas-etiq">
+                      {f.etiqueta}
+                    </span>
+                    <div className="portal-matriz-facturas">
+                      <button
+                        type="button"
+                        className="portal-pagos-btn-pdf"
+                        onClick={() => abrirFacturaPaso('pdf', f)}
+                      >
+                        <FileText size={16} aria-hidden />
+                        PDF
+                      </button>
+                      {f.xml ? (
+                        <button
+                          type="button"
+                          className="portal-pagos-btn-xml"
+                          onClick={() => abrirFacturaPaso('xml', f)}
+                        >
+                          <Code2 size={16} aria-hidden />
+                          XML
+                        </button>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
         {estadoVista && !cierrePendiente && !estadoVista.modoAdeudoEgresado && (
           <>

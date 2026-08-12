@@ -21292,6 +21292,120 @@ html[data-theme='light'] .portal-inscripciones-cierre-ciclo {
   background: #fffbeb;
 }
 
+/* ── Facturas inscripción/reinscripción siempre visibles ─────────────── */
+.portal-inscripciones-facturas-destacadas {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0 0 16px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 227, 253, 0.35);
+  background: linear-gradient(145deg, rgba(0, 227, 253, 0.1), rgba(255, 246, 223, 0.06));
+  min-width: 0;
+}
+
+.portal-inscripciones-facturas-destacadas-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.portal-inscripciones-facturas-destacadas-head > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #00e3fd;
+}
+
+.portal-inscripciones-facturas-destacadas-titulo {
+  margin: 0;
+  font-family: var(--font-space-grotesk, 'Space Grotesk', sans-serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff6df;
+}
+
+.portal-inscripciones-facturas-destacadas-sub {
+  margin: 4px 0 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: rgba(255, 246, 223, 0.75);
+}
+
+.portal-inscripciones-facturas-destacadas-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.portal-inscripciones-facturas-destacadas-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  min-width: 0;
+}
+
+.portal-inscripciones-facturas-destacadas-etiq {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #fff6df;
+  min-width: 0;
+  flex: 1 1 140px;
+}
+
+html[data-theme='light'] .portal-inscripciones-facturas-destacadas {
+  border-color: #7dd3fc;
+  background: linear-gradient(145deg, #f0f9ff, #fffbeb);
+}
+
+html[data-theme='light'] .portal-inscripciones-facturas-destacadas-head > svg {
+  color: #0284c7;
+}
+
+html[data-theme='light'] .portal-inscripciones-facturas-destacadas-titulo,
+html[data-theme='light'] .portal-inscripciones-facturas-destacadas-etiq {
+  color: #0f172a;
+}
+
+html[data-theme='light'] .portal-inscripciones-facturas-destacadas-sub {
+  color: #475569;
+}
+
+html[data-theme='light'] .portal-inscripciones-facturas-destacadas-item {
+  background: #fff;
+  border-color: #e2e8f0;
+}
+
+@media (max-width: 640px) {
+  .portal-inscripciones-facturas-destacadas {
+    padding: 14px;
+  }
+
+  .portal-inscripciones-facturas-destacadas-item {
+    align-items: stretch;
+  }
+
+  .portal-inscripciones-facturas-destacadas-item .portal-matriz-facturas {
+    width: 100%;
+  }
+
+  .portal-inscripciones-facturas-destacadas-item .portal-pagos-btn-pdf,
+  .portal-inscripciones-facturas-destacadas-item .portal-pagos-btn-xml {
+    flex: 1 1 auto;
+    min-height: var(--touch-min, 44px);
+  }
+}
+
 /* ── Acordeón proceso completado (portal inscripciones) ───────────────── */
 .portal-inscripciones-proceso-wrap {
   display: flex;
