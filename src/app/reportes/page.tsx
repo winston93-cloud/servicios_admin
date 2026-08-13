@@ -31,6 +31,7 @@ import {
   Sparkles,
   Star,
   Wallet,
+  CircleDollarSign,
   type LucideIcon,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -50,6 +51,7 @@ const CAT_ICONS: Record<string, LucideIcon> = {
   deudores: Wallet,
   'nuevo-ingreso': UserPlus,
   'nuevo-ingreso-mes': UserPlus,
+  'cuota-inicio': CircleDollarSign,
   curp: Fingerprint,
   listas: Users,
   reinscritos: RefreshCw,
@@ -223,8 +225,12 @@ function ReportesPageInner() {
         ciclo = Math.max(1, cicloActualSistema - 1)
       }
 
-      // Nuevo ingreso: temporada vigente; el select solo ofrece vigente + activos adelante.
-      if (entry.categoriaId === 'nuevo-ingreso' || entry.categoriaId === 'nuevo-ingreso-mes') {
+      // Nuevo ingreso / cuota inicio: temporada vigente.
+      if (
+        entry.categoriaId === 'nuevo-ingreso' ||
+        entry.categoriaId === 'nuevo-ingreso-mes' ||
+        entry.categoriaId === 'cuota-inicio'
+      ) {
         ciclo = cicloActualSistema
       }
 
@@ -364,6 +370,7 @@ function ReportesPageInner() {
           entry.categoriaId === 'deudores' ||
           entry.categoriaId === 'nuevo-ingreso' ||
           entry.categoriaId === 'nuevo-ingreso-mes' ||
+          entry.categoriaId === 'cuota-inicio' ||
           Boolean(q)
         }
         extra={

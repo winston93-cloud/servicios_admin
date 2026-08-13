@@ -20440,6 +20440,36 @@ html[data-theme='light'] .portal-doc-modal-cerrar:hover {
   color: #dbeafe;
 }
 
+.reportes-section--cuota-inicio {
+  border-top-color: #22d3ee;
+  background: linear-gradient(165deg, rgba(6, 182, 212, 0.16) 0%, rgba(15, 118, 110, 0.06) 100%);
+}
+.reportes-section--cuota-inicio .reportes-section-icon {
+  background: rgba(34, 211, 238, 0.18);
+  color: #67e8f9;
+  border-color: rgba(34, 211, 238, 0.4);
+}
+.reportes-section--cuota-inicio .reportes-section-count {
+  background: rgba(8, 145, 178, 0.3);
+  border-color: rgba(34, 211, 238, 0.45);
+  color: #cffafe;
+}
+
+.reportes-section--nuevo-ingreso-mes {
+  border-top-color: #a78bfa;
+  background: linear-gradient(165deg, rgba(139, 92, 246, 0.14) 0%, rgba(109, 40, 217, 0.04) 100%);
+}
+.reportes-section--nuevo-ingreso-mes .reportes-section-icon {
+  background: rgba(167, 139, 250, 0.18);
+  color: #c4b5fd;
+  border-color: rgba(167, 139, 250, 0.35);
+}
+.reportes-section--nuevo-ingreso-mes .reportes-section-count {
+  background: rgba(109, 40, 217, 0.28);
+  border-color: rgba(167, 139, 250, 0.4);
+  color: #ede9fe;
+}
+
 .reportes-section--becados {
   border-top-color: #fb7185;
   background: linear-gradient(165deg, rgba(244, 63, 94, 0.14) 0%, rgba(225, 29, 72, 0.04) 100%);
@@ -20672,6 +20702,12 @@ html[data-theme='light'] .reportes-section--nuevo-ingreso-siguiente {
 }
 html[data-theme='light'] .reportes-section--reinscritos {
   background: linear-gradient(165deg, rgba(59, 130, 246, 0.12) 0%, #fff 72%);
+}
+html[data-theme='light'] .reportes-section--cuota-inicio {
+  background: linear-gradient(165deg, rgba(6, 182, 212, 0.14) 0%, #fff 72%);
+}
+html[data-theme='light'] .reportes-section--nuevo-ingreso-mes {
+  background: linear-gradient(165deg, rgba(139, 92, 246, 0.12) 0%, #fff 72%);
 }
 html[data-theme='light'] .reportes-section--becados {
   background: linear-gradient(165deg, rgba(244, 63, 94, 0.1) 0%, #fff 72%);
