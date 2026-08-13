@@ -81,6 +81,6 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 
 - **Hub:** `/becas` (5 cards: Renovaciones, Solicitudes, Permisos, Bitácora, Boletas secundaria). La tarjeta **Becas** del dashboard apunta aquí.
 - **Módulo:** `/boletas-secundaria` — login maestro/admin, captura, admin, PDF, reportes (ciclos históricos), envío email autenticado.
-- **Backend:** proyecto InsForge dedicado **`boletas`** (aparte de Winston Servicios). Schema/import en `insforge-boletas/`.
+- **Backend:** proyecto InsForge dedicado **`boletas`** (API `https://5u3i4tmc.us-east.insforge.app`). Schema/import en `insforge-boletas/`.
 - **Env (solo server):** `BOLETAS_INSFORGE_URL`, `BOLETAS_INSFORGE_API_KEY` (opcional `BOLETAS_SESSION_SECRET`).
 - Legacy PHP `winston93.edu.mx/boletas` convive; no sustituir hasta OK de Mario.
