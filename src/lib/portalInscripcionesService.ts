@@ -24,7 +24,6 @@ import {
 import { urlReglamentoEscolarLegacy } from './portalAdmisionesConfig'
 import { requiereDocumentosAdmision } from './portalDocumentosAdmision'
 import { documentosNiYaEnviados } from './portalDocumentosNiService'
-import { documentacionOkParaReciboFinal } from './controlEscolarService'
 import {
   hrefReglamentoArchivo,
   obtenerReglamento,
@@ -115,18 +114,6 @@ export function tienePagoConcepto(
       parsed.cicloEscolar === cicloEscolar
     )
   })
-}
-
-async function enReciboFinal(
-  _supabase: AppDatabaseClient,
-  opts: {
-    alumnoRef: string | number
-    alumnoId: number
-    cicloValor: number
-  }
-): Promise<{ ok: boolean; exigeAutorizacionCe: boolean }> {
-  const r = await documentacionOkParaReciboFinal(opts)
-  return { ok: r.ok, exigeAutorizacionCe: r.exigeAutorizacionCe }
 }
 
 function bloqueoPorStatus(status: number | null | undefined): {
@@ -440,16 +427,6 @@ export async function construirEstadoPortalInscripciones(
     }
   }
 
-  const reciboDocs = requiereDocs
-    ? await enReciboFinal(supabase, {
-        alumnoRef: alumno.alumno_ref,
-        alumnoId: alumno.alumno_id,
-        cicloValor: Number(cicloPago),
-      })
-    : { ok: true, exigeAutorizacionCe: false }
-  const reciboHabilitado = reciboDocs.ok
-  const exigeAutorizacionCe = reciboDocs.exigeAutorizacionCe
-
   // Progreso multi-dispositivo: BD + respaldo (cuota 00 o plan ya elegido).
   // Antes solo vivía en localStorage → al abrir en otra PC pedía reglamento/recibo otra vez.
   const cicloColegiaturasValor = Number(cicloPagoReg.valor)
@@ -664,14 +641,10 @@ export async function construirEstadoPortalInscripciones(
   }
 
   const ordenRecibo = requiereDocs ? 5 : 4
-  // NI / cambio de nivel: solicitud + pago + docs portal.
-  // Autorización CE solo si el envío de docs es ≥ lanzamiento del módulo (hoy).
-  // Envíos anteriores al módulo: se respeta el recibo con solo documentos enviados.
+  // NI / cambio de nivel: solicitud + pago + docs en portal.
+  // Control Escolar autoriza expediente/bienvenida, pero no bloquea el recibo final.
   const docsPortalOk = !requiereDocs || docsEnviados
-  const autorizacionControlEscolarOk = !requiereDocs || reciboHabilitado
-  const pasosPreviosRecibo = Boolean(
-    solCapturada && insPagada && docsPortalOk && autorizacionControlEscolarOk
-  )
+  const pasosPreviosRecibo = Boolean(solCapturada && insPagada && docsPortalOk)
   const puedeRecibo = Boolean(pasosVisibles && pasosPreviosRecibo)
 
   let detalleRecibo: string
@@ -684,16 +657,11 @@ export async function construirEstadoPortalInscripciones(
       'Ábrelo al menos una vez para marcarlo como completado. Las colegiaturas del ciclo nuevo se desbloquean cuando los pasos estén completados.'
   } else if (requiereDocs) {
     if (!solCapturada || !insPagada) {
-      detalleRecibo = exigeAutorizacionCe
-        ? 'Se habilita al completar solicitud, pago, carga de documentos y autorización de Control Escolar.'
-        : 'Se habilita al completar solicitud, pago y carga de documentos.'
-    } else if (!docsEnviados) {
-      detalleRecibo = exigeAutorizacionCe
-        ? 'Falta la carga de documentos en el portal. Después Control Escolar debe autorizar la documentación completa.'
-        : 'Falta la carga de documentos en el portal para generar el recibo final.'
-    } else if (!reciboHabilitado && exigeAutorizacionCe) {
       detalleRecibo =
-        'Documentos cargados. Falta la autorización de Control Escolar (documentación completa) para generar el recibo final.'
+        'Se habilita al completar solicitud, pago y carga de documentos.'
+    } else if (!docsEnviados) {
+      detalleRecibo =
+        'Falta la carga de documentos en el portal para generar el recibo final.'
     } else {
       detalleRecibo =
         'Se habilita al completar solicitud, pago y carga de documentos.'

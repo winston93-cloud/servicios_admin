@@ -5,8 +5,6 @@ import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
 import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import { documentosNiYaEnviados } from '@/lib/portalDocumentosNiService'
 import { requiereDocumentosAdmision } from '@/lib/portalDocumentosAdmision'
-import { documentacionOkParaReciboFinal } from '@/lib/controlEscolarService'
-import { obtenerPortalInscripcionProgreso } from '@/lib/portalInscripcionProgreso'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
 import {
   inscripcionCompletaPagada,
@@ -49,39 +47,20 @@ export async function GET(request: Request) {
 
     const requiereDocs = requiereDocumentosAdmision(alumno, cicloSistema.valor)
     let docsPortalOk = true
-    let autorizacionOk = true
     if (requiereDocs) {
       docsPortalOk = await documentosNiYaEnviados(
         supabase,
         alumno.alumno_id,
         Number(cicloPago.valor)
       )
-      const progreso = await obtenerPortalInscripcionProgreso(
-        supabase,
-        alumno.alumno_id,
-        Number(cicloPago.valor)
-      )
-      // Ya generaron recibo antes del módulo → se respeta.
-      if (progreso?.recibo_final_visto) {
-        autorizacionOk = true
-      } else {
-        const docsOk = await documentacionOkParaReciboFinal({
-          alumnoRef: alumno.alumno_ref,
-          alumnoId: alumno.alumno_id,
-          cicloValor: Number(cicloPago.valor),
-        })
-        autorizacionOk = docsOk.ok
-      }
     }
 
-    if (!solOk || !insPagada || !docsPortalOk || !autorizacionOk) {
+    if (!solOk || !insPagada || !docsPortalOk) {
       return NextResponse.json(
         {
           error:
             'Aún no puedes imprimir el recibo final. Completa solicitud, pago' +
-            (requiereDocs
-              ? ' y carga de documentos (si enviaste hoy, espera la autorización de Control Escolar)'
-              : '') +
+            (requiereDocs ? ' y carga de documentos' : '') +
             '.',
         },
         { status: 403 }

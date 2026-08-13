@@ -127,7 +127,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   },
   {
     label: 'Control Escolar',
-    desc: 'Autoriza documentación completa de nuevo ingreso y habilita el recibo final.',
+    desc: 'Autoriza documentación completa de nuevo ingreso y envía el correo de bienvenida.',
     path: '/control-escolar',
     accent: 'sky',
     kicker: 'Inscripciones',
