@@ -1,0 +1,1578 @@
+From 18ca0d6bc3c8dc10786a2d40afb173fac1707ca5 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Thu, 13 Aug 2026 16:25:14 +0000
+Subject: [PATCH 1/2] feat(renovacion): promedio Winston en admin y sin boleta
+ SEP
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Deja de pedir boleta SEP al papá en renovación (3 PDFs) y muestra en el
+detalle admin el promedio ES/EN/general desde MySQL winston_general, sin
+umbral ≥9, usando el ciclo getCicloBecaARenovar().
+---
+ .env.example                                  |   8 +
+ AGENTS.md                                     |   1 +
+ package-lock.json                             | 118 +++++++-
+ package.json                                  |   1 +
+ .../components/AdminPromedioBecado.tsx        | 100 +++++++
+ .../admin/(panel)/renovaciones/[id]/page.tsx  |   5 +
+ src/app/api/admin/renovaciones/[id]/route.ts  |  13 +-
+ src/lib/documentos-requeridos.ts              |   9 +-
+ src/lib/kinderPromedioMysql.ts                | 232 +++++++++++++++
+ src/lib/kinderPromedioPonderador.ts           |  29 ++
+ src/lib/mysqlLegacy.ts                        |  51 ++++
+ src/lib/origenCalifsBecados.ts                |  59 ++++
+ src/lib/primariaPromedioMysql.ts              | 281 ++++++++++++++++++
+ src/lib/promedioBecadoRenovacion.ts           | 148 +++++++++
+ src/lib/secundariaPromedioMysql.ts            | 103 +++++++
+ src/lib/types.ts                              |   1 +
+ 16 files changed, 1152 insertions(+), 7 deletions(-)
+ create mode 100644 src/app/admin/(panel)/components/AdminPromedioBecado.tsx
+ create mode 100644 src/lib/kinderPromedioMysql.ts
+ create mode 100644 src/lib/kinderPromedioPonderador.ts
+ create mode 100644 src/lib/mysqlLegacy.ts
+ create mode 100644 src/lib/origenCalifsBecados.ts
+ create mode 100644 src/lib/primariaPromedioMysql.ts
+ create mode 100644 src/lib/promedioBecadoRenovacion.ts
+ create mode 100644 src/lib/secundariaPromedioMysql.ts
+
+diff --git a/.env.example b/.env.example
+index f79140c..8517562 100644
+--- a/.env.example
++++ b/.env.example
+@@ -31,6 +31,14 @@ SMTP_TLS_REJECT=true
+ # Acceso familiar (HMAC)
+ ACCESO_TOKEN_SECRET=cambia-este-secreto-largo
+ 
++# 2026-08-13 - MySQL legacy winston_general (promedios boletas en admin renovación)
++# Mismas credenciales que servicios_admin (phpMyAdmin / hosting).
++MYSQL_HOST=your_mysql_host
++MYSQL_PORT=3306
++MYSQL_USER=your_mysql_user
++MYSQL_PASSWORD=your_mysql_password
++MYSQL_DATABASE=winston_general
++
+ # 2026-07-24 - Control Escolar: hashes bcrypt de las 3 claves (una por nivel)
+ # Generar con: node -e "require('bcrypt').hash('CLAVE',10).then(console.log)"
+ ADMIN_TOKEN_SECRET=cambia-secreto-admin-hmac
+diff --git a/AGENTS.md b/AGENTS.md
+index 1b66436..0fc2c3a 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -41,3 +41,4 @@ Toda la documentación técnica detallada vive en `docs/`. Léela en este orden
+ 7. Cambios de esquema van en `migrations/<timestamp>_<nombre>.sql` y se aplican con `npx @insforge/cli db migrations up --all`. Nunca editar una migración ya aplicada.
+ 8. Este repo es hermano del sistema PHP legacy (`c:\Users\rafas\Desktop\becas`), no vive dentro de él.
+ 9. Comenta los cambios que hagas con fecha y motivo breve (`// 2026-07-17 - ...`).
++10. **Promedios en admin renovación:** requieren `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE=winston_general` (mismas que `servicios_admin`). Sin ellas el detalle admin muestra error de carga de promedio; el checklist de documentos (3 PDFs) sigue funcionando. Configurar también en Vercel del proyecto `becas-renovacion`.
+diff --git a/package-lock.json b/package-lock.json
+index 7067303..35069c8 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -11,6 +11,7 @@
+         "@insforge/sdk": "^1.4.4",
+         "bcrypt": "^6.0.0",
+         "lucide-react": "^1.24.0",
++        "mysql2": "^3.23.3",
+         "next": "16.2.10",
+         "nodemailer": "^9.0.3",
+         "pdfkit": "^0.19.1",
+@@ -2106,7 +2107,6 @@
+       "version": "20.19.43",
+       "resolved": "https://registry.npmjs.org/@types/node/-/node-20.19.43.tgz",
+       "integrity": "sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==",
+-      "dev": true,
+       "license": "MIT",
+       "dependencies": {
+         "undici-types": "~6.21.0"
+@@ -3055,6 +3055,15 @@
+         "url": "https://github.com/sponsors/ljharb"
+       }
+     },
++    "node_modules/aws-ssl-profiles": {
++      "version": "1.1.2",
++      "resolved": "https://registry.npmjs.org/aws-ssl-profiles/-/aws-ssl-profiles-1.1.2.tgz",
++      "integrity": "sha512-NZKeq9AfyQvEeNlN0zSYAaWrmBffJh3IELMZfRpJVWgrpEbtEpnjvzqBPf+mxoI287JohRDoa+/nsfqqiZmF6g==",
++      "license": "MIT",
++      "engines": {
++        "node": ">= 6.0.0"
++      }
++    },
+     "node_modules/axe-core": {
+       "version": "4.12.1",
+       "resolved": "https://registry.npmjs.org/axe-core/-/axe-core-4.12.1.tgz",
+@@ -4506,6 +4515,15 @@
+         "url": "https://github.com/sponsors/ljharb"
+       }
+     },
++    "node_modules/generate-function": {
++      "version": "2.3.1",
++      "resolved": "https://registry.npmjs.org/generate-function/-/generate-function-2.3.1.tgz",
++      "integrity": "sha512-eeB5GfMNeevm/GRYq20ShmsaGcmI81kIX2K9XQx5miC8KdHaC6Jm0qQ8ZNeGOi7wYB8OsdxKs+Y2oVuTFuVwKQ==",
++      "license": "MIT",
++      "dependencies": {
++        "is-property": "^1.0.2"
++      }
++    },
+     "node_modules/generator-function": {
+       "version": "2.0.1",
+       "resolved": "https://registry.npmjs.org/generator-function/-/generator-function-2.0.1.tgz",
+@@ -4779,6 +4797,22 @@
+         "hermes-estree": "0.25.1"
+       }
+     },
++    "node_modules/iconv-lite": {
++      "version": "0.7.3",
++      "resolved": "https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.7.3.tgz",
++      "integrity": "sha512-IKXpvIzjnC9XTAUbVBcMfGS0EPaIXtW6v+zr+RRp+hqULEpo0owZax6wyRwPOJbWbzjYspQwusTsfVr0ifh4uQ==",
++      "license": "MIT",
++      "dependencies": {
++        "safer-buffer": ">= 2.1.2 < 3.0.0"
++      },
++      "engines": {
++        "node": ">=0.10.0"
++      },
++      "funding": {
++        "type": "opencollective",
++        "url": "https://opencollective.com/express"
++      }
++    },
+     "node_modules/ignore": {
+       "version": "5.3.2",
+       "resolved": "https://registry.npmjs.org/ignore/-/ignore-5.3.2.tgz",
+@@ -5126,6 +5160,12 @@
+         "url": "https://github.com/sponsors/ljharb"
+       }
+     },
++    "node_modules/is-property": {
++      "version": "1.0.2",
++      "resolved": "https://registry.npmjs.org/is-property/-/is-property-1.0.2.tgz",
++      "integrity": "sha512-Ks/IoX00TtClbGQr4TWXemAnktAQvYB7HzcCxDGqEZU6oCmb2INHuOoKxbtR+HFkmYWBKv/dOZtGRiAjDhj92g==",
++      "license": "MIT"
++    },
+     "node_modules/is-regex": {
+       "version": "1.2.1",
+       "resolved": "https://registry.npmjs.org/is-regex/-/is-regex-1.2.1.tgz",
+@@ -5759,6 +5799,12 @@
+       "dev": true,
+       "license": "MIT"
+     },
++    "node_modules/long": {
++      "version": "5.3.2",
++      "resolved": "https://registry.npmjs.org/long/-/long-5.3.2.tgz",
++      "integrity": "sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==",
++      "license": "Apache-2.0"
++    },
+     "node_modules/loose-envify": {
+       "version": "1.4.0",
+       "resolved": "https://registry.npmjs.org/loose-envify/-/loose-envify-1.4.0.tgz",
+@@ -5782,6 +5828,21 @@
+         "yallist": "^3.0.2"
+       }
+     },
++    "node_modules/lru.min": {
++      "version": "1.1.4",
++      "resolved": "https://registry.npmjs.org/lru.min/-/lru.min-1.1.4.tgz",
++      "integrity": "sha512-DqC6n3QQ77zdFpCMASA1a3Jlb64Hv2N2DciFGkO/4L9+q/IpIAuRlKOvCXabtRW6cQf8usbmM6BE/TOPysCdIA==",
++      "license": "MIT",
++      "engines": {
++        "bun": ">=1.0.0",
++        "deno": ">=1.30.0",
++        "node": ">=8.0.0"
++      },
++      "funding": {
++        "type": "github",
++        "url": "https://github.com/sponsors/wellwelwel"
++      }
++    },
+     "node_modules/lucide-react": {
+       "version": "1.26.0",
+       "resolved": "https://registry.npmjs.org/lucide-react/-/lucide-react-1.26.0.tgz",
+@@ -5864,6 +5925,39 @@
+       "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==",
+       "license": "MIT"
+     },
++    "node_modules/mysql2": {
++      "version": "3.23.3",
++      "resolved": "https://registry.npmjs.org/mysql2/-/mysql2-3.23.3.tgz",
++      "integrity": "sha512-ehp9HEKr4wVJaBOUVxNFa+CNrsCCCZ6363/jbGhb7WpEmSRNIXjHBjFs5K2s2cXn7j/RhDieejsQJ6nfUwD6vQ==",
++      "license": "MIT",
++      "dependencies": {
++        "aws-ssl-profiles": "^1.1.2",
++        "generate-function": "^2.3.1",
++        "iconv-lite": "^0.7.3",
++        "long": "^5.3.2",
++        "lru.min": "^1.1.4",
++        "named-placeholders": "^1.1.6",
++        "sql-escaper": "^1.5.1"
++      },
++      "engines": {
++        "node": ">= 8.0"
++      },
++      "peerDependencies": {
++        "@types/node": ">= 8"
++      }
++    },
++    "node_modules/named-placeholders": {
++      "version": "1.1.6",
++      "resolved": "https://registry.npmjs.org/named-placeholders/-/named-placeholders-1.1.6.tgz",
++      "integrity": "sha512-Tz09sEL2EEuv5fFowm419c1+a/jSMiBjI9gHxVLrVdbUkkNUUfjsVYs9pVZu5oCon/kmRh9TfLEObFtkVxmY0w==",
++      "license": "MIT",
++      "dependencies": {
++        "lru.min": "^1.1.0"
++      },
++      "engines": {
++        "node": ">=8.0.0"
++      }
++    },
+     "node_modules/nanoid": {
+       "version": "3.3.16",
+       "resolved": "https://registry.npmjs.org/nanoid/-/nanoid-3.3.16.tgz",
+@@ -6676,6 +6770,12 @@
+         "url": "https://github.com/sponsors/ljharb"
+       }
+     },
++    "node_modules/safer-buffer": {
++      "version": "2.1.2",
++      "resolved": "https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz",
++      "integrity": "sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==",
++      "license": "MIT"
++    },
+     "node_modules/scheduler": {
+       "version": "0.27.0",
+       "resolved": "https://registry.npmjs.org/scheduler/-/scheduler-0.27.0.tgz",
+@@ -6941,6 +7041,21 @@
+         "node": ">=0.10.0"
+       }
+     },
++    "node_modules/sql-escaper": {
++      "version": "1.5.1",
++      "resolved": "https://registry.npmjs.org/sql-escaper/-/sql-escaper-1.5.1.tgz",
++      "integrity": "sha512-4toX5E1fQbBrpfXidaHnF0669nkAdETeIPTs2SUjxxD7RRIs9ICG4gtpmfc68JCEKehsdwLFqBu9VlQqZ1P1gg==",
++      "license": "MIT",
++      "engines": {
++        "bun": ">=1.0.0",
++        "deno": ">=2.0.0",
++        "node": ">=12.0.0"
++      },
++      "funding": {
++        "type": "github",
++        "url": "https://github.com/mysqljs/sql-escaper?sponsor=1"
++      }
++    },
+     "node_modules/stable-hash": {
+       "version": "0.0.5",
+       "resolved": "https://registry.npmjs.org/stable-hash/-/stable-hash-0.0.5.tgz",
+@@ -7490,7 +7605,6 @@
+       "version": "6.21.0",
+       "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-6.21.0.tgz",
+       "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==",
+-      "dev": true,
+       "license": "MIT"
+     },
+     "node_modules/unicode-properties": {
+diff --git a/package.json b/package.json
+index 6255188..2f30c79 100644
+--- a/package.json
++++ b/package.json
+@@ -13,6 +13,7 @@
+     "@insforge/sdk": "^1.4.4",
+     "bcrypt": "^6.0.0",
+     "lucide-react": "^1.24.0",
++    "mysql2": "^3.23.3",
+     "next": "16.2.10",
+     "nodemailer": "^9.0.3",
+     "pdfkit": "^0.19.1",
+diff --git a/src/app/admin/(panel)/components/AdminPromedioBecado.tsx b/src/app/admin/(panel)/components/AdminPromedioBecado.tsx
+new file mode 100644
+index 0000000..358d90e
+--- /dev/null
++++ b/src/app/admin/(panel)/components/AdminPromedioBecado.tsx
+@@ -0,0 +1,100 @@
++'use client';
++
++/**
++ * Sustituye la antigua fila «Boleta SEP» en renovación:
++ * muestra promedios finales Winston (ES/EN/general) desde MySQL legacy.
++ * Informativo: no bloquea verificación ni autorización.
++ */
++import { Card } from '@/components/ui';
++import type { PromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
++
++function fmtNota(n: number | null | undefined): string {
++  if (n == null || !Number.isFinite(n)) return '—';
++  return n.toFixed(1);
++}
++
++type Props = {
++  promedio: PromedioBecadoRenovacion | null | undefined;
++};
++
++export function AdminPromedioBecado({ promedio }: Props) {
++  if (!promedio) {
++    return (
++      <Card className="space-y-2">
++        <h3 className="text-sm font-semibold text-primary">
++          Promedio general
++        </h3>
++        <p className="text-sm text-text-secondary">
++          Sin promedio en boletas del ciclo.
++        </p>
++      </Card>
++    );
++  }
++
++  const fuenteLabel =
++    promedio.fuente === 'kinder'
++      ? 'Kinder (ES + EN)'
++      : promedio.fuente === 'primaria'
++        ? 'Primaria (ES + EN)'
++        : promedio.fuente === 'secundaria'
++          ? 'Secundaria'
++          : null;
++
++  return (
++    <Card className="space-y-3">
++      <div className="flex flex-wrap items-baseline justify-between gap-2">
++        <h3 className="text-sm font-semibold text-primary">
++          Promedio general
++        </h3>
++        <p className="text-xs text-text-secondary">
++          Ciclo {promedio.cicloLabel}
++          {fuenteLabel ? ` · ${fuenteLabel}` : ''}
++        </p>
++      </div>
++
++      {promedio.nota ? (
++        <p className="text-sm text-amber-800">{promedio.nota}</p>
++      ) : null}
++
++      {promedio.muestraEsEn ? (
++        <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
++          <div className="rounded-[12px] border border-border bg-card px-3 py-3">
++            <dt className="text-xs text-text-secondary">Promedio ES</dt>
++            <dd className="mt-1 text-lg font-semibold tabular-nums text-text">
++              {fmtNota(promedio.promedioEs)}
++            </dd>
++          </div>
++          <div className="rounded-[12px] border border-border bg-card px-3 py-3">
++            <dt className="text-xs text-text-secondary">Promedio EN</dt>
++            <dd className="mt-1 text-lg font-semibold tabular-nums text-text">
++              {fmtNota(promedio.promedioEn)}
++              {promedio.letraEn ? (
++                <span className="ml-2 text-sm font-medium text-text-secondary">
++                  ({promedio.letraEn})
++                </span>
++              ) : null}
++            </dd>
++          </div>
++          <div className="rounded-[12px] border border-border bg-card px-3 py-3">
++            <dt className="text-xs text-text-secondary">Promedio general</dt>
++            <dd className="mt-1 text-lg font-semibold tabular-nums text-text">
++              {fmtNota(promedio.promedioGeneral)}
++            </dd>
++          </div>
++        </dl>
++      ) : (
++        <div className="rounded-[12px] border border-border bg-card px-3 py-3 sm:max-w-xs">
++          <p className="text-xs text-text-secondary">Promedio general</p>
++          <p className="mt-1 text-lg font-semibold tabular-nums text-text">
++            {fmtNota(promedio.promedioGeneral)}
++          </p>
++        </div>
++      )}
++
++      <p className="text-xs text-text-secondary">
++        Calculado desde boletas Winston del ciclo a renovar (no se pide boleta
++        SEP al papá). No forma parte del checklist de documentos.
++      </p>
++    </Card>
++  );
++}
+diff --git a/src/app/admin/(panel)/renovaciones/[id]/page.tsx b/src/app/admin/(panel)/renovaciones/[id]/page.tsx
+index 72ea516..1b806e2 100644
+--- a/src/app/admin/(panel)/renovaciones/[id]/page.tsx
++++ b/src/app/admin/(panel)/renovaciones/[id]/page.tsx
+@@ -8,6 +8,7 @@ import {
+   docsListosParaVerificar,
+   type DocAdminItem,
+ } from '@/app/admin/(panel)/components/AdminDocumentosRevision';
++import { AdminPromedioBecado } from '@/app/admin/(panel)/components/AdminPromedioBecado';
+ import {
+   AdminExpedienteHeader,
+   BadgeAutorizada,
+@@ -15,6 +16,7 @@ import {
+   BadgeVerificada,
+ } from '@/components/admin/AdminExpedienteHeader';
+ import { normalizarRevisionEstado } from '@/lib/doc-revision';
++import type { PromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
+ 
+ type Detail = {
+   renovacion: {
+@@ -40,6 +42,7 @@ type Detail = {
+     beca_clase: string | null;
+     beca_porcentaje: number | null;
+   } | null;
++  promedio?: PromedioBecadoRenovacion | null;
+   documentos: DocAdminItem[];
+   docs_requeridos: { tipo: string; label: string }[];
+ };
+@@ -204,6 +207,8 @@ export default function RenovacionDetallePage({
+         </p>
+       </Card>
+ 
++      <AdminPromedioBecado promedio={data.promedio} />
++
+       <AdminDocumentosRevision
+         flujo="renovacion"
+         docsRequeridos={data.docs_requeridos}
+diff --git a/src/app/api/admin/renovaciones/[id]/route.ts b/src/app/api/admin/renovaciones/[id]/route.ts
+index a16ff51..c0a864d 100644
+--- a/src/app/api/admin/renovaciones/[id]/route.ts
++++ b/src/app/api/admin/renovaciones/[id]/route.ts
+@@ -16,6 +16,7 @@ import {
+ } from '@/lib/admin-auditoria';
+ import { nombreAlumnoAuditoria } from '@/lib/admin-auditoria-alumno';
+ import { syncAlumnoBecaPorAutorizacion } from '@/lib/sync-alumno-beca-autorizacion';
++import { cargarPromedioBecadoRenovacion } from '@/lib/promedioBecadoRenovacion';
+ 
+ type Ctx = { params: Promise<{ id: string }> };
+ 
+@@ -99,6 +100,15 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
+       beca_clase = concepto?.beca_clase ? String(concepto.beca_clase) : null;
+     }
+ 
++    const alumnoMapped = mapAlumnoRow(alumno);
++    const promedio = await cargarPromedioBecadoRenovacion({
++      alumnoId: alumnoMapped.alumno_id,
++      alumnoRef: alumnoMapped.alumno_ref,
++      nivelFicha: Number(alumno.alumno_nivel),
++      gradoFicha: Number(alumno.alumno_grado),
++      cicloDatos: cicloBecaOrigen,
++    });
++
+     return NextResponse.json({
+       renovacion: {
+         id: String(ren.id),
+@@ -117,12 +127,13 @@ export async function GET(_request: NextRequest, ctx: Ctx) {
+           tipos.map((t) => [t, Boolean(ren[t])])
+         ),
+       },
+-      alumno: mapAlumnoRow(alumno),
++      alumno: alumnoMapped,
+       beca: {
+         beca_id,
+         beca_clase,
+         beca_porcentaje,
+       },
++      promedio,
+       documentos: (docs || []).map((d) => ({
+         id: String(d.id),
+         tipo: d.tipo,
+diff --git a/src/lib/documentos-requeridos.ts b/src/lib/documentos-requeridos.ts
+index 3161d40..8bae1ac 100644
+--- a/src/lib/documentos-requeridos.ts
++++ b/src/lib/documentos-requeridos.ts
+@@ -1,7 +1,9 @@
+ /**
+  * 2026-07-17 - Documentos requeridos según trámite (solicitud/renovación)
+  * y grupo escolar (maternal/kinder 1 vs kinder 2+).
+- * 2026-07-27 - Renovación: vuelve al checklist de la circular (4 PDFs).
++ * 2026-07-27 - Renovación: checklist circular (ingresos/domicilio/inscripción).
++ * 2026-08-13 - Renovación: ya no se pide boleta SEP al papá; el promedio
++ *              sale de boletas Winston MySQL en el panel admin.
+  */
+ import type { DocumentoTipo } from '@/lib/types';
+ 
+@@ -19,11 +21,10 @@ export function esMaternalOKinder1(
+   return false;
+ }
+ 
+-/** Circular renovación: 4 adjuntos (legacy PHP / comunicado institucional). */
++/** Renovación: 3 PDFs (sin boleta SEP; promedio en admin). */
+ const RENOVACION_CIRCULAR: DocumentoTipo[] = [
+   'ingresos',
+   'domicilio',
+-  'boleta',
+   'comp_inscripcion',
+ ];
+ 
+@@ -97,7 +98,7 @@ export function docsRequeridosConEtiqueta(opts: {
+ }
+ 
+ /**
+- * Renovación: 4 PDFs de la circular (todos los niveles).
++ * Renovación: 3 PDFs (ingresos, domicilio, inscripción).
+  * Solicitud (nuevo ingreso): 3 base; +2 si Kinder 2+.
+  */
+ export function docsRequeridos(opts: {
+diff --git a/src/lib/kinderPromedioMysql.ts b/src/lib/kinderPromedioMysql.ts
+new file mode 100644
+index 0000000..3f12c6b
+--- /dev/null
++++ b/src/lib/kinderPromedioMysql.ts
+@@ -0,0 +1,232 @@
++import { createMysqlLegacyConnection } from './mysqlLegacy'
++import {
++  letraKinderEnANumero,
++  PONDERADOR_LETRA_KINDER_EN,
++} from './kinderPromedioPonderador'
++
++const TABLA_ES = 'boleta_calificacionpke'
++/** Materias académicas inglés Kinder (letras). */
++const TABLA_EN_PK = 'boleta_calificacionpk'
++/** AVERAGE guardado por trimestre (opcional, para etiqueta). */
++const TABLA_EN_PKP = 'boleta_calificacionpkp'
++/** Trimestres de la boleta (1º, 2º, 3º). */
++const TRIMESTRES = [1, 2, 3]
++/**
++ * Music + Mindfulness por grado (boletas_materiask): excluidos del promedio
++ * igual que `clausulaExclusionMusicMindfulnessPkBoletasIk` en boletasik.
++ */
++const MATERIAS_EN_EXCLUIDAS = new Set([6, 7, 13, 14, 20, 21])
++
++export type KinderPromedioAlumno = {
++  alumnoId: number
++  promedioEs: number | null
++  promedioEn: number | null
++  /** Promedio combinado ES/EN (o el único disponible). */
++  promedio: number | null
++  letraEn: string | null
++  trimestresEs: number
++  trimestresEn: number
++  materiasEs: number
++}
++
++function parseCalificacionNumerica(raw: string): number | null {
++  const s = String(raw ?? '')
++    .trim()
++    .replace(/,/g, '.')
++  if (!s || /^-+$/.test(s) || s === 'N/A' || s === '----') return null
++  const n = Number(s)
++  if (!Number.isFinite(n) || n < 0 || n > 10) return null
++  return n
++}
++
++function redondear1(n: number): number {
++  return Math.round(n * 10) / 10
++}
++
++function promedioLista(vals: number[]): number | null {
++  if (vals.length === 0) return null
++  return redondear1(vals.reduce((a, b) => a + b, 0) / vals.length)
++}
++
++/** Número → letra (misma escala ENGLISH PRESCHOOL). */
++function numeroALetraKinderEn(n: number | null): string | null {
++  if (n == null || !Number.isFinite(n) || n < 5 || n > 10) return null
++  const entero = Math.round(n)
++  const inv: Record<number, string> = {}
++  for (const [letra, val] of Object.entries(PONDERADOR_LETRA_KINDER_EN)) {
++    inv[val] = letra
++  }
++  return inv[entero] ?? null
++}
++
++/**
++ * Promedios Kinder desde MySQL (`winston_general`).
++ *
++ * ES (`boleta_calificacionpke`):
++ * 1) Por materia: (T1+T2+T3) / trimestres con nota
++ * 2) General: media de esos promedios de materia (boleta completa)
++ *
++ * EN (`boleta_calificacionpk`, igual que boletasik/boleta_funciones.php):
++ * 1) Por trimestre: media de letras→número (sin Music/Mindfulness)
++ * 2) General: media de los trimestres disponibles
++ * Ponderador: E=10 VG=9 G=8 R=7 S=6 NI=5
++ */
++export async function cargarPromediosKinderMysql(
++  alumnoIds: number[]
++): Promise<Map<number, KinderPromedioAlumno>> {
++  const mapa = new Map<number, KinderPromedioAlumno>()
++  if (alumnoIds.length === 0) return mapa
++
++  const unicos = [...new Set(alumnoIds.filter((id) => Number.isInteger(id) && id > 0))]
++  for (const id of unicos) {
++    mapa.set(id, {
++      alumnoId: id,
++      promedioEs: null,
++      promedioEn: null,
++      promedio: null,
++      letraEn: null,
++      trimestresEs: 0,
++      trimestresEn: 0,
++      materiasEs: 0,
++    })
++  }
++
++  const mysql = await createMysqlLegacyConnection()
++  try {
++    const placeholders = unicos.map(() => '?').join(',')
++
++    type FilaCal = {
++      fk_alumno: string | number
++      fk_bimestre: number
++      fk_materia: string | number
++      calificacion: string
++    }
++
++    // ——— Español ———
++    const [rowsEs] = await mysql.query(
++      `SELECT fk_alumno, fk_bimestre, fk_materia, calificacion
++       FROM ${TABLA_ES}
++       WHERE fk_alumno IN (${placeholders})
++         AND fk_bimestre IN (1, 2, 3)`,
++      unicos
++    )
++
++    const esPorAlumno = new Map<number, Map<string, Map<number, number>>>()
++    for (const row of rowsEs as FilaCal[]) {
++      const alumnoId = Number(row.fk_alumno)
++      const materia = String(row.fk_materia)
++      const bim = Number(row.fk_bimestre)
++      if (!TRIMESTRES.includes(bim)) continue
++      const nota = parseCalificacionNumerica(row.calificacion)
++      if (nota == null) continue
++      if (!esPorAlumno.has(alumnoId)) esPorAlumno.set(alumnoId, new Map())
++      const porMat = esPorAlumno.get(alumnoId)!
++      if (!porMat.has(materia)) porMat.set(materia, new Map())
++      porMat.get(materia)!.set(bim, nota)
++    }
++
++    for (const [alumnoId, porMat] of esPorAlumno) {
++      const entry = mapa.get(alumnoId)
++      if (!entry) continue
++      const promMaterias: number[] = []
++      const trimestresUsados = new Set<number>()
++
++      for (const porBim of porMat.values()) {
++        const trim: number[] = []
++        for (const b of TRIMESTRES) {
++          const n = porBim.get(b)
++          if (n != null) {
++            trim.push(n)
++            trimestresUsados.add(b)
++          }
++        }
++        const p = promedioLista(trim)
++        if (p != null) promMaterias.push(p)
++      }
++
++      entry.promedioEs = promedioLista(promMaterias)
++      entry.trimestresEs = trimestresUsados.size
++      entry.materiasEs = promMaterias.length
++    }
++
++    // ——— Inglés: promedio por trimestre de materias pk ———
++    const [rowsEn] = await mysql.query(
++      `SELECT fk_alumno, fk_bimestre, fk_materia, calificacion
++       FROM ${TABLA_EN_PK}
++       WHERE fk_alumno IN (${placeholders})
++         AND fk_bimestre IN (1, 2, 3)`,
++      unicos
++    )
++
++    // alumno -> bimestre -> notas de materias
++    const enPorAlumno = new Map<number, Map<number, number[]>>()
++    for (const row of rowsEn as FilaCal[]) {
++      const alumnoId = Number(row.fk_alumno)
++      const bim = Number(row.fk_bimestre)
++      const materia = Number(row.fk_materia)
++      if (!TRIMESTRES.includes(bim)) continue
++      if (MATERIAS_EN_EXCLUIDAS.has(materia)) continue
++      const nota = letraKinderEnANumero(row.calificacion)
++      if (nota == null) continue
++      if (!enPorAlumno.has(alumnoId)) enPorAlumno.set(alumnoId, new Map())
++      const porBim = enPorAlumno.get(alumnoId)!
++      if (!porBim.has(bim)) porBim.set(bim, [])
++      porBim.get(bim)!.push(nota)
++    }
++
++    for (const [alumnoId, porBim] of enPorAlumno) {
++      const entry = mapa.get(alumnoId)
++      if (!entry) continue
++      const promTrimestres: number[] = []
++      for (const b of TRIMESTRES) {
++        const notas = porBim.get(b)
++        if (!notas || notas.length === 0) continue
++        const p = promedioLista(notas)
++        if (p != null) promTrimestres.push(p)
++      }
++      entry.promedioEn = promedioLista(promTrimestres)
++      entry.trimestresEn = promTrimestres.length
++      entry.letraEn = numeroALetraKinderEn(entry.promedioEn)
++    }
++
++    // Si no hubo pk pero sí AVERAGE en pkp, usar esa fila como respaldo.
++    const sinEn = unicos.filter((id) => mapa.get(id)?.promedioEn == null)
++    if (sinEn.length > 0) {
++      const ph = sinEn.map(() => '?').join(',')
++      const [rowsPkp] = await mysql.query(
++        `SELECT fk_alumno, fk_bimestre, calificacion
++         FROM ${TABLA_EN_PKP}
++         WHERE fk_alumno IN (${ph})
++           AND fk_bimestre IN (1, 2, 3)
++           AND CAST(fk_materia AS UNSIGNED) = 1`,
++        sinEn
++      )
++      const pkpPorAlumno = new Map<number, number[]>()
++      for (const row of rowsPkp as FilaCal[]) {
++        const alumnoId = Number(row.fk_alumno)
++        const nota = letraKinderEnANumero(row.calificacion)
++        if (nota == null) continue
++        if (!pkpPorAlumno.has(alumnoId)) pkpPorAlumno.set(alumnoId, [])
++        pkpPorAlumno.get(alumnoId)!.push(nota)
++      }
++      for (const [alumnoId, notas] of pkpPorAlumno) {
++        const entry = mapa.get(alumnoId)
++        if (!entry || entry.promedioEn != null) continue
++        entry.promedioEn = promedioLista(notas)
++        entry.trimestresEn = notas.length
++        entry.letraEn = numeroALetraKinderEn(entry.promedioEn)
++      }
++    }
++
++    for (const entry of mapa.values()) {
++      const partes: number[] = []
++      if (entry.promedioEs != null) partes.push(entry.promedioEs)
++      if (entry.promedioEn != null) partes.push(entry.promedioEn)
++      entry.promedio = promedioLista(partes)
++    }
++  } finally {
++    await mysql.end()
++  }
++
++  return mapa
++}
+diff --git a/src/lib/kinderPromedioPonderador.ts b/src/lib/kinderPromedioPonderador.ts
+new file mode 100644
+index 0000000..ca93391
+--- /dev/null
++++ b/src/lib/kinderPromedioPonderador.ts
+@@ -0,0 +1,29 @@
++/** Escala literal de inglés Kinder (`boleta_calificacionpkp`, materia AVERAGE).
++ * Fuente: ENGLISH PRESCHOOL — E=10, VG=9, G=8, R=7, S=6, NI=5.
++ */
++export const PONDERADOR_LETRA_KINDER_EN: Record<string, number> = {
++  E: 10,
++  VG: 9,
++  G: 8,
++  R: 7,
++  S: 6,
++  NI: 5,
++}
++
++export function letraKinderEnANumero(raw: string): number | null {
++  const key = String(raw ?? '')
++    .trim()
++    .toUpperCase()
++  if (!key || key === '----' || key === '-' || key === 'N/A') return null
++  if (key in PONDERADOR_LETRA_KINDER_EN) return PONDERADOR_LETRA_KINDER_EN[key]
++  const n = Number(key.replace(',', '.'))
++  if (Number.isFinite(n) && n >= 0 && n <= 10) return n
++  return null
++}
++
++export function formatearLetraKinderEn(raw: string | null | undefined): string {
++  const key = String(raw ?? '')
++    .trim()
++    .toUpperCase()
++  return key || '—'
++}
+diff --git a/src/lib/mysqlLegacy.ts b/src/lib/mysqlLegacy.ts
+new file mode 100644
+index 0000000..2e7ec9e
+--- /dev/null
++++ b/src/lib/mysqlLegacy.ts
+@@ -0,0 +1,51 @@
++import mysql from 'mysql2/promise'
++
++export interface MysqlLegacyConfig {
++  host: string
++  port: number
++  user: string
++  password: string
++  database: string
++}
++
++/** Nombres de tablas en MySQL (por defecto igual que Supabase). */
++export function getMysqlTableNames() {
++  return {
++    alumno: process.env.MYSQL_TABLE_ALUMNO?.trim() || 'alumno',
++    alumno_detalles: process.env.MYSQL_TABLE_ALUMNO_DETALLES?.trim() || 'alumno_detalles',
++    alumno_familiar: process.env.MYSQL_TABLE_ALUMNO_FAMILIAR?.trim() || 'alumno_familiar',
++    alumno_contacto: process.env.MYSQL_TABLE_ALUMNO_CONTACTO?.trim() || 'alumno_contacto',
++    alumno_beca: process.env.MYSQL_TABLE_ALUMNO_BECA?.trim() || 'alumno_beca',
++  }
++}
++
++export function getMysqlLegacyConfig(): MysqlLegacyConfig | null {
++  const host = process.env.MYSQL_HOST?.trim()
++  const user = process.env.MYSQL_USER?.trim()
++  const password = process.env.MYSQL_PASSWORD
++  const database = (process.env.MYSQL_DATABASE ?? 'winston_general').trim()
++  const port = Number(process.env.MYSQL_PORT ?? 3306)
++
++  if (!host || !user || password === undefined || password === '') {
++    return null
++  }
++
++  return { host, port, user, password, database }
++}
++
++export async function createMysqlLegacyConnection() {
++  const cfg = getMysqlLegacyConfig()
++  if (!cfg) {
++    throw new Error(
++      'Configura MYSQL_HOST, MYSQL_USER y MYSQL_PASSWORD en .env.local (MYSQL_DATABASE=winston_general).'
++    )
++  }
++
++  return mysql.createConnection({
++    host: cfg.host,
++    port: cfg.port,
++    user: cfg.user,
++    password: cfg.password,
++    database: cfg.database,
++  })
++}
+diff --git a/src/lib/origenCalifsBecados.ts b/src/lib/origenCalifsBecados.ts
+new file mode 100644
+index 0000000..e7c53f2
+--- /dev/null
++++ b/src/lib/origenCalifsBecados.ts
+@@ -0,0 +1,59 @@
++/**
++ * Califs del ciclo de datos (ej. 22) vs ficha ya avanzada (ej. 23).
++ *
++ * El grado/nivel de la ficha es el actual; las boletas del ciclo elegido
++ * corresponden al grado anterior (1° Primaria ← Kinder 3, 7mo ← 6° Primaria, …).
++ */
++
++export type FuentePromedioBecados = 'kinder' | 'primaria' | 'secundaria'
++
++export type OrigenCalifsBecados = {
++  fuente: FuentePromedioBecados
++  /** Grado en el que se cursaron las califs del ciclo de datos. */
++  gradoOrigen: number
++  /** Nivel de la fuente: 2 Kinder, 3 Primaria, 4 Secundaria. */
++  nivelOrigen: number
++}
++
++/**
++ * Invierte el avance de ciclo: ficha actual → dónde están las califs del ciclo previo.
++ *
++ * Ejemplos (ficha en temporada N+1, califs de N):
++ * - Kinder 2 ← Kinder 1; Kinder 3 ← Kinder 2
++ * - 1° Primaria ← Kinder 3; 2°←1° … 6°←5°
++ * - 7mo ← 6° Primaria; 8vo ← 7mo; 9no ← 8vo
++ *
++ * Kinder 1: sin año previo en boletas Kinder → null.
++ */
++export function origenCalifsDesdeFicha(
++  nivelFicha: number,
++  gradoFicha: number
++): OrigenCalifsBecados | null {
++  const nivel = Number(nivelFicha)
++  const grado = Number(gradoFicha)
++
++  if (nivel === 2) {
++    if (grado <= 1) return null
++    if (grado === 2) return { fuente: 'kinder', gradoOrigen: 1, nivelOrigen: 2 }
++    if (grado === 3) return { fuente: 'kinder', gradoOrigen: 2, nivelOrigen: 2 }
++    return null
++  }
++
++  if (nivel === 3) {
++    if (grado === 1) return { fuente: 'kinder', gradoOrigen: 3, nivelOrigen: 2 }
++    if (grado >= 2 && grado <= 6) {
++      return { fuente: 'primaria', gradoOrigen: grado - 1, nivelOrigen: 3 }
++    }
++    return null
++  }
++
++  if (nivel === 4) {
++    if (grado === 1) return { fuente: 'primaria', gradoOrigen: 6, nivelOrigen: 3 }
++    if (grado === 2 || grado === 3) {
++      return { fuente: 'secundaria', gradoOrigen: grado - 1, nivelOrigen: 4 }
++    }
++    return null
++  }
++
++  return null
++}
+diff --git a/src/lib/primariaPromedioMysql.ts b/src/lib/primariaPromedioMysql.ts
+new file mode 100644
+index 0000000..8adc551
+--- /dev/null
++++ b/src/lib/primariaPromedioMysql.ts
+@@ -0,0 +1,281 @@
++import { createMysqlLegacyConnection } from './mysqlLegacy'
++
++const TRIMESTRES = [1, 2, 3] as const
++/** Materias académicas EN (mat_id); excluye Mindfulness(10), Faith(11), extras. */
++const MAT_IDS_EN_ACADEMICAS = [2, 3, 4, 5, 6, 7, 8, 9]
++
++export type PrimariaAlumnoInput = {
++  alumnoId: number
++  alumnoRef: string
++  grado: number
++}
++
++export type PrimariaPromedioAlumno = {
++  alumnoId: number
++  promedioEs: number | null
++  promedioEn: number | null
++  promedio: number | null
++  bloquesEs: number
++  trimestresEn: number
++}
++
++function parseNota(raw: string | number | null | undefined): number | null {
++  if (raw == null) return null
++  const s = String(raw).trim().replace(/,/g, '.')
++  if (!s || /^-+$/.test(s) || s === 'N/A') return null
++  const n = Number(s)
++  if (!Number.isFinite(n) || n < 0 || n > 10) return null
++  return n
++}
++
++function redondear(n: number, dec: number): number {
++  const f = 10 ** dec
++  return Math.round(n * f) / f
++}
++
++/** Equivalente a PHP `bcdiv($n, 1, $dec)`: trunca (no redondea). */
++function truncar(n: number, dec: number): number {
++  const neg = n < 0
++  const abs = Math.abs(n)
++  const f = 10 ** dec
++  // Evitar basura flotante (p. ej. 9.39 * 10 = 93.899999…)
++  const truncado = Math.floor(abs * f + 1e-9) / f
++  return neg ? -truncado : truncado
++}
++
++function promedioLista(vals: number[], dec: number): number | null {
++  if (vals.length === 0) return null
++  return redondear(vals.reduce((a, b) => a + b, 0) / vals.length, dec)
++}
++
++/** Divisores por bloque según grado (igual que boletaspdf.php). */
++function divisoresBloques(grado: number): {
++  lenguajes: number
++  saberes: number
++  humano: number
++  etica: number
++  extra: number
++} {
++  const g = Number(grado) || 1
++  return {
++    lenguajes: 3,
++    saberes: g < 3 ? 1 : 2,
++    humano: 1,
++    etica: g < 3 ? 1 : g === 3 ? 2 : 3,
++    // Computación, Robótica, Edu. Financiera
++    extra: 3,
++  }
++}
++
++function promedioBloqueTrimestre(
++  notas: number[],
++  divisor: number,
++  dec: number
++): number | null {
++  if (divisor <= 0) return null
++  // Como el PDF (`bcdiv`): suma todas las filas / divisor fijo, truncado.
++  if (notas.length === 0) return null
++  const suma = notas.reduce((a, b) => a + b, 0)
++  return truncar(suma / divisor, dec)
++}
++
++/**
++ * Promedios Primaria desde MySQL (`winston_general`).
++ *
++ * `grado` = grado en que se cursaron las califs (origen del ciclo de datos),
++ * no el de la ficha ya avanzada (ej. ficha 6° → grado 5 para divisores).
++ *
++ * ES (`prim_*`): promedio de todos los bloques con calificación
++ * (Lenguajes, Saberes, Humano, Ética, Extracurriculares); cada bloque =
++ * media de sus 3 trimestres. Habilidades quedan fuera.
++ *
++ * EN (`ing_cal` por alu_ref): AVERAGE FINAL = media de 8 materias académicas
++ * (mat_id 2–9), sin Mindfulness/Faith/skills.
++ */
++export async function cargarPromediosPrimariaMysql(
++  alumnos: PrimariaAlumnoInput[]
++): Promise<Map<number, PrimariaPromedioAlumno>> {
++  const mapa = new Map<number, PrimariaPromedioAlumno>()
++  if (alumnos.length === 0) return mapa
++
++  const porId = new Map<number, PrimariaAlumnoInput>()
++  const porRef = new Map<number, number>() // ref → alumnoId
++  for (const a of alumnos) {
++    if (!Number.isInteger(a.alumnoId) || a.alumnoId <= 0) continue
++    porId.set(a.alumnoId, a)
++    mapa.set(a.alumnoId, {
++      alumnoId: a.alumnoId,
++      promedioEs: null,
++      promedioEn: null,
++      promedio: null,
++      bloquesEs: 0,
++      trimestresEn: 0,
++    })
++    const ref = Number(String(a.alumnoRef ?? '').trim())
++    if (Number.isInteger(ref) && ref > 0) porRef.set(ref, a.alumnoId)
++  }
++
++  const ids = [...porId.keys()]
++  if (ids.length === 0) return mapa
++
++  const mysql = await createMysqlLegacyConnection()
++  try {
++    const ph = ids.map(() => '?').join(',')
++
++    type FilaPrim = {
++      id_alumno: number
++      trimestre: number
++      id_materia: number
++      calificacion: string | number
++    }
++
++    const cargarTabla = async (tabla: string) => {
++      const [rows] = await mysql.query(
++        `SELECT id_alumno, trimestre, id_materia, calificacion
++         FROM ${tabla}
++         WHERE id_alumno IN (${ph})
++           AND trimestre IN (1, 2, 3)`,
++        ids
++      )
++      return rows as FilaPrim[]
++    }
++
++    const [lenguajes, saberes, humano, etica, extra] = await Promise.all([
++      cargarTabla('prim_lenguajes'),
++      cargarTabla('prim_saberes'),
++      cargarTabla('prim_humano'),
++      cargarTabla('prim_etica'),
++      cargarTabla('prim_extra'),
++    ])
++
++    type Bucket = Map<number, Map<number, number[]>> // alumno → trim → notas
++    const toBucket = (rows: FilaPrim[]): Bucket => {
++      const b: Bucket = new Map()
++      for (const row of rows) {
++        const id = Number(row.id_alumno)
++        const trim = Number(row.trimestre)
++        if (!TRIMESTRES.includes(trim as 1 | 2 | 3)) continue
++        const nota = parseNota(row.calificacion)
++        // Incluir 0 (placeholder); excluir null/vacío.
++        if (nota == null) continue
++        if (!b.has(id)) b.set(id, new Map())
++        const porTrim = b.get(id)!
++        if (!porTrim.has(trim)) porTrim.set(trim, [])
++        porTrim.get(trim)!.push(nota)
++      }
++      return b
++    }
++
++    const buckLen = toBucket(lenguajes)
++    const buckSab = toBucket(saberes)
++    const buckHum = toBucket(humano)
++    const buckEti = toBucket(etica)
++    const buckExt = toBucket(extra)
++
++    const promedioBloqueAnual = (
++      bucket: Bucket,
++      alumnoId: number,
++      divisor: number
++    ): number | null => {
++      const porTrim = bucket.get(alumnoId)
++      if (!porTrim) return null
++      const trimAvgs: number[] = []
++      for (const t of TRIMESTRES) {
++        const notas = porTrim.get(t) ?? []
++        const p = promedioBloqueTrimestre(notas, divisor, 1)
++        if (p != null) trimAvgs.push(p)
++      }
++      return promedioLista(trimAvgs, 1)
++    }
++
++    for (const [alumnoId, meta] of porId) {
++      const div = divisoresBloques(meta.grado)
++      const bloques: number[] = []
++      const len = promedioBloqueAnual(buckLen, alumnoId, div.lenguajes)
++      const sab = promedioBloqueAnual(buckSab, alumnoId, div.saberes)
++      const hum = promedioBloqueAnual(buckHum, alumnoId, div.humano)
++      const eti = promedioBloqueAnual(buckEti, alumnoId, div.etica)
++      const ext = promedioBloqueAnual(buckExt, alumnoId, div.extra)
++      if (len != null) bloques.push(len)
++      if (sab != null) bloques.push(sab)
++      if (hum != null) bloques.push(hum)
++      if (eti != null) bloques.push(eti)
++      if (ext != null) bloques.push(ext)
++      const entry = mapa.get(alumnoId)!
++      // Suma de todos los bloques / total de bloques (incluye extracurriculares).
++      entry.promedioEs = promedioLista(bloques, 1)
++      entry.bloquesEs = bloques.length
++    }
++
++    // ——— Inglés ———
++    const refs = [...porRef.keys()]
++    if (refs.length > 0) {
++      const phRef = refs.map(() => '?').join(',')
++      const matPh = MAT_IDS_EN_ACADEMICAS.map(() => '?').join(',')
++      const [rowsEn] = await mysql.query(
++        `SELECT alu_ref, fk_trim, mat_id, cal_par_1
++         FROM ing_cal
++         WHERE alu_ref IN (${phRef})
++           AND fk_trim IN (1, 2, 3)
++           AND mat_id IN (${matPh})`,
++        [...refs, ...MAT_IDS_EN_ACADEMICAS]
++      )
++
++      // alumnoId → mat_id → trim → nota
++      const enPorAlumno = new Map<number, Map<number, Map<number, number>>>()
++      for (const row of rowsEn as {
++        alu_ref: string | number
++        fk_trim: number
++        mat_id: number
++        cal_par_1: string | number
++      }[]) {
++        const ref = Number(row.alu_ref)
++        const alumnoId = porRef.get(ref)
++        if (alumnoId == null) continue
++        const trim = Number(row.fk_trim)
++        const mat = Number(row.mat_id)
++        const nota = parseNota(row.cal_par_1)
++        if (nota == null || nota <= 0) continue // 0.00 = vacío en EN
++        if (!enPorAlumno.has(alumnoId)) enPorAlumno.set(alumnoId, new Map())
++        const porMat = enPorAlumno.get(alumnoId)!
++        if (!porMat.has(mat)) porMat.set(mat, new Map())
++        porMat.get(mat)!.set(trim, nota)
++      }
++
++      for (const [alumnoId, porMat] of enPorAlumno) {
++        const finalesMateria: number[] = []
++        const trimPeriodo = new Map<number, number[]>()
++
++        for (const porTrim of porMat.values()) {
++          const trimNotas: number[] = []
++          for (const t of TRIMESTRES) {
++            const n = porTrim.get(t)
++            if (n != null) {
++              trimNotas.push(n)
++              if (!trimPeriodo.has(t)) trimPeriodo.set(t, [])
++              trimPeriodo.get(t)!.push(n)
++            }
++          }
++          const fin = promedioLista(trimNotas, 2)
++          if (fin != null) finalesMateria.push(fin)
++        }
++
++        // AVERAGE FINAL = media de finales de materia (equiv. media de averages por periodo).
++        const entry = mapa.get(alumnoId)!
++        entry.promedioEn = promedioLista(finalesMateria, 2)
++        entry.trimestresEn = [...trimPeriodo.keys()].length
++      }
++    }
++
++    for (const entry of mapa.values()) {
++      const partes: number[] = []
++      if (entry.promedioEs != null) partes.push(entry.promedioEs)
++      if (entry.promedioEn != null) partes.push(entry.promedioEn)
++      entry.promedio = promedioLista(partes, 1)
++    }
++  } finally {
++    await mysql.end()
++  }
++
++  return mapa
++}
+diff --git a/src/lib/promedioBecadoRenovacion.ts b/src/lib/promedioBecadoRenovacion.ts
+new file mode 100644
+index 0000000..3c56bdf
+--- /dev/null
++++ b/src/lib/promedioBecadoRenovacion.ts
+@@ -0,0 +1,148 @@
++/**
++ * Promedio final Winston para el detalle admin de renovación.
++ * Misma lógica que el reporte «Becados Promedio > 9» de servicios_admin,
++ * pero SIN umbral: aplica a todos los becados del ciclo a renovar.
++ */
++import { origenCalifsDesdeFicha } from '@/lib/origenCalifsBecados';
++import { getSchoolCycleLabel } from '@/lib/ciclo-escolar';
++
++export type PromedioBecadoRenovacion = {
++  cicloDatos: number;
++  cicloLabel: string;
++  fuente: 'kinder' | 'primaria' | 'secundaria' | null;
++  gradoOrigen: number | null;
++  muestraEsEn: boolean;
++  promedioEs: number | null;
++  promedioEn: number | null;
++  letraEn: string | null;
++  promedioGeneral: number | null;
++  nota: string | null;
++};
++
++function vacio(
++  cicloDatos: number,
++  nota: string,
++  extras?: Partial<PromedioBecadoRenovacion>
++): PromedioBecadoRenovacion {
++  return {
++    cicloDatos,
++    cicloLabel: getSchoolCycleLabel(cicloDatos),
++    fuente: null,
++    gradoOrigen: null,
++    muestraEsEn: false,
++    promedioEs: null,
++    promedioEn: null,
++    letraEn: null,
++    promedioGeneral: null,
++    nota,
++    ...extras,
++  };
++}
++
++/**
++ * @param cicloDatos Ciclo de la beca a renovar (`getCicloBecaARenovar()`).
++ * @param nivelFicha Nivel actual del alumno (ficha).
++ * @param gradoFicha Grado actual del alumno (ficha).
++ */
++export async function cargarPromedioBecadoRenovacion(opts: {
++  alumnoId: number;
++  alumnoRef: string;
++  nivelFicha: number;
++  gradoFicha: number;
++  cicloDatos: number;
++}): Promise<PromedioBecadoRenovacion> {
++  const { alumnoId, alumnoRef, nivelFicha, gradoFicha, cicloDatos } = opts;
++
++  const origen = origenCalifsDesdeFicha(nivelFicha, gradoFicha);
++  if (!origen) {
++    return vacio(
++      cicloDatos,
++      'Sin promedio en boletas del ciclo (sin grado previo en boletas Winston).'
++    );
++  }
++
++  try {
++    if (origen.fuente === 'kinder') {
++      const { cargarPromediosKinderMysql } = await import(
++        '@/lib/kinderPromedioMysql'
++      );
++      const mapa = await cargarPromediosKinderMysql([alumnoId]);
++      const p = mapa.get(alumnoId);
++      return {
++        cicloDatos,
++        cicloLabel: getSchoolCycleLabel(cicloDatos),
++        fuente: 'kinder',
++        gradoOrigen: origen.gradoOrigen,
++        muestraEsEn: true,
++        promedioEs: p?.promedioEs ?? null,
++        promedioEn: p?.promedioEn ?? null,
++        letraEn: p?.letraEn ?? null,
++        promedioGeneral: p?.promedio ?? null,
++        nota:
++          p?.promedio == null
++            ? 'Sin promedio en boletas del ciclo (Kinder ES/EN).'
++            : null,
++      };
++    }
++
++    if (origen.fuente === 'primaria') {
++      const { cargarPromediosPrimariaMysql } = await import(
++        '@/lib/primariaPromedioMysql'
++      );
++      const mapa = await cargarPromediosPrimariaMysql([
++        {
++          alumnoId,
++          alumnoRef: String(alumnoRef ?? '').trim(),
++          grado: origen.gradoOrigen,
++        },
++      ]);
++      const p = mapa.get(alumnoId);
++      // 7mo (ficha secundaria grado 1): origen primaria 6° → una sola columna.
++      const soloGeneral = Number(nivelFicha) === 4;
++      return {
++        cicloDatos,
++        cicloLabel: getSchoolCycleLabel(cicloDatos),
++        fuente: 'primaria',
++        gradoOrigen: origen.gradoOrigen,
++        muestraEsEn: !soloGeneral,
++        promedioEs: soloGeneral ? null : (p?.promedioEs ?? null),
++        promedioEn: soloGeneral ? null : (p?.promedioEn ?? null),
++        letraEn: null,
++        promedioGeneral: p?.promedio ?? null,
++        nota:
++          p?.promedio == null
++            ? 'Sin promedio en boletas del ciclo (Primaria ES/EN).'
++            : null,
++      };
++    }
++
++    // secundaria
++    const { cargarPromediosSecundariaMysql } = await import(
++      '@/lib/secundariaPromedioMysql'
++    );
++    const mapa = await cargarPromediosSecundariaMysql([alumnoId], cicloDatos);
++    const p = mapa.get(alumnoId);
++    return {
++      cicloDatos,
++      cicloLabel: getSchoolCycleLabel(cicloDatos),
++      fuente: 'secundaria',
++      gradoOrigen: origen.gradoOrigen,
++      muestraEsEn: false,
++      promedioEs: null,
++      promedioEn: null,
++      letraEn: null,
++      promedioGeneral: p?.promedio ?? null,
++      nota:
++        p?.promedio == null
++          ? 'Sin promedio en boletas del ciclo (Secundaria).'
++          : null,
++    };
++  } catch (err) {
++    const msg = err instanceof Error ? err.message : 'Error al leer MySQL';
++    return vacio(cicloDatos, `No se pudo cargar el promedio: ${msg}`, {
++      fuente: origen.fuente,
++      gradoOrigen: origen.gradoOrigen,
++      muestraEsEn: origen.fuente !== 'secundaria' && Number(nivelFicha) !== 4,
++    });
++  }
++}
+diff --git a/src/lib/secundariaPromedioMysql.ts b/src/lib/secundariaPromedioMysql.ts
+new file mode 100644
+index 0000000..0413b14
+--- /dev/null
++++ b/src/lib/secundariaPromedioMysql.ts
+@@ -0,0 +1,103 @@
++import { createMysqlLegacyConnection } from './mysqlLegacy'
++
++const BIMESTRES = [1, 2, 3] as const
++/** Mindfulness en boleta_materia (secundaria) — fuera del PROMEDIO WINSTON. */
++const MATERIA_IDS_MINDFULNESS = [45, 46, 47]
++
++export type SecundariaPromedioAlumno = {
++  alumnoId: number
++  /** Promedio Final Winston (única columna). */
++  promedio: number | null
++  bimestres: number
++}
++
++function parseNota(raw: string | number | null | undefined): number | null {
++  if (raw == null) return null
++  const s = String(raw).trim().replace(/,/g, '.')
++  if (!s || /^-+$/.test(s)) return null
++  const n = Number(s)
++  if (!Number.isFinite(n) || n <= 0 || n > 10) return null
++  return n
++}
++
++/** Equivalente a PHP `bcdiv($n, 1, $dec)`: trunca. */
++function truncar(n: number, dec: number): number {
++  const neg = n < 0
++  const abs = Math.abs(n)
++  const f = 10 ** dec
++  const truncado = Math.floor(abs * f + 1e-9) / f
++  return neg ? -truncado : truncado
++}
++
++function promedioLista(vals: number[], dec: number): number | null {
++  if (vals.length === 0) return null
++  return truncar(vals.reduce((a, b) => a + b, 0) / vals.length, dec)
++}
++
++/**
++ * Promedio Final Winston desde `boleta_calificacion` (carpeta boletas).
++ *
++ * Una sola boleta (sin EN aparte): media de trimestres 1–3 de todas las materias
++ * numéricas excepto Mindfulness (ids 45–47). Igual que BoletaPdfGenerator para 7º/8º.
++ */
++export async function cargarPromediosSecundariaMysql(
++  alumnoIds: number[],
++  ciclo: number
++): Promise<Map<number, SecundariaPromedioAlumno>> {
++  const mapa = new Map<number, SecundariaPromedioAlumno>()
++  const ids = [...new Set(alumnoIds.filter((id) => Number.isInteger(id) && id > 0))]
++  for (const id of ids) {
++    mapa.set(id, { alumnoId: id, promedio: null, bimestres: 0 })
++  }
++  if (ids.length === 0) return mapa
++
++  const mysql = await createMysqlLegacyConnection()
++  try {
++    const ph = ids.map(() => '?').join(',')
++    const mindPh = MATERIA_IDS_MINDFULNESS.map(() => '?').join(',')
++    const [rows] = await mysql.query(
++      `SELECT b.alumno_id, b.calificacion_bimestre, b.calificacion_puntos
++       FROM boleta_calificacion b
++       INNER JOIN boleta_materia m ON m.materia_id = b.materia_id
++       WHERE b.alumno_id IN (${ph})
++         AND b.calificacion_ciclo_escolar = ?
++         AND b.calificacion_bimestre IN (1, 2, 3)
++         AND m.materia_id NOT IN (${mindPh})`,
++      [...ids, ciclo, ...MATERIA_IDS_MINDFULNESS]
++    )
++
++    // alumno → bimestre → notas
++    const porAlumno = new Map<number, Map<number, number[]>>()
++    for (const row of rows as {
++      alumno_id: number
++      calificacion_bimestre: number
++      calificacion_puntos: string | number
++    }[]) {
++      const id = Number(row.alumno_id)
++      const bim = Number(row.calificacion_bimestre)
++      if (!BIMESTRES.includes(bim as 1 | 2 | 3)) continue
++      const nota = parseNota(row.calificacion_puntos)
++      if (nota == null) continue
++      if (!porAlumno.has(id)) porAlumno.set(id, new Map())
++      const porBim = porAlumno.get(id)!
++      if (!porBim.has(bim)) porBim.set(bim, [])
++      porBim.get(bim)!.push(nota)
++    }
++
++    for (const [id, porBim] of porAlumno) {
++      const trimAvgs: number[] = []
++      for (const bim of BIMESTRES) {
++        const notas = porBim.get(bim) ?? []
++        const p = promedioLista(notas, 1)
++        if (p != null) trimAvgs.push(p)
++      }
++      const entry = mapa.get(id)!
++      entry.bimestres = trimAvgs.length
++      entry.promedio = promedioLista(trimAvgs, 1)
++    }
++  } finally {
++    await mysql.end()
++  }
++
++  return mapa
++}
+diff --git a/src/lib/types.ts b/src/lib/types.ts
+index 9782896..f4b0f78 100644
+--- a/src/lib/types.ts
++++ b/src/lib/types.ts
+@@ -30,6 +30,7 @@ export type Hermano = {
+ };
+ 
+ // 2026-07-27 - Renovación: ingresos|domicilio|boleta|comp_inscripcion (circular).
++// 2026-08-13 - Renovación ya no exige boleta SEP (sigue en el union por filas legacy).
+ // Solicitud nueva: acta/CURP/etc.
+ export type DocumentoTipo =
+   | 'ingresos'
+-- 
+2.43.0
+
+
+From 97b806ba6403a1e5367ef4950b10124739359e87 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Thu, 13 Aug 2026 16:26:55 +0000
+Subject: [PATCH 2/2] chore: script para subir MYSQL_* a Vercel
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Documenta y facilita copiar las credenciales winston_general al proyecto
+becas-renovacion en Vercel (promedios en admin renovación).
+---
+ scripts/setup-mysql-vercel-env.mjs | 85 ++++++++++++++++++++++++++++++
+ 1 file changed, 85 insertions(+)
+ create mode 100644 scripts/setup-mysql-vercel-env.mjs
+
+diff --git a/scripts/setup-mysql-vercel-env.mjs b/scripts/setup-mysql-vercel-env.mjs
+new file mode 100644
+index 0000000..f4bfb6b
+--- /dev/null
++++ b/scripts/setup-mysql-vercel-env.mjs
+@@ -0,0 +1,85 @@
++/**
++ * 2026-08-13 - Copia MYSQL_* a Vercel del proyecto becas-renovacion.
++ *
++ * Uso (desde este repo, con VERCEL_TOKEN y MYSQL_* en el entorno o .env.local):
++ *   node --env-file=.env.local scripts/setup-mysql-vercel-env.mjs
++ *
++ * Requiere: VERCEL_TOKEN, VERCEL_PROJECT_ID (o --project), MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD.
++ */
++import { readFileSync, existsSync } from 'node:fs';
++
++function loadDotEnvLocal() {
++  const p = new URL('../.env.local', import.meta.url);
++  const path = p.pathname;
++  if (!existsSync(path)) return;
++  for (const line of readFileSync(path, 'utf8').split('\n')) {
++    const t = line.trim();
++    if (!t || t.startsWith('#') || !t.includes('=')) continue;
++    const i = t.indexOf('=');
++    const k = t.slice(0, i).trim();
++    const v = t.slice(i + 1).trim();
++    if (!(k in process.env)) process.env[k] = v;
++  }
++}
++
++loadDotEnvLocal();
++
++const token = process.env.VERCEL_TOKEN?.trim();
++const projectId =
++  process.env.VERCEL_PROJECT_ID?.trim() ||
++  process.argv.find((a) => a.startsWith('--project='))?.slice('--project='.length);
++const teamId = process.env.VERCEL_TEAM_ID?.trim();
++
++const keys = ['MYSQL_HOST', 'MYSQL_PORT', 'MYSQL_USER', 'MYSQL_PASSWORD', 'MYSQL_DATABASE'];
++const missing = keys.filter((k) => !process.env[k]?.trim() && k !== 'MYSQL_PORT' && k !== 'MYSQL_DATABASE');
++if (!token) {
++  console.error('Falta VERCEL_TOKEN');
++  process.exit(1);
++}
++if (!projectId) {
++  console.error('Falta VERCEL_PROJECT_ID o --project=...');
++  process.exit(1);
++}
++if (missing.length) {
++  console.error('Faltan variables:', missing.join(', '));
++  process.exit(1);
++}
++
++const base = 'https://api.vercel.com';
++const qs = teamId ? `?teamId=${encodeURIComponent(teamId)}` : '';
++
++async function upsert(key, value) {
++  const res = await fetch(`${base}/v10/projects/${projectId}/env${qs}`, {
++    method: 'POST',
++    headers: {
++      Authorization: `Bearer ${token}`,
++      'Content-Type': 'application/json',
++    },
++    body: JSON.stringify({
++      key,
++      value,
++      type: 'encrypted',
++      target: ['production', 'preview', 'development'],
++    }),
++  });
++  const body = await res.json().catch(() => ({}));
++  if (res.ok) {
++    console.log('OK', key);
++    return;
++  }
++  // Si ya existe, PATCH via list+update es más largo; reportar.
++  console.error('FAIL', key, res.status, body?.error?.message || JSON.stringify(body));
++}
++
++const values = {
++  MYSQL_HOST: process.env.MYSQL_HOST.trim(),
++  MYSQL_PORT: (process.env.MYSQL_PORT || '3306').trim(),
++  MYSQL_USER: process.env.MYSQL_USER.trim(),
++  MYSQL_PASSWORD: process.env.MYSQL_PASSWORD,
++  MYSQL_DATABASE: (process.env.MYSQL_DATABASE || 'winston_general').trim(),
++};
++
++for (const [k, v] of Object.entries(values)) {
++  await upsert(k, v);
++}
++console.log('Listo. Redeploy del proyecto para tomar las variables.');
+-- 
+2.43.0
+
