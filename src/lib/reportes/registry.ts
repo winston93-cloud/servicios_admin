@@ -467,11 +467,10 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
   },
 
   'cuota-inicio-curso': async (searchParams) => {
-    const nivel = requiereNivel(searchParams)
     const ciclo = await cicloEscolarParam(searchParams)
     const format = formatoParam(searchParams)
-    const resumen = await cargarCuotaInicioCurso(nivel, ciclo)
-    const filename = `cuota-inicio-${resumen.nivelLabel.toLowerCase()}-ciclo-${ciclo}.pdf`
+    const resumen = await cargarCuotaInicioCurso(ciclo)
+    const filename = `cuota-inicio-todos-niveles-ciclo-${ciclo}.pdf`
     if (format === 'pdf') {
       return { filename, pdf: generarPdfCuotaInicioCurso(resumen) }
     }

@@ -72,7 +72,7 @@ export const REPORTE_CATEGORIAS: ReporteCategoria[] = [
   {
     id: 'cuota-inicio',
     titulo: 'Cuota de inicio de curso',
-    subtitulo: 'Pagados · con recargo · deudores · por nivel',
+    subtitulo: 'Todos los niveles · pagados · recargo · deudores',
     orden: 4,
   },
   {
@@ -359,12 +359,10 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     categoriaId: 'cuota-inicio',
     titulo: 'Adeudo cuota de inicio',
     descripcion:
-      'Por nivel: quiénes ya pagaron la cuota 00 (monto y recargo aparte) y quiénes aún deben.',
+      'Un solo reporte con Maternal, Kinder, Primaria y Secundaria: quiénes pagaron la cuota 00 (monto y recargo aparte) y quiénes deben.',
     accent: 'sky',
     motor: 'api-next',
     usaCiclo: 'escolar',
-    requiereNivel: true,
-    nivelInicial: 'primaria',
     keywords: [
       'cuota',
       'inicio',
@@ -374,6 +372,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
       'recargo',
       'pagaron',
       'deben',
+      'niveles',
     ],
   },
   {
