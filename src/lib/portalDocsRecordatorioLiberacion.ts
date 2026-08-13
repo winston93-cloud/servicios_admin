@@ -203,8 +203,7 @@ function htmlRecordatorioLiberacion(
           Hay <strong>${pendientes.length}</strong> alumno(s) de nuevo ingreso / cambio de nivel
           con documentos enviados desde el módulo de liberar (28 jul 2026) y
           <strong>sin autorización de documentación completa</strong>
-          en Control Escolar. Conviene liberarlos para registrar el expediente
-          y enviar el correo de bienvenida.
+          en Control Escolar. Sin esa liberación no pueden generar el recibo final.
           Es la misma lista que el minipanel de Control Escolar (pendientes ≥24&nbsp;h).
         </p>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:13px;">

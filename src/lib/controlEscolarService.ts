@@ -211,14 +211,14 @@ export async function alumnoDocumentacionAutorizada(
 
 /**
  * Lanzamiento del módulo Control Escolar (liberar docs) — 28 jul 2026, ~10:55 CDMX.
- * Se usa para listados/recordatorios de pendientes de autorización (bienvenida),
- * no para bloquear el recibo final del portal.
+ * Envíos de documentos anteriores no exigen autorización CE para el recibo final.
  */
 export const CE_MODULO_LIBERAR_DESDE_ISO = '2026-07-28T16:55:00.000Z'
 
 /**
- * ¿El envío de docs del ciclo es ≥ lanzamiento del módulo CE?
- * (minipanel / recordatorios de autorización; el recibo final ya no depende de esto.)
+ * ¿El recibo final exige autorización CE?
+ * - Sí, si el primer envío de docs del ciclo es ≥ lanzamiento del módulo.
+ * - No (abuelo), si enviaron docs antes del módulo o ya están en a_inscritos.
  */
 export async function envioDocsExigeAutorizacionControlEscolar(
   alumnoId: number,
@@ -235,6 +235,7 @@ export async function envioDocsExigeAutorizacionControlEscolar(
 
   if (error) {
     console.error('portal_documentos_ni primer envío:', error)
+    // Ante duda, exigir autorización (flujo nuevo).
     return true
   }
   if (!data?.enviado_at) return true
@@ -246,9 +247,8 @@ export async function envioDocsExigeAutorizacionControlEscolar(
 }
 
 /**
- * Recibo final del portal: no espera autorización de Control Escolar.
- * Basta con los pasos previos (solicitud + pago + docs enviados, cuando aplican).
- * CE sigue registrando expediente / correo de bienvenida por separado.
+ * Docs OK para recibo final: autorizado en CE, o envío anterior al módulo
+ * (papás que ya podían ver el recibo solo con cargar documentos).
  */
 export async function documentacionOkParaReciboFinal(opts: {
   alumnoRef: string | number
@@ -260,11 +260,19 @@ export async function documentacionOkParaReciboFinal(opts: {
   exigeAutorizacionCe: boolean
 }> {
   const autorizadoCe = await alumnoDocumentacionAutorizada(opts.alumnoRef)
-  return {
-    ok: true,
-    autorizadoCe,
-    exigeAutorizacionCe: false,
+  if (autorizadoCe) {
+    return { ok: true, autorizadoCe: true, exigeAutorizacionCe: false }
   }
+
+  const exigeAutorizacionCe = await envioDocsExigeAutorizacionControlEscolar(
+    opts.alumnoId,
+    opts.cicloValor
+  )
+  if (!exigeAutorizacionCe) {
+    return { ok: true, autorizadoCe: false, exigeAutorizacionCe: false }
+  }
+
+  return { ok: false, autorizadoCe: false, exigeAutorizacionCe: true }
 }
 
 async function cargarAlumnoPorRef(ref: string): Promise<AlumnoControlEscolar | null> {
@@ -315,7 +323,7 @@ export async function emailsPadresParaBienvenida(
 }
 
 /**
- * Autoriza documentación completa: inserta en `a_inscritos`
+ * Autoriza documentación completa: inserta en `a_inscritos` (desbloquea recibo final)
  * y envía correo de bienvenida a papás (buzón de correos masivos).
  */
 export async function autorizarDocumentacionCompleta(opts: {
@@ -356,7 +364,7 @@ export async function autorizarDocumentacionCompleta(opts: {
     return {
       ok: true,
       yaExistia: true,
-      message: `${nombreCompleto}: la documentación ya estaba autorizada.`,
+      message: `${nombreCompleto}: la documentación ya estaba autorizada (recibo final habilitado).`,
       alumnoNombre: nombreCompleto,
       ctrl,
     }

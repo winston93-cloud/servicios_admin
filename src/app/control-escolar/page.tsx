@@ -154,7 +154,7 @@ function ControlEscolarView() {
           tipo: 'ok',
           texto:
             data.message ??
-            'Documentación autorizada. Se envió el correo de bienvenida si hay contactos.',
+            'Documentación autorizada. El alumno ya puede generar el recibo final.',
         })
       }
       setDocsCompleta(false)
@@ -199,8 +199,8 @@ function ControlEscolarView() {
             <div className="ce-heading-copy">
               <h1 className="dashboard-title">Control Escolar</h1>
               <p className="dashboard-subtitle">
-                Autoriza la documentación completa de nuevo ingreso y envía el
-                correo de bienvenida a mamá/papá.
+                Autoriza la documentación completa de nuevo ingreso y libera el
+                recibo final.
               </p>
             </div>
             <button
@@ -280,10 +280,9 @@ function ControlEscolarView() {
                 Documentación completa
               </span>
               <span className="ce-check-hint">
-                Marca cuando el alumno entregó todo el expediente. Al autorizar
-                se registra en Control Escolar y se envía el correo de
-                bienvenida a mamá/papá. El recibo final del portal se habilita
-                al completar solicitud, pago y carga de documentos.
+                Marca cuando el alumno entregó todo el expediente. Sin esta
+                autorización no se genera el recibo final, aunque ya haya
+                cargado los PDF en el portal.
               </span>
             </span>
           </label>

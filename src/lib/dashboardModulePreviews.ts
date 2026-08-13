@@ -37,7 +37,7 @@ export const DASHBOARD_MODULE_PREVIEWS: Record<string, DashboardModulePreview> =
   },
   'Control Escolar': {
     synopsis:
-      'Cierra el circuito de nuevo ingreso: valida documentación completa y envía el correo de bienvenida cuando el expediente está en orden.',
+      'Cierra el circuito de nuevo ingreso: valida documentación completa y libera el recibo final cuando el expediente está en orden.',
     highlights: ['Checklist documental', 'Autorización NI', 'Recibo final'],
   },
   'Agenda psicólogas': {
