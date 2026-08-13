@@ -60,9 +60,10 @@ export function construirHtmlReporteNuevoIngreso(resumen: ResumenNuevoIngreso): 
     })
     .join('')
 
+  const colFecha = resumen.porAgenda ? 'Agenda' : 'Alta'
   const head = esDeben
-    ? '<th>#</th><th>Grado</th><th>No. Ctrl</th><th>Alta</th><th>Nombre</th>'
-    : '<th>#</th><th>Grado</th><th>No. Ctrl</th><th>Alta</th><th>Nombre</th><th>F. pago</th>'
+    ? `<th>#</th><th>Grado</th><th>No. Ctrl</th><th>${colFecha}</th><th>Nombre</th>`
+    : `<th>#</th><th>Grado</th><th>No. Ctrl</th><th>${colFecha}</th><th>Nombre</th><th>F. pago</th>`
 
   const resumenTabla = nuevoIngresoResumenATabla(resumen)
   const resumenHead = resumenTabla.headers.map((h) => `<th>${escapeHtml(h)}</th>`).join('')
@@ -198,7 +199,7 @@ export function generarPdfReporteNuevoIngreso(resumen: ResumenNuevoIngreso): Buf
 
     autoTable(pdf, {
       startY: y,
-      head: [['#', 'Grado', 'No. Ctrl', 'Alta', 'Nombre', 'F. pago']],
+      head: [['#', 'Grado', 'No. Ctrl', resumen.porAgenda ? 'Agenda' : 'Alta', 'Nombre', 'F. pago']],
       body,
       styles: { fontSize: 7, cellPadding: 1.2 },
       headStyles: { fillColor: [30, 64, 175], textColor: 255 },
