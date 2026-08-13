@@ -24,6 +24,7 @@ import {
   mensajeManualesRequiereCuotaPadres,
   nivelGradoDesdeAlumno,
   obtenerSiguienteFolioPago,
+  repararFoliosWinstonTrasReinicio2671,
   resolverPlantelFolioPagoInterno,
   resolverPrecioInterno,
   resolverPreciosCuotaYManuales,
@@ -177,6 +178,31 @@ export default function PagosInternosModulo() {
     }
     cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
   }, [alumnoSeleccionado, cicloSeleccionado, cargarDatosAlumno])
+
+  // Una sola vez por carga del módulo: corrige el reinicio erróneo 2671 → serie desde 2848.
+  useEffect(() => {
+    let cancelado = false
+    void (async () => {
+      const res = await repararFoliosWinstonTrasReinicio2671()
+      if (cancelado) return
+      if (!res.ok) {
+        setError(res.mensaje)
+        return
+      }
+      if (res.aplicada) {
+        setMensaje(res.mensaje)
+        await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
+        if (alumnoSeleccionado) {
+          await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
+        }
+      }
+    })()
+    return () => {
+      cancelado = true
+    }
+    // Reparación puntual al montar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- montaje único
+  }, [])
 
   const prepararValeImpresion = useCallback(
     async (
