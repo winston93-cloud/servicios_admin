@@ -36,6 +36,7 @@ import {
   evaluarSolicitudCapturada,
   inscripcionCompletaPagada,
 } from './portalInscripcionesSolicitud'
+import { evaluarBloqueoCupoPortal } from './cupoInscripcionPrimaria'
 import { getPaymentConcept } from './boucherCore'
 import { rutasFacturaDesdeReferencia } from './portalFacturaRutas'
 import {
@@ -391,6 +392,26 @@ export async function construirEstadoPortalInscripciones(
   // Bloqueo 4/5: nunca habilitar pago de inscripción del ciclo nuevo.
   if (esEstatusBloqueo(alumno.alumno_status)) {
     showPayment = false
+  }
+
+  // Cupo 3°/5° Primaria (máx. 60 inscritos dif2). No aplica si ya pagó inscripción.
+  if (
+    bloqueo == null &&
+    !modoAdeudoEgresado &&
+    !insPagada &&
+    !calcReinscripcion?.graduado
+  ) {
+    const cupo = await evaluarBloqueoCupoPortal({
+      alumno,
+      cicloTemporadaActual: cea,
+      yaInscrito: insPagada,
+      cicloInscripcion: cen,
+    })
+    if (cupo) {
+      bloqueo = 'cupo'
+      mensajeBloqueo = cupo.mensaje
+      showPayment = false
+    }
   }
 
   const flujoActivo = bloqueo == null && !modoAdeudoEgresado

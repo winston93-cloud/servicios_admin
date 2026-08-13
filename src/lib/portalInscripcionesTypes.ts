@@ -17,6 +17,7 @@ export type BloqueoInscripcion =
   | 'adeudos'
   | 'egresado'
   | 'periodo-cerrado'
+  | 'cupo'
 
 export interface AccionPasoInscripcion {
   /** 'proximo' = enlace visible pero aún sin destino definido (placeholder). */

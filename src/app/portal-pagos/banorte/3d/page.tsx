@@ -7,6 +7,7 @@ import {
 } from '@/lib/banorteConfig'
 import { guardarMontoPendienteBanorte, normalizarReferenciaBanorte } from '@/lib/banortePagoService'
 import { esEstatusBloqueo } from '@/lib/alumnoStatus'
+import { evaluarBloqueoCupoPortal } from '@/lib/cupoInscripcionPrimaria'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import {
   esConceptoInscripcionReinscripcion,
@@ -64,7 +65,9 @@ export default async function Banorte3dPage({ searchParams }: PageProps) {
     const ref5 = referencia.slice(0, 5)
     const { data: alumno } = await supabase
       .from('alumno')
-      .select('alumno_nivel, alumno_grado, alumno_ciclo_escolar, alumno_status')
+      .select(
+        'alumno_nivel, alumno_grado, alumno_ciclo_escolar, alumno_status, alumno_nuevo_ingreso'
+      )
       .eq('alumno_ref', parseInt(ref5, 10))
       .maybeSingle()
 
@@ -109,6 +112,46 @@ export default async function Banorte3dPage({ searchParams }: PageProps) {
             </main>
           </div>
         )
+      }
+    }
+
+    if (alumno) {
+      const parsedCupo = parsearReferenciaPago(referencia)
+      const conceptoCupo = parsedCupo?.conceptoNo ?? ''
+      if (esConceptoInscripcionReinscripcion(conceptoCupo)) {
+        const cicloSistemaCupo = await obtenerCicloEscolarActual()
+        if (cicloSistemaCupo) {
+          const cupo = await evaluarBloqueoCupoPortal({
+            alumno: {
+              alumno_nivel: Number(alumno.alumno_nivel ?? 0),
+              alumno_grado: Number(alumno.alumno_grado ?? 0),
+              alumno_ciclo_escolar: Number(alumno.alumno_ciclo_escolar ?? 0),
+              alumno_nuevo_ingreso: Number(alumno.alumno_nuevo_ingreso ?? 1),
+            },
+            cicloTemporadaActual: cicloSistemaCupo.valor,
+            yaInscrito: false,
+            cicloInscripcion: parsedCupo?.cicloEscolar,
+          })
+          if (cupo) {
+            return (
+              <div className="banorte-body">
+                <link rel="stylesheet" href="/banorte-flow.css" />
+                <main className="banorte-main">
+                  <section className="banorte-card banorte-result banorte-result--error">
+                    <h1 className="banorte-result-title">Cupo completo</h1>
+                    <p className="banorte-result-msg">{cupo.mensaje}</p>
+                    <Link
+                      href={urlPortalPagosAlumno()}
+                      className="banorte-btn banorte-btn--primary"
+                    >
+                      Ir al portal
+                    </Link>
+                  </section>
+                </main>
+              </div>
+            )
+          }
+        }
       }
     }
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { obtenerAlumnoPorId } from '@/lib/alumnoDatosService'
 import { esEstatusBloqueo } from '@/lib/alumnoStatus'
 import { normalizarConceptoNo } from '@/lib/boucherCore'
+import { evaluarBloqueoCupoPortal } from '@/lib/cupoInscripcionPrimaria'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { crearCargoSpeiOpenpay } from '@/lib/openpaySpeiService'
@@ -56,6 +57,23 @@ export async function POST(request: Request) {
         },
         { status: 403 }
       )
+    }
+
+    // Cupo 3°/5° Primaria: no permitir nuevos pagos de inscripción si el grupo está lleno.
+    if (
+      esConceptoInscripcionReinscripcion(conceptoNo) &&
+      cicloTemporada != null &&
+      Number.isFinite(cicloTemporada)
+    ) {
+      const cupo = await evaluarBloqueoCupoPortal({
+        alumno,
+        cicloTemporadaActual: cicloTemporada,
+        yaInscrito: false,
+        cicloInscripcion: cicloEscolar,
+      })
+      if (cupo) {
+        return NextResponse.json({ error: cupo.mensaje }, { status: 403 })
+      }
     }
     if (
       esEstatusBloqueo(alumno.alumno_status) &&

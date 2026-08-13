@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
 import { formaIngresoPorDefecto } from '@/lib/alumnoFormaIngreso'
 import { esEstatusBloqueo } from '@/lib/alumnoStatus'
+import { evaluarBloqueoCupoPortal } from '@/lib/cupoInscripcionPrimaria'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
 import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import { construirVistaPagoInscripcion } from '@/lib/portalInscripcionPagoService'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
+import { inscripcionCompletaPagada } from '@/lib/portalInscripcionesSolicitud'
 import { calcularReinscripcionDiferido } from '@/lib/portalReinscripcionService'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
@@ -52,6 +54,20 @@ export async function POST(request: Request) {
       calcReinscripcion?.cicloReinscripcion
     )
     const pagos = await listarPagosColegiaturaAlumno(alumno.alumno_id, ciclo.valor)
+    const yaInscrito = calcReinscripcion
+      ? calcReinscripcion.completa
+      : inscripcionCompletaPagada(pagos, alumno.alumno_ref, ciclo.valor)
+
+    const cupo = await evaluarBloqueoCupoPortal({
+      alumno,
+      cicloTemporadaActual: cicloSistema.valor,
+      yaInscrito,
+      cicloInscripcion: calcReinscripcion?.cicloReinscripcion ?? ciclo.valor,
+    })
+    if (cupo) {
+      return NextResponse.json({ error: cupo.mensaje }, { status: 403 })
+    }
+
     const vista = await construirVistaPagoInscripcion(
       supabase,
       alumno,
