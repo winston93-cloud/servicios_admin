@@ -3,11 +3,17 @@ import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
 /**
  * Series de folio de pagos internos (sistema nuevo):
  * - Winston general (primaria/secundaria): desde 2671 (talón actual).
- *   El talón anterior (26550–26700) queda histórico; no se reasigna.
+ *   Continúa autoincremental hasta antes del talón anterior (26550).
+ *   El talón anterior (26550+) queda histórico; no se reasigna.
+ *   Nota: el tramo 2849–3479 también lo usa Educativo en listados; el plantel
+ *   operativo se resuelve por nivel del alumno cuando hace falta.
  * - Educativo general (maternal/kinder): desde 2849, techo 3480
- * - Cuota de padres Winston: desde 2140 hasta antes de la serie general Educativo (2849)
+ * - Cuota de padres Winston: desde 2140 hasta 2848 (antes de Educativo 2849)
  *   (no reutilizar el histórico legacy de combo ~6000–7000)
  * - Cuota de padres Educativo: desde 1037 hasta antes de la serie cuota Winston (2140)
+ *
+ * Bug histórico: al llegar al “techo” 2849 la serie general Winston devolvía
+ * otra vez 2671 (reinicio), generando folios duplicados (p. ej. MANUALES).
  */
 export type PlantelPagosInternos = 'winston' | 'educativo'
 
@@ -19,6 +25,7 @@ export const PAGO_INTERNO_FOLIO_WINSTON_INICIAL = 2671
 /**
  * Winston general — inicio del talón anterior (histórico).
  * El siguiente folio del talón actual no debe “saltar” a este rango.
+ * También es el techo exclusivo del talón actual (2671 … 26549).
  */
 export const PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR = 26550
 export const PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL = 2849
@@ -83,7 +90,8 @@ export function plantelSerieDesdeFolio(folio: number): PlantelPagosInternos | nu
   if (!Number.isFinite(f)) return null
   // Talón anterior Winston general (26550+)
   if (f >= PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR) return 'winston'
-  // Serie general Educativo (prioridad sobre cuota Winston y talón Winston actual)
+  // Serie general Educativo (prioridad en 2849–3479; Winston que continúe
+  // ahí se distingue por nivel del alumno en listado/cancelación).
   if (f >= PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL && f < PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO) {
     return 'educativo'
   }
@@ -132,8 +140,10 @@ export function folioTechoPlantel(
       : PAGO_INTERNO_FOLIO_CUOTA_WINSTON_TECHO
   }
   if (plantel === 'educativo') return PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO
-  // Winston general (talón actual 2671+): no invadir Educativo (2849) ni el talón anterior.
-  return PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL
+  // Winston general (talón actual 2671+): no invadir el talón anterior (26550+).
+  // Antes el techo era Educativo (2849) y, al agotarse, el siguiente folio
+  // reiniciaba en 2671 → folios duplicados.
+  return PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR
 }
 
 /**

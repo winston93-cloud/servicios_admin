@@ -5,6 +5,7 @@ import { TUTOR_ID_MADRE, TUTOR_ID_PADRE } from './alumnoFamiliarTutor'
 import {
   folioInicialPlantel,
   folioTechoPlantel,
+  plantelPagoDesdeNivel,
   plantelSerieDesdeFolio,
   type PlantelPagosInternos,
   type TipoSerieFolioPagoInterno,
@@ -382,6 +383,10 @@ async function enriquecerPagosListado(
 
   return pagos.map((p) => {
     const alum = p.alumno_id != null ? alumnosMap.get(p.alumno_id) : undefined
+    const plantelPorNivel =
+      alum?.alumno_nivel != null && Number.isFinite(alum.alumno_nivel)
+        ? plantelPagoDesdeNivel(alum.alumno_nivel)
+        : null
     return {
       ...p,
       alumno_ref: alum?.alumno_ref ?? null,
@@ -390,7 +395,8 @@ async function enriquecerPagosListado(
       alumno_apm: alum?.alumno_apm ?? null,
       alumno_nivel: alum?.alumno_nivel ?? null,
       concepto_clase: conceptosMap.get(p.concepto_id) ?? null,
-      plantel_serie: plantelSerieDesdeFolio(p.pago_folio),
+      // Nivel del alumno gana sobre el folio cuando hay solape 2849–3479.
+      plantel_serie: plantelPorNivel ?? plantelSerieDesdeFolio(p.pago_folio),
     }
   })
 }
@@ -457,11 +463,11 @@ export async function listarPagosInternosPorPlanteles(
   const bloques: PagoInternoRegistro[] = []
   for (const plantel of unicos) {
     if (plantel === 'winston') {
-      // Talón actual (2671 … Educativo) + talón anterior (26550+)
+      // Talón actual (2671 … antes de 26550) + talón anterior (26550+)
       bloques.push(
         ...(await listarPagosRangoFolio({
           folioMin: PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
-          folioMaxExclusivo: PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL,
+          folioMaxExclusivo: PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR,
           folioExacto,
           limite,
         })),
@@ -488,7 +494,13 @@ export async function listarPagosInternosPorPlanteles(
   const pagos = [...porId.values()].sort((a, b) =>
     compararFoliosListadoPagosInternos(a.pago_folio, b.pago_folio)
   )
-  return enriquecerPagosListado(pagos.slice(0, limite))
+  const enriquecidos = await enriquecerPagosListado(pagos)
+  // Filtrar por plantel real (nivel) para no mezclar Winston/Educativo en el solape 2849–3479.
+  const filtrados = enriquecidos.filter((p) => {
+    if (p.plantel_serie == null) return unicos.includes('winston')
+    return unicos.includes(p.plantel_serie)
+  })
+  return filtrados.slice(0, limite)
 }
 
 /** @deprecated Usar listarPagosInternosPorPlanteles */
@@ -560,22 +572,32 @@ export async function obtenerSiguienteFolioPago(
     q = q.lt('pago_folio', techo)
   }
 
-  // Cuota: solo conceptos de cuota (1/2) para no “saltar” por otros conceptos en el rango.
+  // Cuota: solo conceptos de cuota (1/2).
+  // General: excluir cuota — el rango 2671–2848 se solapa con cuota Winston y
+  // si se mezclan el “máximo” se dispara y la serie general se agota/reinicia.
   if (tipoSerie === 'cuota_padres') {
     q = q.in('concepto_id', [...CONCEPTOS_CUOTA_PADRES])
+  } else {
+    q = q.not('concepto_id', 'in', `(${CONCEPTOS_CUOTA_PADRES.join(',')})`)
   }
 
-  const { data, error } = await q.maybeSingle()
+  // Evitar maybeSingle(): si el backend ignora limit(1) y hay varias filas,
+  // maybeSingle falla y el código antiguo devolvía el inicial (2671) → duplicados.
+  const { data, error } = await q
 
-  if (error || !data?.pago_folio) return inicial
-  const max = Number(data.pago_folio)
+  if (error) {
+    console.error('Error al obtener siguiente folio de pago interno:', error)
+    return inicial
+  }
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row?.pago_folio) return inicial
+  const max = Number(row.pago_folio)
   if (!Number.isFinite(max) || max < inicial) return inicial
   const siguiente = max + 1
   if (techo != null && siguiente >= techo) {
-    console.error(
-      `Serie de folio ${tipoSerie}/${plantel} agotada (siguiente ${siguiente} ≥ techo ${techo})`
-    )
-    return inicial
+    const mensaje = `Serie de folio ${tipoSerie}/${plantel} agotada (siguiente ${siguiente} ≥ techo ${techo})`
+    console.error(mensaje)
+    throw new Error(mensaje)
   }
   return siguiente
 }
@@ -695,8 +717,16 @@ export async function crearPagoInterno(
     Number.isFinite(Number(payload.pago_folio))
       ? Number(payload.pago_folio)
       : null
-  const folio =
-    folioForzado ?? (await obtenerSiguienteFolioPago(payload.plantel_serie, tipoSerie))
+  let folio: number
+  try {
+    folio =
+      folioForzado ?? (await obtenerSiguienteFolioPago(payload.plantel_serie, tipoSerie))
+  } catch (e) {
+    return {
+      ok: false,
+      mensaje: e instanceof Error ? e.message : 'No se pudo asignar el siguiente folio',
+    }
+  }
 
   const { data: maxRow } = await supabase
     .from('pago_interno')
@@ -828,20 +858,26 @@ export type ResultadoCancelacionPagoInterno =
     }
   | { ok: false; mensaje: string }
 
-function resolverSerieDePago(pago: PagoInternoRegistro): {
+function resolverSerieDePago(pago: PagoInternoRegistro & { alumno_nivel?: number | null }): {
   plantel: PlantelPagosInternos
   tipoSerie: TipoSerieFolioPagoInterno
   folioMin: number
   folioMaxExclusivo: number | null
 } | null {
   const folio = Number(pago.pago_folio)
-  const plantel = plantelSerieDesdeFolio(folio)
-  if (!plantel) return null
   const tipoSerie: TipoSerieFolioPagoInterno = esConceptoSerieCuotaPadres(
     pago.concepto_id
   )
     ? 'cuota_padres'
     : 'general'
+
+  // En el solape 2849–3479 el folio solo no basta: usar nivel del alumno.
+  const plantelPorNivel =
+    pago.alumno_nivel != null && Number.isFinite(Number(pago.alumno_nivel))
+      ? plantelPagoDesdeNivel(Number(pago.alumno_nivel))
+      : null
+  const plantel = plantelPorNivel ?? plantelSerieDesdeFolio(folio)
+  if (!plantel) return null
 
   // Talón anterior Winston general: rango propio para cancelar/recorrer.
   if (
@@ -955,7 +991,19 @@ export async function cancelarPagoInternoYRecorrer(opts: {
     return { ok: false, mensaje: 'Este pago ya está cancelado' }
   }
 
-  const serie = resolverSerieDePago(reg)
+  let alumnoNivel: number | null = null
+  if (reg.alumno_id != null) {
+    const { data: alum } = await supabase
+      .from('alumno')
+      .select('alumno_nivel')
+      .eq('alumno_id', reg.alumno_id)
+      .maybeSingle()
+    if (alum?.alumno_nivel != null && Number.isFinite(Number(alum.alumno_nivel))) {
+      alumnoNivel = Number(alum.alumno_nivel)
+    }
+  }
+
+  const serie = resolverSerieDePago({ ...reg, alumno_nivel: alumnoNivel })
   if (!serie) {
     return {
       ok: false,
@@ -1040,5 +1088,163 @@ export async function cancelarPagoInternoYRecorrer(opts: {
     folioNuevo: folioOrig + 1,
     filasAfectadas: desplazados,
     mensaje: `Folio ${folioOrig} cancelado. El contenido pasó al ${folioOrig + 1} y se recorrieron ${desplazados} pago(s) de la serie.`,
+  }
+}
+
+/** Folio correcto del MANUALES de ARVIZU tras el reinicio erróneo a 2671. */
+export const FOLIO_REPARACION_WINSTON_INICIO = 2848
+
+export type ResultadoReparacionFoliosWinston =
+  | {
+      ok: true
+      aplicada: boolean
+      cambios: number
+      siguienteFolio: number
+      mensaje: string
+    }
+  | { ok: false; mensaje: string }
+
+/**
+ * Corrige el reinicio de serie Winston general a 2671.
+ * Ancla: MANUALES vigente de alumno ARVIZU/EDUARDO con folio 2671 → 2848,
+ * y todos los pagos generales Winston posteriores (por fecha/id) → 2849, 2850, …
+ */
+export async function repararFoliosWinstonTrasReinicio2671(): Promise<ResultadoReparacionFoliosWinston> {
+  // Atajo: si no hay MANUALES vigentes en 2671, no hay nada que reparar.
+  const { data: manuales2671, error: errAncla } = await supabase
+    .from('pago_interno')
+    .select(SELECT_PAGO)
+    .eq('concepto_id', CONCEPTO_ID_MANUALES)
+    .eq('pago_folio', PAGO_INTERNO_FOLIO_WINSTON_INICIAL)
+    .eq('pago_cancelado', 0)
+    .limit(50)
+
+  if (errAncla) return { ok: false, mensaje: errAncla.message }
+  if (!manuales2671?.length) {
+    return {
+      ok: true,
+      aplicada: false,
+      cambios: 0,
+      siguienteFolio: FOLIO_REPARACION_WINSTON_INICIO,
+      mensaje:
+        'MANUALES ya no está en folio 2671 (reparación previa o dato distinto).',
+    }
+  }
+
+  const candidatoIds = [
+    ...new Set(
+      manuales2671
+        .map((p) => Number(p.alumno_id))
+        .filter((id) => Number.isFinite(id))
+    ),
+  ]
+  const { data: alumnosCand, error: errAlum } = await supabase
+    .from('alumno')
+    .select('alumno_id, alumno_nombre, alumno_app, alumno_apm')
+    .in('alumno_id', candidatoIds)
+  if (errAlum) return { ok: false, mensaje: errAlum.message }
+
+  const arvizuIds = new Set<number>()
+  for (const a of alumnosCand ?? []) {
+    const nom = `${a.alumno_nombre ?? ''} ${a.alumno_app ?? ''} ${a.alumno_apm ?? ''}`
+      .toUpperCase()
+      .normalize('NFD')
+      .replace(/\p{M}/gu, '')
+    if (nom.includes('ARVIZU') && nom.includes('EDUARDO')) {
+      arvizuIds.add(Number(a.alumno_id))
+    }
+  }
+
+  if (arvizuIds.size === 0) {
+    return {
+      ok: true,
+      aplicada: false,
+      cambios: 0,
+      siguienteFolio: FOLIO_REPARACION_WINSTON_INICIO,
+      mensaje: 'No se encontró MANUALES 2671 de EDUARDO ARVIZU; nada que reparar.',
+    }
+  }
+
+  const ancla = (manuales2671 as PagoInternoRegistro[]).find(
+    (p) => p.alumno_id != null && arvizuIds.has(p.alumno_id)
+  )
+  if (!ancla) {
+    return {
+      ok: true,
+      aplicada: false,
+      cambios: 0,
+      siguienteFolio: FOLIO_REPARACION_WINSTON_INICIO,
+      mensaje: 'No se encontró el ancla MANUALES ARVIZU en folio 2671.',
+    }
+  }
+
+  const techo = PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR
+  const pageSize = 1000
+  const pagos: PagoInternoRegistro[] = []
+  let from = 0
+  for (;;) {
+    const { data, error } = await supabase
+      .from('pago_interno')
+      .select(SELECT_PAGO)
+      .gte('pago_folio', PAGO_INTERNO_FOLIO_WINSTON_INICIAL)
+      .lt('pago_folio', techo)
+      .order('pago_fecha', { ascending: true })
+      .order('pago_id', { ascending: true })
+      .range(from, from + pageSize - 1)
+    if (error) return { ok: false, mensaje: error.message }
+    const batch = (data ?? []) as PagoInternoRegistro[]
+    for (const p of batch) {
+      if (!esConceptoSerieCuotaPadres(p.concepto_id)) pagos.push(p)
+    }
+    if (batch.length < pageSize) break
+    from += pageSize
+  }
+
+  const anclaFecha = String(ancla.pago_fecha ?? '')
+  const anclaId = Number(ancla.pago_id)
+  const aReparar = pagos
+    .filter((p) => Number(p.pago_cancelado) === 0)
+    .filter((p) => {
+      const fecha = String(p.pago_fecha ?? '')
+      if (fecha > anclaFecha) return true
+      if (fecha < anclaFecha) return false
+      return Number(p.pago_id) >= anclaId
+    })
+    .sort((a, b) => {
+      const fa = String(a.pago_fecha ?? '')
+      const fb = String(b.pago_fecha ?? '')
+      if (fa !== fb) return fa < fb ? -1 : 1
+      return Number(a.pago_id) - Number(b.pago_id)
+    })
+
+  let folio = FOLIO_REPARACION_WINSTON_INICIO
+  let cambios = 0
+  for (const p of aReparar) {
+    const actual = Number(p.pago_folio)
+    if (actual !== folio) {
+      const { error } = await supabase
+        .from('pago_interno')
+        .update({ pago_folio: folio })
+        .eq('pago_id', p.pago_id)
+      if (error) {
+        return {
+          ok: false,
+          mensaje: `Error al actualizar pago_id ${p.pago_id} (${actual}→${folio}): ${error.message}`,
+        }
+      }
+      cambios += 1
+    }
+    folio += 1
+  }
+
+  return {
+    ok: true,
+    aplicada: cambios > 0,
+    cambios,
+    siguienteFolio: folio,
+    mensaje:
+      cambios > 0
+        ? `Folios reparados: ${cambios} pago(s). MANUALES ARVIZU=2848; serie continúa en ${folio}.`
+        : 'Los folios ya coincidían con la secuencia desde 2848.',
   }
 }
