@@ -1,11 +1,15 @@
 /**
  * 2026-08-13 - Reporte adeudo / liquidación de cuota de inicio de curso (concepto 00).
+ * Un solo reporte por ciclo, con bloques por nivel (Maternal → Secundaria).
  */
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { construirNombreCompleto } from '@/lib/alumnoBusquedaServicios'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaGrupoEscolar } from '@/lib/grupoEscolar'
-import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
+import {
+  etiquetaNivelEscolar,
+  NIVELES_ESCOLARES_OPCIONES,
+} from '@/lib/nivelEscolar'
 import {
   formatearAlumnoRefParaReferencia,
   normalizarConceptoNo,
@@ -16,6 +20,7 @@ import { formatearFechaPago, pagoVigente } from '@/lib/reportes/pagoReporteHelpe
 
 const CONCEPTO_CUOTA_INICIO = '00'
 const PAGE_ALUMNOS = 500
+const NIVELES_ORDEN = NIVELES_ESCOLARES_OPCIONES.map((n) => n.valor)
 
 export type FilaCuotaInicioPagado = {
   no: number
@@ -39,29 +44,37 @@ export type FilaCuotaInicioDeudor = {
   tipoIngreso: string
 }
 
-export type ResumenCuotaInicioCurso = {
-  titulo: string
-  ciclo: number
-  cicloLabel: string
+export type TotalesCuotaInicio = {
+  alumnos: number
+  pagados: number
+  conRecargo: number
+  deudores: number
+  montoPagado: number
+  recargoPagado: number
+  pctLiquidado: number
+}
+
+export type BloqueNivelCuotaInicio = {
   nivel: number
   nivelLabel: string
   pagados: FilaCuotaInicioPagado[]
   deudores: FilaCuotaInicioDeudor[]
-  totales: {
-    alumnos: number
-    pagados: number
-    conRecargo: number
-    deudores: number
-    montoPagado: number
-    recargoPagado: number
-    pctLiquidado: number
-  }
+  totales: TotalesCuotaInicio
+}
+
+export type ResumenCuotaInicioCurso = {
+  titulo: string
+  ciclo: number
+  cicloLabel: string
+  niveles: BloqueNivelCuotaInicio[]
+  totales: TotalesCuotaInicio
 }
 
 type AlumnoRow = {
   alumno_id: number
   alumno_ref: string
   nombre: string
+  alumno_nivel: number
   alumno_grado: number
   alumno_grupo: number
   alumno_nuevo_ingreso: number
@@ -76,10 +89,7 @@ type Pago00 = {
   pago_cancelado: number | null
 }
 
-async function fetchAlumnosActivosNivelCiclo(
-  nivel: number,
-  ciclo: number
-): Promise<AlumnoRow[]> {
+async function fetchAlumnosActivosCiclo(ciclo: number): Promise<AlumnoRow[]> {
   const db = createDbAdmin()
   const out: AlumnoRow[] = []
   let offset = 0
@@ -87,11 +97,12 @@ async function fetchAlumnosActivosNivelCiclo(
     const { data, error } = await db
       .from('alumno')
       .select(
-        'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_nuevo_ingreso'
+        'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_grado, alumno_grupo, alumno_nuevo_ingreso'
       )
-      .eq('alumno_nivel', nivel)
       .eq('alumno_ciclo_escolar', ciclo)
+      .in('alumno_nivel', [...NIVELES_ORDEN])
       .not('alumno_status', 'in', '(0,2)')
+      .order('alumno_nivel', { ascending: true })
       .order('alumno_grado', { ascending: true })
       .order('alumno_grupo', { ascending: true })
       .order('alumno_app', { ascending: true })
@@ -103,6 +114,7 @@ async function fetchAlumnosActivosNivelCiclo(
         alumno_id: Number(r.alumno_id),
         alumno_ref: String(r.alumno_ref ?? '').trim(),
         nombre: construirNombreCompleto(r.alumno_nombre, r.alumno_app, r.alumno_apm),
+        alumno_nivel: Number(r.alumno_nivel),
         alumno_grado: Number(r.alumno_grado),
         alumno_grupo: Number(r.alumno_grupo),
         alumno_nuevo_ingreso: Number(r.alumno_nuevo_ingreso ?? 0),
@@ -188,25 +200,32 @@ function fmtMoney(n: number): string {
   })
 }
 
-export async function cargarCuotaInicioCurso(
-  nivel: number,
-  ciclo: number
-): Promise<ResumenCuotaInicioCurso> {
-  const alumnos = await fetchAlumnosActivosNivelCiclo(nivel, ciclo)
-  const pagos = await fetchPagosCuotaInicioCiclo(ciclo)
-  const pagoPorAlumno = indexPagosPorAlumno(pagos, ciclo)
-
-  // Validar que el pago corresponda al alumno_ref (evita colisiones de like).
-  const pagoValidado = new Map<number, Pago00>()
-  for (const a of alumnos) {
-    const p = pagoPorAlumno.get(a.alumno_id)
-    if (!p) continue
-    const parsed = parsearReferenciaPago(p.pago_referencia)
-    if (!parsed) continue
-    if (parsed.alumnoRef !== formatearAlumnoRefParaReferencia(a.alumno_ref)) continue
-    pagoValidado.set(a.alumno_id, p)
+function calcTotales(
+  pagados: FilaCuotaInicioPagado[],
+  deudores: FilaCuotaInicioDeudor[]
+): TotalesCuotaInicio {
+  const alumnos = pagados.length + deudores.length
+  const conRecargo = pagados.filter((p) => p.conRecargo).length
+  const montoPagado = pagados.reduce((s, p) => s + p.monto, 0)
+  const recargoPagado = pagados.reduce((s, p) => s + p.recargo, 0)
+  const pctLiquidado =
+    alumnos > 0 ? Math.round((pagados.length / alumnos) * 1000) / 10 : 0
+  return {
+    alumnos,
+    pagados: pagados.length,
+    conRecargo,
+    deudores: deudores.length,
+    montoPagado,
+    recargoPagado,
+    pctLiquidado,
   }
+}
 
+function armarBloqueNivel(
+  nivel: number,
+  alumnos: AlumnoRow[],
+  pagoValidado: Map<number, Pago00>
+): BloqueNivelCuotaInicio {
   const pagados: FilaCuotaInicioPagado[] = []
   const deudores: FilaCuotaInicioDeudor[] = []
 
@@ -260,29 +279,56 @@ export async function cargarCuotaInicioCurso(
     f.no = i + 1
   })
 
-  const conRecargo = pagados.filter((p) => p.conRecargo).length
-  const montoPagado = pagados.reduce((s, p) => s + p.monto, 0)
-  const recargoPagado = pagados.reduce((s, p) => s + p.recargo, 0)
-  const alumnosN = alumnos.length
-  const pctLiquidado = alumnosN > 0 ? Math.round((pagados.length / alumnosN) * 1000) / 10 : 0
+  return {
+    nivel,
+    nivelLabel: etiquetaNivelEscolar(nivel),
+    pagados,
+    deudores,
+    totales: calcTotales(pagados, deudores),
+  }
+}
+
+export async function cargarCuotaInicioCurso(
+  ciclo: number
+): Promise<ResumenCuotaInicioCurso> {
+  const alumnos = await fetchAlumnosActivosCiclo(ciclo)
+  const pagos = await fetchPagosCuotaInicioCiclo(ciclo)
+  const pagoPorAlumno = indexPagosPorAlumno(pagos, ciclo)
+
+  // Validar que el pago corresponda al alumno_ref (evita colisiones de like).
+  const pagoValidado = new Map<number, Pago00>()
+  for (const a of alumnos) {
+    const p = pagoPorAlumno.get(a.alumno_id)
+    if (!p) continue
+    const parsed = parsearReferenciaPago(p.pago_referencia)
+    if (!parsed) continue
+    if (parsed.alumnoRef !== formatearAlumnoRefParaReferencia(a.alumno_ref)) continue
+    pagoValidado.set(a.alumno_id, p)
+  }
+
+  const porNivel = new Map<number, AlumnoRow[]>()
+  for (const a of alumnos) {
+    const list = porNivel.get(a.alumno_nivel) ?? []
+    list.push(a)
+    porNivel.set(a.alumno_nivel, list)
+  }
+
+  const niveles: BloqueNivelCuotaInicio[] = []
+  for (const nivel of NIVELES_ORDEN) {
+    const list = porNivel.get(nivel) ?? []
+    if (list.length === 0) continue
+    niveles.push(armarBloqueNivel(nivel, list, pagoValidado))
+  }
+
+  const todosPagados = niveles.flatMap((n) => n.pagados)
+  const todosDeudores = niveles.flatMap((n) => n.deudores)
 
   return {
     titulo: 'Cuota de inicio de curso',
     ciclo,
     cicloLabel: etiquetaCicloReporte(ciclo),
-    nivel,
-    nivelLabel: etiquetaNivelEscolar(nivel),
-    pagados,
-    deudores,
-    totales: {
-      alumnos: alumnosN,
-      pagados: pagados.length,
-      conRecargo,
-      deudores: deudores.length,
-      montoPagado,
-      recargoPagado,
-      pctLiquidado,
-    },
+    niveles,
+    totales: calcTotales(todosPagados, todosDeudores),
   }
 }
 
