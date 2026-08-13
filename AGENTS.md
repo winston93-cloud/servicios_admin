@@ -76,3 +76,11 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 8. Apagar o redirigir `winston93.edu.mx/cfdiwinston`.
 9. Retirar credenciales del PHP en GitLab/servidor.
 10. Confirmar `/portal-facturacion` como única vía de datos fiscales de papás.
+
+## Boletas secundaria + hub Becas
+
+- **Hub:** `/becas` (5 cards: Renovaciones, Solicitudes, Permisos, Bitácora, Boletas secundaria). La tarjeta **Becas** del dashboard apunta aquí.
+- **Módulo:** `/boletas-secundaria` — login maestro/admin, captura, admin, PDF, reportes (ciclos históricos), envío email autenticado.
+- **Backend:** proyecto InsForge dedicado **`boletas`** (aparte de Winston Servicios). Schema/import en `insforge-boletas/`.
+- **Env (solo server):** `BOLETAS_INSFORGE_URL`, `BOLETAS_INSFORGE_API_KEY` (opcional `BOLETAS_SESSION_SECRET`).
+- Legacy PHP `winston93.edu.mx/boletas` convive; no sustituir hasta OK de Mario.

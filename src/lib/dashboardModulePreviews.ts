@@ -80,6 +80,11 @@ export const DASHBOARD_MODULE_PREVIEWS: Record<string, DashboardModulePreview> =
       'Torre de control de becas: revisa renovaciones y solicitudes con acceso de Control Escolar para decidir con información completa.',
     highlights: ['Renovaciones', 'Solicitudes', 'Login de control'],
   },
+  Becas: {
+    synopsis:
+      'Hub de becas y Control Escolar: renovaciones, solicitudes, permisos, bitácora y boletas de secundaria en un solo panel.',
+    highlights: ['Renovaciones', 'Solicitudes', 'Boletas secundaria'],
+  },
   'Reportes de Conducta': {
     synopsis:
       'Seguimiento disciplinario escolar: captura reportes de conducta y da continuidad al acompañamiento entre dirección y familias.',

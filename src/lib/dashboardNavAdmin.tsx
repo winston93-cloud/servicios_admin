@@ -2,11 +2,7 @@ import type { ReactNode } from 'react'
 import type { DashboardModuleAccent } from '@/components/dashboard/DashboardModuleCard'
 import { urlProrrogasAjustesApp } from '@/lib/prorrogasAjustesConfig'
 import { urlCchicApp } from '@/lib/cchicConfig'
-import {
-  urlBecasPanelApp,
-  urlChequesApp,
-  urlContratosApp,
-} from '@/lib/dashboardModulosConfig'
+import { urlChequesApp, urlContratosApp } from '@/lib/dashboardModulosConfig'
 
 export type DashboardAdminNavItem = {
   label: string
@@ -259,12 +255,12 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
-    label: 'Becas Panel',
-    desc: 'Dashboard de revisión de becas (renovaciones y solicitudes) con login de Control Escolar.',
-    href: urlBecasPanelApp(),
+    label: 'Becas',
+    desc: 'Renovaciones, solicitudes, permisos, bitácora y boletas de secundaria.',
+    path: '/becas',
     accent: 'amber',
     kicker: 'Becas',
-    tags: ['Revisión', 'Admin', 'Login'],
+    tags: ['Revisión', 'Boletas', 'Control Escolar'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
