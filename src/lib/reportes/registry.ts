@@ -49,6 +49,11 @@ import {
   generarPdfReporteReinscritos,
 } from '@/lib/reportes/reinscritosPagosDocument'
 import {
+  construirHtmlCuotaInicioCurso,
+  generarPdfCuotaInicioCurso,
+} from '@/lib/reportes/cuotaInicioCursoDocument'
+import { cargarCuotaInicioCurso } from '@/lib/reportes/cuotaInicioCursoService'
+import {
   cargarSuspendidosReporte,
   cargarTalleres,
   talleresATabla,
@@ -459,6 +464,18 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
       return { filename, pdf: generarPdfReporteNuevoIngreso(resumen) }
     }
     return { filename, html: construirHtmlReporteNuevoIngreso(resumen) }
+  },
+
+  'cuota-inicio-curso': async (searchParams) => {
+    const nivel = requiereNivel(searchParams)
+    const ciclo = await cicloEscolarParam(searchParams)
+    const format = formatoParam(searchParams)
+    const resumen = await cargarCuotaInicioCurso(nivel, ciclo)
+    const filename = `cuota-inicio-${resumen.nivelLabel.toLowerCase()}-ciclo-${ciclo}.pdf`
+    if (format === 'pdf') {
+      return { filename, pdf: generarPdfCuotaInicioCurso(resumen) }
+    }
+    return { filename, html: construirHtmlCuotaInicioCurso(resumen) }
   },
 
   'familias-winston': async (searchParams) => {
