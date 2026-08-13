@@ -239,8 +239,8 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   },
   {
     label: 'Boletas',
-    desc: 'Captura, consulta y envío de boletas escolares.',
-    path: '/proximamente?m=boletas',
+    desc: 'Captura, consulta, PDF y promedios de secundaria (ciclos actuales y pasados).',
+    path: '/boletas-secundaria',
     accent: 'indigo',
     kicker: 'Control escolar',
     tags: ['Boletas', 'Calificaciones'],

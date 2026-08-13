@@ -72,8 +72,8 @@ export const DASHBOARD_MODULE_PREVIEWS: Record<string, DashboardModulePreview> =
   },
   Boletas: {
     synopsis:
-      'Ciclo de boletas escolares: captura, consulta y envío de calificaciones con el flujo que control escolar necesita ciclo a ciclo.',
-    highlights: ['Captura de boletas', 'Consulta familiar', 'Envío institucional'],
+      'Boletas de secundaria: captura de calificaciones, PDF, reportes de promedio (ciclos históricos) y envío autenticado.',
+    highlights: ['Captura por materia', 'PDF y promedios', 'Ciclos históricos'],
   },
   'Becas Panel': {
     synopsis:
