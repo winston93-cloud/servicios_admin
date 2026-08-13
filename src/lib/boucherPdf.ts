@@ -227,17 +227,17 @@ function dibujarAvisoLegal(
 
   if (normalizarConceptoNo(datos.conceptoNo) === '00') {
     avisos.push(
-      `Cuota de Inicio de Curso: la fecha límite de pago es el ${formatearFechaBoucher(datos.vigencia)}. No aplicar recargos bancarios antes de esa fecha.`
+      `Cuota de Inicio de Curso: la fecha límite de pago es el ${formatearFechaBoucher(datos.vigencia)}. A partir del día 11 se aplicará recargo de $75.00 por mes, incluyendo la cuota de inicio de curso.`
     )
   } else {
     avisos.push(
-      `Validez del comprobante: ${formatearFechaBoucher(datos.vigencia)}. Colegiaturas: del 1 al 10 de cada mes; si se genera después del día 10, la validez es de 7 días. En ventanilla no aplicar recargo de $75 (solo comercio electrónico / Openpay). La beca Winston no aplica después del día 10.`
+      `Validez del comprobante: ${formatearFechaBoucher(datos.vigencia)}. Colegiaturas: del 1 al 10 de cada mes; si se genera después del día 10, la validez es de 7 días. A partir del día 11 se aplicará recargo de $75.00 por mes, incluyendo la cuota de inicio de curso. La beca Winston no aplica después del día 10.`
     )
   }
 
   if (datos.aplicarRecargos) {
     avisos.push(
-      'El pago de colegiaturas es del 1 al 10 de cada mes (días naturales). A partir del día 11 se aplicará recargo de $75.00 por mes hasta su liquidación. La beca Winston no aplica después del día 10; la beca SEP se respeta y solo suma recargos.'
+      'La beca Winston no aplica después del día 10; la beca SEP se respeta y solo suma recargos.'
     )
   }
 
