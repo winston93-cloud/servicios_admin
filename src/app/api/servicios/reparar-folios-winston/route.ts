@@ -220,39 +220,16 @@ async function handle() {
     folio += 1
   }
 
-  // Diagnóstico alineado con obtenerSiguienteFolioPago (descarta clusters legacy altos).
-  const { data: maxRows } = await db
+  // Diagnóstico: máximo en zona talón (< 3200), que es el que usa el formulario.
+  const { data: zonaRows } = await db
     .from('pago_interno')
     .select('pago_folio, concepto_id, alumno_id')
     .gte('pago_folio', PAGO_INTERNO_FOLIO_WINSTON_INICIAL)
-    .lt('pago_folio', PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN)
+    .lt('pago_folio', 3200)
     .not('concepto_id', 'in', `(${[...CONCEPTOS_CUOTA_PADRES].join(',')})`)
     .order('pago_folio', { ascending: false })
-    .limit(120)
-  const foliosDiag = [
-    ...new Set(
-      (maxRows ?? [])
-        .map((r) => Number(r.pago_folio))
-        .filter((f) => Number.isFinite(f))
-    ),
-  ].sort((a, b) => b - a)
-  const GAP = 80
-  const ZONA_TALON = 3200
-  let maxSerie: number | null = null
-  {
-    let i = 0
-    while (i < foliosDiag.length) {
-      let j = i
-      while (j + 1 < foliosDiag.length && foliosDiag[j] - foliosDiag[j + 1] < GAP) j += 1
-      const clusterMax = foliosDiag[i]
-      const clusterMin = foliosDiag[j]
-      if (clusterMin < ZONA_TALON || clusterMax < ZONA_TALON) {
-        maxSerie = clusterMax
-        break
-      }
-      i = j + 1
-    }
-  }
+    .limit(8)
+  const maxSerie = Number(zonaRows?.[0]?.pago_folio) || null
 
   return NextResponse.json({
     ok: true,
@@ -261,7 +238,7 @@ async function handle() {
     siguienteFolio: folio,
     maxSerieWinstonGeneral: maxSerie,
     siguienteSegunMax: maxSerie != null ? maxSerie + 1 : FOLIO_REPARACION_WINSTON_INICIO,
-    topFolios: (maxRows ?? []).slice(0, 8).map((r) => ({
+    topFolios: (zonaRows ?? []).map((r) => ({
       folio: Number(r.pago_folio),
       concepto_id: Number(r.concepto_id),
       alumno_id: Number(r.alumno_id),
