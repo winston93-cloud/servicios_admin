@@ -48,8 +48,8 @@ function promedioLista(vals: number[], dec: number): number | null {
   return redondear(vals.reduce((a, b) => a + b, 0) / vals.length, dec)
 }
 
-/** Divisores por bloque según grado (igual que boletaspdf.php). */
-function divisoresBloques(grado: number): {
+/** Divisores por bloque según grado (legacy `boletas_español` / boletaspdf). */
+export function divisoresBloquesPrimaria(grado: number): {
   lenguajes: number
   saberes: number
   humano: number
@@ -67,16 +67,28 @@ function divisoresBloques(grado: number): {
   }
 }
 
-function promedioBloqueTrimestre(
+/**
+ * Promedio de un bloque en un trimestre.
+ *
+ * El PDF usa suma / divisor fijo (materias esperadas del grado), e incluye 0
+ * como placeholder para penalizar materias vacías. Si la tabla trae MÁS
+ * materias que ese divisor (p. ej. 2° con 2 filas de Ética y divisor 1),
+ * dividir solo entre el divisor infla el resultado por encima de 10
+ * (caso real en renovación: ES 13.6).
+ *
+ * Divisor efectivo = max(oficial, materias presentes) → nunca > 10, y
+ * sigue penalizando faltantes cuando hay menos notas que las esperadas.
+ */
+export function promedioBloqueTrimestrePrimaria(
   notas: number[],
   divisor: number,
   dec: number
 ): number | null {
-  if (divisor <= 0) return null
-  // Como el PDF (`bcdiv`): suma todas las filas / divisor fijo, truncado.
   if (notas.length === 0) return null
+  const d = Math.max(divisor, notas.length)
+  if (d <= 0) return null
   const suma = notas.reduce((a, b) => a + b, 0)
-  return truncar(suma / divisor, dec)
+  return truncar(suma / d, dec)
 }
 
 /**
@@ -88,6 +100,8 @@ function promedioBloqueTrimestre(
  * ES (`prim_*`): promedio de todos los bloques con calificación
  * (Lenguajes, Saberes, Humano, Ética, Extracurriculares); cada bloque =
  * media de sus 3 trimestres. Habilidades quedan fuera.
+ * Por trimestre: suma / max(divisor del grado, materias presentes) para no
+ * inflar por encima de 10 cuando hay más filas que las del PDF.
  *
  * EN (`ing_cal` por alu_ref): AVERAGE FINAL = media de 8 materias académicas
  * (mat_id 2–9), sin Mindfulness/Faith/skills.
@@ -148,7 +162,8 @@ export async function cargarPromediosPrimariaMysql(
       cargarTabla('prim_extra'),
     ])
 
-    type Bucket = Map<number, Map<number, number[]>> // alumno → trim → notas
+    // alumno → trim → materiaId → nota (una fila por materia; evita duplicados)
+    type Bucket = Map<number, Map<number, Map<number, number>>>
     const toBucket = (rows: FilaPrim[]): Bucket => {
       const b: Bucket = new Map()
       for (const row of rows) {
@@ -160,8 +175,12 @@ export async function cargarPromediosPrimariaMysql(
         if (nota == null) continue
         if (!b.has(id)) b.set(id, new Map())
         const porTrim = b.get(id)!
-        if (!porTrim.has(trim)) porTrim.set(trim, [])
-        porTrim.get(trim)!.push(nota)
+        if (!porTrim.has(trim)) porTrim.set(trim, new Map())
+        const porMateria = porTrim.get(trim)!
+        const mat = Number(row.id_materia)
+        const matKey =
+          Number.isInteger(mat) && mat > 0 ? mat : -(porMateria.size + 1)
+        porMateria.set(matKey, nota)
       }
       return b
     }
@@ -181,15 +200,16 @@ export async function cargarPromediosPrimariaMysql(
       if (!porTrim) return null
       const trimAvgs: number[] = []
       for (const t of TRIMESTRES) {
-        const notas = porTrim.get(t) ?? []
-        const p = promedioBloqueTrimestre(notas, divisor, 1)
+        const porMateria = porTrim.get(t)
+        const notas = porMateria ? [...porMateria.values()] : []
+        const p = promedioBloqueTrimestrePrimaria(notas, divisor, 1)
         if (p != null) trimAvgs.push(p)
       }
       return promedioLista(trimAvgs, 1)
     }
 
     for (const [alumnoId, meta] of porId) {
-      const div = divisoresBloques(meta.grado)
+      const div = divisoresBloquesPrimaria(meta.grado)
       const bloques: number[] = []
       const len = promedioBloqueAnual(buckLen, alumnoId, div.lenguajes)
       const sab = promedioBloqueAnual(buckSab, alumnoId, div.saberes)
