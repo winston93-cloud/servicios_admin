@@ -563,6 +563,34 @@ export async function obtenerSiguienteFolioPago(
   const inicial = folioInicialPlantel(plantel, tipoSerie)
   const techo = folioTechoPlantel(plantel, tipoSerie)
 
+  // Winston general: primero el máximo en la zona del talón actual (< 3200).
+  // Si se pide el máximo global hasta 4000, ganan bloques legacy 39xx/5xxx/7xxx.
+  const ZONA_TALON_EXCLUSIVA = 3200
+  if (plantel === 'winston' && tipoSerie === 'general') {
+    let qZona = supabase
+      .from('pago_interno')
+      .select('pago_folio')
+      .gte('pago_folio', inicial)
+      .lt('pago_folio', Math.min(techo ?? ZONA_TALON_EXCLUSIVA, ZONA_TALON_EXCLUSIVA))
+      .not('concepto_id', 'in', `(${CONCEPTOS_CUOTA_PADRES.join(',')})`)
+      .order('pago_folio', { ascending: false })
+      .limit(1)
+    const { data: zonaData, error: zonaErr } = await qZona
+    if (!zonaErr) {
+      const row = Array.isArray(zonaData) ? zonaData[0] : zonaData
+      const maxZona = row?.pago_folio != null ? Number(row.pago_folio) : null
+      if (maxZona != null && Number.isFinite(maxZona) && maxZona >= inicial) {
+        const siguiente = maxZona + 1
+        if (techo != null && siguiente >= techo) {
+          throw new Error(
+            `Serie de folio ${tipoSerie}/${plantel} agotada (siguiente ${siguiente} ≥ techo ${techo})`
+          )
+        }
+        return siguiente
+      }
+    }
+  }
+
   let q = supabase
     .from('pago_interno')
     .select('pago_folio')
@@ -574,9 +602,6 @@ export async function obtenerSiguienteFolioPago(
     q = q.lt('pago_folio', techo)
   }
 
-  // Cuota: solo conceptos de cuota (1/2).
-  // General: excluir cuota — el rango 2671–2848 se solapa con cuota Winston y
-  // si se mezclan el “máximo” se dispara y la serie general se agota/reinicia.
   if (tipoSerie === 'cuota_padres') {
     q = q.in('concepto_id', [...CONCEPTOS_CUOTA_PADRES])
   } else {
@@ -600,8 +625,6 @@ export async function obtenerSiguienteFolioPago(
 
   if (folios.length === 0) return inicial
 
-  // Winston general: ignorar bloques legacy altos (3xxx–7xxx) separados por un
-  // hueco grande del talón actual (2671…28xx). Si no, el “siguiente” salta a 3998/7322.
   const max =
     plantel === 'winston' && tipoSerie === 'general'
       ? maxFolioTalonActualWinston(folios)
@@ -624,7 +647,6 @@ export async function obtenerSiguienteFolioPago(
 function maxFolioTalonActualWinston(foliosDesc: number[]): number | null {
   if (foliosDesc.length === 0) return null
   const GAP = 80
-  /** Clusters que tocan la zona del talón nuevo (&lt; 3200) son la serie real. */
   const ZONA_TALON = 3200
   let i = 0
   while (i < foliosDesc.length) {
@@ -639,7 +661,6 @@ function maxFolioTalonActualWinston(foliosDesc: number[]): number | null {
     }
     i = j + 1
   }
-  // Solo había bloques altos: no inventar; usar el menor de esos como último recurso.
   return foliosDesc[foliosDesc.length - 1] ?? null
 }
 
