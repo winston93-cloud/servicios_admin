@@ -568,7 +568,7 @@ export async function obtenerSiguienteFolioPago(
     .select('pago_folio')
     .gte('pago_folio', inicial)
     .order('pago_folio', { ascending: false })
-    .limit(1)
+    .limit(plantel === 'winston' && tipoSerie === 'general' ? 120 : 1)
 
   if (techo != null) {
     q = q.lt('pago_folio', techo)
@@ -583,18 +583,31 @@ export async function obtenerSiguienteFolioPago(
     q = q.not('concepto_id', 'in', `(${CONCEPTOS_CUOTA_PADRES.join(',')})`)
   }
 
-  // Evitar maybeSingle(): si el backend ignora limit(1) y hay varias filas,
-  // maybeSingle falla y el código antiguo devolvía el inicial (2671) → duplicados.
   const { data, error } = await q
 
   if (error) {
     console.error('Error al obtener siguiente folio de pago interno:', error)
     return inicial
   }
-  const row = Array.isArray(data) ? data[0] : data
-  if (!row?.pago_folio) return inicial
-  const max = Number(row.pago_folio)
-  if (!Number.isFinite(max) || max < inicial) return inicial
+  const rows = Array.isArray(data) ? data : data ? [data] : []
+  const folios = [
+    ...new Set(
+      rows
+        .map((r) => Number(r.pago_folio))
+        .filter((f) => Number.isFinite(f) && f >= inicial)
+    ),
+  ].sort((a, b) => b - a)
+
+  if (folios.length === 0) return inicial
+
+  // Winston general: ignorar bloques legacy altos (3xxx–7xxx) separados por un
+  // hueco grande del talón actual (2671…28xx). Si no, el “siguiente” salta a 3998/7322.
+  const max =
+    plantel === 'winston' && tipoSerie === 'general'
+      ? maxFolioTalonActualWinston(folios)
+      : folios[0]
+
+  if (max == null || max < inicial) return inicial
   const siguiente = max + 1
   if (techo != null && siguiente >= techo) {
     const mensaje = `Serie de folio ${tipoSerie}/${plantel} agotada (siguiente ${siguiente} ≥ techo ${techo})`
@@ -602,6 +615,32 @@ export async function obtenerSiguienteFolioPago(
     throw new Error(mensaje)
   }
   return siguiente
+}
+
+/**
+ * Elige el máximo del talón Winston actual descartando clusters legacy altos.
+ * Ej.: [3997…3986] (legacy) —hueco— [2874…2671] (talón) → 2874.
+ */
+function maxFolioTalonActualWinston(foliosDesc: number[]): number | null {
+  if (foliosDesc.length === 0) return null
+  const GAP = 80
+  /** Clusters que tocan la zona del talón nuevo (&lt; 3200) son la serie real. */
+  const ZONA_TALON = 3200
+  let i = 0
+  while (i < foliosDesc.length) {
+    let j = i
+    while (j + 1 < foliosDesc.length && foliosDesc[j] - foliosDesc[j + 1] < GAP) {
+      j += 1
+    }
+    const clusterMax = foliosDesc[i]
+    const clusterMin = foliosDesc[j]
+    if (clusterMin < ZONA_TALON || clusterMax < ZONA_TALON) {
+      return clusterMax
+    }
+    i = j + 1
+  }
+  // Solo había bloques altos: no inventar; usar el menor de esos como último recurso.
+  return foliosDesc[foliosDesc.length - 1] ?? null
 }
 
 export interface CrearPagoInternoPayload {
