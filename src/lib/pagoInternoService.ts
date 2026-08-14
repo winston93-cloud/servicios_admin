@@ -14,6 +14,7 @@ import {
   PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
   PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN,
   PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR,
+  PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON,
 } from './pagoInternoPlantel'
 
 export {
@@ -34,6 +35,7 @@ export {
   PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
   PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN,
   PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR,
+  PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON,
   type AccesoPagosInternosUsuario,
   type PlantelPagosInternos,
   type TipoSerieFolioPagoInterno,
@@ -556,84 +558,100 @@ export function esConceptoManuales(
   return nombre === 'MANUALES'
 }
 
+/**
+ * Siguiente folio de una de las 4 series independientes:
+ * Winston|Educativo × cuota_padres|general.
+ *
+ * - Cuota: solo conceptos 1/2, rango propio por plantel.
+ * - General: excluye cuota; Winston ignora legacy y sigue el consecutivo del talón
+ *   (no el máximo absoluto: hay basura 2915+/39xx/7xxx que no cuenta).
+ * - Filtra por nivel del alumno (= plantel) para no mezclar Winston con Educativo.
+ */
 export async function obtenerSiguienteFolioPago(
   plantel: PlantelPagosInternos = 'winston',
   tipoSerie: TipoSerieFolioPagoInterno = 'general'
 ): Promise<number> {
   const inicial = folioInicialPlantel(plantel, tipoSerie)
-  const techo = folioTechoPlantel(plantel, tipoSerie)
+  let techo = folioTechoPlantel(plantel, tipoSerie)
 
-  // Winston general: primero el máximo en la zona del talón actual (< 3200).
-  // Si se pide el máximo global hasta 4000, ganan bloques legacy 39xx/5xxx/7xxx.
-  const ZONA_TALON_EXCLUSIVA = 3200
+  // Winston general: acotar búsqueda (legacy 4xxx+ y densos 39xx fuera).
   if (plantel === 'winston' && tipoSerie === 'general') {
-    let qZona = supabase
+    const zona = PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON
+    techo = techo == null ? zona : Math.min(techo, zona)
+  }
+
+  const pageSize = 200
+  let from = 0
+  const foliosSerie = new Set<number>()
+
+  for (let pass = 0; pass < 15; pass++) {
+    let q = supabase
       .from('pago_interno')
-      .select('pago_folio')
+      .select('pago_folio, alumno_id, concepto_id')
       .gte('pago_folio', inicial)
-      .lt('pago_folio', Math.min(techo ?? ZONA_TALON_EXCLUSIVA, ZONA_TALON_EXCLUSIVA))
-      .not('concepto_id', 'in', `(${CONCEPTOS_CUOTA_PADRES.join(',')})`)
       .order('pago_folio', { ascending: false })
-      .limit(1)
-    const { data: zonaData, error: zonaErr } = await qZona
-    if (!zonaErr) {
-      const row = Array.isArray(zonaData) ? zonaData[0] : zonaData
-      const maxZona = row?.pago_folio != null ? Number(row.pago_folio) : null
-      if (maxZona != null && Number.isFinite(maxZona) && maxZona >= inicial) {
-        const siguiente = maxZona + 1
-        if (techo != null && siguiente >= techo) {
-          throw new Error(
-            `Serie de folio ${tipoSerie}/${plantel} agotada (siguiente ${siguiente} ≥ techo ${techo})`
-          )
-        }
-        return siguiente
+      .range(from, from + pageSize - 1)
+
+    if (techo != null) q = q.lt('pago_folio', techo)
+
+    if (tipoSerie === 'cuota_padres') {
+      q = q.in('concepto_id', [...CONCEPTOS_CUOTA_PADRES])
+    } else {
+      q = q.not('concepto_id', 'in', `(${CONCEPTOS_CUOTA_PADRES.join(',')})`)
+    }
+
+    const { data, error } = await q
+    if (error) {
+      console.error('Error al obtener siguiente folio de pago interno:', error)
+      return inicial
+    }
+    const batch = data ?? []
+    if (batch.length === 0) break
+
+    const alumnoIds = [
+      ...new Set(
+        batch
+          .map((r) => Number(r.alumno_id))
+          .filter((id) => Number.isFinite(id) && id > 0)
+      ),
+    ]
+    const nivelPorAlumno = new Map<number, number>()
+    if (alumnoIds.length > 0) {
+      const { data: alumnos } = await supabase
+        .from('alumno')
+        .select('alumno_id, alumno_nivel')
+        .in('alumno_id', alumnoIds)
+      for (const a of alumnos ?? []) {
+        nivelPorAlumno.set(Number(a.alumno_id), Number(a.alumno_nivel) || 0)
       }
     }
+
+    for (const r of batch) {
+      const folio = Number(r.pago_folio)
+      if (!Number.isFinite(folio) || folio < inicial) continue
+      const nivel = nivelPorAlumno.get(Number(r.alumno_id))
+      if (nivel == null) continue
+      if (plantelPagoDesdeNivel(nivel) !== plantel) continue
+      foliosSerie.add(folio)
+    }
+
+    if (batch.length < pageSize) break
+    from += pageSize
   }
 
-  let q = supabase
-    .from('pago_interno')
-    .select('pago_folio')
-    .gte('pago_folio', inicial)
-    .order('pago_folio', { ascending: false })
-    .limit(plantel === 'winston' && tipoSerie === 'general' ? 120 : 1)
+  if (foliosSerie.size === 0) return inicial
 
-  if (techo != null) {
-    q = q.lt('pago_folio', techo)
-  }
-
-  if (tipoSerie === 'cuota_padres') {
-    q = q.in('concepto_id', [...CONCEPTOS_CUOTA_PADRES])
-  } else {
-    q = q.not('concepto_id', 'in', `(${CONCEPTOS_CUOTA_PADRES.join(',')})`)
-  }
-
-  const { data, error } = await q
-
-  if (error) {
-    console.error('Error al obtener siguiente folio de pago interno:', error)
-    return inicial
-  }
-  const rows = Array.isArray(data) ? data : data ? [data] : []
-  const folios = [
-    ...new Set(
-      rows
-        .map((r) => Number(r.pago_folio))
-        .filter((f) => Number.isFinite(f) && f >= inicial)
-    ),
-  ].sort((a, b) => b - a)
-
-  if (folios.length === 0) return inicial
-
-  const max =
+  const foliosAsc = [...foliosSerie].sort((a, b) => a - b)
+  const maxEnSerie =
     plantel === 'winston' && tipoSerie === 'general'
-      ? maxFolioTalonActualWinston(folios)
-      : folios[0]
+      ? maxConsecutivoTalonWinston(foliosAsc, inicial)
+      : foliosAsc[foliosAsc.length - 1]
 
-  if (max == null || max < inicial) return inicial
-  const siguiente = max + 1
-  if (techo != null && siguiente >= techo) {
-    const mensaje = `Serie de folio ${tipoSerie}/${plantel} agotada (siguiente ${siguiente} ≥ techo ${techo})`
+  if (maxEnSerie == null || maxEnSerie < inicial) return inicial
+  const siguiente = maxEnSerie + 1
+  const techoSerie = folioTechoPlantel(plantel, tipoSerie)
+  if (techoSerie != null && siguiente >= techoSerie) {
+    const mensaje = `Serie de folio ${tipoSerie}/${plantel} agotada (siguiente ${siguiente} ≥ techo ${techoSerie})`
     console.error(mensaje)
     throw new Error(mensaje)
   }
@@ -641,27 +659,60 @@ export async function obtenerSiguienteFolioPago(
 }
 
 /**
- * Elige el máximo del talón Winston actual descartando clusters legacy altos.
- * Ej.: [3997…3986] (legacy) —hueco— [2874…2671] (talón) → 2874.
+ * Consecutivo del talón Winston general anclado en el bloque desde 2848
+ * (corrección ARVIZU). Expande hacia adelante/atrás con huecos chicos (≤5);
+ * no salta al bloque suelto 2915+ ni a legacy. Así el siguiente es 2875, no 2926.
  */
-function maxFolioTalonActualWinston(foliosDesc: number[]): number | null {
-  if (foliosDesc.length === 0) return null
-  const GAP = 80
-  const ZONA_TALON = 3200
-  let i = 0
-  while (i < foliosDesc.length) {
-    let j = i
-    while (j + 1 < foliosDesc.length && foliosDesc[j] - foliosDesc[j + 1] < GAP) {
-      j += 1
-    }
-    const clusterMax = foliosDesc[i]
-    const clusterMin = foliosDesc[j]
-    if (clusterMin < ZONA_TALON || clusterMax < ZONA_TALON) {
-      return clusterMax
-    }
-    i = j + 1
+function maxConsecutivoTalonWinston(foliosAsc: number[], inicial: number): number | null {
+  if (foliosAsc.length === 0) return null
+  const ancla = FOLIO_REPARACION_WINSTON_INICIO
+  const set = new Set(foliosAsc)
+  const HUECO_OK = 5
+
+  let seed: number | null = null
+  if (set.has(ancla)) {
+    seed = ancla
+  } else {
+    // Si 2848 no está, el primer folio del bloque reparado (≥2848, cerca).
+    seed = foliosAsc.find((f) => f >= ancla && f < ancla + 80) ?? null
   }
-  return foliosDesc[foliosDesc.length - 1] ?? null
+
+  if (seed == null) {
+    // Sin bloque 2848+: máximo del talón previo (< ancla).
+    const prev = foliosAsc.filter((f) => f >= inicial && f < ancla)
+    return prev.length ? prev[prev.length - 1] : null
+  }
+
+  let lo = seed
+  let hi = seed
+
+  // Adelante
+  for (;;) {
+    let next: number | null = null
+    for (let n = hi + 1; n <= hi + HUECO_OK; n++) {
+      if (set.has(n)) {
+        next = n
+        break
+      }
+    }
+    if (next == null) break
+    hi = next
+  }
+
+  // Atrás hasta el inicio del talón
+  for (;;) {
+    let prev: number | null = null
+    for (let n = lo - 1; n >= Math.max(inicial, lo - HUECO_OK); n--) {
+      if (set.has(n)) {
+        prev = n
+        break
+      }
+    }
+    if (prev == null) break
+    lo = prev
+  }
+
+  return hi
 }
 
 export interface CrearPagoInternoPayload {

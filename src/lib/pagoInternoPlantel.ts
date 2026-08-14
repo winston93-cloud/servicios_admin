@@ -1,21 +1,21 @@
 import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
 
 /**
- * Series de folio de pagos internos (sistema nuevo):
- * - Winston general (primaria/secundaria): desde 2671 (talón actual).
- *   Continúa autoincremental hasta antes del histórico legacy (~6000).
- *   El talón anterior (26550+) queda histórico; no se reasigna.
- *   Nota: el tramo 2849–3479 también lo usa Educativo en listados; el plantel
- *   operativo se resuelve por nivel del alumno cuando hace falta.
- * - Educativo general (maternal/kinder): desde 2849, techo 3480
- * - Cuota de padres Winston: desde 2140 hasta 2848 (antes de Educativo 2849)
- *   (no reutilizar el histórico legacy de combo ~6000–7000)
- * - Cuota de padres Educativo: desde 1037 hasta antes de la serie cuota Winston (2140)
+ * Series de folio de pagos internos — 4 variantes independientes:
  *
- * Bug histórico: al llegar al “techo” 2849 la serie general Winston devolvía
- * otra vez 2671 (reinicio), generando folios duplicados (p. ej. MANUALES).
- * Luego, al abrir el techo hasta 26550, folios legacy ~5xxx–7xxx inflaban el
- * “siguiente folio” (p. ej. 7322 / 5998). El talón actual corta en 4000.
+ * | Plantel    | Tipo serie     | Rango (aprox.)                         |
+ * |------------|----------------|----------------------------------------|
+ * | Winston    | cuota_padres   | 2140 … 2848                            |
+ * | Winston    | general        | 2671 … (talón actual; no legacy 4xxx+) |
+ * | Educativo  | cuota_padres   | 1037 … 2139                            |
+ * | Educativo  | general        | 2849 … 3479                            |
+ *
+ * Cuota de padres y el resto de conceptos NUNCA comparten numeración.
+ * Winston y Educativo tampoco: el siguiente folio se calcula filtrando
+ * por nivel del alumno (maternal/kinder → Educativo; resto → Winston).
+ *
+ * El talón anterior Winston (26550+) y legacy combo/otros (~4000–7xxx)
+ * no alimentan el autoincremento del talón actual.
  */
 export type PlantelPagosInternos = 'winston' | 'educativo'
 
@@ -30,12 +30,16 @@ export const PAGO_INTERNO_FOLIO_WINSTON_INICIAL = 2671
  */
 export const PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR = 26550
 /**
- * Exclusivo: a partir de aquí hay folios legacy (combo/otros ~4xxx–7xxx)
- * que NO pertenecen al talón actual 2671+. Si se incluyen en el máximo,
- * el siguiente folio salta (p. ej. 5998 o 7322).
- * El talón actual vive en 2671…3999 (incluye continuidad tras 2848).
+ * Exclusivo: folios legacy (combo/otros ~4xxx–7xxx) fuera del talón actual.
+ * Si se incluyen en el máximo, el siguiente folio salta (p. ej. 7322).
  */
 export const PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN = 4000
+/**
+ * Techo práctico de búsqueda del talón Winston actual al calcular el siguiente
+ * folio (evita bloques legacy densos 39xx dentro de &lt; 4000).
+ */
+export const PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON = 3200
+
 export const PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL = 2849
 /** Exclusivo: a partir de aquí hay folios legacy que no son la serie nueva educativa. */
 export const PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO = 3480

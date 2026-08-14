@@ -4,6 +4,7 @@ import {
   CONCEPTOS_CUOTA_PADRES,
   CONCEPTO_ID_MANUALES,
   FOLIO_REPARACION_WINSTON_INICIO,
+  obtenerSiguienteFolioPago,
 } from '@/lib/pagoInternoService'
 import {
   PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
@@ -220,29 +221,21 @@ async function handle() {
     folio += 1
   }
 
-  // Diagnóstico: máximo en zona talón (< 3200), que es el que usa el formulario.
-  const { data: zonaRows } = await db
-    .from('pago_interno')
-    .select('pago_folio, concepto_id, alumno_id')
-    .gte('pago_folio', PAGO_INTERNO_FOLIO_WINSTON_INICIAL)
-    .lt('pago_folio', 3200)
-    .not('concepto_id', 'in', `(${[...CONCEPTOS_CUOTA_PADRES].join(',')})`)
-    .order('pago_folio', { ascending: false })
-    .limit(8)
-  const maxSerie = Number(zonaRows?.[0]?.pago_folio) || null
+  // Diagnóstico: siguientes de las 4 series (misma lógica del formulario).
+  const series = {
+    winston_general: await obtenerSiguienteFolioPago('winston', 'general'),
+    winston_cuota: await obtenerSiguienteFolioPago('winston', 'cuota_padres'),
+    educativo_general: await obtenerSiguienteFolioPago('educativo', 'general'),
+    educativo_cuota: await obtenerSiguienteFolioPago('educativo', 'cuota_padres'),
+  }
 
   return NextResponse.json({
     ok: true,
     aplicada: cambios > 0,
     cambios,
     siguienteFolio: folio,
-    maxSerieWinstonGeneral: maxSerie,
-    siguienteSegunMax: maxSerie != null ? maxSerie + 1 : FOLIO_REPARACION_WINSTON_INICIO,
-    topFolios: (zonaRows ?? []).map((r) => ({
-      folio: Number(r.pago_folio),
-      concepto_id: Number(r.concepto_id),
-      alumno_id: Number(r.alumno_id),
-    })),
+    series,
+    siguienteSegunMax: series.winston_general,
     revisados: aReparar.length,
     ancla: {
       pago_id: anclaId,
@@ -252,8 +245,8 @@ async function handle() {
     detalle,
     mensaje:
       cambios > 0
-        ? `Consecutivo desde 2848 corregido: ${cambios} pago(s). Siguiente=${folio}.`
-        : `Consecutivo desde 2848 OK (${aReparar.length} revisados). Siguiente=${folio}.`,
+        ? `Consecutivo desde 2848 corregido: ${cambios} pago(s). Winston general siguiente=${series.winston_general}.`
+        : `Consecutivo OK. Winston general→${series.winston_general} · cuota W→${series.winston_cuota} · Educativo general→${series.educativo_general} · cuota E→${series.educativo_cuota}.`,
   })
 }
 
