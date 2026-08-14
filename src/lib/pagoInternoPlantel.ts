@@ -3,7 +3,7 @@ import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
 /**
  * Series de folio de pagos internos (sistema nuevo):
  * - Winston general (primaria/secundaria): desde 2671 (talón actual).
- *   Continúa autoincremental hasta antes del talón anterior (26550).
+ *   Continúa autoincremental hasta antes del histórico legacy (~6000).
  *   El talón anterior (26550+) queda histórico; no se reasigna.
  *   Nota: el tramo 2849–3479 también lo usa Educativo en listados; el plantel
  *   operativo se resuelve por nivel del alumno cuando hace falta.
@@ -14,6 +14,8 @@ import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
  *
  * Bug histórico: al llegar al “techo” 2849 la serie general Winston devolvía
  * otra vez 2671 (reinicio), generando folios duplicados (p. ej. MANUALES).
+ * Luego, al abrir el techo hasta 26550, folios legacy ~7xxx inflaban el
+ * “siguiente folio” (p. ej. 7322). El talón actual corta en 6000.
  */
 export type PlantelPagosInternos = 'winston' | 'educativo'
 
@@ -23,11 +25,16 @@ export type TipoSerieFolioPagoInterno = 'general' | 'cuota_padres'
 /** Winston general — talón actual (cambio de talonario). */
 export const PAGO_INTERNO_FOLIO_WINSTON_INICIAL = 2671
 /**
- * Winston general — inicio del talón anterior (histórico).
+ * Winston general — inicio del talón anterior (histórico 5 dígitos).
  * El siguiente folio del talón actual no debe “saltar” a este rango.
- * También es el techo exclusivo del talón actual (2671 … 26549).
  */
 export const PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR = 26550
+/**
+ * Exclusivo: a partir de aquí hay folios legacy (combo/otros ~6000–7xxx)
+ * que NO pertenecen al talón actual 2671+. Si se incluyen en el máximo,
+ * el siguiente folio salta a 7xxx (p. ej. 7322).
+ */
+export const PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN = 6000
 export const PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL = 2849
 /** Exclusivo: a partir de aquí hay folios legacy que no son la serie nueva educativa. */
 export const PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO = 3480
@@ -140,10 +147,10 @@ export function folioTechoPlantel(
       : PAGO_INTERNO_FOLIO_CUOTA_WINSTON_TECHO
   }
   if (plantel === 'educativo') return PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO
-  // Winston general (talón actual 2671+): no invadir el talón anterior (26550+).
-  // Antes el techo era Educativo (2849) y, al agotarse, el siguiente folio
-  // reiniciaba en 2671 → folios duplicados.
-  return PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR
+  // Winston general (talón actual 2671+): no invadir legacy combo/otros (~6000+)
+  // ni el talón anterior (26550+). Techo 26550 metía folios 7xxx en el máximo
+  // y el “siguiente” saltaba a 7322.
+  return PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN
 }
 
 /**

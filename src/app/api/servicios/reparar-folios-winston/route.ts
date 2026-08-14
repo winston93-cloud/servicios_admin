@@ -7,7 +7,7 @@ import {
 } from '@/lib/pagoInternoService'
 import {
   PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
-  PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR,
+  PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN,
   plantelPagoDesdeNivel,
 } from '@/lib/pagoInternoPlantel'
 
@@ -146,7 +146,7 @@ async function handle() {
     const folio = Number(p.pago_folio)
     const enSerie =
       folio >= PAGO_INTERNO_FOLIO_WINSTON_INICIAL &&
-      folio < PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR
+      folio < PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN
     if (!enSerie) continue
     const fecha = String(p.pago_fecha ?? '')
     const pagoId = Number(p.pago_id)

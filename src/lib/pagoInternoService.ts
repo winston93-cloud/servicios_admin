@@ -12,6 +12,7 @@ import {
   PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL,
   PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO,
   PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
+  PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN,
   PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR,
 } from './pagoInternoPlantel'
 
@@ -31,6 +32,7 @@ export {
   PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO,
   PAGO_INTERNO_FOLIO_INICIAL,
   PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
+  PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN,
   PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR,
   type AccesoPagosInternosUsuario,
   type PlantelPagosInternos,
@@ -463,11 +465,11 @@ export async function listarPagosInternosPorPlanteles(
   const bloques: PagoInternoRegistro[] = []
   for (const plantel of unicos) {
     if (plantel === 'winston') {
-      // Talón actual (2671 … antes de 26550) + talón anterior (26550+)
+      // Talón actual (2671 … antes de legacy 6000) + talón anterior (26550+)
       bloques.push(
         ...(await listarPagosRangoFolio({
           folioMin: PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
-          folioMaxExclusivo: PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR,
+          folioMaxExclusivo: PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN,
           folioExacto,
           limite,
         })),
@@ -1236,7 +1238,7 @@ export async function repararFoliosWinstonTrasReinicio2671(): Promise<ResultadoR
     // Solo serie Winston actual / bug (no talón 26550+ ni cuota baja).
     const enSerieWinston =
       (folio >= PAGO_INTERNO_FOLIO_WINSTON_INICIAL &&
-        folio < PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR) ||
+        folio < PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN) ||
       folio === PAGO_INTERNO_FOLIO_WINSTON_INICIAL
     if (!enSerieWinston) continue
 
