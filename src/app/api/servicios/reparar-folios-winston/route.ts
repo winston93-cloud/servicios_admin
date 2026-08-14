@@ -220,15 +220,15 @@ async function handle() {
     folio += 1
   }
 
-  // Diagnóstico: máximo real del talón actual (excluye legacy ≥6000).
+  // Diagnóstico: máximos del talón actual (excluye legacy ≥4000).
   const { data: maxRows } = await db
     .from('pago_interno')
-    .select('pago_folio, concepto_id')
+    .select('pago_folio, concepto_id, alumno_id')
     .gte('pago_folio', PAGO_INTERNO_FOLIO_WINSTON_INICIAL)
     .lt('pago_folio', PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN)
     .not('concepto_id', 'in', `(${[...CONCEPTOS_CUOTA_PADRES].join(',')})`)
     .order('pago_folio', { ascending: false })
-    .limit(5)
+    .limit(8)
   const maxSerie = Number(maxRows?.[0]?.pago_folio) || null
 
   return NextResponse.json({
@@ -238,6 +238,11 @@ async function handle() {
     siguienteFolio: folio,
     maxSerieWinstonGeneral: maxSerie,
     siguienteSegunMax: maxSerie != null ? maxSerie + 1 : FOLIO_REPARACION_WINSTON_INICIO,
+    topFolios: (maxRows ?? []).map((r) => ({
+      folio: Number(r.pago_folio),
+      concepto_id: Number(r.concepto_id),
+      alumno_id: Number(r.alumno_id),
+    })),
     revisados: aReparar.length,
     ancla: {
       pago_id: anclaId,
