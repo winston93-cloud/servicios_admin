@@ -70,14 +70,11 @@ export function divisoresBloquesPrimaria(grado: number): {
 /**
  * Promedio de un bloque en un trimestre.
  *
- * El PDF usa suma / divisor fijo (materias esperadas del grado), e incluye 0
- * como placeholder para penalizar materias vacías. Si la tabla trae MÁS
- * materias que ese divisor (p. ej. 2° con 2 filas de Ética y divisor 1),
- * dividir solo entre el divisor infla el resultado por encima de 10
- * (caso real en renovación: ES 13.6).
- *
- * Divisor efectivo = max(oficial, materias presentes) → nunca > 10, y
- * sigue penalizando faltantes cuando hay menos notas que las esperadas.
+ * El PDF usa suma / divisor fijo (materias esperadas del grado). Los 0 en
+ * ids de materia de otro grado son huecos de catálogo, no faltantes: se
+ * ignoran (igual que EN). Si hay más materias con nota que el divisor
+ * (p. ej. 2° con 2 Ética y divisor 1), se divide entre las presentes;
+ * si hay menos, se sigue penalizando con el divisor oficial.
  */
 export function promedioBloqueTrimestrePrimaria(
   notas: number[],
@@ -100,8 +97,8 @@ export function promedioBloqueTrimestrePrimaria(
  * ES (`prim_*`): promedio de todos los bloques con calificación
  * (Lenguajes, Saberes, Humano, Ética, Extracurriculares); cada bloque =
  * media de sus 3 trimestres. Habilidades quedan fuera.
- * Por trimestre: suma / max(divisor del grado, materias presentes) para no
- * inflar por encima de 10 cuando hay más filas que las del PDF.
+ * Por trimestre: solo notas > 0; suma / max(divisor del grado, materias con
+ * calificación). Así no infla por encima de 10 ni promedia huecos en 0.
  *
  * EN (`ing_cal` por alu_ref): AVERAGE FINAL = media de 8 materias académicas
  * (mat_id 2–9), sin Mindfulness/Faith/skills.
@@ -171,8 +168,10 @@ export async function cargarPromediosPrimariaMysql(
         const trim = Number(row.trimestre)
         if (!TRIMESTRES.includes(trim as 1 | 2 | 3)) continue
         const nota = parseNota(row.calificacion)
-        // Incluir 0 (placeholder); excluir null/vacío.
-        if (nota == null) continue
+        // 0 = hueco de catálogo (materias de otro grado), no calificación.
+        // Incluirlos inflaba la suma (ES 13.6) o hundía el promedio al
+        // dividir entre filas vacías. Igual que EN: solo notas > 0.
+        if (nota == null || nota <= 0) continue
         if (!b.has(id)) b.set(id, new Map())
         const porTrim = b.get(id)!
         if (!porTrim.has(trim)) porTrim.set(trim, new Map())
