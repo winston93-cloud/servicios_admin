@@ -179,20 +179,52 @@ export default function PagosInternosModulo() {
     cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
   }, [alumnoSeleccionado, cicloSeleccionado, cargarDatosAlumno])
 
-  // Una sola vez por carga del módulo: corrige el reinicio erróneo 2671 → serie desde 2848.
+  // Una sola vez por carga: revalida consecutivo Winston desde 2848 (API admin).
   useEffect(() => {
     let cancelado = false
     void (async () => {
-      const res = await repararFoliosWinstonTrasReinicio2671()
-      if (cancelado) return
-      if (!res.ok) {
-        setError(res.mensaje)
-        return
-      }
-      if (res.aplicada) {
-        setMensaje(res.mensaje)
+      try {
+        const r = await fetch('/api/servicios/reparar-folios-winston', {
+          method: 'POST',
+          cache: 'no-store',
+        })
+        const res = (await r.json()) as {
+          ok?: boolean
+          aplicada?: boolean
+          mensaje?: string
+        }
+        if (cancelado) return
+        if (!r.ok || res.ok === false) {
+          // Fallback cliente si la API falla
+          const local = await repararFoliosWinstonTrasReinicio2671()
+          if (cancelado) return
+          if (!local.ok) {
+            setError(local.mensaje)
+            return
+          }
+          setMensaje(local.mensaje)
+          if (local.aplicada && alumnoSeleccionado) {
+            await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
+          }
+          await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
+          return
+        }
+        setMensaje(res.mensaje ?? 'Folios revisados.')
+        if (res.aplicada && alumnoSeleccionado) {
+          await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
+        }
         await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
-        if (alumnoSeleccionado) {
+      } catch (e) {
+        if (cancelado) return
+        const local = await repararFoliosWinstonTrasReinicio2671()
+        if (cancelado) return
+        if (!local.ok) {
+          setError(local.mensaje)
+          return
+        }
+        setMensaje(local.mensaje)
+        await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
+        if (local.aplicada && alumnoSeleccionado) {
           await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
         }
       }
@@ -200,7 +232,6 @@ export default function PagosInternosModulo() {
     return () => {
       cancelado = true
     }
-    // Reparación puntual al montar.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- montaje único
   }, [])
 
