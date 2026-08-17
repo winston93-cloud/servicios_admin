@@ -176,8 +176,8 @@ export default function PagosInternosModulo() {
       setCuotaPadresPagada(false)
       return
     }
-    cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
-  }, [alumnoSeleccionado, cicloSeleccionado, cargarDatosAlumno])
+    cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloPago)
+  }, [alumnoSeleccionado, cicloPago, cargarDatosAlumno])
 
   // Una sola vez por carga: revalida consecutivo Winston desde 2848 (API admin).
   useEffect(() => {
@@ -204,14 +204,14 @@ export default function PagosInternosModulo() {
           }
           setMensaje(local.mensaje)
           if (local.aplicada && alumnoSeleccionado) {
-            await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
+            await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloPago)
           }
           await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
           return
         }
         setMensaje(res.mensaje ?? 'Folios revisados.')
         if (res.aplicada && alumnoSeleccionado) {
-          await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
+          await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloPago)
         }
         await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
       } catch (e) {
@@ -225,7 +225,7 @@ export default function PagosInternosModulo() {
         setMensaje(local.mensaje)
         await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
         if (local.aplicada && alumnoSeleccionado) {
-          await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
+          await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloPago)
         }
       }
     })()
@@ -245,10 +245,8 @@ export default function PagosInternosModulo() {
     ): Promise<DatosValePagoInterno | null> => {
       if (!alumnoSeleccionado) return null
       const alumno =
-        (await obtenerAlumnoPorRef(
-          alumnoSeleccionado.alumno_ref,
-          cicloSeleccionado
-        )) ?? (await obtenerAlumnoPorRef(alumnoSeleccionado.alumno_ref))
+        (await obtenerAlumnoPorRef(alumnoSeleccionado.alumno_ref, ciclo)) ??
+        (await obtenerAlumnoPorRef(alumnoSeleccionado.alumno_ref))
       if (!alumno) return null
 
       const concepto =
@@ -273,7 +271,7 @@ export default function PagosInternosModulo() {
       setValeImpresion(datos)
       return datos
     },
-    [alumnoSeleccionado, cicloSeleccionado, conceptosOrdenados, opcionesCatalogo]
+    [alumnoSeleccionado, conceptosOrdenados, opcionesCatalogo]
   )
 
   const onReimprimirPago = useCallback(
@@ -324,7 +322,7 @@ export default function PagosInternosModulo() {
         setMensaje(res.mensaje)
         setPagoCancelar(null)
         if (alumnoSeleccionado) {
-          await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
+          await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloPago)
         }
         await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
       } catch (e) {
@@ -336,7 +334,7 @@ export default function PagosInternosModulo() {
     [
       pagoCancelar,
       alumnoSeleccionado,
-      cicloSeleccionado,
+      cicloPago,
       cargarDatosAlumno,
       refrescarFolio,
       plantelSerieActual,
@@ -474,7 +472,7 @@ export default function PagosInternosModulo() {
         )
         await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
         if (alumnoSeleccionado) {
-          await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
+          await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloPago)
         }
         return
       }
@@ -488,7 +486,7 @@ export default function PagosInternosModulo() {
       )
       await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
       if (alumnoSeleccionado) {
-        await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
+        await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloPago)
       }
 
       const [valeCuota, valeManuales] = await Promise.all([
@@ -540,7 +538,7 @@ export default function PagosInternosModulo() {
     )
     await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
     if (alumnoSeleccionado) {
-      await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
+      await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloPago)
     }
     const vale = await prepararValeImpresion(
       conceptoId,
@@ -565,10 +563,8 @@ export default function PagosInternosModulo() {
       return
     }
     const alumno =
-      (await obtenerAlumnoPorRef(
-        alumnoSeleccionado!.alumno_ref,
-        cicloSeleccionado
-      )) ?? (await obtenerAlumnoPorRef(alumnoSeleccionado!.alumno_ref))
+      (await obtenerAlumnoPorRef(alumnoSeleccionado!.alumno_ref, cicloPago)) ??
+      (await obtenerAlumnoPorRef(alumnoSeleccionado!.alumno_ref))
     let monto = typeof importe === 'number' ? importe : 0
     if (alumno) {
       const esExterno = String(alumno.alumno_ref ?? '').trim() === ALUMNO_REF_EXTERNO
@@ -611,7 +607,7 @@ export default function PagosInternosModulo() {
     )
     await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
     if (alumnoSeleccionado) {
-      await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloSeleccionado)
+      await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloPago)
     }
     const vale = await prepararValeImpresion(
       conceptoCuota.concepto_id,
@@ -821,7 +817,10 @@ export default function PagosInternosModulo() {
             </section>
 
             <section className="pi-tarjeta pi-tarjeta--historial" aria-label="Pagos del alumno">
-              <h2 className="pi-tarjeta-titulo">Pagos registrados (ciclo de consulta)</h2>
+              <h2 className="pi-tarjeta-titulo">
+                Pagos registrados (
+                {etiquetaCicloEscolar(cicloPago, opcionesCatalogo) || 'ciclo del pago'})
+              </h2>
               {pagos.length === 0 ? (
                 <p className="pi-hint">Sin pagos internos en este ciclo.</p>
               ) : (

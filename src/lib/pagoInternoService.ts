@@ -450,6 +450,40 @@ function compararFoliosListadoPagosInternos(a: number, b: number): number {
   return b - a
 }
 
+/**
+ * Rangos que el listado debe pedir por plantel.
+ * Cuota Winston: solo 2140…2671. El talón general ya cubre 2671…4000; pedir
+ * cuota hasta 2849 + LIMIT devolvería folios altos y ocultaría 2140–2669.
+ */
+function rangosFolioListadoPorPlantel(
+  plantel: PlantelPagosInternos
+): { folioMin: number; folioMaxExclusivo?: number }[] {
+  if (plantel === 'winston') {
+    return [
+      {
+        folioMin: PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
+        folioMaxExclusivo: PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN,
+      },
+      {
+        folioMin: folioInicialPlantel('winston', 'cuota_padres'),
+        folioMaxExclusivo: PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
+      },
+      { folioMin: PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR },
+    ]
+  }
+  const techoCuotaEducativo = folioTechoPlantel('educativo', 'cuota_padres')
+  return [
+    {
+      folioMin: PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL,
+      folioMaxExclusivo: PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO,
+    },
+    {
+      folioMin: folioInicialPlantel('educativo', 'cuota_padres'),
+      ...(techoCuotaEducativo != null ? { folioMaxExclusivo: techoCuotaEducativo } : {}),
+    },
+  ]
+}
+
 /** Lista series nuevas (Winston y/o Educativo), folio mayor → menor por bloque de talón. */
 export async function listarPagosInternosPorPlanteles(
   planteles: PlantelPagosInternos[],
@@ -466,26 +500,10 @@ export async function listarPagosInternosPorPlanteles(
 
   const bloques: PagoInternoRegistro[] = []
   for (const plantel of unicos) {
-    if (plantel === 'winston') {
-      // Talón actual (2671 … antes de legacy 6000) + talón anterior (26550+)
+    for (const rango of rangosFolioListadoPorPlantel(plantel)) {
       bloques.push(
         ...(await listarPagosRangoFolio({
-          folioMin: PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
-          folioMaxExclusivo: PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN,
-          folioExacto,
-          limite,
-        })),
-        ...(await listarPagosRangoFolio({
-          folioMin: PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR,
-          folioExacto,
-          limite,
-        }))
-      )
-    } else {
-      bloques.push(
-        ...(await listarPagosRangoFolio({
-          folioMin: PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL,
-          folioMaxExclusivo: PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO,
+          ...rango,
           folioExacto,
           limite,
         }))
@@ -500,11 +518,12 @@ export async function listarPagosInternosPorPlanteles(
   )
   const enriquecidos = await enriquecerPagosListado(pagos)
   // Filtrar por plantel real (nivel) para no mezclar Winston/Educativo en el solape 2849–3479.
-  const filtrados = enriquecidos.filter((p) => {
+  // Sin slice global: cada rango ya trae su propio LIMIT. Recortar al final
+  // dejaba fuera cuota 1037–2139 / 2140–2669 si había 1000 folios más altos.
+  return enriquecidos.filter((p) => {
     if (p.plantel_serie == null) return unicos.includes('winston')
     return unicos.includes(p.plantel_serie)
   })
-  return filtrados.slice(0, limite)
 }
 
 /** @deprecated Usar listarPagosInternosPorPlanteles */
