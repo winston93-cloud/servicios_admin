@@ -49,7 +49,7 @@ function promedioLista(vals: number[], dec: number): number | null {
 }
 
 /** Divisores por bloque según grado (legacy `boletas_español` / boletaspdf). */
-function divisoresBloques(grado: number): {
+export function divisoresBloquesPrimaria(grado: number): {
   lenguajes: number
   saberes: number
   humano: number
@@ -67,16 +67,25 @@ function divisoresBloques(grado: number): {
   }
 }
 
-function promedioBloqueTrimestre(
+/**
+ * Promedio de un bloque en un trimestre.
+ *
+ * El PDF usa suma / divisor fijo (materias esperadas del grado). Los 0 en
+ * ids de materia de otro grado son huecos de catálogo, no faltantes: se
+ * ignoran (igual que EN). Si hay más materias con nota que el divisor
+ * (p. ej. 2° con 2 Ética y divisor 1), se divide entre las presentes;
+ * si hay menos, se sigue penalizando con el divisor oficial.
+ */
+export function promedioBloqueTrimestrePrimaria(
   notas: number[],
   divisor: number,
   dec: number
 ): number | null {
-  if (divisor <= 0) return null
-  // Como el PDF (`bcdiv`): suma todas las filas / divisor fijo, truncado.
   if (notas.length === 0) return null
+  const d = Math.max(divisor, notas.length)
+  if (d <= 0) return null
   const suma = notas.reduce((a, b) => a + b, 0)
-  return truncar(suma / divisor, dec)
+  return truncar(suma / d, dec)
 }
 
 /**
@@ -93,6 +102,8 @@ function promedioBloqueTrimestre(
  * ES (`prim_*`): promedio de todos los bloques con calificación
  * (Lenguajes, Saberes, Humano, Ética, Extracurriculares); cada bloque =
  * media de sus 3 trimestres. Habilidades quedan fuera.
+ * Por trimestre: solo notas > 0; suma / max(divisor del grado, materias con
+ * calificación). Así no infla por encima de 10 ni promedia huecos en 0.
  *
  * EN (`ing_cal` por alu_ref): AVERAGE FINAL = media de 8 materias académicas
  * (mat_id 2–9), sin Mindfulness/Faith/skills.
@@ -153,7 +164,8 @@ export async function cargarPromediosPrimariaMysql(
       cargarTabla('prim_extra'),
     ])
 
-    type Bucket = Map<number, Map<number, number[]>> // alumno → trim → notas
+    // alumno → trim → materiaId → nota (una fila por materia; evita duplicados)
+    type Bucket = Map<number, Map<number, Map<number, number>>>
     const toBucket = (rows: FilaPrim[]): Bucket => {
       const b: Bucket = new Map()
       for (const row of rows) {
@@ -161,12 +173,18 @@ export async function cargarPromediosPrimariaMysql(
         const trim = Number(row.trimestre)
         if (!TRIMESTRES.includes(trim as 1 | 2 | 3)) continue
         const nota = parseNota(row.calificacion)
-        // Incluir 0 (placeholder); excluir null/vacío.
-        if (nota == null) continue
+        // 0 = hueco de catálogo (materias de otro grado), no calificación.
+        // Incluirlos inflaba la suma (ES 13.6) o hundía el promedio al
+        // dividir entre filas vacías. Igual que EN: solo notas > 0.
+        if (nota == null || nota <= 0) continue
         if (!b.has(id)) b.set(id, new Map())
         const porTrim = b.get(id)!
-        if (!porTrim.has(trim)) porTrim.set(trim, [])
-        porTrim.get(trim)!.push(nota)
+        if (!porTrim.has(trim)) porTrim.set(trim, new Map())
+        const porMateria = porTrim.get(trim)!
+        const mat = Number(row.id_materia)
+        const matKey =
+          Number.isInteger(mat) && mat > 0 ? mat : -(porMateria.size + 1)
+        porMateria.set(matKey, nota)
       }
       return b
     }
@@ -186,15 +204,16 @@ export async function cargarPromediosPrimariaMysql(
       if (!porTrim) return null
       const trimAvgs: number[] = []
       for (const t of TRIMESTRES) {
-        const notas = porTrim.get(t) ?? []
-        const p = promedioBloqueTrimestre(notas, divisor, 1)
+        const porMateria = porTrim.get(t)
+        const notas = porMateria ? [...porMateria.values()] : []
+        const p = promedioBloqueTrimestrePrimaria(notas, divisor, 1)
         if (p != null) trimAvgs.push(p)
       }
       return promedioLista(trimAvgs, 1)
     }
 
     for (const [alumnoId, meta] of porId) {
-      const div = divisoresBloques(meta.grado)
+      const div = divisoresBloquesPrimaria(meta.grado)
       const bloques: number[] = []
       const len = promedioBloqueAnual(buckLen, alumnoId, div.lenguajes)
       const sab = promedioBloqueAnual(buckSab, alumnoId, div.saberes)
