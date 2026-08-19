@@ -24,8 +24,10 @@ import {
   resumenProgresoGuardado,
 } from '@/lib/correoMasivoProgresoStorage'
 import {
+  debeUsarStorageAdjuntos,
   formatearPesoBytes,
   pesoTotalArchivos,
+  subirAdjuntosCorreoMasivo,
   validarPesoAdjuntosCorreoMasivo,
 } from '@/lib/correoMasivoAdjuntos'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
@@ -329,6 +331,39 @@ export default function CorreoMasivoModulo() {
       const totalLotes = Math.ceil(conCorreo.length / tamanoLoteEnvio) || 0
       const esIndividual = modoEnvio === 'individual'
       const conAdjuntos = archivos.length > 0
+      const usarStorage = conAdjuntos && debeUsarStorageAdjuntos(archivos)
+      let adjuntosToken: string | null = null
+
+      if (usarStorage) {
+        setProgresoEnvio(
+          `Subiendo ${archivos.length} archivo(s) (${formatearPesoBytes(pesoAdjuntos)}) a almacenamiento temporal…`
+        )
+        try {
+          adjuntosToken = await subirAdjuntosCorreoMasivo(archivos, (msg) => setProgresoEnvio(msg))
+        } catch (err) {
+          const detalle =
+            err instanceof Error
+              ? err.message
+              : 'No se pudieron subir los adjuntos al almacenamiento temporal.'
+          setError(detalle)
+          for (const d of conCorreo) {
+            resultadosMap.set(d.alumno_id, {
+              ...d,
+              estado: 'error',
+              mensaje_estado: detalle,
+            })
+          }
+          const ordenadosFallo = [...resultadosMap.values()].sort((a, b) => {
+            if (a.nivel !== b.nivel) return a.nivel - b.nivel
+            if (a.grado !== b.grado) return a.grado - b.grado
+            if (a.grupo !== b.grupo) return a.grupo - b.grupo
+            return a.nombre_completo.localeCompare(b.nombre_completo, 'es')
+          })
+          setDestinatarios(ordenadosFallo)
+          persistirSesion(ordenadosFallo, 'Error al subir adjuntos')
+          return { totalEnviados: 0, totalErrores: conCorreo.length, sinCorreo: 0, ordenados: ordenadosFallo }
+        }
+      }
 
       persistirSesion(destinatarios, 'Iniciando envío…')
 
@@ -338,10 +373,14 @@ export default function CorreoMasivoModulo() {
         setProgresoEnvio(
           esIndividual
             ? conAdjuntos
-              ? `Subiendo adjuntos (${formatearPesoBytes(pesoAdjuntos)}) y enviando…`
+              ? usarStorage
+                ? `Enviando con ${archivos.length} adjunto(s) (${formatearPesoBytes(pesoAdjuntos)})…`
+                : `Subiendo adjuntos (${formatearPesoBytes(pesoAdjuntos)}) y enviando…`
               : 'Enviando correo individual…'
             : conAdjuntos
-              ? `Subiendo ${archivos.length} archivo(s) (${formatearPesoBytes(pesoAdjuntos)}) y enviando a ${conCorreo.length} familias… No cierre la pestaña (2–4 min).`
+              ? usarStorage
+                ? `Enviando a ${conCorreo.length} familias con ${archivos.length} adjunto(s) (${formatearPesoBytes(pesoAdjuntos)})… No cierre la pestaña (2–4 min).`
+                : `Subiendo ${archivos.length} archivo(s) (${formatearPesoBytes(pesoAdjuntos)}) y enviando a ${conCorreo.length} familias… No cierre la pestaña (2–4 min).`
               : `Enviando lote ${numLote} de ${totalLotes} (${Math.min(i + lote.length, conCorreo.length)}/${conCorreo.length} alumnos). Gmail limita velocidad; espere…`
         )
 
@@ -366,7 +405,11 @@ export default function CorreoMasivoModulo() {
                 }
           )
         )
-        for (const f of archivos) fd.append('archivos', f)
+        if (adjuntosToken) {
+          fd.set('adjuntosToken', adjuntosToken)
+        } else {
+          for (const f of archivos) fd.append('archivos', f)
+        }
 
         let json: {
           error?: string
@@ -892,8 +935,14 @@ export default function CorreoMasivoModulo() {
             {archivos.length > 0 && (
               <p className="cm-hint cm-hint--peso">
                 Total adjuntos: <strong>{formatearPesoBytes(pesoAdjuntos)}</strong>
-                {archivos.length > 0 && (
-                  <> · se suben una sola vez (máx. ~4 MB por envío en Vercel)</>
+                {debeUsarStorageAdjuntos(archivos) ? (
+                  <>
+                    {' '}
+                    · se suben uno por uno a almacenamiento temporal (hasta ~24 MB total, ~3.5 MB
+                    por archivo)
+                  </>
+                ) : (
+                  <> · envío directo (1 archivo ligero)</>
                 )}
               </p>
             )}
