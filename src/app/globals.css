@@ -13654,6 +13654,17 @@ a.pc-accion {
   background: #fffbeb;
 }
 
+.cm-hint--peso {
+  margin-top: 8px;
+  font-size: 0.82rem;
+}
+
+.cm-archivo-peso {
+  font-style: normal;
+  color: #64748b;
+  font-weight: 500;
+}
+
 .cm-alerta {
   margin: 0 0 20px;
   padding: 12px 16px;

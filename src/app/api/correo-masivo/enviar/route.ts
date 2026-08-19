@@ -109,9 +109,11 @@ export async function POST(request: Request) {
 
   const archivos = form.getAll('archivos').filter((f): f is File => f instanceof File)
   const attachments: { filename: string; content: Buffer; contentType?: string }[] = []
+  let pesoAdjuntosBytes = 0
 
   for (const file of archivos) {
     if (!file.size) continue
+    pesoAdjuntosBytes += file.size
     const buf = Buffer.from(await file.arrayBuffer())
     attachments.push({
       filename: file.name,
@@ -165,6 +167,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: errores === 0,
     adjuntosRecibidos: attachments.length,
+    pesoAdjuntosBytes,
     resumen: {
       total: resultados.length,
       enviados,
