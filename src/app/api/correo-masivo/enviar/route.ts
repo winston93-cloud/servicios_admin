@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server'
-import { enviarCorreoMasivo, htmlCuerpoCorreoMasivo } from '@/lib/emailServicios'
+import {
+  descargarAdjuntosTemporales,
+  eliminarAdjuntosTemporales,
+  esTokenAdjuntosValido,
+} from '@/lib/correoMasivoAdjuntosStorage'
+import { enviarCorreoMasivo, htmlCuerpoCorreoMasivo, type AdjuntoCorreo } from '@/lib/emailServicios'
 import {
   listarDestinatariosCorreoMasivo,
   obtenerDestinatariosPorAlumnoIds,
@@ -107,19 +112,41 @@ export async function POST(request: Request) {
     }
   }
 
-  const archivos = form.getAll('archivos').filter((f): f is File => f instanceof File)
-  const attachments: { filename: string; content: Buffer; contentType?: string }[] = []
+  const adjuntosToken = String(form.get('adjuntosToken') ?? '').trim()
+  let attachments: AdjuntoCorreo[] = []
   let pesoAdjuntosBytes = 0
+  let adjuntosDesdeStorage = false
 
-  for (const file of archivos) {
-    if (!file.size) continue
-    pesoAdjuntosBytes += file.size
-    const buf = Buffer.from(await file.arrayBuffer())
-    attachments.push({
-      filename: file.name,
-      content: buf,
-      contentType: file.type || undefined,
-    })
+  if (adjuntosToken) {
+    if (!esTokenAdjuntosValido(adjuntosToken)) {
+      return NextResponse.json({ error: 'Token de adjuntos inválido' }, { status: 400 })
+    }
+    try {
+      attachments = await descargarAdjuntosTemporales(adjuntosToken)
+      adjuntosDesdeStorage = true
+      pesoAdjuntosBytes = attachments.reduce((s, a) => s + a.content.length, 0)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'No se pudieron leer los adjuntos'
+      return NextResponse.json({ error: msg }, { status: 500 })
+    }
+    if (!attachments.length) {
+      return NextResponse.json(
+        { error: 'No hay adjuntos en almacenamiento temporal. Vuelva a subirlos.' },
+        { status: 400 }
+      )
+    }
+  } else {
+    const archivos = form.getAll('archivos').filter((f): f is File => f instanceof File)
+    for (const file of archivos) {
+      if (!file.size) continue
+      pesoAdjuntosBytes += file.size
+      const buf = Buffer.from(await file.arrayBuffer())
+      attachments.push({
+        filename: file.name,
+        content: buf,
+        contentType: file.type || undefined,
+      })
+    }
   }
 
   const resultados: DestinatarioCorreoMasivo[] = []
@@ -164,10 +191,19 @@ export async function POST(request: Request) {
     })
   }
 
+  if (adjuntosDesdeStorage && adjuntosToken) {
+    try {
+      await eliminarAdjuntosTemporales(adjuntosToken)
+    } catch (e) {
+      console.error('correo-masivo/enviar cleanup:', e)
+    }
+  }
+
   return NextResponse.json({
     ok: errores === 0,
     adjuntosRecibidos: attachments.length,
     pesoAdjuntosBytes,
+    adjuntosDesdeStorage,
     resumen: {
       total: resultados.length,
       enviados,
