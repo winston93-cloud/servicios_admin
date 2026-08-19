@@ -938,8 +938,8 @@ export default function CorreoMasivoModulo() {
                 {debeUsarStorageAdjuntos(archivos) ? (
                   <>
                     {' '}
-                    · se suben uno por uno a almacenamiento temporal (hasta ~24 MB total, ~3.5 MB
-                    por archivo)
+                    · archivos &gt; 3.5 MB se suben directo a InsForge; el resto vía servidor (hasta
+                    ~24 MB total)
                   </>
                 ) : (
                   <> · envío directo (1 archivo ligero)</>
