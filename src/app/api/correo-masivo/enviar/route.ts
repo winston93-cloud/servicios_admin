@@ -164,6 +164,7 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: errores === 0,
+    adjuntosRecibidos: attachments.length,
     resumen: {
       total: resultados.length,
       enviados,
