@@ -51,6 +51,8 @@ export default function CorreoMasivoModulo() {
   const [sesionRestaurada, setSesionRestaurada] = useState(false)
   const [inicializado, setInicializado] = useState(false)
   const [nombresArchivosRecordados, setNombresArchivosRecordados] = useState<string[]>([])
+  /** Nombres de adjuntos que deben volver a seleccionarse tras recarga/reintento. */
+  const [adjuntosObligatorios, setAdjuntosObligatorios] = useState<string[]>([])
 
   /** Lotes pequeños + pausa para no saturar Gmail (454 Too many login attempts). */
   const TAMANO_LOTE_ENVIO = 12
@@ -85,7 +87,9 @@ export default function CorreoMasivoModulo() {
       setDestinatarios(guardado.destinatarios)
       setFaseEnvio('resultado')
       setMensajeOk(guardado.resumenTexto)
-      setNombresArchivosRecordados(guardado.nombresArchivos ?? [])
+      const nombresGuardados = guardado.nombresArchivos ?? []
+      setNombresArchivosRecordados(nombresGuardados)
+      setAdjuntosObligatorios(nombresGuardados)
       setSesionRestaurada(true)
       setModoEnvio(guardado.destinatarios.length <= 1 ? 'individual' : 'masivo')
     }
@@ -145,9 +149,19 @@ export default function CorreoMasivoModulo() {
     limpiarProgresoCorreoMasivo()
     setSesionRestaurada(false)
     setNombresArchivosRecordados([])
+    setAdjuntosObligatorios([])
     setMensajeOk(null)
     setFaseEnvio('preview')
   }, [])
+
+  const validarAdjuntosAntesEnvio = useCallback((): boolean => {
+    const faltan = adjuntosObligatorios.length > 0 && archivos.length === 0
+    if (!faltan) return true
+    setError(
+      `Debe volver a seleccionar los archivos adjuntos (${adjuntosObligatorios.join(', ')}). Tras un error de red o recargar la página, el navegador no conserva los archivos y el reintento los envía vacío.`
+    )
+    return false
+  }, [adjuntosObligatorios, archivos.length])
 
   const tocarFiltro = useCallback(() => {
     if (sesionRestaurada) descartarProgresoGuardado()
@@ -268,7 +282,11 @@ export default function CorreoMasivoModulo() {
 
   const onArchivos = (e: React.ChangeEvent<HTMLInputElement>) => {
     const lista = e.target.files ? [...e.target.files] : []
-    setArchivos((prev) => [...prev, ...lista])
+    setArchivos((prev) => {
+      const merged = [...prev, ...lista]
+      if (merged.length > 0) setAdjuntosObligatorios([])
+      return merged
+    })
     e.target.value = ''
   }
 
@@ -334,24 +352,65 @@ export default function CorreoMasivoModulo() {
         )
         for (const f of archivos) fd.append('archivos', f)
 
-        const res = await fetch('/api/correo-masivo/enviar', { method: 'POST', body: fd })
-        const json = await res.json()
-        if (!res.ok) {
-          setError(json.error ?? `Error en lote ${numLote}`)
+        let json: {
+          error?: string
+          resumen?: { enviados?: number; errores?: number }
+          resultados?: DestinatarioCorreoMasivo[]
+          adjuntosRecibidos?: number
+        }
+        try {
+          const res = await fetch('/api/correo-masivo/enviar', { method: 'POST', body: fd })
+          json = await res.json()
+          if (!res.ok) {
+            const detalle = json.error ?? `Error en lote ${numLote}`
+            setError(detalle)
+            for (const d of lote) {
+              resultadosMap.set(d.alumno_id, {
+                ...d,
+                estado: 'error',
+                mensaje_estado: detalle,
+              })
+            }
+            totalErrores += lote.length
+          } else {
+            if (
+              archivos.length > 0 &&
+              typeof json.adjuntosRecibidos === 'number' &&
+              json.adjuntosRecibidos === 0
+            ) {
+              const detalle =
+                'El servidor no recibió los adjuntos (posible corte de red al subir archivos). Vuelva a seleccionarlos e intente de nuevo.'
+              setError(detalle)
+              for (const d of lote) {
+                resultadosMap.set(d.alumno_id, {
+                  ...d,
+                  estado: 'error',
+                  mensaje_estado: detalle,
+                })
+              }
+              totalErrores += lote.length
+            } else {
+              totalEnviados += json.resumen?.enviados ?? 0
+              totalErrores += json.resumen?.errores ?? 0
+              for (const r of (json.resultados ?? []) as DestinatarioCorreoMasivo[]) {
+                resultadosMap.set(r.alumno_id, r)
+              }
+            }
+          }
+        } catch (err) {
+          const detalle =
+            err instanceof Error && /failed to fetch|network|abort/i.test(err.message)
+              ? `Error de red en lote ${numLote}. Si hay PDFs pesados, espere conexión estable o envíe por grupos más pequeños.`
+              : `Error de red en lote ${numLote}.`
+          setError(detalle)
           for (const d of lote) {
             resultadosMap.set(d.alumno_id, {
               ...d,
               estado: 'error',
-              mensaje_estado: json.error ?? 'Error de envío',
+              mensaje_estado: detalle,
             })
           }
           totalErrores += lote.length
-        } else {
-          totalEnviados += json.resumen?.enviados ?? 0
-          totalErrores += json.resumen?.errores ?? 0
-          for (const r of (json.resultados ?? []) as DestinatarioCorreoMasivo[]) {
-            resultadosMap.set(r.alumno_id, r)
-          }
         }
 
         const ordenadosParcial = [...resultadosMap.values()].sort((a, b) => {
@@ -436,6 +495,10 @@ export default function CorreoMasivoModulo() {
         ? `¿Enviar correo a ${destinatarios[0]?.nombre_completo ?? 'este alumno'} (${destinatarios[0]?.emails.join(', ')})?`
         : `¿Enviar correo a ${resumen.conCorreo} alumno(s) con correo registrado?`
     if (!window.confirm(confirmMsg)) return
+    if (!validarAdjuntosAntesEnvio()) return
+    if (archivos.length > 0) {
+      setAdjuntosObligatorios(archivos.map((f) => f.name))
+    }
 
     setEnviando(true)
     setProgresoEnvio(null)
@@ -452,8 +515,11 @@ export default function CorreoMasivoModulo() {
           : `Proceso terminado: ${totalEnviados} enviado(s), ${totalErrores} error(es), ${sinCorreo} sin correo.`
       setMensajeOk(texto)
       persistirSesion(ordenados, texto)
+      if (totalErrores === 0 && archivos.length > 0) setAdjuntosObligatorios([])
     } catch {
-      setError('Error de red al enviar correos')
+      setError(
+        'Error inesperado al enviar correos. Revise su conexión; si había adjuntos, vuelva a seleccionarlos antes de reintentar.'
+      )
     } finally {
       setEnviando(false)
       setProgresoEnvio(null)
@@ -466,6 +532,7 @@ export default function CorreoMasivoModulo() {
       setError('Captura asunto y mensaje.')
       return
     }
+    if (!validarAdjuntosAntesEnvio()) return
     if (
       !window.confirm(
         modoEnvio === 'individual'
@@ -498,8 +565,11 @@ export default function CorreoMasivoModulo() {
       setMensajeOk(texto)
       persistirSesion(ordenados, texto)
       setSesionRestaurada(false)
+      if (totalErrores === 0 && archivos.length > 0) setAdjuntosObligatorios([])
     } catch {
-      setError('Error de red al reenviar')
+      setError(
+        'Error inesperado al reenviar. Si había adjuntos, vuelva a seleccionarlos antes de continuar el envío.'
+      )
     } finally {
       setEnviando(false)
       setProgresoEnvio(null)
@@ -775,14 +845,16 @@ export default function CorreoMasivoModulo() {
               </ul>
             )}
             {archivos.length === 0 && (
-              <p className="cm-hint">
+              <p
+                className={`cm-hint${adjuntosObligatorios.length > 0 ? ' cm-hint--warn' : ''}`}
+              >
                 Puede adjuntar uno o más archivos (PDF, imágenes, etc.).
-                {sesionRestaurada && nombresArchivosRecordados.length > 0 && (
+                {adjuntosObligatorios.length > 0 && (
                   <>
                     {' '}
                     <strong>
-                      Vuelva a seleccionar los adjuntos ({nombresArchivosRecordados.join(', ')})
-                      antes de continuar el envío.
+                      Obligatorio volver a seleccionar: {adjuntosObligatorios.join(', ')}. Sin
+                      esto, el reintento envía el correo sin archivos.
                     </strong>
                   </>
                 )}
