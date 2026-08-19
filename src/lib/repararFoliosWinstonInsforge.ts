@@ -266,7 +266,7 @@ export type ResultadoReparacionWinstonInsforge = {
  */
 export async function cancelarCapturasDuplicadasWinston(
   db: AppDatabaseClient,
-  opts?: { dryRun?: boolean; alumnoNombre?: string }
+  opts?: { dryRun?: boolean; alumnoNombre?: string; fechaMin?: string }
 ): Promise<{ cancelados: number; detalle: string[] }> {
   const dryRun = opts?.dryRun ?? false
   let alumnoIds: number[] | null = null
@@ -275,17 +275,26 @@ export async function cancelarCapturasDuplicadasWinston(
     if (alumnoIds.length === 0) return { cancelados: 0, detalle: [] }
   }
 
+  const fechaMin = opts?.fechaMin ?? '2026-08-12'
   const { data, error } = await db
     .from('pago_interno')
     .select(SELECT_PAGO)
     .gte('pago_folio', FOLIO_REPARACION_WINSTON_INICIO)
     .lt('pago_folio', PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN)
+    .gte('pago_fecha', fechaMin)
     .eq('pago_cancelado', 0)
     .order('pago_id', { ascending: true })
     .limit(5000)
   if (error) throw new Error(error.message)
 
   let rows = ((data ?? []) as PagoInternoRow[]).filter((p) => !esCuota(p.concepto_id))
+  const alumnoIdsAll = [...new Set(rows.map((p) => Number(p.alumno_id)).filter(Boolean))]
+  const niveles = await nivelesPorAlumno(db, alumnoIdsAll)
+  rows = rows.filter((p) => {
+    const nivel = p.alumno_id != null ? niveles.get(Number(p.alumno_id)) : null
+    if (nivel == null) return true
+    return plantelPagoDesdeNivel(nivel) === 'winston'
+  })
   if (alumnoIds) {
     rows = rows.filter((p) => alumnoIds!.includes(Number(p.alumno_id)))
   }
@@ -331,15 +340,6 @@ export async function repararFoliosWinstonGeneralInsforge(
   const dryRun = opts?.dryRun ?? false
   let canceladosDuplicados = 0
   const cancelDetalle: string[] = []
-
-  if (opts?.cancelarDuplicados !== false) {
-    const dup = await cancelarCapturasDuplicadasWinston(db, {
-      dryRun,
-      alumnoNombre: 'RAHI RAMIREZ RIVERA',
-    })
-    canceladosDuplicados += dup.cancelados
-    cancelDetalle.push(...dup.detalle)
-  }
 
   const { data: alumnosApp, error: errAlum } = await db
     .from('alumno')
@@ -407,6 +407,15 @@ export async function repararFoliosWinstonGeneralInsforge(
   const anclaId = Number(anclaRow.pago_id)
   if (!anclaFecha) throw new Error(`MANUALES pago_id=${anclaId} sin fecha`)
 
+  if (opts?.cancelarDuplicados !== false) {
+    const dup = await cancelarCapturasDuplicadasWinston(db, {
+      dryRun,
+      fechaMin: anclaFecha,
+    })
+    canceladosDuplicados += dup.cancelados
+    cancelDetalle.push(...dup.detalle)
+  }
+
   const porFecha = await fetchPagosDesdeFecha(db, anclaFecha)
   const stuck2671 = await fetchStuck2671(db)
 
@@ -420,7 +429,8 @@ export async function repararFoliosWinstonGeneralInsforge(
     if (!enSerie) continue
     const fecha = String(p.pago_fecha ?? '')
     const pagoId = Number(p.pago_id)
-    if (fecha > anclaFecha || (fecha === anclaFecha && pagoId >= anclaId)) {
+    // Mismo día del ancla: incluir todos (p. ej. NOGUERA pago_id 20103 + ARVIZU 20106).
+    if (fecha >= anclaFecha) {
       porId.set(pagoId, p as PagoInternoRow)
     }
   }
@@ -429,19 +439,23 @@ export async function repararFoliosWinstonGeneralInsforge(
   const alumnoIds = [...new Set([...porId.values()].map((p) => Number(p.alumno_id)).filter(Boolean))]
   const nivelPorAlumno = await nivelesPorAlumno(db, alumnoIds)
 
-  const aReparar = [...porId.values()]
-    .filter((p) => {
-      if (Number(p.pago_id) === anclaId) return true
-      const nivel = p.alumno_id != null ? nivelPorAlumno.get(Number(p.alumno_id)) : null
-      if (nivel == null) return true
-      return plantelPagoDesdeNivel(nivel) === 'winston'
-    })
+  const winstonDesdeAncla = [...porId.values()].filter((p) => {
+    const nivel = p.alumno_id != null ? nivelPorAlumno.get(Number(p.alumno_id)) : null
+    if (nivel == null) return true
+    return plantelPagoDesdeNivel(nivel) === 'winston'
+  })
+
+  const resto = winstonDesdeAncla
+    .filter((p) => Number(p.pago_id) !== anclaId)
     .sort((a, b) => {
       const fa = String(a.pago_fecha ?? '')
       const fb = String(b.pago_fecha ?? '')
       if (fa !== fb) return fa < fb ? -1 : 1
       return Number(a.pago_id) - Number(b.pago_id)
     })
+
+  // ARVIZU MANUALES siempre ancla en 2848; el resto sigue en orden cronológico.
+  const aReparar = [anclaRow as PagoInternoRow, ...resto]
 
   const asignaciones: { pago_id: number; de: number; a: number; fecha: string | null }[] = []
   let folio = FOLIO_REPARACION_WINSTON_INICIO
