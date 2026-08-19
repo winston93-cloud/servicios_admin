@@ -3,7 +3,8 @@
  * - Beca Winston (alumno_beca: IMSS, Winston, etc.): se pierde después del día 10 del mes del concepto.
  * - Beca SEP (lista fija por alumno_ref, solo su ciclo de datos p.ej. 22):
  *   nunca se pierde dentro de ese ciclo; solo aplica recargo. No arrastra a 23+.
- * - Recargo: $75 por cada mes de atraso (a partir del día 11 del mes del concepto).
+ * - Recargo: $75 por cada mes de atraso (a partir del día 11 del mes del concepto;
+ *   cuota de inicio 00: límite ampliado al 24 de agosto, recargo desde el 25).
  *
  * El mes del concepto vive en un año calendario del ciclo (valor N → ago N+2003 … jul N+2004).
  * Sin ese año, en jul (fin de ciclo en el orden ago→jul) se cobraba “atraso” fantasma
@@ -12,6 +13,14 @@
 import { normalizarConceptoNo } from './pagoReferenciaColegiatura'
 
 export const RECARGO_PESOS_POR_MES = 75
+
+/** Colegiaturas mensuales (01…): sin recargo hasta el día 10 del mes del concepto. */
+export const DIA_LIMITE_SIN_RECARGO = 10
+
+/** Cuota de inicio de curso (00): sin recargo hasta el 24 de agosto del ciclo. */
+export const DIA_LIMITE_SIN_RECARGO_CUOTA_INICIO = 24
+
+export const CONCEPTO_CUOTA_INICIO = '00'
 
 /** Mes calendario del concepto (legacy concepto_mes). */
 export const CONCEPTO_MES: Record<string, number> = {
@@ -52,6 +61,14 @@ export function anioCalendarioConcepto(
 export function mesDeConcepto(conceptoNo: string): number | null {
   const c = normalizarConceptoNo(conceptoNo)
   return CONCEPTO_MES[c] ?? null
+}
+
+/** Último día del mes del concepto sin recargo (00 = 24 ago; resto = 10). */
+export function diaLimiteSinRecargo(conceptoNo: string): number {
+  const c = normalizarConceptoNo(conceptoNo)
+  return c === CONCEPTO_CUOTA_INICIO
+    ? DIA_LIMITE_SIN_RECARGO_CUOTA_INICIO
+    : DIA_LIMITE_SIN_RECARGO
 }
 
 /**
@@ -104,6 +121,8 @@ export function multiplicadorRecargoMeses(
   const mesConcepto = mesDeConcepto(conceptoNo)
   if (mesConcepto == null) return 0
 
+  const diaLimite = diaLimiteSinRecargo(conceptoNo)
+
   if (cicloValor != null && cicloValor > 0) {
     const anioC = anioCalendarioConcepto(conceptoNo, cicloValor)
     if (anioC == null) return 0
@@ -111,7 +130,7 @@ export function multiplicadorRecargoMeses(
     const iA = fecha.getFullYear() * 12 + (fecha.getMonth() + 1)
     if (iA < iC) return 0
     let multiplo = iA - iC
-    if (fecha.getDate() > 10) multiplo += 1
+    if (fecha.getDate() > diaLimite) multiplo += 1
     return Math.max(0, multiplo)
   }
 
@@ -121,7 +140,7 @@ export function multiplicadorRecargoMeses(
   if (iC < 0 || iA < 0 || iA < iC) return 0
 
   let multiplo = iA - iC
-  if (fecha.getDate() > 10) multiplo += 1
+  if (fecha.getDate() > diaLimite) multiplo += 1
   return Math.max(0, multiplo)
 }
 

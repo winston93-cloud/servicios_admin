@@ -95,7 +95,7 @@ export const PORTAL_AYUDA_FAQ: PortalAyudaItem[] = [
     categoria: 'colegiaturas',
     pregunta: '¿Qué es el recargo?',
     respuesta:
-      'Las colegiaturas mensuales tienen fecha límite (día 10 del mes del concepto). A partir del día 11 se suma recargo ($75 por mes de atraso). La cuota de inicio de curso del ciclo nuevo no debe llevar recargo mientras ese mes aún no llega.',
+      'Las colegiaturas mensuales tienen fecha límite (día 10 del mes del concepto). A partir del día 11 se suma recargo ($75 por mes de atraso). La cuota de inicio de curso (agosto) se puede pagar sin recargo hasta el 24 de agosto; a partir del 25 aplica el mismo recargo.',
   },
   {
     id: 'col-3',
