@@ -18,6 +18,54 @@ export type AdjuntoTemporalMeta = {
 
 const TOKEN_RE = /^[0-9a-f-]{36}$/i
 
+let bucketAsegurado: Promise<void> | null = null
+
+function insforgeAdminEnv(): { baseUrl: string; apiKey: string } {
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_INSFORGE_URL ??
+    process.env.INSFORGE_URL ??
+    ''
+  ).replace(/\/$/, '')
+  const apiKey = process.env.INSFORGE_API_KEY ?? ''
+  if (!baseUrl || !apiKey) {
+    throw new Error('InsForge no configurado (INSFORGE_URL / INSFORGE_API_KEY)')
+  }
+  return { baseUrl, apiKey }
+}
+
+/** Crea el bucket temporal si no existe (Vercel tiene la API key; el agente cloud no). */
+export async function asegurarBucketCorreoMasivoTemp(): Promise<void> {
+  if (!bucketAsegurado) {
+    bucketAsegurado = (async () => {
+      const { baseUrl, apiKey } = insforgeAdminEnv()
+      const res = await fetch(`${baseUrl}/api/storage/buckets`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          bucketName: CORREO_MASIVO_TEMP_BUCKET,
+          isPublic: false,
+        }),
+      })
+      if (res.ok || res.status === 409) return
+      let msg = `No se pudo crear bucket ${CORREO_MASIVO_TEMP_BUCKET} (${res.status})`
+      try {
+        const json = (await res.json()) as { message?: string }
+        if (json.message) msg = json.message
+      } catch {
+        /* ignore */
+      }
+      throw new Error(msg)
+    })().catch((e) => {
+      bucketAsegurado = null
+      throw e
+    })
+  }
+  await bucketAsegurado
+}
+
 export function esTokenAdjuntosValido(token: string): boolean {
   return TOKEN_RE.test(token.trim())
 }
@@ -43,6 +91,7 @@ export async function subirAdjuntoTemporal(
   if (!esTokenAdjuntosValido(token)) {
     throw new Error('Token de adjuntos inválido')
   }
+  await asegurarBucketCorreoMasivoTemp()
   const key = claveAdjuntoTemporal(token, filename)
   const client = createInsforgeAdmin()
   const blob = new Blob([buffer], { type: contentType || 'application/octet-stream' })
