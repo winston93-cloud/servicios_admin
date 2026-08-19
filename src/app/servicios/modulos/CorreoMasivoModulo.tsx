@@ -23,6 +23,11 @@ import {
   limpiarProgresoCorreoMasivo,
   resumenProgresoGuardado,
 } from '@/lib/correoMasivoProgresoStorage'
+import {
+  formatearPesoBytes,
+  pesoTotalArchivos,
+  validarPesoAdjuntosCorreoMasivo,
+} from '@/lib/correoMasivoAdjuntos'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
 
 type ModoEnvioCorreo = 'masivo' | 'individual'
@@ -54,9 +59,15 @@ export default function CorreoMasivoModulo() {
   /** Nombres de adjuntos que deben volver a seleccionarse tras recarga/reintento. */
   const [adjuntosObligatorios, setAdjuntosObligatorios] = useState<string[]>([])
 
-  /** Lotes pequeños + pausa para no saturar Gmail (454 Too many login attempts). */
+  /** Lotes sin adjuntos. Con PDFs se sube una sola vez (evita error de red por re-subir en cada lote). */
   const TAMANO_LOTE_ENVIO = 12
   const PAUSA_ENTRE_LOTES_MS = 10_000
+
+  const pesoAdjuntos = useMemo(() => pesoTotalArchivos(archivos), [archivos])
+  const tamanoLoteEnvio = useMemo(
+    () => (archivos.length > 0 ? Number.MAX_SAFE_INTEGER : TAMANO_LOTE_ENVIO),
+    [archivos.length]
+  )
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -315,18 +326,23 @@ export default function CorreoMasivoModulo() {
 
       let totalEnviados = 0
       let totalErrores = 0
-      const totalLotes = Math.ceil(conCorreo.length / TAMANO_LOTE_ENVIO) || 0
+      const totalLotes = Math.ceil(conCorreo.length / tamanoLoteEnvio) || 0
       const esIndividual = modoEnvio === 'individual'
+      const conAdjuntos = archivos.length > 0
 
       persistirSesion(destinatarios, 'Iniciando envío…')
 
-      for (let i = 0; i < conCorreo.length; i += TAMANO_LOTE_ENVIO) {
-        const lote = conCorreo.slice(i, i + TAMANO_LOTE_ENVIO)
-        const numLote = Math.floor(i / TAMANO_LOTE_ENVIO) + 1
+      for (let i = 0; i < conCorreo.length; i += tamanoLoteEnvio) {
+        const lote = conCorreo.slice(i, i + tamanoLoteEnvio)
+        const numLote = Math.floor(i / tamanoLoteEnvio) + 1
         setProgresoEnvio(
           esIndividual
-            ? 'Enviando correo individual…'
-            : `Enviando lote ${numLote} de ${totalLotes} (${i + lote.length}/${conCorreo.length} alumnos). Gmail limita velocidad; espere…`
+            ? conAdjuntos
+              ? `Subiendo adjuntos (${formatearPesoBytes(pesoAdjuntos)}) y enviando…`
+              : 'Enviando correo individual…'
+            : conAdjuntos
+              ? `Subiendo ${archivos.length} archivo(s) (${formatearPesoBytes(pesoAdjuntos)}) y enviando a ${conCorreo.length} familias… No cierre la pestaña (2–4 min).`
+              : `Enviando lote ${numLote} de ${totalLotes} (${Math.min(i + lote.length, conCorreo.length)}/${conCorreo.length} alumnos). Gmail limita velocidad; espere…`
         )
 
         const fd = new FormData()
@@ -360,6 +376,20 @@ export default function CorreoMasivoModulo() {
         }
         try {
           const res = await fetch('/api/correo-masivo/enviar', { method: 'POST', body: fd })
+          if (res.status === 413) {
+            const detalle =
+              'Los adjuntos exceden el límite del servidor (~4 MB). Comprima los PDF e intente de nuevo.'
+            setError(detalle)
+            for (const d of lote) {
+              resultadosMap.set(d.alumno_id, {
+                ...d,
+                estado: 'error',
+                mensaje_estado: detalle,
+              })
+            }
+            totalErrores += lote.length
+            continue
+          }
           json = await res.json()
           if (!res.ok) {
             const detalle = json.error ?? `Error en lote ${numLote}`
@@ -427,7 +457,7 @@ export default function CorreoMasivoModulo() {
             : `En progreso… lote ${numLote}/${totalLotes}`
         )
 
-        if (!esIndividual && numLote < totalLotes) {
+        if (!esIndividual && !conAdjuntos && numLote < totalLotes) {
           setProgresoEnvio(`Pausa ${PAUSA_ENTRE_LOTES_MS / 1000}s antes del siguiente lote (Gmail)…`)
           await new Promise((r) => setTimeout(r, PAUSA_ENTRE_LOTES_MS))
         }
@@ -461,6 +491,8 @@ export default function CorreoMasivoModulo() {
       modoEnvio,
       nivel,
       persistirSesion,
+      pesoAdjuntos,
+      tamanoLoteEnvio,
     ]
   )
 
@@ -496,6 +528,11 @@ export default function CorreoMasivoModulo() {
         : `¿Enviar correo a ${resumen.conCorreo} alumno(s) con correo registrado?`
     if (!window.confirm(confirmMsg)) return
     if (!validarAdjuntosAntesEnvio()) return
+    const avisoPeso = validarPesoAdjuntosCorreoMasivo(archivos)
+    if (avisoPeso) {
+      setError(avisoPeso)
+      return
+    }
     if (archivos.length > 0) {
       setAdjuntosObligatorios(archivos.map((f) => f.name))
     }
@@ -533,6 +570,11 @@ export default function CorreoMasivoModulo() {
       return
     }
     if (!validarAdjuntosAntesEnvio()) return
+    const avisoPeso = validarPesoAdjuntosCorreoMasivo(archivos)
+    if (avisoPeso) {
+      setError(avisoPeso)
+      return
+    }
     if (
       !window.confirm(
         modoEnvio === 'individual'
@@ -836,13 +878,24 @@ export default function CorreoMasivoModulo() {
               <ul className="cm-archivos-lista">
                 {archivos.map((f, i) => (
                   <li key={`${f.name}-${i}`}>
-                    <span>{f.name}</span>
+                    <span>
+                      {f.name}{' '}
+                      <em className="cm-archivo-peso">({formatearPesoBytes(f.size)})</em>
+                    </span>
                     <button type="button" onClick={() => quitarArchivo(i)} aria-label="Quitar">
                       ×
                     </button>
                   </li>
                 ))}
               </ul>
+            )}
+            {archivos.length > 0 && (
+              <p className="cm-hint cm-hint--peso">
+                Total adjuntos: <strong>{formatearPesoBytes(pesoAdjuntos)}</strong>
+                {archivos.length > 0 && (
+                  <> · se suben una sola vez (máx. ~4 MB por envío en Vercel)</>
+                )}
+              </p>
             )}
             {archivos.length === 0 && (
               <p
