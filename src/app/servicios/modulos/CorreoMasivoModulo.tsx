@@ -407,6 +407,7 @@ export default function CorreoMasivoModulo() {
         )
         if (adjuntosToken) {
           fd.set('adjuntosToken', adjuntosToken)
+          fd.set('adjuntosNombres', JSON.stringify(archivos.map((f) => f.name)))
         } else {
           for (const f of archivos) fd.append('archivos', f)
         }

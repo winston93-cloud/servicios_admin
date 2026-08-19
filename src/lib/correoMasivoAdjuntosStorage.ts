@@ -30,6 +30,20 @@ export type AdjuntoTemporalMeta = {
 
 const TOKEN_RE = /^[0-9a-f-]{36}$/i
 
+function objetosListadoStorage(data: unknown): { key?: string; size?: number; mimeType?: string }[] {
+  if (!data) return []
+  if (Array.isArray(data)) return data as { key?: string; size?: number; mimeType?: string }[]
+  if (typeof data === 'object' && data !== null && 'data' in data) {
+    const inner = (data as { data: unknown }).data
+    if (Array.isArray(inner)) return inner as { key?: string; size?: number; mimeType?: string }[]
+  }
+  if (typeof data === 'object' && data !== null && 'objects' in data) {
+    const inner = (data as { objects: unknown }).objects
+    if (Array.isArray(inner)) return inner as { key?: string; size?: number; mimeType?: string }[]
+  }
+  return []
+}
+
 let bucketAsegurado: Promise<void> | null = null
 
 function insforgeAdminEnv(): { baseUrl: string; apiKey: string } {
@@ -224,25 +238,60 @@ export async function listarAdjuntosTemporales(token: string): Promise<AdjuntoTe
     limit: 50,
   })
   if (error) throw new Error(error.message)
-  const filas = Array.isArray(data) ? data : []
+  const filas = objetosListadoStorage(data)
   const out: AdjuntoTemporalMeta[] = []
   for (const row of filas) {
-    const key = String((row as { key?: string }).key ?? '')
+    const key = String(row.key ?? '')
     if (!key || key.endsWith('/')) continue
-    const filename = key.slice(token.length + 1)
+    const filename = key.includes('/') ? key.slice(key.lastIndexOf('/') + 1) : key
+    if (!key.startsWith(`${token}/`)) continue
     out.push({
       key,
       filename,
-      contentType: 'application/octet-stream',
-      size: Number((row as { size?: number }).size ?? 0),
+      contentType: row.mimeType || 'application/octet-stream',
+      size: Number(row.size ?? 0),
     })
   }
   return out.sort((a, b) => a.filename.localeCompare(b.filename, 'es'))
 }
 
-export async function descargarAdjuntosTemporales(
-  token: string
+/** Descarga por nombres conocidos (más fiable que list cuando InsForge anida la respuesta). */
+export async function descargarAdjuntosPorNombres(
+  token: string,
+  nombres: string[]
 ): Promise<AdjuntoCorreo[]> {
+  if (!esTokenAdjuntosValido(token) || !nombres.length) return []
+  const client = createInsforgeAdmin()
+  const bucket = client.storage.from(CORREO_MASIVO_TEMP_BUCKET)
+  const out: AdjuntoCorreo[] = []
+  for (const nombre of nombres) {
+    const key = claveAdjuntoTemporal(token, nombre)
+    const { data, error } = await bucket.download(key)
+    if (error || !data) {
+      throw new Error(`No se encontró adjunto «${nombre}» en almacenamiento temporal`)
+    }
+    const buf = Buffer.from(await data.arrayBuffer())
+    out.push({
+      filename: sanitizarNombreAdjunto(nombre),
+      content: buf,
+      contentType: undefined,
+    })
+  }
+  return out
+}
+
+export async function descargarAdjuntosTemporales(
+  token: string,
+  nombres?: string[]
+): Promise<AdjuntoCorreo[]> {
+  if (nombres?.length) {
+    try {
+      const porNombres = await descargarAdjuntosPorNombres(token, nombres)
+      if (porNombres.length) return porNombres
+    } catch (e) {
+      console.warn('descargarAdjuntosPorNombres:', e)
+    }
+  }
   const metas = await listarAdjuntosTemporales(token)
   if (!metas.length) return []
   const client = createInsforgeAdmin()
