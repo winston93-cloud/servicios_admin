@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     const conceptoClase =
       String(body.conceptoClase ?? '').trim() || getPaymentConcept(conceptoNo)
     const cicloEscolar = Number(body.cicloEscolar)
-    // Cuota 00: forzar 10 ago del ciclo (ignora vigencia corta del cliente).
+    // Cuota 00: forzar 24 ago del ciclo (ignora vigencia corta del cliente).
     const vigencia =
       conceptoNo === '00' && Number.isFinite(cicloEscolar) && cicloEscolar > 0
         ? vigenciaBoucherParaConcepto(conceptoNo, cicloEscolar)

@@ -227,7 +227,7 @@ function dibujarAvisoLegal(
 
   if (normalizarConceptoNo(datos.conceptoNo) === '00') {
     avisos.push(
-      `Cuota de Inicio de Curso: la fecha límite de pago es el ${formatearFechaBoucher(datos.vigencia)}. A partir del día 11 se aplicará recargo de $75.00 por mes, incluyendo la cuota de inicio de curso.`
+      `Cuota de Inicio de Curso: la fecha límite de pago es el ${formatearFechaBoucher(datos.vigencia)}. A partir del día 25 se aplicará recargo de $75.00 por mes, incluyendo la cuota de inicio de curso.`
     )
   } else {
     avisos.push(

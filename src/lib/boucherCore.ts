@@ -1,6 +1,10 @@
 /** Utilidades legacy para bauchers (port de core.php). */
 
-import { anioCalendarioConcepto, mesDeConcepto } from './colegiaturaPrecioReglas'
+import {
+  anioCalendarioConcepto,
+  diaLimiteSinRecargo,
+  mesDeConcepto,
+} from './colegiaturaPrecioReglas'
 import { normalizarConceptoNo } from './pagoReferenciaColegiatura'
 
 export { normalizarConceptoNo }
@@ -53,7 +57,7 @@ export function vigenciaBoucherPorDefecto(fecha = new Date()): string {
 
 /**
  * Validez impresa en baucher (ventanilla Banorte):
- * - Concepto 00 (Cuota de Inicio de Curso): siempre día 10 de agosto del ciclo
+ * - Concepto 00 (Cuota de Inicio de Curso): siempre día 24 de agosto del ciclo
  *   (límite real; no usar cortesía hoy+7).
  * - Otros conceptos con mes (01…): hasta el día 10 de ese mes/año del ciclo.
  * - Si ya pasó el 10 (colegiaturas): vigencia = hoy + 7 días.
@@ -72,12 +76,13 @@ export function vigenciaBoucherParaConcepto(
       : null
 
   if (mes != null && anio != null) {
-    const limiteIso = `${anio}-${String(mes).padStart(2, '0')}-10`
-    // Cuota de inicio de curso: fecha límite fija (10 ago), aunque ya haya pasado.
+    const diaLimite = diaLimiteSinRecargo(c)
+    const limiteIso = `${anio}-${String(mes).padStart(2, '0')}-${String(diaLimite).padStart(2, '0')}`
+    // Cuota de inicio de curso: fecha límite fija (24 ago), aunque ya haya pasado.
     if (c === '00') {
       return limiteIso
     }
-    const limite = new Date(anio, mes - 1, 10)
+    const limite = new Date(anio, mes - 1, diaLimite)
     const hoy = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate())
     if (hoy.getTime() <= limite.getTime()) {
       return limiteIso
