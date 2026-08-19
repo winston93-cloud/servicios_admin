@@ -1237,226 +1237,30 @@ export type ResultadoReparacionFoliosWinston =
     }
   | { ok: false; mensaje: string }
 
-function nombreEsEduardoArvizu(
-  nombre: string | null | undefined,
-  app: string | null | undefined,
-  apm: string | null | undefined
-): boolean {
-  const nom = `${nombre ?? ''} ${app ?? ''} ${apm ?? ''}`
-    .toUpperCase()
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
-  return nom.includes('ARVIZU') && nom.includes('EDUARDO')
-}
-
-async function buscarAlumnoIdsEduardoArvizu(): Promise<
-  { ok: true; ids: number[] } | { ok: false; mensaje: string }
-> {
-  const { data, error } = await supabase
-    .from('alumno')
-    .select('alumno_id, alumno_nombre, alumno_app, alumno_apm')
-    .ilike('alumno_app', '%ARVIZU%')
-    .limit(100)
-  if (error) {
-    // Fallback sin ilike (algunos proxies no lo exponen)
-    const { data: data2, error: err2 } = await supabase
-      .from('alumno')
-      .select('alumno_id, alumno_nombre, alumno_app, alumno_apm')
-      .limit(5000)
-    if (err2) return { ok: false, mensaje: err2.message }
-    const ids = (data2 ?? [])
-      .filter((a) => nombreEsEduardoArvizu(a.alumno_nombre, a.alumno_app, a.alumno_apm))
-      .map((a) => Number(a.alumno_id))
-    return { ok: true, ids: [...new Set(ids)] }
-  }
-  const ids = (data ?? [])
-    .filter((a) => nombreEsEduardoArvizu(a.alumno_nombre, a.alumno_app, a.alumno_apm))
-    .map((a) => Number(a.alumno_id))
-  return { ok: true, ids: [...new Set(ids)] }
-}
-
 /**
- * Revalida y corrige el consecutivo Winston general desde 2848.
- *
- * Ancla: MANUALES vigente de EDUARDO ARVIZU (esté en 2671, 2848 u otro).
- * Todos los pagos generales (no cuota) desde esa fecha/id en adelante se
- * renumeran 2848, 2849, 2850… Idempotente si ya están bien.
- *
- * Importante: no sale temprano solo porque el 2671 ya se movió; vuelve a
- * checar huecos/sobrantes (pagos que la 1ª pasada dejó mal).
+ * Fallback cliente (misma lógica que POST /api/servicios/reparar-folios-winston).
+ * Import dinámico evita ciclo con repararFoliosWinstonInsforge.ts.
  */
 export async function repararFoliosWinstonTrasReinicio2671(): Promise<ResultadoReparacionFoliosWinston> {
-  const arvizu = await buscarAlumnoIdsEduardoArvizu()
-  if (!arvizu.ok) return arvizu
-  if (arvizu.ids.length === 0) {
+  try {
+    const { repararFoliosWinstonGeneralInsforge } = await import(
+      '@/lib/repararFoliosWinstonInsforge'
+    )
+    const res = await repararFoliosWinstonGeneralInsforge(supabase, {
+      cancelarDuplicados: true,
+    })
     return {
       ok: true,
-      aplicada: false,
-      cambios: 0,
-      siguienteFolio: FOLIO_REPARACION_WINSTON_INICIO,
-      mensaje: 'No se encontró alumno EDUARDO ARVIZU; nada que reparar.',
+      aplicada: res.aplicada,
+      cambios: res.cambios,
+      siguienteFolio: res.siguienteFolio,
+      detalle: res.detalle,
+      mensaje: res.mensaje,
     }
-  }
-
-  const { data: manualesArvizu, error: errMan } = await supabase
-    .from('pago_interno')
-    .select(SELECT_PAGO)
-    .eq('concepto_id', CONCEPTO_ID_MANUALES)
-    .eq('pago_cancelado', 0)
-    .in('alumno_id', arvizu.ids)
-    .order('pago_fecha', { ascending: true })
-    .order('pago_id', { ascending: true })
-    .limit(20)
-
-  if (errMan) return { ok: false, mensaje: errMan.message }
-  if (!manualesArvizu?.length) {
+  } catch (e) {
     return {
-      ok: true,
-      aplicada: false,
-      cambios: 0,
-      siguienteFolio: FOLIO_REPARACION_WINSTON_INICIO,
-      mensaje: 'ARVIZU no tiene MANUALES vigente; nada que reparar.',
+      ok: false,
+      mensaje: e instanceof Error ? e.message : 'Error al reparar folios Winston',
     }
-  }
-
-  // Preferir el MANUALES que quedó/estaba en la zona del bug (2671 o 2848).
-  const manuales = manualesArvizu as PagoInternoRegistro[]
-  const ancla =
-    manuales.find((p) => Number(p.pago_folio) === FOLIO_REPARACION_WINSTON_INICIO) ??
-    manuales.find((p) => Number(p.pago_folio) === PAGO_INTERNO_FOLIO_WINSTON_INICIAL) ??
-    manuales[0]
-
-  const anclaFecha = String(ancla.pago_fecha ?? '')
-  const anclaId = Number(ancla.pago_id)
-  if (!anclaFecha) {
-    return { ok: false, mensaje: `MANUALES ARVIZU pago_id=${anclaId} sin fecha.` }
-  }
-
-  // Por fecha (≥ ancla): atrapa sobrantes con folio raro fuera del rango Winston.
-  const pageSize = 1000
-  const porFecha: PagoInternoRegistro[] = []
-  let from = 0
-  for (;;) {
-    const { data, error } = await supabase
-      .from('pago_interno')
-      .select(SELECT_PAGO)
-      .gte('pago_fecha', anclaFecha)
-      .eq('pago_cancelado', 0)
-      .order('pago_fecha', { ascending: true })
-      .order('pago_id', { ascending: true })
-      .range(from, from + pageSize - 1)
-    if (error) return { ok: false, mensaje: error.message }
-    const batch = (data ?? []) as PagoInternoRegistro[]
-    porFecha.push(...batch)
-    if (batch.length < pageSize) break
-    from += pageSize
-  }
-
-  // También cualquier general aún atrapado en 2671 (reinicio), por si la fecha viene null/rara.
-  const { data: stuck2671, error: errStuck } = await supabase
-    .from('pago_interno')
-    .select(SELECT_PAGO)
-    .eq('pago_folio', PAGO_INTERNO_FOLIO_WINSTON_INICIAL)
-    .eq('pago_cancelado', 0)
-    .limit(500)
-  if (errStuck) return { ok: false, mensaje: errStuck.message }
-
-  const porId = new Map<number, PagoInternoRegistro>()
-  for (const p of [...porFecha, ...((stuck2671 ?? []) as PagoInternoRegistro[])]) {
-    if (esConceptoSerieCuotaPadres(p.concepto_id)) continue
-    const folio = Number(p.pago_folio)
-    // Solo serie Winston actual / bug (no talón 26550+ ni cuota baja).
-    const enSerieWinston =
-      (folio >= PAGO_INTERNO_FOLIO_WINSTON_INICIAL &&
-        folio < PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN) ||
-      folio === PAGO_INTERNO_FOLIO_WINSTON_INICIAL
-    if (!enSerieWinston) continue
-
-    const fecha = String(p.pago_fecha ?? '')
-    if (fecha > anclaFecha || (fecha === anclaFecha && Number(p.pago_id) >= anclaId)) {
-      porId.set(Number(p.pago_id), p)
-    } else if (folio === PAGO_INTERNO_FOLIO_WINSTON_INICIAL && Number(p.pago_id) !== anclaId) {
-      // 2671 “fantasma” de reinicio aunque la fecha sea anterior confusa: incluir si no es el primer 2671 histórico.
-      // Solo si es posterior al ancla por id de registro cuando hay pago_registro.
-      const reg = String(p.pago_registro ?? '')
-      const anclaReg = String(ancla.pago_registro ?? '')
-      if (reg && anclaReg && reg >= anclaReg) {
-        porId.set(Number(p.pago_id), p)
-      }
-    }
-  }
-
-  // Garantizar que el ancla entre.
-  porId.set(anclaId, ancla)
-
-  // Solo plantel Winston (primaria/secundaria): no reordenar Educativo (maternal/kinder).
-  const alumnoIds = [
-    ...new Set(
-      [...porId.values()]
-        .map((p) => p.alumno_id)
-        .filter((id): id is number => id != null && Number.isFinite(id))
-    ),
-  ]
-  const nivelPorAlumno = new Map<number, number>()
-  for (let i = 0; i < alumnoIds.length; i += 200) {
-    const slice = alumnoIds.slice(i, i + 200)
-    const { data: alumnos, error } = await supabase
-      .from('alumno')
-      .select('alumno_id, alumno_nivel')
-      .in('alumno_id', slice)
-    if (error) return { ok: false, mensaje: error.message }
-    for (const a of alumnos ?? []) {
-      nivelPorAlumno.set(Number(a.alumno_id), Number(a.alumno_nivel) || 0)
-    }
-  }
-
-  const aReparar = [...porId.values()]
-    .filter((p) => {
-      if (Number(p.pago_id) === anclaId) return true
-      const nivel = p.alumno_id != null ? nivelPorAlumno.get(p.alumno_id) : null
-      if (nivel == null) return true
-      return plantelPagoDesdeNivel(nivel) === 'winston'
-    })
-    .sort((a, b) => {
-      const fa = String(a.pago_fecha ?? '')
-      const fb = String(b.pago_fecha ?? '')
-      if (fa !== fb) return fa < fb ? -1 : 1
-      return Number(a.pago_id) - Number(b.pago_id)
-    })
-
-  let folio = FOLIO_REPARACION_WINSTON_INICIO
-  let cambios = 0
-  const detalle: string[] = []
-  for (const p of aReparar) {
-    const actual = Number(p.pago_folio)
-    if (actual !== folio) {
-      const { error } = await supabase
-        .from('pago_interno')
-        .update({ pago_folio: folio })
-        .eq('pago_id', p.pago_id)
-      if (error) {
-        return {
-          ok: false,
-          mensaje: `Error al actualizar pago_id ${p.pago_id} (${actual}→${folio}): ${error.message}`,
-        }
-      }
-      cambios += 1
-      if (detalle.length < 30) {
-        detalle.push(`pago_id=${p.pago_id} ${actual}→${folio} (${p.pago_fecha})`)
-      }
-    }
-    folio += 1
-  }
-
-  return {
-    ok: true,
-    aplicada: cambios > 0,
-    cambios,
-    siguienteFolio: folio,
-    detalle,
-    mensaje:
-      cambios > 0
-        ? `Consecutivo desde 2848 corregido: ${cambios} pago(s). Siguiente folio=${folio}.`
-        : `Consecutivo desde 2848 OK (${aReparar.length} pago(s) revisados). Siguiente=${folio}.`,
   }
 }
