@@ -508,12 +508,12 @@ export async function repararFoliosWinstonGeneralInsforge(
   const audit = await auditarFoliosWinstonGeneral(db)
   const winstonGeneralSiguiente = dryRun
     ? folio
-    : await obtenerSiguienteFolioPago('winston', 'general')
+    : await obtenerSiguienteFolioPago('winston', 'general', db)
   const series = {
     winston_general: winstonGeneralSiguiente,
-    winston_cuota: dryRun ? 0 : await obtenerSiguienteFolioPago('winston', 'cuota_padres'),
-    educativo_general: dryRun ? 0 : await obtenerSiguienteFolioPago('educativo', 'general'),
-    educativo_cuota: dryRun ? 0 : await obtenerSiguienteFolioPago('educativo', 'cuota_padres'),
+    winston_cuota: dryRun ? 0 : await obtenerSiguienteFolioPago('winston', 'cuota_padres', db),
+    educativo_general: dryRun ? 0 : await obtenerSiguienteFolioPago('educativo', 'general', db),
+    educativo_cuota: dryRun ? 0 : await obtenerSiguienteFolioPago('educativo', 'cuota_padres', db),
   }
 
   const aplicada = cambios > 0 || canceladosDuplicados > 0

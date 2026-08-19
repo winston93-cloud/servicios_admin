@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import type { AppDatabaseClient } from './dbTypes'
 import { parseGradoEscolar } from './gradoEscolar'
 import { parseNivelEscolar } from './nivelEscolar'
 import { TUTOR_ID_MADRE, TUTOR_ID_PADRE } from './alumnoFamiliarTutor'
@@ -584,12 +585,13 @@ export function esConceptoManuales(
  * - Cuota: solo conceptos 1/2, rango propio por plantel.
  * - General: excluye cuota; Winston ignora legacy y sigue el consecutivo del talón
  *   (no el máximo absoluto: hay basura 2915+/39xx/7xxx que no cuenta).
- * - Solo pagos vigentes (pago_cancelado=0): los folios «quemados» no avanzan el talón.
+ * - Solo pagos vigentes (pago_cancelado=0); los cancelados no cuentan en el consecutivo.
  * - Filtra por nivel del alumno (= plantel) para no mezclar Winston con Educativo.
  */
 export async function obtenerSiguienteFolioPago(
   plantel: PlantelPagosInternos = 'winston',
-  tipoSerie: TipoSerieFolioPagoInterno = 'general'
+  tipoSerie: TipoSerieFolioPagoInterno = 'general',
+  db: AppDatabaseClient = supabase
 ): Promise<number> {
   const inicial = folioInicialPlantel(plantel, tipoSerie)
   let techo = folioTechoPlantel(plantel, tipoSerie)
@@ -605,7 +607,7 @@ export async function obtenerSiguienteFolioPago(
   const foliosSerie = new Set<number>()
 
   for (let pass = 0; pass < 15; pass++) {
-    let q = supabase
+    let q = db
       .from('pago_interno')
       .select('pago_folio, alumno_id, concepto_id')
       .gte('pago_folio', inicial)
@@ -638,7 +640,7 @@ export async function obtenerSiguienteFolioPago(
     ]
     const nivelPorAlumno = new Map<number, number>()
     if (alumnoIds.length > 0) {
-      const { data: alumnos } = await supabase
+      const { data: alumnos } = await db
         .from('alumno')
         .select('alumno_id, alumno_nivel')
         .in('alumno_id', alumnoIds)
@@ -1046,8 +1048,8 @@ async function siguientePagoId(): Promise<number> {
 }
 
 /**
- * Cancela el pago (pago_cancelado = 1). El folio queda «quemado» (no se reutiliza),
- * pero tampoco cuenta para el siguiente consecutivo vigente del talón.
+ * Cancela el pago (pago_cancelado = 1). Ese número no se reutiliza ni cuenta
+ * en el consecutivo vigente del talón.
  * No pide ni escribe nota en concepto_otro: el estado vive en pago_cancelado.
  * En cuota de padres también cancela espejos de hermanos con el mismo folio.
  */

@@ -94,6 +94,21 @@ export default function PagosInternosModulo() {
 
   const refrescarFolio = useCallback(
     async (plantel: PlantelPagosInternos, tipoSerie: TipoSerieFolioPagoInterno = 'general') => {
+      try {
+        const params = new URLSearchParams({ plantel, tipo: tipoSerie })
+        const r = await fetch(`/api/servicios/siguiente-folio-pago?${params}`, {
+          cache: 'no-store',
+        })
+        if (r.ok) {
+          const res = (await r.json()) as { ok?: boolean; folio?: number }
+          if (res.ok && res.folio != null) {
+            setFolio(res.folio)
+            return
+          }
+        }
+      } catch {
+        /* fallback cliente */
+      }
       setFolio(await obtenerSiguienteFolioPago(plantel, tipoSerie))
     },
     []
