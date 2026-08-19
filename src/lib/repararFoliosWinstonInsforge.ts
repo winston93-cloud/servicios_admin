@@ -180,7 +180,7 @@ export type AuditFolioWinston = {
 /** Audita folios duplicados Winston general (≥2848) y casos puntuales. */
 export async function auditarFoliosWinstonGeneral(
   db: AppDatabaseClient,
-  foliosConsulta: number[] = [2880, 2919, 2920]
+  foliosConsulta: number[] = [2880, 2919, 2920, 3120, 3121, 3128, 3129]
 ): Promise<AuditFolioWinston> {
   const { data, error } = await db
     .from('pago_interno')
@@ -506,10 +506,11 @@ export async function repararFoliosWinstonGeneralInsforge(
   }
 
   const audit = await auditarFoliosWinstonGeneral(db)
+  const winstonGeneralSiguiente = dryRun
+    ? folio
+    : await obtenerSiguienteFolioPago('winston', 'general')
   const series = {
-    winston_general: dryRun
-      ? folio
-      : await obtenerSiguienteFolioPago('winston', 'general'),
+    winston_general: winstonGeneralSiguiente,
     winston_cuota: dryRun ? 0 : await obtenerSiguienteFolioPago('winston', 'cuota_padres'),
     educativo_general: dryRun ? 0 : await obtenerSiguienteFolioPago('educativo', 'general'),
     educativo_cuota: dryRun ? 0 : await obtenerSiguienteFolioPago('educativo', 'cuota_padres'),
@@ -522,7 +523,7 @@ export async function repararFoliosWinstonGeneralInsforge(
     aplicada,
     cambios,
     canceladosDuplicados,
-    siguienteFolio: folio,
+    siguienteFolio: winstonGeneralSiguiente,
     revisados: aReparar.length,
     ancla: {
       pago_id: anclaId,

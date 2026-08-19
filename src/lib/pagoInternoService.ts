@@ -584,6 +584,7 @@ export function esConceptoManuales(
  * - Cuota: solo conceptos 1/2, rango propio por plantel.
  * - General: excluye cuota; Winston ignora legacy y sigue el consecutivo del talón
  *   (no el máximo absoluto: hay basura 2915+/39xx/7xxx que no cuenta).
+ * - Solo pagos vigentes (pago_cancelado=0): los folios «quemados» no avanzan el talón.
  * - Filtra por nivel del alumno (= plantel) para no mezclar Winston con Educativo.
  */
 export async function obtenerSiguienteFolioPago(
@@ -608,6 +609,7 @@ export async function obtenerSiguienteFolioPago(
       .from('pago_interno')
       .select('pago_folio, alumno_id, concepto_id')
       .gte('pago_folio', inicial)
+      .eq('pago_cancelado', 0)
       .order('pago_folio', { ascending: false })
       .range(from, from + pageSize - 1)
 
@@ -1044,7 +1046,8 @@ async function siguientePagoId(): Promise<number> {
 }
 
 /**
- * Cancela el pago (pago_cancelado = 1). El folio queda «quemado» (ya no se reutiliza).
+ * Cancela el pago (pago_cancelado = 1). El folio queda «quemado» (no se reutiliza),
+ * pero tampoco cuenta para el siguiente consecutivo vigente del talón.
  * No pide ni escribe nota en concepto_otro: el estado vive en pago_cancelado.
  * En cuota de padres también cancela espejos de hermanos con el mismo folio.
  */
