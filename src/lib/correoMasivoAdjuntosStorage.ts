@@ -3,11 +3,23 @@ import type { AdjuntoCorreo } from '@/lib/emailServicios'
 
 export const CORREO_MASIVO_TEMP_BUCKET = 'correo-masivo-temp'
 
-/** Máximo por archivo en una petición directa a Vercel (~4.5 MB). */
+/** Máximo por archivo vía FormData a Vercel (~4 MB). */
 export const CORREO_MASIVO_MAX_ARCHIVO_DIRECTO_BYTES = 3.5 * 1024 * 1024
+
+/** Máximo por archivo vía subida directa a InsForge/S3 (sin pasar por Vercel). */
+export const CORREO_MASIVO_MAX_ARCHIVO_GRANDE_BYTES = 12 * 1024 * 1024
 
 /** Máximo total recomendado (Gmail ~25 MB por mensaje). */
 export const CORREO_MASIVO_MAX_TOTAL_BYTES = 24 * 1024 * 1024
+
+export type EstrategiaSubidaInsforge = {
+  method: 'presigned' | 'direct'
+  uploadUrl: string
+  key: string
+  fields?: Record<string, string>
+  confirmRequired?: boolean
+  confirmUrl?: string
+}
 
 export type AdjuntoTemporalMeta = {
   key: string
@@ -80,6 +92,105 @@ export function sanitizarNombreAdjunto(nombre: string): string {
 
 export function claveAdjuntoTemporal(token: string, filename: string): string {
   return `${token}/${sanitizarNombreAdjunto(filename)}`
+}
+
+export function esConfirmUrlAdjuntoValida(confirmUrl: string): boolean {
+  const trimmed = confirmUrl.trim()
+  return (
+    trimmed.startsWith('/api/storage/buckets/correo-masivo-temp/') &&
+    trimmed.includes('/confirm-upload')
+  )
+}
+
+export async function obtenerEstrategiaSubidaAdjunto(
+  token: string,
+  filename: string,
+  size: number,
+  contentType: string
+): Promise<{ token: string; key: string; strategy: EstrategiaSubidaInsforge }> {
+  const effectiveToken = esTokenAdjuntosValido(token) ? token : crypto.randomUUID()
+  if (!filename.trim()) throw new Error('Nombre de archivo inválido')
+  if (!Number.isFinite(size) || size <= 0) throw new Error('Tamaño de archivo inválido')
+  if (size > CORREO_MASIVO_MAX_ARCHIVO_GRANDE_BYTES) {
+    throw new Error(
+      `El archivo supera ~${(CORREO_MASIVO_MAX_ARCHIVO_GRANDE_BYTES / (1024 * 1024)).toFixed(0)} MB por adjunto`
+    )
+  }
+
+  await asegurarBucketCorreoMasivoTemp()
+  const key = claveAdjuntoTemporal(effectiveToken, filename)
+  const { baseUrl, apiKey } = insforgeAdminEnv()
+  const res = await fetch(
+    `${baseUrl}/api/storage/buckets/${CORREO_MASIVO_TEMP_BUCKET}/upload-strategy`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        filename: key,
+        contentType: contentType || 'application/octet-stream',
+        size,
+      }),
+    }
+  )
+  if (!res.ok) {
+    let msg = `No se pudo preparar subida (${res.status})`
+    try {
+      const json = (await res.json()) as { message?: string }
+      if (json.message) msg = json.message
+    } catch {
+      /* ignore */
+    }
+    throw new Error(msg)
+  }
+  const raw = (await res.json()) as EstrategiaSubidaInsforge
+  let uploadUrl = String(raw.uploadUrl ?? '')
+  if (uploadUrl && !uploadUrl.startsWith('http')) {
+    uploadUrl = `${baseUrl}${uploadUrl.startsWith('/') ? '' : '/'}${uploadUrl}`
+  }
+  return {
+    token: effectiveToken,
+    key,
+    strategy: {
+      ...raw,
+      uploadUrl,
+      key: raw.key ?? key,
+    },
+  }
+}
+
+export async function confirmarSubidaAdjuntoInsforge(
+  confirmUrl: string,
+  size: number,
+  contentType: string
+): Promise<void> {
+  if (!esConfirmUrlAdjuntoValida(confirmUrl)) {
+    throw new Error('URL de confirmación inválida')
+  }
+  const { baseUrl, apiKey } = insforgeAdminEnv()
+  const res = await fetch(`${baseUrl}${confirmUrl}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+    },
+    body: JSON.stringify({
+      size,
+      contentType: contentType || 'application/octet-stream',
+    }),
+  })
+  if (!res.ok) {
+    let msg = `Confirmación de subida falló (${res.status})`
+    try {
+      const json = (await res.json()) as { message?: string }
+      if (json.message) msg = json.message
+    } catch {
+      /* ignore */
+    }
+    throw new Error(msg)
+  }
 }
 
 export async function subirAdjuntoTemporal(
