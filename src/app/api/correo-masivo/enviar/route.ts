@@ -59,6 +59,17 @@ function mapEstadoDesdeEnvio(
   return { estado: 'enviado', mensaje: 'Enviado al servidor de correo' }
 }
 
+function parseNombresAdjuntosJson(raw: string): string[] {
+  if (!raw.trim()) return []
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed.map((n) => String(n ?? '').trim()).filter(Boolean)
+  } catch {
+    return []
+  }
+}
+
 export async function POST(request: Request) {
   const form = await request.formData()
   const asunto = String(form.get('asunto') ?? '').trim()
@@ -113,6 +124,7 @@ export async function POST(request: Request) {
   }
 
   const adjuntosToken = String(form.get('adjuntosToken') ?? '').trim()
+  const nombresAdjuntos = parseNombresAdjuntosJson(String(form.get('adjuntosNombres') ?? ''))
   let attachments: AdjuntoCorreo[] = []
   let pesoAdjuntosBytes = 0
   let adjuntosDesdeStorage = false
@@ -122,7 +134,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Token de adjuntos inválido' }, { status: 400 })
     }
     try {
-      attachments = await descargarAdjuntosTemporales(adjuntosToken)
+      attachments = await descargarAdjuntosTemporales(
+        adjuntosToken,
+        nombresAdjuntos.length ? nombresAdjuntos : undefined
+      )
       adjuntosDesdeStorage = true
       pesoAdjuntosBytes = attachments.reduce((s, a) => s + a.content.length, 0)
     } catch (e) {
