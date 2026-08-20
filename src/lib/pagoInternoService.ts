@@ -682,34 +682,28 @@ export async function obtenerSiguienteFolioPago(
 }
 
 /**
- * Consecutivo del talón Winston general anclado en el bloque desde 2848
- * (corrección ARVIZU). Expande hacia adelante/atrás con huecos chicos (≤5);
- * no salta al bloque suelto 2915+ ni a legacy. Así el siguiente es 2875, no 2926.
+ * Consecutivo del talón Winston general desde el talón 4 dígitos (2671+).
+ * Expande con huecos chicos (≤5); no salta a legacy.
  */
 function maxConsecutivoTalonWinston(foliosAsc: number[], inicial: number): number | null {
   if (foliosAsc.length === 0) return null
-  const ancla = FOLIO_REPARACION_WINSTON_INICIO
   const set = new Set(foliosAsc)
   const HUECO_OK = 5
 
   let seed: number | null = null
-  if (set.has(ancla)) {
-    seed = ancla
+  if (set.has(inicial)) {
+    seed = inicial
   } else {
-    // Si 2848 no está, el primer folio del bloque reparado (≥2848, cerca).
-    seed = foliosAsc.find((f) => f >= ancla && f < ancla + 80) ?? null
+    seed = foliosAsc.find((f) => f >= inicial && f < inicial + 80) ?? null
   }
 
   if (seed == null) {
-    // Sin bloque 2848+: máximo del talón previo (< ancla).
-    const prev = foliosAsc.filter((f) => f >= inicial && f < ancla)
-    return prev.length ? prev[prev.length - 1] : null
+    return foliosAsc.length ? foliosAsc[foliosAsc.length - 1] : null
   }
 
   let lo = seed
   let hi = seed
 
-  // Adelante
   for (;;) {
     let next: number | null = null
     for (let n = hi + 1; n <= hi + HUECO_OK; n++) {
@@ -722,7 +716,6 @@ function maxConsecutivoTalonWinston(foliosAsc: number[], inicial: number): numbe
     hi = next
   }
 
-  // Atrás hasta el inicio del talón
   for (;;) {
     let prev: number | null = null
     for (let n = lo - 1; n >= Math.max(inicial, lo - HUECO_OK); n--) {
@@ -1228,8 +1221,12 @@ export async function cancelarPagoInternoYRecorrer(opts: {
   }
 }
 
-/** Folio correcto del MANUALES de ARVIZU tras el reinicio erróneo a 2671. */
-export const FOLIO_REPARACION_WINSTON_INICIO = 2848
+/** Folio de continuación tras BARREIRO 2836 (12-ago en orden de captura). */
+export const FOLIO_REPARACION_WINSTON_INICIO = 2837
+/** Último folio Winston general correcto antes del salto erróneo 2837–2847 (BARREIRO 11-ago). */
+export const FOLIO_REPARACION_WINSTON_ULTIMO_OK = 2836
+/** Desde esta fecha se renumeró mal al forzar ARVIZU en 2848. */
+export const FECHA_REPARACION_WINSTON_DESDE = '2026-08-12'
 
 export type ResultadoReparacionFoliosWinston =
   | {

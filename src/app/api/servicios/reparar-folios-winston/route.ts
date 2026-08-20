@@ -18,7 +18,7 @@ export const maxDuration = 60
  * GET ?lista=1&desdeFolio=2886&limit=10 — auditoría talonario (bloques de N).
  * GET ?fecha=2026-08-01 — todos los pagos de ese día (folio asc).
  * GET/POST ?dryRun=1 — simula renumeración + cancelación duplicados.
- * POST — aplica reparación Winston general desde 2848 (no cuota padres).
+ * POST — aplica reparación Winston general desde 2837 (continúa tras 2836; no cuota).
  */
 export async function GET(request: Request) {
   try {

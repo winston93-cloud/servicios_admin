@@ -194,7 +194,7 @@ export default function PagosInternosModulo() {
     cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloPago)
   }, [alumnoSeleccionado, cicloPago, cargarDatosAlumno])
 
-  // Una sola vez por carga: revalida consecutivo Winston desde 2848 (API admin).
+  // Una sola vez por carga: revalida consecutivo Winston desde 2837 (API admin).
   useEffect(() => {
     let cancelado = false
     void (async () => {
