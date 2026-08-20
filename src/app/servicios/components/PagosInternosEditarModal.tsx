@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Loader2, Pencil, Printer, Save, X } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Pencil, Printer, Save, X } from 'lucide-react'
 import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
 import {
   actualizarPagoInterno,
@@ -14,6 +14,7 @@ import {
   type ConceptoInterno,
   type PagoInternoRegistro,
 } from '@/lib/pagoInternoService'
+import { validarPinServicios } from '@/lib/validarPinServicios'
 
 type AlumnoCtx = {
   alumno_ref: string | number
@@ -57,6 +58,8 @@ export default function PagosInternosEditarModal({
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [imprimirTrasGuardar, setImprimirTrasGuardar] = useState(false)
+  const [pin, setPin] = useState('')
+  const [mostrarPin, setMostrarPin] = useState(false)
 
   const conceptosEditables = useMemo(
     () =>
@@ -76,6 +79,8 @@ export default function PagosInternosEditarModal({
     setError(null)
     setGuardando(false)
     setImprimirTrasGuardar(false)
+    setPin('')
+    setMostrarPin(false)
   }, [abierto, pago])
 
   useEffect(() => {
@@ -130,10 +135,19 @@ export default function PagosInternosEditarModal({
       setError(mensajeManualesRequiereCuotaPadres())
       return
     }
+    if (!pin.trim()) {
+      setError('Ingresa el PIN de acceso.')
+      return
+    }
     setGuardando(true)
     setImprimirTrasGuardar(imprimir)
     setError(null)
     try {
+      const check = await validarPinServicios(pin)
+      if (!check.ok) {
+        setError(check.mensaje)
+        return
+      }
       const res = await actualizarPagoInterno({
         pagoId: pago.pago_id,
         concepto_id: conceptoId,
@@ -146,6 +160,7 @@ export default function PagosInternosEditarModal({
         setError(res.mensaje)
         return
       }
+      setPin('')
       await onGuardado(res.pago, imprimir)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar')
@@ -288,6 +303,33 @@ export default function PagosInternosEditarModal({
             </select>
           </label>
 
+          <label className="pi-pin-field">
+            <span>PIN de acceso</span>
+            <span className="pi-pin-field__row">
+              <input
+                type={mostrarPin ? 'text' : 'password'}
+                className="pi-input"
+                autoComplete="off"
+                placeholder="PIN para guardar cambios"
+                value={pin}
+                disabled={ocupado}
+                onChange={(e) => {
+                  setPin(e.target.value)
+                  setError(null)
+                }}
+              />
+              <button
+                type="button"
+                className="pi-pin-field__eye"
+                disabled={ocupado}
+                aria-label={mostrarPin ? 'Ocultar PIN' : 'Mostrar PIN'}
+                onClick={() => setMostrarPin((v) => !v)}
+              >
+                {mostrarPin ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </span>
+          </label>
+
           {bloqueoManuales && (
             <p className="pi-msg pi-msg--error" role="alert">
               {mensajeManualesRequiereCuotaPadres()}
@@ -311,7 +353,7 @@ export default function PagosInternosEditarModal({
             <button
               type="button"
               className="pi-edit-btn pi-edit-btn--secondary"
-              disabled={ocupado || bloqueoManuales}
+              disabled={ocupado || bloqueoManuales || !pin.trim()}
               onClick={() => void guardar(false)}
             >
               {guardando && !imprimirTrasGuardar ? (
@@ -324,7 +366,7 @@ export default function PagosInternosEditarModal({
             <button
               type="submit"
               className="pi-edit-btn pi-edit-btn--primary"
-              disabled={ocupado || bloqueoManuales}
+              disabled={ocupado || bloqueoManuales || !pin.trim()}
             >
               {guardando && imprimirTrasGuardar ? (
                 <Loader2 size={16} className="pi-spin" aria-hidden />

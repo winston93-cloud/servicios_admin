@@ -1,6 +1,7 @@
 import { createHmac } from 'crypto'
 
-/** PIN compartido: catálogo de usuarios y cambiar plan (servicios). */
+/** PIN compartido: catálogo de usuarios, costos, cambiar plan y
+ *  cancelar/modificar pagos internos (servicios). */
 export const USUARIOS_PIN = '2671st'
 
 export const USUARIOS_AUTH_COOKIE = 'usuarios_catalogo_auth'

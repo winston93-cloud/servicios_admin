@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom'
 import {
   ArrowRightLeft,
   Ban,
+  Eye,
+  EyeOff,
   Loader2,
   ShieldAlert,
   X,
@@ -13,6 +15,7 @@ import type {
   ModoCancelacionPagoInterno,
   PagoInternoRegistro,
 } from '@/lib/pagoInternoService'
+import { validarPinServicios } from '@/lib/validarPinServicios'
 
 interface Props {
   abierto: boolean
@@ -33,35 +36,61 @@ export default function PagosInternosCancelarModal({
 }: Props) {
   const tituloId = useId()
   const [modo, setModo] = useState<ModoCancelacionPagoInterno | null>(null)
+  const [pin, setPin] = useState('')
+  const [mostrarPin, setMostrarPin] = useState(false)
+  const [validandoPin, setValidandoPin] = useState(false)
+  const [errorPin, setErrorPin] = useState<string | null>(null)
 
   useEffect(() => {
     if (!abierto) {
       setModo(null)
+      setPin('')
+      setMostrarPin(false)
+      setErrorPin(null)
+      setValidandoPin(false)
       return
     }
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !procesando) onCerrar()
+      if (e.key === 'Escape' && !procesando && !validandoPin) onCerrar()
     }
     window.addEventListener('keydown', onKey)
     return () => {
       document.body.style.overflow = prev
       window.removeEventListener('keydown', onKey)
     }
-  }, [abierto, onCerrar, procesando])
+  }, [abierto, onCerrar, procesando, validandoPin])
 
   if (!abierto || !pago || typeof document === 'undefined') return null
 
   const folio = pago.pago_folio
   const monto = Number(pago.pago_importe).toFixed(2)
+  const ocupado = procesando || validandoPin
+
+  const confirmar = async () => {
+    if (!modo) return
+    setErrorPin(null)
+    setValidandoPin(true)
+    try {
+      const check = await validarPinServicios(pin)
+      if (!check.ok) {
+        setErrorPin(check.mensaje)
+        return
+      }
+      setPin('')
+      onConfirmar(modo)
+    } finally {
+      setValidandoPin(false)
+    }
+  }
 
   return createPortal(
     <div
       className="pi-cancel-overlay"
       role="presentation"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget && !procesando) onCerrar()
+        if (e.target === e.currentTarget && !ocupado) onCerrar()
       }}
     >
       <div
@@ -85,7 +114,7 @@ export default function PagosInternosCancelarModal({
             type="button"
             className="pi-cancel-modal__close"
             onClick={onCerrar}
-            disabled={procesando}
+            disabled={ocupado}
             aria-label="Cerrar"
           >
             <X size={18} />
@@ -103,7 +132,7 @@ export default function PagosInternosCancelarModal({
             role="radio"
             aria-checked={modo === 'solo'}
             className={`pi-cancel-option ${modo === 'solo' ? 'pi-cancel-option--on' : ''}`}
-            disabled={procesando}
+            disabled={ocupado}
             onClick={() => setModo('solo')}
           >
             <span className="pi-cancel-option__icon pi-cancel-option__icon--ban">
@@ -124,7 +153,7 @@ export default function PagosInternosCancelarModal({
             role="radio"
             aria-checked={modo === 'recorrer'}
             className={`pi-cancel-option ${modo === 'recorrer' ? 'pi-cancel-option--on pi-cancel-option--shift' : ''}`}
-            disabled={procesando}
+            disabled={ocupado}
             onClick={() => setModo('recorrer')}
           >
             <span className="pi-cancel-option__icon pi-cancel-option__icon--shift">
@@ -142,25 +171,64 @@ export default function PagosInternosCancelarModal({
           </button>
         </div>
 
+        <label className="pi-pin-field">
+          <span>PIN de acceso</span>
+          <span className="pi-pin-field__row">
+            <input
+              type={mostrarPin ? 'text' : 'password'}
+              className="pi-input"
+              autoComplete="off"
+              inputMode="text"
+              placeholder="PIN para confirmar"
+              value={pin}
+              disabled={ocupado}
+              onChange={(e) => {
+                setPin(e.target.value)
+                setErrorPin(null)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && modo && pin.trim()) {
+                  e.preventDefault()
+                  void confirmar()
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="pi-pin-field__eye"
+              disabled={ocupado}
+              aria-label={mostrarPin ? 'Ocultar PIN' : 'Mostrar PIN'}
+              onClick={() => setMostrarPin((v) => !v)}
+            >
+              {mostrarPin ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </span>
+        </label>
+        {errorPin && (
+          <p className="pi-msg pi-msg--error" role="alert">
+            {errorPin}
+          </p>
+        )}
+
         <footer className="pi-cancel-modal__foot">
           <button
             type="button"
             className="pi-cancel-btn pi-cancel-btn--ghost"
             onClick={onCerrar}
-            disabled={procesando}
+            disabled={ocupado}
           >
             Volver
           </button>
           <button
             type="button"
             className="pi-cancel-btn pi-cancel-btn--danger"
-            disabled={!modo || procesando}
-            onClick={() => modo && onConfirmar(modo)}
+            disabled={!modo || ocupado || !pin.trim()}
+            onClick={() => void confirmar()}
           >
-            {procesando ? (
+            {ocupado ? (
               <>
                 <Loader2 size={16} className="pi-spin" aria-hidden />
-                Aplicando…
+                {validandoPin ? 'Validando…' : 'Aplicando…'}
               </>
             ) : (
               'Confirmar cancelación'
