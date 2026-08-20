@@ -17,6 +17,8 @@ import {
   PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
   PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN,
   PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON,
+  PAGO_INTERNO_FOLIO_CUOTA_WINSTON_INICIAL,
+  PAGO_INTERNO_FOLIO_CUOTA_WINSTON_TECHO,
   pagoPerteneceAPlantelSerie,
 } from '@/lib/pagoInternoPlantel'
 import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
@@ -1333,5 +1335,155 @@ export async function desplazarWinstonGeneralDesdeInsforge(
     desplazados: ordenados.length,
     siguienteFolio,
     mensaje: `Desplazados ${ordenados.length} pago(s) desde ${desdeFolio} (delta ${delta}). Siguiente ${siguienteFolio}.`,
+  }
+}
+
+/**
+ * Elimina duplicados de cuota Winston (cancela + saca del talón) y recorre
+ * el resto de la serie (p. ej. Paola 2402/2403 → Ramon 2402, María 2403).
+ */
+export async function compactarCuotaWinstonEliminarYRecorrerInsforge(
+  db: AppDatabaseClient,
+  opts: {
+    eliminarPagoIds: number[]
+    desplazarDesdeFolio: number
+    delta: number
+    dryRun?: boolean
+  }
+): Promise<{
+  ok: true
+  aplicada: boolean
+  eliminados: number
+  desplazados: number
+  siguienteFolio: number
+  detalle: string[]
+  mensaje: string
+} | { ok: false; mensaje: string }> {
+  const dryRun = opts.dryRun ?? false
+  const delta = Number(opts.delta)
+  const desde = Number(opts.desplazarDesdeFolio)
+  const eliminarIds = [...new Set(opts.eliminarPagoIds.map(Number).filter((n) => Number.isFinite(n) && n > 0))]
+
+  if (eliminarIds.length === 0) {
+    return { ok: false, mensaje: 'eliminarPagoIds vacío' }
+  }
+  if (!Number.isFinite(desde) || desde < PAGO_INTERNO_FOLIO_CUOTA_WINSTON_INICIAL) {
+    return { ok: false, mensaje: 'desplazarDesdeFolio inválido' }
+  }
+  if (!Number.isFinite(delta) || delta === 0 || Math.abs(delta) > 5) {
+    return { ok: false, mensaje: 'delta inválido (≠0, |delta|≤5)' }
+  }
+
+  const detalle: string[] = []
+  const ahora = new Date().toISOString()
+
+  for (const pagoId of eliminarIds) {
+    const { data: pago, error } = await db
+      .from('pago_interno')
+      .select(SELECT_PAGO)
+      .eq('pago_id', pagoId)
+      .maybeSingle()
+    if (error || !pago) {
+      return { ok: false, mensaje: error?.message ?? `Pago ${pagoId} no encontrado` }
+    }
+    const reg = pago as PagoInternoRow
+    if (!esCuota(Number(reg.concepto_id))) {
+      return { ok: false, mensaje: `pago_id ${pagoId} no es cuota de padres` }
+    }
+    const temp = FOLIO_TEMP_BASE + pagoId
+    detalle.push(
+      `eliminar cuota pago_id=${pagoId} folio ${reg.pago_folio}→${temp} (cancelado, fuera del talón)`
+    )
+    if (!dryRun) {
+      const { error: upErr } = await db
+        .from('pago_interno')
+        .update({
+          pago_cancelado: 1,
+          pago_folio: temp,
+          pago_actualizacion: ahora,
+        })
+        .eq('pago_id', pagoId)
+      if (upErr) return { ok: false, mensaje: upErr.message }
+    }
+  }
+
+  const pageSize = 1000
+  const candidatos: PagoInternoRow[] = []
+  let from = 0
+  for (;;) {
+    const { data, error: listErr } = await db
+      .from('pago_interno')
+      .select(SELECT_PAGO)
+      .gte('pago_folio', desde)
+      .lt('pago_folio', PAGO_INTERNO_FOLIO_CUOTA_WINSTON_TECHO)
+      .eq('pago_cancelado', 0)
+      .in('concepto_id', [...CONCEPTOS_CUOTA_PADRES])
+      .order('pago_folio', { ascending: delta < 0 })
+      .order('pago_id', { ascending: delta < 0 })
+      .range(from, from + pageSize - 1)
+    if (listErr) return { ok: false, mensaje: listErr.message }
+    const batch = (data ?? []) as PagoInternoRow[]
+    candidatos.push(...batch)
+    if (batch.length < pageSize) break
+    from += pageSize
+  }
+
+  const alumnoIds = [...new Set(candidatos.map((p) => Number(p.alumno_id)).filter(Boolean))]
+  const metas = await metaAlumnos(db, alumnoIds)
+  const aMover = candidatos.filter((p) => {
+    if (eliminarIds.includes(Number(p.pago_id))) return false
+    const meta = p.alumno_id != null ? metas.get(Number(p.alumno_id)) : null
+    if (!meta) return false
+    return pagoPerteneceAPlantelSerie({
+      plantel: 'winston',
+      alumnoNivel: meta.nivel,
+      alumnoRef: meta.ref,
+    })
+  })
+
+  const ordenados =
+    delta > 0
+      ? [...aMover].sort(
+          (a, b) => Number(b.pago_folio) - Number(a.pago_folio) || Number(b.pago_id) - Number(a.pago_id)
+        )
+      : [...aMover].sort(
+          (a, b) => Number(a.pago_folio) - Number(b.pago_folio) || Number(a.pago_id) - Number(b.pago_id)
+        )
+
+  detalle.push(`recorrer cuota Winston desde ${desde} delta ${delta}: ${ordenados.length} pago(s)`)
+
+  if (!dryRun) {
+    for (const fila of ordenados) {
+      const { error: shiftErr } = await db
+        .from('pago_interno')
+        .update({
+          pago_folio: Number(fila.pago_folio) + delta,
+          pago_actualizacion: ahora,
+        })
+        .eq('pago_id', fila.pago_id)
+        .eq('pago_cancelado', 0)
+      if (shiftErr) {
+        return {
+          ok: false,
+          mensaje: `Error al recorrer folio ${fila.pago_folio}: ${shiftErr.message}`,
+        }
+      }
+    }
+  }
+
+  const siguienteFolio = dryRun
+    ? (await obtenerSiguienteFolioPago('winston', 'cuota_padres', db)) + delta
+    : await obtenerSiguienteFolioPago('winston', 'cuota_padres', db)
+
+  return {
+    ok: true,
+    aplicada: !dryRun,
+    eliminados: eliminarIds.length,
+    desplazados: ordenados.length,
+    siguienteFolio,
+    detalle,
+    mensaje: dryRun
+      ? `[dry-run] Eliminar ${eliminarIds.length} duplicado(s) y recorrer ${ordenados.length} cuota(s) delta ${delta}. Siguiente→${siguienteFolio}.`
+      : `Eliminados ${eliminarIds.length} duplicado(s); recorridos ${ordenados.length} cuota(s) delta ${delta}. Siguiente ${siguienteFolio}.`,
   }
 }

@@ -3,6 +3,7 @@ import { createDbAdmin } from '@/lib/insforgeAdmin'
 import {
   auditarFoliosWinstonGeneral,
   cancelarRecorrerWinstonGeneralInsforge,
+  compactarCuotaWinstonEliminarYRecorrerInsforge,
   desplazarWinstonGeneralDesdeInsforge,
   diagnosticarFoliosWinstonGeneralInsforge,
   listarAuditoriaFoliosWinston,
@@ -20,6 +21,7 @@ export const maxDuration = 60
  * GET ?lista=1&desdeFolio=2886&limit=10 — auditoría talonario (bloques de N).
  * GET ?fecha=2026-08-01 — todos los pagos de ese día (folio asc).
  * GET/POST ?dryRun=1 — simula renumeración + cancelación duplicados.
+ * POST ?eliminarCuotaPagoIds=20334,20336&cuotaDesplazarDesde=2404&cuotaDelta=-2 — cuota Winston.
  * POST ?cancelarRecorrerPagoId=20526 — stub cancelado en N y recorre Winston general +1.
  * POST — aplica reparación Winston general desde 2837 (continúa tras 2836; no cuota).
  */
@@ -162,6 +164,19 @@ export async function POST(request: Request) {
     if (cancelarRecorrerPagoId) {
       const res = await cancelarRecorrerWinstonGeneralInsforge(db, {
         pagoId: Number(cancelarRecorrerPagoId),
+        dryRun,
+      })
+      return NextResponse.json(res, { status: res.ok ? 200 : 400 })
+    }
+
+    const eliminarCuotaIds = searchParams.get('eliminarCuotaPagoIds')
+    const cuotaDesde = searchParams.get('cuotaDesplazarDesde')
+    const cuotaDelta = searchParams.get('cuotaDelta')
+    if (eliminarCuotaIds && cuotaDesde && cuotaDelta) {
+      const res = await compactarCuotaWinstonEliminarYRecorrerInsforge(db, {
+        eliminarPagoIds: eliminarCuotaIds.split(',').map((x) => Number(x.trim())),
+        desplazarDesdeFolio: Number(cuotaDesde),
+        delta: Number(cuotaDelta),
         dryRun,
       })
       return NextResponse.json(res, { status: res.ok ? 200 : 400 })
