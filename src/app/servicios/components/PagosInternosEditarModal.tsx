@@ -194,9 +194,7 @@ export default function PagosInternosEditarModal({
           </div>
           <div className="pi-edit-modal__titles">
             <h2 id={tituloId}>Modificar pago</h2>
-            <p>
-              Folio <strong>№ {pago.pago_folio}</strong> · {nombreAlumno}
-            </p>
+            <p className="pi-edit-modal__alumno">{nombreAlumno}</p>
           </div>
           <button
             type="button"
@@ -209,6 +207,12 @@ export default function PagosInternosEditarModal({
           </button>
         </header>
 
+        <div className="pi-edit-modal__meta" aria-label="Folio del recibo">
+          <span className="pi-edit-modal__meta-label">Folio</span>
+          <span className="pi-edit-modal__meta-folio">№ {pago.pago_folio}</span>
+          <span className="pi-edit-modal__meta-hint">No editable · protege el talón</span>
+        </div>
+
         <form
           className="pi-edit-form"
           onSubmit={(e) => {
@@ -216,99 +220,95 @@ export default function PagosInternosEditarModal({
             void guardar(true)
           }}
         >
-          <label>
-            Alumno
-            <input type="text" readOnly value={nombreAlumno} className="pi-input pi-input--ro" />
-          </label>
-          <label>
-            Folio
-            <input
-              type="number"
-              readOnly
-              className="pi-input pi-input--ro"
-              value={pago.pago_folio}
-              title="El folio no se modifica (protege el talón)"
-              aria-label="Folio del recibo (no editable)"
-            />
-          </label>
-          <label>
-            Concepto
-            <select
-              className="pi-select"
-              value={conceptoId || ''}
-              disabled={ocupado}
-              onChange={(e) => void onCambioConcepto(Number(e.target.value))}
-            >
-              <option value="">No seleccionado</option>
-              {conceptosEditables.map((c) => (
-                <option key={c.concepto_id} value={c.concepto_id}>
-                  {c.concepto_clase}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Concepto extra
-            <input
-              type="text"
-              className="pi-input"
-              maxLength={50}
-              placeholder="Texto extra al concepto…"
-              value={conceptoOtro}
-              disabled={ocupado}
-              onChange={(e) => setConceptoOtro(e.target.value)}
-            />
-          </label>
-          <label>
-            Monto
-            <input
-              type="number"
-              min={0}
-              step={0.01}
-              className="pi-input"
-              value={importe}
-              disabled={ocupado}
-              onChange={(e) =>
-                setImporte(e.target.value === '' ? '' : Number(e.target.value))
-              }
-            />
-          </label>
-          <label>
-            Fecha de pago
-            <input
-              type="date"
-              className="pi-input"
-              value={fechaPago}
-              disabled={ocupado}
-              onChange={(e) => setFechaPago(e.target.value)}
-            />
-          </label>
-          <label>
-            Ciclo escolar
-            <select
-              className="pi-select"
-              value={String(cicloPago)}
-              disabled={ocupado}
-              onChange={(e) => {
-                const c = Number(e.target.value)
-                setCicloPago(c)
-                if (conceptoId > 0) void aplicarPrecio(conceptoId, c)
-              }}
-            >
-              {opcionesCiclo.map((o) => (
-                <option key={o.valor} value={o.valor}>
-                  {o.etiqueta}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="pi-edit-grid">
+            <label className="pi-edit-field pi-edit-field--full">
+              <span>Alumno</span>
+              <input
+                type="text"
+                readOnly
+                value={nombreAlumno}
+                className="pi-edit-control pi-edit-control--ro"
+              />
+            </label>
+            <label className="pi-edit-field pi-edit-field--full">
+              <span>Concepto</span>
+              <select
+                className="pi-edit-control"
+                value={conceptoId || ''}
+                disabled={ocupado}
+                onChange={(e) => void onCambioConcepto(Number(e.target.value))}
+              >
+                <option value="">No seleccionado</option>
+                {conceptosEditables.map((c) => (
+                  <option key={c.concepto_id} value={c.concepto_id}>
+                    {c.concepto_clase}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="pi-edit-field pi-edit-field--full">
+              <span>Concepto extra</span>
+              <input
+                type="text"
+                className="pi-edit-control"
+                maxLength={50}
+                placeholder="Texto extra al concepto…"
+                value={conceptoOtro}
+                disabled={ocupado}
+                onChange={(e) => setConceptoOtro(e.target.value)}
+              />
+            </label>
+            <label className="pi-edit-field">
+              <span>Monto</span>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                className="pi-edit-control"
+                value={importe}
+                disabled={ocupado}
+                onChange={(e) =>
+                  setImporte(e.target.value === '' ? '' : Number(e.target.value))
+                }
+              />
+            </label>
+            <label className="pi-edit-field">
+              <span>Fecha de pago</span>
+              <input
+                type="date"
+                className="pi-edit-control"
+                value={fechaPago}
+                disabled={ocupado}
+                onChange={(e) => setFechaPago(e.target.value)}
+              />
+            </label>
+            <label className="pi-edit-field pi-edit-field--full">
+              <span>Ciclo escolar</span>
+              <select
+                className="pi-edit-control"
+                value={String(cicloPago)}
+                disabled={ocupado}
+                onChange={(e) => {
+                  const c = Number(e.target.value)
+                  setCicloPago(c)
+                  if (conceptoId > 0) void aplicarPrecio(conceptoId, c)
+                }}
+              >
+                {opcionesCiclo.map((o) => (
+                  <option key={o.valor} value={o.valor}>
+                    {o.etiqueta}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
 
-          <label className="pi-pin-field">
-            <span>PIN de acceso</span>
-            <span className="pi-pin-field__row">
+          <div className="pi-edit-pin">
+            <span className="pi-edit-pin__label">PIN de acceso</span>
+            <div className="pi-edit-pin__row">
               <input
                 type={mostrarPin ? 'text' : 'password'}
-                className="pi-input"
+                className="pi-edit-control"
                 autoComplete="off"
                 placeholder="PIN para guardar cambios"
                 value={pin}
@@ -320,23 +320,23 @@ export default function PagosInternosEditarModal({
               />
               <button
                 type="button"
-                className="pi-pin-field__eye"
+                className="pi-edit-pin__eye"
                 disabled={ocupado}
                 aria-label={mostrarPin ? 'Ocultar PIN' : 'Mostrar PIN'}
                 onClick={() => setMostrarPin((v) => !v)}
               >
                 {mostrarPin ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
-            </span>
-          </label>
+            </div>
+          </div>
 
           {bloqueoManuales && (
-            <p className="pi-msg pi-msg--error" role="alert">
+            <p className="pi-edit-alert pi-edit-alert--error" role="alert">
               {mensajeManualesRequiereCuotaPadres()}
             </p>
           )}
           {error && (
-            <p className="pi-msg pi-msg--error" role="alert">
+            <p className="pi-edit-alert pi-edit-alert--error" role="alert">
               {error}
             </p>
           )}
