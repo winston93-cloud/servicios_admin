@@ -1,8 +1,8 @@
 /**
  * Reparación idempotente del consecutivo Winston general (no cuota de padres).
  * Continúa el talón tras BARREIRO 2836 → siguiente 2837 (12-ago en orden de captura).
- * Incluye cancelados que ocupan número en el talón físico (no reutilizar folio).
- * Sombras de dedupe (mismo folio que el vigente conservado) salen a 9xxxxx.
+ * Incluye cancelados que ocupan talón (redo Emma / stub recorrer).
+ * Duplicados cancelados del mismo alumno (mismo folio) salen a 9xxxxx.
  */
 import type { AppDatabaseClient } from '@/lib/dbTypes'
 import {
@@ -432,7 +432,7 @@ export type PlanReparacionWinston = {
  * Plan: deja intacto ≤2836 (11-ago BARREIRO).
  * Renumerar Winston general (vigentes + cancelados que ocupan talón) con fecha
  * ≥12-ago desde 2837, orden: pago_fecha → pago_registro → pago_id.
- * Cancelados «sombra» (dedupe mismo folio) salen del consecutivo.
+ * Cancelados duplicados del mismo alumno (no redo / no stub recorrer) salen del consecutivo.
  */
 export async function construirPlanReparacionWinston(
   db: AppDatabaseClient,
@@ -495,7 +495,7 @@ export async function construirPlanReparacionWinston(
     })
   })
 
-  const { enTalon, sombras } = separarSombrasDuplicadoMismoFolio(candidatos)
+  const { enTalon, sombras } = separarCanceladosFueraDeTalon(candidatos)
 
   const aReparar = enTalon.sort((a, b) => {
     const fa = String(a.pago_fecha ?? '')
