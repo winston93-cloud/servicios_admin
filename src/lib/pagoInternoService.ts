@@ -17,6 +17,7 @@ import {
   PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN,
   PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR,
   PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON,
+  PAGO_INTERNO_WINSTON_TALON_ACTUAL_DESDE,
 } from './pagoInternoPlantel'
 import { ALUMNO_REF_EXTERNO } from './alumnoBusquedaServicios'
 
@@ -40,6 +41,7 @@ export {
   PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN,
   PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR,
   PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON,
+  PAGO_INTERNO_WINSTON_TALON_ACTUAL_DESDE,
   type AccesoPagosInternosUsuario,
   type PlantelPagosInternos,
   type TipoSerieFolioPagoInterno,
@@ -614,7 +616,7 @@ export async function obtenerSiguienteFolioPago(
   for (let pass = 0; pass < 20; pass++) {
     let q = db
       .from('pago_interno')
-      .select('pago_folio, alumno_id, concepto_id')
+      .select('pago_folio, alumno_id, concepto_id, pago_fecha')
       .gte('pago_folio', inicial)
       .order('pago_folio', { ascending: false })
       .range(from, from + pageSize - 1)
@@ -625,6 +627,11 @@ export async function obtenerSiguienteFolioPago(
       q = q.in('concepto_id', [...CONCEPTOS_CUOTA_PADRES])
     } else {
       q = q.not('concepto_id', 'in', `(${CONCEPTOS_CUOTA_PADRES.join(',')})`)
+    }
+
+    // Winston general: ignorar histórico pre-talonario (36xx–39xx de 2024, etc.).
+    if (plantel === 'winston' && tipoSerie === 'general') {
+      q = q.gte('pago_fecha', PAGO_INTERNO_WINSTON_TALON_ACTUAL_DESDE)
     }
 
     const { data, error } = await q
@@ -700,12 +707,11 @@ export async function obtenerSiguienteFolioPago(
 }
 
 /**
- * Tip del talón Winston general (zona ya filtrada, p. ej. &lt; 3200).
+ * Tip del talón Winston general (zona ya filtrada hasta legacy &lt; 4000).
  *
- * Usa el máximo de la serie filtrada. No sembrar desde 2671 ni caminar hacia
- * adelante con huecos: eso reiniciaba el consecutivo cuando había un hueco
- * histórico grande (p. ej. 2700 → 2837 → siguiente 2701, caso ARVIZU).
- * Legacy alto queda fuera por `PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON`.
+ * Usa el máximo de la serie filtrada (plantel + conceptos + fecha del talón
+ * actual). No sembrar desde 2671: un hueco histórico reiniciaba el consecutivo.
+ * Legacy ≥4000 queda fuera por techo; 36xx–39xx viejos por fecha ≥ 2026-01-01.
  */
 export function maxConsecutivoTalonWinston(
   foliosAsc: number[],
@@ -1199,6 +1205,10 @@ export async function cancelarPagoInternoYRecorrer(opts: {
   }
   if (serie.tipoSerie === 'cuota_padres') {
     listQ = listQ.in('concepto_id', [...CONCEPTOS_CUOTA_PADRES])
+  }
+  // No desplazar histórico 36xx–39xx al recorrer el talón actual.
+  if (serie.plantel === 'winston' && serie.tipoSerie === 'general') {
+    listQ = listQ.gte('pago_fecha', PAGO_INTERNO_WINSTON_TALON_ACTUAL_DESDE)
   }
 
   const { data: filasRaw, error: listErr } = await listQ

@@ -17,6 +17,7 @@ import {
   PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
   PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN,
   PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON,
+  PAGO_INTERNO_WINSTON_TALON_ACTUAL_DESDE,
   PAGO_INTERNO_FOLIO_CUOTA_WINSTON_INICIAL,
   PAGO_INTERNO_FOLIO_CUOTA_WINSTON_TECHO,
   pagoPerteneceAPlantelSerie,
@@ -1117,6 +1118,7 @@ export async function cancelarRecorrerWinstonGeneralInsforge(
       .select(SELECT_PAGO)
       .gte('pago_folio', folioOrig)
       .lt('pago_folio', PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON)
+      .gte('pago_fecha', PAGO_INTERNO_WINSTON_TALON_ACTUAL_DESDE)
       .eq('pago_cancelado', 0)
       .order('pago_folio', { ascending: false })
       .order('pago_id', { ascending: false })
@@ -1262,6 +1264,7 @@ export async function desplazarWinstonGeneralDesdeInsforge(
       .select(SELECT_PAGO)
       .gte('pago_folio', desdeFolio)
       .lt('pago_folio', PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON)
+      .gte('pago_fecha', PAGO_INTERNO_WINSTON_TALON_ACTUAL_DESDE)
       .eq('pago_cancelado', 0)
       .order('pago_folio', { ascending: delta < 0 })
       .order('pago_id', { ascending: delta < 0 })
