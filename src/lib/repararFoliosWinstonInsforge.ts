@@ -117,28 +117,31 @@ async function fetchPagosDesdeFecha(
 }
 
 /**
- * En un mismo folio pueden convivir:
- * - cancel-then-redo (Emma): cancelado con pago_id menor que el vigente → ambos
- *   ocupan número en el talón (2957 cancelado, 2958 redo).
- * - sombra de dedupe (RAHI): cancelado con pago_id mayor, mismo folio que el
- *   vigente conservado → no ocupa slot extra; se mueve fuera del talón.
+ * Dos modos de cancelación en pagos internos vs talón físico:
+ *
+ * 1) Mismo folio / duplicado: capturas de más del mismo alumno+concepto+fecha
+ *    canceladas después del vigente → no ocupan número (Alonso 2961/2962).
+ *    También dedupe (RAHI) que quedó en el mismo folio que el vigente.
+ *
+ * 2) Cancelar y siguiente del mismo alumno:
+ *    - Solo cancelar + recaptura: cancelado (pago_id menor) quema N; redo = N+1 (Emma).
+ *    - Cancelar y recorrer: stub cancelado en N y contenido vigente en N+1.
  */
-export function separarSombrasDuplicadoMismoFolio(rows: PagoInternoRow[]): {
+export function separarCanceladosFueraDeTalon(rows: PagoInternoRow[]): {
   enTalon: PagoInternoRow[]
   sombras: PagoInternoRow[]
 } {
-  const porFolio = new Map<number, PagoInternoRow[]>()
+  const porGrupo = new Map<string, PagoInternoRow[]>()
   for (const p of rows) {
-    const f = Number(p.pago_folio)
-    if (!Number.isFinite(f)) continue
-    if (!porFolio.has(f)) porFolio.set(f, [])
-    porFolio.get(f)!.push(p)
+    const key = `${Number(p.alumno_id)}|${Number(p.concepto_id)}|${String(p.pago_fecha ?? '').slice(0, 10)}`
+    if (!porGrupo.has(key)) porGrupo.set(key, [])
+    porGrupo.get(key)!.push(p)
   }
 
   const enTalon: PagoInternoRow[] = []
   const sombras: PagoInternoRow[] = []
 
-  for (const list of porFolio.values()) {
+  for (const list of porGrupo.values()) {
     const vigentes = list.filter((p) => Number(p.pago_cancelado) === 0)
     const cancelados = list.filter((p) => Number(p.pago_cancelado) === 1)
 
@@ -148,17 +151,36 @@ export function separarSombrasDuplicadoMismoFolio(rows: PagoInternoRow[]): {
     }
 
     enTalon.push(...vigentes)
-    const minVigenteId = Math.min(...vigentes.map((p) => Number(p.pago_id)))
+    const maxVigenteId = Math.max(...vigentes.map((p) => Number(p.pago_id)))
+
     for (const c of cancelados) {
-      if (Number(c.pago_id) < minVigenteId) {
+      const cid = Number(c.pago_id)
+      const cFolio = Number(c.pago_folio)
+
+      // Emma: canceló y luego recapturó (vigente con pago_id mayor).
+      if (cid < maxVigenteId) {
         enTalon.push(c)
-      } else {
-        sombras.push(c)
+        continue
       }
+
+      // Recorrer: stub cancelado en N y contenido del mismo alumno en N+1.
+      const esStubRecorrer = vigentes.some((v) => Number(v.pago_folio) === cFolio + 1)
+      if (esStubRecorrer) {
+        enTalon.push(c)
+        continue
+      }
+
+      // Duplicado / mismo folio: no ocupa talón (Alonso, RAHI dedupe).
+      sombras.push(c)
     }
   }
 
   return { enTalon, sombras }
+}
+
+/** @deprecated alias — usar separarCanceladosFueraDeTalon */
+export function separarSombrasDuplicadoMismoFolio(rows: PagoInternoRow[]) {
+  return separarCanceladosFueraDeTalon(rows)
 }
 
 async function fetchStuck2671(db: AppDatabaseClient): Promise<PagoInternoRow[]> {
