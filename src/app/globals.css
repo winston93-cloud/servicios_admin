@@ -12107,10 +12107,238 @@ html[data-theme='dark'] .servicios-sidebar-logout {
   color: #fff;
 }
 
+.pi-icon-btn--edit {
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.16);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
+.pi-icon-btn--edit:hover {
+  background: rgba(245, 158, 11, 0.28);
+  color: #fffbeb;
+}
+
 html[data-theme='light'] .pi-icon-btn--cancel {
   color: #b91c1c;
   background: rgba(254, 226, 226, 0.9);
   border-color: rgba(248, 113, 113, 0.55);
+}
+
+html[data-theme='light'] .pi-icon-btn--edit {
+  color: #b45309;
+  background: rgba(254, 243, 199, 0.95);
+  border-color: rgba(251, 191, 36, 0.55);
+}
+
+/* —— Editar pago interno (modal) —— */
+.pi-edit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: max(0.75rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background:
+    radial-gradient(ellipse at 25% 15%, rgba(251, 191, 36, 0.14), transparent 45%),
+    radial-gradient(ellipse at 80% 85%, rgba(14, 165, 233, 0.1), transparent 40%),
+    rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(8px);
+  animation: pi-cancel-fade 0.18s ease-out;
+}
+
+.pi-edit-modal {
+  width: min(440px, 100%);
+  margin: 1.5rem auto;
+  border-radius: 18px;
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  background:
+    linear-gradient(165deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 24px 60px rgba(0, 0, 0, 0.45);
+  color: #e2e8f0;
+  animation: pi-cancel-pop 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pi-edit-modal__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1.15rem 1.15rem 0.5rem;
+}
+
+.pi-edit-modal__badge {
+  flex-shrink: 0;
+  width: 2.6rem;
+  height: 2.6rem;
+  min-width: var(--touch-min, 44px);
+  min-height: var(--touch-min, 44px);
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #fde68a;
+  background: linear-gradient(145deg, rgba(245, 158, 11, 0.35), rgba(146, 64, 14, 0.45));
+  border: 1px solid rgba(252, 211, 77, 0.35);
+}
+
+.pi-edit-modal__titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.pi-edit-modal__titles h2 {
+  margin: 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff6df;
+}
+
+.pi-edit-modal__titles p {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.pi-edit-modal__titles strong {
+  color: #fde68a;
+}
+
+.pi-edit-modal__close {
+  flex-shrink: 0;
+  width: var(--touch-min, 44px);
+  height: var(--touch-min, 44px);
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.pi-edit-modal__close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+}
+
+.pi-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem 1.15rem 1.15rem;
+}
+
+.pi-edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff6df;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.pi-edit-form .pi-input,
+.pi-edit-form .pi-select {
+  font-size: 16px;
+}
+
+.pi-edit-modal__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+}
+
+.pi-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: var(--touch-min, 44px);
+  padding: 0.55rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pi-edit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pi-edit-btn--ghost {
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+.pi-edit-btn--secondary {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fde68a;
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.pi-edit-btn--primary {
+  background: linear-gradient(145deg, #f59e0b, #d97706);
+  color: #1c1917;
+  border-color: rgba(253, 230, 138, 0.4);
+}
+
+html[data-theme='light'] .pi-edit-modal {
+  background: linear-gradient(165deg, #fff, #f8fafc);
+  border-color: rgba(217, 119, 6, 0.25);
+  color: #0f172a;
+}
+
+html[data-theme='light'] .pi-edit-modal__titles h2 {
+  color: #92400e;
+}
+
+html[data-theme='light'] .pi-edit-modal__titles p {
+  color: #64748b;
+}
+
+html[data-theme='light'] .pi-edit-modal__titles strong {
+  color: #b45309;
+}
+
+html[data-theme='light'] .pi-edit-form label {
+  color: #92400e;
+}
+
+html[data-theme='light'] .pi-edit-btn--ghost {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+html[data-theme='light'] .pi-edit-btn--secondary {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+html[data-theme='light'] .pi-edit-btn--primary {
+  color: #1c1917;
+}
+
+@media (max-width: 480px) {
+  .pi-edit-modal__foot {
+    flex-direction: column-reverse;
+  }
+
+  .pi-edit-btn {
+    width: 100%;
+  }
 }
 
 /* —— Cancelar pago interno (modal) —— */

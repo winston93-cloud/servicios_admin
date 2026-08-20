@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ListOrdered, Loader2, Plus, Printer, Settings2, Wallet, Trash2 } from 'lucide-react'
+import { ListOrdered, Loader2, Pencil, Plus, Printer, Settings2, Wallet, Trash2 } from 'lucide-react'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { useAuth } from '@/contexts/AuthContext'
 import { useAlumnoSeleccionado } from '@/contexts/AlumnoSeleccionadoContext'
@@ -37,6 +37,7 @@ import {
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
 import PagosInternosCatalogoModal from '../components/PagosInternosCatalogoModal'
 import PagosInternosCancelarModal from '../components/PagosInternosCancelarModal'
+import PagosInternosEditarModal from '../components/PagosInternosEditarModal'
 import PagosInternosListadoModal from '../components/PagosInternosListadoModal'
 import ValePagoInternoPrint, {
   imprimirValePagoInterno,
@@ -71,6 +72,7 @@ export default function PagosInternosModulo() {
   const [listadoAbierto, setListadoAbierto] = useState(false)
   const [valeImpresion, setValeImpresion] = useState<DatosValePagoInterno | null>(null)
   const [pagoCancelar, setPagoCancelar] = useState<PagoInternoRegistro | null>(null)
+  const [pagoEditar, setPagoEditar] = useState<PagoInternoRegistro | null>(null)
   const [cancelando, setCancelando] = useState(false)
 
   const [guardando, setGuardando] = useState(false)
@@ -309,6 +311,29 @@ export default function PagosInternosModulo() {
       setMensaje(`Reimpresión folio ${pago.pago_folio} (sin nuevo registro).`)
     },
     [alumnoSeleccionado, cicloPago, prepararValeImpresion]
+  )
+
+  const onPagoEditado = useCallback(
+    async (pagoActualizado: PagoInternoRegistro, imprimir: boolean) => {
+      setPagoEditar(null)
+      setMensaje(`Pago folio ${pagoActualizado.pago_folio} actualizado.`)
+      if (alumnoSeleccionado) {
+        await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloPago)
+      }
+      if (imprimir) {
+        const cicloVale = pagoActualizado.pago_ciclo_escolar ?? cicloPago
+        const datos = await prepararValeImpresion(
+          pagoActualizado.concepto_id,
+          Number(pagoActualizado.pago_importe),
+          String(pagoActualizado.pago_fecha ?? hoyIso()),
+          cicloVale,
+          pagoActualizado.concepto_otro ?? undefined
+        )
+        if (datos) imprimirValePagoInterno(datos)
+        setMensaje(`Pago folio ${pagoActualizado.pago_folio} actualizado e impreso.`)
+      }
+    },
+    [alumnoSeleccionado, cicloPago, cargarDatosAlumno, prepararValeImpresion]
   )
 
   const onConfirmarCancelacion = useCallback(
@@ -850,6 +875,7 @@ export default function PagosInternosModulo() {
                         <th>Fecha</th>
                         <th>Estado</th>
                         <th className="pi-historial-col-accion">Recibo</th>
+                        <th className="pi-historial-col-accion">Editar</th>
                         <th className="pi-historial-col-accion">Cancelar</th>
                       </tr>
                     </thead>
@@ -891,6 +917,27 @@ export default function PagosInternosModulo() {
                             >
                               <Printer size={16} aria-hidden />
                             </button>
+                          </td>
+                          <td className="pi-historial-col-accion">
+                            {cancelado ? (
+                              <span className="pi-historial-accion-vacia" aria-hidden>
+                                —
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                className="pi-icon-btn pi-icon-btn--edit"
+                                title={`Modificar folio ${p.pago_folio}`}
+                                aria-label={`Modificar pago folio ${p.pago_folio}`}
+                                onClick={() => {
+                                  setError(null)
+                                  setMensaje(null)
+                                  setPagoEditar(p)
+                                }}
+                              >
+                                <Pencil size={16} aria-hidden />
+                              </button>
+                            )}
                           </td>
                           <td className="pi-historial-col-accion">
                             {cancelado ? (
@@ -956,6 +1003,20 @@ export default function PagosInternosModulo() {
           if (!cancelando) setPagoCancelar(null)
         }}
         onConfirmar={(modo) => void onConfirmarCancelacion(modo)}
+      />
+
+      <PagosInternosEditarModal
+        abierto={pagoEditar != null}
+        pago={pagoEditar}
+        nombreAlumno={nombreAlumno}
+        conceptos={conceptosOrdenados}
+        opcionesCiclo={opcionesCatalogo}
+        alumno={alumnoSeleccionado}
+        cuotaPadresPagada={cuotaPadresPagada}
+        onCerrar={() => setPagoEditar(null)}
+        onGuardado={(pagoActualizado, imprimir) =>
+          void onPagoEditado(pagoActualizado, imprimir)
+        }
       />
 
       <ValePagoInternoPrint datos={valeImpresion} />
