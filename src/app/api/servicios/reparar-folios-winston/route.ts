@@ -66,6 +66,31 @@ export async function GET(request: Request) {
       return NextResponse.json(res, { status: res.ok ? 200 : 400 })
     }
 
+    // Ajuste puntual: alinear pago_registro de un stub cancelado (recorrer).
+    const fixStubRegistroId = searchParams.get('fixStubRegistroPagoId')
+    const fixStubAntesDe = searchParams.get('antesDeRegistro')
+    if (fixStubRegistroId && fixStubAntesDe) {
+      const t = Date.parse(fixStubAntesDe)
+      if (!Number.isFinite(t)) {
+        return NextResponse.json({ ok: false, mensaje: 'antesDeRegistro inválido' }, { status: 400 })
+      }
+      const stubRegistro = new Date(t - 1).toISOString()
+      const { error } = await db
+        .from('pago_interno')
+        .update({ pago_registro: stubRegistro })
+        .eq('pago_id', Number(fixStubRegistroId))
+        .eq('pago_cancelado', 1)
+      if (error) {
+        return NextResponse.json({ ok: false, mensaje: error.message }, { status: 500 })
+      }
+      return NextResponse.json({
+        ok: true,
+        pago_id: Number(fixStubRegistroId),
+        pago_registro: stubRegistro,
+        mensaje: `Stub ${fixStubRegistroId} registro→${stubRegistro}`,
+      })
+    }
+
     const dryRun = searchParams.get('dryRun') === '1'
     const res = await repararFoliosWinstonGeneralInsforge(db, {
       dryRun,
