@@ -586,6 +586,74 @@ export async function listarAuditoriaFoliosWinston(
   }
 }
 
+/** Lista pagos internos por fecha de pago (todas las series; para auditar talón día a día). */
+export async function listarPagosInternosPorFecha(
+  db: AppDatabaseClient,
+  opts: { fecha: string; limit?: number }
+): Promise<{
+  fecha: string
+  filas: FilaAuditoriaFolioWinston[]
+  mensaje: string
+}> {
+  const fecha = String(opts.fecha).slice(0, 10)
+  const limit = Math.min(Math.max(Math.floor(opts.limit ?? 200), 1), 500)
+
+  const { data, error } = await db
+    .from('pago_interno')
+    .select(SELECT_PAGO)
+    .eq('pago_fecha', fecha)
+    .order('pago_folio', { ascending: true })
+    .order('pago_id', { ascending: true })
+    .limit(limit)
+  if (error) throw new Error(error.message)
+
+  const rows = (data ?? []) as PagoInternoRow[]
+  const alumnoIds = [...new Set(rows.map((p) => Number(p.alumno_id)).filter(Boolean))]
+  const [niveles, alumnos, conceptos] = await Promise.all([
+    nivelesPorAlumno(db, alumnoIds),
+    enriquecerAlumnos(db, alumnoIds),
+    (async () => {
+      const { data: c, error: e } = await db
+        .from('concepto_interno')
+        .select('concepto_id, concepto_clase')
+        .limit(200)
+      if (e) throw new Error(e.message)
+      const m = new Map<number, string>()
+      for (const row of c ?? []) {
+        m.set(Number(row.concepto_id), String(row.concepto_clase ?? ''))
+      }
+      return m
+    })(),
+  ])
+
+  const filas: FilaAuditoriaFolioWinston[] = rows.map((p) => {
+    const meta = alumnos.get(Number(p.alumno_id))
+    const nivel = p.alumno_id != null ? niveles.get(Number(p.alumno_id)) : null
+    const plantel =
+      nivel == null ? '?' : plantelPagoDesdeNivel(nivel) === 'winston' ? 'W' : 'E'
+    const cuota = esCuota(Number(p.concepto_id)) ? 'cuota' : 'general'
+    return {
+      folio: Number(p.pago_folio),
+      pago_id: Number(p.pago_id),
+      alumno: meta?.nombre ?? `#${p.alumno_id}`,
+      alumno_ref: meta?.ref ?? null,
+      concepto_id: Number(p.concepto_id),
+      concepto: `${conceptos.get(Number(p.concepto_id)) ?? `concepto ${p.concepto_id}`} [${plantel}/${cuota}]`,
+      concepto_otro: p.concepto_otro,
+      importe: Number(p.pago_importe),
+      fecha: p.pago_fecha,
+      registro: p.pago_registro,
+      cancelado: Number(p.pago_cancelado) === 1,
+    }
+  })
+
+  return {
+    fecha,
+    filas,
+    mensaje: `${filas.length} pago(s) con fecha ${fecha} (todas las series).`,
+  }
+}
+
 /** Diagnóstico detallado desde ancla 2848 (p. ej. desde 2026-08-13). */
 export async function diagnosticarFoliosWinstonGeneralInsforge(
   db: AppDatabaseClient,

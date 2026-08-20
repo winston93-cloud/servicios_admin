@@ -4,6 +4,7 @@ import {
   auditarFoliosWinstonGeneral,
   diagnosticarFoliosWinstonGeneralInsforge,
   listarAuditoriaFoliosWinston,
+  listarPagosInternosPorFecha,
   repararFoliosWinstonGeneralInsforge,
 } from '@/lib/repararFoliosWinstonInsforge'
 
@@ -15,6 +16,7 @@ export const maxDuration = 60
  * GET ?audit=1 — duplicados y folios puntuales.
  * GET ?diagnostico=1&desde=2026-08-13 — reporte detallado 13-ago → hoy.
  * GET ?lista=1&desdeFolio=2886&limit=10 — auditoría talonario (bloques de N).
+ * GET ?fecha=2026-08-01 — todos los pagos de ese día (folio asc).
  * GET/POST ?dryRun=1 — simula renumeración + cancelación duplicados.
  * POST — aplica reparación Winston general desde 2848 (no cuota padres).
  */
@@ -45,6 +47,12 @@ export async function GET(request: Request) {
         limit: Number.isFinite(limit) ? limit : 10,
       })
       return NextResponse.json({ ok: true, lista })
+    }
+
+    const fecha = searchParams.get('fecha')
+    if (fecha) {
+      const porFecha = await listarPagosInternosPorFecha(db, { fecha })
+      return NextResponse.json({ ok: true, porFecha })
     }
 
     const dryRun = searchParams.get('dryRun') === '1'
