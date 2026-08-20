@@ -39,6 +39,10 @@ import {
   resolverPlanMesesParaCiclo,
 } from './portalPlanMesesCiclo'
 import { debeMostrarAdeudoDobleTitulacionCiclo } from './portalDobleTitulacionAdeudo'
+import {
+  aplicarCreditoRecargoAImporte,
+  resolverCreditoRecargoCuotaInicio,
+} from './creditoRecargoCuotaInicio'
 
 export interface FilaMatrizPortal {
   conceptoNo: string
@@ -49,6 +53,8 @@ export interface FilaMatrizPortal {
   /** Monto pago en línea = importe + recargo. Si null, usar importe. */
   importeLinea?: number | null
   recargo?: number
+  /** Saldo a favor (recargo cuota 00) restado en esta fila; solo informativo. */
+  creditoRecargoCuotaInicio?: number
   referencia: string | null
   /** Referencia Banorte calculada con importeLinea (si hay recargo). */
   referenciaLinea?: string | null
@@ -238,6 +244,13 @@ async function construirFilas(
     Number(alumno.alumno_ref),
     ciclo.valor
   )
+  const { credito: creditoRecargo00, conceptoDestino: destinoCredito00 } =
+    await resolverCreditoRecargoCuotaInicio(supabase, {
+      alumnoId: alumno.alumno_id,
+      cicloEscolar: ciclo.valor,
+      planMeses,
+      pagos,
+    })
   const control = formatearAlumnoRefParaReferencia(alumno.alumno_ref)
   const filas: FilaMatrizPortal[] = []
 
@@ -275,7 +288,7 @@ async function construirFilas(
     }
 
     const correccion = correcciones.get(conceptoNo)
-    const importe =
+    let importe =
       correccion != null
         ? correccion.monto
         : calcularImporteConcepto(conceptoNo, precio, becaPct, planMeses, {
@@ -284,6 +297,19 @@ async function construirFilas(
             alumnoNuevoIngreso: alumno.alumno_nuevo_ingreso,
             alumnoAlta: alumno.alumno_alta ?? null,
           })
+
+    // Saldo a favor (recargo cuota 00): después de beca/corrección; una sola colegiatura.
+    let creditoRecargoCuotaInicio = 0
+    if (
+      creditoRecargo00 > 0 &&
+      destinoCredito00 != null &&
+      normalizarConceptoNo(conceptoNo) === destinoCredito00
+    ) {
+      const aplicado = aplicarCreditoRecargoAImporte(importe, creditoRecargo00)
+      importe = aplicado.importe
+      creditoRecargoCuotaInicio = aplicado.creditoAplicado
+    }
+
     // Importe de corrección es el monto pactado; no sumar recargo de atraso.
     const recargo =
       correccion != null || omitirRecargos
@@ -302,6 +328,8 @@ async function construirFilas(
       importe,
       importeLinea,
       recargo,
+      creditoRecargoCuotaInicio:
+        creditoRecargoCuotaInicio > 0 ? creditoRecargoCuotaInicio : undefined,
       referencia,
       referenciaLinea,
       facturaPdf: null,
@@ -440,14 +468,34 @@ export async function construirMatrizPortalPagos(
       ciclo.valor,
       planMeses === 2 ? 2 : 1
     )
+    const { credito: creditoRecargo00, conceptoDestino: destinoCredito00 } =
+      await resolverCreditoRecargoCuotaInicio(supabase, {
+        alumnoId: alumno.alumno_id,
+        cicloEscolar: ciclo.valor,
+        planMeses,
+        pagos,
+      })
     for (const f of filasColegRaw) {
       if (normalizarConceptoNo(f.conceptoNo) !== CONCEPTO_PAGO_ANUAL || f.pagado) continue
       f.conceptoClase = etiquetaPagoAnual()
-      f.importe = montoConDescuento
-      f.importeLinea = montoConDescuento
+      let monto = montoConDescuento
+      let creditoAplicado = 0
+      if (
+        creditoRecargo00 > 0 &&
+        destinoCredito00 != null &&
+        normalizarConceptoNo(destinoCredito00) === CONCEPTO_PAGO_ANUAL
+      ) {
+        const aplicado = aplicarCreditoRecargoAImporte(monto, creditoRecargo00)
+        monto = aplicado.importe
+        creditoAplicado = aplicado.creditoAplicado
+      }
+      f.importe = monto
+      f.importeLinea = monto
       f.recargo = 0
+      f.creditoRecargoCuotaInicio =
+        creditoAplicado > 0 ? creditoAplicado : undefined
       const semibase = referenciaSemibase(alumno.alumno_ref, CONCEPTO_PAGO_ANUAL, ciclo.valor)
-      f.referencia = getDigVerif(montoConDescuento, semibase)
+      f.referencia = getDigVerif(monto, semibase)
       f.referenciaLinea = f.referencia
     }
   }

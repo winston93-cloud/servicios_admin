@@ -15,6 +15,10 @@ import {
 import { montoBecaSep } from './integracionSep'
 import { sepAplicaEnCicloCobro } from './becasCobroPolitica'
 import { faltanteColegiaturaPendiente } from './faltantesColegiaturaCiclo23'
+import {
+  aplicarCreditoRecargoAImporte,
+  resolverCreditoRecargoCuotaInicio,
+} from './creditoRecargoCuotaInicio'
 import { obtenerCorreccionManualActiva } from './portalAdmisionesProrroga'
 import {
   esAlumnoNuevoIngreso,
@@ -284,6 +288,8 @@ export type ResultadoCalculoBoucher = {
   /** Monto pago en línea = importe + recargo. */
   importeLinea: number
   recargo: number
+  /** Saldo a favor (recargo cuota 00) restado del importe, si aplica. */
+  creditoRecargoCuotaInicio?: number
   referencia: string
   referenciaLinea: string
 }
@@ -378,7 +384,7 @@ export async function calcularBoucher(
     }
   }
 
-  const importe =
+  const importeBase =
     manual != null && manual > 0
       ? manual
       : importeCorreccion != null
@@ -392,6 +398,31 @@ export async function calcularBoucher(
               alumnoNuevoIngreso,
               alumnoAlta,
             })
+
+  // Crédito recargo cuota 00: después de beca/corrección; solo en el concepto destino.
+  let importe = importeBase
+  let creditoRecargoCuotaInicio = 0
+  const conceptoNormCalc = normalizarConceptoNo(params.conceptoNo)
+  const esManualForzado = manual != null && manual > 0
+  if (!esManualForzado) {
+    const { credito, conceptoDestino } = await resolverCreditoRecargoCuotaInicio(
+      supabase,
+      {
+        alumnoId: params.alumnoId,
+        cicloEscolar: params.cicloEscolar,
+        planMeses,
+      }
+    )
+    if (
+      credito > 0 &&
+      conceptoDestino != null &&
+      conceptoNormCalc === normalizarConceptoNo(conceptoDestino)
+    ) {
+      const aplicado = aplicarCreditoRecargoAImporte(importe, credito)
+      importe = aplicado.importe
+      creditoRecargoCuotaInicio = aplicado.creditoAplicado
+    }
+  }
 
   const recargo =
     params.omitirRecargos ||
@@ -410,5 +441,13 @@ export async function calcularBoucher(
   const referenciaLinea =
     recargo > 0 ? getDigVerif(importeLinea, semibase) : referencia
 
-  return { importe, importeLinea, recargo, referencia, referenciaLinea }
+  return {
+    importe,
+    importeLinea,
+    recargo,
+    creditoRecargoCuotaInicio:
+      creditoRecargoCuotaInicio > 0 ? creditoRecargoCuotaInicio : undefined,
+    referencia,
+    referenciaLinea,
+  }
 }
