@@ -768,13 +768,18 @@ async function cancelarNogueraConstanciaFueraDeTalon12Ago(
     excluirPagoIds.push(Number(p.pago_id))
 
     if (Number(p.pago_cancelado) === 0) {
+      const temp = FOLIO_TEMP_BASE + Number(p.pago_id)
       detalle.push(
-        `cancelar NOGUERA CONSTANCIA pago_id=${p.pago_id} folio=${p.pago_folio} (talón: 2848=ARVIZU)`
+        `cancelar+mover NOGUERA CONSTANCIA pago_id=${p.pago_id} folio ${p.pago_folio}→${temp} (talón: 2848=ARVIZU)`
       )
       if (!dryRun) {
         const { error: upErr } = await db
           .from('pago_interno')
-          .update({ pago_cancelado: 1, pago_actualizacion: ahora })
+          .update({
+            pago_cancelado: 1,
+            pago_folio: temp,
+            pago_actualizacion: ahora,
+          })
           .eq('pago_id', p.pago_id)
         if (upErr) throw new Error(upErr.message)
       }
