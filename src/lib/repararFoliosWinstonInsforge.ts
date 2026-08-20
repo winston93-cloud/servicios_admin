@@ -1,7 +1,8 @@
 /**
  * Reparación idempotente del consecutivo Winston general (no cuota de padres).
  * Continúa el talón tras BARREIRO 2836 → siguiente 2837 (12-ago en orden de captura).
- * No fuerza ARVIZU al frente (eso causó el salto 2837–2847).
+ * Incluye cancelados que ocupan número en el talón físico (no reutilizar folio).
+ * Sombras de dedupe (mismo folio que el vigente conservado) salen a 9xxxxx.
  */
 import type { AppDatabaseClient } from '@/lib/dbTypes'
 import {
@@ -103,7 +104,6 @@ async function fetchPagosDesdeFecha(
       .from('pago_interno')
       .select(SELECT_PAGO)
       .gte('pago_fecha', fechaMin)
-      .eq('pago_cancelado', 0)
       .order('pago_fecha', { ascending: true })
       .order('pago_id', { ascending: true })
       .range(from, from + pageSize - 1)
@@ -114,6 +114,51 @@ async function fetchPagosDesdeFecha(
     from += pageSize
   }
   return out
+}
+
+/**
+ * En un mismo folio pueden convivir:
+ * - cancel-then-redo (Emma): cancelado con pago_id menor que el vigente → ambos
+ *   ocupan número en el talón (2957 cancelado, 2958 redo).
+ * - sombra de dedupe (RAHI): cancelado con pago_id mayor, mismo folio que el
+ *   vigente conservado → no ocupa slot extra; se mueve fuera del talón.
+ */
+export function separarSombrasDuplicadoMismoFolio(rows: PagoInternoRow[]): {
+  enTalon: PagoInternoRow[]
+  sombras: PagoInternoRow[]
+} {
+  const porFolio = new Map<number, PagoInternoRow[]>()
+  for (const p of rows) {
+    const f = Number(p.pago_folio)
+    if (!Number.isFinite(f)) continue
+    if (!porFolio.has(f)) porFolio.set(f, [])
+    porFolio.get(f)!.push(p)
+  }
+
+  const enTalon: PagoInternoRow[] = []
+  const sombras: PagoInternoRow[] = []
+
+  for (const list of porFolio.values()) {
+    const vigentes = list.filter((p) => Number(p.pago_cancelado) === 0)
+    const cancelados = list.filter((p) => Number(p.pago_cancelado) === 1)
+
+    if (vigentes.length === 0) {
+      enTalon.push(...list)
+      continue
+    }
+
+    enTalon.push(...vigentes)
+    const minVigenteId = Math.min(...vigentes.map((p) => Number(p.pago_id)))
+    for (const c of cancelados) {
+      if (Number(c.pago_id) < minVigenteId) {
+        enTalon.push(c)
+      } else {
+        sombras.push(c)
+      }
+    }
+  }
+
+  return { enTalon, sombras }
 }
 
 async function fetchStuck2671(db: AppDatabaseClient): Promise<PagoInternoRow[]> {
@@ -356,14 +401,16 @@ export type PlanReparacionWinston = {
   anclaId: number
   anclaFecha: string
   aReparar: PagoInternoRow[]
+  sombrasFueraDeTalon: PagoInternoRow[]
   asignaciones: { pago_id: number; de: number; a: number; fecha: string | null }[]
   siguienteEsperado: number
 }
 
 /**
  * Plan: deja intacto ≤2836 (11-ago BARREIRO).
- * Renumerar vigentes Winston general con fecha ≥12-ago desde 2837,
- * orden: pago_fecha → pago_registro → pago_id (sin forzar ARVIZU).
+ * Renumerar Winston general (vigentes + cancelados que ocupan talón) con fecha
+ * ≥12-ago desde 2837, orden: pago_fecha → pago_registro → pago_id.
+ * Cancelados «sombra» (dedupe mismo folio) salen del consecutivo.
  */
 export async function construirPlanReparacionWinston(
   db: AppDatabaseClient,
@@ -401,11 +448,12 @@ export async function construirPlanReparacionWinston(
   for (const p of [...porFecha, ...stuck2671]) {
     if (esCuota(Number(p.concepto_id))) continue
     const folio = Number(p.pago_folio)
+    // Fuera del talón (p. ej. NOGUERA ya en 9xxxxx): no reentrar al consecutivo.
+    if (folio >= FOLIO_TEMP_BASE) continue
     const enSerie =
-      (folio >= PAGO_INTERNO_FOLIO_WINSTON_INICIAL &&
-        folio < PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN) ||
-      folio >= FOLIO_TEMP_BASE
-    if (!enSerie && folio < FOLIO_TEMP_BASE) continue
+      folio >= PAGO_INTERNO_FOLIO_WINSTON_INICIAL &&
+      folio < PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN
+    if (!enSerie) continue
     const fecha = String(p.pago_fecha ?? '')
     if (fecha < fechaDesde) continue
     porId.set(Number(p.pago_id), p as PagoInternoRow)
@@ -414,26 +462,28 @@ export async function construirPlanReparacionWinston(
   const alumnoIds = [...new Set([...porId.values()].map((p) => Number(p.alumno_id)).filter(Boolean))]
   const metas = await metaAlumnos(db, alumnoIds)
 
-  const aReparar = [...porId.values()]
-    .filter((p) => {
-      if (excluir.has(Number(p.pago_id))) return false
-      const meta = p.alumno_id != null ? metas.get(Number(p.alumno_id)) : null
-      if (!meta) return false
-      return pagoPerteneceAPlantelSerie({
-        plantel: 'winston',
-        alumnoNivel: meta.nivel,
-        alumnoRef: meta.ref,
-      })
+  const candidatos = [...porId.values()].filter((p) => {
+    if (excluir.has(Number(p.pago_id))) return false
+    const meta = p.alumno_id != null ? metas.get(Number(p.alumno_id)) : null
+    if (!meta) return false
+    return pagoPerteneceAPlantelSerie({
+      plantel: 'winston',
+      alumnoNivel: meta.nivel,
+      alumnoRef: meta.ref,
     })
-    .sort((a, b) => {
-      const fa = String(a.pago_fecha ?? '')
-      const fb = String(b.pago_fecha ?? '')
-      if (fa !== fb) return fa < fb ? -1 : 1
-      const ra = String(a.pago_registro ?? '')
-      const rb = String(b.pago_registro ?? '')
-      if (ra !== rb) return ra < rb ? -1 : 1
-      return Number(a.pago_id) - Number(b.pago_id)
-    })
+  })
+
+  const { enTalon, sombras } = separarSombrasDuplicadoMismoFolio(candidatos)
+
+  const aReparar = enTalon.sort((a, b) => {
+    const fa = String(a.pago_fecha ?? '')
+    const fb = String(b.pago_fecha ?? '')
+    if (fa !== fb) return fa < fb ? -1 : 1
+    const ra = String(a.pago_registro ?? '')
+    const rb = String(b.pago_registro ?? '')
+    if (ra !== rb) return ra < rb ? -1 : 1
+    return Number(a.pago_id) - Number(b.pago_id)
+  })
 
   const asignaciones: PlanReparacionWinston['asignaciones'] = []
   let folio = folioInicio
@@ -456,6 +506,7 @@ export async function construirPlanReparacionWinston(
     anclaId: Number(anclaRow.pago_id),
     anclaFecha: String(anclaRow.pago_fecha ?? '2026-08-11'),
     aReparar,
+    sombrasFueraDeTalon: sombras,
     asignaciones,
     siguienteEsperado: folio,
   }
@@ -894,10 +945,31 @@ export async function repararFoliosWinstonGeneralInsforge(
     }
   }
 
-  const { asignaciones, aReparar, anclaRow, anclaId, anclaFecha, siguienteEsperado } = plan
+  const { asignaciones, aReparar, anclaRow, anclaId, anclaFecha, siguienteEsperado, sombrasFueraDeTalon } =
+    plan
 
   const detalle: string[] = [...cancelDetalle]
   let cambios = 0
+
+  if (!dryRun && sombrasFueraDeTalon.length > 0) {
+    for (const s of sombrasFueraDeTalon) {
+      const temp = FOLIO_TEMP_BASE + Number(s.pago_id)
+      detalle.push(
+        `sombra dedupe pago_id=${s.pago_id} folio ${s.pago_folio}→${temp} (fuera del talón)`
+      )
+      const { error } = await db
+        .from('pago_interno')
+        .update({ pago_folio: temp, pago_actualizacion: new Date().toISOString() })
+        .eq('pago_id', s.pago_id)
+      if (error) throw new Error(`Sombra pago_id ${s.pago_id}: ${error.message}`)
+    }
+  } else if (dryRun) {
+    for (const s of sombrasFueraDeTalon.slice(0, 20)) {
+      detalle.push(
+        `[dry-run] sombra dedupe pago_id=${s.pago_id} folio ${s.pago_folio}→${FOLIO_TEMP_BASE + Number(s.pago_id)}`
+      )
+    }
+  }
 
   if (!dryRun && asignaciones.length > 0) {
     for (const c of asignaciones) {
@@ -915,7 +987,7 @@ export async function repararFoliosWinstonGeneralInsforge(
         .eq('pago_id', c.pago_id)
       if (error) throw new Error(`Final pago_id ${c.pago_id}: ${error.message}`)
       cambios += 1
-      if (detalle.length < 50) {
+      if (detalle.length < 80) {
         detalle.push(`pago_id=${c.pago_id} ${c.de}→${c.a} (${c.fecha})`)
       }
     }
