@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import {
   auditarFoliosWinstonGeneral,
+  diagnosticarFoliosWinstonGeneralInsforge,
   repararFoliosWinstonGeneralInsforge,
 } from '@/lib/repararFoliosWinstonInsforge'
 
@@ -10,8 +11,9 @@ export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
 /**
- * GET ?audit=1 — solo diagnóstico (duplicados, folios 2880/2919/2920).
- * GET/POST ?dryRun=1 — simula renumeración + cancelación RAHI.
+ * GET ?audit=1 — duplicados y folios puntuales.
+ * GET ?diagnostico=1&desde=2026-08-13 — reporte detallado 13-ago → hoy.
+ * GET/POST ?dryRun=1 — simula renumeración + cancelación duplicados.
  * POST — aplica reparación Winston general desde 2848 (no cuota padres).
  */
 export async function GET(request: Request) {
@@ -22,6 +24,12 @@ export async function GET(request: Request) {
     if (searchParams.get('audit') === '1') {
       const audit = await auditarFoliosWinstonGeneral(db)
       return NextResponse.json({ ok: true, audit })
+    }
+
+    if (searchParams.get('diagnostico') === '1') {
+      const desde = searchParams.get('desde') ?? '2026-08-13'
+      const diagnostico = await diagnosticarFoliosWinstonGeneralInsforge(db, { desde })
+      return NextResponse.json({ ok: true, diagnostico })
     }
 
     const dryRun = searchParams.get('dryRun') === '1'
