@@ -349,10 +349,12 @@ export type PlanReparacionWinston = {
  * orden: pago_fecha → pago_registro → pago_id (sin forzar ARVIZU).
  */
 export async function construirPlanReparacionWinston(
-  db: AppDatabaseClient
+  db: AppDatabaseClient,
+  opts?: { excluirPagoIds?: number[] }
 ): Promise<PlanReparacionWinston> {
   const fechaDesde = FECHA_REPARACION_WINSTON_DESDE
   const folioInicio = FOLIO_REPARACION_WINSTON_INICIO
+  const excluir = new Set(opts?.excluirPagoIds ?? [])
 
   const { data: ultimoOkRows, error: errUltimo } = await db
     .from('pago_interno')
@@ -397,6 +399,7 @@ export async function construirPlanReparacionWinston(
 
   const aReparar = [...porId.values()]
     .filter((p) => {
+      if (excluir.has(Number(p.pago_id))) return false
       const nivel = p.alumno_id != null ? nivelPorAlumno.get(Number(p.alumno_id)) : null
       if (nivel == null) return false
       return plantelPagoDesdeNivel(nivel) === 'winston'
@@ -732,7 +735,70 @@ export async function diagnosticarFoliosWinstonGeneralInsforge(
   }
 }
 
-/** Repara consecutivo Winston general desde 2848 (dos fases). */
+async function cancelarNogueraConstanciaFueraDeTalon12Ago(
+  db: AppDatabaseClient,
+  opts?: { dryRun?: boolean }
+): Promise<{ cancelados: number; movidos: number; excluirPagoIds: number[]; detalle: string[] }> {
+  const dryRun = opts?.dryRun ?? false
+  const detalle: string[] = []
+  const excluirPagoIds: number[] = []
+  let cancelados = 0
+  let movidos = 0
+
+  const { data, error } = await db
+    .from('pago_interno')
+    .select(SELECT_PAGO)
+    .eq('pago_fecha', FECHA_REPARACION_WINSTON_DESDE)
+    .eq('concepto_id', 3) // CONSTANCIA
+    .gte('pago_folio', FOLIO_REPARACION_WINSTON_INICIO)
+    .lt('pago_folio', PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN)
+    .limit(50)
+  if (error) throw new Error(error.message)
+
+  const rows = (data ?? []) as PagoInternoRow[]
+  if (rows.length === 0) return { cancelados, movidos, excluirPagoIds, detalle }
+
+  const alumnoIds = [...new Set(rows.map((p) => Number(p.alumno_id)).filter(Boolean))]
+  const alumnos = await enriquecerAlumnos(db, alumnoIds)
+  const ahora = new Date().toISOString()
+
+  for (const p of rows) {
+    const nombre = alumnos.get(Number(p.alumno_id))?.nombre ?? ''
+    if (!nombre.includes('NOGUERA')) continue
+    excluirPagoIds.push(Number(p.pago_id))
+
+    if (Number(p.pago_cancelado) === 0) {
+      detalle.push(
+        `cancelar NOGUERA CONSTANCIA pago_id=${p.pago_id} folio=${p.pago_folio} (talón: 2848=ARVIZU)`
+      )
+      if (!dryRun) {
+        const { error: upErr } = await db
+          .from('pago_interno')
+          .update({ pago_cancelado: 1, pago_actualizacion: ahora })
+          .eq('pago_id', p.pago_id)
+        if (upErr) throw new Error(upErr.message)
+      }
+      cancelados += 1
+    } else {
+      const temp = FOLIO_TEMP_BASE + Number(p.pago_id)
+      detalle.push(
+        `mover cancelado NOGUERA pago_id=${p.pago_id} folio ${p.pago_folio}→${temp} (fuera del talón)`
+      )
+      if (!dryRun) {
+        const { error: upErr } = await db
+          .from('pago_interno')
+          .update({ pago_folio: temp })
+          .eq('pago_id', p.pago_id)
+        if (upErr) throw new Error(upErr.message)
+      }
+      movidos += 1
+    }
+  }
+
+  return { cancelados, movidos, excluirPagoIds, detalle }
+}
+
+/** Repara consecutivo Winston general desde 2837 (dos fases). */
 export async function repararFoliosWinstonGeneralInsforge(
   db: AppDatabaseClient,
   opts?: { dryRun?: boolean; cancelarDuplicados?: boolean }
@@ -741,9 +807,15 @@ export async function repararFoliosWinstonGeneralInsforge(
   let canceladosDuplicados = 0
   const cancelDetalle: string[] = []
 
+  const noguera = await cancelarNogueraConstanciaFueraDeTalon12Ago(db, { dryRun })
+  canceladosDuplicados += noguera.cancelados
+  cancelDetalle.push(...noguera.detalle)
+
   let plan: PlanReparacionWinston
   try {
-    plan = await construirPlanReparacionWinston(db)
+    plan = await construirPlanReparacionWinston(db, {
+      excluirPagoIds: noguera.excluirPagoIds,
+    })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     const audit = await auditarFoliosWinstonGeneral(db)
@@ -751,7 +823,7 @@ export async function repararFoliosWinstonGeneralInsforge(
       ok: true,
       aplicada: false,
       cambios: 0,
-      canceladosDuplicados: 0,
+      canceladosDuplicados,
       siguienteFolio: FOLIO_REPARACION_WINSTON_INICIO,
       revisados: 0,
       ancla: { pago_id: 0, folio: FOLIO_REPARACION_WINSTON_ULTIMO_OK, fecha: '' },
@@ -774,8 +846,10 @@ export async function repararFoliosWinstonGeneralInsforge(
     })
     canceladosDuplicados += dup.cancelados
     cancelDetalle.push(...dup.detalle)
-    if (canceladosDuplicados > 0 && !dryRun) {
-      plan = await construirPlanReparacionWinston(db)
+    if ((canceladosDuplicados > 0 || noguera.cancelados > 0) && !dryRun) {
+      plan = await construirPlanReparacionWinston(db, {
+        excluirPagoIds: noguera.excluirPagoIds,
+      })
     }
   }
 
