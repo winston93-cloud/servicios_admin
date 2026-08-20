@@ -35,10 +35,17 @@ export const PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR = 26550
  */
 export const PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN = 4000
 /**
- * Techo práctico de búsqueda del talón Winston actual al calcular el siguiente
- * folio (evita bloques legacy densos 39xx dentro de &lt; 4000).
+ * Techo de búsqueda del talón Winston actual (= legacy min).
+ * Antes era 3200 y el tip vivo (~3136) se quedaba sin margen.
+ * Folios 36xx–39xx de años previos no deben definir el tip: se excluyen por
+ * `PAGO_INTERNO_WINSTON_TALON_ACTUAL_DESDE` al calcular el siguiente folio.
  */
-export const PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON = 3200
+export const PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON = PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN
+/**
+ * Solo pagos desde esta fecha cuentan para el tip del talón Winston actual.
+ * Evita que histórico 2024 en 36xx–39xx dispare el siguiente folio (p. ej. →3988).
+ */
+export const PAGO_INTERNO_WINSTON_TALON_ACTUAL_DESDE = '2026-01-01'
 
 export const PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL = 2849
 /** Exclusivo: a partir de aquí hay folios legacy que no son la serie nueva educativa. */
