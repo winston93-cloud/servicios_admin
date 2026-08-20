@@ -1182,6 +1182,14 @@ export async function cancelarRecorrerWinstonGeneralInsforge(
     .maybeSingle()
   const stubId = Number(maxRow?.pago_id ?? 0) + 1
 
+  // Registro un ms antes del contenido para que el plan de reparación
+  // ordene stub(N) → vigente(N+1) y no mueva el consecutivo.
+  let stubRegistro = ahora
+  if (reg.pago_registro) {
+    const t = Date.parse(String(reg.pago_registro))
+    if (Number.isFinite(t)) stubRegistro = new Date(t - 1).toISOString()
+  }
+
   const { error: insErr } = await db.from('pago_interno').insert({
     pago_id: stubId,
     alumno_id: reg.alumno_id,
@@ -1192,7 +1200,7 @@ export async function cancelarRecorrerWinstonGeneralInsforge(
     pago_fecha: reg.pago_fecha,
     pago_cancelado: 1,
     pago_ciclo_escolar: reg.pago_ciclo_escolar,
-    pago_registro: ahora,
+    pago_registro: stubRegistro,
     pago_actualizacion: ahora,
   })
   if (insErr) {
