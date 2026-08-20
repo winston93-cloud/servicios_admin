@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import {
   auditarFoliosWinstonGeneral,
+  cancelarRecorrerWinstonGeneralInsforge,
   diagnosticarFoliosWinstonGeneralInsforge,
   listarAuditoriaFoliosWinston,
   listarPagosInternosPorFecha,
@@ -18,6 +19,7 @@ export const maxDuration = 60
  * GET ?lista=1&desdeFolio=2886&limit=10 — auditoría talonario (bloques de N).
  * GET ?fecha=2026-08-01 — todos los pagos de ese día (folio asc).
  * GET/POST ?dryRun=1 — simula renumeración + cancelación duplicados.
+ * POST ?cancelarRecorrerPagoId=20526 — stub cancelado en N y recorre Winston general +1.
  * POST — aplica reparación Winston general desde 2837 (continúa tras 2836; no cuota).
  */
 export async function GET(request: Request) {
@@ -55,6 +57,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: true, porFecha })
     }
 
+    const cancelarRecorrerPagoId = searchParams.get('cancelarRecorrerPagoId')
+    if (cancelarRecorrerPagoId) {
+      const res = await cancelarRecorrerWinstonGeneralInsforge(db, {
+        pagoId: Number(cancelarRecorrerPagoId),
+        dryRun: searchParams.get('dryRun') === '1',
+      })
+      return NextResponse.json(res, { status: res.ok ? 200 : 400 })
+    }
+
     const dryRun = searchParams.get('dryRun') === '1'
     const res = await repararFoliosWinstonGeneralInsforge(db, {
       dryRun,
@@ -72,16 +83,31 @@ export async function POST(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     let dryRun = searchParams.get('dryRun') === '1'
+    let cancelarRecorrerPagoId = searchParams.get('cancelarRecorrerPagoId')
     try {
       const body = await request.json().catch(() => ({}))
-      if (body && typeof body === 'object' && 'dryRun' in body) {
-        dryRun = Boolean((body as { dryRun?: boolean }).dryRun)
+      if (body && typeof body === 'object') {
+        if ('dryRun' in body) dryRun = Boolean((body as { dryRun?: boolean }).dryRun)
+        if ('cancelarRecorrerPagoId' in body) {
+          cancelarRecorrerPagoId = String(
+            (body as { cancelarRecorrerPagoId?: string | number }).cancelarRecorrerPagoId ?? ''
+          )
+        }
       }
     } catch {
       /* sin body */
     }
 
     const db = createDbAdmin()
+
+    if (cancelarRecorrerPagoId) {
+      const res = await cancelarRecorrerWinstonGeneralInsforge(db, {
+        pagoId: Number(cancelarRecorrerPagoId),
+        dryRun,
+      })
+      return NextResponse.json(res, { status: res.ok ? 200 : 400 })
+    }
+
     const res = await repararFoliosWinstonGeneralInsforge(db, {
       dryRun,
       cancelarDuplicados: searchParams.get('cancelarDuplicados') !== '0',

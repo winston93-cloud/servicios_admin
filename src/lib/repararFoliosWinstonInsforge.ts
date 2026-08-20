@@ -1053,3 +1053,165 @@ export async function repararFoliosWinstonGeneralInsforge(
       : `Consecutivo OK (${aReparar.length} pagos). Winston general→${series.winston_general}. Duplicados folio: ${audit.duplicadosFolio.length}.`,
   }
 }
+
+/**
+ * Cancelar y recorrer (modo talón): stub cancelado en folio N; el contenido y
+ * todos los vigentes Winston general ≥ N avanzan +1.
+ */
+export async function cancelarRecorrerWinstonGeneralInsforge(
+  db: AppDatabaseClient,
+  opts: { pagoId: number; dryRun?: boolean }
+): Promise<{
+  ok: true
+  aplicada: boolean
+  folioCancelado: number
+  folioNuevo: number
+  desplazados: number
+  pagoId: number
+  stubPagoId?: number
+  siguienteFolio: number
+  mensaje: string
+} | { ok: false; mensaje: string }> {
+  const dryRun = opts.dryRun ?? false
+  const pagoId = Number(opts.pagoId)
+  if (!Number.isFinite(pagoId) || pagoId < 1) {
+    return { ok: false, mensaje: 'pagoId inválido' }
+  }
+
+  const { data: pago, error } = await db
+    .from('pago_interno')
+    .select(SELECT_PAGO)
+    .eq('pago_id', pagoId)
+    .maybeSingle()
+  if (error || !pago) {
+    return { ok: false, mensaje: error?.message ?? 'Pago no encontrado' }
+  }
+
+  const reg = pago as PagoInternoRow
+  if (Number(reg.pago_cancelado) === 1) {
+    return { ok: false, mensaje: 'Este pago ya está cancelado' }
+  }
+  if (esCuota(Number(reg.concepto_id))) {
+    return { ok: false, mensaje: 'Solo aplica a Winston general (no cuota)' }
+  }
+
+  const folioOrig = Number(reg.pago_folio)
+  if (
+    !Number.isFinite(folioOrig) ||
+    folioOrig < PAGO_INTERNO_FOLIO_WINSTON_INICIAL ||
+    folioOrig >= PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN
+  ) {
+    return { ok: false, mensaje: `Folio ${folioOrig} fuera de zona Winston general` }
+  }
+
+  // Cargar vigentes Winston general desde folioOrig (incl. este pago).
+  const pageSize = 1000
+  const candidatos: PagoInternoRow[] = []
+  let from = 0
+  for (;;) {
+    const { data, error: listErr } = await db
+      .from('pago_interno')
+      .select(SELECT_PAGO)
+      .gte('pago_folio', folioOrig)
+      .lt('pago_folio', PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN)
+      .eq('pago_cancelado', 0)
+      .order('pago_folio', { ascending: false })
+      .order('pago_id', { ascending: false })
+      .range(from, from + pageSize - 1)
+    if (listErr) return { ok: false, mensaje: listErr.message }
+    const batch = (data ?? []) as PagoInternoRow[]
+    candidatos.push(...batch.filter((p) => !esCuota(Number(p.concepto_id))))
+    if (batch.length < pageSize) break
+    from += pageSize
+  }
+
+  const alumnoIds = [...new Set(candidatos.map((p) => Number(p.alumno_id)).filter(Boolean))]
+  const metas = await metaAlumnos(db, alumnoIds)
+  const aRecorrer = candidatos.filter((p) => {
+    const meta = p.alumno_id != null ? metas.get(Number(p.alumno_id)) : null
+    if (!meta) return false
+    return pagoPerteneceAPlantelSerie({
+      plantel: 'winston',
+      alumnoNivel: meta.nivel,
+      alumnoRef: meta.ref,
+    })
+  })
+
+  if (!aRecorrer.some((p) => Number(p.pago_id) === pagoId)) {
+    return { ok: false, mensaje: `pago_id ${pagoId} no es Winston general vigente` }
+  }
+
+  const ahora = new Date().toISOString()
+  if (dryRun) {
+    const siguiente = await obtenerSiguienteFolioPago('winston', 'general', db)
+    return {
+      ok: true,
+      aplicada: false,
+      folioCancelado: folioOrig,
+      folioNuevo: folioOrig + 1,
+      desplazados: aRecorrer.length,
+      pagoId,
+      siguienteFolio: Math.max(siguiente, folioOrig + aRecorrer.length + 1),
+      mensaje: `[dry-run] Cancelar ${folioOrig} y recorrer ${aRecorrer.length} pago(s); contenido→${folioOrig + 1}.`,
+    }
+  }
+
+  // Mayor → menor para no chocar folios.
+  for (const fila of aRecorrer) {
+    const { error: shiftErr } = await db
+      .from('pago_interno')
+      .update({
+        pago_folio: Number(fila.pago_folio) + 1,
+        pago_actualizacion: ahora,
+      })
+      .eq('pago_id', fila.pago_id)
+      .eq('pago_cancelado', 0)
+    if (shiftErr) {
+      return {
+        ok: false,
+        mensaje: `Error al recorrer folio ${fila.pago_folio}: ${shiftErr.message}`,
+      }
+    }
+  }
+
+  const { data: maxRow } = await db
+    .from('pago_interno')
+    .select('pago_id')
+    .order('pago_id', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const stubId = Number(maxRow?.pago_id ?? 0) + 1
+
+  const { error: insErr } = await db.from('pago_interno').insert({
+    pago_id: stubId,
+    alumno_id: reg.alumno_id,
+    concepto_id: reg.concepto_id,
+    concepto_otro: reg.concepto_otro,
+    pago_folio: folioOrig,
+    pago_importe: reg.pago_importe,
+    pago_fecha: reg.pago_fecha,
+    pago_cancelado: 1,
+    pago_ciclo_escolar: reg.pago_ciclo_escolar,
+    pago_registro: ahora,
+    pago_actualizacion: ahora,
+  })
+  if (insErr) {
+    return {
+      ok: false,
+      mensaje: `Recorrido hecho, pero falló stub cancelado del ${folioOrig}: ${insErr.message}`,
+    }
+  }
+
+  const siguienteFolio = await obtenerSiguienteFolioPago('winston', 'general', db)
+  return {
+    ok: true,
+    aplicada: true,
+    folioCancelado: folioOrig,
+    folioNuevo: folioOrig + 1,
+    desplazados: aRecorrer.length,
+    pagoId,
+    stubPagoId: stubId,
+    siguienteFolio,
+    mensaje: `Folio ${folioOrig} cancelado. Contenido en ${folioOrig + 1}; recorridos ${aRecorrer.length} pago(s). Siguiente ${siguienteFolio}.`,
+  }
+}
