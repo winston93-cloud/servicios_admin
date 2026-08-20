@@ -1081,6 +1081,86 @@ async function siguientePagoId(): Promise<number> {
   return (data?.pago_id ?? 0) + 1
 }
 
+export type ActualizarPagoInternoPayload = {
+  pagoId: number
+  concepto_id: number
+  concepto_otro?: string
+  pago_importe: number
+  pago_fecha: string
+  pago_ciclo_escolar: number
+}
+
+/**
+ * Actualiza campos de un pago vigente. No cambia folio ni alumno
+ * (protege la numeración del talón en producción).
+ */
+export async function actualizarPagoInterno(
+  payload: ActualizarPagoInternoPayload
+): Promise<{ ok: true; pago: PagoInternoRegistro } | { ok: false; mensaje: string }> {
+  const pagoId = Number(payload.pagoId)
+  if (!Number.isFinite(pagoId) || pagoId < 1) {
+    return { ok: false, mensaje: 'pago_id inválido' }
+  }
+  const conceptoId = Number(payload.concepto_id)
+  if (!Number.isFinite(conceptoId) || conceptoId < 1) {
+    return { ok: false, mensaje: 'Concepto inválido' }
+  }
+  const importe = Math.round(Number(payload.pago_importe) * 100) / 100
+  if (!Number.isFinite(importe) || importe < 0) {
+    return { ok: false, mensaje: 'Monto inválido' }
+  }
+  const fecha = String(payload.pago_fecha ?? '').slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    return { ok: false, mensaje: 'Fecha inválida' }
+  }
+  const ciclo = Number(payload.pago_ciclo_escolar)
+  if (!Number.isFinite(ciclo) || ciclo < 1) {
+    return { ok: false, mensaje: 'Ciclo escolar inválido' }
+  }
+
+  const { data: actual, error: fetchErr } = await supabase
+    .from('pago_interno')
+    .select(SELECT_PAGO)
+    .eq('pago_id', pagoId)
+    .maybeSingle()
+
+  if (fetchErr || !actual) {
+    return { ok: false, mensaje: fetchErr?.message ?? 'Pago no encontrado' }
+  }
+  const reg = actual as PagoInternoRegistro
+  if (Number(reg.pago_cancelado) === 1) {
+    return { ok: false, mensaje: 'No se puede modificar un pago cancelado' }
+  }
+
+  const ahora = new Date().toISOString()
+  const { data: updated, error: upErr } = await supabase
+    .from('pago_interno')
+    .update({
+      concepto_id: conceptoId,
+      concepto_otro: (payload.concepto_otro ?? '').trim() || null,
+      pago_importe: importe,
+      pago_fecha: fecha,
+      pago_ciclo_escolar: ciclo,
+      pago_actualizacion: ahora,
+    })
+    .eq('pago_id', pagoId)
+    .eq('pago_cancelado', 0)
+    .select(SELECT_PAGO)
+    .maybeSingle()
+
+  if (upErr || !updated) {
+    return { ok: false, mensaje: upErr?.message ?? 'No se pudo actualizar el pago' }
+  }
+
+  return {
+    ok: true,
+    pago: {
+      ...(updated as PagoInternoRegistro),
+      pago_importe: Number((updated as PagoInternoRegistro).pago_importe),
+    },
+  }
+}
+
 /**
  * Cancela el pago (pago_cancelado = 1). El número queda quemado en el talón:
  * no se reutiliza; el siguiente folio es max(vigentes∪cancelados)+1.
