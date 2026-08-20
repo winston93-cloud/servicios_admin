@@ -15,8 +15,9 @@ import {
 import {
   PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
   PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN,
-  plantelPagoDesdeNivel,
+  pagoPerteneceAPlantelSerie,
 } from '@/lib/pagoInternoPlantel'
+import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
 
 const SELECT_PAGO =
   'pago_id, alumno_id, concepto_id, concepto_otro, pago_folio, pago_importe, pago_fecha, pago_cancelado, pago_ciclo_escolar, pago_registro'
@@ -126,20 +127,23 @@ async function fetchStuck2671(db: AppDatabaseClient): Promise<PagoInternoRow[]> 
   return (data ?? []) as PagoInternoRow[]
 }
 
-async function nivelesPorAlumno(
+async function metaAlumnos(
   db: AppDatabaseClient,
   alumnoIds: number[]
-): Promise<Map<number, number>> {
-  const map = new Map<number, number>()
+): Promise<Map<number, { nivel: number; ref: string }>> {
+  const map = new Map<number, { nivel: number; ref: string }>()
   for (let i = 0; i < alumnoIds.length; i += 200) {
     const slice = alumnoIds.slice(i, i + 200)
     const { data, error } = await db
       .from('alumno')
-      .select('alumno_id, alumno_nivel')
+      .select('alumno_id, alumno_nivel, alumno_ref')
       .in('alumno_id', slice)
     if (error) throw new Error(error.message)
     for (const a of data ?? []) {
-      map.set(Number(a.alumno_id), Number(a.alumno_nivel) || 0)
+      map.set(Number(a.alumno_id), {
+        nivel: Number(a.alumno_nivel) || 0,
+        ref: String(a.alumno_ref ?? '').trim(),
+      })
     }
   }
   return map
@@ -158,9 +162,14 @@ async function enriquecerAlumnos(
       .in('alumno_id', slice)
     if (error) throw new Error(error.message)
     for (const a of data ?? []) {
+      const ref = a.alumno_ref != null ? String(a.alumno_ref).trim() : null
+      const esExterno = ref === ALUMNO_REF_EXTERNO || (ref ?? '').toLowerCase() === 'externo'
       map.set(Number(a.alumno_id), {
-        ref: a.alumno_ref != null ? String(a.alumno_ref) : null,
-        nombre: nombreCompletoUpper(a.alumno_nombre, a.alumno_app, a.alumno_apm),
+        ref,
+        nombre: esExterno
+          ? 'EXTERNO'
+          : nombreCompletoUpper(a.alumno_nombre, a.alumno_app, a.alumno_apm) ||
+            `#${a.alumno_id}`,
       })
     }
   }
@@ -196,15 +205,19 @@ export async function auditarFoliosWinstonGeneral(
 
   const rows = ((data ?? []) as PagoInternoRow[]).filter((p) => !esCuota(p.concepto_id))
   const alumnoIds = [...new Set(rows.map((p) => Number(p.alumno_id)).filter(Boolean))]
-  const [niveles, alumnos] = await Promise.all([
-    nivelesPorAlumno(db, alumnoIds),
+  const [metas, alumnos] = await Promise.all([
+    metaAlumnos(db, alumnoIds),
     enriquecerAlumnos(db, alumnoIds),
   ])
 
   const winston = rows.filter((p) => {
-    const nivel = p.alumno_id != null ? niveles.get(Number(p.alumno_id)) : null
-    if (nivel == null) return false
-    return plantelPagoDesdeNivel(nivel) === 'winston'
+    const meta = p.alumno_id != null ? metas.get(Number(p.alumno_id)) : null
+    if (!meta) return false
+    return pagoPerteneceAPlantelSerie({
+      plantel: 'winston',
+      alumnoNivel: meta.nivel,
+      alumnoRef: meta.ref,
+    })
   })
 
   const porFolio = new Map<number, PagoInternoRow[]>()
@@ -291,11 +304,15 @@ export async function cancelarCapturasDuplicadasWinston(
 
   let rows = ((data ?? []) as PagoInternoRow[]).filter((p) => !esCuota(p.concepto_id))
   const alumnoIdsAll = [...new Set(rows.map((p) => Number(p.alumno_id)).filter(Boolean))]
-  const niveles = await nivelesPorAlumno(db, alumnoIdsAll)
+  const metas = await metaAlumnos(db, alumnoIdsAll)
   rows = rows.filter((p) => {
-    const nivel = p.alumno_id != null ? niveles.get(Number(p.alumno_id)) : null
-    if (nivel == null) return false
-    return plantelPagoDesdeNivel(nivel) === 'winston'
+    const meta = p.alumno_id != null ? metas.get(Number(p.alumno_id)) : null
+    if (!meta) return false
+    return pagoPerteneceAPlantelSerie({
+      plantel: 'winston',
+      alumnoNivel: meta.nivel,
+      alumnoRef: meta.ref,
+    })
   })
   if (alumnoIds) {
     rows = rows.filter((p) => alumnoIds!.includes(Number(p.alumno_id)))
@@ -395,14 +412,18 @@ export async function construirPlanReparacionWinston(
   }
 
   const alumnoIds = [...new Set([...porId.values()].map((p) => Number(p.alumno_id)).filter(Boolean))]
-  const nivelPorAlumno = await nivelesPorAlumno(db, alumnoIds)
+  const metas = await metaAlumnos(db, alumnoIds)
 
   const aReparar = [...porId.values()]
     .filter((p) => {
       if (excluir.has(Number(p.pago_id))) return false
-      const nivel = p.alumno_id != null ? nivelPorAlumno.get(Number(p.alumno_id)) : null
-      if (nivel == null) return false
-      return plantelPagoDesdeNivel(nivel) === 'winston'
+      const meta = p.alumno_id != null ? metas.get(Number(p.alumno_id)) : null
+      if (!meta) return false
+      return pagoPerteneceAPlantelSerie({
+        plantel: 'winston',
+        alumnoNivel: meta.nivel,
+        alumnoRef: meta.ref,
+      })
     })
     .sort((a, b) => {
       const fa = String(a.pago_fecha ?? '')
@@ -515,8 +536,8 @@ export async function listarAuditoriaFoliosWinston(
 
   const rows = (data ?? []) as PagoInternoRow[]
   const alumnoIds = [...new Set(rows.map((p) => Number(p.alumno_id)).filter(Boolean))]
-  const [niveles, alumnos, conceptos] = await Promise.all([
-    nivelesPorAlumno(db, alumnoIds),
+  const [metas, alumnos, conceptos] = await Promise.all([
+    metaAlumnos(db, alumnoIds),
     enriquecerAlumnos(db, alumnoIds),
     (async () => {
       const { data: c, error: e } = await db
@@ -535,8 +556,17 @@ export async function listarAuditoriaFoliosWinston(
   const filas: FilaAuditoriaFolioWinston[] = []
   for (const p of rows) {
     if (esCuota(Number(p.concepto_id))) continue
-    const nivel = p.alumno_id != null ? niveles.get(Number(p.alumno_id)) : null
-    if (nivel == null || plantelPagoDesdeNivel(nivel) !== 'winston') continue
+    const metaNivel = p.alumno_id != null ? metas.get(Number(p.alumno_id)) : null
+    if (
+      !metaNivel ||
+      !pagoPerteneceAPlantelSerie({
+        plantel: 'winston',
+        alumnoNivel: metaNivel.nivel,
+        alumnoRef: metaNivel.ref,
+      })
+    ) {
+      continue
+    }
     const meta = alumnos.get(Number(p.alumno_id))
     filas.push({
       folio: Number(p.pago_folio),
@@ -591,8 +621,8 @@ export async function listarPagosInternosPorFecha(
 
   const rows = (data ?? []) as PagoInternoRow[]
   const alumnoIds = [...new Set(rows.map((p) => Number(p.alumno_id)).filter(Boolean))]
-  const [niveles, alumnos, conceptos] = await Promise.all([
-    nivelesPorAlumno(db, alumnoIds),
+  const [metas, alumnos, conceptos] = await Promise.all([
+    metaAlumnos(db, alumnoIds),
     enriquecerAlumnos(db, alumnoIds),
     (async () => {
       const { data: c, error: e } = await db
@@ -610,9 +640,15 @@ export async function listarPagosInternosPorFecha(
 
   const filas: FilaAuditoriaFolioWinston[] = rows.map((p) => {
     const meta = alumnos.get(Number(p.alumno_id))
-    const nivel = p.alumno_id != null ? niveles.get(Number(p.alumno_id)) : null
-    const plantel =
-      nivel == null ? '?' : plantelPagoDesdeNivel(nivel) === 'winston' ? 'W' : 'E'
+    const metaNivel = p.alumno_id != null ? metas.get(Number(p.alumno_id)) : null
+    const esWinston =
+      metaNivel != null &&
+      pagoPerteneceAPlantelSerie({
+        plantel: 'winston',
+        alumnoNivel: metaNivel.nivel,
+        alumnoRef: metaNivel.ref,
+      })
+    const plantel = metaNivel == null ? '?' : esWinston ? 'W' : 'E'
     const cuota = esCuota(Number(p.concepto_id)) ? 'cuota' : 'general'
     return {
       folio: Number(p.pago_folio),

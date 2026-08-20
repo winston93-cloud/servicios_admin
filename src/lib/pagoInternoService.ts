@@ -8,6 +8,7 @@ import {
   folioTechoPlantel,
   plantelPagoDesdeNivel,
   plantelSerieDesdeFolio,
+  pagoPerteneceAPlantelSerie,
   type PlantelPagosInternos,
   type TipoSerieFolioPagoInterno,
   PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL,
@@ -17,6 +18,7 @@ import {
   PAGO_INTERNO_FOLIO_WINSTON_TALON_ANTERIOR,
   PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON,
 } from './pagoInternoPlantel'
+import { ALUMNO_REF_EXTERNO } from './alumnoBusquedaServicios'
 
 export {
   accesoPagosInternosUsuario,
@@ -25,6 +27,7 @@ export {
   folioTechoPlantel,
   plantelPagoDesdeNivel,
   plantelSerieDesdeFolio,
+  pagoPerteneceAPlantelSerie,
   resolverPlantelFolioPagoInterno,
   PAGO_INTERNO_FOLIO_CUOTA_EDUCATIVO_INICIAL,
   PAGO_INTERNO_FOLIO_CUOTA_EDUCATIVO_TECHO,
@@ -586,7 +589,8 @@ export function esConceptoManuales(
  * - General: excluye cuota; Winston ignora legacy y sigue el consecutivo del talón
  *   (no el máximo absoluto: hay basura 2915+/39xx/7xxx que no cuenta).
  * - Solo pagos vigentes (pago_cancelado=0); los cancelados no cuentan en el consecutivo.
- * - Filtra por nivel del alumno (= plantel) para no mezclar Winston con Educativo.
+ * - Filtra por plantel: nivel del alumno, y Externo (11404) cuenta en Winston
+ *   (Juanita/Laura) para no duplicar folio.
  */
 export async function obtenerSiguienteFolioPago(
   plantel: PlantelPagosInternos = 'winston',
@@ -638,23 +642,34 @@ export async function obtenerSiguienteFolioPago(
           .filter((id) => Number.isFinite(id) && id > 0)
       ),
     ]
-    const nivelPorAlumno = new Map<number, number>()
+    const metaPorAlumno = new Map<number, { nivel: number; ref: string }>()
     if (alumnoIds.length > 0) {
       const { data: alumnos } = await db
         .from('alumno')
-        .select('alumno_id, alumno_nivel')
+        .select('alumno_id, alumno_nivel, alumno_ref')
         .in('alumno_id', alumnoIds)
       for (const a of alumnos ?? []) {
-        nivelPorAlumno.set(Number(a.alumno_id), Number(a.alumno_nivel) || 0)
+        metaPorAlumno.set(Number(a.alumno_id), {
+          nivel: Number(a.alumno_nivel) || 0,
+          ref: String(a.alumno_ref ?? '').trim(),
+        })
       }
     }
 
     for (const r of batch) {
       const folio = Number(r.pago_folio)
       if (!Number.isFinite(folio) || folio < inicial) continue
-      const nivel = nivelPorAlumno.get(Number(r.alumno_id))
-      if (nivel == null) continue
-      if (plantelPagoDesdeNivel(nivel) !== plantel) continue
+      const meta = metaPorAlumno.get(Number(r.alumno_id))
+      if (!meta) continue
+      if (
+        !pagoPerteneceAPlantelSerie({
+          plantel,
+          alumnoNivel: meta.nivel,
+          alumnoRef: meta.ref,
+        })
+      ) {
+        continue
+      }
       foliosSerie.add(folio)
     }
 

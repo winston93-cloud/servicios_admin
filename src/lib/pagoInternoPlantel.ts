@@ -97,6 +97,29 @@ export function plantelPagoDesdeNivel(nivel: number): PlantelPagosInternos {
   return n === 1 || n === 2 ? 'educativo' : 'winston'
 }
 
+/**
+ * ¿El pago cuenta para la serie de folio del plantel?
+ * Externo (11404): Juanita/Laura cobran en Winston aunque el alumno tenga
+ * nivel maternal/kinder; si no se cuenta, el siguiente folio Winston se
+ * duplica (p. ej. 2880 EXTERNO + 2880 MENDEZ).
+ */
+export function pagoPerteneceAPlantelSerie(opts: {
+  plantel: PlantelPagosInternos
+  alumnoNivel: number | null | undefined
+  alumnoRef?: string | number | null
+}): boolean {
+  const ref = String(opts.alumnoRef ?? '').trim()
+  const esExterno = ref === ALUMNO_REF_EXTERNO || ref.toLowerCase() === 'externo'
+  if (esExterno) {
+    if (opts.plantel === 'winston') return true
+    return plantelPagoDesdeNivel(Number(opts.alumnoNivel) || 0) === 'educativo'
+  }
+  if (opts.alumnoNivel == null || !Number.isFinite(Number(opts.alumnoNivel))) {
+    return false
+  }
+  return plantelPagoDesdeNivel(Number(opts.alumnoNivel)) === opts.plantel
+}
+
 export function plantelSerieDesdeFolio(folio: number): PlantelPagosInternos | null {
   const f = Number(folio)
   if (!Number.isFinite(f)) return null
