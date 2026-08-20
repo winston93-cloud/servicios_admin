@@ -1114,7 +1114,7 @@ export async function cancelarRecorrerWinstonGeneralInsforge(
       .from('pago_interno')
       .select(SELECT_PAGO)
       .gte('pago_folio', folioOrig)
-      .lt('pago_folio', PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN)
+      .lt('pago_folio', PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON)
       .eq('pago_cancelado', 0)
       .order('pago_folio', { ascending: false })
       .order('pago_id', { ascending: false })
