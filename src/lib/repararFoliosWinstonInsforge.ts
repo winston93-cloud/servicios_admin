@@ -492,6 +492,100 @@ export type DiagnosticoFoliosWinston = {
   mensaje: string
 }
 
+export type FilaAuditoriaFolioWinston = {
+  folio: number
+  pago_id: number
+  alumno: string
+  alumno_ref: string | null
+  concepto_id: number
+  concepto: string
+  concepto_otro: string | null
+  importe: number
+  fecha: string | null
+  registro: string | null
+  cancelado: boolean
+}
+
+/** Lista Winston general por rango de folio (para cruzar con talonario). */
+export async function listarAuditoriaFoliosWinston(
+  db: AppDatabaseClient,
+  opts: { desdeFolio: number; limit?: number }
+): Promise<{
+  desdeFolio: number
+  hastaFolio: number
+  filas: FilaAuditoriaFolioWinston[]
+  huecos: number[]
+  mensaje: string
+}> {
+  const desdeFolio = Math.floor(opts.desdeFolio)
+  const limit = Math.min(Math.max(Math.floor(opts.limit ?? 10), 1), 50)
+  const hastaFolio = desdeFolio + limit - 1
+
+  const { data, error } = await db
+    .from('pago_interno')
+    .select(SELECT_PAGO)
+    .gte('pago_folio', desdeFolio)
+    .lte('pago_folio', hastaFolio)
+    .order('pago_folio', { ascending: true })
+    .order('pago_id', { ascending: true })
+    .limit(500)
+  if (error) throw new Error(error.message)
+
+  const rows = (data ?? []) as PagoInternoRow[]
+  const alumnoIds = [...new Set(rows.map((p) => Number(p.alumno_id)).filter(Boolean))]
+  const [niveles, alumnos, conceptos] = await Promise.all([
+    nivelesPorAlumno(db, alumnoIds),
+    enriquecerAlumnos(db, alumnoIds),
+    (async () => {
+      const { data: c, error: e } = await db
+        .from('concepto_interno')
+        .select('concepto_id, concepto_clase')
+        .limit(200)
+      if (e) throw new Error(e.message)
+      const m = new Map<number, string>()
+      for (const row of c ?? []) {
+        m.set(Number(row.concepto_id), String(row.concepto_clase ?? ''))
+      }
+      return m
+    })(),
+  ])
+
+  const filas: FilaAuditoriaFolioWinston[] = []
+  for (const p of rows) {
+    if (esCuota(Number(p.concepto_id))) continue
+    const nivel = p.alumno_id != null ? niveles.get(Number(p.alumno_id)) : null
+    if (nivel == null || plantelPagoDesdeNivel(nivel) !== 'winston') continue
+    const meta = alumnos.get(Number(p.alumno_id))
+    filas.push({
+      folio: Number(p.pago_folio),
+      pago_id: Number(p.pago_id),
+      alumno: meta?.nombre ?? `#${p.alumno_id}`,
+      alumno_ref: meta?.ref ?? null,
+      concepto_id: Number(p.concepto_id),
+      concepto: conceptos.get(Number(p.concepto_id)) ?? `concepto ${p.concepto_id}`,
+      concepto_otro: p.concepto_otro,
+      importe: Number(p.pago_importe),
+      fecha: p.pago_fecha,
+      registro: p.pago_registro,
+      cancelado: Number(p.pago_cancelado) === 1,
+    })
+  }
+
+  const presentes = new Set(filas.filter((f) => !f.cancelado).map((f) => f.folio))
+  const huecos: number[] = []
+  for (let f = desdeFolio; f <= hastaFolio; f++) {
+    if (!presentes.has(f)) huecos.push(f)
+  }
+
+  return {
+    desdeFolio,
+    hastaFolio,
+    filas,
+    huecos,
+    mensaje: `Auditoría Winston general ${desdeFolio}–${hastaFolio}: ${filas.length} fila(s), ${huecos.length} hueco(s).`,
+  }
+}
+
 /** Diagnóstico detallado desde ancla 2848 (p. ej. desde 2026-08-13). */
 export async function diagnosticarFoliosWinstonGeneralInsforge(
   db: AppDatabaseClient,

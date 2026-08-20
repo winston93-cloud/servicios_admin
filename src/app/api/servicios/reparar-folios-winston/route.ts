@@ -3,6 +3,7 @@ import { createDbAdmin } from '@/lib/insforgeAdmin'
 import {
   auditarFoliosWinstonGeneral,
   diagnosticarFoliosWinstonGeneralInsforge,
+  listarAuditoriaFoliosWinston,
   repararFoliosWinstonGeneralInsforge,
 } from '@/lib/repararFoliosWinstonInsforge'
 
@@ -13,6 +14,7 @@ export const maxDuration = 60
 /**
  * GET ?audit=1 — duplicados y folios puntuales.
  * GET ?diagnostico=1&desde=2026-08-13 — reporte detallado 13-ago → hoy.
+ * GET ?lista=1&desdeFolio=2886&limit=10 — auditoría talonario (bloques de N).
  * GET/POST ?dryRun=1 — simula renumeración + cancelación duplicados.
  * POST — aplica reparación Winston general desde 2848 (no cuota padres).
  */
@@ -30,6 +32,19 @@ export async function GET(request: Request) {
       const desde = searchParams.get('desde') ?? '2026-08-13'
       const diagnostico = await diagnosticarFoliosWinstonGeneralInsforge(db, { desde })
       return NextResponse.json({ ok: true, diagnostico })
+    }
+
+    if (searchParams.get('lista') === '1') {
+      const desdeFolio = Number(searchParams.get('desdeFolio') ?? '2886')
+      const limit = Number(searchParams.get('limit') ?? '10')
+      if (!Number.isFinite(desdeFolio) || desdeFolio < 1) {
+        return NextResponse.json({ ok: false, mensaje: 'desdeFolio inválido' }, { status: 400 })
+      }
+      const lista = await listarAuditoriaFoliosWinston(db, {
+        desdeFolio,
+        limit: Number.isFinite(limit) ? limit : 10,
+      })
+      return NextResponse.json({ ok: true, lista })
     }
 
     const dryRun = searchParams.get('dryRun') === '1'
