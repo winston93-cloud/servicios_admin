@@ -1175,7 +1175,7 @@ export async function cancelarPagoInternoYRecorrer(opts: {
   const serie = resolverSerieDePago({
     ...reg,
     alumno_nivel: alumnoNivel,
-    alumno_ref: alumnoRef ?? reg.alumno_ref,
+    alumno_ref: alumnoRef,
   })
   if (!serie) {
     return {
