@@ -629,8 +629,11 @@ export async function obtenerSiguienteFolioPago(
 
     const { data, error } = await q
     if (error) {
+      // Nunca caer a `inicial` (p. ej. 2671): eso reinicia el talón y duplica.
       console.error('Error al obtener siguiente folio de pago interno:', error)
-      return inicial
+      throw new Error(
+        `No se pudo calcular el siguiente folio (${tipoSerie}/${plantel}): ${error.message}`
+      )
     }
     const batch = data ?? []
     if (batch.length === 0) break
@@ -697,53 +700,20 @@ export async function obtenerSiguienteFolioPago(
 }
 
 /**
- * Consecutivo del talón Winston general desde el talón 4 dígitos (2671+).
- * Expande con huecos chicos (≤5); no salta a legacy.
+ * Tip del talón Winston general (zona ya filtrada, p. ej. &lt; 3200).
+ *
+ * Usa el máximo de la serie filtrada. No sembrar desde 2671 ni caminar hacia
+ * adelante con huecos: eso reiniciaba el consecutivo cuando había un hueco
+ * histórico grande (p. ej. 2700 → 2837 → siguiente 2701, caso ARVIZU).
+ * Legacy alto queda fuera por `PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON`.
  */
-function maxConsecutivoTalonWinston(foliosAsc: number[], inicial: number): number | null {
-  if (foliosAsc.length === 0) return null
-  const set = new Set(foliosAsc)
-  const HUECO_OK = 5
-
-  let seed: number | null = null
-  if (set.has(inicial)) {
-    seed = inicial
-  } else {
-    seed = foliosAsc.find((f) => f >= inicial && f < inicial + 80) ?? null
-  }
-
-  if (seed == null) {
-    return foliosAsc.length ? foliosAsc[foliosAsc.length - 1] : null
-  }
-
-  let lo = seed
-  let hi = seed
-
-  for (;;) {
-    let next: number | null = null
-    for (let n = hi + 1; n <= hi + HUECO_OK; n++) {
-      if (set.has(n)) {
-        next = n
-        break
-      }
-    }
-    if (next == null) break
-    hi = next
-  }
-
-  for (;;) {
-    let prev: number | null = null
-    for (let n = lo - 1; n >= Math.max(inicial, lo - HUECO_OK); n--) {
-      if (set.has(n)) {
-        prev = n
-        break
-      }
-    }
-    if (prev == null) break
-    lo = prev
-  }
-
-  return hi
+export function maxConsecutivoTalonWinston(
+  foliosAsc: number[],
+  inicial: number
+): number | null {
+  const enZona = foliosAsc.filter((f) => f >= inicial)
+  if (enZona.length === 0) return null
+  return enZona[enZona.length - 1]!
 }
 
 export interface CrearPagoInternoPayload {
@@ -855,6 +825,9 @@ export async function crearPagoInterno(
     payload.tipo_serie_folio ??
     (esConceptoSerieCuotaPadres(payload.concepto_id) ? 'cuota_padres' : 'general')
 
+  // Folio del formulario: informativo. La asignación real siempre la decide
+  // obtenerSiguienteFolioPago (salvo espejo de hermanos cuota = mismo folio).
+  // Forzar desde UI reabriría duplicados / reinicios del talón.
   const folioForzado =
     payload.omitir_espejo_hermanos &&
     payload.pago_folio != null &&
@@ -869,6 +842,31 @@ export async function crearPagoInterno(
     return {
       ok: false,
       mensaje: e instanceof Error ? e.message : 'No se pudo asignar el siguiente folio',
+    }
+  }
+
+  // Defensa: no insertar un folio ya usado en la misma serie (carrera o espejo).
+  if (folioForzado == null) {
+    let dupQ = supabase
+      .from('pago_interno')
+      .select('pago_id')
+      .eq('pago_folio', folio)
+      .limit(1)
+    if (tipoSerie === 'cuota_padres') {
+      dupQ = dupQ.in('concepto_id', [...CONCEPTOS_CUOTA_PADRES])
+    } else {
+      dupQ = dupQ.not('concepto_id', 'in', `(${CONCEPTOS_CUOTA_PADRES.join(',')})`)
+    }
+    const { data: dup } = await dupQ
+    if (dup?.length) {
+      try {
+        folio = await obtenerSiguienteFolioPago(payload.plantel_serie, tipoSerie)
+      } catch (e) {
+        return {
+          ok: false,
+          mensaje: e instanceof Error ? e.message : 'Folio en uso; no se pudo recalcular',
+        }
+      }
     }
   }
 
@@ -1002,7 +1000,12 @@ export type ResultadoCancelacionPagoInterno =
     }
   | { ok: false; mensaje: string }
 
-function resolverSerieDePago(pago: PagoInternoRegistro & { alumno_nivel?: number | null }): {
+function resolverSerieDePago(
+  pago: PagoInternoRegistro & {
+    alumno_nivel?: number | null
+    alumno_ref?: string | number | null
+  }
+): {
   plantel: PlantelPagosInternos
   tipoSerie: TipoSerieFolioPagoInterno
   folioMin: number
@@ -1015,12 +1018,29 @@ function resolverSerieDePago(pago: PagoInternoRegistro & { alumno_nivel?: number
     ? 'cuota_padres'
     : 'general'
 
-  // En el solape 2849–3479 el folio solo no basta: usar nivel del alumno.
-  const plantelPorNivel =
-    pago.alumno_nivel != null && Number.isFinite(Number(pago.alumno_nivel))
-      ? plantelPagoDesdeNivel(Number(pago.alumno_nivel))
-      : null
-  const plantel = plantelPorNivel ?? plantelSerieDesdeFolio(folio)
+  // Externo (11404 / kinder cobrado en Winston): no usar solo nivel, o
+  // cancelar+recorrer movería la serie Educativo por error.
+  const ref = String(pago.alumno_ref ?? '').trim()
+  const esExterno =
+    ref === ALUMNO_REF_EXTERNO || ref.toLowerCase() === 'externo'
+
+  let plantel: PlantelPagosInternos | null = null
+  if (esExterno) {
+    // Folio en zona Winston → Winston; si no, nivel (Karla/Educativo).
+    const porFolio = plantelSerieDesdeFolio(folio)
+    plantel =
+      porFolio ??
+      (pago.alumno_nivel != null && Number.isFinite(Number(pago.alumno_nivel))
+        ? plantelPagoDesdeNivel(Number(pago.alumno_nivel))
+        : 'winston')
+  } else {
+    // En el solape 2849–3479 el folio solo no basta: usar nivel del alumno.
+    const plantelPorNivel =
+      pago.alumno_nivel != null && Number.isFinite(Number(pago.alumno_nivel))
+        ? plantelPagoDesdeNivel(Number(pago.alumno_nivel))
+        : null
+    plantel = plantelPorNivel ?? plantelSerieDesdeFolio(folio)
+  }
   if (!plantel) return null
 
   // Talón anterior Winston general: rango propio para cancelar/recorrer.
@@ -1137,18 +1157,26 @@ export async function cancelarPagoInternoYRecorrer(opts: {
   }
 
   let alumnoNivel: number | null = null
+  let alumnoRef: string | null = null
   if (reg.alumno_id != null) {
     const { data: alum } = await supabase
       .from('alumno')
-      .select('alumno_nivel')
+      .select('alumno_nivel, alumno_ref')
       .eq('alumno_id', reg.alumno_id)
       .maybeSingle()
     if (alum?.alumno_nivel != null && Number.isFinite(Number(alum.alumno_nivel))) {
       alumnoNivel = Number(alum.alumno_nivel)
     }
+    if (alum?.alumno_ref != null) {
+      alumnoRef = String(alum.alumno_ref).trim()
+    }
   }
 
-  const serie = resolverSerieDePago({ ...reg, alumno_nivel: alumnoNivel })
+  const serie = resolverSerieDePago({
+    ...reg,
+    alumno_nivel: alumnoNivel,
+    alumno_ref: alumnoRef,
+  })
   if (!serie) {
     return {
       ok: false,

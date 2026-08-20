@@ -102,6 +102,7 @@ export function plantelPagoDesdeNivel(nivel: number): PlantelPagosInternos {
  * Externo (11404): Juanita/Laura cobran en Winston aunque el alumno tenga
  * nivel maternal/kinder; si no se cuenta, el siguiente folio Winston se
  * duplica (p. ej. 2880 EXTERNO + 2880 MENDEZ).
+ * Al cancelar/recorrer, usar la misma regla (ver resolverSerieDePago).
  */
 export function pagoPerteneceAPlantelSerie(opts: {
   plantel: PlantelPagosInternos
