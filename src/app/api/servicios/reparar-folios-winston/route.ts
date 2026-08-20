@@ -3,6 +3,7 @@ import { createDbAdmin } from '@/lib/insforgeAdmin'
 import {
   auditarFoliosWinstonGeneral,
   cancelarRecorrerWinstonGeneralInsforge,
+  desplazarWinstonGeneralDesdeInsforge,
   diagnosticarFoliosWinstonGeneralInsforge,
   listarAuditoriaFoliosWinston,
   listarPagosInternosPorFecha,
@@ -88,6 +89,17 @@ export async function GET(request: Request) {
       })
     }
 
+    const desplazarDesde = searchParams.get('desplazarDesde')
+    const desplazarDelta = searchParams.get('delta')
+    if (desplazarDesde && desplazarDelta) {
+      const res = await desplazarWinstonGeneralDesdeInsforge(db, {
+        desdeFolio: Number(desplazarDesde),
+        delta: Number(desplazarDelta),
+        dryRun: searchParams.get('dryRun') === '1',
+      })
+      return NextResponse.json(res, { status: res.ok ? 200 : 400 })
+    }
+
     // Ajuste puntual: alinear pago_registro de un stub cancelado (recorrer).
     const fixStubRegistroId = searchParams.get('fixStubRegistroPagoId')
     const fixStubAntesDe = searchParams.get('antesDeRegistro')
@@ -150,6 +162,17 @@ export async function POST(request: Request) {
     if (cancelarRecorrerPagoId) {
       const res = await cancelarRecorrerWinstonGeneralInsforge(db, {
         pagoId: Number(cancelarRecorrerPagoId),
+        dryRun,
+      })
+      return NextResponse.json(res, { status: res.ok ? 200 : 400 })
+    }
+
+    const desplazarDesde = searchParams.get('desplazarDesde')
+    const desplazarDelta = searchParams.get('delta')
+    if (desplazarDesde && desplazarDelta) {
+      const res = await desplazarWinstonGeneralDesdeInsforge(db, {
+        desdeFolio: Number(desplazarDesde),
+        delta: Number(desplazarDelta),
         dryRun,
       })
       return NextResponse.json(res, { status: res.ok ? 200 : 400 })

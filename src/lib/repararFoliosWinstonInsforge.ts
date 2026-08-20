@@ -1224,3 +1224,114 @@ export async function cancelarRecorrerWinstonGeneralInsforge(
     mensaje: `Folio ${folioOrig} cancelado. Contenido en ${folioOrig + 1}; recorridos ${aRecorrer.length} pago(s). Siguiente ${siguienteFolio}.`,
   }
 }
+
+/**
+ * Desplaza vigentes Winston general desde `desdeFolio` por `delta` (+1 / -1).
+ * Útil para cerrar un hueco (p. ej. 3080 vacío → compactar desde 3081 con delta -1).
+ */
+export async function desplazarWinstonGeneralDesdeInsforge(
+  db: AppDatabaseClient,
+  opts: { desdeFolio: number; delta: number; dryRun?: boolean }
+): Promise<{
+  ok: true
+  aplicada: boolean
+  desdeFolio: number
+  delta: number
+  desplazados: number
+  siguienteFolio: number
+  mensaje: string
+} | { ok: false; mensaje: string }> {
+  const dryRun = opts.dryRun ?? false
+  const desdeFolio = Number(opts.desdeFolio)
+  const delta = Number(opts.delta)
+  if (!Number.isFinite(desdeFolio) || desdeFolio < 1) {
+    return { ok: false, mensaje: 'desdeFolio inválido' }
+  }
+  if (delta !== 1 && delta !== -1) {
+    return { ok: false, mensaje: 'delta debe ser +1 o -1' }
+  }
+
+  const pageSize = 1000
+  const candidatos: PagoInternoRow[] = []
+  let from = 0
+  for (;;) {
+    const { data, error: listErr } = await db
+      .from('pago_interno')
+      .select(SELECT_PAGO)
+      .gte('pago_folio', desdeFolio)
+      .lt('pago_folio', PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON)
+      .eq('pago_cancelado', 0)
+      .order('pago_folio', { ascending: delta < 0 })
+      .order('pago_id', { ascending: delta < 0 })
+      .range(from, from + pageSize - 1)
+    if (listErr) return { ok: false, mensaje: listErr.message }
+    const batch = (data ?? []) as PagoInternoRow[]
+    candidatos.push(...batch.filter((p) => !esCuota(Number(p.concepto_id))))
+    if (batch.length < pageSize) break
+    from += pageSize
+  }
+
+  const alumnoIds = [...new Set(candidatos.map((p) => Number(p.alumno_id)).filter(Boolean))]
+  const metas = await metaAlumnos(db, alumnoIds)
+  const aMover = candidatos.filter((p) => {
+    const meta = p.alumno_id != null ? metas.get(Number(p.alumno_id)) : null
+    if (!meta) return false
+    return pagoPerteneceAPlantelSerie({
+      plantel: 'winston',
+      alumnoNivel: meta.nivel,
+      alumnoRef: meta.ref,
+    })
+  })
+
+  // +1: mayor→menor; -1: menor→mayor (ya viene ordenado arriba).
+  const ordenados =
+    delta > 0
+      ? [...aMover].sort(
+          (a, b) => Number(b.pago_folio) - Number(a.pago_folio) || Number(b.pago_id) - Number(a.pago_id)
+        )
+      : [...aMover].sort(
+          (a, b) => Number(a.pago_folio) - Number(b.pago_folio) || Number(a.pago_id) - Number(b.pago_id)
+        )
+
+  if (dryRun) {
+    const siguiente = await obtenerSiguienteFolioPago('winston', 'general', db)
+    return {
+      ok: true,
+      aplicada: false,
+      desdeFolio,
+      delta,
+      desplazados: ordenados.length,
+      siguienteFolio: siguiente + (ordenados.length ? delta : 0),
+      mensaje: `[dry-run] Desplazar ${ordenados.length} pago(s) desde ${desdeFolio} con delta ${delta}.`,
+    }
+  }
+
+  const ahora = new Date().toISOString()
+  for (const fila of ordenados) {
+    const { error: shiftErr } = await db
+      .from('pago_interno')
+      .update({
+        pago_folio: Number(fila.pago_folio) + delta,
+        pago_actualizacion: ahora,
+      })
+      .eq('pago_id', fila.pago_id)
+      .eq('pago_cancelado', 0)
+    if (shiftErr) {
+      return {
+        ok: false,
+        mensaje: `Error al desplazar folio ${fila.pago_folio}: ${shiftErr.message}`,
+      }
+    }
+  }
+
+  const siguienteFolio = await obtenerSiguienteFolioPago('winston', 'general', db)
+  return {
+    ok: true,
+    aplicada: true,
+    desdeFolio,
+    delta,
+    desplazados: ordenados.length,
+    siguienteFolio,
+    mensaje: `Desplazados ${ordenados.length} pago(s) desde ${desdeFolio} (delta ${delta}). Siguiente ${siguienteFolio}.`,
+  }
+}
