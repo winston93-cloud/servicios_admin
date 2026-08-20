@@ -16,6 +16,7 @@ import {
 import {
   PAGO_INTERNO_FOLIO_WINSTON_INICIAL,
   PAGO_INTERNO_FOLIO_WINSTON_LEGACY_MIN,
+  PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON,
   pagoPerteneceAPlantelSerie,
 } from '@/lib/pagoInternoPlantel'
 import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'

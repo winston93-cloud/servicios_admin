@@ -66,6 +66,28 @@ export async function GET(request: Request) {
       return NextResponse.json(res, { status: res.ok ? 200 : 400 })
     }
 
+    const moverFueraDeTalonPagoId = searchParams.get('moverFueraDeTalonPagoId')
+    if (moverFueraDeTalonPagoId) {
+      const id = Number(moverFueraDeTalonPagoId)
+      if (!Number.isFinite(id) || id < 1) {
+        return NextResponse.json({ ok: false, mensaje: 'pagoId inválido' }, { status: 400 })
+      }
+      const temp = 900_000 + id
+      const { error } = await db
+        .from('pago_interno')
+        .update({ pago_folio: temp, pago_actualizacion: new Date().toISOString() })
+        .eq('pago_id', id)
+      if (error) {
+        return NextResponse.json({ ok: false, mensaje: error.message }, { status: 500 })
+      }
+      return NextResponse.json({
+        ok: true,
+        pago_id: id,
+        pago_folio: temp,
+        mensaje: `pago_id ${id} → folio ${temp} (fuera del talón)`,
+      })
+    }
+
     // Ajuste puntual: alinear pago_registro de un stub cancelado (recorrer).
     const fixStubRegistroId = searchParams.get('fixStubRegistroPagoId')
     const fixStubAntesDe = searchParams.get('antesDeRegistro')
@@ -131,6 +153,28 @@ export async function POST(request: Request) {
         dryRun,
       })
       return NextResponse.json(res, { status: res.ok ? 200 : 400 })
+    }
+
+    const moverFueraDeTalonPagoId = searchParams.get('moverFueraDeTalonPagoId')
+    if (moverFueraDeTalonPagoId) {
+      const id = Number(moverFueraDeTalonPagoId)
+      if (!Number.isFinite(id) || id < 1) {
+        return NextResponse.json({ ok: false, mensaje: 'pagoId inválido' }, { status: 400 })
+      }
+      const temp = 900_000 + id
+      const { error } = await db
+        .from('pago_interno')
+        .update({ pago_folio: temp, pago_actualizacion: new Date().toISOString() })
+        .eq('pago_id', id)
+      if (error) {
+        return NextResponse.json({ ok: false, mensaje: error.message }, { status: 500 })
+      }
+      return NextResponse.json({
+        ok: true,
+        pago_id: id,
+        pago_folio: temp,
+        mensaje: `pago_id ${id} → folio ${temp} (fuera del talón)`,
+      })
     }
 
     const res = await repararFoliosWinstonGeneralInsforge(db, {
