@@ -15,7 +15,6 @@ import {
   Save,
   Sparkles,
 } from 'lucide-react'
-import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
 import DocumentoPreview from './components/DocumentoPreview'
 import type { SignaturePadHandle } from './components/SignaturePad'
@@ -148,7 +147,7 @@ function FirmaElectronicaView() {
         <section className="fe-hero">
           <p className="fe-kicker">
             <Sparkles size={14} aria-hidden />
-            Prototipo · solo personal
+            Sandbox · sin login
           </p>
           <h1>
             <FileSignature size={28} aria-hidden />
@@ -230,10 +229,7 @@ function FirmaElectronicaView() {
   )
 }
 
+/** 2026-08-21 - Sandbox abierto: sin login (prototipo de firma). */
 export default function FirmaElectronicaPage() {
-  return (
-    <ProtectedRoute roles={['usuario']}>
-      <FirmaElectronicaView />
-    </ProtectedRoute>
-  )
+  return <FirmaElectronicaView />
 }
