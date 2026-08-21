@@ -1,5 +1,6 @@
 /**
  * 2026-08-21 - Incrusta PNG de firma en un PDF (pdf-lib, cliente).
+ * La firma y la fecha se centran dentro de la caja de cada plantilla.
  */
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import type { FirmaBox } from './plantillasNivel'
@@ -26,25 +27,32 @@ export async function incrustarFirmaEnPdf(
   const pngBytes = dataUrlToUint8Array(firmaPngDataUrl)
   const png = await doc.embedPng(pngBytes)
 
-  const pad = 8
-  const maxW = firmaBox.width - pad * 2
-  const maxH = firmaBox.height - 22
+  const padX = 6
+  const fechaH = 14
+  const maxW = Math.max(24, firmaBox.width - padX * 2)
+  const maxH = Math.max(24, firmaBox.height - fechaH - 8)
   const scale = Math.min(maxW / png.width, maxH / png.height)
   const drawW = png.width * scale
   const drawH = png.height * scale
 
+  // Centrado horizontal y vertical dentro del área útil (sobre la fecha)
+  const areaTop = firmaBox.y + fechaH
+  const areaH = firmaBox.height - fechaH
+  const drawX = firmaBox.x + (firmaBox.width - drawW) / 2
+  const drawY = areaTop + (areaH - drawH) / 2
+
   // Fondo blanco suave para tapar firma manuscrita previa (si la hubiera)
   page.drawRectangle({
     x: firmaBox.x,
-    y: firmaBox.y + 16,
+    y: areaTop,
     width: firmaBox.width,
-    height: firmaBox.height - 16,
+    height: areaH,
     color: rgb(1, 1, 1),
   })
 
   page.drawImage(png, {
-    x: firmaBox.x + pad,
-    y: firmaBox.y + 18,
+    x: drawX,
+    y: drawY,
     width: drawW,
     height: drawH,
   })
@@ -56,10 +64,12 @@ export async function incrustarFirmaEnPdf(
     month: 'short',
     year: 'numeric',
   })
+  const fechaSize = 8
+  const fechaW = font.widthOfTextAtSize(fecha, fechaSize)
   page.drawText(fecha, {
-    x: firmaBox.x + 8,
-    y: firmaBox.y + 4,
-    size: 8,
+    x: firmaBox.x + (firmaBox.width - fechaW) / 2,
+    y: firmaBox.y + 3,
+    size: fechaSize,
     font,
     color: rgb(0.2, 0.25, 0.35),
   })

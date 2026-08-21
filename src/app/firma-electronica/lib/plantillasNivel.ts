@@ -30,21 +30,21 @@ export const PLANTILLAS_NIVEL: PlantillaNivel[] = [
     id: 'maternal-kinder',
     label: 'Maternal / Kinder',
     pdfUrl: '/firma-electronica/plantillas/maternal-kinder.pdf',
-    // Línea de firma centrada sobre el pie verde / PREESCOLAR
-    firmaBox: { pageIndex: 0, x: 170, y: 88, width: 260, height: 72 },
+    // Línea bajo «COMITÉ DE BECAS» (centrada en la página)
+    firmaBox: { pageIndex: 0, x: 156, y: 86, width: 300, height: 78 },
   },
   {
     id: 'primaria',
     label: 'Primaria',
     pdfUrl: '/firma-electronica/plantillas/primaria.pdf',
-    // Zona inferior derecha (misma familia visual que secundaria)
-    firmaBox: { pageIndex: 0, x: 310, y: 100, width: 230, height: 78 },
+    // Línea inferior derecha «Fecha y Firma de Enterado»
+    firmaBox: { pageIndex: 0, x: 300, y: 98, width: 250, height: 82 },
   },
   {
     id: 'secundaria',
     label: 'Secundaria',
     pdfUrl: '/firma-electronica/plantillas/secundaria.pdf',
-    firmaBox: { pageIndex: 0, x: 300, y: 98, width: 230, height: 78 },
+    firmaBox: { pageIndex: 0, x: 290, y: 96, width: 250, height: 82 },
   },
 ]
 
