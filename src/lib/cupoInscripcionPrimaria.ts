@@ -19,6 +19,14 @@ export const GRADOS_CUPO_LIMITADO: ReadonlyArray<{ nivel: number; grado: number 
   { nivel: 3, grado: 5 },
 ]
 
+/**
+ * 2026-08-21 - 5° Primaria forzado a cupo lleno (como si ya hubiera 60 inscritos).
+ * 3° sigue la métrica real del reporte dif2.
+ */
+export const GRADOS_CUPO_FORZAR_LLENO: ReadonlyArray<{ nivel: number; grado: number }> = [
+  { nivel: 3, grado: 5 },
+]
+
 export const MENSAJE_CUPO_LLENO =
   'Por el momento el cupo de este grado se encuentra completo. Agradecemos su comprensión y le invitamos a comunicarse con Administración o Control Escolar ante cualquier apertura o indicación adicional.'
 
@@ -36,6 +44,10 @@ export type ConsultaCupoInscripcion = {
 
 export function aplicaCupoLimitado(nivel: number, grado: number): boolean {
   return GRADOS_CUPO_LIMITADO.some((g) => g.nivel === nivel && g.grado === grado)
+}
+
+export function forzarCupoLleno(nivel: number, grado: number): boolean {
+  return GRADOS_CUPO_FORZAR_LLENO.some((g) => g.nivel === nivel && g.grado === grado)
 }
 
 export function mensajeCupoLleno(nivel: number, grado: number): string {
@@ -119,7 +131,8 @@ export async function consultarCupoInscripcion(
     grado,
     cicloInscripcion
   )
-  const lleno = total >= CUPO_MAX_PRIMARIA_ESPECIAL
+  // 5° Primaria: bloquear ya (forzado). 3°: solo si total >= 60.
+  const lleno = forzarCupoLleno(nivel, grado) || total >= CUPO_MAX_PRIMARIA_ESPECIAL
   return {
     aplica: true,
     nivel,
