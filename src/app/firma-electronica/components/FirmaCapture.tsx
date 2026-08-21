@@ -1,20 +1,18 @@
 'use client'
 
 /**
- * 2026-08-21 - Captura de firma: dibujar / subir → guardar firma en el PDF.
+ * 2026-08-21 - Captura de firma: dibujar → guardar firma en el PDF.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import {
   CheckCircle2,
   Eraser,
-  ImagePlus,
   Loader2,
   PenLine,
   Save,
 } from 'lucide-react'
 import type { SignaturePadHandle } from './SignaturePad'
-import { imagenArchivoAFirmaPng } from '../lib/firmaAssets'
 
 const SignaturePad = dynamic(() => import('./SignaturePad'), {
   ssr: false,
@@ -22,8 +20,6 @@ const SignaturePad = dynamic(() => import('./SignaturePad'), {
     <div className="fe-pad-wrap fe-pad-loading">Cargando pad de firma…</div>
   ),
 })
-
-export type FirmaModo = 'dibujar' | 'subir'
 
 type Props = {
   disabled?: boolean
@@ -46,15 +42,11 @@ export default function FirmaCapture({
   onError,
 }: Props) {
   const padApiRef = useRef<SignaturePadHandle | null>(null)
-  const fileRef = useRef<HTMLInputElement | null>(null)
 
-  const [modo, setModo] = useState<FirmaModo>('dibujar')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [preparando, setPreparando] = useState(false)
-  const [drawEmpty, setDrawEmpty] = useState(true)
 
   const firmaBloqueada = disabled || !acepto || enviado
-  const busy = disabled || guardando || preparando || enviado
+  const busy = disabled || guardando || enviado
   const puedeGuardar =
     Boolean(previewUrl) && acepto && !busy && !enviado && !disabled
 
@@ -64,9 +56,7 @@ export default function FirmaCapture({
 
   const limpiarPad = useCallback(() => {
     padApiRef.current?.clear()
-    setDrawEmpty(true)
     setPreviewUrl(null)
-    if (fileRef.current) fileRef.current.value = ''
   }, [])
 
   useEffect(() => {
@@ -78,17 +68,7 @@ export default function FirmaCapture({
     limpiarPad()
   }, [enviado, limpiarPad])
 
-  const cambiarModo = useCallback(
-    (next: FirmaModo) => {
-      if (enviado) return
-      setModo(next)
-      limpiarPad()
-    },
-    [enviado, limpiarPad]
-  )
-
   const onPadChange = useCallback((empty: boolean) => {
-    setDrawEmpty(empty)
     if (empty) {
       setPreviewUrl(null)
       return
@@ -97,34 +77,13 @@ export default function FirmaCapture({
     setPreviewUrl(png || null)
   }, [])
 
-  const onFileChange = useCallback(
-    async (file: File | null) => {
-      if (!file) {
-        setPreviewUrl(null)
-        return
-      }
-      try {
-        setPreparando(true)
-        const png = await imagenArchivoAFirmaPng(file)
-        setPreviewUrl(png)
-      } catch (e) {
-        setPreviewUrl(null)
-        onError?.(e instanceof Error ? e.message : 'No se pudo leer la imagen.')
-        if (fileRef.current) fileRef.current.value = ''
-      } finally {
-        setPreparando(false)
-      }
-    },
-    [onError]
-  )
-
   const guardarFirma = useCallback(async () => {
     if (!acepto) {
       onError?.('Debes marcar que leíste y estás de acuerdo con la carta.')
       return
     }
     if (!previewUrl) {
-      onError?.('Agrega una firma válida antes de guardar.')
+      onError?.('Dibuja tu firma antes de guardar.')
       return
     }
     await onGuardarFirma(previewUrl)
@@ -150,60 +109,15 @@ export default function FirmaCapture({
         className={`fe-sign-body${firmaBloqueada && !enviado ? ' is-locked' : ''}`}
         aria-disabled={firmaBloqueada}
       >
-        <div className="fe-mode-tabs" role="tablist" aria-label="Modo de firma">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={modo === 'dibujar'}
-            className={`fe-mode-tab${modo === 'dibujar' ? ' is-active' : ''}`}
-            onClick={() => cambiarModo('dibujar')}
-            disabled={busy || !acepto}
-          >
-            <PenLine size={15} aria-hidden />
-            Dibujar
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={modo === 'subir'}
-            className={`fe-mode-tab${modo === 'subir' ? ' is-active' : ''}`}
-            onClick={() => cambiarModo('subir')}
-            disabled={busy || !acepto}
-          >
-            <ImagePlus size={15} aria-hidden />
-            Subir imagen
-          </button>
-        </div>
-
         <p className="fe-help">
-          Recomendado: firma con el dedo en celular o despacio con el mouse
+          Firma con el dedo en celular o despacio con el mouse
         </p>
 
-        {modo === 'dibujar' ? (
-          <SignaturePad
-            onBind={bindPad}
-            onChange={onPadChange}
-            disabled={firmaBloqueada || busy}
-          />
-        ) : null}
-
-        {modo === 'subir' ? (
-          <div className="fe-upload-block">
-            <label className="fe-field-label" htmlFor="fe-firma-file">
-              Foto o escaneo de tu firma
-            </label>
-            <input
-              id="fe-firma-file"
-              ref={fileRef}
-              className="fe-file"
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              disabled={firmaBloqueada || busy}
-              onChange={(e) => void onFileChange(e.target.files?.[0] ?? null)}
-            />
-            <p className="fe-upload-hint">PNG, JPG o WEBP · máx. 4 MB</p>
-          </div>
-        ) : null}
+        <SignaturePad
+          onBind={bindPad}
+          onChange={onPadChange}
+          disabled={firmaBloqueada || busy}
+        />
       </div>
 
       <div className="fe-actions">
@@ -223,7 +137,7 @@ export default function FirmaCapture({
           disabled={!puedeGuardar}
           aria-live="polite"
         >
-          {guardando || preparando ? (
+          {guardando ? (
             <Loader2 size={16} className="fe-spin" aria-hidden />
           ) : firmaAplicada ? (
             <CheckCircle2 size={16} aria-hidden />
