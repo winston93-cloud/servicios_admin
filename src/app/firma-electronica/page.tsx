@@ -199,18 +199,22 @@ function FirmaElectronicaView() {
             </select>
           </label>
           <p className="fe-nivel-hint">
-            <span className="fe-nivel-hint-k">Prueba</span>
-            <strong className="fe-nivel-alumno">{datos.alumnoNombre}</strong>
+            <span className="fe-nivel-hint-row">
+              <span className="fe-nivel-hint-k">Prueba</span>
+              <strong className="fe-nivel-alumno">{datos.alumnoNombre}</strong>
+            </span>
             <span className="fe-nivel-meta">
-              {datos.grado}
+              <span>{datos.grado}</span>
               <span className="fe-nivel-sep" aria-hidden>
                 ·
               </span>
-              {datos.tipoBeca} {datos.porcentaje}
+              <span>
+                {datos.tipoBeca} {datos.porcentaje}
+              </span>
               <span className="fe-nivel-sep" aria-hidden>
                 ·
               </span>
-              ciclo {datos.cicloLabel}
+              <span>ciclo {datos.cicloLabel}</span>
             </span>
           </p>
         </div>

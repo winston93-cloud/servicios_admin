@@ -47,7 +47,10 @@ export default function PdfInlineViewer({ url, title }: Props) {
           return
         }
 
-        const cssWidth = Math.max(host.clientWidth || 300, 260)
+        const cssWidth = Math.max(
+          Math.min(host.clientWidth || 300, window.innerWidth - 32),
+          240
+        )
         const dpr = Math.min(window.devicePixelRatio || 1, 2)
 
         for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
