@@ -171,6 +171,13 @@ html[data-theme='dark'] .fe-page {
   color: var(--fe-muted);
 }
 
+.fe-nivel-code {
+  font-size: 0.78rem;
+  font-weight: 600;
+  word-break: break-all;
+  color: var(--fe-sky);
+}
+
 @media (max-width: 640px) {
   .fe-nivel {
     flex-direction: column;

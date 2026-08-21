@@ -175,7 +175,7 @@ function FirmaElectronicaView() {
               ))}
             </select>
             <span className="fe-nivel-hint">
-              Plantilla: {plantilla.label} · PDF de muestra
+              PDF: <code className="fe-nivel-code">{plantilla.pdfUrl}</code>
             </span>
           </label>
         </section>
@@ -195,6 +195,7 @@ function FirmaElectronicaView() {
           <DocumentoPreview
             title="1. Documento original"
             url={origenUrl}
+            pdfHref={plantilla.pdfUrl}
             emptyLabel={
               cargandoDoc
                 ? `Cargando carta ${plantilla.label}…`
