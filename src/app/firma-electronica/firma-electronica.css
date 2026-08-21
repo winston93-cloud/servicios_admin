@@ -365,8 +365,39 @@ html[data-theme='dark'] .fe-doc-frame {
   min-height: var(--touch-min, 44px);
 }
 
-.fe-acepto--bajo-pdf {
-  margin: 0;
+.fe-acepto--bajo-pdf:not(.is-checked) {
+  animation: fe-acepto-pulse 2.8s ease-in-out infinite;
+}
+
+.fe-acepto--bajo-pdf.is-checked {
+  animation: none;
+}
+
+@keyframes fe-acepto-pulse {
+  0%,
+  100% {
+    border-color: rgba(14, 165, 233, 0.35);
+    box-shadow:
+      var(--fe-shadow),
+      0 0 0 0 rgba(14, 165, 233, 0);
+  }
+  50% {
+    border-color: rgba(14, 165, 233, 0.85);
+    box-shadow:
+      var(--fe-shadow),
+      0 0 0 4px rgba(14, 165, 233, 0.18),
+      0 0 22px rgba(14, 165, 233, 0.22);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fe-acepto--bajo-pdf:not(.is-checked) {
+    animation: none;
+    border-color: rgba(14, 165, 233, 0.65);
+    box-shadow:
+      var(--fe-shadow),
+      0 0 0 3px rgba(14, 165, 233, 0.15);
+  }
 }
 
 .fe-acepto.is-checked {
