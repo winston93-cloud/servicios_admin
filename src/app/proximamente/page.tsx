@@ -9,6 +9,7 @@ import {
   Coffee,
   Construction,
   NotebookPen,
+  PenLine,
   Sparkles,
 } from 'lucide-react'
 import Link from 'next/link'
@@ -16,8 +17,13 @@ import { useSearchParams } from 'next/navigation'
 import { Suspense, type ReactNode } from 'react'
 import './proximamente.css'
 
-type ModuloProximamente = 'desayunos' | 'boletas' | 'conducta' | 'general'
-type Accent = 'amber' | 'indigo' | 'rose'
+type ModuloProximamente =
+  | 'desayunos'
+  | 'boletas'
+  | 'conducta'
+  | 'firma-electronica'
+  | 'general'
+type Accent = 'amber' | 'indigo' | 'rose' | 'sky'
 
 const MODULOS: Record<
   ModuloProximamente,
@@ -66,6 +72,18 @@ const MODULOS: Record<
     ],
     icon: <ClipboardList size={34} strokeWidth={1.6} />,
   },
+  'firma-electronica': {
+    titulo: 'Pruebas firma electrónica',
+    kicker: 'Pruebas internas',
+    lead: 'Espacio listo en el dashboard de empleados. Cuando Mario defina el flujo, aquí arranca la firma electrónica.',
+    accent: 'sky',
+    bullets: [
+      'Visible solo para personal (tabla usuario)',
+      'Tarjeta ya disponible en el dashboard',
+      'Funcionalidad de pruebas en la siguiente definición',
+    ],
+    icon: <PenLine size={34} strokeWidth={1.6} />,
+  },
   general: {
     titulo: 'Módulo en preparación',
     kicker: 'Winston digital',
@@ -85,7 +103,12 @@ function ProximamenteContent() {
   const { isUsuario } = useAuth()
   const raw = (params.get('m') || params.get('modulo') || '').toLowerCase()
   const key: ModuloProximamente =
-    raw === 'desayunos' || raw === 'boletas' || raw === 'conducta' ? raw : 'general'
+    raw === 'desayunos' ||
+    raw === 'boletas' ||
+    raw === 'conducta' ||
+    raw === 'firma-electronica'
+      ? raw
+      : 'general'
   const mod = MODULOS[key]
 
   return (

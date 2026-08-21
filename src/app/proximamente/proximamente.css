@@ -19,6 +19,11 @@
   --px-accent-2: 251, 113, 133;
 }
 
+.proximamente-page[data-accent='sky'] {
+  --px-accent: 14, 165, 233;
+  --px-accent-2: 56, 189, 248;
+}
+
 .proximamente-bg {
   position: absolute;
   inset: 0;

@@ -95,6 +95,11 @@ export const DASHBOARD_MODULE_PREVIEWS: Record<string, DashboardModulePreview> =
       'Salida segura a pie: identifica alumnos con registro del día y agiliza la entrega en puerta con el flujo SSIW conectado al dashboard.',
     highlights: ['Registro del día', 'Entrega en puerta', 'Operación en vivo'],
   },
+  'Pruebas firma electrónica': {
+    synopsis:
+      'Módulo de pruebas para firma electrónica institucional. La tarjeta ya está en el dashboard de empleados; el flujo concreto se arma en la siguiente iteración.',
+    highlights: ['Solo personal (usuario)', 'En preparación', 'Definición pendiente'],
+  },
 }
 
 export function previewParaModulo(
