@@ -154,12 +154,8 @@ function FirmaElectronicaView() {
           </p>
           <h1>
             <FileSignature size={28} aria-hidden />
-            Pruebas firma electrónica
+            Firma Electrónica
           </h1>
-          <p className="fe-lead">
-            PDF rediseñado: minimalista, azul institucional, mismo estilo en
-            Preescolar, Primaria y Secundaria. Datos de prueba + área de firma.
-          </p>
 
           <label className="fe-nivel">
             <span className="fe-nivel-label">Nivel / formato</span>
