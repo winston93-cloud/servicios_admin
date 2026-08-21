@@ -283,7 +283,7 @@ function FirmaElectronicaView() {
                 </button>
                 <p className="fe-reinicio-hint">
                   Borra la carta firmada guardada y vuelve al inicio para firmar
-                  de nuevo (útil en pruebas).
+                  de nuevo.
                 </p>
               </div>
             ) : null}
