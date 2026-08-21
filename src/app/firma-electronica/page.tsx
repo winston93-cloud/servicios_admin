@@ -166,57 +166,55 @@ function FirmaElectronicaView() {
           onClick={() => router.push('/dashboard')}
         >
           <ArrowLeft size={16} aria-hidden />
-          Volver al dashboard
+          Volver
         </button>
+
+        <div className="fe-top-bar" role="group" aria-label="Firma electrónica">
+          <h1 className="fe-top-title">
+            <FileSignature size={20} aria-hidden />
+            Firma Electrónica
+          </h1>
+          <span className="fe-kicker fe-kicker--inline">
+            <Sparkles size={12} aria-hidden />
+            Sandbox · sin login
+          </span>
+          <label className="fe-nivel">
+            <span className="fe-nivel-label">Nivel</span>
+            <select
+              className="fe-nivel-select"
+              value={nivel}
+              onChange={(e) => setNivel(e.target.value as NivelFirma)}
+              disabled={guardando}
+            >
+              {PLANTILLAS_NIVEL.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="fe-nivel-hint">
+            <span className="fe-nivel-hint-k">Prueba</span>
+            <strong>{datos.alumnoNombre}</strong>
+            <span className="fe-nivel-sep" aria-hidden>
+              ·
+            </span>
+            {datos.grado}
+            <span className="fe-nivel-sep" aria-hidden>
+              ·
+            </span>
+            {datos.tipoBeca} {datos.porcentaje}
+            <span className="fe-nivel-sep" aria-hidden>
+              ·
+            </span>
+            ciclo {datos.cicloLabel}
+          </p>
+        </div>
+
         <ThemeToggle />
       </header>
 
       <main className="fe-main">
-        <section className="fe-hero">
-          <p className="fe-kicker">
-            <Sparkles size={14} aria-hidden />
-            Sandbox · sin login
-          </p>
-          <h1>
-            <FileSignature size={28} aria-hidden />
-            Firma Electrónica
-          </h1>
-
-          <div className="fe-nivel-bar">
-            <label className="fe-nivel">
-              <span className="fe-nivel-label">Nivel / formato</span>
-              <select
-                className="fe-nivel-select"
-                value={nivel}
-                onChange={(e) => setNivel(e.target.value as NivelFirma)}
-                disabled={guardando}
-              >
-                {PLANTILLAS_NIVEL.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p className="fe-nivel-hint">
-              <span className="fe-nivel-hint-k">Prueba</span>
-              <strong>{datos.alumnoNombre}</strong>
-              <span className="fe-nivel-sep" aria-hidden>
-                ·
-              </span>
-              {datos.grado}
-              <span className="fe-nivel-sep" aria-hidden>
-                ·
-              </span>
-              {datos.tipoBeca} {datos.porcentaje}
-              <span className="fe-nivel-sep" aria-hidden>
-                ·
-              </span>
-              ciclo {datos.cicloLabel}
-            </p>
-          </div>
-        </section>
-
         {error ? (
           <p className="fe-alert fe-alert--err" role="alert">
             {error}
