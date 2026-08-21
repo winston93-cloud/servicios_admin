@@ -1,7 +1,7 @@
 /**
- * 2026-08-21 - Cartas de aceptación de beca (PDF) por nivel.
- * Diseño unificado: azul marino institucional, fresco y moderno.
- * Logos: maternal/kinder → educativo; primaria/secundaria → W del login.
+ * 2026-08-21 - Carta «Resolución de Beca» (PDF).
+ * Diseño unificado: minimalista, institucional, premium.
+ * Preescolar / Primaria / Secundaria comparten el mismo sistema visual.
  */
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib'
 import { DATOS_PRUEBA_POR_NIVEL, type DatosCartaBeca } from './datosPruebaCartas'
@@ -9,19 +9,52 @@ import type { FirmaBox, NivelFirma } from './plantillasNivel'
 
 const PAGE_W = 612
 const PAGE_H = 792
-const MARGIN = 48
-const CONTENT_W = PAGE_W - MARGIN * 2
+const MX = 56
+const CONTENT_W = PAGE_W - MX * 2
 
-/** Azul marino institucional Winston */
-const NAVY = rgb(0.04, 0.12, 0.23)
-const NAVY_MID = rgb(0.09, 0.22, 0.4)
-const NAVY_SOFT = rgb(0.86, 0.91, 0.96)
-const SKY = rgb(0.12, 0.45, 0.72)
-const INK = rgb(0.11, 0.14, 0.2)
-const MUTED = rgb(0.4, 0.45, 0.52)
+/** Azul del logo Winston W + neutros */
+const BLUE = rgb(0.0, 0.34, 0.68) // #0057AD
+const BLUE_DEEP = rgb(0.04, 0.16, 0.32)
+const BLUE_SOFT = rgb(0.93, 0.96, 0.99) // fondo sutil
+const BLUE_LINE = rgb(0.78, 0.86, 0.94)
+const GREEN = rgb(0.55, 0.78, 0.25) // acento mínimo del logo
+const INK = rgb(0.12, 0.14, 0.18)
+const MUTED = rgb(0.42, 0.46, 0.52)
 const WHITE = rgb(1, 1, 1)
-const YELLOW = rgb(1, 0.94, 0.55)
-const GREEN_FOOT = rgb(0.18, 0.52, 0.28)
+
+const LOGO_PREESCOLAR = '/logos/logo-winston-educativo.png'
+const LOGO_W = '/logos/logo-winston-w.png'
+
+const META_NIVEL: Record<
+  NivelFirma,
+  { nivelLabel: string; logoUrl: string; direccion: string[]; pieVerde?: boolean }
+> = {
+  'maternal-kinder': {
+    nivelLabel: 'Preescolar',
+    logoUrl: LOGO_PREESCOLAR,
+    direccion: [
+      'CALLE 2 #209 COL. JARDÍN 20 DE NOV. · CD. MADERO, TAM. C.P. 89440',
+      'PREESCOLAR · SEP 9607196 · clave 28PJN0213T',
+    ],
+    pieVerde: true,
+  },
+  primaria: {
+    nivelLabel: 'Primaria',
+    logoUrl: LOGO_W,
+    direccion: [
+      'CALLE 3 #309 COL. JARDÍN 20 DE NOVIEMBRE · CP. 89440 CD. MADERO, TAM',
+      'C.C.T. 28PES0124J',
+    ],
+  },
+  secundaria: {
+    nivelLabel: 'Secundaria',
+    logoUrl: LOGO_W,
+    direccion: [
+      'CALLE 3 #309 COL. JARDÍN 20 DE NOVIEMBRE · CP. 89440 CD. MADERO, TAM',
+      'C.C.T. 28PES0124J',
+    ],
+  },
+}
 
 const CONDICIONES_BASE = [
   'Presentar buena conducta.',
@@ -29,9 +62,6 @@ const CONDICIONES_BASE = [
   'Si el pago de colegiaturas no se hiciera en tiempo (dentro de los 10 primeros días naturales del mes) no se hará efectivo el descuento de la beca.',
   'Renovar anualmente la solicitud de beca el mes de Julio.',
 ]
-
-const LOGO_KINDER = '/logos/logo-winston-educativo.png'
-const LOGO_W = '/logos/logo-winston-w.png'
 
 export type CartaGenerada = {
   bytes: Uint8Array
@@ -84,499 +114,119 @@ function drawWrapped(
   return yy
 }
 
-/** Marcos diagonales compactos: no invaden el área de texto del ASUNTO. */
-function drawMarcosInstitucionales(page: PDFPage) {
-  // Franja superior
-  page.drawRectangle({ x: 0, y: PAGE_H - 10, width: PAGE_W, height: 10, color: NAVY })
-  page.drawRectangle({ x: 0, y: PAGE_H - 14, width: PAGE_W, height: 4, color: SKY })
-
-  // Esquinas superiores pequeñas (máx ~72 px)
-  page.drawSvgPath('M 0,0 L 78,0 L 48,28 L 0,36 Z', {
-    x: 0,
-    y: PAGE_H - 36,
-    color: NAVY,
-  })
-  page.drawSvgPath('M 78,0 L 0,0 L 30,28 L 78,36 Z', {
-    x: PAGE_W - 78,
-    y: PAGE_H - 36,
-    color: NAVY,
-  })
-  page.drawSvgPath('M 0,0 L 52,0 L 32,16 L 0,22 Z', {
-    x: 0,
-    y: PAGE_H - 22,
-    color: NAVY_MID,
-  })
-  page.drawSvgPath('M 52,0 L 0,0 L 20,16 L 52,22 Z', {
-    x: PAGE_W - 52,
-    y: PAGE_H - 22,
-    color: NAVY_MID,
-  })
-
-  // Esquina inferior izquierda
-  page.drawSvgPath('M 0,42 L 70,42 L 42,12 L 0,0 Z', {
-    x: 0,
-    y: 0,
-    color: NAVY,
-  })
-  page.drawSvgPath('M 0,26 L 48,26 L 28,8 L 0,0 Z', {
-    x: 0,
-    y: 0,
-    color: NAVY_MID,
-  })
-}
-
-function drawTablaDatos(
+/** Bloque de datos tipo card: limpio, sin bordes pesados ni amarillo. */
+function drawDatosCard(
   page: PDFPage,
   font: PDFFont,
   fontBold: PDFFont,
   yTop: number,
   datos: DatosCartaBeca
 ): number {
-  const x = MARGIN
-  const colW = CONTENT_W / 2
-  const rowH = 26
-  const pairs: [string, string, string, string][] = [
-    ['GRADO A CURSAR', 'NOMBRE DEL ALUMNO', datos.grado, datos.alumnoNombre],
-    ['PORCENTAJE', 'TIPO DE BECA', datos.porcentaje, datos.tipoBeca],
+  const cardH = 118
+  const y = yTop - cardH
+
+  page.drawRectangle({
+    x: MX,
+    y,
+    width: CONTENT_W,
+    height: cardH,
+    color: BLUE_SOFT,
+  })
+  // Acento izquierdo fino
+  page.drawRectangle({
+    x: MX,
+    y,
+    width: 3,
+    height: cardH,
+    color: BLUE,
+  })
+
+  const pad = 18
+  const colGap = 16
+  const colW = (CONTENT_W - pad * 2 - colGap) / 2
+  const leftX = MX + pad
+  const rightX = leftX + colW + colGap
+  let row1 = yTop - 28
+  let row2 = yTop - 78
+
+  const drawField = (
+    label: string,
+    value: string,
+    x: number,
+    baseline: number,
+    emphasize = false
+  ) => {
+    page.drawText(label.toUpperCase(), {
+      x,
+      y: baseline,
+      size: 7,
+      font: fontBold,
+      color: MUTED,
+    })
+    const vSize = emphasize ? 22 : value.length > 26 ? 9 : 11
+    const vFont = emphasize ? fontBold : fontBold
+    const vColor = emphasize ? BLUE : BLUE_DEEP
+    const lines = wrapText(value, vFont, vSize, colW - 4)
+    let vy = baseline - (emphasize ? 26 : 16)
+    for (const line of lines.slice(0, emphasize ? 1 : 2)) {
+      page.drawText(line, { x, y: vy, size: vSize, font: vFont, color: vColor })
+      vy -= vSize + 2
+    }
+  }
+
+  drawField('Grado a cursar', datos.grado, leftX, row1)
+  drawField('Nombre del alumno', datos.alumnoNombre, rightX, row1)
+  drawField('Porcentaje', datos.porcentaje, leftX, row2, true)
+  drawField('Tipo de beca', datos.tipoBeca, rightX, row2)
+
+  return y - 28
+}
+
+function drawCondiciones(
+  page: PDFPage,
+  font: PDFFont,
+  fontBold: PDFFont,
+  yStart: number,
+  datos: DatosCartaBeca
+): number {
+  let y = yStart
+  page.drawText('Condiciones para conservar la beca', {
+    x: MX,
+    y,
+    size: 10,
+    font: fontBold,
+    color: BLUE_DEEP,
+  })
+  y -= 6
+  page.drawRectangle({
+    x: MX,
+    y: y - 1,
+    width: 48,
+    height: 1.5,
+    color: BLUE,
+  })
+  y -= 20
+
+  const items = [
+    `Promedio mínimo Winston de ${datos.promedioMinimo} (${datos.promedioMinimoLetras}).`,
+    ...(datos.condicionesExtra || []),
+    ...CONDICIONES_BASE,
   ]
 
-  let y = yTop
-  for (const [h1, h2, v1, v2] of pairs) {
-    page.drawRectangle({
-      x,
-      y: y - rowH,
-      width: colW,
-      height: rowH,
-      color: NAVY_SOFT,
-      borderColor: NAVY_MID,
-      borderWidth: 0.7,
+  for (const item of items) {
+    page.drawCircle({
+      x: MX + 4,
+      y: y + 3,
+      size: 2.2,
+      color: BLUE,
     })
-    page.drawRectangle({
-      x: x + colW,
-      y: y - rowH,
-      width: colW,
-      height: rowH,
-      color: NAVY_SOFT,
-      borderColor: NAVY_MID,
-      borderWidth: 0.7,
-    })
-    page.drawText(h1, {
-      x: x + 10,
-      y: y - 17,
-      size: 8,
-      font: fontBold,
-      color: NAVY,
-    })
-    page.drawText(h2, {
-      x: x + colW + 10,
-      y: y - 17,
-      size: 8,
-      font: fontBold,
-      color: NAVY,
-    })
-    y -= rowH
-
-    page.drawRectangle({
-      x,
-      y: y - rowH,
-      width: colW,
-      height: rowH,
-      color: YELLOW,
-      borderColor: NAVY_MID,
-      borderWidth: 0.7,
-    })
-    page.drawRectangle({
-      x: x + colW,
-      y: y - rowH,
-      width: colW,
-      height: rowH,
-      color: WHITE,
-      borderColor: NAVY_MID,
-      borderWidth: 0.7,
-    })
-    const v1Size = v1.length > 10 ? 11 : 13
-    page.drawText(v1, {
-      x: x + (colW - fontBold.widthOfTextAtSize(v1, v1Size)) / 2,
-      y: y - 18,
-      size: v1Size,
-      font: fontBold,
-      color: NAVY,
-    })
-    const nameSize = v2.length > 28 ? 8 : 10
-    const nameLines = wrapText(v2, font, nameSize, colW - 16)
-    let ny = y - 14
-    for (const line of nameLines.slice(0, 2)) {
-      page.drawText(line, {
-        x: x + colW + 8,
-        y: ny,
-        size: nameSize,
-        font,
-        color: INK,
-      })
-      ny -= nameSize + 2
-    }
-    y -= rowH
+    y = drawWrapped(page, item, MX + 16, y, font, 9.5, CONTENT_W - 20, 13, INK)
+    y -= 10
   }
   return y
 }
 
-function drawFirmaArea(
-  page: PDFPage,
-  font: PDFFont,
-  box: FirmaBox,
-  align: 'center' | 'right'
-): void {
-  page.drawLine({
-    start: { x: box.x + 12, y: box.y + 24 },
-    end: { x: box.x + box.width - 12, y: box.y + 24 },
-    thickness: 1.1,
-    color: NAVY,
-  })
-  const label = 'Fecha y Firma de Enterado'
-  const lw = font.widthOfTextAtSize(label, 9)
-  const lx =
-    align === 'center'
-      ? box.x + (box.width - lw) / 2
-      : box.x + (box.width - lw) / 2
-  page.drawText(label, {
-    x: lx,
-    y: box.y + 8,
-    size: 9,
-    font,
-    color: MUTED,
-  })
-}
-
-async function drawHeader(
-  doc: PDFDocument,
-  page: PDFPage,
-  font: PDFFont,
-  fontBold: PDFFont,
-  opts: {
-    logoUrl: string
-    plantelTitulo: string
-    plantelSub: string
-    asunto?: string
-    ciudadFecha?: string
-    fechaCarta?: string
-    /** Kinder: sin wordmark Winston */
-    esKinder: boolean
-  }
-): Promise<number> {
-  drawMarcosInstitucionales(page)
-
-  const logoBytes = await fetchPng(opts.logoUrl)
-  if (logoBytes) {
-    const logo = await doc.embedPng(logoBytes)
-    const maxH = opts.esKinder ? 78 : 62
-    const scale = maxH / logo.height
-    const w = logo.width * scale
-    const h = logo.height * scale
-    page.drawImage(logo, {
-      x: MARGIN,
-      y: PAGE_H - 28 - h,
-      width: w,
-      height: h,
-    })
-  }
-
-  const textX = MARGIN + (opts.esKinder ? 88 : 78)
-  page.drawText(opts.plantelTitulo, {
-    x: textX,
-    y: PAGE_H - 48,
-    size: 13,
-    font: fontBold,
-    color: NAVY,
-  })
-  page.drawText(opts.plantelSub, {
-    x: textX,
-    y: PAGE_H - 64,
-    size: 8,
-    font,
-    color: MUTED,
-  })
-
-  // ASUNTO / fecha alineados a la derecha, fuera de las esquinas (~78 px)
-  const rightSafe = PAGE_W - MARGIN
-  if (opts.asunto) {
-    const size = 9
-    const aw = fontBold.widthOfTextAtSize(opts.asunto, size)
-    page.drawText(opts.asunto, {
-      x: rightSafe - aw,
-      y: PAGE_H - 86,
-      size,
-      font: fontBold,
-      color: NAVY,
-    })
-  }
-  if (opts.ciudadFecha) {
-    const size = 8
-    const cw = font.widthOfTextAtSize(opts.ciudadFecha, size)
-    page.drawText(opts.ciudadFecha, {
-      x: rightSafe - cw,
-      y: PAGE_H - 102,
-      size,
-      font,
-      color: MUTED,
-    })
-  }
-  if (opts.fechaCarta && !opts.ciudadFecha) {
-    const size = 9
-    const fw = font.widthOfTextAtSize(opts.fechaCarta, size)
-    page.drawText(opts.fechaCarta, {
-      x: rightSafe - fw,
-      y: PAGE_H - 52,
-      size,
-      font,
-      color: INK,
-    })
-  }
-
-  // Línea divisoria bajo encabezado
-  page.drawRectangle({
-    x: MARGIN,
-    y: PAGE_H - 118,
-    width: CONTENT_W,
-    height: 2,
-    color: NAVY_SOFT,
-  })
-  page.drawRectangle({
-    x: MARGIN,
-    y: PAGE_H - 118,
-    width: 72,
-    height: 2,
-    color: SKY,
-  })
-
-  return PAGE_H - 138
-}
-
-async function crearMaternalKinder(
-  doc: PDFDocument,
-  page: PDFPage,
-  font: PDFFont,
-  fontBold: PDFFont,
-  datos: DatosCartaBeca
-): Promise<FirmaBox> {
-  let y = await drawHeader(doc, page, font, fontBold, {
-    logoUrl: LOGO_KINDER,
-    plantelTitulo: 'Instituto Winston Churchill',
-    plantelSub: 'Preescolar · Maternal / Kinder',
-    fechaCarta: datos.fechaCarta,
-    esKinder: true,
-  })
-
-  page.drawText(`SR. (A): ${datos.tutorNombre}`, {
-    x: MARGIN,
-    y,
-    size: 11,
-    font: fontBold,
-    color: INK,
-  })
-  y -= 16
-  page.drawText('PRESENTE:', {
-    x: MARGIN,
-    y,
-    size: 11,
-    font: fontBold,
-    color: NAVY,
-  })
-  y -= 24
-
-  y = drawWrapped(
-    page,
-    `De acuerdo a la solicitud de beca presentada para el presente ciclo escolar ${datos.cicloLabel} al Comité de Becas, ha decidido otorgarles la BECA con un descuento aplicado en colegiaturas.`,
-    MARGIN,
-    y,
-    font,
-    10,
-    CONTENT_W,
-    14
-  )
-  y -= 16
-
-  y = drawTablaDatos(page, font, fontBold, y, datos)
-  y -= 14
-
-  page.drawText(
-    'El alumno solo puede ser beneficiario de un solo tipo de beca.',
-    { x: MARGIN, y, size: 9, font, color: MUTED }
-  )
-  y -= 16
-  page.drawText(
-    'Así mismo hacemos de su conocimiento que para conservarla es necesario cumplir con:',
-    { x: MARGIN, y, size: 10, font, color: INK }
-  )
-  y -= 16
-
-  for (const b of [
-    `Promedio mínimo Winston de ${datos.promedioMinimo}`,
-    ...CONDICIONES_BASE,
-  ]) {
-    y = drawWrapped(page, `•  ${b}`, MARGIN + 6, y, font, 9.5, CONTENT_W - 12, 13)
-    y -= 3
-  }
-
-  y -= 12
-  page.drawText('ATENTAMENTE', {
-    x: (PAGE_W - fontBold.widthOfTextAtSize('ATENTAMENTE', 11)) / 2,
-    y,
-    size: 11,
-    font: fontBold,
-    color: NAVY,
-  })
-  y -= 22
-  page.drawText(datos.comiteLabel, {
-    x: (PAGE_W - fontBold.widthOfTextAtSize(datos.comiteLabel, 11)) / 2,
-    y,
-    size: 11,
-    font: fontBold,
-    color: NAVY,
-  })
-
-  const firmaBox: FirmaBox = {
-    pageIndex: 0,
-    x: 156,
-    y: 72,
-    width: 300,
-    height: 78,
-  }
-  drawFirmaArea(page, font, firmaBox, 'center')
-
-  page.drawText(
-    'PREESCOLAR: Incorporado a la SEP acuerdo No. 9607196 clave 28PJN0213T',
-    { x: MARGIN, y: 44, size: 7, font, color: SKY }
-  )
-  page.drawRectangle({
-    x: 0,
-    y: 0,
-    width: PAGE_W,
-    height: 26,
-    color: GREEN_FOOT,
-  })
-  page.drawText('RAISING BRIGHTER KIDS', {
-    x: (PAGE_W - fontBold.widthOfTextAtSize('RAISING BRIGHTER KIDS', 10)) / 2,
-    y: 8,
-    size: 10,
-    font: fontBold,
-    color: WHITE,
-  })
-
-  return firmaBox
-}
-
-async function crearResolucionNivel(
-  doc: PDFDocument,
-  page: PDFPage,
-  font: PDFFont,
-  fontBold: PDFFont,
-  datos: DatosCartaBeca,
-  nivelLabel: 'PRIMARIA' | 'SECUNDARIA'
-): Promise<FirmaBox> {
-  let y = await drawHeader(doc, page, font, fontBold, {
-    logoUrl: LOGO_W,
-    plantelTitulo: 'Instituto Winston Churchill',
-    plantelSub:
-      nivelLabel === 'PRIMARIA'
-        ? 'Primaria · Resolución de beca'
-        : 'Secundaria · Resolución de beca',
-    asunto: `ASUNTO: RESOLUCIÓN DE BECA ${datos.cicloLabel}`,
-    ciudadFecha: datos.ciudadFecha,
-    esKinder: false,
-  })
-
-  page.drawText(`SR. (A): ${datos.tutorNombre}`, {
-    x: MARGIN,
-    y,
-    size: 11,
-    font: fontBold,
-    color: INK,
-  })
-  y -= 16
-  page.drawText('PRESENTE', {
-    x: (PAGE_W - fontBold.widthOfTextAtSize('PRESENTE', 11)) / 2,
-    y,
-    size: 11,
-    font: fontBold,
-    color: NAVY,
-  })
-  y -= 22
-
-  const intro =
-    nivelLabel === 'SECUNDARIA'
-      ? `De acuerdo a la solicitud de beca presentada para el presente ciclo escolar ${datos.cicloLabel} al Comité de Becas, ha decidido otorgarles la BECA de WINSTON con un descuento aplicado en colegiaturas al alumno:`
-      : `De acuerdo a la solicitud de beca presentada para el presente ciclo escolar ${datos.cicloLabel} al Comité de Becas, ha decidido otorgarles la BECA con un descuento aplicado en colegiaturas al alumno:`
-
-  y = drawWrapped(page, intro, MARGIN, y, font, 10, CONTENT_W, 14)
-  y -= 12
-  y = drawTablaDatos(page, font, fontBold, y, datos)
-  y -= 14
-
-  page.drawText(
-    'Así mismo hacemos de su conocimiento que para conservarla es necesario cumplir con:',
-    { x: MARGIN, y, size: 10, font, color: INK }
-  )
-  y -= 15
-
-  const bullets = [
-    `Promedio mínimo Winston de: ${datos.promedioMinimo} (${datos.promedioMinimoLetras})`,
-    ...(datos.condicionesExtra || []),
-    ...CONDICIONES_BASE,
-  ]
-  for (const b of bullets) {
-    y = drawWrapped(page, `•  ${b}`, MARGIN + 6, y, font, 9.5, CONTENT_W - 14, 12.5)
-    y -= 2
-  }
-
-  y = Math.min(y - 8, 210)
-  page.drawText('ATENTAMENTE', {
-    x: MARGIN,
-    y,
-    size: 11,
-    font: fontBold,
-    color: NAVY,
-  })
-  y -= 28
-  page.drawText(datos.comiteLabel, {
-    x: MARGIN,
-    y,
-    size: 11,
-    font: fontBold,
-    color: NAVY,
-  })
-
-  const firmaBox: FirmaBox = {
-    pageIndex: 0,
-    x: 300,
-    y: 78,
-    width: 250,
-    height: 82,
-  }
-  drawFirmaArea(page, font, firmaBox, 'right')
-
-  const dir1 = 'CALLE 3 #309 COL. JARDÍN 20 DE NOVIEMBRE'
-  const dir2 = 'CP. 89440 CD. MADERO, TAM  ·  C.C.T.28PES0124J'
-  page.drawText(dir1, {
-    x: PAGE_W - MARGIN - font.widthOfTextAtSize(dir1, 7),
-    y: 38,
-    size: 7,
-    font,
-    color: MUTED,
-  })
-  page.drawText(dir2, {
-    x: PAGE_W - MARGIN - font.widthOfTextAtSize(dir2, 7),
-    y: 28,
-    size: 7,
-    font,
-    color: MUTED,
-  })
-
-  page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: 8, color: NAVY })
-
-  return firmaBox
-}
-
-/** Genera el PDF de prueba del nivel seleccionado. */
+/** Genera el PDF de resolución de beca del nivel indicado. */
 export async function crearCartaBecaPdf(
   nivel: NivelFirma,
   datosOverride?: Partial<DatosCartaBeca>
@@ -585,33 +235,189 @@ export async function crearCartaBecaPdf(
     ...DATOS_PRUEBA_POR_NIVEL[nivel],
     ...datosOverride,
   }
+  const meta = META_NIVEL[nivel]
 
   const doc = await PDFDocument.create()
   const page = doc.addPage([PAGE_W, PAGE_H])
   const font = await doc.embedFont(StandardFonts.Helvetica)
   const fontBold = await doc.embedFont(StandardFonts.HelveticaBold)
 
-  let firmaBox: FirmaBox
-  if (nivel === 'maternal-kinder') {
-    firmaBox = await crearMaternalKinder(doc, page, font, fontBold, datos)
-  } else if (nivel === 'primaria') {
-    firmaBox = await crearResolucionNivel(
-      doc,
-      page,
+  // —— Top bar sutil ——
+  page.drawRectangle({ x: 0, y: PAGE_H - 4, width: PAGE_W, height: 4, color: BLUE })
+  page.drawRectangle({ x: 0, y: PAGE_H - 6, width: 96, height: 2, color: GREEN })
+
+  // —— Header ——
+  const logoBytes = await fetchPng(meta.logoUrl)
+  let logoBottom = PAGE_H - 92
+  if (logoBytes) {
+    const logo = await doc.embedPng(logoBytes)
+    const maxH = nivel === 'maternal-kinder' ? 68 : 54
+    const scale = maxH / logo.height
+    const w = logo.width * scale
+    const h = logo.height * scale
+    page.drawImage(logo, { x: MX, y: PAGE_H - 22 - h, width: w, height: h })
+    logoBottom = PAGE_H - 22 - h
+  }
+
+  const headX = MX + (nivel === 'maternal-kinder' ? 82 : 72)
+  page.drawText('Instituto Winston Churchill', {
+    x: headX,
+    y: PAGE_H - 42,
+    size: 12,
+    font: fontBold,
+    color: BLUE_DEEP,
+  })
+  page.drawText(meta.nivelLabel, {
+    x: headX,
+    y: PAGE_H - 58,
+    size: 9,
+    font,
+    color: MUTED,
+  })
+
+  const asunto = `ASUNTO: RESOLUCIÓN DE BECA ${datos.cicloLabel}`
+  const asuntoSize = 8.5
+  page.drawText(asunto, {
+    x: PAGE_W - MX - fontBold.widthOfTextAtSize(asunto, asuntoSize),
+    y: PAGE_H - 42,
+    size: asuntoSize,
+    font: fontBold,
+    color: BLUE,
+  })
+  page.drawText(datos.ciudadFecha, {
+    x: PAGE_W - MX - font.widthOfTextAtSize(datos.ciudadFecha, 8),
+    y: PAGE_H - 56,
+    size: 8,
+    font,
+    color: MUTED,
+  })
+
+  // Divisor
+  const divY = Math.min(logoBottom, PAGE_H - 92) - 16
+  page.drawRectangle({
+    x: MX,
+    y: divY,
+    width: CONTENT_W,
+    height: 0.75,
+    color: BLUE_LINE,
+  })
+
+  let y = divY - 36
+
+  // —— Saludo ——
+  page.drawText(`SR. (A): ${datos.tutorNombre}`, {
+    x: MX,
+    y,
+    size: 11,
+    font: fontBold,
+    color: INK,
+  })
+  y -= 18
+  page.drawText('PRESENTE', {
+    x: MX,
+    y,
+    size: 10,
+    font: fontBold,
+    color: BLUE_DEEP,
+  })
+  y -= 28
+
+  // —— Intro ——
+  const intro =
+    nivel === 'secundaria'
+      ? `De acuerdo con la solicitud de beca presentada para el ciclo escolar ${datos.cicloLabel}, el Comité de Becas ha resuelto otorgar la BECA de WINSTON con el descuento indicado en colegiaturas al alumno:`
+      : `De acuerdo con la solicitud de beca presentada para el ciclo escolar ${datos.cicloLabel}, el Comité de Becas ha resuelto otorgar una beca con el descuento indicado en colegiaturas al alumno:`
+
+  y = drawWrapped(page, intro, MX, y, font, 10, CONTENT_W, 15, INK)
+  y -= 26
+
+  // —— Datos ——
+  y = drawDatosCard(page, font, fontBold, y, datos)
+
+  // —— Condiciones ——
+  y = drawCondiciones(page, font, fontBold, y, datos)
+  y -= 18
+
+  // —— Cierre ——
+  page.drawText('ATENTAMENTE', {
+    x: MX,
+    y,
+    size: 10,
+    font: fontBold,
+    color: BLUE_DEEP,
+  })
+  y -= 22
+  page.drawText(datos.comiteLabel, {
+    x: MX,
+    y,
+    size: 10,
+    font: fontBold,
+    color: INK,
+  })
+
+  // —— Firma ——
+  const firmaBox: FirmaBox = {
+    pageIndex: 0,
+    x: PAGE_W - MX - 240,
+    y: 78,
+    width: 240,
+    height: 72,
+  }
+  page.drawLine({
+    start: { x: firmaBox.x + 8, y: firmaBox.y + 22 },
+    end: { x: firmaBox.x + firmaBox.width - 8, y: firmaBox.y + 22 },
+    thickness: 0.9,
+    color: BLUE_DEEP,
+  })
+  const firmaLabel = 'Fecha y Firma de Enterado'
+  page.drawText(firmaLabel, {
+    x:
+      firmaBox.x +
+      (firmaBox.width - font.widthOfTextAtSize(firmaLabel, 8)) / 2,
+    y: firmaBox.y + 8,
+    size: 8,
+    font,
+    color: MUTED,
+  })
+
+  // —— Footer ——
+  page.drawRectangle({
+    x: MX,
+    y: 52,
+    width: CONTENT_W,
+    height: 0.6,
+    color: BLUE_LINE,
+  })
+  let fy = 40
+  for (const line of meta.direccion) {
+    page.drawText(line, {
+      x: MX,
+      y: fy,
+      size: 6.5,
       font,
-      fontBold,
-      datos,
-      'PRIMARIA'
-    )
+      color: MUTED,
+    })
+    fy -= 10
+  }
+
+  if (meta.pieVerde) {
+    page.drawRectangle({
+      x: 0,
+      y: 0,
+      width: PAGE_W,
+      height: 18,
+      color: rgb(0.2, 0.52, 0.28),
+    })
+    const tag = 'RAISING BRIGHTER KIDS'
+    page.drawText(tag, {
+      x: (PAGE_W - fontBold.widthOfTextAtSize(tag, 8)) / 2,
+      y: 5,
+      size: 8,
+      font: fontBold,
+      color: WHITE,
+    })
   } else {
-    firmaBox = await crearResolucionNivel(
-      doc,
-      page,
-      font,
-      fontBold,
-      datos,
-      'SECUNDARIA'
-    )
+    page.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: 3, color: BLUE })
   }
 
   const bytes = await doc.save()

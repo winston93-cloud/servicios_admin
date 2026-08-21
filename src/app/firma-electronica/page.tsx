@@ -152,8 +152,8 @@ function FirmaElectronicaView() {
             Pruebas firma electrónica
           </h1>
           <p className="fe-lead">
-            PDF diseñado por nivel (no escaneo). Datos de prueba + área de
-            firma. Logos del login de Servicios Administrativos.
+            PDF rediseñado: minimalista, azul institucional, mismo estilo en
+            Preescolar, Primaria y Secundaria. Datos de prueba + área de firma.
           </p>
 
           <label className="fe-nivel">
