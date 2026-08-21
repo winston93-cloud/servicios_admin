@@ -364,8 +364,9 @@ html[data-theme='dark'] .fe-mode-tab.is-active {
 
 .fe-pad-guide {
   position: absolute;
-  left: 22%;
-  right: 22%;
+  /* ~50% del largo actual (~56% → ~28% del canvas), centrada */
+  left: 36%;
+  right: 36%;
   bottom: 28%;
   border-top: 2px dashed #cbd5e1;
   pointer-events: none;
