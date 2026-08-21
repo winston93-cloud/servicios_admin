@@ -224,8 +224,21 @@ html[data-theme='dark'] .fe-alert--ok {
 @media (min-width: 1100px) {
   .fe-grid {
     grid-template-columns: 1.1fr 0.9fr 1.1fr;
-    align-items: stretch;
+    align-items: start;
   }
+}
+
+.fe-col-origen,
+.fe-col-firma {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.fe-col-origen .fe-doc-card,
+.fe-col-firma .fe-sign-card {
+  min-height: 0;
 }
 
 .fe-doc-card,
@@ -342,13 +355,18 @@ html[data-theme='dark'] .fe-doc-frame {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  margin: 0.85rem 1rem 0.35rem;
+  margin: 0;
   padding: 0.85rem 0.95rem;
   border-radius: 14px;
   border: 1px solid var(--fe-border);
-  background: rgba(15, 23, 42, 0.03);
+  background: var(--fe-card);
+  box-shadow: var(--fe-shadow);
   cursor: pointer;
   min-height: var(--touch-min, 44px);
+}
+
+.fe-acepto--bajo-pdf {
+  margin: 0;
 }
 
 .fe-acepto.is-checked {
@@ -706,6 +724,31 @@ html[data-theme='dark'] .fe-preview-frame {
   background: linear-gradient(135deg, #16a34a, #15803d);
   box-shadow: 0 10px 24px rgba(22, 163, 74, 0.32);
   cursor: default;
+}
+
+.fe-reinicio {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0 0.15rem;
+}
+
+.fe-btn--restart {
+  width: 100%;
+  background: linear-gradient(135deg, var(--fe-sky), #0284c7);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(14, 165, 233, 0.28);
+}
+
+.fe-btn--restart:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.fe-reinicio-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--fe-muted);
 }
 
 @media (min-width: 640px) {

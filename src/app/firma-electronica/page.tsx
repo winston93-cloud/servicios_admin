@@ -5,7 +5,12 @@
  */
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, FileSignature, Sparkles } from 'lucide-react'
+import {
+  ArrowLeft,
+  FileSignature,
+  RotateCcw,
+  Sparkles,
+} from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
 import DocumentoPreview from './components/DocumentoPreview'
 import FirmaCapture from './components/FirmaCapture'
@@ -36,6 +41,8 @@ function FirmaElectronicaView() {
   const [cargandoDoc, setCargandoDoc] = useState(true)
   const [guardando, setGuardando] = useState(false)
   const [enviado, setEnviado] = useState(false)
+  const [acepto, setAcepto] = useState(false)
+  const [firmaKey, setFirmaKey] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [okMsg, setOkMsg] = useState<string | null>(null)
 
@@ -48,6 +55,8 @@ function FirmaElectronicaView() {
         setError(null)
         setOkMsg(null)
         setEnviado(false)
+        setAcepto(false)
+        setFirmaKey((k) => k + 1)
         setFirmadoUrl((prev) => {
           if (prev) URL.revokeObjectURL(prev)
           return null
@@ -97,6 +106,10 @@ function FirmaElectronicaView() {
         setError('Aún no está listo el documento de origen.')
         return
       }
+      if (!acepto) {
+        setError('Debes marcar que leíste y estás de acuerdo con la carta.')
+        return
+      }
       setGuardando(true)
       try {
         const firmado = await incrustarFirmaEnPdf(
@@ -121,8 +134,20 @@ function FirmaElectronicaView() {
         setGuardando(false)
       }
     },
-    [origenBytes, firmaBox]
+    [origenBytes, firmaBox, acepto]
   )
+
+  const reiniciarProceso = useCallback(() => {
+    setFirmadoUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev)
+      return null
+    })
+    setEnviado(false)
+    setAcepto(false)
+    setError(null)
+    setOkMsg(null)
+    setFirmaKey((k) => k + 1)
+  }, [])
 
   const plantilla = plantillaPorNivel(nivel)
   const datos = DATOS_PRUEBA_POR_NIVEL[nivel]
@@ -190,24 +215,65 @@ function FirmaElectronicaView() {
         ) : null}
 
         <div className="fe-grid">
-          <DocumentoPreview
-            title="1. Documento original"
-            url={origenUrl}
-            emptyLabel={
-              cargandoDoc
-                ? `Generando carta ${plantilla.label}…`
-                : 'Sin documento.'
-            }
-          />
+          <div className="fe-col-origen">
+            <DocumentoPreview
+              title="1. Documento original"
+              url={origenUrl}
+              emptyLabel={
+                cargandoDoc
+                  ? `Generando carta ${plantilla.label}…`
+                  : 'Sin documento.'
+              }
+            />
 
-          <FirmaCapture
-            key={nivel}
-            disabled={cargandoDoc || !origenBytes}
-            guardando={guardando}
-            enviado={enviado}
-            onGuardar={onGuardar}
-            onError={setError}
-          />
+            <label
+              className={`fe-acepto fe-acepto--bajo-pdf${acepto ? ' is-checked' : ''}`}
+            >
+              <input
+                type="checkbox"
+                className="fe-acepto-input"
+                checked={acepto}
+                disabled={cargandoDoc || !origenBytes || enviado}
+                onChange={(e) => setAcepto(e.target.checked)}
+              />
+              <span className="fe-acepto-box" aria-hidden />
+              <span className="fe-acepto-text">
+                He leído y confirmo que estoy de acuerdo con el contenido de la
+                carta de aceptación de beca. Entiendo las condiciones para
+                conservar el beneficio y autorizo el uso de mi firma electrónica
+                en este documento.
+              </span>
+            </label>
+          </div>
+
+          <div className="fe-col-firma">
+            <FirmaCapture
+              key={`${nivel}-${firmaKey}`}
+              disabled={cargandoDoc || !origenBytes}
+              guardando={guardando}
+              enviado={enviado}
+              acepto={acepto}
+              onGuardar={onGuardar}
+              onError={setError}
+            />
+
+            {enviado ? (
+              <div className="fe-reinicio">
+                <button
+                  type="button"
+                  className="fe-btn fe-btn--restart"
+                  onClick={reiniciarProceso}
+                >
+                  <RotateCcw size={16} aria-hidden />
+                  Eliminar y reiniciar proceso
+                </button>
+                <p className="fe-reinicio-hint">
+                  Borra la carta firmada guardada y vuelve al inicio para firmar
+                  de nuevo (útil en pruebas).
+                </p>
+              </div>
+            ) : null}
+          </div>
 
           <DocumentoPreview
             title="3. Documento firmado"

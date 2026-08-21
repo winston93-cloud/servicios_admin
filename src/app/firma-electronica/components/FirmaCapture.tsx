@@ -1,9 +1,9 @@
 'use client'
 
 /**
- * 2026-08-21 - Captura de firma: aceptar términos → dibujar/subir → enviar.
+ * 2026-08-21 - Captura de firma: dibujar / subir → enviar (acepto viene del padre).
  */
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import {
   CheckCircle2,
@@ -28,8 +28,9 @@ export type FirmaModo = 'dibujar' | 'subir'
 type Props = {
   disabled?: boolean
   guardando?: boolean
-  /** Tras enviar con éxito: botón verde y bloqueo de reenvío. */
   enviado?: boolean
+  /** Debe estar marcado el checkbox bajo el PDF original. */
+  acepto: boolean
   onGuardar: (firmaPngDataUrl: string) => void | Promise<void>
   onError?: (mensaje: string) => void
 }
@@ -38,13 +39,13 @@ export default function FirmaCapture({
   disabled = false,
   guardando = false,
   enviado = false,
+  acepto,
   onGuardar,
   onError,
 }: Props) {
   const padApiRef = useRef<SignaturePadHandle | null>(null)
   const fileRef = useRef<HTMLInputElement | null>(null)
 
-  const [acepto, setAcepto] = useState(false)
   const [modo, setModo] = useState<FirmaModo>('dibujar')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [preparando, setPreparando] = useState(false)
@@ -59,24 +60,29 @@ export default function FirmaCapture({
     padApiRef.current = api
   }, [])
 
-  const limpiar = useCallback(() => {
-    if (enviado) return
+  const limpiarPad = useCallback(() => {
     padApiRef.current?.clear()
     setDrawEmpty(true)
     setPreviewUrl(null)
     if (fileRef.current) fileRef.current.value = ''
-  }, [enviado])
+  }, [])
+
+  useEffect(() => {
+    if (!acepto && !enviado) limpiarPad()
+  }, [acepto, enviado, limpiarPad])
+
+  const limpiar = useCallback(() => {
+    if (enviado) return
+    limpiarPad()
+  }, [enviado, limpiarPad])
 
   const cambiarModo = useCallback(
     (next: FirmaModo) => {
       if (enviado) return
       setModo(next)
-      padApiRef.current?.clear()
-      setDrawEmpty(true)
-      setPreviewUrl(null)
-      if (fileRef.current) fileRef.current.value = ''
+      limpiarPad()
     },
-    [enviado]
+    [enviado, limpiarPad]
   )
 
   const onPadChange = useCallback((empty: boolean) => {
@@ -110,20 +116,6 @@ export default function FirmaCapture({
     [onError]
   )
 
-  const onToggleAcepto = useCallback(
-    (checked: boolean) => {
-      if (enviado) return
-      setAcepto(checked)
-      if (!checked) {
-        padApiRef.current?.clear()
-        setDrawEmpty(true)
-        setPreviewUrl(null)
-        if (fileRef.current) fileRef.current.value = ''
-      }
-    },
-    [enviado]
-  )
-
   const enviar = useCallback(async () => {
     if (!acepto) {
       onError?.('Debes marcar que leíste y estás de acuerdo con la carta.')
@@ -145,26 +137,10 @@ export default function FirmaCapture({
         </h2>
       </header>
 
-      <label className={`fe-acepto${acepto ? ' is-checked' : ''}`}>
-        <input
-          type="checkbox"
-          className="fe-acepto-input"
-          checked={acepto}
-          disabled={disabled || enviado}
-          onChange={(e) => onToggleAcepto(e.target.checked)}
-        />
-        <span className="fe-acepto-box" aria-hidden />
-        <span className="fe-acepto-text">
-          He leído y confirmo que estoy de acuerdo con el contenido de la carta
-          de aceptación de beca. Entiendo las condiciones para conservar el
-          beneficio y autorizo el uso de mi firma electrónica en este
-          documento.
-        </span>
-      </label>
-
       {!acepto && !enviado ? (
         <p className="fe-acepto-hint" role="status">
-          Marca la casilla para habilitar el área de firma.
+          Marca «He leído…» debajo del documento original para habilitar la
+          firma.
         </p>
       ) : null}
 
@@ -226,28 +202,6 @@ export default function FirmaCapture({
             <p className="fe-upload-hint">PNG, JPG o WEBP · máx. 4 MB</p>
           </div>
         ) : null}
-
-        <div className="fe-preview-block">
-          <p className="fe-preview-label">Vista previa de la firma</p>
-          <div className="fe-preview-frame">
-            {previewUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={previewUrl}
-                alt="Vista previa de la firma"
-                className="fe-preview-img"
-              />
-            ) : (
-              <p className="fe-preview-empty">
-                {!acepto
-                  ? 'Primero confirma que leíste la carta'
-                  : modo === 'dibujar' && drawEmpty
-                    ? 'Dibuja en el área de arriba'
-                    : 'Sube una imagen para ver la firma'}
-              </p>
-            )}
-          </div>
-        </div>
       </div>
 
       <div className="fe-actions">
