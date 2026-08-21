@@ -1,32 +1,24 @@
 'use client'
 
 /**
- * 2026-08-21 - Prototipo firma electrónica (dashboard empleados / tabla usuario).
+ * 2026-08-21 - Prototipo firma electrónica (sandbox sin login).
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
-import dynamic from 'next/dynamic'
+import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  ArrowLeft,
-  Eraser,
-  FileSignature,
-  Loader2,
-  PenLine,
-  Save,
-  Sparkles,
-} from 'lucide-react'
+import { ArrowLeft, FileSignature, Sparkles } from 'lucide-react'
+import { Dancing_Script } from 'next/font/google'
 import ThemeToggle from '@/components/ThemeToggle'
 import DocumentoPreview from './components/DocumentoPreview'
-import type { SignaturePadHandle } from './components/SignaturePad'
+import FirmaCapture from './components/FirmaCapture'
 import { crearAcuerdoBecaPdfBytes } from './lib/crearAcuerdoBecaPdf'
 import { incrustarFirmaEnPdf } from './lib/incrustarFirmaPdf'
 import './firma-electronica.css'
 
-const SignaturePad = dynamic(() => import('./components/SignaturePad'), {
-  ssr: false,
-  loading: () => (
-    <div className="fe-pad-wrap fe-pad-loading">Cargando pad de firma…</div>
-  ),
+const dancingScript = Dancing_Script({
+  subsets: ['latin'],
+  weight: ['600', '700'],
+  variable: '--font-firma-script',
+  display: 'swap',
 })
 
 function bytesToObjectUrl(bytes: Uint8Array): string {
@@ -36,7 +28,6 @@ function bytesToObjectUrl(bytes: Uint8Array): string {
 
 function FirmaElectronicaView() {
   const router = useRouter()
-  const padApiRef = useRef<SignaturePadHandle | null>(null)
 
   const [origenBytes, setOrigenBytes] = useState<Uint8Array | null>(null)
   const [origenUrl, setOrigenUrl] = useState<string | null>(null)
@@ -82,50 +73,36 @@ function FirmaElectronicaView() {
     }
   }, [firmadoUrl])
 
-  const bindPad = useCallback((api: SignaturePadHandle) => {
-    padApiRef.current = api
-  }, [])
-
-  const limpiar = useCallback(() => {
-    padApiRef.current?.clear()
-    setOkMsg(null)
-    setError(null)
-  }, [])
-
-  const guardarFirma = useCallback(async () => {
-    setError(null)
-    setOkMsg(null)
-    const pad = padApiRef.current
-    if (!pad || pad.isEmpty()) {
-      setError('Dibuja tu firma antes de guardar.')
-      return
-    }
-    if (!origenBytes) {
-      setError('Aún no está listo el documento de origen.')
-      return
-    }
-
-    setGuardando(true)
-    try {
-      const png = pad.toDataURL()
-      const firmado = await incrustarFirmaEnPdf(origenBytes, png)
-      const nextUrl = bytesToObjectUrl(firmado)
-      setFirmadoUrl((prev) => {
-        if (prev) URL.revokeObjectURL(prev)
-        return nextUrl
-      })
-      setOkMsg('Firma aplicada. Revisa el documento firmado a la derecha.')
-    } catch (e) {
-      setError(
-        e instanceof Error ? e.message : 'No se pudo incrustar la firma.'
-      )
-    } finally {
-      setGuardando(false)
-    }
-  }, [origenBytes])
+  const onGuardar = useCallback(
+    async (firmaPng: string) => {
+      setError(null)
+      setOkMsg(null)
+      if (!origenBytes) {
+        setError('Aún no está listo el documento de origen.')
+        return
+      }
+      setGuardando(true)
+      try {
+        const firmado = await incrustarFirmaEnPdf(origenBytes, firmaPng)
+        const nextUrl = bytesToObjectUrl(firmado)
+        setFirmadoUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev)
+          return nextUrl
+        })
+        setOkMsg('Firma aplicada. Revisa el documento firmado a la derecha.')
+      } catch (e) {
+        setError(
+          e instanceof Error ? e.message : 'No se pudo incrustar la firma.'
+        )
+      } finally {
+        setGuardando(false)
+      }
+    },
+    [origenBytes]
+  )
 
   return (
-    <div className="fe-page">
+    <div className={`fe-page ${dancingScript.variable} ${dancingScript.className}`}>
       <div className="fe-atmosphere" aria-hidden>
         <span className="fe-orb fe-orb--a" />
         <span className="fe-orb fe-orb--b" />
@@ -154,8 +131,8 @@ function FirmaElectronicaView() {
             Pruebas firma electrónica
           </h1>
           <p className="fe-lead">
-            Documento de ejemplo, pad para dibujar la firma y vista del PDF ya
-            firmado. Pensado para PC, tablet o pantalla táctil.
+            Dibuja, escribe o sube tu firma. Vista previa grande antes de
+            incrustarla en el PDF. Cómodo en PC, tablet o celular.
           </p>
         </section>
 
@@ -181,42 +158,12 @@ function FirmaElectronicaView() {
             }
           />
 
-          <section className="fe-sign-card" aria-label="Captura de firma">
-            <header className="fe-doc-head">
-              <h2>
-                <PenLine size={18} aria-hidden />
-                2. Firmar aquí
-              </h2>
-            </header>
-            <SignaturePad
-              onBind={bindPad}
-              disabled={guardando || cargandoDoc}
-            />
-            <div className="fe-actions">
-              <button
-                type="button"
-                className="fe-btn fe-btn--ghost"
-                onClick={limpiar}
-                disabled={guardando}
-              >
-                <Eraser size={16} aria-hidden />
-                Limpiar
-              </button>
-              <button
-                type="button"
-                className="fe-btn fe-btn--primary"
-                onClick={() => void guardarFirma()}
-                disabled={guardando || cargandoDoc || !origenBytes}
-              >
-                {guardando ? (
-                  <Loader2 size={16} className="fe-spin" aria-hidden />
-                ) : (
-                  <Save size={16} aria-hidden />
-                )}
-                {guardando ? 'Guardando…' : 'Guardar firma'}
-              </button>
-            </div>
-          </section>
+          <FirmaCapture
+            disabled={cargandoDoc || !origenBytes}
+            guardando={guardando}
+            onGuardar={onGuardar}
+            onError={setError}
+          />
 
           <DocumentoPreview
             title="3. Documento firmado"

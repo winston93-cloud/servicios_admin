@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * 2026-08-21 - Pad de firma con react-signature-canvas (solo cliente).
+ * 2026-08-21 - Pad de firma mejorado (trazo grueso, guía, touch-none).
  */
 import { useEffect, useRef } from 'react'
 import SignatureCanvas from 'react-signature-canvas'
@@ -15,19 +15,32 @@ export type SignaturePadHandle = {
 type Props = {
   disabled?: boolean
   onBind?: (api: SignaturePadHandle) => void
+  onChange?: (empty: boolean) => void
 }
 
-export default function SignaturePad({ disabled = false, onBind }: Props) {
+export default function SignaturePad({
+  disabled = false,
+  onBind,
+  onChange,
+}: Props) {
   const canvasRef = useRef<SignatureCanvas | null>(null)
   const wrapRef = useRef<HTMLDivElement | null>(null)
+  const onChangeRef = useRef(onChange)
+  onChangeRef.current = onChange
 
   useEffect(() => {
     if (!onBind) return
     onBind({
-      clear: () => canvasRef.current?.clear(),
+      clear: () => {
+        canvasRef.current?.clear()
+        onChangeRef.current?.(true)
+      },
       isEmpty: () => canvasRef.current?.isEmpty() ?? true,
-      toDataURL: () =>
-        canvasRef.current?.getTrimmedCanvas().toDataURL('image/png') ?? '',
+      toDataURL: () => {
+        const c = canvasRef.current
+        if (!c || c.isEmpty()) return ''
+        return c.getTrimmedCanvas().toDataURL('image/png')
+      },
     })
   }, [onBind])
 
@@ -38,6 +51,7 @@ export default function SignaturePad({ disabled = false, onBind }: Props) {
     const resize = () => {
       const canvas = canvasRef.current
       if (!canvas) return
+      const prev = canvas.isEmpty() ? null : canvas.toData()
       const ratio = Math.max(window.devicePixelRatio || 1, 1)
       const width = el.clientWidth
       const height = el.clientHeight
@@ -52,6 +66,12 @@ export default function SignaturePad({ disabled = false, onBind }: Props) {
         ctx.scale(ratio, ratio)
       }
       canvas.clear()
+      if (prev && prev.length > 0) {
+        canvas.fromData(prev)
+        onChangeRef.current?.(false)
+      } else {
+        onChangeRef.current?.(true)
+      }
     }
 
     resize()
@@ -63,18 +83,24 @@ export default function SignaturePad({ disabled = false, onBind }: Props) {
   return (
     <div
       ref={wrapRef}
-      className={`fe-pad-wrap${disabled ? ' is-disabled' : ''}`}
+      className={`fe-pad-wrap touch-none${disabled ? ' is-disabled' : ''}`}
       aria-label="Área para dibujar la firma"
     >
       <SignatureCanvas
         ref={canvasRef}
         penColor="#0f172a"
         backgroundColor="#ffffff"
+        minWidth={2.2}
+        maxWidth={5.2}
+        velocityFilterWeight={0.65}
+        throttle={12}
+        onEnd={() => onChangeRef.current?.(canvasRef.current?.isEmpty() ?? true)}
         canvasProps={{
-          className: 'fe-pad-canvas',
+          className: 'fe-pad-canvas touch-none',
         }}
       />
-      <p className="fe-pad-hint">Dibuja tu firma con el dedo, mouse o stylus</p>
+      <span className="fe-pad-guide" aria-hidden />
+      <p className="fe-pad-hint">Firma sobre la línea</p>
     </div>
   )
 }
