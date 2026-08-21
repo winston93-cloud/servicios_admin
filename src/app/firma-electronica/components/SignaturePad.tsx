@@ -90,8 +90,8 @@ export default function SignaturePad({
         ref={canvasRef}
         penColor="#0f172a"
         backgroundColor="#ffffff"
-        minWidth={2.2}
-        maxWidth={5.2}
+        minWidth={1.1}
+        maxWidth={2.6}
         velocityFilterWeight={0.65}
         throttle={12}
         onEnd={() => onChangeRef.current?.(canvasRef.current?.isEmpty() ?? true)}
