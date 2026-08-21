@@ -160,24 +160,29 @@ function FirmaElectronicaView() {
       </div>
 
       <header className="fe-top">
-        <button
-          type="button"
-          className="fe-back"
-          onClick={() => router.push('/dashboard')}
-        >
-          <ArrowLeft size={16} aria-hidden />
-          Volver
-        </button>
+        <div className="fe-top-nav">
+          <button
+            type="button"
+            className="fe-back"
+            onClick={() => router.push('/dashboard')}
+          >
+            <ArrowLeft size={16} aria-hidden />
+            <span className="fe-back-text">Volver</span>
+          </button>
+          <ThemeToggle />
+        </div>
 
         <div className="fe-top-bar" role="group" aria-label="Firma electrónica">
-          <h1 className="fe-top-title">
-            <FileSignature size={20} aria-hidden />
-            Firma Electrónica
-          </h1>
-          <span className="fe-kicker fe-kicker--inline">
-            <Sparkles size={12} aria-hidden />
-            Sandbox · sin login
-          </span>
+          <div className="fe-top-brand">
+            <h1 className="fe-top-title">
+              <FileSignature size={20} aria-hidden />
+              Firma Electrónica
+            </h1>
+            <span className="fe-kicker fe-kicker--inline">
+              <Sparkles size={12} aria-hidden />
+              Sandbox · sin login
+            </span>
+          </div>
           <label className="fe-nivel">
             <span className="fe-nivel-label">Nivel</span>
             <select
@@ -195,23 +200,20 @@ function FirmaElectronicaView() {
           </label>
           <p className="fe-nivel-hint">
             <span className="fe-nivel-hint-k">Prueba</span>
-            <strong>{datos.alumnoNombre}</strong>
-            <span className="fe-nivel-sep" aria-hidden>
-              ·
+            <strong className="fe-nivel-alumno">{datos.alumnoNombre}</strong>
+            <span className="fe-nivel-meta">
+              {datos.grado}
+              <span className="fe-nivel-sep" aria-hidden>
+                ·
+              </span>
+              {datos.tipoBeca} {datos.porcentaje}
+              <span className="fe-nivel-sep" aria-hidden>
+                ·
+              </span>
+              ciclo {datos.cicloLabel}
             </span>
-            {datos.grado}
-            <span className="fe-nivel-sep" aria-hidden>
-              ·
-            </span>
-            {datos.tipoBeca} {datos.porcentaje}
-            <span className="fe-nivel-sep" aria-hidden>
-              ·
-            </span>
-            ciclo {datos.cicloLabel}
           </p>
         </div>
-
-        <ThemeToggle />
       </header>
 
       <main className="fe-main">
