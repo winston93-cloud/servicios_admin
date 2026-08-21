@@ -70,6 +70,7 @@ export default function PdfInlineViewer({ url, title }: Props) {
           ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
           await page.render({
+            canvas,
             canvasContext: ctx,
             viewport,
           }).promise
