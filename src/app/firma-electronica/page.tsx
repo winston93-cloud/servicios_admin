@@ -35,6 +35,7 @@ function FirmaElectronicaView() {
   const [firmadoUrl, setFirmadoUrl] = useState<string | null>(null)
   const [cargandoDoc, setCargandoDoc] = useState(true)
   const [guardando, setGuardando] = useState(false)
+  const [enviado, setEnviado] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [okMsg, setOkMsg] = useState<string | null>(null)
 
@@ -46,6 +47,7 @@ function FirmaElectronicaView() {
         setCargandoDoc(true)
         setError(null)
         setOkMsg(null)
+        setEnviado(false)
         setFirmadoUrl((prev) => {
           if (prev) URL.revokeObjectURL(prev)
           return null
@@ -107,7 +109,10 @@ function FirmaElectronicaView() {
           if (prev) URL.revokeObjectURL(prev)
           return nextUrl
         })
-        setOkMsg('Firma aplicada. Revisa el documento firmado a la derecha.')
+        setEnviado(true)
+        setOkMsg(
+          'Carta de aceptación de beca firmada y enviada. Revisa el PDF a la derecha.'
+        )
       } catch (e) {
         setError(
           e instanceof Error ? e.message : 'No se pudo incrustar la firma.'
@@ -200,8 +205,10 @@ function FirmaElectronicaView() {
           />
 
           <FirmaCapture
+            key={nivel}
             disabled={cargandoDoc || !origenBytes}
             guardando={guardando}
+            enviado={enviado}
             onGuardar={onGuardar}
             onError={setError}
           />
@@ -209,7 +216,7 @@ function FirmaElectronicaView() {
           <DocumentoPreview
             title="3. Documento firmado"
             url={firmadoUrl}
-            emptyLabel="Cuando guardes la firma, el PDF con la firma incrustada aparecerá aquí."
+            emptyLabel="Cuando envíes la carta, el PDF firmado aparecerá aquí."
           />
         </div>
       </main>
