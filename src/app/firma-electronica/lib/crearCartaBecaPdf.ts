@@ -16,10 +16,12 @@ const CONTENT_W = PAGE_W - MX * 2
 const BLUE = rgb(0.0, 0.34, 0.68) // #0057AD
 const BLUE_DEEP = rgb(0.04, 0.16, 0.32)
 const BLUE_SOFT = rgb(0.93, 0.96, 0.99) // fondo sutil
-const BLUE_LINE = rgb(0.78, 0.86, 0.94)
+const BLUE_LINE = rgb(0.55, 0.65, 0.78)
 const GREEN = rgb(0.55, 0.78, 0.25) // acento mínimo del logo
 const INK = rgb(0.12, 0.14, 0.18)
-const MUTED = rgb(0.42, 0.46, 0.52)
+const MUTED = rgb(0.32, 0.36, 0.42)
+/** Pie / firma: más contraste para impresión y pantalla */
+const FOOT = rgb(0.18, 0.22, 0.28)
 const WHITE = rgb(1, 1, 1)
 
 const LOGO_PREESCOLAR = '/logos/logo-winston-educativo.png'
@@ -366,18 +368,18 @@ export async function crearCartaBecaPdf(
   page.drawLine({
     start: { x: firmaBox.x + 8, y: firmaBox.y + 22 },
     end: { x: firmaBox.x + firmaBox.width - 8, y: firmaBox.y + 22 },
-    thickness: 0.9,
+    thickness: 1.25,
     color: BLUE_DEEP,
   })
   const firmaLabel = 'Fecha y Firma de Enterado'
   page.drawText(firmaLabel, {
     x:
       firmaBox.x +
-      (firmaBox.width - font.widthOfTextAtSize(firmaLabel, 8)) / 2,
+      (firmaBox.width - fontBold.widthOfTextAtSize(firmaLabel, 9)) / 2,
     y: firmaBox.y + 8,
-    size: 8,
-    font,
-    color: MUTED,
+    size: 9,
+    font: fontBold,
+    color: FOOT,
   })
 
   // —— Footer ——
@@ -385,19 +387,19 @@ export async function crearCartaBecaPdf(
     x: MX,
     y: 52,
     width: CONTENT_W,
-    height: 0.6,
-    color: BLUE_LINE,
+    height: 1,
+    color: BLUE_DEEP,
   })
   let fy = 40
   for (const line of meta.direccion) {
     page.drawText(line, {
       x: MX,
       y: fy,
-      size: 6.5,
+      size: 7.5,
       font,
-      color: MUTED,
+      color: FOOT,
     })
-    fy -= 10
+    fy -= 11
   }
 
   if (meta.pieVerde) {

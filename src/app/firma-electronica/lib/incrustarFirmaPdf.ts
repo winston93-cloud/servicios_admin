@@ -61,14 +61,14 @@ export async function incrustarFirmaEnPdf(
     month: 'short',
     year: 'numeric',
   })
-  const fechaSize = 8
+  const fechaSize = 9
   const fechaW = font.widthOfTextAtSize(fecha, fechaSize)
   page.drawText(fecha, {
     x: firmaBox.x + (firmaBox.width - fechaW) / 2,
     y: firmaBox.y + 3,
     size: fechaSize,
     font,
-    color: rgb(0.2, 0.25, 0.35),
+    color: rgb(0.15, 0.2, 0.28),
   })
 
   return doc.save()
