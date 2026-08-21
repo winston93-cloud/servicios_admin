@@ -442,7 +442,8 @@ html[data-theme='dark'] .fe-alert--ok {
 }
 
 .fe-col-origen,
-.fe-col-firma {
+.fe-col-firma,
+.fe-col-firmado {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -450,7 +451,8 @@ html[data-theme='dark'] .fe-alert--ok {
 }
 
 .fe-col-origen .fe-doc-card,
-.fe-col-firma .fe-sign-card {
+.fe-col-firma .fe-sign-card,
+.fe-col-firmado .fe-doc-card {
   min-height: 0;
 }
 
@@ -1105,6 +1107,47 @@ html[data-theme='dark'] .fe-preview-frame {
   background: linear-gradient(135deg, #16a34a, #15803d);
   box-shadow: 0 10px 24px rgba(22, 163, 74, 0.32);
   cursor: default;
+}
+
+.fe-btn--send.is-saved:not(:disabled) {
+  background: linear-gradient(135deg, #ea580c, #c2410c);
+  box-shadow: 0 10px 24px rgba(234, 88, 12, 0.28);
+}
+
+.fe-enviar-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.fe-btn--enviar {
+  width: 100%;
+  min-height: var(--touch-min, 44px);
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(220, 38, 38, 0.32);
+  white-space: normal;
+  line-height: 1.25;
+  padding: 0.75rem 1rem;
+}
+
+.fe-btn--enviar:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.fe-btn--enviar.is-sent,
+.fe-btn--enviar.is-sent:disabled {
+  opacity: 1;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.32);
+  cursor: default;
+}
+
+.fe-enviar-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--fe-muted);
 }
 
 .fe-reinicio {

@@ -1,7 +1,7 @@
 'use client'
 
 /**
- * 2026-08-21 - Captura de firma: dibujar / subir → enviar (acepto viene del padre).
+ * 2026-08-21 - Captura de firma: dibujar / subir → guardar firma en el PDF.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
@@ -11,7 +11,7 @@ import {
   ImagePlus,
   Loader2,
   PenLine,
-  Send,
+  Save,
 } from 'lucide-react'
 import type { SignaturePadHandle } from './SignaturePad'
 import { imagenArchivoAFirmaPng } from '../lib/firmaAssets'
@@ -28,19 +28,21 @@ export type FirmaModo = 'dibujar' | 'subir'
 type Props = {
   disabled?: boolean
   guardando?: boolean
+  /** Ya hay PDF con firma aplicada (aún no enviada). */
+  firmaAplicada?: boolean
   enviado?: boolean
-  /** Debe estar marcado el checkbox bajo el PDF original. */
   acepto: boolean
-  onGuardar: (firmaPngDataUrl: string) => void | Promise<void>
+  onGuardarFirma: (firmaPngDataUrl: string) => void | Promise<void>
   onError?: (mensaje: string) => void
 }
 
 export default function FirmaCapture({
   disabled = false,
   guardando = false,
+  firmaAplicada = false,
   enviado = false,
   acepto,
-  onGuardar,
+  onGuardarFirma,
   onError,
 }: Props) {
   const padApiRef = useRef<SignaturePadHandle | null>(null)
@@ -53,7 +55,7 @@ export default function FirmaCapture({
 
   const firmaBloqueada = disabled || !acepto || enviado
   const busy = disabled || guardando || preparando || enviado
-  const puedeEnviar =
+  const puedeGuardar =
     Boolean(previewUrl) && acepto && !busy && !enviado && !disabled
 
   const bindPad = useCallback((api: SignaturePadHandle) => {
@@ -116,24 +118,24 @@ export default function FirmaCapture({
     [onError]
   )
 
-  const enviar = useCallback(async () => {
+  const guardarFirma = useCallback(async () => {
     if (!acepto) {
       onError?.('Debes marcar que leíste y estás de acuerdo con la carta.')
       return
     }
     if (!previewUrl) {
-      onError?.('Agrega una firma válida antes de enviar.')
+      onError?.('Agrega una firma válida antes de guardar.')
       return
     }
-    await onGuardar(previewUrl)
-  }, [acepto, previewUrl, onGuardar, onError])
+    await onGuardarFirma(previewUrl)
+  }, [acepto, previewUrl, onGuardarFirma, onError])
 
   return (
     <section className="fe-sign-card" aria-label="Captura de firma">
       <header className="fe-doc-head">
         <h2>
           <PenLine size={18} aria-hidden />
-          2. Firmar y enviar
+          2. Firmar
         </h2>
       </header>
 
@@ -216,23 +218,23 @@ export default function FirmaCapture({
         </button>
         <button
           type="button"
-          className={`fe-btn fe-btn--send${enviado ? ' is-sent' : ''}`}
-          onClick={() => void enviar()}
-          disabled={enviado ? true : !puedeEnviar}
+          className={`fe-btn fe-btn--send${firmaAplicada && !guardando ? ' is-saved' : ''}`}
+          onClick={() => void guardarFirma()}
+          disabled={!puedeGuardar}
           aria-live="polite"
         >
           {guardando || preparando ? (
             <Loader2 size={16} className="fe-spin" aria-hidden />
-          ) : enviado ? (
+          ) : firmaAplicada ? (
             <CheckCircle2 size={16} aria-hidden />
           ) : (
-            <Send size={16} aria-hidden />
+            <Save size={16} aria-hidden />
           )}
           {guardando
-            ? 'Enviando…'
-            : enviado
-              ? 'Carta enviada'
-              : 'Guardar y enviar carta de aceptación de beca'}
+            ? 'Guardando firma…'
+            : firmaAplicada
+              ? 'Firma guardada · actualizar'
+              : 'Guardar firma'}
         </button>
       </div>
     </section>

@@ -7,8 +7,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
+  CheckCircle2,
   FileSignature,
+  Loader2,
   RotateCcw,
+  Send,
   Sparkles,
 } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -40,6 +43,7 @@ function FirmaElectronicaView() {
   const [firmadoUrl, setFirmadoUrl] = useState<string | null>(null)
   const [cargandoDoc, setCargandoDoc] = useState(true)
   const [guardando, setGuardando] = useState(false)
+  const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState(false)
   const [acepto, setAcepto] = useState(false)
   const [firmaKey, setFirmaKey] = useState(0)
@@ -55,6 +59,7 @@ function FirmaElectronicaView() {
         setError(null)
         setOkMsg(null)
         setEnviado(false)
+        setEnviando(false)
         setAcepto(false)
         setFirmaKey((k) => k + 1)
         setFirmadoUrl((prev) => {
@@ -98,7 +103,7 @@ function FirmaElectronicaView() {
     }
   }, [firmadoUrl])
 
-  const onGuardar = useCallback(
+  const onGuardarFirma = useCallback(
     async (firmaPng: string) => {
       setError(null)
       setOkMsg(null)
@@ -122,9 +127,9 @@ function FirmaElectronicaView() {
           if (prev) URL.revokeObjectURL(prev)
           return nextUrl
         })
-        setEnviado(true)
+        setEnviado(false)
         setOkMsg(
-          'Carta de aceptación de beca firmada y enviada. Revisa el PDF a la derecha.'
+          'Firma aplicada al PDF. Revisa el documento firmado y pulsa Enviar carta de aceptación.'
         )
       } catch (e) {
         setError(
@@ -137,12 +142,38 @@ function FirmaElectronicaView() {
     [origenBytes, firmaBox, acepto]
   )
 
+  const onEnviarCarta = useCallback(async () => {
+    setError(null)
+    if (!firmadoUrl) {
+      setError('Primero guarda la firma para generar el PDF firmado.')
+      return
+    }
+    if (!acepto) {
+      setError('Debes marcar que leíste y estás de acuerdo con la carta.')
+      return
+    }
+    setEnviando(true)
+    try {
+      // Sandbox: simula guardado/envío de la carta ya firmada.
+      await new Promise((r) => setTimeout(r, 450))
+      setEnviado(true)
+      setOkMsg('Carta de aceptación firmada guardada y enviada.')
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : 'No se pudo enviar la carta.'
+      )
+    } finally {
+      setEnviando(false)
+    }
+  }, [firmadoUrl, acepto])
+
   const reiniciarProceso = useCallback(() => {
     setFirmadoUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev)
       return null
     })
     setEnviado(false)
+    setEnviando(false)
     setAcepto(false)
     setError(null)
     setOkMsg(null)
@@ -189,7 +220,7 @@ function FirmaElectronicaView() {
               className="fe-nivel-select"
               value={nivel}
               onChange={(e) => setNivel(e.target.value as NivelFirma)}
-              disabled={guardando}
+              disabled={guardando || enviando}
             >
               {PLANTILLAS_NIVEL.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -274,35 +305,72 @@ function FirmaElectronicaView() {
               key={`${nivel}-${firmaKey}`}
               disabled={cargandoDoc || !origenBytes}
               guardando={guardando}
+              firmaAplicada={Boolean(firmadoUrl)}
               enviado={enviado}
               acepto={acepto}
-              onGuardar={onGuardar}
+              onGuardarFirma={onGuardarFirma}
               onError={setError}
             />
+          </div>
 
-            {enviado ? (
-              <div className="fe-reinicio">
+          <div className="fe-col-firmado">
+            <DocumentoPreview
+              title="3. Documento firmado"
+              url={firmadoUrl}
+              emptyLabel="Cuando guardes la firma, el PDF firmado aparecerá aquí."
+            />
+
+            {firmadoUrl && !enviado ? (
+              <div className="fe-enviar-block">
                 <button
                   type="button"
-                  className="fe-btn fe-btn--restart"
-                  onClick={reiniciarProceso}
+                  className="fe-btn fe-btn--enviar"
+                  onClick={() => void onEnviarCarta()}
+                  disabled={enviando || guardando}
                 >
-                  <RotateCcw size={16} aria-hidden />
-                  Eliminar y reiniciar proceso
+                  {enviando ? (
+                    <Loader2 size={16} className="fe-spin" aria-hidden />
+                  ) : (
+                    <Send size={16} aria-hidden />
+                  )}
+                  {enviando
+                    ? 'Enviando…'
+                    : 'Enviar carta de aceptación'}
                 </button>
-                <p className="fe-reinicio-hint">
-                  Borra la carta firmada guardada y vuelve al inicio para firmar
-                  de nuevo.
+                <p className="fe-enviar-hint">
+                  Confirma y guarda la carta ya firmada para completar el
+                  proceso.
                 </p>
               </div>
             ) : null}
-          </div>
 
-          <DocumentoPreview
-            title="3. Documento firmado"
-            url={firmadoUrl}
-            emptyLabel="Cuando envíes la carta, el PDF firmado aparecerá aquí."
-          />
+            {enviado ? (
+              <div className="fe-enviar-block">
+                <button
+                  type="button"
+                  className="fe-btn fe-btn--enviar is-sent"
+                  disabled
+                >
+                  <CheckCircle2 size={16} aria-hidden />
+                  Carta enviada
+                </button>
+                <div className="fe-reinicio">
+                  <button
+                    type="button"
+                    className="fe-btn fe-btn--restart"
+                    onClick={reiniciarProceso}
+                  >
+                    <RotateCcw size={16} aria-hidden />
+                    Eliminar y reiniciar proceso
+                  </button>
+                  <p className="fe-reinicio-hint">
+                    Borra la carta firmada guardada y vuelve al inicio para
+                    firmar de nuevo.
+                  </p>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
       </main>
     </div>
