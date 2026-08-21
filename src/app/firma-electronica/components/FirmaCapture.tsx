@@ -1,23 +1,13 @@
 'use client'
 
 /**
- * 2026-08-21 - Captura de firma: dibujar / escribir / subir + vista previa.
+ * 2026-08-21 - Captura de firma: dibujar / subir + vista previa.
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
-import {
-  Eraser,
-  ImagePlus,
-  Keyboard,
-  Loader2,
-  PenLine,
-  Save,
-} from 'lucide-react'
+import { Eraser, ImagePlus, Loader2, PenLine, Save } from 'lucide-react'
 import type { SignaturePadHandle } from './SignaturePad'
-import {
-  imagenArchivoAFirmaPng,
-  textoAFirmaPng,
-} from '../lib/firmaAssets'
+import { imagenArchivoAFirmaPng } from '../lib/firmaAssets'
 
 const SignaturePad = dynamic(() => import('./SignaturePad'), {
   ssr: false,
@@ -26,7 +16,7 @@ const SignaturePad = dynamic(() => import('./SignaturePad'), {
   ),
 })
 
-export type FirmaModo = 'dibujar' | 'escribir' | 'subir'
+export type FirmaModo = 'dibujar' | 'subir'
 
 type Props = {
   disabled?: boolean
@@ -45,7 +35,6 @@ export default function FirmaCapture({
   const fileRef = useRef<HTMLInputElement | null>(null)
 
   const [modo, setModo] = useState<FirmaModo>('dibujar')
-  const [texto, setTexto] = useState('')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [preparando, setPreparando] = useState(false)
   const [drawEmpty, setDrawEmpty] = useState(true)
@@ -60,7 +49,6 @@ export default function FirmaCapture({
   const limpiar = useCallback(() => {
     padApiRef.current?.clear()
     setDrawEmpty(true)
-    setTexto('')
     setPreviewUrl(null)
     if (fileRef.current) fileRef.current.value = ''
   }, [])
@@ -69,12 +57,10 @@ export default function FirmaCapture({
     setModo(next)
     padApiRef.current?.clear()
     setDrawEmpty(true)
-    setTexto('')
     setPreviewUrl(null)
     if (fileRef.current) fileRef.current.value = ''
   }, [])
 
-  // Dibujar → vista previa al terminar el trazo
   const onPadChange = useCallback((empty: boolean) => {
     setDrawEmpty(empty)
     if (empty) {
@@ -84,37 +70,6 @@ export default function FirmaCapture({
     const png = padApiRef.current?.toDataURL() || ''
     setPreviewUrl(png || null)
   }, [])
-
-  // Escribir → regenerar preview con debounce
-  useEffect(() => {
-    if (modo !== 'escribir') return
-    const t = texto.trim()
-    if (!t) {
-      setPreviewUrl(null)
-      return
-    }
-    let cancelled = false
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        try {
-          setPreparando(true)
-          const png = await textoAFirmaPng(t)
-          if (!cancelled) setPreviewUrl(png)
-        } catch (e) {
-          if (!cancelled) {
-            setPreviewUrl(null)
-            onError?.(e instanceof Error ? e.message : 'No se pudo generar la firma.')
-          }
-        } finally {
-          if (!cancelled) setPreparando(false)
-        }
-      })()
-    }, 320)
-    return () => {
-      cancelled = true
-      window.clearTimeout(timer)
-    }
-  }, [modo, texto, onError])
 
   const onFileChange = useCallback(
     async (file: File | null) => {
@@ -169,17 +124,6 @@ export default function FirmaCapture({
         <button
           type="button"
           role="tab"
-          aria-selected={modo === 'escribir'}
-          className={`fe-mode-tab${modo === 'escribir' ? ' is-active' : ''}`}
-          onClick={() => cambiarModo('escribir')}
-          disabled={busy}
-        >
-          <Keyboard size={15} aria-hidden />
-          Escribir
-        </button>
-        <button
-          type="button"
-          role="tab"
           aria-selected={modo === 'subir'}
           className={`fe-mode-tab${modo === 'subir' ? ' is-active' : ''}`}
           onClick={() => cambiarModo('subir')}
@@ -200,32 +144,6 @@ export default function FirmaCapture({
           onChange={onPadChange}
           disabled={busy}
         />
-      ) : null}
-
-      {modo === 'escribir' ? (
-        <div className="fe-write-block">
-          <label className="fe-field-label" htmlFor="fe-firma-texto">
-            Nombre a firmar
-          </label>
-          <input
-            id="fe-firma-texto"
-            className="fe-input"
-            type="text"
-            value={texto}
-            onChange={(e) => setTexto(e.target.value)}
-            placeholder="Ej. María López García"
-            disabled={busy}
-            autoComplete="name"
-            maxLength={80}
-          />
-          <div className="fe-write-preview" aria-live="polite">
-            {texto.trim() ? (
-              <span className="fe-write-script">{texto.trim()}</span>
-            ) : (
-              <span className="fe-write-placeholder">Vista previa cursiva</span>
-            )}
-          </div>
-        </div>
       ) : null}
 
       {modo === 'subir' ? (
@@ -260,9 +178,7 @@ export default function FirmaCapture({
             <p className="fe-preview-empty">
               {modo === 'dibujar' && drawEmpty
                 ? 'Dibuja en el área de arriba'
-                : modo === 'escribir'
-                  ? 'Escribe tu nombre para ver la firma'
-                  : 'Sube una imagen para ver la firma'}
+                : 'Sube una imagen para ver la firma'}
             </p>
           )}
         </div>

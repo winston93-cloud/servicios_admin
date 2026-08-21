@@ -1,50 +1,6 @@
 /**
- * 2026-08-21 - Helpers para convertir texto/imagen a PNG de firma (cliente).
+ * 2026-08-21 - Helpers para convertir imagen a PNG de firma (cliente).
  */
-
-/** Renderiza texto cursivo a PNG transparente (fondo blanco). */
-export async function textoAFirmaPng(texto: string): Promise<string> {
-  const t = texto.trim()
-  if (!t) throw new Error('Escribe tu nombre para generar la firma.')
-
-  const root = document.querySelector('.fe-page') as HTMLElement | null
-  const cssFamily =
-    root
-      ? getComputedStyle(root).getPropertyValue('--font-firma-script').trim()
-      : ''
-  const family = cssFamily
-    ? cssFamily
-    : '"Dancing Script", "Segoe Script", cursive'
-
-  try {
-    await document.fonts.load(`600 72px ${family}`)
-  } catch {
-    // Si la fuente no carga, usamos cursiva del sistema.
-  }
-
-  const canvas = document.createElement('canvas')
-  canvas.width = 900
-  canvas.height = 280
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('No se pudo crear la vista previa.')
-
-  ctx.fillStyle = '#ffffff'
-  ctx.fillRect(0, 0, canvas.width, canvas.height)
-  ctx.fillStyle = '#0f172a'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.font = `600 72px ${family}, "Segoe Script", cursive`
-
-  // Ajuste de tamaño si el texto es largo
-  let size = 72
-  while (size > 36 && ctx.measureText(t).width > canvas.width - 80) {
-    size -= 4
-    ctx.font = `600 ${size}px ${family}, "Segoe Script", cursive`
-  }
-
-  ctx.fillText(t, canvas.width / 2, canvas.height / 2 + 8)
-  return canvas.toDataURL('image/png')
-}
 
 /** Normaliza una imagen subida a PNG con fondo blanco. */
 export async function imagenArchivoAFirmaPng(file: File): Promise<string> {

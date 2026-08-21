@@ -282,7 +282,7 @@ html[data-theme='dark'] .fe-doc-frame {
 
 .fe-mode-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.4rem;
   padding: 0.75rem 1rem 0;
 }
@@ -364,8 +364,8 @@ html[data-theme='dark'] .fe-mode-tab.is-active {
 
 .fe-pad-guide {
   position: absolute;
-  left: 10%;
-  right: 10%;
+  left: 22%;
+  right: 22%;
   bottom: 28%;
   border-top: 2px dashed #cbd5e1;
   pointer-events: none;

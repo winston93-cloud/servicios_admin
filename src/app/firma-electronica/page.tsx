@@ -6,20 +6,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, FileSignature, Sparkles } from 'lucide-react'
-import { Dancing_Script } from 'next/font/google'
 import ThemeToggle from '@/components/ThemeToggle'
 import DocumentoPreview from './components/DocumentoPreview'
 import FirmaCapture from './components/FirmaCapture'
 import { crearAcuerdoBecaPdfBytes } from './lib/crearAcuerdoBecaPdf'
 import { incrustarFirmaEnPdf } from './lib/incrustarFirmaPdf'
 import './firma-electronica.css'
-
-const dancingScript = Dancing_Script({
-  subsets: ['latin'],
-  weight: ['600', '700'],
-  variable: '--font-firma-script',
-  display: 'swap',
-})
 
 function bytesToObjectUrl(bytes: Uint8Array): string {
   const copy = new Uint8Array(bytes)
@@ -102,7 +94,7 @@ function FirmaElectronicaView() {
   )
 
   return (
-    <div className={`fe-page ${dancingScript.variable} ${dancingScript.className}`}>
+    <div className="fe-page">
       <div className="fe-atmosphere" aria-hidden>
         <span className="fe-orb fe-orb--a" />
         <span className="fe-orb fe-orb--b" />
@@ -131,8 +123,8 @@ function FirmaElectronicaView() {
             Pruebas firma electrónica
           </h1>
           <p className="fe-lead">
-            Dibuja, escribe o sube tu firma. Vista previa grande antes de
-            incrustarla en el PDF. Cómodo en PC, tablet o celular.
+            Dibuja o sube tu firma. Vista previa grande antes de incrustarla en
+            el PDF. Cómodo en PC, tablet o celular.
           </p>
         </section>
 
