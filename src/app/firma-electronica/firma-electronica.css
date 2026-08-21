@@ -541,19 +541,34 @@ html[data-theme='dark'] .fe-doc-frame {
 }
 
 .fe-acepto--bajo-pdf:not(.is-checked) {
-  animation: fe-acepto-pulse 2.8s ease-in-out infinite;
+  border-width: 2px;
+  border-color: rgba(14, 165, 233, 0.75);
+  background: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.18) 0%,
+    rgba(56, 189, 248, 0.1) 50%,
+    rgba(14, 165, 233, 0.14) 100%
+  );
+  animation: fe-acepto-pulse 2.2s ease-in-out infinite;
 }
 
 .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-text {
-  animation: fe-acepto-text-pulse 2.8s ease-in-out infinite;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
+  animation: fe-acepto-text-pulse 2.2s ease-in-out infinite;
 }
 
 .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-box {
-  animation: fe-acepto-box-pulse 2.8s ease-in-out infinite;
+  width: 26px;
+  height: 26px;
+  border-width: 2.5px;
+  animation: fe-acepto-box-pulse 2.2s ease-in-out infinite;
 }
 
 .fe-acepto--bajo-pdf.is-checked {
   animation: none;
+  border-width: 1px;
 }
 
 .fe-acepto--bajo-pdf.is-checked .fe-acepto-text,
@@ -564,31 +579,45 @@ html[data-theme='dark'] .fe-doc-frame {
 @keyframes fe-acepto-pulse {
   0%,
   100% {
-    border-color: rgba(14, 165, 233, 0.35);
+    border-color: rgba(14, 165, 233, 0.55);
     box-shadow:
       var(--fe-shadow),
-      0 0 0 0 rgba(14, 165, 233, 0);
+      0 0 0 0 rgba(14, 165, 233, 0),
+      inset 0 0 0 1px rgba(14, 165, 233, 0.12);
+    transform: scale(1);
   }
   50% {
-    border-color: rgba(14, 165, 233, 0.85);
+    border-color: #38bdf8;
     box-shadow:
       var(--fe-shadow),
-      0 0 0 4px rgba(14, 165, 233, 0.18),
-      0 0 22px rgba(14, 165, 233, 0.22);
+      0 0 0 6px rgba(14, 165, 233, 0.28),
+      0 0 36px rgba(14, 165, 233, 0.45),
+      inset 0 0 24px rgba(14, 165, 233, 0.12);
+    transform: scale(1.01);
   }
 }
 
 @keyframes fe-acepto-text-pulse {
   0%,
   100% {
-    color: var(--fe-muted);
-    opacity: 0.78;
+    color: #0369a1;
+    opacity: 0.88;
+    text-shadow: none;
   }
   50% {
-    color: var(--fe-ink);
+    color: #0c4a6e;
     opacity: 1;
-    text-shadow: 0 0 18px rgba(14, 165, 233, 0.28);
+    text-shadow: 0 0 22px rgba(14, 165, 233, 0.45);
   }
+}
+
+html[data-theme='dark'] .fe-acepto--bajo-pdf:not(.is-checked) {
+  background: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.28) 0%,
+    rgba(2, 6, 23, 0.55) 55%,
+    rgba(56, 189, 248, 0.2) 100%
+  );
 }
 
 html[data-theme='dark'] .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-text {
@@ -598,45 +627,57 @@ html[data-theme='dark'] .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-text {
 @keyframes fe-acepto-text-pulse-dark {
   0%,
   100% {
-    color: #94a3b8;
-    opacity: 0.75;
+    color: #7dd3fc;
+    opacity: 0.9;
+    text-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
   }
   50% {
-    color: #f8fafc;
+    color: #ffffff;
     opacity: 1;
-    text-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
+    text-shadow:
+      0 0 12px rgba(56, 189, 248, 0.55),
+      0 0 28px rgba(14, 165, 233, 0.4);
   }
 }
 
 @keyframes fe-acepto-box-pulse {
   0%,
   100% {
-    border-color: #94a3b8;
-    box-shadow: none;
+    border-color: #38bdf8;
+    background: rgba(14, 165, 233, 0.15);
+    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0);
   }
   50% {
-    border-color: #38bdf8;
-    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.25);
+    border-color: #7dd3fc;
+    background: rgba(56, 189, 248, 0.35);
+    box-shadow: 0 0 0 5px rgba(14, 165, 233, 0.35);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .fe-acepto--bajo-pdf:not(.is-checked) {
     animation: none;
-    border-color: rgba(14, 165, 233, 0.65);
+    border-color: #0ea5e9;
+    border-width: 2px;
     box-shadow:
       var(--fe-shadow),
-      0 0 0 3px rgba(14, 165, 233, 0.15);
+      0 0 0 4px rgba(14, 165, 233, 0.25),
+      0 0 24px rgba(14, 165, 233, 0.3);
   }
 
   .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-text,
-  .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-box {
+  .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-box,
+  .fe-acepto-badge {
     animation: none;
   }
 
   .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-text {
     color: var(--fe-ink);
-    font-weight: 600;
+    font-weight: 700;
+  }
+
+  html[data-theme='dark'] .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-text {
+    color: #e0f2fe;
   }
 }
 
@@ -679,6 +720,40 @@ html[data-theme='dark'] .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-text {
   border: solid #fff;
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
+}
+
+.fe-acepto-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fe-acepto-badge {
+  align-self: flex-start;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(135deg, #0284c7, #0ea5e9);
+  box-shadow: 0 4px 14px rgba(14, 165, 233, 0.4);
+  animation: fe-acepto-badge-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes fe-acepto-badge-pulse {
+  0%,
+  100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
 }
 
 .fe-acepto-text {

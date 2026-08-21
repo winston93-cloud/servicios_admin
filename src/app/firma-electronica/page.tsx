@@ -251,11 +251,16 @@ function FirmaElectronicaView() {
                 onChange={(e) => setAcepto(e.target.checked)}
               />
               <span className="fe-acepto-box" aria-hidden />
-              <span className="fe-acepto-text">
-                He leído y confirmo que estoy de acuerdo con el contenido de la
-                carta de aceptación de beca. Entiendo las condiciones para
-                conservar el beneficio y autorizo el uso de mi firma electrónica
-                en este documento.
+              <span className="fe-acepto-copy">
+                {!acepto ? (
+                  <span className="fe-acepto-badge">Acción requerida</span>
+                ) : null}
+                <span className="fe-acepto-text">
+                  He leído y confirmo que estoy de acuerdo con el contenido de
+                  la carta de aceptación de beca. Entiendo las condiciones para
+                  conservar el beneficio y autorizo el uso de mi firma
+                  electrónica en este documento.
+                </span>
               </span>
             </label>
           </div>
