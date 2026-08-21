@@ -298,11 +298,11 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
       </svg>
     ),
   },
-  // 2026-08-21 - Tarjeta placeholder; Mario define el flujo de pruebas de firma electrónica.
+  // 2026-08-21 - Prototipo firma electrónica (canvas + pdf-lib) para personal usuario.
   {
     label: 'Pruebas firma electrónica',
-    desc: 'Espacio de pruebas para firma electrónica. El flujo operativo se define enseguida.',
-    path: '/proximamente?m=firma-electronica',
+    desc: 'Prototipo: documento de prueba, pad de firma y PDF firmado en el navegador.',
+    path: '/firma-electronica',
     accent: 'sky',
     kicker: 'Pruebas',
     tags: ['Firma', 'Electrónica'],

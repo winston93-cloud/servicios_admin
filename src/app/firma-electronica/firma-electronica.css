@@ -1,0 +1,366 @@
+/* 2026-08-21 - Prototipo firma electrónica (dashboard empleados) */
+
+.fe-page {
+  --fe-sky: #0ea5e9;
+  --fe-sky-2: #38bdf8;
+  --fe-ink: #0f172a;
+  --fe-muted: #64748b;
+  --fe-card: rgba(255, 255, 255, 0.92);
+  --fe-border: rgba(15, 23, 42, 0.1);
+  --fe-shadow: 0 18px 50px rgba(15, 23, 42, 0.12);
+  position: relative;
+  min-height: 100vh;
+  color: var(--fe-ink);
+  background: linear-gradient(165deg, #eef7ff 0%, #f8fafc 42%, #eef2ff 100%);
+  font-family: var(--font-inter), 'Segoe UI', system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+html[data-theme='dark'] .fe-page {
+  --fe-ink: #f1f5f9;
+  --fe-muted: #94a3b8;
+  --fe-card: rgba(15, 23, 42, 0.78);
+  --fe-border: rgba(148, 163, 184, 0.22);
+  --fe-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+  background: linear-gradient(165deg, #07111f 0%, #0b1220 50%, #0f172a 100%);
+}
+
+.fe-atmosphere {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.fe-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(56px);
+  opacity: 0.35;
+}
+
+.fe-orb--a {
+  width: min(48vw, 420px);
+  height: min(48vw, 420px);
+  top: -10%;
+  right: -8%;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.55), transparent 70%);
+}
+
+.fe-orb--b {
+  width: min(40vw, 340px);
+  height: min(40vw, 340px);
+  bottom: 8%;
+  left: -6%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.4), transparent 70%);
+}
+
+.fe-top {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.fe-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--fe-border);
+  background: var(--fe-card);
+  color: var(--fe-ink);
+  border-radius: 999px;
+  padding: 0.55rem 0.95rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--fe-shadow);
+}
+
+.fe-back:hover {
+  border-color: rgba(14, 165, 233, 0.45);
+}
+
+.fe-main {
+  position: relative;
+  z-index: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0.5rem 1.25rem 2.5rem;
+}
+
+.fe-hero {
+  margin-bottom: 1.25rem;
+}
+
+.fe-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.5rem;
+  color: var(--fe-sky);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fe-hero h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 0.45rem;
+  font-family: var(--font-space-grotesk), system-ui, sans-serif;
+  font-size: clamp(1.45rem, 2.4vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.fe-lead {
+  margin: 0;
+  max-width: 46rem;
+  color: var(--fe-muted);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.fe-alert {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.fe-alert--err {
+  background: rgba(244, 63, 94, 0.12);
+  color: #be123c;
+  border: 1px solid rgba(244, 63, 94, 0.25);
+}
+
+.fe-alert--ok {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+html[data-theme='dark'] .fe-alert--err {
+  color: #fda4af;
+}
+
+html[data-theme='dark'] .fe-alert--ok {
+  color: #6ee7b7;
+}
+
+.fe-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 1100px) {
+  .fe-grid {
+    grid-template-columns: 1.1fr 0.9fr 1.1fr;
+    align-items: stretch;
+  }
+}
+
+.fe-doc-card,
+.fe-sign-card {
+  background: var(--fe-card);
+  border: 1px solid var(--fe-border);
+  border-radius: 18px;
+  box-shadow: var(--fe-shadow);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+  overflow: hidden;
+}
+
+.fe-doc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--fe-border);
+}
+
+.fe-doc-head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-family: var(--font-space-grotesk), system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.fe-doc-open {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--fe-sky);
+  text-decoration: none;
+}
+
+.fe-doc-open:hover {
+  text-decoration: underline;
+}
+
+.fe-doc-frame {
+  flex: 1;
+  min-height: 360px;
+  background: rgba(15, 23, 42, 0.04);
+}
+
+html[data-theme='dark'] .fe-doc-frame {
+  background: rgba(2, 6, 23, 0.45);
+}
+
+.fe-doc-iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  border: 0;
+  background: #fff;
+}
+
+.fe-doc-empty {
+  margin: 0;
+  padding: 2rem 1.25rem;
+  color: var(--fe-muted);
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.fe-sign-card {
+  padding-bottom: 1rem;
+}
+
+.fe-pad-wrap {
+  position: relative;
+  margin: 1rem;
+  height: min(42vh, 280px);
+  min-height: 200px;
+  border: 2px dashed rgba(14, 165, 233, 0.45);
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.fe-pad-wrap.is-disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.fe-pad-loading {
+  display: grid;
+  place-items: center;
+  color: var(--fe-muted);
+  font-size: 0.92rem;
+}
+
+.fe-pad-canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  cursor: crosshair;
+}
+
+.fe-pad-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.55rem;
+  margin: 0;
+  text-align: center;
+  pointer-events: none;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.fe-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  padding: 0 1rem;
+}
+
+.fe-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.65rem 1.05rem;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fe-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.fe-btn--ghost {
+  background: transparent;
+  border-color: var(--fe-border);
+  color: var(--fe-ink);
+}
+
+.fe-btn--primary {
+  background: linear-gradient(135deg, var(--fe-sky), #0284c7);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(14, 165, 233, 0.28);
+}
+
+.fe-btn--primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.fe-spin {
+  animation: fe-spin 0.8s linear infinite;
+}
+
+@keyframes fe-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 700px) {
+  .fe-top,
+  .fe-main {
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
+  }
+
+  .fe-doc-card,
+  .fe-sign-card {
+    min-height: 340px;
+  }
+
+  .fe-pad-wrap {
+    height: 220px;
+    margin: 0.75rem;
+  }
+
+  .fe-actions {
+    flex-direction: column;
+  }
+
+  .fe-btn {
+    width: 100%;
+  }
+}

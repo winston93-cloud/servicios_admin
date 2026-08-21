@@ -97,8 +97,8 @@ export const DASHBOARD_MODULE_PREVIEWS: Record<string, DashboardModulePreview> =
   },
   'Pruebas firma electrónica': {
     synopsis:
-      'Módulo de pruebas para firma electrónica institucional. La tarjeta ya está en el dashboard de empleados; el flujo concreto se arma en la siguiente iteración.',
-    highlights: ['Solo personal (usuario)', 'En preparación', 'Definición pendiente'],
+      'Prototipo de firma electrónica: genera un acuerdo de beca de prueba, captura la firma en canvas e incrusta el trazo en el PDF desde el navegador.',
+    highlights: ['Pad táctil / stylus', 'PDF con firma', 'Solo personal (usuario)'],
   },
 }
 
