@@ -182,25 +182,39 @@ function FirmaElectronicaView() {
             Firma Electrónica
           </h1>
 
-          <label className="fe-nivel">
-            <span className="fe-nivel-label">Nivel / formato</span>
-            <select
-              className="fe-nivel-select"
-              value={nivel}
-              onChange={(e) => setNivel(e.target.value as NivelFirma)}
-              disabled={guardando}
-            >
-              {PLANTILLAS_NIVEL.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-            <span className="fe-nivel-hint">
-              Prueba: <strong>{datos.alumnoNombre}</strong> · {datos.grado} ·{' '}
-              {datos.tipoBeca} {datos.porcentaje} · ciclo {datos.cicloLabel}
-            </span>
-          </label>
+          <div className="fe-nivel-bar">
+            <label className="fe-nivel">
+              <span className="fe-nivel-label">Nivel / formato</span>
+              <select
+                className="fe-nivel-select"
+                value={nivel}
+                onChange={(e) => setNivel(e.target.value as NivelFirma)}
+                disabled={guardando}
+              >
+                {PLANTILLAS_NIVEL.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p className="fe-nivel-hint">
+              <span className="fe-nivel-hint-k">Prueba</span>
+              <strong>{datos.alumnoNombre}</strong>
+              <span className="fe-nivel-sep" aria-hidden>
+                ·
+              </span>
+              {datos.grado}
+              <span className="fe-nivel-sep" aria-hidden>
+                ·
+              </span>
+              {datos.tipoBeca} {datos.porcentaje}
+              <span className="fe-nivel-sep" aria-hidden>
+                ·
+              </span>
+              ciclo {datos.cicloLabel}
+            </p>
+          </div>
         </section>
 
         {error ? (
