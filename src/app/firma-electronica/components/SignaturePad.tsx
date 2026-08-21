@@ -51,10 +51,13 @@ export default function SignaturePad({
     const resize = () => {
       const canvas = canvasRef.current
       if (!canvas) return
+      const width = Math.floor(el.clientWidth)
+      const height = Math.floor(el.clientHeight)
+      // Safari iOS a veces reporta 0 en el primer layout.
+      if (width < 8 || height < 8) return
+
       const prev = canvas.isEmpty() ? null : canvas.toData()
-      const ratio = Math.max(window.devicePixelRatio || 1, 1)
-      const width = el.clientWidth
-      const height = el.clientHeight
+      const ratio = Math.min(Math.max(window.devicePixelRatio || 1, 1), 2)
       const raw = canvas.getCanvas()
       raw.width = Math.floor(width * ratio)
       raw.height = Math.floor(height * ratio)
@@ -74,10 +77,17 @@ export default function SignaturePad({
       }
     }
 
-    resize()
-    const ro = new ResizeObserver(resize)
+    const kick = () => requestAnimationFrame(() => requestAnimationFrame(resize))
+    kick()
+    const ro = new ResizeObserver(kick)
     ro.observe(el)
-    return () => ro.disconnect()
+    window.addEventListener('orientationchange', kick)
+    window.visualViewport?.addEventListener('resize', kick)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('orientationchange', kick)
+      window.visualViewport?.removeEventListener('resize', kick)
+    }
   }, [])
 
   return (
