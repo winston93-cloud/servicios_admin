@@ -1,5 +1,19 @@
 'use client'
 
+/**
+ * 2026-08-21 - Preview del documento: canvas PDF (móvil/Safari) + enlace de descarga.
+ */
+import dynamic from 'next/dynamic'
+
+const PdfInlineViewer = dynamic(() => import('./PdfInlineViewer'), {
+  ssr: false,
+  loading: () => (
+    <p className="fe-doc-empty" aria-live="polite">
+      Cargando documento…
+    </p>
+  ),
+})
+
 type Props = {
   title: string
   url: string | null
@@ -17,14 +31,15 @@ export default function DocumentoPreview({ title, url, emptyLabel }: Props) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
+            download={`documento-${Date.now()}.pdf`}
           >
-            Abrir en pestaña
+            Descargar
           </a>
         ) : null}
       </header>
       <div className="fe-doc-frame">
         {url ? (
-          <iframe title={title} src={url} className="fe-doc-iframe" />
+          <PdfInlineViewer url={url} title={title} />
         ) : (
           <p className="fe-doc-empty">
             {emptyLabel || 'El documento aparecerá aquí.'}

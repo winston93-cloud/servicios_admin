@@ -27,6 +27,7 @@
     "next": "^16.1.7",
     "nodemailer": "^8.0.7",
     "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^6.2.108",
     "qrcode": "^1.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
