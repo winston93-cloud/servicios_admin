@@ -123,6 +123,7 @@ export default async function Banorte3dPage({ searchParams }: PageProps) {
         if (cicloSistemaCupo) {
           const cupo = await evaluarBloqueoCupoPortal({
             alumno: {
+              alumno_ref: ref5,
               alumno_nivel: Number(alumno.alumno_nivel ?? 0),
               alumno_grado: Number(alumno.alumno_grado ?? 0),
               alumno_ciclo_escolar: Number(alumno.alumno_ciclo_escolar ?? 0),

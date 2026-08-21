@@ -27,6 +27,12 @@ export const GRADOS_CUPO_FORZAR_LLENO: ReadonlyArray<{ nivel: number; grado: num
   { nivel: 3, grado: 5 },
 ]
 
+/**
+ * 2026-08-21 - Únicos con acceso a 5° pese al cupo forzado.
+ * 21092 = HERNÁNDEZ RAMIREZ JORGE PEDRO (reingreso).
+ */
+export const CUPO_EXCEPCIONES_ALUMNO_REF: ReadonlyArray<number> = [21092]
+
 export const MENSAJE_CUPO_LLENO =
   'Por el momento el cupo de este grado se encuentra completo. Agradecemos su comprensión y le invitamos a comunicarse con Administración o Control Escolar ante cualquier apertura o indicación adicional.'
 
@@ -48,6 +54,13 @@ export function aplicaCupoLimitado(nivel: number, grado: number): boolean {
 
 export function forzarCupoLleno(nivel: number, grado: number): boolean {
   return GRADOS_CUPO_FORZAR_LLENO.some((g) => g.nivel === nivel && g.grado === grado)
+}
+
+export function esExcepcionCupoAlumnoRef(
+  alumnoRef: string | number | null | undefined
+): boolean {
+  const n = Number(alumnoRef)
+  return Number.isFinite(n) && n > 0 && CUPO_EXCEPCIONES_ALUMNO_REF.includes(n)
 }
 
 export function mensajeCupoLleno(nivel: number, grado: number): string {
@@ -174,7 +187,11 @@ export function gradoInscripcionPortal(
 export async function evaluarBloqueoCupoPortal(opts: {
   alumno: Pick<
     AlumnoRegistro,
-    'alumno_nuevo_ingreso' | 'alumno_nivel' | 'alumno_grado' | 'alumno_ciclo_escolar'
+    | 'alumno_nuevo_ingreso'
+    | 'alumno_nivel'
+    | 'alumno_grado'
+    | 'alumno_ciclo_escolar'
+    | 'alumno_ref'
   >
   cicloTemporadaActual: number
   /** true si ya cubrió inscripción/reinscripción del ciclo destino. */
@@ -182,6 +199,9 @@ export async function evaluarBloqueoCupoPortal(opts: {
   cicloInscripcion?: number
 }): Promise<ConsultaCupoInscripcion | null> {
   if (opts.yaInscrito) return null
+
+  // Excepción puntual: único reingreso autorizado a 5° con cupo forzado.
+  if (esExcepcionCupoAlumnoRef(opts.alumno.alumno_ref)) return null
 
   const { nivel, grado } = gradoInscripcionPortal(
     opts.alumno,
