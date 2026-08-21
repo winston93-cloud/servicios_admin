@@ -1193,6 +1193,12 @@ html[data-theme='dark'] .fe-preview-frame {
 
 /* Móvil / Android / pantallas estrechas */
 @media (max-width: 767px) {
+  .fe-col-origen,
+  .fe-col-firma,
+  .fe-col-firmado {
+    scroll-margin-top: 0.75rem;
+  }
+
   .fe-page {
     overflow-x: clip;
   }

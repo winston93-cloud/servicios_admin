@@ -3,7 +3,7 @@
 /**
  * 2026-08-21 - Prototipo firma electrónica (sandbox sin login).
  */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
@@ -33,8 +33,32 @@ function bytesToObjectUrl(bytes: Uint8Array): string {
   return URL.createObjectURL(new Blob([copy], { type: 'application/pdf' }))
 }
 
+/** Autoscroll solo en viewport móvil (stack vertical). */
+function esMovilViewport(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia('(max-width: 767px)').matches
+}
+
+function scrollSuaveA(
+  el: HTMLElement | null,
+  opts?: ScrollIntoViewOptions
+) {
+  if (!el || !esMovilViewport()) return
+  // Espera un frame para que el layout (PDF/botón) ya esté montado.
+  requestAnimationFrame(() => {
+    el.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+      ...opts,
+    })
+  })
+}
+
 function FirmaElectronicaView() {
   const router = useRouter()
+  const colFirmaRef = useRef<HTMLDivElement | null>(null)
+  const colFirmadoRef = useRef<HTMLDivElement | null>(null)
+  const colOrigenRef = useRef<HTMLDivElement | null>(null)
 
   const [nivel, setNivel] = useState<NivelFirma>('maternal-kinder')
   const [origenBytes, setOrigenBytes] = useState<Uint8Array | null>(null)
@@ -131,6 +155,10 @@ function FirmaElectronicaView() {
         setOkMsg(
           'Firma aplicada al PDF. Revisa el documento firmado y pulsa Enviar carta de aceptación.'
         )
+        // Tras pintar el PDF firmado, bajar al paso 3 + Enviar.
+        window.setTimeout(() => {
+          scrollSuaveA(colFirmadoRef.current)
+        }, 120)
       } catch (e) {
         setError(
           e instanceof Error ? e.message : 'No se pudo incrustar la firma.'
@@ -158,6 +186,9 @@ function FirmaElectronicaView() {
       await new Promise((r) => setTimeout(r, 450))
       setEnviado(true)
       setOkMsg('Carta de aceptación firmada guardada y enviada.')
+      window.setTimeout(() => {
+        scrollSuaveA(colFirmadoRef.current, { block: 'nearest' })
+      }, 80)
     } catch (e) {
       setError(
         e instanceof Error ? e.message : 'No se pudo enviar la carta.'
@@ -166,6 +197,15 @@ function FirmaElectronicaView() {
       setEnviando(false)
     }
   }, [firmadoUrl, acepto])
+
+  const onAceptoChange = useCallback((checked: boolean) => {
+    setAcepto(checked)
+    if (checked) {
+      window.setTimeout(() => {
+        scrollSuaveA(colFirmaRef.current)
+      }, 60)
+    }
+  }, [])
 
   const reiniciarProceso = useCallback(() => {
     setFirmadoUrl((prev) => {
@@ -178,6 +218,9 @@ function FirmaElectronicaView() {
     setError(null)
     setOkMsg(null)
     setFirmaKey((k) => k + 1)
+    window.setTimeout(() => {
+      scrollSuaveA(colOrigenRef.current)
+    }, 60)
   }, [])
 
   const plantilla = plantillaPorNivel(nivel)
@@ -264,7 +307,7 @@ function FirmaElectronicaView() {
         ) : null}
 
         <div className="fe-grid">
-          <div className="fe-col-origen">
+          <div className="fe-col-origen" ref={colOrigenRef}>
             <DocumentoPreview
               title="1. Documento original"
               url={origenUrl}
@@ -283,7 +326,7 @@ function FirmaElectronicaView() {
                 className="fe-acepto-input"
                 checked={acepto}
                 disabled={cargandoDoc || !origenBytes || enviado}
-                onChange={(e) => setAcepto(e.target.checked)}
+                onChange={(e) => onAceptoChange(e.target.checked)}
               />
               <span className="fe-acepto-box" aria-hidden />
               <span className="fe-acepto-copy">
@@ -300,7 +343,7 @@ function FirmaElectronicaView() {
             </label>
           </div>
 
-          <div className="fe-col-firma">
+          <div className="fe-col-firma" ref={colFirmaRef}>
             <FirmaCapture
               key={`${nivel}-${firmaKey}`}
               disabled={cargandoDoc || !origenBytes}
@@ -313,7 +356,7 @@ function FirmaElectronicaView() {
             />
           </div>
 
-          <div className="fe-col-firmado">
+          <div className="fe-col-firmado" ref={colFirmadoRef}>
             <DocumentoPreview
               title="3. Documento firmado"
               url={firmadoUrl}
