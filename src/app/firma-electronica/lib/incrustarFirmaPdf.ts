@@ -4,7 +4,6 @@
  */
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import type { FirmaBox } from './plantillasNivel'
-import { plantillaPorNivel } from './plantillasNivel'
 
 function dataUrlToUint8Array(dataUrl: string): Uint8Array {
   const base64 = dataUrl.split(',')[1]
@@ -18,7 +17,7 @@ function dataUrlToUint8Array(dataUrl: string): Uint8Array {
 export async function incrustarFirmaEnPdf(
   pdfBytes: Uint8Array,
   firmaPngDataUrl: string,
-  firmaBox: FirmaBox = plantillaPorNivel('secundaria').firmaBox
+  firmaBox: FirmaBox
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.load(pdfBytes)
   const page = doc.getPages()[firmaBox.pageIndex]
@@ -35,13 +34,11 @@ export async function incrustarFirmaEnPdf(
   const drawW = png.width * scale
   const drawH = png.height * scale
 
-  // Centrado horizontal y vertical dentro del área útil (sobre la fecha)
   const areaTop = firmaBox.y + fechaH
   const areaH = firmaBox.height - fechaH
   const drawX = firmaBox.x + (firmaBox.width - drawW) / 2
   const drawY = areaTop + (areaH - drawH) / 2
 
-  // Fondo blanco suave para tapar firma manuscrita previa (si la hubiera)
   page.drawRectangle({
     x: firmaBox.x,
     y: areaTop,

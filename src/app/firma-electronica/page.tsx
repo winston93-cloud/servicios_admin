@@ -9,10 +9,13 @@ import { ArrowLeft, FileSignature, Sparkles } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
 import DocumentoPreview from './components/DocumentoPreview'
 import FirmaCapture from './components/FirmaCapture'
+import { crearCartaBecaPdf } from './lib/crearCartaBecaPdf'
+import { DATOS_PRUEBA_POR_NIVEL } from './lib/datosPruebaCartas'
 import { incrustarFirmaEnPdf } from './lib/incrustarFirmaPdf'
 import {
   PLANTILLAS_NIVEL,
   plantillaPorNivel,
+  type FirmaBox,
   type NivelFirma,
 } from './lib/plantillasNivel'
 import './firma-electronica.css'
@@ -22,20 +25,13 @@ function bytesToObjectUrl(bytes: Uint8Array): string {
   return URL.createObjectURL(new Blob([copy], { type: 'application/pdf' }))
 }
 
-async function fetchPdfBytes(url: string): Promise<Uint8Array> {
-  const res = await fetch(url)
-  if (!res.ok) {
-    throw new Error(`No se pudo cargar la plantilla (${res.status}).`)
-  }
-  return new Uint8Array(await res.arrayBuffer())
-}
-
 function FirmaElectronicaView() {
   const router = useRouter()
 
   const [nivel, setNivel] = useState<NivelFirma>('maternal-kinder')
   const [origenBytes, setOrigenBytes] = useState<Uint8Array | null>(null)
   const [origenUrl, setOrigenUrl] = useState<string | null>(null)
+  const [firmaBox, setFirmaBox] = useState<FirmaBox | null>(null)
   const [firmadoUrl, setFirmadoUrl] = useState<string | null>(null)
   const [cargandoDoc, setCargandoDoc] = useState(true)
   const [guardando, setGuardando] = useState(false)
@@ -54,8 +50,7 @@ function FirmaElectronicaView() {
           if (prev) URL.revokeObjectURL(prev)
           return null
         })
-        const plantilla = plantillaPorNivel(nivel)
-        const bytes = await fetchPdfBytes(plantilla.pdfUrl)
+        const { bytes, firmaBox: box } = await crearCartaBecaPdf(nivel)
         const nextUrl = bytesToObjectUrl(bytes)
         if (cancelled) {
           URL.revokeObjectURL(nextUrl)
@@ -63,15 +58,17 @@ function FirmaElectronicaView() {
         }
         url = nextUrl
         setOrigenBytes(bytes)
+        setFirmaBox(box)
         setOrigenUrl(nextUrl)
       } catch (e) {
         if (!cancelled) {
           setOrigenBytes(null)
+          setFirmaBox(null)
           setOrigenUrl(null)
           setError(
             e instanceof Error
               ? e.message
-              : 'No se pudo cargar el documento de prueba.'
+              : 'No se pudo generar el documento de prueba.'
           )
         }
       } finally {
@@ -94,13 +91,12 @@ function FirmaElectronicaView() {
     async (firmaPng: string) => {
       setError(null)
       setOkMsg(null)
-      if (!origenBytes) {
+      if (!origenBytes || !firmaBox) {
         setError('Aún no está listo el documento de origen.')
         return
       }
       setGuardando(true)
       try {
-        const { firmaBox } = plantillaPorNivel(nivel)
         const firmado = await incrustarFirmaEnPdf(
           origenBytes,
           firmaPng,
@@ -120,10 +116,11 @@ function FirmaElectronicaView() {
         setGuardando(false)
       }
     },
-    [origenBytes, nivel]
+    [origenBytes, firmaBox]
   )
 
   const plantilla = plantillaPorNivel(nivel)
+  const datos = DATOS_PRUEBA_POR_NIVEL[nivel]
 
   return (
     <div className="fe-page">
@@ -155,9 +152,8 @@ function FirmaElectronicaView() {
             Pruebas firma electrónica
           </h1>
           <p className="fe-lead">
-            Elige el nivel para cargar la carta de aceptación real (PDF). Dibuja
-            o sube tu firma e incrústala sobre &quot;Fecha y Firma de
-            Enterado&quot;.
+            PDF diseñado por nivel (no escaneo). Datos de prueba + área de
+            firma. Logos del login de Servicios Administrativos.
           </p>
 
           <label className="fe-nivel">
@@ -175,7 +171,8 @@ function FirmaElectronicaView() {
               ))}
             </select>
             <span className="fe-nivel-hint">
-              PDF: <code className="fe-nivel-code">{plantilla.pdfUrl}</code>
+              Prueba: <strong>{datos.alumnoNombre}</strong> · {datos.grado} ·{' '}
+              {datos.tipoBeca} {datos.porcentaje} · ciclo {datos.cicloLabel}
             </span>
           </label>
         </section>
@@ -195,10 +192,9 @@ function FirmaElectronicaView() {
           <DocumentoPreview
             title="1. Documento original"
             url={origenUrl}
-            pdfHref={plantilla.pdfUrl}
             emptyLabel={
               cargandoDoc
-                ? `Cargando carta ${plantilla.label}…`
+                ? `Generando carta ${plantilla.label}…`
                 : 'Sin documento.'
             }
           />

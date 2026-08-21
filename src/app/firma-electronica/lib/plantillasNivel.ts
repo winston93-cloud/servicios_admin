@@ -1,6 +1,5 @@
 /**
- * 2026-08-21 - Plantillas PDF de carta de aceptación de beca por nivel (sandbox).
- * Maternal y Kinder comparten el mismo formato.
+ * 2026-08-21 - Niveles de carta de aceptación (sandbox firma electrónica).
  */
 
 export type NivelFirma =
@@ -19,33 +18,12 @@ export type FirmaBox = {
 export type PlantillaNivel = {
   id: NivelFirma
   label: string
-  /** Ruta pública del PDF de muestra */
-  pdfUrl: string
-  /** Caja aproximada sobre "Fecha y Firma de Enterado" (coords PDF). */
-  firmaBox: FirmaBox
 }
 
 export const PLANTILLAS_NIVEL: PlantillaNivel[] = [
-  {
-    id: 'maternal-kinder',
-    label: 'Maternal / Kinder',
-    pdfUrl: '/firma-electronica/plantillas/maternal-kinder.pdf',
-    // Línea bajo «COMITÉ DE BECAS» (centrada en la página)
-    firmaBox: { pageIndex: 0, x: 156, y: 86, width: 300, height: 78 },
-  },
-  {
-    id: 'primaria',
-    label: 'Primaria',
-    pdfUrl: '/firma-electronica/plantillas/primaria.pdf',
-    // Línea inferior derecha «Fecha y Firma de Enterado»
-    firmaBox: { pageIndex: 0, x: 300, y: 98, width: 250, height: 82 },
-  },
-  {
-    id: 'secundaria',
-    label: 'Secundaria',
-    pdfUrl: '/firma-electronica/plantillas/secundaria.pdf',
-    firmaBox: { pageIndex: 0, x: 290, y: 96, width: 250, height: 82 },
-  },
+  { id: 'maternal-kinder', label: 'Maternal / Kinder' },
+  { id: 'primaria', label: 'Primaria' },
+  { id: 'secundaria', label: 'Secundaria' },
 ]
 
 export function plantillaPorNivel(nivel: NivelFirma): PlantillaNivel {

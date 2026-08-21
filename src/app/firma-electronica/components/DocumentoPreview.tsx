@@ -17,33 +17,21 @@ const PdfInlineViewer = dynamic(() => import('./PdfInlineViewer'), {
 type Props = {
   title: string
   url: string | null
-  /** URL pública .pdf (para abrir/descargar con extensión visible). */
-  pdfHref?: string | null
   emptyLabel?: string
 }
 
-export default function DocumentoPreview({
-  title,
-  url,
-  pdfHref,
-  emptyLabel,
-}: Props) {
-  const openHref = pdfHref || url
+export default function DocumentoPreview({ title, url, emptyLabel }: Props) {
   return (
     <section className="fe-doc-card" aria-label={title}>
       <header className="fe-doc-head">
         <h2>{title}</h2>
-        {openHref ? (
+        {url ? (
           <a
             className="fe-doc-open"
-            href={openHref}
+            href={url}
             target="_blank"
             rel="noopener noreferrer"
-            download={
-              pdfHref
-                ? pdfHref.split('/').pop() || 'documento.pdf'
-                : `documento-${Date.now()}.pdf`
-            }
+            download={`carta-beca-${Date.now()}.pdf`}
           >
             Abrir PDF
           </a>
