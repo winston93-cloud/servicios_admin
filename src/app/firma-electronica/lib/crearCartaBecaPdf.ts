@@ -375,9 +375,9 @@ export async function crearCartaBecaPdf(
   page.drawText(firmaLabel, {
     x:
       firmaBox.x +
-      (firmaBox.width - fontBold.widthOfTextAtSize(firmaLabel, 9)) / 2,
-    y: firmaBox.y + 8,
-    size: 9,
+      (firmaBox.width - fontBold.widthOfTextAtSize(firmaLabel, 8)) / 2,
+    y: firmaBox.y + 2,
+    size: 8,
     font: fontBold,
     color: FOOT,
   })

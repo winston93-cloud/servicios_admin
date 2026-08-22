@@ -27,21 +27,21 @@ export async function incrustarFirmaEnPdf(
   const png = await doc.embedPng(pngBytes)
 
   const padX = 6
-  const fechaH = 14
+  const lineY = firmaBox.y + 22
+  const sigBottom = lineY + 2
   const maxW = Math.max(24, firmaBox.width - padX * 2)
-  const maxH = Math.max(24, firmaBox.height - fechaH - 8)
+  const maxH = Math.max(24, firmaBox.y + firmaBox.height - sigBottom - 4)
   const scale = Math.min(maxW / png.width, maxH / png.height)
   const drawW = png.width * scale
   const drawH = png.height * scale
 
-  const areaTop = firmaBox.y + fechaH
-  const areaH = firmaBox.height - fechaH
+  const areaH = firmaBox.y + firmaBox.height - sigBottom
   const drawX = firmaBox.x + (firmaBox.width - drawW) / 2
-  const drawY = areaTop + (areaH - drawH) / 2
+  const drawY = sigBottom + (areaH - drawH) / 2
 
   page.drawRectangle({
     x: firmaBox.x,
-    y: areaTop,
+    y: sigBottom,
     width: firmaBox.width,
     height: areaH,
     color: rgb(1, 1, 1),
@@ -61,11 +61,11 @@ export async function incrustarFirmaEnPdf(
     month: 'short',
     year: 'numeric',
   })
-  const fechaSize = 9
+  const fechaSize = 8
   const fechaW = font.widthOfTextAtSize(fecha, fechaSize)
   page.drawText(fecha, {
     x: firmaBox.x + (firmaBox.width - fechaW) / 2,
-    y: firmaBox.y + 3,
+    y: firmaBox.y + 12,
     size: fechaSize,
     font,
     color: rgb(0.15, 0.2, 0.28),
