@@ -2,10 +2,11 @@
 
 /**
  * 2026-08-21 - Preview del documento en canvas.
- * 2026-08-22 - Tocar el PDF hace lo mismo que «Abrir PDF»: visor nativo (zoom) en otra pestaña.
+ * 2026-08-22 - Tocar abre visor en la página; X / Cerrar para salir.
  */
+import { useRef, useState, type PointerEvent } from 'react'
 import dynamic from 'next/dynamic'
-import { ExternalLink } from 'lucide-react'
+import { Maximize2 } from 'lucide-react'
 
 const PdfInlineViewer = dynamic(() => import('./PdfInlineViewer'), {
   ssr: false,
@@ -16,6 +17,8 @@ const PdfInlineViewer = dynamic(() => import('./PdfInlineViewer'), {
   ),
 })
 
+const PdfLightbox = dynamic(() => import('./PdfLightbox'), { ssr: false })
+
 type Props = {
   title: string
   url: string | null
@@ -23,42 +26,63 @@ type Props = {
 }
 
 export default function DocumentoPreview({ title, url, emptyLabel }: Props) {
+  const [visor, setVisor] = useState(false)
+  const tapRef = useRef<{ x: number; y: number } | null>(null)
+
+  function abrir() {
+    if (url) setVisor(true)
+  }
+
+  function onPointerDown(e: PointerEvent) {
+    tapRef.current = { x: e.clientX, y: e.clientY }
+  }
+
+  function onPointerUp(e: PointerEvent) {
+    const start = tapRef.current
+    tapRef.current = null
+    if (!start) return
+    const dx = e.clientX - start.x
+    const dy = e.clientY - start.y
+    if (Math.hypot(dx, dy) < 12) abrir()
+  }
+
   return (
     <section className="fe-doc-card" aria-label={title}>
       <header className="fe-doc-head">
         <h2>{title}</h2>
         {url ? (
-          <a
-            className="fe-doc-open"
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <ExternalLink size={14} aria-hidden />
+          <button type="button" className="fe-doc-open" onClick={abrir}>
+            <Maximize2 size={14} aria-hidden />
             Abrir PDF
-          </a>
+          </button>
         ) : null}
       </header>
-      <div className={`fe-doc-frame${url ? ' fe-doc-frame--openable' : ''}`}>
+      <div
+        className={`fe-doc-frame${url ? ' fe-doc-frame--openable' : ''}`}
+        onPointerDown={url ? onPointerDown : undefined}
+        onPointerUp={url ? onPointerUp : undefined}
+      >
         {url ? (
-          <a
-            className="fe-doc-doclink"
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label={`Abrir ${title} en el visor del dispositivo para hacer zoom`}
-          >
+          <>
             <PdfInlineViewer url={url} title={title} />
-            <span className="fe-doc-hit-hint">
-              Toca el documento para abrirlo y hacer zoom
-            </span>
-          </a>
+            <p className="fe-doc-hit-hint">
+              Toca el documento para abrirlo · usa Cerrar (X) al terminar
+            </p>
+          </>
         ) : (
           <p className="fe-doc-empty">
             {emptyLabel || 'El documento aparecerá aquí.'}
           </p>
         )}
       </div>
+      {url ? (
+        <PdfLightbox
+          open={visor}
+          url={url}
+          title={title}
+          onClose={() => setVisor(false)}
+        />
+      ) : null}
     </section>
   )
 }
