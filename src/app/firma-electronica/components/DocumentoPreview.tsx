@@ -2,11 +2,10 @@
 
 /**
  * 2026-08-21 - Preview del documento en canvas.
- * 2026-08-22 - Clic en el PDF o en el botón abre visor a pantalla completa (zoom, sin descargar).
+ * 2026-08-22 - Tocar el PDF hace lo mismo que «Abrir PDF»: visor nativo (zoom) en otra pestaña.
  */
-import { useState } from 'react'
 import dynamic from 'next/dynamic'
-import { Maximize2 } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
 
 const PdfInlineViewer = dynamic(() => import('./PdfInlineViewer'), {
   ssr: false,
@@ -17,8 +16,6 @@ const PdfInlineViewer = dynamic(() => import('./PdfInlineViewer'), {
   ),
 })
 
-const PdfLightbox = dynamic(() => import('./PdfLightbox'), { ssr: false })
-
 type Props = {
   title: string
   url: string | null
@@ -26,51 +23,42 @@ type Props = {
 }
 
 export default function DocumentoPreview({ title, url, emptyLabel }: Props) {
-  const [visor, setVisor] = useState(false)
-
   return (
     <section className="fe-doc-card" aria-label={title}>
       <header className="fe-doc-head">
         <h2>{title}</h2>
         {url ? (
-          <button
-            type="button"
+          <a
             className="fe-doc-open"
-            onClick={() => setVisor(true)}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
           >
-            <Maximize2 size={14} aria-hidden />
-            Ver a pantalla completa
-          </button>
+            <ExternalLink size={14} aria-hidden />
+            Abrir PDF
+          </a>
         ) : null}
       </header>
       <div className={`fe-doc-frame${url ? ' fe-doc-frame--openable' : ''}`}>
         {url ? (
-          <>
+          <a
+            className="fe-doc-doclink"
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Abrir ${title} en el visor del dispositivo para hacer zoom`}
+          >
             <PdfInlineViewer url={url} title={title} />
-            <button
-              type="button"
-              className="fe-doc-hit"
-              onClick={() => setVisor(true)}
-              aria-label={`Abrir ${title} a pantalla completa para ver y hacer zoom`}
-            />
-            <p className="fe-doc-hit-hint">
-              Toca el documento para verlo en grande y hacer zoom
-            </p>
-          </>
+            <span className="fe-doc-hit-hint">
+              Toca el documento para abrirlo y hacer zoom
+            </span>
+          </a>
         ) : (
           <p className="fe-doc-empty">
             {emptyLabel || 'El documento aparecerá aquí.'}
           </p>
         )}
       </div>
-      {url ? (
-        <PdfLightbox
-          open={visor}
-          url={url}
-          title={title}
-          onClose={() => setVisor(false)}
-        />
-      ) : null}
     </section>
   )
 }

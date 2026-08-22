@@ -10,8 +10,6 @@ import type { PDFDocumentProxy } from 'pdfjs-dist'
 type Props = {
   url: string
   title: string
-  /** 1 = ancho del contenedor; >1 re-render a más resolución (visor grande). */
-  zoom?: number
 }
 
 function measureHostWidth(host: HTMLElement): number {
@@ -25,7 +23,7 @@ function measureHostWidth(host: HTMLElement): number {
   return Math.max(240, Math.min(Math.floor(raw), viewportCap))
 }
 
-export default function PdfInlineViewer({ url, title, zoom = 1 }: Props) {
+export default function PdfInlineViewer({ url, title }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -69,13 +67,8 @@ export default function PdfInlineViewer({ url, title, zoom = 1 }: Props) {
         canvas.setAttribute('aria-label', `${title} · página ${pageNum}`)
         canvas.width = Math.floor(viewport.width * dpr)
         canvas.height = Math.floor(viewport.height * dpr)
-        if (zoom === 1) {
-          canvas.style.width = '100%'
-          canvas.style.maxWidth = '100%'
-        } else {
-          canvas.style.width = `${Math.floor(viewport.width)}px`
-          canvas.style.maxWidth = 'none'
-        }
+        canvas.style.width = '100%'
+        canvas.style.maxWidth = '100%'
         canvas.style.height = 'auto'
         canvas.style.display = 'block'
 
@@ -116,7 +109,7 @@ export default function PdfInlineViewer({ url, title, zoom = 1 }: Props) {
         }
         if (cancelled) return
 
-        const cssWidth = Math.floor((await waitForWidth()) * Math.max(0.5, zoom))
+        const cssWidth = await waitForWidth()
         if (cancelled || cssWidth < 8) return
         lastWidth = cssWidth
         await paint(pdfDoc, cssWidth)
@@ -138,7 +131,7 @@ export default function PdfInlineViewer({ url, title, zoom = 1 }: Props) {
     let resizeTimer: ReturnType<typeof setTimeout> | null = null
     const scheduleRepaint = () => {
       if (!pdfDoc || cancelled) return
-      const next = Math.floor(measureHostWidth(host) * Math.max(0.5, zoom))
+      const next = measureHostWidth(host)
       if (Math.abs(next - lastWidth) < 12) return
       if (resizeTimer) clearTimeout(resizeTimer)
       resizeTimer = setTimeout(() => {
@@ -165,7 +158,7 @@ export default function PdfInlineViewer({ url, title, zoom = 1 }: Props) {
         // ignore
       }
     }
-  }, [url, title, zoom])
+  }, [url, title])
 
   return (
     <div className="fe-pdf-viewer">
