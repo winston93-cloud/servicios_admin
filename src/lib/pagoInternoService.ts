@@ -913,6 +913,25 @@ export async function crearPagoInterno(
     }
   }
 
+  // Segunda lectura justo antes de insertar: dos clics a la vez tomaban el mismo folio.
+  if (folioForzado == null) {
+    for (let i = 0; i < 6; i += 1) {
+      let liveQ = supabase
+        .from('pago_interno')
+        .select('pago_id')
+        .eq('pago_folio', folio)
+        .limit(1)
+      if (tipoSerie === 'cuota_padres') {
+        liveQ = liveQ.in('concepto_id', [...CONCEPTOS_CUOTA_PADRES])
+      } else {
+        liveQ = liveQ.not('concepto_id', 'in', `(${CONCEPTOS_CUOTA_PADRES.join(',')})`)
+      }
+      const { data: live } = await liveQ
+      if (!live?.length) break
+      folio = await obtenerSiguienteFolioPago(payload.plantel_serie, tipoSerie)
+    }
+  }
+
   const { data: maxRow } = await supabase
     .from('pago_interno')
     .select('pago_id')

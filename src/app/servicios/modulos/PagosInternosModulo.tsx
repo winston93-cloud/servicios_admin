@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ListOrdered, Loader2, Pencil, Plus, Printer, Settings2, Wallet, Trash2 } from 'lucide-react'
 import { etiquetaCicloEscolar } from '@/lib/cicloEscolar'
 import { useAuth } from '@/contexts/AuthContext'
@@ -76,6 +76,7 @@ export default function PagosInternosModulo() {
   const [cancelando, setCancelando] = useState(false)
 
   const [guardando, setGuardando] = useState(false)
+  const guardandoRef = useRef(false)
   const [mensaje, setMensaje] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -431,11 +432,18 @@ export default function PagosInternosModulo() {
 
   const onAgregarPago = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (guardandoRef.current) return
     if (alumnoId == null || conceptoId <= 0 || importe === '' || importe < 0) {
       setError('Completa alumno, concepto e importe.')
       return
     }
 
+    guardandoRef.current = true
+    setGuardando(true)
+    setMensaje(null)
+    setError(null)
+
+    try {
     const cuotaEnCiclo = await alumnoTieneCuotaPadresPagada(alumnoId, cicloPago)
     setCuotaPadresPagada(cuotaEnCiclo)
     if (
@@ -449,10 +457,6 @@ export default function PagosInternosModulo() {
       setError(mensajeManualesRequiereCuotaPadres())
       return
     }
-
-    setGuardando(true)
-    setMensaje(null)
-    setError(null)
 
     // Combo legacy: 2 registros (cuota + manuales) y 2 recibos (orig+copia c/u).
     if (
@@ -472,7 +476,6 @@ export default function PagosInternosModulo() {
         cualquierNivel: esExterno,
       })
       if (!partes) {
-        setGuardando(false)
         setError(
           'No hay precio de cuota de padres o manuales para el nivel/grado de este alumno.'
         )
@@ -490,7 +493,6 @@ export default function PagosInternosModulo() {
         tipo_serie_folio: 'cuota_padres',
       })
       if (!resCuota.ok) {
-        setGuardando(false)
         setError(resCuota.mensaje)
         return
       }
@@ -505,7 +507,6 @@ export default function PagosInternosModulo() {
         plantel_serie: plantelSerieActual,
         tipo_serie_folio: 'general',
       })
-      setGuardando(false)
       if (!resManuales.ok) {
         setError(
           `Cuota registrada (folio ${resCuota.pago_folio}), pero falló manuales: ${resManuales.mensaje}`
@@ -562,8 +563,6 @@ export default function PagosInternosModulo() {
       tipo_serie_folio: tipoSerieFolioActual,
     })
 
-    setGuardando(false)
-
     if (!res.ok) {
       setError(res.mensaje)
       return
@@ -588,6 +587,10 @@ export default function PagosInternosModulo() {
       conceptoOtro
     )
     if (vale) imprimirValePagoInterno(vale)
+    } finally {
+      guardandoRef.current = false
+      setGuardando(false)
+    }
   }
 
   const onCuotaPadresRapida = async () => {
@@ -595,6 +598,12 @@ export default function PagosInternosModulo() {
       setError('Selecciona un alumno primero.')
       return
     }
+    if (guardandoRef.current) return
+    guardandoRef.current = true
+    setGuardando(true)
+    setMensaje(null)
+    setError(null)
+    try {
     const conceptoCuota =
       conceptosOrdenados.find((c) => c.concepto_id === CONCEPTO_ID_CUOTA_PADRES) ??
       conceptosOrdenados[0]
@@ -618,7 +627,6 @@ export default function PagosInternosModulo() {
       )
       if (precio != null) monto = precio
     }
-    setGuardando(true)
     const plantelCuota = resolverPlantelFolioPagoInterno({
       alumnoRef: alumnoSeleccionado?.alumno_ref,
       alumnoNivel: alumno?.alumno_nivel ?? alumnoSeleccionado?.alumno_nivel,
@@ -633,7 +641,6 @@ export default function PagosInternosModulo() {
       plantel_serie: plantelCuota,
       tipo_serie_folio: 'cuota_padres',
     })
-    setGuardando(false)
     if (!res.ok) {
       setError(res.mensaje)
       return
@@ -656,6 +663,10 @@ export default function PagosInternosModulo() {
       cicloPago
     )
     if (vale) imprimirValePagoInterno(vale)
+    } finally {
+      guardandoRef.current = false
+      setGuardando(false)
+    }
   }
 
   const nombreAlumno = alumnoSeleccionado
