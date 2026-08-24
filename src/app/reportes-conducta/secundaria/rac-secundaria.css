@@ -491,30 +491,95 @@ html[data-theme='light'] .rac-page select optgroup {
   }
 }
 
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .rac-page .dashboard-title {
+  color: #1a1508;
+}
+
+html[data-theme='light'] .pos-totality-theme.admin-app-shell .rac-page .dashboard-subtitle,
+html[data-theme='light'] .rac-page .theme-toggle-label {
+  color: #334155;
+}
+
+html[data-theme='light'] .rac-login-kicker {
+  color: #9f1239;
+}
+
+html[data-theme='light'] .rac-login-card h2,
+html[data-theme='light'] .rac-login-card label {
+  color: #0f172a;
+}
+
+html[data-theme='light'] .rac-login-lead {
+  color: #334155;
+}
+
+html[data-theme='light'] .rac-login-card input {
+  color: #0f172a;
+  border-color: #64748b;
+  background: #fff;
+}
+
+html[data-theme='light'] .rac-login-card input::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+
+html[data-theme='light'] .rac-login-error {
+  color: #b91c1c;
+}
+
 html[data-theme='light'] .rac-page .rac-hero {
   background:
     radial-gradient(120% 90% at 100% -10%, color-mix(in srgb, var(--rac-role) 18%, white), #fff 58%),
     linear-gradient(165deg, #fff 0%, #f4f7fb 100%);
   box-shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
+  border-color: #cbd5e1;
 }
 
 html[data-theme='light'] .rac-page .rac-hero h1 {
-  color: #3a3000;
+  color: #1a1508;
   text-shadow: none;
 }
 
 html[data-theme='light'] .rac-hero-kicker {
-  color: #8a7010;
+  color: #6b4f00;
+}
+
+html[data-theme='light'] .rac-page .rac-hero p {
+  color: #334155;
+  opacity: 1;
 }
 
 html[data-theme='light'] .rac-page .boletas-tabs {
-  background: #f1f5f9;
+  background: #e8eef5;
+  border-color: #cbd5e1;
+}
+
+html[data-theme='light'] .rac-page .boletas-tabs button {
+  color: #1e293b;
+}
+
+html[data-theme='light'] .rac-page .boletas-tabs button.active {
+  color: #0f172a;
 }
 
 html[data-theme='light'] .rac-page .boletas-btn.primary {
   color: #042f2e;
 }
 
+html[data-theme='light'] .rac-page .boletas-panel,
+html[data-theme='light'] .rac-page .boletas-header-meta,
+html[data-theme='light'] .rac-page .boletas-table {
+  color: #0f172a;
+}
+
 html[data-theme='light'] .rac-chip--empty {
-  background: #f8fafc;
+  color: #475569;
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+
+html[data-theme='light'] .rac-modal-card {
+  background: #fff;
+  color: #0f172a;
 }
