@@ -84,7 +84,6 @@ function filaDesdeRow(
         : '—',
     grupoEtiqueta: grupoALetra(alumno?.alumno_grupo) ?? '—',
     dashboard: dashboardTramitePorNivel(nivel),
-    urgente: Number(row.concepto_id) === 11,
     estado: (row.estado as EstadoTramiteCe) || 'pendiente',
     creadoAt: row.creado_at,
     correoAvisoAt: row.correo_aviso_at,
@@ -281,10 +280,7 @@ export async function listarTramitesAdministrativos(): Promise<{
     else if (fila.estado === 'liberado') liberados.push(fila)
   }
 
-  pendientes.sort((a, b) => {
-    if (a.urgente !== b.urgente) return a.urgente ? -1 : 1
-    return Date.parse(b.creadoAt) - Date.parse(a.creadoAt)
-  })
+  pendientes.sort((a, b) => Date.parse(b.creadoAt) - Date.parse(a.creadoAt))
 
   const dashboards: DashboardTramiteCe[] = ['kinder', 'primaria', 'secundaria']
   const porDashboard = dashboards.map((d) => ({
@@ -342,7 +338,6 @@ async function enviarAvisoTramiteNuevo(fila: FilaTramiteAdministrativo): Promise
   if (!to) return false
 
   const dash = fila.dashboard ? etiquetaDashboardTramite(fila.dashboard) : fila.nivelEtiqueta
-  const urgente = fila.urgente ? 'URGENTE · ' : ''
   const texto = [
     `Se pagó en Administrativo un documento que corresponde a Control Escolar (${dash}).`,
     '',
@@ -360,7 +355,7 @@ async function enviarAvisoTramiteNuevo(fila: FilaTramiteAdministrativo): Promise
 
   const envio = await enviarCorreoMasivo({
     to: [to],
-    subject: `${urgente}Nuevo trámite pagado · ${fila.conceptoNombre} · ${fila.nombre}`,
+    subject: `Nuevo trámite pagado · ${fila.conceptoNombre} · ${fila.nombre}`,
     html: htmlCuerpoCorreoMasivo(texto, nivel),
     nivel,
   })
@@ -438,7 +433,7 @@ export async function enviarRecordatoriosTramitesAdministrativos(
       : etiquetaNivelEscolar(nivel)
     const lineas = lista.map(
       (f) =>
-        `· ${f.nombre} (${f.alumnoRef}) — ${f.conceptoNombre} — folio ${f.pagoFolio ?? '—'}${f.urgente ? ' — URGENTE' : ''}`
+        `· ${f.nombre} (${f.alumnoRef}) — ${f.conceptoNombre} — folio ${f.pagoFolio ?? '—'}`
     )
     const texto = [
       `Hay ${lista.length} trámite(s) pagado(s) en Administrativo aún pendientes de elaborar (${dash}).`,

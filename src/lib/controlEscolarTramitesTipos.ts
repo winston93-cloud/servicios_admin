@@ -18,7 +18,6 @@ export type FilaTramiteAdministrativo = {
   gradoEtiqueta: string
   grupoEtiqueta: string
   dashboard: DashboardTramiteCe | null
-  urgente: boolean
   estado: EstadoTramiteCe
   creadoAt: string
   correoAvisoAt: string | null

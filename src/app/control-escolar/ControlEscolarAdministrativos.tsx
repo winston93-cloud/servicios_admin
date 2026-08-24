@@ -259,15 +259,7 @@ export default function ControlEscolarAdministrativos({ usuarioNombre }: Props) 
                     </td>
                     <td>
                       <div className="ce-panel-nivel">
-                        <span>
-                          {f.urgente ? 'Urgente · ' : ''}
-                          {f.conceptoNombre}
-                        </span>
-                        {f.urgente && (
-                          <span className="ce-panel-badge ce-panel-badge--warn">
-                            24 h
-                          </span>
-                        )}
+                        <span>{f.conceptoNombre}</span>
                       </div>
                     </td>
                     <td>
