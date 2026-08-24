@@ -85,10 +85,10 @@ export const DASHBOARD_MODULE_PREVIEWS: Record<string, DashboardModulePreview> =
       'Hub de becas y Control Escolar: renovaciones, solicitudes, permisos, bitácora y boletas de secundaria en un solo panel.',
     highlights: ['Renovaciones', 'Solicitudes', 'Boletas secundaria'],
   },
-  'Reportes de Conducta': {
+  'Reportes académicos y de conducta': {
     synopsis:
-      'Seguimiento disciplinario escolar: captura reportes de conducta y da continuidad al acompañamiento entre dirección y familias.',
-    highlights: ['Captura de reportes', 'Seguimiento', 'Historial por alumno'],
+      'Seguimiento académico y disciplinario: captura reportes, citas y suspensiones, y avisa a las familias con el mismo buzón de envíos masivos.',
+    highlights: ['Captura por materia', 'Citas y suspensiones', 'Aviso a familias'],
   },
   'Entregas a Pie': {
     synopsis:

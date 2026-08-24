@@ -26,7 +26,7 @@ function ReportesConductaHubView() {
             <ArrowLeft size={16} aria-hidden />
             Volver al inicio
           </button>
-          <h1 className="dashboard-title">Reportes de Conducta</h1>
+          <h1 className="dashboard-title">Reportes académicos y de conducta</h1>
           <p className="dashboard-subtitle">
             Elige el nivel escolar para captura y seguimiento de reportes.
           </p>
@@ -46,7 +46,9 @@ function ReportesConductaHubView() {
                 icon={item.icon}
                 kicker={item.kicker}
                 tags={item.tags}
-                onActivate={() => undefined}
+                onActivate={() => {
+                  if (item.id === 'secundaria') router.push('/reportes-conducta/secundaria')
+                }}
               />
             </div>
           ))}

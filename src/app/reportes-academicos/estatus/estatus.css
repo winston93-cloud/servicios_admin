@@ -1,0 +1,46 @@
+.rac-estatus {
+  min-height: 100dvh;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  font-family: Inter, system-ui, sans-serif;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+.rac-estatus header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.rac-estatus h1 {
+  font-size: 1.35rem;
+  margin: 0.3rem 0 0;
+}
+
+.rac-estatus article {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.25rem;
+  border: 1px solid #e2e8f0;
+}
+
+.rac-estatus button {
+  min-height: 44px;
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  background: #1e3a5f;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.rac-estatus .ok {
+  color: #166534;
+  font-weight: 600;
+}
+
+.rac-estatus .err {
+  color: #b91c1c;
+}

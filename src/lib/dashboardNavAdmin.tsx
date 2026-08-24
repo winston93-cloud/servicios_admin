@@ -268,12 +268,12 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
-    label: 'Reportes de Conducta',
-    desc: 'Captura y seguimiento de reportes de conducta escolar.',
+    label: 'Reportes académicos y de conducta',
+    desc: 'Captura y seguimiento de reportes académicos y de conducta escolar.',
     path: '/reportes-conducta',
     accent: 'rose',
-    kicker: 'Conducta',
-    tags: ['Reportes', 'Seguimiento'],
+    kicker: 'Académico',
+    tags: ['Académico', 'Conducta'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />

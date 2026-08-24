@@ -58,10 +58,10 @@ export function reportesConductaHubItems(): ReportesConductaHubItem[] {
     {
       id: 'secundaria',
       label: 'Secundaria',
-      desc: 'Reportes de conducta del nivel secundaria.',
+      desc: 'Reportes académicos y de conducta del nivel secundaria.',
       accent: 'rose',
       kicker: 'Secundaria',
-      tags: ['Reportes', 'Seguimiento'],
+      tags: ['Académico', 'Conducta'],
       icon: ICON_SECUNDARIA,
     },
   ]
