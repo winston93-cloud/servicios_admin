@@ -1,19 +1,150 @@
 .rac-page {
   min-height: 100dvh;
-  padding: clamp(12px, 3vw, 24px);
-  max-width: 1200px;
+}
+
+.rac-page .dashboard-main {
+  max-width: 1180px;
   margin-inline: auto;
+  padding-inline: var(--page-gutter);
+  padding-bottom: clamp(24px, 6vw, 48px);
 }
 
-.rac-login {
-  max-width: 420px;
+.rac-boot {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: clamp(48px, 12vw, 96px) var(--page-gutter);
+  color: var(--dash-muted, #94a3b8);
+}
+
+.rac-login-main {
+  max-width: 520px;
+}
+
+.rac-login-heading {
+  margin-bottom: 8px;
+}
+
+.rac-login-card {
+  position: relative;
+  z-index: 1;
   display: grid;
-  gap: 0.85rem;
+  gap: 14px;
+  margin-top: 8px;
+  padding: clamp(20px, 4vw, 28px);
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--dash-accent, #00e3fd) 28%, transparent);
+  background: linear-gradient(
+    148deg,
+    color-mix(in srgb, var(--dash-card-bg, #1a1b21) 92%, transparent) 0%,
+    color-mix(in srgb, #14325a 22%, var(--dash-card-bg, #12141c)) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 18px 48px rgba(0, 0, 0, 0.28);
 }
 
-.rac-login input {
-  min-height: var(--touch-min, 44px);
+.rac-login-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18px;
+  bottom: 18px;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(180deg, #fff6df 0%, #00e3fd 100%);
+}
+
+.rac-login-kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, #fb7185 80%, white);
+}
+
+.rac-login-card h2 {
+  margin: 0;
+  font-family: var(--font-space-grotesk, 'Space Grotesk', sans-serif);
+  font-size: clamp(1.35rem, 3vw, 1.7rem);
+  letter-spacing: -0.02em;
+}
+
+.rac-login-lead {
+  margin: 0 0 4px;
+  color: var(--dash-muted, #94a3b8);
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.rac-login-card label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.rac-login-card input {
+  min-height: var(--touch-min);
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--dash-border, #334155) 85%, transparent);
+  background: color-mix(in srgb, var(--dash-bg, #0b0d12) 70%, transparent);
+  color: inherit;
+  padding: 0.7rem 0.9rem;
   font-size: 16px;
+}
+
+.rac-login-card input:focus {
+  outline: 2px solid color-mix(in srgb, #00e3fd 55%, transparent);
+  outline-offset: 1px;
+  border-color: #00e3fd;
+}
+
+.rac-login-error {
+  margin: 0;
+  color: #fda4af;
+  font-size: 0.9rem;
+}
+
+.rac-login-submit {
+  min-height: var(--touch-min);
+  margin-top: 4px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #22d3ee 0%, #0891b2 100%);
+  color: #042f2e;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.rac-login-submit:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+html[data-theme='light'] .rac-login-card {
+  background: linear-gradient(148deg, #fff 0%, #eef6fb 100%);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.1);
+}
+
+html[data-theme='light'] .rac-login-card input {
+  background: #fff;
+}
+
+html[data-theme='light'] .rac-login-submit {
+  color: #042f2e;
+}
+
+.rac-app-main .boletas-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .rac-mini {
@@ -68,5 +199,13 @@
   }
   .rac-modal-card {
     border-radius: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .rac-login-submit,
+  .rac-page .servicios-back-btn,
+  .rac-page .boletas-btn {
+    min-height: var(--touch-min);
   }
 }

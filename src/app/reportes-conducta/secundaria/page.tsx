@@ -5,7 +5,9 @@ import { opcionesMotivo, RAC_TIPOS_CAPTURA_MAESTRO, RAC_TIPOS_PREFECTURA } from 
 import { ArrowLeft, LogOut, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import '../../dashboard/dashboard-module-card.css'
 import '../../boletas-secundaria/boletas-secundaria.css'
+import '../reportes-conducta.css'
 import './rac-secundaria.css'
 
 type Rol = 'maestro' | 'coordinacion' | 'psicologia'
@@ -75,23 +77,44 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
   }
 
   return (
-    <form className="boletas-panel rac-login" onSubmit={(ev) => void submit(ev)}>
-      <h2>Ingreso al módulo</h2>
-      <p>Cuenta de maestro, coordinación o psicología (la misma del sistema de secundaria).</p>
+    <form className="rac-login-card" onSubmit={(ev) => void submit(ev)}>
+      <p className="rac-login-kicker">Acceso docente</p>
+      <h2>Ingresar a Secundaria</h2>
+      <p className="rac-login-lead">
+        Usa el mismo usuario y contraseña del sistema de reportes de secundaria (maestro, coordinación o psicología).
+      </p>
       <label>
         Usuario
-        <input value={usuario} onChange={(e) => setUsuario(e.target.value)} autoComplete="username" required />
+        <input
+          value={usuario}
+          onChange={(e) => setUsuario(e.target.value)}
+          autoComplete="username"
+          placeholder="Ej. eli"
+          required
+        />
       </label>
       <label>
         Contraseña
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="current-password"
+          required
+        />
       </label>
-      {error ? <p className="boletas-error">{error}</p> : null}
-      <button type="submit" className="boletas-btn primary" disabled={loading}>
+      {error ? <p className="rac-login-error">{error}</p> : null}
+      <button type="submit" className="rac-login-submit" disabled={loading}>
         {loading ? 'Entrando…' : 'Entrar'}
       </button>
     </form>
   )
+}
+
+function etiquetaRol(role: Rol): string {
+  if (role === 'maestro') return 'Maestro'
+  if (role === 'psicologia') return 'Psicología'
+  return 'Coordinación'
 }
 
 export default function RacSecundariaPage() {
@@ -239,29 +262,45 @@ export default function RacSecundariaPage() {
   const staff = me?.role !== 'maestro'
   const tiposSelect = tab === 'prefectura' ? RAC_TIPOS_PREFECTURA : tiposCaptura
 
-  if (boot) return <p className="boletas-muted rac-page">Cargando…</p>
+  if (boot) {
+    return (
+      <div className="dashboard-container dashboard-home rac-page">
+        <div className="dashboard-home-bg" aria-hidden="true" />
+        <p className="rac-boot">Cargando módulo…</p>
+      </div>
+    )
+  }
 
   if (!me) {
     return (
-      <div className="boletas-shell rac-page">
-        <header className="boletas-header">
-          <button type="button" className="servicios-back-btn" onClick={() => router.push('/reportes-conducta')}>
-            <ArrowLeft size={16} aria-hidden />
-            Niveles
-          </button>
-          <ThemeToggle />
-        </header>
-        <div className="boletas-heading">
-          <h1>Secundaria</h1>
-          <p>Reportes académicos y de conducta</p>
+      <div className="dashboard-container dashboard-home rac-page rac-page--login">
+        <div className="dashboard-home-bg" aria-hidden="true" />
+        <div className="dashboard-main rac-login-main">
+          <div className="dashboard-heading rac-login-heading">
+            <button
+              type="button"
+              className="servicios-back-btn"
+              onClick={() => router.push('/reportes-conducta')}
+            >
+              <ArrowLeft size={16} aria-hidden />
+              Niveles
+            </button>
+            <h1 className="dashboard-title">Secundaria</h1>
+            <p className="dashboard-subtitle">Reportes académicos y de conducta</p>
+            <div className="facturacion-cfdi-theme-row">
+              <ThemeToggle />
+            </div>
+          </div>
+          <LoginPanel onOk={() => void refreshMe()} />
         </div>
-        <LoginPanel onOk={() => void refreshMe()} />
       </div>
     )
   }
 
   return (
-    <div className="boletas-shell rac-page">
+    <div className="dashboard-container dashboard-home rac-page">
+      <div className="dashboard-home-bg" aria-hidden="true" />
+      <div className="dashboard-main rac-app-main">
       <header className="boletas-header">
         <button type="button" className="servicios-back-btn" onClick={() => router.push('/reportes-conducta')}>
           <ArrowLeft size={16} aria-hidden />
@@ -269,7 +308,7 @@ export default function RacSecundariaPage() {
         </button>
         <div className="boletas-header-meta">
           <strong>{me.nombre}</strong>
-          <span className="boletas-badge">{me.role}</span>
+          <span className="boletas-badge">{etiquetaRol(me.role)}</span>
           <span>{me.etiquetaCiclo}</span>
         </div>
         <ThemeToggle />
@@ -512,6 +551,7 @@ export default function RacSecundariaPage() {
           </div>
         </div>
       ) : null}
+      </div>
     </div>
   )
 }
