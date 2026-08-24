@@ -79,6 +79,11 @@ export function construirNombreCompleto(
 /** Control especial de pagos externos / pre-ingreso (solo etiqueta UI). */
 export const ALUMNO_REF_EXTERNO = '11404'
 
+export function esAlumnoRefExterno(ref: string | number | null | undefined): boolean {
+  const r = String(ref ?? '').trim()
+  return r === ALUMNO_REF_EXTERNO || r.toLowerCase() === 'externo'
+}
+
 /**
  * Nombre para mostrar en UI. El 11404 se etiqueta «Externo»;
  * el resto usa nombre completo o «No. control …» si no hay nombre.
@@ -91,7 +96,7 @@ export function nombreVisibleAlumno(opts: {
   nombre_completo?: string | null
 }): string {
   const ref = String(opts.alumno_ref ?? '').trim()
-  if (ref === ALUMNO_REF_EXTERNO) return 'Externo'
+  if (esAlumnoRefExterno(ref)) return 'Externo'
   const completo =
     (opts.nombre_completo ?? '').trim() ||
     construirNombreCompleto(

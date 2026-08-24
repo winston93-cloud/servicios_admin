@@ -22,7 +22,7 @@ import {
   PAGO_INTERNO_FOLIO_CUOTA_WINSTON_TECHO,
   pagoPerteneceAPlantelSerie,
 } from '@/lib/pagoInternoPlantel'
-import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
+import { esAlumnoRefExterno } from '@/lib/alumnoBusquedaServicios'
 
 const SELECT_PAGO =
   'pago_id, alumno_id, concepto_id, concepto_otro, pago_folio, pago_importe, pago_fecha, pago_cancelado, pago_ciclo_escolar, pago_registro'
@@ -234,7 +234,7 @@ async function enriquecerAlumnos(
     if (error) throw new Error(error.message)
     for (const a of data ?? []) {
       const ref = a.alumno_ref != null ? String(a.alumno_ref).trim() : null
-      const esExterno = ref === ALUMNO_REF_EXTERNO || (ref ?? '').toLowerCase() === 'externo'
+      const esExterno = esAlumnoRefExterno(ref)
       map.set(Number(a.alumno_id), {
         ref,
         nombre: esExterno

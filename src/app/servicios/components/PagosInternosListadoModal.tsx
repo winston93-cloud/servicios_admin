@@ -13,7 +13,7 @@ import {
   type PagoInternoListadoFila,
   type PlantelPagosInternos,
 } from '@/lib/pagoInternoService'
-import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
+import { ALUMNO_REF_EXTERNO, esAlumnoRefExterno } from '@/lib/alumnoBusquedaServicios'
 import {
   exportarPagosInternosExcel,
   mapFilasParaExcel,
@@ -130,8 +130,12 @@ export default function PagosInternosListadoModal({ abierto, onCerrar }: Props) 
 
       if (controlQ) {
         const ref = (p.alumno_ref ?? '').trim().toLowerCase()
-        if (!ref || ref === ALUMNO_REF_EXTERNO || ref === 'externo') return false
-        if (!ref.includes(controlQ)) return false
+        const q = controlQ.toLowerCase()
+        if (q === ALUMNO_REF_EXTERNO || q === 'externo') {
+          if (!esAlumnoRefExterno(p.alumno_ref)) return false
+        } else if (!ref || !ref.includes(q)) {
+          return false
+        }
       }
 
       return true

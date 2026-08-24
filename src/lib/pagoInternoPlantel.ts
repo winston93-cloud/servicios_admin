@@ -1,4 +1,4 @@
-import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
+import { esAlumnoRefExterno } from '@/lib/alumnoBusquedaServicios'
 
 /**
  * Series de folio de pagos internos — 4 variantes independientes:
@@ -79,9 +79,9 @@ export type AccesoPagosInternosUsuario = {
 
 /**
  * Cuentas que ven Winston + Educativo en listado/Excel.
- * Externo en esas cuentas usa serie Winston.
- * Karla: solo Educativo (Externo → Educativo).
- * Resto del personal: ambos (Externo → Winston).
+ * Externo (11404) siempre usa serie Winston (aunque la ficha sea maternal/kinder).
+ * Karla: solo Educativo en listado; el cobro de Externo no va a Educativo.
+ * Resto del personal: ambos planteles.
  */
 const USUARIOS_AMBOS_PLANTELES = new Set(['juanita', 'laura', 'mario'])
 
@@ -90,7 +90,7 @@ export function accesoPagosInternosUsuario(
 ): AccesoPagosInternosUsuario {
   const u = (username ?? '').trim().toLowerCase()
   if (u === 'karla') {
-    return { plantelesVisibles: ['educativo'], plantelExterno: 'educativo' }
+    return { plantelesVisibles: ['educativo'], plantelExterno: 'winston' }
   }
   if (USUARIOS_AMBOS_PLANTELES.has(u)) {
     return { plantelesVisibles: ['winston', 'educativo'], plantelExterno: 'winston' }
@@ -106,9 +106,8 @@ export function plantelPagoDesdeNivel(nivel: number): PlantelPagosInternos {
 
 /**
  * ¿El pago cuenta para la serie de folio del plantel?
- * Externo (11404): Juanita/Laura cobran en Winston aunque el alumno tenga
- * nivel maternal/kinder; si no se cuenta, el siguiente folio Winston se
- * duplica (p. ej. 2880 EXTERNO + 2880 MENDEZ).
+ * Externo (11404) solo cuenta en Winston: si también entra en Educativo
+ * (ficha maternal/kinder), el consecutivo Winston general se rompe.
  * Al cancelar/recorrer, usar la misma regla (ver resolverSerieDePago).
  */
 export function pagoPerteneceAPlantelSerie(opts: {
@@ -116,11 +115,8 @@ export function pagoPerteneceAPlantelSerie(opts: {
   alumnoNivel: number | null | undefined
   alumnoRef?: string | number | null
 }): boolean {
-  const ref = String(opts.alumnoRef ?? '').trim()
-  const esExterno = ref === ALUMNO_REF_EXTERNO || ref.toLowerCase() === 'externo'
-  if (esExterno) {
-    if (opts.plantel === 'winston') return true
-    return plantelPagoDesdeNivel(Number(opts.alumnoNivel) || 0) === 'educativo'
+  if (esAlumnoRefExterno(opts.alumnoRef)) {
+    return opts.plantel === 'winston'
   }
   if (opts.alumnoNivel == null || !Number.isFinite(Number(opts.alumnoNivel))) {
     return false
@@ -196,8 +192,8 @@ const USUARIOS_FOLIO_SIEMPRE_WINSTON = new Set(['juanita', 'laura'])
 
 /**
  * Serie de folio al cobrar:
+ * - Externo (11404) → siempre Winston (no Educativo, aunque el nivel sea kinder)
  * - Laura / Juanita → siempre Winston
- * - Externo → según cuenta (plantelExterno)
  * - Resto → según nivel del alumno (Educativo / Winston)
  */
 export function resolverPlantelFolioPagoInterno(opts: {
@@ -205,13 +201,12 @@ export function resolverPlantelFolioPagoInterno(opts: {
   alumnoNivel: number | null | undefined
   usuarioUsername: string | null | undefined
 }): PlantelPagosInternos {
+  if (esAlumnoRefExterno(opts.alumnoRef)) {
+    return 'winston'
+  }
   const u = (opts.usuarioUsername ?? '').trim().toLowerCase()
   if (USUARIOS_FOLIO_SIEMPRE_WINSTON.has(u)) {
     return 'winston'
-  }
-  const ref = String(opts.alumnoRef ?? '').trim()
-  if (ref === ALUMNO_REF_EXTERNO || ref.toLowerCase() === 'externo') {
-    return accesoPagosInternosUsuario(opts.usuarioUsername).plantelExterno
   }
   return plantelPagoDesdeNivel(Number(opts.alumnoNivel) || 0)
 }

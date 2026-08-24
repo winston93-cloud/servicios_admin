@@ -19,7 +19,7 @@ import {
   PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON,
   PAGO_INTERNO_WINSTON_TALON_ACTUAL_DESDE,
 } from './pagoInternoPlantel'
-import { ALUMNO_REF_EXTERNO } from './alumnoBusquedaServicios'
+import { esAlumnoRefExterno } from './alumnoBusquedaServicios'
 
 export {
   accesoPagosInternosUsuario,
@@ -1026,19 +1026,12 @@ function resolverSerieDePago(
 
   // Externo (11404 / kinder cobrado en Winston): no usar solo nivel, o
   // cancelar+recorrer movería la serie Educativo por error.
-  const ref = String(pago.alumno_ref ?? '').trim()
-  const esExterno =
-    ref === ALUMNO_REF_EXTERNO || ref.toLowerCase() === 'externo'
+  const esExterno = esAlumnoRefExterno(pago.alumno_ref)
 
   let plantel: PlantelPagosInternos | null = null
   if (esExterno) {
-    // Folio en zona Winston → Winston; si no, nivel (Karla/Educativo).
-    const porFolio = plantelSerieDesdeFolio(folio)
-    plantel =
-      porFolio ??
-      (pago.alumno_nivel != null && Number.isFinite(Number(pago.alumno_nivel))
-        ? plantelPagoDesdeNivel(Number(pago.alumno_nivel))
-        : 'winston')
+    // Siempre Winston: no usar zona 2849–3479 (Educativo) ni el nivel kinder.
+    plantel = 'winston'
   } else {
     // En el solape 2849–3479 el folio solo no basta: usar nivel del alumno.
     const plantelPorNivel =
