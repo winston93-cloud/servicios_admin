@@ -161,6 +161,31 @@ html[data-theme='light'] .rac-login-submit {
   gap: 0.75rem;
 }
 
+/* Native <select> on Chrome/Linux inherits light text onto a light popup. */
+.rac-page select {
+  color-scheme: dark;
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+.rac-page select option,
+.rac-page select optgroup {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+html[data-theme='light'] .rac-page select {
+  color-scheme: light;
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+html[data-theme='light'] .rac-page select option,
+html[data-theme='light'] .rac-page select optgroup {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
 .rac-mini {
   display: block;
   opacity: 0.7;
