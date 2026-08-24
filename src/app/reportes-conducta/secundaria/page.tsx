@@ -57,6 +57,11 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
   return data
 }
 
+function ChipFecha({ valor }: { valor: string }) {
+  const vacio = !valor || valor === '—' || valor === '-'
+  return <span className={vacio ? 'rac-chip rac-chip--empty' : 'rac-chip rac-chip--set'}>{vacio ? '—' : valor}</span>
+}
+
 function LoginPanel({ onOk }: { onOk: () => void }) {
   const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
@@ -299,7 +304,7 @@ export default function RacSecundariaPage() {
   }
 
   return (
-    <div className="dashboard-container dashboard-home rac-page">
+    <div className={`dashboard-container dashboard-home rac-page rac-page--${me.role}`}>
       <div className="dashboard-home-bg" aria-hidden="true" />
       <div className="dashboard-main rac-app-main">
       <header className="boletas-header">
@@ -319,7 +324,8 @@ export default function RacSecundariaPage() {
         </button>
       </header>
 
-      <div className="boletas-heading">
+      <div className="boletas-heading rac-hero">
+        <p className="rac-hero-kicker">Instituto Winston Churchill · Secundaria</p>
         <h1>Reportes académicos y de conducta</h1>
         <p>
           {me.role === 'psicologia'
@@ -392,10 +398,10 @@ export default function RacSecundariaPage() {
                         </small>
                       </div>
                     </td>
-                    <td>{a.aviso || '—'}</td>
-                    <td>{a.r1 || '—'}</td>
-                    <td>{a.r2 || '—'}</td>
-                    <td>{a.r3 || '—'}</td>
+                    <td><ChipFecha valor={a.aviso || '—'} /></td>
+                    <td><ChipFecha valor={a.r1 || '—'} /></td>
+                    <td><ChipFecha valor={a.r2 || '—'} /></td>
+                    <td><ChipFecha valor={a.r3 || '—'} /></td>
                     <td>
                       <button
                         type="button"
