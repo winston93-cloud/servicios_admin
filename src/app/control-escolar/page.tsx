@@ -19,6 +19,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext'
 import AlumnoAutocomplete from '@/app/servicios/components/AlumnoAutocomplete'
 import ControlEscolarPanelModal from '@/app/control-escolar/ControlEscolarPanelModal'
+import ControlEscolarAdministrativos from '@/app/control-escolar/ControlEscolarAdministrativos'
 import {
   buscarAlumnosServicios,
   grupoALetra,
@@ -55,6 +56,9 @@ function ControlEscolarView() {
   const [docsCompleta, setDocsCompleta] = useState(false)
   const [procesando, setProcesando] = useState(false)
   const [panelAbierto, setPanelAbierto] = useState(false)
+  const [seccion, setSeccion] = useState<'documentacion' | 'administrativos'>(
+    'documentacion'
+  )
   const [mensaje, setMensaje] = useState<{
     tipo: 'ok' | 'warn' | 'err'
     texto: string
@@ -199,21 +203,48 @@ function ControlEscolarView() {
             <div className="ce-heading-copy">
               <h1 className="dashboard-title">Control Escolar</h1>
               <p className="dashboard-subtitle">
-                Autoriza la documentación completa de nuevo ingreso y libera el
-                recibo final.
+                {seccion === 'documentacion'
+                  ? 'Autoriza la documentación completa de nuevo ingreso y libera el recibo final.'
+                  : 'Elabora y libera constancias, cotejos, credenciales y reimpresiones pagadas en Administrativo.'}
               </p>
             </div>
-            <button
-              type="button"
-              className="ce-panel-open-btn"
-              onClick={() => setPanelAbierto(true)}
-            >
-              <ClipboardList size={17} aria-hidden />
-              Panel de documentación
-            </button>
+            {seccion === 'documentacion' && (
+              <button
+                type="button"
+                className="ce-panel-open-btn"
+                onClick={() => setPanelAbierto(true)}
+              >
+                <ClipboardList size={17} aria-hidden />
+                Panel de documentación
+              </button>
+            )}
           </div>
         </div>
 
+        <div className="ce-secciones" role="tablist" aria-label="Secciones de Control Escolar">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={seccion === 'documentacion'}
+            className={`ce-seccion-tab ${seccion === 'documentacion' ? 'is-active' : ''}`}
+            onClick={() => setSeccion('documentacion')}
+          >
+            <ClipboardList size={16} aria-hidden />
+            Documentación
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={seccion === 'administrativos'}
+            className={`ce-seccion-tab ${seccion === 'administrativos' ? 'is-active' : ''}`}
+            onClick={() => setSeccion('administrativos')}
+          >
+            <ClipboardCheck size={16} aria-hidden />
+            Administrativos
+          </button>
+        </div>
+
+        {seccion === 'documentacion' ? (
         <div className="ce-panel">
           <div className="ce-usuario">
             <span className="ce-usuario-icon" aria-hidden>
@@ -320,6 +351,11 @@ function ControlEscolarView() {
             de envíos masivos.
           </p>
         </div>
+        ) : (
+          <div className="ce-panel ce-panel--admin">
+            <ControlEscolarAdministrativos usuarioNombre={usuarioNombre} />
+          </div>
+        )}
       </div>
 
       <ControlEscolarPanelModal

@@ -20,6 +20,43 @@ import {
   PAGO_INTERNO_WINSTON_TALON_ACTUAL_DESDE,
 } from './pagoInternoPlantel'
 import { esAlumnoRefExterno } from './alumnoBusquedaServicios'
+import { esConceptoTramiteControlEscolar } from './controlEscolarTramitesTipos'
+
+async function avisarTramiteControlEscolar(payload: {
+  pagoId: number
+  alumnoId: number
+  conceptoId: number
+  pagoFolio: number
+  pagoCiclo: number
+}): Promise<void> {
+  if (!esConceptoTramiteControlEscolar(payload.conceptoId)) return
+  try {
+    const res = await fetch('/api/control-escolar/tramites/desde-pago', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!res.ok) {
+      console.error('aviso trámite CE HTTP', res.status, await res.text())
+    }
+  } catch (e) {
+    console.error('aviso trámite CE:', e)
+  }
+}
+
+async function cancelarTramitesControlEscolar(pagoIds: number[]): Promise<void> {
+  const ids = pagoIds.filter((id) => Number.isFinite(id) && id > 0)
+  if (!ids.length) return
+  try {
+    await fetch('/api/control-escolar/tramites/cancelar-pagos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pagoIds: ids }),
+    })
+  } catch (e) {
+    console.error('cancelar trámite CE:', e)
+  }
+}
 
 export {
   accesoPagosInternosUsuario,
@@ -940,6 +977,14 @@ export async function crearPagoInterno(
     }
   }
 
+  await avisarTramiteControlEscolar({
+    pagoId: nuevoId,
+    alumnoId: payload.alumno_id,
+    conceptoId: payload.concepto_id,
+    pagoFolio: folio,
+    pagoCiclo: payload.pago_ciclo_escolar,
+  })
+
   return { ok: true, pago_id: nuevoId, pago_folio: folio, hermanos_cuota: hermanosCuota }
 }
 
@@ -1145,6 +1190,24 @@ export async function actualizarPagoInterno(
     return { ok: false, mensaje: upErr?.message ?? 'No se pudo actualizar el pago' }
   }
 
+  try {
+    const eraTramite = esConceptoTramiteControlEscolar(reg.concepto_id)
+    const esTramite = esConceptoTramiteControlEscolar(conceptoId)
+    if (eraTramite && !esTramite) {
+      await cancelarTramitesControlEscolar([pagoId])
+    } else if (esTramite) {
+      await avisarTramiteControlEscolar({
+        pagoId,
+        alumnoId: Number(reg.alumno_id),
+        conceptoId,
+        pagoFolio: Number(reg.pago_folio),
+        pagoCiclo: ciclo,
+      })
+    }
+  } catch (e) {
+    console.error('Trámite CE al actualizar pago interno:', e)
+  }
+
   return {
     ok: true,
     pago: {
@@ -1203,6 +1266,7 @@ export async function cancelarPagoInternoSolo(opts: {
   }
 
   const n = updated?.length ?? 0
+  await cancelarTramitesControlEscolar((updated ?? []).map((r) => Number(r.pago_id)))
   return {
     ok: true,
     modo: 'solo',

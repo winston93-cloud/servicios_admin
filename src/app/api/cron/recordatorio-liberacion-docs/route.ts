@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { enviarRecordatoriosLiberacionDocumentosNi } from '@/lib/portalDocsRecordatorioLiberacion'
+import { enviarRecordatoriosTramitesAdministrativos } from '@/lib/controlEscolarTramitesService'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -20,7 +21,8 @@ function autorizado(request: Request): boolean {
 
 /**
  * Recordatorio cada 24 h a control escolar:
- * docs NI enviados por papás sin liberar en Control Escolar.
+ * - docs NI enviados por papás sin liberar
+ * - trámites administrativos pagados sin elaborar
  *
  * Vercel Cron: GET/POST /api/cron/recordatorio-liberacion-docs
  * Header: Authorization: Bearer $CRON_SECRET
@@ -32,7 +34,11 @@ async function handle(request: Request) {
 
   try {
     const result = await enviarRecordatoriosLiberacionDocumentosNi()
-    return NextResponse.json(result, { status: result.ok ? 200 : 502 })
+    const tramites = await enviarRecordatoriosTramitesAdministrativos()
+    return NextResponse.json(
+      { ...result, tramites },
+      { status: result.ok && tramites.ok ? 200 : 502 }
+    )
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Error en recordatorio'
     console.error('cron recordatorio-liberacion-docs:', e)
