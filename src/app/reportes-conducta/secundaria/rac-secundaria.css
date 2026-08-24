@@ -9,6 +9,20 @@
   padding-bottom: clamp(24px, 6vw, 48px);
 }
 
+.dashboard-home.rac-page--login .dashboard-main,
+.rac-page--login .dashboard-main {
+  max-width: 400px;
+  padding-top: clamp(12px, 4vw, 32px);
+}
+
+.rac-page--login .dashboard-title {
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+}
+
+.rac-page--login .dashboard-subtitle {
+  max-width: none;
+}
+
 .rac-boot {
   position: relative;
   z-index: 1;
@@ -17,22 +31,19 @@
   color: var(--dash-muted, #94a3b8);
 }
 
-.rac-login-main {
-  max-width: 520px;
-}
-
 .rac-login-heading {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .rac-login-card {
   position: relative;
   z-index: 1;
   display: grid;
-  gap: 14px;
-  margin-top: 8px;
-  padding: clamp(20px, 4vw, 28px);
-  border-radius: 18px;
+  gap: 12px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 20px 20px 20px 24px;
+  border-radius: 16px;
   border: 1px solid color-mix(in srgb, var(--dash-accent, #00e3fd) 28%, transparent);
   background: linear-gradient(
     148deg,
@@ -48,18 +59,18 @@
   content: '';
   position: absolute;
   left: 0;
-  top: 18px;
-  bottom: 18px;
-  width: 4px;
-  border-radius: 0 4px 4px 0;
+  top: 16px;
+  bottom: 16px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
   background: linear-gradient(180deg, #fff6df 0%, #00e3fd 100%);
 }
 
 .rac-login-kicker {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: color-mix(in srgb, #fb7185 80%, white);
 }
@@ -67,32 +78,34 @@
 .rac-login-card h2 {
   margin: 0;
   font-family: var(--font-space-grotesk, 'Space Grotesk', sans-serif);
-  font-size: clamp(1.35rem, 3vw, 1.7rem);
+  font-size: 1.25rem;
   letter-spacing: -0.02em;
 }
 
 .rac-login-lead {
-  margin: 0 0 4px;
+  margin: 0 0 2px;
   color: var(--dash-muted, #94a3b8);
-  line-height: 1.5;
-  font-size: 0.95rem;
+  line-height: 1.45;
+  font-size: 0.85rem;
 }
 
 .rac-login-card label {
   display: grid;
   gap: 6px;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
 }
 
 .rac-login-card input {
   min-height: var(--touch-min);
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--dash-border, #334155) 85%, transparent);
   background: color-mix(in srgb, var(--dash-bg, #0b0d12) 70%, transparent);
   color: inherit;
-  padding: 0.7rem 0.9rem;
+  padding: 0.65rem 0.85rem;
   font-size: 16px;
 }
 
@@ -105,18 +118,19 @@
 .rac-login-error {
   margin: 0;
   color: #fda4af;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .rac-login-submit {
   min-height: var(--touch-min);
-  margin-top: 4px;
+  width: 100%;
+  margin-top: 2px;
   border: 0;
   border-radius: 12px;
   background: linear-gradient(180deg, #22d3ee 0%, #0891b2 100%);
   color: #042f2e;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 0.95rem;
   cursor: pointer;
 }
 
