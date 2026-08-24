@@ -4,7 +4,7 @@ import { createDbAdmin } from './insforgeAdmin'
 
 export const RAC_AUTH_COOKIE = 'rac_secundaria_auth'
 
-export type RacRol = 'maestro' | 'coordinacion' | 'psicologia'
+export type RacRol = 'maestro' | 'coordinacion' | 'psicologia' | 'prefectura' | 'direccion'
 
 export type RacSesion = {
   role: RacRol
@@ -50,9 +50,9 @@ export function decodeRacSession(token: string | null | undefined): RacSesion | 
     const b = Buffer.from(expected)
     if (a.length !== b.length || !timingSafeEqual(a, b)) return null
     const session = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as RacSesion
-    if (!session?.role || !session?.id || !session?.exp) return null
+    if (!session?.id || !session?.exp) return null
     if (session.exp < Date.now()) return null
-    return session
+    return { ...session, role: rolDesdePerfil(Number(session.perfil ?? 1)) }
   } catch {
     return null
   }
@@ -92,8 +92,10 @@ function passwordMatches(stored: string | null | undefined, plain: string): bool
   return s.toLowerCase() === md5Hex(plain).toLowerCase()
 }
 
-function rolDesdePerfil(perfil: number): RacRol {
+export function rolDesdePerfil(perfil: number): RacRol {
   if (perfil === 4) return 'psicologia'
+  if (perfil === 5) return 'prefectura'
+  if (perfil === 6) return 'direccion'
   if (perfil === 1) return 'maestro'
   return 'coordinacion'
 }

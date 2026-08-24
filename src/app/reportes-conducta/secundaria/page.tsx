@@ -1,7 +1,8 @@
 'use client'
 
 import ThemeToggle from '@/components/ThemeToggle'
-import { opcionesMotivo, RAC_TIPOS_CAPTURA_MAESTRO, RAC_TIPOS_PREFECTURA } from '@/lib/racUi'
+import { opcionesMotivo } from '@/lib/racUi'
+import { etiquetaRol, tabsDeRol, tiposCapturaDeRol, type RacTab } from '@/lib/racPermisos'
 import { ArrowLeft, LogOut, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
@@ -10,7 +11,7 @@ import '../../boletas-secundaria/boletas-secundaria.css'
 import '../reportes-conducta.css'
 import './rac-secundaria.css'
 
-type Rol = 'maestro' | 'coordinacion' | 'psicologia'
+type Rol = 'maestro' | 'coordinacion' | 'psicologia' | 'prefectura' | 'direccion'
 
 type Me = {
   role: Rol
@@ -43,7 +44,7 @@ type AlumnoFila = {
   r3: string
 }
 
-type Tab = 'captura' | 'inbox' | 'citas' | 'suspensiones' | 'prefectura' | 'historial'
+type Tab = RacTab
 
 async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -81,7 +82,7 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
       <p className="rac-login-kicker">Acceso docente</p>
       <h2>Ingresar a Secundaria</h2>
       <p className="rac-login-lead">
-        Usa el mismo usuario y contraseña del sistema de reportes de secundaria (maestro, coordinación o psicología).
+        Usa el usuario y contraseña del sistema de reportes de secundaria. Cada cuenta (maestro, psicología, prefectura, dirección o coordinación) abre su propio panel.
       </p>
       <label>
         Usuario
@@ -111,12 +112,6 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
   )
 }
 
-function etiquetaRol(role: Rol): string {
-  if (role === 'maestro') return 'Maestro'
-  if (role === 'psicologia') return 'Psicología'
-  return 'Coordinación'
-}
-
 export default function RacSecundariaPage() {
   const router = useRouter()
   const [boot, setBoot] = useState(true)
@@ -143,11 +138,11 @@ export default function RacSecundariaPage() {
     return asignaciones.find((a) => String(a.materia_id) === mid && a.grupo_letra === letra) ?? asignaciones[0]
   }, [asigKey, asignaciones])
 
-  const tiposCaptura = useMemo(() => {
-    if (me?.role === 'psicologia') return [{ valor: 2, etiqueta: 'Conducta' }]
-    if (fisica) return [...RAC_TIPOS_CAPTURA_MAESTRO, { valor: 3, etiqueta: 'Uniforme' }]
-    return RAC_TIPOS_CAPTURA_MAESTRO
-  }, [me, fisica])
+  const tiposCaptura = useMemo(
+    () => (me ? tiposCapturaDeRol(me.role, fisica) : []),
+    [me, fisica]
+  )
+  const tabs = me ? tabsDeRol(me.role) : []
 
   const refreshMe = useCallback(async () => {
     try {
@@ -158,6 +153,10 @@ export default function RacSecundariaPage() {
       if (data.asignaciones?.[0]) {
         setAsigKey(`${data.asignaciones[0].materia_id}|${data.asignaciones[0].grupo_letra}`)
       }
+      const nextTabs = tabsDeRol(data.me.role)
+      setTab((prev) => (nextTabs.some((t) => t.id === prev) ? prev : nextTabs[0]?.id ?? 'captura'))
+      const tipos = tiposCapturaDeRol(data.me.role, Boolean(data.fisica))
+      if (tipos[0]) setTipo(tipos[0].valor)
     } catch {
       setMe(null)
     } finally {
@@ -203,6 +202,7 @@ export default function RacSecundariaPage() {
     if (!me) return
     if (tab === 'captura' || tab === 'prefectura') void cargarGrupo()
     if (tab === 'inbox') void cargarVista('pendientes')
+    if (tab === 'informes') void cargarVista('informes')
     if (tab === 'citas') void cargarVista('citas')
     if (tab === 'suspensiones') void cargarVista('suspensiones')
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -245,6 +245,7 @@ export default function RacSecundariaPage() {
       })
       setMsg('Listo')
       if (tab === 'inbox') await cargarVista('pendientes')
+      if (tab === 'informes') await cargarVista('informes')
       if (tab === 'citas') await cargarVista('citas')
       if (tab === 'suspensiones') await cargarVista('suspensiones')
     } catch (e) {
@@ -259,8 +260,8 @@ export default function RacSecundariaPage() {
     setMe(null)
   }
 
-  const staff = me?.role !== 'maestro'
-  const tiposSelect = tab === 'prefectura' ? RAC_TIPOS_PREFECTURA : tiposCaptura
+  const esAdmin = me?.role === 'coordinacion' || me?.role === 'direccion'
+  const tiposSelect = tiposCaptura
 
   if (boot) {
     return (
@@ -320,20 +321,21 @@ export default function RacSecundariaPage() {
 
       <div className="boletas-heading">
         <h1>Reportes académicos y de conducta</h1>
-        <p>Secundaria · captura, citas, suspensiones e informes. El aviso a familias sale por el buzón de envíos masivos.</p>
+        <p>
+          {me.role === 'psicologia'
+            ? 'Módulo de conducta: reportar, aprobar reportes pendientes, citatorios y avisos de atención.'
+            : me.role === 'prefectura'
+              ? 'Prefectura: uniforme, vialidad y retardo.'
+              : me.role === 'maestro'
+                ? 'Captura de reportes de tu materia y seguimiento de citas.'
+                : 'Panel de coordinación/dirección: listado, suspensión, citatorios, informes, captura e impresión.'}
+        </p>
       </div>
 
       <nav className="boletas-tabs" aria-label="Secciones">
-        {(
-          [
-            ['captura', 'Captura'],
-            ...(staff ? ([['inbox', 'Bandeja']] as const) : []),
-            ['citas', 'Citas'],
-            ...(staff ? ([['suspensiones', 'Suspensiones'], ['prefectura', 'Prefectura'], ['historial', 'Historial']] as const) : []),
-          ] as [Tab, string][]
-        ).map(([id, label]) => (
-          <button key={id} type="button" className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
-            {label}
+        {tabs.map((t) => (
+          <button key={t.id} type="button" className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}>
+            {t.label}
           </button>
         ))}
       </nav>
@@ -415,7 +417,7 @@ export default function RacSecundariaPage() {
         </section>
       )}
 
-      {tab === 'inbox' || tab === 'citas' || tab === 'suspensiones' || tab === 'historial' ? (
+      {tab === 'inbox' || tab === 'citas' || tab === 'suspensiones' || tab === 'historial' || tab === 'informes' ? (
         <section className="boletas-panel">
           {tab === 'historial' ? (
             <div className="boletas-filters">
@@ -453,7 +455,17 @@ export default function RacSecundariaPage() {
                     </td>
                     <td>{String(row.fecha ?? '—')}</td>
                     <td className="rac-actions">
-                      {tab === 'inbox' && staff ? (
+                      {tab === 'inbox' && me.role === 'psicologia' ? (
+                        <>
+                          <button type="button" className="boletas-btn primary" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'validar')}>
+                            Aprobar
+                          </button>
+                          <button type="button" className="boletas-btn" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'denegar')}>
+                            Denegar
+                          </button>
+                        </>
+                      ) : null}
+                      {tab === 'inbox' && esAdmin ? (
                         <>
                           <button type="button" className="boletas-btn" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'reenviar')}>
                             Reenviar
@@ -466,7 +478,12 @@ export default function RacSecundariaPage() {
                           </button>
                         </>
                       ) : null}
-                      {tab === 'citas' && staff ? (
+                      {tab === 'informes' && esAdmin ? (
+                        <button type="button" className="boletas-btn" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'reenviar')}>
+                          Reenviar
+                        </button>
+                      ) : null}
+                      {tab === 'citas' && (esAdmin || me.role === 'psicologia') ? (
                         <>
                           <button type="button" className="boletas-btn" onClick={() => void accionCoord('cita', Number(row.cita_id), 'reenviar')}>
                             Reenviar
@@ -476,7 +493,7 @@ export default function RacSecundariaPage() {
                           </button>
                         </>
                       ) : null}
-                      {tab === 'suspensiones' && staff ? (
+                      {tab === 'suspensiones' && esAdmin ? (
                         <button
                           type="button"
                           className="boletas-btn primary"
@@ -506,7 +523,7 @@ export default function RacSecundariaPage() {
                 Acción
                 <select value={modo} onChange={(e) => setModo(e.target.value as typeof modo)}>
                   <option value="reporte">Reporte / aviso</option>
-                  <option value="informe">Informe</option>
+                  {me.role !== 'prefectura' ? <option value="informe">Informe</option> : null}
                   <option value="cita">Cita</option>
                 </select>
               </label>

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { jsonRacError, requireRacSession } from '@/lib/racAuth'
+import { puedeAccionCoord, puedeVerVistaCoord } from '@/lib/racPermisos'
 import {
   accionCita,
   accionReporte,
@@ -15,6 +16,9 @@ export async function GET(req: Request) {
     const session = await requireRacSession(req)
     const url = new URL(req.url)
     const vista = url.searchParams.get('vista') ?? 'pendientes'
+    if (!puedeVerVistaCoord(session.role, vista)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+    }
     if (vista === 'citas') return NextResponse.json({ filas: await inboxCitas(session) })
     if (vista === 'suspensiones') return NextResponse.json({ filas: await inboxSuspensiones() })
     if (vista === 'historial') {
@@ -32,14 +36,16 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await requireRacSession(req)
-    if (session.role === 'maestro') {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
-    }
     const body = (await req.json()) as {
       entidad?: string
       id?: number
       accion?: string
       fecha?: string
+    }
+    const entidad = body.entidad === 'cita' ? 'cita' : body.entidad === 'suspension' ? 'suspension' : 'reporte'
+    const accion = String(body.accion ?? '')
+    if (!puedeAccionCoord(session.role, entidad, accion)) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
     const id = Number(body.id)
     if (body.entidad === 'cita') {

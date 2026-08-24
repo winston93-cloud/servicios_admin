@@ -2,7 +2,8 @@ import { createHash, randomBytes } from 'crypto'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { grupoCoincide, letraDesdeGrupoNum } from '@/lib/boletasCiclo'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
-import type { RacSesion } from '@/lib/racAuth'
+import { RacAuthError, type RacSesion } from '@/lib/racAuth'
+import { puedeCapturarTipo, puedeInforme } from '@/lib/racPermisos'
 import {
   RAC_NIVEL_SECUNDARIA,
   RAC_TIPOS,
@@ -328,6 +329,10 @@ export async function capturarReporte(opts: {
   motivo: number
   mensaje: string
 }) {
+  const { fisica } = await listarAsignaciones(opts.session)
+  if (!puedeCapturarTipo(opts.session.role, opts.tipo, fisica)) {
+    throw new RacAuthError('Este tipo de reporte no corresponde a tu cuenta', 403)
+  }
   const ciclo = await cicloRac()
   const client = db()
   const materiaId = opts.tipo === RAC_TIPOS.academico || opts.tipo === RAC_TIPOS.informeAcademico ? opts.materiaId : opts.materiaId
@@ -410,7 +415,10 @@ export async function capturarInforme(opts: {
   mensaje: string
 }) {
   const ciclo = await cicloRac()
-  const psico = opts.session.perfil === 4
+  if (!puedeInforme(opts.session.role)) {
+    throw new RacAuthError('Tu cuenta no captura informes', 403)
+  }
+  const psico = opts.session.role === 'psicologia'
   const insert: Record<string, unknown> = {
     alumno_id: opts.alumnoId,
     perfil_id: opts.session.perfil,
@@ -504,9 +512,16 @@ async function hidratar(rows: Record<string, unknown>[]) {
 
 export async function inboxReportes(session: RacSesion, filtro: 'pendientes' | 'informes' | 'todos') {
   const ciclo = await cicloRac()
-  let q = db().from('reporte_escolar').select('*').eq('reporte_ciclo_escolar', ciclo).eq('reporte_status', 1)
-  if (filtro === 'pendientes') q = q.lte('reporte_tipo', 5).eq('reporte_confirmado', 0)
-  if (filtro === 'informes') q = q.eq('reporte_tipo', 5)
+  let q = db().from('reporte_escolar').select('*').eq('reporte_ciclo_escolar', ciclo)
+  if (session.role === 'psicologia' && filtro === 'pendientes') {
+    q = q.eq('reporte_status', 2).eq('reporte_tipo', RAC_TIPOS.conducta)
+  } else {
+    q = q.eq('reporte_status', 1)
+    if (filtro === 'pendientes') q = q.lte('reporte_tipo', 5).eq('reporte_confirmado', 0)
+    if (filtro === 'informes') {
+      q = q.eq('reporte_tipo', session.role === 'psicologia' ? RAC_TIPOS.avisoPsicologia : RAC_TIPOS.informeAcademico)
+    }
+  }
   if (session.role === 'maestro') {
     const { asignaciones } = await listarAsignaciones(session)
     const ids = asignaciones.map((a) => a.materia_id)
