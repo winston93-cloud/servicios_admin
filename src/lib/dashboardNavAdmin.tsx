@@ -270,7 +270,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   {
     label: 'Reportes de Conducta',
     desc: 'Captura y seguimiento de reportes de conducta escolar.',
-    path: '/proximamente?m=conducta',
+    path: '/reportes-conducta',
     accent: 'rose',
     kicker: 'Conducta',
     tags: ['Reportes', 'Seguimiento'],
