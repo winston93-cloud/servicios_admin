@@ -147,14 +147,14 @@ export default function PagosColegiaturasPaqueteModulo() {
 
   return (
     <UsuariosPinGate
-      eyebrow="Servicios · Pagos de Colegiaturas"
-      titulo="Acceso a pagos de colegiaturas"
+      eyebrow="Servicios · Paquete de colegiaturas"
+      titulo="Acceso a paquete de colegiaturas"
       lead="Ingresa el PIN para agrupar colegiaturas pendientes en un solo cobro."
     >
       <div className="servicios-panel-inner pa-modulo">
         <header className="servicios-panel-header">
           <h1 className="servicios-panel-title">
-            <CalendarDays size={22} aria-hidden /> Pagos de Colegiaturas
+            <CalendarDays size={22} aria-hidden /> Paquete de colegiaturas
           </h1>
           <p className="servicios-panel-lead">
             Ciclo actual. Elige solo las colegiaturas que el alumno debe; la suma se cobra como un

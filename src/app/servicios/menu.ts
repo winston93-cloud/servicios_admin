@@ -20,6 +20,7 @@ import {
   ShieldAlert,
   UserCog,
   Sparkles,
+  CalendarDays,
 } from 'lucide-react'
 
 export type ServiciosModuloId =
@@ -129,8 +130,8 @@ export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
   {
     type: 'leaf',
     id: 'pagos-colegiaturas-paquete',
-    label: 'Pagos de Colegiaturas',
-    icon: CalendarRange,
+    label: 'Paquete de colegiaturas',
+    icon: CalendarDays,
   },
   {
     type: 'leaf',
