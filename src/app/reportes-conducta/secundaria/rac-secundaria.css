@@ -254,14 +254,15 @@ html[data-theme='light'] .rac-page select optgroup {
   --rac-gold: #fff6df;
   --rac-gold-deep: #e8c96a;
   --rac-cyan: #00e3fd;
-  --rac-role: #00e3fd;
+  --rac-role: #0e7490;
+  --rac-on-role: #ffffff;
 }
 
-.rac-page--direccion { --rac-role: #e8c96a; }
-.rac-page--coordinacion { --rac-role: #7dd3fc; }
-.rac-page--psicologia { --rac-role: #fb7185; }
-.rac-page--prefectura { --rac-role: #fb923c; }
-.rac-page--maestro { --rac-role: #00e3fd; }
+.rac-page--direccion { --rac-role: #a16207; }
+.rac-page--coordinacion { --rac-role: #0369a1; }
+.rac-page--psicologia { --rac-role: #be123c; }
+.rac-page--prefectura { --rac-role: #c2410c; }
+.rac-page--maestro { --rac-role: #0e7490; }
 
 .rac-page .rac-hero {
   position: relative;
@@ -309,9 +310,9 @@ html[data-theme='light'] .rac-page select optgroup {
 }
 
 .rac-page .boletas-badge {
-  border: 1px solid color-mix(in srgb, var(--rac-role) 45%, transparent);
-  background: color-mix(in srgb, var(--rac-role) 16%, transparent);
-  color: color-mix(in srgb, var(--rac-role) 35%, white);
+  border: 1px solid color-mix(in srgb, var(--rac-role) 40%, #000);
+  background: var(--rac-role);
+  color: var(--rac-on-role);
   font-weight: 700;
 }
 
@@ -337,10 +338,10 @@ html[data-theme='light'] .rac-page select optgroup {
 }
 
 .rac-page .boletas-tabs button.active {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--rac-role) 28%, #1a1b21) 0%, color-mix(in srgb, var(--rac-role) 12%, #12141c) 100%);
-  border-color: color-mix(in srgb, var(--rac-role) 55%, transparent);
-  color: #fff;
-  box-shadow: 0 8px 22px color-mix(in srgb, var(--rac-role) 22%, transparent);
+  background: var(--rac-role);
+  border-color: color-mix(in srgb, var(--rac-role) 70%, #000);
+  color: var(--rac-on-role);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--rac-role) 28%, transparent);
 }
 
 .rac-page .boletas-panel {
@@ -378,16 +379,11 @@ html[data-theme='light'] .rac-page select optgroup {
 }
 
 .rac-page .boletas-btn.primary {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--rac-role) 55%, #0b1220) 0%, color-mix(in srgb, var(--rac-role) 22%, #0b1220) 100%);
-  border-color: color-mix(in srgb, var(--rac-role) 65%, white);
-  color: #041016;
+  background: var(--rac-role);
+  border-color: color-mix(in srgb, var(--rac-role) 55%, #000);
+  color: var(--rac-on-role);
   font-weight: 700;
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--rac-role) 24%, transparent);
-}
-
-.rac-page--direccion .boletas-btn.primary,
-.rac-page--coordinacion .boletas-btn.primary {
-  color: #1a1408;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--rac-role) 28%, transparent);
 }
 
 .rac-page .boletas-table {
@@ -560,11 +556,25 @@ html[data-theme='light'] .rac-page .boletas-tabs button {
 }
 
 html[data-theme='light'] .rac-page .boletas-tabs button.active {
+  color: #fff;
+}
+
+html[data-theme='light'] .rac-page .boletas-btn {
   color: #0f172a;
+  border-color: #64748b;
+  background: #fff;
 }
 
 html[data-theme='light'] .rac-page .boletas-btn.primary {
-  color: #042f2e;
+  background: var(--rac-role);
+  border-color: color-mix(in srgb, var(--rac-role) 40%, #000);
+  color: #fff;
+}
+
+html[data-theme='light'] .rac-page .boletas-btn.ghost {
+  background: transparent;
+  border-color: #64748b;
+  color: #0f172a;
 }
 
 html[data-theme='light'] .rac-page .boletas-panel,
