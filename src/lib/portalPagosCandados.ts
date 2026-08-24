@@ -29,6 +29,29 @@ export function slotsColegiaturaConPagoAnual(planMeses: number, pagoAnualPendien
   return [['00'], ['30']]
 }
 
+/** Paquete de meses: quita esos conceptos y pone 31 en el primer hueco. */
+export function slotsColegiaturaConPaquete(
+  planMeses: number,
+  conceptosPaquete: string[] | null | undefined
+): string[][] {
+  const base = slotsColegiaturaPortal(planMeses)
+  const pack = new Set((conceptosPaquete ?? []).map((c) => normalizarConceptoNo(c)).filter(Boolean))
+  if (pack.size === 0) return base
+  const out: string[][] = []
+  let inserted = false
+  for (const slot of base) {
+    const rest = slot.filter((c) => !pack.has(normalizarConceptoNo(c)))
+    const hit = slot.some((c) => pack.has(normalizarConceptoNo(c)))
+    if (hit && !inserted) {
+      out.push(['31'])
+      inserted = true
+    }
+    if (rest.length) out.push(rest)
+  }
+  if (!inserted) out.push(['31'])
+  return out
+}
+
 /** Cambridge / Winston USA: un concepto por paso. */
 export function slotsLineales(conceptos: readonly string[]): string[][] {
   return conceptos.map((c) => [normalizarConceptoNo(c)])

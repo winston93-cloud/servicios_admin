@@ -158,6 +158,8 @@ export function getPaymentConcept(conceptoNo: string): string {
       return 'Colegiatura Julio'
     case '30':
       return 'Pago Anual'
+    case '31':
+      return 'Pagos de Colegiaturas'
     default:
       return '-None-'
   }

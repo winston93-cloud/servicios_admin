@@ -195,6 +195,10 @@ export async function registrarPagoBanorteExitoso(
   try {
     const { talvezAplicarCoberturaPagoAnual } = await import('./pagoAnualCoberturaHook')
     await talvezAplicarCoberturaPagoAnual(supabase, ref, { importe, fechaPago: hoy })
+    const { talvezAplicarCoberturaPagoColegiaturas } = await import(
+      './pagoColegiaturasPaqueteCoberturaHook'
+    )
+    await talvezAplicarCoberturaPagoColegiaturas(supabase, ref, { importe, fechaPago: hoy })
   } catch (e) {
     console.error('cobertura pago anual (Banorte):', e)
   }

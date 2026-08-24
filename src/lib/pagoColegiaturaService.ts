@@ -279,6 +279,13 @@ export async function crearPagoColegiaturaManual(
       importe,
       fechaPago: payload.fechaPago,
     })
+    const { talvezAplicarCoberturaPagoColegiaturas } = await import(
+      './pagoColegiaturasPaqueteCoberturaHook'
+    )
+    await talvezAplicarCoberturaPagoColegiaturas(supabase, referencia, {
+      importe,
+      fechaPago: payload.fechaPago,
+    })
   } catch (e) {
     console.error('cobertura pago anual (manual):', e)
   }

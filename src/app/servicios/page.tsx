@@ -35,6 +35,7 @@ import CsdVencimientosModulo from './modulos/CsdVencimientosModulo'
 import UsuariosCatalogoModulo from './modulos/UsuariosCatalogoModulo'
 import CambiarPlanModulo from './modulos/CambiarPlanModulo'
 import PagoAnualModulo from './modulos/PagoAnualModulo'
+import PagosColegiaturasPaqueteModulo from './modulos/PagosColegiaturasPaqueteModulo'
 import AdeudosEgresadosModulo from './modulos/AdeudosEgresadosModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -113,6 +114,8 @@ function ServiciosPanelContenido({
       return <CambiarPlanModulo />
     case 'pago-anual':
       return <PagoAnualModulo />
+    case 'pagos-colegiaturas-paquete':
+      return <PagosColegiaturasPaqueteModulo />
     case 'adeudos-egresados':
       return <AdeudosEgresadosModulo />
     default:

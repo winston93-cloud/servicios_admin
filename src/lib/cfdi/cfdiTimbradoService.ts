@@ -4,6 +4,8 @@ import { obtenerDatosFacturacionPorRef } from '../datosFacturacionService'
 import { crearNombreArchivoFactura } from '../portalFacturaRutas'
 import { nivelCobroDesdeReferencia } from '../nivelCobroElectronico'
 import { resolverConcepto, formaPagoDesdeMetodo } from './cfdiConcepto'
+import { descripcionFacturaPagoColegiaturas } from '@/lib/pagoColegiaturasPaqueteService'
+import { normalizarConceptoNo, parsearReferenciaPago } from '@/lib/pagoReferenciaColegiatura'
 import { emisorClavePorNivel, obtenerConfigEmisor } from './cfdiEmisor'
 import { institucionPorNivel } from './cfdiInstitucion'
 import { construirPayloadFacturoPorTi, receptorDesdeDatosFacturacion, RECEPTOR_PUBLICO_GENERAL } from './cfdiPayload'
@@ -183,7 +185,16 @@ async function ejecutarTimbradoPago(
     String(detalle?.alumno_curp ?? '')
   )
 
-  const concepto = resolverConcepto(referencia, clave)
+  let concepto = resolverConcepto(referencia, clave)
+  const parsedCfdi = parsearReferenciaPago(referencia)
+  if (parsedCfdi && normalizarConceptoNo(parsedCfdi.conceptoNo) === '31') {
+    const extra = await descripcionFacturaPagoColegiaturas(
+      db,
+      alumno.alumno_id,
+      parsedCfdi.cicloEscolar
+    )
+    if (extra) concepto = { ...concepto, descripcion: extra }
+  }
   const monto = montoPago(pago)
   const payload = construirPayloadFacturoPorTi({
     emisor,

@@ -45,6 +45,7 @@ export type ServiciosModuloId =
   | 'usuarios-catalogo'
   | 'cambiar-plan'
   | 'pago-anual'
+  | 'pagos-colegiaturas-paquete'
   | 'adeudos-egresados'
 
 export interface ServiciosSubMenuItem {
@@ -124,6 +125,12 @@ export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
     id: 'pago-anual',
     label: 'Pago Anual',
     icon: Sparkles,
+  },
+  {
+    type: 'leaf',
+    id: 'pagos-colegiaturas-paquete',
+    label: 'Pagos de Colegiaturas',
+    icon: CalendarRange,
   },
   {
     type: 'leaf',

@@ -194,7 +194,7 @@ export function montoBaseConcepto(
   } else if (c === '26') {
     montoNormal = precio.precio_colegiatura2
     admiteBecaWinston = true
-  } else if (c === '30') {
+  } else if (c === '30' || c === '31') {
     // Pago anual: se calcula en matriz/servicio (suma plan − 5%). Aquí 0 evita doble conteo.
     montoNormal = 0
     admiteBecaWinston = false

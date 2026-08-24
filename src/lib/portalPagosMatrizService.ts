@@ -23,6 +23,7 @@ import type { PagoDetalleRegistro } from './pagoColegiaturaService'
 import {
   filtrarFilasPorCandado,
   slotsColegiaturaConPagoAnual,
+  slotsColegiaturaConPaquete,
   slotsLineales,
 } from './portalPagosCandados'
 import {
@@ -31,6 +32,12 @@ import {
   CONCEPTO_PAGO_ANUAL,
   etiquetaPagoAnual,
 } from './pagoAnualService'
+import {
+  alumnoTienePaqueteColegiaturasPendiente,
+  CONCEPTO_PAGO_COLEGIATURAS,
+  etiquetaPagoColegiaturas,
+  obtenerRegistroPagoColegiaturas,
+} from './pagoColegiaturasPaqueteService'
 import { omitirRecargosAdeudoEgresado } from './adeudosEgresadosService'
 import { obtenerAperturaConceptosPortal } from './portalAperturaConceptosService'
 import { mapCorreccionesManualesVigentes } from './portalAdmisionesProrroga'
@@ -102,7 +109,7 @@ const CONCEPTOS_SECCION_PROPIA = new Set([
 ])
 
 /** Material y Seguro (17) no se lista en el portal alumno. Pago anual (30) se inyecta aparte. */
-const CONCEPTOS_EXCLUIDOS_COLEGIATURA = new Set(['17', '30', ...CONCEPTOS_SECCION_PROPIA])
+const CONCEPTOS_EXCLUIDOS_COLEGIATURA = new Set(['17', '30', '31', ...CONCEPTOS_SECCION_PROPIA])
 
 /** Orden al construir filas (16 va junto a enero en pantalla vía slots). */
 const ORDEN_COLEGIATURA_PORTAL = [
@@ -120,6 +127,7 @@ const ORDEN_COLEGIATURA_PORTAL = [
   '10',
   '26',
   '30',
+  '31',
 ] as const
 
 export function etiquetaPlanPagos(planMeses: number): string {
@@ -450,6 +458,25 @@ export async function construirMatrizPortalPagos(
     }
   }
 
+  const paquetePendiente =
+    !pagoAnualPendiente &&
+    (await alumnoTienePaqueteColegiaturasPendiente(supabase, alumno.alumno_id, ciclo.valor))
+  const registroPaquete = paquetePendiente
+    ? await obtenerRegistroPagoColegiaturas(supabase, alumno.alumno_id, ciclo.valor)
+    : null
+
+  if (paquetePendiente) {
+    const yaTiene31 = conceptosColeg.some(
+      (c) => normalizarConceptoNo(c.concepto_no) === CONCEPTO_PAGO_COLEGIATURAS
+    )
+    if (!yaTiene31) {
+      conceptosColeg.push({
+        concepto_no: CONCEPTO_PAGO_COLEGIATURAS,
+        concepto_clase: etiquetaPagoColegiaturas(),
+      })
+    }
+  }
+
   const filasColegRaw = await construirFilas(
     supabase,
     alumno,
@@ -500,10 +527,29 @@ export async function construirMatrizPortalPagos(
     }
   }
 
-  const filasColeg = filtrarFilasPorCandado(
-    filasColegRaw,
-    slotsColegiaturaConPagoAnual(planMeses, pagoAnualPendiente)
-  )
+  if (paquetePendiente && registroPaquete) {
+    for (const f of filasColegRaw) {
+      if (normalizarConceptoNo(f.conceptoNo) !== CONCEPTO_PAGO_COLEGIATURAS || f.pagado) continue
+      f.conceptoClase = etiquetaPagoColegiaturas()
+      const monto = Number(registroPaquete.monto) || 0
+      f.importe = monto
+      f.importeLinea = monto
+      f.recargo = 0
+      const semibase = referenciaSemibase(
+        alumno.alumno_ref,
+        CONCEPTO_PAGO_COLEGIATURAS,
+        ciclo.valor
+      )
+      f.referencia = getDigVerif(monto, semibase)
+      f.referenciaLinea = f.referencia
+    }
+  }
+
+  const slotsColeg = paquetePendiente
+    ? slotsColegiaturaConPaquete(planMeses, registroPaquete?.conceptos)
+    : slotsColegiaturaConPagoAnual(planMeses, pagoAnualPendiente)
+
+  const filasColeg = filtrarFilasPorCandado(filasColegRaw, slotsColeg)
 
   const secciones: SeccionMatrizPortal[] = [
     {

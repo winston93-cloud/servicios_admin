@@ -241,6 +241,10 @@ async function procesarChargeSucceeded(
   try {
     const { talvezAplicarCoberturaPagoAnual } = await import('./pagoAnualCoberturaHook')
     await talvezAplicarCoberturaPagoAnual(supabase, referencia, { importe })
+    const { talvezAplicarCoberturaPagoColegiaturas } = await import(
+      './pagoColegiaturasPaqueteCoberturaHook'
+    )
+    await talvezAplicarCoberturaPagoColegiaturas(supabase, referencia, { importe })
   } catch (e) {
     console.error('cobertura pago anual (Openpay):', e)
   }
