@@ -52,6 +52,29 @@ export async function resolverImportePagoElectronico(opts: {
     }
   }
 
+  // Paquete de colegiaturas (31): boucher lo deja en 0; el monto vive en alumno_pago_colegiaturas.
+  if (conceptoNo === '31') {
+    const { obtenerRegistroPagoColegiaturas } = await import(
+      '@/lib/pagoColegiaturasPaqueteService'
+    )
+    const reg = await obtenerRegistroPagoColegiaturas(
+      opts.db,
+      opts.alumno.alumno_id,
+      opts.cicloEscolar
+    )
+    const montoPaquete =
+      reg?.activo && !reg.pagado ? Math.round((Number(reg.monto) || 0) * 100) / 100 : 0
+    const monto = montoPaquete > 0 ? montoPaquete : cliente != null && cliente > 0 ? cliente : 0
+    if (monto > 0) {
+      return {
+        importe: monto,
+        importeLinea: monto,
+        recargo: 0,
+        montoCobro: monto,
+      }
+    }
+  }
+
   // Reinscripción / diferidos: mismo motor que el portal (no lista completa).
   if (esConceptoInscripcionReinscripcion(conceptoNo)) {
     const cicloTemp =
