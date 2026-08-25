@@ -65,9 +65,15 @@ export type CartaGenerada = {
   firmaBox: FirmaBox
 }
 
-async function fetchPng(url: string): Promise<Uint8Array | null> {
+async function fetchPng(
+  url: string,
+  assetsBaseUrl?: string
+): Promise<Uint8Array | null> {
   try {
-    const res = await fetch(url)
+    const abs = url.startsWith('http')
+      ? url
+      : `${(assetsBaseUrl ?? '').replace(/\/$/, '')}${url}`
+    const res = await fetch(abs)
     if (!res.ok) return null
     return new Uint8Array(await res.arrayBuffer())
   } catch {
@@ -94,10 +100,12 @@ function wrapText(text: string, font: PDFFont, size: number, maxW: number): stri
 
 export async function crearCartaBecaPdf(
   nivel: NivelFirma,
-  datosOverride?: Partial<DatosCartaBeca>
+  datosOverride?: Partial<DatosCartaBeca>,
+  opts?: { assetsBaseUrl?: string }
 ): Promise<CartaGenerada> {
   const datos = datosCartaParaPdf(nivel, datosOverride)
   const meta = META_NIVEL[nivel]
+  const assetsBaseUrl = opts?.assetsBaseUrl
   const ciclo = datos.cicloLabel
   const tipo = tipoBecaCompleto(datos.tipoBeca, datos.porcentaje)
 
@@ -179,7 +187,7 @@ export async function crearCartaBecaPdf(
   page.drawRectangle({ x: 0, y: PAGE_H - 4, width: PAGE_W, height: 4, color: BLUE })
   page.drawRectangle({ x: 0, y: PAGE_H - 6, width: 96, height: 2, color: GREEN })
 
-  const logoBytes = await fetchPng(meta.logoUrl)
+  const logoBytes = await fetchPng(meta.logoUrl, assetsBaseUrl)
   if (logoBytes) {
     const logo = await doc.embedPng(logoBytes)
     const maxH = nivel === 'maternal-kinder' ? 56 : 46
