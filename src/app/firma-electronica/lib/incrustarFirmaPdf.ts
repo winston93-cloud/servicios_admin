@@ -1,6 +1,6 @@
 /**
  * 2026-08-21 - Incrusta PNG de firma en un PDF (pdf-lib, cliente).
- * La firma y la fecha se centran dentro de la caja de cada plantilla.
+ * El trazo va en la caja; la fecha se escribe a la derecha (FECHA DE FIRMA).
  */
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import type { FirmaBox } from './plantillasNivel'
@@ -61,14 +61,12 @@ export async function incrustarFirmaEnPdf(
     month: 'short',
     year: 'numeric',
   })
-  const fechaSize = 8
-  const fechaW = font.widthOfTextAtSize(fecha, fechaSize)
   page.drawText(fecha, {
-    x: firmaBox.x + (firmaBox.width - fechaW) / 2,
-    y: firmaBox.y + 12,
-    size: fechaSize,
+    x: firmaBox.fechaX,
+    y: firmaBox.fechaY,
+    size: 9,
     font,
-    color: rgb(0.15, 0.2, 0.28),
+    color: rgb(0.04, 0.16, 0.32),
   })
 
   return doc.save()

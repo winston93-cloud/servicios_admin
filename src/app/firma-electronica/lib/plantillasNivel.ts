@@ -13,6 +13,9 @@ export type FirmaBox = {
   y: number
   width: number
   height: number
+  /** Fecha de firma: línea a la derecha de la caja, no debajo del trazo. */
+  fechaX: number
+  fechaY: number
 }
 
 export type PlantillaNivel = {

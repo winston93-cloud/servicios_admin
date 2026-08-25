@@ -383,6 +383,8 @@ export async function crearCartaBecaPdf(
     y: y - 78,
     width: 280,
     height: 78,
+    fechaX: MX + 290,
+    fechaY: y - 78 + 26,
   }
   page.drawRectangle({
     x: firmaBox.x,
@@ -406,19 +408,26 @@ export async function crearCartaBecaPdf(
     thickness: 0.8,
     color: BLUE_LINE,
   })
-  page.drawText('FECHA DE FIRMA:', {
-    x: firmaBox.x + 290,
-    y: firmaBox.y + 36,
-    size: 9,
+  const fechaLabel = 'FECHA DE FIRMA:'
+  const fechaLabelX = firmaBox.x + 290
+  const fechaLabelSize = 9
+  page.drawText(fechaLabel, {
+    x: fechaLabelX,
+    y: firmaBox.y + 26,
+    size: fechaLabelSize,
     font: fontBold,
     color: INK,
   })
+  const fechaLineY = firmaBox.y + 22
   page.drawLine({
-    start: { x: firmaBox.x + 290, y: firmaBox.y + 22 },
-    end: { x: MX + CONTENT_W, y: firmaBox.y + 22 },
+    start: { x: fechaLabelX, y: fechaLineY },
+    end: { x: MX + CONTENT_W, y: fechaLineY },
     thickness: 0.6,
     color: BLUE_LINE,
   })
+  firmaBox.fechaX =
+    fechaLabelX + fontBold.widthOfTextAtSize(fechaLabel, fechaLabelSize) + 8
+  firmaBox.fechaY = fechaLineY + 4
 
   y = firmaBox.y - 16
   footer(page)
