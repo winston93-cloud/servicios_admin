@@ -18,7 +18,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import DocumentoPreview from './components/DocumentoPreview'
 import FirmaCapture from './components/FirmaCapture'
 import { crearCartaBecaPdf } from './lib/crearCartaBecaPdf'
-import { DATOS_PRUEBA_POR_NIVEL } from './lib/datosPruebaCartas'
+import { datosCartaParaPdf } from './lib/datosPruebaCartas'
 import { incrustarFirmaEnPdf } from './lib/incrustarFirmaPdf'
 import {
   PLANTILLAS_NIVEL,
@@ -224,7 +224,7 @@ function FirmaElectronicaView() {
   }, [])
 
   const plantilla = plantillaPorNivel(nivel)
-  const datos = DATOS_PRUEBA_POR_NIVEL[nivel]
+  const datos = datosCartaParaPdf(nivel)
 
   return (
     <div className="fe-page">

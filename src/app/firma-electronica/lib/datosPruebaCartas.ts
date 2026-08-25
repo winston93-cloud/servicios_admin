@@ -1,6 +1,11 @@
 /**
- * 2026-08-21 - Datos de prueba para cartas de aceptación de beca (sandbox).
+ * Datos de prueba para la Carta de Resolución de Beca (sandbox).
+ * Ciclo: temporada actual (cicloOrigen calendario ago–jul), nunca un número fijo permanente.
  */
+import {
+  cicloEscolarActualBoletas,
+  etiquetaCicloBoletas,
+} from '@/lib/boletasCiclo'
 import type { NivelFirma } from './plantillasNivel'
 
 export type DatosCartaBeca = {
@@ -15,7 +20,39 @@ export type DatosCartaBeca = {
   promedioMinimo: string
   promedioMinimoLetras: string
   comiteLabel: string
-  condicionesExtra?: string[]
+}
+
+const MESES = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+]
+
+export function cicloCartaBecaActual(now = new Date()): string {
+  return etiquetaCicloBoletas(cicloEscolarActualBoletas(now)).replace('-', '–')
+}
+
+export function fechaCartaLarga(now = new Date()): string {
+  return `${now.getDate()} de ${MESES[now.getMonth()]} de ${now.getFullYear()}`
+}
+
+export function ciudadFechaCarta(now = new Date()): string {
+  return `Cd. Madero, Tam. ${MESES[now.getMonth()]} de ${now.getFullYear()}`
+}
+
+export function tipoBecaCompleto(tipo: string, porcentaje: string): string {
+  const p = porcentaje.trim()
+  if (!p) return tipo
+  return `${tipo} (${p})`
 }
 
 export const DATOS_PRUEBA_POR_NIVEL: Record<NivelFirma, DatosCartaBeca> = {
@@ -25,9 +62,9 @@ export const DATOS_PRUEBA_POR_NIVEL: Record<NivelFirma, DatosCartaBeca> = {
     grado: 'KINDER 2',
     tipoBeca: 'PEMEX',
     porcentaje: '20%',
-    cicloLabel: '2026-2027',
-    fechaCarta: '21/agosto/2026',
-    ciudadFecha: 'Cd. Madero, Tam. agosto de 2026',
+    cicloLabel: '',
+    fechaCarta: '',
+    ciudadFecha: '',
     promedioMinimo: '8.0',
     promedioMinimoLetras: 'OCHO PUNTO CERO',
     comiteLabel: 'COMITÉ DE BECAS',
@@ -35,30 +72,42 @@ export const DATOS_PRUEBA_POR_NIVEL: Record<NivelFirma, DatosCartaBeca> = {
   primaria: {
     tutorNombre: 'ISIS BOURDON',
     alumnoNombre: 'HERNANDEZ BOURDON GAEL ALFONSO',
-    grado: '2°',
+    grado: '2° PRIMARIA',
     tipoBeca: 'Académica',
     porcentaje: '10%',
-    cicloLabel: '2026-2027',
-    fechaCarta: '21/agosto/2026',
-    ciudadFecha: 'Cd. Madero, Tam. agosto de 2026',
+    cicloLabel: '',
+    fechaCarta: '',
+    ciudadFecha: '',
     promedioMinimo: '8.5',
     promedioMinimoLetras: 'OCHO PUNTO CINCO',
-    comiteLabel: 'COMITÉ DE BECAS PRIMARIA',
-    condicionesExtra: [
-      'Si el promedio baja de 8.5 a 8.0 el porcentaje de beca se reduce 5%; si baja de 8.0, se cancela.',
-    ],
+    comiteLabel: 'COMITÉ DE BECAS',
   },
   secundaria: {
     tutorNombre: 'CEDILLO DE LA CRUZ BRENDA LYSETT',
     alumnoNombre: 'VERONICO CEDILLO FRIDA',
-    grado: '9no',
-    tipoBeca: 'Beca de WINSTON',
+    grado: '3° SECUNDARIA',
+    tipoBeca: 'Beca Winston',
     porcentaje: '20%',
-    cicloLabel: '2026-2027',
-    fechaCarta: '21/agosto/2026',
-    ciudadFecha: 'Cd. Madero, Tam. Agosto 2026',
-    promedioMinimo: '8.0',
-    promedioMinimoLetras: 'OCHO PUNTO CERO',
-    comiteLabel: 'COMITÉ DE BECAS SECUNDARIA',
+    cicloLabel: '',
+    fechaCarta: '',
+    ciudadFecha: '',
+    promedioMinimo: '8.5',
+    promedioMinimoLetras: 'OCHO PUNTO CINCO',
+    comiteLabel: 'COMITÉ DE BECAS',
   },
+}
+
+export function datosCartaParaPdf(
+  nivel: NivelFirma,
+  override?: Partial<DatosCartaBeca>,
+  now = new Date()
+): DatosCartaBeca {
+  const base = DATOS_PRUEBA_POR_NIVEL[nivel]
+  return {
+    ...base,
+    cicloLabel: cicloCartaBecaActual(now),
+    fechaCarta: fechaCartaLarga(now),
+    ciudadFecha: ciudadFechaCarta(now),
+    ...override,
+  }
 }
