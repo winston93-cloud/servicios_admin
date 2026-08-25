@@ -724,6 +724,11 @@ html[data-theme='dark'] .fe-lb-body {
   padding-bottom: 1rem;
 }
 
+.fe-sign-card .fe-acepto {
+  margin: 0.75rem 1rem 0.15rem;
+  box-shadow: none;
+}
+
 .fe-acepto {
   display: flex;
   align-items: flex-start;
@@ -738,7 +743,7 @@ html[data-theme='dark'] .fe-lb-body {
   min-height: var(--touch-min, 44px);
 }
 
-.fe-acepto--bajo-pdf:not(.is-checked) {
+.fe-acepto--sobre-firma:not(.is-checked) {
   border-width: 2px;
   border-color: rgba(14, 165, 233, 0.75);
   background: linear-gradient(
@@ -750,27 +755,27 @@ html[data-theme='dark'] .fe-lb-body {
   animation: fe-acepto-pulse 2.2s ease-in-out infinite;
 }
 
-.fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-text {
+.fe-acepto--sobre-firma:not(.is-checked) .fe-acepto-text {
   font-weight: 700;
   font-size: 0.9rem;
   letter-spacing: 0.01em;
   animation: fe-acepto-text-pulse 2.2s ease-in-out infinite;
 }
 
-.fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-box {
+.fe-acepto--sobre-firma:not(.is-checked) .fe-acepto-box {
   width: 26px;
   height: 26px;
   border-width: 2.5px;
   animation: fe-acepto-box-pulse 2.2s ease-in-out infinite;
 }
 
-.fe-acepto--bajo-pdf.is-checked {
+.fe-acepto--sobre-firma.is-checked {
   animation: none;
   border-width: 1px;
 }
 
-.fe-acepto--bajo-pdf.is-checked .fe-acepto-text,
-.fe-acepto--bajo-pdf.is-checked .fe-acepto-box {
+.fe-acepto--sobre-firma.is-checked .fe-acepto-text,
+.fe-acepto--sobre-firma.is-checked .fe-acepto-box {
   animation: none;
 }
 
@@ -807,7 +812,7 @@ html[data-theme='dark'] .fe-lb-body {
   }
 }
 
-html[data-theme='dark'] .fe-acepto--bajo-pdf:not(.is-checked) {
+html[data-theme='dark'] .fe-acepto--sobre-firma:not(.is-checked) {
   background: linear-gradient(
     135deg,
     rgba(14, 165, 233, 0.28) 0%,
@@ -816,7 +821,7 @@ html[data-theme='dark'] .fe-acepto--bajo-pdf:not(.is-checked) {
   );
 }
 
-html[data-theme='dark'] .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-text {
+html[data-theme='dark'] .fe-acepto--sobre-firma:not(.is-checked) .fe-acepto-text {
   animation-name: fe-acepto-text-pulse-dark;
 }
 
@@ -851,7 +856,7 @@ html[data-theme='dark'] .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-text {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fe-acepto--bajo-pdf:not(.is-checked) {
+  .fe-acepto--sobre-firma:not(.is-checked) {
     animation: none;
     border-color: #0ea5e9;
     border-width: 2px;
@@ -861,18 +866,18 @@ html[data-theme='dark'] .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-text {
       0 0 24px rgba(14, 165, 233, 0.3);
   }
 
-  .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-text,
-  .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-box,
+  .fe-acepto--sobre-firma:not(.is-checked) .fe-acepto-text,
+  .fe-acepto--sobre-firma:not(.is-checked) .fe-acepto-box,
   .fe-acepto-badge {
     animation: none;
   }
 
-  .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-text {
+  .fe-acepto--sobre-firma:not(.is-checked) .fe-acepto-text {
     color: var(--fe-ink);
     font-weight: 700;
   }
 
-  html[data-theme='dark'] .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-text {
+  html[data-theme='dark'] .fe-acepto--sobre-firma:not(.is-checked) .fe-acepto-text {
     color: #e0f2fe;
   }
 }
@@ -1453,17 +1458,17 @@ html[data-theme='dark'] .fe-preview-frame {
     padding: 0.75rem;
   }
 
-  .fe-acepto--bajo-pdf:not(.is-checked) {
+  .fe-acepto--sobre-firma:not(.is-checked) {
     /* sin scale: evita descuadre en Chrome Android */
     transform: none !important;
   }
 
-  .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-text {
+  .fe-acepto--sobre-firma:not(.is-checked) .fe-acepto-text {
     font-size: 0.82rem;
     font-weight: 650;
   }
 
-  .fe-acepto--bajo-pdf:not(.is-checked) .fe-acepto-box {
+  .fe-acepto--sobre-firma:not(.is-checked) .fe-acepto-box {
     width: 24px;
     height: 24px;
     flex-shrink: 0;

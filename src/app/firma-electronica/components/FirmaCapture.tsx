@@ -28,6 +28,8 @@ type Props = {
   firmaAplicada?: boolean
   enviado?: boolean
   acepto: boolean
+  checkboxDisabled?: boolean
+  onAceptoChange: (checked: boolean) => void
   onGuardarFirma: (firmaPngDataUrl: string) => void | Promise<void>
   onError?: (mensaje: string) => void
 }
@@ -38,6 +40,8 @@ export default function FirmaCapture({
   firmaAplicada = false,
   enviado = false,
   acepto,
+  checkboxDisabled = false,
+  onAceptoChange,
   onGuardarFirma,
   onError,
 }: Props) {
@@ -98,12 +102,29 @@ export default function FirmaCapture({
         </h2>
       </header>
 
-      {!acepto && !enviado ? (
-        <p className="fe-acepto-hint" role="status">
-          Marca «He leído…» debajo del documento original para habilitar la
-          firma.
-        </p>
-      ) : null}
+      <label
+        className={`fe-acepto fe-acepto--sobre-firma${acepto ? ' is-checked' : ''}`}
+      >
+        <input
+          type="checkbox"
+          className="fe-acepto-input"
+          checked={acepto}
+          disabled={checkboxDisabled}
+          onChange={(e) => onAceptoChange(e.target.checked)}
+        />
+        <span className="fe-acepto-box" aria-hidden />
+        <span className="fe-acepto-copy">
+          {!acepto ? (
+            <span className="fe-acepto-badge">Acción requerida</span>
+          ) : null}
+          <span className="fe-acepto-text">
+            He leído y confirmo que estoy de acuerdo con el contenido de la
+            carta de aceptación de beca. Entiendo las condiciones para conservar
+            el beneficio y autorizo el uso de mi firma electrónica en este
+            documento.
+          </span>
+        </span>
+      </label>
 
       <div
         className={`fe-sign-body${firmaBloqueada && !enviado ? ' is-locked' : ''}`}

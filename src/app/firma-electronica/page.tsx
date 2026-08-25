@@ -317,30 +317,6 @@ function FirmaElectronicaView() {
                   : 'Sin documento.'
               }
             />
-
-            <label
-              className={`fe-acepto fe-acepto--bajo-pdf${acepto ? ' is-checked' : ''}`}
-            >
-              <input
-                type="checkbox"
-                className="fe-acepto-input"
-                checked={acepto}
-                disabled={cargandoDoc || !origenBytes || enviado}
-                onChange={(e) => onAceptoChange(e.target.checked)}
-              />
-              <span className="fe-acepto-box" aria-hidden />
-              <span className="fe-acepto-copy">
-                {!acepto ? (
-                  <span className="fe-acepto-badge">Acción requerida</span>
-                ) : null}
-                <span className="fe-acepto-text">
-                  He leído y confirmo que estoy de acuerdo con el contenido de
-                  la carta de aceptación de beca. Entiendo las condiciones para
-                  conservar el beneficio y autorizo el uso de mi firma
-                  electrónica en este documento.
-                </span>
-              </span>
-            </label>
           </div>
 
           <div className="fe-col-firma" ref={colFirmaRef}>
@@ -351,6 +327,8 @@ function FirmaElectronicaView() {
               firmaAplicada={Boolean(firmadoUrl)}
               enviado={enviado}
               acepto={acepto}
+              checkboxDisabled={cargandoDoc || !origenBytes || enviado}
+              onAceptoChange={onAceptoChange}
               onGuardarFirma={onGuardarFirma}
               onError={setError}
             />
