@@ -335,12 +335,6 @@ function FirmaElectronicaView() {
           </div>
 
           <div className="fe-col-firmado" ref={colFirmadoRef}>
-            <DocumentoPreview
-              title="3. Documento firmado"
-              url={firmadoUrl}
-              emptyLabel="Cuando guardes la firma, el PDF firmado aparecerá aquí."
-            />
-
             {firmadoUrl && !enviado ? (
               <div className="fe-enviar-block">
                 <button
@@ -391,6 +385,12 @@ function FirmaElectronicaView() {
                 </div>
               </div>
             ) : null}
+
+            <DocumentoPreview
+              title="3. Documento firmado"
+              url={firmadoUrl}
+              emptyLabel="Cuando guardes la firma, el PDF firmado aparecerá aquí."
+            />
           </div>
         </div>
       </main>
