@@ -7,18 +7,22 @@ import {
   etiquetaCicloBoletas,
 } from '@/lib/boletasCiclo'
 import type { NivelFirma } from './plantillasNivel'
+import { resolverPromedioMinimoCartaPdf } from './promedioMinimoCartaBeca'
 
 export type DatosCartaBeca = {
   tutorNombre: string
   alumnoNombre: string
   grado: string
   tipoBeca: string
+  becaId?: number | null
   porcentaje: string
   cicloLabel: string
   fechaCarta: string
   ciudadFecha: string
   promedioMinimo: string
   promedioMinimoLetras: string
+  /** Override admin (beca Académica). */
+  promedioMinimoCartaOverride?: number | null
   comiteLabel: string
 }
 
@@ -61,12 +65,13 @@ export const DATOS_PRUEBA_POR_NIVEL: Record<NivelFirma, DatosCartaBeca> = {
     alumnoNombre: 'CASTILLO RODRIGUEZ JAMES DAVID',
     grado: 'KINDER 2',
     tipoBeca: 'PEMEX',
+    becaId: 1,
     porcentaje: '20%',
     cicloLabel: '',
     fechaCarta: '',
     ciudadFecha: '',
-    promedioMinimo: '8.0',
-    promedioMinimoLetras: 'OCHO PUNTO CERO',
+    promedioMinimo: '',
+    promedioMinimoLetras: '',
     comiteLabel: 'COMITÉ DE BECAS',
   },
   primaria: {
@@ -74,12 +79,13 @@ export const DATOS_PRUEBA_POR_NIVEL: Record<NivelFirma, DatosCartaBeca> = {
     alumnoNombre: 'HERNANDEZ BOURDON GAEL ALFONSO',
     grado: '2° PRIMARIA',
     tipoBeca: 'Académica',
+    becaId: 8,
     porcentaje: '10%',
     cicloLabel: '',
     fechaCarta: '',
     ciudadFecha: '',
-    promedioMinimo: '8.5',
-    promedioMinimoLetras: 'OCHO PUNTO CINCO',
+    promedioMinimo: '',
+    promedioMinimoLetras: '',
     comiteLabel: 'COMITÉ DE BECAS',
   },
   secundaria: {
@@ -87,12 +93,13 @@ export const DATOS_PRUEBA_POR_NIVEL: Record<NivelFirma, DatosCartaBeca> = {
     alumnoNombre: 'VERONICO CEDILLO FRIDA',
     grado: '3° SECUNDARIA',
     tipoBeca: 'Beca Winston',
+    becaId: 3,
     porcentaje: '20%',
     cicloLabel: '',
     fechaCarta: '',
     ciudadFecha: '',
-    promedioMinimo: '8.5',
-    promedioMinimoLetras: 'OCHO PUNTO CINCO',
+    promedioMinimo: '',
+    promedioMinimoLetras: '',
     comiteLabel: 'COMITÉ DE BECAS',
   },
 }
@@ -103,11 +110,20 @@ export function datosCartaParaPdf(
   now = new Date()
 ): DatosCartaBeca {
   const base = DATOS_PRUEBA_POR_NIVEL[nivel]
-  return {
+  const merged = {
     ...base,
     cicloLabel: cicloCartaBecaActual(now),
     fechaCarta: fechaCartaLarga(now),
     ciudadFecha: ciudadFechaCarta(now),
     ...override,
+  }
+  const promedio = resolverPromedioMinimoCartaPdf({
+    becaId: merged.becaId,
+    becaClase: merged.tipoBeca,
+    promedioAcademicoOverride: merged.promedioMinimoCartaOverride,
+  })
+  return {
+    ...merged,
+    ...promedio,
   }
 }
