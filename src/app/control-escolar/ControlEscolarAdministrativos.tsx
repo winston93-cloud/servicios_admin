@@ -97,7 +97,7 @@ export default function ControlEscolarAdministrativos({
     if (needle) {
       lista = lista.filter((f) =>
         normalizar(
-          `${f.nombre} ${f.alumnoRef} ${f.conceptoNombre} ${f.pagoFolio ?? ''}`
+          `${f.nombre} ${f.alumnoRef} ${f.conceptoNombre} ${f.conceptoOtro ?? ''} ${f.pagoFolio ?? ''}`
         ).includes(needle)
       )
     }
@@ -276,6 +276,11 @@ export default function ControlEscolarAdministrativos({
                     <td>
                       <div className="ce-panel-nivel">
                         <span>{f.conceptoNombre}</span>
+                        {f.conceptoOtro ? (
+                          <span className="ce-panel-meta">
+                            Concepto extra: {f.conceptoOtro}
+                          </span>
+                        ) : null}
                       </div>
                     </td>
                     <td>

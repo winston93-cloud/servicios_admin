@@ -11,6 +11,8 @@ export type FilaTramiteAdministrativo = {
   nombre: string
   conceptoId: number
   conceptoNombre: string
+  /** Texto extra capturado al cobrar en Pagos internos (Servicios). */
+  conceptoOtro: string | null
   pagoFolio: number | null
   cicloValor: number | null
   nivel: number | null

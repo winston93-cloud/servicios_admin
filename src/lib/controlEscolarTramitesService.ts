@@ -38,6 +38,27 @@ function nombreAlumno(row: {
     .trim()
 }
 
+async function fetchConceptoOtroPorPagoIds(
+  db: ReturnType<typeof createDbAdmin>,
+  pagoIds: number[]
+): Promise<Map<number, string>> {
+  const map = new Map<number, string>()
+  const ids = [...new Set(pagoIds.filter((id) => Number.isFinite(id) && id > 0))]
+  for (let i = 0; i < ids.length; i += 200) {
+    const chunk = ids.slice(i, i + 200)
+    if (!chunk.length) continue
+    const { data: pagos } = await db
+      .from('pago_interno')
+      .select('pago_id, concepto_otro')
+      .in('pago_id', chunk)
+    for (const p of pagos ?? []) {
+      const extra = String(p.concepto_otro ?? '').trim()
+      if (extra) map.set(Number(p.pago_id), extra)
+    }
+  }
+  return map
+}
+
 function filaDesdeRow(
   row: {
     id: number
@@ -62,7 +83,8 @@ function filaDesdeRow(
     alumno_apm?: string | null
     alumno_grado?: string | number | null
     alumno_grupo?: string | number | null
-  } | null
+  } | null,
+  conceptoOtro?: string | null
 ): FilaTramiteAdministrativo {
   const nivel = row.alumno_nivel != null ? Number(row.alumno_nivel) : null
   return {
@@ -73,6 +95,7 @@ function filaDesdeRow(
     nombre: alumno ? nombreAlumno(alumno) || `Ref. ${row.alumno_ref}` : `Ref. ${row.alumno_ref}`,
     conceptoId: Number(row.concepto_id),
     conceptoNombre: String(row.concepto_nombre ?? ''),
+    conceptoOtro: (conceptoOtro ?? '').trim() || null,
     pagoFolio: row.pago_folio == null ? null : Number(row.pago_folio),
     cicloValor:
       row.pago_ciclo_escolar == null ? null : Number(row.pago_ciclo_escolar),
@@ -177,6 +200,14 @@ export async function registrarTramiteDesdePagoInterno(opts: {
   }
 
   const tramiteId = Number(inserted.id)
+
+  const { data: pagoRow } = await db
+    .from('pago_interno')
+    .select('concepto_otro')
+    .eq('pago_id', opts.pagoId)
+    .maybeSingle()
+  const conceptoOtro = String(pagoRow?.concepto_otro ?? '').trim() || null
+
   const fila = filaDesdeRow(
     {
       id: tramiteId,
@@ -195,7 +226,8 @@ export async function registrarTramiteDesdePagoInterno(opts: {
       liberado_at: null,
       liberado_por: null,
     },
-    alumno
+    alumno,
+    conceptoOtro
   )
 
   const correoEnviado = await enviarAvisoTramiteNuevo(fila)
@@ -272,10 +304,17 @@ export async function listarTramitesAdministrativos(): Promise<{
     }
   }
 
+  const pagoIds = [...new Set((data ?? []).map((r) => Number(r.pago_id)))]
+  const conceptoOtroPorPago = await fetchConceptoOtroPorPagoIds(db, pagoIds)
+
   const pendientes: FilaTramiteAdministrativo[] = []
   const liberados: FilaTramiteAdministrativo[] = []
   for (const row of data ?? []) {
-    const fila = filaDesdeRow(row as never, alumnos.get(Number(row.alumno_id)))
+    const fila = filaDesdeRow(
+      row as never,
+      alumnos.get(Number(row.alumno_id)),
+      conceptoOtroPorPago.get(Number(row.pago_id)) ?? null
+    )
     if (fila.estado === 'pendiente') pendientes.push(fila)
     else if (fila.estado === 'liberado') liberados.push(fila)
   }
@@ -338,13 +377,16 @@ async function enviarAvisoTramiteNuevo(fila: FilaTramiteAdministrativo): Promise
   if (!to) return false
 
   const dash = fila.dashboard ? etiquetaDashboardTramite(fila.dashboard) : fila.nivelEtiqueta
+  const conceptoLinea = fila.conceptoOtro
+    ? `${fila.conceptoNombre} — ${fila.conceptoOtro}`
+    : fila.conceptoNombre
   const texto = [
     `Se pagó en Administrativo un documento que corresponde a Control Escolar (${dash}).`,
     '',
     `Alumno: ${fila.nombre}`,
     `No. control: ${fila.alumnoRef}`,
     `Nivel: ${fila.nivelEtiqueta} · ${fila.gradoEtiqueta} · Grupo ${fila.grupoEtiqueta}`,
-    `Concepto: ${fila.conceptoNombre}`,
+    `Concepto: ${conceptoLinea}`,
     `Folio de pago: ${fila.pagoFolio ?? '—'}`,
     '',
     'Queda en estatus Pendiente hasta que lo elaboren y lo liberen en:',
@@ -412,10 +454,18 @@ export async function enviarRecordatoriosTramitesAdministrativos(
     .select('alumno_id, alumno_nombre, alumno_app, alumno_apm, alumno_grado, alumno_grupo')
     .in('alumno_id', alumnoIds)
   const mapa = new Map((alumnos ?? []).map((a) => [Number(a.alumno_id), a]))
+  const conceptoOtroPorPago = await fetchConceptoOtroPorPagoIds(
+    db,
+    vencidos.map((r) => Number(r.pago_id))
+  )
 
   const porNivel = new Map<number, FilaTramiteAdministrativo[]>()
   for (const row of vencidos) {
-    const fila = filaDesdeRow(row as never, mapa.get(Number(row.alumno_id)))
+    const fila = filaDesdeRow(
+      row as never,
+      mapa.get(Number(row.alumno_id)),
+      conceptoOtroPorPago.get(Number(row.pago_id)) ?? null
+    )
     const nivel = fila.nivel ?? 0
     const list = porNivel.get(nivel) ?? []
     list.push(fila)
@@ -431,10 +481,12 @@ export async function enviarRecordatoriosTramitesAdministrativos(
     const dash = lista[0]?.dashboard
       ? etiquetaDashboardTramite(lista[0].dashboard)
       : etiquetaNivelEscolar(nivel)
-    const lineas = lista.map(
-      (f) =>
-        `· ${f.nombre} (${f.alumnoRef}) — ${f.conceptoNombre} — folio ${f.pagoFolio ?? '—'}`
-    )
+    const lineas = lista.map((f) => {
+      const concepto = f.conceptoOtro
+        ? `${f.conceptoNombre} — ${f.conceptoOtro}`
+        : f.conceptoNombre
+      return `· ${f.nombre} (${f.alumnoRef}) — ${concepto} — folio ${f.pagoFolio ?? '—'}`
+    })
     const texto = [
       `Hay ${lista.length} trámite(s) pagado(s) en Administrativo aún pendientes de elaborar (${dash}).`,
       'Llevan 24 horas o más sin liberarse.',
