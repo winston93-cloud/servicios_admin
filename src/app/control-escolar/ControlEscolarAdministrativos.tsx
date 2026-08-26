@@ -13,12 +13,14 @@ import type {
   FilaTramiteAdministrativo,
 } from '@/lib/controlEscolarTramitesTipos'
 import { etiquetaDashboardTramite } from '@/lib/controlEscolarTramitesTipos'
+import { puedeLiberarTramiteAdministrativo } from '@/lib/controlEscolarLiberarPermisos'
 
 type EstadoFiltro = 'pendiente' | 'liberado'
 type DashFiltro = 'todos' | DashboardTramiteCe
 
 type Props = {
   usuarioNombre: string
+  usuarioUsername: string
 }
 
 function formatearFecha(iso: string | null): string {
@@ -44,7 +46,11 @@ function normalizar(s: string): string {
 
 const DASHBOARDS: DashboardTramiteCe[] = ['kinder', 'primaria', 'secundaria']
 
-export default function ControlEscolarAdministrativos({ usuarioNombre }: Props) {
+export default function ControlEscolarAdministrativos({
+  usuarioNombre,
+  usuarioUsername,
+}: Props) {
+  const puedeLiberar = puedeLiberarTramiteAdministrativo(usuarioUsername)
   const [cargando, setCargando] = useState(false)
   const [liberandoId, setLiberandoId] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -99,7 +105,11 @@ export default function ControlEscolarAdministrativos({ usuarioNombre }: Props) 
   }, [estado, dash, q, pendientes, liberados])
 
   async function liberar(id: number) {
-    if (!usuarioNombre) {
+    if (!puedeLiberar) {
+      setError('No tiene permiso para liberar trámites.')
+      return
+    }
+    if (!usuarioNombre && !usuarioUsername) {
       setError('No se identificó la sesión. Vuelve a entrar.')
       return
     }
@@ -110,7 +120,11 @@ export default function ControlEscolarAdministrativos({ usuarioNombre }: Props) 
       const res = await fetch('/api/control-escolar/tramites/liberar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tramiteId: id, liberadoPor: usuarioNombre }),
+        body: JSON.stringify({
+          tramiteId: id,
+          liberadoPor: usuarioNombre || usuarioUsername,
+          usuarioUsername,
+        }),
       })
       const data = (await res.json()) as { ok?: boolean; mensaje?: string }
       if (!data.ok) {
@@ -130,7 +144,9 @@ export default function ControlEscolarAdministrativos({ usuarioNombre }: Props) 
       <p className="ce-admin-lead">
         Documentos pagados en Administrativo (constancia, cotejo, credencial,
         reimpresión de boleta). Aparecen pendientes según el nivel del alumno.
-        Al elaborarlos, libéralos aquí.
+        {puedeLiberar
+          ? ' Al elaborarlos, libéralos aquí.'
+          : ' Solo Laura, Juanita o Mario pueden liberar trámites.'}
       </p>
 
       <div className="ce-panel-stats">
@@ -286,19 +302,23 @@ export default function ControlEscolarAdministrativos({ usuarioNombre }: Props) 
                     </td>
                     <td>
                       {f.estado === 'pendiente' ? (
-                        <button
-                          type="button"
-                          className="ce-panel-row-btn"
-                          disabled={liberandoId === f.id}
-                          onClick={() => void liberar(f.id)}
-                        >
-                          {liberandoId === f.id ? (
-                            <Loader2 size={16} className="ce-spin" />
-                          ) : (
-                            <Stamp size={15} aria-hidden />
-                          )}
-                          Liberar
-                        </button>
+                        puedeLiberar ? (
+                          <button
+                            type="button"
+                            className="ce-panel-row-btn"
+                            disabled={liberandoId === f.id}
+                            onClick={() => void liberar(f.id)}
+                          >
+                            {liberandoId === f.id ? (
+                              <Loader2 size={16} className="ce-spin" />
+                            ) : (
+                              <Stamp size={15} aria-hidden />
+                            )}
+                            Liberar
+                          </button>
+                        ) : (
+                          <span className="ce-panel-badge">Pendiente</span>
+                        )
                       ) : (
                         <span className="ce-panel-badge ce-panel-badge--ok">
                           <CheckCircle2 size={13} aria-hidden />

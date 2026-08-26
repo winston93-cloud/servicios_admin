@@ -46,10 +46,11 @@ function ControlEscolarView() {
   const router = useRouter()
   const { user, session } = useAuth()
   const { cicloSeleccionado } = useCicloEscolar()
+  const usuarioUsername =
+    user?.usuario_username?.trim() || session?.usuario_username?.trim() || ''
   const usuarioNombre =
     user?.usuario_nombre_completo?.trim() ||
-    user?.usuario_username?.trim() ||
-    session?.usuario_username?.trim() ||
+    usuarioUsername ||
     ''
 
   const [alumno, setAlumno] = useState<AlumnoBusquedaResultado | null>(null)
@@ -353,7 +354,10 @@ function ControlEscolarView() {
         </div>
         ) : (
           <div className="ce-panel ce-panel--admin">
-            <ControlEscolarAdministrativos usuarioNombre={usuarioNombre} />
+            <ControlEscolarAdministrativos
+              usuarioNombre={usuarioNombre}
+              usuarioUsername={usuarioUsername}
+            />
           </div>
         )}
       </div>
