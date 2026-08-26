@@ -33,6 +33,7 @@ type Asignacion = {
   materia_id: number
   materia_nombre: string
   materia_grado: number
+  materia_nivel?: number
   grupo_letra: string
   etiqueta_grupo: string
 }
@@ -188,8 +189,9 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
       setMe(data.me)
       setAsignaciones(data.asignaciones ?? [])
       setFisica(Boolean(data.fisica))
-      if (data.asignaciones?.[0]) {
-        setAsigKey(`${data.asignaciones[0].materia_id}|${data.asignaciones[0].grupo_letra}`)
+      const first = data.asignaciones?.[0]
+      if (first) {
+        setAsigKey(`${first.materia_id}|${first.grupo_letra}`)
       }
       const nextTabs = tabsDeRolNivel(data.me.role, config)
       setTab((prev) => (nextTabs.some((t) => t.id === prev) ? prev : nextTabs[0]?.id ?? 'captura'))
@@ -212,7 +214,9 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
     setMsg('')
     try {
       const data = await api<{ filas: AlumnoFila[] }>(
-        `${config.apiBase}/captura?materiaId=${asig.materia_id}&grupo=${encodeURIComponent(asig.grupo_letra)}&tipo=${tipo}`
+        asig.materia_id
+          ? `${config.apiBase}/captura?materiaId=${asig.materia_id}&grupo=${encodeURIComponent(asig.grupo_letra)}&tipo=${tipo}`
+          : `${config.apiBase}/captura?nivelEscolar=${asig.materia_nivel ?? config.nivelesEscolares[0]}&grado=${asig.materia_grado}&grupo=${encodeURIComponent(asig.grupo_letra)}&tipo=${tipo}`
       )
       setFilas(data.filas)
     } catch (e) {

@@ -45,7 +45,7 @@ export const RAC_PRIMARIA: RacNivelConfig = {
   rutaApp: '/reportes-conducta/primaria',
   rolOperaciones: 'control_escolar',
   etiquetaOperaciones: 'Control escolar',
-  gruposCaptura: ['A', 'B', 'C'],
+  gruposCaptura: ['A'],
   gradosFallback: [
     { nivelEscolar: 3, grado: 1 },
     { nivelEscolar: 3, grado: 2 },

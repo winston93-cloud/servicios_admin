@@ -11,11 +11,21 @@ export async function GET(req: Request, { params }: Params) {
     await requireRacNivelSession(cfg, req)
     const svc = getServiceForSlug(slug)
     const url = new URL(req.url)
-    const materiaId = Number(url.searchParams.get('materiaId'))
+    const materiaId = Number(url.searchParams.get('materiaId') || 0)
+    const nivelEscolar = Number(url.searchParams.get('nivelEscolar') || 0)
+    const grado = Number(url.searchParams.get('grado') || 0)
     const grupo = String(url.searchParams.get('grupo') ?? 'A')
     const tipo = Number(url.searchParams.get('tipo') ?? 1)
-    if (!materiaId) return NextResponse.json({ error: 'materiaId requerido' }, { status: 400 })
-    const data = await svc.listarGrupoCaptura({ materiaId, grupoLetra: grupo, tipo })
+    if (!materiaId && !(nivelEscolar && grado)) {
+      return NextResponse.json({ error: 'materiaId o nivel+grado requeridos' }, { status: 400 })
+    }
+    const data = await svc.listarGrupoCaptura({
+      materiaId: materiaId || undefined,
+      nivelEscolar: nivelEscolar || undefined,
+      grado: grado || undefined,
+      grupoLetra: grupo,
+      tipo,
+    })
     return NextResponse.json(data)
   } catch (e) {
     const { error, status } = jsonRacNivelError(e)

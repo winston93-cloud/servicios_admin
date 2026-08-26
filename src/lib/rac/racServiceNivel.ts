@@ -3,7 +3,6 @@ import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { grupoCoincide, letraDesdeGrupoNum } from '@/lib/boletasCiclo'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 import { MATERIA_SLOT_ES } from '@/lib/catalogoMaestrosConstants'
-import { asegurarMateriasGradoGrupo } from '@/lib/catalogoMaestrosService'
 import {
   RAC_TIPOS,
   etiquetaEscalon,
@@ -87,6 +86,41 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     return (data ?? []).map((a) => n(a.alumno_id)).filter(Boolean)
   }
 
+  async function nextMateriaId(): Promise<number> {
+    const { data } = await db()
+      .from('boleta_materia')
+      .select('materia_id')
+      .order('materia_id', { ascending: false })
+      .limit(1)
+    return n(data?.[0]?.materia_id, 0) + 1
+  }
+
+  /** Crea slot Maestro(a) si falta — inline para no depender del módulo Servicios en runtime. */
+  async function ensureSlotEs(nivelEscolar: number, grado: number): Promise<number> {
+    const client = db()
+    const { data: existente } = await client
+      .from('boleta_materia')
+      .select('materia_id, materia_nombre, materia_nivel, materia_grado, materia_orden')
+      .eq('materia_nivel', nivelEscolar)
+      .eq('materia_grado', grado)
+      .eq('materia_orden', MATERIA_SLOT_ES.orden)
+      .maybeSingle()
+    if (existente) return n(existente.materia_id)
+
+    const materiaId = await nextMateriaId()
+    const { error } = await client.from('boleta_materia').insert([
+      {
+        materia_id: materiaId,
+        materia_nombre: MATERIA_SLOT_ES.nombre,
+        materia_nivel: nivelEscolar,
+        materia_grado: grado,
+        materia_orden: MATERIA_SLOT_ES.orden,
+      },
+    ])
+    if (error) throw new Error(error.message)
+    return materiaId
+  }
+
   async function gradosDesdeAlumnos(): Promise<{ nivelEscolar: number; grado: number }[]> {
     const { data } = await db()
       .from('alumno')
@@ -112,23 +146,32 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     grupos: readonly string[]
   ): Promise<AsignacionRacNivel[]> {
     const asignaciones: AsignacionRacNivel[] = []
-    for (const g of grados) {
-      const slots = await asegurarMateriasGradoGrupo(g.nivelEscolar, g.grado)
-      const slotEs = slots.find((s) => n(s.materia_orden) === MATERIA_SLOT_ES.orden)
-      if (!slotEs) continue
-      for (const letra of grupos) {
-        asignaciones.push({
-          grupo_id: 0,
-          materia_id: n(slotEs.materia_id),
-          materia_nombre: String(slotEs.materia_nombre ?? MATERIA_SLOT_ES.nombre),
-          materia_grado: g.grado,
-          materia_nivel: g.nivelEscolar,
-          grupo_letra: letra,
-          etiqueta_grupo: `${etiquetaGrado(cfg, g.grado, g.nivelEscolar)} · Grupo ${letra}`,
-        })
-      }
-    }
-    return asignaciones
+    await Promise.all(
+      grados.map(async (g) => {
+        try {
+          const materiaId = await ensureSlotEs(g.nivelEscolar, g.grado)
+          for (const letra of grupos) {
+            asignaciones.push({
+              grupo_id: 0,
+              materia_id: materiaId,
+              materia_nombre: MATERIA_SLOT_ES.nombre,
+              materia_grado: g.grado,
+              materia_nivel: g.nivelEscolar,
+              grupo_letra: letra,
+              etiqueta_grupo: `${etiquetaGrado(cfg, g.grado, g.nivelEscolar)} · Grupo ${letra}`,
+            })
+          }
+        } catch {
+          /* otro grado puede seguir */
+        }
+      })
+    )
+    return asignaciones.sort(
+      (a, b) =>
+        a.materia_nivel - b.materia_nivel ||
+        a.materia_grado - b.materia_grado ||
+        a.grupo_letra.localeCompare(b.grupo_letra)
+    )
   }
 
   async function listarAsignaciones(session: RacSesionNivel): Promise<{
@@ -144,36 +187,43 @@ export function createRacNivelService(cfg: RacNivelConfig) {
         .eq('maestro_id', session.id)
       if (error) throw new Error(error.message)
       const materiaIds = [...new Set((grupos ?? []).map((g) => n(g.materia_id)))]
-      if (!materiaIds.length) return { asignaciones: [], fisica: false, ingles: false }
-      const { data: materias } = await client
-        .from('boleta_materia')
-        .select('materia_id, materia_nombre, materia_grado, materia_nivel, materia_orden')
-        .in('materia_id', materiaIds)
-        .in('materia_nivel', cfg.nivelesEscolares)
-      const map = new Map((materias ?? []).map((m) => [n(m.materia_id), m]))
-      const asignaciones = (grupos ?? [])
-        .map((g) => {
-          const m = map.get(n(g.materia_id))
-          if (!m) return null
-          const grado = n(m.materia_grado)
-          const nivelMat = n(m.materia_nivel)
-          const letra = String(g.grupo_letra ?? 'A')
-          return {
-            grupo_id: n(g.grupo_id),
-            materia_id: n(g.materia_id),
-            materia_nombre: String(m.materia_nombre ?? ''),
-            materia_grado: grado,
-            materia_nivel: nivelMat,
-            grupo_letra: letra,
-            etiqueta_grupo: `${etiquetaGrado(cfg, grado, nivelMat)} · Grupo ${letra}`,
-          }
-        })
-        .filter(Boolean) as AsignacionRacNivel[]
-      if (asignaciones.length) return { asignaciones, fisica: true, ingles: true }
+      if (materiaIds.length) {
+        const { data: materias } = await client
+          .from('boleta_materia')
+          .select('materia_id, materia_nombre, materia_grado, materia_nivel, materia_orden')
+          .in('materia_id', materiaIds)
+          .in('materia_nivel', cfg.nivelesEscolares)
+        const map = new Map((materias ?? []).map((m) => [n(m.materia_id), m]))
+        const asignaciones = (grupos ?? [])
+          .map((g) => {
+            const m = map.get(n(g.materia_id))
+            if (!m) return null
+            const grado = n(m.materia_grado)
+            const nivelMat = n(m.materia_nivel)
+            const letra = String(g.grupo_letra ?? 'A')
+            return {
+              grupo_id: n(g.grupo_id),
+              materia_id: n(g.materia_id),
+              materia_nombre: String(m.materia_nombre ?? ''),
+              materia_grado: grado,
+              materia_nivel: nivelMat,
+              grupo_letra: letra,
+              etiqueta_grupo: `${etiquetaGrado(cfg, grado, nivelMat)} · Grupo ${letra}`,
+            }
+          })
+          .filter(Boolean) as AsignacionRacNivel[]
+        if (asignaciones.length) return { asignaciones, fisica: true, ingles: true }
+      }
     }
 
     const grados = await gradosDesdeAlumnos()
-    const asignaciones = await asignacionesDesdeGrados(grados, cfg.gruposCaptura)
+    let asignaciones = await asignacionesDesdeGrados(grados, cfg.gruposCaptura)
+    if (!asignaciones.length) {
+      asignaciones = await asignacionesDesdeGrados(
+        cfg.gradosFallback.map((g) => ({ nivelEscolar: g.nivelEscolar, grado: g.grado })),
+        cfg.gruposCaptura
+      )
+    }
     return { asignaciones, fisica: true, ingles: true }
   }
 
@@ -218,21 +268,39 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     return fechas
   }
 
-  async function listarGrupoCaptura(opts: { materiaId: number; grupoLetra: string; tipo: number }) {
+  async function listarGrupoCaptura(opts: {
+    materiaId?: number
+    grupoLetra: string
+    tipo: number
+    nivelEscolar?: number
+    grado?: number
+  }) {
     const ciclo = await cicloRac()
-    const { data: materia } = await db()
-      .from('boleta_materia')
-      .select('materia_id, materia_nombre, materia_grado, materia_nivel')
-      .eq('materia_id', opts.materiaId)
-      .maybeSingle()
-    if (!materia) throw new Error('Grupo no encontrado')
-    const nivelMat = n(materia.materia_nivel)
+    let materiaId = n(opts.materiaId)
+    let grado = n(opts.grado)
+    let nivelMat = n(opts.nivelEscolar)
+
+    if (materiaId) {
+      const { data: materia } = await db()
+        .from('boleta_materia')
+        .select('materia_id, materia_nombre, materia_grado, materia_nivel')
+        .eq('materia_id', materiaId)
+        .maybeSingle()
+      if (!materia) throw new Error('Grupo no encontrado')
+      nivelMat = n(materia.materia_nivel)
+      grado = n(materia.materia_grado)
+    } else if (nivelMat && grado) {
+      materiaId = await ensureSlotEs(nivelMat, grado)
+    } else {
+      throw new Error('materiaId o nivel+grado requeridos')
+    }
+
     if (!cfg.nivelesEscolares.includes(nivelMat as (typeof cfg.nivelesEscolares)[number])) {
       throw new Error('Grupo no corresponde a este nivel')
     }
-    const grado = n(materia.materia_grado)
+
     const alumnos = await alumnosDeGrupo(grado, opts.grupoLetra, ciclo, nivelMat)
-    const matFiltro = opts.tipo === 1 ? opts.materiaId : null
+    const matFiltro = opts.tipo === 1 ? materiaId : null
     const filas = []
     for (const a of alumnos) {
       const f = await marcas(a.alumno_id, opts.tipo, ciclo, matFiltro)
@@ -251,7 +319,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     return {
       ciclo,
       materia: {
-        materia_id: n(materia.materia_id),
+        materia_id: materiaId,
         materia_nombre: `${etiquetaGrado(cfg, grado, nivelMat)} · Grupo ${opts.grupoLetra}`,
         materia_grado: grado,
       },
