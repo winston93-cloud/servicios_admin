@@ -107,7 +107,7 @@ export default function AsignarGruposModulo() {
     const refill = refillGrupo > 0 ? refillGrupo : undefined
     if (refill != null && refill > 0) {
       const ok = window.confirm(
-        `Se asignará el grupo ${etiquetaGrupoEscolar(refill)} a todos los alumnos activos de este nivel y grado (excepto bajas generales e inactivos). ¿Continuar?`
+        `Se asignará el grupo ${etiquetaGrupoEscolar(refill)} a todos los alumnos activos de este nivel, grado y ciclo. ¿Continuar?`
       )
       if (!ok) {
         setCargando(false)
@@ -225,7 +225,7 @@ export default function AsignarGruposModulo() {
       <header className="servicios-panel-header servicios-panel-header--compact">
         <h1 className="servicios-panel-title">Asignar grupos</h1>
         <p className="servicios-panel-lead asignar-grupos-lead">
-          Consulta alumnos por nivel, grado y grupo del ciclo{' '}
+          Consulta alumnos <strong>activos</strong> por nivel, grado y grupo del ciclo{' '}
           <strong>{etiquetaCicloActualSistema}</strong>. Edita en bloque y guarda cuando
           termines.
         </p>

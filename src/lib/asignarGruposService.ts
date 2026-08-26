@@ -24,10 +24,14 @@ export interface FiltrosAsignarGrupos {
 const SELECT_LISTA =
   'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_nivel, alumno_grado, alumno_grupo, alumno_status'
 
-/** Asigna `refillGrupo` a todos los alumnos del nivel+grado con estatus distinto de baja general (0) e inactivo (2). */
+/** Solo activos (`alumno_status = 1`) del ciclo. */
+const ESTATUS_ACTIVO = 1
+
+/** Asigna `refillGrupo` a todos los alumnos activos del nivel+grado+ciclo. */
 export async function rellenarGrupoEnGrado(
   nivel: number,
   grado: number,
+  cicloEscolar: number,
   refillGrupo: number
 ): Promise<{ ok: true } | { ok: false; mensaje: string }> {
   const { error } = await supabase
@@ -35,8 +39,8 @@ export async function rellenarGrupoEnGrado(
     .update({ alumno_grupo: refillGrupo })
     .eq('alumno_nivel', nivel)
     .eq('alumno_grado', grado)
-    .neq('alumno_status', 0)
-    .neq('alumno_status', 2)
+    .eq('alumno_ciclo_escolar', cicloEscolar)
+    .eq('alumno_status', ESTATUS_ACTIVO)
 
   if (error) {
     console.error('Refill grupo:', error)
@@ -51,7 +55,7 @@ export async function listarAlumnosParaAsignarGrupos(
   const { nivel, grado, grupo, cicloEscolar, refillGrupo } = filtros
 
   if (refillGrupo != null && refillGrupo > 0) {
-    const refill = await rellenarGrupoEnGrado(nivel, grado, refillGrupo)
+    const refill = await rellenarGrupoEnGrado(nivel, grado, cicloEscolar, refillGrupo)
     if (!refill.ok) return refill
   }
 
@@ -62,6 +66,7 @@ export async function listarAlumnosParaAsignarGrupos(
     .eq('alumno_grado', grado)
     .eq('alumno_grupo', grupo)
     .eq('alumno_ciclo_escolar', cicloEscolar)
+    .eq('alumno_status', ESTATUS_ACTIVO)
     .order('alumno_app', { ascending: true })
     .order('alumno_apm', { ascending: true })
     .order('alumno_nombre', { ascending: true })
