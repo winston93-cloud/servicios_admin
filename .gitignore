@@ -48,6 +48,7 @@ data/*.csv
 
 # manifiestos de migración locales
 scripts/.cache/
+scripts/.maestros-nuevos-*.json
 
 # InsForge & AI agent skills
 .insforge
