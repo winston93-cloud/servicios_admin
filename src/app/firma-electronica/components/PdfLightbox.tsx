@@ -4,13 +4,14 @@
  * 2026-08-22 - Visor PDF en la página: zoom y X para cerrar (móvil y escritorio).
  */
 import { useCallback, useEffect, useState } from 'react'
-import { Minus, Plus, X } from 'lucide-react'
+import { Download, Minus, Plus, X } from 'lucide-react'
 import PdfInlineViewer from './PdfInlineViewer'
 
 type Props = {
   open: boolean
   url: string
   title: string
+  downloadFileName?: string
   onClose: () => void
 }
 
@@ -18,8 +19,24 @@ const ZOOM_MIN = 0.75
 const ZOOM_MAX = 2.5
 const ZOOM_STEP = 0.25
 
-export default function PdfLightbox({ open, url, title, onClose }: Props) {
+export default function PdfLightbox({
+  open,
+  url,
+  title,
+  downloadFileName = 'documento.pdf',
+  onClose,
+}: Props) {
   const [zoom, setZoom] = useState(1)
+
+  const descargar = useCallback(() => {
+    const enlace = document.createElement('a')
+    enlace.href = url
+    enlace.download = downloadFileName
+    enlace.rel = 'noopener'
+    document.body.appendChild(enlace)
+    enlace.click()
+    enlace.remove()
+  }, [url, downloadFileName])
 
   const clampZoom = useCallback((n: number) => {
     return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(n * 100) / 100))
@@ -70,6 +87,15 @@ export default function PdfLightbox({ open, url, title, onClose }: Props) {
               <Plus size={18} aria-hidden />
             </button>
           </div>
+          <button
+            type="button"
+            className="fe-lb-icon fe-lb-download"
+            onClick={descargar}
+            aria-label="Descargar PDF"
+            title="Descargar PDF"
+          >
+            <Download size={18} aria-hidden />
+          </button>
           <button
             type="button"
             className="fe-lb-close"

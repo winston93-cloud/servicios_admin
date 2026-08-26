@@ -504,6 +504,29 @@ html[data-theme='dark'] .fe-alert--ok {
   white-space: nowrap;
 }
 
+.fe-doc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.fe-doc-open--download {
+  border-color: color-mix(in srgb, #16a34a 45%, transparent);
+  background: color-mix(in srgb, #16a34a 12%, transparent);
+  color: #15803d;
+}
+
+html[data-theme='dark'] .fe-doc-open--download {
+  color: #86efac;
+}
+
+.fe-doc-open--download:hover {
+  background: color-mix(in srgb, #16a34a 22%, transparent);
+}
+
 .fe-doc-open:hover {
   text-decoration: none;
   background: color-mix(in srgb, var(--fe-sky) 22%, transparent);
@@ -550,6 +573,40 @@ html[data-theme='dark'] .fe-alert--ok {
     transparent,
     color-mix(in srgb, #0b1220 88%, transparent)
   );
+}
+
+.fe-doc-hit-hint--desktop {
+  display: none;
+}
+
+.fe-doc-hit-hint--desktop strong {
+  font-weight: 800;
+}
+
+@media (min-width: 768px) {
+  .fe-doc-hit-hint--mobile {
+    display: none;
+  }
+
+  .fe-doc-hit-hint--desktop {
+    display: block;
+    color: var(--fe-muted);
+    background: linear-gradient(
+      180deg,
+      transparent,
+      color-mix(in srgb, var(--fe-card) 95%, transparent)
+    );
+    text-align: left;
+    font-weight: 500;
+  }
+
+  html[data-theme='dark'] .fe-doc-hit-hint--desktop {
+    color: #94a3b8;
+  }
+
+  .fe-doc-frame--openable {
+    cursor: default;
+  }
 }
 
 html[data-theme='dark'] .fe-doc-frame {
@@ -671,6 +728,16 @@ html[data-theme='dark'] .fe-doc-frame {
   background: transparent;
   color: inherit;
   cursor: pointer;
+}
+
+.fe-lb-download {
+  color: #15803d;
+  border-color: color-mix(in srgb, #16a34a 35%, transparent);
+  background: color-mix(in srgb, #16a34a 10%, transparent);
+}
+
+html[data-theme='dark'] .fe-lb-download {
+  color: #86efac;
 }
 
 .fe-lb-close {
@@ -1471,8 +1538,13 @@ html[data-theme='dark'] .fe-preview-frame {
   }
 
   .fe-doc-open {
-    width: 100%;
+    width: auto;
+    flex: 1 1 calc(50% - 0.25rem);
     justify-content: center;
+  }
+
+  .fe-doc-actions {
+    width: 100%;
   }
 
   .fe-doc-frame {

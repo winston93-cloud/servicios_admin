@@ -319,6 +319,7 @@ function FirmaElectronicaView() {
             <DocumentoPreview
               title="1. Documento original"
               url={origenUrl}
+              downloadFileName={`carta-aceptacion-beca-${nivel}.pdf`}
               emptyLabel={
                 cargandoDoc
                   ? `Generando carta ${plantilla.label}…`
@@ -345,6 +346,13 @@ function FirmaElectronicaView() {
           </div>
 
           <div className="fe-col-firmado" ref={colFirmadoRef}>
+            <DocumentoPreview
+              title="3. Documento firmado"
+              url={firmadoUrl}
+              downloadFileName="carta-aceptacion-beca-firmada.pdf"
+              emptyLabel="Cuando guardes la firma, el PDF firmado aparecerá aquí."
+            />
+
             {firmadoUrl && !enviado ? (
               <div className="fe-enviar-block">
                 <button
@@ -363,8 +371,7 @@ function FirmaElectronicaView() {
                     : 'Enviar carta de aceptación'}
                 </button>
                 <p className="fe-enviar-hint">
-                  Confirma y guarda la carta ya firmada para completar el
-                  proceso.
+                  Revisa y descarga el PDF firmado arriba. Luego confirma el envío.
                 </p>
               </div>
             ) : null}
@@ -395,12 +402,6 @@ function FirmaElectronicaView() {
                 </div>
               </div>
             ) : null}
-
-            <DocumentoPreview
-              title="3. Documento firmado"
-              url={firmadoUrl}
-              emptyLabel="Cuando guardes la firma, el PDF firmado aparecerá aquí."
-            />
           </div>
         </div>
       </main>
