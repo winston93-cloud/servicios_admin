@@ -21,6 +21,7 @@ import {
   UserCog,
   Sparkles,
   CalendarDays,
+  Clock,
 } from 'lucide-react'
 
 export type ServiciosModuloId =
@@ -46,6 +47,7 @@ export type ServiciosModuloId =
   | 'usuarios-catalogo'
   | 'cambiar-plan'
   | 'pago-anual'
+  | 'cargo-extra'
   | 'pagos-colegiaturas-paquete'
   | 'adeudos-egresados'
 
@@ -126,6 +128,12 @@ export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
     id: 'pago-anual',
     label: 'Pago Anual',
     icon: Sparkles,
+  },
+  {
+    type: 'leaf',
+    id: 'cargo-extra',
+    label: 'Cargo Extra',
+    icon: Clock,
   },
   {
     type: 'leaf',

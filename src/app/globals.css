@@ -24770,3 +24770,252 @@ html[data-theme='light'] .pa-montos > div {
     padding-left: 1.8rem;
   }
 }
+
+/* ---------- Cargo Extra (Servicios) ---------- */
+
+.ce-modulo .servicios-panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ce-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.ce-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.ce-autocomplete {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.ce-ciclo-hint {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+.ce-ciclo-hint strong {
+  color: #e2e8f0;
+}
+
+.ce-alert {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+}
+
+.ce-alert--error {
+  background: rgba(127, 29, 29, 0.35);
+  color: #fecaca;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.ce-alert--ok {
+  background: rgba(6, 78, 59, 0.35);
+  color: #a7f3d0;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.ce-alert--info {
+  background: rgba(30, 58, 138, 0.35);
+  color: #bfdbfe;
+  border: 1px solid rgba(96, 165, 250, 0.35);
+}
+
+.ce-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #94a3b8;
+}
+
+.ce-resultado {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.ce-alumno {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 0.85rem;
+}
+
+.ce-alumno-ref {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 700;
+  color: #93c5fd;
+}
+
+.ce-alumno-nombre {
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.ce-estado-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+.ce-estado-badge.is-activo {
+  background: rgba(6, 78, 59, 0.45);
+  color: #6ee7b7;
+  border: 1px solid rgba(52, 211, 153, 0.45);
+}
+
+.ce-estado-badge.is-inactivo {
+  background: rgba(51, 65, 85, 0.55);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.ce-resumen {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.ce-resumen > div {
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.ce-resumen-label {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.ce-resumen strong {
+  color: #f8fafc;
+  font-size: 0.95rem;
+}
+
+.ce-meta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.ce-tabla-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.ce-tabla {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.ce-tabla-caption {
+  caption-side: top;
+  text-align: left;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.ce-tabla th,
+.ce-tabla td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  text-align: left;
+}
+
+.ce-tabla th {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.ce-tabla tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ce-concepto-no {
+  display: inline-block;
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  color: #93c5fd;
+  margin-right: 0.35rem;
+}
+
+.ce-extra-col {
+  color: #fcd34d;
+}
+
+.ce-motivo {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  color: #cbd5e1;
+}
+
+.ce-motivo input {
+  min-height: var(--touch-min, 44px);
+  font-size: 16px;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.55);
+  color: #f8fafc;
+}
+
+.ce-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+@media (max-width: 768px) {
+  .ce-resumen {
+    grid-template-columns: 1fr;
+  }
+}
+
+html[data-theme='light'] .ce-alumno-nombre,
+html[data-theme='light'] .ce-ciclo-hint strong,
+html[data-theme='light'] .ce-resumen strong {
+  color: #0f172a;
+}
+
+html[data-theme='light'] .ce-resumen > div {
+  background: #fff;
+}
+
+html[data-theme='light'] .ce-tabla th {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+html[data-theme='light'] .ce-motivo input {
+  background: #fff;
+  color: #0f172a;
+}
+

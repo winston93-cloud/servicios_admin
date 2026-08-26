@@ -23,6 +23,10 @@ import {
   resolverPlanMesesParaCiclo,
   type PlanMeses,
 } from '@/lib/portalPlanMesesCiclo'
+import {
+  aplicarCargoExtraImporte,
+  obtenerCargoExtraActivo,
+} from '@/lib/alumnoCargoExtraService'
 
 /** Concepto boucher: Pagos de Colegiaturas (referencia dígitos 6–7). */
 export const CONCEPTO_PAGO_COLEGIATURAS = '31'
@@ -180,13 +184,15 @@ async function montosPorConcepto(
     throw new Error(`No hay precios configurados para el nivel en el ciclo ${cicloValor}.`)
   }
   const becaPct = await obtenerPorcentajeBeca(db, alumno.alumno_id, cicloValor)
+  const cargoExtraReg = await obtenerCargoExtraActivo(db, alumno.alumno_id, cicloValor)
   const map = new Map<string, number>()
   for (const c of conceptos) {
-    const monto = calcularImporteConcepto(c, precio, becaPct, planMeses, {
+    let monto = calcularImporteConcepto(c, precio, becaPct, planMeses, {
       alumnoRef: alumno.alumno_ref,
       cicloEscolar: cicloValor,
       fecha: new Date(),
     })
+    monto = aplicarCargoExtraImporte(monto, c, cargoExtraReg)
     map.set(c, Math.round(monto * 100) / 100)
   }
   return map

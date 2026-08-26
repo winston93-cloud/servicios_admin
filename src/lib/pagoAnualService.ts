@@ -25,6 +25,10 @@ import {
   resolverPlanMesesParaCiclo,
   type PlanMeses,
 } from '@/lib/portalPlanMesesCiclo'
+import {
+  aplicarCargoExtraImporte,
+  obtenerCargoExtraActivo,
+} from '@/lib/alumnoCargoExtraService'
 
 /** Concepto boucher: Pago Anual (referencia dígitos 6–7). */
 export const CONCEPTO_PAGO_ANUAL = '30'
@@ -191,15 +195,18 @@ export async function calcularMontoPagoAnual(
   }
 
   const becaPct = await obtenerPorcentajeBeca(db, alumno.alumno_id, cicloValor)
+  const cargoExtraReg = await obtenerCargoExtraActivo(db, alumno.alumno_id, cicloValor)
   const conceptos = conceptosColegiaturaPagoAnual(planMeses)
   let montoLista = 0
   for (const c of conceptos) {
     // Lista con beca Winston/SEP si aplica (mismo criterio que el portal mensual).
-    montoLista += calcularImporteConcepto(c, precio, becaPct, planMeses, {
+    let importe = calcularImporteConcepto(c, precio, becaPct, planMeses, {
       alumnoRef: alumno.alumno_ref,
       cicloEscolar: cicloValor,
       fecha: new Date(`${vencimientoPagoAnual(cicloValor)}T12:00:00`),
     })
+    importe = aplicarCargoExtraImporte(importe, c, cargoExtraReg)
+    montoLista += importe
   }
   montoLista = Math.round(montoLista * 100) / 100
   const montoConDescuento =

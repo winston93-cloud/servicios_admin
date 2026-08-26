@@ -50,6 +50,10 @@ import {
   aplicarCreditoRecargoAImporte,
   resolverCreditoRecargoCuotaInicio,
 } from './creditoRecargoCuotaInicio'
+import {
+  aplicarCargoExtraImporte,
+  obtenerCargoExtraActivo,
+} from './alumnoCargoExtraService'
 
 export interface FilaMatrizPortal {
   conceptoNo: string
@@ -259,6 +263,11 @@ async function construirFilas(
       planMeses,
       pagos,
     })
+  const cargoExtraReg = await obtenerCargoExtraActivo(
+    supabase,
+    alumno.alumno_id,
+    ciclo.valor
+  )
   const control = formatearAlumnoRefParaReferencia(alumno.alumno_ref)
   const filas: FilaMatrizPortal[] = []
 
@@ -305,6 +314,7 @@ async function construirFilas(
             alumnoNuevoIngreso: alumno.alumno_nuevo_ingreso,
             alumnoAlta: alumno.alumno_alta ?? null,
           })
+    importe = aplicarCargoExtraImporte(importe, conceptoNo, cargoExtraReg)
 
     // Saldo a favor (recargo cuota 00): después de beca/corrección; una sola colegiatura.
     let creditoRecargoCuotaInicio = 0

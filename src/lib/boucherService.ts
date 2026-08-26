@@ -24,6 +24,7 @@ import {
   esAlumnoNuevoIngreso,
   importeInscripcionNuevoIngreso,
 } from './inscripcionNuevoIngresoDescuento'
+import { aplicarCargoExtraImporte, obtenerCargoExtraActivo } from './alumnoCargoExtraService'
 
 export interface PrecioBoucherRow {
   precio_id: number
@@ -384,7 +385,7 @@ export async function calcularBoucher(
     }
   }
 
-  const importeBase =
+  let importeBase =
     manual != null && manual > 0
       ? manual
       : importeCorreccion != null
@@ -398,6 +399,15 @@ export async function calcularBoucher(
               alumnoNuevoIngreso,
               alumnoAlta,
             })
+
+  const cargoExtraReg = await obtenerCargoExtraActivo(
+    supabase,
+    params.alumnoId,
+    params.cicloEscolar
+  )
+  if (cargoExtraReg && !(manual != null && manual > 0)) {
+    importeBase = aplicarCargoExtraImporte(importeBase, params.conceptoNo, cargoExtraReg)
+  }
 
   // Crédito recargo cuota 00: después de beca/corrección; solo en el concepto destino.
   let importe = importeBase
