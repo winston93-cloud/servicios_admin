@@ -9,6 +9,11 @@ export type RacRolNivel =
   | 'control_escolar'
   | 'direccion'
 
+export type RacGradoRac = {
+  nivelEscolar: NivelEscolarValor
+  grado: number
+}
+
 export type RacNivelConfig = {
   slug: RacNivelSlug
   titulo: string
@@ -22,6 +27,10 @@ export type RacNivelConfig = {
   rutaApp: string
   rolOperaciones: 'prefectura' | 'control_escolar'
   etiquetaOperaciones: string
+  /** Grupos visibles en captura (preescolar suele ser solo A). */
+  gruposCaptura: readonly string[]
+  /** Si no hay materias ni alumnos, estos grados se aseguran en catálogo. */
+  gradosFallback: RacGradoRac[]
 }
 
 export const RAC_PRIMARIA: RacNivelConfig = {
@@ -36,6 +45,15 @@ export const RAC_PRIMARIA: RacNivelConfig = {
   rutaApp: '/reportes-conducta/primaria',
   rolOperaciones: 'control_escolar',
   etiquetaOperaciones: 'Control escolar',
+  gruposCaptura: ['A', 'B', 'C'],
+  gradosFallback: [
+    { nivelEscolar: 3, grado: 1 },
+    { nivelEscolar: 3, grado: 2 },
+    { nivelEscolar: 3, grado: 3 },
+    { nivelEscolar: 3, grado: 4 },
+    { nivelEscolar: 3, grado: 5 },
+    { nivelEscolar: 3, grado: 6 },
+  ],
 }
 
 export const RAC_MATERNAL_KINDER: RacNivelConfig = {
@@ -50,6 +68,13 @@ export const RAC_MATERNAL_KINDER: RacNivelConfig = {
   rutaApp: '/reportes-conducta/maternal-kinder',
   rolOperaciones: 'control_escolar',
   etiquetaOperaciones: 'Control escolar',
+  gruposCaptura: ['A'],
+  gradosFallback: [
+    { nivelEscolar: 1, grado: 1 },
+    { nivelEscolar: 2, grado: 1 },
+    { nivelEscolar: 2, grado: 2 },
+    { nivelEscolar: 2, grado: 3 },
+  ],
 }
 
 const MAP: Record<RacNivelSlug, RacNivelConfig> = {

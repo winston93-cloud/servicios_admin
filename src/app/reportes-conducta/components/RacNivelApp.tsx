@@ -10,7 +10,7 @@ import {
   type RacTabNivel,
 } from '@/lib/rac/racPermisosNivel'
 import { opcionesMotivo } from '@/lib/racUi'
-import { ArrowLeft, LogOut, Send, Sparkles, Users } from 'lucide-react'
+import { ArrowLeft, LogOut, RefreshCw, Send, Sparkles, Users, UsersRound } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import '../../dashboard/dashboard-module-card.css'
@@ -63,6 +63,13 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const data = (await res.json().catch(() => ({}))) as T & { error?: string }
   if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
   return data
+}
+
+function iniciales(nombre: string): string {
+  const parts = nombre.trim().split(/\s+/).filter(Boolean)
+  if (!parts.length) return '?'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase()
 }
 
 function ChipFecha({ valor }: { valor: string }) {
@@ -296,6 +303,16 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   const esAdmin = me?.role === 'coordinacion' || me?.role === 'direccion'
   const esMaestro = me?.role === 'maestro'
   const unSoloGrupo = esMaestro && asignaciones.length === 1
+  const sinAsignaciones = asignaciones.length === 0
+
+  const stats = useMemo(() => {
+    const conReporte = filas.filter((f) => f.aviso || f.r1 || f.r2 || f.r3).length
+    return {
+      alumnos: filas.length,
+      seguimiento: conReporte,
+      grupo: asig?.etiqueta_grupo ?? '—',
+    }
+  }, [filas, asig?.etiqueta_grupo])
 
   const heroText = useMemo(() => {
     if (!me) return ''
@@ -370,15 +387,41 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
         </header>
 
         <div className="racn-hero">
+          <div className="racn-hero-glow" aria-hidden="true" />
           <div className="racn-hero-icon" aria-hidden="true">
             {config.slug === 'maternal-kinder' ? <Sparkles size={28} /> : <Users size={28} />}
           </div>
-          <div>
+          <div className="racn-hero-copy">
             <p className="racn-hero-kicker">{config.kicker}</p>
             <h1>{config.subtitulo}</h1>
             <p>{heroText}</p>
           </div>
         </div>
+
+        {(tab === 'captura' || tab === 'control_escolar') && !sinAsignaciones ? (
+          <div className="racn-stats" aria-label="Resumen del grupo">
+            <article className="racn-stat">
+              <UsersRound size={18} aria-hidden />
+              <div>
+                <strong>{stats.alumnos}</strong>
+                <span>Alumnos en lista</span>
+              </div>
+            </article>
+            <article className="racn-stat">
+              <Sparkles size={18} aria-hidden />
+              <div>
+                <strong>{stats.seguimiento}</strong>
+                <span>Con aviso o reporte</span>
+              </div>
+            </article>
+            <article className="racn-stat racn-stat--wide">
+              <div>
+                <strong>{stats.grupo}</strong>
+                <span>Grupo activo</span>
+              </div>
+            </article>
+          </div>
+        ) : null}
 
         {unSoloGrupo && asig ? (
           <div className="racn-grupo-badge">
@@ -403,90 +446,126 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
         {msg ? <p className="racn-msg">{msg}</p> : null}
 
         {(tab === 'captura' || tab === 'control_escolar') && (
-          <section className="racn-panel">
-            <div className="racn-filters">
-              {!unSoloGrupo ? (
+          <section className="racn-panel racn-panel--captura">
+            <div className="racn-toolbar">
+              <div className="racn-filters">
+                {!unSoloGrupo ? (
+                  <label>
+                    Grado / grupo
+                    <select
+                      value={asigKey}
+                      onChange={(e) => setAsigKey(e.target.value)}
+                      disabled={sinAsignaciones}
+                    >
+                      {sinAsignaciones ? (
+                        <option value="">Sin grupos disponibles</option>
+                      ) : (
+                        asignaciones.map((a) => (
+                          <option
+                            key={`${a.materia_id}|${a.grupo_letra}|${a.grupo_id}`}
+                            value={`${a.materia_id}|${a.grupo_letra}`}
+                          >
+                            {a.etiqueta_grupo}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </label>
+                ) : null}
                 <label>
-                  Grado / grupo
-                  <select value={asigKey} onChange={(e) => setAsigKey(e.target.value)}>
-                    {asignaciones.map((a) => (
-                      <option
-                        key={`${a.materia_id}|${a.grupo_letra}|${a.grupo_id}`}
-                        value={`${a.materia_id}|${a.grupo_letra}`}
-                      >
-                        {a.etiqueta_grupo}
+                  Tipo
+                  <select value={tipo} onChange={(e) => setTipo(Number(e.target.value))}>
+                    {tiposCaptura.map((t) => (
+                      <option key={t.valor} value={t.valor}>
+                        {t.etiqueta}
                       </option>
                     ))}
                   </select>
                 </label>
-              ) : null}
-              <label>
-                Tipo
-                <select value={tipo} onChange={(e) => setTipo(Number(e.target.value))}>
-                  {tiposCaptura.map((t) => (
-                    <option key={t.valor} value={t.valor}>
-                      {t.etiqueta}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button type="button" className="racn-btn" onClick={() => void cargarGrupo()} disabled={busy}>
-                Actualizar
-              </button>
+                <button
+                  type="button"
+                  className="racn-btn racn-btn--refresh"
+                  onClick={() => void cargarGrupo()}
+                  disabled={busy || sinAsignaciones}
+                >
+                  <RefreshCw size={16} aria-hidden className={busy ? 'racn-spin' : ''} />
+                  Actualizar
+                </button>
+              </div>
             </div>
-            <div className="racn-table-wrap">
-              <table className="racn-table">
-                <thead>
-                  <tr>
-                    <th>Alumno</th>
-                    <th>Aviso</th>
-                    <th>I</th>
-                    <th>II</th>
-                    <th>III</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filas.map((a) => (
-                    <tr key={a.alumno_id}>
-                      <td>
-                        <div className="racn-alumno-cell">
-                          <span>{a.nombre}</span>
-                          <small>
-                            {a.alumno_ref ?? '—'} · {a.grado}° {a.grupo}
-                          </small>
-                        </div>
-                      </td>
-                      <td>
-                        <ChipFecha valor={a.aviso || '—'} />
-                      </td>
-                      <td>
-                        <ChipFecha valor={a.r1 || '—'} />
-                      </td>
-                      <td>
-                        <ChipFecha valor={a.r2 || '—'} />
-                      </td>
-                      <td>
-                        <ChipFecha valor={a.r3 || '—'} />
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="racn-btn primary"
-                          onClick={() => {
-                            setModal(a)
-                            setModo('reporte')
-                            setMotivo(opcionesMotivo(tipo)[0]?.valor ?? 1)
-                          }}
-                        >
-                          Reportar
-                        </button>
-                      </td>
+            {sinAsignaciones ? (
+              <div className="racn-empty">
+                <p>No hay grados configurados todavía.</p>
+                <small>Asigna maestros en Servicios → Catálogo de maestros o verifica alumnos activos del nivel.</small>
+              </div>
+            ) : (
+              <div className="racn-table-wrap">
+                <table className="racn-table">
+                  <thead>
+                    <tr>
+                      <th>Alumno</th>
+                      <th>Aviso</th>
+                      <th>I</th>
+                      <th>II</th>
+                      <th>III</th>
+                      <th></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filas.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="racn-empty-row">
+                          No hay alumnos en este grado y grupo para el ciclo actual.
+                        </td>
+                      </tr>
+                    ) : (
+                      filas.map((a) => (
+                        <tr key={a.alumno_id}>
+                          <td>
+                            <div className="racn-alumno-cell">
+                              <span className="racn-avatar" aria-hidden="true">
+                                {iniciales(a.nombre)}
+                              </span>
+                              <span>
+                                <span className="racn-alumno-nombre">{a.nombre}</span>
+                                <small>
+                                  {a.alumno_ref ?? '—'} · {a.grado}° {a.grupo}
+                                </small>
+                              </span>
+                            </div>
+                          </td>
+                          <td>
+                            <ChipFecha valor={a.aviso || '—'} />
+                          </td>
+                          <td>
+                            <ChipFecha valor={a.r1 || '—'} />
+                          </td>
+                          <td>
+                            <ChipFecha valor={a.r2 || '—'} />
+                          </td>
+                          <td>
+                            <ChipFecha valor={a.r3 || '—'} />
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="racn-btn primary"
+                              onClick={() => {
+                                setModal(a)
+                                setModo('reporte')
+                                setMotivo(opcionesMotivo(tipo)[0]?.valor ?? 1)
+                              }}
+                            >
+                              Reportar
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </section>
         )}
 

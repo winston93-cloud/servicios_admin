@@ -1,85 +1,158 @@
-/* Tema Maternal / Kinder — coral, menta y cielo cálido */
+/* Tema Maternal / Kinder — preescolar cálido, premium y expresivo */
 
 .racn-page--maternal-kinder {
   --racn-accent: #14b8a6;
-  --racn-accent-light: #99f6e4;
-  --racn-kicker: #f472b6;
-  --racn-border: color-mix(in srgb, #14b8a6 25%, transparent);
-  --racn-accent-gradient: linear-gradient(135deg, #f472b6 0%, #fb923c 35%, #14b8a6 100%);
-  --racn-hero-bg: linear-gradient(135deg, rgba(244, 114, 182, 0.12) 0%, rgba(251, 146, 60, 0.08) 40%, rgba(20, 184, 166, 0.1) 100%);
-  --racn-card-bg: color-mix(in srgb, #134e4a 28%, rgba(255, 255, 255, 0.05));
-  --racn-shadow: 0 24px 64px rgba(19, 78, 74, 0.3);
+  --racn-accent-light: #5eead4;
+  --racn-kicker: #fda4af;
+  --racn-border: color-mix(in srgb, #f472b6 28%, rgba(255, 255, 255, 0.1));
+  --racn-accent-gradient: linear-gradient(135deg, #f472b6 0%, #fb923c 42%, #14b8a6 100%);
+  --racn-hero-bg:
+    radial-gradient(90% 70% at 100% 0%, rgba(244, 114, 182, 0.18) 0%, transparent 55%),
+    radial-gradient(70% 60% at 0% 100%, rgba(20, 184, 166, 0.16) 0%, transparent 50%),
+    linear-gradient(155deg, rgba(30, 20, 40, 0.92) 0%, rgba(15, 35, 45, 0.95) 100%);
+  --racn-card-bg: color-mix(in srgb, #134e4a 22%, rgba(255, 255, 255, 0.05));
+  --racn-shadow: 0 28px 72px rgba(244, 114, 182, 0.12), 0 16px 48px rgba(0, 0, 0, 0.35);
 }
 
 .racn-page--maternal-kinder .racn-bg {
   background:
-    radial-gradient(ellipse 70% 55% at 0% 0%, rgba(244, 114, 182, 0.28) 0%, transparent 55%),
-    radial-gradient(ellipse 55% 45% at 100% 15%, rgba(251, 146, 60, 0.22) 0%, transparent 50%),
-    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(20, 184, 166, 0.2) 0%, transparent 50%),
-    var(--dash-bg, #0b0d12);
+    radial-gradient(ellipse 75% 55% at 0% 0%, rgba(244, 114, 182, 0.32) 0%, transparent 58%),
+    radial-gradient(ellipse 60% 48% at 100% 12%, rgba(251, 146, 60, 0.26) 0%, transparent 52%),
+    radial-gradient(ellipse 65% 45% at 50% 100%, rgba(20, 184, 166, 0.22) 0%, transparent 52%),
+    linear-gradient(180deg, #120a14 0%, #0a1218 45%, #081510 100%);
 }
 
-.racn-page--maternal-kinder .racn-bg::before {
-  content: '';
-  position: absolute;
-  width: 320px;
-  height: 320px;
-  top: 10%;
-  right: -80px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(251, 146, 60, 0.15) 0%, transparent 70%);
-  animation: racn-float 12s ease-in-out infinite;
-}
-
+.racn-page--maternal-kinder .racn-bg::before,
 .racn-page--maternal-kinder .racn-bg::after {
   content: '';
   position: absolute;
-  width: 240px;
-  height: 240px;
-  bottom: 15%;
-  left: -60px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(20, 184, 166, 0.12) 0%, transparent 70%);
-  animation: racn-float 10s ease-in-out infinite reverse;
+  filter: blur(2px);
+  pointer-events: none;
 }
 
-@keyframes racn-float {
+.racn-page--maternal-kinder .racn-bg::before {
+  width: min(420px, 90vw);
+  height: min(420px, 90vw);
+  top: -8%;
+  right: -12%;
+  background: radial-gradient(circle, rgba(251, 146, 60, 0.2) 0%, transparent 68%);
+  animation: racn-mk-float 14s ease-in-out infinite;
+}
+
+.racn-page--maternal-kinder .racn-bg::after {
+  width: min(340px, 75vw);
+  height: min(340px, 75vw);
+  bottom: 8%;
+  left: -10%;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.18) 0%, transparent 70%);
+  animation: racn-mk-float 11s ease-in-out infinite reverse;
+}
+
+@keyframes racn-mk-float {
   0%,
   100% {
-    transform: translateY(0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1);
   }
   50% {
-    transform: translateY(-20px) scale(1.05);
+    transform: translate3d(0, -18px, 0) scale(1.04);
   }
 }
 
-.racn-page--maternal-kinder .racn-hero-icon {
-  border-radius: 50%;
+.racn-page--maternal-kinder .racn-login-card {
+  border-color: color-mix(in srgb, #f472b6 35%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 24px 64px rgba(244, 114, 182, 0.15);
+}
+
+.racn-page--maternal-kinder .racn-login-card::before {
   background: var(--racn-accent-gradient);
 }
 
-.racn-page--maternal-kinder .racn-tabs button {
-  border-radius: 999px;
+.racn-page--maternal-kinder .racn-header {
+  border-color: color-mix(in srgb, #14b8a6 30%, transparent);
+}
+
+.racn-page--maternal-kinder .racn-hero {
+  border-color: color-mix(in srgb, #f472b6 35%, transparent);
+}
+
+.racn-page--maternal-kinder .racn-hero-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--racn-accent-gradient);
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, #f472b6 18%, transparent),
+    0 12px 32px rgba(244, 114, 182, 0.35);
+}
+
+.racn-page--maternal-kinder .racn-hero h1 {
+  background: linear-gradient(135deg, #fff6df 0%, #fda4af 45%, #5eead4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.racn-page--maternal-kinder .racn-stat {
+  border-color: color-mix(in srgb, #14b8a6 25%, transparent);
+}
+
+.racn-page--maternal-kinder .racn-stat svg {
+  color: #fda4af;
 }
 
 .racn-page--maternal-kinder .racn-tabs button.active {
-  box-shadow: 0 6px 20px rgba(244, 114, 182, 0.35);
+  box-shadow:
+    0 8px 28px rgba(244, 114, 182, 0.35),
+    0 4px 12px rgba(20, 184, 166, 0.2);
+}
+
+.racn-page--maternal-kinder .racn-panel--captura {
+  border-image: linear-gradient(135deg, rgba(244, 114, 182, 0.5), rgba(20, 184, 166, 0.4)) 1;
+}
+
+.racn-page--maternal-kinder .racn-avatar {
+  border-radius: 50%;
+  background: linear-gradient(145deg, #f472b6, #14b8a6);
+}
+
+.racn-page--maternal-kinder .racn-chip--set {
+  background: color-mix(in srgb, #14b8a6 22%, transparent);
+  color: #99f6e4;
+  border: 1px solid color-mix(in srgb, #14b8a6 35%, transparent);
+}
+
+.racn-page--maternal-kinder .racn-btn.primary {
+  background: var(--racn-accent-gradient);
+  box-shadow: 0 8px 22px rgba(244, 114, 182, 0.28);
 }
 
 .racn-page--maternal-kinder .racn-grupo-badge {
   border-radius: 16px;
+  background: linear-gradient(135deg, rgba(244, 114, 182, 0.14), rgba(20, 184, 166, 0.12));
+  border: 1px solid color-mix(in srgb, #f472b6 30%, transparent);
 }
 
 [data-theme='light'] .racn-page--maternal-kinder {
   --racn-card-bg: rgba(255, 255, 255, 0.94);
-  --racn-border: color-mix(in srgb, #14b8a6 20%, #fce7f3);
+  --racn-border: color-mix(in srgb, #f472b6 22%, #e2e8f0);
+  --racn-shadow: 0 20px 48px rgba(244, 114, 182, 0.1);
 }
 
 [data-theme='light'] .racn-page--maternal-kinder .racn-bg {
   background:
-    radial-gradient(ellipse 65% 50% at 0% 0%, rgba(244, 114, 182, 0.1) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 40% at 100% 20%, rgba(251, 146, 60, 0.08) 0%, transparent 50%),
-    linear-gradient(180deg, #fffbeb 0%, #f0fdfa 100%);
+    radial-gradient(ellipse 70% 50% at 0% 0%, rgba(244, 114, 182, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 40% at 100% 15%, rgba(251, 146, 60, 0.1) 0%, transparent 50%),
+    linear-gradient(180deg, #fff7ed 0%, #ecfdf5 100%);
+}
+
+[data-theme='light'] .racn-page--maternal-kinder .racn-hero h1 {
+  background: linear-gradient(135deg, #9d174d 0%, #c2410c 45%, #0f766e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {

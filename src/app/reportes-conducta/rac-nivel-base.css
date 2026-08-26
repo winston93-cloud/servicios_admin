@@ -3,7 +3,16 @@
 .racn-page {
   min-height: 100dvh;
   position: relative;
+  --racn-gold: #fff6df;
+  --racn-role: var(--racn-accent, #6366f1);
+  --racn-on-role: #fff;
 }
+
+.racn-page--direccion { --racn-role: #a16207; }
+.racn-page--coordinacion { --racn-role: #0369a1; }
+.racn-page--psicologia { --racn-role: #be123c; }
+.racn-page--control_escolar { --racn-role: #c2410c; }
+.racn-page--maestro { --racn-role: #0e7490; }
 
 .racn-bg {
   position: fixed;
@@ -152,27 +161,51 @@
 .racn-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.2rem 0.65rem;
+  padding: 0.25rem 0.7rem;
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  background: color-mix(in srgb, var(--racn-accent, #6366f1) 22%, transparent);
-  color: var(--racn-accent-light, #c7d2fe);
-  border: 1px solid color-mix(in srgb, var(--racn-accent, #6366f1) 35%, transparent);
+  background: var(--racn-role);
+  color: var(--racn-on-role);
+  border: 1px solid color-mix(in srgb, var(--racn-role) 70%, #000);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--racn-role) 35%, transparent);
 }
 
 .racn-hero {
+  position: relative;
   display: flex;
-  gap: 18px;
+  gap: 20px;
   align-items: flex-start;
-  margin-bottom: 20px;
-  padding: clamp(18px, 4vw, 28px);
-  border-radius: 20px;
-  border: 1px solid var(--racn-border, rgba(255, 255, 255, 0.1));
-  background: var(--racn-hero-bg, linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08)));
-  box-shadow: var(--racn-shadow, 0 20px 50px rgba(0, 0, 0, 0.2));
+  margin-bottom: 18px;
+  padding: clamp(20px, 4vw, 32px);
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--racn-role) 30%, transparent);
+  background:
+    radial-gradient(120% 90% at 100% -10%, color-mix(in srgb, var(--racn-role) 20%, transparent), transparent 55%),
+    radial-gradient(80% 70% at -10% 120%, color-mix(in srgb, var(--racn-gold) 14%, transparent), transparent 50%),
+    var(--racn-hero-bg, linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08)));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    var(--racn-shadow, 0 20px 50px rgba(0, 0, 0, 0.2));
+}
+
+.racn-hero-glow {
+  position: absolute;
+  inset: -40% -20% auto auto;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--racn-accent, #6366f1) 25%, transparent), transparent 70%);
+  pointer-events: none;
+}
+
+.racn-hero-copy {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
 }
 
 .racn-hero-icon {
@@ -188,19 +221,22 @@
 }
 
 .racn-hero-kicker {
-  margin: 0 0 4px;
+  margin: 0 0 6px;
   font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--racn-kicker, #a5b4fc);
 }
 
 .racn-hero h1 {
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   font-family: var(--font-space-grotesk, 'Space Grotesk', sans-serif);
-  font-size: clamp(1.25rem, 3vw, 1.65rem);
-  letter-spacing: -0.02em;
+  font-size: clamp(1.45rem, 3.5vw, 2rem);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--racn-gold);
+  text-shadow: 0 0 24px color-mix(in srgb, var(--racn-gold) 22%, transparent);
 }
 
 .racn-hero p {
@@ -209,6 +245,65 @@
   line-height: 1.5;
   font-size: 0.9rem;
   max-width: 52ch;
+}
+
+.racn-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+@media (min-width: 768px) {
+  .racn-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.racn-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--racn-border, rgba(255, 255, 255, 0.1));
+  background: color-mix(in srgb, var(--racn-card-bg, rgba(255, 255, 255, 0.04)) 88%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.racn-stat svg {
+  flex-shrink: 0;
+  color: var(--racn-accent-light, #c7d2fe);
+  opacity: 0.9;
+}
+
+.racn-stat strong {
+  display: block;
+  font-family: var(--font-space-grotesk, 'Space Grotesk', sans-serif);
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.racn-stat span {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.72rem;
+  color: var(--dash-muted, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.racn-stat--wide {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 768px) {
+  .racn-stat--wide {
+    grid-column: auto;
+  }
 }
 
 .racn-grupo-badge {
@@ -233,28 +328,38 @@
 
 .racn-tabs {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   margin-bottom: 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
 }
 
 .racn-tabs button {
+  flex-shrink: 0;
   min-height: var(--touch-min);
-  padding: 0.5rem 1rem;
-  border-radius: 12px;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
   border: 1px solid var(--racn-border, rgba(255, 255, 255, 0.12));
-  background: transparent;
+  background: color-mix(in srgb, var(--dash-bg, #0b0d12) 40%, transparent);
   color: inherit;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.racn-tabs button:hover {
+  transform: translateY(-1px);
 }
 
 .racn-tabs button.active {
   background: var(--racn-accent-gradient, linear-gradient(135deg, #818cf8, #6366f1));
   border-color: transparent;
   color: #fff;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--racn-accent, #6366f1) 40%, transparent);
 }
 
 .racn-msg {
@@ -266,11 +371,24 @@
 }
 
 .racn-panel {
-  padding: clamp(14px, 3vw, 20px);
-  border-radius: 18px;
+  padding: clamp(14px, 3vw, 22px);
+  border-radius: 20px;
   border: 1px solid var(--racn-border, rgba(255, 255, 255, 0.1));
   background: var(--racn-card-bg, rgba(255, 255, 255, 0.03));
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 16px 40px rgba(0, 0, 0, 0.18);
+}
+
+.racn-panel--captura {
+  border-color: color-mix(in srgb, var(--racn-accent, #6366f1) 22%, transparent);
+}
+
+.racn-toolbar {
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--racn-border, rgba(255, 255, 255, 0.08));
 }
 
 .racn-filters {
@@ -361,14 +479,100 @@
   color: var(--dash-muted, #94a3b8);
 }
 
+.racn-btn--refresh {
+  align-self: flex-end;
+}
+
+.racn-spin {
+  animation: racn-spin 0.8s linear infinite;
+}
+
+@keyframes racn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .racn-alumno-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.racn-avatar {
+  flex-shrink: 0;
   display: grid;
-  gap: 2px;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  background: var(--racn-accent-gradient, linear-gradient(135deg, #818cf8, #6366f1));
+  color: #fff;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--racn-accent, #6366f1) 35%, transparent);
+}
+
+.racn-alumno-nombre {
+  display: block;
+  font-weight: 600;
 }
 
 .racn-alumno-cell small {
+  display: block;
   color: var(--dash-muted, #94a3b8);
   font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+.racn-table tbody tr {
+  transition: background 0.12s;
+}
+
+.racn-table tbody tr:hover {
+  background: color-mix(in srgb, var(--racn-accent, #6366f1) 6%, transparent);
+}
+
+.racn-empty,
+.racn-empty-row {
+  text-align: center;
+  color: var(--dash-muted, #94a3b8);
+  padding: 28px 16px;
+}
+
+.racn-empty p {
+  margin: 0 0 6px;
+  font-weight: 600;
+  color: inherit;
+}
+
+.racn-empty small {
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.racn-page select {
+  color-scheme: dark;
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+.racn-page select option {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+html[data-theme='light'] .racn-page select {
+  color-scheme: light;
+  background-color: #fff;
+  color: #0f172a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .racn-spin {
+    animation: none;
+  }
 }
 
 .racn-chip {
