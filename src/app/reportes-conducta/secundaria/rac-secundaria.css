@@ -89,6 +89,43 @@
   font-size: 0.85rem;
 }
 
+.rac-login-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--dash-muted, #94a3b8);
+  line-height: 1.4;
+}
+
+.rac-login-pw-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.rac-login-pw-wrap input {
+  padding-right: 2.75rem;
+}
+
+.rac-login-pw-toggle {
+  position: absolute;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+.rac-login-pw-toggle:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--rac-cyan, #00e3fd) 12%, transparent);
+}
+
 .rac-login-card label {
   display: grid;
   gap: 6px;

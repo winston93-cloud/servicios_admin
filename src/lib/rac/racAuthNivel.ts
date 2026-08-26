@@ -117,7 +117,7 @@ export async function autenticarRacNivel(
   password: string
 ): Promise<RacSesionNivel | null> {
   const u = usuario.trim()
-  const p = password
+  const p = password.trim()
   if (!u || !p) return null
   const db = createDbAdmin()
 
@@ -126,7 +126,7 @@ export async function autenticarRacNivel(
     .select(
       'maestro_id, maestro_app, maestro_apm, maestro_nombre, maestro_usuario, maestro_clave, maestro_nivel'
     )
-    .eq('maestro_usuario', u)
+    .ilike('maestro_usuario', u)
     .in('maestro_nivel', cfg.nivelesEscolares)
     .limit(1)
 
@@ -152,7 +152,7 @@ export async function autenticarRacNivel(
     .select(
       'usuario_id, perfil_id, usuario_app, usuario_apm, usuario_nombre, usuario_username, usuario_password, usuario_status, nivel'
     )
-    .eq('usuario_username', u)
+    .ilike('usuario_username', u)
     .limit(1)
 
   if (admins?.[0]) {

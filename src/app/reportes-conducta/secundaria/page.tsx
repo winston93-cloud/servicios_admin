@@ -3,7 +3,7 @@
 import ThemeToggle from '@/components/ThemeToggle'
 import { opcionesMotivo } from '@/lib/racUi'
 import { etiquetaRol, tabsDeRol, tiposCapturaDeRol, type RacTab } from '@/lib/racPermisos'
-import { ArrowLeft, LogOut, Send } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, LogOut, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import '../../dashboard/dashboard-module-card.css'
@@ -65,6 +65,7 @@ function ChipFecha({ valor }: { valor: string }) {
 function LoginPanel({ onOk }: { onOk: () => void }) {
   const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
+  const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -73,7 +74,10 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
     setLoading(true)
     setError('')
     try {
-      await api('/api/rac/auth/login', { method: 'POST', body: JSON.stringify({ usuario, password }) })
+      await api('/api/rac/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ usuario: usuario.trim(), password: password.trim() }),
+      })
       onOk()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo entrar')
@@ -83,7 +87,7 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
   }
 
   return (
-    <form className="rac-login-card" onSubmit={(ev) => void submit(ev)}>
+    <form className="rac-login-card" onSubmit={(ev) => void submit(ev)} autoComplete="off">
       <p className="rac-login-kicker">Acceso docente</p>
       <h2>Ingresar a Secundaria</h2>
       <p className="rac-login-lead">
@@ -94,21 +98,37 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
         <input
           value={usuario}
           onChange={(e) => setUsuario(e.target.value)}
-          autoComplete="username"
-          placeholder="Ej. eli"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          name="rac-secundaria-usuario"
+          placeholder="Ej. josefina"
           required
         />
       </label>
       <label>
         Contraseña
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-          required
-        />
+        <span className="rac-login-pw-wrap">
+          <input
+            type={showPw ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            name="rac-secundaria-clave"
+            required
+          />
+          <button
+            type="button"
+            className="rac-login-pw-toggle"
+            onClick={() => setShowPw((v) => !v)}
+            aria-label={showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          >
+            {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </span>
       </label>
+      <p className="rac-login-hint">Si falla, revisa mayúsculas y caracteres especiales (copiar/pegar suele ser más seguro).</p>
       {error ? <p className="rac-login-error">{error}</p> : null}
       <button type="submit" className="rac-login-submit" disabled={loading}>
         {loading ? 'Entrando…' : 'Entrar'}
