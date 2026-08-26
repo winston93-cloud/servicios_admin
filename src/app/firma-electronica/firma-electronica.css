@@ -982,6 +982,77 @@ html[data-theme='dark'] .fe-acepto-hint {
   color: #fbbf24;
 }
 
+.fe-nombre-tutor {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.65rem 1rem 0.15rem;
+  padding: 0.85rem 0.95rem;
+  border-radius: 14px;
+  border: 1px solid var(--fe-border);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+html[data-theme='dark'] .fe-nombre-tutor {
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.fe-nombre-tutor-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-space-grotesk), system-ui, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--fe-ink);
+}
+
+.fe-nombre-tutor-badge {
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  background: #d97706;
+}
+
+.fe-nombre-tutor-input {
+  width: 100%;
+  min-height: var(--touch-min, 44px);
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--fe-border);
+  background: #fff;
+  color: #111827;
+  font-family: 'Times New Roman', Times, Arial, sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.01em;
+}
+
+.fe-nombre-tutor-input:focus {
+  outline: none;
+  border-color: rgba(14, 165, 233, 0.65);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
+}
+
+.fe-nombre-tutor-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.fe-nombre-tutor-hint {
+  font-size: 0.76rem;
+  line-height: 1.4;
+  color: var(--fe-muted);
+}
+
+html[data-theme='dark'] .fe-nombre-tutor-input {
+  background: rgba(2, 6, 23, 0.65);
+  color: #f8fafc;
+}
+
 .fe-sign-body.is-locked {
   opacity: 0.55;
   pointer-events: none;

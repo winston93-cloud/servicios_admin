@@ -70,6 +70,7 @@ function FirmaElectronicaView() {
   const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState(false)
   const [acepto, setAcepto] = useState(false)
+  const [nombreTutor, setNombreTutor] = useState('')
   const [firmaKey, setFirmaKey] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [okMsg, setOkMsg] = useState<string | null>(null)
@@ -85,6 +86,7 @@ function FirmaElectronicaView() {
         setEnviado(false)
         setEnviando(false)
         setAcepto(false)
+        setNombreTutor('')
         setFirmaKey((k) => k + 1)
         setFirmadoUrl((prev) => {
           if (prev) URL.revokeObjectURL(prev)
@@ -139,12 +141,17 @@ function FirmaElectronicaView() {
         setError('Debes marcar que leíste y estás de acuerdo con la carta.')
         return
       }
+      if (nombreTutor.trim().length < 3) {
+        setError('Escribe tu nombre completo antes de firmar.')
+        return
+      }
       setGuardando(true)
       try {
         const firmado = await incrustarFirmaEnPdf(
           origenBytes,
           firmaPng,
-          firmaBox
+          firmaBox,
+          nombreTutor
         )
         const nextUrl = bytesToObjectUrl(firmado)
         setFirmadoUrl((prev) => {
@@ -167,7 +174,7 @@ function FirmaElectronicaView() {
         setGuardando(false)
       }
     },
-    [origenBytes, firmaBox, acepto]
+    [origenBytes, firmaBox, acepto, nombreTutor]
   )
 
   const onEnviarCarta = useCallback(async () => {
@@ -215,6 +222,7 @@ function FirmaElectronicaView() {
     setEnviado(false)
     setEnviando(false)
     setAcepto(false)
+    setNombreTutor('')
     setError(null)
     setOkMsg(null)
     setFirmaKey((k) => k + 1)
@@ -327,6 +335,8 @@ function FirmaElectronicaView() {
               firmaAplicada={Boolean(firmadoUrl)}
               enviado={enviado}
               acepto={acepto}
+              nombreTutor={nombreTutor}
+              onNombreTutorChange={setNombreTutor}
               checkboxDisabled={cargandoDoc || !origenBytes || enviado}
               onAceptoChange={onAceptoChange}
               onGuardarFirma={onGuardarFirma}

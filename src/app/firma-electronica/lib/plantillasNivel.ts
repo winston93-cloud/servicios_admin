@@ -16,6 +16,9 @@ export type FirmaBox = {
   /** Fecha de firma: línea a la derecha de la caja, no debajo del trazo. */
   fechaX: number
   fechaY: number
+  /** Nombre del tutor debajo de la línea de firma (coord. PDF, origen abajo-izq). */
+  nombreY: number
+  nombreMaxWidth: number
 }
 
 export type PlantillaNivel = {

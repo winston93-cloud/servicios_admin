@@ -28,6 +28,8 @@ type Props = {
   firmaAplicada?: boolean
   enviado?: boolean
   acepto: boolean
+  nombreTutor: string
+  onNombreTutorChange: (value: string) => void
   checkboxDisabled?: boolean
   onAceptoChange: (checked: boolean) => void
   onGuardarFirma: (firmaPngDataUrl: string) => void | Promise<void>
@@ -40,6 +42,8 @@ export default function FirmaCapture({
   firmaAplicada = false,
   enviado = false,
   acepto,
+  nombreTutor,
+  onNombreTutorChange,
   checkboxDisabled = false,
   onAceptoChange,
   onGuardarFirma,
@@ -49,10 +53,11 @@ export default function FirmaCapture({
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
 
-  const firmaBloqueada = disabled || !acepto || enviado
+  const nombreListo = nombreTutor.trim().length >= 3
+  const firmaBloqueada = disabled || !acepto || !nombreListo || enviado
   const busy = disabled || guardando || enviado
   const puedeGuardar =
-    Boolean(previewUrl) && acepto && !busy && !enviado && !disabled
+    Boolean(previewUrl) && acepto && nombreListo && !busy && !enviado && !disabled
 
   const bindPad = useCallback((api: SignaturePadHandle) => {
     padApiRef.current = api
@@ -64,8 +69,8 @@ export default function FirmaCapture({
   }, [])
 
   useEffect(() => {
-    if (!acepto && !enviado) limpiarPad()
-  }, [acepto, enviado, limpiarPad])
+    if ((!acepto || !nombreListo) && !enviado) limpiarPad()
+  }, [acepto, nombreListo, enviado, limpiarPad])
 
   const limpiar = useCallback(() => {
     if (enviado) return
@@ -86,12 +91,16 @@ export default function FirmaCapture({
       onError?.('Debes marcar que leíste y estás de acuerdo con la carta.')
       return
     }
+    if (!nombreListo) {
+      onError?.('Escribe tu nombre completo antes de firmar.')
+      return
+    }
     if (!previewUrl) {
       onError?.('Dibuja tu firma antes de guardar.')
       return
     }
     await onGuardarFirma(previewUrl)
-  }, [acepto, previewUrl, onGuardarFirma, onError])
+  }, [acepto, nombreListo, previewUrl, onGuardarFirma, onError])
 
   return (
     <section className="fe-sign-card" aria-label="Captura de firma">
@@ -126,6 +135,31 @@ export default function FirmaCapture({
         </span>
       </label>
 
+      <label className="fe-nombre-tutor">
+        <span className="fe-nombre-tutor-label">
+          Nombre del padre, madre o tutor(a)
+          {!nombreListo && acepto ? (
+            <span className="fe-nombre-tutor-badge">Requerido</span>
+          ) : null}
+        </span>
+        <input
+          type="text"
+          className="fe-nombre-tutor-input"
+          value={nombreTutor}
+          onChange={(e) => onNombreTutorChange(e.target.value)}
+          placeholder="Como aparecerá debajo de la firma en la carta"
+          autoComplete="name"
+          autoCapitalize="words"
+          spellCheck={false}
+          maxLength={120}
+          disabled={!acepto || enviado || disabled || guardando}
+          aria-required="true"
+        />
+        <span className="fe-nombre-tutor-hint">
+          Usa tu nombre completo. Se imprimirá en la carta con tipografía formal.
+        </span>
+      </label>
+
       <div
         className={`fe-sign-body${firmaBloqueada && !enviado ? ' is-locked' : ''}`}
         aria-disabled={firmaBloqueada}
@@ -146,7 +180,7 @@ export default function FirmaCapture({
           type="button"
           className="fe-btn fe-btn--ghost"
           onClick={limpiar}
-          disabled={busy || !acepto || enviado}
+          disabled={busy || !acepto || !nombreListo || enviado}
         >
           <Eraser size={16} aria-hidden />
           Limpiar

@@ -388,17 +388,21 @@ export async function crearCartaBecaPdf(
   text('C O M I T É   D E   B E C A S', 10, true)
 
   heading('FIRMA ELECTRÓNICA')
-  fieldLine('NOMBRE DEL PADRE, MADRE O TUTOR(A):', datos.tutorNombre)
+  para(
+    'El padre, madre o tutor(a) deberá capturar su nombre completo y su firma electrónica en el apartado correspondiente. El nombre se imprimirá debajo de la línea de firma.'
+  )
 
-  need(96)
+  need(108)
   const firmaBox: FirmaBox = {
     pageIndex,
     x: MX,
-    y: y - 78,
+    y: y - 86,
     width: 280,
-    height: 78,
+    height: 86,
     fechaX: MX + 290,
-    fechaY: y - 78 + 26,
+    fechaY: y - 86 + 28,
+    nombreY: 0,
+    nombreMaxWidth: 260,
   }
   page.drawRectangle({
     x: firmaBox.x,
@@ -416,11 +420,21 @@ export async function crearCartaBecaPdf(
     font,
     color: MUTED,
   })
+  const lineY = firmaBox.y + 28
   page.drawLine({
-    start: { x: firmaBox.x + 16, y: firmaBox.y + 22 },
-    end: { x: firmaBox.x + firmaBox.width - 16, y: firmaBox.y + 22 },
+    start: { x: firmaBox.x + 16, y: lineY },
+    end: { x: firmaBox.x + firmaBox.width - 16, y: lineY },
     thickness: 0.8,
     color: BLUE_LINE,
+  })
+  firmaBox.nombreY = lineY - 14
+  firmaBox.nombreMaxWidth = firmaBox.width - 32
+  page.drawText('Nombre del padre, madre o tutor(a)', {
+    x: firmaBox.x + 16,
+    y: firmaBox.y + 8,
+    size: 7,
+    font,
+    color: MUTED,
   })
   const fechaLabel = 'FECHA DE FIRMA:'
   const fechaLabelX = firmaBox.x + 290
@@ -432,16 +446,15 @@ export async function crearCartaBecaPdf(
     font: fontBold,
     color: INK,
   })
-  const fechaLineY = firmaBox.y + 22
   page.drawLine({
-    start: { x: fechaLabelX, y: fechaLineY },
-    end: { x: MX + CONTENT_W, y: fechaLineY },
+    start: { x: fechaLabelX, y: lineY },
+    end: { x: MX + CONTENT_W, y: lineY },
     thickness: 0.6,
     color: BLUE_LINE,
   })
   firmaBox.fechaX =
     fechaLabelX + fontBold.widthOfTextAtSize(fechaLabel, fechaLabelSize) + 8
-  firmaBox.fechaY = fechaLineY + 4
+  firmaBox.fechaY = lineY + 4
 
   y = firmaBox.y - 16
   footer(page)
