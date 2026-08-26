@@ -35,6 +35,7 @@ export type MaestroRow = {
   maestro_email: string | null
   maestro_sexo: number
   maestro_celular: string | null
+  maestro_nivel: number
 }
 
 export type MateriaRow = {
@@ -56,15 +57,34 @@ export type AsignacionRow = {
   materia_grado?: number
 }
 
-export async function listarMaestrosCatalogo(): Promise<MaestroRow[]> {
+async function assertMaestroDelNivel(maestroId: number, materiaNivel: number) {
+  const { data } = await db()
+    .from('boleta_maestro')
+    .select('maestro_nivel')
+    .eq('maestro_id', maestroId)
+    .maybeSingle()
+  if (!data) throw new Error('Maestro no encontrado')
+  const nv = n(data.maestro_nivel, 4)
+  if (nv !== materiaNivel) {
+    throw new Error('Este docente pertenece a otro nivel escolar.')
+  }
+}
+
+export async function listarMaestrosCatalogo(opts: { tab: CatalogoMaestrosTab }): Promise<MaestroRow[]> {
+  const niveles = nivelesDeTab(opts.tab)
   const { data, error } = await db()
     .from('boleta_maestro')
     .select(
-      'maestro_id, maestro_app, maestro_apm, maestro_nombre, maestro_usuario, maestro_email, maestro_sexo, maestro_celular'
+      'maestro_id, maestro_app, maestro_apm, maestro_nombre, maestro_usuario, maestro_email, maestro_sexo, maestro_celular, maestro_nivel'
     )
+    .in('maestro_nivel', niveles)
+    .order('maestro_nivel')
     .order('maestro_app')
   if (error) throw new Error(error.message)
-  return (data ?? []) as MaestroRow[]
+  return (data ?? []).map((row) => ({
+    ...(row as MaestroRow),
+    maestro_nivel: n((row as MaestroRow).maestro_nivel, 4),
+  }))
 }
 
 export async function upsertMaestroCatalogo(row: {
@@ -77,8 +97,16 @@ export async function upsertMaestroCatalogo(row: {
   maestro_email?: string
   maestro_sexo?: number
   maestro_celular?: string
+  maestro_nivel: number
+  tab?: CatalogoMaestrosTab
 }) {
   const client = db()
+  const nivelesPermitidos = row.tab ? nivelesDeTab(row.tab) : [1, 2, 3, 4]
+  const maestroNivel = n(row.maestro_nivel, 4)
+  if (!nivelesPermitidos.includes(maestroNivel as (typeof nivelesPermitidos)[number])) {
+    throw new Error('El nivel del maestro no corresponde a esta pestaña.')
+  }
+
   let id = row.maestro_id
   if (!id) id = await nextId('boleta_maestro', 'maestro_id')
 
@@ -91,6 +119,7 @@ export async function upsertMaestroCatalogo(row: {
     maestro_email: row.maestro_email?.trim() || null,
     maestro_sexo: n(row.maestro_sexo, 0),
     maestro_celular: row.maestro_celular?.trim() || null,
+    maestro_nivel: maestroNivel,
   }
   if (row.maestro_clave != null && String(row.maestro_clave).length > 0) {
     payload.maestro_clave = row.maestro_clave
@@ -219,8 +248,9 @@ export async function listarAsignacionesCatalogo(opts: {
   if (maestroIds.length) {
     const { data: maestros } = await db()
       .from('boleta_maestro')
-      .select('maestro_id, maestro_app, maestro_apm, maestro_nombre')
+      .select('maestro_id, maestro_app, maestro_apm, maestro_nombre, maestro_nivel')
       .in('maestro_id', maestroIds)
+      .in('maestro_nivel', niveles)
     for (const m of maestros ?? []) {
       const nombre = [m.maestro_nombre, m.maestro_app, m.maestro_apm]
         .map((x) => String(x ?? '').trim())
@@ -258,6 +288,14 @@ export async function upsertAsignacionCatalogo(row: {
   const letra = String(row.grupo_letra || 'A').toUpperCase()
   const materiaId = n(row.materia_id)
   const maestroId = n(row.maestro_id)
+
+  const { data: materia } = await client
+    .from('boleta_materia')
+    .select('materia_nivel')
+    .eq('materia_id', materiaId)
+    .maybeSingle()
+  if (!materia) throw new Error('Materia no encontrada')
+  await assertMaestroDelNivel(maestroId, n(materia.materia_nivel, 4))
 
   const { data: duplicado } = await client
     .from('boleta_maestro_grupo')
@@ -313,6 +351,8 @@ export async function asignarMaestroGradoGrupo(opts: {
     if (prev) await eliminarAsignacionCatalogo(prev.grupo_id)
     return { eliminado: true }
   }
+
+  await assertMaestroDelNivel(opts.maestro_id, opts.nivel)
 
   return upsertAsignacionCatalogo({
     grupo_id: prev?.grupo_id,

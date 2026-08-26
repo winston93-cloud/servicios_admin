@@ -19,6 +19,8 @@ import {
   CATALOGO_MAESTROS_TABS,
   GRUPOS_ASIGNACION,
   esModoMateriasLibres,
+  etiquetaNivelMaestro,
+  nivelDefaultAlta,
   nivelesDeTab,
   subTabsDeNivel,
   type CatalogoMaestrosSubTab,
@@ -38,6 +40,7 @@ type MaestroForm = {
   maestro_email: string
   maestro_celular: string
   maestro_sexo: number
+  maestro_nivel: number
 }
 
 type MateriaForm = {
@@ -64,6 +67,7 @@ const MAESTRO_VACIO: MaestroForm = {
   maestro_email: '',
   maestro_celular: '',
   maestro_sexo: 0,
+  maestro_nivel: 4,
 }
 
 const MATERIA_VACIA: MateriaForm = {
@@ -121,6 +125,10 @@ const SUBTAB_UI: Record<
   maestros: { icon: Users, label: 'Maestros' },
   materias: { icon: BookMarked, label: 'Materias' },
   asignaciones: { icon: Link2, label: 'Asignaciones' },
+}
+
+function maestrosDelNivel(lista: MaestroRow[], nivel: number): MaestroRow[] {
+  return lista.filter((m) => m.maestro_nivel === nivel)
 }
 
 function inicialesMaestro(m: MaestroRow): string {
@@ -188,9 +196,11 @@ export default function CatalogoMaestrosModulo() {
   )
 
   const cargarMaestros = useCallback(async () => {
-    const data = await apiJson<{ maestros: MaestroRow[] }>('/api/servicios/catalogo-maestros/maestros')
+    const data = await apiJson<{ maestros: MaestroRow[] }>(
+      `/api/servicios/catalogo-maestros/maestros?tab=${tabNivel}`
+    )
     setMaestros(data.maestros ?? [])
-  }, [])
+  }, [tabNivel])
 
   const cargarMaterias = useCallback(async () => {
     const q = new URLSearchParams({ tab: tabNivel })
@@ -241,9 +251,14 @@ export default function CatalogoMaestrosModulo() {
     }
   }, [tabNivel])
 
+  useEffect(() => {
+    setEditMaestroId(null)
+    setFormMaestro({ ...MAESTRO_VACIO, maestro_nivel: nivelDefaultAlta(tabNivel) })
+  }, [tabNivel])
+
   const resetMaestro = () => {
     setEditMaestroId(null)
-    setFormMaestro(MAESTRO_VACIO)
+    setFormMaestro({ ...MAESTRO_VACIO, maestro_nivel: nivelDefaultAlta(tabNivel) })
   }
 
   const resetMateria = () => {
@@ -271,6 +286,7 @@ export default function CatalogoMaestrosModulo() {
           ...formMaestro,
           maestro_id: editMaestroId ?? undefined,
           maestro_clave: formMaestro.maestro_clave || undefined,
+          tab: tabNivel,
         }),
       })
       setMensaje(editMaestroId ? 'Maestro actualizado.' : 'Maestro registrado.')
@@ -546,6 +562,27 @@ export default function CatalogoMaestrosModulo() {
               <h2 className="cat-maestros-card-title">{editMaestroId ? 'Editar maestro' : 'Nuevo maestro'}</h2>
             </div>
             <form className="ciclos-crud-form cat-maestros-form" onSubmit={onGuardarMaestro}>
+              {tabNivel === 'maternal-kinder' ? (
+                <div className="ciclos-crud-field">
+                  <label htmlFor="cm-nivel-doc">Nivel del docente *</label>
+                  <select
+                    id="cm-nivel-doc"
+                    value={formMaestro.maestro_nivel}
+                    onChange={(e) =>
+                      setFormMaestro((f) => ({ ...f, maestro_nivel: Number(e.target.value) }))
+                    }
+                  >
+                    <option value={1}>Maternal</option>
+                    <option value={2}>Kinder</option>
+                  </select>
+                </div>
+              ) : (
+                <p className="cat-maestros-nivel-lock">
+                  Alta en{' '}
+                  <strong>{tabNivel === 'primaria' ? 'Primaria' : 'Secundaria'}</strong> — solo
+                  docentes de este nivel.
+                </p>
+              )}
               <div className="ciclos-crud-field-row">
                 <div className="ciclos-crud-field">
                   <label htmlFor="cm-nombre">Nombre(s)</label>
@@ -645,6 +682,7 @@ export default function CatalogoMaestrosModulo() {
                 <thead>
                   <tr>
                     <th>Nombre</th>
+                    {tabNivel === 'maternal-kinder' ? <th>Nivel</th> : null}
                     <th>Usuario</th>
                     <th>Correo</th>
                     <th aria-label="Acciones" />
@@ -661,6 +699,15 @@ export default function CatalogoMaestrosModulo() {
                           <span className="cat-maestros-person-name">{nombreMaestro(m)}</span>
                         </span>
                       </td>
+                      {tabNivel === 'maternal-kinder' ? (
+                        <td>
+                          <span
+                            className={`cat-maestros-nivel-pill cat-maestros-nivel-pill--${m.maestro_nivel}`}
+                          >
+                            {etiquetaNivelMaestro(m.maestro_nivel)}
+                          </span>
+                        </td>
+                      ) : null}
                       <td>
                         <code className="cat-maestros-user-chip">{m.maestro_usuario}</code>
                       </td>
@@ -682,6 +729,7 @@ export default function CatalogoMaestrosModulo() {
                               maestro_email: m.maestro_email ?? '',
                               maestro_celular: m.maestro_celular ?? '',
                               maestro_sexo: m.maestro_sexo ?? 0,
+                              maestro_nivel: m.maestro_nivel ?? nivelDefaultAlta(tabNivel),
                             })
                           }}
                         >
@@ -972,94 +1020,113 @@ export default function CatalogoMaestrosModulo() {
       ) : null}
 
       {subTab === 'asignaciones' && !modoSecundaria ? (
-        <section className="cat-maestros-card cat-maestros-card--table cat-maestros-grid-card">
-          <div className="cat-maestros-card-head">
-            <span className="cat-maestros-card-icon">
-              <Link2 size={18} aria-hidden />
-            </span>
-            <h2 className="cat-maestros-card-title">Asignación por grado y grupo</h2>
+        <section className="cat-maestros-asig-board">
+          <div className="cat-maestros-asig-board-head">
+            <div>
+              <h2 className="cat-maestros-asig-board-title">Mapa de titulares</h2>
+              <p className="cat-maestros-asig-board-lead">
+                Solo docentes de{' '}
+                <strong>{tabNivel === 'primaria' ? 'Primaria' : 'Maternal / Kinder'}</strong>. Cada
+                celda es independiente — español e inglés por grupo.
+              </p>
+            </div>
+            <div className="cat-maestros-asig-board-meta">
+              <span className="cat-maestros-legend cat-maestros-legend--es">Maestro(a)</span>
+              <span className="cat-maestros-legend cat-maestros-legend--en">Teacher</span>
+            </div>
           </div>
-          <p className="cat-maestros-grid-hint">
-            <span className="cat-maestros-legend cat-maestros-legend--es">Maestro(a)</span> español ·{' '}
-            <span className="cat-maestros-legend cat-maestros-legend--en">Teacher</span> inglés. Vacío quita la
-            asignación.
-          </p>
-          <div className="cat-maestros-table-wrap">
-            <table className="cat-maestros-table cat-maestros-grid">
-              <thead>
-                <tr>
-                  <th>Grado</th>
-                  {GRUPOS_ASIGNACION.map((g) => (
-                    <th key={g} colSpan={2}>
-                      Grupo {g}
-                    </th>
-                  ))}
-                </tr>
-                <tr>
-                  <th />
-                  {GRUPOS_ASIGNACION.flatMap((g) => [
-                    <th key={`${g}-es`}>Maestro(a)</th>,
-                    <th key={`${g}-en`}>Teacher</th>,
-                  ])}
-                </tr>
-              </thead>
-              <tbody>
-                {filasGG.map((fila) => (
-                  <tr key={`${fila.nivel}-${fila.grado}`}>
-                    <td>{fila.etiqueta}</td>
-                    {GRUPOS_ASIGNACION.flatMap((grupo) => [
-                      <td key={`${fila.grado}-${grupo}-es`}>
-                        <select
-                          className="cat-maestros-select"
-                          disabled={guardando}
-                          value={maestroDeCelda(fila.nivel, fila.grado, grupo, 1)}
-                          onChange={(e) =>
-                            void onAsignarGradoGrupo(
-                              fila.nivel,
-                              fila.grado,
-                              grupo,
-                              'es',
-                              Number(e.target.value)
-                            )
-                          }
-                        >
-                          <option value={0}>—</option>
-                          {maestros.map((m) => (
-                            <option key={m.maestro_id} value={m.maestro_id}>
-                              {nombreMaestro(m)}
-                            </option>
-                          ))}
-                        </select>
-                      </td>,
-                      <td key={`${fila.grado}-${grupo}-en`}>
-                        <select
-                          className="cat-maestros-select"
-                          disabled={guardando}
-                          value={maestroDeCelda(fila.nivel, fila.grado, grupo, 2)}
-                          onChange={(e) =>
-                            void onAsignarGradoGrupo(
-                              fila.nivel,
-                              fila.grado,
-                              grupo,
-                              'en',
-                              Number(e.target.value)
-                            )
-                          }
-                        >
-                          <option value={0}>—</option>
-                          {maestros.map((m) => (
-                            <option key={m.maestro_id} value={m.maestro_id}>
-                              {nombreMaestro(m)}
-                            </option>
-                          ))}
-                        </select>
-                      </td>,
-                    ])}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+
+          {maestros.length === 0 ? (
+            <div className="cat-maestros-empty">
+              <Users size={28} aria-hidden />
+              <p>Aún no hay docentes en este nivel.</p>
+              <button type="button" className="cat-maestros-btn cat-maestros-btn--primary" onClick={() => setSubTab('maestros')}>
+                Dar de alta maestros
+              </button>
+            </div>
+          ) : (
+            <div className="cat-maestros-grado-grid">
+              {filasGG.map((fila) => {
+                const docentesNivel = maestrosDelNivel(maestros, fila.nivel)
+                return (
+                  <article
+                    key={`${fila.nivel}-${fila.grado}`}
+                    className="cat-maestros-grado-card"
+                    data-nivel={fila.nivel}
+                  >
+                    <header className="cat-maestros-grado-card-head">
+                      <span className="cat-maestros-grado-num">{fila.grado}</span>
+                      <div>
+                        <h3>{fila.etiqueta}</h3>
+                        {tabNivel === 'maternal-kinder' ? (
+                          <span className="cat-maestros-nivel-pill cat-maestros-nivel-pill--mini">
+                            {etiquetaNivelMaestro(fila.nivel)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </header>
+                    <div className="cat-maestros-grupo-grid">
+                      {GRUPOS_ASIGNACION.map((grupo) => (
+                        <div key={grupo} className="cat-maestros-grupo-card" data-grupo={grupo}>
+                          <span className={`cat-maestros-grupo-badge cat-maestros-grupo-badge--${grupo.toLowerCase()}`}>
+                            Grupo {grupo}
+                          </span>
+                          <label className="cat-maestros-slot cat-maestros-slot--es">
+                            <span>Maestro(a)</span>
+                            <select
+                              className="cat-maestros-select"
+                              disabled={guardando || docentesNivel.length === 0}
+                              value={maestroDeCelda(fila.nivel, fila.grado, grupo, 1)}
+                              onChange={(e) =>
+                                void onAsignarGradoGrupo(
+                                  fila.nivel,
+                                  fila.grado,
+                                  grupo,
+                                  'es',
+                                  Number(e.target.value)
+                                )
+                              }
+                            >
+                              <option value={0}>Sin asignar</option>
+                              {docentesNivel.map((m) => (
+                                <option key={m.maestro_id} value={m.maestro_id}>
+                                  {nombreMaestro(m)}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="cat-maestros-slot cat-maestros-slot--en">
+                            <span>Teacher</span>
+                            <select
+                              className="cat-maestros-select"
+                              disabled={guardando || docentesNivel.length === 0}
+                              value={maestroDeCelda(fila.nivel, fila.grado, grupo, 2)}
+                              onChange={(e) =>
+                                void onAsignarGradoGrupo(
+                                  fila.nivel,
+                                  fila.grado,
+                                  grupo,
+                                  'en',
+                                  Number(e.target.value)
+                                )
+                              }
+                            >
+                              <option value={0}>Sin asignar</option>
+                              {docentesNivel.map((m) => (
+                                <option key={m.maestro_id} value={m.maestro_id}>
+                                  {nombreMaestro(m)}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          )}
         </section>
       ) : null}
       </div>

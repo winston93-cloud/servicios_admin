@@ -758,3 +758,214 @@ html[data-theme='light'] .servicios-app .cat-maestros-person-name {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Nivel por docente */
+.cat-maestros-nivel-lock {
+  margin: 0 0 0.85rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  border: 1px dashed rgba(0, 227, 253, 0.35);
+  background: rgba(0, 227, 253, 0.06);
+  font-size: 0.82rem;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.cat-maestros-nivel-pill {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.cat-maestros-nivel-pill--1 {
+  background: rgba(56, 189, 248, 0.2);
+  color: #7dd3fc;
+}
+.cat-maestros-nivel-pill--2 {
+  background: rgba(45, 212, 191, 0.18);
+  color: #5eead4;
+}
+.cat-maestros-nivel-pill--3 {
+  background: rgba(129, 140, 248, 0.22);
+  color: #c7d2fe;
+}
+.cat-maestros-nivel-pill--4 {
+  background: rgba(251, 113, 133, 0.22);
+  color: #fecdd3;
+}
+
+.cat-maestros-nivel-pill--mini {
+  margin-top: 0.25rem;
+  font-size: 0.65rem;
+}
+
+/* Mapa de titulares (primaria / maternal-kinder) */
+.cat-maestros-asig-board {
+  padding: 0.25rem 0 1rem;
+}
+
+.cat-maestros-asig-board-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.cat-maestros-asig-board-title {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display, 'Space Grotesk', system-ui, sans-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #fff, var(--cm-cyan));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.cat-maestros-asig-board-lead {
+  margin: 0;
+  max-width: 36rem;
+  font-size: 0.88rem;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.cat-maestros-asig-board-meta {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.cat-maestros-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2.5rem 1rem;
+  border-radius: 16px;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.45);
+  color: rgba(148, 163, 184, 0.95);
+  text-align: center;
+}
+
+.cat-maestros-grado-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 1rem;
+}
+
+.cat-maestros-grado-card {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.05), transparent 45%),
+    rgba(15, 23, 42, 0.75);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.cat-maestros-grado-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 42px rgba(0, 227, 253, 0.08);
+}
+
+.cat-maestros-grado-card[data-nivel='1'] {
+  border-top: 3px solid #38bdf8;
+}
+.cat-maestros-grado-card[data-nivel='2'] {
+  border-top: 3px solid #2dd4bf;
+}
+.cat-maestros-grado-card[data-nivel='3'] {
+  border-top: 3px solid #818cf8;
+}
+
+.cat-maestros-grado-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cat-maestros-grado-num {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 12px;
+  font-family: var(--font-display, 'Space Grotesk', system-ui, sans-serif);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f172a;
+  background: linear-gradient(135deg, var(--cm-gold), var(--cm-cyan));
+}
+
+.cat-maestros-grado-card-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.cat-maestros-grupo-grid {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem;
+}
+
+.cat-maestros-grupo-card {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.65rem;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.cat-maestros-grupo-card[data-grupo='A'] {
+  box-shadow: inset 3px 0 0 rgba(56, 189, 248, 0.55);
+}
+.cat-maestros-grupo-card[data-grupo='B'] {
+  box-shadow: inset 3px 0 0 rgba(129, 140, 248, 0.55);
+}
+.cat-maestros-grupo-card[data-grupo='C'] {
+  box-shadow: inset 3px 0 0 rgba(251, 113, 133, 0.55);
+}
+
+.cat-maestros-slot {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.cat-maestros-slot span {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cat-maestros-slot--es span {
+  color: #7dd3fc;
+}
+
+.cat-maestros-slot--en span {
+  color: #fde68a;
+}
+
+html[data-theme='light'] .servicios-app .cat-maestros-grado-card {
+  background: #fff;
+}
+
+html[data-theme='light'] .servicios-app .cat-maestros-grupo-card {
+  background: #f8fafc;
+}
+
+html[data-theme='light'] .servicios-app .cat-maestros-asig-board-title {
+  background: linear-gradient(90deg, #0f172a, #0891b2);
+  -webkit-background-clip: text;
+  background-clip: text;
+}

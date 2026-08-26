@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS public.boleta_maestro (
   maestro_sexo SMALLINT NOT NULL DEFAULT 0,
   maestro_celular VARCHAR(20),
   maestro_registro DATE,
-  maestro_email VARCHAR(120)
+  maestro_email VARCHAR(120),
+  maestro_nivel SMALLINT NOT NULL DEFAULT 4
 );
 
 CREATE TABLE IF NOT EXISTS public.boleta_maestro_grupo (

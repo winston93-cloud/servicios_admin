@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import type { CatalogoMaestrosTab } from '@/lib/catalogoMaestrosConstants'
 import {
   eliminarMaestroCatalogo,
   listarMaestrosCatalogo,
@@ -7,9 +8,15 @@ import {
 
 export const runtime = 'nodejs'
 
-export async function GET() {
+function parseTab(v: string | null): CatalogoMaestrosTab {
+  if (v === 'maternal-kinder' || v === 'primaria' || v === 'secundaria') return v
+  return 'secundaria'
+}
+
+export async function GET(request: Request) {
   try {
-    return NextResponse.json({ ok: true, maestros: await listarMaestrosCatalogo() })
+    const tab = parseTab(new URL(request.url).searchParams.get('tab'))
+    return NextResponse.json({ ok: true, maestros: await listarMaestrosCatalogo({ tab }) })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al listar maestros'
     return NextResponse.json({ error: msg }, { status: 500 })
@@ -19,7 +26,8 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const row = await upsertMaestroCatalogo(body)
+    const tab = parseTab(body.tab ?? null)
+    const row = await upsertMaestroCatalogo({ ...body, tab })
     return NextResponse.json({ ok: true, maestro: row })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al guardar maestro'
