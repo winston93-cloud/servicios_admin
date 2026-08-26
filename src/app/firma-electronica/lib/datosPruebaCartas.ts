@@ -23,6 +23,9 @@ export type DatosCartaBeca = {
   promedioMinimoLetras: string
   /** Override admin (beca Académica). */
   promedioMinimoCartaOverride?: number | null
+  /** Cláusula opcional de seguimiento individualizado. */
+  seguimientoIndividualizado?: boolean
+  clausulaSeguimientoTexto?: string | null
   comiteLabel: string
 }
 

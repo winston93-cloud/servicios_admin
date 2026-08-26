@@ -369,6 +369,12 @@ export async function crearCartaBecaPdf(
     'En caso de que el padre, madre o tutor(a) desee solicitar nuevamente este beneficio, deberá presentar una nueva solicitud de beca durante el periodo establecido por la institución, sujetándose al proceso de revisión, evaluación, requisitos y disponibilidad de becas correspondiente al nuevo ciclo escolar.'
   )
 
+  const clausulaSeguimiento = String(datos.clausulaSeguimientoTexto || '').trim()
+  if (datos.seguimientoIndividualizado && clausulaSeguimiento) {
+    heading('SEGUIMIENTO INDIVIDUALIZADO')
+    para(clausulaSeguimiento)
+  }
+
   heading('ACEPTACIÓN Y CONOCIMIENTO DE LAS CONDICIONES')
   para(
     'Con la firma electrónica de la presente carta, el padre, madre o tutor(a) manifiesta haber leído y comprendido las condiciones bajo las cuales se otorga el beneficio de beca, así como su carácter condicionado, temporal y sujeto a cumplimiento.'
