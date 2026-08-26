@@ -17,6 +17,8 @@ function hoyIso(): string {
 
 interface PagosColegiaturaManualFormProps {
   alumnoRef: string
+  /** Ficha ya resuelta en el módulo (ciclo activo). Evita exigir inscripción del ciclo de pago. */
+  alumnoId?: number | null
   nombreAlumno: string
   cicloInicial: number
   cicloActualSistema: number
@@ -29,6 +31,7 @@ interface PagosColegiaturaManualFormProps {
 
 export default function PagosColegiaturaManualForm({
   alumnoRef,
+  alumnoId: alumnoIdProp,
   nombreAlumno,
   cicloInicial,
   cicloActualSistema,
@@ -80,16 +83,24 @@ export default function PagosColegiaturaManualForm({
       }
 
       setGuardando(true)
-      const alumno = await obtenerAlumnoPorRef(alumnoRef, cicloPago)
-      if (!alumno) {
+      // El ciclo del pago va en la referencia; la ficha puede ser solo del ciclo actual
+      // (alumno ya reinscripto). Misma lógica que el historial: ciclo pedido → cualquier ficha.
+      let alumnoId = alumnoIdProp != null && alumnoIdProp > 0 ? alumnoIdProp : null
+      if (alumnoId == null) {
+        const alumno =
+          (await obtenerAlumnoPorRef(alumnoRef, cicloPago)) ??
+          (await obtenerAlumnoPorRef(alumnoRef))
+        alumnoId = alumno?.alumno_id ?? null
+      }
+      if (alumnoId == null) {
         setGuardando(false)
-        onError('El alumno no tiene inscripción en el ciclo escolar seleccionado.')
+        onError('No se encontró la ficha del alumno para registrar el pago.')
         return
       }
 
       const pagoNombre = nombreAlumno.trim().toUpperCase()
       const resultado = await crearPagoColegiaturaManual({
-        alumnoId: alumno.alumno_id,
+        alumnoId,
         alumnoRef,
         pagoNombre,
         conceptoNo,
@@ -115,6 +126,7 @@ export default function PagosColegiaturaManualForm({
     },
     [
       alumnoRef,
+      alumnoIdProp,
       nombreAlumno,
       conceptoNo,
       importe,
@@ -133,7 +145,9 @@ export default function PagosColegiaturaManualForm({
         Agregar pago extraviado o adelantado
       </h2>
       <p className="pc-form-manual-lead">
-        El pago se registrará con estatus <strong>Agregado manual</strong> en el historial.
+        El pago se registrará con estatus <strong>Agregado manual</strong> en el
+        historial. Puedes elegir el ciclo del pago aunque la ficha del alumno ya
+        esté en el ciclo actual.
       </p>
 
       <form className="pc-form-manual-grid" onSubmit={(e) => void onSubmit(e)} noValidate>

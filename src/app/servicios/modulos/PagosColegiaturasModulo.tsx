@@ -523,6 +523,7 @@ export default function PagosColegiaturasModulo() {
       {alumnoSeleccionado && !cargando && !resolviendoCiclo ? (
         <PagosColegiaturaManualForm
           alumnoRef={alumnoSeleccionado.alumno_ref}
+          alumnoId={alumnoCargado?.alumno_id ?? null}
           nombreAlumno={alumnoSeleccionado.nombre_completo}
           cicloInicial={cicloEscolarPagos}
           cicloActualSistema={cicloActualSistema}
