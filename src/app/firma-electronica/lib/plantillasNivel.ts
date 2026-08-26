@@ -13,9 +13,10 @@ export type FirmaBox = {
   y: number
   width: number
   height: number
-  /** Fecha de firma: línea a la derecha de la caja, no debajo del trazo. */
-  fechaX: number
-  fechaY: number
+  /** Fecha de firma: columna derecha; valor centrado y etiqueta debajo. */
+  fechaCenterX: number
+  fechaValorY: number
+  fechaLabelY: number
   /** Nombre del tutor debajo de la línea de firma (coord. PDF, origen abajo-izq). */
   nombreY: number
   nombreMaxWidth: number

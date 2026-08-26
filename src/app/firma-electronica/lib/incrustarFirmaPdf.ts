@@ -114,13 +114,28 @@ export async function incrustarFirmaEnPdf(
     month: 'short',
     year: 'numeric',
   })
+  const fechaSize = 9
+  const fechaW = fontFecha.widthOfTextAtSize(fecha, fechaSize)
+  const fechaCenterX = firmaBox.fechaCenterX
+  const fechaValorY = firmaBox.fechaValorY || lineY - 12
+  page.drawRectangle({
+    x: fechaCenterX - fechaColHalfWidth(firmaBox),
+    y: fechaValorY - 4,
+    width: fechaColHalfWidth(firmaBox) * 2,
+    height: 16,
+    color: rgb(1, 1, 1),
+  })
   page.drawText(fecha, {
-    x: firmaBox.fechaX,
-    y: firmaBox.fechaY,
-    size: 9,
+    x: fechaCenterX - fechaW / 2,
+    y: fechaValorY,
+    size: fechaSize,
     font: fontFecha,
     color: rgb(0.04, 0.16, 0.32),
   })
 
   return doc.save()
+}
+
+function fechaColHalfWidth(firmaBox: FirmaBox): number {
+  return Math.max(60, (firmaBox.nombreMaxWidth || 120) * 0.42)
 }
