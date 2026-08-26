@@ -1,7 +1,20 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
+import {
+  Baby,
+  BookMarked,
+  GraduationCap,
+  Layers3,
+  Link2,
+  Loader2,
+  Pencil,
+  Plus,
+  School,
+  Sparkles,
+  Trash2,
+  Users,
+} from 'lucide-react'
 import {
   CATALOGO_MAESTROS_TABS,
   GRUPOS_ASIGNACION,
@@ -80,6 +93,59 @@ function filasGradoGrupo(tab: CatalogoMaestrosTab) {
   return filas
 }
 
+const NIVEL_UI: Record<
+  CatalogoMaestrosTab,
+  { icon: typeof GraduationCap; tone: string; blurb: string }
+> = {
+  'maternal-kinder': {
+    icon: Baby,
+    tone: 'sky',
+    blurb: 'Maestro(a) y Teacher por grado y grupo',
+  },
+  primaria: {
+    icon: School,
+    tone: 'indigo',
+    blurb: 'Español e inglés por grado y grupo',
+  },
+  secundaria: {
+    icon: GraduationCap,
+    tone: 'rose',
+    blurb: 'Materia, grado y grupo por docente',
+  },
+}
+
+const SUBTAB_UI: Record<
+  CatalogoMaestrosSubTab,
+  { icon: typeof Users; label: string }
+> = {
+  maestros: { icon: Users, label: 'Maestros' },
+  materias: { icon: BookMarked, label: 'Materias' },
+  asignaciones: { icon: Link2, label: 'Asignaciones' },
+}
+
+function inicialesMaestro(m: MaestroRow): string {
+  const partes = nombreMaestro(m).split(/\s+/).filter(Boolean)
+  if (partes.length >= 2) return (partes[0][0] + partes[1][0]).toUpperCase()
+  return (partes[0]?.slice(0, 2) ?? '?').toUpperCase()
+}
+
+function GrupoBadge({ valor }: { valor: string }) {
+  const letras = String(valor || '—')
+    .toUpperCase()
+    .split('')
+    .filter((c) => /[A-Z]/.test(c))
+  if (!letras.length) return <span className="cat-maestros-grupo-badge">—</span>
+  return (
+    <span className="cat-maestros-grupo-badges">
+      {letras.map((l) => (
+        <span key={l} className={`cat-maestros-grupo-badge cat-maestros-grupo-badge--${l.toLowerCase()}`}>
+          {l}
+        </span>
+      ))}
+    </span>
+  )
+}
+
 export default function CatalogoMaestrosModulo() {
   const [tabNivel, setTabNivel] = useState<CatalogoMaestrosTab>('secundaria')
   const [subTab, setSubTab] = useState<CatalogoMaestrosSubTab>('maestros')
@@ -109,6 +175,17 @@ export default function CatalogoMaestrosModulo() {
   const modoSecundaria = esModoMateriasLibres(tabNivel)
   const gradosSecundaria = gradoOpcionesPorNivel(4)
   const filasGG = useMemo(() => filasGradoGrupo(tabNivel), [tabNivel])
+  const nivelUi = NIVEL_UI[tabNivel]
+  const NivelIcon = nivelUi.icon
+
+  const stats = useMemo(
+    () => ({
+      maestros: maestros.length,
+      materias: materias.length,
+      asignaciones: asignaciones.length,
+    }),
+    [maestros, materias, asignaciones]
+  )
 
   const cargarMaestros = useCallback(async () => {
     const data = await apiJson<{ maestros: MaestroRow[] }>('/api/servicios/catalogo-maestros/maestros')
@@ -347,63 +424,128 @@ export default function CatalogoMaestrosModulo() {
 
   return (
     <div className="servicios-panel-inner cat-maestros">
-      <header className="servicios-panel-header servicios-panel-header--compact">
-        <h1 className="servicios-panel-title">Catálogo de maestros</h1>
-        <p className="servicios-panel-lead">
-          Personal docente y asignaciones por nivel. Secundaria: maestro por materia, grado y grupo.
-          Maternal, Kinder y Primaria: maestro(a) de español y Teacher de inglés por grado y grupo.
+      <div className="cat-maestros-hero" data-tone={nivelUi.tone}>
+        <div className="cat-maestros-hero-glow" aria-hidden />
+        <div className="cat-maestros-hero-inner">
+          <div className="cat-maestros-hero-copy">
+            <p className="cat-maestros-kicker">
+              <Sparkles size={14} aria-hidden />
+              Control escolar · Docentes
+            </p>
+            <h1 className="cat-maestros-title">Catálogo de maestros</h1>
+            <p className="cat-maestros-lead">
+              Personal docente y asignaciones por nivel. Secundaria: maestro por materia, grado y
+              grupo. Maternal, Kinder y Primaria: maestro(a) de español y Teacher de inglés por
+              grado y grupo.
+            </p>
+          </div>
+          <div className="cat-maestros-hero-badge" aria-hidden>
+            <NivelIcon size={28} strokeWidth={1.6} />
+          </div>
+        </div>
+
+        <div className="cat-maestros-stats" role="list">
+          <div className="cat-maestros-stat" role="listitem">
+            <span className="cat-maestros-stat-val">{stats.maestros}</span>
+            <span className="cat-maestros-stat-label">Maestros</span>
+          </div>
+          {modoSecundaria ? (
+            <div className="cat-maestros-stat" role="listitem">
+              <span className="cat-maestros-stat-val">{stats.materias}</span>
+              <span className="cat-maestros-stat-label">Materias</span>
+            </div>
+          ) : null}
+          <div className="cat-maestros-stat" role="listitem">
+            <span className="cat-maestros-stat-val">{stats.asignaciones}</span>
+            <span className="cat-maestros-stat-label">Asignaciones</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="cat-maestros-nav-block">
+        <p className="cat-maestros-nav-label">Nivel escolar</p>
+        <div className="cat-maestros-nivel-tabs" role="tablist" aria-label="Nivel escolar">
+          {CATALOGO_MAESTROS_TABS.map((t) => {
+            const meta = NIVEL_UI[t.id]
+            const Icon = meta.icon
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={tabNivel === t.id}
+                className={`cat-maestros-nivel-tab${tabNivel === t.id ? ' is-active' : ''}`}
+                data-tone={meta.tone}
+                onClick={() => setTabNivel(t.id)}
+              >
+                <span className="cat-maestros-nivel-tab-icon">
+                  <Icon size={18} aria-hidden />
+                </span>
+                <span className="cat-maestros-nivel-tab-text">
+                  <strong>{t.label}</strong>
+                  <small>{meta.blurb}</small>
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="cat-maestros-nav-block cat-maestros-nav-block--sub">
+        <p className="cat-maestros-nav-label">
+          <Layers3 size={14} aria-hidden /> Sección · {nivelUi.blurb}
         </p>
-      </header>
-
-      <div className="costos-tabs cat-maestros-nivel-tabs" role="tablist" aria-label="Nivel escolar">
-        {CATALOGO_MAESTROS_TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tabNivel === t.id}
-            className={`costos-tab${tabNivel === t.id ? ' is-active' : ''}`}
-            onClick={() => setTabNivel(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
+        <div className="cat-maestros-sub-tabs" role="tablist" aria-label="Sección">
+          {subTabs.map((id) => {
+            const meta = SUBTAB_UI[id]
+            const Icon = meta.icon
+            return (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={subTab === id}
+                className={`cat-maestros-sub-tab${subTab === id ? ' is-active' : ''}`}
+                onClick={() => setSubTab(id)}
+              >
+                <Icon size={16} aria-hidden />
+                {meta.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
-      <div className="costos-tabs cat-maestros-sub-tabs" role="tablist" aria-label="Sección">
-        {subTabs.map((id) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={subTab === id}
-            className={`costos-tab${subTab === id ? ' is-active' : ''}`}
-            onClick={() => setSubTab(id)}
-          >
-            {id === 'maestros' ? 'Maestros' : id === 'materias' ? 'Materias' : 'Asignaciones'}
-          </button>
-        ))}
-      </div>
-
-      {mensaje ? <p className="ciclos-crud-msg ciclos-crud-msg--ok">{mensaje}</p> : null}
+      {mensaje ? (
+        <p className="cat-maestros-flash cat-maestros-flash--ok" role="status">
+          {mensaje}
+        </p>
+      ) : null}
       {error ? (
-        <p className="ciclos-crud-msg ciclos-crud-msg--error" role="alert">
+        <p className="cat-maestros-flash cat-maestros-flash--err" role="alert">
           {error}
         </p>
       ) : null}
 
       {cargando && subTab === 'maestros' ? (
-        <p className="ciclos-crud-loading">
-          <Loader2 size={20} className="ciclos-crud-spin" aria-hidden />
-          Cargando…
+        <p className="cat-maestros-loading">
+          <Loader2 size={22} className="ciclos-crud-spin" aria-hidden />
+          Cargando catálogo…
         </p>
       ) : null}
 
+      <div key={`${tabNivel}-${subTab}`} className="cat-maestros-panel">
+
       {subTab === 'maestros' ? (
-        <div className="ciclos-crud-layout">
-          <section className="ciclos-crud-form-card">
-            <h2 className="ciclos-crud-form-title">{editMaestroId ? 'Editar maestro' : 'Nuevo maestro'}</h2>
-            <form className="ciclos-crud-form" onSubmit={onGuardarMaestro}>
+        <div className="cat-maestros-crud-layout">
+          <section className="cat-maestros-card cat-maestros-card--form">
+            <div className="cat-maestros-card-head">
+              <span className="cat-maestros-card-icon">
+                <Users size={18} aria-hidden />
+              </span>
+              <h2 className="cat-maestros-card-title">{editMaestroId ? 'Editar maestro' : 'Nuevo maestro'}</h2>
+            </div>
+            <form className="ciclos-crud-form cat-maestros-form" onSubmit={onGuardarMaestro}>
               <div className="ciclos-crud-field-row">
                 <div className="ciclos-crud-field">
                   <label htmlFor="cm-nombre">Nombre(s)</label>
@@ -472,12 +614,12 @@ export default function CatalogoMaestrosModulo() {
                 </div>
               </div>
               <div className="ciclos-crud-form-actions">
-                <button type="submit" className="ciclos-crud-btn ciclos-crud-btn--primary" disabled={guardando}>
+                <button type="submit" className="cat-maestros-btn cat-maestros-btn--primary" disabled={guardando}>
                   {guardando ? <Loader2 size={18} className="ciclos-crud-spin" aria-hidden /> : null}
                   {editMaestroId ? 'Actualizar' : 'Registrar maestro'}
                 </button>
                 {editMaestroId ? (
-                  <button type="button" className="ciclos-crud-btn ciclos-crud-btn--ghost" onClick={resetMaestro}>
+                  <button type="button" className="cat-maestros-btn cat-maestros-btn--ghost" onClick={resetMaestro}>
                     Cancelar
                   </button>
                 ) : null}
@@ -485,16 +627,21 @@ export default function CatalogoMaestrosModulo() {
             </form>
           </section>
 
-          <section className="ciclos-crud-table-card">
-            <div className="ciclos-crud-table-header">
-              <h2 className="ciclos-crud-form-title">Maestros registrados</h2>
-              <button type="button" className="ciclos-crud-btn ciclos-crud-btn--secondary" onClick={resetMaestro}>
+          <section className="cat-maestros-card cat-maestros-card--table">
+            <div className="cat-maestros-card-head cat-maestros-card-head--row">
+              <div>
+                <span className="cat-maestros-card-icon">
+                  <Users size={18} aria-hidden />
+                </span>
+                <h2 className="cat-maestros-card-title">Maestros registrados</h2>
+              </div>
+              <button type="button" className="cat-maestros-btn cat-maestros-btn--secondary" onClick={resetMaestro}>
                 <Plus size={16} aria-hidden />
                 Nuevo
               </button>
             </div>
-            <div className="ciclos-crud-table-wrap">
-              <table className="ciclos-crud-table">
+            <div className="cat-maestros-table-wrap">
+              <table className="cat-maestros-table">
                 <thead>
                   <tr>
                     <th>Nombre</th>
@@ -505,14 +652,23 @@ export default function CatalogoMaestrosModulo() {
                 </thead>
                 <tbody>
                   {maestros.map((m) => (
-                    <tr key={m.maestro_id} className={editMaestroId === m.maestro_id ? 'ciclos-crud-row--active' : ''}>
-                      <td>{nombreMaestro(m)}</td>
-                      <td>{m.maestro_usuario}</td>
+                    <tr key={m.maestro_id} className={editMaestroId === m.maestro_id ? 'cat-maestros-row--active' : ''}>
+                      <td>
+                        <span className="cat-maestros-person">
+                          <span className="cat-maestros-avatar" aria-hidden>
+                            {inicialesMaestro(m)}
+                          </span>
+                          <span className="cat-maestros-person-name">{nombreMaestro(m)}</span>
+                        </span>
+                      </td>
+                      <td>
+                        <code className="cat-maestros-user-chip">{m.maestro_usuario}</code>
+                      </td>
                       <td>{m.maestro_email ?? '—'}</td>
-                      <td className="ciclos-crud-actions">
+                      <td className="cat-maestros-actions">
                         <button
                           type="button"
-                          className="ciclos-crud-icon-btn"
+                          className="cat-maestros-icon-btn"
                           aria-label={`Editar ${m.maestro_usuario}`}
                           onClick={() => {
                             setEditMaestroId(m.maestro_id)
@@ -533,7 +689,7 @@ export default function CatalogoMaestrosModulo() {
                         </button>
                         <button
                           type="button"
-                          className="ciclos-crud-icon-btn ciclos-crud-icon-btn--danger"
+                          className="cat-maestros-icon-btn cat-maestros-icon-btn--danger"
                           aria-label={`Eliminar ${m.maestro_usuario}`}
                           disabled={guardando}
                           onClick={() => void onEliminarMaestro(m)}
@@ -551,10 +707,15 @@ export default function CatalogoMaestrosModulo() {
       ) : null}
 
       {subTab === 'materias' && modoSecundaria ? (
-        <div className="ciclos-crud-layout">
-          <section className="ciclos-crud-form-card">
-            <h2 className="ciclos-crud-form-title">{editMateriaId ? 'Editar materia' : 'Nueva materia'}</h2>
-            <form className="ciclos-crud-form" onSubmit={onGuardarMateria}>
+        <div className="cat-maestros-crud-layout">
+          <section className="cat-maestros-card cat-maestros-card--form">
+            <div className="cat-maestros-card-head">
+              <span className="cat-maestros-card-icon">
+                <BookMarked size={18} aria-hidden />
+              </span>
+              <h2 className="cat-maestros-card-title">{editMateriaId ? 'Editar materia' : 'Nueva materia'}</h2>
+            </div>
+            <form className="ciclos-crud-form cat-maestros-form" onSubmit={onGuardarMateria}>
               <div className="ciclos-crud-field">
                 <label htmlFor="cm-mat-nombre">Nombre *</label>
                 <input
@@ -591,11 +752,11 @@ export default function CatalogoMaestrosModulo() {
                 </div>
               </div>
               <div className="ciclos-crud-form-actions">
-                <button type="submit" className="ciclos-crud-btn ciclos-crud-btn--primary" disabled={guardando}>
+                <button type="submit" className="cat-maestros-btn cat-maestros-btn--primary" disabled={guardando}>
                   {editMateriaId ? 'Actualizar' : 'Crear materia'}
                 </button>
                 {editMateriaId ? (
-                  <button type="button" className="ciclos-crud-btn ciclos-crud-btn--ghost" onClick={resetMateria}>
+                  <button type="button" className="cat-maestros-btn cat-maestros-btn--ghost" onClick={resetMateria}>
                     Cancelar
                   </button>
                 ) : null}
@@ -603,9 +764,14 @@ export default function CatalogoMaestrosModulo() {
             </form>
           </section>
 
-          <section className="ciclos-crud-table-card">
-            <div className="ciclos-crud-table-header">
-              <h2 className="ciclos-crud-form-title">Materias de secundaria</h2>
+          <section className="cat-maestros-card cat-maestros-card--table">
+            <div className="cat-maestros-card-head cat-maestros-card-head--row">
+              <div>
+                <span className="cat-maestros-card-icon">
+                  <BookMarked size={18} aria-hidden />
+                </span>
+                <h2 className="cat-maestros-card-title">Materias de secundaria</h2>
+              </div>
               <select
                 className="cat-maestros-filtro-grado"
                 value={filtroGradoMateria}
@@ -620,8 +786,8 @@ export default function CatalogoMaestrosModulo() {
                 ))}
               </select>
             </div>
-            <div className="ciclos-crud-table-wrap">
-              <table className="ciclos-crud-table">
+            <div className="cat-maestros-table-wrap">
+              <table className="cat-maestros-table">
                 <thead>
                   <tr>
                     <th>Materia</th>
@@ -632,15 +798,18 @@ export default function CatalogoMaestrosModulo() {
                 </thead>
                 <tbody>
                   {materias.map((m) => (
-                    <tr key={m.materia_id} className={editMateriaId === m.materia_id ? 'ciclos-crud-row--active' : ''}>
-                      <td>{m.materia_nombre}</td>
-                      <td>{gradosSecundaria.find((g) => g.valor === m.materia_grado)?.etiqueta ?? m.materia_grado}</td>
+                    <tr key={m.materia_id} className={editMateriaId === m.materia_id ? 'cat-maestros-row--active' : ''}>
+                      <td>
+                        <span className="cat-maestros-materia-tag">{m.materia_nombre}</span>
+                      </td>
+                      <td>
+                        <span className="cat-maestros-grado-chip">
+                          {gradosSecundaria.find((g) => g.valor === m.materia_grado)?.etiqueta ?? m.materia_grado}
+                        </span>
+                      </td>
                       <td>{m.materia_orden}</td>
-                      <td className="ciclos-crud-actions">
-                        <button
-                          type="button"
-                          className="ciclos-crud-icon-btn"
-                          onClick={() => {
+                      <td className="cat-maestros-actions">
+                        <button type="button" className="cat-maestros-icon-btn" onClick={() => {
                             setEditMateriaId(m.materia_id)
                             setFormMateria({
                               materia_id: m.materia_id,
@@ -655,7 +824,7 @@ export default function CatalogoMaestrosModulo() {
                         </button>
                         <button
                           type="button"
-                          className="ciclos-crud-icon-btn ciclos-crud-icon-btn--danger"
+                          className="cat-maestros-icon-btn cat-maestros-icon-btn--danger"
                           disabled={guardando}
                           onClick={() => void onEliminarMateria(m)}
                         >
@@ -672,10 +841,15 @@ export default function CatalogoMaestrosModulo() {
       ) : null}
 
       {subTab === 'asignaciones' && modoSecundaria ? (
-        <div className="ciclos-crud-layout">
-          <section className="ciclos-crud-form-card">
-            <h2 className="ciclos-crud-form-title">{editAsigId ? 'Editar asignación' : 'Nueva asignación'}</h2>
-            <form className="ciclos-crud-form" onSubmit={onGuardarAsigSecundaria}>
+        <div className="cat-maestros-crud-layout">
+          <section className="cat-maestros-card cat-maestros-card--form">
+            <div className="cat-maestros-card-head">
+              <span className="cat-maestros-card-icon">
+                <Link2 size={18} aria-hidden />
+              </span>
+              <h2 className="cat-maestros-card-title">{editAsigId ? 'Editar asignación' : 'Nueva asignación'}</h2>
+            </div>
+            <form className="ciclos-crud-form cat-maestros-form" onSubmit={onGuardarAsigSecundaria}>
               <div className="ciclos-crud-field">
                 <label htmlFor="cm-asig-maestro">Maestro *</label>
                 <select
@@ -724,11 +898,11 @@ export default function CatalogoMaestrosModulo() {
                 </select>
               </div>
               <div className="ciclos-crud-form-actions">
-                <button type="submit" className="ciclos-crud-btn ciclos-crud-btn--primary" disabled={guardando}>
+                <button type="submit" className="cat-maestros-btn cat-maestros-btn--primary" disabled={guardando}>
                   {editAsigId ? 'Actualizar' : 'Asignar'}
                 </button>
                 {editAsigId ? (
-                  <button type="button" className="ciclos-crud-btn ciclos-crud-btn--ghost" onClick={resetAsig}>
+                  <button type="button" className="cat-maestros-btn cat-maestros-btn--ghost" onClick={resetAsig}>
                     Cancelar
                   </button>
                 ) : null}
@@ -736,10 +910,15 @@ export default function CatalogoMaestrosModulo() {
             </form>
           </section>
 
-          <section className="ciclos-crud-table-card">
-            <h2 className="ciclos-crud-form-title">Asignaciones secundaria</h2>
-            <div className="ciclos-crud-table-wrap">
-              <table className="ciclos-crud-table">
+          <section className="cat-maestros-card cat-maestros-card--table">
+            <div className="cat-maestros-card-head">
+              <span className="cat-maestros-card-icon">
+                <Link2 size={18} aria-hidden />
+              </span>
+              <h2 className="cat-maestros-card-title">Asignaciones secundaria</h2>
+            </div>
+            <div className="cat-maestros-table-wrap">
+              <table className="cat-maestros-table">
                 <thead>
                   <tr>
                     <th>Maestro</th>
@@ -751,14 +930,19 @@ export default function CatalogoMaestrosModulo() {
                 <tbody>
                   {asignaciones.map((a) => (
                     <tr key={a.grupo_id}>
-                      <td>{a.maestro_nombre}</td>
-                      <td>{a.materia_nombre}</td>
-                      <td>{a.grupo_letra}</td>
-                      <td className="ciclos-crud-actions">
-                        <button
-                          type="button"
-                          className="ciclos-crud-icon-btn"
-                          onClick={() => {
+                      <td>
+                        <span className="cat-maestros-person-name">{a.maestro_nombre}</span>
+                      </td>
+                      <td>
+                        <span className="cat-maestros-materia-tag cat-maestros-materia-tag--sm">
+                          {a.materia_nombre}
+                        </span>
+                      </td>
+                      <td>
+                        <GrupoBadge valor={a.grupo_letra} />
+                      </td>
+                      <td className="cat-maestros-actions">
+                        <button type="button" className="cat-maestros-icon-btn" onClick={() => {
                             setEditAsigId(a.grupo_id)
                             setFormAsig({
                               maestro_id: a.maestro_id,
@@ -771,7 +955,7 @@ export default function CatalogoMaestrosModulo() {
                         </button>
                         <button
                           type="button"
-                          className="ciclos-crud-icon-btn ciclos-crud-icon-btn--danger"
+                          className="cat-maestros-icon-btn cat-maestros-icon-btn--danger"
                           disabled={guardando}
                           onClick={() => void onEliminarAsig(a)}
                         >
@@ -788,13 +972,20 @@ export default function CatalogoMaestrosModulo() {
       ) : null}
 
       {subTab === 'asignaciones' && !modoSecundaria ? (
-        <section className="ciclos-crud-table-card cat-maestros-grid-card">
-          <h2 className="ciclos-crud-form-title">Asignación por grado y grupo</h2>
-          <p className="servicios-panel-hint cat-maestros-grid-hint">
-            Maestro(a) = español · Teacher = inglés. Elige docente por celda; vacío quita la asignación.
+        <section className="cat-maestros-card cat-maestros-card--table cat-maestros-grid-card">
+          <div className="cat-maestros-card-head">
+            <span className="cat-maestros-card-icon">
+              <Link2 size={18} aria-hidden />
+            </span>
+            <h2 className="cat-maestros-card-title">Asignación por grado y grupo</h2>
+          </div>
+          <p className="cat-maestros-grid-hint">
+            <span className="cat-maestros-legend cat-maestros-legend--es">Maestro(a)</span> español ·{' '}
+            <span className="cat-maestros-legend cat-maestros-legend--en">Teacher</span> inglés. Vacío quita la
+            asignación.
           </p>
-          <div className="ciclos-crud-table-wrap">
-            <table className="ciclos-crud-table cat-maestros-grid">
+          <div className="cat-maestros-table-wrap">
+            <table className="cat-maestros-table cat-maestros-grid">
               <thead>
                 <tr>
                   <th>Grado</th>
@@ -871,6 +1062,7 @@ export default function CatalogoMaestrosModulo() {
           </div>
         </section>
       ) : null}
+      </div>
     </div>
   )
 }
