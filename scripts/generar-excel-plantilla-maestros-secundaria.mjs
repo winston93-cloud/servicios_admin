@@ -197,7 +197,7 @@ ws.getRow(1).height = 28
 ws.mergeCells('A2', 'K2')
 const sub = ws.getCell('A2')
 sub.value =
-  'Plantilla secundaria · Arriba: con clase 26-27 · Abajo: sin asignación · Marque Baja = SÍ cuando aplique'
+  'Plantilla secundaria · Depurada 26-ago · Con clase arriba · Sin asignación: solo cuentas auxiliares (YOLANDA / IDIOMAS) · Bajas ya aplicadas en BD'
 sub.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF5E6C84' } }
 sub.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true }
 ws.getRow(2).height = 22
@@ -237,14 +237,26 @@ headerRow.eachCell((cell, col) => {
   }
 })
 
+/** Notas fijas en filas con clase (nuevos / aclaraciones) */
+const NOTAS_ASIGNADOS = {
+  cristina: 'NUEVO INGRESO EN SECUNDARIA',
+  leslie: 'NUEVO INGRESO 26-27',
+  jenifer: 'NUEVO INGRESO A SECUNDARIA',
+  ingrid: 'NUEVO INGRESO 26-27',
+  rosa: 'NUEVO INGRESO 26-27',
+  dinorah: 'NUEVO INGRESO 26-27',
+  melissa: 'Cuenta activa (antes registrada como Elizabeth Gamez / eli)',
+}
+
 for (const [key, info] of ordered) {
   const checks = matrix.get(key)
+  const u = String(info.usuario || '').toLowerCase()
   const rowVals = [
     info.asignatura,
     info.maestro,
     ...GRUPOS.map((g) => (checks.has(g) ? '✓' : '')),
-    '', // Baja
-    '', // Notas
+    'NO',
+    NOTAS_ASIGNADOS[u] || '',
   ]
   const row = ws.addRow(rowVals)
   row.height = 20
@@ -360,14 +372,22 @@ sep.getCell(1).fill = {
 sep.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' }
 sep.height = 22
 
+/** Cuentas auxiliares sin clase: no son baja */
+const NOTAS_SIN_ASIG = {
+  yoli: 'Clave auxiliar para capturar / entrar a reportes — NO TOCAR',
+  lion: 'Clave que usa teacher Karla (IDIOMAS) — NO TOCAR',
+}
+
 const sinStart = sep.number + 1
 for (const t of sinAsig) {
+  const u = String(t.usuario || '').toLowerCase()
+  const nota = NOTAS_SIN_ASIG[u] || 'Sin clase secundaria'
   const rowVals = [
     '(sin clase)',
-    t.maestro,
+    t.maestro || t.nombre_completo,
     ...GRUPOS.map(() => ''),
-    '',
-    '',
+    'NO',
+    nota,
   ]
   const row = ws.addRow(rowVals)
   row.height = 20
@@ -475,14 +495,18 @@ for (const t of [...byTeacher.values()].sort((a, b) => {
   if (a.con_asignacion !== b.con_asignacion) return a.con_asignacion ? -1 : 1
   return a.nombre_completo.localeCompare(b.nombre_completo, 'es')
 })) {
+  const u = String(t.usuario || '').toLowerCase()
+  const notaCat = t.con_asignacion
+    ? NOTAS_ASIGNADOS[u] || ''
+    : NOTAS_SIN_ASIG[u] || ''
   const r = ws2.addRow([
     t.maestro_id,
     t.usuario,
     t.nombre_completo,
     t.con_asignacion ? 'Sí' : 'No',
     t.con_asignacion ? [...t.asignaturas].join(', ') : '—',
-    '',
-    '',
+    'NO',
+    notaCat,
   ])
   r.eachCell((c, col) => {
     c.border = borderAll
