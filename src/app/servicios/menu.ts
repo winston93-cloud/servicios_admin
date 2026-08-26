@@ -22,6 +22,7 @@ import {
   Sparkles,
   CalendarDays,
   Clock,
+  School,
 } from 'lucide-react'
 
 export type ServiciosModuloId =
@@ -50,6 +51,7 @@ export type ServiciosModuloId =
   | 'cargo-extra'
   | 'pagos-colegiaturas-paquete'
   | 'adeudos-egresados'
+  | 'catalogo-maestros'
 
 export interface ServiciosSubMenuItem {
   id: ServiciosModuloId
@@ -146,6 +148,12 @@ export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
     id: 'adeudos-egresados',
     label: 'Adeudos egresados',
     icon: GraduationCap,
+  },
+  {
+    type: 'leaf',
+    id: 'catalogo-maestros',
+    label: 'Catálogo de maestros',
+    icon: School,
   },
 ]
 

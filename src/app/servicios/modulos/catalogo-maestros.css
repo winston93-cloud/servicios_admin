@@ -1,0 +1,53 @@
+.cat-maestros-nivel-tabs {
+  margin-bottom: 0.75rem;
+}
+
+.cat-maestros-sub-tabs {
+  margin-bottom: 1.25rem;
+}
+
+.cat-maestros-filtro-grado {
+  min-height: var(--touch-min, 44px);
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.35));
+  background: var(--surface-raised, rgba(15, 23, 42, 0.4));
+  color: inherit;
+  font-size: 0.95rem;
+}
+
+.cat-maestros-grid-card {
+  margin-top: 0.5rem;
+}
+
+.cat-maestros-grid-hint {
+  margin: 0 0 1rem;
+}
+
+.cat-maestros-select {
+  width: 100%;
+  min-width: 8rem;
+  min-height: var(--touch-min, 44px);
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, rgba(148, 163, 184, 0.35));
+  background: var(--surface-raised, rgba(15, 23, 42, 0.4));
+  color: inherit;
+  font-size: 16px;
+}
+
+.cat-maestros-grid th,
+.cat-maestros-grid td {
+  vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+  .cat-maestros-grid-card .ciclos-crud-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cat-maestros-select {
+    min-width: 7rem;
+  }
+}

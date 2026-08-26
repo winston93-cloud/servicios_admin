@@ -38,6 +38,7 @@ import PagoAnualModulo from './modulos/PagoAnualModulo'
 import CargoExtraModulo from './modulos/CargoExtraModulo'
 import PagosColegiaturasPaqueteModulo from './modulos/PagosColegiaturasPaqueteModulo'
 import AdeudosEgresadosModulo from './modulos/AdeudosEgresadosModulo'
+import CatalogoMaestrosModulo from './modulos/CatalogoMaestrosModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
 import ThemeToggle from '@/components/ThemeToggle'
 import { AlumnoSeleccionadoProvider } from '@/contexts/AlumnoSeleccionadoContext'
@@ -121,6 +122,8 @@ function ServiciosPanelContenido({
       return <PagosColegiaturasPaqueteModulo />
     case 'adeudos-egresados':
       return <AdeudosEgresadosModulo />
+    case 'catalogo-maestros':
+      return <CatalogoMaestrosModulo />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }
