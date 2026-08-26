@@ -17,8 +17,9 @@ import {
 import ThemeToggle from '@/components/ThemeToggle'
 import DocumentoPreview from './components/DocumentoPreview'
 import FirmaCapture from './components/FirmaCapture'
+import FelicitacionesModal from './components/FelicitacionesModal'
 import { crearCartaBecaPdf } from './lib/crearCartaBecaPdf'
-import { datosCartaParaPdf } from './lib/datosPruebaCartas'
+import { datosCartaParaPdf, tipoBecaCompleto } from './lib/datosPruebaCartas'
 import { incrustarFirmaEnPdf } from './lib/incrustarFirmaPdf'
 import {
   PLANTILLAS_NIVEL,
@@ -69,6 +70,7 @@ function FirmaElectronicaView() {
   const [guardando, setGuardando] = useState(false)
   const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState(false)
+  const [mostrarFelicitaciones, setMostrarFelicitaciones] = useState(false)
   const [acepto, setAcepto] = useState(false)
   const [nombreTutor, setNombreTutor] = useState('')
   const [firmaKey, setFirmaKey] = useState(0)
@@ -84,6 +86,7 @@ function FirmaElectronicaView() {
         setError(null)
         setOkMsg(null)
         setEnviado(false)
+        setMostrarFelicitaciones(false)
         setEnviando(false)
         setAcepto(false)
         setNombreTutor('')
@@ -160,7 +163,7 @@ function FirmaElectronicaView() {
         })
         setEnviado(false)
         setOkMsg(
-          'Firma aplicada al PDF. Revisa el documento firmado y pulsa Enviar carta de aceptación.'
+          'Firma aplicada al PDF. Revisa el documento y envía la carta para activar la beca.'
         )
         // Tras pintar el PDF firmado, bajar al paso 3 + Enviar.
         window.setTimeout(() => {
@@ -192,7 +195,8 @@ function FirmaElectronicaView() {
       // Sandbox: simula guardado/envío de la carta ya firmada.
       await new Promise((r) => setTimeout(r, 450))
       setEnviado(true)
-      setOkMsg('Carta de aceptación firmada guardada y enviada.')
+      setMostrarFelicitaciones(true)
+      setOkMsg(null)
       window.setTimeout(() => {
         scrollSuaveA(colFirmadoRef.current, { block: 'nearest' })
       }, 80)
@@ -220,6 +224,7 @@ function FirmaElectronicaView() {
       return null
     })
     setEnviado(false)
+    setMostrarFelicitaciones(false)
     setEnviando(false)
     setAcepto(false)
     setNombreTutor('')
@@ -233,6 +238,8 @@ function FirmaElectronicaView() {
 
   const plantilla = plantillaPorNivel(nivel)
   const datos = datosCartaParaPdf(nivel)
+  const tipoBecaLabel = tipoBecaCompleto(datos.tipoBeca, datos.porcentaje)
+  const textoEnviar = `Enviar carta y Activar Beca ${tipoBecaLabel}`
 
   return (
     <div className="fe-page">
@@ -346,15 +353,8 @@ function FirmaElectronicaView() {
           </div>
 
           <div className="fe-col-firmado" ref={colFirmadoRef}>
-            <DocumentoPreview
-              title="3. Documento firmado"
-              url={firmadoUrl}
-              downloadFileName="carta-aceptacion-beca-firmada.pdf"
-              emptyLabel="Cuando guardes la firma, el PDF firmado aparecerá aquí."
-            />
-
             {firmadoUrl && !enviado ? (
-              <div className="fe-enviar-block">
+              <div className="fe-enviar-block fe-enviar-block--top">
                 <button
                   type="button"
                   className="fe-btn fe-btn--enviar"
@@ -366,15 +366,21 @@ function FirmaElectronicaView() {
                   ) : (
                     <Send size={16} aria-hidden />
                   )}
-                  {enviando
-                    ? 'Enviando…'
-                    : 'Enviar carta de aceptación'}
+                  {enviando ? 'Activando beca…' : textoEnviar}
                 </button>
                 <p className="fe-enviar-hint">
-                  Revisa y descarga el PDF firmado arriba. Luego confirma el envío.
+                  Confirma el envío de la carta firmada y la activación de la beca. Revisa el
+                  PDF abajo antes de continuar.
                 </p>
               </div>
             ) : null}
+
+            <DocumentoPreview
+              title="3. Documento firmado"
+              url={firmadoUrl}
+              downloadFileName="carta-aceptacion-beca-firmada.pdf"
+              emptyLabel="Cuando guardes la firma, el PDF firmado aparecerá aquí."
+            />
 
             {enviado ? (
               <div className="fe-enviar-block">
@@ -384,7 +390,7 @@ function FirmaElectronicaView() {
                   disabled
                 >
                   <CheckCircle2 size={16} aria-hidden />
-                  Carta enviada
+                  Beca activada · carta enviada
                 </button>
                 <div className="fe-reinicio">
                   <button
@@ -405,6 +411,15 @@ function FirmaElectronicaView() {
           </div>
         </div>
       </main>
+
+      <FelicitacionesModal
+        open={mostrarFelicitaciones}
+        onClose={() => setMostrarFelicitaciones(false)}
+        alumnoNombre={datos.alumnoNombre}
+        tipoBecaLabel={tipoBecaLabel}
+        cicloLabel={datos.cicloLabel}
+        grado={datos.grado}
+      />
     </div>
   )
 }
