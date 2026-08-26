@@ -117,12 +117,12 @@ export async function incrustarFirmaEnPdf(
   const fechaSize = 9
   const fechaW = fontFecha.widthOfTextAtSize(fecha, fechaSize)
   const fechaCenterX = firmaBox.fechaCenterX
-  const fechaValorY = firmaBox.fechaValorY || lineY - 12
+  const fechaValorY = firmaBox.fechaValorY || firmaBox.y + 58
   page.drawRectangle({
     x: fechaCenterX - fechaColHalfWidth(firmaBox),
     y: fechaValorY - 4,
     width: fechaColHalfWidth(firmaBox) * 2,
-    height: 16,
+    height: 20,
     color: rgb(1, 1, 1),
   })
   page.drawText(fecha, {

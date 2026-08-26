@@ -401,6 +401,7 @@ export async function crearCartaBecaPdf(
     height: 86,
     fechaCenterX: 0,
     fechaValorY: 0,
+    fechaLineY: 0,
     fechaLabelY: 0,
     nombreY: 0,
     nombreMaxWidth: 260,
@@ -440,15 +441,16 @@ export async function crearCartaBecaPdf(
   const fechaColLeft = firmaBox.x + 290
   const fechaColRight = MX + CONTENT_W
   const fechaColCenter = (fechaColLeft + fechaColRight) / 2
+  firmaBox.fechaCenterX = fechaColCenter
+  firmaBox.fechaValorY = firmaBox.y + 58
+  firmaBox.fechaLineY = firmaBox.y + 44
+  firmaBox.fechaLabelY = firmaBox.y + 28
   page.drawLine({
-    start: { x: fechaColLeft, y: lineY },
-    end: { x: fechaColRight, y: lineY },
+    start: { x: fechaColLeft, y: firmaBox.fechaLineY },
+    end: { x: fechaColRight, y: firmaBox.fechaLineY },
     thickness: 0.6,
     color: BLUE_LINE,
   })
-  firmaBox.fechaCenterX = fechaColCenter
-  firmaBox.fechaValorY = lineY - 12
-  firmaBox.fechaLabelY = lineY - 26
   const fechaLabel = 'FECHA DE FIRMA'
   const fechaLabelSize = 7.5
   const fechaLabelW = fontBold.widthOfTextAtSize(fechaLabel, fechaLabelSize)
