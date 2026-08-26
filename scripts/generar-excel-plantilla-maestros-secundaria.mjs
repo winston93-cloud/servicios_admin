@@ -197,7 +197,7 @@ ws.getRow(1).height = 28
 ws.mergeCells('A2', 'K2')
 const sub = ws.getCell('A2')
 sub.value =
-  'Plantilla secundaria · Marque Baja = SÍ cuando aplique · Generado desde InsForge (boleta_maestro_grupo)'
+  'Plantilla secundaria · Arriba: con clase 26-27 · Abajo: sin asignación · Marque Baja = SÍ cuando aplique'
 sub.font = { name: 'Calibri', size: 10, italic: true, color: { argb: 'FF5E6C84' } }
 sub.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true }
 ws.getRow(2).height = 22
@@ -301,8 +301,9 @@ for (let c = 3; c <= 10; c++) ws.getColumn(c).width = 7
 ws.getColumn(11).width = 10
 ws.getColumn(12).width = 32
 
-// Validación Baja
-for (let r = 4; r <= 3 + ordered.length; r++) {
+// Validación Baja (solo filas de matriz con asignación)
+const lastAsigRow = 3 + ordered.length
+for (let r = 4; r <= lastAsigRow; r++) {
   ws.getCell(r, 11).dataValidation = {
     type: 'list',
     allowBlank: true,
@@ -313,12 +314,126 @@ for (let r = 4; r <= 3 + ordered.length; r++) {
   }
 }
 
-// Hoja auxiliar: catálogo maestros (para bajas / referencia)
+// Separador + maestros en boleta_maestro sin asignación secundaria
+const conAsigIds = new Set(ordered.map(([, info]) => info.maestro_id))
+const sinAsig = (maes.data || [])
+  .filter((m) => !conAsigIds.has(Number(m.maestro_id)))
+  .map((m) => ({
+    maestro_id: Number(m.maestro_id),
+    usuario: m.maestro_usuario,
+    nombre_completo: [m.maestro_nombre, m.maestro_app, m.maestro_apm]
+      .filter(Boolean)
+      .join(' '),
+    maestro: nombreCortoMaestro(
+      [m.maestro_nombre, m.maestro_app, m.maestro_apm].filter(Boolean).join(' ')
+    ),
+  }))
+  .sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo, 'es'))
+
+ws.addRow([])
+const sep = ws.addRow([
+  'SIN ASIGNACIÓN SECUNDARIA (sí están en boleta_maestro)',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+  '',
+])
+ws.mergeCells(sep.number, 1, sep.number, 12)
+sep.getCell(1).font = {
+  name: 'Calibri',
+  size: 12,
+  bold: true,
+  color: { argb: 'FFFFFFFF' },
+}
+sep.getCell(1).fill = {
+  type: 'pattern',
+  pattern: 'solid',
+  fgColor: { argb: 'FF833C0C' },
+}
+sep.getCell(1).alignment = { vertical: 'middle', horizontal: 'left' }
+sep.height = 22
+
+const sinStart = sep.number + 1
+for (const t of sinAsig) {
+  const rowVals = [
+    '(sin clase)',
+    t.maestro,
+    ...GRUPOS.map(() => ''),
+    '',
+    '',
+  ]
+  const row = ws.addRow(rowVals)
+  row.height = 20
+  row.eachCell((cell, col) => {
+    cell.border = borderAll
+    cell.font = { name: 'Calibri', size: 11, color: { argb: 'FF16213E' } }
+    if (col === 1 || col === 2) {
+      cell.alignment = { vertical: 'middle', horizontal: 'left' }
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF2F2F2' },
+      }
+      if (col === 1) {
+        cell.font = {
+          name: 'Calibri',
+          size: 11,
+          italic: true,
+          color: { argb: 'FF833C0C' },
+        }
+      }
+    } else if (col >= 3 && col <= 10) {
+      cell.alignment = { vertical: 'middle', horizontal: 'center' }
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFBFBFBF' },
+      }
+    } else if (col === 11) {
+      cell.alignment = { vertical: 'middle', horizontal: 'center' }
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFF9F0' },
+      }
+    }
+  })
+}
+const sinEnd = sinStart + sinAsig.length - 1
+if (sinAsig.length) {
+  for (let r = sinStart; r <= sinEnd; r++) {
+    ws.getCell(r, 11).dataValidation = {
+      type: 'list',
+      allowBlank: true,
+      formulae: ['"SÍ,NO"'],
+      showErrorMessage: true,
+      errorTitle: 'Baja',
+      error: 'Elija SÍ o NO',
+    }
+  }
+}
+
+// Anchos
+ws.getColumn(1).width = 16
+ws.getColumn(2).width = 24
+for (let c = 3; c <= 10; c++) ws.getColumn(c).width = 7
+ws.getColumn(11).width = 10
+ws.getColumn(12).width = 32
+
+// Hoja auxiliar: catálogo completo
 const ws2 = wb.addWorksheet('Catálogo maestros')
 ws2.addRow([
   'maestro_id',
   'Usuario',
   'Nombre completo',
+  'Asignación secundaria',
   'Asignaturas (resumen)',
   'Baja',
   'Notas',
@@ -340,26 +455,49 @@ for (const [, info] of ordered) {
     byTeacher.set(id, {
       ...info,
       asignaturas: new Set([info.asignatura]),
+      con_asignacion: true,
     })
   } else {
     byTeacher.get(id).asignaturas.add(info.asignatura)
   }
 }
-for (const t of [...byTeacher.values()].sort((a, b) =>
-  a.nombre_completo.localeCompare(b.nombre_completo, 'es')
-)) {
+for (const t of sinAsig) {
+  byTeacher.set(t.maestro_id, {
+    maestro_id: t.maestro_id,
+    usuario: t.usuario,
+    nombre_completo: t.nombre_completo,
+    asignaturas: new Set(),
+    con_asignacion: false,
+  })
+}
+
+for (const t of [...byTeacher.values()].sort((a, b) => {
+  if (a.con_asignacion !== b.con_asignacion) return a.con_asignacion ? -1 : 1
+  return a.nombre_completo.localeCompare(b.nombre_completo, 'es')
+})) {
   const r = ws2.addRow([
     t.maestro_id,
     t.usuario,
     t.nombre_completo,
-    [...t.asignaturas].join(', '),
+    t.con_asignacion ? 'Sí' : 'No',
+    t.con_asignacion ? [...t.asignaturas].join(', ') : '—',
     '',
     '',
   ])
-  r.eachCell((c) => {
+  r.eachCell((c, col) => {
     c.border = borderAll
+    if (!t.con_asignacion) {
+      c.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF2F2F2' },
+      }
+    }
+    if (col === 4 && !t.con_asignacion) {
+      c.font = { italic: true, color: { argb: 'FF833C0C' } }
+    }
   })
-  ws2.getCell(r.number, 5).dataValidation = {
+  ws2.getCell(r.number, 6).dataValidation = {
     type: 'list',
     allowBlank: true,
     formulae: ['"SÍ,NO"'],
@@ -368,9 +506,10 @@ for (const t of [...byTeacher.values()].sort((a, b) =>
 ws2.getColumn(1).width = 12
 ws2.getColumn(2).width = 14
 ws2.getColumn(3).width = 36
-ws2.getColumn(4).width = 40
-ws2.getColumn(5).width = 10
-ws2.getColumn(6).width = 28
+ws2.getColumn(4).width = 18
+ws2.getColumn(5).width = 40
+ws2.getColumn(6).width = 10
+ws2.getColumn(7).width = 28
 
 const out = resolve(
   process.env.HOME || '.',
@@ -378,4 +517,6 @@ const out = resolve(
 )
 await wb.xlsx.writeFile(out)
 console.log(`OK → ${out}`)
-console.log(`Filas matriz: ${ordered.length} | Maestros únicos: ${byTeacher.size}`)
+console.log(
+  `Con asignación: ${ordered.length} filas / ${conAsigIds.size} maestros | Sin asignación: ${sinAsig.length}`
+)
