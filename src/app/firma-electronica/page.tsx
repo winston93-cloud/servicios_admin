@@ -375,15 +375,8 @@ function FirmaElectronicaView() {
               </div>
             ) : null}
 
-            <DocumentoPreview
-              title="3. Documento firmado"
-              url={firmadoUrl}
-              downloadFileName="carta-aceptacion-beca-firmada.pdf"
-              emptyLabel="Cuando guardes la firma, el PDF firmado aparecerá aquí."
-            />
-
             {enviado ? (
-              <div className="fe-enviar-block">
+              <div className="fe-enviar-block fe-enviar-block--top">
                 <button
                   type="button"
                   className="fe-btn fe-btn--enviar is-sent"
@@ -402,12 +395,19 @@ function FirmaElectronicaView() {
                     Eliminar y reiniciar proceso
                   </button>
                   <p className="fe-reinicio-hint">
-                    Borra la carta firmada guardada y vuelve al inicio para
+                    Borra la carta firmada enviada y vuelve al inicio para
                     firmar de nuevo.
                   </p>
                 </div>
               </div>
             ) : null}
+
+            <DocumentoPreview
+              title="3. Documento firmado"
+              url={firmadoUrl}
+              downloadFileName="carta-aceptacion-beca-firmada.pdf"
+              emptyLabel="Cuando apliques la firma, el PDF firmado aparecerá aquí."
+            />
           </div>
         </div>
       </main>
