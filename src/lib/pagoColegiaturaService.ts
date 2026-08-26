@@ -218,10 +218,6 @@ export async function crearPagoColegiaturaManual(
     return { ok: false, mensaje: 'Importe y recargos deben ser números válidos.' }
   }
 
-  if (importe + recargo <= 0) {
-    return { ok: false, mensaje: 'El monto total debe ser mayor a cero.' }
-  }
-
   if (!/^\d{4}-\d{2}-\d{2}$/.test(payload.fechaPago)) {
     return { ok: false, mensaje: 'La fecha de pago no es válida.' }
   }

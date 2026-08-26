@@ -71,10 +71,10 @@ export default function PagosColegiaturaManualForm({
       onError(null)
       setMensaje(null)
 
-      const monto = Number(importe)
-      const montoRecargo = Number(recargo)
+      const monto = importe === '' ? 0 : Number(importe)
+      const montoRecargo = recargo === '' ? 0 : Number(recargo)
       if (!conceptoNo || !Number.isFinite(monto) || monto < 0) {
-        onError('Selecciona concepto e ingresa un monto válido.')
+        onError('Selecciona concepto e ingresa un monto válido (puede ser 0).')
         return
       }
       if (!Number.isFinite(montoRecargo) || montoRecargo < 0) {
