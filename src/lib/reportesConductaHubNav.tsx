@@ -39,20 +39,20 @@ export function reportesConductaHubItems(): ReportesConductaHubItem[] {
   return [
     {
       id: 'kinder',
-      label: 'Kinder',
-      desc: 'Reportes de conducta del nivel preescolar.',
+      label: 'Maternal / Kinder',
+      desc: 'Reportes académicos y de conducta del nivel preescolar.',
       accent: 'sky',
-      kicker: 'Kinder',
-      tags: ['Reportes', 'Seguimiento'],
+      kicker: 'Preescolar',
+      tags: ['Reportes', 'Grado y grupo'],
       icon: ICON_KINDER,
     },
     {
       id: 'primaria',
       label: 'Primaria',
-      desc: 'Reportes de conducta del nivel primaria.',
+      desc: 'Reportes académicos y de conducta del nivel primaria.',
       accent: 'indigo',
       kicker: 'Primaria',
-      tags: ['Reportes', 'Seguimiento'],
+      tags: ['Reportes', 'Grado y grupo'],
       icon: ICON_PRIMARIA,
     },
     {

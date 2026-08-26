@@ -1,0 +1,90 @@
+/* Tema Maternal / Kinder — coral, menta y cielo cálido */
+
+.racn-page--maternal-kinder {
+  --racn-accent: #14b8a6;
+  --racn-accent-light: #99f6e4;
+  --racn-kicker: #f472b6;
+  --racn-border: color-mix(in srgb, #14b8a6 25%, transparent);
+  --racn-accent-gradient: linear-gradient(135deg, #f472b6 0%, #fb923c 35%, #14b8a6 100%);
+  --racn-hero-bg: linear-gradient(135deg, rgba(244, 114, 182, 0.12) 0%, rgba(251, 146, 60, 0.08) 40%, rgba(20, 184, 166, 0.1) 100%);
+  --racn-card-bg: color-mix(in srgb, #134e4a 28%, rgba(255, 255, 255, 0.05));
+  --racn-shadow: 0 24px 64px rgba(19, 78, 74, 0.3);
+}
+
+.racn-page--maternal-kinder .racn-bg {
+  background:
+    radial-gradient(ellipse 70% 55% at 0% 0%, rgba(244, 114, 182, 0.28) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 100% 15%, rgba(251, 146, 60, 0.22) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(20, 184, 166, 0.2) 0%, transparent 50%),
+    var(--dash-bg, #0b0d12);
+}
+
+.racn-page--maternal-kinder .racn-bg::before {
+  content: '';
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  top: 10%;
+  right: -80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(251, 146, 60, 0.15) 0%, transparent 70%);
+  animation: racn-float 12s ease-in-out infinite;
+}
+
+.racn-page--maternal-kinder .racn-bg::after {
+  content: '';
+  position: absolute;
+  width: 240px;
+  height: 240px;
+  bottom: 15%;
+  left: -60px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.12) 0%, transparent 70%);
+  animation: racn-float 10s ease-in-out infinite reverse;
+}
+
+@keyframes racn-float {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.05);
+  }
+}
+
+.racn-page--maternal-kinder .racn-hero-icon {
+  border-radius: 50%;
+  background: var(--racn-accent-gradient);
+}
+
+.racn-page--maternal-kinder .racn-tabs button {
+  border-radius: 999px;
+}
+
+.racn-page--maternal-kinder .racn-tabs button.active {
+  box-shadow: 0 6px 20px rgba(244, 114, 182, 0.35);
+}
+
+.racn-page--maternal-kinder .racn-grupo-badge {
+  border-radius: 16px;
+}
+
+[data-theme='light'] .racn-page--maternal-kinder {
+  --racn-card-bg: rgba(255, 255, 255, 0.94);
+  --racn-border: color-mix(in srgb, #14b8a6 20%, #fce7f3);
+}
+
+[data-theme='light'] .racn-page--maternal-kinder .racn-bg {
+  background:
+    radial-gradient(ellipse 65% 50% at 0% 0%, rgba(244, 114, 182, 0.1) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 100% 20%, rgba(251, 146, 60, 0.08) 0%, transparent 50%),
+    linear-gradient(180deg, #fffbeb 0%, #f0fdfa 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .racn-page--maternal-kinder .racn-bg::before,
+  .racn-page--maternal-kinder .racn-bg::after {
+    animation: none;
+  }
+}

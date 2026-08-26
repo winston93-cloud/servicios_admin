@@ -1,0 +1,461 @@
+/* Base compartida RAC Primaria / Maternal-Kinder — no tocar secundaria */
+
+.racn-page {
+  min-height: 100dvh;
+  position: relative;
+}
+
+.racn-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.racn-page .dashboard-main {
+  position: relative;
+  z-index: 1;
+  max-width: 1180px;
+  margin-inline: auto;
+  padding-inline: var(--page-gutter);
+  padding-bottom: clamp(24px, 6vw, 48px);
+}
+
+.racn-page--login .dashboard-main {
+  max-width: 420px;
+  padding-top: clamp(12px, 4vw, 32px);
+}
+
+.racn-boot {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  padding: clamp(48px, 12vw, 96px) var(--page-gutter);
+  color: var(--dash-muted, #94a3b8);
+}
+
+.racn-login-card {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 22px 22px 22px 26px;
+  border-radius: 20px;
+  border: 1px solid var(--racn-border, rgba(255, 255, 255, 0.12));
+  background: var(--racn-card-bg, rgba(255, 255, 255, 0.04));
+  backdrop-filter: blur(16px);
+  box-shadow: var(--racn-shadow, 0 24px 64px rgba(0, 0, 0, 0.25));
+}
+
+.racn-login-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18px;
+  bottom: 18px;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: var(--racn-accent-gradient, linear-gradient(180deg, #818cf8, #6366f1));
+}
+
+.racn-login-kicker {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--racn-kicker, #a5b4fc);
+}
+
+.racn-login-card h2 {
+  margin: 0;
+  font-family: var(--font-space-grotesk, 'Space Grotesk', sans-serif);
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+}
+
+.racn-login-lead {
+  margin: 0 0 2px;
+  color: var(--dash-muted, #94a3b8);
+  line-height: 1.5;
+  font-size: 0.85rem;
+}
+
+.racn-login-card label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.racn-login-card input {
+  min-height: var(--touch-min);
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 1px solid var(--racn-border, rgba(255, 255, 255, 0.15));
+  background: color-mix(in srgb, var(--dash-bg, #0b0d12) 65%, transparent);
+  color: inherit;
+  padding: 0.65rem 0.85rem;
+  font-size: 16px;
+}
+
+.racn-login-card input:focus {
+  outline: 2px solid color-mix(in srgb, var(--racn-accent, #6366f1) 55%, transparent);
+  outline-offset: 1px;
+}
+
+.racn-login-error {
+  margin: 0;
+  color: #fda4af;
+  font-size: 0.85rem;
+}
+
+.racn-login-submit {
+  min-height: var(--touch-min);
+  margin-top: 4px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  background: var(--racn-accent-gradient, linear-gradient(135deg, #818cf8, #6366f1));
+  color: #fff;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--racn-accent, #6366f1) 40%, transparent);
+}
+
+.racn-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--racn-border, rgba(255, 255, 255, 0.1));
+  background: var(--racn-card-bg, rgba(255, 255, 255, 0.04));
+  backdrop-filter: blur(12px);
+}
+
+.racn-header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+}
+
+.racn-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: color-mix(in srgb, var(--racn-accent, #6366f1) 22%, transparent);
+  color: var(--racn-accent-light, #c7d2fe);
+  border: 1px solid color-mix(in srgb, var(--racn-accent, #6366f1) 35%, transparent);
+}
+
+.racn-hero {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding: clamp(18px, 4vw, 28px);
+  border-radius: 20px;
+  border: 1px solid var(--racn-border, rgba(255, 255, 255, 0.1));
+  background: var(--racn-hero-bg, linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(139, 92, 246, 0.08)));
+  box-shadow: var(--racn-shadow, 0 20px 50px rgba(0, 0, 0, 0.2));
+}
+
+.racn-hero-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--racn-accent-gradient, linear-gradient(135deg, #818cf8, #6366f1));
+  color: #fff;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--racn-accent, #6366f1) 45%, transparent);
+}
+
+.racn-hero-kicker {
+  margin: 0 0 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--racn-kicker, #a5b4fc);
+}
+
+.racn-hero h1 {
+  margin: 0 0 6px;
+  font-family: var(--font-space-grotesk, 'Space Grotesk', sans-serif);
+  font-size: clamp(1.25rem, 3vw, 1.65rem);
+  letter-spacing: -0.02em;
+}
+
+.racn-hero p {
+  margin: 0;
+  color: var(--dash-muted, #94a3b8);
+  line-height: 1.5;
+  font-size: 0.9rem;
+  max-width: 52ch;
+}
+
+.racn-grupo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  background: color-mix(in srgb, var(--racn-accent, #6366f1) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--racn-accent, #6366f1) 30%, transparent);
+}
+
+.racn-grupo-badge span {
+  color: var(--dash-muted, #94a3b8);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.racn-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.racn-tabs button {
+  min-height: var(--touch-min);
+  padding: 0.5rem 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--racn-border, rgba(255, 255, 255, 0.12));
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.racn-tabs button.active {
+  background: var(--racn-accent-gradient, linear-gradient(135deg, #818cf8, #6366f1));
+  border-color: transparent;
+  color: #fff;
+}
+
+.racn-msg {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--racn-accent, #6366f1) 12%, transparent);
+  font-size: 0.88rem;
+}
+
+.racn-panel {
+  padding: clamp(14px, 3vw, 20px);
+  border-radius: 18px;
+  border: 1px solid var(--racn-border, rgba(255, 255, 255, 0.1));
+  background: var(--racn-card-bg, rgba(255, 255, 255, 0.03));
+  backdrop-filter: blur(10px);
+}
+
+.racn-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+
+.racn-filters label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-width: min(100%, 180px);
+}
+
+.racn-filters select,
+.racn-filters input,
+.racn-msg textarea {
+  min-height: var(--touch-min);
+  border-radius: 10px;
+  border: 1px solid var(--racn-border, rgba(255, 255, 255, 0.15));
+  background: color-mix(in srgb, var(--dash-bg, #0b0d12) 60%, transparent);
+  color: inherit;
+  padding: 0.5rem 0.75rem;
+  font-size: 16px;
+}
+
+.racn-msg textarea {
+  min-height: 100px;
+  width: 100%;
+  resize: vertical;
+}
+
+.racn-btn {
+  min-height: var(--touch-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0.45rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--racn-border, rgba(255, 255, 255, 0.15));
+  background: color-mix(in srgb, var(--dash-bg, #0b0d12) 50%, transparent);
+  color: inherit;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.racn-btn.primary {
+  background: var(--racn-accent-gradient, linear-gradient(135deg, #818cf8, #6366f1));
+  border-color: transparent;
+  color: #fff;
+}
+
+.racn-btn.ghost {
+  background: transparent;
+}
+
+.racn-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+}
+
+.racn-table {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.racn-table th,
+.racn-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--racn-border, rgba(255, 255, 255, 0.08));
+}
+
+.racn-table th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dash-muted, #94a3b8);
+}
+
+.racn-alumno-cell {
+  display: grid;
+  gap: 2px;
+}
+
+.racn-alumno-cell small {
+  color: var(--dash-muted, #94a3b8);
+  font-size: 0.75rem;
+}
+
+.racn-chip {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.racn-chip--empty {
+  color: var(--dash-muted, #64748b);
+}
+
+.racn-chip--set {
+  background: color-mix(in srgb, var(--racn-accent, #6366f1) 20%, transparent);
+  color: var(--racn-accent-light, #c7d2fe);
+}
+
+.racn-mini {
+  display: block;
+  color: var(--dash-muted, #94a3b8);
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+.racn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.racn-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: var(--page-gutter);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.racn-modal-card {
+  width: min(100%, 480px);
+  max-height: 90dvh;
+  overflow-y: auto;
+  padding: 22px;
+  border-radius: 20px;
+  border: 1px solid var(--racn-border, rgba(255, 255, 255, 0.12));
+  background: var(--dash-card-bg, #1a1b21);
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.45);
+}
+
+.racn-modal-card h3 {
+  margin: 0 0 14px;
+  font-family: var(--font-space-grotesk, 'Space Grotesk', sans-serif);
+}
+
+@media (max-width: 640px) {
+  .racn-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .racn-hero {
+    flex-direction: column;
+  }
+
+  .racn-filters label {
+    min-width: 100%;
+  }
+}
+
+[data-theme='light'] .racn-login-card,
+[data-theme='light'] .racn-header,
+[data-theme='light'] .racn-panel {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme='light'] .racn-hero {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.05));
+}
+
+[data-theme='light'] .racn-login-card input,
+[data-theme='light'] .racn-filters select,
+[data-theme='light'] .racn-filters input {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}

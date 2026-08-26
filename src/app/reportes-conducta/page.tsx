@@ -48,6 +48,8 @@ function ReportesConductaHubView() {
                 tags={item.tags}
                 onActivate={() => {
                   if (item.id === 'secundaria') router.push('/reportes-conducta/secundaria')
+                  if (item.id === 'primaria') router.push('/reportes-conducta/primaria')
+                  if (item.id === 'kinder') router.push('/reportes-conducta/maternal-kinder')
                 }}
               />
             </div>
