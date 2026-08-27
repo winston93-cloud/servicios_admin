@@ -177,8 +177,8 @@ export async function cargarNuevoIngreso(
      */
     rangoPago?: { desde: string; hasta: string }
     /**
-     * Solo alumnos cuya fecha de agenda/alta (`alumno_alta`) cae en el rango.
-     * No exige pago; la columna F. pago sigue mostrando si ya cubrieron inscripción.
+     * Solo alumnos cuyo mes de agendamiento (AgendaW created_at) o, sin AgendaW,
+     * `alumno_alta` cae en el rango. No exige pago.
      */
     rangoAgenda?: { desde: string; hasta: string }
     /** Título override (ej. reporte por mes). */
@@ -213,15 +213,13 @@ export async function cargarNuevoIngreso(
   for (const a of alumnos) {
     const alta = formatearAlta(a.alumno_alta)
     const refNum = Number(a.alumno_ref)
-    const fechaAgendaCita =
+    const fechaAgendamiento =
       fechasAgenda && Number.isFinite(refNum) ? fechasAgenda.get(refNum) ?? null : null
 
-    // Por mes: preferir fecha de cita AgendaW; si no hay vínculo, usar alumno_alta.
+    // 2026-08-27: mes = created_at AgendaW si existe; si no hay AgendaW, alumno_alta.
     if (agendaDesde && agendaHasta) {
-      if (fechasAgenda) {
-        // Con AgendaW configurado: solo quienes agendaron cita en el mes.
-        if (!fechaAgendaCita) continue
-      } else if (!alta || alta < agendaDesde || alta > agendaHasta) {
+      const fechaMes = fechaAgendamiento ?? alta
+      if (!fechaMes || fechaMes < agendaDesde || fechaMes > agendaHasta) {
         continue
       }
     }
@@ -259,8 +257,8 @@ export async function cargarNuevoIngreso(
       grado: etiquetaGradoEscolar(nivel, a.alumno_grado),
       grupo: etiquetaGrupoEscolar(a.alumno_grupo),
       noCtrl: a.alumno_ref,
-      // En reporte por mes mostrar la fecha de agenda cuando exista.
-      alta: fechaAgendaCita || alta,
+      // En reporte por mes mostrar fecha de agendamiento AgendaW o alta Winston.
+      alta: fechaAgendamiento || alta,
       nombre: a.nombre,
       fechaPago,
       pagado,

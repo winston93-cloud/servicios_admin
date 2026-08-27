@@ -50,14 +50,24 @@ export function levelAgendaDesdeNivel(nivel: number): string | null {
   return NIVEL_A_LEVEL[nivel] ?? null
 }
 
+/** 2026-08-27: fecha local MX del agendamiento (created_at), no la cita. */
+function fechaAgendamientoDesdeCreatedAt(createdAt: string | null | undefined): string {
+  if (!createdAt) return ''
+  const d = new Date(createdAt)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' })
+}
+
 /**
- * Mapa alumno_ref → fecha de cita (YYYY-MM-DD) en AgendaW.
- * Usa appointment_date (fecha que agendan para el examen).
+ * Mapa alumno_ref → fecha de agendamiento (YYYY-MM-DD, hora México) en AgendaW.
+ * Usa created_at (cuándo agendaron), no appointment_date (día del examen).
+ * El filtro por mes se aplica en cargarNuevoIngreso.
  */
 export async function mapaFechaAgendaPorAlumnoRef(opts: {
   nivel: number
-  desde: string
-  hasta: string
+  /** Conservado por compatibilidad; el rango ya no filtra en BD. */
+  desde?: string
+  hasta?: string
 }): Promise<Map<number, string> | null> {
   if (!admissionEnvConfigured()) return null
 
@@ -65,8 +75,6 @@ export async function mapaFechaAgendaPorAlumnoRef(opts: {
   if (!level) return null
 
   const db = createAdmissionDb()
-  const desde = opts.desde.slice(0, 10)
-  const hasta = opts.hasta.slice(0, 10)
   const out = new Map<number, string>()
   let offset = 0
   const PAGE = 500
@@ -74,21 +82,20 @@ export async function mapaFechaAgendaPorAlumnoRef(opts: {
   while (true) {
     const { data, error } = await db
       .from('admission_appointments')
-      .select('alumno_ref, appointment_date, status')
+      .select('alumno_ref, created_at, status')
       .eq('level', level)
       .not('alumno_ref', 'is', null)
       .neq('status', 'cancelled')
-      .gte('appointment_date', desde)
-      .lte('appointment_date', hasta)
+      .order('created_at', { ascending: true })
       .range(offset, offset + PAGE - 1)
 
     if (error) throw new Error(`AgendaW citas: ${error.message}`)
     const chunk = data ?? []
     for (const r of chunk) {
       const ref = Number(r.alumno_ref)
-      const fecha = String(r.appointment_date ?? '').slice(0, 10)
+      const fecha = fechaAgendamientoDesdeCreatedAt(r.created_at as string | null)
       if (!(ref > 0) || !fecha) continue
-      // Conservar la cita más temprana del rango si hay varias.
+      // Conservar el agendamiento más temprano si hay varias citas.
       const prev = out.get(ref)
       if (!prev || fecha < prev) out.set(ref, fecha)
     }
