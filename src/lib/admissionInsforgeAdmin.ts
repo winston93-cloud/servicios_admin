@@ -67,6 +67,13 @@ function fechaEnRangoCalendario(fecha: string, desde: string, hasta: string): bo
   return Boolean(f) && f >= desde && f <= hasta
 }
 
+function diffDiasCalendario(desde: string, hasta: string): number {
+  const d0 = new Date(`${desde.slice(0, 10)}T12:00:00Z`)
+  const d1 = new Date(`${hasta.slice(0, 10)}T12:00:00Z`)
+  if (Number.isNaN(d0.getTime()) || Number.isNaN(d1.getTime())) return 0
+  return Math.round((d1.getTime() - d0.getTime()) / 86400000)
+}
+
 /** Reserva en línea vs cita de examen en AgendaW. */
 export type AgendamientoCitaAgendaW = {
   agendo: string
@@ -74,34 +81,60 @@ export type AgendamientoCitaAgendaW = {
 }
 
 /**
- * 2026-08-27: mes inclusivo — entra si reserva, cita, alta o registro caen en el rango.
- * Columna Alta: prioriza la fecha del mes (alta → cita → reserva → registro).
+ * 2026-08-27: un solo mes por alumno (mismo universo que reporte general).
+ * - Sin AgendaW: alumno_alta, o alumno_registro si falta alta.
+ * - Maternal/Kinder: reserva muy anticipada (>30 d) → mes de la cita; si no, reserva.
+ * - Primaria: alumno_alta (Winston).
+ * - Secundaria: mes de reserva AgendaW (created_at).
  */
+export function fechaMesCanonicoNuevoIngreso(opts: {
+  nivel: number
+  agenda: AgendamientoCitaAgendaW | null
+  alta: string
+  registro: string
+}): string {
+  const altaFmt = opts.alta.slice(0, 10)
+  const registroFmt = opts.registro.slice(0, 10)
+  const ag = opts.agenda
+
+  if (ag?.agendo || ag?.cita) {
+    const agendo = ag.agendo || ''
+    const cita = ag.cita || ''
+    const dias = agendo && cita ? diffDiasCalendario(agendo, cita) : 0
+
+    if (opts.nivel <= 2) {
+      if (dias > 30) return cita || altaFmt || registroFmt
+      return agendo || cita || altaFmt || registroFmt
+    }
+    if (opts.nivel === 3) {
+      return altaFmt || agendo || cita || registroFmt
+    }
+    return agendo || cita || altaFmt || registroFmt
+  }
+
+  return altaFmt || registroFmt
+}
+
+/** Filtra reporte mensual: solo alumnos cuyo mes canónico cae en el rango. */
 export function evaluarFiltroMesNuevoIngreso(opts: {
+  nivel: number
   agenda: AgendamientoCitaAgendaW | null
   alta: string
   registro: string
   desde: string
   hasta: string
 }): { incluir: boolean; fechaColumnaAlta: string } {
-  const altaFmt = opts.alta.slice(0, 10)
-  const registroFmt = opts.registro.slice(0, 10)
-  const candidatas: { fecha: string; prio: number }[] = []
-
-  if (altaFmt) candidatas.push({ fecha: altaFmt, prio: 1 })
-  if (opts.agenda?.cita) candidatas.push({ fecha: opts.agenda.cita, prio: 2 })
-  if (opts.agenda?.agendo) candidatas.push({ fecha: opts.agenda.agendo, prio: 3 })
-  if (registroFmt) candidatas.push({ fecha: registroFmt, prio: 4 })
-
-  const enMes = candidatas.filter((c) =>
-    fechaEnRangoCalendario(c.fecha, opts.desde, opts.hasta)
-  )
-  if (enMes.length === 0) {
-    return { incluir: false, fechaColumnaAlta: altaFmt || registroFmt }
+  const fecha = fechaMesCanonicoNuevoIngreso({
+    nivel: opts.nivel,
+    agenda: opts.agenda,
+    alta: opts.alta,
+    registro: opts.registro,
+  })
+  const incluir = fechaEnRangoCalendario(fecha, opts.desde, opts.hasta)
+  return {
+    incluir,
+    fechaColumnaAlta: fecha || opts.alta.slice(0, 10) || opts.registro.slice(0, 10),
   }
-
-  enMes.sort((a, b) => a.prio - b.prio)
-  return { incluir: true, fechaColumnaAlta: enMes[0].fecha }
 }
 
 /** 2026-08-27: clave para empatar AgendaW ↔ Winston cuando aún no hay alumno_ref. */

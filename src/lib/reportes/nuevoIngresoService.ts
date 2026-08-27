@@ -47,7 +47,7 @@ export type ResumenGradoNuevoIngreso = {
 export type ResumenNuevoIngreso = {
   titulo: string
   modo: 'completo' | 'deben'
-  /** true = reporte mensual filtrado por fecha de cita/agenda. */
+  /** true = reporte mensual: un mes canónico por alumno (mismo universo que general). */
   porAgenda?: boolean
   cicloAlumnos: number
   cicloPago: number
@@ -184,7 +184,7 @@ export async function cargarNuevoIngreso(
      */
     rangoPago?: { desde: string; hasta: string }
     /**
-     * Solo alumnos con reserva, cita, alta o registro en el rango del mes. No exige pago.
+     * Reporte mensual: mismos alumnos que el general, filtrados por su mes canónico único.
      */
     rangoAgenda?: { desde: string; hasta: string }
     /** Título override (ej. reporte por mes). */
@@ -223,9 +223,10 @@ export async function cargarNuevoIngreso(
 
     let fechaColumnaAlta = altaWinston || registroWinston
 
-    // 2026-08-27: mes inclusivo — cualquier fecha clave en el rango incluye al alumno.
+    // 2026-08-27: un mes por alumno; no repetir en otros meses del mismo ciclo.
     if (agendaDesde && agendaHasta) {
       const mes = evaluarFiltroMesNuevoIngreso({
+        nivel,
         agenda,
         alta: altaWinston,
         registro: registroWinston,
