@@ -67,62 +67,30 @@ function fechaEnRangoCalendario(fecha: string, desde: string, hasta: string): bo
   return Boolean(f) && f >= desde && f <= hasta
 }
 
-function diffDiasCalendario(desde: string, hasta: string): number {
-  const d0 = new Date(`${desde.slice(0, 10)}T12:00:00Z`)
-  const d1 = new Date(`${hasta.slice(0, 10)}T12:00:00Z`)
-  if (Number.isNaN(d0.getTime()) || Number.isNaN(d1.getTime())) return 0
-  return Math.round((d1.getTime() - d0.getTime()) / 86400000)
-}
-
-/** Reserva en línea vs cita de examen en AgendaW. */
+/** Reserva en línea (created_at) vs cita de examen (appointment_date) en AgendaW. */
 export type AgendamientoCitaAgendaW = {
   agendo: string
   cita: string
 }
 
 /**
- * 2026-08-27: un solo mes por alumno, basado únicamente en AgendaW.
- * - Con cita: reserva >30 d antes del examen → mes de la cita; si no → mes de reserva (created_at).
- * - Sin AgendaW: mes de alumno_alta (mismo universo que el reporte general).
+ * 2026-08-27: reporte mensual — únicamente el día que agendaron (created_at AgendaW).
+ * Sin registro en AgendaW no hay fecha (el alumno queda fuera del mes).
  */
-export function fechaMesCanonicoNuevoIngreso(opts: {
-  agenda: AgendamientoCitaAgendaW | null
-  alta: string
-  registro: string
-}): string {
-  const altaFmt = opts.alta.slice(0, 10)
-  const registroFmt = opts.registro.slice(0, 10)
-  const ag = opts.agenda
-
-  if (ag?.agendo || ag?.cita) {
-    const agendo = ag.agendo || ''
-    const cita = ag.cita || ''
-    if (agendo && cita && diffDiasCalendario(agendo, cita) > 30) {
-      return cita
-    }
-    return agendo || cita
-  }
-
-  return altaFmt || registroFmt
+export function fechaMesAgendoAgendaW(agenda: AgendamientoCitaAgendaW | null): string {
+  return agenda?.agendo?.slice(0, 10) ?? ''
 }
 
-/** Filtra reporte mensual: mes canónico (AgendaW o alta si no hay cita). */
+/** Incluye solo alumnos cuya reserva en AgendaW cae en el rango del mes. */
 export function evaluarFiltroMesNuevoIngreso(opts: {
   agenda: AgendamientoCitaAgendaW | null
-  alta: string
-  registro: string
   desde: string
   hasta: string
-}): { incluir: boolean; fechaColumnaAlta: string } {
-  const fecha = fechaMesCanonicoNuevoIngreso({
-    agenda: opts.agenda,
-    alta: opts.alta,
-    registro: opts.registro,
-  })
-  const incluir = fechaEnRangoCalendario(fecha, opts.desde, opts.hasta)
+}): { incluir: boolean; fechaAgendo: string } {
+  const fecha = fechaMesAgendoAgendaW(opts.agenda)
   return {
-    incluir,
-    fechaColumnaAlta: fecha || opts.alta.slice(0, 10) || opts.registro.slice(0, 10),
+    incluir: fechaEnRangoCalendario(fecha, opts.desde, opts.hasta),
+    fechaAgendo: fecha,
   }
 }
 

@@ -47,7 +47,7 @@ export type ResumenGradoNuevoIngreso = {
 export type ResumenNuevoIngreso = {
   titulo: string
   modo: 'completo' | 'deben'
-  /** true = reporte mensual: un mes canónico por alumno (mismo universo que general). */
+  /** true = reporte mensual: solo quienes agendaron en AgendaW ese mes. */
   porAgenda?: boolean
   cicloAlumnos: number
   cicloPago: number
@@ -184,7 +184,8 @@ export async function cargarNuevoIngreso(
      */
     rangoPago?: { desde: string; hasta: string }
     /**
-     * Reporte mensual: mes canónico desde AgendaW (reserva/cita); sin cita → alumno_alta.
+     * Reporte mensual: solo alumnos con reserva AgendaW (created_at) en el mes.
+     * No usa alumno_alta, cita ni fecha de pago para filtrar.
      */
     rangoAgenda?: { desde: string; hasta: string }
     /** Título override (ej. reporte por mes). */
@@ -223,17 +224,15 @@ export async function cargarNuevoIngreso(
 
     let fechaColumnaAlta = altaWinston || registroWinston
 
-    // 2026-08-27: mes único desde AgendaW; sin cita vinculada → alumno_alta.
+    // 2026-08-27: solo quienes agendaron en AgendaW en ese mes (created_at); sin relleno.
     if (agendaDesde && agendaHasta) {
       const mes = evaluarFiltroMesNuevoIngreso({
         agenda,
-        alta: altaWinston,
-        registro: registroWinston,
         desde: agendaDesde,
         hasta: agendaHasta,
       })
       if (!mes.incluir) continue
-      fechaColumnaAlta = mes.fechaColumnaAlta
+      fechaColumnaAlta = mes.fechaAgendo
     }
 
     const pagosAlumno = pagosPorAlumno.get(a.alumno_id) ?? []
