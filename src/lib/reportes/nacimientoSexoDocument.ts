@@ -13,6 +13,7 @@ export function construirHtmlReporteNacimientoSexo(resumen: ResumenNacimientoSex
             <td class="nombre">${escapeHtml(f.nombre)}</td>
             <td class="fecha">${escapeHtml(f.fechaNac)}</td>
             <td class="sexo"><span class="pill pill-${f.sexoCodigo === 'M' ? 'f' : f.sexoCodigo === 'H' ? 'm' : 'x'}">${escapeHtml(f.sexo)}</span></td>
+            <td class="curp">${escapeHtml(f.curp)}</td>
           </tr>`
         )
         .join('')
@@ -30,9 +31,10 @@ export function construirHtmlReporteNacimientoSexo(resumen: ResumenNacimientoSex
               <th>Nombre completo</th>
               <th>Fecha de nacimiento</th>
               <th>Sexo</th>
+              <th>CURP</th>
             </tr>
           </thead>
-          <tbody>${rows || `<tr><td colspan="4" class="empty">Sin alumnos en este grado</td></tr>`}</tbody>
+          <tbody>${rows || `<tr><td colspan="5" class="empty">Sin alumnos en este grado</td></tr>`}</tbody>
         </table>
       </section>`
     })
@@ -195,6 +197,13 @@ export function construirHtmlReporteNacimientoSexo(resumen: ResumenNacimientoSex
     td.num, th.num { width: 42px; text-align: center; color: #94a3b8; font-variant-numeric: tabular-nums; }
     td.nombre { font-weight: 650; color: #0f172a; }
     td.fecha { font-variant-numeric: tabular-nums; color: #334155; white-space: nowrap; }
+    td.curp {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11px;
+      letter-spacing: 0.02em;
+      color: #1e3a5f;
+      white-space: nowrap;
+    }
     td.empty { text-align: center; color: #94a3b8; padding: 18px; }
     tr:nth-child(even) td { background: #fafbfd; }
     .pill {
@@ -287,20 +296,21 @@ export function generarPdfReporteNacimientoSexo(resumen: ResumenNacimientoSexo):
 
     autoTable(pdf, {
       startY: y,
-      head: [['#', 'Nombre completo', 'Fecha de nacimiento', 'Sexo']],
-      body: g.filas.map((f) => [String(f.no), f.nombre, f.fechaNac, f.sexo]),
-      styles: { fontSize: 8, cellPadding: 1.8, textColor: [15, 23, 42] },
+      head: [['#', 'Nombre completo', 'Fecha de nacimiento', 'Sexo', 'CURP']],
+      body: g.filas.map((f) => [String(f.no), f.nombre, f.fechaNac, f.sexo, f.curp]),
+      styles: { fontSize: 7.5, cellPadding: 1.5, textColor: [15, 23, 42] },
       headStyles: {
         fillColor: [15, 39, 68],
         textColor: 255,
         fontStyle: 'bold',
-        fontSize: 7.5,
+        fontSize: 7,
       },
       columnStyles: {
-        0: { cellWidth: 12, halign: 'center' },
-        1: { cellWidth: 95 },
-        2: { cellWidth: 42, halign: 'center' },
-        3: { cellWidth: 37, halign: 'center' },
+        0: { cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 62 },
+        2: { cellWidth: 32, halign: 'center' },
+        3: { cellWidth: 28, halign: 'center' },
+        4: { cellWidth: 54, fontSize: 6.5, font: 'courier' },
       },
       alternateRowStyles: { fillColor: [248, 250, 252] },
       margin: { left: marginX, right: marginX },

@@ -12,6 +12,7 @@ export type FilaNacimientoSexo = {
   fechaNac: string
   sexo: string
   sexoCodigo: string
+  curp: string
 }
 
 export type GrupoGradoNacimientoSexo = {
@@ -44,14 +45,17 @@ export async function cargarReporteNacimientoSexo(
 ): Promise<ResumenNacimientoSexo> {
   const alumnos = await fetchAlumnosActivosNivel(nivel, cicloEscolar)
   const db = createDbAdmin()
-  const detallePorAlumno = new Map<number, { fechaNac: string; sexo: string }>()
+  const detallePorAlumno = new Map<
+    number,
+    { fechaNac: string; sexo: string; curp: string }
+  >()
   const ids = alumnos.map((a) => a.alumno_id)
 
   for (let i = 0; i < ids.length; i += 120) {
     const chunk = ids.slice(i, i + 120)
     const { data, error } = await db
       .from('alumno_detalles')
-      .select('alumno_id, alumno_fecha_nac, alumno_sexo')
+      .select('alumno_id, alumno_fecha_nac, alumno_sexo, alumno_curp')
       .in('alumno_id', chunk)
 
     if (error) throw new Error(error.message)
@@ -60,6 +64,7 @@ export async function cargarReporteNacimientoSexo(
       detallePorAlumno.set(Number(r.alumno_id), {
         fechaNac: iso ? fechaNacAMostrar(iso) : '—',
         sexo: String(r.alumno_sexo ?? '').trim().toUpperCase(),
+        curp: String(r.alumno_curp ?? '').trim().toUpperCase(),
       })
     }
   }
@@ -78,12 +83,14 @@ export async function cargarReporteNacimientoSexo(
     const filas: FilaNacimientoSexo[] = list.map((a, i) => {
       const det = detallePorAlumno.get(a.alumno_id)
       const sexoCodigo = det?.sexo ?? ''
+      const curp = det?.curp ?? ''
       return {
         no: i + 1,
         nombre: a.nombre,
         fechaNac: det?.fechaNac ?? '—',
         sexo: etiquetaSexo(sexoCodigo),
         sexoCodigo,
+        curp: curp || '—',
       }
     })
     return {

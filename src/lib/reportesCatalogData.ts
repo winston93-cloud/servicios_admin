@@ -150,12 +150,12 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     categoriaId: 'curp',
     titulo: 'Fecha de nacimiento y sexo',
     descripcion:
-      'Alumnos activos por nivel, agrupados por grado: nombre completo, fecha de nacimiento y sexo.',
+      'Alumnos activos por nivel, agrupados por grado: nombre, fecha de nacimiento, sexo y CURP.',
     accent: 'indigo',
     motor: 'api-next',
     requiereNivel: true,
     usaCiclo: 'escolar',
-    keywords: ['nacimiento', 'sexo', 'fecha', 'grado', 'datos'],
+    keywords: ['nacimiento', 'sexo', 'fecha', 'grado', 'datos', 'curp'],
   },
   // Listas
   {
