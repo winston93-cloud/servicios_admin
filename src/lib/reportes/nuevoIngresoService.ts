@@ -5,7 +5,7 @@ import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaGrupoEscolar } from '@/lib/grupoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import {
-  agendamientoDesdeMapa,
+  agendamientoAgendoEnMesDesdeMapa,
   evaluarFiltroMesNuevoIngreso,
   mapaAgendamientoAgendaW,
 } from '@/lib/admissionInsforgeAdmin'
@@ -220,12 +220,16 @@ export async function cargarNuevoIngreso(
     const altaWinston = formatearAlta(a.alumno_alta)
     const registroWinston = formatearAlta(a.alumno_registro)
     const refNum = Number(a.alumno_ref)
-    const agenda = agendamientoDesdeMapa(refNum, a.nombre, mapaAgenda)
+    const agenda =
+      agendaDesde && agendaHasta
+        ? agendamientoAgendoEnMesDesdeMapa(refNum, a.nombre, mapaAgenda, agendaDesde, agendaHasta)
+        : null
 
     let fechaColumnaAlta = altaWinston || registroWinston
 
-    // 2026-08-27: solo quienes agendaron en AgendaW en ese mes (created_at); sin relleno.
+    // 2026-08-27: filtro y columna Agenda = created_at fijo de esa reserva (no depende del mes elegido en UI).
     if (agendaDesde && agendaHasta) {
+      if (!agenda) continue
       const mes = evaluarFiltroMesNuevoIngreso({
         agenda,
         desde: agendaDesde,
@@ -236,20 +240,22 @@ export async function cargarNuevoIngreso(
     }
 
     const pagosAlumno = pagosPorAlumno.get(a.alumno_id) ?? []
-    const fechaPago = opts?.rangoPago
-      ? buscarFechaConceptoEnRango(
-          pagosAlumno,
-          a.alumno_ref,
-          [...CONCEPTOS_INSCRIPCION_NUEVO],
-          cicloPago,
-          opts.rangoPago
-        )
-      : buscarFechaConcepto(
-          pagosAlumno,
-          a.alumno_ref,
-          [...CONCEPTOS_INSCRIPCION_NUEVO],
-          cicloPago
-        )
+    // 2026-08-27: en reporte mensual la F. pago es la inscripción real del ciclo, no la del mes.
+    const fechaPago =
+      opts?.rangoPago && !opts?.rangoAgenda
+        ? buscarFechaConceptoEnRango(
+            pagosAlumno,
+            a.alumno_ref,
+            [...CONCEPTOS_INSCRIPCION_NUEVO],
+            cicloPago,
+            opts.rangoPago
+          )
+        : buscarFechaConcepto(
+            pagosAlumno,
+            a.alumno_ref,
+            [...CONCEPTOS_INSCRIPCION_NUEVO],
+            cicloPago
+          )
 
     // Por mes (modo pago legacy): solo quienes pagaron inscripción en ese mes.
     if (opts?.rangoPago && !fechaPago) continue

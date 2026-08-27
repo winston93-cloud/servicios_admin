@@ -117,8 +117,8 @@ function nombreCompletoAgendaW(r: {
 }
 
 function registrarAgendamiento(
-  porRef: Map<number, AgendamientoCitaAgendaW>,
-  porNombre: Map<string, AgendamientoCitaAgendaW>,
+  porRef: Map<number, AgendamientoCitaAgendaW[]>,
+  porNombre: Map<string, AgendamientoCitaAgendaW[]>,
   r: {
     alumno_ref: number | string | null
     created_at: string | null
@@ -132,31 +132,28 @@ function registrarAgendamiento(
     agendo: fechaAgendamientoDesdeCreatedAt(r.created_at),
     cita: fechaCitaDesdeAppointmentDate(r.appointment_date),
   }
-  if (!entry.agendo && !entry.cita) return
+  // 2026-08-27: solo created_at cuenta como día que agendaron.
+  if (!entry.agendo) return
 
-  const merge = (map: Map<number | string, AgendamientoCitaAgendaW>, key: number | string) => {
-    const prev = map.get(key)
-    if (!prev) {
-      map.set(key, entry)
-      return
-    }
-    const agendoPrev = prev.agendo || prev.cita
-    const agendoNuevo = entry.agendo || entry.cita
-    if (agendoNuevo && (!agendoPrev || agendoNuevo < agendoPrev)) {
-      map.set(key, entry)
+  const push = (map: Map<number | string, AgendamientoCitaAgendaW[]>, key: number | string) => {
+    const list = map.get(key) ?? []
+    const dup = list.some((x) => x.agendo === entry.agendo && x.cita === entry.cita)
+    if (!dup) {
+      list.push(entry)
+      map.set(key, list)
     }
   }
 
   const ref = Number(r.alumno_ref)
-  if (ref > 0) merge(porRef, ref)
+  if (ref > 0) push(porRef, ref)
 
   const clave = claveNombreAgendaMatch(nombreCompletoAgendaW(r))
-  if (clave) merge(porNombre, clave)
+  if (clave) push(porNombre, clave)
 }
 
 export type MapaAgendamientoAgendaW = {
-  porRef: Map<number, AgendamientoCitaAgendaW>
-  porNombre: Map<string, AgendamientoCitaAgendaW>
+  porRef: Map<number, AgendamientoCitaAgendaW[]>
+  porNombre: Map<string, AgendamientoCitaAgendaW[]>
 }
 
 const CAMPOS_CITA_AGENDA =
@@ -175,8 +172,8 @@ export async function mapaAgendamientoAgendaW(
   if (!level) return null
 
   const db = createAdmissionDb()
-  const porRef = new Map<number, AgendamientoCitaAgendaW>()
-  const porNombre = new Map<string, AgendamientoCitaAgendaW>()
+  const porRef = new Map<number, AgendamientoCitaAgendaW[]>()
+  const porNombre = new Map<string, AgendamientoCitaAgendaW[]>()
   let offset = 0
   const PAGE = 500
 
@@ -227,25 +224,54 @@ export async function mapaFechaAgendaPorAlumnoRef(opts: {
   const mapa = await mapaAgendamientoAgendaW(opts.nivel)
   if (!mapa) return null
   const out = new Map<number, string>()
-  for (const [ref, ag] of mapa.porRef) {
-    out.set(ref, ag.cita || ag.agendo)
+  for (const [ref, list] of mapa.porRef) {
+    const primero = [...list].sort((a, b) => a.agendo.localeCompare(b.agendo))[0]
+    if (primero) out.set(ref, primero.agendo)
   }
   return out
 }
 
+function listaAgendamientosDesdeMapa(
+  refNum: number,
+  nombre: string,
+  mapa: MapaAgendamientoAgendaW | null
+): AgendamientoCitaAgendaW[] {
+  if (!mapa) return []
+  if (Number.isFinite(refNum) && refNum > 0) {
+    const porRef = mapa.porRef.get(refNum)
+    if (porRef?.length) return porRef
+  }
+  const clave = claveNombreAgendaMatch(nombre)
+  if (!clave) return []
+  return mapa.porNombre.get(clave) ?? []
+}
+
+/** Reserva más antigua en AgendaW (created_at). */
 export function agendamientoDesdeMapa(
   refNum: number,
   nombre: string,
   mapa: MapaAgendamientoAgendaW | null
 ): AgendamientoCitaAgendaW | null {
-  if (!mapa) return null
-  if (Number.isFinite(refNum) && refNum > 0) {
-    const porRef = mapa.porRef.get(refNum)
-    if (porRef) return porRef
-  }
-  const clave = claveNombreAgendaMatch(nombre)
-  if (!clave) return null
-  return mapa.porNombre.get(clave) ?? null
+  const lista = listaAgendamientosDesdeMapa(refNum, nombre, mapa)
+  if (!lista.length) return null
+  return [...lista].sort((a, b) => a.agendo.localeCompare(b.agendo))[0]
+}
+
+/**
+ * 2026-08-27: cita cuyo created_at cae en el mes; fecha fija = ese agendo (no varía al cambiar mes).
+ */
+export function agendamientoAgendoEnMesDesdeMapa(
+  refNum: number,
+  nombre: string,
+  mapa: MapaAgendamientoAgendaW | null,
+  desde: string,
+  hasta: string
+): AgendamientoCitaAgendaW | null {
+  const enMes = listaAgendamientosDesdeMapa(refNum, nombre, mapa).filter((ag) =>
+    fechaEnRangoCalendario(ag.agendo, desde, hasta)
+  )
+  if (!enMes.length) return null
+  return [...enMes].sort((a, b) => a.agendo.localeCompare(b.agendo))[0]
 }
 
 /** @deprecated Preferir evaluarFiltroMesNuevoIngreso con agenda completa. */
@@ -256,5 +282,5 @@ export function fechaAgendamientoDesdeMapa(
 ): string | null {
   const ag = agendamientoDesdeMapa(refNum, nombre, mapa)
   if (!ag) return null
-  return ag.cita || ag.agendo
+  return ag.agendo
 }
