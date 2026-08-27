@@ -397,7 +397,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     categoriaId: 'nuevo-ingreso-mes',
     titulo: 'Nuevo ingreso por mes',
     descripcion:
-      'Nuevos ingresos cuya fecha de alta (Winston) cae en el mes; muestra pago y familiares.',
+      'Nuevos ingresos que agendaron examen (AgendaW created_at) en el mes; muestra pago y familiares.',
     accent: 'violet',
     motor: 'api-next',
     usaCiclo: 'escolar',
