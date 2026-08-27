@@ -185,7 +185,9 @@ function FirmaElectronicaView() {
         }
         if (!estadoJson.autorizada) {
           setBloqueado(
-            'Tu beca aún no está autorizada por Control Escolar. Cuando lo esté, podrás firmar aquí la carta de aceptación.'
+            estadoJson.pendienteApertura && typeof estadoJson.mensajeApertura === 'string'
+              ? estadoJson.mensajeApertura
+              : 'Tu beca aún no está autorizada por Control Escolar. Cuando lo esté, podrás firmar aquí la carta de aceptación.'
           )
           setOrigenBytes(null)
           setFirmaBox(null)

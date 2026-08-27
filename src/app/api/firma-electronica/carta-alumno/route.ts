@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { resolverAutorizacionFirmaParaAlumno } from '@/lib/firmaElectronica/autorizacionFirmaService'
+import {
+  mensajeTarjetaBecaPortalPendiente,
+  tarjetaBecaPortalDisponible,
+} from '@/lib/firmaElectronica/disponibilidadTarjetaBecaPortal'
 import { construirCartaAceptacionPayload } from '@/lib/firmaElectronica/cartaAceptacionPayload'
 import { resolveFirmaAssetsBaseUrl } from '@/lib/firmaElectronica/resolveAssetsBaseUrl'
 import { crearCartaBecaPdf } from '@/app/firma-electronica/lib/crearCartaBecaPdf'
@@ -24,6 +28,13 @@ export async function POST(request: Request) {
     if (!estado.autorizada || !estado.flujo || !estado.expedienteId) {
       return NextResponse.json(
         { error: 'No hay beca autorizada para firmar.' },
+        { status: 403 }
+      )
+    }
+
+    if (!tarjetaBecaPortalDisponible()) {
+      return NextResponse.json(
+        { error: mensajeTarjetaBecaPortalPendiente() },
         { status: 403 }
       )
     }

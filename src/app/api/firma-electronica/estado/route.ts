@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { resolverEstadoFirmaBecaPortal } from '@/lib/firmaElectronica/autorizacionFirmaService'
+import {
+  becaFirmaVisibleEnPortal,
+  mensajeTarjetaBecaPortalPendiente,
+} from '@/lib/firmaElectronica/disponibilidadTarjetaBecaPortal'
 
 export const runtime = 'nodejs'
 
@@ -19,11 +23,28 @@ export async function POST(request: Request) {
     const db = createDbAdmin()
     const estado = await resolverEstadoFirmaBecaPortal(db, alumnoId)
 
+    const activada = Boolean(estado.activada)
+    const visibleEnPortal = becaFirmaVisibleEnPortal({
+      autorizada: estado.autorizada,
+      activada,
+    })
+
     if (!estado.autorizada) {
       return NextResponse.json({
         ok: true,
         autorizada: false,
         activada: false,
+        ciclo: estado.ciclo,
+      })
+    }
+
+    if (!visibleEnPortal) {
+      return NextResponse.json({
+        ok: true,
+        autorizada: false,
+        activada: false,
+        pendienteApertura: true,
+        mensajeApertura: mensajeTarjetaBecaPortalPendiente(),
         ciclo: estado.ciclo,
       })
     }
