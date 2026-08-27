@@ -3,7 +3,7 @@
  *
  * - SEP hardcodeada: solo ciclo de datos 22. Ciclo 23+ no tiene módulo SEP.
  * - Winston ciclo 23+: aplica solo si alumno_beca tiene beca_estatus=1 en ese ciclo
- *   (se activa al pulsar «Autorizar beca» en becas_renovacion).
+ *   (se activa al enviar la carta firmada en servicios_admin / firma electrónica).
  */
 
 import { BECAS_SEP_CICLO_DATOS } from './becasSepOpenHouse'

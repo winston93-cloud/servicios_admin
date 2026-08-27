@@ -148,7 +148,7 @@ export async function obtenerPorcentajeBeca(
   cicloEscolar: number
 ): Promise<number> {
   // Winston: solo si está autorizada en alumno_beca (estatus 1) para este ciclo.
-  // becas_renovacion «Autorizar beca» escribe esa fila.
+  // Se activa al enviar la carta firmada (firma electrónica), no al autorizar en portal becas.
   const { data } = await supabase
     .from('alumno_beca')
     .select('beca_porcentaje')

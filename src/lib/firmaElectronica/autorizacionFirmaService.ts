@@ -13,6 +13,7 @@ import {
   claveCartaFirmada,
   subirCartaFirmadaPdf,
 } from './cartaFirmadaStorage'
+import { activarAlumnoBecaCobroCicloActual } from './activarAlumnoBecaCobro'
 
 export type AutorizacionFirmaRow = {
   id: string
@@ -249,13 +250,17 @@ export async function activarBecaConCartaFirmada(opts: {
     }
   }
 
-  if (auth.beca_activada && auth.carta_firmada_key) {
-    return { ok: true, row: auth }
-  }
-
   const firmadoPor = opts.firmadoPor.trim()
   if (firmadoPor.length < 3) {
     return { ok: false, error: 'Nombre del firmante inválido.', status: 400 }
+  }
+
+  if (auth.beca_activada && auth.carta_firmada_key) {
+    const cobro = await activarAlumnoBecaCobroCicloActual(opts.db, auth)
+    if (!cobro.ok) {
+      return { ok: false, error: cobro.error, status: cobro.status ?? 500 }
+    }
+    return { ok: true, row: auth }
   }
 
   const key = claveCartaFirmada(auth.ciclo_escolar, opts.alumnoId, auth.id)
@@ -287,6 +292,11 @@ export async function activarBecaConCartaFirmada(opts: {
   if (error) return { ok: false, error: error.message, status: 500 }
   if (!data) {
     return { ok: false, error: 'No se pudo actualizar la autorización.', status: 500 }
+  }
+
+  const cobro = await activarAlumnoBecaCobroCicloActual(opts.db, auth)
+  if (!cobro.ok) {
+    return { ok: false, error: cobro.error, status: cobro.status ?? 500 }
   }
 
   return { ok: true, row: data as AutorizacionFirmaRow }
