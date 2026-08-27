@@ -16,6 +16,11 @@ import {
   conceptoPagoATabla,
 } from '@/lib/reportes/conceptoPagoService'
 import { curpATabla, cargarReporteCurp } from '@/lib/reportes/curpService'
+import {
+  construirHtmlReporteNacimientoSexo,
+  generarPdfReporteNacimientoSexo,
+} from '@/lib/reportes/nacimientoSexoDocument'
+import { cargarReporteNacimientoSexo } from '@/lib/reportes/nacimientoSexoService'
 import { cuotaPadresATabla, cargarCuotaPadres } from '@/lib/reportes/cuotaPadresService'
 import { cargarFamiliasWinston, familiasATabla } from '@/lib/reportes/familiasService'
 import {
@@ -217,6 +222,18 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
       ciclo,
       format,
     })
+  },
+
+  'nacimiento-sexo': async (searchParams) => {
+    const nivel = requiereNivel(searchParams)
+    const ciclo = await cicloEscolarParam(searchParams)
+    const format = formatoParam(searchParams)
+    const resumen = await cargarReporteNacimientoSexo(nivel, ciclo)
+    const filename = `nacimiento-sexo-${searchParams.get('nivel') ?? 'nivel'}-ciclo-${ciclo}.pdf`
+    if (format === 'pdf') {
+      return { filename, pdf: generarPdfReporteNacimientoSexo(resumen) }
+    }
+    return { filename, html: construirHtmlReporteNacimientoSexo(resumen) }
   },
 
   'ni-completo': handlerNuevoIngreso('completo'),

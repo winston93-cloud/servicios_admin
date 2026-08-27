@@ -88,7 +88,12 @@ export const REPORTE_CATEGORIAS: ReporteCategoria[] = [
     subtitulo: 'Doble titulación y reportes de ciclo histórico',
     orden: 7,
   },
-  { id: 'curp', titulo: 'CURP', orden: 8 },
+  {
+    id: 'curp',
+    titulo: 'CURP y datos personales',
+    subtitulo: 'CURP · fecha de nacimiento y sexo por nivel',
+    orden: 8,
+  },
   { id: 'listas', titulo: 'Listas de alumnos', orden: 9 },
   { id: 'bajas', titulo: 'Bajas por nivel', orden: 10 },
   { id: 'otros', titulo: 'Otros reportes', orden: 11 },
@@ -128,7 +133,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     cicloSistema: true,
     keywords: ['inscripciones', 'diferido 2', 'admin', 'reales', 'inicio'],
   },
-  // CURP
+  // CURP y datos personales
   {
     id: 'curp',
     categoriaId: 'curp',
@@ -139,6 +144,18 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
     requiereNivel: true,
     usaCiclo: 'escolar',
     keywords: ['curp', 'clave'],
+  },
+  {
+    id: 'nacimiento-sexo',
+    categoriaId: 'curp',
+    titulo: 'Fecha de nacimiento y sexo',
+    descripcion:
+      'Alumnos activos por nivel, agrupados por grado: nombre completo, fecha de nacimiento y sexo.',
+    accent: 'indigo',
+    motor: 'api-next',
+    requiereNivel: true,
+    usaCiclo: 'escolar',
+    keywords: ['nacimiento', 'sexo', 'fecha', 'grado', 'datos'],
   },
   // Listas
   {
