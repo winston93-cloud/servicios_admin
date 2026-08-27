@@ -91,7 +91,7 @@ export const REPORTE_CATEGORIAS: ReporteCategoria[] = [
   {
     id: 'curp',
     titulo: 'CURP y datos personales',
-    subtitulo: 'CURP · fecha de nacimiento y sexo por nivel',
+    subtitulo: 'CURP · reporte de aseguradoras por nivel',
     orden: 8,
   },
   { id: 'listas', titulo: 'Listas de alumnos', orden: 9 },
@@ -148,7 +148,7 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
   {
     id: 'nacimiento-sexo',
     categoriaId: 'curp',
-    titulo: 'Fecha de nacimiento y sexo',
+    titulo: 'Reporte de aseguradoras',
     descripcion:
       'Alumnos activos por nivel, agrupados por grado: nombre, fecha de nacimiento, sexo y CURP.',
     accent: 'indigo',

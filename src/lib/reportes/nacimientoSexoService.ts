@@ -102,7 +102,7 @@ export async function cargarReporteNacimientoSexo(
 
   const nivelLabel = etiquetaNivelEscolar(nivel)
   return {
-    titulo: 'Fecha de nacimiento y sexo',
+    titulo: 'Reporte de aseguradoras',
     ciclo: cicloEscolar,
     cicloLabel: etiquetaCicloReporte(cicloEscolar),
     nivel,
