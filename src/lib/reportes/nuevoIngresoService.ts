@@ -5,7 +5,8 @@ import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaGrupoEscolar } from '@/lib/grupoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import {
-  fechaAgendamientoDesdeMapa,
+  agendamientoDesdeMapa,
+  evaluarFiltroMesNuevoIngreso,
   mapaAgendamientoAgendaW,
 } from '@/lib/admissionInsforgeAdmin'
 import { CHUNK_ALUMNO_ID_GENERAL, chunkArray } from './dbChunks'
@@ -183,8 +184,7 @@ export async function cargarNuevoIngreso(
      */
     rangoPago?: { desde: string; hasta: string }
     /**
-     * Solo alumnos cuyo mes de agendamiento (AgendaW created_at) o, sin AgendaW,
-     * `alumno_alta` cae en el rango. No exige pago.
+     * Solo alumnos con reserva, cita, alta o registro en el rango del mes. No exige pago.
      */
     rangoAgenda?: { desde: string; hasta: string }
     /** Título override (ej. reporte por mes). */
@@ -216,18 +216,24 @@ export async function cargarNuevoIngreso(
   const contadores = new Map<number, { pendientes: number; pagados: number }>()
 
   for (const a of alumnos) {
-    // 2026-08-27: alta efectiva = alumno_alta o, si falta, alumno_registro (solicitud).
-    const alta =
-      formatearAlta(a.alumno_alta) || formatearAlta(a.alumno_registro)
+    const altaWinston = formatearAlta(a.alumno_alta)
+    const registroWinston = formatearAlta(a.alumno_registro)
     const refNum = Number(a.alumno_ref)
-    const fechaAgendamiento = fechaAgendamientoDesdeMapa(refNum, a.nombre, mapaAgenda)
+    const agenda = agendamientoDesdeMapa(refNum, a.nombre, mapaAgenda)
 
-    // Mes = created_at AgendaW (por ctrl o nombre); sin AgendaW, alta/registro Winston.
+    let fechaColumnaAlta = altaWinston || registroWinston
+
+    // 2026-08-27: mes inclusivo — cualquier fecha clave en el rango incluye al alumno.
     if (agendaDesde && agendaHasta) {
-      const fechaMes = fechaAgendamiento ?? alta
-      if (!fechaMes || fechaMes < agendaDesde || fechaMes > agendaHasta) {
-        continue
-      }
+      const mes = evaluarFiltroMesNuevoIngreso({
+        agenda,
+        alta: altaWinston,
+        registro: registroWinston,
+        desde: agendaDesde,
+        hasta: agendaHasta,
+      })
+      if (!mes.incluir) continue
+      fechaColumnaAlta = mes.fechaColumnaAlta
     }
 
     const pagosAlumno = pagosPorAlumno.get(a.alumno_id) ?? []
@@ -263,8 +269,7 @@ export async function cargarNuevoIngreso(
       grado: etiquetaGradoEscolar(nivel, a.alumno_grado),
       grupo: etiquetaGrupoEscolar(a.alumno_grupo),
       noCtrl: a.alumno_ref,
-      // En reporte por mes mostrar fecha de agendamiento AgendaW o alta Winston.
-      alta: fechaAgendamiento || alta,
+      alta: fechaColumnaAlta,
       nombre: a.nombre,
       fechaPago,
       pagado,

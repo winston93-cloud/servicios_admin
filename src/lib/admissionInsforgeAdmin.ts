@@ -62,11 +62,9 @@ function fechaCitaDesdeAppointmentDate(appointmentDate: string | null | undefine
   return String(appointmentDate ?? '').slice(0, 10)
 }
 
-function diffDiasCalendario(desde: string, hasta: string): number {
-  const d0 = new Date(`${desde.slice(0, 10)}T12:00:00Z`)
-  const d1 = new Date(`${hasta.slice(0, 10)}T12:00:00Z`)
-  if (Number.isNaN(d0.getTime()) || Number.isNaN(d1.getTime())) return 0
-  return Math.round((d1.getTime() - d0.getTime()) / 86400000)
+function fechaEnRangoCalendario(fecha: string, desde: string, hasta: string): boolean {
+  const f = fecha.slice(0, 10)
+  return Boolean(f) && f >= desde && f <= hasta
 }
 
 /** Reserva en línea vs cita de examen en AgendaW. */
@@ -76,20 +74,34 @@ export type AgendamientoCitaAgendaW = {
 }
 
 /**
- * 2026-08-27: mes efectivo AgendaW.
- * Reserva normal → created_at (ej. Francisco abr→may).
- * Reserva muy anticipada (>60 d) → appointment_date (ej. Manuel ene→abr).
+ * 2026-08-27: mes inclusivo — entra si reserva, cita, alta o registro caen en el rango.
+ * Columna Alta: prioriza la fecha del mes (alta → cita → reserva → registro).
  */
-const DIAS_RESERVA_ANTICIPADA_USAR_CITA = 60
+export function evaluarFiltroMesNuevoIngreso(opts: {
+  agenda: AgendamientoCitaAgendaW | null
+  alta: string
+  registro: string
+  desde: string
+  hasta: string
+}): { incluir: boolean; fechaColumnaAlta: string } {
+  const altaFmt = opts.alta.slice(0, 10)
+  const registroFmt = opts.registro.slice(0, 10)
+  const candidatas: { fecha: string; prio: number }[] = []
 
-export function fechaMesDesdeAgendamientoAgendaW(
-  ag: AgendamientoCitaAgendaW
-): string {
-  const { agendo, cita } = ag
-  if (!agendo) return cita
-  if (!cita) return agendo
-  if (diffDiasCalendario(agendo, cita) > DIAS_RESERVA_ANTICIPADA_USAR_CITA) return cita
-  return agendo
+  if (altaFmt) candidatas.push({ fecha: altaFmt, prio: 1 })
+  if (opts.agenda?.cita) candidatas.push({ fecha: opts.agenda.cita, prio: 2 })
+  if (opts.agenda?.agendo) candidatas.push({ fecha: opts.agenda.agendo, prio: 3 })
+  if (registroFmt) candidatas.push({ fecha: registroFmt, prio: 4 })
+
+  const enMes = candidatas.filter((c) =>
+    fechaEnRangoCalendario(c.fecha, opts.desde, opts.hasta)
+  )
+  if (enMes.length === 0) {
+    return { incluir: false, fechaColumnaAlta: altaFmt || registroFmt }
+  }
+
+  enMes.sort((a, b) => a.prio - b.prio)
+  return { incluir: true, fechaColumnaAlta: enMes[0].fecha }
 }
 
 /** 2026-08-27: clave para empatar AgendaW ↔ Winston cuando aún no hay alumno_ref. */
@@ -162,7 +174,6 @@ const CAMPOS_CITA_AGENDA =
 
 /**
  * Mapa de citas AgendaW por ctrl y por nombre normalizado.
- * El mes efectivo se resuelve en fechaMesDesdeAgendamientoAgendaW.
  */
 export async function mapaAgendamientoAgendaW(
   nivel: number,
@@ -227,12 +238,12 @@ export async function mapaFechaAgendaPorAlumnoRef(opts: {
   if (!mapa) return null
   const out = new Map<number, string>()
   for (const [ref, ag] of mapa.porRef) {
-    out.set(ref, fechaMesDesdeAgendamientoAgendaW(ag))
+    out.set(ref, ag.cita || ag.agendo)
   }
   return out
 }
 
-function agendamientoDesdeMapa(
+export function agendamientoDesdeMapa(
   refNum: number,
   nombre: string,
   mapa: MapaAgendamientoAgendaW | null
@@ -247,6 +258,7 @@ function agendamientoDesdeMapa(
   return mapa.porNombre.get(clave) ?? null
 }
 
+/** @deprecated Preferir evaluarFiltroMesNuevoIngreso con agenda completa. */
 export function fechaAgendamientoDesdeMapa(
   refNum: number,
   nombre: string,
@@ -254,5 +266,5 @@ export function fechaAgendamientoDesdeMapa(
 ): string | null {
   const ag = agendamientoDesdeMapa(refNum, nombre, mapa)
   if (!ag) return null
-  return fechaMesDesdeAgendamientoAgendaW(ag)
+  return ag.cita || ag.agendo
 }
