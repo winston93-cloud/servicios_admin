@@ -473,7 +473,7 @@ export const REPORTE_HANDLERS: Record<string, ReporteHandler> = {
     const rango = rangoMesCalendario(mes, anio)
     const mesLabel = etiquetaMesAnio(mes, anio)
     const resumen = await cargarNuevoIngreso(nivel, ciclo, ciclo, 'completo', {
-      rangoAgenda: rango,
+      rangoMes: rango,
       titulo: `Nuevo ingreso — ${mesLabel}`,
     })
     const filename = `ni-mes-${mes}-${anio}-ciclo-${ciclo}.pdf`

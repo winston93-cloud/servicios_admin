@@ -5,9 +5,7 @@ import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaGrupoEscolar } from '@/lib/grupoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import {
-  agendamientoAgendoEnMesDesdeMapa,
-  evaluarFiltroMesNuevoIngreso,
-  mapaAgendamientoAgendaW,
+  evaluarFiltroMesAltaNuevoIngreso,
 } from '@/lib/admissionInsforgeAdmin'
 import { CHUNK_ALUMNO_ID_GENERAL, chunkArray } from './dbChunks'
 import { fetchPagosPorAlumnos } from './fetchDb'
@@ -47,8 +45,8 @@ export type ResumenGradoNuevoIngreso = {
 export type ResumenNuevoIngreso = {
   titulo: string
   modo: 'completo' | 'deben'
-  /** true = reporte mensual: solo quienes agendaron en AgendaW ese mes. */
-  porAgenda?: boolean
+  /** true = reporte mensual filtrado por mes de alta. */
+  porMes?: boolean
   cicloAlumnos: number
   cicloPago: number
   cicloLabel: string
@@ -184,10 +182,9 @@ export async function cargarNuevoIngreso(
      */
     rangoPago?: { desde: string; hasta: string }
     /**
-     * Reporte mensual: solo alumnos con reserva AgendaW (created_at) en el mes.
-     * No usa alumno_alta, cita ni fecha de pago para filtrar.
+     * Reporte mensual: alumnos cuyo alumno_alta cae en el mes (registro si falta alta).
      */
-    rangoAgenda?: { desde: string; hasta: string }
+    rangoMes?: { desde: string; hasta: string }
     /** Título override (ej. reporte por mes). */
     titulo?: string
   }
@@ -201,15 +198,8 @@ export async function cargarNuevoIngreso(
     pagosPorAlumno.set(p.alumno_id, list)
   }
 
-  const agendaDesde = opts?.rangoAgenda?.desde?.slice(0, 10) ?? null
-  const agendaHasta = opts?.rangoAgenda?.hasta?.slice(0, 10) ?? null
-  const refsNumericos = alumnos
-    .map((a) => Number(a.alumno_ref))
-    .filter((n) => Number.isFinite(n) && n > 0)
-  const mapaAgenda =
-    agendaDesde && agendaHasta
-      ? await mapaAgendamientoAgendaW(nivel, refsNumericos)
-      : null
+  const mesDesde = opts?.rangoMes?.desde?.slice(0, 10) ?? null
+  const mesHasta = opts?.rangoMes?.hasta?.slice(0, 10) ?? null
 
   const filasBase: (Omit<FilaNuevoIngreso, 'no' | 'familiares'> & {
     alumno_id: number
@@ -219,30 +209,25 @@ export async function cargarNuevoIngreso(
   for (const a of alumnos) {
     const altaWinston = formatearAlta(a.alumno_alta)
     const registroWinston = formatearAlta(a.alumno_registro)
-    const refNum = Number(a.alumno_ref)
-    const agenda =
-      agendaDesde && agendaHasta
-        ? agendamientoAgendoEnMesDesdeMapa(refNum, a.nombre, mapaAgenda, agendaDesde, agendaHasta)
-        : null
 
     let fechaColumnaAlta = altaWinston || registroWinston
 
-    // 2026-08-27: filtro y columna Agenda = created_at fijo de esa reserva (no depende del mes elegido en UI).
-    if (agendaDesde && agendaHasta) {
-      if (!agenda) continue
-      const mes = evaluarFiltroMesNuevoIngreso({
-        agenda,
-        desde: agendaDesde,
-        hasta: agendaHasta,
+    // 2026-08-27: reporte mensual = mes de alumno_alta (misma columna que el general).
+    if (mesDesde && mesHasta) {
+      const mes = evaluarFiltroMesAltaNuevoIngreso({
+        alta: altaWinston,
+        registro: registroWinston,
+        desde: mesDesde,
+        hasta: mesHasta,
       })
       if (!mes.incluir) continue
-      fechaColumnaAlta = mes.fechaAgendo
+      fechaColumnaAlta = mes.fechaAlta
     }
 
     const pagosAlumno = pagosPorAlumno.get(a.alumno_id) ?? []
-    // 2026-08-27: en reporte mensual la F. pago es la inscripción real del ciclo, no la del mes.
+    // 2026-08-27: F. pago = inscripción del ciclo (fija), no filtra por mes.
     const fechaPago =
-      opts?.rangoPago && !opts?.rangoAgenda
+      opts?.rangoPago && !opts?.rangoMes
         ? buscarFechaConceptoEnRango(
             pagosAlumno,
             a.alumno_ref,
@@ -314,7 +299,7 @@ export async function cargarNuevoIngreso(
   return {
     titulo,
     modo,
-    porAgenda: Boolean(opts?.rangoAgenda),
+    porMes: Boolean(opts?.rangoMes),
     cicloAlumnos,
     cicloPago,
     cicloLabel: etiquetaCicloReporte(cicloAlumnos),

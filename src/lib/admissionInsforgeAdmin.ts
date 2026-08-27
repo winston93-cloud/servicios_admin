@@ -81,7 +81,27 @@ export function fechaMesAgendoAgendaW(agenda: AgendamientoCitaAgendaW | null): s
   return agenda?.agendo?.slice(0, 10) ?? ''
 }
 
-/** Incluye solo alumnos cuya reserva en AgendaW cae en el rango del mes. */
+/**
+ * 2026-08-27: reporte mensual por mes de alumno_alta (alumno_registro si falta alta).
+ */
+export function evaluarFiltroMesAltaNuevoIngreso(opts: {
+  alta: string
+  registro: string
+  desde: string
+  hasta: string
+}): { incluir: boolean; fechaAlta: string } {
+  const altaFmt = opts.alta.slice(0, 10)
+  const registroFmt = opts.registro.slice(0, 10)
+  const fecha = altaFmt || registroFmt
+  return {
+    incluir: fechaEnRangoCalendario(fecha, opts.desde, opts.hasta),
+    fechaAlta: fecha,
+  }
+}
+
+/**
+ * @deprecated Reporte mensual usa evaluarFiltroMesAltaNuevoIngreso (mes de alumno_alta).
+ */
 export function evaluarFiltroMesNuevoIngreso(opts: {
   agenda: AgendamientoCitaAgendaW | null
   desde: string
