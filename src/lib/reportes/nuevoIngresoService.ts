@@ -184,7 +184,7 @@ export async function cargarNuevoIngreso(
      */
     rangoPago?: { desde: string; hasta: string }
     /**
-     * Reporte mensual: mismos alumnos que el general, filtrados por su mes canónico único.
+     * Reporte mensual: mes canónico desde AgendaW (reserva/cita); sin cita → alumno_alta.
      */
     rangoAgenda?: { desde: string; hasta: string }
     /** Título override (ej. reporte por mes). */
@@ -223,10 +223,9 @@ export async function cargarNuevoIngreso(
 
     let fechaColumnaAlta = altaWinston || registroWinston
 
-    // 2026-08-27: un mes por alumno; no repetir en otros meses del mismo ciclo.
+    // 2026-08-27: mes único desde AgendaW; sin cita vinculada → alumno_alta.
     if (agendaDesde && agendaHasta) {
       const mes = evaluarFiltroMesNuevoIngreso({
-        nivel,
         agenda,
         alta: altaWinston,
         registro: registroWinston,

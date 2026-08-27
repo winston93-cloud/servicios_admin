@@ -81,14 +81,11 @@ export type AgendamientoCitaAgendaW = {
 }
 
 /**
- * 2026-08-27: un solo mes por alumno (mismo universo que reporte general).
- * - Sin AgendaW: alumno_alta, o alumno_registro si falta alta.
- * - Maternal/Kinder: reserva muy anticipada (>30 d) → mes de la cita; si no, reserva.
- * - Primaria: alumno_alta (Winston).
- * - Secundaria: mes de reserva AgendaW (created_at).
+ * 2026-08-27: un solo mes por alumno, basado únicamente en AgendaW.
+ * - Con cita: reserva >30 d antes del examen → mes de la cita; si no → mes de reserva (created_at).
+ * - Sin AgendaW: mes de alumno_alta (mismo universo que el reporte general).
  */
 export function fechaMesCanonicoNuevoIngreso(opts: {
-  nivel: number
   agenda: AgendamientoCitaAgendaW | null
   alta: string
   registro: string
@@ -100,24 +97,17 @@ export function fechaMesCanonicoNuevoIngreso(opts: {
   if (ag?.agendo || ag?.cita) {
     const agendo = ag.agendo || ''
     const cita = ag.cita || ''
-    const dias = agendo && cita ? diffDiasCalendario(agendo, cita) : 0
-
-    if (opts.nivel <= 2) {
-      if (dias > 30) return cita || altaFmt || registroFmt
-      return agendo || cita || altaFmt || registroFmt
+    if (agendo && cita && diffDiasCalendario(agendo, cita) > 30) {
+      return cita
     }
-    if (opts.nivel === 3) {
-      return altaFmt || agendo || cita || registroFmt
-    }
-    return agendo || cita || altaFmt || registroFmt
+    return agendo || cita
   }
 
   return altaFmt || registroFmt
 }
 
-/** Filtra reporte mensual: solo alumnos cuyo mes canónico cae en el rango. */
+/** Filtra reporte mensual: mes canónico (AgendaW o alta si no hay cita). */
 export function evaluarFiltroMesNuevoIngreso(opts: {
-  nivel: number
   agenda: AgendamientoCitaAgendaW | null
   alta: string
   registro: string
@@ -125,7 +115,6 @@ export function evaluarFiltroMesNuevoIngreso(opts: {
   hasta: string
 }): { incluir: boolean; fechaColumnaAlta: string } {
   const fecha = fechaMesCanonicoNuevoIngreso({
-    nivel: opts.nivel,
     agenda: opts.agenda,
     alta: opts.alta,
     registro: opts.registro,
