@@ -301,8 +301,8 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   // 2026-08-21 - Prototipo firma electrónica (canvas + pdf-lib) para personal usuario.
   {
     label: 'Pruebas firma electrónica',
-    desc: 'Prototipo: documento de prueba, pad de firma y PDF firmado en el navegador.',
-    path: '/firma-electronica',
+    desc: 'Sandbox: documento de prueba, pad de firma y PDF firmado en el navegador.',
+    path: '/firma-electronica?sandbox=1',
     accent: 'sky',
     kicker: 'Pruebas',
     tags: ['Firma', 'Electrónica'],

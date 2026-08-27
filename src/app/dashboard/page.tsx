@@ -121,12 +121,28 @@ const NAV_ITEMS_ALUMNO: DashboardNavItem[] = [
   },
 ]
 
+const NAV_ITEM_BECAS_FIRMA: DashboardNavItem = {
+  label: 'Becas',
+  desc: 'Firma electrónica · Activación de beca',
+  path: '/firma-electronica',
+  accent: 'sky',
+  icon: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3v18"/>
+      <path d="M5 8h14"/>
+      <path d="M7 8c0 4 2.5 7 5 9 2.5-2 5-5 5-9"/>
+      <path d="M9 12h6"/>
+    </svg>
+  ),
+}
+
 export default function DashboardPage() {
   const { user, session, logout, isAlumno, isUsuario, loading } = useAuth()
   const router = useRouter()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [cicloVigenteNombre, setCicloVigenteNombre] = useState<string | null>(null)
   const [ayudaAbierta, setAyudaAbierta] = useState(false)
+  const [becaFirmaAutorizada, setBecaFirmaAutorizada] = useState(false)
 
   // Solo un panel: alumno XOR personal (nunca mezclar módulos).
   const mostrarPanelAlumno = isAlumno && !isUsuario
@@ -186,6 +202,34 @@ export default function DashboardPage() {
   }, [mostrarPanelAlumno])
 
   useEffect(() => {
+    if (!mostrarPanelAlumno) {
+      setBecaFirmaAutorizada(false)
+      return
+    }
+    const alumnoId = Number(session?.alumno_id)
+    if (!(alumnoId > 0)) {
+      setBecaFirmaAutorizada(false)
+      return
+    }
+    let cancelado = false
+    void fetch('/api/firma-electronica/estado', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ alumnoId }),
+    })
+      .then(async (res) => {
+        const json = await res.json().catch(() => ({}))
+        if (!cancelado) setBecaFirmaAutorizada(Boolean(json?.autorizada))
+      })
+      .catch(() => {
+        if (!cancelado) setBecaFirmaAutorizada(false)
+      })
+    return () => {
+      cancelado = true
+    }
+  }, [mostrarPanelAlumno, session?.alumno_id])
+
+  useEffect(() => {
     if (!isMenuOpen) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') closeMenu()
@@ -211,7 +255,11 @@ export default function DashboardPage() {
   })()
 
   const navItemsAdmin = useMemo(() => [...NAV_ITEMS_ADMIN], [])
-  const navItemsAlumno = useMemo(() => [...NAV_ITEMS_ALUMNO], [])
+  const navItemsAlumno = useMemo(() => {
+    const items = [...NAV_ITEMS_ALUMNO]
+    if (becaFirmaAutorizada) items.push(NAV_ITEM_BECAS_FIRMA)
+    return items
+  }, [becaFirmaAutorizada])
 
   const subtituloDashboard = mostrarPanelAlumno
     ? 'Accede a tus portales en línea'
