@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
-import { obtenerAutorizacionFirmaActiva } from '@/lib/firmaElectronica/autorizacionFirmaService'
-import { cicloFirmaBecaActual } from '@/lib/firmaElectronica/cicloFirmaBeca'
+import { resolverEstadoFirmaBecaPortal } from '@/lib/firmaElectronica/autorizacionFirmaService'
 
 export const runtime = 'nodejs'
 
@@ -18,28 +17,29 @@ export async function POST(request: Request) {
     if (!auth.ok) return auth.response
 
     const db = createDbAdmin()
-    const ciclo = cicloFirmaBecaActual()
-    const row = await obtenerAutorizacionFirmaActiva(db, alumnoId, ciclo)
+    const estado = await resolverEstadoFirmaBecaPortal(db, alumnoId)
 
-    if (!row) {
+    if (!estado.autorizada) {
       return NextResponse.json({
         ok: true,
         autorizada: false,
         activada: false,
-        ciclo,
+        ciclo: estado.ciclo,
       })
     }
 
     return NextResponse.json({
       ok: true,
       autorizada: true,
-      activada: Boolean(row.beca_activada),
-      ciclo: row.ciclo_escolar,
-      flujo: row.flujo,
-      expedienteId: row.expediente_id,
-      firmadoPor: row.firmado_por,
-      activadaEn: row.beca_activada_en,
-      tieneCartaFirmada: Boolean(row.carta_firmada_key),
+      activada: Boolean(estado.activada),
+      ciclo: estado.ciclo,
+      flujo: estado.flujo,
+      expedienteId: estado.expedienteId,
+      firmadoPor: estado.firmadoPor ?? estado.row?.firmado_por ?? null,
+      activadaEn: estado.activadaEn ?? estado.row?.beca_activada_en ?? null,
+      tieneCartaFirmada: Boolean(
+        estado.tieneCartaFirmada ?? estado.row?.carta_firmada_key
+      ),
     })
   } catch (e) {
     const msg =

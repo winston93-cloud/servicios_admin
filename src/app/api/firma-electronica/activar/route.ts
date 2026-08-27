@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import { createDbAdmin, createInsforgeAdmin } from '@/lib/insforgeAdmin'
-import { activarBecaConCartaFirmada } from '@/lib/firmaElectronica/autorizacionFirmaService'
+import { activarBecaConCartaFirmada, resolverAutorizacionFirmaParaAlumno } from '@/lib/firmaElectronica/autorizacionFirmaService'
 
 export const runtime = 'nodejs'
 
@@ -45,6 +45,15 @@ export async function POST(request: Request) {
 
     const db = createDbAdmin()
     const client = createInsforgeAdmin()
+
+    const estado = await resolverAutorizacionFirmaParaAlumno(db, alumnoId)
+    if (!estado.autorizada) {
+      return NextResponse.json(
+        { error: 'No hay beca autorizada para firma en el ciclo actual.' },
+        { status: 403 }
+      )
+    }
+
     const result = await activarBecaConCartaFirmada({
       db,
       client,

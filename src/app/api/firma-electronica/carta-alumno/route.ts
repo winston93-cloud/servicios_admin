@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
-import { obtenerAutorizacionFirmaActiva } from '@/lib/firmaElectronica/autorizacionFirmaService'
+import { resolverAutorizacionFirmaParaAlumno } from '@/lib/firmaElectronica/autorizacionFirmaService'
 import { construirCartaAceptacionPayload } from '@/lib/firmaElectronica/cartaAceptacionPayload'
 import { resolveFirmaAssetsBaseUrl } from '@/lib/firmaElectronica/resolveAssetsBaseUrl'
 import { crearCartaBecaPdf } from '@/app/firma-electronica/lib/crearCartaBecaPdf'
@@ -20,18 +20,20 @@ export async function POST(request: Request) {
     if (!auth.ok) return auth.response
 
     const db = createDbAdmin()
-    const row = await obtenerAutorizacionFirmaActiva(db, alumnoId)
-    if (!row) {
+    const estado = await resolverAutorizacionFirmaParaAlumno(db, alumnoId)
+    if (!estado.autorizada || !estado.flujo || !estado.expedienteId) {
       return NextResponse.json(
         { error: 'No hay beca autorizada para firmar.' },
         { status: 403 }
       )
     }
 
+    const row = estado.row
+
     const built = await construirCartaAceptacionPayload({
       db,
-      flujo: row.flujo,
-      expedienteId: row.expediente_id,
+      flujo: estado.flujo,
+      expedienteId: estado.expedienteId,
     })
     if (!built.ok) {
       return NextResponse.json({ error: built.error }, { status: 400 })
@@ -49,9 +51,9 @@ export async function POST(request: Request) {
       datos: built.data.datos,
       firmaBox,
       pdfBase64: Buffer.from(bytes).toString('base64'),
-      activada: Boolean(row.beca_activada),
-      flujo: row.flujo,
-      expedienteId: row.expediente_id,
+      activada: Boolean(estado.activada ?? row?.beca_activada),
+      flujo: estado.flujo,
+      expedienteId: estado.expedienteId,
     })
   } catch (e) {
     const msg =

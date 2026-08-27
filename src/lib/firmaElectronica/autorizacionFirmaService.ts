@@ -3,7 +3,10 @@
  */
 import type { AppDatabaseClient } from '@/lib/dbTypes'
 import type { AppInsforgeClient } from '@/lib/dbTypes'
-import { cicloFirmaBecaActual } from './cicloFirmaBeca'
+import {
+  cicloBecaARenovarFirma,
+  cicloFirmaBecaActual,
+} from './cicloFirmaBeca'
 import type { FlujoFirmaBeca } from './cartaAceptacionPayload'
 import {
   BECAS_CARTAS_FIRMADAS_BUCKET,
@@ -63,6 +66,168 @@ export async function obtenerAutorizacionFirmaPorExpediente(
   if (error) throw new Error(error.message)
   if (!data) return null
   return data as AutorizacionFirmaRow
+}
+
+export type EstadoFirmaBecaPortal = {
+  autorizada: boolean
+  activada: boolean
+  ciclo: number
+  flujo?: FlujoFirmaBeca
+  expedienteId?: string
+  firmadoPor?: string | null
+  activadaEn?: string | null
+  tieneCartaFirmada?: boolean
+  row: AutorizacionFirmaRow | null
+}
+
+/** Renovación (ciclo origen) y solicitud (ciclo calendario) con beca autorizada. */
+export async function resolverEstadoFirmaBecaPortal(
+  db: AppDatabaseClient,
+  alumnoId: number
+): Promise<EstadoFirmaBecaPortal> {
+  const cicloCal = cicloFirmaBecaActual()
+  const row = await obtenerAutorizacionFirmaActiva(db, alumnoId, cicloCal)
+
+  if (row) {
+    return {
+      autorizada: true,
+      activada: Boolean(row.beca_activada),
+      ciclo: row.ciclo_escolar,
+      flujo: row.flujo,
+      expedienteId: row.expediente_id,
+      firmadoPor: row.firmado_por,
+      activadaEn: row.beca_activada_en,
+      tieneCartaFirmada: Boolean(row.carta_firmada_key),
+      row,
+    }
+  }
+
+  const cicloOrigen = cicloBecaARenovarFirma()
+
+  const { data: ren, error: renErr } = await db
+    .from('becas_renovacion')
+    .select('id')
+    .eq('alumno_id', alumnoId)
+    .eq('ciclo_escolar', cicloOrigen)
+    .eq('beca_autorizada', true)
+    .maybeSingle()
+
+  if (renErr) throw new Error(renErr.message)
+  if (ren?.id) {
+    return {
+      autorizada: true,
+      activada: false,
+      ciclo: cicloCal,
+      flujo: 'renovacion',
+      expedienteId: String(ren.id),
+      row: null,
+    }
+  }
+
+  const { data: sol, error: solErr } = await db
+    .from('becas_solicitud')
+    .select('id')
+    .eq('alumno_id', alumnoId)
+    .eq('ciclo_escolar', cicloCal)
+    .eq('beca_autorizada', true)
+    .maybeSingle()
+
+  if (solErr) throw new Error(solErr.message)
+  if (sol?.id) {
+    return {
+      autorizada: true,
+      activada: false,
+      ciclo: cicloCal,
+      flujo: 'solicitud',
+      expedienteId: String(sol.id),
+      row: null,
+    }
+  }
+
+  return {
+    autorizada: false,
+    activada: false,
+    ciclo: cicloCal,
+    row: null,
+  }
+}
+
+/** Asegura fila en becas_autorizacion_firma si el expediente ya está autorizado. */
+export async function asegurarAutorizacionFirmaActiva(
+  db: AppDatabaseClient,
+  estado: EstadoFirmaBecaPortal
+): Promise<AutorizacionFirmaRow | null> {
+  if (!estado.autorizada || !estado.flujo || !estado.expedienteId) return null
+  if (estado.row) return estado.row
+
+  const cicloCal = cicloFirmaBecaActual()
+  const ahora = new Date().toISOString()
+
+  const { data: expedienteAlumno } = await db
+    .from(estado.flujo === 'renovacion' ? 'becas_renovacion' : 'becas_solicitud')
+    .select('alumno_id')
+    .eq('id', estado.expedienteId)
+    .maybeSingle()
+
+  const alumnoId = Number(expedienteAlumno?.alumno_id)
+  if (!(alumnoId > 0)) return null
+
+  const fila = {
+    alumno_id: alumnoId,
+    ciclo_escolar: cicloCal,
+    flujo: estado.flujo,
+    expediente_id: estado.expedienteId,
+    activo: true,
+    autorizado_en: ahora,
+    revocado_en: null,
+  }
+
+  const { data: existente } = await db
+    .from('becas_autorizacion_firma')
+    .select('id')
+    .eq('alumno_id', alumnoId)
+    .eq('ciclo_escolar', cicloCal)
+    .maybeSingle()
+
+  if (existente?.id) {
+    const { data, error } = await db
+      .from('becas_autorizacion_firma')
+      .update(fila)
+      .eq('id', existente.id)
+      .select(SELECT_AUT)
+      .maybeSingle()
+    if (error) throw new Error(error.message)
+    return data as AutorizacionFirmaRow | null
+  }
+
+  const { data, error } = await db
+    .from('becas_autorizacion_firma')
+    .insert([fila])
+    .select(SELECT_AUT)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  return data as AutorizacionFirmaRow | null
+}
+
+export async function resolverAutorizacionFirmaParaAlumno(
+  db: AppDatabaseClient,
+  alumnoId: number
+): Promise<EstadoFirmaBecaPortal> {
+  const estado = await resolverEstadoFirmaBecaPortal(db, alumnoId)
+  if (!estado.autorizada) return estado
+  const row = await asegurarAutorizacionFirmaActiva(db, estado)
+  if (row) {
+    return {
+      ...estado,
+      activada: Boolean(row.beca_activada),
+      firmadoPor: row.firmado_por,
+      activadaEn: row.beca_activada_en,
+      tieneCartaFirmada: Boolean(row.carta_firmada_key),
+      row,
+    }
+  }
+  return estado
 }
 
 export async function activarBecaConCartaFirmada(opts: {
