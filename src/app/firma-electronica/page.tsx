@@ -229,7 +229,7 @@ function FirmaElectronicaView() {
               porcentaje: String(cartaJson.datos.porcentaje || ''),
               cicloLabel: String(cartaJson.datos.cicloLabel || ''),
             })
-            setNombreTutor(String(estadoJson.firmadoPor || cartaJson.datos.tutorNombre || ''))
+            setNombreTutor(String(estadoJson.firmadoPor || ''))
             setNivel(cartaJson.nivel as NivelFirma)
           }
           return
@@ -265,7 +265,7 @@ function FirmaElectronicaView() {
           porcentaje: String(cartaJson.datos?.porcentaje || ''),
           cicloLabel: String(cartaJson.datos?.cicloLabel || ''),
         })
-        setNombreTutor(String(cartaJson.datos?.tutorNombre || ''))
+        setNombreTutor('')
         setOrigenBytes(bytes)
         setFirmaBox(cartaJson.firmaBox as FirmaBox)
         setOrigenUrl(nextUrl)
