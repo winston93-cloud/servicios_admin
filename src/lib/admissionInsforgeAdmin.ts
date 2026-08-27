@@ -50,12 +50,46 @@ export function levelAgendaDesdeNivel(nivel: number): string | null {
   return NIVEL_A_LEVEL[nivel] ?? null
 }
 
-/** 2026-08-27: fecha local MX del agendamiento (created_at), no la cita. */
+/** 2026-08-27: fecha local MX del registro en AgendaW (created_at). */
 function fechaAgendamientoDesdeCreatedAt(createdAt: string | null | undefined): string {
   if (!createdAt) return ''
   const d = new Date(createdAt)
   if (Number.isNaN(d.getTime())) return ''
   return d.toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' })
+}
+
+function fechaCitaDesdeAppointmentDate(appointmentDate: string | null | undefined): string {
+  return String(appointmentDate ?? '').slice(0, 10)
+}
+
+function diffDiasCalendario(desde: string, hasta: string): number {
+  const d0 = new Date(`${desde.slice(0, 10)}T12:00:00Z`)
+  const d1 = new Date(`${hasta.slice(0, 10)}T12:00:00Z`)
+  if (Number.isNaN(d0.getTime()) || Number.isNaN(d1.getTime())) return 0
+  return Math.round((d1.getTime() - d0.getTime()) / 86400000)
+}
+
+/** Reserva en línea vs cita de examen en AgendaW. */
+export type AgendamientoCitaAgendaW = {
+  agendo: string
+  cita: string
+}
+
+/**
+ * 2026-08-27: mes efectivo AgendaW.
+ * Reserva normal → created_at (ej. Francisco abr→may).
+ * Reserva muy anticipada (>60 d) → appointment_date (ej. Manuel ene→abr).
+ */
+const DIAS_RESERVA_ANTICIPADA_USAR_CITA = 60
+
+export function fechaMesDesdeAgendamientoAgendaW(
+  ag: AgendamientoCitaAgendaW
+): string {
+  const { agendo, cita } = ag
+  if (!agendo) return cita
+  if (!cita) return agendo
+  if (diffDiasCalendario(agendo, cita) > DIAS_RESERVA_ANTICIPADA_USAR_CITA) return cita
+  return agendo
 }
 
 /** 2026-08-27: clave para empatar AgendaW ↔ Winston cuando aún no hay alumno_ref. */
@@ -81,43 +115,54 @@ function nombreCompletoAgendaW(r: {
 }
 
 function registrarAgendamiento(
-  porRef: Map<number, string>,
-  porNombre: Map<string, string>,
+  porRef: Map<number, AgendamientoCitaAgendaW>,
+  porNombre: Map<string, AgendamientoCitaAgendaW>,
   r: {
     alumno_ref: number | string | null
     created_at: string | null
+    appointment_date: string | null
     student_name: string | null
     student_last_name_p: string | null
     student_last_name_m: string | null
   }
 ) {
-  const fecha = fechaAgendamientoDesdeCreatedAt(r.created_at)
-  if (!fecha) return
+  const entry: AgendamientoCitaAgendaW = {
+    agendo: fechaAgendamientoDesdeCreatedAt(r.created_at),
+    cita: fechaCitaDesdeAppointmentDate(r.appointment_date),
+  }
+  if (!entry.agendo && !entry.cita) return
+
+  const merge = (map: Map<number | string, AgendamientoCitaAgendaW>, key: number | string) => {
+    const prev = map.get(key)
+    if (!prev) {
+      map.set(key, entry)
+      return
+    }
+    const agendoPrev = prev.agendo || prev.cita
+    const agendoNuevo = entry.agendo || entry.cita
+    if (agendoNuevo && (!agendoPrev || agendoNuevo < agendoPrev)) {
+      map.set(key, entry)
+    }
+  }
 
   const ref = Number(r.alumno_ref)
-  if (ref > 0) {
-    const prev = porRef.get(ref)
-    if (!prev || fecha < prev) porRef.set(ref, fecha)
-  }
+  if (ref > 0) merge(porRef, ref)
 
   const clave = claveNombreAgendaMatch(nombreCompletoAgendaW(r))
-  if (clave) {
-    const prev = porNombre.get(clave)
-    if (!prev || fecha < prev) porNombre.set(clave, fecha)
-  }
+  if (clave) merge(porNombre, clave)
 }
 
 export type MapaAgendamientoAgendaW = {
-  porRef: Map<number, string>
-  porNombre: Map<string, string>
+  porRef: Map<number, AgendamientoCitaAgendaW>
+  porNombre: Map<string, AgendamientoCitaAgendaW>
 }
 
 const CAMPOS_CITA_AGENDA =
-  'alumno_ref, created_at, status, student_name, student_last_name_p, student_last_name_m'
+  'alumno_ref, created_at, appointment_date, status, student_name, student_last_name_p, student_last_name_m'
 
 /**
- * Mapa de agendamientos AgendaW por ctrl y por nombre normalizado.
- * Usa created_at (cuándo agendaron), no appointment_date (día del examen).
+ * Mapa de citas AgendaW por ctrl y por nombre normalizado.
+ * El mes efectivo se resuelve en fechaMesDesdeAgendamientoAgendaW.
  */
 export async function mapaAgendamientoAgendaW(
   nivel: number,
@@ -129,8 +174,8 @@ export async function mapaAgendamientoAgendaW(
   if (!level) return null
 
   const db = createAdmissionDb()
-  const porRef = new Map<number, string>()
-  const porNombre = new Map<string, string>()
+  const porRef = new Map<number, AgendamientoCitaAgendaW>()
+  const porNombre = new Map<string, AgendamientoCitaAgendaW>()
   let offset = 0
   const PAGE = 500
 
@@ -179,14 +224,19 @@ export async function mapaFechaAgendaPorAlumnoRef(opts: {
   hasta?: string
 }): Promise<Map<number, string> | null> {
   const mapa = await mapaAgendamientoAgendaW(opts.nivel)
-  return mapa?.porRef ?? null
+  if (!mapa) return null
+  const out = new Map<number, string>()
+  for (const [ref, ag] of mapa.porRef) {
+    out.set(ref, fechaMesDesdeAgendamientoAgendaW(ag))
+  }
+  return out
 }
 
-export function fechaAgendamientoDesdeMapa(
+function agendamientoDesdeMapa(
   refNum: number,
   nombre: string,
   mapa: MapaAgendamientoAgendaW | null
-): string | null {
+): AgendamientoCitaAgendaW | null {
   if (!mapa) return null
   if (Number.isFinite(refNum) && refNum > 0) {
     const porRef = mapa.porRef.get(refNum)
@@ -195,4 +245,14 @@ export function fechaAgendamientoDesdeMapa(
   const clave = claveNombreAgendaMatch(nombre)
   if (!clave) return null
   return mapa.porNombre.get(clave) ?? null
+}
+
+export function fechaAgendamientoDesdeMapa(
+  refNum: number,
+  nombre: string,
+  mapa: MapaAgendamientoAgendaW | null
+): string | null {
+  const ag = agendamientoDesdeMapa(refNum, nombre, mapa)
+  if (!ag) return null
+  return fechaMesDesdeAgendamientoAgendaW(ag)
 }
