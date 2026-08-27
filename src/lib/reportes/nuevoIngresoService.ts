@@ -4,7 +4,10 @@ import { TUTOR_ID_MADRE, TUTOR_ID_PADRE } from '@/lib/alumnoFamiliarTutor'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaGrupoEscolar } from '@/lib/grupoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
-import { mapaFechaAgendaPorAlumnoRef } from '@/lib/admissionInsforgeAdmin'
+import {
+  fechaAgendamientoDesdeMapa,
+  mapaAgendamientoAgendaW,
+} from '@/lib/admissionInsforgeAdmin'
 import { CHUNK_ALUMNO_ID_GENERAL, chunkArray } from './dbChunks'
 import { fetchPagosPorAlumnos } from './fetchDb'
 import { buscarFechaConcepto, buscarFechaConceptoEnRango } from './pagoReporteHelpers'
@@ -72,6 +75,7 @@ async function fetchNuevoIngresoNivel(
     alumno_grado: number
     alumno_grupo: number
     alumno_alta: string | null
+    alumno_registro: string | null
   }[]
 > {
   const db = createDbAdmin()
@@ -82,6 +86,7 @@ async function fetchNuevoIngresoNivel(
     alumno_grado: number
     alumno_grupo: number
     alumno_alta: string | null
+    alumno_registro: string | null
   }[] = []
   let offset = 0
   const PAGE = 400
@@ -90,7 +95,7 @@ async function fetchNuevoIngresoNivel(
     const { data, error } = await db
       .from('alumno')
       .select(
-        'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_alta'
+        'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_alta, alumno_registro'
       )
       .eq('alumno_nivel', nivel)
       .eq('alumno_ciclo_escolar', cicloAlumnos)
@@ -112,6 +117,7 @@ async function fetchNuevoIngresoNivel(
         alumno_grado: Number(r.alumno_grado),
         alumno_grupo: Number(r.alumno_grupo),
         alumno_alta: r.alumno_alta as string | null,
+        alumno_registro: r.alumno_registro as string | null,
       })
     }
     if (chunk.length < PAGE) break
@@ -196,13 +202,12 @@ export async function cargarNuevoIngreso(
 
   const agendaDesde = opts?.rangoAgenda?.desde?.slice(0, 10) ?? null
   const agendaHasta = opts?.rangoAgenda?.hasta?.slice(0, 10) ?? null
-  const fechasAgenda =
+  const refsNumericos = alumnos
+    .map((a) => Number(a.alumno_ref))
+    .filter((n) => Number.isFinite(n) && n > 0)
+  const mapaAgenda =
     agendaDesde && agendaHasta
-      ? await mapaFechaAgendaPorAlumnoRef({
-          nivel,
-          desde: agendaDesde,
-          hasta: agendaHasta,
-        })
+      ? await mapaAgendamientoAgendaW(nivel, refsNumericos)
       : null
 
   const filasBase: (Omit<FilaNuevoIngreso, 'no' | 'familiares'> & {
@@ -211,12 +216,13 @@ export async function cargarNuevoIngreso(
   const contadores = new Map<number, { pendientes: number; pagados: number }>()
 
   for (const a of alumnos) {
-    const alta = formatearAlta(a.alumno_alta)
+    // 2026-08-27: alta efectiva = alumno_alta o, si falta, alumno_registro (solicitud).
+    const alta =
+      formatearAlta(a.alumno_alta) || formatearAlta(a.alumno_registro)
     const refNum = Number(a.alumno_ref)
-    const fechaAgendamiento =
-      fechasAgenda && Number.isFinite(refNum) ? fechasAgenda.get(refNum) ?? null : null
+    const fechaAgendamiento = fechaAgendamientoDesdeMapa(refNum, a.nombre, mapaAgenda)
 
-    // 2026-08-27: mes = created_at AgendaW si existe; si no hay AgendaW, alumno_alta.
+    // Mes = created_at AgendaW (por ctrl o nombre); sin AgendaW, alta/registro Winston.
     if (agendaDesde && agendaHasta) {
       const fechaMes = fechaAgendamiento ?? alta
       if (!fechaMes || fechaMes < agendaDesde || fechaMes > agendaHasta) {

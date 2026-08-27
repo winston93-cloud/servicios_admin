@@ -58,33 +58,87 @@ function fechaAgendamientoDesdeCreatedAt(createdAt: string | null | undefined): 
   return d.toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' })
 }
 
+/** 2026-08-27: clave para empatar AgendaW ↔ Winston cuando aún no hay alumno_ref. */
+export function claveNombreAgendaMatch(nombre: string): string {
+  return nombre
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+}
+
+function nombreCompletoAgendaW(r: {
+  student_name: string | null
+  student_last_name_p: string | null
+  student_last_name_m: string | null
+}): string {
+  return [r.student_name, r.student_last_name_p, r.student_last_name_m]
+    .map((p) => String(p ?? '').trim())
+    .filter(Boolean)
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function registrarAgendamiento(
+  porRef: Map<number, string>,
+  porNombre: Map<string, string>,
+  r: {
+    alumno_ref: number | string | null
+    created_at: string | null
+    student_name: string | null
+    student_last_name_p: string | null
+    student_last_name_m: string | null
+  }
+) {
+  const fecha = fechaAgendamientoDesdeCreatedAt(r.created_at)
+  if (!fecha) return
+
+  const ref = Number(r.alumno_ref)
+  if (ref > 0) {
+    const prev = porRef.get(ref)
+    if (!prev || fecha < prev) porRef.set(ref, fecha)
+  }
+
+  const clave = claveNombreAgendaMatch(nombreCompletoAgendaW(r))
+  if (clave) {
+    const prev = porNombre.get(clave)
+    if (!prev || fecha < prev) porNombre.set(clave, fecha)
+  }
+}
+
+export type MapaAgendamientoAgendaW = {
+  porRef: Map<number, string>
+  porNombre: Map<string, string>
+}
+
+const CAMPOS_CITA_AGENDA =
+  'alumno_ref, created_at, status, student_name, student_last_name_p, student_last_name_m'
+
 /**
- * Mapa alumno_ref → fecha de agendamiento (YYYY-MM-DD, hora México) en AgendaW.
+ * Mapa de agendamientos AgendaW por ctrl y por nombre normalizado.
  * Usa created_at (cuándo agendaron), no appointment_date (día del examen).
- * El filtro por mes se aplica en cargarNuevoIngreso.
  */
-export async function mapaFechaAgendaPorAlumnoRef(opts: {
-  nivel: number
-  /** Conservado por compatibilidad; el rango ya no filtra en BD. */
-  desde?: string
-  hasta?: string
-}): Promise<Map<number, string> | null> {
+export async function mapaAgendamientoAgendaW(
+  nivel: number,
+  refsAlumnos?: number[]
+): Promise<MapaAgendamientoAgendaW | null> {
   if (!admissionEnvConfigured()) return null
 
-  const level = levelAgendaDesdeNivel(opts.nivel)
+  const level = levelAgendaDesdeNivel(nivel)
   if (!level) return null
 
   const db = createAdmissionDb()
-  const out = new Map<number, string>()
+  const porRef = new Map<number, string>()
+  const porNombre = new Map<string, string>()
   let offset = 0
   const PAGE = 500
 
   while (true) {
     const { data, error } = await db
       .from('admission_appointments')
-      .select('alumno_ref, created_at, status')
+      .select(CAMPOS_CITA_AGENDA)
       .eq('level', level)
-      .not('alumno_ref', 'is', null)
       .neq('status', 'cancelled')
       .order('created_at', { ascending: true })
       .range(offset, offset + PAGE - 1)
@@ -92,16 +146,53 @@ export async function mapaFechaAgendaPorAlumnoRef(opts: {
     if (error) throw new Error(`AgendaW citas: ${error.message}`)
     const chunk = data ?? []
     for (const r of chunk) {
-      const ref = Number(r.alumno_ref)
-      const fecha = fechaAgendamientoDesdeCreatedAt(r.created_at as string | null)
-      if (!(ref > 0) || !fecha) continue
-      // Conservar el agendamiento más temprano si hay varias citas.
-      const prev = out.get(ref)
-      if (!prev || fecha < prev) out.set(ref, fecha)
+      registrarAgendamiento(porRef, porNombre, r)
     }
     if (chunk.length < PAGE) break
     offset += PAGE
   }
 
-  return out
+  // 2026-08-27: refuerzo por lista de controles del reporte (por si la paginación omitió filas).
+  const refs = [...new Set((refsAlumnos ?? []).filter((n) => n > 0))]
+  for (let i = 0; i < refs.length; i += 100) {
+    const slice = refs.slice(i, i + 100)
+    const { data, error } = await db
+      .from('admission_appointments')
+      .select(CAMPOS_CITA_AGENDA)
+      .eq('level', level)
+      .neq('status', 'cancelled')
+      .in('alumno_ref', slice)
+
+    if (error) throw new Error(`AgendaW citas por ref: ${error.message}`)
+    for (const r of data ?? []) {
+      registrarAgendamiento(porRef, porNombre, r)
+    }
+  }
+
+  return { porRef, porNombre }
+}
+
+/** @deprecated Usar mapaAgendamientoAgendaW; conservado por compatibilidad interna. */
+export async function mapaFechaAgendaPorAlumnoRef(opts: {
+  nivel: number
+  desde?: string
+  hasta?: string
+}): Promise<Map<number, string> | null> {
+  const mapa = await mapaAgendamientoAgendaW(opts.nivel)
+  return mapa?.porRef ?? null
+}
+
+export function fechaAgendamientoDesdeMapa(
+  refNum: number,
+  nombre: string,
+  mapa: MapaAgendamientoAgendaW | null
+): string | null {
+  if (!mapa) return null
+  if (Number.isFinite(refNum) && refNum > 0) {
+    const porRef = mapa.porRef.get(refNum)
+    if (porRef) return porRef
+  }
+  const clave = claveNombreAgendaMatch(nombre)
+  if (!clave) return null
+  return mapa.porNombre.get(clave) ?? null
 }
