@@ -65,6 +65,15 @@ export const FACTURACION_NAV: FacturacionNavItem[] = [
     fase: 4,
     icon: 'ticket',
   },
+  {
+    id: 'descarga-sat',
+    label: 'Descarga masiva SAT',
+    desc: 'CFDI recibidos del SAT → Excel (e.firma, no se almacena)',
+    path: '/facturacion/descarga-sat',
+    accent: 'sky',
+    fase: 5,
+    icon: 'download',
+  },
 ]
 
 export function facturacionItemPorPath(pathname: string): FacturacionNavItem | undefined {

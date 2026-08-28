@@ -206,6 +206,21 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    label: 'Facturación SAT (Descarga Masiva)',
+    desc: 'Descarga CFDI recibidos del SAT y exporta a Excel con e.firma.',
+    path: '/facturacion/descarga-sat',
+    accent: 'sky',
+    kicker: 'Fiscal',
+    tags: ['SAT', 'Recibidos', 'Excel'],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
+      </svg>
+    ),
+  },
+  {
     label: 'Cheques',
     desc: 'Emisión, impresión y control de cheques (Winston, Educativo y Sociedades de Padres).',
     href: urlChequesApp(),

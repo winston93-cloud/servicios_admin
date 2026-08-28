@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/**/*": ["./assets/cfdi/**/*", "./public/cfdi/**/*"],
   },
+  serverExternalPackages: ["@nodecfdi/sat-ws-descarga-masiva"],
 };
 
 export default nextConfig;
