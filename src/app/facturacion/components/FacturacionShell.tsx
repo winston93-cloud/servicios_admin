@@ -1,5 +1,6 @@
 'use client'
 
+import type { AuthRole } from '@/lib/portalAuthService'
 import ThemeToggle from '@/components/ThemeToggle'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { urlCfdiLegacyApp, urlReporteContadoresLegacy } from '@/lib/cfdiConfig'
@@ -20,6 +21,8 @@ type FacturacionShellProps = {
   subtitle?: string
   children: React.ReactNode
   showNav?: boolean
+  /** Por defecto cualquier sesión; descarga SAT y timbrado interno: ['usuario']. */
+  roles?: AuthRole[]
 }
 
 export default function FacturacionShell({
@@ -27,13 +30,14 @@ export default function FacturacionShell({
   subtitle = 'Timbrado, cancelaciones y devoluciones — Instituto Winston Churchill',
   children,
   showNav = true,
+  roles,
 }: FacturacionShellProps) {
   const router = useRouter()
   const legacy = urlCfdiLegacyApp()
   const reporteXml = urlReporteContadoresLegacy()
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute roles={roles}>
       <div className="dashboard-container facturacion-cfdi-page">
         <div className="dashboard-home-bg" aria-hidden="true" />
         <div className="dashboard-main">

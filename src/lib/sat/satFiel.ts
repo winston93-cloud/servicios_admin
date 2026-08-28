@@ -12,7 +12,13 @@ export type SatFielHandle = {
   fiel: any
 }
 
-/** Crea FIEL en memoria a partir de archivos subidos (no se persisten). */
+/**
+ * Crea FIEL en memoria a partir de archivos subidos (no se persisten).
+ *
+ * Usamos `Fiel` re-exportado por `@nodecfdi/sat-ws-descarga-masiva` (recomendado
+ * en su README). Ese paquete depende de `@nodecfdi/credentials` para la
+ * criptografía; no implementamos SOAP ni firma RSA manualmente.
+ */
 export async function crearFielDesdeUpload(
   upload: FielUpload
 ): Promise<SatFielHandle> {

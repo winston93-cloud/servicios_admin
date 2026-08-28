@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { requireEmpleadoPortal } from '@/lib/portalApiEmpleadoAuth'
 import { generarExcelCfdiRecibidos } from '@/lib/sat/cfdiRecibidosExcel'
 import { mensajeErrorSat, SatDescargaError } from '@/lib/sat/satDescargaErrors'
 import {
@@ -32,6 +33,9 @@ async function leerFielDesdeForm(form: FormData) {
 
 export async function POST(request: Request) {
   try {
+    const auth = requireEmpleadoPortal(request)
+    if (!auth.ok) return auth.response
+
     const form = await request.formData()
     const accion = String(form.get('accion') ?? '').trim() as Accion
 

@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react'
 import { Loader2, ShieldAlert, FileSpreadsheet } from 'lucide-react'
+import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import FacturacionShell from './FacturacionShell'
 
 type Etapa =
@@ -79,6 +80,7 @@ export default function FacturacionDescargaSatView() {
       setEtapa('autenticando')
       const resSol = await fetch('/api/sat/descarga-masiva', {
         method: 'POST',
+        headers: portalSessionFetchHeaders(),
         body: armarForm('solicitar'),
       })
       const dataSol = await resSol.json().catch(() => ({}))
@@ -100,6 +102,7 @@ export default function FacturacionDescargaSatView() {
 
         const resVer = await fetch('/api/sat/descarga-masiva', {
           method: 'POST',
+          headers: portalSessionFetchHeaders(),
           body: armarForm('verificar', { idSolicitud: id }),
         })
         const dataVer = await resVer.json().catch(() => ({}))
@@ -132,6 +135,7 @@ export default function FacturacionDescargaSatView() {
       setEtapa('generando_excel')
       const resXls = await fetch('/api/sat/descarga-masiva', {
         method: 'POST',
+        headers: portalSessionFetchHeaders(),
         body: armarForm('descargar', {
           idSolicitud: id,
           paquetes: JSON.stringify(paquetes),
@@ -170,6 +174,8 @@ export default function FacturacionDescargaSatView() {
     <FacturacionShell
       title="Facturación SAT (Descarga Masiva)"
       subtitle="CFDI recibidos → Excel · Web Service oficial del SAT · e.firma no se almacena"
+      showNav={false}
+      roles={['usuario']}
     >
       <div className="facturacion-cfdi-panel space-y-5">
         <div
