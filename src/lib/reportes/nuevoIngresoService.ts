@@ -5,9 +5,8 @@ import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaGrupoEscolar } from '@/lib/grupoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import {
-  agendamientoAgendoEnMesDesdeMapa,
   agendamientoDesdeMapa,
-  evaluarFiltroMesNuevoIngreso,
+  evaluarFiltroMesNuevoIngresoAlumno,
   mapaAgendamientoAgendaW,
 } from '@/lib/admissionInsforgeAdmin'
 import { CHUNK_ALUMNO_ID_GENERAL, chunkArray } from './dbChunks'
@@ -185,8 +184,7 @@ export async function cargarNuevoIngreso(
      */
     rangoPago?: { desde: string; hasta: string }
     /**
-     * Reporte mensual: solo alumnos con reserva AgendaW (created_at) en el mes.
-     * No usa alumno_alta, cita ni fecha de pago para filtrar.
+     * Reporte mensual: mes de reserva AgendaW (created_at); sin AgendaW → mes de alumno_alta.
      */
     rangoAgenda?: { desde: string; hasta: string }
     /** Título override (ej. reporte por mes). */
@@ -230,23 +228,19 @@ export async function cargarNuevoIngreso(
     let fechaColumnaAlta = altaWinston || registroWinston
 
     if (esReporteMes) {
-      const agenda = agendamientoAgendoEnMesDesdeMapa(
+      const mes = evaluarFiltroMesNuevoIngresoAlumno({
         refNum,
-        a.nombre,
-        mapaAgenda,
-        agendaDesde!,
-        agendaHasta!
-      )
-      if (!agenda) continue
-      const mes = evaluarFiltroMesNuevoIngreso({
-        agenda,
+        nombre: a.nombre,
+        mapa: mapaAgenda,
+        alta: altaWinston,
+        registro: registroWinston,
         desde: agendaDesde!,
         hasta: agendaHasta!,
       })
       if (!mes.incluir) continue
-      fechaColumnaAlta = mes.fechaAgendo
+      fechaColumnaAlta = mes.fechaColumna
     } else if (agendaReserva?.agendo) {
-      // 2026-08-27: general alineado con mensual — columna Agenda = created_at, no alumno_alta.
+      // 2026-08-28: general — AgendaW si existe; si no, conserva alta abajo.
       fechaColumnaAlta = agendaReserva.agendo
     }
 

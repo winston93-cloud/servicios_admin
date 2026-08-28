@@ -64,7 +64,9 @@ function fechaCitaDesdeAppointmentDate(appointmentDate: string | null | undefine
 
 function fechaEnRangoCalendario(fecha: string, desde: string, hasta: string): boolean {
   const f = fecha.slice(0, 10)
-  return Boolean(f) && f >= desde && f <= hasta
+  const d0 = desde.slice(0, 10)
+  const d1 = hasta.slice(0, 10)
+  return Boolean(f) && f >= d0 && f <= d1
 }
 
 /** Reserva en línea (created_at) vs cita de examen (appointment_date) en AgendaW. */
@@ -82,35 +84,33 @@ export function fechaMesAgendoAgendaW(agenda: AgendamientoCitaAgendaW | null): s
 }
 
 /**
- * 2026-08-27: reporte mensual por mes de alumno_alta (alumno_registro si falta alta).
+ * 2026-08-28: mensual — con AgendaW filtra por created_at; sin AgendaW por alumno_alta.
  */
-export function evaluarFiltroMesAltaNuevoIngreso(opts: {
+export function evaluarFiltroMesNuevoIngresoAlumno(opts: {
+  refNum: number
+  nombre: string
+  mapa: MapaAgendamientoAgendaW | null
   alta: string
   registro: string
   desde: string
   hasta: string
-}): { incluir: boolean; fechaAlta: string } {
-  const altaFmt = opts.alta.slice(0, 10)
-  const registroFmt = opts.registro.slice(0, 10)
-  const fecha = altaFmt || registroFmt
-  return {
-    incluir: fechaEnRangoCalendario(fecha, opts.desde, opts.hasta),
-    fechaAlta: fecha,
-  }
-}
+}): { incluir: boolean; fechaColumna: string } {
+  const reservas = listaAgendamientosDesdeMapa(opts.refNum, opts.nombre, opts.mapa)
 
-/**
- * @deprecated Reporte mensual usa evaluarFiltroMesAltaNuevoIngreso (mes de alumno_alta).
- */
-export function evaluarFiltroMesNuevoIngreso(opts: {
-  agenda: AgendamientoCitaAgendaW | null
-  desde: string
-  hasta: string
-}): { incluir: boolean; fechaAgendo: string } {
-  const fecha = fechaMesAgendoAgendaW(opts.agenda)
+  if (reservas.length > 0) {
+    const enMes = reservas
+      .filter((ag) => fechaEnRangoCalendario(ag.agendo, opts.desde, opts.hasta))
+      .sort((a, b) => a.agendo.localeCompare(b.agendo))
+    if (!enMes.length) {
+      return { incluir: false, fechaColumna: '' }
+    }
+    return { incluir: true, fechaColumna: enMes[0].agendo }
+  }
+
+  const fechaAlta = opts.alta.slice(0, 10) || opts.registro.slice(0, 10)
   return {
-    incluir: fechaEnRangoCalendario(fecha, opts.desde, opts.hasta),
-    fechaAgendo: fecha,
+    incluir: fechaEnRangoCalendario(fechaAlta, opts.desde, opts.hasta),
+    fechaColumna: fechaAlta,
   }
 }
 
@@ -294,7 +294,7 @@ export function agendamientoAgendoEnMesDesdeMapa(
   return [...enMes].sort((a, b) => a.agendo.localeCompare(b.agendo))[0]
 }
 
-/** @deprecated Preferir evaluarFiltroMesNuevoIngreso con agenda completa. */
+/** @deprecated Preferir evaluarFiltroMesNuevoIngresoAlumno. */
 export function fechaAgendamientoDesdeMapa(
   refNum: number,
   nombre: string,
