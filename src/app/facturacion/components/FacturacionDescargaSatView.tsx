@@ -187,7 +187,10 @@ export default function FacturacionDescargaSatView() {
       })
       const dataSol = await resSol.json().catch(() => ({}))
       if (!resSol.ok || !dataSol.ok) {
-        throw new Error(dataSol.error || 'No se pudo enviar la solicitud al SAT.')
+        throw new Error(
+          dataSol.error ||
+            (dataSol.code ? `[${dataSol.code}] ` : '') + 'No se pudo enviar la solicitud al SAT.'
+        )
       }
 
       const id = String(dataSol.idSolicitud ?? '')

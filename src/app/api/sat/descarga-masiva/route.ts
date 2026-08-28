@@ -7,7 +7,7 @@ import {
   solicitarDescargaRecibidos,
   verificarSolicitudDescarga,
 } from '@/lib/sat/satDescargaMasivaService'
-import { crearFielDesdeUpload } from '@/lib/sat/satFiel'
+import { crearFielDesdeUpload, bufferDesdeUpload } from '@/lib/sat/satFiel'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -15,14 +15,9 @@ export const maxDuration = 300
 type Accion = 'solicitar' | 'verificar' | 'descargar'
 
 async function leerFielDesdeForm(form: FormData) {
-  const cerFile = form.get('cer')
-  const keyFile = form.get('key')
+  const cer = await bufferDesdeUpload(form.get('cer'))
+  const key = await bufferDesdeUpload(form.get('key'))
   const password = String(form.get('password') ?? '')
-
-  const cer =
-    cerFile instanceof File ? Buffer.from(await cerFile.arrayBuffer()) : null
-  const key =
-    keyFile instanceof File ? Buffer.from(await keyFile.arrayBuffer()) : null
 
   return crearFielDesdeUpload({
     cer: cer ?? Buffer.alloc(0),
