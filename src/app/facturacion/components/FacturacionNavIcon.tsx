@@ -9,6 +9,7 @@ type IconName =
   | 'ticket'
   | 'receipt'
   | 'download'
+  | 'scale'
 
 const paths: Record<IconName, ReactElement> = {
   receipt: (
@@ -59,6 +60,15 @@ const paths: Record<IconName, ReactElement> = {
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
     <polyline points="7 10 12 15 17 10" />
     <line x1="12" y1="15" x2="12" y2="3" />
+  </>
+  ),
+  scale: (
+  <>
+    <path d="M16 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1z" />
+    <path d="M2 16h20" />
+    <path d="M6 16v-3a2 2 0 0 1 2-2h1" />
+    <path d="M12 11V7a2 2 0 0 1 2-2h1" />
+    <path d="M18 11V5a2 2 0 0 0-2-2h-1" />
   </>
   ),
 }

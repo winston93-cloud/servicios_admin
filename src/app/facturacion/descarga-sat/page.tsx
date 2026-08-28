@@ -1,5 +1,6 @@
-import FacturacionDescargaSatView from '../components/FacturacionDescargaSatView'
+import { redirect } from 'next/navigation'
 
-export default function FacturacionDescargaSatPage() {
-  return <FacturacionDescargaSatView />
+/** Ruta legacy → módulo SAT. */
+export default function FacturacionDescargaSatRedirectPage() {
+  redirect('/facturacion/sat/descarga-masiva')
 }

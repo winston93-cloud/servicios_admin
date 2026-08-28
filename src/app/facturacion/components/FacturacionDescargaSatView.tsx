@@ -25,7 +25,7 @@ import {
   obtenerUltimoPaqueteFielId,
   type SatFielPaqueteResumen,
 } from '@/lib/sat/satFielPaquetesStorage'
-import FacturacionShell from './FacturacionShell'
+import FacturacionSatShell from './FacturacionSatShell'
 
 type Etapa =
   | 'idle'
@@ -496,11 +496,9 @@ export default function FacturacionDescargaSatView() {
   const fallo = etapa === 'error'
 
   return (
-    <FacturacionShell
-      title="Facturación SAT (Descarga Masiva)"
+    <FacturacionSatShell
+      title="Descarga masiva"
       subtitle="CFDI recibidos → Excel · Web Service oficial del SAT · paquetes e.firma en InsForge"
-      showNav={false}
-      roles={['usuario']}
     >
       <div className="facturacion-cfdi-sat">
         <div className="facturacion-cfdi-sat-aviso" role="note">
@@ -886,6 +884,6 @@ export default function FacturacionDescargaSatView() {
           </aside>
         </div>
       </div>
-    </FacturacionShell>
+    </FacturacionSatShell>
   )
 }

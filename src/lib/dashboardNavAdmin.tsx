@@ -206,12 +206,12 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
-    label: 'Facturación SAT (Descarga Masiva)',
-    desc: 'Descarga CFDI recibidos del SAT y exporta a Excel con e.firma.',
-    path: '/facturacion/descarga-sat',
+    label: 'Módulo SAT',
+    desc: 'Descarga masiva de CFDI recibidos y conciliación fiscal.',
+    path: '/facturacion/sat',
     accent: 'sky',
     kicker: 'Fiscal',
-    tags: ['SAT', 'Recibidos', 'Excel'],
+    tags: ['SAT', 'Recibidos', 'Conciliación'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
