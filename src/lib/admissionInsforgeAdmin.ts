@@ -85,7 +85,8 @@ export function fechaMesAgendoAgendaW(agenda: AgendamientoCitaAgendaW | null): s
 
 /**
  * 2026-08-28: mensual por nivel (validación ciclo 23).
- * - Maternal/Kinder/Primaria: mes de alumno_alta; columna = agendo AgendaW o alta.
+ * - Maternal/Kinder: mes de alumno_alta; columna = agendo AgendaW o alta.
+ * - Primaria: alta en el mes, o reserva+cita AgendaW en el mes (ej. Samantha mayo).
  * - Secundaria sin AgendaW: mes de alta.
  * - Secundaria con AgendaW: reserva y cita en el mismo mes; columna = agendo.
  */
@@ -105,10 +106,30 @@ export function evaluarFiltroMesNuevoIngresoAlumno(opts: {
   )
   const agendoMasAntiguo = reservas.find((r) => r.agendo)?.agendo ?? ''
 
-  if (opts.nivel <= 3) {
+  const reservaAgendaCitaEnMes = () =>
+    reservas.filter(
+      (ag) =>
+        Boolean(ag.agendo && ag.cita) &&
+        fechaEnRangoCalendario(ag.agendo, opts.desde, opts.hasta) &&
+        fechaEnRangoCalendario(ag.cita, opts.desde, opts.hasta)
+    )
+
+  if (opts.nivel <= 2) {
     return {
       incluir: fechaEnRangoCalendario(fechaAlta, opts.desde, opts.hasta),
       fechaColumna: agendoMasAntiguo || fechaAlta,
+    }
+  }
+
+  if (opts.nivel === 3) {
+    const enMesAgenda = reservaAgendaCitaEnMes()
+    const altaEnMes = fechaEnRangoCalendario(fechaAlta, opts.desde, opts.hasta)
+    if (!altaEnMes && enMesAgenda.length === 0) {
+      return { incluir: false, fechaColumna: '' }
+    }
+    return {
+      incluir: true,
+      fechaColumna: enMesAgenda.length > 0 ? enMesAgenda[0].agendo : agendoMasAntiguo || fechaAlta,
     }
   }
 
@@ -119,12 +140,7 @@ export function evaluarFiltroMesNuevoIngresoAlumno(opts: {
     }
   }
 
-  const enMes = reservas.filter(
-    (ag) =>
-      Boolean(ag.agendo && ag.cita) &&
-      fechaEnRangoCalendario(ag.agendo, opts.desde, opts.hasta) &&
-      fechaEnRangoCalendario(ag.cita, opts.desde, opts.hasta)
-  )
+  const enMes = reservaAgendaCitaEnMes()
   if (!enMes.length) {
     return { incluir: false, fechaColumna: '' }
   }

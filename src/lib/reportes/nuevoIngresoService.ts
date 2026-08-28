@@ -184,7 +184,7 @@ export async function cargarNuevoIngreso(
      */
     rangoPago?: { desde: string; hasta: string }
     /**
-     * Reporte mensual: maternal/kinder/primaria por alta; secundaria por agenda+cita o alta.
+     * Reporte mensual: maternal/kinder por alta; primaria alta o agenda+cita; secundaria agenda+cita o alta.
      */
     rangoAgenda?: { desde: string; hasta: string }
     /** Título override (ej. reporte por mes). */
