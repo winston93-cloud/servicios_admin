@@ -4,6 +4,8 @@ export type CfdiRecibidoFila = {
   serie: string
   folio: string
   tipoComprobante: string
+  metodoPago: string
+  formaPago: string
   emisorRfc: string
   emisorNombre: string
   receptorRfc: string
@@ -43,6 +45,8 @@ export function parsearCfdiXml(xml: string): CfdiRecibidoFila | null {
     serie: attr(src, 'Comprobante', 'Serie'),
     folio: attr(src, 'Comprobante', 'Folio'),
     tipoComprobante: attr(src, 'Comprobante', 'TipoDeComprobante'),
+    metodoPago: attr(src, 'Comprobante', 'MetodoPago'),
+    formaPago: attr(src, 'Comprobante', 'FormaPago'),
     emisorRfc: attr(src, 'Emisor', 'Rfc'),
     emisorNombre: attr(src, 'Emisor', 'Nombre'),
     receptorRfc: attr(src, 'Receptor', 'Rfc'),
