@@ -18,6 +18,24 @@ export class SatDescargaError extends Error {
   }
 }
 
+export function mensajeRechazoSat(codigo: number, mensajeSat: string): string {
+  const msg = mensajeSat.trim() || 'Sin mensaje del SAT.'
+  if (/no controlado/i.test(msg)) {
+    return (
+      'El SAT rechazó la solicitud (a veces por duplicado o carga interna). ' +
+      'Si hace pocos minutos ya consultó el mismo periodo, espere 15–30 minutos antes de reintentar; ' +
+      'el SAT suele procesar una solicitud a la vez por RFC.'
+    )
+  }
+  if (codigo === 5002) {
+    return 'Ya hay una solicitud de descarga en proceso en el SAT para este RFC. Espere a que termine.'
+  }
+  if (codigo === 301 || codigo === 302) {
+    return 'Demasiadas solicitudes al SAT en poco tiempo. Intente de nuevo más tarde.'
+  }
+  return `El SAT rechazó la operación (código ${codigo}): ${msg}`
+}
+
 export function mensajeErrorSat(err: unknown): string {
   if (err instanceof SatDescargaError) return err.message
   if (err instanceof Error) {

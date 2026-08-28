@@ -498,7 +498,8 @@ export default function FacturacionDescargaSatView() {
 
             <p className="facturacion-cfdi-sat-footnote">
               El SAT puede tardar varios minutos en preparar los paquetes. No cierre esta pestaña
-              hasta que termine la descarga.
+              hasta que termine la descarga. Si ya envió una consulta hace pocos minutos, espere
+              15–30 min antes de volver a solicitar el mismo periodo.
             </p>
           </aside>
         </div>

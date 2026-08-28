@@ -1,4 +1,4 @@
-import { SatDescargaError } from './satDescargaErrors'
+import { SatDescargaError, mensajeRechazoSat } from './satDescargaErrors'
 import { parsearCfdiXml, type CfdiRecibidoFila } from './parseCfdiXml'
 import type { SatFielHandle } from './satFiel'
 
@@ -22,8 +22,13 @@ async function ejecutarLlamadaSat<T>(fn: () => Promise<T>): Promise<T> {
         msg
       )
     }
-    if (err instanceof Error && 'getResponse' in err) {
-      const res = (err as { getResponse: () => { getBody?: () => string } }).getResponse()
+    if (
+      err instanceof Error &&
+      typeof (err as { getResponse?: unknown }).getResponse === 'function'
+    ) {
+      const res = (
+        err as unknown as { getResponse: () => { getBody?: () => string } }
+      ).getResponse()
       const cuerpo = res?.getBody?.() ?? ''
       throw new SatDescargaError(
         cuerpo ? `Error del SAT: ${cuerpo.slice(0, 280)}` : msg,
@@ -136,10 +141,13 @@ export async function solicitarDescargaRecibidos(
 
   const query = await ejecutarLlamadaSat(() => service.query(params))
   if (!query.getStatus().isAccepted()) {
+    const codigoSat = query.getStatus().getCode()
+    const mensajeSat = query.getStatus().getMessage() || 'El SAT rechazó la solicitud.'
     throw new SatDescargaError(
-      query.getStatus().getMessage() || 'El SAT rechazó la solicitud de descarga.',
+      mensajeRechazoSat(codigoSat, mensajeSat),
       'SOLICITUD_RECHAZADA',
-      502
+      409,
+      `satCodigo=${codigoSat}; ${mensajeSat}`
     )
   }
 
@@ -191,10 +199,13 @@ export async function verificarSolicitudDescarga(
   const verify = await ejecutarLlamadaSat(() => service.verify(id))
 
   if (!verify.getStatus().isAccepted()) {
+    const codigoSat = verify.getStatus().getCode()
+    const mensajeSat = verify.getStatus().getMessage() || 'Error al verificar solicitud.'
     throw new SatDescargaError(
-      verify.getStatus().getMessage() || 'Error al verificar solicitud en el SAT.',
+      mensajeRechazoSat(codigoSat, mensajeSat),
       'VERIFICACION_RECHAZADA',
-      502
+      409,
+      `satCodigo=${codigoSat}; ${mensajeSat}`
     )
   }
 
