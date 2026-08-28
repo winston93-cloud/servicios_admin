@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import {
   CalendarRange,
   CheckCircle2,
@@ -8,11 +8,24 @@ import {
   FileSpreadsheet,
   KeyRound,
   Loader2,
+  Package,
+  Plus,
   ShieldCheck,
+  Trash2,
   Upload,
   XCircle,
 } from 'lucide-react'
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
+import {
+  eliminarPaqueteFiel,
+  guardarPaqueteFiel,
+  listarPaquetesFiel,
+  marcarUltimoPaqueteFiel,
+  obtenerPaqueteFiel,
+  obtenerUltimoPaqueteFielId,
+  paqueteFielAFicheros,
+  type SatFielPaquete,
+} from '@/lib/sat/satFielPaquetesStorage'
 import FacturacionShell from './FacturacionShell'
 
 type Etapa =
@@ -142,9 +155,14 @@ export default function FacturacionDescargaSatView() {
   const cerId = useId()
   const keyId = useId()
   const passId = useId()
+  const paqueteId = useId()
+  const nombrePaqueteId = useId()
   const inicioId = useId()
   const finId = useId()
 
+  const [paquetes, setPaquetes] = useState<SatFielPaquete[]>([])
+  const [paqueteActivoId, setPaqueteActivoId] = useState<string | '__nuevo__'>('__nuevo__')
+  const [nombrePaquete, setNombrePaquete] = useState('')
   const [cer, setCer] = useState<File | null>(null)
   const [key, setKey] = useState<File | null>(null)
   const [password, setPassword] = useState('')
@@ -154,24 +172,130 @@ export default function FacturacionDescargaSatView() {
   const [idSolicitud, setIdSolicitud] = useState<string | null>(null)
   const [mensaje, setMensaje] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [guardandoPaquete, setGuardandoPaquete] = useState(false)
+  const [mostrarArchivosFiel, setMostrarArchivosFiel] = useState(true)
   const cancelRef = useRef(false)
 
-  const armarForm = useCallback(
-    (accion: string, extra?: Record<string, string>) => {
-      const fd = new FormData()
-      fd.set('accion', accion)
-      if (cer) fd.set('cer', cer)
-      if (key) fd.set('key', key)
-      fd.set('password', password)
-      fd.set('fechaInicio', fechaInicio)
-      fd.set('fechaFin', fechaFin)
-      if (extra) {
-        for (const [k, v] of Object.entries(extra)) fd.set(k, v)
+  const modoNuevo = paqueteActivoId === '__nuevo__'
+  const paqueteActivo =
+    paqueteActivoId === '__nuevo__' ? null : obtenerPaqueteFiel(paqueteActivoId)
+
+  const aplicarPaquete = useCallback((p: SatFielPaquete) => {
+    const ficheros = paqueteFielAFicheros(p)
+    setCer(ficheros.cer)
+    setKey(ficheros.key)
+    setPassword(ficheros.password)
+    setNombrePaquete(p.nombre)
+    setPaqueteActivoId(p.id)
+    marcarUltimoPaqueteFiel(p.id)
+  }, [])
+
+  useEffect(() => {
+    const lista = listarPaquetesFiel()
+    setPaquetes(lista)
+    const ultimo = obtenerUltimoPaqueteFielId()
+    if (ultimo) {
+      const p = obtenerPaqueteFiel(ultimo)
+      if (p) {
+        aplicarPaquete(p)
+        setMostrarArchivosFiel(false)
       }
-      return fd
+      return
+    }
+    if (lista[0]) {
+      aplicarPaquete(lista[0]!)
+      setMostrarArchivosFiel(false)
+    } else {
+      setPaqueteActivoId('__nuevo__')
+      setMostrarArchivosFiel(true)
+    }
+  }, [aplicarPaquete])
+
+  const refrescarPaquetes = useCallback(() => {
+    setPaquetes(listarPaquetesFiel())
+  }, [])
+
+  const cambiarPaquete = useCallback(
+    (id: string) => {
+      setError(null)
+      if (id === '__nuevo__') {
+        setPaqueteActivoId('__nuevo__')
+        setCer(null)
+        setKey(null)
+        setPassword('')
+        setNombrePaquete('')
+        setMostrarArchivosFiel(true)
+        return
+      }
+      const p = obtenerPaqueteFiel(id)
+      if (p) {
+        aplicarPaquete(p)
+        setMostrarArchivosFiel(false)
+      }
     },
-    [cer, key, password, fechaInicio, fechaFin]
+    [aplicarPaquete]
   )
+
+  const guardarPaqueteActual = useCallback(async () => {
+    if (!cer || !key || !password.trim()) {
+      setError('Suba .cer, .key e indique la contraseña antes de guardar.')
+      return null
+    }
+    if (!nombrePaquete.trim()) {
+      setError('Indique un nombre para este paquete de e.firma.')
+      return null
+    }
+    setGuardandoPaquete(true)
+    setError(null)
+    try {
+      const p = await guardarPaqueteFiel({
+        nombre: nombrePaquete,
+        cer,
+        key,
+        password,
+        id: modoNuevo ? undefined : paqueteActivoId,
+      })
+      refrescarPaquetes()
+      aplicarPaquete(p)
+      setMensaje(`Paquete «${p.nombre}» guardado en este navegador.`)
+      return p
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo guardar el paquete.')
+      return null
+    } finally {
+      setGuardandoPaquete(false)
+    }
+  }, [
+    aplicarPaquete,
+    cer,
+    key,
+    modoNuevo,
+    nombrePaquete,
+    paqueteActivoId,
+    password,
+    refrescarPaquetes,
+  ])
+
+  const eliminarPaqueteActual = useCallback(() => {
+    if (modoNuevo || !paqueteActivo) return
+    const ok = window.confirm(
+      `¿Eliminar el paquete «${paqueteActivo.nombre}» de este navegador?`
+    )
+    if (!ok) return
+    eliminarPaqueteFiel(paqueteActivo.id)
+    const restantes = listarPaquetesFiel()
+    setPaquetes(restantes)
+    if (restantes[0]) aplicarPaquete(restantes[0]!)
+    else {
+      setPaqueteActivoId('__nuevo__')
+      setCer(null)
+      setKey(null)
+      setPassword('')
+      setNombrePaquete('')
+      setMostrarArchivosFiel(true)
+    }
+    setMensaje('Paquete eliminado de este equipo.')
+  }, [aplicarPaquete, modoNuevo, paqueteActivo])
 
   const ejecutar = useCallback(async () => {
     cancelRef.current = false
@@ -179,15 +303,54 @@ export default function FacturacionDescargaSatView() {
     setMensaje(null)
     setIdSolicitud(null)
 
-    if (!cer || !key || !password.trim()) {
-      setError('Suba .cer, .key e indique la contraseña de la e.firma.')
+    let cerUsar = cer
+    let keyUsar = key
+    let passUsar = password
+
+    if (modoNuevo) {
+      if (!cerUsar || !keyUsar || !passUsar.trim()) {
+        setError('Suba .cer, .key e indique la contraseña de la e.firma.')
+        setEtapa('error')
+        return
+      }
+      if (!nombrePaquete.trim()) {
+        setError('Indique un nombre para guardar este paquete de e.firma.')
+        setEtapa('error')
+        return
+      }
+      const guardado = await guardarPaqueteActual()
+      if (!guardado) {
+        setEtapa('error')
+        return
+      }
+      const ficheros = paqueteFielAFicheros(guardado)
+      cerUsar = ficheros.cer
+      keyUsar = ficheros.key
+      passUsar = ficheros.password
+    } else if (!cerUsar || !keyUsar || !passUsar.trim()) {
+      setError('Seleccione un paquete de e.firma válido o registre uno nuevo.')
       setEtapa('error')
       return
     }
+
     if (!fechaInicio || !fechaFin) {
       setError('Seleccione fecha inicio y fin.')
       setEtapa('error')
       return
+    }
+
+    const armarFormEjecucion = (accion: string, extra?: Record<string, string>) => {
+      const fd = new FormData()
+      fd.set('accion', accion)
+      fd.set('cer', cerUsar!)
+      fd.set('key', keyUsar!)
+      fd.set('password', passUsar)
+      fd.set('fechaInicio', fechaInicio)
+      fd.set('fechaFin', fechaFin)
+      if (extra) {
+        for (const [k, v] of Object.entries(extra)) fd.set(k, v)
+      }
+      return fd
     }
 
     try {
@@ -195,7 +358,7 @@ export default function FacturacionDescargaSatView() {
       const resSol = await fetch('/api/sat/descarga-masiva', {
         method: 'POST',
         headers: portalSessionFetchHeaders(),
-        body: armarForm('solicitar'),
+        body: armarFormEjecucion('solicitar'),
       })
       const dataSol = await resSol.json().catch(() => ({}))
       if (!resSol.ok || !dataSol.ok) {
@@ -217,7 +380,7 @@ export default function FacturacionDescargaSatView() {
         const resVer = await fetch('/api/sat/descarga-masiva', {
           method: 'POST',
           headers: portalSessionFetchHeaders(),
-          body: armarForm('verificar', { idSolicitud: id }),
+          body: armarFormEjecucion('verificar', { idSolicitud: id }),
         })
         const dataVer = await resVer.json().catch(() => ({}))
         if (!resVer.ok || dataVer.ok === false) {
@@ -250,7 +413,7 @@ export default function FacturacionDescargaSatView() {
       const resXls = await fetch('/api/sat/descarga-masiva', {
         method: 'POST',
         headers: portalSessionFetchHeaders(),
-        body: armarForm('descargar', {
+        body: armarFormEjecucion('descargar', {
           idSolicitud: id,
           paquetes: JSON.stringify(paquetes),
         }),
@@ -279,10 +442,21 @@ export default function FacturacionDescargaSatView() {
       setEtapa('error')
       setError(e instanceof Error ? e.message : 'Error inesperado')
     }
-  }, [armarForm, cer, key, password, fechaInicio, fechaFin])
+  }, [
+    cer,
+    fechaFin,
+    fechaInicio,
+    guardarPaqueteActual,
+    key,
+    modoNuevo,
+    nombrePaquete,
+    password,
+  ])
 
   const ocupado =
     etapa !== 'idle' && etapa !== 'listo' && etapa !== 'error'
+
+  const formularioFielVisible = modoNuevo || mostrarArchivosFiel
 
   const pasoActivo = indicePaso(etapa)
   const listo = etapa === 'listo'
@@ -291,7 +465,7 @@ export default function FacturacionDescargaSatView() {
   return (
     <FacturacionShell
       title="Facturación SAT (Descarga Masiva)"
-      subtitle="CFDI recibidos → Excel · Web Service oficial del SAT · e.firma no se almacena"
+      subtitle="CFDI recibidos → Excel · Web Service oficial del SAT · paquetes e.firma solo en este navegador"
       showNav={false}
       roles={['usuario']}
     >
@@ -301,11 +475,12 @@ export default function FacturacionDescargaSatView() {
           <div className="min-w-0">
             <p className="facturacion-cfdi-sat-aviso-title">Seguridad de la e.firma</p>
               <p className="facturacion-cfdi-sat-aviso-text">
-              Los archivos <code>.cer</code> y <code>.key</code> y su contraseña se envían solo
-              para firmar la petición SOAP y <strong>no se guardan</strong> en servidor ni base de
-              datos. Use la <strong>FIEL</strong> del RFC receptor (no el CSD de sellos para
-              facturar). El .cer y el .key deben ser del <strong>mismo trámite</strong> en el SAT.
-              Rango máximo recomendado: <strong>31 días</strong> por consulta.
+              Los archivos <code>.cer</code>, <code>.key</code> y la contraseña{' '}
+              <strong>solo se guardan en este navegador</strong> si usted registra un paquete con
+              nombre; <strong>nunca se almacenan en servidor</strong> ni base de datos. Se envían
+              únicamente para firmar la petición SOAP al SAT. Use la <strong>FIEL</strong> del RFC
+              receptor (no el CSD de sellos para facturar). Rango máximo recomendado:{' '}
+              <strong>31 días</strong> por consulta.
             </p>
           </div>
         </div>
@@ -345,48 +520,166 @@ export default function FacturacionDescargaSatView() {
                     e.firma (FIEL)
                   </h2>
                   <p className="facturacion-cfdi-sat-card-desc">
-                    Certificado y clave privada del RFC que recibe los CFDI.
+                    Elija un paquete guardado o registre la e.firma del RFC receptor.
                   </p>
                 </div>
               </header>
 
-              <div className="facturacion-cfdi-sat-files">
-                <ZonaArchivo
-                  id={cerId}
-                  label="Certificado"
-                  hint="Seleccionar archivo .cer"
-                  accept=".cer"
-                  archivo={cer}
-                  disabled={ocupado}
-                  onSelect={setCer}
-                />
-                <ZonaArchivo
-                  id={keyId}
-                  label="Clave privada"
-                  hint="Seleccionar archivo .key"
-                  accept=".key"
-                  archivo={key}
-                  disabled={ocupado}
-                  onSelect={setKey}
-                />
-              </div>
-
-              <label className="facturacion-cfdi-field facturacion-cfdi-field-wide" htmlFor={passId}>
+              <label className="facturacion-cfdi-field facturacion-cfdi-field-wide" htmlFor={paqueteId}>
                 <span className="facturacion-cfdi-sat-field-row">
-                  <KeyRound size={14} aria-hidden />
-                  Contraseña de la clave privada
+                  <Package size={14} aria-hidden />
+                  Paquete de e.firma
                 </span>
-                <input
-                  id={passId}
-                  type="password"
-                  autoComplete="off"
+                <select
+                  id={paqueteId}
                   className="facturacion-cfdi-input"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={ocupado}
-                  placeholder="••••••••"
-                />
+                  value={paqueteActivoId}
+                  onChange={(e) => cambiarPaquete(e.target.value)}
+                  disabled={ocupado || guardandoPaquete}
+                >
+                  {paquetes.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                  <option value="__nuevo__">+ Registrar nueva e.firma…</option>
+                </select>
               </label>
+
+              {!modoNuevo && paqueteActivo && !formularioFielVisible ? (
+                <div className="facturacion-cfdi-sat-paquete-resumen">
+                  <p className="facturacion-cfdi-sat-paquete-nombre">{paqueteActivo.nombre}</p>
+                  <ul className="facturacion-cfdi-sat-paquete-meta">
+                    <li>
+                      <span>Certificado</span>
+                      <code>{paqueteActivo.cerNombre}</code>
+                    </li>
+                    <li>
+                      <span>Clave privada</span>
+                      <code>{paqueteActivo.keyNombre}</code>
+                    </li>
+                    <li>
+                      <span>Contraseña</span>
+                      <code>••••••••</code>
+                    </li>
+                  </ul>
+                  <div className="facturacion-cfdi-sat-paquete-actions">
+                    <button
+                      type="button"
+                      className="facturacion-cfdi-sat-btn-secondary"
+                      onClick={() => setMostrarArchivosFiel(true)}
+                      disabled={ocupado}
+                    >
+                      Editar archivos
+                    </button>
+                    <button
+                      type="button"
+                      className="facturacion-cfdi-sat-btn-danger"
+                      onClick={eliminarPaqueteActual}
+                      disabled={ocupado}
+                    >
+                      <Trash2 size={14} aria-hidden />
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {formularioFielVisible ? (
+                <>
+                  <label
+                    className="facturacion-cfdi-field facturacion-cfdi-field-wide"
+                    htmlFor={nombrePaqueteId}
+                  >
+                    <span className="facturacion-cfdi-sat-field-row">
+                      <Package size={14} aria-hidden />
+                      Nombre del paquete
+                    </span>
+                    <input
+                      id={nombrePaqueteId}
+                      type="text"
+                      className="facturacion-cfdi-input"
+                      value={nombrePaquete}
+                      onChange={(e) => setNombrePaquete(e.target.value)}
+                      disabled={ocupado || guardandoPaquete}
+                      placeholder="Ej. Winston Churchill · contabilidad"
+                      maxLength={80}
+                    />
+                  </label>
+
+                  <div className="facturacion-cfdi-sat-files">
+                    <ZonaArchivo
+                      id={cerId}
+                      label="Certificado"
+                      hint="Seleccionar archivo .cer"
+                      accept=".cer"
+                      archivo={cer}
+                      disabled={ocupado || guardandoPaquete}
+                      onSelect={setCer}
+                    />
+                    <ZonaArchivo
+                      id={keyId}
+                      label="Clave privada"
+                      hint="Seleccionar archivo .key"
+                      accept=".key"
+                      archivo={key}
+                      disabled={ocupado || guardandoPaquete}
+                      onSelect={setKey}
+                    />
+                  </div>
+
+                  <label
+                    className="facturacion-cfdi-field facturacion-cfdi-field-wide"
+                    htmlFor={passId}
+                  >
+                    <span className="facturacion-cfdi-sat-field-row">
+                      <KeyRound size={14} aria-hidden />
+                      Contraseña de la clave privada
+                    </span>
+                    <input
+                      id={passId}
+                      type="password"
+                      autoComplete="off"
+                      className="facturacion-cfdi-input"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={ocupado || guardandoPaquete}
+                      placeholder="••••••••"
+                    />
+                  </label>
+
+                  <div className="facturacion-cfdi-sat-paquete-actions">
+                    <button
+                      type="button"
+                      className="facturacion-cfdi-sat-btn-secondary"
+                      onClick={() => void guardarPaqueteActual()}
+                      disabled={ocupado || guardandoPaquete}
+                    >
+                      {guardandoPaquete ? (
+                        <>
+                          <Loader2 size={14} className="facturacion-cfdi-spin" aria-hidden />
+                          Guardando…
+                        </>
+                      ) : (
+                        <>
+                          <Plus size={14} aria-hidden />
+                          Guardar paquete en este equipo
+                        </>
+                      )}
+                    </button>
+                    {!modoNuevo ? (
+                      <button
+                        type="button"
+                        className="facturacion-cfdi-sat-btn-secondary"
+                        onClick={() => setMostrarArchivosFiel(false)}
+                        disabled={ocupado || guardandoPaquete}
+                      >
+                        Cancelar edición
+                      </button>
+                    ) : null}
+                  </div>
+                </>
+              ) : null}
             </section>
 
             <section className="facturacion-cfdi-sat-card" aria-labelledby="sat-filtros-heading">

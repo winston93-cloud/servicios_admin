@@ -792,6 +792,88 @@
   gap: 0.75rem;
 }
 
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-paquete-resumen {
+  margin-top: 0.85rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(0, 227, 253, 0.18);
+  background: rgba(0, 227, 253, 0.04);
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-paquete-nombre {
+  margin: 0 0 0.65rem;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #fff6df;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-paquete-meta {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-paquete-meta li {
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.75rem;
+  color: #999077;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-paquete-meta code {
+  display: block;
+  padding: 0.3rem 0.45rem;
+  border-radius: 0.35rem;
+  background: rgba(0, 0, 0, 0.22);
+  color: #bdf4ff;
+  font-size: 0.72rem;
+  word-break: break-all;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-paquete-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: var(--touch-min, 44px);
+  padding: 0 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 180, 171, 0.35);
+  background: rgba(255, 180, 171, 0.08);
+  color: #ffb4ab;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-btn-danger:hover:not(:disabled) {
+  background: rgba(255, 180, 171, 0.14);
+  border-color: rgba(255, 180, 171, 0.5);
+  color: #fff6df;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-btn-danger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-aside {
   position: sticky;
   top: 1rem;
@@ -959,6 +1041,15 @@
   .pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-files,
   .pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-dates {
     grid-template-columns: 1fr;
+  }
+
+  .pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-paquete-actions {
+    flex-direction: column;
+  }
+
+  .pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-paquete-actions .facturacion-cfdi-sat-btn-secondary,
+  .pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-paquete-actions .facturacion-cfdi-sat-btn-danger {
+    width: 100%;
   }
 
   .pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-steps {
