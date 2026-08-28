@@ -1,0 +1,51 @@
+From 63d375fe7ce1ecdd8f7ad81293175fcd90a334b3 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Fri, 28 Aug 2026 15:40:18 +0000
+Subject: [PATCH] fix(admin): actualizar alumno_beca existente al cambiar tipo
+ de beca
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+alumno_beca tiene UNIQUE(alumno_id). Al cambiar Hermanos→Socioeconómica
+en renovación, si la fila tenía otro ciclo_escolar el código intentaba
+INSERT y fallaba con duplicate key. Ahora hace fallback a la fila del
+alumno y la actualiza (incluyendo beca_ciclo_escolar del ciclo origen).
+---
+ src/lib/admin-beca-catalogo.ts | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/src/lib/admin-beca-catalogo.ts b/src/lib/admin-beca-catalogo.ts
+index 90fd17b..26cc477 100644
+--- a/src/lib/admin-beca-catalogo.ts
++++ b/src/lib/admin-beca-catalogo.ts
+@@ -88,13 +88,25 @@ export async function actualizarBecaRenovacionAdmin(opts: {
+     ciclo: number,
+     estatus?: number
+   ): Promise<{ ok: true } | { ok: false; error: string }> => {
+-    const { data: existente } = await opts.db
++    const { data: existentePorCiclo } = await opts.db
+       .from('alumno_beca')
+       .select('alumno_beca_id, beca_estatus')
+       .eq('alumno_id', opts.alumnoId)
+       .eq('beca_ciclo_escolar', ciclo)
+       .maybeSingle();
+ 
++    // alumno_beca tiene UNIQUE(alumno_id): una fila por alumno. Si el ciclo
++    // guardado difiere del ciclo origen, actualizar esa fila (evita duplicate key).
++    let existente = existentePorCiclo;
++    if (!existente?.alumno_beca_id) {
++      const { data: existentePorAlumno } = await opts.db
++        .from('alumno_beca')
++        .select('alumno_beca_id, beca_estatus')
++        .eq('alumno_id', opts.alumnoId)
++        .maybeSingle();
++      existente = existentePorAlumno;
++    }
++
+     const fila: Record<string, unknown> = {
+       alumno_id: opts.alumnoId,
+       beca_id: opts.patch.beca_id,
+-- 
+2.43.0
+
