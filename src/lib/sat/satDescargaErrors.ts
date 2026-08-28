@@ -1,12 +1,20 @@
 export class SatDescargaError extends Error {
   readonly code: string
   readonly status: number
+  /** Detalle técnico (sin contraseña) para depuración en red/consola. */
+  readonly detail?: string
 
-  constructor(message: string, code = 'SAT_ERROR', status = 400) {
+  constructor(
+    message: string,
+    code = 'SAT_ERROR',
+    status = 400,
+    detail?: string
+  ) {
     super(message)
     this.name = 'SatDescargaError'
     this.code = code
     this.status = status
+    this.detail = detail
   }
 }
 

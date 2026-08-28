@@ -106,12 +106,27 @@ export async function POST(request: Request) {
     })
   } catch (err) {
     const status = err instanceof SatDescargaError ? err.status : 500
-    console.error('sat/descarga-masiva:', err)
+    const code = err instanceof SatDescargaError ? err.code : 'SAT_ERROR'
+    const detail =
+      err instanceof SatDescargaError
+        ? err.detail
+        : err instanceof Error
+          ? err.message
+          : undefined
+
+    console.error('sat/descarga-masiva:', {
+      code,
+      status,
+      detail,
+      error: err,
+    })
+
     return NextResponse.json(
       {
         ok: false,
         error: mensajeErrorSat(err),
-        code: err instanceof SatDescargaError ? err.code : 'SAT_ERROR',
+        code,
+        detail: detail ?? null,
       },
       { status }
     )

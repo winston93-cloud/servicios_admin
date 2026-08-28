@@ -64,6 +64,18 @@ function indicePaso(etapa: Etapa): number {
   }
 }
 
+function mensajeErrorApi(data: {
+  error?: string
+  detail?: string | null
+  code?: string
+}): string {
+  const base = data.error || 'Error al comunicarse con el SAT.'
+  if (data.detail) {
+    return `${base}\n\nDetalle técnico: ${data.detail}`
+  }
+  return base
+}
+
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms))
 }
@@ -187,10 +199,7 @@ export default function FacturacionDescargaSatView() {
       })
       const dataSol = await resSol.json().catch(() => ({}))
       if (!resSol.ok || !dataSol.ok) {
-        throw new Error(
-          dataSol.error ||
-            (dataSol.code ? `[${dataSol.code}] ` : '') + 'No se pudo enviar la solicitud al SAT.'
-        )
+        throw new Error(mensajeErrorApi(dataSol))
       }
 
       const id = String(dataSol.idSolicitud ?? '')
@@ -212,7 +221,7 @@ export default function FacturacionDescargaSatView() {
         })
         const dataVer = await resVer.json().catch(() => ({}))
         if (!resVer.ok || dataVer.ok === false) {
-          throw new Error(dataVer.error || 'Error al verificar solicitud.')
+          throw new Error(mensajeErrorApi(dataVer))
         }
 
         if (dataVer.estado === 'fallida') {
@@ -249,7 +258,7 @@ export default function FacturacionDescargaSatView() {
 
       if (!resXls.ok) {
         const errJson = await resXls.json().catch(() => ({}))
-        throw new Error(errJson.error || 'Error al generar Excel.')
+        throw new Error(mensajeErrorApi(errJson))
       }
 
       const count = Number(resXls.headers.get('X-Cfdi-Count') ?? 0)
@@ -446,7 +455,7 @@ export default function FacturacionDescargaSatView() {
               ) : null}
               {mensaje ? <p className="facturacion-cfdi-sat-status-msg">{mensaje}</p> : null}
               {error ? (
-                <p className="facturacion-cfdi-sat-status-error" role="alert">
+                <p className="facturacion-cfdi-sat-status-error" role="alert" style={{ whiteSpace: 'pre-wrap' }}>
                   {error}
                 </p>
               ) : null}

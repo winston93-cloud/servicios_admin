@@ -3,6 +3,12 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
 import { SatDescargaError } from './satDescargaErrors'
+import {
+  crearFielConOpenSsl,
+  diagnosticoFielUpload,
+  logFalloFiel,
+} from './satFielOpenSsl'
+import { crearFielConNodeCrypto } from './satFielNodeCrypto'
 
 export type FielUpload = {
   cer: Buffer
@@ -26,7 +32,6 @@ function quitarBom(buf: Buffer): Buffer {
 
 /**
  * Normaliza .cer/.key del SAT: DER binario, PEM o archivo de texto base64 (sin headers).
- * En .key de texto base64, NodeCfdi falla si se pasa el ASCII sin decodificar.
  */
 export function normalizarArchivoFiel(buf: Buffer): Buffer {
   const sinBom = quitarBom(buf)
@@ -37,12 +42,10 @@ export function normalizarArchivoFiel(buf: Buffer): Buffer {
     return Buffer.from(comoTexto, 'utf8')
   }
 
-  // DER/PKCS#8 suele empezar con 0x30 (SEQUENCE)
   if (sinBom[0] === 0x30) {
     return sinBom
   }
 
-  // Archivo de una sola línea base64 (común al descargar del portal SAT)
   if (/^[A-Za-z0-9+/=\r\n]+$/.test(comoTexto)) {
     try {
       const decodificado = Buffer.from(comoTexto.replace(/\s/g, ''), 'base64')
@@ -74,40 +77,46 @@ function validarArchivosFiel(cer: Buffer, key: Buffer) {
     throw new SatDescargaError(
       `El certificado (.cer) parece incompleto (${cer.length} bytes). Descárguelo de nuevo del SAT.`,
       'FIEL_CER',
-      400
+      400,
+      `cerBytes=${cer.length}`
     )
   }
   if (keyN.length < 100) {
     throw new SatDescargaError(
       `La clave privada (.key) parece incompleta (${key.length} bytes). Descárguela de nuevo del SAT.`,
       'FIEL_KEY',
-      400
+      400,
+      `keyBytes=${key.length}`
     )
   }
 }
 
-function mapearErrorFiel(err: unknown): never {
+function mapearErrorFiel(err: unknown, detailPrevio?: string): never {
   const msg = err instanceof Error ? err.message.trim() : String(err)
+  const detail = [detailPrevio, msg].filter(Boolean).join(' | ')
 
   if (/does not belong|no pertenece/i.test(msg)) {
     throw new SatDescargaError(
       'El .cer y el .key no corresponden al mismo RFC. Use el par de archivos de la misma e.firma.',
       'FIEL_MISMATCH',
-      400
+      400,
+      detail
     )
   }
-  if (/private key|invalid key|bad decrypt|password|contrase/i.test(msg)) {
+  if (/private key|invalid key|bad decrypt|password|contrase|descifr/i.test(msg)) {
     throw new SatDescargaError(
       'Contraseña incorrecta o archivo .key dañado. Verifique la contraseña de su FIEL.',
       'FIEL_PASSWORD',
-      400
+      400,
+      detail
     )
   }
   if (/certificate|certificado|x509|asn/i.test(msg)) {
     throw new SatDescargaError(
       'No se pudo leer el certificado (.cer). Debe ser el archivo FIEL vigente del SAT (no CSD).',
       'FIEL_CER',
-      400
+      400,
+      detail
     )
   }
 
@@ -116,7 +125,8 @@ function mapearErrorFiel(err: unknown): never {
       ? `No se pudo leer la e.firma: ${msg}`
       : 'No se pudo leer la e.firma. Revise archivos .cer/.key y contraseña.',
     'FIEL_READ',
-    400
+    400,
+    detail
   )
 }
 
@@ -146,6 +156,20 @@ async function crearFielConArchivosTemp(
   }
 }
 
+async function crearFielEnMemoria(
+  cer: Buffer,
+  key: Buffer,
+  password: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any> {
+  const { Fiel } = await import('@nodecfdi/sat-ws-descarga-masiva')
+  return Fiel.create(
+    bufferAContenidoFiel(cer),
+    bufferAContenidoFiel(key),
+    password
+  )
+}
+
 /**
  * Crea FIEL en memoria a partir de archivos subidos (no se persisten).
  */
@@ -172,28 +196,42 @@ export async function crearFielDesdeUpload(
   const keyNorm = normalizarArchivoFiel(upload.key)
   validarArchivosFiel(upload.cer, upload.key)
 
-  let fiel
-  try {
+  const diag = diagnosticoFielUpload(upload.cer, upload.key)
+  const fallos: string[] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let fiel: any
+
+  const intentos: Array<{
+    nombre: string
+    fn: () => Promise<unknown>
+  }> = [
+    { nombre: 'nodecfdi-openfiles', fn: () => crearFielConArchivosTemp(cerNorm, keyNorm, password) },
+    { nombre: 'nodecfdi-memoria', fn: () => crearFielEnMemoria(cerNorm, keyNorm, password) },
+    { nombre: 'node-crypto', fn: () => crearFielConNodeCrypto(cerNorm, keyNorm, password) },
+    { nombre: 'openssl-pem', fn: () => crearFielConOpenSsl(cerNorm, keyNorm, password) },
+  ]
+
+  for (const intento of intentos) {
     try {
-      fiel = await crearFielConArchivosTemp(cerNorm, keyNorm, password)
-    } catch {
-      const { Fiel } = await import('@nodecfdi/sat-ws-descarga-masiva')
-      fiel = Fiel.create(
-        bufferAContenidoFiel(cerNorm),
-        bufferAContenidoFiel(keyNorm),
-        password
-      )
+      fiel = await intento.fn()
+      break
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      fallos.push(`${intento.nombre}: ${msg}`)
+      logFalloFiel(intento.nombre, err, diag)
     }
-  } catch (err) {
-    if (err instanceof SatDescargaError) throw err
-    mapearErrorFiel(err)
+  }
+
+  if (!fiel) {
+    mapearErrorFiel(new Error(fallos.join(' || ')), fallos.join(' || '))
   }
 
   if (!fiel.isValid()) {
     throw new SatDescargaError(
       'La e.firma no es válida: debe ser FIEL vigente (no CSD de sellos) y no estar vencida.',
       'FIEL_INVALID',
-      400
+      400,
+      fallos.length ? `intentosPrevios=${fallos.length}` : undefined
     )
   }
 
