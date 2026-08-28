@@ -184,7 +184,7 @@ export async function cargarNuevoIngreso(
      */
     rangoPago?: { desde: string; hasta: string }
     /**
-     * Reporte mensual: mes de reserva AgendaW (created_at); sin AgendaW → mes de alumno_alta.
+     * Reporte mensual: maternal/kinder/primaria por alta; secundaria por agenda+cita o alta.
      */
     rangoAgenda?: { desde: string; hasta: string }
     /** Título override (ej. reporte por mes). */
@@ -229,6 +229,7 @@ export async function cargarNuevoIngreso(
 
     if (esReporteMes) {
       const mes = evaluarFiltroMesNuevoIngresoAlumno({
+        nivel,
         refNum,
         nombre: a.nombre,
         mapa: mapaAgenda,
@@ -283,6 +284,15 @@ export async function cargarNuevoIngreso(
       nombre: a.nombre,
       fechaPago,
       pagado,
+    })
+  }
+
+  // 2026-08-28: mensual ordenado por fecha inscripción examen (columna Agenda), luego nombre.
+  if (esReporteMes) {
+    filasBase.sort((a, b) => {
+      const cmp = a.alta.slice(0, 10).localeCompare(b.alta.slice(0, 10))
+      if (cmp !== 0) return cmp
+      return a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' })
     })
   }
 

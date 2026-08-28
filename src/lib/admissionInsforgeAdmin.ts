@@ -84,9 +84,13 @@ export function fechaMesAgendoAgendaW(agenda: AgendamientoCitaAgendaW | null): s
 }
 
 /**
- * 2026-08-28: mensual — con AgendaW filtra por created_at; sin AgendaW por alumno_alta.
+ * 2026-08-28: mensual por nivel (validación ciclo 23).
+ * - Maternal/Kinder/Primaria: mes de alumno_alta; columna = agendo AgendaW o alta.
+ * - Secundaria sin AgendaW: mes de alta.
+ * - Secundaria con AgendaW: reserva y cita en el mismo mes; columna = agendo.
  */
 export function evaluarFiltroMesNuevoIngresoAlumno(opts: {
+  nivel: number
   refNum: number
   nombre: string
   mapa: MapaAgendamientoAgendaW | null
@@ -95,23 +99,36 @@ export function evaluarFiltroMesNuevoIngresoAlumno(opts: {
   desde: string
   hasta: string
 }): { incluir: boolean; fechaColumna: string } {
-  const reservas = listaAgendamientosDesdeMapa(opts.refNum, opts.nombre, opts.mapa)
-
-  if (reservas.length > 0) {
-    const enMes = reservas
-      .filter((ag) => fechaEnRangoCalendario(ag.agendo, opts.desde, opts.hasta))
-      .sort((a, b) => a.agendo.localeCompare(b.agendo))
-    if (!enMes.length) {
-      return { incluir: false, fechaColumna: '' }
-    }
-    return { incluir: true, fechaColumna: enMes[0].agendo }
-  }
-
   const fechaAlta = opts.alta.slice(0, 10) || opts.registro.slice(0, 10)
-  return {
-    incluir: fechaEnRangoCalendario(fechaAlta, opts.desde, opts.hasta),
-    fechaColumna: fechaAlta,
+  const reservas = [...listaAgendamientosDesdeMapa(opts.refNum, opts.nombre, opts.mapa)].sort(
+    (a, b) => a.agendo.localeCompare(b.agendo)
+  )
+  const agendoMasAntiguo = reservas.find((r) => r.agendo)?.agendo ?? ''
+
+  if (opts.nivel <= 3) {
+    return {
+      incluir: fechaEnRangoCalendario(fechaAlta, opts.desde, opts.hasta),
+      fechaColumna: agendoMasAntiguo || fechaAlta,
+    }
   }
+
+  if (reservas.length === 0) {
+    return {
+      incluir: fechaEnRangoCalendario(fechaAlta, opts.desde, opts.hasta),
+      fechaColumna: fechaAlta,
+    }
+  }
+
+  const enMes = reservas.filter(
+    (ag) =>
+      Boolean(ag.agendo && ag.cita) &&
+      fechaEnRangoCalendario(ag.agendo, opts.desde, opts.hasta) &&
+      fechaEnRangoCalendario(ag.cita, opts.desde, opts.hasta)
+  )
+  if (!enMes.length) {
+    return { incluir: false, fechaColumna: '' }
+  }
+  return { incluir: true, fechaColumna: enMes[0].agendo }
 }
 
 /** 2026-08-27: clave para empatar AgendaW ↔ Winston cuando aún no hay alumno_ref. */
