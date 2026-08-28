@@ -126,7 +126,7 @@ export async function POST(request: Request) {
         ok: false,
         error: mensajeErrorSat(err),
         code,
-        detail: detail ?? null,
+        detail: detail ? detail.slice(0, 800) : null,
       },
       { status }
     )

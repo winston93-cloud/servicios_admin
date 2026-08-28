@@ -70,10 +70,10 @@ function mensajeErrorApi(data: {
   code?: string
 }): string {
   const base = data.error || 'Error al comunicarse con el SAT.'
-  if (data.detail) {
-    return `${base}\n\nDetalle técnico: ${data.detail}`
-  }
-  return base
+  if (!data.detail) return base
+  const corto =
+    data.detail.length > 600 ? `${data.detail.slice(0, 600)}…` : data.detail
+  return `${base}\n\nDetalle técnico: ${corto}`
 }
 
 function sleep(ms: number) {
@@ -300,11 +300,12 @@ export default function FacturacionDescargaSatView() {
           <ShieldCheck size={22} className="facturacion-cfdi-sat-aviso-icon" aria-hidden />
           <div className="min-w-0">
             <p className="facturacion-cfdi-sat-aviso-title">Seguridad de la e.firma</p>
-            <p className="facturacion-cfdi-sat-aviso-text">
+              <p className="facturacion-cfdi-sat-aviso-text">
               Los archivos <code>.cer</code> y <code>.key</code> y su contraseña se envían solo
               para firmar la petición SOAP y <strong>no se guardan</strong> en servidor ni base de
-              datos. Use la FIEL del RFC receptor (no CSD de sellos). Rango máximo recomendado:{' '}
-              <strong>31 días</strong> por consulta.
+              datos. Use la <strong>FIEL</strong> del RFC receptor (no el CSD de sellos para
+              facturar). El .cer y el .key deben ser del <strong>mismo trámite</strong> en el SAT.
+              Rango máximo recomendado: <strong>31 días</strong> por consulta.
             </p>
           </div>
         </div>

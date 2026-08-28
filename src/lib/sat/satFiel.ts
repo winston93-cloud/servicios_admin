@@ -4,11 +4,14 @@ import { tmpdir } from 'os'
 import { randomUUID } from 'crypto'
 import { SatDescargaError } from './satDescargaErrors'
 import {
-  crearFielConOpenSsl,
   diagnosticoFielUpload,
   logFalloFiel,
 } from './satFielOpenSsl'
-import { crearFielConNodeCrypto } from './satFielNodeCrypto'
+import {
+  certificadoLegible,
+  crearFielConNodeCrypto,
+  variantesPassword,
+} from './satFielNodeCrypto'
 
 export type FielUpload = {
   cer: Buffer
@@ -91,7 +94,47 @@ function validarArchivosFiel(cer: Buffer, key: Buffer) {
   }
 }
 
-function mapearErrorFiel(err: unknown, detailPrevio?: string): never {
+function esFalloContrasenaOFformato(fallos: string[]): boolean {
+  if (!fallos.length) return false
+  return fallos.every((f) =>
+    /bad decrypt|unparsed der|invalid key|password|private key|descifr|cannot open private key/i.test(
+      f
+    )
+  )
+}
+
+function mensajeFalloFiel(
+  fallos: string[],
+  cerOriginal: Buffer
+): { message: string; code: string } {
+  const cerOk = certificadoLegible(cerOriginal)
+
+  if (esFalloContrasenaOFformato(fallos)) {
+    if (cerOk) {
+      return {
+        code: 'FIEL_PASSWORD',
+        message:
+          'El certificado .cer se lee correctamente, pero la contraseña no abre el archivo .key. Confirme que usa la contraseña exacta de la e.firma (FIEL) del SAT — no la del CSD de facturación — y que el .key es del mismo trámite que el .cer.',
+      }
+    }
+    return {
+      code: 'FIEL_PASSWORD',
+      message:
+        'Contraseña incorrecta o archivo .key dañado. Verifique la contraseña de su FIEL.',
+    }
+  }
+
+  return {
+    code: 'FIEL_READ',
+    message: 'No se pudo leer la e.firma. Revise archivos .cer/.key y contraseña.',
+  }
+}
+
+function mapearErrorFiel(
+  err: unknown,
+  detailPrevio?: string,
+  cer?: Buffer
+): never {
   const msg = err instanceof Error ? err.message.trim() : String(err)
   const detail = [detailPrevio, msg].filter(Boolean).join(' | ')
 
@@ -201,29 +244,34 @@ export async function crearFielDesdeUpload(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let fiel: any
 
-  const intentos: Array<{
-    nombre: string
-    fn: () => Promise<unknown>
-  }> = [
-    { nombre: 'nodecfdi-openfiles', fn: () => crearFielConArchivosTemp(cerNorm, keyNorm, password) },
-    { nombre: 'nodecfdi-memoria', fn: () => crearFielEnMemoria(cerNorm, keyNorm, password) },
-    { nombre: 'node-crypto', fn: () => crearFielConNodeCrypto(cerNorm, keyNorm, password) },
-    { nombre: 'openssl-pem', fn: () => crearFielConOpenSsl(cerNorm, keyNorm, password) },
+  const metodos = [
+    (pass: string) => crearFielConArchivosTemp(cerNorm, keyNorm, pass),
+    (pass: string) => crearFielEnMemoria(cerNorm, keyNorm, pass),
+    (pass: string) => crearFielConNodeCrypto(cerNorm, keyNorm, pass),
   ]
+  const nombres = ['nodecfdi-openfiles', 'nodecfdi-memoria', 'node-crypto']
 
-  for (const intento of intentos) {
-    try {
-      fiel = await intento.fn()
-      break
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      fallos.push(`${intento.nombre}: ${msg}`)
-      logFalloFiel(intento.nombre, err, diag)
+  for (const pass of variantesPassword(password)) {
+    for (let i = 0; i < metodos.length; i++) {
+      const nombre = nombres[i]
+      try {
+        fiel = await metodos[i](pass)
+        break
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        const etiqueta = `${nombre}${pass !== password ? '-altpass' : ''}`
+        if (!fallos.some((f) => f.startsWith(`${etiqueta}:`))) {
+          fallos.push(`${etiqueta}: ${msg}`)
+          logFalloFiel(etiqueta, err, diag)
+        }
+      }
     }
+    if (fiel) break
   }
 
   if (!fiel) {
-    mapearErrorFiel(new Error(fallos.join(' || ')), fallos.join(' || '))
+    const { message, code } = mensajeFalloFiel(fallos, upload.cer)
+    throw new SatDescargaError(message, code, 400, fallos.join(' || '))
   }
 
   if (!fiel.isValid()) {
