@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs'
+import { etiquetaFormaPago, etiquetaMetodoPago } from './cfdiCatalogosSat'
 import type { CfdiRecibidoFila } from './parseCfdiXml'
 
 const HEADERS = [
@@ -37,8 +38,8 @@ export async function generarExcelCfdiRecibidos(
     { key: 'serie', width: 10 },
     { key: 'folio', width: 12 },
     { key: 'tipo', width: 8 },
-    { key: 'metodoPago', width: 12 },
-    { key: 'formaPago', width: 12 },
+    { key: 'metodoPago', width: 34 },
+    { key: 'formaPago', width: 38 },
     { key: 'emisorRfc', width: 16 },
     { key: 'emisorNombre', width: 36 },
     { key: 'receptorRfc', width: 16 },
@@ -64,8 +65,8 @@ export async function generarExcelCfdiRecibidos(
       serie: f.serie,
       folio: f.folio,
       tipo: f.tipoComprobante,
-      metodoPago: f.metodoPago,
-      formaPago: f.formaPago,
+      metodoPago: etiquetaMetodoPago(f.metodoPago),
+      formaPago: etiquetaFormaPago(f.formaPago),
       emisorRfc: f.emisorRfc,
       emisorNombre: f.emisorNombre,
       receptorRfc: f.receptorRfc,
