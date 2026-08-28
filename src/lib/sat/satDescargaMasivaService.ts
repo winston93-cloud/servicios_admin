@@ -79,6 +79,7 @@ export async function solicitarDescargaRecibidos(
     DateTimePeriod,
     DownloadType,
     RequestType,
+    DocumentStatus,
   } = mod
 
   const periodo = periodoSat(fechaInicio, fechaFin)
@@ -89,6 +90,8 @@ export async function solicitarDescargaRecibidos(
   )
     .withDownloadType(new DownloadType('received'))
     .withRequestType(new RequestType('xml'))
+    // SAT: XML recibidos no admite "Todos" (incluye cancelados); solo vigentes.
+    .withDocumentStatus(new DocumentStatus('active'))
 
   const errores = params.validate?.() ?? []
   if (errores.length > 0) {
