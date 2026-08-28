@@ -87,8 +87,8 @@ export async function solicitarDescargaRecibidos(
   const params = QueryParameters.create(
     DateTimePeriod.createFromValues(periodo.inicio, periodo.fin)
   )
-    .withDownloadType(DownloadType.received())
-    .withRequestType(RequestType.xml())
+    .withDownloadType(new DownloadType('received'))
+    .withRequestType(new RequestType('xml'))
 
   const errores = params.validate?.() ?? []
   if (errores.length > 0) {
@@ -164,7 +164,9 @@ export async function verificarSolicitudDescarga(
   }
 
   const statusRequest = verify.getStatusRequest()
-  const codigo = String(statusRequest.getCode?.() ?? statusRequest.type ?? '')
+  const codigo = String(
+    statusRequest.getEntryId?.() ?? statusRequest.getValue?.() ?? ''
+  )
 
   if (
     statusRequest.isTypeOf('Expired') ||
@@ -174,7 +176,7 @@ export async function verificarSolicitudDescarga(
     return {
       estado: 'fallida',
       mensaje:
-        statusRequest.getMessage?.() ||
+        statusRequest.toJSON().message ||
         'La solicitud no pudo completarse en el SAT.',
       codigoEstado: codigo,
     }
@@ -242,11 +244,11 @@ export async function descargarYExtraerCfdiRecibidos(
     }
 
     const zipBase64 = download.getPackageContent()
-    const zipBuffer = Buffer.from(zipBase64, 'base64')
+    const zipBinary = Buffer.from(zipBase64, 'base64').toString('binary')
 
     let reader
     try {
-      reader = await CfdiPackageReader.createFromContents(zipBuffer)
+      reader = await CfdiPackageReader.createFromContents(zipBinary)
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'ZIP inválido'
       throw new SatDescargaError(

@@ -64,7 +64,7 @@ export async function crearFielDesdeUpload(
     )
   }
 
-  const rfc = String(fiel.getRfc?.() ?? fiel.rfc ?? '').trim()
+  const rfc = String(fiel.getRfc()).trim()
   if (!rfc) {
     throw new SatDescargaError(
       'No se pudo obtener el RFC del certificado.',
