@@ -3,6 +3,38 @@ import { parsearCfdiXml, type CfdiRecibidoFila } from './parseCfdiXml'
 import type { SatFielHandle } from './satFiel'
 
 const MAX_DIAS_RANGO = 31
+/** Evita bug NodeCfdi: timeout sin WebClientException si HttpsWebClient no recibe timeout. */
+const TIMEOUT_SAT_MS = 120_000
+
+async function ejecutarLlamadaSat<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn()
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (
+      msg.includes('getResponse is not a function') ||
+      /request time out|timeout|ETIMEDOUT|ECONNRESET|ENOTFOUND/i.test(msg)
+    ) {
+      throw new SatDescargaError(
+        'Tiempo de espera o fallo de red al comunicarse con el SAT. Espere unos segundos y vuelva a verificar.',
+        'SAT_RED',
+        502,
+        msg
+      )
+    }
+    if (err instanceof Error && 'getResponse' in err) {
+      const res = (err as { getResponse: () => { getBody?: () => string } }).getResponse()
+      const cuerpo = res?.getBody?.() ?? ''
+      throw new SatDescargaError(
+        cuerpo ? `Error del SAT: ${cuerpo.slice(0, 280)}` : msg,
+        'SAT_HTTP',
+        502,
+        msg
+      )
+    }
+    throw err
+  }
+}
 
 function periodoSat(fechaInicio: string, fechaFin: string): {
   inicio: string
@@ -51,7 +83,7 @@ async function crearServicioSat(fielHandle: SatFielHandle) {
     Service,
     ServiceEndpoints,
   } = mod
-  const webClient = new HttpsWebClient()
+  const webClient = new HttpsWebClient(undefined, undefined, TIMEOUT_SAT_MS)
   const requestBuilder = new FielRequestBuilder(fielHandle.fiel)
   return new Service(
     requestBuilder,
@@ -102,7 +134,7 @@ export async function solicitarDescargaRecibidos(
     )
   }
 
-  const query = await service.query(params)
+  const query = await ejecutarLlamadaSat(() => service.query(params))
   if (!query.getStatus().isAccepted()) {
     throw new SatDescargaError(
       query.getStatus().getMessage() || 'El SAT rechazó la solicitud de descarga.',
@@ -156,7 +188,7 @@ export async function verificarSolicitudDescarga(
   }
 
   const service = await crearServicioSat(fielHandle)
-  const verify = await service.verify(id)
+  const verify = await ejecutarLlamadaSat(() => service.verify(id))
 
   if (!verify.getStatus().isAccepted()) {
     throw new SatDescargaError(
@@ -236,7 +268,7 @@ export async function descargarYExtraerCfdiRecibidos(
   const uuids = new Set<string>()
 
   for (const packageId of packageIds) {
-    const download = await service.download(packageId)
+    const download = await ejecutarLlamadaSat(() => service.download(packageId))
     if (!download.getStatus().isAccepted()) {
       throw new SatDescargaError(
         download.getStatus().getMessage() ||
