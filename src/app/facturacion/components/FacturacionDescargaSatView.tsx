@@ -17,14 +17,13 @@ import {
 } from 'lucide-react'
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import {
-  eliminarPaqueteFiel,
-  guardarPaqueteFiel,
-  listarPaquetesFiel,
+  eliminarPaqueteFielApi,
+  guardarPaqueteFielApi,
+  listarPaquetesFielApi,
   marcarUltimoPaqueteFiel,
-  obtenerPaqueteFiel,
+  migrarPaquetesLocalesSiHay,
   obtenerUltimoPaqueteFielId,
-  paqueteFielAFicheros,
-  type SatFielPaquete,
+  type SatFielPaqueteResumen,
 } from '@/lib/sat/satFielPaquetesStorage'
 import FacturacionShell from './FacturacionShell'
 
@@ -160,7 +159,7 @@ export default function FacturacionDescargaSatView() {
   const inicioId = useId()
   const finId = useId()
 
-  const [paquetes, setPaquetes] = useState<SatFielPaquete[]>([])
+  const [paquetes, setPaquetes] = useState<SatFielPaqueteResumen[]>([])
   const [paqueteActivoId, setPaqueteActivoId] = useState<string | '__nuevo__'>('__nuevo__')
   const [nombrePaquete, setNombrePaquete] = useState('')
   const [cer, setCer] = useState<File | null>(null)
@@ -173,47 +172,58 @@ export default function FacturacionDescargaSatView() {
   const [mensaje, setMensaje] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [guardandoPaquete, setGuardandoPaquete] = useState(false)
+  const [cargandoPaquetes, setCargandoPaquetes] = useState(true)
   const [mostrarArchivosFiel, setMostrarArchivosFiel] = useState(true)
   const cancelRef = useRef(false)
 
   const modoNuevo = paqueteActivoId === '__nuevo__'
   const paqueteActivo =
-    paqueteActivoId === '__nuevo__' ? null : obtenerPaqueteFiel(paqueteActivoId)
+    paqueteActivoId === '__nuevo__'
+      ? null
+      : (paquetes.find((p) => p.id === paqueteActivoId) ?? null)
 
-  const aplicarPaquete = useCallback((p: SatFielPaquete) => {
-    const ficheros = paqueteFielAFicheros(p)
-    setCer(ficheros.cer)
-    setKey(ficheros.key)
-    setPassword(ficheros.password)
+  const aplicarPaquete = useCallback((p: SatFielPaqueteResumen) => {
+    setCer(null)
+    setKey(null)
+    setPassword('')
     setNombrePaquete(p.nombre)
     setPaqueteActivoId(p.id)
     marcarUltimoPaqueteFiel(p.id)
+    setMostrarArchivosFiel(false)
   }, [])
 
-  useEffect(() => {
-    const lista = listarPaquetesFiel()
-    setPaquetes(lista)
-    const ultimo = obtenerUltimoPaqueteFielId()
-    if (ultimo) {
-      const p = obtenerPaqueteFiel(ultimo)
-      if (p) {
-        aplicarPaquete(p)
-        setMostrarArchivosFiel(false)
+  const cargarPaquetes = useCallback(async () => {
+    setCargandoPaquetes(true)
+    try {
+      const migrados = await migrarPaquetesLocalesSiHay()
+      const lista = await listarPaquetesFielApi()
+      setPaquetes(lista)
+      if (migrados > 0) {
+        setMensaje(
+          `Se migraron ${migrados} paquete${migrados === 1 ? '' : 's'} del navegador a InsForge.`
+        )
       }
-      return
-    }
-    if (lista[0]) {
-      aplicarPaquete(lista[0]!)
-      setMostrarArchivosFiel(false)
-    } else {
-      setPaqueteActivoId('__nuevo__')
-      setMostrarArchivosFiel(true)
+      const ultimo = obtenerUltimoPaqueteFielId()
+      const elegido =
+        (ultimo ? lista.find((p) => p.id === ultimo) : null) ?? lista[0] ?? null
+      if (elegido) aplicarPaquete(elegido)
+      else {
+        setPaqueteActivoId('__nuevo__')
+        setMostrarArchivosFiel(true)
+      }
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : 'No se pudieron cargar los paquetes e.firma.'
+      )
+      setEtapa('error')
+    } finally {
+      setCargandoPaquetes(false)
     }
   }, [aplicarPaquete])
 
-  const refrescarPaquetes = useCallback(() => {
-    setPaquetes(listarPaquetesFiel())
-  }, [])
+  useEffect(() => {
+    void cargarPaquetes()
+  }, [cargarPaquetes])
 
   const cambiarPaquete = useCallback(
     (id: string) => {
@@ -227,13 +237,10 @@ export default function FacturacionDescargaSatView() {
         setMostrarArchivosFiel(true)
         return
       }
-      const p = obtenerPaqueteFiel(id)
-      if (p) {
-        aplicarPaquete(p)
-        setMostrarArchivosFiel(false)
-      }
+      const p = paquetes.find((item) => item.id === id)
+      if (p) aplicarPaquete(p)
     },
-    [aplicarPaquete]
+    [aplicarPaquete, paquetes]
   )
 
   const guardarPaqueteActual = useCallback(async () => {
@@ -248,16 +255,17 @@ export default function FacturacionDescargaSatView() {
     setGuardandoPaquete(true)
     setError(null)
     try {
-      const p = await guardarPaqueteFiel({
+      const p = await guardarPaqueteFielApi({
         nombre: nombrePaquete,
         cer,
         key,
         password,
         id: modoNuevo ? undefined : paqueteActivoId,
       })
-      refrescarPaquetes()
+      const lista = await listarPaquetesFielApi()
+      setPaquetes(lista)
       aplicarPaquete(p)
-      setMensaje(`Paquete «${p.nombre}» guardado en este navegador.`)
+      setMensaje(`Paquete «${p.nombre}» guardado en InsForge.`)
       return p
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar el paquete.')
@@ -273,28 +281,32 @@ export default function FacturacionDescargaSatView() {
     nombrePaquete,
     paqueteActivoId,
     password,
-    refrescarPaquetes,
   ])
 
-  const eliminarPaqueteActual = useCallback(() => {
+  const eliminarPaqueteActual = useCallback(async () => {
     if (modoNuevo || !paqueteActivo) return
     const ok = window.confirm(
-      `¿Eliminar el paquete «${paqueteActivo.nombre}» de este navegador?`
+      `¿Eliminar el paquete «${paqueteActivo.nombre}» de InsForge?`
     )
     if (!ok) return
-    eliminarPaqueteFiel(paqueteActivo.id)
-    const restantes = listarPaquetesFiel()
-    setPaquetes(restantes)
-    if (restantes[0]) aplicarPaquete(restantes[0]!)
-    else {
-      setPaqueteActivoId('__nuevo__')
-      setCer(null)
-      setKey(null)
-      setPassword('')
-      setNombrePaquete('')
-      setMostrarArchivosFiel(true)
+    try {
+      await eliminarPaqueteFielApi(paqueteActivo.id)
+      const restantes = await listarPaquetesFielApi()
+      setPaquetes(restantes)
+      if (restantes[0]) aplicarPaquete(restantes[0])
+      else {
+        setPaqueteActivoId('__nuevo__')
+        setCer(null)
+        setKey(null)
+        setPassword('')
+        setNombrePaquete('')
+        setMostrarArchivosFiel(true)
+      }
+      setMensaje('Paquete eliminado.')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo eliminar el paquete.')
+      setEtapa('error')
     }
-    setMensaje('Paquete eliminado de este equipo.')
   }, [aplicarPaquete, modoNuevo, paqueteActivo])
 
   const ejecutar = useCallback(async () => {
@@ -303,12 +315,10 @@ export default function FacturacionDescargaSatView() {
     setMensaje(null)
     setIdSolicitud(null)
 
-    let cerUsar = cer
-    let keyUsar = key
-    let passUsar = password
+    let paqueteIdEjecucion: string | null = null
 
-    if (modoNuevo) {
-      if (!cerUsar || !keyUsar || !passUsar.trim()) {
+    if (modoNuevo || mostrarArchivosFiel) {
+      if (!cer || !key || !password.trim()) {
         setError('Suba .cer, .key e indique la contraseña de la e.firma.')
         setEtapa('error')
         return
@@ -323,11 +333,10 @@ export default function FacturacionDescargaSatView() {
         setEtapa('error')
         return
       }
-      const ficheros = paqueteFielAFicheros(guardado)
-      cerUsar = ficheros.cer
-      keyUsar = ficheros.key
-      passUsar = ficheros.password
-    } else if (!cerUsar || !keyUsar || !passUsar.trim()) {
+      paqueteIdEjecucion = guardado.id
+    } else if (paqueteActivoId !== '__nuevo__') {
+      paqueteIdEjecucion = paqueteActivoId
+    } else {
       setError('Seleccione un paquete de e.firma válido o registre uno nuevo.')
       setEtapa('error')
       return
@@ -342,9 +351,13 @@ export default function FacturacionDescargaSatView() {
     const armarFormEjecucion = (accion: string, extra?: Record<string, string>) => {
       const fd = new FormData()
       fd.set('accion', accion)
-      fd.set('cer', cerUsar!)
-      fd.set('key', keyUsar!)
-      fd.set('password', passUsar)
+      if (paqueteIdEjecucion) {
+        fd.set('paqueteId', paqueteIdEjecucion)
+      } else {
+        if (cer) fd.set('cer', cer)
+        if (key) fd.set('key', key)
+        fd.set('password', password)
+      }
       fd.set('fechaInicio', fechaInicio)
       fd.set('fechaFin', fechaFin)
       if (extra) {
@@ -449,7 +462,9 @@ export default function FacturacionDescargaSatView() {
     guardarPaqueteActual,
     key,
     modoNuevo,
+    mostrarArchivosFiel,
     nombrePaquete,
+    paqueteActivoId,
     password,
   ])
 
@@ -457,6 +472,7 @@ export default function FacturacionDescargaSatView() {
     etapa !== 'idle' && etapa !== 'listo' && etapa !== 'error'
 
   const formularioFielVisible = modoNuevo || mostrarArchivosFiel
+  const uiBloqueada = ocupado || cargandoPaquetes || guardandoPaquete
 
   const pasoActivo = indicePaso(etapa)
   const listo = etapa === 'listo'
@@ -465,7 +481,7 @@ export default function FacturacionDescargaSatView() {
   return (
     <FacturacionShell
       title="Facturación SAT (Descarga Masiva)"
-      subtitle="CFDI recibidos → Excel · Web Service oficial del SAT · paquetes e.firma solo en este navegador"
+      subtitle="CFDI recibidos → Excel · Web Service oficial del SAT · paquetes e.firma en InsForge"
       showNav={false}
       roles={['usuario']}
     >
@@ -475,12 +491,12 @@ export default function FacturacionDescargaSatView() {
           <div className="min-w-0">
             <p className="facturacion-cfdi-sat-aviso-title">Seguridad de la e.firma</p>
               <p className="facturacion-cfdi-sat-aviso-text">
-              Los archivos <code>.cer</code>, <code>.key</code> y la contraseña{' '}
-              <strong>solo se guardan en este navegador</strong> si usted registra un paquete con
-              nombre; <strong>nunca se almacenan en servidor</strong> ni base de datos. Se envían
-              únicamente para firmar la petición SOAP al SAT. Use la <strong>FIEL</strong> del RFC
-              receptor (no el CSD de sellos para facturar). Rango máximo recomendado:{' '}
-              <strong>31 días</strong> por consulta.
+              Los archivos <code>.cer</code>, <code>.key</code> y la contraseña se guardan en{' '}
+              <strong>InsForge</strong> (cifrados en servidor; solo personal administrativo).{' '}
+              <strong>No se almacenan en el navegador</strong> salvo recordar el último paquete
+              elegido. Se usan únicamente para firmar la petición SOAP al SAT. Use la{' '}
+              <strong>FIEL</strong> del RFC receptor (no el CSD de sellos para facturar). Rango
+              máximo recomendado: <strong>31 días</strong> por consulta.
             </p>
           </div>
         </div>
@@ -535,7 +551,7 @@ export default function FacturacionDescargaSatView() {
                   className="facturacion-cfdi-input"
                   value={paqueteActivoId}
                   onChange={(e) => cambiarPaquete(e.target.value)}
-                  disabled={ocupado || guardandoPaquete}
+                  disabled={uiBloqueada}
                 >
                   {paquetes.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -568,15 +584,15 @@ export default function FacturacionDescargaSatView() {
                       type="button"
                       className="facturacion-cfdi-sat-btn-secondary"
                       onClick={() => setMostrarArchivosFiel(true)}
-                      disabled={ocupado}
+                      disabled={uiBloqueada}
                     >
                       Editar archivos
                     </button>
                     <button
                       type="button"
                       className="facturacion-cfdi-sat-btn-danger"
-                      onClick={eliminarPaqueteActual}
-                      disabled={ocupado}
+                      onClick={() => void eliminarPaqueteActual()}
+                      disabled={uiBloqueada}
                     >
                       <Trash2 size={14} aria-hidden />
                       Eliminar
@@ -601,7 +617,7 @@ export default function FacturacionDescargaSatView() {
                       className="facturacion-cfdi-input"
                       value={nombrePaquete}
                       onChange={(e) => setNombrePaquete(e.target.value)}
-                      disabled={ocupado || guardandoPaquete}
+                      disabled={uiBloqueada}
                       placeholder="Ej. Winston Churchill · contabilidad"
                       maxLength={80}
                     />
@@ -614,7 +630,7 @@ export default function FacturacionDescargaSatView() {
                       hint="Seleccionar archivo .cer"
                       accept=".cer"
                       archivo={cer}
-                      disabled={ocupado || guardandoPaquete}
+                      disabled={uiBloqueada}
                       onSelect={setCer}
                     />
                     <ZonaArchivo
@@ -623,7 +639,7 @@ export default function FacturacionDescargaSatView() {
                       hint="Seleccionar archivo .key"
                       accept=".key"
                       archivo={key}
-                      disabled={ocupado || guardandoPaquete}
+                      disabled={uiBloqueada}
                       onSelect={setKey}
                     />
                   </div>
@@ -643,7 +659,7 @@ export default function FacturacionDescargaSatView() {
                       className="facturacion-cfdi-input"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      disabled={ocupado || guardandoPaquete}
+                      disabled={uiBloqueada}
                       placeholder="••••••••"
                     />
                   </label>
@@ -653,7 +669,7 @@ export default function FacturacionDescargaSatView() {
                       type="button"
                       className="facturacion-cfdi-sat-btn-secondary"
                       onClick={() => void guardarPaqueteActual()}
-                      disabled={ocupado || guardandoPaquete}
+                      disabled={uiBloqueada}
                     >
                       {guardandoPaquete ? (
                         <>
@@ -663,7 +679,7 @@ export default function FacturacionDescargaSatView() {
                       ) : (
                         <>
                           <Plus size={14} aria-hidden />
-                          Guardar paquete en este equipo
+                          Guardar en InsForge
                         </>
                       )}
                     </button>
@@ -672,7 +688,7 @@ export default function FacturacionDescargaSatView() {
                         type="button"
                         className="facturacion-cfdi-sat-btn-secondary"
                         onClick={() => setMostrarArchivosFiel(false)}
-                        disabled={ocupado || guardandoPaquete}
+                        disabled={uiBloqueada}
                       >
                         Cancelar edición
                       </button>
@@ -706,7 +722,7 @@ export default function FacturacionDescargaSatView() {
                     className="facturacion-cfdi-input"
                     value={fechaInicio}
                     onChange={(e) => setFechaInicio(e.target.value)}
-                    disabled={ocupado}
+                    disabled={uiBloqueada}
                   />
                 </label>
                 <label className="facturacion-cfdi-field" htmlFor={finId}>
@@ -717,7 +733,7 @@ export default function FacturacionDescargaSatView() {
                     className="facturacion-cfdi-input"
                     value={fechaFin}
                     onChange={(e) => setFechaFin(e.target.value)}
-                    disabled={ocupado}
+                    disabled={uiBloqueada}
                   />
                 </label>
               </div>
@@ -732,14 +748,18 @@ export default function FacturacionDescargaSatView() {
             >
               <p className="facturacion-cfdi-sat-status-kicker">Estado</p>
               <p className="facturacion-cfdi-sat-status-title">
-                {ocupado ? (
+                {cargandoPaquetes ? (
+                  <Loader2 size={18} className="facturacion-cfdi-spin" aria-hidden />
+                ) : ocupado ? (
                   <Loader2 size={18} className="facturacion-cfdi-spin" aria-hidden />
                 ) : listo ? (
                   <FileSpreadsheet size={18} aria-hidden />
                 ) : fallo ? (
                   <XCircle size={18} aria-hidden />
                 ) : null}
-                {ETIQUETAS[etapa]}
+                {cargandoPaquetes
+                  ? 'Cargando paquetes e.firma…'
+                  : ETIQUETAS[etapa]}
               </p>
               {idSolicitud ? (
                 <p className="facturacion-cfdi-sat-status-meta">
@@ -760,7 +780,7 @@ export default function FacturacionDescargaSatView() {
                 type="button"
                 className="facturacion-cfdi-btn-primary facturacion-cfdi-sat-btn-main"
                 onClick={() => void ejecutar()}
-                disabled={ocupado}
+                disabled={ocupado || cargandoPaquetes}
               >
                 {ocupado ? (
                   <>

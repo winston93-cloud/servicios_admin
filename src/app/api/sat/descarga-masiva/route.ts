@@ -8,6 +8,11 @@ import {
   verificarSolicitudDescarga,
 } from '@/lib/sat/satDescargaMasivaService'
 import { crearFielDesdeUpload, bufferDesdeUpload } from '@/lib/sat/satFiel'
+import { createDbAdmin } from '@/lib/insforgeAdmin'
+import {
+  cargarFielDesdePaqueteServidor,
+  marcarUsoPaqueteFielServidor,
+} from '@/lib/sat/satFielPaqueteService'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -15,6 +20,14 @@ export const maxDuration = 300
 type Accion = 'solicitar' | 'verificar' | 'descargar'
 
 async function leerFielDesdeForm(form: FormData) {
+  const paqueteId = String(form.get('paqueteId') ?? '').trim()
+  if (paqueteId) {
+    const db = createDbAdmin()
+    const fiel = await cargarFielDesdePaqueteServidor(db, paqueteId)
+    await marcarUsoPaqueteFielServidor(db, paqueteId)
+    return fiel
+  }
+
   const cer = await bufferDesdeUpload(form.get('cer'))
   const key = await bufferDesdeUpload(form.get('key'))
   const password = String(form.get('password') ?? '')
