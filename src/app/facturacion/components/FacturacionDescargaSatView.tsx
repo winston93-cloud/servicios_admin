@@ -1,7 +1,17 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
-import { Loader2, ShieldAlert, FileSpreadsheet } from 'lucide-react'
+import { useCallback, useId, useRef, useState } from 'react'
+import {
+  CalendarRange,
+  CheckCircle2,
+  FileKey2,
+  FileSpreadsheet,
+  KeyRound,
+  Loader2,
+  ShieldCheck,
+  Upload,
+  XCircle,
+} from 'lucide-react'
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import FacturacionShell from './FacturacionShell'
 
@@ -26,11 +36,103 @@ const ETIQUETAS: Record<Etapa, string> = {
   error: 'Ocurrió un error',
 }
 
+const PASOS = [
+  { id: 'fiel', label: 'e.firma' },
+  { id: 'solicitud', label: 'Solicitud' },
+  { id: 'verificar', label: 'Verificación' },
+  { id: 'descarga', label: 'Descarga' },
+  { id: 'excel', label: 'Excel' },
+] as const
+
+function indicePaso(etapa: Etapa): number {
+  switch (etapa) {
+    case 'idle':
+      return -1
+    case 'autenticando':
+      return 0
+    case 'solicitud_enviada':
+      return 1
+    case 'verificando':
+      return 2
+    case 'procesando_xml':
+      return 3
+    case 'generando_excel':
+    case 'listo':
+      return 4
+    default:
+      return -1
+  }
+}
+
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms))
 }
 
+function truncarNombre(nombre: string, max = 28) {
+  if (nombre.length <= max) return nombre
+  return `${nombre.slice(0, max - 3)}…`
+}
+
+type ZonaArchivoProps = {
+  id: string
+  label: string
+  hint: string
+  accept: string
+  archivo: File | null
+  disabled: boolean
+  onSelect: (file: File | null) => void
+}
+
+function ZonaArchivo({
+  id,
+  label,
+  hint,
+  accept,
+  archivo,
+  disabled,
+  onSelect,
+}: ZonaArchivoProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  return (
+    <div className="facturacion-cfdi-sat-file-zone">
+      <input
+        ref={inputRef}
+        id={id}
+        type="file"
+        accept={accept}
+        className="facturacion-cfdi-sat-file-input"
+        disabled={disabled}
+        onChange={(e) => onSelect(e.target.files?.[0] ?? null)}
+      />
+      <button
+        type="button"
+        className={`facturacion-cfdi-sat-file-btn${archivo ? ' has-file' : ''}`}
+        disabled={disabled}
+        onClick={() => inputRef.current?.click()}
+        aria-describedby={`${id}-hint`}
+      >
+        <span className="facturacion-cfdi-sat-file-icon" aria-hidden>
+          {archivo ? <CheckCircle2 size={22} /> : <Upload size={22} />}
+        </span>
+        <span className="facturacion-cfdi-sat-file-text">
+          <span className="facturacion-cfdi-sat-file-label">{label}</span>
+          <span className="facturacion-cfdi-sat-file-name" id={`${id}-hint`}>
+            {archivo ? truncarNombre(archivo.name) : hint}
+          </span>
+        </span>
+      </button>
+    </div>
+  )
+}
+
 export default function FacturacionDescargaSatView() {
+  const cerId = useId()
+  const keyId = useId()
+  const passId = useId()
+  const inicioId = useId()
+  const finId = useId()
+
   const [cer, setCer] = useState<File | null>(null)
   const [key, setKey] = useState<File | null>(null)
   const [password, setPassword] = useState('')
@@ -170,6 +272,10 @@ export default function FacturacionDescargaSatView() {
   const ocupado =
     etapa !== 'idle' && etapa !== 'listo' && etapa !== 'error'
 
+  const pasoActivo = indicePaso(etapa)
+  const listo = etapa === 'listo'
+  const fallo = etapa === 'error'
+
   return (
     <FacturacionShell
       title="Facturación SAT (Descarga Masiva)"
@@ -177,148 +283,211 @@ export default function FacturacionDescargaSatView() {
       showNav={false}
       roles={['usuario']}
     >
-      <div className="facturacion-cfdi-panel space-y-5">
-        <div
-          className="flex gap-3 rounded-xl border border-amber-500/40 bg-amber-50/80 px-4 py-3 text-sm text-amber-950 dark:bg-amber-950/30 dark:text-amber-100"
-          role="note"
-        >
-          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+      <div className="facturacion-cfdi-sat">
+        <div className="facturacion-cfdi-sat-aviso" role="note">
+          <ShieldCheck size={22} className="facturacion-cfdi-sat-aviso-icon" aria-hidden />
           <div className="min-w-0">
-            <p className="font-semibold">Seguridad de la e.firma</p>
-            <p className="mt-1 text-pretty opacity-90">
-              Los archivos <code>.cer</code> y <code>.key</code> y su contraseña se
-              envían solo para firmar la petición SOAP y <strong>no se guardan</strong>{' '}
-              en servidor ni base de datos. Use la FIEL del RFC receptor (no CSD de
-              sellos). Rango máximo recomendado: 31 días por consulta.
+            <p className="facturacion-cfdi-sat-aviso-title">Seguridad de la e.firma</p>
+            <p className="facturacion-cfdi-sat-aviso-text">
+              Los archivos <code>.cer</code> y <code>.key</code> y su contraseña se envían solo
+              para firmar la petición SOAP y <strong>no se guardan</strong> en servidor ni base de
+              datos. Use la FIEL del RFC receptor (no CSD de sellos). Rango máximo recomendado:{' '}
+              <strong>31 días</strong> por consulta.
             </p>
           </div>
         </div>
 
-        <section className="facturacion-cfdi-card space-y-4">
-          <h2 className="text-base font-semibold text-primary">e.firma (FIEL)</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="font-medium">Certificado (.cer)</span>
-              <input
-                type="file"
-                accept=".cer"
-                className="min-h-[44px] w-full rounded-lg border border-border bg-white px-3 py-2 text-base file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-2 file:text-sm file:font-medium dark:bg-slate-900"
-                onChange={(e) => setCer(e.target.files?.[0] ?? null)}
-                disabled={ocupado}
-              />
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="font-medium">Clave privada (.key)</span>
-              <input
-                type="file"
-                accept=".key"
-                className="min-h-[44px] w-full rounded-lg border border-border bg-white px-3 py-2 text-base file:mr-3 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-2 file:text-sm file:font-medium dark:bg-slate-900"
-                onChange={(e) => setKey(e.target.files?.[0] ?? null)}
-                disabled={ocupado}
-              />
-            </label>
+        <ol className="facturacion-cfdi-sat-steps" aria-label="Progreso del proceso">
+          {PASOS.map((paso, i) => {
+            const hecho = listo || (pasoActivo >= 0 && i < pasoActivo)
+            const activo = pasoActivo === i && ocupado
+            const clase = [
+              hecho ? 'done' : '',
+              activo ? 'active' : '',
+              fallo && pasoActivo === i ? 'fail' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')
+
+            return (
+              <li key={paso.id} className={clase || undefined}>
+                <span className="facturacion-cfdi-sat-step-dot" aria-hidden>
+                  {hecho ? <CheckCircle2 size={14} /> : i + 1}
+                </span>
+                <span className="facturacion-cfdi-sat-step-label">{paso.label}</span>
+              </li>
+            )
+          })}
+        </ol>
+
+        <div className="facturacion-cfdi-sat-layout">
+          <div className="facturacion-cfdi-sat-main">
+            <section className="facturacion-cfdi-sat-card" aria-labelledby="sat-fiel-heading">
+              <header className="facturacion-cfdi-sat-card-head">
+                <span className="facturacion-cfdi-sat-card-icon" aria-hidden>
+                  <FileKey2 size={20} />
+                </span>
+                <div>
+                  <h2 id="sat-fiel-heading" className="facturacion-cfdi-sat-card-title">
+                    e.firma (FIEL)
+                  </h2>
+                  <p className="facturacion-cfdi-sat-card-desc">
+                    Certificado y clave privada del RFC que recibe los CFDI.
+                  </p>
+                </div>
+              </header>
+
+              <div className="facturacion-cfdi-sat-files">
+                <ZonaArchivo
+                  id={cerId}
+                  label="Certificado"
+                  hint="Seleccionar archivo .cer"
+                  accept=".cer"
+                  archivo={cer}
+                  disabled={ocupado}
+                  onSelect={setCer}
+                />
+                <ZonaArchivo
+                  id={keyId}
+                  label="Clave privada"
+                  hint="Seleccionar archivo .key"
+                  accept=".key"
+                  archivo={key}
+                  disabled={ocupado}
+                  onSelect={setKey}
+                />
+              </div>
+
+              <label className="facturacion-cfdi-field facturacion-cfdi-field-wide" htmlFor={passId}>
+                <span className="facturacion-cfdi-sat-field-row">
+                  <KeyRound size={14} aria-hidden />
+                  Contraseña de la clave privada
+                </span>
+                <input
+                  id={passId}
+                  type="password"
+                  autoComplete="off"
+                  className="facturacion-cfdi-input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={ocupado}
+                  placeholder="••••••••"
+                />
+              </label>
+            </section>
+
+            <section className="facturacion-cfdi-sat-card" aria-labelledby="sat-filtros-heading">
+              <header className="facturacion-cfdi-sat-card-head">
+                <span className="facturacion-cfdi-sat-card-icon" aria-hidden>
+                  <CalendarRange size={20} />
+                </span>
+                <div>
+                  <h2 id="sat-filtros-heading" className="facturacion-cfdi-sat-card-title">
+                    Periodo de consulta
+                  </h2>
+                  <p className="facturacion-cfdi-sat-card-desc">
+                    Tipo: <strong>Recibidos</strong> — usted es el receptor en el CFDI.
+                  </p>
+                </div>
+              </header>
+
+              <div className="facturacion-cfdi-sat-dates">
+                <label className="facturacion-cfdi-field" htmlFor={inicioId}>
+                  Fecha inicio
+                  <input
+                    id={inicioId}
+                    type="date"
+                    className="facturacion-cfdi-input"
+                    value={fechaInicio}
+                    onChange={(e) => setFechaInicio(e.target.value)}
+                    disabled={ocupado}
+                  />
+                </label>
+                <label className="facturacion-cfdi-field" htmlFor={finId}>
+                  Fecha fin
+                  <input
+                    id={finId}
+                    type="date"
+                    className="facturacion-cfdi-input"
+                    value={fechaFin}
+                    onChange={(e) => setFechaFin(e.target.value)}
+                    disabled={ocupado}
+                  />
+                </label>
+              </div>
+            </section>
           </div>
-          <label className="flex max-w-md flex-col gap-1.5 text-sm">
-            <span className="font-medium">Contraseña de la clave privada</span>
-            <input
-              type="password"
-              autoComplete="off"
-              className="min-h-[44px] rounded-lg border border-border bg-white px-3 py-2 text-base dark:bg-slate-900"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={ocupado}
-            />
-          </label>
-        </section>
 
-        <section className="facturacion-cfdi-card space-y-4">
-          <h2 className="text-base font-semibold text-primary">Filtros</h2>
-          <p className="text-sm text-text-secondary">
-            Tipo de comprobante: <strong>Recibidos</strong> (usted es el receptor en
-            el CFDI).
-          </p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="font-medium">Fecha inicio</span>
-              <input
-                type="date"
-                className="min-h-[44px] rounded-lg border border-border bg-white px-3 py-2 text-base dark:bg-slate-900"
-                value={fechaInicio}
-                onChange={(e) => setFechaInicio(e.target.value)}
-                disabled={ocupado}
-              />
-            </label>
-            <label className="flex flex-col gap-1.5 text-sm">
-              <span className="font-medium">Fecha fin</span>
-              <input
-                type="date"
-                className="min-h-[44px] rounded-lg border border-border bg-white px-3 py-2 text-base dark:bg-slate-900"
-                value={fechaFin}
-                onChange={(e) => setFechaFin(e.target.value)}
-                disabled={ocupado}
-              />
-            </label>
-          </div>
-        </section>
-
-        <div
-          className="rounded-xl border border-border/80 bg-white/60 px-4 py-3 dark:bg-slate-900/40"
-          role="status"
-          aria-live="polite"
-        >
-          <p className="text-xs font-semibold uppercase tracking-wide text-text-secondary">
-            Estado
-          </p>
-          <p className="mt-1 flex items-center gap-2 text-sm font-medium text-primary">
-            {ocupado ? (
-              <Loader2 className="h-4 w-4 animate-spin shrink-0" aria-hidden />
-            ) : etapa === 'listo' ? (
-              <FileSpreadsheet className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
-            ) : null}
-            {ETIQUETAS[etapa]}
-          </p>
-          {idSolicitud ? (
-            <p className="mt-1 text-xs text-text-secondary break-all">
-              IdSolicitud: {idSolicitud}
-            </p>
-          ) : null}
-          {mensaje ? (
-            <p className="mt-1 text-sm text-text-secondary">{mensaje}</p>
-          ) : null}
-          {error ? (
-            <p className="mt-2 text-sm text-red-700 dark:text-red-300">{error}</p>
-          ) : null}
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button
-            type="button"
-            className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-            onClick={() => void ejecutar()}
-            disabled={ocupado}
-          >
-            {ocupado ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                Procesando…
-              </>
-            ) : (
-              'Solicitar y generar Excel'
-            )}
-          </button>
-          {ocupado ? (
-            <button
-              type="button"
-              className="min-h-[44px] rounded-xl border border-border px-4 text-sm font-medium"
-              onClick={() => {
-                cancelRef.current = true
-                setEtapa('idle')
-                setMensaje('Proceso cancelado.')
-              }}
+          <aside className="facturacion-cfdi-sat-aside">
+            <div
+              className={`facturacion-cfdi-sat-status${listo ? ' ok' : ''}${fallo ? ' fail' : ''}${ocupado ? ' busy' : ''}`}
+              role="status"
+              aria-live="polite"
             >
-              Cancelar
-            </button>
-          ) : null}
+              <p className="facturacion-cfdi-sat-status-kicker">Estado</p>
+              <p className="facturacion-cfdi-sat-status-title">
+                {ocupado ? (
+                  <Loader2 size={18} className="facturacion-cfdi-spin" aria-hidden />
+                ) : listo ? (
+                  <FileSpreadsheet size={18} aria-hidden />
+                ) : fallo ? (
+                  <XCircle size={18} aria-hidden />
+                ) : null}
+                {ETIQUETAS[etapa]}
+              </p>
+              {idSolicitud ? (
+                <p className="facturacion-cfdi-sat-status-meta">
+                  <span className="facturacion-cfdi-sat-status-meta-label">IdSolicitud</span>
+                  <code>{idSolicitud}</code>
+                </p>
+              ) : null}
+              {mensaje ? <p className="facturacion-cfdi-sat-status-msg">{mensaje}</p> : null}
+              {error ? (
+                <p className="facturacion-cfdi-sat-status-error" role="alert">
+                  {error}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="facturacion-cfdi-sat-actions">
+              <button
+                type="button"
+                className="facturacion-cfdi-btn-primary facturacion-cfdi-sat-btn-main"
+                onClick={() => void ejecutar()}
+                disabled={ocupado}
+              >
+                {ocupado ? (
+                  <>
+                    <Loader2 size={16} className="facturacion-cfdi-spin" aria-hidden />
+                    Procesando…
+                  </>
+                ) : (
+                  <>
+                    <FileSpreadsheet size={16} aria-hidden />
+                    Solicitar y generar Excel
+                  </>
+                )}
+              </button>
+              {ocupado ? (
+                <button
+                  type="button"
+                  className="facturacion-cfdi-sat-btn-secondary"
+                  onClick={() => {
+                    cancelRef.current = true
+                    setEtapa('idle')
+                    setMensaje('Proceso cancelado.')
+                  }}
+                >
+                  Cancelar
+                </button>
+              ) : null}
+            </div>
+
+            <p className="facturacion-cfdi-sat-footnote">
+              El SAT puede tardar varios minutos en preparar los paquetes. No cierre esta pestaña
+              hasta que termine la descarga.
+            </p>
+          </aside>
         </div>
       </div>
     </FacturacionShell>
