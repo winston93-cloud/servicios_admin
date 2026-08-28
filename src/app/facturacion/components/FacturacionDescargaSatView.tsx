@@ -154,7 +154,6 @@ export default function FacturacionDescargaSatView() {
   const cerId = useId()
   const keyId = useId()
   const passId = useId()
-  const paqueteId = useId()
   const nombrePaqueteId = useId()
   const inicioId = useId()
   const finId = useId()
@@ -225,22 +224,36 @@ export default function FacturacionDescargaSatView() {
     void cargarPaquetes()
   }, [cargarPaquetes])
 
+  const iniciarNuevoPaquete = useCallback(() => {
+    setError(null)
+    setPaqueteActivoId('__nuevo__')
+    setCer(null)
+    setKey(null)
+    setPassword('')
+    setNombrePaquete('')
+    setMostrarArchivosFiel(true)
+  }, [])
+
+  const cancelarRegistroPaquete = useCallback(() => {
+    setError(null)
+    if (paquetes.length === 0) return
+    const ultimo = obtenerUltimoPaqueteFielId()
+    const elegido =
+      (ultimo ? paquetes.find((p) => p.id === ultimo) : null) ?? paquetes[0] ?? null
+    if (elegido) aplicarPaquete(elegido)
+  }, [aplicarPaquete, paquetes])
+
   const cambiarPaquete = useCallback(
     (id: string) => {
       setError(null)
       if (id === '__nuevo__') {
-        setPaqueteActivoId('__nuevo__')
-        setCer(null)
-        setKey(null)
-        setPassword('')
-        setNombrePaquete('')
-        setMostrarArchivosFiel(true)
+        iniciarNuevoPaquete()
         return
       }
       const p = paquetes.find((item) => item.id === id)
       if (p) aplicarPaquete(p)
     },
-    [aplicarPaquete, paquetes]
+    [aplicarPaquete, iniciarNuevoPaquete, paquetes]
   )
 
   const guardarPaqueteActual = useCallback(async () => {
@@ -265,7 +278,11 @@ export default function FacturacionDescargaSatView() {
       const lista = await listarPaquetesFielApi()
       setPaquetes(lista)
       aplicarPaquete(p)
-      setMensaje(`Paquete «${p.nombre}» guardado en InsForge.`)
+      setMensaje(
+        modoNuevo
+          ? `Paquete «${p.nombre}» guardado. Puede agregar otro o consultar el SAT.`
+          : `Paquete «${p.nombre}» actualizado en InsForge.`
+      )
       return p
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar el paquete.')
@@ -536,31 +553,66 @@ export default function FacturacionDescargaSatView() {
                     e.firma (FIEL)
                   </h2>
                   <p className="facturacion-cfdi-sat-card-desc">
-                    Elija un paquete guardado o registre la e.firma del RFC receptor.
+                    Puede guardar <strong>varios paquetes</strong> (RFC distintos o el mismo con
+                    otro nombre). Al abrir, elija cuál usar para la consulta.
                   </p>
                 </div>
               </header>
 
-              <label className="facturacion-cfdi-field facturacion-cfdi-field-wide" htmlFor={paqueteId}>
-                <span className="facturacion-cfdi-sat-field-row">
-                  <Package size={14} aria-hidden />
-                  Paquete de e.firma
-                </span>
-                <select
-                  id={paqueteId}
-                  className="facturacion-cfdi-input"
-                  value={paqueteActivoId}
-                  onChange={(e) => cambiarPaquete(e.target.value)}
-                  disabled={uiBloqueada}
+              <div className="facturacion-cfdi-sat-paquete-toolbar">
+                <p className="facturacion-cfdi-sat-paquete-count">
+                  {cargandoPaquetes
+                    ? 'Cargando paquetes…'
+                    : paquetes.length === 0
+                      ? 'Sin paquetes guardados'
+                      : `${paquetes.length} paquete${paquetes.length === 1 ? '' : 's'} guardado${paquetes.length === 1 ? '' : 's'}`}
+                </p>
+                {!modoNuevo ? (
+                  <button
+                    type="button"
+                    className="facturacion-cfdi-sat-btn-secondary facturacion-cfdi-sat-btn-add"
+                    onClick={iniciarNuevoPaquete}
+                    disabled={uiBloqueada}
+                  >
+                    <Plus size={14} aria-hidden />
+                    Agregar paquete
+                  </button>
+                ) : null}
+              </div>
+
+              {paquetes.length > 0 && !modoNuevo && !mostrarArchivosFiel ? (
+                <div
+                  className="facturacion-cfdi-sat-paquete-lista"
+                  role="listbox"
+                  aria-label="Paquetes e.firma guardados"
                 >
-                  {paquetes.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                    </option>
-                  ))}
-                  <option value="__nuevo__">+ Registrar nueva e.firma…</option>
-                </select>
-              </label>
+                  {paquetes.map((p) => {
+                    const activo = p.id === paqueteActivoId
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        role="option"
+                        aria-selected={activo}
+                        className={`facturacion-cfdi-sat-paquete-item${activo ? ' selected' : ''}`}
+                        onClick={() => cambiarPaquete(p.id)}
+                        disabled={uiBloqueada}
+                      >
+                        <span className="facturacion-cfdi-sat-paquete-item-head">
+                          <Package size={16} aria-hidden />
+                          <span className="facturacion-cfdi-sat-paquete-item-nombre">{p.nombre}</span>
+                          {activo ? (
+                            <span className="facturacion-cfdi-sat-paquete-item-badge">En uso</span>
+                          ) : null}
+                        </span>
+                        <span className="facturacion-cfdi-sat-paquete-item-files">
+                          {p.cerNombre} · {p.keyNombre}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : null}
 
               {!modoNuevo && paqueteActivo && !formularioFielVisible ? (
                 <div className="facturacion-cfdi-sat-paquete-resumen">
@@ -603,6 +655,13 @@ export default function FacturacionDescargaSatView() {
 
               {formularioFielVisible ? (
                 <>
+                  <p className="facturacion-cfdi-sat-form-kicker">
+                    {modoNuevo
+                      ? paquetes.length === 0
+                        ? 'Registre el primer paquete de e.firma'
+                        : 'Nuevo paquete de e.firma'
+                      : `Editando «${nombrePaquete || paqueteActivo?.nombre || ''}»`}
+                  </p>
                   <label
                     className="facturacion-cfdi-field facturacion-cfdi-field-wide"
                     htmlFor={nombrePaqueteId}
@@ -679,10 +738,20 @@ export default function FacturacionDescargaSatView() {
                       ) : (
                         <>
                           <Plus size={14} aria-hidden />
-                          Guardar en InsForge
+                          {modoNuevo ? 'Guardar paquete' : 'Guardar cambios'}
                         </>
                       )}
                     </button>
+                    {modoNuevo && paquetes.length > 0 ? (
+                      <button
+                        type="button"
+                        className="facturacion-cfdi-sat-btn-secondary"
+                        onClick={cancelarRegistroPaquete}
+                        disabled={uiBloqueada}
+                      >
+                        Cancelar
+                      </button>
+                    ) : null}
                     {!modoNuevo ? (
                       <button
                         type="button"
