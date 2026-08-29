@@ -12,6 +12,7 @@ import {
   nombresCoinciden,
   parseFechaCfdi,
 } from './conciliacionUtils'
+import { detalleSimpleMatch } from './detalleSimplePago'
 
 export type ConfianzaConciliacion = 'alta' | 'media' | 'baja'
 export type EstadoConciliacion = 'conciliado' | 'no_localizado'
@@ -27,6 +28,7 @@ export type FilaConciliacion = {
   diferencia: number | null
   referencia: string
   detalle: string
+  detalleSimple: string
   movimientoClaraId: string
   movimientoBanorteId: string
 }
@@ -246,6 +248,7 @@ export function ejecutarConciliacion(opts: {
         diferencia: null,
         referencia: '',
         detalle: 'No se encontró pago en Clara ni Banorte',
+        detalleSimple: '',
         movimientoClaraId: '',
         movimientoBanorteId: '',
       })
@@ -280,6 +283,10 @@ export function ejecutarConciliacion(opts: {
         montoPagado != null ? Math.round((montoPagado - factura.total) * 100) / 100 : null,
       referencia,
       detalle: match.detalle,
+      detalleSimple: detalleSimpleMatch({
+        clara: match.clara,
+        banorte: match.banorte,
+      }),
       movimientoClaraId: match.clara?.id ?? '',
       movimientoBanorteId: match.banorte?.id ?? '',
     })

@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs'
+import { detalleSimpleBanorte } from './detalleSimplePago'
 import type { ResultadoConciliacion } from './satConciliacionService'
 import { etiquetaEstado, fechaFacturaTexto } from './satConciliacionService'
 
@@ -6,10 +7,28 @@ const COLOR_HEADER = 'FF1E293B'
 const COLOR_HEADER_FONT = 'FFFFFFFF'
 const COLOR_OK = 'FFDCFCE7'
 const COLOR_OK_FONT = 'FF166534'
-const COLOR_WARN = 'FFFEF9C3'
 const COLOR_ERR = 'FFFEE2E2'
 const COLOR_ERR_FONT = 'FFB91C1C'
-const COLOR_SUBHEADER = 'FFE2E8F0'
+const COLOR_ZEBRA = 'FFF8FAFC'
+const COLOR_BORDER = 'FFE2E8F0'
+
+type EstiloFila = 'ok' | 'err' | 'neutral'
+
+type OpcionesTabla = {
+  columnasMoneda?: number[]
+  estiloFila?: (row: ExcelJS.Row, rowIndex: number) => EstiloFila | undefined
+}
+
+function colLetter(n: number): string {
+  let s = ''
+  let num = n
+  while (num > 0) {
+    const mod = (num - 1) % 26
+    s = String.fromCharCode(65 + mod) + s
+    num = Math.floor((num - 1) / 26)
+  }
+  return s
+}
 
 function estiloEncabezado(row: ExcelJS.Row) {
   row.font = { bold: true, color: { argb: COLOR_HEADER_FONT }, size: 11 }
@@ -19,44 +38,94 @@ function estiloEncabezado(row: ExcelJS.Row) {
     fgColor: { argb: COLOR_HEADER },
   }
   row.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
-  row.height = 22
+  row.height = 24
 }
 
 function bordeFino(cell: ExcelJS.Cell) {
   cell.border = {
-    top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-    left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-    bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
-    right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+    top: { style: 'thin', color: { argb: COLOR_BORDER } },
+    left: { style: 'thin', color: { argb: COLOR_BORDER } },
+    bottom: { style: 'thin', color: { argb: COLOR_BORDER } },
+    right: { style: 'thin', color: { argb: COLOR_BORDER } },
   }
 }
 
-function hojaResumen(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
-  const ws = wb.addWorksheet('Resumen', {
-    views: [{ showGridLines: false }],
+function aplicarCeldasDatos(
+  row: ExcelJS.Row,
+  rowIndex: number,
+  opts?: OpcionesTabla
+) {
+  const estilo = opts?.estiloFila?.(row, rowIndex)
+  const zebra = rowIndex % 2 === 0
+
+  row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+    bordeFino(cell)
+    cell.alignment = { vertical: 'top', wrapText: true }
+
+    if (estilo === 'ok' && colNumber === 1) {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_OK } }
+      cell.font = { bold: true, color: { argb: COLOR_OK_FONT } }
+    } else if (estilo === 'err' && colNumber === 1) {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_ERR } }
+      cell.font = { bold: true, color: { argb: COLOR_ERR_FONT } }
+    } else if (estilo === 'err') {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_ERR } }
+    } else if (zebra) {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_ZEBRA } }
+    }
+
+    if (opts?.columnasMoneda?.includes(colNumber)) {
+      cell.numFmt = '$#,##0.00'
+    }
   })
-  ws.columns = [{ width: 34 }, { width: 22 }]
+}
 
-  ws.mergeCells('A1:B1')
-  const t = ws.getCell('A1')
-  t.value = 'Conciliación CFDI recibidos · Pagos'
-  t.font = { bold: true, size: 16, color: { argb: 'FF0F172A' } }
+function crearHojaTabla(
+  wb: ExcelJS.Workbook,
+  nombre: string,
+  headers: string[],
+  anchos: number[],
+  filas: unknown[][],
+  opts?: OpcionesTabla
+) {
+  const ws = wb.addWorksheet(nombre, {
+    views: [{ state: 'frozen', ySplit: 1, showGridLines: false }],
+  })
 
-  ws.mergeCells('A2:B2')
-  ws.getCell('A2').value = `Generado: ${new Date(r.meta.generado).toLocaleString('es-MX')}`
-  ws.getCell('A2').font = { size: 10, color: { argb: 'FF64748B' } }
+  ws.columns = anchos.map((w) => ({ width: w }))
+  const headerRow = ws.addRow(headers)
+  estiloEncabezado(headerRow)
 
-  const filas: [string, string | number][] = [
+  filas.forEach((vals, i) => {
+    const row = ws.addRow(vals)
+    aplicarCeldasDatos(row, i + 2, opts)
+  })
+
+  const lastCol = colLetter(headers.length)
+  const lastRow = filas.length + 1
+  if (filas.length > 0) {
+    ws.autoFilter = { from: 'A1', to: `${lastCol}${lastRow}` }
+  }
+
+  return ws
+}
+
+function hojaResumen(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
+  const metaFilas: unknown[][] = [
     ['Archivo CFDI', r.meta.nombreCfdi],
     ['Archivo Banorte', r.meta.nombreBanorte],
     ['Archivo Clara', r.meta.nombreClara],
+    ['Generado', new Date(r.meta.generado).toLocaleString('es-MX')],
     ['', ''],
     ['Facturas a conciliar (tipo I)', r.resumen.totalFacturas],
     ['Conciliadas', r.resumen.conciliadas],
     ['No localizadas', r.resumen.noLocalizadas],
-    ['% conciliado', r.resumen.totalFacturas
-      ? `${Math.round((r.resumen.conciliadas / r.resumen.totalFacturas) * 100)}%`
-      : '0%'],
+    [
+      '% conciliado',
+      r.resumen.totalFacturas
+        ? `${Math.round((r.resumen.conciliadas / r.resumen.totalFacturas) * 100)}%`
+        : '0%',
+    ],
     ['', ''],
     ['Monto total facturas', r.resumen.montoFacturas],
     ['Monto conciliado', r.resumen.montoConciliado],
@@ -69,28 +138,36 @@ function hojaResumen(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
     ['Mov. Banorte sin factura', r.banorteSinFactura.length],
   ]
 
-  let rowNum = 4
-  for (const [label, val] of filas) {
-    const row = ws.getRow(rowNum)
-    row.getCell(1).value = label
-    row.getCell(2).value = val
-    row.getCell(1).font = { bold: Boolean(label), color: { argb: 'FF334155' } }
-    if (typeof val === 'number' && label.toLowerCase().includes('monto')) {
-      row.getCell(2).numFmt = '$#,##0.00'
+  const ws = crearHojaTabla(
+    wb,
+    'Resumen',
+    ['Concepto', 'Valor'],
+    [38, 28],
+    metaFilas,
+    {
+      estiloFila: (row) => {
+        const concepto = String(row.getCell(1).value ?? '')
+        if (concepto === 'Conciliadas') return 'ok'
+        if (concepto === 'No localizadas' && Number(row.getCell(2).value) > 0) return 'err'
+        return 'neutral'
+      },
     }
-    rowNum += 1
-  }
+  )
+
+  metaFilas.forEach((row, i) => {
+    const label = String(row[0] ?? '')
+    if (label.toLowerCase().includes('monto') && typeof row[1] === 'number') {
+      ws.getRow(i + 2).getCell(2).numFmt = '$#,##0.00'
+    }
+  })
 }
 
 function hojaConciliacion(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
-  const ws = wb.addWorksheet('Conciliación', {
-    views: [{ state: 'frozen', ySplit: 1 }],
-  })
-
   const headers = [
     'Estado',
     'Confianza',
     'Fuente pago',
+    'Detalle',
     'UUID',
     'Fecha factura',
     'RFC Emisor',
@@ -106,85 +183,48 @@ function hojaConciliacion(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
     'Detalle conciliación',
   ]
 
-  ws.columns = [
-    { width: 14 },
-    { width: 10 },
-    { width: 12 },
-    { width: 38 },
-    { width: 12 },
-    { width: 14 },
-    { width: 32 },
-    { width: 8 },
-    { width: 12 },
-    { width: 14 },
-    { width: 8 },
-    { width: 14 },
-    { width: 12 },
-    { width: 14 },
-    { width: 28 },
-    { width: 42 },
-  ]
+  const filas = r.filas.map((f) => [
+    etiquetaEstado(f.estado),
+    f.confianza ? f.confianza.toUpperCase() : '',
+    f.fuente,
+    f.detalleSimple,
+    f.factura.uuid,
+    fechaFacturaTexto(f.factura),
+    f.factura.emisorRfc,
+    f.factura.emisorNombre,
+    f.factura.serie,
+    f.factura.folio,
+    f.factura.total,
+    f.factura.moneda,
+    f.montoPagado,
+    f.diferencia,
+    f.fechaPago,
+    f.referencia,
+    f.detalle,
+  ])
 
-  const headerRow = ws.addRow(headers)
-  estiloEncabezado(headerRow)
-
-  for (const f of r.filas) {
-    const row = ws.addRow([
-      etiquetaEstado(f.estado),
-      f.confianza ? f.confianza.toUpperCase() : '',
-      f.fuente,
-      f.factura.uuid,
-      fechaFacturaTexto(f.factura),
-      f.factura.emisorRfc,
-      f.factura.emisorNombre,
-      f.factura.serie,
-      f.factura.folio,
-      f.factura.total,
-      f.factura.moneda,
-      f.montoPagado,
-      f.diferencia,
-      f.fechaPago,
-      f.referencia,
-      f.detalle,
-    ])
-
-    row.eachCell((cell) => {
-      bordeFino(cell)
-      cell.alignment = { vertical: 'top', wrapText: true }
-    })
-
-    const estadoCell = row.getCell(1)
-    if (f.estado === 'conciliado') {
-      estadoCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_OK } }
-      estadoCell.font = { bold: true, color: { argb: COLOR_OK_FONT } }
-    } else {
-      estadoCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_ERR } }
-      estadoCell.font = { bold: true, color: { argb: COLOR_ERR_FONT } }
-    }
-
-    row.getCell(10).numFmt = '$#,##0.00'
-    if (f.montoPagado != null) row.getCell(12).numFmt = '$#,##0.00'
-    if (f.diferencia != null) row.getCell(13).numFmt = '$#,##0.00'
-  }
-
-  ws.autoFilter = { from: 'A1', to: `P${r.filas.length + 1}` }
+  crearHojaTabla(wb, 'Conciliación', headers, [
+    14, 10, 12, 14, 38, 12, 14, 32, 8, 12, 14, 8, 14, 12, 14, 28, 42,
+  ], filas, {
+    columnasMoneda: [11, 13, 14],
+    estiloFila: (row) => {
+      const estado = String(row.getCell(1).value ?? '')
+      if (estado === 'Conciliado') return 'ok'
+      if (estado === 'No localizado') return 'err'
+      return 'neutral'
+    },
+  })
 }
 
 function hojaNoLocalizadas(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
   const sin = r.filas.filter((f) => f.estado === 'no_localizado')
-  const ws = wb.addWorksheet('No localizadas', {
-    views: [{ state: 'frozen', ySplit: 1 }],
-  })
-  const headers = ['UUID', 'Fecha', 'RFC Emisor', 'Nombre Emisor', 'Total', 'Moneda', 'Forma pago']
-  ws.columns = headers.map(() => ({ width: 18 }))
-  ws.getColumn(1).width = 38
-  ws.getColumn(4).width = 32
-
-  const hr = ws.addRow(headers)
-  estiloEncabezado(hr)
-
-  for (const f of sin) {
-    const row = ws.addRow([
+  crearHojaTabla(
+    wb,
+    'No localizadas',
+    ['Estado', 'UUID', 'Fecha', 'RFC Emisor', 'Nombre Emisor', 'Total', 'Moneda', 'Forma pago'],
+    [14, 38, 12, 14, 32, 14, 8, 22],
+    sin.map((f) => [
+      'No localizado',
       f.factura.uuid,
       fechaFacturaTexto(f.factura),
       f.factura.emisorRfc,
@@ -192,47 +232,50 @@ function hojaNoLocalizadas(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
       f.factura.total,
       f.factura.moneda,
       f.factura.formaPago,
-    ])
-    row.eachCell((cell) => {
-      bordeFino(cell)
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_ERR } }
-    })
-    row.getCell(5).numFmt = '$#,##0.00'
-  }
+    ]),
+    {
+      columnasMoneda: [6],
+      estiloFila: () => 'err',
+    }
+  )
 }
 
 function hojaClaraSinFactura(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
-  const ws = wb.addWorksheet('Clara sin factura', {
-    views: [{ state: 'frozen', ySplit: 1 }],
-  })
-  const headers = ['Fecha', 'Transacción', 'Monto MXN', 'Folio Fiscal', 'Titular', 'Categoría']
-  ws.columns = [12, 28, 14, 38, 22, 20].map((w) => ({ width: w }))
-  const hr = ws.addRow(headers)
-  estiloEncabezado(hr)
-  for (const m of r.claraSinFactura) {
-    const row = ws.addRow([
+  crearHojaTabla(
+    wb,
+    'Clara sin factura',
+    ['Detalle', 'Fecha', 'Transacción', 'Monto MXN', 'Folio Fiscal', 'Titular', 'Categoría'],
+    [12, 12, 28, 14, 38, 22, 20],
+    r.claraSinFactura.map((m) => [
+      'Clara',
       m.fecha,
       m.transaccion,
       m.montoMxn,
       m.folioFiscal,
       m.titular,
       m.categoria,
-    ])
-    row.getCell(3).numFmt = '$#,##0.00'
-    row.eachCell(bordeFino)
-  }
+    ]),
+    { columnasMoneda: [4] }
+  )
 }
 
 function hojaBanorteSinFactura(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
-  const ws = wb.addWorksheet('Banorte sin factura', {
-    views: [{ state: 'frozen', ySplit: 1 }],
-  })
-  const headers = ['Fecha', 'Descripción', 'Retiro', 'RFC', 'Beneficiario', 'Referencia', 'Detalle']
-  ws.columns = [12, 24, 14, 14, 24, 14, 40].map((w) => ({ width: w }))
-  const hr = ws.addRow(headers)
-  estiloEncabezado(hr)
-  for (const m of r.banorteSinFactura) {
-    const row = ws.addRow([
+  crearHojaTabla(
+    wb,
+    'Banorte sin factura',
+    [
+      'Detalle',
+      'Fecha',
+      'Descripción',
+      'Retiro',
+      'RFC',
+      'Beneficiario',
+      'Referencia',
+      'Descripción detallada',
+    ],
+    [14, 12, 24, 14, 14, 24, 14, 40],
+    r.banorteSinFactura.map((m) => [
+      detalleSimpleBanorte(m),
       m.fecha,
       m.descripcion,
       m.retiro,
@@ -240,10 +283,9 @@ function hojaBanorteSinFactura(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
       m.beneficiario,
       m.referencia,
       m.detalle,
-    ])
-    row.getCell(3).numFmt = '$#,##0.00'
-    row.eachCell(bordeFino)
-  }
+    ]),
+    { columnasMoneda: [4] }
+  )
 }
 
 export async function generarExcelConciliacion(
