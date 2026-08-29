@@ -1377,3 +1377,90 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Conciliación SAT */
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-conciliacion-panel {
+  max-width: 920px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-conc-hero {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1.15rem 1.25rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(0, 227, 253, 0.22);
+  background: rgba(13, 14, 19, 0.55);
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-conc-hero-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.75rem;
+  background: rgba(0, 227, 253, 0.12);
+  color: #bdf4ff;
+  flex-shrink: 0;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-conc-title {
+  margin: 0;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #fff6df;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-conc-lead {
+  margin: 0.45rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: #999077;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-conc-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-conc-nota {
+  padding: 0.85rem 1rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: #999077;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-conc-nota p {
+  margin: 0 0 0.5rem;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-conc-nota p:last-child {
+  margin-bottom: 0;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-status-ok {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #86efac;
+}
+
+@media (max-width: 900px) {
+  .pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-conc-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-conc-hero {
+    flex-direction: column;
+  }
+}

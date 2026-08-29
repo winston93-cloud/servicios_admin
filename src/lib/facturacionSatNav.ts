@@ -21,7 +21,7 @@ export const FACTURACION_SAT_NAV: FacturacionSatNavItem[] = [
   {
     id: 'conciliacion',
     label: 'Conciliación',
-    desc: 'Conciliación de comprobantes y movimientos fiscales',
+    desc: 'CFDI recibidos vs pagos Banorte y Clara → Excel de conciliación',
     path: '/facturacion/sat/conciliacion',
     accent: 'emerald',
     icon: 'scale',

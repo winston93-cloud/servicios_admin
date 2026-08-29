@@ -7,7 +7,7 @@ export default function FacturacionSatHubPage() {
     <FacturacionSatShell showHub>
       <p className="facturacion-cfdi-footnote" role="status">
         Elija una sección: <strong>Descarga masiva</strong> para exportar CFDI recibidos del SAT, o{' '}
-        <strong>Conciliación</strong> cuando el flujo esté definido.
+        <strong>Conciliación</strong> para cruzar facturas con pagos Banorte y Clara.
       </p>
     </FacturacionSatShell>
   )
