@@ -206,6 +206,23 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    label: 'News y Desayunos',
+    desc: 'Publicar folleto mensual (News) y menú de desayunos/comidas para familias.',
+    path: '/news-desayunos',
+    accent: 'amber',
+    kicker: 'Comunicación',
+    tags: ['News', 'Menú', 'Familias'],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        <path d="M8 7h8M8 11h6" />
+        <path d="M8 15h4" />
+        <circle cx="17" cy="7" r="2" />
+      </svg>
+    ),
+  },
+  {
     label: 'Módulo SAT',
     desc: 'Descarga masiva de CFDI recibidos y conciliación fiscal.',
     path: '/facturacion/sat',

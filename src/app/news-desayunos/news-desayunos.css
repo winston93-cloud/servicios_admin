@@ -1,0 +1,529 @@
+/* News y Desayunos — admin + portal familias */
+
+.nd-page {
+  position: relative;
+  min-height: 100vh;
+  color: #d0c6ab;
+}
+
+.nd-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0, 227, 253, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(255, 246, 223, 0.06), transparent),
+    #0a0b0f;
+}
+
+.nd-shell {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.25rem 1.25rem 3rem;
+}
+
+.nd-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  padding: 0 1rem;
+  min-height: 40px;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(0, 227, 253, 0.35);
+  background: rgba(52, 52, 58, 0.25);
+  color: #bdf4ff;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.nd-back:hover {
+  background: rgba(0, 227, 253, 0.1);
+  color: #fff6df;
+}
+
+.nd-header-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.nd-kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #00e3fd;
+}
+
+.nd-title {
+  margin: 0;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 700;
+  color: #fff6df;
+  text-shadow: 0 0 24px rgba(255, 215, 0, 0.12);
+}
+
+.nd-subtitle {
+  margin: 0.5rem 0 0;
+  max-width: 52ch;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: #999077;
+}
+
+.nd-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.75rem;
+}
+
+.nd-card {
+  padding: 1.25rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(13, 14, 19, 0.65);
+  backdrop-filter: blur(16px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.nd-card[data-tipo='news'] {
+  border-color: rgba(0, 227, 253, 0.22);
+}
+
+.nd-card[data-tipo='desayunos'] {
+  border-color: rgba(255, 198, 120, 0.22);
+}
+
+.nd-card-head {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.nd-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.65rem;
+  background: rgba(0, 227, 253, 0.1);
+  color: #bdf4ff;
+  flex-shrink: 0;
+}
+
+.nd-card[data-tipo='desayunos'] .nd-card-icon {
+  background: rgba(255, 198, 120, 0.12);
+  color: #ffd9a0;
+}
+
+.nd-card-title {
+  margin: 0;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #fff6df;
+}
+
+.nd-card-desc {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #999077;
+}
+
+.nd-periodo-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 0.65rem;
+}
+
+.nd-field {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #999077;
+}
+
+.nd-input {
+  min-height: var(--touch-min, 44px);
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff6df;
+  font-size: 16px;
+}
+
+.nd-periodo-etiqueta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.75rem 0;
+  font-size: 0.8125rem;
+  color: #bdf4ff;
+}
+
+.nd-periodo-etiqueta strong {
+  color: #fff6df;
+}
+
+.nd-publicado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(134, 239, 172, 0.25);
+  background: rgba(134, 239, 172, 0.06);
+  color: #86efac;
+}
+
+.nd-publicado-titulo {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.nd-publicado-archivo {
+  margin: 0.15rem 0 0.35rem;
+  font-size: 0.8125rem;
+  color: #d0c6ab;
+  word-break: break-all;
+}
+
+.nd-sin-archivo {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  color: #999077;
+  font-style: italic;
+}
+
+.nd-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nd-drop {
+  margin-bottom: 0.75rem;
+  border-radius: 0.65rem;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.nd-drop.dragging,
+.nd-drop.has-file {
+  border-color: rgba(0, 227, 253, 0.45);
+  background: rgba(0, 227, 253, 0.05);
+}
+
+.nd-drop-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 88px;
+  padding: 1rem;
+  border: none;
+  background: transparent;
+  color: #bdf4ff;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.nd-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  min-height: var(--touch-min, 44px);
+  padding: 0 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, #fff6df 0%, #f5e6b8 100%);
+  color: #1a1a22;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.nd-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.nd-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 36px;
+  padding: 0 0.75rem;
+  margin-left: auto;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(255, 180, 171, 0.35);
+  background: rgba(255, 180, 171, 0.08);
+  color: #ffb4ab;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.nd-link {
+  color: #bdf4ff;
+  font-size: 0.8125rem;
+  text-decoration: none;
+}
+
+.nd-link:hover {
+  text-decoration: underline;
+}
+
+.nd-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: #ffb4ab;
+}
+
+.nd-ok {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: #86efac;
+}
+
+.nd-muted {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #999077;
+  font-size: 0.875rem;
+}
+
+.nd-spin {
+  animation: nd-spin 0.9s linear infinite;
+}
+
+@keyframes nd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.nd-historial {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(13, 14, 19, 0.45);
+}
+
+.nd-historial-title {
+  margin: 0 0 0.85rem;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 1rem;
+  color: #fff6df;
+}
+
+.nd-historial-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.nd-historial-lista li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.45rem;
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 0.8125rem;
+}
+
+.nd-historial-tipo {
+  font-weight: 600;
+  color: #bdf4ff;
+  min-width: 5.5rem;
+}
+
+/* Portal papás */
+.nd-portal-hero {
+  margin-top: 0.5rem;
+}
+
+.nd-portal-mes {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.65rem 0 0;
+  font-size: 1rem;
+  color: #bdf4ff;
+}
+
+.nd-portal-mes strong {
+  color: #fff6df;
+  text-transform: capitalize;
+}
+
+.nd-portal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.nd-portal-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(13, 14, 19, 0.65);
+  backdrop-filter: blur(16px);
+  min-height: 100%;
+}
+
+.nd-portal-card-head {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.nd-portal-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.65rem;
+  background: rgba(0, 227, 253, 0.1);
+  color: #bdf4ff;
+}
+
+.nd-portal-card-title {
+  margin: 0;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff6df;
+}
+
+.nd-portal-card-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.8125rem;
+  color: #999077;
+}
+
+.nd-portal-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  border-radius: 0.65rem;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  text-align: center;
+  color: #999077;
+  font-size: 0.875rem;
+}
+
+.nd-portal-preview {
+  flex: 1;
+  margin-bottom: 1rem;
+  border-radius: 0.65rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #000;
+}
+
+.nd-portal-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 420px;
+  object-fit: contain;
+}
+
+.nd-portal-pdf {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 0.65rem;
+  background: rgba(0, 227, 253, 0.05);
+  color: #bdf4ff;
+  text-align: center;
+}
+
+.nd-portal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: var(--touch-min, 44px);
+  padding: 0 1.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(0, 227, 253, 0.35);
+  background: rgba(0, 227, 253, 0.1);
+  color: #fff6df;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.nd-portal-btn:hover {
+  background: rgba(0, 227, 253, 0.18);
+}
+
+.nd-portal-loading {
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+@media (max-width: 768px) {
+  .nd-admin-grid,
+  .nd-portal-grid,
+  .nd-periodo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nd-header-main {
+    flex-direction: column;
+  }
+}
