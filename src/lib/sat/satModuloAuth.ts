@@ -19,7 +19,7 @@ function secretSesion(): string {
 function credencialesSatModulo(): { usuario: string; clave: string } {
   return {
     usuario: (process.env.SAT_MODULO_USUARIO ?? 'laura').trim().toLowerCase(),
-    clave: process.env.SAT_MODULO_CLAVE ?? 'encript@da',
+    clave: process.env.SAT_MODULO_CLAVE ?? 'Encript@da12',
   }
 }
 
