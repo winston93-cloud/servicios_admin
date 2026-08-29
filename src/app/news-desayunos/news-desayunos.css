@@ -697,16 +697,16 @@
   background: rgba(255, 180, 171, 0.08);
 }
 
-/* Modo claro — portal */
+/* Modo claro */
 [data-theme='light'] .nd-page {
   color: #334155;
 }
 
 [data-theme='light'] .nd-bg {
   background:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(79, 70, 229, 0.08), transparent),
-    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(245, 158, 11, 0.06), transparent),
-  #f8fafc;
+    radial-gradient(ellipse 70% 45% at 50% -5%, rgba(79, 70, 229, 0.06), transparent 65%),
+    radial-gradient(ellipse 50% 35% at 100% 100%, rgba(245, 158, 11, 0.04), transparent 60%),
+    #f8fafc;
 }
 
 [data-theme='light'] .nd-kicker {
@@ -719,21 +719,154 @@
 }
 
 [data-theme='light'] .nd-subtitle,
-[data-theme='light'] .nd-muted {
+[data-theme='light'] .nd-muted,
+[data-theme='light'] .nd-card-desc,
+[data-theme='light'] .nd-field,
+[data-theme='light'] .nd-sin-archivo {
   color: #64748b;
 }
 
 [data-theme='light'] .nd-back {
-  border-color: rgba(79, 70, 229, 0.25);
+  border-color: #e2e8f0;
   background: #fff;
   color: #4338ca;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
 }
 
 [data-theme='light'] .nd-back:hover {
   background: #eef2ff;
+  border-color: #c7d2fe;
   color: #312e81;
 }
 
+/* Admin — tarjetas sólidas, sin glass/blur */
+[data-theme='light'] .nd-card {
+  border-color: #e2e8f0;
+  background: #fff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme='light'] .nd-card[data-tipo='news'] {
+  border-color: rgba(79, 70, 229, 0.22);
+}
+
+[data-theme='light'] .nd-card[data-tipo='desayunos'] {
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
+[data-theme='light'] .nd-card-icon {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+[data-theme='light'] .nd-card[data-tipo='desayunos'] .nd-card-icon {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+[data-theme='light'] .nd-card-title {
+  color: #0f172a;
+}
+
+[data-theme='light'] .nd-input {
+  border-color: #cbd5e1;
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+[data-theme='light'] .nd-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+[data-theme='light'] .nd-periodo-etiqueta {
+  color: #6366f1;
+}
+
+[data-theme='light'] .nd-periodo-etiqueta strong {
+  color: #0f172a;
+}
+
+[data-theme='light'] .nd-publicado {
+  border-color: #86efac;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+[data-theme='light'] .nd-publicado-archivo {
+  color: #334155;
+}
+
+[data-theme='light'] .nd-drop {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+[data-theme='light'] .nd-drop.dragging,
+[data-theme='light'] .nd-drop.has-file {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+[data-theme='light'] .nd-drop-btn {
+  color: #4338ca;
+}
+
+[data-theme='light'] .nd-btn-primary {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.28);
+}
+
+[data-theme='light'] .nd-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+}
+
+[data-theme='light'] .nd-btn-danger {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+[data-theme='light'] .nd-link {
+  color: #4f46e5;
+}
+
+[data-theme='light'] .nd-error {
+  color: #dc2626;
+}
+
+[data-theme='light'] .nd-ok {
+  color: #15803d;
+}
+
+[data-theme='light'] .nd-historial {
+  border-color: #e2e8f0;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+}
+
+[data-theme='light'] .nd-historial-title {
+  color: #0f172a;
+}
+
+[data-theme='light'] .nd-historial-lista li {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+}
+
+[data-theme='light'] .nd-historial-tipo {
+  color: #4f46e5;
+}
+
+/* Portal familias — modo claro */
 [data-theme='light'] .nd-periodo-banner {
   border-color: rgba(79, 70, 229, 0.28);
   background: linear-gradient(135deg, #eef2ff 0%, #fff 48%, #f8fafc 100%);
@@ -789,6 +922,8 @@
 [data-theme='light'] .nd-portal-card {
   border-color: #e2e8f0;
   background: #fff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
 }
 
