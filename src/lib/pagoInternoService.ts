@@ -4,6 +4,12 @@ import { parseGradoEscolar } from './gradoEscolar'
 import { parseNivelEscolar } from './nivelEscolar'
 import { TUTOR_ID_MADRE, TUTOR_ID_PADRE } from './alumnoFamiliarTutor'
 import {
+  buildClavesParentalesFamilia,
+  claveParentalFamilia,
+  compartenClaveParental,
+  type FamiliarParentalRow,
+} from './alumnoHermanosCuota'
+import {
   folioInicialPlantel,
   folioTechoPlantel,
   plantelPagoDesdeNivel,
@@ -788,10 +794,56 @@ export type HermanoMismoNivelCuota = {
 }
 
 /**
- * Hermanos del mismo nivel (misma familia por cel/CURP de mamá/papá),
+ * Hermanos del mismo nivel (misma familia por CURP o cel+apellidos del mismo tutor),
  * activos en el ciclo, excluyendo al alumno dado.
  * Regla de negocio: una sola cuota de padres cubre a todos los del mismo nivel.
  */
+function variantesCelAlmacenadas(cel10: string): string[] {
+  const uniq = new Set<string>([cel10, `52${cel10}`, `+52${cel10}`])
+  return [...uniq]
+}
+
+async function idsAlumnosPorClaveParental(clave: string): Promise<number[]> {
+  if (clave.startsWith('curp:')) {
+    const [, tutorId, curp] = clave.split(':')
+    const { data } = await supabase
+      .from('alumno_familiar')
+      .select('alumno_id')
+      .eq('tutor_id', Number(tutorId))
+      .eq('familiar_curp', curp)
+    return (data ?? []).map((r) => Number(r.alumno_id))
+  }
+
+  if (clave.startsWith('cel:')) {
+    const parts = clave.split(':')
+    const tutorId = Number(parts[1])
+    const cel10 = parts[2] ?? ''
+    const ids = new Set<number>()
+    for (const variante of variantesCelAlmacenadas(cel10)) {
+      const { data } = await supabase
+        .from('alumno_familiar')
+        .select(
+          'alumno_id, tutor_id, familiar_cel, familiar_curp, familiar_app, familiar_apm'
+        )
+        .eq('tutor_id', tutorId)
+        .eq('familiar_cel', variante)
+      for (const r of data ?? []) {
+        const k = claveParentalFamilia({
+          tutorId: Number(r.tutor_id),
+          curp: r.familiar_curp,
+          cel: r.familiar_cel,
+          app: r.familiar_app,
+          apm: r.familiar_apm,
+        })
+        if (k === clave) ids.add(Number(r.alumno_id))
+      }
+    }
+    return [...ids]
+  }
+
+  return []
+}
+
 export async function listarHermanosMismoNivelParaCuota(
   alumnoId: number,
   cicloEscolar: number
@@ -806,38 +858,21 @@ export async function listarHermanosMismoNivelParaCuota(
   const nivel = Number(alumno.alumno_nivel) || 0
   if (!nivel) return []
 
-  const { data: familiars } = await supabase
+  const { data: familiarsPagador } = await supabase
     .from('alumno_familiar')
-    .select('familiar_cel, familiar_curp')
+    .select(
+      'tutor_id, familiar_cel, familiar_curp, familiar_app, familiar_apm'
+    )
     .eq('alumno_id', alumnoId)
     .in('tutor_id', [TUTOR_ID_MADRE, TUTOR_ID_PADRE])
 
-  const cels = new Set<string>()
-  const curps = new Set<string>()
-  for (const f of familiars ?? []) {
-    const cel = String(f.familiar_cel ?? '').trim()
-    const curp = String(f.familiar_curp ?? '').trim().toUpperCase()
-    if (cel) cels.add(cel)
-    if (curp) curps.add(curp)
-  }
-  if (cels.size === 0 && curps.size === 0) return []
+  const filasPagador = (familiarsPagador ?? []) as FamiliarParentalRow[]
+  const claves = buildClavesParentalesFamilia(filasPagador)
+  if (claves.size === 0) return []
 
   const ids = new Set<number>()
-  for (const cel of cels) {
-    const { data } = await supabase
-      .from('alumno_familiar')
-      .select('alumno_id')
-      .eq('familiar_cel', cel)
-      .in('tutor_id', [TUTOR_ID_MADRE, TUTOR_ID_PADRE])
-    for (const r of data ?? []) ids.add(Number(r.alumno_id))
-  }
-  for (const curp of curps) {
-    const { data } = await supabase
-      .from('alumno_familiar')
-      .select('alumno_id')
-      .eq('familiar_curp', curp)
-      .in('tutor_id', [TUTOR_ID_MADRE, TUTOR_ID_PADRE])
-    for (const r of data ?? []) ids.add(Number(r.alumno_id))
+  for (const clave of claves) {
+    for (const id of await idsAlumnosPorClaveParental(clave)) ids.add(id)
   }
   ids.delete(alumnoId)
   if (ids.size === 0) return []
@@ -851,11 +886,28 @@ export async function listarHermanosMismoNivelParaCuota(
     .not('alumno_status', 'in', '(0,2)')
 
   if (error || !hermanos?.length) return []
-  return hermanos.map((h) => ({
-    alumno_id: Number(h.alumno_id),
-    alumno_ref: String(h.alumno_ref ?? '').trim(),
-    alumno_nivel: Number(h.alumno_nivel) || 0,
-  }))
+
+  const confirmados: HermanoMismoNivelCuota[] = []
+  for (const h of hermanos) {
+    const hid = Number(h.alumno_id)
+    const { data: famCandidato } = await supabase
+      .from('alumno_familiar')
+      .select(
+        'tutor_id, familiar_cel, familiar_curp, familiar_app, familiar_apm'
+      )
+      .eq('alumno_id', hid)
+      .in('tutor_id', [TUTOR_ID_MADRE, TUTOR_ID_PADRE])
+    if (!compartenClaveParental(filasPagador, (famCandidato ?? []) as FamiliarParentalRow[])) {
+      continue
+    }
+    confirmados.push({
+      alumno_id: hid,
+      alumno_ref: String(h.alumno_ref ?? '').trim(),
+      alumno_nivel: Number(h.alumno_nivel) || 0,
+    })
+  }
+
+  return confirmados
 }
 
 export async function crearPagoInterno(
