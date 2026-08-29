@@ -263,7 +263,6 @@ function hojaConciliacion(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
     'Estado',
     'Confianza',
     'Fuente pago',
-    'Detalle',
     'UUID',
     'Fecha factura',
     'RFC Emisor',
@@ -277,13 +276,13 @@ function hojaConciliacion(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
     'Fecha pago',
     'Referencia / movimiento',
     'Detalle conciliación',
+    'Detalle',
   ]
 
   const filas = r.filas.map((f) => [
     etiquetaEstado(f.estado),
     f.confianza ? f.confianza.toUpperCase() : '',
     f.fuente,
-    f.detalleSimple,
     f.factura.uuid,
     fechaFacturaTexto(f.factura),
     f.factura.emisorRfc,
@@ -297,17 +296,18 @@ function hojaConciliacion(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
     f.fechaPago,
     f.referencia,
     f.detalle,
+    f.detalleSimple,
   ])
 
   crearHojaTabla(
     wb,
     'Conciliación',
     headers,
-    [15, 11, 12, 13, 38, 13, 14, 34, 8, 12, 14, 8, 14, 12, 14, 30, 44],
+    [15, 11, 12, 38, 13, 14, 34, 8, 12, 14, 8, 14, 12, 14, 30, 44, 14],
     filas,
     {
-      columnasMoneda: [11, 13, 14],
-      columnasCentradas: [2, 3, 4, 9, 12],
+      columnasMoneda: [10, 12, 13],
+      columnasCentradas: [2, 3, 8, 11, 17],
       estiloFila: (row) => {
         const estado = String(row.getCell(1).value ?? '')
         if (estado === 'Conciliado') return 'ok'
