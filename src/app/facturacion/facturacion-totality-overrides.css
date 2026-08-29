@@ -499,7 +499,15 @@
 
 /* Login módulo SAT */
 .pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-login-page {
+  position: relative;
   min-height: 100vh;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-login-back {
+  position: absolute;
+  top: max(1rem, env(safe-area-inset-top, 0px));
+  left: max(1rem, env(safe-area-inset-left, 0px));
+  z-index: 3;
 }
 
 .pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-login-main {

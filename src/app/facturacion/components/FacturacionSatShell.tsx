@@ -33,8 +33,8 @@ export default function FacturacionSatShell({
   const { usuario, cerrarSesion } = useSatModuloAuth()
 
   const enHubSat = pathname === '/facturacion/sat'
-  const volverHref = enHubSat ? '/facturacion' : '/facturacion/sat'
-  const volverLabel = enHubSat ? 'Volver a Facturación CFDI' : 'Volver al módulo SAT'
+  const volverHref = enHubSat ? '/dashboard' : '/facturacion/sat'
+  const volverLabel = enHubSat ? 'Volver al inicio' : 'Volver al módulo SAT'
 
   return (
     <div className="dashboard-container facturacion-cfdi-page">

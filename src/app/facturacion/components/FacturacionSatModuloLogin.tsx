@@ -1,14 +1,16 @@
 'use client'
 
 import { useId, useState } from 'react'
-import { Eye, EyeOff, KeyRound, LogIn, ShieldCheck, UserRound } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, KeyRound, LogIn, ShieldCheck, UserRound } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
+import { useRouter } from 'next/navigation'
 
 type Props = {
   onAutenticado: (usuario: string) => void
 }
 
 export default function FacturacionSatModuloLogin({ onAutenticado }: Props) {
+  const router = useRouter()
   const usuarioId = useId()
   const claveId = useId()
   const [usuario, setUsuario] = useState('')
@@ -53,6 +55,14 @@ export default function FacturacionSatModuloLogin({ onAutenticado }: Props) {
   return (
     <div className="dashboard-container facturacion-cfdi-page facturacion-cfdi-sat-login-page">
       <div className="dashboard-home-bg" aria-hidden="true" />
+      <button
+        type="button"
+        className="servicios-back-btn facturacion-cfdi-sat-login-back"
+        onClick={() => router.push('/dashboard')}
+      >
+        <ArrowLeft size={16} aria-hidden />
+        Volver al inicio
+      </button>
       <div className="dashboard-main facturacion-cfdi-sat-login-main">
         <div className="facturacion-cfdi-sat-login-theme">
           <ThemeToggle />
