@@ -387,6 +387,7 @@ export default function FacturacionDescargaSatView() {
       setEtapa('autenticando')
       const resSol = await fetch('/api/sat/descarga-masiva', {
         method: 'POST',
+        credentials: 'include',
         headers: portalSessionFetchHeaders(),
         body: armarFormEjecucion('solicitar'),
       })
@@ -409,6 +410,7 @@ export default function FacturacionDescargaSatView() {
 
         const resVer = await fetch('/api/sat/descarga-masiva', {
           method: 'POST',
+          credentials: 'include',
           headers: portalSessionFetchHeaders(),
           body: armarFormEjecucion('verificar', { idSolicitud: id }),
         })
@@ -442,6 +444,7 @@ export default function FacturacionDescargaSatView() {
       setEtapa('generando_excel')
       const resXls = await fetch('/api/sat/descarga-masiva', {
         method: 'POST',
+        credentials: 'include',
         headers: portalSessionFetchHeaders(),
         body: armarFormEjecucion('descargar', {
           idSolicitud: id,

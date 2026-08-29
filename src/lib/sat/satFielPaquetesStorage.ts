@@ -49,6 +49,7 @@ export function marcarUltimoPaqueteFiel(id: string) {
 
 export async function listarPaquetesFielApi(): Promise<SatFielPaqueteResumen[]> {
   const res = await fetch('/api/sat/fiel-paquetes', {
+    credentials: 'include',
     headers: headersJson(),
   })
   const data = (await res.json().catch(() => ({}))) as {
@@ -80,6 +81,7 @@ export async function guardarPaqueteFielApi(input: {
 
   const res = await fetch('/api/sat/fiel-paquetes', {
     method: 'POST',
+    credentials: 'include',
     headers: portalSessionFetchHeaders(),
     body: fd,
   })
@@ -98,6 +100,7 @@ export async function guardarPaqueteFielApi(input: {
 export async function eliminarPaqueteFielApi(id: string): Promise<void> {
   const res = await fetch(`/api/sat/fiel-paquetes?id=${encodeURIComponent(id)}`, {
     method: 'DELETE',
+    credentials: 'include',
     headers: headersJson(),
   })
   const data = (await res.json().catch(() => ({}))) as {

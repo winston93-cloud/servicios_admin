@@ -1,12 +1,11 @@
 'use client'
 
-import type { AuthRole } from '@/lib/portalAuthService'
 import ThemeToggle from '@/components/ThemeToggle'
-import ProtectedRoute from '@/components/ProtectedRoute'
 import { FACTURACION_SAT_NAV } from '@/lib/facturacionSatNav'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, LogOut } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import { useSatModuloAuth } from './FacturacionSatModuloGate'
 import FacturacionNavIcon from './FacturacionNavIcon'
 
 const ChevronRight = () => (
@@ -21,7 +20,6 @@ type FacturacionSatShellProps = {
   children: React.ReactNode
   /** Hub con tarjetas; subpantallas muestran pestañas de sección. */
   showHub?: boolean
-  roles?: AuthRole[]
 }
 
 export default function FacturacionSatShell({
@@ -29,14 +27,13 @@ export default function FacturacionSatShell({
   subtitle = 'Descarga masiva de CFDI recibidos y conciliación fiscal',
   children,
   showHub = false,
-  roles = ['usuario'],
 }: FacturacionSatShellProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const { usuario, cerrarSesion } = useSatModuloAuth()
 
   return (
-    <ProtectedRoute roles={roles}>
-      <div className="dashboard-container facturacion-cfdi-page">
+    <div className="dashboard-container facturacion-cfdi-page">
         <div className="dashboard-home-bg" aria-hidden="true" />
         <div className="dashboard-main">
           <div className="dashboard-heading reportes-heading facturacion-cfdi-heading">
@@ -50,7 +47,20 @@ export default function FacturacionSatShell({
             </button>
             <h1 className="dashboard-title">{title}</h1>
             <p className="dashboard-subtitle">{subtitle}</p>
-            <div className="facturacion-cfdi-theme-row">
+            <div className="facturacion-cfdi-theme-row facturacion-cfdi-sat-session-row">
+              {usuario ? (
+                <span className="facturacion-cfdi-sat-session-user">
+                  Sesión: <strong>{usuario}</strong>
+                </span>
+              ) : null}
+              <button
+                type="button"
+                className="facturacion-cfdi-sat-btn-secondary facturacion-cfdi-sat-logout-btn"
+                onClick={() => void cerrarSesion()}
+              >
+                <LogOut size={14} aria-hidden />
+                Salir
+              </button>
               <ThemeToggle />
             </div>
           </div>
@@ -102,7 +112,6 @@ export default function FacturacionSatShell({
 
           {children}
         </div>
-      </div>
-    </ProtectedRoute>
+    </div>
   )
 }

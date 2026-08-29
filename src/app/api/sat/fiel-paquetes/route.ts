@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
-import { requireEmpleadoPortal } from '@/lib/portalApiEmpleadoAuth'
+import { requireSatModuloSesion } from '@/lib/sat/satModuloAuth'
 import {
   eliminarPaqueteFielServidor,
   guardarPaqueteFielServidor,
@@ -10,16 +10,13 @@ import { bufferDesdeUpload } from '@/lib/sat/satFiel'
 
 export const runtime = 'nodejs'
 
-function etiquetaCreador(session: {
-  displayName?: string
-  usuario_username?: string
-}): string {
-  return session.usuario_username?.trim() || session.displayName?.trim() || 'empleado'
+function etiquetaCreador(usuario: string): string {
+  return usuario.trim() || 'sat-modulo'
 }
 
 export async function GET(request: Request) {
   try {
-    const auth = requireEmpleadoPortal(request)
+    const auth = requireSatModuloSesion(request)
     if (!auth.ok) return auth.response
 
     const paquetes = await listarPaquetesFielServidor(createDbAdmin())
@@ -38,7 +35,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const auth = requireEmpleadoPortal(request)
+    const auth = requireSatModuloSesion(request)
     if (!auth.ok) return auth.response
 
     const form = await request.formData()
@@ -65,7 +62,7 @@ export async function POST(request: Request) {
       cerNombre: cerNombre || 'certificado.cer',
       keyNombre: keyNombre || 'clave.key',
       password,
-      creadoPor: etiquetaCreador(auth.session),
+      creadoPor: etiquetaCreador(auth.usuario),
     })
 
     return NextResponse.json({ ok: true, paquete })
@@ -83,7 +80,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const auth = requireEmpleadoPortal(request)
+    const auth = requireSatModuloSesion(request)
     if (!auth.ok) return auth.response
 
     const id = new URL(request.url).searchParams.get('id')?.trim()

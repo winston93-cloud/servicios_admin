@@ -497,6 +497,128 @@
   font-style: italic;
 }
 
+/* Login módulo SAT */
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-login-page {
+  min-height: 100vh;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-login-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 3rem);
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-login-theme {
+  align-self: flex-end;
+  margin-bottom: 1rem;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-login-card {
+  width: min(100%, 26rem);
+  padding: 1.75rem 1.5rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(0, 227, 253, 0.2);
+  background: rgba(13, 14, 19, 0.72);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 32px rgba(0, 227, 253, 0.08);
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-login-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 0.85rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(0, 227, 253, 0.25);
+  background: rgba(0, 227, 253, 0.08);
+  color: #bdf4ff;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-login-title {
+  margin: 0;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff6df;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-login-subtitle {
+  margin: 0.4rem 0 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #999077;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-login-form {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-login-clave-row {
+  display: flex;
+  gap: 0.45rem;
+  align-items: stretch;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-login-clave-row .facturacion-cfdi-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-login-eye {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--touch-min, 44px);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  color: #bdf4ff;
+  cursor: pointer;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-login-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #ffb4ab;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-login-submit {
+  width: 100%;
+  justify-content: center;
+  min-height: var(--touch-min, 44px);
+  gap: 0.4rem;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-session-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-session-user {
+  font-size: 0.8125rem;
+  color: #999077;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-session-user strong {
+  color: #bdf4ff;
+  text-transform: lowercase;
+}
+
+.pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-logout-btn {
+  min-height: 40px;
+  gap: 0.35rem;
+}
+
 /* Descarga masiva SAT */
 .pos-totality-theme.admin-app-shell .facturacion-cfdi-shell .facturacion-cfdi-sat-module-nav {
   display: flex;

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireEmpleadoPortal } from '@/lib/portalApiEmpleadoAuth'
+import { requireSatModuloSesion } from '@/lib/sat/satModuloAuth'
 import { generarExcelCfdiRecibidos } from '@/lib/sat/cfdiRecibidosExcel'
 import { mensajeErrorSat, SatDescargaError } from '@/lib/sat/satDescargaErrors'
 import {
@@ -41,7 +41,7 @@ async function leerFielDesdeForm(form: FormData) {
 
 export async function POST(request: Request) {
   try {
-    const auth = requireEmpleadoPortal(request)
+    const auth = requireSatModuloSesion(request)
     if (!auth.ok) return auth.response
 
     const form = await request.formData()
