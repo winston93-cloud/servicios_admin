@@ -3,19 +3,33 @@ import { detalleSimpleBanorte } from './detalleSimplePago'
 import type { ResultadoConciliacion } from './satConciliacionService'
 import { etiquetaEstado, fechaFacturaTexto } from './satConciliacionService'
 
-const COLOR_HEADER = 'FF1E293B'
-const COLOR_HEADER_FONT = 'FFFFFFFF'
-const COLOR_OK = 'FFDCFCE7'
-const COLOR_OK_FONT = 'FF166534'
-const COLOR_ERR = 'FFFEE2E2'
-const COLOR_ERR_FONT = 'FFB91C1C'
-const COLOR_ZEBRA = 'FFF8FAFC'
-const COLOR_BORDER = 'FFE2E8F0'
+/* Paleta — slate + acento cian */
+const C = {
+  headerBg: 'FF0F172A',
+  headerFont: 'FFFFFFFF',
+  headerAccent: 'FF38BDF8',
+  okBg: 'FFDCFCE7',
+  okSoft: 'FFF0FDF4',
+  okFont: 'FF15803D',
+  errBg: 'FFFEE2E2',
+  errSoft: 'FFFFF1F2',
+  errFont: 'FFB91C1C',
+  zebra: 'FFF8FAFC',
+  white: 'FFFFFFFF',
+  text: 'FF334155',
+  textMuted: 'FF64748B',
+  borderThin: 'FFE2E8F0',
+  borderMed: 'FFCBD5E1',
+  borderOuter: 'FF64748B',
+  accentSoft: 'FFE0F2FE',
+  separador: 'FFF1F5F9',
+} as const
 
-type EstiloFila = 'ok' | 'err' | 'neutral'
+type EstiloFila = 'ok' | 'err' | 'neutral' | 'separador'
 
 type OpcionesTabla = {
   columnasMoneda?: number[]
+  columnasCentradas?: number[]
   estiloFila?: (row: ExcelJS.Row, rowIndex: number) => EstiloFila | undefined
 }
 
@@ -30,54 +44,119 @@ function colLetter(n: number): string {
   return s
 }
 
-function estiloEncabezado(row: ExcelJS.Row) {
-  row.font = { bold: true, color: { argb: COLOR_HEADER_FONT }, size: 11 }
-  row.fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: COLOR_HEADER },
-  }
-  row.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
-  row.height = 24
+function rellenarFila(vals: unknown[], cols: number): unknown[] {
+  const out = [...vals]
+  while (out.length < cols) out.push('')
+  return out.slice(0, cols)
 }
 
-function bordeFino(cell: ExcelJS.Cell) {
+function bordesTabla(
+  cell: ExcelJS.Cell,
+  r: number,
+  c: number,
+  totalRows: number,
+  totalCols: number,
+  esHeader: boolean
+) {
+  const thin = { style: 'thin' as const, color: { argb: C.borderThin } }
+  const med = { style: 'medium' as const, color: { argb: C.borderMed } }
+  const outer = { style: 'medium' as const, color: { argb: C.borderOuter } }
+  const accent = { style: 'medium' as const, color: { argb: C.headerAccent } }
+
   cell.border = {
-    top: { style: 'thin', color: { argb: COLOR_BORDER } },
-    left: { style: 'thin', color: { argb: COLOR_BORDER } },
-    bottom: { style: 'thin', color: { argb: COLOR_BORDER } },
-    right: { style: 'thin', color: { argb: COLOR_BORDER } },
+    top: r === 1 ? outer : thin,
+    bottom:
+      esHeader ? accent : r === totalRows ? outer : thin,
+    left: c === 1 ? outer : thin,
+    right: c === totalCols ? outer : thin,
   }
+}
+
+function estiloEncabezado(row: ExcelJS.Row, totalCols: number) {
+  row.height = 28
+  row.font = {
+    name: 'Calibri',
+    bold: true,
+    color: { argb: C.headerFont },
+    size: 11,
+  }
+  row.eachCell({ includeEmpty: true }, (cell, col) => {
+    if (col > totalCols) return
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.headerBg } }
+    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
+    bordesTabla(cell, 1, col, 1, totalCols, true)
+  })
+}
+
+function fondoFila(
+  estilo: EstiloFila | undefined,
+  col: number,
+  zebra: boolean
+): string {
+  if (estilo === 'separador') return C.separador
+  if (estilo === 'err' && col === 1) return C.errBg
+  if (estilo === 'err' && col <= 4) return C.errSoft
+  if (estilo === 'ok' && col === 1) return C.okBg
+  if (estilo === 'ok' && col <= 4) return C.okSoft
+  if (estilo === 'ok' && col === 4) return C.accentSoft
+  if (zebra) return C.zebra
+  return C.white
 }
 
 function aplicarCeldasDatos(
+  ws: ExcelJS.Worksheet,
   row: ExcelJS.Row,
   rowIndex: number,
+  totalCols: number,
+  totalRows: number,
   opts?: OpcionesTabla
 ) {
   const estilo = opts?.estiloFila?.(row, rowIndex)
   const zebra = rowIndex % 2 === 0
+  const esSeparador = estilo === 'separador'
 
-  row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-    bordeFino(cell)
-    cell.alignment = { vertical: 'top', wrapText: true }
+  row.height = esSeparador ? 10 : 20
 
-    if (estilo === 'ok' && colNumber === 1) {
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_OK } }
-      cell.font = { bold: true, color: { argb: COLOR_OK_FONT } }
-    } else if (estilo === 'err' && colNumber === 1) {
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_ERR } }
-      cell.font = { bold: true, color: { argb: COLOR_ERR_FONT } }
-    } else if (estilo === 'err') {
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_ERR } }
-    } else if (zebra) {
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_ZEBRA } }
+  for (let col = 1; col <= totalCols; col += 1) {
+    const cell = row.getCell(col)
+    const bg = fondoFila(estilo, col, zebra)
+
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } }
+    bordesTabla(cell, rowIndex, col, totalRows, totalCols, false)
+
+    if (esSeparador) {
+      cell.value = ''
+      continue
     }
 
-    if (opts?.columnasMoneda?.includes(colNumber)) {
+    cell.font = {
+      name: 'Calibri',
+      size: 10,
+      color: { argb: C.text },
+      bold: col === 1 && (estilo === 'ok' || estilo === 'err'),
+    }
+
+    if (col === 1 && estilo === 'ok') {
+      cell.font = { ...cell.font, bold: true, color: { argb: C.okFont } }
+    }
+    if (col === 1 && estilo === 'err') {
+      cell.font = { ...cell.font, bold: true, color: { argb: C.errFont } }
+    }
+    if (col === 4 && estilo === 'ok') {
+      cell.font = { ...cell.font, bold: true, color: { argb: 'FF0369A1' } }
+    }
+
+    cell.alignment = {
+      vertical: 'middle',
+      horizontal: opts?.columnasCentradas?.includes(col) ? 'center' : 'left',
+      wrapText: col > 4,
+    }
+
+    if (opts?.columnasMoneda?.includes(col)) {
       cell.numFmt = '$#,##0.00'
+      cell.alignment = { ...cell.alignment, horizontal: 'right' }
     }
-  })
+  }
 }
 
 function crearHojaTabla(
@@ -88,23 +167,29 @@ function crearHojaTabla(
   filas: unknown[][],
   opts?: OpcionesTabla
 ) {
+  const totalCols = headers.length
   const ws = wb.addWorksheet(nombre, {
     views: [{ state: 'frozen', ySplit: 1, showGridLines: false }],
+    properties: { defaultRowHeight: 20 },
   })
 
   ws.columns = anchos.map((w) => ({ width: w }))
+
   const headerRow = ws.addRow(headers)
-  estiloEncabezado(headerRow)
+  estiloEncabezado(headerRow, totalCols)
+
+  const totalRows = filas.length + 1
 
   filas.forEach((vals, i) => {
-    const row = ws.addRow(vals)
-    aplicarCeldasDatos(row, i + 2, opts)
+    const row = ws.addRow(rellenarFila(vals, totalCols))
+    aplicarCeldasDatos(ws, row, i + 2, totalCols, totalRows, opts)
   })
 
-  const lastCol = colLetter(headers.length)
-  const lastRow = filas.length + 1
   if (filas.length > 0) {
-    ws.autoFilter = { from: 'A1', to: `${lastCol}${lastRow}` }
+    ws.autoFilter = {
+      from: 'A1',
+      to: `${colLetter(totalCols)}${totalRows}`,
+    }
   }
 
   return ws
@@ -142,11 +227,13 @@ function hojaResumen(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
     wb,
     'Resumen',
     ['Concepto', 'Valor'],
-    [38, 28],
+    [40, 30],
     metaFilas,
     {
+      columnasCentradas: [2],
       estiloFila: (row) => {
         const concepto = String(row.getCell(1).value ?? '')
+        if (!concepto) return 'separador'
         if (concepto === 'Conciliadas') return 'ok'
         if (concepto === 'No localizadas' && Number(row.getCell(2).value) > 0) return 'err'
         return 'neutral'
@@ -157,7 +244,10 @@ function hojaResumen(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
   metaFilas.forEach((row, i) => {
     const label = String(row[0] ?? '')
     if (label.toLowerCase().includes('monto') && typeof row[1] === 'number') {
-      ws.getRow(i + 2).getCell(2).numFmt = '$#,##0.00'
+      const cell = ws.getRow(i + 2).getCell(2)
+      cell.numFmt = '$#,##0.00'
+      cell.alignment = { vertical: 'middle', horizontal: 'right' }
+      cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: C.text } }
     }
   })
 }
@@ -203,17 +293,23 @@ function hojaConciliacion(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
     f.detalle,
   ])
 
-  crearHojaTabla(wb, 'Conciliación', headers, [
-    14, 10, 12, 14, 38, 12, 14, 32, 8, 12, 14, 8, 14, 12, 14, 28, 42,
-  ], filas, {
-    columnasMoneda: [11, 13, 14],
-    estiloFila: (row) => {
-      const estado = String(row.getCell(1).value ?? '')
-      if (estado === 'Conciliado') return 'ok'
-      if (estado === 'No localizado') return 'err'
-      return 'neutral'
-    },
-  })
+  crearHojaTabla(
+    wb,
+    'Conciliación',
+    headers,
+    [15, 11, 12, 13, 38, 13, 14, 34, 8, 12, 14, 8, 14, 12, 14, 30, 44],
+    filas,
+    {
+      columnasMoneda: [11, 13, 14],
+      columnasCentradas: [2, 3, 4, 9, 12],
+      estiloFila: (row) => {
+        const estado = String(row.getCell(1).value ?? '')
+        if (estado === 'Conciliado') return 'ok'
+        if (estado === 'No localizado') return 'err'
+        return 'neutral'
+      },
+    }
+  )
 }
 
 function hojaNoLocalizadas(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
@@ -222,7 +318,7 @@ function hojaNoLocalizadas(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
     wb,
     'No localizadas',
     ['Estado', 'UUID', 'Fecha', 'RFC Emisor', 'Nombre Emisor', 'Total', 'Moneda', 'Forma pago'],
-    [14, 38, 12, 14, 32, 14, 8, 22],
+    [15, 38, 13, 14, 34, 14, 8, 24],
     sin.map((f) => [
       'No localizado',
       f.factura.uuid,
@@ -235,6 +331,7 @@ function hojaNoLocalizadas(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
     ]),
     {
       columnasMoneda: [6],
+      columnasCentradas: [3, 7],
       estiloFila: () => 'err',
     }
   )
@@ -245,7 +342,7 @@ function hojaClaraSinFactura(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
     wb,
     'Clara sin factura',
     ['Detalle', 'Fecha', 'Transacción', 'Monto MXN', 'Folio Fiscal', 'Titular', 'Categoría'],
-    [12, 12, 28, 14, 38, 22, 20],
+    [12, 13, 30, 14, 38, 24, 22],
     r.claraSinFactura.map((m) => [
       'Clara',
       m.fecha,
@@ -255,7 +352,10 @@ function hojaClaraSinFactura(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
       m.titular,
       m.categoria,
     ]),
-    { columnasMoneda: [4] }
+    {
+      columnasMoneda: [4],
+      columnasCentradas: [1, 2],
+    }
   )
 }
 
@@ -273,7 +373,7 @@ function hojaBanorteSinFactura(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
       'Referencia',
       'Descripción detallada',
     ],
-    [14, 12, 24, 14, 14, 24, 14, 40],
+    [14, 13, 26, 14, 14, 26, 14, 42],
     r.banorteSinFactura.map((m) => [
       detalleSimpleBanorte(m),
       m.fecha,
@@ -284,7 +384,10 @@ function hojaBanorteSinFactura(wb: ExcelJS.Workbook, r: ResultadoConciliacion) {
       m.referencia,
       m.detalle,
     ]),
-    { columnasMoneda: [4] }
+    {
+      columnasMoneda: [4],
+      columnasCentradas: [1, 2],
+    }
   )
 }
 
