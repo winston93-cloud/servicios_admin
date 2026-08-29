@@ -18,12 +18,40 @@ const C = {
   white: 'FFFFFFFF',
   text: 'FF334155',
   textMuted: 'FF64748B',
-  borderThin: 'FFE2E8F0',
-  borderMed: 'FFCBD5E1',
-  borderOuter: 'FF64748B',
+  borderThin: 'FF94A3B8',
+  borderMed: 'FF64748B',
+  borderOuter: 'FF334155',
+  borderHeader: 'FF475569',
   accentSoft: 'FFE0F2FE',
   separador: 'FFF1F5F9',
 } as const
+
+/** Grilla visible en Excel y LibreOffice Calc (4 lados en cada celda). */
+function aplicarGrillaCelda(
+  cell: ExcelJS.Cell,
+  r: number,
+  c: number,
+  totalRows: number,
+  totalCols: number
+) {
+  const inner = { style: 'thin' as const, color: { argb: C.borderThin } }
+  const outer = { style: 'medium' as const, color: { argb: C.borderOuter } }
+  const headerLine = { style: 'medium' as const, color: { argb: C.headerAccent } }
+  const headerInner = { style: 'thin' as const, color: { argb: C.borderHeader } }
+
+  const esHeader = r === 1
+  const esPrimera = r === 2
+  const esUltima = r === totalRows
+  const esIzq = c === 1
+  const esDer = c === totalCols
+
+  cell.border = {
+    top: esHeader ? outer : esPrimera ? headerLine : inner,
+    bottom: esHeader ? headerLine : esUltima ? outer : inner,
+    left: esHeader ? (esIzq ? outer : headerInner) : esIzq ? outer : inner,
+    right: esHeader ? (esDer ? outer : headerInner) : esDer ? outer : inner,
+  }
+}
 
 type EstiloFila = 'ok' | 'err' | 'neutral' | 'separador'
 
@@ -50,29 +78,7 @@ function rellenarFila(vals: unknown[], cols: number): unknown[] {
   return out.slice(0, cols)
 }
 
-function bordesTabla(
-  cell: ExcelJS.Cell,
-  r: number,
-  c: number,
-  totalRows: number,
-  totalCols: number,
-  esHeader: boolean
-) {
-  const thin = { style: 'thin' as const, color: { argb: C.borderThin } }
-  const med = { style: 'medium' as const, color: { argb: C.borderMed } }
-  const outer = { style: 'medium' as const, color: { argb: C.borderOuter } }
-  const accent = { style: 'medium' as const, color: { argb: C.headerAccent } }
-
-  cell.border = {
-    top: r === 1 ? outer : thin,
-    bottom:
-      esHeader ? accent : r === totalRows ? outer : thin,
-    left: c === 1 ? outer : thin,
-    right: c === totalCols ? outer : thin,
-  }
-}
-
-function estiloEncabezado(row: ExcelJS.Row, totalCols: number) {
+function estiloEncabezado(row: ExcelJS.Row, totalCols: number, totalRows: number) {
   row.height = 28
   row.font = {
     name: 'Calibri',
@@ -80,12 +86,12 @@ function estiloEncabezado(row: ExcelJS.Row, totalCols: number) {
     color: { argb: C.headerFont },
     size: 11,
   }
-  row.eachCell({ includeEmpty: true }, (cell, col) => {
-    if (col > totalCols) return
+  for (let col = 1; col <= totalCols; col += 1) {
+    const cell = row.getCell(col)
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: C.headerBg } }
     cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }
-    bordesTabla(cell, 1, col, 1, totalCols, true)
-  })
+    aplicarGrillaCelda(cell, 1, col, totalRows, totalCols)
+  }
 }
 
 function fondoFila(
@@ -122,7 +128,7 @@ function aplicarCeldasDatos(
     const bg = fondoFila(estilo, col, zebra)
 
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } }
-    bordesTabla(cell, rowIndex, col, totalRows, totalCols, false)
+    aplicarGrillaCelda(cell, rowIndex, col, totalRows, totalCols)
 
     if (esSeparador) {
       cell.value = ''
@@ -175,10 +181,10 @@ function crearHojaTabla(
 
   ws.columns = anchos.map((w) => ({ width: w }))
 
-  const headerRow = ws.addRow(headers)
-  estiloEncabezado(headerRow, totalCols)
-
   const totalRows = filas.length + 1
+
+  const headerRow = ws.addRow(headers)
+  estiloEncabezado(headerRow, totalCols, totalRows)
 
   filas.forEach((vals, i) => {
     const row = ws.addRow(rellenarFila(vals, totalCols))
