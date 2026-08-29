@@ -376,8 +376,181 @@
 }
 
 /* Portal papás */
+.nd-portal-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
 .nd-portal-hero {
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.nd-periodo-banner {
+  position: relative;
+  margin-top: 1.5rem;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid rgba(0, 227, 253, 0.4);
+  background:
+    linear-gradient(135deg, rgba(0, 227, 253, 0.14) 0%, rgba(255, 246, 223, 0.06) 55%, rgba(13, 14, 19, 0.85) 100%);
+  box-shadow:
+    0 0 0 1px rgba(255, 246, 223, 0.06) inset,
+    0 12px 40px rgba(0, 227, 253, 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.nd-periodo-banner-glow {
+  position: absolute;
+  inset: -40% auto auto 50%;
+  width: 60%;
+  height: 120%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse, rgba(0, 227, 253, 0.22), transparent 70%);
+  pointer-events: none;
+}
+
+.nd-periodo-banner-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem 1.5rem;
+  padding: 1.15rem 1.35rem;
+}
+
+.nd-periodo-banner-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.nd-periodo-banner-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.85rem;
+  background: linear-gradient(145deg, rgba(0, 227, 253, 0.22), rgba(0, 227, 253, 0.06));
+  border: 1px solid rgba(0, 227, 253, 0.35);
+  color: #bdf4ff;
+  box-shadow: 0 0 20px rgba(0, 227, 253, 0.15);
+}
+
+.nd-periodo-banner-kicker {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #00e3fd;
+}
+
+.nd-periodo-banner-etiqueta {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: clamp(1.15rem, 3vw, 1.45rem);
+  font-weight: 700;
+  color: #fff6df;
+  text-transform: capitalize;
+  text-shadow: 0 0 24px rgba(255, 246, 223, 0.15);
+}
+
+.nd-periodo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 246, 223, 0.35);
+  background: linear-gradient(135deg, rgba(255, 246, 223, 0.18), rgba(255, 246, 223, 0.06));
+  color: #fff6df;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.nd-periodo-selects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  flex: 1 1 280px;
+  min-width: min(100%, 280px);
+}
+
+.nd-periodo-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1 1 130px;
+  min-width: 0;
+}
+
+.nd-periodo-field-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #bdf4ff;
+}
+
+.nd-periodo-select-wrap {
+  position: relative;
+  display: block;
+}
+
+.nd-periodo-select {
+  appearance: none;
+  width: 100%;
+  min-height: var(--touch-min, 48px);
+  padding: 0 2.5rem 0 1rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(0, 227, 253, 0.45);
+  background: rgba(4, 8, 14, 0.75);
+  color: #fff6df;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.nd-periodo-select:hover:not(:disabled) {
+  border-color: rgba(0, 227, 253, 0.7);
+  box-shadow: 0 0 0 3px rgba(0, 227, 253, 0.12);
+}
+
+.nd-periodo-select:focus-visible {
+  outline: none;
+  border-color: #00e3fd;
+  box-shadow: 0 0 0 3px rgba(0, 227, 253, 0.25);
+}
+
+.nd-periodo-select:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.nd-periodo-chevron {
+  position: absolute;
+  right: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #00e3fd;
+  pointer-events: none;
 }
 
 .nd-portal-mes {
@@ -516,11 +689,167 @@
   margin-top: 2rem;
 }
 
+.nd-portal-error {
+  margin-top: 1.5rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(255, 180, 171, 0.35);
+  background: rgba(255, 180, 171, 0.08);
+}
+
+/* Modo claro — portal */
+[data-theme='light'] .nd-page {
+  color: #334155;
+}
+
+[data-theme='light'] .nd-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(79, 70, 229, 0.08), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(245, 158, 11, 0.06), transparent),
+  #f8fafc;
+}
+
+[data-theme='light'] .nd-kicker {
+  color: #4f46e5;
+}
+
+[data-theme='light'] .nd-title {
+  color: #0f172a;
+  text-shadow: none;
+}
+
+[data-theme='light'] .nd-subtitle,
+[data-theme='light'] .nd-muted {
+  color: #64748b;
+}
+
+[data-theme='light'] .nd-back {
+  border-color: rgba(79, 70, 229, 0.25);
+  background: #fff;
+  color: #4338ca;
+}
+
+[data-theme='light'] .nd-back:hover {
+  background: #eef2ff;
+  color: #312e81;
+}
+
+[data-theme='light'] .nd-periodo-banner {
+  border-color: rgba(79, 70, 229, 0.28);
+  background: linear-gradient(135deg, #eef2ff 0%, #fff 48%, #f8fafc 100%);
+  box-shadow:
+    0 0 0 1px rgba(79, 70, 229, 0.08) inset,
+    0 12px 32px rgba(79, 70, 229, 0.12),
+    0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme='light'] .nd-periodo-banner-glow {
+  background: radial-gradient(ellipse, rgba(79, 70, 229, 0.12), transparent 70%);
+}
+
+[data-theme='light'] .nd-periodo-banner-icon {
+  background: linear-gradient(145deg, #eef2ff, #fff);
+  border-color: rgba(79, 70, 229, 0.22);
+  color: #4f46e5;
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.12);
+}
+
+[data-theme='light'] .nd-periodo-banner-kicker,
+[data-theme='light'] .nd-periodo-field-label {
+  color: #6366f1;
+}
+
+[data-theme='light'] .nd-periodo-banner-etiqueta {
+  color: #0f172a;
+  text-shadow: none;
+}
+
+[data-theme='light'] .nd-periodo-badge {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: linear-gradient(135deg, #fef3c7, #fffbeb);
+  color: #b45309;
+}
+
+[data-theme='light'] .nd-periodo-select {
+  border-color: rgba(79, 70, 229, 0.28);
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+[data-theme='light'] .nd-periodo-select:hover:not(:disabled) {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+[data-theme='light'] .nd-periodo-chevron {
+  color: #6366f1;
+}
+
+[data-theme='light'] .nd-portal-card {
+  border-color: #e2e8f0;
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+}
+
+[data-theme='light'] .nd-portal-card-icon {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+
+[data-theme='light'] .nd-portal-card-title {
+  color: #0f172a;
+}
+
+[data-theme='light'] .nd-portal-card-sub,
+[data-theme='light'] .nd-portal-empty {
+  color: #64748b;
+}
+
+[data-theme='light'] .nd-portal-empty {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+[data-theme='light'] .nd-portal-preview {
+  border-color: #e2e8f0;
+  background: #f1f5f9;
+}
+
+[data-theme='light'] .nd-portal-pdf {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+[data-theme='light'] .nd-portal-btn {
+  border-color: rgba(79, 70, 229, 0.3);
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: #fff;
+}
+
+[data-theme='light'] .nd-portal-btn:hover {
+  background: linear-gradient(135deg, #4338ca, #4f46e5);
+}
+
 @media (max-width: 768px) {
   .nd-admin-grid,
   .nd-portal-grid,
   .nd-periodo-grid {
     grid-template-columns: 1fr;
+  }
+
+  .nd-periodo-banner-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nd-periodo-banner-copy {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .nd-periodo-selects {
+    width: 100%;
   }
 
   .nd-header-main {
