@@ -248,7 +248,7 @@ function ZonaUpload({
           disabled={subiendo || eliminando}
         >
           <Upload size={22} aria-hidden />
-          <span>{archivo ? archivo.name : 'Arrastre o seleccione PDF / imagen'}</span>
+          <span>{archivo ? archivo.name : 'Seleccione PDF o imagen'}</span>
         </button>
       </div>
 
@@ -322,16 +322,19 @@ export default function NewsDesayunosAdminView() {
         <div className="nd-bg" aria-hidden />
         <div className="nd-shell">
           <header className="nd-header">
-            <button
-              type="button"
-              className="nd-back"
-              onClick={() => router.push('/dashboard')}
-            >
-              <ArrowLeft size={16} aria-hidden />
-              Volver al inicio
-            </button>
+            <div className="nd-admin-topbar">
+              <button
+                type="button"
+                className="nd-back"
+                onClick={() => router.push('/dashboard')}
+              >
+                <ArrowLeft size={16} aria-hidden />
+                Volver al inicio
+              </button>
+              <ThemeToggle />
+            </div>
             <div className="nd-header-main">
-              <div>
+              <div className="min-w-0">
                 <p className="nd-kicker">Comunicación · Familias</p>
                 <h1 className="nd-title">News y Desayunos</h1>
                 <p className="nd-subtitle">
@@ -339,7 +342,6 @@ export default function NewsDesayunosAdminView() {
                   verán el mes actual en su portal.
                 </p>
               </div>
-              <ThemeToggle />
             </div>
           </header>
 

@@ -3,7 +3,9 @@
 .nd-page {
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
   color: #d0c6ab;
+  overflow-x: clip;
 }
 
 .nd-bg {
@@ -21,7 +23,17 @@
   z-index: 1;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 1.25rem 1.25rem 3rem;
+  padding: 1.25rem clamp(0.85rem, 3vw, 1.25rem) 3rem;
+  min-width: 0;
+}
+
+.nd-back,
+.nd-btn-primary,
+.nd-btn-danger,
+.nd-drop-btn,
+.nd-portal-btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .nd-back {
@@ -30,7 +42,7 @@
   gap: 0.4rem;
   margin-bottom: 1rem;
   padding: 0 1rem;
-  min-height: 40px;
+  min-height: var(--touch-min, 44px);
   border-radius: 0.5rem;
   border: 1px solid rgba(0, 227, 253, 0.35);
   background: rgba(52, 52, 58, 0.25);
@@ -96,6 +108,7 @@
   background: rgba(13, 14, 19, 0.65);
   backdrop-filter: blur(16px);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  min-width: 0;
 }
 
 .nd-card[data-tipo='news'] {
@@ -195,6 +208,12 @@
   border: 1px solid rgba(134, 239, 172, 0.25);
   background: rgba(134, 239, 172, 0.06);
   color: #86efac;
+  min-width: 0;
+}
+
+.nd-publicado > .min-w-0 {
+  flex: 1 1 12rem;
+  min-width: 0;
 }
 
 .nd-publicado-titulo {
@@ -253,6 +272,12 @@
   color: #bdf4ff;
   font-size: 0.875rem;
   cursor: pointer;
+  text-align: center;
+}
+
+.nd-drop-btn span {
+  min-width: 0;
+  word-break: break-word;
 }
 
 .nd-btn-primary {
@@ -283,9 +308,10 @@
 .nd-btn-danger {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
-  min-height: 36px;
-  padding: 0 0.75rem;
+  min-height: var(--touch-min, 44px);
+  padding: 0 0.85rem;
   margin-left: auto;
   border-radius: 0.45rem;
   border: 1px solid rgba(255, 180, 171, 0.35);
@@ -376,6 +402,7 @@
 }
 
 /* Portal papás */
+.nd-admin-topbar,
 .nd-portal-topbar {
   display: flex;
   flex-wrap: wrap;
@@ -383,6 +410,11 @@
   justify-content: space-between;
   gap: 0.75rem;
   margin-bottom: 0.25rem;
+}
+
+.nd-admin-topbar .nd-back,
+.nd-portal-topbar .nd-back {
+  margin-bottom: 0;
 }
 
 .nd-portal-hero {
@@ -519,9 +551,10 @@
   background: rgba(4, 8, 14, 0.75);
   color: #fff6df;
   font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
-  font-size: 1rem;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
+  touch-action: manipulation;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
@@ -583,6 +616,7 @@
   background: rgba(13, 14, 19, 0.65);
   backdrop-filter: blur(16px);
   min-height: 100%;
+  min-width: 0;
 }
 
 .nd-portal-card-head {
@@ -666,6 +700,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
+  width: 100%;
   min-height: var(--touch-min, 44px);
   padding: 0 1.25rem;
   border-radius: 0.5rem;
@@ -966,28 +1001,116 @@
   background: linear-gradient(135deg, #4338ca, #4f46e5);
 }
 
+@media (max-width: 1024px) {
+  .nd-admin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
+  .nd-shell {
+    padding-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
+    padding-left: max(0.85rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.85rem, env(safe-area-inset-right, 0px));
+  }
+
   .nd-admin-grid,
   .nd-portal-grid,
   .nd-periodo-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .nd-periodo-banner {
+    margin-top: 1.15rem;
+    border-radius: 0.85rem;
   }
 
   .nd-periodo-banner-inner {
     flex-direction: column;
     align-items: stretch;
+    padding: 1rem;
+    gap: 1rem;
   }
 
   .nd-periodo-banner-copy {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
   }
 
   .nd-periodo-selects {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .nd-periodo-field {
+    flex: 1 1 auto;
     width: 100%;
   }
 
   .nd-header-main {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nd-card,
+  .nd-portal-card,
+  .nd-historial {
+    padding: 1rem;
+  }
+
+  .nd-portal-img {
+    max-height: min(55vh, 420px);
+  }
+
+  .nd-historial-lista li {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  .nd-historial-tipo {
+    min-width: 0;
+  }
+
+  .nd-publicado .nd-btn-danger {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 0.25rem;
+  }
+
+  .nd-btn-primary {
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+  }
+}
+
+@media (max-width: 480px) {
+  .nd-title {
+    font-size: 1.35rem;
+  }
+
+  .nd-periodo-banner-etiqueta {
+    font-size: 1.15rem;
+  }
+
+  .nd-periodo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .nd-drop-btn {
+    min-height: 72px;
+    font-size: 0.8125rem;
+  }
+
+  .nd-card-head,
+  .nd-portal-card-head {
+    align-items: center;
+  }
+
+  .nd-portal-card-sub,
+  .nd-card-desc {
+    font-size: 0.75rem;
   }
 }

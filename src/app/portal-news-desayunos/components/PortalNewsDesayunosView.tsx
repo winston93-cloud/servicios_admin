@@ -242,7 +242,7 @@ export default function PortalNewsDesayunosView() {
             </button>
             <ThemeToggle />
           </div>
-          <div className="nd-portal-hero">
+          <div className="nd-portal-hero min-w-0">
             <p className="nd-kicker">Portal familias</p>
             <h1 className="nd-title">News y Desayunos</h1>
             <p className="nd-subtitle">
