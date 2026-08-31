@@ -5,10 +5,10 @@ import type { AppDatabaseClient } from '@/lib/dbTypes'
 import type { DatosCartaBeca } from '@/app/firma-electronica/lib/datosPruebaCartas'
 import type { NivelFirma } from '@/app/firma-electronica/lib/plantillasNivel'
 import {
-  cicloBecaARenovarFirma,
   cicloFirmaBecaActual,
   etiquetaCicloFirmaBeca,
 } from './cicloFirmaBeca'
+import { resolverBecaRenovacionAlumno } from './resolverBecaRenovacionAlumno'
 
 export type FlujoFirmaBeca = 'solicitud' | 'renovacion'
 
@@ -136,15 +136,12 @@ export async function construirCartaAceptacionPayload(opts: {
         ? Number(parent.beca_porcentaje_deseado)
         : null
   } else {
-    const { data: becaRow } = await opts.db
-      .from('alumno_beca')
-      .select('beca_id, beca_porcentaje')
-      .eq('alumno_id', Number(alumno.alumno_id))
-      .eq('beca_ciclo_escolar', cicloBecaARenovarFirma())
-      .maybeSingle()
-    becaId = becaRow?.beca_id != null ? Number(becaRow.beca_id) : null
-    becaPorcentaje =
-      becaRow?.beca_porcentaje != null ? Number(becaRow.beca_porcentaje) : null
+    const becaRow = await resolverBecaRenovacionAlumno(
+      opts.db,
+      Number(alumno.alumno_id)
+    )
+    becaId = becaRow.beca_id
+    becaPorcentaje = becaRow.beca_porcentaje
   }
 
   if (becaId != null && becaId > 0) {

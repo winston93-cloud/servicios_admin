@@ -4,7 +4,8 @@
  */
 import type { AppDatabaseClient } from '@/lib/dbTypes'
 import { BECA_ESTATUS_ACTIVA } from '@/lib/becaEstatus'
-import { cicloBecaARenovarFirma } from './cicloFirmaBeca'
+import { cicloFirmaBecaActual } from './cicloFirmaBeca'
+import { resolverBecaRenovacionAlumno } from './resolverBecaRenovacionAlumno'
 import type { AutorizacionFirmaRow } from './autorizacionFirmaService'
 
 export type BecaCobroActivada = {
@@ -34,28 +35,9 @@ async function resolverTipoPorcentajeBeca(
     }
   }
 
-  const cicloOrigen = cicloBecaARenovarFirma()
-  const { data: origen, error: origenErr } = await db
-    .from('alumno_beca')
-    .select('beca_id, beca_porcentaje')
-    .eq('alumno_id', auth.alumno_id)
-    .eq('beca_ciclo_escolar', cicloOrigen)
-    .maybeSingle()
-  if (origenErr) throw new Error(origenErr.message)
-
-  // Legacy: una sola fila por alumno (unique alumno_id); puede seguir en ciclo origen.
-  const data =
-    origen ??
-    (
-      await db
-        .from('alumno_beca')
-        .select('beca_id, beca_porcentaje')
-        .eq('alumno_id', auth.alumno_id)
-        .maybeSingle()
-    ).data
-
-  const beca_id = Number(data?.beca_id ?? 0)
-  const beca_porcentaje = Number(data?.beca_porcentaje ?? NaN)
+  const becaRow = await resolverBecaRenovacionAlumno(db, auth.alumno_id)
+  const beca_id = Number(becaRow.beca_id ?? 0)
+  const beca_porcentaje = Number(becaRow.beca_porcentaje ?? NaN)
   if (!(beca_id > 0) || !Number.isFinite(beca_porcentaje)) return null
   return {
     beca_id,
