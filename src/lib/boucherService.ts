@@ -1,4 +1,5 @@
 import type { AppDatabaseClient } from '@/lib/dbTypes'
+import { sincronizarAlumnoBecaCobroTrasFirma } from '@/lib/firmaElectronica/activarAlumnoBecaCobro'
 import { normalizarConceptoNo, compararConceptoNoAsc } from './pagoReferenciaColegiatura'
 import {
   getDigVerif,
@@ -149,6 +150,8 @@ export async function obtenerPorcentajeBeca(
 ): Promise<number> {
   // Winston: solo si está autorizada en alumno_beca (estatus 1) para este ciclo.
   // Se activa al enviar la carta firmada (firma electrónica), no al autorizar en portal becas.
+  await sincronizarAlumnoBecaCobroTrasFirma(supabase, alumnoId, cicloEscolar)
+
   const { data } = await supabase
     .from('alumno_beca')
     .select('beca_porcentaje')

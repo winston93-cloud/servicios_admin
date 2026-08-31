@@ -157,3 +157,39 @@ export async function activarAlumnoBecaCobroCicloActual(
     },
   }
 }
+
+/**
+ * Si ya firmó carta pero alumno_beca no quedó en el ciclo de cobro (p. ej. unique alumno_id),
+ * re-sincroniza antes de calcular importes. Aplica a cualquier alumno, no caso por caso.
+ */
+export async function sincronizarAlumnoBecaCobroTrasFirma(
+  db: AppDatabaseClient,
+  alumnoId: number,
+  cicloEscolar: number
+): Promise<void> {
+  const { data: auth, error: authErr } = await db
+    .from('becas_autorizacion_firma')
+    .select(
+      'id, alumno_id, ciclo_escolar, flujo, expediente_id, activo, beca_activada, beca_activada_en, firmado_por, carta_firmada_bucket, carta_firmada_key, carta_firmada_url'
+    )
+    .eq('alumno_id', alumnoId)
+    .eq('ciclo_escolar', cicloEscolar)
+    .eq('activo', true)
+    .eq('beca_activada', true)
+    .maybeSingle()
+  if (authErr || !auth) return
+
+  const { data: ab, error: abErr } = await db
+    .from('alumno_beca')
+    .select('beca_ciclo_escolar, beca_estatus')
+    .eq('alumno_id', alumnoId)
+    .maybeSingle()
+  if (abErr) return
+
+  const ok =
+    Number(ab?.beca_ciclo_escolar) === cicloEscolar &&
+    Number(ab?.beca_estatus) === BECA_ESTATUS_ACTIVA
+  if (ok) return
+
+  await activarAlumnoBecaCobroCicloActual(db, auth as AutorizacionFirmaRow)
+}
