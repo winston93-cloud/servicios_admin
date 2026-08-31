@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { DashboardModuleAccent } from '@/components/dashboard/DashboardModuleCard'
 import { urlProrrogasAjustesApp } from '@/lib/prorrogasAjustesConfig'
 import { urlCchicApp } from '@/lib/cchicConfig'
-import { urlChequesApp, urlContratosApp } from '@/lib/dashboardModulosConfig'
+import { urlChequesApp, urlContratosApp, urlSsiwEntregaLogin } from '@/lib/dashboardModulosConfig'
 
 export type DashboardAdminNavItem = {
   label: string
@@ -317,7 +317,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   {
     label: 'Entregas a Pie',
     desc: 'Entrega de alumnos con salida a pie registrada para el día.',
-    path: '/ssiw/entrar?ambiente=entregas',
+    href: urlSsiwEntregaLogin(),
     accent: 'emerald',
     kicker: 'Salida institucional',
     tags: ['Entregas', 'A pie'],

@@ -66,3 +66,8 @@ export function urlSsiwApp(): string {
   if (explicit) return explicit.replace(/\/$/, '')
   return 'https://ssiw.vercel.app'
 }
+
+/** Login de entregas a pie (solo contraseña, personal). */
+export function urlSsiwEntregaLogin(): string {
+  return `${urlSsiwApp()}/entrega/login`
+}
