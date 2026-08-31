@@ -45,6 +45,19 @@ function abrirNavItemAlumno(item: DashboardNavItem, push: (path: string) => void
 /** Portales en línea solo para alumnos / familias. */
 const NAV_ITEMS_ALUMNO: DashboardNavItem[] = [
   {
+    label: 'News y Desayunos',
+    desc: 'Folleto del mes y menú de desayunos y comidas',
+    path: '/portal-news-desayunos',
+    accent: 'amber',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        <path d="M8 7h8M8 11h6M8 15h4" />
+      </svg>
+    ),
+  },
+  {
     label: 'Portal de Inscripciones y Colegiaturas',
     desc: 'Inscripción, reinscripción y pagos de colegiatura en línea',
     path: '/portal-inscripciones',
