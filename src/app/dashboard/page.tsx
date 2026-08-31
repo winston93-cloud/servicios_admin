@@ -42,38 +42,8 @@ function abrirNavItemAlumno(item: DashboardNavItem, push: (path: string) => void
   if (item.path) push(item.path)
 }
 
-const ICON_DESAYUNOS = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M17 8h1a4 4 0 0 1 0 8h-1"/>
-    <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/>
-    <line x1="6" y1="1" x2="6" y2="4"/>
-    <line x1="10" y1="1" x2="10" y2="4"/>
-    <line x1="14" y1="1" x2="14" y2="4"/>
-  </svg>
-)
-
 /** Portales en línea solo para alumnos / familias. */
 const NAV_ITEMS_ALUMNO: DashboardNavItem[] = [
-  {
-    label: 'News y Desayunos',
-    desc: 'Folleto del mes y menú de desayunos y comidas',
-    path: '/portal-news-desayunos',
-    accent: 'amber',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-        <path d="M8 7h8M8 11h6M8 15h4" />
-      </svg>
-    ),
-  },
-  {
-    label: 'Desayunos, Estancias y Comidas',
-    desc: 'Servicios de alimentación y cuidado escolar',
-    path: '/proximamente?m=desayunos',
-    accent: 'amber',
-    icon: ICON_DESAYUNOS,
-  },
   {
     label: 'Portal de Inscripciones y Colegiaturas',
     desc: 'Inscripción, reinscripción y pagos de colegiatura en línea',
