@@ -35,13 +35,25 @@ async function resolverTipoPorcentajeBeca(
   }
 
   const cicloOrigen = cicloBecaARenovarFirma()
-  const { data, error } = await db
+  const { data: origen, error: origenErr } = await db
     .from('alumno_beca')
     .select('beca_id, beca_porcentaje')
     .eq('alumno_id', auth.alumno_id)
     .eq('beca_ciclo_escolar', cicloOrigen)
     .maybeSingle()
-  if (error) throw new Error(error.message)
+  if (origenErr) throw new Error(origenErr.message)
+
+  // Legacy: una sola fila por alumno (unique alumno_id); puede seguir en ciclo origen.
+  const data =
+    origen ??
+    (
+      await db
+        .from('alumno_beca')
+        .select('beca_id, beca_porcentaje')
+        .eq('alumno_id', auth.alumno_id)
+        .maybeSingle()
+    ).data
+
   const beca_id = Number(data?.beca_id ?? 0)
   const beca_porcentaje = Number(data?.beca_porcentaje ?? NaN)
   if (!(beca_id > 0) || !Number.isFinite(beca_porcentaje)) return null
@@ -95,7 +107,6 @@ export async function activarAlumnoBecaCobroCicloActual(
     .from('alumno_beca')
     .select('alumno_beca_id')
     .eq('alumno_id', auth.alumno_id)
-    .eq('beca_ciclo_escolar', cicloCobro)
     .maybeSingle()
   if (exErr) return { ok: false, error: exErr.message, status: 500 }
 

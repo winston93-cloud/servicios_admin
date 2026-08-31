@@ -273,6 +273,11 @@ export async function activarBecaConCartaFirmada(opts: {
     }
   }
 
+  const cobro = await activarAlumnoBecaCobroCicloActual(opts.db, auth)
+  if (!cobro.ok) {
+    return { ok: false, error: cobro.error, status: cobro.status ?? 500 }
+  }
+
   const ahora = new Date().toISOString()
   const { data, error } = await opts.db
     .from('becas_autorizacion_firma')
@@ -292,11 +297,6 @@ export async function activarBecaConCartaFirmada(opts: {
   if (error) return { ok: false, error: error.message, status: 500 }
   if (!data) {
     return { ok: false, error: 'No se pudo actualizar la autorización.', status: 500 }
-  }
-
-  const cobro = await activarAlumnoBecaCobroCicloActual(opts.db, auth)
-  if (!cobro.ok) {
-    return { ok: false, error: cobro.error, status: cobro.status ?? 500 }
   }
 
   return { ok: true, row: data as AutorizacionFirmaRow }
