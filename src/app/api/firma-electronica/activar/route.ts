@@ -6,7 +6,6 @@ import {
   mensajeTarjetaBecaPortalPendiente,
   tarjetaBecaPortalDisponible,
 } from '@/lib/firmaElectronica/disponibilidadTarjetaBecaPortal'
-import { enviarAvisoBecaActivada } from '@/lib/firmaElectronica/enviarAvisoBecaActivada'
 
 export const runtime = 'nodejs'
 
@@ -66,7 +65,6 @@ export async function POST(request: Request) {
       )
     }
 
-    const yaActivada = estado.activada
     const result = await activarBecaConCartaFirmada({
       db,
       client,
@@ -80,18 +78,6 @@ export async function POST(request: Request) {
         { error: result.error },
         { status: result.status || 400 }
       )
-    }
-
-    if (!yaActivada) {
-      void enviarAvisoBecaActivada({
-        db,
-        auth: result.row,
-        firmadoPor,
-      }).then((aviso) => {
-        if (!aviso.ok) {
-          console.error('firma-electronica/activar aviso correo:', aviso.error)
-        }
-      })
     }
 
     return NextResponse.json({
