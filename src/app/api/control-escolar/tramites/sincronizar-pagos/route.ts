@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
-import { sincronizarTramitesPorPagoIds } from '@/lib/controlEscolarTramitesService'
+import { sincronizarTramitesPorPagoIds } from '@/lib/controlEscolarTramitesSync'
 
 export const runtime = 'nodejs'
 

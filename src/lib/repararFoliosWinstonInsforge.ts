@@ -24,7 +24,7 @@ import {
   pagoPerteneceAPlantelSerie,
 } from '@/lib/pagoInternoPlantel'
 import { esAlumnoRefExterno } from '@/lib/alumnoBusquedaServicios'
-import { sincronizarTramitesPorPagoIds } from '@/lib/controlEscolarTramitesService'
+import { sincronizarTramitesPorPagoIds } from '@/lib/controlEscolarTramitesSync'
 
 const SELECT_PAGO =
   'pago_id, alumno_id, concepto_id, concepto_otro, pago_folio, pago_importe, pago_fecha, pago_cancelado, pago_ciclo_escolar, pago_registro'
