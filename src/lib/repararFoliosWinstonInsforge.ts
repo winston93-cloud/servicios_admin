@@ -20,14 +20,16 @@ import {
   PAGO_INTERNO_WINSTON_TALON_ACTUAL_DESDE,
   PAGO_INTERNO_FOLIO_CUOTA_WINSTON_INICIAL,
   PAGO_INTERNO_FOLIO_CUOTA_WINSTON_TECHO,
+  PAGO_INTERNO_FOLIO_FUERA_TALON_MIN,
   pagoPerteneceAPlantelSerie,
 } from '@/lib/pagoInternoPlantel'
 import { esAlumnoRefExterno } from '@/lib/alumnoBusquedaServicios'
+import { sincronizarTramitesPorPagoIds } from '@/lib/controlEscolarTramitesService'
 
 const SELECT_PAGO =
   'pago_id, alumno_id, concepto_id, concepto_otro, pago_folio, pago_importe, pago_fecha, pago_cancelado, pago_ciclo_escolar, pago_registro'
 
-const FOLIO_TEMP_BASE = 900_000
+const FOLIO_TEMP_BASE = PAGO_INTERNO_FOLIO_FUERA_TALON_MIN
 
 export type PagoInternoRow = {
   pago_id: number
@@ -353,12 +355,12 @@ export type ResultadoReparacionWinstonInsforge = {
 export async function cancelarCapturasDuplicadasWinston(
   db: AppDatabaseClient,
   opts?: { dryRun?: boolean; alumnoNombre?: string; fechaMin?: string }
-): Promise<{ cancelados: number; detalle: string[] }> {
+): Promise<{ cancelados: number; detalle: string[]; pagoIdsAfectados: number[] }> {
   const dryRun = opts?.dryRun ?? false
   let alumnoIds: number[] | null = null
   if (opts?.alumnoNombre) {
     alumnoIds = await buscarAlumnoIdsPorNombre(db, opts.alumnoNombre)
-    if (alumnoIds.length === 0) return { cancelados: 0, detalle: [] }
+    if (alumnoIds.length === 0) return { cancelados: 0, detalle: [], pagoIdsAfectados: [] }
   }
 
   const fechaMin = opts?.fechaMin ?? '2026-08-12'
@@ -398,13 +400,16 @@ export async function cancelarCapturasDuplicadasWinston(
 
   const detalle: string[] = []
   let cancelados = 0
+  const pagoIdsAfectados: number[] = []
   const ahora = new Date().toISOString()
 
   for (const [, list] of grupos) {
     if (list.length < 2) continue
     const ordenados = [...list].sort((a, b) => Number(a.pago_id) - Number(b.pago_id))
     const conservar = ordenados[0]
+    pagoIdsAfectados.push(Number(conservar.pago_id))
     for (const dup of ordenados.slice(1)) {
+      pagoIdsAfectados.push(Number(dup.pago_id))
       detalle.push(
         `cancelar pago_id=${dup.pago_id} folio=${dup.pago_folio} (conservar ${conservar.pago_id} folio=${conservar.pago_folio})`
       )
@@ -419,7 +424,7 @@ export async function cancelarCapturasDuplicadasWinston(
     }
   }
 
-  return { cancelados, detalle }
+  return { cancelados, detalle, pagoIdsAfectados }
 }
 
 export type PlanReparacionWinston = {
@@ -924,10 +929,12 @@ export async function repararFoliosWinstonGeneralInsforge(
   const dryRun = opts?.dryRun ?? false
   let canceladosDuplicados = 0
   const cancelDetalle: string[] = []
+  const pagoIdsSync = new Set<number>()
 
   const noguera = await cancelarNogueraConstanciaFueraDeTalon12Ago(db, { dryRun })
   canceladosDuplicados += noguera.cancelados
   cancelDetalle.push(...noguera.detalle)
+  for (const id of noguera.excluirPagoIds) pagoIdsSync.add(id)
 
   let plan: PlanReparacionWinston
   try {
@@ -964,6 +971,7 @@ export async function repararFoliosWinstonGeneralInsforge(
     })
     canceladosDuplicados += dup.cancelados
     cancelDetalle.push(...dup.detalle)
+    for (const id of dup.pagoIdsAfectados) pagoIdsSync.add(id)
     if ((canceladosDuplicados > 0 || noguera.cancelados > 0) && !dryRun) {
       plan = await construirPlanReparacionWinston(db, {
         excluirPagoIds: noguera.excluirPagoIds,
@@ -976,6 +984,9 @@ export async function repararFoliosWinstonGeneralInsforge(
 
   const detalle: string[] = [...cancelDetalle]
   let cambios = 0
+
+  for (const s of sombrasFueraDeTalon) pagoIdsSync.add(Number(s.pago_id))
+  for (const c of asignaciones) pagoIdsSync.add(c.pago_id)
 
   if (!dryRun && sombrasFueraDeTalon.length > 0) {
     for (const s of sombrasFueraDeTalon) {
@@ -1022,6 +1033,24 @@ export async function repararFoliosWinstonGeneralInsforge(
       detalle.push(`[dry-run] pago_id=${c.pago_id} ${c.de}→${c.a} (${c.fecha})`)
     }
     cambios = asignaciones.length
+  }
+
+  if (!dryRun && pagoIdsSync.size > 0) {
+    try {
+      const sync = await sincronizarTramitesPorPagoIds(db, [...pagoIdsSync])
+      for (const r of sync.resultados) {
+        if (typeof r.accion === 'object' && r.accion.tipo === 'folio_actualizado') {
+          detalle.push(
+            `CE sync pago_id=${r.pagoId} folio ${r.accion.de}→${r.accion.a}`
+          )
+        } else if (typeof r.accion === 'object' && r.accion.tipo === 'tramite_cancelado') {
+          detalle.push(`CE sync pago_id=${r.pagoId} trámite cancelado (${r.accion.motivo})`)
+        }
+      }
+    } catch (e) {
+      console.error('sync trámites CE tras reparar folios:', e)
+      detalle.push('CE sync: error (ver logs)')
+    }
   }
 
   const audit = await auditarFoliosWinstonGeneral(db)
@@ -1215,6 +1244,15 @@ export async function cancelarRecorrerWinstonGeneralInsforge(
     }
   }
 
+  try {
+    await sincronizarTramitesPorPagoIds(
+      db,
+      aRecorrer.map((p) => Number(p.pago_id))
+    )
+  } catch (e) {
+    console.error('sync trámites CE tras cancelar-recorrer:', e)
+  }
+
   const siguienteFolio = await obtenerSiguienteFolioPago('winston', 'general', db)
   return {
     ok: true,
@@ -1327,6 +1365,15 @@ export async function desplazarWinstonGeneralDesdeInsforge(
         mensaje: `Error al desplazar folio ${fila.pago_folio}: ${shiftErr.message}`,
       }
     }
+  }
+
+  try {
+    await sincronizarTramitesPorPagoIds(
+      db,
+      ordenados.map((p) => Number(p.pago_id))
+    )
+  } catch (e) {
+    console.error('sync trámites CE tras desplazar folios:', e)
   }
 
   const siguienteFolio = await obtenerSiguienteFolioPago('winston', 'general', db)

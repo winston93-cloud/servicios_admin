@@ -50,6 +50,20 @@ async function avisarTramiteControlEscolar(payload: {
   }
 }
 
+async function sincronizarTramitesControlEscolar(pagoIds: number[]): Promise<void> {
+  const ids = pagoIds.filter((id) => Number.isFinite(id) && id > 0)
+  if (!ids.length) return
+  try {
+    await fetch('/api/control-escolar/tramites/sincronizar-pagos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pagoIds: ids }),
+    })
+  } catch (e) {
+    console.error('sincronizar trámite CE:', e)
+  }
+}
+
 async function cancelarTramitesControlEscolar(pagoIds: number[]): Promise<void> {
   const ids = pagoIds.filter((id) => Number.isFinite(id) && id > 0)
   if (!ids.length) return
@@ -1471,6 +1485,8 @@ export async function cancelarPagoInternoYRecorrer(opts: {
       mensaje: `Recorrido hecho, pero falló el stub cancelado del ${folioOrig}: ${insErr.message}`,
     }
   }
+
+  await sincronizarTramitesControlEscolar(filas.map((f) => Number(f.pago_id)))
 
   return {
     ok: true,

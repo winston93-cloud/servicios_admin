@@ -47,6 +47,12 @@ export const PAGO_INTERNO_FOLIO_WINSTON_ZONA_TALON = PAGO_INTERNO_FOLIO_WINSTON_
  */
 export const PAGO_INTERNO_WINSTON_TALON_ACTUAL_DESDE = '2026-01-01'
 
+/**
+ * Folios ≥ este valor están fuera del talón físico (p. ej. 900000 + pago_id).
+ * Duplicados cancelados y stubs de reparación; no deben mostrarse en Control Escolar.
+ */
+export const PAGO_INTERNO_FOLIO_FUERA_TALON_MIN = 900_000
+
 export const PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL = 2849
 /** Exclusivo: a partir de aquí hay folios legacy que no son la serie nueva educativa. */
 export const PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO = 3480
