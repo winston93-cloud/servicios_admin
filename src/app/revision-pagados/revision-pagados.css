@@ -1547,6 +1547,33 @@
   margin-top: 6px;
 }
 
+.rev-pag-grupo-item-status.is-bloqueado {
+  color: #b45309;
+  font-weight: 800;
+}
+
+[data-theme='dark'] .rev-pag-grupo-item-status.is-bloqueado {
+  color: #fcd34d;
+}
+
+.rev-pag-bloqueo-msg {
+  margin: 6px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(217, 119, 6, 0.45);
+  background: rgba(245, 158, 11, 0.14);
+  font-size: clamp(0.9rem, 2.5vw, 1rem);
+  font-weight: 700;
+  line-height: 1.35;
+  color: #b45309;
+}
+
+[data-theme='dark'] .rev-pag-bloqueo-msg {
+  color: #fcd34d;
+  border-color: rgba(252, 211, 77, 0.4);
+  background: rgba(180, 83, 9, 0.22);
+}
+
 .rev-pag-completa-por {
   margin: 4px 0 0;
   font-size: clamp(0.88rem, 2.4vw, 0.98rem);
