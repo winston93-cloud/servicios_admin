@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Loader2,
   RefreshCw,
+  Search,
   XCircle,
 } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -15,14 +16,7 @@ import {
   CicloEscolarProvider,
   useCicloEscolar,
 } from '@/contexts/CicloEscolarContext'
-import AlumnoAutocomplete from '@/app/servicios/components/AlumnoAutocomplete'
-import {
-  grupoALetra,
-  type AlumnoBusquedaResultado,
-} from '@/lib/alumnoBusquedaServicios'
-import type {
-  RevisionInscripcionResultado,
-} from '@/lib/revisionPagadosInscripcion'
+import type { RevisionGrupoResultado } from '@/lib/revisionPagadosGrupo'
 import './revision-pagados.css'
 
 const LOGO_EDUCATIVO = '/logos/logo-winston-educativo.png'
@@ -42,16 +36,16 @@ function RevisionPagadosView() {
     useCicloEscolar()
   const searchWrapRef = useRef<HTMLDivElement>(null)
   const resultadoRef = useRef<HTMLElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  const [alumno, setAlumno] = useState<AlumnoBusquedaResultado | null>(null)
-  const [data, setData] = useState<RevisionInscripcionResultado | null>(null)
+  const [consulta, setConsulta] = useState('')
+  const [data, setData] = useState<RevisionGrupoResultado | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const scrollAlResultado = useCallback(() => {
     const el = resultadoRef.current
     if (!el) return
-    // Cerrar teclado en móvil para que el scroll llegue al veredicto.
     const active = document.activeElement
     if (active instanceof HTMLElement) active.blur()
     window.requestAnimationFrame(() => {
@@ -60,30 +54,34 @@ function RevisionPagadosView() {
   }, [])
 
   useEffect(() => {
-    if (!loading && (data || error)) {
-      scrollAlResultado()
-    }
+    if (!loading && (data || error)) scrollAlResultado()
   }, [loading, data, error, scrollAlResultado])
 
   useEffect(() => {
     if (loading) scrollAlResultado()
   }, [loading, scrollAlResultado])
 
-  const cargar = useCallback(async (a: AlumnoBusquedaResultado) => {
+  const buscarGrupo = useCallback(async (raw: string) => {
+    const grupo = raw.trim()
+    if (!grupo) {
+      setError('Escribe un grupo, por ejemplo 2a o 7b.')
+      setData(null)
+      return
+    }
     setLoading(true)
     setError(null)
     setData(null)
     try {
-      const res = await fetch('/api/revision-pagados/inscripcion', {
+      const res = await fetch('/api/revision-pagados/grupo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ alumnoId: a.alumno_id }),
+        body: JSON.stringify({ grupo }),
       })
       const json = await res.json()
       if (!res.ok || !json.ok) {
-        throw new Error(json.error || 'No se pudo consultar la inscripción.')
+        throw new Error(json.error || 'No se pudo consultar el grupo.')
       }
-      setData(json as RevisionInscripcionResultado)
+      setData(json as RevisionGrupoResultado)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al consultar')
     } finally {
@@ -91,27 +89,21 @@ function RevisionPagadosView() {
     }
   }, [])
 
-  const onSeleccionar = useCallback(
-    (a: AlumnoBusquedaResultado | null) => {
-      setAlumno(a)
-      setError(null)
-      setData(null)
-      if (a) void cargar(a)
+  const onSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault()
+      void buscarGrupo(consulta)
     },
-    [cargar]
+    [buscarGrupo, consulta]
   )
 
   const revisarOtro = useCallback(() => {
-    setAlumno(null)
     setData(null)
     setError(null)
-    // Refocus search for the next child at the gate
+    setConsulta('')
     window.setTimeout(() => {
-      const input = searchWrapRef.current?.querySelector('input')
-      if (input instanceof HTMLInputElement) {
-        input.focus()
-        input.select()
-      }
+      inputRef.current?.focus()
+      inputRef.current?.select()
     }, 50)
   }, [])
 
@@ -177,21 +169,38 @@ function RevisionPagadosView() {
         <section className="rev-pag-panel rev-pag-panel--buscar" ref={searchWrapRef}>
           <header className="rev-pag-panel-head rev-pag-panel-head--inline">
             <span className="rev-pag-panel-step">1</span>
-            <h2 className="rev-pag-panel-title">Búsqueda</h2>
-            <p className="rev-pag-panel-sub">
-              Nombre o No. de control · Maternal A → 9no
-            </p>
+            <h2 className="rev-pag-panel-title">Grupo</h2>
+            <p className="rev-pag-panel-sub">Ejemplo 2a, 5b, 7b · sin nivel</p>
           </header>
-          <div className="rev-pag-search-box">
-            <AlumnoAutocomplete
-              key={alumno?.alumno_id ?? 'empty'}
-              onSeleccionar={onSeleccionar}
-              alumnoSeleccionado={alumno}
-              autoFocus
-              etiqueta="Escribe nombre o No. de control"
-              apiBusqueda="/api/revision-pagados/buscar"
-            />
-          </div>
+
+          <form className="rev-pag-grupo-form" onSubmit={onSubmit}>
+            <label className="rev-pag-grupo-label" htmlFor="rev-pag-grupo-input">
+              Buscar por grupo
+            </label>
+            <div className="rev-pag-grupo-row">
+              <span className="rev-pag-grupo-icon" aria-hidden>
+                <Search size={22} />
+              </span>
+              <input
+                ref={inputRef}
+                id="rev-pag-grupo-input"
+                className="rev-pag-grupo-input"
+                type="search"
+                inputMode="text"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+                autoComplete="off"
+                autoFocus
+                placeholder="2a"
+                value={consulta}
+                onChange={(e) => setConsulta(e.target.value)}
+              />
+              <button type="submit" className="rev-pag-grupo-btn" disabled={loading}>
+                {loading ? 'Buscando…' : 'Ver lista'}
+              </button>
+            </div>
+          </form>
         </section>
 
         <section
@@ -203,14 +212,14 @@ function RevisionPagadosView() {
             <span className="rev-pag-panel-step">2</span>
             <h2 className="rev-pag-panel-title">Resultado</h2>
             <p className="rev-pag-panel-sub">
-              Plantel · inscripción completa o incompleta
+              Verde pagó · Rojo pendiente
             </p>
           </header>
 
           {loading ? (
             <div className="rev-pag-loading" role="status">
               <Loader2 className="rev-pag-spin" size={32} aria-hidden />
-              Consultando inscripción…
+              Cargando grupo…
             </div>
           ) : null}
 
@@ -220,129 +229,101 @@ function RevisionPagadosView() {
             </div>
           ) : null}
 
-          {data ? (
-            <ResultadoInscripcion data={data} onOtro={revisarOtro} />
-          ) : !loading && !error ? (
+          {!loading && !error && !data ? (
             <div className="rev-pag-idle">
-              <p>
-                El resultado aparecerá aquí. Escribe al menos 2 letras o el No.
-                de control.
-              </p>
+              Escribe el grupo (2a, 7b…) y toca Ver lista.
             </div>
           ) : null}
+
+          {data ? <ResultadoGrupo data={data} onOtro={revisarOtro} /> : null}
         </section>
       </main>
     </div>
   )
 }
 
-function ResultadoInscripcion({
+function ResultadoGrupo({
   data,
   onOtro,
 }: {
-  data: RevisionInscripcionResultado
+  data: RevisionGrupoResultado
   onOtro: () => void
 }) {
-  const ok = data.pagado
-  const grupo =
-    data.alumno.grupo != null ? grupoALetra(data.alumno.grupo) : null
-
   return (
-    <section
-      className={`rev-pag-result ${ok ? 'rev-pag-result--ok' : 'rev-pag-result--bad'} rev-pag-result--${data.alumno.plantel}`}
-      aria-live="polite"
-    >
-      <div
-        className={`rev-pag-plantel-banner rev-pag-plantel-banner--${data.alumno.plantel}`}
-      >
-        <Image
-          src={
-            data.alumno.plantel === 'educativo' ? LOGO_EDUCATIVO : LOGO_WINSTON
-          }
-          alt=""
-          width={56}
-          height={42}
-          className={`rev-pag-plantel-banner-logo${data.alumno.plantel === 'winston' ? ' rev-pag-plantel-banner-logo--winston' : ''}`}
-        />
-        <div className="rev-pag-plantel-banner-text">
-          <span className="rev-pag-plantel-banner-kicker">Plantel</span>
-          <strong className="rev-pag-plantel-banner-name">
-            {data.alumno.plantel_label}
-          </strong>
-          <span className="rev-pag-plantel-banner-razon">
-            {data.alumno.plantel_razon}
-          </span>
-        </div>
-      </div>
-
-      <div className="rev-pag-verdict">
-        <div className="rev-pag-verdict-icon" aria-hidden>
-          {ok ? <CheckCircle2 size={56} strokeWidth={1.75} /> : <XCircle size={56} strokeWidth={1.75} />}
-        </div>
-        <div className="rev-pag-verdict-copy">
-          <p className="rev-pag-verdict-label">
-            {ok ? 'Inscripción completa' : 'Inscripción incompleta'}
-          </p>
-          {ok && data.completa_por ? (
-            <p className="rev-pag-completa-por">
-              Completa por concepto{' '}
-              <strong>{data.completa_por}</strong>
-              {data.completa_por === '13'
-                ? ' · Inscripción (pago único)'
-                : ' · Diferido 2'}
+    <div className="rev-pag-grupo-result">
+      <div className="rev-pag-grupo-summary">
+        <div className="rev-pag-grupo-summary-title">
+          <span className="rev-pag-grupo-badge">{data.grupo_etiqueta}</span>
+          <div>
+            <strong>
+              {data.total} alumno{data.total === 1 ? '' : 's'}
+            </strong>
+            <p>
+              Ciclo escolar {data.ciclo_label} · {data.pagados} pagados ·{' '}
+              {data.pendientes} pendientes
             </p>
-          ) : null}
-          <h3 className="rev-pag-name">{data.alumno.nombre_completo}</h3>
-          <p className="rev-pag-meta">
-            <span className="rev-pag-ref">{data.alumno.alumno_ref}</span>
-            <span>
-              {data.alumno.nivel_label} · {data.alumno.grado_label}
-              {grupo ? ` · ${grupo}` : ''}
-            </span>
-            <span>
-              {data.alumno.es_reinscrito ? 'Reinscrito' : 'Nuevo ingreso'}
-            </span>
-          </p>
+          </div>
+        </div>
+        <div className="rev-pag-grupo-counts" aria-hidden>
+          <span className="rev-pag-grupo-count rev-pag-grupo-count--ok">
+            {data.pagados}
+          </span>
+          <span className="rev-pag-grupo-count rev-pag-grupo-count--bad">
+            {data.pendientes}
+          </span>
         </div>
       </div>
 
-      <div className="rev-pag-chips">
-        <span className={`rev-pag-chip ${ok ? 'rev-pag-chip--ok' : 'rev-pag-chip--bad'}`}>
-          {ok ? '✓ Completa' : '✕ Incompleta'}
-        </span>
-        <span className="rev-pag-chip">{data.modalidad_label}</span>
-        <span className="rev-pag-chip rev-pag-chip--muted">
-          Ciclo escolar {data.ciclo_label?.replace(/^Ciclo\s+/i, '') || data.ciclo_inscripcion}
-        </span>
-        {data.tiene_pago_unico ? (
-          <span className="rev-pag-chip rev-pag-chip--ok">13 · Inscripción</span>
-        ) : null}
-        {data.tiene_dif2 ? (
-          <span className="rev-pag-chip rev-pag-chip--ok">12 · Diferido 2</span>
-        ) : null}
-        {data.tiene_dif1 ? (
-          <span
-            className={`rev-pag-chip ${data.tiene_dif2 || data.tiene_pago_unico ? 'rev-pag-chip--ok' : 'rev-pag-chip--warn'}`}
-          >
-            11 · Diferido 1
-          </span>
-        ) : null}
-        {!data.tiene_dif2 && !data.tiene_pago_unico && data.tiene_dif1 ? (
-          <span className="rev-pag-chip rev-pag-chip--bad">Falta 12</span>
-        ) : null}
-        {!data.tiene_dif1 && !data.tiene_dif2 && !data.tiene_pago_unico ? (
-          <span className="rev-pag-chip rev-pag-chip--bad">Falta 13 o 12</span>
-        ) : null}
-      </div>
-
-      <p className="rev-pag-resumen">{data.resumen}</p>
+      {data.alumnos.length === 0 ? (
+        <div className="rev-pag-idle">
+          No hay alumnos activos en el grupo {data.grupo_etiqueta} este ciclo.
+        </div>
+      ) : (
+        <ul className="rev-pag-grupo-lista">
+          {data.alumnos.map((a) => (
+            <li
+              key={a.alumno_id}
+              className={`rev-pag-grupo-item ${a.pagado ? 'rev-pag-grupo-item--ok' : 'rev-pag-grupo-item--bad'}`}
+            >
+              <span className="rev-pag-grupo-item-icon" aria-hidden>
+                {a.pagado ? (
+                  <CheckCircle2 size={28} strokeWidth={1.75} />
+                ) : (
+                  <XCircle size={28} strokeWidth={1.75} />
+                )}
+              </span>
+              <div className="rev-pag-grupo-item-copy">
+                <strong>{a.nombre_completo}</strong>
+                <p>
+                  <span className="rev-pag-ref">{a.alumno_ref}</span>
+                  <span>
+                    {a.nivel_label} · {a.grado_label} {a.grupo_letra}
+                  </span>
+                  <span>{a.plantel_label}</span>
+                </p>
+                <span
+                  className={`rev-pag-grupo-item-status ${a.pagado ? 'is-ok' : 'is-bad'}`}
+                >
+                  {a.pagado
+                    ? a.completa_por === '13'
+                      ? 'Inscripción completa · pago único'
+                      : 'Inscripción completa · diferido 2'
+                    : a.tiene_dif1
+                      ? 'Incompleta · solo diferido 1'
+                      : 'Inscripción incompleta'}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <div className="rev-pag-actions">
         <button type="button" className="rev-pag-btn-otro" onClick={onOtro}>
           <RefreshCw size={18} aria-hidden />
-          Revisar otro alumno
+          Revisar otro grupo
         </button>
       </div>
-    </section>
+    </div>
   )
 }
