@@ -332,11 +332,11 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   },
   {
     label: 'Revisión Pagados/No Pagados',
-    desc: 'Consulta y seguimiento de alumnos con pagos registrados frente a pendientes.',
+    desc: 'Entrada al colegio: verifica inscripción niño por niño (verde pagó / rojo pendiente, con diferidos).',
     path: '/revision-pagados',
     accent: 'sky',
-    kicker: 'Cobranza',
-    tags: ['Pagados', 'Pendientes', 'Revisión'],
+    kicker: 'Entrada',
+    tags: ['Inscripción', 'Pagados', 'Diferidos'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="5" width="20" height="14" rx="2" />

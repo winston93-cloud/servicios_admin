@@ -97,8 +97,8 @@ export const DASHBOARD_MODULE_PREVIEWS: Record<string, DashboardModulePreview> =
   },
   'Revisión Pagados/No Pagados': {
     synopsis:
-      'Panel de revisión de cobranza: distingue quién ya pagó y quién sigue pendiente para dar seguimiento operativo por ciclo y concepto.',
-    highlights: ['Pagados vs pendientes', 'Seguimiento de cobranza', 'Vista operativa'],
+      'Puesto de entrada: busca alumno y ve al instante si la inscripción está pagada (verde) o pendiente (rojo), con detalle de pago único o diferidos.',
+    highlights: ['Búsqueda rápida', 'Verde / rojo al instante', 'Diferidos 1 y 2'],
   },
 }
 
