@@ -53,36 +53,76 @@ export type RevisionGrupoResultado = {
 
 
 /**
- * Guía de códigos para la entrada (Maternal → 9°).
+ * Guía de códigos para la entrada (Maternal → 9° C).
  */
 export const GUIA_CODIGOS_GRUPO_ENTRADA: Array<{
+  id: 'maternal' | 'kinder' | 'primaria' | 'secundaria'
   nivel: string
   plantel: string
+  /** Coincide con alumno_nivel (1–4). */
+  nivel_num: number
   ejemplos: string[]
   nota: string
 }> = [
   {
+    id: 'maternal',
     nivel: 'Maternal',
     plantel: 'Educativo',
+    nivel_num: 1,
     ejemplos: ['MA', 'MB'],
     nota: 'Maternal A y Maternal B (salón completo).',
   },
   {
+    id: 'kinder',
     nivel: 'Kinder',
     plantel: 'Educativo',
+    nivel_num: 2,
     ejemplos: ['K1A', 'K1B', 'K2A', 'K2B', 'K3A', 'K3B'],
     nota: 'K + grado (1–3) + letra del grupo.',
   },
   {
+    id: 'primaria',
     nivel: 'Primaria',
     plantel: 'Winston',
-    ejemplos: ['1A', '1B', '1C', '2A', '3A', '4A', '5A', '6A', '6B', '6C'],
+    nivel_num: 3,
+    ejemplos: [
+      '1A',
+      '1B',
+      '1C',
+      '2A',
+      '2B',
+      '2C',
+      '3A',
+      '3B',
+      '3C',
+      '4A',
+      '4B',
+      '4C',
+      '5A',
+      '5B',
+      '5C',
+      '6A',
+      '6B',
+      '6C',
+    ],
     nota: 'Grado (1–6) + letra. Sin K.',
   },
   {
+    id: 'secundaria',
     nivel: 'Secundaria',
     plantel: 'Winston',
-    ejemplos: ['7A', '7B', '8A', '8B', '9A', '9B'],
+    nivel_num: 4,
+    ejemplos: [
+      '7A',
+      '7B',
+      '7C',
+      '8A',
+      '8B',
+      '8C',
+      '9A',
+      '9B',
+      '9C',
+    ],
     nota: '7 = 7mo, 8 = 8vo, 9 = 9no + letra.',
   },
 ]

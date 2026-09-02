@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   ArrowLeft,
   CheckCircle2,
-  CircleHelp,
+  Layers3,
   Loader2,
   RefreshCw,
   Search,
@@ -460,6 +460,14 @@ function RevisionPagadosView() {
                   <UserRoundSearch size={18} aria-hidden />
                   Individual
                 </button>
+                <button
+                  type="button"
+                  className="rev-pag-grupo-btn rev-pag-grupo-btn--guia"
+                  onClick={() => setGuiaAbierta(true)}
+                >
+                  <Layers3 size={18} aria-hidden />
+                  Ver Grado/Grupo
+                </button>
               </div>
               {sugerenciasAbiertas && sugerencias.length > 0 ? (
                 <div className="rev-pag-grupo-ac-panel" role="presentation">
@@ -513,16 +521,8 @@ function RevisionPagadosView() {
                 </div>
               ) : (
                 <p className="rev-pag-grupo-hint">
-                  <button
-                    type="button"
-                    className="rev-pag-guia-link"
-                    onClick={() => setGuiaAbierta(true)}
-                  >
-                    <CircleHelp size={16} aria-hidden />
-                    Cómo se escriben (Maternal → 9A)
-                  </button>
-                  <span aria-hidden> · </span>
-                  Escribe y elige con mouse o teclas
+                  Escribe el código (ej. K2A) o abre <strong>Ver Grado/Grupo</strong>{' '}
+                  para elegir Maternal → 9C.
                 </p>
               )}
             </form>
@@ -640,8 +640,8 @@ function GuiaCodigosModal({
       >
         <header className="rev-pag-guia-head">
           <div>
-            <p className="rev-pag-guia-kicker">Entrada al colegio</p>
-            <h2 id="rev-pag-guia-title">Cómo se escriben grado y grupo</h2>
+            <p className="rev-pag-guia-kicker">Orden de entrada</p>
+            <h2 id="rev-pag-guia-title">Grado / Grupo</h2>
           </div>
           <button
             type="button"
@@ -653,14 +653,49 @@ function GuiaCodigosModal({
           </button>
         </header>
         <p className="rev-pag-guia-lead">
-          Toca un código para buscar ese salón. Maternal A → 9A.
+          Maternal A → 9° C. Toca un código para abrir ese salón.
         </p>
-        <div className="rev-pag-guia-body">
+        <nav className="rev-pag-guia-nav" aria-label="Niveles">
           {GUIA_CODIGOS_GRUPO_ENTRADA.map((bloque) => (
-            <section key={bloque.nivel} className="rev-pag-guia-bloque">
+            <button
+              key={bloque.id}
+              type="button"
+              className={`rev-pag-guia-nav-chip rev-pag-guia-nav-chip--n${bloque.nivel_num}`}
+              onClick={() => {
+                document
+                  .getElementById(`rev-pag-guia-${bloque.id}`)
+                  ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }}
+            >
+              {bloque.nivel}
+            </button>
+          ))}
+        </nav>
+        <div className="rev-pag-guia-body">
+          {GUIA_CODIGOS_GRUPO_ENTRADA.map((bloque, i) => (
+            <section
+              key={bloque.id}
+              id={`rev-pag-guia-${bloque.id}`}
+              className={`rev-pag-guia-bloque rev-pag-guia-bloque--n${bloque.nivel_num}`}
+            >
               <header className="rev-pag-guia-bloque-head">
-                <strong>{bloque.nivel}</strong>
-                <span>{bloque.plantel}</span>
+                <div className="rev-pag-guia-bloque-title">
+                  <span
+                    className={`rev-pag-guia-bloque-index rev-pag-guia-bloque-index--n${bloque.nivel_num}`}
+                    aria-hidden
+                  >
+                    {i + 1}
+                  </span>
+                  <div>
+                    <strong>{bloque.nivel}</strong>
+                    <span className="rev-pag-guia-bloque-plantel">
+                      {bloque.plantel}
+                    </span>
+                  </div>
+                </div>
+                <span className="rev-pag-guia-bloque-count">
+                  {bloque.ejemplos.length} códigos
+                </span>
               </header>
               <p>{bloque.nota}</p>
               <div className="rev-pag-guia-chips">
@@ -668,7 +703,7 @@ function GuiaCodigosModal({
                   <button
                     key={codigo}
                     type="button"
-                    className="rev-pag-guia-chip"
+                    className={`rev-pag-guia-chip rev-pag-guia-chip--n${bloque.nivel_num}`}
                     onClick={() => onElegir(codigo)}
                   >
                     {codigo}
