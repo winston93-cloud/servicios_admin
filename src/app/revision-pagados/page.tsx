@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -41,11 +41,33 @@ function RevisionPagadosView() {
   const { cicloInscripcionSistema, etiquetaCicloInscripcionSistema } =
     useCicloEscolar()
   const searchWrapRef = useRef<HTMLDivElement>(null)
+  const resultadoRef = useRef<HTMLElement>(null)
 
   const [alumno, setAlumno] = useState<AlumnoBusquedaResultado | null>(null)
   const [data, setData] = useState<RevisionInscripcionResultado | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const scrollAlResultado = useCallback(() => {
+    const el = resultadoRef.current
+    if (!el) return
+    // Cerrar teclado en móvil para que el scroll llegue al veredicto.
+    const active = document.activeElement
+    if (active instanceof HTMLElement) active.blur()
+    window.requestAnimationFrame(() => {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!loading && (data || error)) {
+      scrollAlResultado()
+    }
+  }, [loading, data, error, scrollAlResultado])
+
+  useEffect(() => {
+    if (loading) scrollAlResultado()
+  }, [loading, scrollAlResultado])
 
   const cargar = useCallback(async (a: AlumnoBusquedaResultado) => {
     setLoading(true)
@@ -172,7 +194,11 @@ function RevisionPagadosView() {
           </div>
         </section>
 
-        <section className="rev-pag-panel rev-pag-panel--resultado" aria-live="polite">
+        <section
+          ref={resultadoRef}
+          className="rev-pag-panel rev-pag-panel--resultado"
+          aria-live="polite"
+        >
           <header className="rev-pag-panel-head rev-pag-panel-head--inline">
             <span className="rev-pag-panel-step">2</span>
             <h2 className="rev-pag-panel-title">Resultado</h2>

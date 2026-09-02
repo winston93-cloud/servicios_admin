@@ -241,6 +241,7 @@
 .rev-pag-panel--resultado {
   border-style: solid;
   background: color-mix(in srgb, var(--card) 88%, transparent);
+  scroll-margin-top: calc(56px + var(--rev-safe-t));
 }
 
 .rev-pag-panel-head {
