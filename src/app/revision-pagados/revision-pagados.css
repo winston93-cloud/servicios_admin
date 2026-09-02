@@ -131,7 +131,7 @@
 }
 
 .rev-pag-hero {
-  margin-bottom: 10px;
+  margin-bottom: 0;
 }
 
 .rev-pag-hero-line {
@@ -223,7 +223,7 @@
 .rev-pag-panel {
   position: relative;
   z-index: 1;
-  margin-top: 10px;
+  margin-top: 6px;
   border-radius: 18px;
   border: 1px solid var(--rev-line);
   background: var(--rev-card);
@@ -234,6 +234,7 @@
 
 .rev-pag-panel--buscar {
   z-index: 25;
+  margin-top: 4px;
   border-color: color-mix(in srgb, var(--primary) 28%, var(--rev-line));
 }
 
@@ -1011,7 +1012,7 @@
 /* Landscape móvil: menos padding superior, resultado compacto */
 @media (max-height: 500px) and (orientation: landscape) {
   .rev-pag-hero {
-    margin-bottom: 8px;
+    margin-bottom: 0;
   }
 
   .rev-pag-rule {
