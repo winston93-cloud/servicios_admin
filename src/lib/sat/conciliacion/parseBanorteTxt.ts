@@ -16,12 +16,18 @@ export type MovimientoBanorte = {
   beneficiario: string
 }
 
-const RFC_RE = /RFC:\s*([A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3})/i
+const RFC_PATTERNS = [
+  /RFC:\s*([A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3})/i,
+  /R\.?\s*F\.?\s*C\.?\s*[.:]?\s*([A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3})/i,
+] as const
 const BENEF_RE = /BENEF:([^,]+)/i
 
-function extraerRfc(detalle: string): string {
-  const m = detalle.match(RFC_RE)
-  return m ? m[1].toUpperCase() : ''
+export function extraerRfcBanorte(detalle: string): string {
+  for (const re of RFC_PATTERNS) {
+    const m = detalle.match(re)
+    if (m?.[1]) return m[1].toUpperCase()
+  }
+  return ''
 }
 
 function extraerBeneficiario(detalle: string): string {
@@ -68,7 +74,7 @@ export function leerBanorteTxt(buffer: Buffer): MovimientoBanorte[] {
       retiro,
       movimiento: get('Movimiento'),
       detalle,
-      rfc: extraerRfc(detalle),
+      rfc: extraerRfcBanorte(detalle),
       beneficiario: extraerBeneficiario(detalle) || descripcion,
     })
   }
@@ -80,7 +86,24 @@ export function leerBanorteTxt(buffer: Buffer): MovimientoBanorte[] {
 }
 
 export function movimientosPagoBanorte(movs: MovimientoBanorte[]): MovimientoBanorte[] {
-  return movs.filter((m) => m.retiro > 0)
+  return movs.filter(esRetiroPagoProveedor)
+}
+
+/** Retiros que pueden ser pago a proveedor (excluye comisiones, IVA banco, depósitos). */
+export function esRetiroPagoProveedor(m: MovimientoBanorte): boolean {
+  if (m.retiro <= 0) return false
+  const t = `${m.descripcion} ${m.detalle} ${m.codTransac}`.toUpperCase()
+  if (
+    /COMISION|IVA COMISION|IVA ORDEN|I\.V\.A\. ORDEN|TRANSFERENCIA - ENVIO|DEPOSITO REFERENCIADO|CONCENTRACION DE PAGOS|INST WINSTON|CARGO DIARIO/.test(
+      t
+    )
+  ) {
+    return false
+  }
+  if (['600', '601', '517', '537'].includes(m.codTransac) && /COMISION|IVA|TRANSFERENCIA - ENVIO/.test(t)) {
+    return false
+  }
+  return true
 }
 
 export function fechaMovimientoBanorte(m: MovimientoBanorte): Date | null {

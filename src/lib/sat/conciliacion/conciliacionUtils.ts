@@ -1,4 +1,7 @@
-const TOLERANCIA_MONTO = 0.05
+/** Centavos fijos para RFC/UUID; flexible solo si ya hubo coincidencia de nombre. */
+const TOLERANCIA_MONTO_ESTRICTA = 0.05
+const TOLERANCIA_MONTO_FLEX_PROP = 0.002
+const TOLERANCIA_MONTO_FLEX_TOPE = 0.2
 
 export function parseMoneyMx(raw: string | number | null | undefined): number {
   if (raw == null || raw === '') return 0
@@ -45,15 +48,49 @@ export function tokensNombre(raw: string | null | undefined, minLen = 4): string
     .filter((t) => t.length >= minLen && !stop.has(t))
 }
 
+const ALIAS_COMERCIO: Record<string, string[]> = {
+  CHEDRAUI: ['TIENDAS CHEDRAUI', 'CHEDRAUI'],
+  SORIANA: ['TIENDAS SORIANA', 'CITYCLUB', 'CITY CLUB'],
+  MERCADOPAGO: ['MERCADOPAGO', 'MERPAGO', 'MERCADOL', 'MERCADOLIBRE'],
+  PAYPAL: ['PAYPAL', 'PAY PAL'],
+  PARISINA: ['GRUPO PARISINA', 'PARISINA'],
+  GOLFO: ['M N DEL GOLFO', 'MN DEL GOLF', 'FERRETERIA MN'],
+}
+
+function tokensConAlias(raw: string): string[] {
+  const base = tokensNombre(raw, 3)
+  const norm = normalizarTexto(raw)
+  const extra: string[] = []
+  for (const [key, aliases] of Object.entries(ALIAS_COMERCIO)) {
+    if (aliases.some((a) => norm.includes(normalizarTexto(a)))) extra.push(key)
+  }
+  return [...new Set([...base, ...extra])]
+}
+
 export function nombresCoinciden(a: string, b: string): boolean {
-  const ta = tokensNombre(a, 4)
-  const tb = tokensNombre(b, 4)
+  const ta = tokensConAlias(a)
+  const tb = tokensConAlias(b)
   if (!ta.length || !tb.length) return false
   return ta.some((t) => tb.some((u) => u.includes(t) || t.includes(u)))
 }
 
-export function montosCoinciden(a: number, b: number): boolean {
-  return Math.abs(a - b) <= TOLERANCIA_MONTO
+export function toleranciaMonto(monto: number, flexible = false): number {
+  if (!flexible) return TOLERANCIA_MONTO_ESTRICTA
+  const abs = Math.abs(monto)
+  if (abs < 500) return 0.15
+  return Math.min(
+    TOLERANCIA_MONTO_FLEX_TOPE,
+    Math.max(TOLERANCIA_MONTO_ESTRICTA, abs * TOLERANCIA_MONTO_FLEX_PROP)
+  )
+}
+
+export function montosCoinciden(a: number, b: number, flexible = false): boolean {
+  const ref = Math.max(Math.abs(a), Math.abs(b))
+  return Math.abs(a - b) <= toleranciaMonto(ref, flexible)
+}
+
+export function normalizarComercioClara(raw: string): string {
+  return normalizarTexto(raw).replace(/PAY\s+PAL/g, 'PAYPAL')
 }
 
 export function parseCsvLine(line: string): string[] {

@@ -225,8 +225,9 @@ export default function FacturacionConciliacionView() {
             No localizadas, y movimientos de Clara/Banorte sin factura asociada.
           </p>
           <p>
-            <strong>Criterios:</strong> UUID en Clara → RFC+monto en Banorte → monto+comercio en
-            Clara → monto+beneficiario en Banorte.
+            <strong>Criterios:</strong> UUID en Clara → RFC+monto en Banorte (incl. traspasos
+            SPEI) → monto+comercio en Clara → monto único en Clara → monto+proveedor en Banorte.
+            Confianza <strong>baja</strong> = solo coincidió el monto (revisar manualmente).
           </p>
         </div>
       </div>

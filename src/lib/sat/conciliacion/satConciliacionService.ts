@@ -1,5 +1,9 @@
-import type { MovimientoBanorte } from './parseBanorteTxt'
-import { fechaMovimientoBanorte } from './parseBanorteTxt'
+import {
+  esRetiroPagoProveedor,
+  extraerRfcBanorte,
+  fechaMovimientoBanorte,
+  type MovimientoBanorte,
+} from './parseBanorteTxt'
 import type { MovimientoClara } from './parseClaraCsv'
 import { fechaMovimientoClara } from './parseClaraCsv'
 import type { CfdiExcelFila } from './parseCfdiRecibidosExcel'
@@ -8,6 +12,7 @@ import {
   diasEntre,
   formatoFechaCorta,
   montosCoinciden,
+  normalizarComercioClara,
   normalizarUuid,
   nombresCoinciden,
   parseFechaCfdi,
@@ -64,6 +69,40 @@ type MatchInterno = {
   detalle: string
 }
 
+function rfcBanorteMovimiento(m: MovimientoBanorte): string {
+  return (m.rfc || extraerRfcBanorte(m.detalle)).toUpperCase()
+}
+
+function claveClaraDedupe(c: MovimientoClara): string {
+  return `${normalizarComercioClara(c.transaccion)}|${c.montoMxn.toFixed(2)}|${c.fecha.slice(0, 10)}`
+}
+
+function dedupeClara(candidatos: MovimientoClara[]): MovimientoClara[] {
+  const vistos = new Set<string>()
+  const out: MovimientoClara[] = []
+  for (const c of candidatos) {
+    const k = claveClaraDedupe(c)
+    if (vistos.has(k)) continue
+    vistos.add(k)
+    out.push(c)
+  }
+  return out
+}
+
+function filtrarPorFechaUnica<T>(
+  candidatos: T[],
+  fechaFactura: Date | null,
+  fechaDe: (item: T) => Date | null
+): T[] {
+  if (!fechaFactura || candidatos.length <= 1) return candidatos
+  const enVentana = candidatos.filter((item) => {
+    const fp = fechaDe(item)
+    const dias = diasEntre(fechaFactura, fp)
+    return dias != null && dias <= 45
+  })
+  return enVentana.length === 1 ? enVentana : candidatos
+}
+
 function textoMovimientoClara(m: MovimientoClara): string {
   return `${m.transaccion} · ${m.fecha} · $${m.montoMxn.toFixed(2)}`
 }
@@ -88,31 +127,53 @@ function buscarBanorteRfcMonto(
   rfc: string,
   monto: number,
   banorte: MovimientoBanorte[],
-  usados: Set<string>
+  usados: Set<string>,
+  fechaFactura: Date | null = null
 ): MovimientoBanorte | null {
   if (!rfc) return null
   const rfcU = rfc.toUpperCase()
-  return (
-    banorte.find(
-      (b) =>
-        !usados.has(b.id) &&
-        b.rfc === rfcU &&
-        montosCoinciden(b.retiro, monto)
-    ) ?? null
+  let candidatos = banorte.filter(
+    (b) =>
+      !usados.has(b.id) &&
+      rfcBanorteMovimiento(b) === rfcU &&
+      montosCoinciden(b.retiro, monto)
   )
+  candidatos = filtrarPorFechaUnica(candidatos, fechaFactura, fechaMovimientoBanorte)
+  if (candidatos.length === 1) return candidatos[0]
+  return candidatos[0] ?? null
 }
 
 function buscarClaraMontoNombre(
   factura: CfdiExcelFila,
   clara: MovimientoClara[],
-  usados: Set<string>
+  usados: Set<string>,
+  fechaFactura: Date | null
 ): MovimientoClara | null {
-  const candidatos = clara.filter(
-    (c) =>
-      !usados.has(c.id) &&
-      montosCoinciden(c.montoMxn, factura.total) &&
-      nombresCoinciden(c.transaccion, factura.emisorNombre)
+  let candidatos = dedupeClara(
+    clara.filter(
+      (c) =>
+        !usados.has(c.id) &&
+        montosCoinciden(c.montoMxn, factura.total, true) &&
+        nombresCoinciden(c.transaccion, factura.emisorNombre)
+    )
   )
+  candidatos = filtrarPorFechaUnica(candidatos, fechaFactura, fechaMovimientoClara)
+  if (candidatos.length === 1) return candidatos[0]
+  return null
+}
+
+function buscarClaraSoloMonto(
+  factura: CfdiExcelFila,
+  clara: MovimientoClara[],
+  usados: Set<string>,
+  fechaFactura: Date | null
+): MovimientoClara | null {
+  let candidatos = dedupeClara(
+    clara.filter(
+      (c) => !usados.has(c.id) && montosCoinciden(c.montoMxn, factura.total)
+    )
+  )
+  candidatos = filtrarPorFechaUnica(candidatos, fechaFactura, fechaMovimientoClara)
   if (candidatos.length === 1) return candidatos[0]
   return null
 }
@@ -123,29 +184,27 @@ function buscarBanorteMontoNombre(
   usados: Set<string>,
   fechaFactura: Date | null
 ): MovimientoBanorte | null {
+  const rfcU = factura.emisorRfc.toUpperCase()
   let candidatos = banorte.filter(
     (b) =>
       !usados.has(b.id) &&
-      montosCoinciden(b.retiro, factura.total) &&
+      montosCoinciden(b.retiro, factura.total, true) &&
       (nombresCoinciden(b.beneficiario, factura.emisorNombre) ||
         nombresCoinciden(b.descripcion, factura.emisorNombre) ||
-        (factura.emisorRfc && b.rfc === factura.emisorRfc.toUpperCase()))
+        (rfcU && rfcBanorteMovimiento(b) === rfcU))
   )
 
   if (!candidatos.length) {
     candidatos = banorte.filter(
       (b) => !usados.has(b.id) && montosCoinciden(b.retiro, factura.total)
     )
+    if (rfcU && candidatos.length > 1) {
+      const porRfc = candidatos.filter((b) => rfcBanorteMovimiento(b) === rfcU)
+      if (porRfc.length >= 1) candidatos = porRfc
+    }
   }
 
-  if (fechaFactura && candidatos.length > 1) {
-    const enVentana = candidatos.filter((b) => {
-      const fb = fechaMovimientoBanorte(b)
-      const dias = diasEntre(fechaFactura, fb)
-      return dias != null && dias <= 45
-    })
-    if (enVentana.length === 1) candidatos = enVentana
-  }
+  candidatos = filtrarPorFechaUnica(candidatos, fechaFactura, fechaMovimientoBanorte)
 
   if (candidatos.length === 1) return candidatos[0]
   return null
@@ -175,7 +234,8 @@ function intentarMatch(
     factura.emisorRfc,
     factura.total,
     banorte,
-    usadosBanorte
+    usadosBanorte,
+    fechaFactura
   )
   if (banorteRfc) {
     return {
@@ -186,13 +246,28 @@ function intentarMatch(
     }
   }
 
-  const claraNombre = buscarClaraMontoNombre(factura, clara, usadosClara)
+  const claraNombre = buscarClaraMontoNombre(
+    factura,
+    clara,
+    usadosClara,
+    fechaFactura
+  )
   if (claraNombre) {
     return {
       fuente: 'Clara',
       confianza: 'media',
       clara: claraNombre,
       detalle: `Monto y comercio en Clara: ${textoMovimientoClara(claraNombre)}`,
+    }
+  }
+
+  const claraMonto = buscarClaraSoloMonto(factura, clara, usadosClara, fechaFactura)
+  if (claraMonto) {
+    return {
+      fuente: 'Clara',
+      confianza: 'baja',
+      clara: claraMonto,
+      detalle: `Monto único en Clara (sin coincidencia de nombre): ${textoMovimientoClara(claraMonto)}`,
     }
   }
 
@@ -204,7 +279,9 @@ function intentarMatch(
   )
   if (banorteNombre) {
     const confianza: ConfianzaConciliacion =
-      banorteNombre.rfc === factura.emisorRfc.toUpperCase() ? 'alta' : 'media'
+      rfcBanorteMovimiento(banorteNombre) === factura.emisorRfc.toUpperCase()
+        ? 'alta'
+        : 'media'
     return {
       fuente: 'Banorte',
       confianza,
@@ -223,7 +300,7 @@ export function ejecutarConciliacion(opts: {
   nombres: { cfdi: string; banorte: string; clara: string }
 }): ResultadoConciliacion {
   const facturas = filtrarFacturasConciliacion(opts.cfdiFilas)
-  const banortePagos = opts.banorte.filter((b) => b.retiro > 0)
+  const banortePagos = opts.banorte.filter(esRetiroPagoProveedor)
   const usadosClara = new Set<string>()
   const usadosBanorte = new Set<string>()
   const filas: FilaConciliacion[] = []
