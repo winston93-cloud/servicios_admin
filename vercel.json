@@ -4,6 +4,19 @@
       "NODE_VERSION": "20"
     }
   },
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "servicios-admin.vercel.app"
+        }
+      ],
+      "destination": "https://servicios.winston93.edu.mx/:path*",
+      "permanent": true
+    }
+  ],
   "crons": [
     {
       "path": "/api/cron/recordatorio-liberacion-docs",
