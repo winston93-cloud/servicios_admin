@@ -16,11 +16,30 @@ import {
   CicloEscolarProvider,
   useCicloEscolar,
 } from '@/contexts/CicloEscolarContext'
-import type { RevisionGrupoResultado } from '@/lib/revisionPagadosGrupo'
+import type {
+  GrupoEntradaOpcion,
+  RevisionGrupoResultado,
+} from '@/lib/revisionPagadosGrupo'
 import './revision-pagados.css'
 
 const LOGO_EDUCATIVO = '/logos/logo-winston-educativo.png'
 const LOGO_WINSTON = '/logos/logo-winston-w.png'
+
+function normalizarCodigoGrupo(raw: string): string {
+  return String(raw ?? '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, '')
+}
+
+function filtrarGrupos(
+  grupos: GrupoEntradaOpcion[],
+  consulta: string
+): GrupoEntradaOpcion[] {
+  const q = normalizarCodigoGrupo(consulta)
+  if (!q) return grupos.slice(0, 12)
+  return grupos.filter((g) => g.codigo.startsWith(q)).slice(0, 12)
+}
 
 export default function RevisionPagadosPage() {
   // Acceso directo (entrada al colegio): sin login; URL pública bookmarkable.
@@ -37,11 +56,34 @@ function RevisionPagadosView() {
   const searchWrapRef = useRef<HTMLDivElement>(null)
   const resultadoRef = useRef<HTMLElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const listboxId = 'rev-pag-grupo-listbox'
 
   const [consulta, setConsulta] = useState('')
+  const [gruposCatalogo, setGruposCatalogo] = useState<GrupoEntradaOpcion[]>([])
+  const [sugerenciasAbiertas, setSugerenciasAbiertas] = useState(false)
+  const [indiceActivo, setIndiceActivo] = useState(0)
   const [data, setData] = useState<RevisionGrupoResultado | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const sugerencias = filtrarGrupos(gruposCatalogo, consulta)
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      try {
+        const res = await fetch('/api/revision-pagados/grupos')
+        const json = await res.json()
+        if (!res.ok || !json.ok || cancelled) return
+        setGruposCatalogo((json.grupos ?? []) as GrupoEntradaOpcion[])
+      } catch {
+        /* catálogo opcional: se puede escribir el grupo a mano */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const scrollAlResultado = useCallback(() => {
     const el = resultadoRef.current
@@ -63,12 +105,14 @@ function RevisionPagadosView() {
   }, [loading, scrollAlResultado])
 
   const buscarGrupo = useCallback(async (raw: string) => {
-    const grupo = raw.trim()
+    const grupo = normalizarCodigoGrupo(raw)
     if (!grupo) {
       setError('Escribe un grupo, por ejemplo 2a o 7b.')
       setData(null)
       return
     }
+    setConsulta(grupo)
+    setSugerenciasAbiertas(false)
     setLoading(true)
     setError(null)
     setData(null)
@@ -90,18 +134,90 @@ function RevisionPagadosView() {
     }
   }, [])
 
+  const elegirSugerencia = useCallback(
+    (opcion: GrupoEntradaOpcion) => {
+      void buscarGrupo(opcion.codigo)
+    },
+    [buscarGrupo]
+  )
+
+  const resolverEnter = useCallback(() => {
+    const q = normalizarCodigoGrupo(consulta)
+    if (!q) {
+      setError('Escribe un grupo, por ejemplo 2a o 7b.')
+      return
+    }
+    const exacta = gruposCatalogo.find((g) => g.codigo === q)
+    if (exacta) {
+      void buscarGrupo(exacta.codigo)
+      return
+    }
+    if (sugerencias.length === 1) {
+      void buscarGrupo(sugerencias[0].codigo)
+      return
+    }
+    if (
+      sugerenciasAbiertas &&
+      sugerencias.length > 0 &&
+      indiceActivo >= 0 &&
+      indiceActivo < sugerencias.length
+    ) {
+      void buscarGrupo(sugerencias[indiceActivo].codigo)
+      return
+    }
+    // Si el patrón es válido aunque no esté en catálogo, igual consulta.
+    void buscarGrupo(q)
+  }, [
+    buscarGrupo,
+    consulta,
+    gruposCatalogo,
+    indiceActivo,
+    sugerencias,
+    sugerenciasAbiertas,
+  ])
+
   const onSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault()
-      void buscarGrupo(consulta)
+      resolverEnter()
     },
-    [buscarGrupo, consulta]
+    [resolverEnter]
+  )
+
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'ArrowDown') {
+        if (!sugerencias.length) return
+        e.preventDefault()
+        setSugerenciasAbiertas(true)
+        setIndiceActivo((i) => (i + 1) % sugerencias.length)
+        return
+      }
+      if (e.key === 'ArrowUp') {
+        if (!sugerencias.length) return
+        e.preventDefault()
+        setSugerenciasAbiertas(true)
+        setIndiceActivo((i) => (i - 1 + sugerencias.length) % sugerencias.length)
+        return
+      }
+      if (e.key === 'Escape') {
+        setSugerenciasAbiertas(false)
+        return
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        resolverEnter()
+      }
+    },
+    [resolverEnter, sugerencias]
   )
 
   const revisarOtro = useCallback(() => {
     setData(null)
     setError(null)
     setConsulta('')
+    setSugerenciasAbiertas(false)
+    setIndiceActivo(0)
     window.setTimeout(() => {
       inputRef.current?.focus()
       inputRef.current?.select()
@@ -182,22 +298,71 @@ function RevisionPagadosView() {
               <span className="rev-pag-grupo-icon" aria-hidden>
                 <Search size={22} />
               </span>
-              <input
-                ref={inputRef}
-                id="rev-pag-grupo-input"
-                className="rev-pag-grupo-input"
-                type="search"
-                inputMode="text"
-                enterKeyHint="search"
-                autoCapitalize="characters"
-                autoCorrect="off"
-                spellCheck={false}
-                autoComplete="off"
-                autoFocus
-                placeholder="Ej. 2a o 7b"
-                value={consulta}
-                onChange={(e) => setConsulta(e.target.value.toUpperCase())}
-              />
+              <div className="rev-pag-grupo-ac">
+                <input
+                  ref={inputRef}
+                  id="rev-pag-grupo-input"
+                  className="rev-pag-grupo-input"
+                  type="search"
+                  role="combobox"
+                  aria-expanded={sugerenciasAbiertas && sugerencias.length > 0}
+                  aria-controls={listboxId}
+                  aria-autocomplete="list"
+                  aria-activedescendant={
+                    sugerenciasAbiertas && sugerencias[indiceActivo]
+                      ? `${listboxId}-${indiceActivo}`
+                      : undefined
+                  }
+                  inputMode="text"
+                  enterKeyHint="search"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  autoComplete="off"
+                  autoFocus
+                  placeholder="Ej. 2a o 7b"
+                  value={consulta}
+                  onChange={(e) => {
+                    const next = normalizarCodigoGrupo(e.target.value)
+                    setConsulta(next)
+                    setSugerenciasAbiertas(true)
+                    setIndiceActivo(0)
+                  }}
+                  onFocus={() => setSugerenciasAbiertas(true)}
+                  onBlur={() => {
+                    window.setTimeout(() => setSugerenciasAbiertas(false), 150)
+                  }}
+                  onKeyDown={onKeyDown}
+                />
+                {sugerenciasAbiertas && sugerencias.length > 0 ? (
+                  <ul
+                    id={listboxId}
+                    className="rev-pag-grupo-sugerencias"
+                    role="listbox"
+                    aria-label="Grupos encontrados"
+                  >
+                    {sugerencias.map((g, idx) => (
+                      <li key={g.codigo} role="presentation">
+                        <button
+                          type="button"
+                          id={`${listboxId}-${idx}`}
+                          role="option"
+                          aria-selected={idx === indiceActivo}
+                          className={`rev-pag-grupo-sugerencia${idx === indiceActivo ? ' is-active' : ''}`}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => elegirSugerencia(g)}
+                        >
+                          <strong>{g.codigo}</strong>
+                          <span>
+                            {g.alumnos} alumno{g.alumnos === 1 ? '' : 's'}
+                            {g.niveles.length ? ` · ${g.niveles.join(' / ')}` : ''}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
               <button
                 type="submit"
                 className="rev-pag-grupo-btn"
@@ -207,6 +372,9 @@ function RevisionPagadosView() {
                 {loading ? 'Buscando…' : 'Ver lista'}
               </button>
             </div>
+            <p className="rev-pag-grupo-hint">
+              Escribe el grado y elige el grupo · Enter despliega la lista
+            </p>
           </form>
         </section>
 

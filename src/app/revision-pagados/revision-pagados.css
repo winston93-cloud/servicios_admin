@@ -395,12 +395,20 @@
   min-width: 0;
 }
 
+.rev-pag-grupo-ac {
+  position: relative;
+  flex: 1 1 140px;
+  min-width: 0;
+  z-index: 20;
+}
+
 .rev-pag-grupo-icon {
   display: none;
 }
 
 .rev-pag-grupo-input {
-  flex: 1 1 140px;
+  width: 100%;
+  box-sizing: border-box;
   min-width: 0;
   min-height: var(--touch-min, 44px);
   height: 56px;
@@ -416,6 +424,67 @@
   text-transform: uppercase;
   -webkit-appearance: none;
   appearance: none;
+}
+
+.rev-pag-grupo-sugerencias {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  max-height: min(48dvh, 320px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  border-radius: 14px;
+  border: 1px solid var(--rev-line);
+  background: color-mix(in srgb, var(--card) 96%, var(--bg));
+  box-shadow: 0 16px 36px rgba(12, 24, 48, 0.22);
+}
+
+.rev-pag-grupo-sugerencia {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--rev-ink);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.rev-pag-grupo-sugerencia strong {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.rev-pag-grupo-sugerencia span {
+  font-size: 0.78rem;
+  color: var(--rev-muted);
+}
+
+.rev-pag-grupo-sugerencia.is-active,
+.rev-pag-grupo-sugerencia:hover {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+.rev-pag-grupo-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--rev-muted);
+  line-height: 1.3;
 }
 
 .rev-pag-grupo-input::placeholder {
@@ -1229,8 +1298,12 @@
     justify-content: flex-start;
   }
 
-  .rev-pag-grupo-input {
+  .rev-pag-grupo-ac {
     flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .rev-pag-grupo-input {
     width: 100%;
     height: 56px;
     font-size: 16px;
@@ -1322,8 +1395,11 @@
     padding: 10px 16px 32px;
   }
 
-  .rev-pag-grupo-input {
+  .rev-pag-grupo-ac {
     flex: 1 1 180px;
+  }
+
+  .rev-pag-grupo-input {
     font-size: 1.25rem;
   }
 

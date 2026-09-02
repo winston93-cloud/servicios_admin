@@ -289,3 +289,92 @@ export async function revisarInscripcionPorGrupo(
 export function plantelRazon(nivel: number): string {
   return getClient(nivel)
 }
+
+export type GrupoEntradaOpcion = {
+  codigo: string
+  etiqueta: string
+  alumnos: number
+  niveles: string[]
+}
+
+function codigoGrupoDisplay(nivel: number, grado: number, grupoNum: number): string | null {
+  const letra = letraDesdeGrupoNum(grupoNum)
+  if (!letra) return null
+  if (nivel === 4 && grado >= 1 && grado <= 3) {
+    return `${grado + 6}${letra}`
+  }
+  if ((nivel === 2 || nivel === 3) && grado >= 1 && grado <= 6) {
+    return `${grado}${letra}`
+  }
+  return null
+}
+
+/**
+ * Grupos con alumnos activos en el ciclo vigente (para autocomplete).
+ */
+export async function listarGruposDisponiblesEntrada(): Promise<
+  | { ok: true; ciclo: number; ciclo_label: string; grupos: GrupoEntradaOpcion[] }
+  | { ok: false; error: string; status: number }
+> {
+  const cicloSistema = await obtenerCicloEscolarActual()
+  if (!cicloSistema) {
+    return {
+      ok: false,
+      error: 'No hay ciclo escolar vigente configurado.',
+      status: 503,
+    }
+  }
+
+  const cen = cicloSistema.valor
+  const cicloLabel =
+    cicloSistema.nombre ||
+    (cicloSistema.anio_inicio && cicloSistema.anio_fin
+      ? `${cicloSistema.anio_inicio}-${cicloSistema.anio_fin}`
+      : `${cen + 2003}-${cen + 2004}`)
+
+  const supabase = createSupabaseAdmin()
+  const { data, error } = await supabase
+    .from('alumno')
+    .select('alumno_nivel, alumno_grado, alumno_grupo')
+    .eq('alumno_status', 1)
+    .eq('alumno_ciclo_escolar', cen)
+    .gt('alumno_grupo', 0)
+    .limit(5000)
+
+  if (error) {
+    console.error('listar grupos entrada:', error)
+    return { ok: false, error: 'No se pudieron cargar los grupos.', status: 500 }
+  }
+
+  type Acc = { alumnos: number; niveles: Set<string> }
+  const mapa = new Map<string, Acc>()
+
+  for (const row of data ?? []) {
+    const nivel = Number(row.alumno_nivel)
+    const grado = Number(row.alumno_grado)
+    const grupoNum = Number(row.alumno_grupo)
+    const codigo = codigoGrupoDisplay(nivel, grado, grupoNum)
+    if (!codigo) continue
+    const key = codigo.toUpperCase()
+    const prev = mapa.get(key) ?? { alumnos: 0, niveles: new Set<string>() }
+    prev.alumnos += 1
+    prev.niveles.add(etiquetaNivelEscolar(nivel))
+    mapa.set(key, prev)
+  }
+
+  const grupos: GrupoEntradaOpcion[] = [...mapa.entries()]
+    .map(([codigo, acc]) => ({
+      codigo,
+      etiqueta: codigo,
+      alumnos: acc.alumnos,
+      niveles: [...acc.niveles].sort((a, b) => a.localeCompare(b, 'es')),
+    }))
+    .sort((a, b) => {
+      const na = parseInt(a.codigo, 10)
+      const nb = parseInt(b.codigo, 10)
+      if (na !== nb) return na - nb
+      return a.codigo.localeCompare(b.codigo, 'es')
+    })
+
+  return { ok: true, ciclo: cen, ciclo_label: cicloLabel, grupos }
+}
