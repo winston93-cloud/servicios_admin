@@ -139,11 +139,6 @@ function RevisionPagadosView() {
         <section className="rev-pag-hero">
           <p className="rev-pag-kicker">Entrada al colegio</p>
           <h1>Revisión Pagados / No Pagados</h1>
-          <p className="rev-pag-lead">
-            Maternal/Kinder = <strong>Educativo</strong> · Primaria/Secundaria ={' '}
-            <strong>Winston</strong>. Completa = concepto <strong>13</strong> o{' '}
-            <strong>12</strong>.
-          </p>
           <div className="rev-pag-planteles-legend" aria-hidden>
             <span className="rev-pag-plantel-tag rev-pag-plantel-tag--educativo">
               Educativo
@@ -172,20 +167,6 @@ function RevisionPagadosView() {
               autoFocus
               etiqueta="Escribe nombre o No. de control"
             />
-          </div>
-          <div className="rev-pag-rule" role="note">
-            <span className="rev-pag-rule-title">Criterio de entrada</span>
-            <ul>
-              <li>
-                <strong>13</strong> — Inscripción (pago único) → completa
-              </li>
-              <li>
-                <strong>12</strong> — Diferido 2 → completa
-              </li>
-              <li>
-                Solo <strong>11</strong> (Diferido 1) → incompleta
-              </li>
-            </ul>
           </div>
         </section>
 
