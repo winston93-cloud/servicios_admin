@@ -48,9 +48,10 @@ function RevisionPagadosView() {
     if (!el) return
     const active = document.activeElement
     if (active instanceof HTMLElement) active.blur()
-    window.requestAnimationFrame(() => {
+    // iOS: esperar a que baje el teclado antes del scroll.
+    window.setTimeout(() => {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    })
+    }, 120)
   }, [])
 
   useEffect(() => {
@@ -187,16 +188,22 @@ function RevisionPagadosView() {
                 className="rev-pag-grupo-input"
                 type="search"
                 inputMode="text"
+                enterKeyHint="search"
                 autoCapitalize="characters"
                 autoCorrect="off"
                 spellCheck={false}
                 autoComplete="off"
                 autoFocus
-                placeholder="2a"
+                placeholder="Ej. 2a o 7b"
                 value={consulta}
-                onChange={(e) => setConsulta(e.target.value)}
+                onChange={(e) => setConsulta(e.target.value.toUpperCase())}
               />
-              <button type="submit" className="rev-pag-grupo-btn" disabled={loading}>
+              <button
+                type="submit"
+                className="rev-pag-grupo-btn"
+                disabled={loading}
+                aria-label="Ver lista del grupo"
+              >
                 {loading ? 'Buscando…' : 'Ver lista'}
               </button>
             </div>
