@@ -95,6 +95,11 @@ export const DASHBOARD_MODULE_PREVIEWS: Record<string, DashboardModulePreview> =
       'Salida segura a pie: identifica alumnos con registro del día y agiliza la entrega en puerta con el flujo SSIW conectado al dashboard.',
     highlights: ['Registro del día', 'Entrega en puerta', 'Operación en vivo'],
   },
+  'Revisión Pagados/No Pagados': {
+    synopsis:
+      'Panel de revisión de cobranza: distingue quién ya pagó y quién sigue pendiente para dar seguimiento operativo por ciclo y concepto.',
+    highlights: ['Pagados vs pendientes', 'Seguimiento de cobranza', 'Vista operativa'],
+  },
 }
 
 export function previewParaModulo(

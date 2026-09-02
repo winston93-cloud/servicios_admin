@@ -330,6 +330,22 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
       </svg>
     ),
   },
+  {
+    label: 'Revisión Pagados/No Pagados',
+    desc: 'Consulta y seguimiento de alumnos con pagos registrados frente a pendientes.',
+    path: '/revision-pagados',
+    accent: 'sky',
+    kicker: 'Cobranza',
+    tags: ['Pagados', 'Pendientes', 'Revisión'],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="5" width="20" height="14" rx="2" />
+        <line x1="2" y1="10" x2="22" y2="10" />
+        <path d="M7 15h4" />
+        <path d="M16 14l1.5 1.5L20 13" />
+      </svg>
+    ),
+  },
 ]
 
 export function navItemKey(item: Pick<DashboardAdminNavItem, 'label' | 'path' | 'href'>): string {
