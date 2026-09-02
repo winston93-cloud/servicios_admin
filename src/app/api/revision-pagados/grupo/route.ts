@@ -4,14 +4,17 @@ import { revisarInscripcionPorGrupo } from '@/lib/revisionPagadosGrupo'
 export const runtime = 'nodejs'
 
 /**
- * POST { grupo: "2a" | "7b" } — lista del grupo con inscripción completa/incompleta.
+ * POST { grupo: "K2A" | "2a" | "7b", nivel?: number }
  * Público (entrada al colegio).
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null)
     const grupo = String(body?.grupo ?? body?.consulta ?? '').trim()
-    const result = await revisarInscripcionPorGrupo(grupo)
+    const nivelRaw = Number(body?.nivel)
+    const nivel =
+      Number.isFinite(nivelRaw) && nivelRaw > 0 ? nivelRaw : null
+    const result = await revisarInscripcionPorGrupo(grupo, nivel)
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: result.status })
     }
