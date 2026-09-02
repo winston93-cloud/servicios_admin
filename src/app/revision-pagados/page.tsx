@@ -21,32 +21,12 @@ import {
   type AlumnoBusquedaResultado,
 } from '@/lib/alumnoBusquedaServicios'
 import type {
-  RevisionInscripcionPagoItem,
   RevisionInscripcionResultado,
 } from '@/lib/revisionPagadosInscripcion'
-import { getPaymentConcept } from '@/lib/boucherCore'
 import './revision-pagados.css'
 
 const LOGO_EDUCATIVO = '/logos/logo-winston-educativo.png'
 const LOGO_WINSTON = '/logos/logo-winston-w.png'
-
-function money(n: number): string {
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-  }).format(n)
-}
-
-function fechaMx(iso: string | null): string {
-  if (!iso) return '—'
-  const d = new Date(`${iso}T12:00:00`)
-  if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleDateString('es-MX', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  })
-}
 
 export default function RevisionPagadosPage() {
   // Acceso directo (entrada al colegio): sin login; URL pública bookmarkable.
@@ -331,30 +311,6 @@ function ResultadoInscripcion({
 
       <p className="rev-pag-resumen">{data.resumen}</p>
 
-      <div className="rev-pag-stats">
-        <div>
-          <span className="rev-pag-stat-label">Total pagado</span>
-          <strong>{money(data.importe_total)}</strong>
-        </div>
-        {!ok && data.pendiente != null ? (
-          <div>
-            <span className="rev-pag-stat-label">Pendiente estimado</span>
-            <strong className="rev-pag-stat-bad">{money(data.pendiente)}</strong>
-          </div>
-        ) : null}
-        {!ok && data.concepto_pendiente ? (
-          <div>
-            <span className="rev-pag-stat-label">Concepto pendiente</span>
-            <strong>
-              {data.concepto_pendiente} ·{' '}
-              {getPaymentConcept(data.concepto_pendiente)}
-            </strong>
-          </div>
-        ) : null}
-      </div>
-
-      <PagosLista pagos={data.pagos} />
-
       <div className="rev-pag-actions">
         <button type="button" className="rev-pag-btn-otro" onClick={onOtro}>
           <RefreshCw size={18} aria-hidden />
@@ -362,61 +318,5 @@ function ResultadoInscripcion({
         </button>
       </div>
     </section>
-  )
-}
-
-function PagosLista({ pagos }: { pagos: RevisionInscripcionPagoItem[] }) {
-  if (pagos.length === 0) {
-    return (
-      <div className="rev-pag-empty-pagos">
-        Sin movimientos de inscripción registrados en este ciclo.
-      </div>
-    )
-  }
-
-  return (
-    <>
-      <ul className="rev-pag-cards" aria-label="Pagos de inscripción">
-        {pagos.map((p) => (
-          <li key={`card-${p.pago_id}`} className="rev-pag-card">
-            <div className="rev-pag-card-top">
-              <span className="rev-pag-concepto-no">{p.conceptoNo}</span>
-              <strong className="rev-pag-importe">{money(p.importe)}</strong>
-            </div>
-            <p className="rev-pag-card-concepto">{p.conceptoClase}</p>
-            <div className="rev-pag-card-meta">
-              <span>{fechaMx(p.fecha)}</span>
-              <span>{p.forma || '—'}</span>
-            </div>
-          </li>
-        ))}
-      </ul>
-
-      <div className="rev-pag-table-wrap">
-        <table className="rev-pag-table">
-          <thead>
-            <tr>
-              <th>Concepto</th>
-              <th>Fecha</th>
-              <th>Forma</th>
-              <th>Importe</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pagos.map((p) => (
-              <tr key={p.pago_id}>
-                <td>
-                  <span className="rev-pag-concepto-no">{p.conceptoNo}</span>{' '}
-                  {p.conceptoClase}
-                </td>
-                <td>{fechaMx(p.fecha)}</td>
-                <td>{p.forma || '—'}</td>
-                <td className="rev-pag-importe">{money(p.importe)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
   )
 }
