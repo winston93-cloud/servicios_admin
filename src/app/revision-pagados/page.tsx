@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   Loader2,
   RefreshCw,
-  Search,
   XCircle,
 } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -141,12 +140,39 @@ function RevisionPagadosView() {
           <p className="rev-pag-kicker">Entrada al colegio</p>
           <h1>Revisión Pagados / No Pagados</h1>
           <p className="rev-pag-lead">
-            Busca alumno por nombre o No. de control (Maternal A → 9no).{' '}
-            <strong>Inscripción completa</strong> = concepto{' '}
-            <strong>13</strong> (Inscripción) <em>o</em> concepto{' '}
-            <strong>12</strong> (2º diferido). Verde = completa · Rojo =
-            incompleta.
+            Maternal/Kinder = <strong>Educativo</strong> · Primaria/Secundaria ={' '}
+            <strong>Winston</strong>. Completa = concepto <strong>13</strong> o{' '}
+            <strong>12</strong>.
           </p>
+          <div className="rev-pag-planteles-legend" aria-hidden>
+            <span className="rev-pag-plantel-tag rev-pag-plantel-tag--educativo">
+              Educativo
+            </span>
+            <span className="rev-pag-plantel-tag rev-pag-plantel-tag--winston">
+              Winston
+            </span>
+          </div>
+        </section>
+
+        <section className="rev-pag-panel rev-pag-panel--buscar" ref={searchWrapRef}>
+          <header className="rev-pag-panel-head">
+            <span className="rev-pag-panel-step">1</span>
+            <div>
+              <h2 className="rev-pag-panel-title">Búsqueda</h2>
+              <p className="rev-pag-panel-sub">
+                Nombre o No. de control · Maternal A → 9no
+              </p>
+            </div>
+          </header>
+          <div className="rev-pag-search-box">
+            <AlumnoAutocomplete
+              key={alumno?.alumno_id ?? 'empty'}
+              onSeleccionar={onSeleccionar}
+              alumnoSeleccionado={alumno}
+              autoFocus
+              etiqueta="Escribe nombre o No. de control"
+            />
+          </div>
           <div className="rev-pag-rule" role="note">
             <span className="rev-pag-rule-title">Criterio de entrada</span>
             <ul>
@@ -154,49 +180,50 @@ function RevisionPagadosView() {
                 <strong>13</strong> — Inscripción (pago único) → completa
               </li>
               <li>
-                <strong>12</strong> — Reinscripción Diferido 2 → completa
+                <strong>12</strong> — Diferido 2 → completa
               </li>
               <li>
-                Solo <strong>11</strong> (Diferido 1) → aún incompleta
+                Solo <strong>11</strong> (Diferido 1) → incompleta
               </li>
             </ul>
           </div>
         </section>
 
-        <section className="rev-pag-search" ref={searchWrapRef}>
-          <div className="rev-pag-search-head">
-            <Search size={18} aria-hidden />
-            <span>Buscar alumno</span>
-          </div>
-          <AlumnoAutocomplete
-            key={alumno?.alumno_id ?? 'empty'}
-            onSeleccionar={onSeleccionar}
-            alumnoSeleccionado={alumno}
-            autoFocus
-            etiqueta="Nombre o No. de control"
-          />
+        <section className="rev-pag-panel rev-pag-panel--resultado" aria-live="polite">
+          <header className="rev-pag-panel-head">
+            <span className="rev-pag-panel-step">2</span>
+            <div>
+              <h2 className="rev-pag-panel-title">Resultado</h2>
+              <p className="rev-pag-panel-sub">
+                Plantel · inscripción completa o incompleta
+              </p>
+            </div>
+          </header>
+
+          {loading ? (
+            <div className="rev-pag-loading" role="status">
+              <Loader2 className="rev-pag-spin" size={32} aria-hidden />
+              Consultando inscripción…
+            </div>
+          ) : null}
+
+          {error ? (
+            <div className="rev-pag-error" role="alert">
+              {error}
+            </div>
+          ) : null}
+
+          {data ? (
+            <ResultadoInscripcion data={data} onOtro={revisarOtro} />
+          ) : !loading && !error ? (
+            <div className="rev-pag-idle">
+              <p>
+                El resultado aparecerá aquí. Escribe al menos 2 letras o el No.
+                de control.
+              </p>
+            </div>
+          ) : null}
         </section>
-
-        {loading ? (
-          <div className="rev-pag-loading" role="status">
-            <Loader2 className="rev-pag-spin" size={28} aria-hidden />
-            Consultando inscripción…
-          </div>
-        ) : null}
-
-        {error ? (
-          <div className="rev-pag-error" role="alert">
-            {error}
-          </div>
-        ) : null}
-
-        {data ? (
-          <ResultadoInscripcion data={data} onOtro={revisarOtro} />
-        ) : !loading && !error && !alumno ? (
-          <div className="rev-pag-idle">
-            <p>Escribe al menos 2 letras o el No. de control para empezar.</p>
-          </div>
-        ) : null}
       </main>
     </div>
   )
@@ -215,12 +242,24 @@ function ResultadoInscripcion({
 
   return (
     <section
-      className={`rev-pag-result ${ok ? 'rev-pag-result--ok' : 'rev-pag-result--bad'}`}
+      className={`rev-pag-result ${ok ? 'rev-pag-result--ok' : 'rev-pag-result--bad'} rev-pag-result--${data.alumno.plantel}`}
       aria-live="polite"
     >
+      <div
+        className={`rev-pag-plantel-banner rev-pag-plantel-banner--${data.alumno.plantel}`}
+      >
+        <span className="rev-pag-plantel-banner-kicker">Plantel</span>
+        <strong className="rev-pag-plantel-banner-name">
+          {data.alumno.plantel_label}
+        </strong>
+        <span className="rev-pag-plantel-banner-razon">
+          {data.alumno.plantel_razon}
+        </span>
+      </div>
+
       <div className="rev-pag-verdict">
         <div className="rev-pag-verdict-icon" aria-hidden>
-          {ok ? <CheckCircle2 size={52} strokeWidth={1.75} /> : <XCircle size={52} strokeWidth={1.75} />}
+          {ok ? <CheckCircle2 size={56} strokeWidth={1.75} /> : <XCircle size={56} strokeWidth={1.75} />}
         </div>
         <div className="rev-pag-verdict-copy">
           <p className="rev-pag-verdict-label">
@@ -235,7 +274,7 @@ function ResultadoInscripcion({
                 : ' · Diferido 2'}
             </p>
           ) : null}
-          <h2 className="rev-pag-name">{data.alumno.nombre_completo}</h2>
+          <h3 className="rev-pag-name">{data.alumno.nombre_completo}</h3>
           <p className="rev-pag-meta">
             <span className="rev-pag-ref">{data.alumno.alumno_ref}</span>
             <span>

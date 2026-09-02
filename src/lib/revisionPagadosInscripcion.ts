@@ -5,7 +5,7 @@
 import { formaIngresoPorDefecto } from '@/lib/alumnoFormaIngreso'
 import type { AlumnoRegistro } from '@/lib/alumnoDatosService'
 import { obtenerAlumnoPorId } from '@/lib/alumnoDatosService'
-import { getPaymentConcept } from '@/lib/boucherCore'
+import { getClient, getPaymentConcept } from '@/lib/boucherCore'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
@@ -18,6 +18,8 @@ import { alumnoTienePagoSemiref } from '@/lib/portalAdmisionesColegiatura'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
 import { calcularReinscripcionDiferido } from '@/lib/portalReinscripcionService'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
+
+export type RevisionInscripcionPlantel = 'educativo' | 'winston'
 
 export type RevisionInscripcionConcepto = '11' | '12' | '13'
 
@@ -50,6 +52,10 @@ export type RevisionInscripcionResultado = {
     grupo: string | null
     ciclo_ficha: number | null
     es_reinscrito: boolean
+    /** Maternal/Kinder = Educativo; Primaria/Secundaria = Winston. */
+    plantel: RevisionInscripcionPlantel
+    plantel_label: string
+    plantel_razon: string
   }
   ciclo_temporada: number
   ciclo_inscripcion: number
@@ -67,6 +73,26 @@ export type RevisionInscripcionResultado = {
   importe_total: number
   pendiente: number | null
   concepto_pendiente: RevisionInscripcionConcepto | null
+}
+
+function plantelDesdeNivel(nivel: number): {
+  plantel: RevisionInscripcionPlantel
+  label: string
+  razon: string
+} {
+  // Misma regla de baucher: 1–2 Educativo, 3–4 Winston Churchill.
+  if (nivel === 1 || nivel === 2) {
+    return {
+      plantel: 'educativo',
+      label: 'Educativo',
+      razon: getClient(nivel),
+    }
+  }
+  return {
+    plantel: 'winston',
+    label: 'Winston',
+    razon: getClient(nivel),
+  }
 }
 
 function nombreCompleto(a: AlumnoRegistro): string {
@@ -234,6 +260,8 @@ export async function revisarInscripcionAlumno(
       ? Number(alumno.alumno_grado)
       : null
 
+  const plantelInfo = plantelDesdeNivel(Number(alumno.alumno_nivel))
+
   return {
     ok: true,
     alumno: {
@@ -253,6 +281,9 @@ export async function revisarInscripcionAlumno(
           ? Number(alumno.alumno_ciclo_escolar)
           : null,
       es_reinscrito: esReinscrito,
+      plantel: plantelInfo.plantel,
+      plantel_label: plantelInfo.label,
+      plantel_razon: plantelInfo.razon,
     },
     ciclo_temporada: cicloSistema.valor,
     ciclo_inscripcion: cen,
