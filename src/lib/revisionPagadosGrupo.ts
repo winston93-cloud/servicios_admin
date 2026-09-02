@@ -4,6 +4,10 @@
  */
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { grupoNumDesdeLetra, letraDesdeGrupoNum } from '@/lib/boletasCiclo'
+import {
+  cicloFichaAlumnosParaInscripcion,
+  cicloInscripcionDesdeTemporada,
+} from '@/lib/ciclosEscolares'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
@@ -11,6 +15,37 @@ import { getClient } from '@/lib/boucherCore'
 import type { PagoDetalleRegistro } from '@/lib/pagoColegiaturaService'
 import { alumnoTienePagoSemiref } from '@/lib/portalAdmisionesColegiatura'
 import type { RevisionInscripcionPlantel } from '@/lib/revisionPagadosInscripcion'
+
+/** Ciclo de inscripción (cen) + ficha de alumnos activos a listar. */
+async function resolverCiclosEntrada(): Promise<
+  | {
+      ok: true
+      cea: number
+      cen: number
+      cicloFicha: number
+      cicloLabel: string
+    }
+  | { ok: false; error: string; status: number }
+> {
+  const cicloSistema = await obtenerCicloEscolarActual()
+  if (!cicloSistema) {
+    return {
+      ok: false,
+      error: 'No hay ciclo escolar vigente configurado.',
+      status: 503,
+    }
+  }
+  const cea = Number(cicloSistema.valor)
+  const cen = cicloInscripcionDesdeTemporada(cea)
+  const cicloFicha = cicloFichaAlumnosParaInscripcion(cen, cea)
+  const cicloLabel =
+    cen === cea && cicloSistema.nombre
+      ? cicloSistema.nombre
+      : cen === cea && cicloSistema.anio_inicio && cicloSistema.anio_fin
+        ? `${cicloSistema.anio_inicio}-${cicloSistema.anio_fin}`
+        : `${cen + 2003}-${cen + 2004}`
+  return { ok: true, cea, cen, cicloFicha, cicloLabel }
+}
 
 export type GrupoEntradaParseado = {
   etiqueta: string
@@ -311,21 +346,10 @@ export async function revisarInscripcionPorGrupo(
     }
   }
 
-  const cicloSistema = await obtenerCicloEscolarActual()
-  if (!cicloSistema) {
-    return {
-      ok: false,
-      error: 'No hay ciclo escolar vigente configurado.',
-      status: 503,
-    }
-  }
+  const ciclos = await resolverCiclosEntrada()
+  if (!ciclos.ok) return ciclos
 
-  const cen = cicloSistema.valor
-  const cicloLabel =
-    cicloSistema.nombre ||
-    (cicloSistema.anio_inicio && cicloSistema.anio_fin
-      ? `${cicloSistema.anio_inicio}-${cicloSistema.anio_fin}`
-      : `${cen + 2003}-${cen + 2004}`)
+  const { cen, cicloFicha, cicloLabel } = ciclos
 
   const supabase = createSupabaseAdmin()
   const vistos = new Set<number>()
@@ -337,14 +361,15 @@ export async function revisarInscripcionPorGrupo(
       .select(
         'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo'
       )
+      // Solo activos del ciclo de ficha de la inscripción vigente (ej. 22→23, 23→24…).
       .eq('alumno_status', 1)
-      .eq('alumno_ciclo_escolar', cen)
+      .eq('alumno_ciclo_escolar', cicloFicha)
       .eq('alumno_nivel', f.nivel)
       .eq('alumno_grado', f.grado)
       .order('alumno_app', { ascending: true })
       .order('alumno_apm', { ascending: true })
       .order('alumno_nombre', { ascending: true })
-      .limit(80)
+      .limit(120)
 
     if (parsed.grupoNum != null) {
       query = query.eq('alumno_grupo', parsed.grupoNum)
@@ -376,6 +401,7 @@ export async function revisarInscripcionPorGrupo(
     const tiene13 = alumnoTienePagoSemiref(pagos, ref, '13', cen)
     const tiene12 = alumnoTienePagoSemiref(pagos, ref, '12', cen)
     const tiene11 = alumnoTienePagoSemiref(pagos, ref, '11', cen)
+    // Verde = inscripción completa (13 único o 12 2º diferido); rojo = pendiente.
     const pagado = tiene13 || tiene12
     const plantel = plantelDeNivel(Number(a.alumno_nivel))
     return {
@@ -458,35 +484,24 @@ function codigoGrupoDisplay(
 }
 
 /**
- * Grupos con alumnos activos en el ciclo vigente (para autocomplete).
- * Kinder sale como K1A / K2A / K3A; Primaria 1A–6C; Secundaria 7A–9C.
+ * Grupos con alumnos activos del ciclo de ficha de inscripción vigente
+ * (para autocomplete). Kinder = K1A…; Primaria 1A–6C; Secundaria 7A–9C.
  */
 export async function listarGruposDisponiblesEntrada(): Promise<
   | { ok: true; ciclo: number; ciclo_label: string; grupos: GrupoEntradaOpcion[] }
   | { ok: false; error: string; status: number }
 > {
-  const cicloSistema = await obtenerCicloEscolarActual()
-  if (!cicloSistema) {
-    return {
-      ok: false,
-      error: 'No hay ciclo escolar vigente configurado.',
-      status: 503,
-    }
-  }
+  const ciclos = await resolverCiclosEntrada()
+  if (!ciclos.ok) return ciclos
 
-  const cen = cicloSistema.valor
-  const cicloLabel =
-    cicloSistema.nombre ||
-    (cicloSistema.anio_inicio && cicloSistema.anio_fin
-      ? `${cicloSistema.anio_inicio}-${cicloSistema.anio_fin}`
-      : `${cen + 2003}-${cen + 2004}`)
+  const { cen, cicloFicha, cicloLabel } = ciclos
 
   const supabase = createSupabaseAdmin()
   const { data, error } = await supabase
     .from('alumno')
     .select('alumno_nivel, alumno_grado, alumno_grupo')
     .eq('alumno_status', 1)
-    .eq('alumno_ciclo_escolar', cen)
+    .eq('alumno_ciclo_escolar', cicloFicha)
     .limit(5000)
 
   if (error) {
