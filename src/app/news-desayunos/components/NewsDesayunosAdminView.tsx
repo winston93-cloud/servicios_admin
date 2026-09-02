@@ -15,6 +15,11 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import {
+  AUDIENCIAS_NEWS,
+  etiquetaAudienciaNews,
+  type AudienciaNews,
+} from '@/lib/portalNewsDesayunosAudiencia'
+import {
   etiquetaMesAnio,
   MESES_ES,
   periodoActualMx,
@@ -26,6 +31,7 @@ import '../news-desayunos.css'
 type PublicacionFila = {
   id: number
   tipo: 'news' | 'desayunos'
+  audiencia: string
   anio: number
   mes: number
   nombre_archivo: string | null
@@ -37,6 +43,7 @@ type PublicacionFila = {
 
 type ZonaUploadProps = {
   tipo: 'news' | 'desayunos'
+  audiencia?: AudienciaNews
   titulo: string
   descripcion: string
   icon: React.ReactNode
@@ -50,6 +57,7 @@ const MAX_BYTES = 20 * 1024 * 1024
 
 function ZonaUpload({
   tipo,
+  audiencia,
   titulo,
   descripcion,
   icon,
@@ -100,6 +108,7 @@ function ZonaUpload({
     try {
       const fd = new FormData()
       fd.set('tipo', tipo)
+      if (tipo === 'news' && audiencia) fd.set('audiencia', audiencia)
       fd.set('anio', String(periodo.anio))
       fd.set('mes', String(periodo.mes))
       fd.set('archivo', archivo)
@@ -129,10 +138,16 @@ function ZonaUpload({
     setEliminando(true)
     setError(null)
     try {
-      const res = await fetch(
-        `/api/news-desayunos?tipo=${tipo}&anio=${periodo.anio}&mes=${periodo.mes}`,
-        { method: 'DELETE', headers: portalSessionFetchHeaders() }
-      )
+      const params = new URLSearchParams({
+        tipo,
+        anio: String(periodo.anio),
+        mes: String(periodo.mes),
+      })
+      if (tipo === 'news' && audiencia) params.set('audiencia', audiencia)
+      const res = await fetch(`/api/news-desayunos?${params.toString()}`, {
+        method: 'DELETE',
+        headers: portalSessionFetchHeaders(),
+      })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'No se pudo eliminar')
       onSubido()
@@ -313,8 +328,18 @@ export default function NewsDesayunosAdminView() {
     void cargar()
   }, [cargar])
 
-  const buscar = (tipo: 'news' | 'desayunos', p: PeriodoMes) =>
-    lista.find((x) => x.tipo === tipo && x.anio === p.anio && x.mes === p.mes) ?? null
+  const buscar = (
+    tipo: 'news' | 'desayunos',
+    p: PeriodoMes,
+    audiencia?: AudienciaNews
+  ) =>
+    lista.find(
+      (x) =>
+        x.tipo === tipo &&
+        x.anio === p.anio &&
+        x.mes === p.mes &&
+        (tipo === 'desayunos' ? !x.audiencia || x.audiencia === '' : x.audiencia === audiencia)
+    ) ?? null
 
   return (
     <ProtectedRoute roles={['usuario']}>
@@ -338,28 +363,44 @@ export default function NewsDesayunosAdminView() {
                 <p className="nd-kicker">Comunicación · Familias</p>
                 <h1 className="nd-title">News y Desayunos</h1>
                 <p className="nd-subtitle">
-                  Suba el folleto mensual (News) y el menú de desayunos y comidas. Los papás
-                  verán el mes actual en su portal.
+                  Suba tres folletos News (Educativo, Primaria y Secundaria) y el menú de
+                  desayunos y comidas. Los papás verán el News de su nivel en el portal.
                 </p>
               </div>
             </div>
           </header>
 
-          <div className="nd-admin-grid">
-            <ZonaUpload
-              tipo="news"
-              titulo="News del mes"
-              descripcion="Folleto informativo para familias (PDF o imagen)."
-              icon={<Newspaper size={22} />}
-              periodo={periodoNews}
-              onPeriodoChange={setPeriodoNews}
-              publicado={buscar('news', periodoNews)}
-              onSubido={() => void cargar()}
-            />
+          <section className="nd-news-grupo" aria-labelledby="nd-news-grupo-title">
+            <h2 id="nd-news-grupo-title" className="nd-news-grupo-title">
+              News del mes (3 folletos)
+            </h2>
+            <p className="nd-news-grupo-desc">
+              Un archivo por plantel: Educativo (Maternal/Kinder), Winston Primaria y Winston
+              Secundaria.
+            </p>
+            <div className="nd-admin-grid nd-admin-grid-news">
+              {AUDIENCIAS_NEWS.map((aud) => (
+                <ZonaUpload
+                  key={aud.valor}
+                  tipo="news"
+                  audiencia={aud.valor}
+                  titulo={aud.titulo}
+                  descripcion={aud.descripcion}
+                  icon={<Newspaper size={22} />}
+                  periodo={periodoNews}
+                  onPeriodoChange={setPeriodoNews}
+                  publicado={buscar('news', periodoNews, aud.valor)}
+                  onSubido={() => void cargar()}
+                />
+              ))}
+            </div>
+          </section>
+
+          <div className="nd-admin-grid nd-admin-grid-solo">
             <ZonaUpload
               tipo="desayunos"
               titulo="Desayunos y comidas"
-              descripcion="Menú diario del mes (PDF o imagen JPG/PNG)."
+              descripcion="Menú diario del mes para todos los niveles (PDF o imagen JPG/PNG)."
               icon={<Coffee size={22} />}
               periodo={periodoDesayunos}
               onPeriodoChange={setPeriodoDesayunos}
@@ -383,7 +424,9 @@ export default function NewsDesayunosAdminView() {
                 {lista.map((p) => (
                   <li key={p.id}>
                     <span className="nd-historial-tipo">
-                      {p.tipo === 'news' ? 'News' : 'Desayunos'}
+                      {p.tipo === 'news'
+                        ? `News · ${etiquetaAudienciaNews(p.audiencia as AudienciaNews)}`
+                        : 'Desayunos'}
                     </span>
                     <span>{etiquetaMesAnio(p.anio, p.mes)}</span>
                     <a href={p.href} target="_blank" rel="noopener noreferrer" className="nd-link">

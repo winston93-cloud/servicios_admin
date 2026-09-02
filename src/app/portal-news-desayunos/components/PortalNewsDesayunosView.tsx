@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import ThemeToggle from '@/components/ThemeToggle'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   etiquetaMesAnio,
   MESES_ES,
@@ -36,6 +37,7 @@ type PortalData = {
     etiqueta: string
     esActual: boolean
   }
+  audiencia_label?: string | null
   news: Publicacion | null
   desayunos: Publicacion | null
 }
@@ -194,6 +196,8 @@ function SelectorPeriodo({
 
 export default function PortalNewsDesayunosView() {
   const router = useRouter()
+  const { session } = useAuth()
+  const alumnoId = session?.alumno_id
   const [periodo, setPeriodo] = useState<PeriodoMes>(() => periodoActualMx())
   const [data, setData] = useState<PortalData | null>(null)
   const [cargando, setCargando] = useState(true)
@@ -204,13 +208,16 @@ export default function PortalNewsDesayunosView() {
 
   const etiquetaPeriodo = etiquetaMesAnio(periodo.anio, periodo.mes)
 
-  const cargar = useCallback(async (p: PeriodoMes) => {
+  const cargar = useCallback(async (p: PeriodoMes, id?: number) => {
     setCargando(true)
     setError(null)
     try {
-      const res = await fetch(
-        `/api/portal-news-desayunos?anio=${p.anio}&mes=${p.mes}`
-      )
+      const params = new URLSearchParams({
+        anio: String(p.anio),
+        mes: String(p.mes),
+      })
+      if (id && id > 0) params.set('alumnoId', String(id))
+      const res = await fetch(`/api/portal-news-desayunos?${params.toString()}`)
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'No se pudo cargar')
       setData(json as PortalData)
@@ -223,8 +230,12 @@ export default function PortalNewsDesayunosView() {
   }, [])
 
   useEffect(() => {
-    void cargar(periodo)
-  }, [periodo, cargar])
+    void cargar(periodo, alumnoId)
+  }, [periodo, alumnoId, cargar])
+
+  const newsTitulo = data?.audiencia_label
+    ? data.audiencia_label
+    : 'News del mes'
 
   return (
     <div className="nd-page nd-portal">
@@ -270,7 +281,7 @@ export default function PortalNewsDesayunosView() {
         ) : (
           <div className="nd-portal-grid">
             <TarjetaArchivo
-              titulo="News del mes"
+              titulo={newsTitulo}
               subtitulo={`Folleto informativo · ${etiquetaPeriodo}`}
               icon={<Newspaper size={22} />}
               publicacion={data?.news ?? null}

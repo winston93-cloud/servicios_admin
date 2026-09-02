@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createInsforgeAdmin } from '@/lib/insforgeAdmin'
 import { requireEmpleadoPortal } from '@/lib/portalApiEmpleadoAuth'
+import { parseAudienciaNews } from '@/lib/portalNewsDesayunosAudiencia'
 import {
+  audienciaParaTipo,
   eliminarPublicacion,
   guardarPublicacionArchivo,
   listarPublicaciones,
@@ -53,12 +55,19 @@ export async function POST(request: Request) {
     const tipo = parseTipo(String(form.get('tipo') ?? ''))
     const periodo = parsearPeriodoMes(form.get('anio'), form.get('mes'))
     const file = form.get('archivo')
+    const audienciaRaw = String(form.get('audiencia') ?? '').trim()
 
     if (!tipo) {
       return NextResponse.json({ error: 'tipo news o desayunos requerido' }, { status: 400 })
     }
     if (!periodo) {
       return NextResponse.json({ error: 'mes y año válidos requeridos' }, { status: 400 })
+    }
+    if (tipo === 'news' && !parseAudienciaNews(audienciaRaw)) {
+      return NextResponse.json(
+        { error: 'audiencia requerida: educativo, primaria o secundaria' },
+        { status: 400 }
+      )
     }
     if (!(file instanceof File) || !file.size) {
       return NextResponse.json({ error: 'archivo requerido' }, { status: 400 })
@@ -82,6 +91,7 @@ export async function POST(request: Request) {
       nombreArchivo: file.name,
       mimeType: file.type,
       creadoPor,
+      audiencia: tipo === 'news' ? audienciaRaw : undefined,
     })
 
     return NextResponse.json({
@@ -105,13 +115,22 @@ export async function DELETE(request: Request) {
       url.searchParams.get('anio'),
       url.searchParams.get('mes')
     )
+    const audienciaRaw = url.searchParams.get('audiencia')
 
     if (!tipo || !periodo) {
       return NextResponse.json({ error: 'tipo, mes y año requeridos' }, { status: 400 })
     }
 
+    let audiencia: string
+    try {
+      audiencia = audienciaParaTipo(tipo, audienciaRaw)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'audiencia inválida'
+      return NextResponse.json({ error: msg }, { status: 400 })
+    }
+
     const client = createInsforgeAdmin()
-    await eliminarPublicacion(client, tipo, periodo.anio, periodo.mes)
+    await eliminarPublicacion(client, tipo, periodo.anio, periodo.mes, audiencia)
     return NextResponse.json({ ok: true })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al eliminar'

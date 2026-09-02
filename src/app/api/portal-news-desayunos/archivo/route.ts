@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createInsforgeAdmin } from '@/lib/insforgeAdmin'
+import { parseAudienciaNews } from '@/lib/portalNewsDesayunosAudiencia'
 import {
+  audienciaParaTipo,
   NEWS_DESAYUNOS_BUCKET,
   obtenerPublicacion,
   type TipoPublicacionNewsDesayunos,
@@ -30,12 +32,28 @@ export async function GET(request: Request) {
       )
     }
 
+    let audiencia: string
+    try {
+      const rawAud = url.searchParams.get('audiencia')
+      if (tipo === 'news' && !parseAudienciaNews(rawAud)) {
+        return NextResponse.json(
+          { error: 'audiencia requerida para news' },
+          { status: 400 }
+        )
+      }
+      audiencia = audienciaParaTipo(tipo, rawAud)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'audiencia inválida'
+      return NextResponse.json({ error: msg }, { status: 400 })
+    }
+
     const client = createInsforgeAdmin()
     const registro = await obtenerPublicacion(
       client.database,
       tipo,
       periodo.anio,
-      periodo.mes
+      periodo.mes,
+      audiencia
     )
     if (!registro?.storage_key) {
       return NextResponse.json({ error: 'Archivo no publicado' }, { status: 404 })
