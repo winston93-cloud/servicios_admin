@@ -10,7 +10,6 @@ import {
   RefreshCw,
   XCircle,
 } from 'lucide-react'
-import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
 import {
   CicloEscolarProvider,
@@ -50,12 +49,11 @@ function fechaMx(iso: string | null): string {
 }
 
 export default function RevisionPagadosPage() {
+  // Acceso directo (entrada al colegio): sin login; URL pública bookmarkable.
   return (
-    <ProtectedRoute roles={['usuario']}>
-      <CicloEscolarProvider>
-        <RevisionPagadosView />
-      </CicloEscolarProvider>
-    </ProtectedRoute>
+    <CicloEscolarProvider>
+      <RevisionPagadosView />
+    </CicloEscolarProvider>
   )
 }
 
@@ -189,6 +187,7 @@ function RevisionPagadosView() {
               alumnoSeleccionado={alumno}
               autoFocus
               etiqueta="Escribe nombre o No. de control"
+              apiBusqueda="/api/revision-pagados/buscar"
             />
           </div>
         </section>

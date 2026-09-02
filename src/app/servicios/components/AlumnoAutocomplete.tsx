@@ -109,6 +109,11 @@ interface AlumnoAutocompleteProps {
    * No modifica estatus/ciclo/grado del alumno.
    */
   cualquierCiclo?: boolean
+  /**
+   * Endpoint POST público `{ consulta, cicloEscolar, cualquierCiclo }` → `{ resultados }`.
+   * Si se define, no usa el proxy de BD (sirve para pantallas sin login).
+   */
+  apiBusqueda?: string
 }
 
 export default function AlumnoAutocomplete({
@@ -117,6 +122,7 @@ export default function AlumnoAutocomplete({
   autoFocus = true,
   etiqueta = 'Buscar alumno',
   cualquierCiclo = false,
+  apiBusqueda,
 }: AlumnoAutocompleteProps) {
   const baseId = useId()
   const listboxId = `${baseId}-listbox`
@@ -165,6 +171,20 @@ export default function AlumnoAutocomplete({
 
   const elegir = useCallback(
     async (pick: AlumnoBusquedaResultado) => {
+      // Con apiBusqueda pública no hay sesión para canónica vía proxy BD.
+      if (apiBusqueda) {
+        const alumno: AlumnoBusquedaResultado = {
+          ...pick,
+          nombre_completo: nombreVisibleAlumno(pick),
+        }
+        setSeleccionado(alumno)
+        setConsulta(alumno.nombre_completo)
+        cerrarLista()
+        setResultados([])
+        onSeleccionar?.(alumno)
+        return
+      }
+
       // Con cualquierCiclo: no exigir ficha del ciclo consultado (pre-ingreso).
       const canon = cualquierCiclo
         ? (await obtenerAlumnoPorRef(pick.alumno_ref, cicloSeleccionado)) ??
@@ -203,7 +223,7 @@ export default function AlumnoAutocomplete({
       setResultados([])
       onSeleccionar?.(alumno)
     },
-    [cerrarLista, onSeleccionar, cicloSeleccionado, cualquierCiclo]
+    [cerrarLista, onSeleccionar, cicloSeleccionado, cualquierCiclo, apiBusqueda]
   )
 
   useEffect(() => {
@@ -228,10 +248,33 @@ export default function AlumnoAutocomplete({
       setMensajeVacio(null)
 
       try {
-        const lista = await buscarAlumnosServicios(texto, cicloSeleccionado, {
-          signal: controller.signal,
-          cualquierCiclo,
-        })
+        let lista: AlumnoBusquedaResultado[]
+        if (apiBusqueda) {
+          const res = await fetch(apiBusqueda, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              consulta: texto,
+              cicloEscolar: cicloSeleccionado,
+              cualquierCiclo,
+            }),
+            signal: controller.signal,
+          })
+          const json = (await res.json().catch(() => null)) as {
+            ok?: boolean
+            resultados?: AlumnoBusquedaResultado[]
+            error?: string
+          } | null
+          if (!res.ok || !json?.ok) {
+            throw new Error(json?.error || 'No se pudo buscar')
+          }
+          lista = json.resultados ?? []
+        } else {
+          lista = await buscarAlumnosServicios(texto, cicloSeleccionado, {
+            signal: controller.signal,
+            cualquierCiclo,
+          })
+        }
         if (controller.signal.aborted) return
         setResultados(lista)
         setAbierto(true)
@@ -252,7 +295,7 @@ export default function AlumnoAutocomplete({
     }, 110)
 
     return () => window.clearTimeout(timer)
-  }, [consulta, alumnoVisible, cicloSeleccionado, cualquierCiclo])
+  }, [consulta, alumnoVisible, cicloSeleccionado, cualquierCiclo, apiBusqueda])
 
   useEffect(() => {
     if (indiceActivo < 0 || !listRef.current) return
