@@ -248,9 +248,20 @@
 }
 
 .rev-pag-page--ac-abierto .rev-pag-panel--resultado {
-  opacity: 0.28;
+  /* No se mezcla con el autocomplete: oculta el bloque de abajo */
+  visibility: hidden;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  overflow: hidden;
+  opacity: 0;
   pointer-events: none;
-  filter: grayscale(0.15);
+}
+
+.rev-pag-panel--buscar.is-ac-open {
+  /* Reserva espacio para el listado y evita solape */
+  padding-bottom: calc(12px + min(42dvh, 280px));
 }
 
 .rev-pag-panel-head {

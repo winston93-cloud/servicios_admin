@@ -49,7 +49,8 @@ function filtrarGrupos(
   consulta: string
 ): GrupoEntradaOpcion[] {
   const q = normalizarCodigoGrupo(consulta)
-  if (!q) return grupos.slice(0, 14)
+  // Vacío = sin lista (evita el despliegue feo al volver de Individual).
+  if (!q) return []
   return grupos
     .filter(
       (g) =>
@@ -267,7 +268,9 @@ function RevisionPagadosView() {
     setModo('individual')
     setDataGrupo(null)
     setError(null)
+    setConsulta('')
     setSugerenciasAbiertas(false)
+    setIndiceActivo(0)
   }, [])
 
   const irAGrupo = useCallback(() => {
@@ -275,7 +278,20 @@ function RevisionPagadosView() {
     setAlumno(null)
     setDataAlumno(null)
     setError(null)
-    window.setTimeout(() => inputRef.current?.focus(), 50)
+    setConsulta('')
+    setSugerenciasAbiertas(false)
+    setIndiceActivo(0)
+    window.setTimeout(() => {
+      inputRef.current?.focus()
+    }, 50)
+  }, [])
+
+  const prepararNuevaBusquedaGrupo = useCallback(() => {
+    setConsulta('')
+    setSugerenciasAbiertas(false)
+    setIndiceActivo(0)
+    setDataGrupo(null)
+    setError(null)
   }, [])
 
   const revisarOtro = useCallback(() => {
@@ -365,7 +381,10 @@ function RevisionPagadosView() {
           </div>
         </section>
 
-        <section className="rev-pag-panel rev-pag-panel--buscar" ref={searchWrapRef}>
+        <section
+          className={`rev-pag-panel rev-pag-panel--buscar${sugerenciasAbiertas && sugerencias.length > 0 ? ' is-ac-open' : ''}`}
+          ref={searchWrapRef}
+        >
           <header className="rev-pag-panel-head rev-pag-panel-head--inline">
             <span className="rev-pag-panel-step">1</span>
             <h2 className="rev-pag-panel-title">
@@ -411,10 +430,16 @@ function RevisionPagadosView() {
                     onChange={(e) => {
                       const next = normalizarCodigoGrupo(e.target.value)
                       setConsulta(next)
-                      setSugerenciasAbiertas(true)
+                      setSugerenciasAbiertas(next.length > 0)
                       setIndiceActivo(0)
                     }}
-                    onFocus={() => setSugerenciasAbiertas(true)}
+                    onFocus={() => {
+                      // Como búsqueda de alumno en Servicios: al enfocarse, blanco.
+                      prepararNuevaBusquedaGrupo()
+                    }}
+                    onClick={() => {
+                      prepararNuevaBusquedaGrupo()
+                    }}
                     onBlur={() => {
                       window.setTimeout(() => setSugerenciasAbiertas(false), 150)
                     }}
