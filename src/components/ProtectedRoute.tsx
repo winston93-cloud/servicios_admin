@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
+import { loginUrlWithReturn } from '@/lib/authReturnPath'
 import type { AuthRole } from '@/lib/portalAuthService'
 
 interface ProtectedRouteProps {
@@ -14,6 +15,7 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
   const { isAuthenticated, loading, session } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
 
   const roleOk =
     !roles?.length || (session && roles.includes(session.role))
@@ -21,13 +23,16 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
   useEffect(() => {
     if (loading) return
     if (!isAuthenticated) {
-      router.replace('/login')
+      const search =
+        typeof window !== 'undefined' ? window.location.search : ''
+      const returnPath = `${pathname || '/dashboard'}${search}`
+      router.replace(loginUrlWithReturn(returnPath))
       return
     }
     if (!roleOk) {
       router.replace('/dashboard')
     }
-  }, [isAuthenticated, loading, roleOk, router])
+  }, [isAuthenticated, loading, roleOk, router, pathname])
 
   if (loading) {
     return (

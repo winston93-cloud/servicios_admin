@@ -1,16 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { Eye, EyeOff } from 'lucide-react'
+import { safeAuthReturnPath } from '@/lib/authReturnPath'
 import { loginPortal } from '@/lib/portalAuthService'
 import { useAuth } from '@/contexts/AuthContext'
 import ThemeToggle from '@/components/ThemeToggle'
 
 type VistaLogin = 'entrar' | 'activar-clave'
 
-export default function LoginPage() {
+function LoginPageInner() {
   const [vista, setVista] = useState<VistaLogin>('entrar')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -24,13 +25,19 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [exito, setExito] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { login, isAuthenticated } = useAuth()
+
+  const afterLoginPath = useMemo(
+    () => safeAuthReturnPath(searchParams.get('next')) ?? '/dashboard',
+    [searchParams]
+  )
 
   useEffect(() => {
     if (!isAuthenticated) return
-    // Ambos roles aterrizan en /dashboard; el dashboard elige el panel por rol.
-    router.replace('/dashboard')
-  }, [isAuthenticated, router])
+    // Si vinieron con ?next=/ruta (ej. revisión de entrada), volver ahí.
+    router.replace(afterLoginPath)
+  }, [isAuthenticated, router, afterLoginPath])
 
   const limpiarMensajes = () => {
     setError('')
@@ -59,7 +66,7 @@ export default function LoginPage() {
         // Limpia campos para que el navegador no reutilice credenciales en pantalla.
         setUsername('')
         setPassword('')
-        router.push('/dashboard')
+        router.push(afterLoginPath)
       } else {
         setError('Acceso no válido. Verifica tu usuario y tu clave.')
       }
@@ -399,5 +406,20 @@ export default function LoginPage() {
         <p className="portal-access-flank-label">Instituto Educativo Winston</p>
       </aside>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="portal-access-loading">
+          <div className="portal-access-loading-spinner" />
+          <p>Cargando…</p>
+        </div>
+      }
+    >
+      <LoginPageInner />
+    </Suspense>
   )
 }
