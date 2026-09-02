@@ -311,7 +311,7 @@ function RevisionPagadosView() {
 
   return (
     <div
-      className={`rev-pag-page${hayResultado ? ' rev-pag-page--con-resultado' : ''}`}
+      className={`rev-pag-page${hayResultado ? ' rev-pag-page--con-resultado' : ''}${sugerenciasAbiertas && sugerencias.length > 0 && modo === 'grupo' ? ' rev-pag-page--ac-abierto' : ''}`}
     >
       <div className="rev-pag-bg" aria-hidden>
         <span className="rev-pag-orb rev-pag-orb--a" />

@@ -300,10 +300,11 @@ export async function revisarInscripcionPorGrupo(
     }
   })
 
-  alumnos.sort((a, b) => {
-    if (a.pagado !== b.pagado) return a.pagado ? 1 : -1
-    return a.nombre_completo.localeCompare(b.nombre_completo, 'es')
-  })
+  alumnos.sort((a, b) =>
+    a.nombre_completo.localeCompare(b.nombre_completo, 'es', {
+      sensitivity: 'base',
+    })
+  )
 
   const pagados = alumnos.filter((a) => a.pagado).length
   const nivelLabel =
