@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useRef, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowLeft,
@@ -26,6 +27,9 @@ import type {
 } from '@/lib/revisionPagadosInscripcion'
 import { getPaymentConcept } from '@/lib/boucherCore'
 import './revision-pagados.css'
+
+const LOGO_EDUCATIVO = '/logos/logo-winston-educativo.png'
+const LOGO_WINSTON = '/logos/logo-winston-w.png'
 
 function money(n: number): string {
   return new Intl.NumberFormat('es-MX', {
@@ -137,27 +141,43 @@ function RevisionPagadosView() {
 
       <main className="rev-pag-main">
         <section className="rev-pag-hero">
-          <p className="rev-pag-kicker">Entrada al colegio</p>
-          <h1>Revisión Pagados / No Pagados</h1>
-          <div className="rev-pag-planteles-legend" aria-hidden>
-            <span className="rev-pag-plantel-tag rev-pag-plantel-tag--educativo">
-              Educativo
-            </span>
-            <span className="rev-pag-plantel-tag rev-pag-plantel-tag--winston">
-              Winston
-            </span>
+          <div className="rev-pag-hero-line">
+            <div className="rev-pag-hero-copy">
+              <p className="rev-pag-kicker">Entrada al colegio</p>
+              <h1>Revisión Pagados / No Pagados</h1>
+            </div>
+            <div className="rev-pag-planteles-legend">
+              <span className="rev-pag-plantel-tag rev-pag-plantel-tag--educativo">
+                <Image
+                  src={LOGO_EDUCATIVO}
+                  alt=""
+                  width={36}
+                  height={28}
+                  className="rev-pag-plantel-logo"
+                />
+                Educativo
+              </span>
+              <span className="rev-pag-plantel-tag rev-pag-plantel-tag--winston">
+                <Image
+                  src={LOGO_WINSTON}
+                  alt=""
+                  width={36}
+                  height={28}
+                  className="rev-pag-plantel-logo rev-pag-plantel-logo--winston"
+                />
+                Winston
+              </span>
+            </div>
           </div>
         </section>
 
         <section className="rev-pag-panel rev-pag-panel--buscar" ref={searchWrapRef}>
-          <header className="rev-pag-panel-head">
+          <header className="rev-pag-panel-head rev-pag-panel-head--inline">
             <span className="rev-pag-panel-step">1</span>
-            <div>
-              <h2 className="rev-pag-panel-title">Búsqueda</h2>
-              <p className="rev-pag-panel-sub">
-                Nombre o No. de control · Maternal A → 9no
-              </p>
-            </div>
+            <h2 className="rev-pag-panel-title">Búsqueda</h2>
+            <p className="rev-pag-panel-sub">
+              Nombre o No. de control · Maternal A → 9no
+            </p>
           </header>
           <div className="rev-pag-search-box">
             <AlumnoAutocomplete
@@ -171,14 +191,12 @@ function RevisionPagadosView() {
         </section>
 
         <section className="rev-pag-panel rev-pag-panel--resultado" aria-live="polite">
-          <header className="rev-pag-panel-head">
+          <header className="rev-pag-panel-head rev-pag-panel-head--inline">
             <span className="rev-pag-panel-step">2</span>
-            <div>
-              <h2 className="rev-pag-panel-title">Resultado</h2>
-              <p className="rev-pag-panel-sub">
-                Plantel · inscripción completa o incompleta
-              </p>
-            </div>
+            <h2 className="rev-pag-panel-title">Resultado</h2>
+            <p className="rev-pag-panel-sub">
+              Plantel · inscripción completa o incompleta
+            </p>
           </header>
 
           {loading ? (
@@ -229,13 +247,24 @@ function ResultadoInscripcion({
       <div
         className={`rev-pag-plantel-banner rev-pag-plantel-banner--${data.alumno.plantel}`}
       >
-        <span className="rev-pag-plantel-banner-kicker">Plantel</span>
-        <strong className="rev-pag-plantel-banner-name">
-          {data.alumno.plantel_label}
-        </strong>
-        <span className="rev-pag-plantel-banner-razon">
-          {data.alumno.plantel_razon}
-        </span>
+        <Image
+          src={
+            data.alumno.plantel === 'educativo' ? LOGO_EDUCATIVO : LOGO_WINSTON
+          }
+          alt=""
+          width={56}
+          height={42}
+          className={`rev-pag-plantel-banner-logo${data.alumno.plantel === 'winston' ? ' rev-pag-plantel-banner-logo--winston' : ''}`}
+        />
+        <div className="rev-pag-plantel-banner-text">
+          <span className="rev-pag-plantel-banner-kicker">Plantel</span>
+          <strong className="rev-pag-plantel-banner-name">
+            {data.alumno.plantel_label}
+          </strong>
+          <span className="rev-pag-plantel-banner-razon">
+            {data.alumno.plantel_razon}
+          </span>
+        </div>
       </div>
 
       <div className="rev-pag-verdict">

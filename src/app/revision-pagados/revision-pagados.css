@@ -70,7 +70,7 @@
   justify-content: space-between;
   gap: 12px;
   min-width: 0;
-  padding: calc(10px + var(--rev-safe-t)) 14px 10px;
+  padding: calc(6px + var(--rev-safe-t)) 12px 6px;
   border-bottom: 1px solid var(--rev-line);
   background: color-mix(in srgb, var(--bg) 90%, transparent);
   backdrop-filter: blur(14px);
@@ -124,20 +124,33 @@
 .rev-pag-main {
   position: relative;
   z-index: 1;
-  width: min(760px, 100%);
+  width: min(900px, 100%);
   margin: 0 auto;
-  padding: 16px 12px 24px;
+  padding: 8px 12px 20px;
   min-width: 0;
 }
 
 .rev-pag-hero {
-  margin-bottom: 18px;
+  margin-bottom: 10px;
+}
+
+.rev-pag-hero-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.rev-pag-hero-copy {
+  min-width: 0;
+  flex: 1 1 220px;
 }
 
 .rev-pag-kicker {
-  margin: 0 0 6px;
+  margin: 0 0 2px;
   font-family: 'Space Grotesk', system-ui, sans-serif;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -147,42 +160,43 @@
 .rev-pag-hero h1 {
   margin: 0;
   font-family: 'Space Grotesk', system-ui, sans-serif;
-  font-size: clamp(1.55rem, 6vw, 2.4rem);
+  font-size: clamp(1.25rem, 4.2vw, 1.85rem);
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.12;
   overflow-wrap: anywhere;
 }
 
-.rev-pag-lead {
-  margin: 12px 0 0;
-  max-width: 42rem;
-  font-size: clamp(1rem, 2.8vw, 1.15rem);
-  line-height: 1.45;
-  color: var(--rev-muted);
-}
-
-.rev-pag-lead strong {
-  color: var(--rev-ink);
-}
-
 .rev-pag-planteles-legend {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 14px;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .rev-pag-plantel-tag {
   display: inline-flex;
   align-items: center;
-  min-height: 40px;
-  padding: 0 16px;
+  gap: 8px;
+  min-height: 44px;
+  padding: 4px 14px 4px 8px;
   border-radius: 999px;
   font-family: 'Space Grotesk', system-ui, sans-serif;
   font-size: 0.95rem;
   font-weight: 800;
   letter-spacing: 0.02em;
+}
+
+.rev-pag-plantel-logo {
+  width: 34px;
+  height: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.rev-pag-plantel-logo--winston {
+  width: 30px;
 }
 
 .rev-pag-plantel-tag--educativo {
@@ -209,11 +223,11 @@
 .rev-pag-panel {
   position: relative;
   z-index: 1;
-  margin-top: 16px;
-  border-radius: 22px;
+  margin-top: 10px;
+  border-radius: 18px;
   border: 1px solid var(--rev-line);
   background: var(--rev-card);
-  padding: 16px 14px 18px;
+  padding: 12px 12px 14px;
   box-shadow: 0 14px 36px rgba(12, 24, 48, 0.07);
   min-width: 0;
 }
@@ -230,40 +244,66 @@
 
 .rev-pag-panel-head {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 14px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
   min-width: 0;
+}
+
+.rev-pag-panel-head--inline {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.rev-pag-panel-head--inline .rev-pag-panel-title {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.rev-pag-panel-head--inline .rev-pag-panel-sub {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rev-pag-panel-head--inline .rev-pag-panel-sub::before {
+  content: '·';
+  margin-right: 8px;
+  color: var(--rev-muted);
+  font-weight: 700;
 }
 
 .rev-pag-panel-step {
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   background: linear-gradient(145deg, #0f2744, #1c3d66);
   color: #fff6df;
   font-family: 'Space Grotesk', system-ui, sans-serif;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 800;
 }
 
 .rev-pag-panel-title {
   margin: 0;
   font-family: 'Space Grotesk', system-ui, sans-serif;
-  font-size: clamp(1.35rem, 4.2vw, 1.75rem);
+  font-size: clamp(1.15rem, 3.5vw, 1.45rem);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.15;
 }
 
 .rev-pag-panel-sub {
-  margin: 4px 0 0;
-  font-size: clamp(0.95rem, 2.5vw, 1.05rem);
+  margin: 0;
+  font-size: clamp(0.88rem, 2.2vw, 1rem);
   color: var(--rev-muted);
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 .rev-pag-search-box {
@@ -271,9 +311,20 @@
 }
 
 .rev-pag-search-box .alumno-ac-label {
-  font-size: 1.05rem;
-  font-weight: 700;
-  margin-bottom: 8px;
+  /* La línea del panel ya indica qué buscar */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.rev-pag-search-box .alumno-ac-label-ciclo {
+  display: none;
 }
 
 .rev-pag-search-box .alumno-ac,
@@ -368,12 +419,30 @@
 }
 
 .rev-pag-plantel-banner {
-  display: grid;
-  gap: 2px;
-  margin-bottom: 16px;
-  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
   border-radius: 16px;
   border: 1px solid transparent;
+}
+
+.rev-pag-plantel-banner-logo {
+  width: 52px;
+  height: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.rev-pag-plantel-banner-logo--winston {
+  width: 44px;
+}
+
+.rev-pag-plantel-banner-text {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
 }
 
 .rev-pag-plantel-banner--educativo {
@@ -853,21 +922,27 @@
 /* Móvil estrecho */
 @media (max-width: 480px) {
   .rev-pag-main {
-    padding: 12px 10px 20px;
+    padding: 6px 10px 16px;
   }
 
-  .rev-pag-rule {
-    font-size: 0.84rem;
+  .rev-pag-plantel-tag {
+    padding: 4px 10px 4px 6px;
+    font-size: 0.82rem;
+    min-height: 40px;
+  }
+
+  .rev-pag-plantel-logo {
+    width: 28px;
+  }
+
+  .rev-pag-panel-head--inline .rev-pag-panel-sub {
+    white-space: normal;
   }
 
   .rev-pag-verdict-icon {
     width: 64px;
     height: 64px;
     border-radius: 18px;
-  }
-
-  .rev-pag-chip {
-    font-size: 0.74rem;
   }
 }
 
@@ -895,15 +970,15 @@
   }
 
   .rev-pag-top {
-    padding: 14px 24px;
+    padding: 8px 20px;
   }
 
   .rev-pag-main {
-    padding: 28px 20px 40px;
+    padding: 10px 16px 32px;
   }
 
   .rev-pag-result {
-    padding: 22px 22px 24px;
+    padding: 18px 18px 20px;
   }
 
   .rev-pag-cards {
