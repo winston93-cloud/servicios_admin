@@ -7,7 +7,6 @@ import {
   ChevronDown,
   Coffee,
   ExternalLink,
-  FileText,
   Loader2,
   Newspaper,
   Sparkles,
@@ -82,9 +81,13 @@ function TarjetaArchivo({
           />
         </div>
       ) : (
-        <div className="nd-portal-pdf">
-          <FileText size={40} aria-hidden />
-          <p>{publicacion.nombre_archivo ?? 'Documento PDF'}</p>
+        <div className="nd-portal-preview nd-portal-preview--pdf">
+          <iframe
+            src={publicacion.href}
+            title={publicacion.nombre_archivo ?? titulo}
+            className="nd-portal-pdf-frame"
+            loading="lazy"
+          />
         </div>
       )}
 

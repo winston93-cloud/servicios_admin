@@ -719,19 +719,18 @@
   object-fit: contain;
 }
 
-.nd-portal-pdf {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  padding: 2rem 1rem;
-  margin-bottom: 1rem;
-  border-radius: 0.65rem;
-  background: rgba(0, 227, 253, 0.05);
-  color: #bdf4ff;
-  text-align: center;
+.nd-portal-preview--pdf {
+  min-height: min(420px, 55vh);
+  background: #0d0e13;
+}
+
+.nd-portal-pdf-frame {
+  display: block;
+  width: 100%;
+  height: min(420px, 55vh);
+  min-height: 280px;
+  border: 0;
+  background: #0d0e13;
 }
 
 .nd-portal-btn {
@@ -1025,9 +1024,9 @@
   background: #f1f5f9;
 }
 
-[data-theme='light'] .nd-portal-pdf {
-  background: #eef2ff;
-  color: #4338ca;
+[data-theme='light'] .nd-portal-preview--pdf,
+[data-theme='light'] .nd-portal-pdf-frame {
+  background: #f1f5f9;
 }
 
 [data-theme='light'] .nd-portal-btn {
@@ -1100,8 +1099,13 @@
     padding: 1rem;
   }
 
-  .nd-portal-img {
+  .nd-portal-img,
+  .nd-portal-pdf-frame {
     max-height: min(55vh, 420px);
+  }
+
+  .nd-portal-preview--pdf {
+    min-height: min(55vh, 320px);
   }
 
   .nd-historial-lista li {
