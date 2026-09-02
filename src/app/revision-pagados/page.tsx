@@ -60,7 +60,8 @@ export default function RevisionPagadosPage() {
 }
 
 function RevisionPagadosView() {
-  const { cicloActualSistema, cicloInscripcionSistema } = useCicloEscolar()
+  const { cicloInscripcionSistema, etiquetaCicloInscripcionSistema } =
+    useCicloEscolar()
   const searchWrapRef = useRef<HTMLDivElement>(null)
 
   const [alumno, setAlumno] = useState<AlumnoBusquedaResultado | null>(null)
@@ -114,12 +115,14 @@ function RevisionPagadosView() {
     }, 50)
   }, [])
 
-  const cicloHint =
-    cicloInscripcionSistema != null
-      ? `Inscripción ciclo ${cicloInscripcionSistema}`
-      : cicloActualSistema != null
-        ? `Temporada ${cicloActualSistema}`
-        : 'Ciclo vigente'
+  const cicloEscolarLabel =
+    etiquetaCicloInscripcionSistema ||
+    (cicloInscripcionSistema != null
+      ? `${cicloInscripcionSistema + 2003}-${cicloInscripcionSistema + 2004}`
+      : null)
+  const cicloHint = cicloEscolarLabel
+    ? `Ciclo escolar ${cicloEscolarLabel}`
+    : 'Ciclo vigente'
 
   return (
     <div className={`rev-pag-page${data ? ' rev-pag-page--con-resultado' : ''}`}>
@@ -304,7 +307,7 @@ function ResultadoInscripcion({
         </span>
         <span className="rev-pag-chip">{data.modalidad_label}</span>
         <span className="rev-pag-chip rev-pag-chip--muted">
-          Ciclo insc. {data.ciclo_inscripcion}
+          Ciclo escolar {data.ciclo_label?.replace(/^Ciclo\s+/i, '') || data.ciclo_inscripcion}
         </span>
         {data.tiene_pago_unico ? (
           <span className="rev-pag-chip rev-pag-chip--ok">13 · Inscripción</span>

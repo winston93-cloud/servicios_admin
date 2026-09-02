@@ -287,7 +287,12 @@ export async function revisarInscripcionAlumno(
     },
     ciclo_temporada: cicloSistema.valor,
     ciclo_inscripcion: cen,
-    ciclo_label: cicloSistema.nombre || `Ciclo ${cen}`,
+    ciclo_label:
+      cen === cicloSistema.valor && cicloSistema.nombre
+        ? cicloSistema.nombre
+        : cen === cicloSistema.valor && cicloSistema.anio_inicio && cicloSistema.anio_fin
+          ? `${cicloSistema.anio_inicio}-${cicloSistema.anio_fin}`
+          : `${cen + 2003}-${cen + 2004}`,
     pagado,
     modalidad: mod.modalidad,
     modalidad_label: mod.label,
