@@ -16,7 +16,8 @@ export type GrupoEntradaParseado = {
   etiqueta: string
   gradoDisplay: number
   letra: string
-  grupoNum: number
+  /** null = no filtrar por alumno_grupo (p. ej. Maternal A/B). */
+  grupoNum: number | null
   filtros: Array<{ nivel: number; grado: number }>
   nivel_forzado: number | null
 }
@@ -50,9 +51,44 @@ export type RevisionGrupoResultado = {
   alumnos: RevisionGrupoAlumnoItem[]
 }
 
+
 /**
- * Interpreta "K2A", "2a", "7b", etc.
- * K+grado → Kinder; 7–9 → Secundaria; 1–6 → Primaria.
+ * Guía de códigos para la entrada (Maternal → 9°).
+ */
+export const GUIA_CODIGOS_GRUPO_ENTRADA: Array<{
+  nivel: string
+  plantel: string
+  ejemplos: string[]
+  nota: string
+}> = [
+  {
+    nivel: 'Maternal',
+    plantel: 'Educativo',
+    ejemplos: ['MA', 'MB'],
+    nota: 'Maternal A y Maternal B (salón completo).',
+  },
+  {
+    nivel: 'Kinder',
+    plantel: 'Educativo',
+    ejemplos: ['K1A', 'K1B', 'K2A', 'K2B', 'K3A', 'K3B'],
+    nota: 'K + grado (1–3) + letra del grupo.',
+  },
+  {
+    nivel: 'Primaria',
+    plantel: 'Winston',
+    ejemplos: ['1A', '1B', '1C', '2A', '3A', '4A', '5A', '6A', '6B', '6C'],
+    nota: 'Grado (1–6) + letra. Sin K.',
+  },
+  {
+    nivel: 'Secundaria',
+    plantel: 'Winston',
+    ejemplos: ['7A', '7B', '8A', '8B', '9A', '9B'],
+    nota: '7 = 7mo, 8 = 8vo, 9 = 9no + letra.',
+  },
+]
+
+/**
+ * Interpreta "MA", "K2A", "2a", "7b", etc.
  */
 export function parseGrupoEntrada(
   raw: string,
@@ -62,6 +98,20 @@ export function parseGrupoEntrada(
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '')
+
+  const maternal = limpio.match(/^m([ab])$/i)
+  if (maternal) {
+    const letra = maternal[1].toUpperCase()
+    const gradoDisplay = letra === 'A' ? 1 : 2
+    return {
+      etiqueta: `M${letra}`,
+      gradoDisplay,
+      letra,
+      grupoNum: null,
+      filtros: [{ nivel: 1, grado: gradoDisplay }],
+      nivel_forzado: 1,
+    }
+  }
 
   const kinder = limpio.match(/^k(\d)([a-f])$/i)
   if (kinder) {
@@ -242,7 +292,7 @@ export async function revisarInscripcionPorGrupo(
   const filas: AlumnoGrupoRow[] = []
 
   for (const f of parsed.filtros) {
-    const { data, error } = await supabase
+    let query = supabase
       .from('alumno')
       .select(
         'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo'
@@ -251,11 +301,16 @@ export async function revisarInscripcionPorGrupo(
       .eq('alumno_ciclo_escolar', cen)
       .eq('alumno_nivel', f.nivel)
       .eq('alumno_grado', f.grado)
-      .eq('alumno_grupo', parsed.grupoNum)
       .order('alumno_app', { ascending: true })
       .order('alumno_apm', { ascending: true })
       .order('alumno_nombre', { ascending: true })
       .limit(80)
+
+    if (parsed.grupoNum != null) {
+      query = query.eq('alumno_grupo', parsed.grupoNum)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       console.error('revision grupo alumnos:', error)
@@ -345,6 +400,9 @@ function codigoGrupoDisplay(
   grado: number,
   grupoNum: number
 ): string | null {
+  if (nivel === 1 && (grado === 1 || grado === 2)) {
+    return grado === 1 ? 'MA' : 'MB'
+  }
   const letra = letraDesdeGrupoNum(grupoNum)
   if (!letra) return null
   if (nivel === 4 && grado >= 1 && grado <= 3) {
@@ -389,7 +447,6 @@ export async function listarGruposDisponiblesEntrada(): Promise<
     .select('alumno_nivel, alumno_grado, alumno_grupo')
     .eq('alumno_status', 1)
     .eq('alumno_ciclo_escolar', cen)
-    .gt('alumno_grupo', 0)
     .limit(5000)
 
   if (error) {

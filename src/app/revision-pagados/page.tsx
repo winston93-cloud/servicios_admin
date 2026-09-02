@@ -6,10 +6,12 @@ import Link from 'next/link'
 import {
   ArrowLeft,
   CheckCircle2,
+  CircleHelp,
   Loader2,
   RefreshCw,
   Search,
   UserRoundSearch,
+  X,
   XCircle,
 } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -26,6 +28,7 @@ import type {
   GrupoEntradaOpcion,
   RevisionGrupoResultado,
 } from '@/lib/revisionPagadosGrupo'
+import { GUIA_CODIGOS_GRUPO_ENTRADA } from '@/lib/revisionPagadosGrupo'
 import type { RevisionInscripcionResultado } from '@/lib/revisionPagadosInscripcion'
 import './revision-pagados.css'
 
@@ -74,6 +77,7 @@ function RevisionPagadosView() {
   const listboxId = 'rev-pag-grupo-listbox'
 
   const [modo, setModo] = useState<ModoBusqueda>('grupo')
+  const [guiaAbierta, setGuiaAbierta] = useState(false)
   const [consulta, setConsulta] = useState('')
   const [gruposCatalogo, setGruposCatalogo] = useState<GrupoEntradaOpcion[]>([])
   const [sugerenciasAbiertas, setSugerenciasAbiertas] = useState(false)
@@ -455,7 +459,16 @@ function RevisionPagadosView() {
                 </button>
               </div>
               <p className="rev-pag-grupo-hint">
-                Kinder: K1A / K2A / K3A · Enter despliega la lista del grupo
+                <button
+                  type="button"
+                  className="rev-pag-guia-link"
+                  onClick={() => setGuiaAbierta(true)}
+                >
+                  <CircleHelp size={16} aria-hidden />
+                  Cómo se escriben (Maternal → 9A)
+                </button>
+                <span aria-hidden> · </span>
+                Enter despliega la lista
               </p>
             </form>
           ) : (
@@ -522,6 +535,95 @@ function RevisionPagadosView() {
           ) : null}
         </section>
       </main>
+
+      {guiaAbierta ? (
+        <GuiaCodigosModal
+          onCerrar={() => setGuiaAbierta(false)}
+          onElegir={(codigo) => {
+            setGuiaAbierta(false)
+            setModo('grupo')
+            void buscarGrupo(codigo)
+          }}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function GuiaCodigosModal({
+  onCerrar,
+  onElegir,
+}: {
+  onCerrar: () => void
+  onElegir: (codigo: string) => void
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCerrar()
+    }
+    window.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [onCerrar])
+
+  return (
+    <div
+      className="rev-pag-guia-backdrop"
+      role="presentation"
+      onClick={onCerrar}
+    >
+      <div
+        className="rev-pag-guia-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="rev-pag-guia-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="rev-pag-guia-head">
+          <div>
+            <p className="rev-pag-guia-kicker">Entrada al colegio</p>
+            <h2 id="rev-pag-guia-title">Cómo se escriben grado y grupo</h2>
+          </div>
+          <button
+            type="button"
+            className="rev-pag-guia-cerrar"
+            onClick={onCerrar}
+            aria-label="Cerrar guía"
+          >
+            <X size={20} aria-hidden />
+          </button>
+        </header>
+        <p className="rev-pag-guia-lead">
+          Toca un código para buscar ese salón. Maternal A → 9A.
+        </p>
+        <div className="rev-pag-guia-body">
+          {GUIA_CODIGOS_GRUPO_ENTRADA.map((bloque) => (
+            <section key={bloque.nivel} className="rev-pag-guia-bloque">
+              <header className="rev-pag-guia-bloque-head">
+                <strong>{bloque.nivel}</strong>
+                <span>{bloque.plantel}</span>
+              </header>
+              <p>{bloque.nota}</p>
+              <div className="rev-pag-guia-chips">
+                {bloque.ejemplos.map((codigo) => (
+                  <button
+                    key={codigo}
+                    type="button"
+                    className="rev-pag-guia-chip"
+                    onClick={() => onElegir(codigo)}
+                  >
+                    {codigo}
+                  </button>
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
