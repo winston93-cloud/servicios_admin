@@ -397,11 +397,11 @@
 }
 
 .rev-pag-completa-por {
-  margin: 6px 0 0;
-  font-size: clamp(1rem, 2.8vw, 1.15rem);
+  margin: 4px 0 0;
+  font-size: clamp(0.88rem, 2.4vw, 0.98rem);
   font-weight: 600;
   color: #047857;
-  line-height: 1.35;
+  line-height: 1.3;
 }
 
 [data-theme='dark'] .rev-pag-completa-por {
@@ -421,28 +421,28 @@
 .rev-pag-plantel-banner {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-  padding: 12px 14px;
-  border-radius: 16px;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: 14px;
   border: 1px solid transparent;
 }
 
 .rev-pag-plantel-banner-logo {
-  width: 52px;
+  width: 42px;
   height: auto;
   object-fit: contain;
   flex-shrink: 0;
 }
 
 .rev-pag-plantel-banner-logo--winston {
-  width: 44px;
+  width: 36px;
 }
 
 .rev-pag-plantel-banner-text {
   min-width: 0;
   display: grid;
-  gap: 2px;
+  gap: 1px;
 }
 
 .rev-pag-plantel-banner--educativo {
@@ -464,7 +464,7 @@
 }
 
 .rev-pag-plantel-banner-kicker {
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -473,10 +473,10 @@
 
 .rev-pag-plantel-banner-name {
   font-family: 'Space Grotesk', system-ui, sans-serif;
-  font-size: clamp(1.55rem, 5vw, 2rem);
+  font-size: clamp(1.2rem, 4vw, 1.55rem);
   font-weight: 800;
   letter-spacing: -0.02em;
-  line-height: 1.1;
+  line-height: 1.08;
 }
 
 .rev-pag-plantel-banner--educativo .rev-pag-plantel-banner-name {
@@ -496,9 +496,9 @@
 }
 
 .rev-pag-plantel-banner-razon {
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   color: var(--rev-muted);
-  line-height: 1.35;
+  line-height: 1.25;
 }
 
 .rev-pag-loading,
@@ -540,9 +540,9 @@
 
 .rev-pag-result {
   margin-top: 0;
-  border-radius: 18px;
+  border-radius: 16px;
   border: 1px solid transparent;
-  padding: 14px 12px 16px;
+  padding: 10px 10px 12px;
   animation: rev-pag-in 0.28s ease-out;
   min-width: 0;
 }
@@ -601,7 +601,7 @@
 .rev-pag-verdict {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   align-items: stretch;
   min-width: 0;
 }
@@ -614,9 +614,9 @@
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  width: 72px;
-  height: 72px;
-  border-radius: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
 }
 
 .rev-pag-result--ok .rev-pag-verdict-icon {
@@ -634,10 +634,10 @@
 .rev-pag-verdict-label {
   margin: 0;
   font-family: 'Space Grotesk', system-ui, sans-serif;
-  font-size: clamp(1.55rem, 6vw, 2.05rem);
+  font-size: clamp(1.25rem, 4.8vw, 1.65rem);
   font-weight: 800;
   letter-spacing: -0.02em;
-  line-height: 1.1;
+  line-height: 1.08;
 }
 
 .rev-pag-result--ok .rev-pag-verdict-label {
@@ -657,19 +657,19 @@
 }
 
 .rev-pag-name {
-  margin: 8px 0 0;
-  font-size: clamp(1.2rem, 4vw, 1.55rem);
+  margin: 4px 0 0;
+  font-size: clamp(1.02rem, 3.2vw, 1.25rem);
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.2;
   overflow-wrap: anywhere;
 }
 
 .rev-pag-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 12px;
-  margin: 10px 0 0;
-  font-size: clamp(0.95rem, 2.5vw, 1.05rem);
+  gap: 4px 10px;
+  margin: 6px 0 0;
+  font-size: clamp(0.82rem, 2.2vw, 0.92rem);
   color: var(--rev-muted);
 }
 
@@ -677,28 +677,28 @@
   font-weight: 800;
   color: var(--rev-ink);
   font-variant-numeric: tabular-nums;
-  font-size: clamp(1.15rem, 3vw, 1.35rem);
+  font-size: clamp(0.98rem, 2.6vw, 1.12rem);
 }
 
 .rev-pag-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
+  gap: 6px;
+  margin-top: 10px;
 }
 
 .rev-pag-chip {
   display: inline-flex;
   align-items: center;
-  min-height: 40px;
+  min-height: 34px;
   max-width: 100%;
-  padding: 0 14px;
+  padding: 0 11px;
   border-radius: 999px;
   border: 1px solid var(--rev-line);
   background: color-mix(in srgb, var(--card) 88%, transparent);
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .rev-pag-chip--muted {
@@ -726,31 +726,31 @@
 }
 
 .rev-pag-resumen {
-  margin: 14px 0 0;
-  font-size: clamp(1rem, 2.8vw, 1.12rem);
-  line-height: 1.45;
+  margin: 10px 0 0;
+  font-size: clamp(0.88rem, 2.4vw, 0.98rem);
+  line-height: 1.35;
   color: var(--rev-muted);
 }
 
 .rev-pag-stats {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 10px;
-  margin-top: 14px;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .rev-pag-stats > div {
   min-width: 0;
-  padding: 14px;
-  border-radius: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
   border: 1px solid var(--rev-line);
   background: color-mix(in srgb, var(--card) 90%, transparent);
 }
 
 .rev-pag-stat-label {
   display: block;
-  margin-bottom: 4px;
-  font-size: 0.68rem;
+  margin-bottom: 2px;
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -759,7 +759,7 @@
 
 .rev-pag-stats strong {
   display: block;
-  font-size: 1.12rem;
+  font-size: 1rem;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
@@ -771,16 +771,16 @@
 /* Móvil: cards; desktop: tabla */
 .rev-pag-cards {
   display: grid;
-  gap: 10px;
-  margin: 14px 0 0;
+  gap: 8px;
+  margin: 10px 0 0;
   padding: 0;
   list-style: none;
 }
 
 .rev-pag-card {
   min-width: 0;
-  padding: 14px;
-  border-radius: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
   border: 1px solid var(--rev-line);
   background: color-mix(in srgb, var(--card) 92%, transparent);
 }
@@ -789,31 +789,31 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .rev-pag-card-concepto {
-  margin: 8px 0 0;
-  font-size: 0.92rem;
+  margin: 6px 0 0;
+  font-size: 0.84rem;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.25;
 }
 
 .rev-pag-card-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 14px;
-  margin-top: 8px;
-  font-size: 0.82rem;
+  gap: 6px 12px;
+  margin-top: 6px;
+  font-size: 0.76rem;
   color: var(--rev-muted);
 }
 
 .rev-pag-table-wrap {
   display: none;
-  margin-top: 16px;
+  margin-top: 10px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  border-radius: 14px;
+  border-radius: 12px;
   border: 1px solid var(--rev-line);
 }
 
@@ -821,18 +821,18 @@
   width: 100%;
   border-collapse: collapse;
   min-width: 420px;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
 }
 
 .rev-pag-table th,
 .rev-pag-table td {
-  padding: 10px 12px;
+  padding: 8px 10px;
   text-align: left;
   border-bottom: 1px solid var(--rev-line);
 }
 
 .rev-pag-table th {
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -848,10 +848,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 32px;
-  min-height: 28px;
-  padding: 2px 8px;
-  border-radius: 8px;
+  min-width: 28px;
+  min-height: 24px;
+  padding: 1px 6px;
+  border-radius: 7px;
   background: color-mix(in srgb, var(--primary) 12%, transparent);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -861,16 +861,16 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  font-size: 1.05rem;
+  font-size: 0.92rem;
 }
 
 .rev-pag-empty-pagos {
-  margin-top: 14px;
-  padding: 14px;
-  border-radius: 12px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
   border: 1px dashed var(--rev-line);
   color: var(--rev-muted);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
 }
 
 /* Botón fijo al alcance del pulgar en móvil */
@@ -940,9 +940,9 @@
   }
 
   .rev-pag-verdict-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: 18px;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
   }
 }
 
@@ -959,7 +959,7 @@
   .rev-pag-verdict {
     flex-direction: row;
     align-items: flex-start;
-    gap: 14px;
+    gap: 10px;
   }
 }
 
@@ -978,7 +978,7 @@
   }
 
   .rev-pag-result {
-    padding: 18px 18px 20px;
+    padding: 14px 14px 16px;
   }
 
   .rev-pag-cards {
@@ -991,7 +991,7 @@
 
   .rev-pag-actions {
     position: static;
-    padding: 18px 0 0;
+    padding: 14px 0 0;
     background: none;
     pointer-events: auto;
   }
