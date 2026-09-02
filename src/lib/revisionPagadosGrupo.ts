@@ -1,6 +1,6 @@
 /**
  * Lista de inscripción por grupo (entrada al colegio).
- * Consulta tipo "2a" / "7b" → alumnos activos del ciclo vigente, verde/rojo.
+ * Códigos: K2A (Kinder), 2A (Primaria), 7B (Secundaria).
  */
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { grupoNumDesdeLetra, letraDesdeGrupoNum } from '@/lib/boletasCiclo'
@@ -17,8 +17,8 @@ export type GrupoEntradaParseado = {
   gradoDisplay: number
   letra: string
   grupoNum: number
-  /** Pares nivel+grado a buscar (p. ej. kinder y primaria comparten 2a). */
   filtros: Array<{ nivel: number; grado: number }>
+  nivel_forzado: number | null
 }
 
 export type RevisionGrupoAlumnoItem = {
@@ -41,6 +41,7 @@ export type RevisionGrupoResultado = {
   ok: true
   consulta: string
   grupo_etiqueta: string
+  nivel_label: string | null
   ciclo_inscripcion: number
   ciclo_label: string
   total: number
@@ -50,15 +51,34 @@ export type RevisionGrupoResultado = {
 }
 
 /**
- * Interpreta "2a", "7b", "9C", etc.
- * 7–9 → Secundaria (grados internos 1–3).
- * 1–6 → Primaria y Kinder (mismos números de grado).
+ * Interpreta "K2A", "2a", "7b", etc.
+ * K+grado → Kinder; 7–9 → Secundaria; 1–6 → Primaria.
  */
-export function parseGrupoEntrada(raw: string): GrupoEntradaParseado | null {
+export function parseGrupoEntrada(
+  raw: string,
+  nivelOpcional?: number | null
+): GrupoEntradaParseado | null {
   const limpio = String(raw ?? '')
     .trim()
     .toLowerCase()
     .replace(/\s+/g, '')
+
+  const kinder = limpio.match(/^k(\d)([a-f])$/i)
+  if (kinder) {
+    const gradoDisplay = parseInt(kinder[1], 10)
+    const letra = kinder[2].toUpperCase()
+    const grupoNum = grupoNumDesdeLetra(letra)
+    if (grupoNum == null || gradoDisplay < 1 || gradoDisplay > 3) return null
+    return {
+      etiqueta: `K${gradoDisplay}${letra}`,
+      gradoDisplay,
+      letra,
+      grupoNum,
+      filtros: [{ nivel: 2, grado: gradoDisplay }],
+      nivel_forzado: 2,
+    }
+  }
+
   const m = limpio.match(/^(\d{1,2})([a-f])$/i)
   if (!m) return null
 
@@ -70,6 +90,10 @@ export function parseGrupoEntrada(raw: string): GrupoEntradaParseado | null {
   }
 
   const etiqueta = `${gradoDisplay}${letra}`
+  const nivel =
+    nivelOpcional != null && Number.isFinite(nivelOpcional)
+      ? Number(nivelOpcional)
+      : null
 
   if (gradoDisplay >= 7 && gradoDisplay <= 9) {
     return {
@@ -78,19 +102,29 @@ export function parseGrupoEntrada(raw: string): GrupoEntradaParseado | null {
       letra,
       grupoNum,
       filtros: [{ nivel: 4, grado: gradoDisplay - 6 }],
+      nivel_forzado: 4,
     }
   }
 
   if (gradoDisplay >= 1 && gradoDisplay <= 6) {
+    if (nivel === 2) {
+      return {
+        etiqueta: `K${gradoDisplay}${letra}`,
+        gradoDisplay,
+        letra,
+        grupoNum,
+        filtros: [{ nivel: 2, grado: gradoDisplay }],
+        nivel_forzado: 2,
+      }
+    }
+    // Por defecto Primaria; si mandan nivel 3, igual.
     return {
       etiqueta,
       gradoDisplay,
       letra,
       grupoNum,
-      filtros: [
-        { nivel: 3, grado: gradoDisplay },
-        { nivel: 2, grado: gradoDisplay },
-      ],
+      filtros: [{ nivel: 3, grado: gradoDisplay }],
+      nivel_forzado: 3,
     }
   }
 
@@ -173,15 +207,16 @@ async function cargarPagosPorAlumnos(
 }
 
 export async function revisarInscripcionPorGrupo(
-  consultaGrupo: string
+  consultaGrupo: string,
+  nivelOpcional?: number | null
 ): Promise<
   RevisionGrupoResultado | { ok: false; error: string; status: number }
 > {
-  const parsed = parseGrupoEntrada(consultaGrupo)
+  const parsed = parseGrupoEntrada(consultaGrupo, nivelOpcional)
   if (!parsed) {
     return {
       ok: false,
-      error: 'Escribe el grupo como 2a, 5b o 7b (grado + letra).',
+      error: 'Escribe el grupo como K2A, 2A o 7B (Kinder con K).',
       status: 400,
     }
   }
@@ -234,6 +269,7 @@ export async function revisarInscripcionPorGrupo(
       filas.push(row)
     }
   }
+
   const pagosMap = await cargarPagosPorAlumnos(
     filas.map((a) => Number(a.alumno_id)),
     cen
@@ -264,18 +300,22 @@ export async function revisarInscripcionPorGrupo(
     }
   })
 
-  // Orden: pendientes primero (rojo arriba) ayuda en la entrada.
   alumnos.sort((a, b) => {
     if (a.pagado !== b.pagado) return a.pagado ? 1 : -1
     return a.nombre_completo.localeCompare(b.nombre_completo, 'es')
   })
 
   const pagados = alumnos.filter((a) => a.pagado).length
+  const nivelLabel =
+    parsed.nivel_forzado != null
+      ? etiquetaNivelEscolar(parsed.nivel_forzado)
+      : null
 
   return {
     ok: true,
     consulta: String(consultaGrupo).trim(),
     grupo_etiqueta: parsed.etiqueta.toUpperCase(),
+    nivel_label: nivelLabel,
     ciclo_inscripcion: cen,
     ciclo_label: cicloLabel,
     total: alumnos.length,
@@ -291,19 +331,28 @@ export function plantelRazon(nivel: number): string {
 }
 
 export type GrupoEntradaOpcion = {
+  /** Código a buscar: K2A, 2A, 7B */
   codigo: string
   etiqueta: string
+  nivel: number
+  nivel_label: string
   alumnos: number
-  niveles: string[]
 }
 
-function codigoGrupoDisplay(nivel: number, grado: number, grupoNum: number): string | null {
+function codigoGrupoDisplay(
+  nivel: number,
+  grado: number,
+  grupoNum: number
+): string | null {
   const letra = letraDesdeGrupoNum(grupoNum)
   if (!letra) return null
   if (nivel === 4 && grado >= 1 && grado <= 3) {
     return `${grado + 6}${letra}`
   }
-  if ((nivel === 2 || nivel === 3) && grado >= 1 && grado <= 6) {
+  if (nivel === 2 && grado >= 1 && grado <= 3) {
+    return `K${grado}${letra}`
+  }
+  if (nivel === 3 && grado >= 1 && grado <= 6) {
     return `${grado}${letra}`
   }
   return null
@@ -311,6 +360,7 @@ function codigoGrupoDisplay(nivel: number, grado: number, grupoNum: number): str
 
 /**
  * Grupos con alumnos activos en el ciclo vigente (para autocomplete).
+ * Kinder sale como K1A / K2A / K3A; Primaria 1A–6C; Secundaria 7A–9C.
  */
 export async function listarGruposDisponiblesEntrada(): Promise<
   | { ok: true; ciclo: number; ciclo_label: string; grupos: GrupoEntradaOpcion[] }
@@ -346,7 +396,7 @@ export async function listarGruposDisponiblesEntrada(): Promise<
     return { ok: false, error: 'No se pudieron cargar los grupos.', status: 500 }
   }
 
-  type Acc = { alumnos: number; niveles: Set<string> }
+  type Acc = { alumnos: number; nivel: number; codigo: string }
   const mapa = new Map<string, Acc>()
 
   for (const row of data ?? []) {
@@ -355,24 +405,25 @@ export async function listarGruposDisponiblesEntrada(): Promise<
     const grupoNum = Number(row.alumno_grupo)
     const codigo = codigoGrupoDisplay(nivel, grado, grupoNum)
     if (!codigo) continue
-    const key = codigo.toUpperCase()
-    const prev = mapa.get(key) ?? { alumnos: 0, niveles: new Set<string>() }
+    const key = `${codigo.toUpperCase()}|${nivel}`
+    const prev = mapa.get(key) ?? { alumnos: 0, nivel, codigo: codigo.toUpperCase() }
     prev.alumnos += 1
-    prev.niveles.add(etiquetaNivelEscolar(nivel))
     mapa.set(key, prev)
   }
 
-  const grupos: GrupoEntradaOpcion[] = [...mapa.entries()]
-    .map(([codigo, acc]) => ({
-      codigo,
-      etiqueta: codigo,
-      alumnos: acc.alumnos,
-      niveles: [...acc.niveles].sort((a, b) => a.localeCompare(b, 'es')),
-    }))
+  const grupos: GrupoEntradaOpcion[] = [...mapa.values()]
+    .map((acc) => {
+      const nivel_label = etiquetaNivelEscolar(acc.nivel)
+      return {
+        codigo: acc.codigo,
+        etiqueta: `${acc.codigo} · ${nivel_label}`,
+        nivel: acc.nivel,
+        nivel_label,
+        alumnos: acc.alumnos,
+      }
+    })
     .sort((a, b) => {
-      const na = parseInt(a.codigo, 10)
-      const nb = parseInt(b.codigo, 10)
-      if (na !== nb) return na - nb
+      if (a.nivel !== b.nivel) return a.nivel - b.nivel
       return a.codigo.localeCompare(b.codigo, 'es')
     })
 

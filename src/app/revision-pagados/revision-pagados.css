@@ -480,6 +480,20 @@
   background: color-mix(in srgb, var(--primary) 14%, transparent);
 }
 
+.rev-pag-grupo-btn--individual,
+.rev-pag-grupo-btn--volver {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.rev-pag-individual-wrap {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
 .rev-pag-grupo-hint {
   margin: 0;
   font-size: 0.8rem;
