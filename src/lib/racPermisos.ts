@@ -1,6 +1,10 @@
 import type { RacRol } from '@/lib/racAuth'
 import { RAC_TIPOS } from '@/lib/racCatalogo'
-import { RAC_TIPOS_CAPTURA_MAESTRO, RAC_TIPOS_PREFECTURA } from '@/lib/racUi'
+import {
+  RAC_TIPOS_CAPTURA_MAESTRO,
+  RAC_TIPOS_CITA_PSICOLOGIA,
+  RAC_TIPOS_PREFECTURA,
+} from '@/lib/racUi'
 
 export type RacTab = 'captura' | 'inbox' | 'citas' | 'suspensiones' | 'prefectura' | 'historial' | 'informes'
 
@@ -61,6 +65,16 @@ export function puedeCapturarTipo(role: RacRol, tipo: number, fisica = false): b
 
 export function puedeInforme(role: RacRol): boolean {
   return role !== 'prefectura'
+}
+
+export function tiposCitaDeRol(role: RacRol) {
+  if (role === 'psicologia') return RAC_TIPOS_CITA_PSICOLOGIA
+  if (role === 'prefectura') return RAC_TIPOS_PREFECTURA
+  return [...RAC_TIPOS_CAPTURA_MAESTRO, ...RAC_TIPOS_PREFECTURA]
+}
+
+export function puedePdfRac(role: RacRol): boolean {
+  return role === 'coordinacion' || role === 'direccion'
 }
 
 export function puedeVerVistaCoord(role: RacRol, vista: string): boolean {

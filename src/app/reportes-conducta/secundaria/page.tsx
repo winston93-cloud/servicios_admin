@@ -2,8 +2,8 @@
 
 import ThemeToggle from '@/components/ThemeToggle'
 import { opcionesMotivo } from '@/lib/racUi'
-import { etiquetaRol, tabsDeRol, tiposCapturaDeRol, type RacTab } from '@/lib/racPermisos'
-import { ArrowLeft, Eye, EyeOff, LogOut, Send } from 'lucide-react'
+import { etiquetaRol, tabsDeRol, tiposCapturaDeRol, tiposCitaDeRol, type RacTab } from '@/lib/racPermisos'
+import { ArrowLeft, Download, Eye, EyeOff, LogOut, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import '../../dashboard/dashboard-module-card.css'
@@ -42,6 +42,23 @@ type AlumnoFila = {
   r1: string
   r2: string
   r3: string
+}
+
+type AlumnoBusqueda = {
+  alumno_id: number
+  alumno_ref: string | number | null
+  alumno_app: string | null
+  alumno_apm: string | null
+  alumno_nombre: string | null
+}
+
+type CitaFila = {
+  cita_id: number
+  nombre: string
+  mensaje: string
+  fecha: string
+  status: number
+  tipoEtiqueta: string
 }
 
 type Tab = RacTab
@@ -157,6 +174,12 @@ export default function RacSecundariaPage() {
   const [fechaCita, setFechaCita] = useState('')
   const [horaCita, setHoraCita] = useState('09:00')
   const [modo, setModo] = useState<'reporte' | 'informe' | 'cita'>('reporte')
+  const [tipoCita, setTipoCita] = useState(2)
+  const [citaValidar, setCitaValidar] = useState<CitaFila | null>(null)
+  const [historialAlumnos, setHistorialAlumnos] = useState<AlumnoBusqueda[]>([])
+  const [historialAlumnoId, setHistorialAlumnoId] = useState(0)
+  const [historialTipo, setHistorialTipo] = useState(1)
+  const [historialMateriaId, setHistorialMateriaId] = useState(0)
 
   const asig = useMemo(() => {
     const [mid, letra] = asigKey.split('|')
@@ -168,6 +191,7 @@ export default function RacSecundariaPage() {
     [me, fisica]
   )
   const tabs = me ? tabsDeRol(me.role) : []
+  const tiposCita = me ? tiposCitaDeRol(me.role) : []
 
   const refreshMe = useCallback(async () => {
     try {
@@ -214,8 +238,15 @@ export default function RacSecundariaPage() {
     setMsg('')
     try {
       const extra = vista === 'historial' ? `&q=${encodeURIComponent(q)}` : ''
-      const data = await api<{ filas?: Record<string, unknown>[] }>(`/api/rac/coordinacion?vista=${vista}${extra}`)
+      const data = await api<{ filas?: Record<string, unknown>[]; alumnos?: AlumnoBusqueda[] }>(
+        `/api/rac/coordinacion?vista=${vista}${extra}`
+      )
       setLista(data.filas ?? [])
+      if (vista === 'historial') {
+        const alumnos = data.alumnos ?? []
+        setHistorialAlumnos(alumnos)
+        if (alumnos[0]) setHistorialAlumnoId(Number(alumnos[0].alumno_id))
+      }
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Error al cargar')
     } finally {
@@ -243,7 +274,7 @@ export default function RacSecundariaPage() {
           accion: modo,
           alumnoId: modal.alumno_id,
           materiaId: asig.materia_id,
-          tipo,
+          tipo: modo === 'cita' && me?.role === 'psicologia' ? tipoCita : tipo,
           motivo,
           mensaje,
           fecha: fechaCita,
@@ -261,14 +292,20 @@ export default function RacSecundariaPage() {
     }
   }
 
-  async function accionCoord(entidad: string, id: number, accion: string, fecha?: string) {
+  async function accionCoord(
+    entidad: string,
+    id: number,
+    accion: string,
+    extra?: { fecha?: string; hora?: string; mensaje?: string }
+  ) {
     setBusy(true)
     try {
       await api('/api/rac/coordinacion', {
         method: 'POST',
-        body: JSON.stringify({ entidad, id, accion, fecha }),
+        body: JSON.stringify({ entidad, id, accion, ...extra }),
       })
       setMsg('Listo')
+      setCitaValidar(null)
       if (tab === 'inbox') await cargarVista('pendientes')
       if (tab === 'informes') await cargarVista('informes')
       if (tab === 'citas') await cargarVista('citas')
@@ -283,6 +320,25 @@ export default function RacSecundariaPage() {
   async function logout() {
     await api('/api/rac/auth/logout', { method: 'POST' })
     setMe(null)
+  }
+
+  function descargarPdf(url: string, nombre: string) {
+    void fetch(url, { credentials: 'include' })
+      .then(async (r) => {
+        if (!r.ok) {
+          const data = (await r.json().catch(() => ({}))) as { error?: string }
+          throw new Error(data.error || 'No se pudo generar el PDF')
+        }
+        return r.blob()
+      })
+      .then((blob) => {
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = nombre
+        a.click()
+        URL.revokeObjectURL(a.href)
+      })
+      .catch((e) => setMsg(e instanceof Error ? e.message : 'Error al descargar PDF'))
   }
 
   const esAdmin = me?.role === 'coordinacion' || me?.role === 'direccion'
@@ -445,6 +501,18 @@ export default function RacSecundariaPage() {
 
       {tab === 'inbox' || tab === 'citas' || tab === 'suspensiones' || tab === 'historial' || tab === 'informes' ? (
         <section className="boletas-panel">
+          {tab === 'inbox' && esAdmin ? (
+            <div className="boletas-filters">
+              <button
+                type="button"
+                className="boletas-btn"
+                onClick={() => descargarPdf('/api/rac/impresion?modo=pendientes', 'rac-pendientes.pdf')}
+              >
+                <Download size={16} aria-hidden />
+                PDF reportes sin confirmar
+              </button>
+            </div>
+          ) : null}
           {tab === 'historial' ? (
             <div className="boletas-filters">
               <label>
@@ -454,6 +522,64 @@ export default function RacSecundariaPage() {
               <button type="button" className="boletas-btn" onClick={() => void cargarVista('historial')}>
                 Buscar
               </button>
+              {historialAlumnos.length ? (
+                <label>
+                  Alumno
+                  <select
+                    value={historialAlumnoId}
+                    onChange={(e) => setHistorialAlumnoId(Number(e.target.value))}
+                  >
+                    {historialAlumnos.map((a) => (
+                      <option key={a.alumno_id} value={a.alumno_id}>
+                        {[a.alumno_app, a.alumno_apm, a.alumno_nombre].filter(Boolean).join(' ')} · {a.alumno_ref}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              <label>
+                Tipo de reporte
+                <select value={historialTipo} onChange={(e) => setHistorialTipo(Number(e.target.value))}>
+                  <option value={1}>Académico</option>
+                  <option value={2}>Conducta</option>
+                  <option value={3}>Uniforme</option>
+                  <option value={4}>Vialidad</option>
+                  <option value={6}>Retardo</option>
+                </select>
+              </label>
+              {historialTipo === 1 ? (
+                <label>
+                  Materia
+                  <select
+                    value={historialMateriaId}
+                    onChange={(e) => setHistorialMateriaId(Number(e.target.value))}
+                  >
+                    <option value={0}>Todas</option>
+                    {asignaciones.map((a) => (
+                      <option key={a.materia_id} value={a.materia_id}>
+                        {a.materia_nombre}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              {historialAlumnoId ? (
+                <button
+                  type="button"
+                  className="boletas-btn primary"
+                  onClick={() =>
+                    descargarPdf(
+                      `/api/rac/impresion?modo=historial&alumnoId=${historialAlumnoId}&reporteTipo=${historialTipo}${
+                        historialMateriaId ? `&materiaId=${historialMateriaId}` : ''
+                      }`,
+                      `rac-historial-${historialAlumnoId}.pdf`
+                    )
+                  }
+                >
+                  <Download size={16} aria-hidden />
+                  Imprimir PDF
+                </button>
+              ) : null}
             </div>
           ) : null}
           <div className="boletas-table-wrap">
@@ -511,12 +637,35 @@ export default function RacSecundariaPage() {
                       ) : null}
                       {tab === 'citas' && (esAdmin || me.role === 'psicologia') ? (
                         <>
+                          {esAdmin && Number(row.status) === 2 ? (
+                            <button
+                              type="button"
+                              className="boletas-btn primary"
+                              onClick={() =>
+                                setCitaValidar({
+                                  cita_id: Number(row.cita_id),
+                                  nombre: String(row.nombre ?? ''),
+                                  mensaje: String(row.mensaje ?? ''),
+                                  fecha: String(row.fecha ?? ''),
+                                  status: Number(row.status ?? 0),
+                                  tipoEtiqueta: String(row.tipoEtiqueta ?? ''),
+                                })
+                              }
+                            >
+                              Validar cita
+                            </button>
+                          ) : null}
                           <button type="button" className="boletas-btn" onClick={() => void accionCoord('cita', Number(row.cita_id), 'reenviar')}>
                             Reenviar
                           </button>
                           <button type="button" className="boletas-btn" onClick={() => void accionCoord('cita', Number(row.cita_id), 'confirmar')}>
                             Enterado
                           </button>
+                          {esAdmin ? (
+                            <button type="button" className="boletas-btn" onClick={() => void accionCoord('cita', Number(row.cita_id), 'detener')}>
+                              Anular
+                            </button>
+                          ) : null}
                         </>
                       ) : null}
                       {tab === 'suspensiones' && esAdmin ? (
@@ -525,7 +674,7 @@ export default function RacSecundariaPage() {
                           className="boletas-btn primary"
                           onClick={() => {
                             const fecha = window.prompt('Fecha de suspensión (AAAA-MM-DD)')
-                            if (fecha) void accionCoord('suspension', Number(row.suspension_id), 'aplicar', fecha)
+                            if (fecha) void accionCoord('suspension', Number(row.suspension_id), 'aplicar', { fecha })
                           }}
                         >
                           Aplicar fecha
@@ -567,13 +716,25 @@ export default function RacSecundariaPage() {
               ) : null}
               {modo === 'cita' ? (
                 <>
+                  {me.role === 'psicologia' ? (
+                    <label>
+                      Tipo de citatorio
+                      <select value={tipoCita} onChange={(e) => setTipoCita(Number(e.target.value))}>
+                        {tiposCita.map((t) => (
+                          <option key={t.valor} value={t.valor}>
+                            {t.etiqueta}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
                   <label>
                     Fecha
-                    <input type="date" value={fechaCita} onChange={(e) => setFechaCita(e.target.value)} />
+                    <input type="date" value={fechaCita} onChange={(e) => setFechaCita(e.target.value)} required />
                   </label>
                   <label>
                     Hora
-                    <input type="time" value={horaCita} onChange={(e) => setHoraCita(e.target.value)} />
+                    <input type="time" value={horaCita} onChange={(e) => setHoraCita(e.target.value)} required />
                   </label>
                 </>
               ) : null}
@@ -589,6 +750,53 @@ export default function RacSecundariaPage() {
               <button type="button" className="boletas-btn primary" disabled={busy} onClick={() => void enviarCaptura()}>
                 <Send size={16} aria-hidden />
                 Guardar y avisar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {citaValidar ? (
+        <div className="rac-modal" role="dialog" aria-modal="true">
+          <div className="rac-modal-card">
+            <h3>Validar citatorio — {citaValidar.nombre}</h3>
+            <p className="rac-mini">{citaValidar.tipoEtiqueta}</p>
+            <div className="boletas-filters">
+              <label>
+                Fecha
+                <input type="date" value={fechaCita} onChange={(e) => setFechaCita(e.target.value)} required />
+              </label>
+              <label>
+                Hora
+                <input type="time" value={horaCita} onChange={(e) => setHoraCita(e.target.value)} required />
+              </label>
+            </div>
+            <label className="rac-msg">
+              Mensaje
+              <textarea
+                value={mensaje || citaValidar.mensaje}
+                onChange={(e) => setMensaje(e.target.value)}
+                rows={4}
+              />
+            </label>
+            <div className="rac-actions">
+              <button type="button" className="boletas-btn ghost" onClick={() => setCitaValidar(null)}>
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="boletas-btn primary"
+                disabled={busy || !fechaCita}
+                onClick={() =>
+                  void accionCoord('cita', citaValidar.cita_id, 'validar', {
+                    fecha: fechaCita,
+                    hora: horaCita,
+                    mensaje: mensaje || citaValidar.mensaje,
+                  })
+                }
+              >
+                <Send size={16} aria-hidden />
+                Programar y enviar
               </button>
             </div>
           </div>

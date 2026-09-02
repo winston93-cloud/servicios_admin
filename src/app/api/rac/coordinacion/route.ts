@@ -41,6 +41,8 @@ export async function POST(req: Request) {
       id?: number
       accion?: string
       fecha?: string
+      hora?: string
+      mensaje?: string
     }
     const entidad = body.entidad === 'cita' ? 'cita' : body.entidad === 'suspension' ? 'suspension' : 'reporte'
     const accion = String(body.accion ?? '')
@@ -50,7 +52,11 @@ export async function POST(req: Request) {
     const id = Number(body.id)
     if (body.entidad === 'cita') {
       return NextResponse.json(
-        await accionCita(id, body.accion as 'reenviar' | 'confirmar' | 'detener' | 'validar')
+        await accionCita(id, body.accion as 'reenviar' | 'confirmar' | 'detener' | 'validar', {
+          fecha: body.fecha,
+          hora: body.hora,
+          mensaje: body.mensaje,
+        })
       )
     }
     if (body.entidad === 'suspension') {
