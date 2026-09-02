@@ -2082,12 +2082,26 @@
 
   .rev-pag-grupo-actions {
     grid-template-columns: 1fr 1fr;
+    gap: 10px;
   }
 
   .rev-pag-grupo-btn {
+    min-height: var(--touch-min, 44px);
     min-height: 52px;
     font-size: 0.9rem;
     padding: 0 10px;
+  }
+
+  .rev-pag-grupo-sugerencia {
+    min-height: 56px;
+  }
+
+  .rev-pag-grupo-ac-panel {
+    max-height: none;
+  }
+
+  .rev-pag-grupo-sugerencias {
+    max-height: min(42dvh, 300px);
   }
 
   .rev-pag-grupo-summary {
@@ -2103,19 +2117,59 @@
     font-size: 1.02rem;
   }
 
+  .rev-pag-panel-head--inline {
+    align-items: flex-start;
+  }
+
   .rev-pag-panel-head--inline .rev-pag-panel-sub {
     white-space: normal;
+    flex: 1 1 100%;
+    padding-left: 50px;
+  }
+
+  .rev-pag-panel-head--inline .rev-pag-panel-sub::before {
+    display: none;
+  }
+
+  /* Modal: hoja inferior a pantalla completa usable */
+  .rev-pag-guia-backdrop {
+    place-items: end stretch;
+    padding: 0;
+    padding-bottom: 0;
+  }
+
+  .rev-pag-guia-modal {
+    width: 100%;
+    max-height: min(92dvh, 900px);
+    border-radius: 20px 20px 0 0;
+    border-bottom: none;
+  }
+
+  .rev-pag-guia-nav-chip {
+    min-height: 44px;
+  }
+
+  .rev-pag-guia-chip {
+    min-height: 48px;
+  }
+
+  .rev-pag-guia-chips {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 /* Móvil estrecho */
 @media (max-width: 480px) {
+  .rev-pag-grupo-actions {
+    grid-template-columns: 1fr;
+  }
+
   .rev-pag-grupo-btn {
-    white-space: normal;
-    font-size: 0.82rem;
-    padding: 8px 8px;
+    white-space: nowrap;
+    font-size: 0.95rem;
+    padding: 0 14px;
     min-height: 52px;
-    gap: 6px;
+    gap: 8px;
   }
 
   .rev-pag-grupo-btn svg {
@@ -2129,7 +2183,7 @@
   .rev-pag-plantel-tag {
     padding: 4px 10px 4px 6px;
     font-size: 0.82rem;
-    min-height: 40px;
+    min-height: var(--touch-min, 44px);
   }
 
   .rev-pag-plantel-logo {
@@ -2146,6 +2200,16 @@
     width: 52px;
     height: 52px;
     border-radius: 14px;
+  }
+
+  .rev-pag-top .rev-pag-pill {
+    max-width: min(42vw, 9.5rem);
+    font-size: 0.62rem;
+  }
+
+  .rev-pag-guia-chips {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
   }
 }
 
