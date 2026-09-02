@@ -37,6 +37,7 @@ import {
   inscripcionCompletaPagada,
 } from './portalInscripcionesSolicitud'
 import { evaluarBloqueoCupoPortal } from './cupoInscripcionPrimaria'
+import { evaluarBloqueoManualPortalReinscripcion } from './portalInscripcionesBloqueoManual'
 import { getPaymentConcept } from './boucherCore'
 import { rutasFacturaDesdeReferencia } from './portalFacturaRutas'
 import {
@@ -410,6 +411,30 @@ export async function construirEstadoPortalInscripciones(
     if (cupo) {
       bloqueo = 'cupo'
       mensajeBloqueo = cupo.mensaje
+      showPayment = false
+    }
+  }
+
+  // Bloqueo operativo tras liquidar julio del ciclo a cerrar (lista manual).
+  if (
+    esReinscrito &&
+    !modoAdeudoEgresado &&
+    pagosCierreEfectivos &&
+    cicloCierreEfectivo &&
+    bloqueo !== 'inactivo' &&
+    bloqueo !== 'baja-temporal' &&
+    bloqueo !== 'psicologia' &&
+    bloqueo !== 'egresado'
+  ) {
+    const mensajeManual = evaluarBloqueoManualPortalReinscripcion(
+      alumno.alumno_id,
+      alumno.alumno_ref,
+      pagosCierreEfectivos,
+      cicloCierreEfectivo.valor
+    )
+    if (mensajeManual) {
+      bloqueo = 'coordinacion'
+      mensajeBloqueo = mensajeManual
       showPayment = false
     }
   }

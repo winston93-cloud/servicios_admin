@@ -804,17 +804,15 @@ function ResultadoGrupo({
                   <span>{a.plantel_label}</span>
                 </p>
                 <span
-                  className={`rev-pag-grupo-item-status ${a.pagado ? 'is-ok' : 'is-bad'}${a.bloqueado ? ' is-bloqueado' : ''}`}
+                  className={`rev-pag-grupo-item-status ${a.pagado ? 'is-ok' : 'is-bad'}`}
                 >
-                  {a.bloqueado
-                    ? `Bloqueado · ${a.mensaje_bloqueo ?? 'Consulte coordinación.'}`
-                    : a.pagado
-                      ? a.completa_por === '13'
-                        ? 'Inscripción completa · pago único'
-                        : 'Inscripción completa · diferido 2'
-                      : a.tiene_dif1
-                        ? 'Incompleta · solo diferido 1'
-                        : 'Inscripción incompleta'}
+                  {a.pagado
+                    ? a.completa_por === '13'
+                      ? 'Inscripción completa · pago único'
+                      : 'Inscripción completa · diferido 2'
+                    : a.tiene_dif1
+                      ? 'Incompleta · solo diferido 1'
+                      : 'Inscripción incompleta'}
                 </span>
               </div>
             </li>
@@ -840,7 +838,6 @@ function ResultadoAlumno({
   onOtro: () => void
 }) {
   const ok = data.pagado
-  const bloqueado = data.bloqueado
   const grupo =
     data.alumno.grupo != null ? grupoALetra(data.alumno.grupo) : null
 
@@ -882,16 +879,9 @@ function ResultadoAlumno({
         </div>
         <div className="rev-pag-verdict-copy">
           <p className="rev-pag-verdict-label">
-            {bloqueado
-              ? 'Bloqueado'
-              : ok
-                ? 'Inscripción completa'
-                : 'Inscripción incompleta'}
+            {ok ? 'Inscripción completa' : 'Inscripción incompleta'}
           </p>
-          {bloqueado ? (
-            <p className="rev-pag-bloqueo-msg">{data.mensaje_bloqueo}</p>
-          ) : null}
-          {ok && data.completa_por && !bloqueado ? (
+          {ok && data.completa_por ? (
             <p className="rev-pag-completa-por">
               Completa por concepto <strong>{data.completa_por}</strong>
               {data.completa_por === '13'
@@ -914,8 +904,8 @@ function ResultadoAlumno({
       </div>
 
       <div className="rev-pag-chips">
-        <span className={`rev-pag-chip ${ok ? 'rev-pag-chip--ok' : 'rev-pag-chip--bad'}${bloqueado ? ' rev-pag-chip--warn' : ''}`}>
-          {bloqueado ? 'Bloqueado' : ok ? '✓ Completa' : '✕ Incompleta'}
+        <span className={`rev-pag-chip ${ok ? 'rev-pag-chip--ok' : 'rev-pag-chip--bad'}`}>
+          {ok ? '✓ Completa' : '✕ Incompleta'}
         </span>
         <span className="rev-pag-chip">{data.modalidad_label}</span>
         <span className="rev-pag-chip rev-pag-chip--muted">

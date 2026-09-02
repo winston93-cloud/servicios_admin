@@ -2,7 +2,7 @@
  * Lista de inscripción por grupo (entrada al colegio).
  * Códigos: K2A (Kinder), 2A (Primaria), 7B (Secundaria).
  */
-import { entradaPermitida } from '@/lib/revisionPagadosBloqueo'
+import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 import { grupoNumDesdeLetra, letraDesdeGrupoNum } from '@/lib/boletasCiclo'
 import {
   cicloFichaAlumnosParaInscripcion,
@@ -15,7 +15,6 @@ import { getClient } from '@/lib/boucherCore'
 import type { PagoDetalleRegistro } from '@/lib/pagoColegiaturaService'
 import { alumnoTienePagoSemiref } from '@/lib/portalAdmisionesColegiatura'
 import type { RevisionInscripcionPlantel } from '@/lib/revisionPagadosInscripcion'
-import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 /** Ciclo de inscripción (cen) + ficha de alumnos activos a listar. */
 async function resolverCiclosEntrada(): Promise<
@@ -70,8 +69,6 @@ export type RevisionGrupoAlumnoItem = {
   plantel: RevisionInscripcionPlantel
   plantel_label: string
   pagado: boolean
-  bloqueado: boolean
-  mensaje_bloqueo: string | null
   completa_por: '12' | '13' | null
   tiene_dif1: boolean
 }
@@ -404,8 +401,8 @@ export async function revisarInscripcionPorGrupo(
     const tiene13 = alumnoTienePagoSemiref(pagos, ref, '13', cen)
     const tiene12 = alumnoTienePagoSemiref(pagos, ref, '12', cen)
     const tiene11 = alumnoTienePagoSemiref(pagos, ref, '11', cen)
-    const pagadoInscripcion = tiene13 || tiene12
-    const entrada = entradaPermitida(pagadoInscripcion, Number(a.alumno_id))
+    // Verde = inscripción completa (13 único o 12 2º diferido); rojo = pendiente.
+    const pagado = tiene13 || tiene12
     const plantel = plantelDeNivel(Number(a.alumno_nivel))
     return {
       alumno_id: Number(a.alumno_id),
@@ -418,9 +415,7 @@ export async function revisarInscripcionPorGrupo(
       grupo_letra: letraDesdeGrupoNum(Number(a.alumno_grupo)) || parsed.letra,
       plantel: plantel.plantel,
       plantel_label: plantel.label,
-      pagado: entrada.permitido,
-      bloqueado: entrada.bloqueado,
-      mensaje_bloqueo: entrada.mensaje,
+      pagado,
       completa_por: tiene13 ? '13' : tiene12 ? '12' : null,
       tiene_dif1: tiene11,
     }

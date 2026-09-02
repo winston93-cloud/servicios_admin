@@ -17,7 +17,6 @@ import { parsearReferenciaPago } from '@/lib/pagoReferenciaColegiatura'
 import { alumnoTienePagoSemiref } from '@/lib/portalAdmisionesColegiatura'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
 import { calcularReinscripcionDiferido } from '@/lib/portalReinscripcionService'
-import { entradaPermitida } from '@/lib/revisionPagadosBloqueo'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 export type RevisionInscripcionPlantel = 'educativo' | 'winston'
@@ -74,9 +73,6 @@ export type RevisionInscripcionResultado = {
   importe_total: number
   pendiente: number | null
   concepto_pendiente: RevisionInscripcionConcepto | null
-  /** Bloqueo operativo (anula verde aunque haya 12/13). */
-  bloqueado: boolean
-  mensaje_bloqueo: string | null
 }
 
 function plantelDesdeNivel(nivel: number): {
@@ -265,7 +261,6 @@ export async function revisarInscripcionAlumno(
       : null
 
   const plantelInfo = plantelDesdeNivel(Number(alumno.alumno_nivel))
-  const entrada = entradaPermitida(pagado, Number(alumno.alumno_id))
 
   return {
     ok: true,
@@ -298,12 +293,10 @@ export async function revisarInscripcionAlumno(
         : cen === cicloSistema.valor && cicloSistema.anio_inicio && cicloSistema.anio_fin
           ? `${cicloSistema.anio_inicio}-${cicloSistema.anio_fin}`
           : `${cen + 2003}-${cen + 2004}`,
-    pagado: entrada.permitido,
+    pagado,
     modalidad: mod.modalidad,
-    modalidad_label: entrada.bloqueado ? 'Bloqueado' : mod.label,
-    resumen: entrada.bloqueado
-      ? (entrada.mensaje ?? 'Acceso bloqueado.')
-      : mod.resumen,
+    modalidad_label: mod.label,
+    resumen: mod.resumen,
     completa_por,
     tiene_dif1: tiene11,
     tiene_dif2: tiene12,
@@ -312,7 +305,5 @@ export async function revisarInscripcionAlumno(
     importe_total,
     pendiente,
     concepto_pendiente,
-    bloqueado: entrada.bloqueado,
-    mensaje_bloqueo: entrada.mensaje,
   }
 }
