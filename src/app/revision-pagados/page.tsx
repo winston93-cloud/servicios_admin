@@ -141,9 +141,26 @@ function RevisionPagadosView() {
           <p className="rev-pag-kicker">Entrada al colegio</p>
           <h1>Revisión Pagados / No Pagados</h1>
           <p className="rev-pag-lead">
-            Busca alumno por nombre o No. de control (Maternal A → 9no). Verde =
-            inscripción cubierta · Rojo = pendiente.
+            Busca alumno por nombre o No. de control (Maternal A → 9no).{' '}
+            <strong>Inscripción completa</strong> = concepto{' '}
+            <strong>13</strong> (Inscripción) <em>o</em> concepto{' '}
+            <strong>12</strong> (2º diferido). Verde = completa · Rojo =
+            incompleta.
           </p>
+          <div className="rev-pag-rule" role="note">
+            <span className="rev-pag-rule-title">Criterio de entrada</span>
+            <ul>
+              <li>
+                <strong>13</strong> — Inscripción (pago único) → completa
+              </li>
+              <li>
+                <strong>12</strong> — Reinscripción Diferido 2 → completa
+              </li>
+              <li>
+                Solo <strong>11</strong> (Diferido 1) → aún incompleta
+              </li>
+            </ul>
+          </div>
         </section>
 
         <section className="rev-pag-search" ref={searchWrapRef}>
@@ -207,8 +224,17 @@ function ResultadoInscripcion({
         </div>
         <div className="rev-pag-verdict-copy">
           <p className="rev-pag-verdict-label">
-            {ok ? 'Pagó inscripción' : 'No ha pagado inscripción'}
+            {ok ? 'Inscripción completa' : 'Inscripción incompleta'}
           </p>
+          {ok && data.completa_por ? (
+            <p className="rev-pag-completa-por">
+              Completa por concepto{' '}
+              <strong>{data.completa_por}</strong>
+              {data.completa_por === '13'
+                ? ' · Inscripción (pago único)'
+                : ' · Diferido 2'}
+            </p>
+          ) : null}
           <h2 className="rev-pag-name">{data.alumno.nombre_completo}</h2>
           <p className="rev-pag-meta">
             <span className="rev-pag-ref">{data.alumno.alumno_ref}</span>
@@ -224,24 +250,31 @@ function ResultadoInscripcion({
       </div>
 
       <div className="rev-pag-chips">
+        <span className={`rev-pag-chip ${ok ? 'rev-pag-chip--ok' : 'rev-pag-chip--bad'}`}>
+          {ok ? '✓ Completa' : '✕ Incompleta'}
+        </span>
         <span className="rev-pag-chip">{data.modalidad_label}</span>
         <span className="rev-pag-chip rev-pag-chip--muted">
           Ciclo insc. {data.ciclo_inscripcion}
         </span>
         {data.tiene_pago_unico ? (
-          <span className="rev-pag-chip rev-pag-chip--ok">Concepto 13</span>
-        ) : null}
-        {data.tiene_dif1 ? (
-          <span className="rev-pag-chip rev-pag-chip--ok">Diferido 1</span>
+          <span className="rev-pag-chip rev-pag-chip--ok">13 · Inscripción</span>
         ) : null}
         {data.tiene_dif2 ? (
-          <span className="rev-pag-chip rev-pag-chip--ok">Diferido 2</span>
+          <span className="rev-pag-chip rev-pag-chip--ok">12 · Diferido 2</span>
         ) : null}
-        {!data.tiene_dif1 && data.modalidad === 'diferido_parcial' ? (
-          <span className="rev-pag-chip rev-pag-chip--bad">Falta Dif. 1</span>
+        {data.tiene_dif1 ? (
+          <span
+            className={`rev-pag-chip ${data.tiene_dif2 || data.tiene_pago_unico ? 'rev-pag-chip--ok' : 'rev-pag-chip--warn'}`}
+          >
+            11 · Diferido 1
+          </span>
         ) : null}
-        {data.tiene_dif1 && !data.tiene_dif2 && !data.tiene_pago_unico ? (
-          <span className="rev-pag-chip rev-pag-chip--bad">Falta Dif. 2</span>
+        {!data.tiene_dif2 && !data.tiene_pago_unico && data.tiene_dif1 ? (
+          <span className="rev-pag-chip rev-pag-chip--bad">Falta 12</span>
+        ) : null}
+        {!data.tiene_dif1 && !data.tiene_dif2 && !data.tiene_pago_unico ? (
+          <span className="rev-pag-chip rev-pag-chip--bad">Falta 13 o 12</span>
         ) : null}
       </div>
 

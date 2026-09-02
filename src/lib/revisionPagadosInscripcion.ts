@@ -16,7 +16,6 @@ import {
 import { parsearReferenciaPago } from '@/lib/pagoReferenciaColegiatura'
 import { alumnoTienePagoSemiref } from '@/lib/portalAdmisionesColegiatura'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
-import { inscripcionCompletaPagada } from '@/lib/portalInscripcionesSolicitud'
 import { calcularReinscripcionDiferido } from '@/lib/portalReinscripcionService'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
@@ -59,6 +58,8 @@ export type RevisionInscripcionResultado = {
   modalidad: RevisionInscripcionModalidad
   modalidad_label: string
   resumen: string
+  /** Concepto que cierra la inscripción completa: 13 o 12. */
+  completa_por: RevisionInscripcionConcepto | null
   tiene_dif1: boolean
   tiene_dif2: boolean
   tiene_pago_unico: boolean
@@ -123,29 +124,40 @@ function modalidadDesdeFlags(opts: {
   if (pagado && tiene13) {
     return {
       modalidad: 'pago_unico',
-      label: 'Pago único',
-      resumen: 'Inscripción liquidada en un solo pago (concepto 13).',
+      label: 'Inscripción completa · Pago único',
+      resumen:
+        'Inscripción completa: pagó el concepto 13 (Inscripción) en un solo pago.',
     }
   }
-  if (pagado && tiene11 && tiene12) {
+  if (pagado && tiene12) {
     return {
       modalidad: 'diferido_completo',
-      label: 'Diferido completo',
-      resumen: 'Inscripción cubierta en dos parciales (Diferido 1 y Diferido 2).',
+      label: 'Inscripción completa · 2º diferido',
+      resumen: tiene11
+        ? 'Inscripción completa: pagó el concepto 12 (Diferido 2). También tiene Diferido 1.'
+        : 'Inscripción completa: pagó el concepto 12 (Diferido 2).',
+    }
+  }
+  if (!pagado && tiene11 && !tiene12) {
+    return {
+      modalidad: 'diferido_parcial',
+      label: 'Incompleta · Solo Diferido 1',
+      resumen:
+        'Tiene Diferido 1 (11), pero falta el concepto 12 (Diferido 2) para inscripción completa.',
     }
   }
   if (!pagado && (tiene11 || tiene12)) {
-    const falta = !tiene11 ? 'Diferido 1' : !tiene12 ? 'Diferido 2' : 'parcial'
     return {
       modalidad: 'diferido_parcial',
       label: 'Diferido incompleto',
-      resumen: `Hay pagos parciales de inscripción, pero falta ${falta}.`,
+      resumen: 'Hay movimientos parciales, pero no cumple inscripción completa (13 o 12).',
     }
   }
   return {
     modalidad: 'sin_pago',
-    label: 'Sin pago',
-    resumen: 'No hay pagos vigentes de inscripción / reinscripción para este ciclo.',
+    label: 'Sin inscripción completa',
+    resumen:
+      'No hay concepto 13 (Inscripción) ni concepto 12 (Diferido 2) pagados en este ciclo.',
   }
 }
 
@@ -188,9 +200,13 @@ export async function revisarInscripcionAlumno(
   const tiene13 = alumnoTienePagoSemiref(pagosCiclo, alumno.alumno_ref, '13', cen)
   const tiene11 = alumnoTienePagoSemiref(pagosCiclo, alumno.alumno_ref, '11', cen)
   const tiene12 = alumnoTienePagoSemiref(pagosCiclo, alumno.alumno_ref, '12', cen)
-  const pagado = calc
-    ? calc.completa
-    : inscripcionCompletaPagada(pagosCiclo, alumno.alumno_ref, cen)
+  // Entrada: inscripción completa = concepto 13 (pago único) O concepto 12 (2º diferido).
+  const pagado = tiene13 || tiene12
+  const completa_por: RevisionInscripcionConcepto | null = tiene13
+    ? '13'
+    : tiene12
+      ? '12'
+      : null
 
   const mod = modalidadDesdeFlags({
     pagado,
@@ -245,6 +261,7 @@ export async function revisarInscripcionAlumno(
     modalidad: mod.modalidad,
     modalidad_label: mod.label,
     resumen: mod.resumen,
+    completa_por,
     tiene_dif1: tiene11,
     tiene_dif2: tiene12,
     tiene_pago_unico: tiene13,
