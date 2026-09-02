@@ -582,42 +582,77 @@
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  min-width: 64px;
-  min-height: 44px;
+  min-width: 72px;
+  min-height: 46px;
   padding: 0 12px;
   border-radius: 10px;
-  border: 1px solid transparent;
+  border: 2px solid transparent;
+  border-left-width: 5px;
   font-family: 'Space Grotesk', system-ui, sans-serif;
-  font-size: 1.12rem;
+  font-size: 1.2rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  color: #fff6df;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.55);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  letter-spacing: 0.08em;
+  /* Máximo contraste: crema + tinta */
+  background: #fff6df;
+  color: #0b1220;
+  text-shadow: none;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35),
+    0 6px 14px rgba(0, 0, 0, 0.28);
 }
 
 .rev-pag-grupo-sug-badge--n1 {
-  background: #115e59;
-  border-color: #5eead4;
-  color: #ecfdf5;
+  border-color: #0f766e;
+  background: #fff6df;
+  color: #042f2e;
 }
 
 .rev-pag-grupo-sug-badge--n2 {
-  background: #155e75;
-  border-color: #67e8f9;
-  color: #ecfeff;
+  border-color: #0891b2;
+  background: #fff6df;
+  color: #083344;
 }
 
 .rev-pag-grupo-sug-badge--n3 {
-  background: #9a3412;
-  border-color: #fdba74;
-  color: #fff7ed;
+  border-color: #ea580c;
+  background: #fff6df;
+  color: #431407;
 }
 
 .rev-pag-grupo-sug-badge--n4 {
-  background: #1e3a8a;
-  border-color: #93c5fd;
-  color: #eff6ff;
+  border-color: #2563eb;
+  background: #fff6df;
+  color: #172554;
+}
+
+[data-theme='light'] .rev-pag-grupo-sug-badge {
+  background: #0b1220;
+  color: #fff6df;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+}
+
+[data-theme='light'] .rev-pag-grupo-sug-badge--n1 {
+  background: #0b1220;
+  color: #99f6e4;
+  border-color: #14b8a6;
+}
+
+[data-theme='light'] .rev-pag-grupo-sug-badge--n2 {
+  background: #0b1220;
+  color: #a5f3fc;
+  border-color: #06b6d4;
+}
+
+[data-theme='light'] .rev-pag-grupo-sug-badge--n3 {
+  background: #0b1220;
+  color: #fdba74;
+  border-color: #f59e0b;
+}
+
+[data-theme='light'] .rev-pag-grupo-sug-badge--n4 {
+  background: #0b1220;
+  color: #93c5fd;
+  border-color: #3b82f6;
 }
 
 .rev-pag-grupo-sug-body {
@@ -1064,16 +1099,18 @@
   min-width: 0;
   padding: 0 10px;
   border-radius: 12px;
-  border: 1px solid transparent;
-  background: #1e293b;
-  color: #f8fafc;
+  border: 2px solid transparent;
+  border-left-width: 5px;
+  background: #fff6df;
+  color: #0b1220;
   font-family: 'Space Grotesk', system-ui, sans-serif;
-  font-size: 0.98rem;
+  font-size: 1.05rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  text-shadow: none;
   transition:
     transform 0.12s ease,
     filter 0.12s ease,
@@ -1081,35 +1118,31 @@
 }
 
 .rev-pag-guia-chip--n1 {
-  border-color: #5eead4;
-  background: #115e59;
-  color: #ecfdf5;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
-  box-shadow: 0 8px 18px rgba(15, 118, 110, 0.28);
+  border-color: #0f766e;
+  background: #fff6df;
+  color: #042f2e;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
 }
 
 .rev-pag-guia-chip--n2 {
-  border-color: #67e8f9;
-  background: #155e75;
-  color: #ecfeff;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
-  box-shadow: 0 8px 18px rgba(8, 145, 178, 0.28);
+  border-color: #0891b2;
+  background: #fff6df;
+  color: #083344;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
 }
 
 .rev-pag-guia-chip--n3 {
-  border-color: #fdba74;
-  background: #9a3412;
-  color: #fff7ed;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
-  box-shadow: 0 8px 18px rgba(154, 52, 18, 0.28);
+  border-color: #ea580c;
+  background: #fff6df;
+  color: #431407;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
 }
 
 .rev-pag-guia-chip--n4 {
-  border-color: #93c5fd;
-  background: #1e3a8a;
-  color: #eff6ff;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
-  box-shadow: 0 8px 18px rgba(30, 58, 138, 0.3);
+  border-color: #2563eb;
+  background: #fff6df;
+  color: #172554;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.22);
 }
 
 .rev-pag-guia-chip:hover {
