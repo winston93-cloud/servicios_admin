@@ -442,18 +442,23 @@
 }
 
 .rev-pag-grupo-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: 8px;
+  display: grid;
+  gap: 10px;
   min-width: 0;
 }
 
 .rev-pag-grupo-ac {
   position: relative;
-  flex: 1 1 140px;
   min-width: 0;
+  width: 100%;
   z-index: 60;
+}
+
+.rev-pag-grupo-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  min-width: 0;
 }
 
 /* Panel de sugerencias en flujo (como Servicios) */
@@ -655,16 +660,29 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  width: 100%;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: visible;
+  line-height: 1.15;
+}
+
+.rev-pag-grupo-btn--individual span,
+.rev-pag-grupo-btn--guia span,
+.rev-pag-grupo-btn--volver span {
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .rev-pag-grupo-btn--guia {
-  background: linear-gradient(135deg, #0e7490, #155e75);
-  color: #ecfeff;
-  box-shadow: 0 10px 22px rgba(14, 116, 144, 0.28);
+  background: linear-gradient(135deg, #0e7490, #0891b2);
+  color: #fff6df;
+  box-shadow: 0 10px 22px rgba(14, 116, 144, 0.32);
+  border: 1px solid rgba(103, 232, 249, 0.35);
 }
 
 .rev-pag-grupo-btn--guia:hover {
-  filter: brightness(1.06);
+  filter: brightness(1.08);
 }
 
 .rev-pag-individual-wrap {
@@ -1088,16 +1106,16 @@
 }
 
 .rev-pag-grupo-btn {
-  flex: 1 1 100%;
+  flex: none;
   min-height: 52px;
-  min-width: var(--touch-min, 44px);
-  padding: 0 18px;
+  min-width: 0;
+  padding: 0 14px;
   border: none;
   border-radius: 16px;
   background: linear-gradient(135deg, #0f2744, #1c3d66);
   color: #fff6df;
   font-family: 'Space Grotesk', system-ui, sans-serif;
-  font-size: 1.05rem;
+  font-size: clamp(0.88rem, 2.4vw, 1.02rem);
   font-weight: 700;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -2003,7 +2021,6 @@
   }
 
   .rev-pag-grupo-ac {
-    flex: 1 1 100%;
     width: 100%;
   }
 
@@ -2013,17 +2030,14 @@
     font-size: 16px;
   }
 
-  .rev-pag-grupo-btn {
-    flex: 1 1 calc(50% - 4px);
-    width: auto;
-    min-height: 52px;
-    font-size: 0.92rem;
-    padding: 0 10px;
+  .rev-pag-grupo-actions {
+    grid-template-columns: 1fr 1fr;
   }
 
-  .rev-pag-grupo-btn--individual,
-  .rev-pag-grupo-btn--guia {
-    flex: 1 1 calc(50% - 4px);
+  .rev-pag-grupo-btn {
+    min-height: 52px;
+    font-size: 0.9rem;
+    padding: 0 10px;
   }
 
   .rev-pag-grupo-summary {
@@ -2046,6 +2060,18 @@
 
 /* Móvil estrecho */
 @media (max-width: 480px) {
+  .rev-pag-grupo-btn {
+    white-space: normal;
+    font-size: 0.82rem;
+    padding: 8px 8px;
+    min-height: 52px;
+    gap: 6px;
+  }
+
+  .rev-pag-grupo-btn svg {
+    flex-shrink: 0;
+  }
+
   .rev-pag-main {
     padding: 6px 10px 16px;
   }
@@ -2107,22 +2133,26 @@
   }
 
   .rev-pag-grupo-ac {
-    flex: 1 1 180px;
+    width: 100%;
   }
 
   .rev-pag-grupo-input {
     font-size: 1.25rem;
   }
 
+  .rev-pag-grupo-actions {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    max-width: 520px;
+  }
+
   .rev-pag-grupo-btn {
-    flex: 0 0 auto;
-    width: auto;
-    min-width: 140px;
-    min-height: 56px;
+    min-height: 52px;
+    font-size: 1rem;
+    padding: 0 16px;
   }
 
   .rev-pag-grupo-btn--guia {
-    min-width: 168px;
+    min-width: 0;
   }
 
   .rev-pag-grupo-summary {

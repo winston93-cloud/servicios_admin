@@ -452,22 +452,24 @@ function RevisionPagadosView() {
                     onKeyDown={onKeyDown}
                   />
                 </div>
-                <button
-                  type="button"
-                  className="rev-pag-grupo-btn rev-pag-grupo-btn--individual"
-                  onClick={irAIndividual}
-                >
-                  <UserRoundSearch size={18} aria-hidden />
-                  Individual
-                </button>
-                <button
-                  type="button"
-                  className="rev-pag-grupo-btn rev-pag-grupo-btn--guia"
-                  onClick={() => setGuiaAbierta(true)}
-                >
-                  <Layers3 size={18} aria-hidden />
-                  Ver Grado/Grupo
-                </button>
+                <div className="rev-pag-grupo-actions">
+                  <button
+                    type="button"
+                    className="rev-pag-grupo-btn rev-pag-grupo-btn--individual"
+                    onClick={irAIndividual}
+                  >
+                    <UserRoundSearch size={18} aria-hidden />
+                    <span>Individual</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="rev-pag-grupo-btn rev-pag-grupo-btn--guia"
+                    onClick={() => setGuiaAbierta(true)}
+                  >
+                    <Layers3 size={18} aria-hidden />
+                    <span>Ver Grado/Grupo</span>
+                  </button>
+                </div>
               </div>
               {sugerenciasAbiertas && sugerencias.length > 0 ? (
                 <div className="rev-pag-grupo-ac-panel" role="presentation">
