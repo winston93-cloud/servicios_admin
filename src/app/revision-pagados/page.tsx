@@ -94,6 +94,12 @@ function RevisionPagadosView() {
   const hayResultado = Boolean(dataGrupo || dataAlumno)
 
   useEffect(() => {
+    if (!sugerenciasAbiertas || sugerencias.length === 0) return
+    const el = document.getElementById(`${listboxId}-${indiceActivo}`)
+    el?.scrollIntoView({ block: 'nearest' })
+  }, [indiceActivo, sugerenciasAbiertas, sugerencias.length])
+
+  useEffect(() => {
     let cancelled = false
     void (async () => {
       try {
@@ -445,34 +451,6 @@ function RevisionPagadosView() {
                     }}
                     onKeyDown={onKeyDown}
                   />
-                  {sugerenciasAbiertas && sugerencias.length > 0 ? (
-                    <ul
-                      id={listboxId}
-                      className="rev-pag-grupo-sugerencias"
-                      role="listbox"
-                      aria-label="Grupos encontrados"
-                    >
-                      {sugerencias.map((g, idx) => (
-                        <li key={`${g.codigo}-${g.nivel}`} role="presentation">
-                          <button
-                            type="button"
-                            id={`${listboxId}-${idx}`}
-                            role="option"
-                            aria-selected={idx === indiceActivo}
-                            className={`rev-pag-grupo-sugerencia${idx === indiceActivo ? ' is-active' : ''}`}
-                            onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => elegirSugerencia(g)}
-                          >
-                            <strong>{g.codigo}</strong>
-                            <span>
-                              {g.nivel_label} · {g.alumnos} alumno
-                              {g.alumnos === 1 ? '' : 's'}
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
                 </div>
                 <button
                   type="button"
@@ -483,18 +461,70 @@ function RevisionPagadosView() {
                   Individual
                 </button>
               </div>
-              <p className="rev-pag-grupo-hint">
-                <button
-                  type="button"
-                  className="rev-pag-guia-link"
-                  onClick={() => setGuiaAbierta(true)}
-                >
-                  <CircleHelp size={16} aria-hidden />
-                  Cómo se escriben (Maternal → 9A)
-                </button>
-                <span aria-hidden> · </span>
-                Enter despliega la lista
-              </p>
+              {sugerenciasAbiertas && sugerencias.length > 0 ? (
+                <div className="rev-pag-grupo-ac-panel" role="presentation">
+                  <div className="rev-pag-grupo-ac-panel-head">
+                    <span>Grupos</span>
+                    <span>
+                      {sugerencias.length} coincidencia
+                      {sugerencias.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                  <ul
+                    id={listboxId}
+                    className="rev-pag-grupo-sugerencias"
+                    role="listbox"
+                    aria-label="Grupos encontrados"
+                  >
+                    {sugerencias.map((g, idx) => (
+                      <li key={`${g.codigo}-${g.nivel}`} role="presentation">
+                        <button
+                          type="button"
+                          id={`${listboxId}-${idx}`}
+                          role="option"
+                          aria-selected={idx === indiceActivo}
+                          className={`rev-pag-grupo-sugerencia rev-pag-grupo-sugerencia--n${g.nivel}${idx === indiceActivo ? ' is-active' : ''}`}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onMouseEnter={() => setIndiceActivo(idx)}
+                          onClick={() => elegirSugerencia(g)}
+                        >
+                          <span
+                            className={`rev-pag-grupo-sug-badge rev-pag-grupo-sug-badge--n${g.nivel}`}
+                            aria-hidden
+                          >
+                            {g.codigo}
+                          </span>
+                          <span className="rev-pag-grupo-sug-body">
+                            <strong>{g.nivel_label}</strong>
+                            <span>
+                              {g.alumnos} alumno{g.alumnos === 1 ? '' : 's'}
+                            </span>
+                          </span>
+                          <span className="rev-pag-grupo-sug-go" aria-hidden>
+                            →
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="rev-pag-grupo-ac-panel-foot">
+                    ↑↓ navegar · Enter abrir · Esc cerrar
+                  </p>
+                </div>
+              ) : (
+                <p className="rev-pag-grupo-hint">
+                  <button
+                    type="button"
+                    className="rev-pag-guia-link"
+                    onClick={() => setGuiaAbierta(true)}
+                  >
+                    <CircleHelp size={16} aria-hidden />
+                    Cómo se escriben (Maternal → 9A)
+                  </button>
+                  <span aria-hidden> · </span>
+                  Escribe y elige con mouse o teclas
+                </p>
+              )}
             </form>
           ) : (
             <div className="rev-pag-individual-wrap">
@@ -660,6 +690,9 @@ function ResultadoGrupo({
   data: RevisionGrupoResultado
   onOtro: () => void
 }) {
+  const pctPagados =
+    data.total > 0 ? Math.round((data.pagados / data.total) * 100) : 0
+
   return (
     <div className="rev-pag-grupo-result">
       <div className="rev-pag-grupo-summary">
@@ -684,6 +717,25 @@ function ResultadoGrupo({
             {data.pendientes}
           </span>
         </div>
+      </div>
+      <div
+        className="rev-pag-grupo-progress"
+        role="img"
+        aria-label={`${pctPagados}% pagados`}
+      >
+        <div
+          className="rev-pag-grupo-progress-bar"
+          style={{ width: `${pctPagados}%` }}
+        />
+        <span className="rev-pag-grupo-progress-label">{pctPagados}% al corriente</span>
+      </div>
+      <div className="rev-pag-leyenda" aria-hidden>
+        <span className="rev-pag-leyenda-item rev-pag-leyenda-item--ok">
+          Pagó inscripción
+        </span>
+        <span className="rev-pag-leyenda-item rev-pag-leyenda-item--bad">
+          Pendiente
+        </span>
       </div>
 
       {data.alumnos.length === 0 ? (
