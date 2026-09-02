@@ -119,7 +119,7 @@ function RevisionPagadosView() {
         : 'Ciclo vigente'
 
   return (
-    <div className="rev-pag-page">
+    <div className={`rev-pag-page${data ? ' rev-pag-page--con-resultado' : ''}`}>
       <div className="rev-pag-bg" aria-hidden>
         <span className="rev-pag-orb rev-pag-orb--a" />
         <span className="rev-pag-orb rev-pag-orb--b" />
@@ -302,7 +302,7 @@ function ResultadoInscripcion({
         ) : null}
       </div>
 
-      <PagosTabla pagos={data.pagos} />
+      <PagosLista pagos={data.pagos} />
 
       <div className="rev-pag-actions">
         <button type="button" className="rev-pag-btn-otro" onClick={onOtro}>
@@ -314,7 +314,7 @@ function ResultadoInscripcion({
   )
 }
 
-function PagosTabla({ pagos }: { pagos: RevisionInscripcionPagoItem[] }) {
+function PagosLista({ pagos }: { pagos: RevisionInscripcionPagoItem[] }) {
   if (pagos.length === 0) {
     return (
       <div className="rev-pag-empty-pagos">
@@ -324,30 +324,48 @@ function PagosTabla({ pagos }: { pagos: RevisionInscripcionPagoItem[] }) {
   }
 
   return (
-    <div className="rev-pag-table-wrap">
-      <table className="rev-pag-table">
-        <thead>
-          <tr>
-            <th>Concepto</th>
-            <th>Fecha</th>
-            <th>Forma</th>
-            <th>Importe</th>
-          </tr>
-        </thead>
-        <tbody>
-          {pagos.map((p) => (
-            <tr key={p.pago_id}>
-              <td>
-                <span className="rev-pag-concepto-no">{p.conceptoNo}</span>{' '}
-                {p.conceptoClase}
-              </td>
-              <td>{fechaMx(p.fecha)}</td>
-              <td>{p.forma || '—'}</td>
-              <td className="rev-pag-importe">{money(p.importe)}</td>
+    <>
+      <ul className="rev-pag-cards" aria-label="Pagos de inscripción">
+        {pagos.map((p) => (
+          <li key={`card-${p.pago_id}`} className="rev-pag-card">
+            <div className="rev-pag-card-top">
+              <span className="rev-pag-concepto-no">{p.conceptoNo}</span>
+              <strong className="rev-pag-importe">{money(p.importe)}</strong>
+            </div>
+            <p className="rev-pag-card-concepto">{p.conceptoClase}</p>
+            <div className="rev-pag-card-meta">
+              <span>{fechaMx(p.fecha)}</span>
+              <span>{p.forma || '—'}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <div className="rev-pag-table-wrap">
+        <table className="rev-pag-table">
+          <thead>
+            <tr>
+              <th>Concepto</th>
+              <th>Fecha</th>
+              <th>Forma</th>
+              <th>Importe</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {pagos.map((p) => (
+              <tr key={p.pago_id}>
+                <td>
+                  <span className="rev-pag-concepto-no">{p.conceptoNo}</span>{' '}
+                  {p.conceptoClase}
+                </td>
+                <td>{fechaMx(p.fecha)}</td>
+                <td>{p.forma || '—'}</td>
+                <td className="rev-pag-importe">{money(p.importe)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   )
 }
