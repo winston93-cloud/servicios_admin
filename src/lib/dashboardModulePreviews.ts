@@ -97,8 +97,8 @@ export const DASHBOARD_MODULE_PREVIEWS: Record<string, DashboardModulePreview> =
   },
   'Revisión Pagados/No Pagados': {
     synopsis:
-      'Puesto de entrada: busca alumno y ve al instante si la inscripción está pagada (verde) o pendiente (rojo), con detalle de pago único o diferidos.',
-    highlights: ['Búsqueda rápida', 'Verde / rojo al instante', 'Diferidos 1 y 2'],
+      'Puesto de entrada: escribe el grupo (2a, 7b…) y ve la lista del salón en verde (pagó) o rojo (pendiente).',
+    highlights: ['Por grupo', 'Lista verde / rojo', 'Sin elegir nivel'],
   },
 }
 
