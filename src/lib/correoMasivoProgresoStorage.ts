@@ -12,6 +12,8 @@ export interface ProgresoCorreoMasivoGuardado {
   grupo: number
   filtroAdicional: FiltroAdicionalCorreo
   asunto: string
+  /** Con copia (CC), texto libre; opcional en sesiones antiguas. */
+  cc?: string
   mensaje: string
   nombresArchivos: string[]
   destinatarios: DestinatarioCorreoMasivo[]

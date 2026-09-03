@@ -44,6 +44,7 @@ export default function CorreoMasivoModulo() {
   const [grupo, setGrupo] = useState(0)
   const [filtroAdicional, setFiltroAdicional] = useState<FiltroAdicionalCorreo>('sin-filtro')
   const [asunto, setAsunto] = useState('')
+  const [cc, setCc] = useState('')
   const [mensaje, setMensaje] = useState('')
   const [archivos, setArchivos] = useState<File[]>([])
 
@@ -96,6 +97,7 @@ export default function CorreoMasivoModulo() {
       setGrupo(guardado.grupo)
       setFiltroAdicional(guardado.filtroAdicional)
       setAsunto(guardado.asunto)
+      setCc(guardado.cc ?? '')
       setMensaje(guardado.mensaje)
       setDestinatarios(guardado.destinatarios)
       setFaseEnvio('resultado')
@@ -149,13 +151,14 @@ export default function CorreoMasivoModulo() {
         grupo,
         filtroAdicional,
         asunto,
+        cc,
         mensaje,
         nombresArchivos: archivos.map((f) => f.name),
         destinatarios: lista,
         resumenTexto,
       })
     },
-    [archivos, asunto, cicloFiltro, filtroAdicional, grado, grupo, mensaje, nivel]
+    [archivos, asunto, cc, cicloFiltro, filtroAdicional, grado, grupo, mensaje, nivel]
   )
 
   const descartarProgresoGuardado = useCallback(() => {
@@ -387,6 +390,7 @@ export default function CorreoMasivoModulo() {
         const fd = new FormData()
         fd.set('asunto', asunto.trim())
         fd.set('mensaje', mensaje.trim())
+        if (cc.trim()) fd.set('cc', cc.trim())
         fd.set(
           'filtros',
           JSON.stringify(
@@ -526,6 +530,7 @@ export default function CorreoMasivoModulo() {
     [
       archivos,
       asunto,
+      cc,
       cicloFiltro,
       destinatarios,
       filtroAdicional,
@@ -889,6 +894,22 @@ export default function CorreoMasivoModulo() {
                 required
               />
             </label>
+            <label>
+              Con copia (CC)
+              <input
+                type="text"
+                value={cc}
+                onChange={(e) => setCc(e.target.value)}
+                placeholder="correo1@ejemplo.com, correo2@ejemplo.com"
+                maxLength={500}
+                autoComplete="off"
+                inputMode="email"
+              />
+            </label>
+            <p className="cm-hint" style={{ marginTop: '-0.35rem', marginBottom: '0.75rem' }}>
+              Opcional. Varios correos separados por coma. Se envían en copia en cada mensaje
+              (además de los tutores del alumno).
+            </p>
             <label>
               Mensaje
               <textarea

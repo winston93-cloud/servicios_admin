@@ -133,8 +133,25 @@ export interface ResultadoEnvioCorreo {
   error?: string
 }
 
+/** Separa correos por coma, punto y coma o espacio. */
+export function parsearListaCorreos(raw: string | null | undefined): string[] {
+  if (!raw?.trim()) return []
+  const vistos = new Set<string>()
+  const out: string[] = []
+  for (const parte of raw.split(/[,;\s]+/)) {
+    const email = parte.trim().toLowerCase()
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) continue
+    if (vistos.has(email)) continue
+    vistos.add(email)
+    out.push(email)
+  }
+  return out
+}
+
 export async function enviarCorreoMasivo(opts: {
   to: string[]
+  /** Con copia (CC). Se omiten direcciones ya presentes en `to`. */
+  cc?: string[]
   subject: string
   html: string
   nivel: number
@@ -145,6 +162,10 @@ export async function enviarCorreoMasivo(opts: {
     return { ok: false, error: 'Sin destinatarios válidos' }
   }
 
+  const toSet = new Set(destinatarios)
+  const cc = [...new Set((opts.cc ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean))]
+    .filter((e) => !toSet.has(e))
+
   if (!process.env.MAIL_PASS) {
     return { ok: false, error: 'Falta configurar MAIL_PASS en el servidor (.env.local)' }
   }
@@ -154,6 +175,7 @@ export async function enviarCorreoMasivo(opts: {
   const mailOptions = {
     from: `"${nombre}" <${from}>`,
     to: destinatarios.join(', '),
+    ...(cc.length ? { cc: cc.join(', ') } : {}),
     bcc: COPIA_CORREO_SISTEMAS,
     subject: opts.subject,
     html: opts.html,

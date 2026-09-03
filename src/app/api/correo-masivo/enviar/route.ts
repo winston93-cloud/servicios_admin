@@ -4,7 +4,12 @@ import {
   eliminarAdjuntosTemporales,
   esTokenAdjuntosValido,
 } from '@/lib/correoMasivoAdjuntosStorage'
-import { enviarCorreoMasivo, htmlCuerpoCorreoMasivo, type AdjuntoCorreo } from '@/lib/emailServicios'
+import {
+  enviarCorreoMasivo,
+  htmlCuerpoCorreoMasivo,
+  parsearListaCorreos,
+  type AdjuntoCorreo,
+} from '@/lib/emailServicios'
 import {
   listarDestinatariosCorreoMasivo,
   obtenerDestinatariosPorAlumnoIds,
@@ -74,10 +79,19 @@ export async function POST(request: Request) {
   const form = await request.formData()
   const asunto = String(form.get('asunto') ?? '').trim()
   const mensaje = String(form.get('mensaje') ?? '').trim()
+  const ccLista = parsearListaCorreos(String(form.get('cc') ?? ''))
   const filtrosRaw = parseFiltrosJson(String(form.get('filtros') ?? ''))
 
   if (!asunto || !mensaje) {
     return NextResponse.json({ error: 'Asunto y mensaje son obligatorios' }, { status: 400 })
+  }
+
+  const ccRaw = String(form.get('cc') ?? '').trim()
+  if (ccRaw && !ccLista.length) {
+    return NextResponse.json(
+      { error: 'El campo Con copia (CC) no tiene correos válidos.' },
+      { status: 400 }
+    )
   }
 
   const soloIds = Array.isArray(filtrosRaw?.soloAlumnoIds)
@@ -183,6 +197,7 @@ export async function POST(request: Request) {
     const html = htmlCuerpoCorreoMasivo(mensaje, dest.nivel)
     const res = await enviarCorreoMasivo({
       to: dest.emails,
+      cc: ccLista.length ? ccLista : undefined,
       subject: asunto,
       html,
       nivel: dest.nivel,
