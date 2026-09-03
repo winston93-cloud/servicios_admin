@@ -9,6 +9,7 @@ import {
   etiquetaCicloFirmaBeca,
 } from './cicloFirmaBeca'
 import { resolverBecaRenovacionAlumno } from './resolverBecaRenovacionAlumno'
+import { etiquetaBecaParaPadres } from '@/lib/becaEtiquetasPadres'
 
 export type FlujoFirmaBeca = 'solicitud' | 'renovacion'
 
@@ -150,7 +151,9 @@ export async function construirCartaAceptacionPayload(opts: {
       .select('beca_clase')
       .eq('beca_id', becaId)
       .maybeSingle()
-    becaClase = concepto?.beca_clase ? String(concepto.beca_clase) : null
+    becaClase = concepto?.beca_clase
+      ? etiquetaBecaParaPadres(String(concepto.beca_clase))
+      : null
   }
 
   if (!becaClase || becaPorcentaje == null || !(Number(becaPorcentaje) >= 0)) {
