@@ -447,6 +447,164 @@ export async function revisarInscripcionPorGrupo(
   }
 }
 
+export type NivelEntradaClave = 'maternal_kinder' | 'primaria' | 'secundaria'
+
+function filtrosEntradaPorNivel(nivelEntrada: NivelEntradaClave): {
+  filtros: Array<{ nivel: number; grado: number }>
+  grupoEtiqueta: string
+  nivelLabel: string
+} {
+  if (nivelEntrada === 'maternal_kinder') {
+    return {
+      filtros: [
+        // Maternal: grados 1-2 (A-B)
+        { nivel: 1, grado: 1 },
+        { nivel: 1, grado: 2 },
+        // Kinder: grados 1-3
+        { nivel: 2, grado: 1 },
+        { nivel: 2, grado: 2 },
+        { nivel: 2, grado: 3 },
+      ],
+      grupoEtiqueta: 'Maternal/Kinder',
+      nivelLabel: 'Maternal/Kinder',
+    }
+  }
+
+  if (nivelEntrada === 'primaria') {
+    return {
+      filtros: [
+        { nivel: 3, grado: 1 },
+        { nivel: 3, grado: 2 },
+        { nivel: 3, grado: 3 },
+        { nivel: 3, grado: 4 },
+        { nivel: 3, grado: 5 },
+        { nivel: 3, grado: 6 },
+      ],
+      grupoEtiqueta: 'Primaria',
+      nivelLabel: 'Primaria',
+    }
+  }
+
+  return {
+    filtros: [
+      // Secundaria: 7-9 -> alumno_grado 1-3 (BOLETAS)
+      { nivel: 4, grado: 1 },
+      { nivel: 4, grado: 2 },
+      { nivel: 4, grado: 3 },
+    ],
+    grupoEtiqueta: 'Secundaria',
+    nivelLabel: 'Secundaria',
+  }
+}
+
+/**
+ * Pendientes por nivel completo (sin filtrar por grado/grupo específico).
+ * Mantiene el mismo criterio de "inscripción completa" que el flujo de grupo:
+ * - Verde = concepto 13 (pago único)
+ * - Verde también si tiene concepto 12 (2º diferido)
+ * - Rojo = no tiene 13 y no tiene 12 en el ciclo de inscripción vigente
+ */
+export async function revisarInscripcionPorNivelEntrada(
+  nivelEntrada: NivelEntradaClave
+): Promise<
+  RevisionGrupoResultado | { ok: false; error: string; status: number }
+> {
+  const ciclos = await resolverCiclosEntrada()
+  if (!ciclos.ok) return ciclos
+
+  const { cen, cicloFicha, cicloLabel } = ciclos
+  const { filtros, grupoEtiqueta, nivelLabel } = filtrosEntradaPorNivel(
+    nivelEntrada
+  )
+
+  const supabase = createSupabaseAdmin()
+  const vistos = new Set<number>()
+  const filas: AlumnoGrupoRow[] = []
+
+  for (const f of filtros) {
+    const query = supabase
+      .from('alumno')
+      .select(
+        'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo'
+      )
+      // Solo activos del ciclo de ficha de la inscripción vigente (ej. 22→23, 23→24…).
+      .eq('alumno_status', 1)
+      .eq('alumno_ciclo_escolar', cicloFicha)
+      .eq('alumno_nivel', f.nivel)
+      .eq('alumno_grado', f.grado)
+      .order('alumno_app', { ascending: true })
+      .order('alumno_apm', { ascending: true })
+      .order('alumno_nombre', { ascending: true })
+      // Para que el select de "nivel" no se quede corto.
+      .limit(2000)
+
+    const { data, error } = await query
+    if (error) {
+      console.error('revision nivel entrada alumnos:', error)
+      return { ok: false, error: 'No se pudo listar el nivel.', status: 500 }
+    }
+
+    for (const row of (data ?? []) as AlumnoGrupoRow[]) {
+      const id = Number(row.alumno_id)
+      if (vistos.has(id)) continue
+      vistos.add(id)
+      filas.push(row)
+    }
+  }
+
+  const pagosMap = await cargarPagosPorAlumnos(
+    filas.map((a) => Number(a.alumno_id)),
+    cen
+  )
+
+  const alumnos: RevisionGrupoAlumnoItem[] = filas.map((a) => {
+    const pagos = pagosMap.get(Number(a.alumno_id)) ?? []
+    const ref = String(a.alumno_ref)
+    const tiene13 = alumnoTienePagoSemiref(pagos, ref, '13', cen)
+    const tiene12 = alumnoTienePagoSemiref(pagos, ref, '12', cen)
+    const tiene11 = alumnoTienePagoSemiref(pagos, ref, '11', cen)
+    // Verde = inscripción completa (13 único o 12 2º diferido); rojo = pendiente.
+    const pagado = tiene13 || tiene12
+    const plantel = plantelDeNivel(Number(a.alumno_nivel))
+    return {
+      alumno_id: Number(a.alumno_id),
+      alumno_ref: ref,
+      nombre_completo: nombreCompleto(a),
+      nivel: Number(a.alumno_nivel),
+      nivel_label: etiquetaNivelEscolar(a.alumno_nivel),
+      grado: Number(a.alumno_grado),
+      grado_label: etiquetaGradoEscolar(a.alumno_nivel, a.alumno_grado),
+      grupo_letra: letraDesdeGrupoNum(Number(a.alumno_grupo)) || '',
+      plantel: plantel.plantel,
+      plantel_label: plantel.label,
+      pagado,
+      completa_por: tiene13 ? '13' : tiene12 ? '12' : null,
+      tiene_dif1: tiene11,
+    }
+  })
+
+  alumnos.sort((a, b) =>
+    a.nombre_completo.localeCompare(b.nombre_completo, 'es', {
+      sensitivity: 'base',
+    })
+  )
+
+  const pagados = alumnos.filter((a) => a.pagado).length
+
+  return {
+    ok: true,
+    consulta: `nivel:${nivelEntrada}`,
+    grupo_etiqueta: grupoEtiqueta,
+    nivel_label: nivelLabel,
+    ciclo_inscripcion: cen,
+    ciclo_label: cicloLabel,
+    total: alumnos.length,
+    pagados,
+    pendientes: alumnos.length - pagados,
+    alumnos,
+  }
+}
+
 /** Solo para mensajes / depuración. */
 export function plantelRazon(nivel: number): string {
   return getClient(nivel)

@@ -1178,6 +1178,62 @@
     background 0.15s ease;
 }
 
+.rev-pag-nivel-select {
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: var(--touch-min, 44px);
+  height: 56px;
+  padding: 0 16px;
+  border-radius: 16px;
+  border: 2px solid color-mix(in srgb, var(--border) 65%, #64748b);
+  background: color-mix(in srgb, var(--card) 88%, #fff);
+  color: var(--rev-ink);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  -webkit-appearance: none;
+  appearance: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 6px 18px rgba(15, 23, 42, 0.08);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+[data-theme='dark'] .rev-pag-nivel-select {
+  background: #121b2e;
+  border-color: rgba(148, 163, 184, 0.48);
+  color: #f8fafc;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 10px 28px rgba(0, 0, 0, 0.32);
+}
+
+.rev-pag-nivel-select:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--primary) 55%, #00e3fd);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, #00e3fd 22%, transparent),
+    0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme='dark'] .rev-pag-nivel-select:focus {
+  border-color: rgba(0, 227, 253, 0.78);
+  box-shadow:
+    0 0 0 4px rgba(0, 227, 253, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 12px 30px rgba(0, 0, 0, 0.38);
+}
+
+.rev-pag-nivel-select option {
+  text-transform: none;
+}
+
 [data-theme='dark'] .rev-pag-grupo-input {
   background: #121b2e;
   border-color: rgba(148, 163, 184, 0.48);

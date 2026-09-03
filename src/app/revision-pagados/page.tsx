@@ -25,8 +25,8 @@ import {
   type AlumnoBusquedaResultado,
 } from '@/lib/alumnoBusquedaServicios'
 import type {
-  GrupoEntradaOpcion,
   RevisionGrupoResultado,
+  NivelEntradaClave,
 } from '@/lib/revisionPagadosGrupo'
 import { GUIA_CODIGOS_GRUPO_ENTRADA } from '@/lib/revisionPagadosGrupo'
 import type { RevisionInscripcionResultado } from '@/lib/revisionPagadosInscripcion'
@@ -44,23 +44,6 @@ function normalizarCodigoGrupo(raw: string): string {
     .replace(/\s+/g, '')
 }
 
-function filtrarGrupos(
-  grupos: GrupoEntradaOpcion[],
-  consulta: string
-): GrupoEntradaOpcion[] {
-  const q = normalizarCodigoGrupo(consulta)
-  // Vacío = sin lista (evita el despliegue feo al volver de Individual).
-  if (!q) return []
-  return grupos
-    .filter(
-      (g) =>
-        g.codigo.startsWith(q) ||
-        g.etiqueta.toUpperCase().includes(q) ||
-        g.nivel_label.toUpperCase().startsWith(q)
-    )
-    .slice(0, 14)
-}
-
 export default function RevisionPagadosPage() {
   return (
     <CicloEscolarProvider>
@@ -74,47 +57,18 @@ function RevisionPagadosView() {
     useCicloEscolar()
   const searchWrapRef = useRef<HTMLDivElement>(null)
   const resultadoRef = useRef<HTMLElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const listboxId = 'rev-pag-grupo-listbox'
 
   const [modo, setModo] = useState<ModoBusqueda>('grupo')
   const [guiaAbierta, setGuiaAbierta] = useState(false)
-  const [consulta, setConsulta] = useState('')
-  const [gruposCatalogo, setGruposCatalogo] = useState<GrupoEntradaOpcion[]>([])
-  const [sugerenciasAbiertas, setSugerenciasAbiertas] = useState(false)
-  const [indiceActivo, setIndiceActivo] = useState(0)
+  const [nivelEntrada, setNivelEntrada] =
+    useState<NivelEntradaClave>('maternal_kinder')
   const [dataGrupo, setDataGrupo] = useState<RevisionGrupoResultado | null>(null)
   const [alumno, setAlumno] = useState<AlumnoBusquedaResultado | null>(null)
   const [dataAlumno, setDataAlumno] =
     useState<RevisionInscripcionResultado | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const sugerencias = filtrarGrupos(gruposCatalogo, consulta)
   const hayResultado = Boolean(dataGrupo || dataAlumno)
-
-  useEffect(() => {
-    if (!sugerenciasAbiertas || sugerencias.length === 0) return
-    const el = document.getElementById(`${listboxId}-${indiceActivo}`)
-    el?.scrollIntoView({ block: 'nearest' })
-  }, [indiceActivo, sugerenciasAbiertas, sugerencias.length])
-
-  useEffect(() => {
-    let cancelled = false
-    void (async () => {
-      try {
-        const res = await fetch('/api/revision-pagados/grupos')
-        const json = await res.json()
-        if (!res.ok || !json.ok || cancelled) return
-        setGruposCatalogo((json.grupos ?? []) as GrupoEntradaOpcion[])
-      } catch {
-        /* catálogo opcional */
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   const scrollAlResultado = useCallback(() => {
     const el = resultadoRef.current
@@ -142,8 +96,6 @@ function RevisionPagadosView() {
         setDataGrupo(null)
         return
       }
-      setConsulta(grupo)
-      setSugerenciasAbiertas(false)
       setLoading(true)
       setError(null)
       setDataGrupo(null)
@@ -169,6 +121,30 @@ function RevisionPagadosView() {
     []
   )
 
+  const buscarNivelEntrada = useCallback(async (nivel: NivelEntradaClave) => {
+    setLoading(true)
+    setError(null)
+    setDataGrupo(null)
+    setDataAlumno(null)
+    setAlumno(null)
+    try {
+      const res = await fetch('/api/revision-pagados/pendientes-nivel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nivel }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error || 'No se pudo consultar el nivel.')
+      }
+      setDataGrupo(json as RevisionGrupoResultado)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al consultar')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   const cargarAlumno = useCallback(async (a: AlumnoBusquedaResultado) => {
     setLoading(true)
     setError(null)
@@ -192,110 +168,18 @@ function RevisionPagadosView() {
     }
   }, [])
 
-  const elegirSugerencia = useCallback(
-    (opcion: GrupoEntradaOpcion) => {
-      void buscarGrupo(opcion.codigo, opcion.nivel)
-    },
-    [buscarGrupo]
-  )
-
-  const resolverEnter = useCallback(() => {
-    const q = normalizarCodigoGrupo(consulta)
-    if (!q) {
-      setError('Escribe un grupo, por ejemplo K2A, 2A o 7B.')
-      return
-    }
-    if (
-      sugerenciasAbiertas &&
-      sugerencias.length > 0 &&
-      indiceActivo >= 0 &&
-      indiceActivo < sugerencias.length
-    ) {
-      const pick = sugerencias[indiceActivo]
-      void buscarGrupo(pick.codigo, pick.nivel)
-      return
-    }
-    const exactas = gruposCatalogo.filter((g) => g.codigo === q)
-    if (exactas.length === 1) {
-      void buscarGrupo(exactas[0].codigo, exactas[0].nivel)
-      return
-    }
-    if (sugerencias.length === 1) {
-      void buscarGrupo(sugerencias[0].codigo, sugerencias[0].nivel)
-      return
-    }
-    void buscarGrupo(q)
-  }, [
-    buscarGrupo,
-    consulta,
-    gruposCatalogo,
-    indiceActivo,
-    sugerencias,
-    sugerenciasAbiertas,
-  ])
-
-  const onSubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault()
-      resolverEnter()
-    },
-    [resolverEnter]
-  )
-
-  const onKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'ArrowDown') {
-        if (!sugerencias.length) return
-        e.preventDefault()
-        setSugerenciasAbiertas(true)
-        setIndiceActivo((i) => (i + 1) % sugerencias.length)
-        return
-      }
-      if (e.key === 'ArrowUp') {
-        if (!sugerencias.length) return
-        e.preventDefault()
-        setSugerenciasAbiertas(true)
-        setIndiceActivo((i) => (i - 1 + sugerencias.length) % sugerencias.length)
-        return
-      }
-      if (e.key === 'Escape') {
-        setSugerenciasAbiertas(false)
-        return
-      }
-      if (e.key === 'Enter') {
-        e.preventDefault()
-        resolverEnter()
-      }
-    },
-    [resolverEnter, sugerencias]
-  )
-
   const irAIndividual = useCallback(() => {
     setModo('individual')
     setDataGrupo(null)
+    setDataAlumno(null)
+    setAlumno(null)
     setError(null)
-    setConsulta('')
-    setSugerenciasAbiertas(false)
-    setIndiceActivo(0)
   }, [])
 
   const irAGrupo = useCallback(() => {
     setModo('grupo')
     setAlumno(null)
     setDataAlumno(null)
-    setError(null)
-    setConsulta('')
-    setSugerenciasAbiertas(false)
-    setIndiceActivo(0)
-    window.setTimeout(() => {
-      inputRef.current?.focus()
-    }, 50)
-  }, [])
-
-  const prepararNuevaBusquedaGrupo = useCallback(() => {
-    setConsulta('')
-    setSugerenciasAbiertas(false)
-    setIndiceActivo(0)
     setDataGrupo(null)
     setError(null)
   }, [])
@@ -305,16 +189,18 @@ function RevisionPagadosView() {
     setDataAlumno(null)
     setAlumno(null)
     setError(null)
-    setConsulta('')
-    setSugerenciasAbiertas(false)
-    setIndiceActivo(0)
-    window.setTimeout(() => {
-      if (modo === 'grupo') {
-        inputRef.current?.focus()
-        inputRef.current?.select()
-      }
-    }, 50)
-  }, [modo])
+
+    // En modo "nivel" recargamos automáticamente el select para que el flujo siga
+    // siendo de "pendientes" (rojos).
+    if (modo === 'grupo') {
+      void buscarNivelEntrada(nivelEntrada)
+    }
+  }, [modo, buscarNivelEntrada, nivelEntrada])
+
+  useEffect(() => {
+    if (modo !== 'grupo') return
+    void buscarNivelEntrada(nivelEntrada)
+  }, [modo, nivelEntrada, buscarNivelEntrada])
 
   const onSeleccionarAlumno = useCallback(
     (a: AlumnoBusquedaResultado | null) => {
@@ -337,7 +223,7 @@ function RevisionPagadosView() {
 
   return (
     <div
-      className={`rev-pag-page${hayResultado ? ' rev-pag-page--con-resultado' : ''}${sugerenciasAbiertas && sugerencias.length > 0 && modo === 'grupo' ? ' rev-pag-page--ac-abierto' : ''}`}
+      className={`rev-pag-page${hayResultado ? ' rev-pag-page--con-resultado' : ''}`}
     >
       <div className="rev-pag-bg" aria-hidden>
         <span className="rev-pag-orb rev-pag-orb--a" />
@@ -388,70 +274,51 @@ function RevisionPagadosView() {
         </section>
 
         <section
-          className={`rev-pag-panel rev-pag-panel--buscar${sugerenciasAbiertas && sugerencias.length > 0 ? ' is-ac-open' : ''}`}
+          className="rev-pag-panel rev-pag-panel--buscar"
           ref={searchWrapRef}
         >
           <header className="rev-pag-panel-head rev-pag-panel-head--inline">
             <span className="rev-pag-panel-step">1</span>
             <h2 className="rev-pag-panel-title">
-              {modo === 'grupo' ? 'Grupo' : 'Alumno'}
+              {modo === 'grupo' ? 'Nivel' : 'Alumno'}
             </h2>
             <p className="rev-pag-panel-sub">
               {modo === 'grupo'
-                ? 'K2A Kinder · 2A Primaria · 7B Secundaria'
+                ? 'Maternal/Kinder · Primaria · Secundaria'
                 : 'Nombre o No. de control'}
             </p>
           </header>
 
           {modo === 'grupo' ? (
-            <form className="rev-pag-grupo-form" onSubmit={onSubmit}>
-              <label className="rev-pag-grupo-label" htmlFor="rev-pag-grupo-input">
-                Buscar por grupo
+            <div className="rev-pag-grupo-form">
+              <label
+                className="rev-pag-grupo-label"
+                htmlFor="rev-pag-nivel-select"
+              >
+                Seleccionar nivel
               </label>
               <div className="rev-pag-grupo-row">
                 <div className="rev-pag-grupo-ac">
-                  <input
-                    ref={inputRef}
-                    id="rev-pag-grupo-input"
-                    className="rev-pag-grupo-input"
-                    type="search"
-                    role="combobox"
-                    aria-expanded={sugerenciasAbiertas && sugerencias.length > 0}
-                    aria-controls={listboxId}
-                    aria-autocomplete="list"
-                    aria-activedescendant={
-                      sugerenciasAbiertas && sugerencias[indiceActivo]
-                        ? `${listboxId}-${indiceActivo}`
-                        : undefined
+                  <select
+                    id="rev-pag-nivel-select"
+                    className="rev-pag-nivel-select"
+                    value={nivelEntrada}
+                    onChange={(e) =>
+                      setNivelEntrada(e.target.value as NivelEntradaClave)
                     }
-                    inputMode="text"
-                    enterKeyHint="search"
-                    autoCapitalize="characters"
-                    autoCorrect="off"
-                    spellCheck={false}
-                    autoComplete="off"
-                    autoFocus
-                    placeholder="Ej. K2A o 2A"
-                    value={consulta}
-                    onChange={(e) => {
-                      const next = normalizarCodigoGrupo(e.target.value)
-                      setConsulta(next)
-                      setSugerenciasAbiertas(next.length > 0)
-                      setIndiceActivo(0)
-                    }}
-                    onFocus={() => {
-                      // Como búsqueda de alumno en Servicios: al enfocarse, blanco.
-                      prepararNuevaBusquedaGrupo()
-                    }}
-                    onClick={() => {
-                      prepararNuevaBusquedaGrupo()
-                    }}
-                    onBlur={() => {
-                      window.setTimeout(() => setSugerenciasAbiertas(false), 150)
-                    }}
-                    onKeyDown={onKeyDown}
-                  />
+                    aria-label="Seleccionar nivel"
+                  >
+                    <option value="maternal_kinder">Maternal/Kinder</option>
+                    <option value="primaria">Primaria</option>
+                    <option value="secundaria">Secundaria</option>
+                  </select>
+
+                  <p className="rev-pag-grupo-hint">
+                    Solo aparecen <strong>alumnos en rojo</strong> (inscripción
+                    pendiente).
+                  </p>
                 </div>
+
                 <div className="rev-pag-grupo-actions">
                   <button
                     type="button"
@@ -471,63 +338,7 @@ function RevisionPagadosView() {
                   </button>
                 </div>
               </div>
-              {sugerenciasAbiertas && sugerencias.length > 0 ? (
-                <div className="rev-pag-grupo-ac-panel" role="presentation">
-                  <div className="rev-pag-grupo-ac-panel-head">
-                    <span>Grupos</span>
-                    <span>
-                      {sugerencias.length} coincidencia
-                      {sugerencias.length === 1 ? '' : 's'}
-                    </span>
-                  </div>
-                  <ul
-                    id={listboxId}
-                    className="rev-pag-grupo-sugerencias"
-                    role="listbox"
-                    aria-label="Grupos encontrados"
-                  >
-                    {sugerencias.map((g, idx) => (
-                      <li key={`${g.codigo}-${g.nivel}`} role="presentation">
-                        <button
-                          type="button"
-                          id={`${listboxId}-${idx}`}
-                          role="option"
-                          aria-selected={idx === indiceActivo}
-                          className={`rev-pag-grupo-sugerencia rev-pag-grupo-sugerencia--n${g.nivel}${idx === indiceActivo ? ' is-active' : ''}`}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onMouseEnter={() => setIndiceActivo(idx)}
-                          onClick={() => elegirSugerencia(g)}
-                        >
-                          <span
-                            className={`rev-pag-grupo-sug-badge rev-pag-grupo-sug-badge--n${g.nivel}`}
-                            aria-hidden
-                          >
-                            {g.codigo}
-                          </span>
-                          <span className="rev-pag-grupo-sug-body">
-                            <strong>{g.nivel_label}</strong>
-                            <span>
-                              {g.alumnos} alumno{g.alumnos === 1 ? '' : 's'}
-                            </span>
-                          </span>
-                          <span className="rev-pag-grupo-sug-go" aria-hidden>
-                            →
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="rev-pag-grupo-ac-panel-foot">
-                    ↑↓ navegar · Enter abrir · Esc cerrar
-                  </p>
-                </div>
-              ) : (
-                <p className="rev-pag-grupo-hint">
-                  Escribe el código (ej. K2A) o abre <strong>Ver Grado/Grupo</strong>{' '}
-                  para elegir Maternal → 9C.
-                </p>
-              )}
-            </form>
+            </div>
           ) : (
             <div className="rev-pag-individual-wrap">
               <div className="rev-pag-search-box">
@@ -560,13 +371,15 @@ function RevisionPagadosView() {
           <header className="rev-pag-panel-head rev-pag-panel-head--inline">
             <span className="rev-pag-panel-step">2</span>
             <h2 className="rev-pag-panel-title">Resultado</h2>
-            <p className="rev-pag-panel-sub">Verde pagó · Rojo pendiente</p>
+            <p className="rev-pag-panel-sub">Pendientes (inscripción no pagada)</p>
           </header>
 
           {loading ? (
             <div className="rev-pag-loading" role="status">
               <Loader2 className="rev-pag-spin" size={32} aria-hidden />
-              {modo === 'grupo' ? 'Cargando grupo…' : 'Consultando inscripción…'}
+              {modo === 'grupo'
+                ? 'Cargando pendientes…'
+                : 'Consultando inscripción…'}
             </div>
           ) : null}
 
@@ -579,7 +392,7 @@ function RevisionPagadosView() {
           {!loading && !error && !dataGrupo && !dataAlumno ? (
             <div className="rev-pag-idle">
               {modo === 'grupo'
-                ? 'Elige un grupo (K2A, 2A, 7B…) y pulsa Enter.'
+                ? 'Selecciona un nivel para ver pendientes.'
                 : 'Busca un alumno por nombre o No. de control.'}
             </div>
           ) : null}
@@ -727,8 +540,10 @@ function ResultadoGrupo({
   data: RevisionGrupoResultado
   onOtro: () => void
 }) {
-  const pctPagados =
-    data.total > 0 ? Math.round((data.pagados / data.total) * 100) : 0
+  // Flujo nuevo: solo mostramos rojos (pendiente = no pagó inscripción).
+  const alumnosPendientes = data.alumnos.filter((a) => !a.pagado)
+  const pctPendientes =
+    data.total > 0 ? Math.round((data.pendientes / data.total) * 100) : 0
 
   return (
     <div className="rev-pag-grupo-result">
@@ -737,19 +552,16 @@ function ResultadoGrupo({
           <span className="rev-pag-grupo-badge">{data.grupo_etiqueta}</span>
           <div>
             <strong>
-              {data.total} alumno{data.total === 1 ? '' : 's'}
+              {data.pendientes} alumno{data.pendientes === 1 ? '' : 's'} pendiente
               {data.nivel_label ? ` · ${data.nivel_label}` : ''}
             </strong>
             <p>
-              Ciclo escolar {data.ciclo_label} · {data.pagados} pagados ·{' '}
+              Ciclo escolar {data.ciclo_label} · {data.pagados} al corriente ·{' '}
               {data.pendientes} pendientes
             </p>
           </div>
         </div>
         <div className="rev-pag-grupo-counts" aria-hidden>
-          <span className="rev-pag-grupo-count rev-pag-grupo-count--ok">
-            {data.pagados}
-          </span>
           <span className="rev-pag-grupo-count rev-pag-grupo-count--bad">
             {data.pendientes}
           </span>
@@ -758,31 +570,33 @@ function ResultadoGrupo({
       <div
         className="rev-pag-grupo-progress"
         role="img"
-        aria-label={`${pctPagados}% pagados`}
+        aria-label={`${pctPendientes}% pendientes`}
       >
         <div
           className="rev-pag-grupo-progress-bar"
-          style={{ width: `${pctPagados}%` }}
+          style={{
+            width: `${pctPendientes}%`,
+            background: 'linear-gradient(90deg, #be123c, #e11d48)',
+          }}
         />
-        <span className="rev-pag-grupo-progress-label">{pctPagados}% al corriente</span>
+        <span className="rev-pag-grupo-progress-label">
+          {pctPendientes}% pendientes
+        </span>
       </div>
       <div className="rev-pag-leyenda" aria-hidden>
-        <span className="rev-pag-leyenda-item rev-pag-leyenda-item--ok">
-          Pagó inscripción
-        </span>
         <span className="rev-pag-leyenda-item rev-pag-leyenda-item--bad">
           Pendiente
         </span>
       </div>
 
-      {data.alumnos.length === 0 ? (
+      {alumnosPendientes.length === 0 ? (
         <div className="rev-pag-idle">
-          No hay alumnos activos en {data.grupo_etiqueta}
+          No hay alumnos pendientes en {data.grupo_etiqueta}
           {data.nivel_label ? ` (${data.nivel_label})` : ''} este ciclo.
         </div>
       ) : (
         <ul className="rev-pag-grupo-lista">
-          {data.alumnos.map((a) => (
+          {alumnosPendientes.map((a) => (
             <li
               key={a.alumno_id}
               className={`rev-pag-grupo-item ${a.pagado ? 'rev-pag-grupo-item--ok' : 'rev-pag-grupo-item--bad'}`}
@@ -799,7 +613,8 @@ function ResultadoGrupo({
                 <p>
                   <span className="rev-pag-ref">{a.alumno_ref}</span>
                   <span>
-                    {a.nivel_label} · {a.grado_label} {a.grupo_letra}
+                    {a.nivel_label} · {a.grado_label}
+                    {a.grupo_letra ? ` ${a.grupo_letra}` : ''}
                   </span>
                   <span>{a.plantel_label}</span>
                 </p>
