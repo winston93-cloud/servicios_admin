@@ -512,7 +512,7 @@ export async function revisarInscripcionPorNivelEntrada(
   const ciclos = await resolverCiclosEntrada()
   if (!ciclos.ok) return ciclos
 
-  const { cen, cicloLabel } = ciclos
+  const { cen, cicloFicha, cicloLabel } = ciclos
   const { filtros, grupoEtiqueta, nivelLabel } = filtrosEntradaPorNivel(
     nivelEntrada
   )
@@ -521,29 +521,16 @@ export async function revisarInscripcionPorNivelEntrada(
   const vistos = new Set<number>()
   const filas: AlumnoGrupoRow[] = []
 
-  // Regla operativa solicitada:
-  // - Reincripción: activos que "vienen" del ciclo anterior.
-  // - Nuevo ingreso: activos cuyo ciclo corresponde al ciclo de inscripción.
-  const cicloReinscritos = cen - 1
-  const cicloNuevos = cen
-  if (cicloReinscritos <= 0) {
-    return {
-      ok: false,
-      error: 'No se pudo resolver el ciclo anterior para reincritos.',
-      status: 400,
-    }
-  }
-
   for (const f of filtros) {
-    // 1) Reincritos desde ciclo anterior
-    const queryReinscritos = supabase
+    // Misma base que revisarInscripcionPorGrupo:
+    // activos del ciclo de ficha vigente (cubre reincritos y nuevos ingresos).
+    const query = supabase
       .from('alumno')
       .select(
-        'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_nuevo_ingreso'
+        'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo'
       )
       .eq('alumno_status', 1)
-      .eq('alumno_nuevo_ingreso', 0)
-      .eq('alumno_ciclo_escolar', cicloReinscritos)
+      .eq('alumno_ciclo_escolar', cicloFicha)
       .eq('alumno_nivel', f.nivel)
       .eq('alumno_grado', f.grado)
       .order('alumno_app', { ascending: true })
@@ -551,45 +538,13 @@ export async function revisarInscripcionPorNivelEntrada(
       .order('alumno_nombre', { ascending: true })
       .limit(2000)
 
-    const { data: dataReinscritos, error: errorReinscritos } =
-      await queryReinscritos
-    if (errorReinscritos) {
-      console.error('revision nivel entrada alumnos (reinscritos):', errorReinscritos)
-      return {
-        ok: false,
-        error: 'No se pudo listar reincritos del nivel.',
-        status: 500,
-      }
+    const { data, error } = await query
+    if (error) {
+      console.error('revision nivel entrada alumnos:', error)
+      return { ok: false, error: 'No se pudo listar el nivel.', status: 500 }
     }
 
-    // 2) Nuevos ingresos hacia ciclo de inscripción
-    const queryNuevos = supabase
-      .from('alumno')
-      .select(
-        'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_nuevo_ingreso'
-      )
-      .eq('alumno_status', 1)
-      .eq('alumno_nuevo_ingreso', 1)
-      .eq('alumno_ciclo_escolar', cicloNuevos)
-      .eq('alumno_nivel', f.nivel)
-      .eq('alumno_grado', f.grado)
-      .order('alumno_app', { ascending: true })
-      .order('alumno_apm', { ascending: true })
-      .order('alumno_nombre', { ascending: true })
-      .limit(2000)
-
-    const { data: dataNuevos, error: errorNuevos } = await queryNuevos
-    if (errorNuevos) {
-      console.error('revision nivel entrada alumnos (nuevos):', errorNuevos)
-      return {
-        ok: false,
-        error: 'No se pudo listar nuevos del nivel.',
-        status: 500,
-      }
-    }
-
-    const juntas = [...(dataReinscritos ?? []), ...(dataNuevos ?? [])] as AlumnoGrupoRow[]
-    for (const row of juntas) {
+    for (const row of (data ?? []) as AlumnoGrupoRow[]) {
       const id = Number(row.alumno_id)
       if (vistos.has(id)) continue
       vistos.add(id)
