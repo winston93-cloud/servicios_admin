@@ -40,6 +40,7 @@ export type FilaInscripcionesAdmin = {
 }
 
 export type AlumnoBloqueoInscripciones = {
+  alumno_id: number
   noCtrl: string
   nombre: string
   status: number
@@ -122,15 +123,21 @@ function construirFilasConTotales(
 
 type AlumnoCeldaRow = {
   alumno_id: number
+  alumno_ref: string
+  alumno_nombre: string | null
+  alumno_app: string | null
+  alumno_apm: string | null
   alumno_nivel: number
   alumno_grado: number
+  alumno_grupo: number
   alumno_status: number
+  alumno_nuevo_ingreso: number
 }
 
 async function fetchAlumnosCicloNuevoIngreso(
   ciclo: number,
   nuevoIngreso: 0 | 1,
-  modoStatus: 'dif1' | 'dif2' | 'general' | 'ni'
+  _modoStatus: 'dif1' | 'dif2' | 'general' | 'ni'
 ): Promise<AlumnoCeldaRow[]> {
   const db = createDbAdmin()
   const out: AlumnoCeldaRow[] = []
@@ -139,7 +146,9 @@ async function fetchAlumnosCicloNuevoIngreso(
   while (true) {
     let q = db
       .from('alumno')
-      .select('alumno_id, alumno_nivel, alumno_grado, alumno_status')
+      .select(
+        'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_status, alumno_nuevo_ingreso'
+      )
       .eq('alumno_ciclo_escolar', ciclo)
       .eq('alumno_nuevo_ingreso', nuevoIngreso)
 
@@ -153,9 +162,15 @@ async function fetchAlumnosCicloNuevoIngreso(
     for (const a of chunk) {
       out.push({
         alumno_id: Number(a.alumno_id),
+        alumno_ref: String(a.alumno_ref ?? '').trim(),
+        alumno_nombre: (a.alumno_nombre as string | null) ?? null,
+        alumno_app: (a.alumno_app as string | null) ?? null,
+        alumno_apm: (a.alumno_apm as string | null) ?? null,
         alumno_nivel: Number(a.alumno_nivel),
         alumno_grado: Number(a.alumno_grado),
+        alumno_grupo: Number(a.alumno_grupo ?? 0),
         alumno_status: Number(a.alumno_status),
+        alumno_nuevo_ingreso: Number(a.alumno_nuevo_ingreso ?? nuevoIngreso),
       })
     }
     if (chunk.length < PAGE_ALUMNO) break
@@ -310,6 +325,7 @@ async function cargarBloqueosPsicoAcademico(
         : etiquetaNivelInscripciones(nivelDestino, gradoDestino)
 
       filas.push({
+        alumno_id: id,
         noCtrl: String(r.alumno_ref ?? '').trim(),
         nombre: construirNombreCompleto(
           String(r.alumno_nombre ?? ''),
@@ -415,6 +431,125 @@ export async function cargarMatrizInscripciones(cicloInscripcion: number, modo: 
     modo,
     filas: construirFilasConTotales(celdas),
     bloqueos,
+  }
+}
+
+export type AlumnoRevisionDif2 = {
+  alumno_id: number
+  alumno_ref: string
+  nombre_completo: string
+  alumno_nivel: number
+  alumno_grado: number
+  alumno_grupo: number
+  alumno_nuevo_ingreso: number
+  pagado: boolean
+  completa_por: '12' | '13' | null
+  tiene_dif1: boolean
+}
+
+/**
+ * Misma base que `cargarMatrizInscripciones(..., 'dif2')`.
+ * Pendiente = estimado − inscrito (RI: 12 o 13; NI: solo 13; ciclo de inscripción).
+ */
+export async function listarAlumnosRevisionDif2(
+  cicloInscripcion: number,
+  niveles: number[]
+): Promise<{
+  cicloInscripcion: number
+  cicloLabel: string
+  total: number
+  pagados: number
+  pendientes: number
+  alumnos: AlumnoRevisionDif2[]
+}> {
+  const cea = await resolverCicloEscolarSistemaValor()
+  const cicloAlumnos = cicloFichaAlumnosParaInscripcion(cicloInscripcion, cea)
+  const nivelSet = new Set(niveles)
+
+  const [riAlumnos, niAlumnos, pagos, bloqueos] = await Promise.all([
+    fetchAlumnosCicloNuevoIngreso(cicloAlumnos, 0, 'dif2'),
+    fetchAlumnosCicloNuevoIngreso(cicloInscripcion, 1, 'ni'),
+    fetchPagosPorConceptosCiclo(['11', '12', '13'], cicloInscripcion),
+    cargarBloqueosPsicoAcademico(cicloAlumnos, cicloInscripcion),
+  ])
+
+  const pagados12 = idsPagadosPorConceptos(pagos, cicloInscripcion, ['12'])
+  const pagados13 = idsPagadosPorConceptos(pagos, cicloInscripcion, ['13'])
+  const pagados11 = idsPagadosPorConceptos(pagos, cicloInscripcion, ['11'])
+
+  const porId = new Map<number, AlumnoRevisionDif2>()
+
+  const toItem = (
+    a: AlumnoCeldaRow,
+    esNuevo: boolean
+  ): AlumnoRevisionDif2 => {
+    const tiene13 = pagados13.has(a.alumno_id)
+    const tiene12 = pagados12.has(a.alumno_id)
+    const pagado = esNuevo ? tiene13 : tiene13 || tiene12
+    return {
+      alumno_id: a.alumno_id,
+      alumno_ref: a.alumno_ref,
+      nombre_completo: [a.alumno_app, a.alumno_apm, a.alumno_nombre]
+        .map((x) => String(x ?? '').trim())
+        .filter(Boolean)
+        .join(' '),
+      alumno_nivel: a.alumno_nivel,
+      alumno_grado: a.alumno_grado,
+      alumno_grupo: a.alumno_grupo,
+      alumno_nuevo_ingreso: esNuevo ? 1 : 0,
+      pagado,
+      completa_por: tiene13 ? '13' : tiene12 ? '12' : null,
+      tiene_dif1: pagados11.has(a.alumno_id),
+    }
+  }
+
+  for (const a of riAlumnos) {
+    if (!nivelSet.has(a.alumno_nivel)) continue
+    if (esEstatusBloqueo(a.alumno_status)) continue
+    porId.set(a.alumno_id, toItem(a, false))
+  }
+
+  for (const a of niAlumnos) {
+    if (!nivelSet.has(a.alumno_nivel)) continue
+    porId.set(a.alumno_id, toItem(a, true))
+  }
+
+  for (const g of bloqueos) {
+    if (!nivelSet.has(g.nivel)) continue
+    for (const b of g.alumnos) {
+      if (porId.has(b.alumno_id)) continue
+      const ri = riAlumnos.find((x) => x.alumno_id === b.alumno_id)
+      const tiene13 = pagados13.has(b.alumno_id)
+      const tiene12 = pagados12.has(b.alumno_id)
+      porId.set(b.alumno_id, {
+        alumno_id: b.alumno_id,
+        alumno_ref: b.noCtrl,
+        nombre_completo: b.nombre,
+        alumno_nivel: g.nivel,
+        alumno_grado: g.grado,
+        alumno_grupo: ri?.alumno_grupo ?? 0,
+        alumno_nuevo_ingreso: 0,
+        pagado: tiene13 || tiene12,
+        completa_por: tiene13 ? '13' : tiene12 ? '12' : null,
+        tiene_dif1: pagados11.has(b.alumno_id),
+      })
+    }
+  }
+
+  const alumnos = [...porId.values()].sort((a, b) =>
+    a.nombre_completo.localeCompare(b.nombre_completo, 'es', {
+      sensitivity: 'base',
+    })
+  )
+  const pagados = alumnos.filter((a) => a.pagado).length
+
+  return {
+    cicloInscripcion,
+    cicloLabel: etiquetaCicloReporte(cicloInscripcion),
+    total: alumnos.length,
+    pagados,
+    pendientes: alumnos.length - pagados,
+    alumnos,
   }
 }
 

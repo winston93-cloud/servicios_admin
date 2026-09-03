@@ -12,8 +12,9 @@ import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 import { getClient } from '@/lib/boucherCore'
-import type { PagoDetalleRegistro } from '@/lib/pagoColegiaturaService'
-import { alumnoTienePagoSemiref } from '@/lib/portalAdmisionesColegiatura'
+import { listarAlumnosRevisionDif2 } from '@/lib/reportes/inscripcionesAdminService'
+import { fetchPagosPorConceptosCiclo } from '@/lib/reportes/fetchDb'
+import { parsearReferenciaPago } from '@/lib/pagoReferenciaColegiatura'
 import type { RevisionInscripcionPlantel } from '@/lib/revisionPagadosInscripcion'
 
 /** Ciclo de inscripción (cen) + ficha de alumnos activos a listar. */
@@ -289,51 +290,25 @@ type AlumnoGrupoRow = {
   alumno_nuevo_ingreso?: number | null
 }
 
-async function cargarPagosPorAlumnos(
-  alumnoIds: number[],
-  cen: number,
-  /** Ciclos extra a incluir además de cen (ej. cen-1 para reinscritos). */
-  ciclosExtra: number[] = []
-): Promise<Map<number, PagoDetalleRegistro[]>> {
-  const map = new Map<number, PagoDetalleRegistro[]>()
-  for (const id of alumnoIds) map.set(id, [])
-  if (alumnoIds.length === 0) return map
+function pagoVigenteDif2(cancelado: number | null | undefined): boolean {
+  return cancelado === 0 || cancelado == null
+}
 
-  const ciclosValidos = new Set([cen, ...ciclosExtra])
-
-  const supabase = createSupabaseAdmin()
-  const CHUNK = 100
-  for (let i = 0; i < alumnoIds.length; i += CHUNK) {
-    const slice = alumnoIds.slice(i, i + CHUNK)
-    const { data, error } = await supabase
-      .from('pago_detalle')
-      .select(
-        'pago_id, alumno_id, pago_nombre, pago_referencia, pago_importe, pago_recargo, pago_forma, pago_folio, pago_fecha, pago_hora, pago_emisora, pago_cancelado, pago_registro, facturo'
-      )
-      .in('alumno_id', slice)
-      .limit(8000)
-
-    if (error) {
-      console.error('revision grupo pagos:', error)
-      continue
-    }
-
-    for (const raw of data ?? []) {
-      const r = raw as PagoDetalleRegistro
-      const id = Number(r.alumno_id)
-      if (!map.has(id)) continue
-      const ref = String(r.pago_referencia ?? '').replace(/\D/g, '')
-      if (ref.length !== 12) continue
-      const ciclo = parseInt(ref.slice(7, 9), 10)
-      if (!ciclosValidos.has(ciclo)) continue
-      map.get(id)!.push({
-        ...r,
-        pago_importe: Number(r.pago_importe),
-        pago_recargo: Number(r.pago_recargo),
-      })
-    }
+function idsPagadosPorConceptosGrupo(
+  pagos: Awaited<ReturnType<typeof fetchPagosPorConceptosCiclo>>,
+  cicloInscripcion: number,
+  conceptos: string[]
+): Set<number> {
+  const vistos = new Set<number>()
+  for (const p of pagos) {
+    if (!pagoVigenteDif2(p.pago_cancelado)) continue
+    const parsed = parsearReferenciaPago(p.pago_referencia)
+    if (!parsed) continue
+    if (parsed.cicloEscolar !== cicloInscripcion) continue
+    if (!conceptos.includes(parsed.conceptoNo)) continue
+    vistos.add(p.alumno_id)
   }
-  return map
+  return vistos
 }
 
 export async function revisarInscripcionPorGrupo(
@@ -364,10 +339,10 @@ export async function revisarInscripcionPorGrupo(
     let query = supabase
       .from('alumno')
       .select(
-        'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo'
+        'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_nuevo_ingreso'
       )
-      // Solo activos del ciclo de ficha de la inscripción vigente (ej. 22→23, 23→24…).
-      .eq('alumno_status', 1)
+      // Misma base que el reporte 2º diferido: excluir solo baja general (0).
+      .neq('alumno_status', 0)
       .eq('alumno_ciclo_escolar', cicloFicha)
       .eq('alumno_nivel', f.nivel)
       .eq('alumno_grado', f.grado)
@@ -395,32 +370,21 @@ export async function revisarInscripcionPorGrupo(
     }
   }
 
-  // Cargamos pagos del ciclo actual (cen) y del anterior (cen-1) porque los
-  // reinscritos pueden haber pagado su inscripción antes de que se actualizara
-  // su alumno_ciclo_escolar al ciclo destino.
-  const pagosMap = await cargarPagosPorAlumnos(
-    filas.map((a) => Number(a.alumno_id)),
-    cen,
-    cen > 1 ? [cen - 1] : []
-  )
+  const pagos = await fetchPagosPorConceptosCiclo(['11', '12', '13'], cen)
+  const pagados13 = idsPagadosPorConceptosGrupo(pagos, cen, ['13'])
+  const pagados12 = idsPagadosPorConceptosGrupo(pagos, cen, ['12'])
+  const pagados11 = idsPagadosPorConceptosGrupo(pagos, cen, ['11'])
 
   const alumnos: RevisionGrupoAlumnoItem[] = filas.map((a) => {
-    const pagos = pagosMap.get(Number(a.alumno_id)) ?? []
-    const ref = String(a.alumno_ref)
-    const tiene13 = alumnoTienePagoSemiref(pagos, ref, '13', cen)
-    const tiene12 = alumnoTienePagoSemiref(pagos, ref, '12', cen)
-    const tiene11 = alumnoTienePagoSemiref(pagos, ref, '11', cen)
-    // Para reinscritos buscar también en el ciclo anterior (pagaron antes
-    // de que se actualizara alumno_ciclo_escolar).
-    const tiene13Prev = cen > 1 ? alumnoTienePagoSemiref(pagos, ref, '13', cen - 1) : false
-    const tiene12Prev = cen > 1 ? alumnoTienePagoSemiref(pagos, ref, '12', cen - 1) : false
-    // Verde = inscripción completa (13 único o 12 2º diferido); rojo = pendiente.
-    const pagado = tiene13 || tiene12 || tiene13Prev || tiene12Prev
+    const id = Number(a.alumno_id)
+    const esNuevo = Number(a.alumno_nuevo_ingreso) === 1
+    const tiene13 = pagados13.has(id)
+    const tiene12 = pagados12.has(id)
+    const pagado = esNuevo ? tiene13 : tiene13 || tiene12
     const plantel = plantelDeNivel(Number(a.alumno_nivel))
-    const completaPor = tiene13 || tiene12 ? (tiene13 ? '13' : '12') : tiene13Prev ? '13' : tiene12Prev ? '12' : null
     return {
-      alumno_id: Number(a.alumno_id),
-      alumno_ref: ref,
+      alumno_id: id,
+      alumno_ref: String(a.alumno_ref),
       nombre_completo: nombreCompleto(a),
       nivel: Number(a.alumno_nivel),
       nivel_label: etiquetaNivelEscolar(a.alumno_nivel),
@@ -430,8 +394,8 @@ export async function revisarInscripcionPorGrupo(
       plantel: plantel.plantel,
       plantel_label: plantel.label,
       pagado,
-      completa_por: completaPor,
-      tiene_dif1: tiene11,
+      completa_por: tiene13 ? '13' : tiene12 ? '12' : null,
+      tiene_dif1: pagados11.has(id),
     }
   })
 
@@ -512,11 +476,9 @@ function filtrosEntradaPorNivel(nivelEntrada: NivelEntradaClave): {
 }
 
 /**
- * Pendientes por nivel completo (sin filtrar por grado/grupo específico).
- * Mantiene el mismo criterio de "inscripción completa" que el flujo de grupo:
- * - Verde = concepto 13 (pago único)
- * - Verde también si tiene concepto 12 (2º diferido)
- * - Rojo = no tiene 13 y no tiene 12 en el ciclo de inscripción vigente
+ * Pendientes por nivel: misma métrica que el reporte de inscripciones 2º diferido
+ * (`insc-admin-dif2`): RI inscrito = concepto 12 o 13; NI inscrito = concepto 13;
+ * pagos vigentes del ciclo de inscripción; universo status ≠ 0.
  */
 export async function revisarInscripcionPorNivelEntrada(
   nivelEntrada: NivelEntradaClave
@@ -526,111 +488,50 @@ export async function revisarInscripcionPorNivelEntrada(
   const ciclos = await resolverCiclosEntrada()
   if (!ciclos.ok) return ciclos
 
-  const { cen, cicloFicha, cicloLabel } = ciclos
+  const { cen } = ciclos
   const { filtros, grupoEtiqueta, nivelLabel } = filtrosEntradaPorNivel(
     nivelEntrada
   )
+  const niveles = [...new Set(filtros.map((f) => f.nivel))]
 
-  const supabase = createSupabaseAdmin()
-  const vistos = new Set<number>()
-  const filas: AlumnoGrupoRow[] = []
-
-  for (const f of filtros) {
-    // Misma base que revisarInscripcionPorGrupo:
-    // activos del ciclo de ficha vigente (cubre reincritos y nuevos ingresos).
-    const query = supabase
-      .from('alumno')
-      .select(
-        'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_nuevo_ingreso'
-      )
-      .eq('alumno_status', 1)
-      .eq('alumno_ciclo_escolar', cicloFicha)
-      .eq('alumno_nivel', f.nivel)
-      .eq('alumno_grado', f.grado)
-      .order('alumno_app', { ascending: true })
-      .order('alumno_apm', { ascending: true })
-      .order('alumno_nombre', { ascending: true })
-      .limit(2000)
-
-    const { data, error } = await query
-    if (error) {
-      console.error('revision nivel entrada alumnos:', error)
-      return { ok: false, error: 'No se pudo listar el nivel.', status: 500 }
-    }
-
-    for (const row of (data ?? []) as AlumnoGrupoRow[]) {
-      const id = Number(row.alumno_id)
-      if (vistos.has(id)) continue
-      vistos.add(id)
-      filas.push(row)
-    }
-  }
-
-  // Cargamos pagos del ciclo actual (cen) y del anterior (cen-1) porque los
-  // reinscritos pueden haber pagado su inscripción antes de que se actualizara
-  // su alumno_ciclo_escolar al ciclo destino.
-  const pagosMap = await cargarPagosPorAlumnos(
-    filas.map((a) => Number(a.alumno_id)),
-    cen,
-    cen > 1 ? [cen - 1] : []
-  )
-
-  const alumnos: RevisionGrupoAlumnoItem[] = filas.map((a) => {
-    const pagos = pagosMap.get(Number(a.alumno_id)) ?? []
-    const ref = String(a.alumno_ref)
-    const tiene13 = alumnoTienePagoSemiref(pagos, ref, '13', cen)
-    const tiene12 = alumnoTienePagoSemiref(pagos, ref, '12', cen)
-    const tiene11 = alumnoTienePagoSemiref(pagos, ref, '11', cen)
-    // Para reinscritos buscar también en el ciclo anterior (pagaron antes
-    // de que se actualizara alumno_ciclo_escolar).
-    const esNuevo = Number(a.alumno_nuevo_ingreso) === 1
-    const tiene13Prev = (!esNuevo && cen > 1) ? alumnoTienePagoSemiref(pagos, ref, '13', cen - 1) : false
-    const tiene12Prev = (!esNuevo && cen > 1) ? alumnoTienePagoSemiref(pagos, ref, '12', cen - 1) : false
-    // Regla operativa de entrada al colegio (Mario):
-    // - Nuevo ingreso (alumno_nuevo_ingreso=1): pagado SOLO con concepto 13.
-    // - Reinscrito (alumno_nuevo_ingreso=0): pagado con 13 (único) o 12 (diferido completo),
-    //   en ciclo actual O ciclo anterior (pagaron antes del cambio de ciclo en ficha).
-    const pagado = esNuevo
-      ? tiene13
-      : (tiene13 || tiene12 || tiene13Prev || tiene12Prev)
-    const plantel = plantelDeNivel(Number(a.alumno_nivel))
-    const completaPor = tiene13 || tiene12 ? (tiene13 ? '13' : '12') : tiene13Prev ? '13' : tiene12Prev ? '12' : null
-    return {
-      alumno_id: Number(a.alumno_id),
-      alumno_ref: ref,
-      nombre_completo: nombreCompleto(a),
-      nivel: Number(a.alumno_nivel),
-      nivel_label: etiquetaNivelEscolar(a.alumno_nivel),
-      grado: Number(a.alumno_grado),
-      grado_label: etiquetaGradoEscolar(a.alumno_nivel, a.alumno_grado),
-      grupo_letra: letraDesdeGrupoNum(Number(a.alumno_grupo)) || '',
-      plantel: plantel.plantel,
-      plantel_label: plantel.label,
-      pagado,
-      completa_por: completaPor,
-      tiene_dif1: tiene11,
-    }
-  })
-
-  alumnos.sort((a, b) =>
-    a.nombre_completo.localeCompare(b.nombre_completo, 'es', {
-      sensitivity: 'base',
+  try {
+    const data = await listarAlumnosRevisionDif2(cen, niveles)
+    const alumnos: RevisionGrupoAlumnoItem[] = data.alumnos.map((a) => {
+      const plantel = plantelDeNivel(a.alumno_nivel)
+      return {
+        alumno_id: a.alumno_id,
+        alumno_ref: a.alumno_ref,
+        nombre_completo: a.nombre_completo,
+        nivel: a.alumno_nivel,
+        nivel_label: etiquetaNivelEscolar(a.alumno_nivel),
+        grado: a.alumno_grado,
+        grado_label: etiquetaGradoEscolar(a.alumno_nivel, a.alumno_grado),
+        grupo_letra: letraDesdeGrupoNum(a.alumno_grupo) || '',
+        plantel: plantel.plantel,
+        plantel_label: plantel.label,
+        pagado: a.pagado,
+        completa_por: a.completa_por,
+        tiene_dif1: a.tiene_dif1,
+      }
     })
-  )
 
-  const pagados = alumnos.filter((a) => a.pagado).length
-
-  return {
-    ok: true,
-    consulta: `nivel:${nivelEntrada}`,
-    grupo_etiqueta: grupoEtiqueta,
-    nivel_label: nivelLabel,
-    ciclo_inscripcion: cen,
-    ciclo_label: cicloLabel,
-    total: alumnos.length,
-    pagados,
-    pendientes: alumnos.length - pagados,
-    alumnos,
+    return {
+      ok: true,
+      consulta: `nivel:${nivelEntrada}`,
+      grupo_etiqueta: grupoEtiqueta,
+      nivel_label: nivelLabel,
+      ciclo_inscripcion: data.cicloInscripcion,
+      ciclo_label: data.cicloLabel,
+      total: data.total,
+      pagados: data.pagados,
+      pendientes: data.pendientes,
+      alumnos,
+    }
+  } catch (e) {
+    const msg =
+      e instanceof Error ? e.message : 'No se pudo listar el nivel.'
+    console.error('revision nivel entrada:', e)
+    return { ok: false, error: msg, status: 500 }
   }
 }
 
