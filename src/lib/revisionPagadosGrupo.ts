@@ -291,11 +291,15 @@ type AlumnoGrupoRow = {
 
 async function cargarPagosPorAlumnos(
   alumnoIds: number[],
-  cen: number
+  cen: number,
+  /** Ciclos extra a incluir además de cen (ej. cen-1 para reinscritos). */
+  ciclosExtra: number[] = []
 ): Promise<Map<number, PagoDetalleRegistro[]>> {
   const map = new Map<number, PagoDetalleRegistro[]>()
   for (const id of alumnoIds) map.set(id, [])
   if (alumnoIds.length === 0) return map
+
+  const ciclosValidos = new Set([cen, ...ciclosExtra])
 
   const supabase = createSupabaseAdmin()
   const CHUNK = 100
@@ -321,7 +325,7 @@ async function cargarPagosPorAlumnos(
       const ref = String(r.pago_referencia ?? '').replace(/\D/g, '')
       if (ref.length !== 12) continue
       const ciclo = parseInt(ref.slice(7, 9), 10)
-      if (ciclo !== cen) continue
+      if (!ciclosValidos.has(ciclo)) continue
       map.get(id)!.push({
         ...r,
         pago_importe: Number(r.pago_importe),
@@ -391,9 +395,13 @@ export async function revisarInscripcionPorGrupo(
     }
   }
 
+  // Cargamos pagos del ciclo actual (cen) y del anterior (cen-1) porque los
+  // reinscritos pueden haber pagado su inscripción antes de que se actualizara
+  // su alumno_ciclo_escolar al ciclo destino.
   const pagosMap = await cargarPagosPorAlumnos(
     filas.map((a) => Number(a.alumno_id)),
-    cen
+    cen,
+    cen > 1 ? [cen - 1] : []
   )
 
   const alumnos: RevisionGrupoAlumnoItem[] = filas.map((a) => {
@@ -402,9 +410,14 @@ export async function revisarInscripcionPorGrupo(
     const tiene13 = alumnoTienePagoSemiref(pagos, ref, '13', cen)
     const tiene12 = alumnoTienePagoSemiref(pagos, ref, '12', cen)
     const tiene11 = alumnoTienePagoSemiref(pagos, ref, '11', cen)
+    // Para reinscritos buscar también en el ciclo anterior (pagaron antes
+    // de que se actualizara alumno_ciclo_escolar).
+    const tiene13Prev = cen > 1 ? alumnoTienePagoSemiref(pagos, ref, '13', cen - 1) : false
+    const tiene12Prev = cen > 1 ? alumnoTienePagoSemiref(pagos, ref, '12', cen - 1) : false
     // Verde = inscripción completa (13 único o 12 2º diferido); rojo = pendiente.
-    const pagado = tiene13 || tiene12
+    const pagado = tiene13 || tiene12 || tiene13Prev || tiene12Prev
     const plantel = plantelDeNivel(Number(a.alumno_nivel))
+    const completaPor = tiene13 || tiene12 ? (tiene13 ? '13' : '12') : tiene13Prev ? '13' : tiene12Prev ? '12' : null
     return {
       alumno_id: Number(a.alumno_id),
       alumno_ref: ref,
@@ -417,7 +430,7 @@ export async function revisarInscripcionPorGrupo(
       plantel: plantel.plantel,
       plantel_label: plantel.label,
       pagado,
-      completa_por: tiene13 ? '13' : tiene12 ? '12' : null,
+      completa_por: completaPor,
       tiene_dif1: tiene11,
     }
   })
@@ -553,9 +566,13 @@ export async function revisarInscripcionPorNivelEntrada(
     }
   }
 
+  // Cargamos pagos del ciclo actual (cen) y del anterior (cen-1) porque los
+  // reinscritos pueden haber pagado su inscripción antes de que se actualizara
+  // su alumno_ciclo_escolar al ciclo destino.
   const pagosMap = await cargarPagosPorAlumnos(
     filas.map((a) => Number(a.alumno_id)),
-    cen
+    cen,
+    cen > 1 ? [cen - 1] : []
   )
 
   const alumnos: RevisionGrupoAlumnoItem[] = filas.map((a) => {
@@ -564,12 +581,20 @@ export async function revisarInscripcionPorNivelEntrada(
     const tiene13 = alumnoTienePagoSemiref(pagos, ref, '13', cen)
     const tiene12 = alumnoTienePagoSemiref(pagos, ref, '12', cen)
     const tiene11 = alumnoTienePagoSemiref(pagos, ref, '11', cen)
+    // Para reinscritos buscar también en el ciclo anterior (pagaron antes
+    // de que se actualizara alumno_ciclo_escolar).
+    const esNuevo = Number(a.alumno_nuevo_ingreso) === 1
+    const tiene13Prev = (!esNuevo && cen > 1) ? alumnoTienePagoSemiref(pagos, ref, '13', cen - 1) : false
+    const tiene12Prev = (!esNuevo && cen > 1) ? alumnoTienePagoSemiref(pagos, ref, '12', cen - 1) : false
     // Regla operativa de entrada al colegio (Mario):
     // - Nuevo ingreso (alumno_nuevo_ingreso=1): pagado SOLO con concepto 13.
-    // - Reincrito (alumno_nuevo_ingreso=0): pagado con 13 (único) o 12 (diferido completo).
-    const esNuevo = Number(a.alumno_nuevo_ingreso) === 1
-    const pagado = esNuevo ? tiene13 : (tiene13 || tiene12)
+    // - Reinscrito (alumno_nuevo_ingreso=0): pagado con 13 (único) o 12 (diferido completo),
+    //   en ciclo actual O ciclo anterior (pagaron antes del cambio de ciclo en ficha).
+    const pagado = esNuevo
+      ? tiene13
+      : (tiene13 || tiene12 || tiene13Prev || tiene12Prev)
     const plantel = plantelDeNivel(Number(a.alumno_nivel))
+    const completaPor = tiene13 || tiene12 ? (tiene13 ? '13' : '12') : tiene13Prev ? '13' : tiene12Prev ? '12' : null
     return {
       alumno_id: Number(a.alumno_id),
       alumno_ref: ref,
@@ -582,7 +607,7 @@ export async function revisarInscripcionPorNivelEntrada(
       plantel: plantel.plantel,
       plantel_label: plantel.label,
       pagado,
-      completa_por: tiene13 ? '13' : tiene12 ? '12' : null,
+      completa_por: completaPor,
       tiene_dif1: tiene11,
     }
   })
