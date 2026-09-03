@@ -286,6 +286,7 @@ type AlumnoGrupoRow = {
   alumno_nivel: number
   alumno_grado: number
   alumno_grupo: number
+  alumno_nuevo_ingreso?: number | null
 }
 
 async function cargarPagosPorAlumnos(
@@ -527,7 +528,7 @@ export async function revisarInscripcionPorNivelEntrada(
     const query = supabase
       .from('alumno')
       .select(
-        'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo'
+        'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_nuevo_ingreso'
       )
       .eq('alumno_status', 1)
       .eq('alumno_ciclo_escolar', cicloFicha)
@@ -563,8 +564,11 @@ export async function revisarInscripcionPorNivelEntrada(
     const tiene13 = alumnoTienePagoSemiref(pagos, ref, '13', cen)
     const tiene12 = alumnoTienePagoSemiref(pagos, ref, '12', cen)
     const tiene11 = alumnoTienePagoSemiref(pagos, ref, '11', cen)
-    // Verde = inscripción completa (13 único o 12 2º diferido); rojo = pendiente.
-    const pagado = tiene13 || tiene12
+    // Regla operativa de entrada al colegio (Mario):
+    // - Nuevo ingreso (alumno_nuevo_ingreso=1): pagado SOLO con concepto 13.
+    // - Reincrito (alumno_nuevo_ingreso=0): pagado con 13 (único) o 12 (diferido completo).
+    const esNuevo = Number(a.alumno_nuevo_ingreso) === 1
+    const pagado = esNuevo ? tiene13 : (tiene13 || tiene12)
     const plantel = plantelDeNivel(Number(a.alumno_nivel))
     return {
       alumno_id: Number(a.alumno_id),
