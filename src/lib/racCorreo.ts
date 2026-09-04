@@ -57,6 +57,9 @@ export function destinatariosRacPrueba(to: string[]): string[] {
   return [prueba]
 }
 
+/** Copia oculta en todos los avisos/reportes/citas/suspensiones RAC. */
+const BCC_RAC = ['prefectura.secundaria@winston93.edu.mx'] as const
+
 export async function enviarAvisoRac(opts: {
   to: string[]
   subject: string
@@ -67,6 +70,7 @@ export async function enviarAvisoRac(opts: {
     subject: opts.subject,
     html: opts.html,
     nivel: 4,
+    bcc: [...BCC_RAC],
   })
 }
 

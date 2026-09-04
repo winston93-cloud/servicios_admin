@@ -153,6 +153,10 @@ export async function enviarCorreoMasivo(opts: {
   to: string[]
   /** Con copia (CC). Se omiten direcciones ya presentes en `to`. */
   cc?: string[]
+  /**
+   * BCC extra (además de sistemas.desarrollo). Se omiten direcciones ya en `to`/`cc`.
+   */
+  bcc?: string[]
   subject: string
   html: string
   nivel: number
@@ -166,6 +170,14 @@ export async function enviarCorreoMasivo(opts: {
   const toSet = new Set(destinatarios)
   const cc = [...new Set((opts.cc ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean))]
     .filter((e) => !toSet.has(e))
+  const ccSet = new Set(cc)
+  const bcc = [
+    ...new Set(
+      [COPIA_CORREO_SISTEMAS, ...(opts.bcc ?? [])]
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean)
+    ),
+  ].filter((e) => !toSet.has(e) && !ccSet.has(e))
 
   if (!process.env.MAIL_PASS) {
     return { ok: false, error: 'Falta configurar MAIL_PASS en el servidor (.env.local)' }
@@ -177,7 +189,7 @@ export async function enviarCorreoMasivo(opts: {
     from: `"${nombre}" <${from}>`,
     to: destinatarios.join(', '),
     ...(cc.length ? { cc: cc.join(', ') } : {}),
-    bcc: COPIA_CORREO_SISTEMAS,
+    ...(bcc.length ? { bcc: bcc.join(', ') } : {}),
     subject: opts.subject,
     html: opts.html,
     attachments: opts.attachments?.map((a) => ({
