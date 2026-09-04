@@ -6,6 +6,7 @@
  * Uso: node scripts/cargar-plantilla-maestros-2627.mjs
  */
 import { createClient } from '@insforge/sdk'
+import { createHash, randomInt } from 'crypto'
 import { readFileSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
 
@@ -43,12 +44,13 @@ function stripAccents(s) {
     .replace(/\p{M}/gu, '')
 }
 
-function claveNueva(apellido) {
-  const ini = stripAccents(apellido || 'X')
-    .replace(/[^A-Za-z]/g, '')
-    .charAt(0)
-    .toUpperCase()
-  return `Winston26${ini || 'X'}`
+function md5Hex(raw) {
+  return createHash('md5').update(raw, 'utf8').digest('hex')
+}
+
+/** Educativo/primaria: guarda MD5 de 8 dígitos. Secundaria no usa este flujo de altas. */
+function claveNueva() {
+  return md5Hex(String(randomInt(10000000, 100000000)))
 }
 
 function splitNombre(full) {
@@ -160,7 +162,7 @@ async function main() {
         maestro_apm: parts.apm,
         maestro_nombre: parts.nombre,
         maestro_usuario: usuario,
-        maestro_clave: claveNueva(parts.app),
+        maestro_clave: claveNueva(),
         maestro_email: t.correo,
         maestro_sexo: 0,
         maestro_nivel: t.maestroNivel,
