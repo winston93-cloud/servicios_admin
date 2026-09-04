@@ -626,6 +626,23 @@ html[data-theme='light'] .rac-page select optgroup {
     inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
+.rac-page .boletas-btn.download {
+  background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%);
+  border-color: #fcd34d;
+  color: #422006;
+  font-weight: 750;
+  box-shadow:
+    0 8px 20px rgba(217, 119, 6, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.rac-page .boletas-btn.download:hover:not(:disabled) {
+  filter: brightness(1.07);
+  box-shadow:
+    0 12px 26px rgba(217, 119, 6, 0.52),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
 .rac-page .servicios-back-btn {
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--rac-gold) 20%, transparent);
@@ -942,6 +959,17 @@ html[data-theme='light'] .rac-page .boletas-btn.danger {
 }
 
 html[data-theme='light'] .rac-page .boletas-btn.danger:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+html[data-theme='light'] .rac-page .boletas-btn.download {
+  background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
+  border-color: #d97706;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(180, 83, 9, 0.3);
+}
+
+html[data-theme='light'] .rac-page .boletas-btn.download:hover:not(:disabled) {
   filter: brightness(1.05);
 }
 

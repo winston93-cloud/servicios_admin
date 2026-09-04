@@ -591,7 +591,7 @@ export default function RacSecundariaPage() {
             <div className="boletas-filters">
               <button
                 type="button"
-                className="boletas-btn"
+                className="boletas-btn download"
                 onClick={() => descargarPdf('/api/rac/impresion?modo=pendientes', 'rac-pendientes.pdf')}
               >
                 <Download size={16} aria-hidden />
@@ -652,7 +652,7 @@ export default function RacSecundariaPage() {
               {historialAlumnoId ? (
                 <button
                   type="button"
-                  className="boletas-btn primary"
+                  className="boletas-btn download"
                   onClick={() =>
                     descargarPdf(
                       `/api/rac/impresion?modo=historial&alumnoId=${historialAlumnoId}&reporteTipo=${historialTipo}${
