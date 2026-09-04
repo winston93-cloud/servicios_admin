@@ -178,3 +178,20 @@ export function etiquetaGradoSecundaria(grado: number): string {
   if (grado === 3) return '3°'
   return `${grado}°`
 }
+
+/** Etiqueta de grado para selects de staff (psico / prefectura / dirección). */
+export function etiquetaGradoStaffSecundaria(grado: number): string {
+  if (grado === 1) return '1° (7mo)'
+  if (grado === 2) return '2° (8vo)'
+  if (grado === 3) return '3° (9no)'
+  return etiquetaGradoSecundaria(grado)
+}
+
+/** Departamento emisor según perfil (legacy perfil_clase). */
+export function etiquetaDepartamentoRac(perfilId: number): string {
+  if (perfilId === 1) return 'Maestro'
+  if (perfilId === 4) return 'Psicología'
+  if (perfilId === 5) return 'Prefectura'
+  if (perfilId === 6) return 'Dirección'
+  return 'Coordinación'
+}

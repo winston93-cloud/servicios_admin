@@ -7,6 +7,7 @@ import { puedeCapturarTipo, puedeInforme } from '@/lib/racPermisos'
 import {
   RAC_NIVEL_SECUNDARIA,
   RAC_TIPOS,
+  etiquetaDepartamentoRac,
   etiquetaEscalon,
   etiquetaTipoCitatorio,
   etiquetaTipoReporte,
@@ -116,23 +117,20 @@ export async function listarAsignaciones(session: RacSesion): Promise<{
     }
   }
 
-  const { data: materias } = await client
-    .from('boleta_materia')
-    .select('materia_id, materia_nombre, materia_grado, materia_orden')
-    .eq('materia_nivel', RAC_NIVEL_SECUNDARIA)
-    .order('materia_grado')
-    .order('materia_orden')
-  return {
-    asignaciones: (materias ?? []).map((m) => ({
-      grupo_id: 0,
-      materia_id: n(m.materia_id),
-      materia_nombre: String(m.materia_nombre ?? ''),
-      materia_grado: n(m.materia_grado),
-      grupo_letra: 'ABC',
-    })),
-    fisica: true,
-    ingles: true,
+  // Staff (psico / prefectura / dirección / coord): filtro por grado × grupo, sin materias.
+  const asignaciones: AsignacionRac[] = []
+  for (const grado of [1, 2, 3]) {
+    for (const letra of ['A', 'B', 'C'] as const) {
+      asignaciones.push({
+        grupo_id: 0,
+        materia_id: 0,
+        materia_nombre: '',
+        materia_grado: grado,
+        grupo_letra: letra,
+      })
+    }
   }
+  return { asignaciones, fisica: true, ingles: true }
 }
 
 async function alumnosDeGrupo(grado: number, grupoLetra: string, ciclo: number): Promise<AlumnoRow[]> {
@@ -180,20 +178,32 @@ async function marcas(
 }
 
 export async function listarGrupoCaptura(opts: {
-  materiaId: number
+  materiaId?: number
+  grado?: number
   grupoLetra: string
   tipo: number
 }) {
   const ciclo = await cicloRac()
-  const { data: materia } = await db()
-    .from('boleta_materia')
-    .select('materia_id, materia_nombre, materia_grado')
-    .eq('materia_id', opts.materiaId)
-    .maybeSingle()
-  if (!materia) throw new Error('Materia no encontrada')
-  const grado = n(materia.materia_grado)
+  const materiaId = n(opts.materiaId)
+  let grado = n(opts.grado)
+  let materiaNombre = ''
+
+  if (materiaId > 0) {
+    const { data: materia } = await db()
+      .from('boleta_materia')
+      .select('materia_id, materia_nombre, materia_grado')
+      .eq('materia_id', materiaId)
+      .maybeSingle()
+    if (!materia) throw new Error('Materia no encontrada')
+    grado = n(materia.materia_grado)
+    materiaNombre = String(materia.materia_nombre ?? '')
+  } else if (!grado) {
+    throw new Error('Indica grado y grupo')
+  }
+
   const alumnos = await alumnosDeGrupo(grado, opts.grupoLetra, ciclo)
-  const matFiltro = opts.tipo === 1 ? opts.materiaId : null
+  // Solo académico lleva marcas por materia; staff (sin materia) acumula por tipo.
+  const matFiltro = opts.tipo === 1 && materiaId > 0 ? materiaId : null
   const filas = []
   for (const a of alumnos) {
     const f = await marcas(a.alumno_id, opts.tipo, ciclo, matFiltro)
@@ -212,8 +222,8 @@ export async function listarGrupoCaptura(opts: {
   return {
     ciclo,
     materia: {
-      materia_id: n(materia.materia_id),
-      materia_nombre: String(materia.materia_nombre),
+      materia_id: materiaId,
+      materia_nombre: materiaNombre,
       materia_grado: grado,
     },
     filas,
@@ -271,6 +281,10 @@ export async function enviarCorreoReporte(reporteId: number) {
       .maybeSingle()
     materiaNombre = String(m?.materia_nombre ?? '')
   }
+  const departamento = etiquetaDepartamentoRac(n(r.perfil_id))
+  const origenLabel = materiaNombre
+    ? `Asignatura: <b>${escapeHtml(materiaNombre)}</b>`
+    : `Departamento: <b>${escapeHtml(departamento)}</b>`
   const enlace = urlPublicaRac(String(r.reporte_mdv), alt)
   const subject = asuntoReporte(tipo, no)
   const frase = fraseRegistroAvisoRac(tipo, no)
@@ -284,12 +298,8 @@ export async function enviarCorreoReporte(reporteId: number) {
       para <b>${escapeHtml(nombreAlumno(alumno))}</b> (control ${escapeHtml(String(alumno.alumno_ref ?? ''))}).</p>
       ${
         mostrarMotivo
-          ? `<p>Motivo: <b>${escapeHtml(motivoTxt)}</b>${
-              materiaNombre ? ` · Asignatura: <b>${escapeHtml(materiaNombre)}</b>` : ''
-            }</p>`
-          : materiaNombre
-            ? `<p>Asignatura: <b>${escapeHtml(materiaNombre)}</b></p>`
-            : ''
+          ? `<p>Motivo: <b>${escapeHtml(motivoTxt)}</b> · ${origenLabel}</p>`
+          : `<p>${origenLabel}</p>`
       }
       <p>${escapeHtml(String(r.reporte_mensaje ?? '')).replace(/\n/g, '<br>')}</p>`,
   })
@@ -365,7 +375,10 @@ export async function capturarReporte(opts: {
   }
   const ciclo = await cicloRac()
   const client = db()
-  const materiaId = opts.tipo === RAC_TIPOS.academico || opts.tipo === RAC_TIPOS.informeAcademico ? opts.materiaId : opts.materiaId
+  // Solo académico (e informe académico vía capturarInforme) persiste materia.
+  // Staff (psico/prefectura/dirección) reporta sin asignatura: materia_id queda vacío.
+  const materiaId =
+    opts.tipo === RAC_TIPOS.academico && opts.materiaId > 0 ? opts.materiaId : 0
   const token = mdv('rep')
 
   let q = client
@@ -517,6 +530,8 @@ async function hidratar(rows: Record<string, unknown>[]) {
   }
   return rows.map((r) => {
     const a = aMap.get(n(r.alumno_id))
+    const materia = mMap.get(n(r.materia_id)) ?? ''
+    const departamento = etiquetaDepartamentoRac(n(r.perfil_id))
     return {
       reporte_id: n(r.reporte_id),
       alumno_id: n(r.alumno_id),
@@ -524,7 +539,7 @@ async function hidratar(rows: Record<string, unknown>[]) {
       nombre: a ? nombreAlumno(a) : '',
       grado: a ? n(a.alumno_grado) : 0,
       grupo: a ? letraDesdeGrupoNum(n(a.alumno_grupo)) : '',
-      materia: mMap.get(n(r.materia_id)) ?? '',
+      materia: materia || departamento,
       tipo: n(r.reporte_tipo),
       tipoEtiqueta: etiquetaTipoReporte(n(r.reporte_tipo)),
       escalon: etiquetaEscalon(n(r.reporte_tipo), n(r.reporte_no)),

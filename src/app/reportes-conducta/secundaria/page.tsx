@@ -1,6 +1,7 @@
 'use client'
 
 import ThemeToggle from '@/components/ThemeToggle'
+import { etiquetaGradoStaffSecundaria } from '@/lib/racCatalogo'
 import { opcionesMotivo } from '@/lib/racUi'
 import { etiquetaRol, tabsDeRol, tiposCapturaDeRol, tiposCitaDeRol, type RacTab } from '@/lib/racPermisos'
 import { ArrowLeft, Download, Eye, EyeOff, LogOut, Send } from 'lucide-react'
@@ -184,9 +185,34 @@ export default function RacSecundariaPage() {
   const [historialMateriaId, setHistorialMateriaId] = useState(0)
 
   const asig = useMemo(() => {
-    const [mid, letra] = asigKey.split('|')
+    if (!asignaciones.length) return undefined
+    // Staff: clave "grado|letra". Maestro: "materiaId|letra".
+    const parts = asigKey.split('|')
+    if (me && me.role !== 'maestro') {
+      const grado = Number(parts[0])
+      const letra = parts[1] ?? ''
+      return (
+        asignaciones.find((a) => a.materia_grado === grado && a.grupo_letra === letra) ??
+        asignaciones[0]
+      )
+    }
+    const [mid, letra] = parts
     return asignaciones.find((a) => String(a.materia_id) === mid && a.grupo_letra === letra) ?? asignaciones[0]
-  }, [asigKey, asignaciones])
+  }, [asigKey, asignaciones, me])
+
+  const esStaff = Boolean(me && me.role !== 'maestro')
+  const gradosStaff = useMemo(
+    () => [...new Set(asignaciones.map((a) => a.materia_grado).filter(Boolean))].sort((a, b) => a - b),
+    [asignaciones]
+  )
+  const gruposStaff = useMemo(() => {
+    if (!asig) return [] as string[]
+    return [
+      ...new Set(
+        asignaciones.filter((a) => a.materia_grado === asig.materia_grado).map((a) => a.grupo_letra)
+      ),
+    ].sort()
+  }, [asignaciones, asig])
 
   const tiposCaptura = useMemo(
     () => (me ? tiposCapturaDeRol(me.role, fisica) : []),
@@ -201,8 +227,13 @@ export default function RacSecundariaPage() {
       setMe(data.me)
       setAsignaciones(data.asignaciones ?? [])
       setFisica(Boolean(data.fisica))
-      if (data.asignaciones?.[0]) {
-        setAsigKey(`${data.asignaciones[0].materia_id}|${data.asignaciones[0].grupo_letra}`)
+      const first = data.asignaciones?.[0]
+      if (first) {
+        setAsigKey(
+          data.me.role === 'maestro'
+            ? `${first.materia_id}|${first.grupo_letra}`
+            : `${first.materia_grado}|${first.grupo_letra}`
+        )
       }
       const nextTabs = tabsDeRol(data.me.role)
       setTab((prev) => (nextTabs.some((t) => t.id === prev) ? prev : nextTabs[0]?.id ?? 'captura'))
@@ -224,9 +255,11 @@ export default function RacSecundariaPage() {
     setBusy(true)
     setMsg('')
     try {
-      const data = await api<{ filas: AlumnoFila[] }>(
-        `/api/rac/captura?materiaId=${asig.materia_id}&grupo=${encodeURIComponent(asig.grupo_letra)}&tipo=${tipo}`
-      )
+      const qs =
+        me && me.role !== 'maestro'
+          ? `grado=${asig.materia_grado}&grupo=${encodeURIComponent(asig.grupo_letra)}&tipo=${tipo}`
+          : `materiaId=${asig.materia_id}&grupo=${encodeURIComponent(asig.grupo_letra)}&tipo=${tipo}`
+      const data = await api<{ filas: AlumnoFila[] }>(`/api/rac/captura?${qs}`)
       setFilas(data.filas)
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Error al cargar')
@@ -420,12 +453,12 @@ export default function RacSecundariaPage() {
         <h1>Reportes académicos y de conducta</h1>
         <p>
           {me.role === 'psicologia'
-            ? 'Módulo de conducta: reportar, aprobar reportes pendientes, citatorios y avisos de atención.'
+            ? 'Módulo de conducta: elige grado (7mo/8vo/9no) y grupo, reporta, aprueba pendientes, citatorios y avisos de atención.'
             : me.role === 'prefectura'
-              ? 'Prefectura: uniforme, vialidad y retardo.'
+              ? 'Prefectura: elige grado y grupo para uniforme, vialidad y retardo.'
               : me.role === 'maestro'
                 ? 'Al entrar ves solo tus materias y grupos. Elige materia · grado · grupo (ej. 3° B) para capturar reportes de tus alumnos.'
-                : 'Panel de coordinación/dirección: listado, suspensión, citatorios, informes, captura e impresión.'}
+                : 'Panel de coordinación/dirección: filtra por grado y grupo; en avisos aparece el departamento, no una materia.'}
         </p>
       </div>
 
@@ -442,16 +475,55 @@ export default function RacSecundariaPage() {
       {(tab === 'captura' || tab === 'prefectura') && (
         <section className="boletas-panel">
           <div className="boletas-filters">
-            <label>
-              Materia / grupo
-              <select value={asigKey} onChange={(e) => setAsigKey(e.target.value)}>
-                {asignaciones.map((a) => (
-                  <option key={`${a.materia_id}|${a.grupo_letra}|${a.grupo_id}`} value={`${a.materia_id}|${a.grupo_letra}`}>
-                    {a.materia_nombre} · {a.materia_grado}° · {a.grupo_letra || 'ABC'}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {esStaff ? (
+              <>
+                <label>
+                  Grado
+                  <select
+                    value={asig?.materia_grado ?? ''}
+                    onChange={(e) => {
+                      const g = Number(e.target.value)
+                      const letra = asig?.grupo_letra || 'A'
+                      setAsigKey(`${g}|${letra}`)
+                    }}
+                  >
+                    {gradosStaff.map((g) => (
+                      <option key={g} value={g}>
+                        {etiquetaGradoStaffSecundaria(g)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Grupo
+                  <select
+                    value={asig?.grupo_letra ?? ''}
+                    onChange={(e) => {
+                      const letra = e.target.value
+                      const g = asig?.materia_grado ?? 1
+                      setAsigKey(`${g}|${letra}`)
+                    }}
+                  >
+                    {gruposStaff.map((letra) => (
+                      <option key={letra} value={letra}>
+                        {letra}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            ) : (
+              <label>
+                Materia / grupo
+                <select value={asigKey} onChange={(e) => setAsigKey(e.target.value)}>
+                  {asignaciones.map((a) => (
+                    <option key={`${a.materia_id}|${a.grupo_letra}|${a.grupo_id}`} value={`${a.materia_id}|${a.grupo_letra}`}>
+                      {a.materia_nombre} · {a.materia_grado}° · {a.grupo_letra || 'ABC'}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label>
               Tipo
               <select value={tipo} onChange={(e) => setTipo(Number(e.target.value))}>

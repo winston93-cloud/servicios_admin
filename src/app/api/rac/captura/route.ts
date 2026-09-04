@@ -6,11 +6,19 @@ export async function GET(req: Request) {
   try {
     await requireRacSession(req)
     const url = new URL(req.url)
-    const materiaId = Number(url.searchParams.get('materiaId'))
+    const materiaId = Number(url.searchParams.get('materiaId') ?? 0)
+    const grado = Number(url.searchParams.get('grado') ?? 0)
     const grupo = String(url.searchParams.get('grupo') ?? 'A')
     const tipo = Number(url.searchParams.get('tipo') ?? 1)
-    if (!materiaId) return NextResponse.json({ error: 'materiaId requerido' }, { status: 400 })
-    const data = await listarGrupoCaptura({ materiaId, grupoLetra: grupo, tipo })
+    if (!materiaId && !grado) {
+      return NextResponse.json({ error: 'materiaId o grado requerido' }, { status: 400 })
+    }
+    const data = await listarGrupoCaptura({
+      materiaId: materiaId || undefined,
+      grado: grado || undefined,
+      grupoLetra: grupo,
+      tipo,
+    })
     return NextResponse.json(data)
   } catch (e) {
     const { error, status } = jsonRacError(e)
