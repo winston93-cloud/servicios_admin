@@ -721,6 +721,33 @@ html[data-theme='light'] .rac-page select optgroup {
   box-shadow: 0 4px 12px color-mix(in srgb, var(--rac-cyan) 28%, transparent);
 }
 
+.rac-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.6rem;
+  min-height: 1.7rem;
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.rac-flag--si {
+  color: #052e16;
+  background: linear-gradient(180deg, #86efac 0%, #22c55e 100%);
+  border: 1px solid #4ade80;
+  box-shadow: 0 4px 10px rgba(34, 197, 94, 0.28);
+}
+
+.rac-flag--no {
+  color: #7f1d1d;
+  background: linear-gradient(180deg, #fecaca 0%, #f87171 100%);
+  border: 1px solid #fca5a5;
+  box-shadow: 0 4px 10px rgba(248, 113, 113, 0.22);
+}
+
 .rac-page--direccion .rac-chip--set,
 .rac-page--psicologia .rac-chip--set,
 .rac-page--prefectura .rac-chip--set {
@@ -1000,6 +1027,20 @@ html[data-theme='light'] .rac-chip--empty {
   color: #475569;
   background: #e2e8f0;
   border-color: #94a3b8;
+}
+
+html[data-theme='light'] .rac-flag--si {
+  color: #fff;
+  background: linear-gradient(180deg, #22c55e 0%, #15803d 100%);
+  border-color: #16a34a;
+  box-shadow: 0 4px 10px rgba(21, 128, 61, 0.22);
+}
+
+html[data-theme='light'] .rac-flag--no {
+  color: #fff;
+  background: linear-gradient(180deg, #f87171 0%, #b91c1c 100%);
+  border-color: #dc2626;
+  box-shadow: 0 4px 10px rgba(185, 28, 28, 0.22);
 }
 
 html[data-theme='light'] .rac-modal-card {

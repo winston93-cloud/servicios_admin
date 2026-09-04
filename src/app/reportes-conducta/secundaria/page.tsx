@@ -80,6 +80,10 @@ function ChipFecha({ valor }: { valor: string }) {
   return <span className={vacio ? 'rac-chip rac-chip--empty' : 'rac-chip rac-chip--set'}>{vacio ? '—' : valor}</span>
 }
 
+function ChipSiNo({ valor }: { valor: boolean }) {
+  return <span className={valor ? 'rac-flag rac-flag--si' : 'rac-flag rac-flag--no'}>{valor ? 'Sí' : 'No'}</span>
+}
+
 function LoginPanel({ onOk }: { onOk: () => void }) {
   const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
@@ -675,6 +679,12 @@ export default function RacSecundariaPage() {
                   <th>Alumno</th>
                   <th>Detalle</th>
                   <th>Fecha</th>
+                  {tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' ? (
+                    <>
+                      <th>Enviado</th>
+                      <th>Confirmado</th>
+                    </>
+                  ) : null}
                   <th></th>
                 </tr>
               </thead>
@@ -692,6 +702,16 @@ export default function RacSecundariaPage() {
                       <span className="rac-mini">{String(row.motivo ?? row.mensaje ?? '')}</span>
                     </td>
                     <td>{String(row.fecha ?? '—')}</td>
+                    {tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' ? (
+                      <>
+                        <td>
+                          <ChipSiNo valor={Boolean(row.enviado ?? row.enviada)} />
+                        </td>
+                        <td>
+                          <ChipSiNo valor={Boolean(row.confirmado ?? row.confirmada)} />
+                        </td>
+                      </>
+                    ) : null}
                     <td className="rac-actions">
                       {tab === 'inbox' && me.role === 'psicologia' ? (
                         <>
