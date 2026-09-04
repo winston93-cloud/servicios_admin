@@ -181,9 +181,9 @@ export function etiquetaGradoSecundaria(grado: number): string {
 
 /** Etiqueta de grado para selects de staff (psico / prefectura / dirección). */
 export function etiquetaGradoStaffSecundaria(grado: number): string {
-  if (grado === 1) return '1° (7mo)'
-  if (grado === 2) return '2° (8vo)'
-  if (grado === 3) return '3° (9no)'
+  if (grado === 1) return '7mo'
+  if (grado === 2) return '8vo'
+  if (grado === 3) return '9no'
   return etiquetaGradoSecundaria(grado)
 }
 
