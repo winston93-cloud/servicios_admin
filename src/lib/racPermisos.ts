@@ -17,10 +17,16 @@ export function etiquetaRol(role: RacRol): string {
 }
 
 function esPanelAdmin(role: RacRol): boolean {
+  // Prefectura = Dirección = Coordinación: mismo panel (listado, informe, citar, reenvío masivo, etc.).
   return role === 'coordinacion' || role === 'direccion' || role === 'prefectura'
 }
 
-/** Paneles: maestro / psicología / admin (dirección = coordinación = prefectura). */
+/** Alias público: panel de dirección/prefectura/coordinación. */
+export function esPanelAdminRac(role: RacRol): boolean {
+  return esPanelAdmin(role)
+}
+
+/** Paneles: maestro / psicología / admin (dirección = prefectura = coordinación). */
 export function tabsDeRol(role: RacRol): { id: RacTab; label: string }[] {
   if (role === 'maestro') {
     return [

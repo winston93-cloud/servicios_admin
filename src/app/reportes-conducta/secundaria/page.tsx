@@ -3,7 +3,7 @@
 import ThemeToggle from '@/components/ThemeToggle'
 import { etiquetaGradoStaffSecundaria } from '@/lib/racCatalogo'
 import { opcionesMotivo } from '@/lib/racUi'
-import { etiquetaRol, tabsDeRol, tiposCapturaDeRol, tiposCitaDeRol, type RacTab } from '@/lib/racPermisos'
+import { etiquetaRol, esPanelAdminRac, tabsDeRol, tiposCapturaDeRol, tiposCitaDeRol, type RacTab } from '@/lib/racPermisos'
 import { ArrowLeft, Download, Eye, EyeOff, LogOut, Mail, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
@@ -394,10 +394,12 @@ export default function RacSecundariaPage() {
       .catch((e) => setMsg(e instanceof Error ? e.message : 'Error al descargar PDF'))
   }
 
-  const esAdmin =
-    me?.role === 'coordinacion' || me?.role === 'direccion' || me?.role === 'prefectura'
+  const esAdmin = Boolean(me && esPanelAdminRac(me.role))
   const tiposSelect = tiposCaptura
   const puedeSeleccionarMasivo = Boolean(esAdmin && (tab === 'inbox' || tab === 'informes'))
+  /** Misma captura que legacy coord: Reportar + Informe + Citar (prefectura y dirección). */
+  const capturaConInformeYCita = esAdmin || me?.role === 'psicologia'
+  const capturaConInforme = capturaConInformeYCita || me?.role === 'maestro'
   const idsListaReportes = useMemo(
     () =>
       puedeSeleccionarMasivo
@@ -606,8 +608,14 @@ export default function RacSecundariaPage() {
                   <th>I</th>
                   <th>II</th>
                   <th>III</th>
-                  <th title="Reporte: afecta el escalón del alumno. Informe: aviso sin afectar el número de reportes. Citar: citatorio.">
-                    Reporte | Informe | Cita
+                  <th
+                    title={
+                      capturaConInformeYCita
+                        ? 'Reporte: afecta el escalón. Informe: sin afectar el No de reportes. Citar: citatorio.'
+                        : 'Reporte: afecta el escalón. Informe: sin afectar el No de reportes.'
+                    }
+                  >
+                    {capturaConInformeYCita ? 'Reporte | Informe | Cita' : 'Reporte | Informe'}
                   </th>
                 </tr>
               </thead>
@@ -640,23 +648,25 @@ export default function RacSecundariaPage() {
                       >
                         Reportar
                       </button>
-                      <button
-                        type="button"
-                        className="boletas-btn info"
-                        title={
-                          me.role === 'psicologia'
-                            ? 'Aviso de atención (sin escalones)'
-                            : 'Informe de aprendizaje (sin afectar el No de reportes)'
-                        }
-                        onClick={() => {
-                          setModal(a)
-                          setModo('informe')
-                          setMensaje('')
-                        }}
-                      >
-                        {me.role === 'psicologia' ? 'Aviso' : 'Informe'}
-                      </button>
-                      {(esAdmin || me.role === 'psicologia') ? (
+                      {capturaConInforme ? (
+                        <button
+                          type="button"
+                          className="boletas-btn info"
+                          title={
+                            me.role === 'psicologia'
+                              ? 'Aviso de atención (sin escalones)'
+                              : 'Informe de aprendizaje (sin afectar el No de reportes)'
+                          }
+                          onClick={() => {
+                            setModal(a)
+                            setModo('informe')
+                            setMensaje('')
+                          }}
+                        >
+                          {me.role === 'psicologia' ? 'Aviso' : 'Informe'}
+                        </button>
+                      ) : null}
+                      {capturaConInformeYCita ? (
                         <button
                           type="button"
                           className="boletas-btn success"
