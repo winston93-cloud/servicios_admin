@@ -892,7 +892,8 @@ export default function RacSecundariaPage() {
                       ) : null}
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>

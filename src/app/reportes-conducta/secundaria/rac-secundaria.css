@@ -235,6 +235,29 @@ html[data-theme='light'] .rac-page select optgroup {
   gap: 0.4rem;
 }
 
+.rac-check-col {
+  width: 2.75rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.rac-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--touch-min, 44px);
+  min-height: var(--touch-min, 44px);
+  margin: 0;
+  cursor: pointer;
+}
+
+.rac-check input[type='checkbox'] {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--rac-role, #e65100);
+  cursor: pointer;
+}
+
 .rac-modal {
   position: fixed;
   inset: 0;
