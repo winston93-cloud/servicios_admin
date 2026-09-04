@@ -389,7 +389,8 @@ export default function RacSecundariaPage() {
       .catch((e) => setMsg(e instanceof Error ? e.message : 'Error al descargar PDF'))
   }
 
-  const esAdmin = me?.role === 'coordinacion' || me?.role === 'direccion'
+  const esAdmin =
+    me?.role === 'coordinacion' || me?.role === 'direccion' || me?.role === 'prefectura'
   const tiposSelect = tiposCaptura
 
   if (boot) {
@@ -454,11 +455,9 @@ export default function RacSecundariaPage() {
         <p>
           {me.role === 'psicologia'
             ? 'Módulo de conducta: elige grado (7mo/8vo/9no) y grupo, reporta, aprueba pendientes, citatorios y avisos de atención.'
-            : me.role === 'prefectura'
-              ? 'Prefectura: elige grado y grupo para uniforme, vialidad y retardo.'
-              : me.role === 'maestro'
-                ? 'Al entrar ves solo tus materias y grupos. Elige materia · grado · grupo (ej. 3° B) para capturar reportes de tus alumnos.'
-                : 'Panel de coordinación/dirección: filtra por grado y grupo; en avisos aparece el departamento, no una materia.'}
+            : me.role === 'maestro'
+              ? 'Al entrar ves solo tus materias y grupos. Elige materia · grado · grupo (ej. 3° B) para capturar reportes de tus alumnos.'
+              : 'Panel de coordinación/dirección/prefectura: listado, suspensión, citatorios, informes, captura e impresión.'}
         </p>
       </div>
 
@@ -785,7 +784,7 @@ export default function RacSecundariaPage() {
                 Acción
                 <select value={modo} onChange={(e) => setModo(e.target.value as typeof modo)}>
                   <option value="reporte">Reporte / aviso</option>
-                  {me.role !== 'prefectura' ? <option value="informe">Informe</option> : null}
+                  <option value="informe">Informe</option>
                   <option value="cita">Cita</option>
                 </select>
               </label>

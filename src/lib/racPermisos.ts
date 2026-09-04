@@ -16,7 +16,11 @@ export function etiquetaRol(role: RacRol): string {
   return 'Coordinación'
 }
 
-/** Paneles 1:1 con secundaria_2.0 (maestro / admin / psicología / prefectura). */
+function esPanelAdmin(role: RacRol): boolean {
+  return role === 'coordinacion' || role === 'direccion' || role === 'prefectura'
+}
+
+/** Paneles: maestro / psicología / admin (dirección = coordinación = prefectura). */
 export function tabsDeRol(role: RacRol): { id: RacTab; label: string }[] {
   if (role === 'maestro') {
     return [
@@ -32,12 +36,6 @@ export function tabsDeRol(role: RacRol): { id: RacTab; label: string }[] {
       { id: 'informes', label: 'Avisos de atención' },
     ]
   }
-  if (role === 'prefectura') {
-    return [
-      { id: 'prefectura', label: 'Reportar' },
-      { id: 'citas', label: 'Citatorios' },
-    ]
-  }
   return [
     { id: 'inbox', label: 'Listado sin confirmar' },
     { id: 'suspensiones', label: 'Suspensión' },
@@ -50,7 +48,6 @@ export function tabsDeRol(role: RacRol): { id: RacTab; label: string }[] {
 
 export function tiposCapturaDeRol(role: RacRol, fisica: boolean) {
   if (role === 'psicologia') return [{ valor: RAC_TIPOS.conducta, etiqueta: 'Conducta' }]
-  if (role === 'prefectura') return RAC_TIPOS_PREFECTURA
   if (role === 'maestro') {
     return fisica
       ? [...RAC_TIPOS_CAPTURA_MAESTRO, { valor: RAC_TIPOS.uniforme, etiqueta: 'Uniforme' }]
@@ -64,17 +61,17 @@ export function puedeCapturarTipo(role: RacRol, tipo: number, fisica = false): b
 }
 
 export function puedeInforme(role: RacRol): boolean {
-  return role !== 'prefectura'
+  void role
+  return true
 }
 
 export function tiposCitaDeRol(role: RacRol) {
   if (role === 'psicologia') return RAC_TIPOS_CITA_PSICOLOGIA
-  if (role === 'prefectura') return RAC_TIPOS_PREFECTURA
   return [...RAC_TIPOS_CAPTURA_MAESTRO, ...RAC_TIPOS_PREFECTURA]
 }
 
 export function puedePdfRac(role: RacRol): boolean {
-  return role === 'coordinacion' || role === 'direccion'
+  return esPanelAdmin(role)
 }
 
 export function puedeVerVistaCoord(role: RacRol, vista: string): boolean {
@@ -88,7 +85,7 @@ export function puedeVerVistaCoord(role: RacRol, vista: string): boolean {
 }
 
 export function puedeAccionCoord(role: RacRol, entidad: string, accion: string): boolean {
-  if (role === 'maestro' || role === 'prefectura') return false
+  if (role === 'maestro') return false
   if (role === 'psicologia') {
     if (entidad === 'reporte') return accion === 'validar' || accion === 'denegar'
     if (entidad === 'cita') return accion === 'reenviar' || accion === 'confirmar'
