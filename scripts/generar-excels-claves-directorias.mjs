@@ -1,11 +1,9 @@
 /**
  * Genera 4 Excel de accesos para directoras (Educativo ES/EN + Primaria ES/EN).
+ * Usuarios y contraseñas salen de boleta_maestro (sin hardcode).
+ * URL hub: SERVICIOS_PUBLIC_URL / NEXT_PUBLIC_SITE_URL + /reportes-conducta
  *
- * Datos vivos desde InsForge (boleta_maestro + asignaciones).
- * Contraseña: env CLAVE_8 o tmp/claves-educativo-primaria-8dig.json (no hardcode).
- * URL hub: env SERVICIOS_PUBLIC_URL o NEXT_PUBLIC_SITE_URL + /reportes-conducta
- *
- * Uso: CLAVE_8=38928121 node scripts/generar-excels-claves-directorias.mjs
+ * Uso: node scripts/generar-excels-claves-directorias.mjs
  */
 import { createClient } from '@insforge/sdk'
 import { existsSync, mkdirSync, readFileSync } from 'fs'
@@ -28,19 +26,6 @@ function loadEnv() {
 
 const env = loadEnv()
 
-function resolverClavePlana() {
-  if (process.env.CLAVE_8 && /^\d{8}$/.test(process.env.CLAVE_8)) return process.env.CLAVE_8
-  const p = resolve(process.cwd(), 'tmp/claves-educativo-primaria-8dig.json')
-  if (existsSync(p)) {
-    const j = JSON.parse(readFileSync(p, 'utf8'))
-    const c = String(j.clave_plana_8_digitos || '')
-    if (/^\d{8}$/.test(c)) return c
-  }
-  throw new Error(
-    'Falta la clave plana de 8 dígitos. Exporta CLAVE_8=######## o genera tmp/claves-educativo-primaria-8dig.json con set-clave-general-educativo-primaria.mjs'
-  )
-}
-
 function resolverUrlHub() {
   const base = (
     process.env.SERVICIOS_PUBLIC_URL ||
@@ -52,7 +37,6 @@ function resolverUrlHub() {
   return `${base}/reportes-conducta`
 }
 
-const CLAVE = resolverClavePlana()
 const URL_HUB = resolverUrlHub()
 
 const db = createClient({
@@ -75,7 +59,6 @@ function etiquetaNivel(n) {
   return String(n)
 }
 
-/** idioma desde asignación a slot Maestro(a)=1 / Teacher=2; fallback por correo/usuario. */
 function idiomaDesdeAsignacion(maestroId, asigMap) {
   const hit = asigMap.get(maestroId)
   if (hit === 1) return 'es'
@@ -111,7 +94,7 @@ async function buildWorkbook(meta, rows) {
     { width: 42 },
     { width: 28 },
     { width: 42 },
-    { width: 14 },
+    { width: 16 },
   ]
 
   ws.mergeCells('A1:G1')
@@ -133,10 +116,10 @@ async function buildWorkbook(meta, rows) {
 
   ws.mergeCells('A5:G5')
   ws.getCell('A5').value =
-    `Cómo entrar: 1) Abrir el hub  2) Elegir la tarjeta de su nivel (Maternal/Kinder o Primaria)  3) Iniciar sesión con usuario y contraseña de esta lista.`
+    'Cómo entrar: 1) Abrir el hub  2) Elegir la tarjeta de su nivel (Maternal/Kinder o Primaria)  3) Iniciar sesión con el usuario y la contraseña de esta fila (única por docente).'
   ws.getCell('A5').font = { name: 'Calibri', size: 10, color: { argb: 'FF0F172A' } }
   ws.getCell('A5').alignment = { wrapText: true, vertical: 'middle' }
-  ws.getRow(5).height = 28
+  ws.getRow(5).height = 32
 
   ws.mergeCells('A6:G6')
   ws.getCell('A6').value = `Hub (3 tarjetas): ${URL_HUB}`
@@ -169,7 +152,7 @@ async function buildWorkbook(meta, rows) {
     row.font = { name: 'Calibri', size: 11 }
     row.alignment = { vertical: 'middle' }
     row.getCell(5).font = { name: 'Consolas', size: 11 }
-    row.getCell(7).font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FFB45309' } }
+    row.getCell(7).font = { name: 'Consolas', size: 11, bold: true, color: { argb: 'FFB45309' } }
     const bg = i % 2 === 0 ? 'FFF8FAFC' : 'FFFFFFFF'
     for (let c = 1; c <= 7; c++) {
       row.getCell(c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } }
@@ -183,7 +166,7 @@ async function buildWorkbook(meta, rows) {
   })
 
   ws.addRow([])
-  const f2 = ws.addRow([`Total docentes: ${sorted.length}   ·   Contraseña general del grupo (desde catálogo): ${CLAVE}`])
+  const f2 = ws.addRow([`Total docentes: ${sorted.length}  ·  Cada contraseña es única (no se repite entre maestros).`])
   ws.mergeCells(`A${f2.number}:G${f2.number}`)
   f2.font = { name: 'Calibri', size: 11, bold: true }
 
@@ -198,10 +181,19 @@ async function buildWorkbook(meta, rows) {
 async function main() {
   const { data: maestros, error } = await db
     .from('boleta_maestro')
-    .select('maestro_id, maestro_usuario, maestro_nombre, maestro_app, maestro_apm, maestro_email, maestro_nivel')
+    .select(
+      'maestro_id, maestro_usuario, maestro_nombre, maestro_app, maestro_apm, maestro_email, maestro_nivel, maestro_clave'
+    )
     .in('maestro_nivel', [1, 2, 3])
   if (error) throw new Error(error.message)
   if (!maestros?.length) throw new Error('No hay maestros nivel 1–3 en boleta_maestro')
+
+  const sinClave = maestros.filter((m) => !String(m.maestro_clave || '').trim())
+  if (sinClave.length) {
+    throw new Error(
+      `Faltan claves en ${sinClave.length} docentes. Corre antes: node scripts/set-claves-unicas-educativo-primaria.mjs`
+    )
+  }
 
   const { data: materias, error: eMat } = await db
     .from('boleta_materia')
@@ -235,7 +227,7 @@ async function main() {
       nombre: nombreCompleto(m),
       usuario: m.maestro_usuario,
       correo: m.maestro_email || '',
-      clave: CLAVE,
+      clave: String(m.maestro_clave),
     }
     if (m.maestro_nivel <= 2 && idioma === 'es') buckets.kinder_es.push(row)
     else if (m.maestro_nivel <= 2 && idioma === 'en') buckets.kinder_en.push(row)
