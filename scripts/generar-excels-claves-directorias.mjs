@@ -126,7 +126,7 @@ async function buildWorkbook(meta, rows) {
   ws.getCell('A6').font = { name: 'Calibri', size: 10, color: { argb: 'FF0369A1' }, underline: true }
 
   const header = ws.getRow(7)
-  header.values = ['#', 'Nivel', 'Área', 'Nombre completo', 'Usuario', 'Correo institucional', 'Contraseña']
+  header.values = ['#', 'Nivel', 'Área', 'Nombre completo', 'Usuario', 'Contraseña', 'Correo institucional']
   header.height = 22
   header.font = { name: 'Calibri', bold: true, color: { argb: 'FFFFFFFF' } }
   header.alignment = { vertical: 'middle', horizontal: 'center' }
@@ -148,11 +148,11 @@ async function buildWorkbook(meta, rows) {
   })
 
   sorted.forEach((r, i) => {
-    const row = ws.addRow([i + 1, r.nivel, r.idioma, r.nombre, r.usuario, r.correo, r.clave])
+    const row = ws.addRow([i + 1, r.nivel, r.idioma, r.nombre, r.usuario, r.clave, r.correo])
     row.font = { name: 'Calibri', size: 11 }
     row.alignment = { vertical: 'middle' }
     row.getCell(5).font = { name: 'Consolas', size: 11 }
-    row.getCell(7).font = { name: 'Consolas', size: 11, bold: true, color: { argb: 'FFB45309' } }
+    row.getCell(6).font = { name: 'Consolas', size: 11, bold: true, color: { argb: 'FFB45309' } }
     const bg = i % 2 === 0 ? 'FFF8FAFC' : 'FFFFFFFF'
     for (let c = 1; c <= 7; c++) {
       row.getCell(c).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } }
