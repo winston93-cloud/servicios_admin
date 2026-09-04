@@ -159,10 +159,10 @@ async function marcas(
 ) {
   let q = db()
     .from('reporte_escolar')
-    .select('reporte_no, reporte_registro, reporte_ciclo')
+    .select('reporte_no, reporte_registro, reporte_ciclo, reporte_status')
     .eq('alumno_id', alumnoId)
     .eq('reporte_tipo', tipo)
-    .eq('reporte_status', 1)
+    .in('reporte_status', [1, 2])
     .eq('reporte_ciclo_escolar', ciclo)
   if (materiaId) q = q.eq('materia_id', materiaId)
   const { data } = await q
@@ -170,7 +170,11 @@ async function marcas(
   const maxC = rows.reduce((acc, r) => Math.max(acc, n(r.reporte_ciclo)), 0)
   const cur = rows.filter((r) => n(r.reporte_ciclo) === maxC)
   const fechas: Record<number, string> = {}
-  for (const r of cur) fechas[n(r.reporte_no)] = String(r.reporte_registro ?? '').slice(0, 10)
+  for (const r of cur) {
+    const dia = String(r.reporte_registro ?? '').slice(0, 10)
+    const pend = n(r.reporte_status) === 2
+    fechas[n(r.reporte_no)] = pend ? `${dia}·pend` : dia
+  }
   return fechas
 }
 

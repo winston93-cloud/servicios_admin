@@ -270,7 +270,10 @@ export default function RacSecundariaPage() {
     if (!modal || !asig) return
     setBusy(true)
     try {
-      await api('/api/rac/captura', {
+      const data = await api<{
+        pendienteValidacion?: boolean
+        envio?: { ok?: boolean; error?: string }
+      }>('/api/rac/captura', {
         method: 'POST',
         body: JSON.stringify({
           accion: modo,
@@ -283,7 +286,17 @@ export default function RacSecundariaPage() {
           hora: horaCita,
         }),
       })
-      setMsg('Registro guardado')
+      if (data.pendienteValidacion) {
+        setMsg(
+          'Guardado. La conducta queda pendiente de Psicología; el correo a papás se envía al validarla.'
+        )
+      } else if (data.envio && data.envio.ok === false) {
+        setMsg(
+          `Guardado, pero el correo no salió: ${data.envio.error || 'error de envío'}.`
+        )
+      } else {
+        setMsg('Registro guardado y correo enviado.')
+      }
       setModal(null)
       setMensaje('')
       await cargarGrupo()
