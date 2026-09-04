@@ -231,8 +231,34 @@ html[data-theme='light'] .rac-page select optgroup {
 
 .rac-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+  flex-wrap: nowrap;
+  gap: 0.3rem;
+  align-items: center;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.rac-page .rac-actions .boletas-btn {
+  min-height: 32px;
+  min-width: 0;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.78rem;
+  border-radius: 8px;
+  letter-spacing: 0;
+  line-height: 1.2;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.14);
+}
+
+.rac-page .rac-actions .boletas-btn:hover:not(:disabled) {
+  transform: none;
+}
+
+@media (max-width: 768px) {
+  .rac-page .rac-actions .boletas-btn {
+    min-height: 36px;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.75rem;
+  }
 }
 
 .rac-check-col {
