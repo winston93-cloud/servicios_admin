@@ -4,7 +4,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import { etiquetaGradoStaffSecundaria } from '@/lib/racCatalogo'
 import { opcionesMotivo } from '@/lib/racUi'
 import { etiquetaRol, esPanelAdminRac, tabsDeRol, tiposCapturaDeRol, tiposCitaDeRol, type RacTab } from '@/lib/racPermisos'
-import { ArrowLeft, Download, Eye, EyeOff, LogOut, Mail, Send } from 'lucide-react'
+import { ArrowLeft, Download, Eye, EyeOff, LogOut, Mail, Search, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import '../../dashboard/dashboard-module-card.css'
@@ -183,11 +183,14 @@ export default function RacSecundariaPage() {
   const [modo, setModo] = useState<'reporte' | 'informe' | 'cita'>('reporte')
   const [tipoCita, setTipoCita] = useState(2)
   const [citaValidar, setCitaValidar] = useState<CitaFila | null>(null)
+  const [detalleVista, setDetalleVista] = useState<Record<string, unknown> | null>(null)
   const [historialAlumnos, setHistorialAlumnos] = useState<AlumnoBusqueda[]>([])
   const [historialAlumnoId, setHistorialAlumnoId] = useState(0)
   const [historialTipo, setHistorialTipo] = useState(1)
   const [historialMateriaId, setHistorialMateriaId] = useState(0)
   const [seleccionados, setSeleccionados] = useState<number[]>([])
+  const puedeVerDetalleLista =
+    tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' || tab === 'suspensiones'
 
   const asig = useMemo(() => {
     if (!asignaciones.length) return undefined
@@ -864,6 +867,18 @@ export default function RacSecundariaPage() {
                       </>
                     ) : null}
                     <td className="rac-actions">
+                      {puedeVerDetalleLista ? (
+                        <button
+                          type="button"
+                          className="boletas-btn ghost rac-btn-icon"
+                          title="Ver detalle del reporte / citatorio"
+                          aria-label="Ver detalle"
+                          onClick={() => setDetalleVista(row)}
+                        >
+                          <Search size={16} aria-hidden />
+                          <span className="rac-btn-label">Detalle</span>
+                        </button>
+                      ) : null}
                       {tab === 'inbox' && me.role === 'psicologia' ? (
                         <>
                           <button type="button" className="boletas-btn success" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'validar')}>
@@ -945,6 +960,95 @@ export default function RacSecundariaPage() {
             </table>
           </div>
         </section>
+      ) : null}
+
+      {detalleVista ? (
+        <div className="rac-modal" role="dialog" aria-modal="true" aria-labelledby="rac-detalle-title">
+          <div className="rac-modal-card rac-detalle-card">
+            <h3 id="rac-detalle-title">Detalle</h3>
+            <dl className="rac-detalle-dl">
+              {detalleVista.reporte_id != null ? (
+                <div>
+                  <dt>ID</dt>
+                  <dd>{String(detalleVista.reporte_id)}</dd>
+                </div>
+              ) : null}
+              {detalleVista.cita_id != null ? (
+                <div>
+                  <dt>ID cita</dt>
+                  <dd>{String(detalleVista.cita_id)}</dd>
+                </div>
+              ) : null}
+              {detalleVista.suspension_id != null ? (
+                <div>
+                  <dt>ID suspensión</dt>
+                  <dd>{String(detalleVista.suspension_id)}</dd>
+                </div>
+              ) : null}
+              <div>
+                <dt>No. Control</dt>
+                <dd>{String(detalleVista.alumno_ref ?? '—')}</dd>
+              </div>
+              <div>
+                <dt>Alumno</dt>
+                <dd>{String(detalleVista.nombre ?? '—')}</dd>
+              </div>
+              <div>
+                <dt>Grado y grupo</dt>
+                <dd>
+                  {detalleVista.grado != null ? `${String(detalleVista.grado)}°` : '—'}{' '}
+                  {String(detalleVista.grupo ?? '')}
+                </dd>
+              </div>
+              {detalleVista.materia || detalleVista.escalon || detalleVista.tipoEtiqueta ? (
+                <div>
+                  <dt>Situación / materia</dt>
+                  <dd>
+                    {String(detalleVista.escalon ?? detalleVista.tipoEtiqueta ?? '')}
+                    {detalleVista.materia ? ` · ${String(detalleVista.materia)}` : ''}
+                  </dd>
+                </div>
+              ) : null}
+              {detalleVista.motivo ? (
+                <div>
+                  <dt>Motivo</dt>
+                  <dd>{String(detalleVista.motivo)}</dd>
+                </div>
+              ) : null}
+              <div>
+                <dt>Observaciones</dt>
+                <dd className="rac-detalle-obs">{String(detalleVista.mensaje ?? '—')}</dd>
+              </div>
+              <div>
+                <dt>Fecha</dt>
+                <dd>{String(detalleVista.fecha ?? '—')}</dd>
+              </div>
+              {detalleVista.vuelta != null && detalleVista.vuelta !== '' ? (
+                <div>
+                  <dt>No. vuelta</dt>
+                  <dd>{String(detalleVista.vuelta)}</dd>
+                </div>
+              ) : null}
+              {detalleVista.enviado != null || detalleVista.enviada != null ? (
+                <div>
+                  <dt>Enviado</dt>
+                  <dd>{detalleVista.enviado || detalleVista.enviada ? 'Sí' : 'No'}</dd>
+                </div>
+              ) : null}
+              {detalleVista.confirmado != null || detalleVista.confirmada != null ? (
+                <div>
+                  <dt>Confirmado</dt>
+                  <dd>{detalleVista.confirmado || detalleVista.confirmada ? 'Sí' : 'No'}</dd>
+                </div>
+              ) : null}
+            </dl>
+            <div className="rac-actions">
+              <button type="button" className="boletas-btn primary" onClick={() => setDetalleVista(null)}>
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {modal ? (

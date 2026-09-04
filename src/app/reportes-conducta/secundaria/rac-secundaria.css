@@ -313,6 +313,63 @@ html[data-theme='light'] .rac-page select optgroup {
   border: 1px solid color-mix(in srgb, var(--dash-border, #334155) 80%, transparent);
 }
 
+.rac-detalle-dl {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.rac-detalle-dl > div {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.rac-detalle-dl dt {
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.72;
+  margin: 0;
+}
+
+.rac-detalle-dl dd {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.rac-detalle-obs {
+  white-space: pre-wrap;
+}
+
+.rac-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: var(--touch-min, 44px);
+}
+
+@media (max-width: 640px) {
+  .rac-btn-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+  }
+
+  .rac-btn-icon {
+    width: var(--touch-min, 44px);
+    justify-content: center;
+    padding-inline: 0.5rem;
+  }
+}
+
 .rac-msg {
   display: flex;
   flex-direction: column;

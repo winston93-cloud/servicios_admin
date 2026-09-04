@@ -546,6 +546,7 @@ async function hidratar(rows: Record<string, unknown>[]) {
       motivo: motivoReporte(n(r.reporte_tipo), n(r.reporte_motivo)),
       mensaje: String(r.reporte_mensaje ?? ''),
       no: n(r.reporte_no),
+      vuelta: n(r.reporte_ciclo),
       fecha: String(r.reporte_registro ?? '').slice(0, 10),
       enviado: n(r.reporte_enviado) === 1,
       confirmado: n(r.reporte_confirmado) === 1,
