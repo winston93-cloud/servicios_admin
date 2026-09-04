@@ -36,7 +36,8 @@ export function urlBaseCorreos(): string {
   if (explicit) return explicit.replace(/\/$/, '')
   const vercel = process.env.VERCEL_URL?.trim()
   if (vercel) return `https://${vercel.replace(/^https?:\/\//, '')}`
-  return 'https://winston93.edu.mx'
+  // Portal de servicios (firma, RAC, etc.); no el sitio institucional genérico.
+  return 'https://servicios.winston93.edu.mx'
 }
 
 export function brandingCorreoPorNivel(nivel: number) {
