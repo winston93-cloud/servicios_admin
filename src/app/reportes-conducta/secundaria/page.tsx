@@ -127,7 +127,7 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
           autoCapitalize="none"
           spellCheck={false}
           name="rac-secundaria-usuario"
-          placeholder="Ej. josefina"
+          placeholder="Ej. juan"
           required
         />
       </label>
