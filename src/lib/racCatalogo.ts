@@ -54,12 +54,41 @@ export function etiquetaTipoCitatorio(tipo: number): string {
 }
 
 export function etiquetaEscalon(tipo: number, no: number): string {
+  if (tipo === 5) return 'Informe'
+  if (tipo === 8) return 'Aviso'
   if (tipo > 2) return 'Reporte'
   if (no <= 0) return 'Aviso'
   if (no === 1) return 'Reporte I'
   if (no === 2) return 'Reporte II'
   if (no === 3) return 'Reporte III'
   return `Reporte ${no}`
+}
+
+/**
+ * Frase para el cuerpo del correo a papás (sin duplicar «Reporte informe»).
+ * Ej. «Informe académico», «Aviso de conducta», «Reporte I académico».
+ */
+export function fraseRegistroAvisoRac(tipo: number, no: number): string {
+  if (tipo === 5) return 'Informe académico'
+  if (tipo === 8) return 'Aviso de atención en Psicología'
+  if (tipo === 3) return 'Reporte de uniforme'
+  if (tipo === 4) return 'Reporte de vialidad'
+  if (tipo === 6) return 'Reporte por retardo'
+  if (tipo === 1) {
+    if (no <= 0) return 'Aviso académico'
+    if (no === 1) return 'Reporte académico I'
+    if (no === 2) return 'Reporte académico II'
+    if (no === 3) return 'Reporte académico III'
+    return `Reporte académico ${no}`
+  }
+  if (tipo === 2) {
+    if (no <= 0) return 'Aviso de conducta'
+    if (no === 1) return 'Reporte de conducta I'
+    if (no === 2) return 'Reporte de conducta II'
+    if (no === 3) return 'Reporte de conducta III'
+    return `Reporte de conducta ${no}`
+  }
+  return `${etiquetaEscalon(tipo, no)} ${etiquetaTipoReporte(tipo)}`.trim()
 }
 
 export function motivoReporte(tipo: number, motivo: number): string {

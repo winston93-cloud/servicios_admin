@@ -3,6 +3,7 @@ import {
   etiquetaEscalon,
   etiquetaTipoCitatorio,
   etiquetaTipoReporte,
+  fraseRegistroAvisoRac,
   motivoReporte,
 } from '@/lib/racCatalogo'
 
@@ -76,4 +77,4 @@ export function asuntoReporte(tipo: number, no: number): string {
   return `Reporte ${etiquetaTipoReporte(tipo)} ${no}`
 }
 
-export { escapeHtml, etiquetaEscalon, etiquetaTipoCitatorio, etiquetaTipoReporte, motivoReporte }
+export { escapeHtml, etiquetaEscalon, etiquetaTipoCitatorio, etiquetaTipoReporte, fraseRegistroAvisoRac, motivoReporte }

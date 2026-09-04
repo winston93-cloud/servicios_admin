@@ -10,6 +10,7 @@ import {
   etiquetaEscalon,
   etiquetaTipoCitatorio,
   etiquetaTipoReporte,
+  fraseRegistroAvisoRac,
   motivoReporte,
 } from '@/lib/racCatalogo'
 import {
@@ -272,15 +273,24 @@ export async function enviarCorreoReporte(reporteId: number) {
   }
   const enlace = urlPublicaRac(String(r.reporte_mdv), alt)
   const subject = asuntoReporte(tipo, no)
+  const frase = fraseRegistroAvisoRac(tipo, no)
+  const motivoTxt = motivoReporte(tipo, n(r.reporte_motivo))
+  const mostrarMotivo = !(tipo === 5 || tipo === 8)
   const html = htmlCorreoRac({
     titulo: subject,
     enlace,
     cuerpoHtml: `<p>Estimada familia:</p>
-      <p>Se registró un <b>${escapeHtml(etiquetaEscalon(tipo, no))}</b> ${escapeHtml(etiquetaTipoReporte(tipo).toLowerCase())}
+      <p>Se registró un <b>${escapeHtml(frase)}</b>
       para <b>${escapeHtml(nombreAlumno(alumno))}</b> (control ${escapeHtml(String(alumno.alumno_ref ?? ''))}).</p>
-      <p>Motivo: <b>${escapeHtml(motivoReporte(tipo, n(r.reporte_motivo)))}</b>${
-        materiaNombre ? ` · Asignatura: <b>${escapeHtml(materiaNombre)}</b>` : ''
-      }</p>
+      ${
+        mostrarMotivo
+          ? `<p>Motivo: <b>${escapeHtml(motivoTxt)}</b>${
+              materiaNombre ? ` · Asignatura: <b>${escapeHtml(materiaNombre)}</b>` : ''
+            }</p>`
+          : materiaNombre
+            ? `<p>Asignatura: <b>${escapeHtml(materiaNombre)}</b></p>`
+            : ''
+      }
       <p>${escapeHtml(String(r.reporte_mensaje ?? '')).replace(/\n/g, '<br>')}</p>`,
   })
   const envio = await enviarAvisoRac({ to, subject, html })
