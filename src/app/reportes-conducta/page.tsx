@@ -1,6 +1,5 @@
 'use client'
 
-import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
 import DashboardModuleCard from '@/components/dashboard/DashboardModuleCard'
 import { reportesConductaHubItems } from '@/lib/reportesConductaHubNav'
@@ -9,7 +8,11 @@ import { useRouter } from 'next/navigation'
 import '../dashboard/dashboard-module-card.css'
 import './reportes-conducta.css'
 
-function ReportesConductaHubView() {
+/**
+ * Hub público: 3 tarjetas → cada nivel tiene su propio login de maestro/staff.
+ * No exige sesión de Servicios (las directoras/maestros llegan por enlace directo).
+ */
+export default function ReportesConductaHubPage() {
   const router = useRouter()
   const items = reportesConductaHubItems()
 
@@ -28,7 +31,7 @@ function ReportesConductaHubView() {
           </button>
           <h1 className="dashboard-title">Reportes académicos y de conducta</h1>
           <p className="dashboard-subtitle">
-            Elige el nivel escolar para captura y seguimiento de reportes.
+            Elige el nivel escolar. Después inicia sesión con tu usuario y contraseña de maestro o staff.
           </p>
           <div className="facturacion-cfdi-theme-row">
             <ThemeToggle />
@@ -57,13 +60,5 @@ function ReportesConductaHubView() {
         </div>
       </div>
     </div>
-  )
-}
-
-export default function ReportesConductaHubPage() {
-  return (
-    <ProtectedRoute roles={['usuario']}>
-      <ReportesConductaHubView />
-    </ProtectedRoute>
   )
 }
