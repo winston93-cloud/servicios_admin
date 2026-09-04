@@ -4,7 +4,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import { etiquetaGradoStaffSecundaria } from '@/lib/racCatalogo'
 import { opcionesMotivo } from '@/lib/racUi'
 import { etiquetaRol, tabsDeRol, tiposCapturaDeRol, tiposCitaDeRol, type RacTab } from '@/lib/racPermisos'
-import { ArrowLeft, Download, Eye, EyeOff, LogOut, Send } from 'lucide-react'
+import { ArrowLeft, Download, Eye, EyeOff, LogOut, Mail, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import '../../dashboard/dashboard-module-card.css'
@@ -187,6 +187,7 @@ export default function RacSecundariaPage() {
   const [historialAlumnoId, setHistorialAlumnoId] = useState(0)
   const [historialTipo, setHistorialTipo] = useState(1)
   const [historialMateriaId, setHistorialMateriaId] = useState(0)
+  const [seleccionados, setSeleccionados] = useState<number[]>([])
 
   const asig = useMemo(() => {
     if (!asignaciones.length) return undefined
@@ -396,6 +397,61 @@ export default function RacSecundariaPage() {
   const esAdmin =
     me?.role === 'coordinacion' || me?.role === 'direccion' || me?.role === 'prefectura'
   const tiposSelect = tiposCaptura
+  const puedeSeleccionarMasivo = Boolean(esAdmin && (tab === 'inbox' || tab === 'informes'))
+  const idsListaReportes = useMemo(
+    () =>
+      puedeSeleccionarMasivo
+        ? lista.map((r) => Number(r.reporte_id)).filter((id) => Number.isFinite(id) && id > 0)
+        : [],
+    [lista, puedeSeleccionarMasivo]
+  )
+  const todosSeleccionados =
+    idsListaReportes.length > 0 && idsListaReportes.every((id) => seleccionados.includes(id))
+
+  useEffect(() => {
+    setSeleccionados([])
+  }, [tab, lista])
+
+  function toggleSeleccionado(id: number) {
+    setSeleccionados((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  function toggleTodos() {
+    setSeleccionados(todosSeleccionados ? [] : idsListaReportes)
+  }
+
+  async function reenviarSeleccionados() {
+    if (!seleccionados.length) {
+      setMsg('Selecciona al menos un reporte para reenviar.')
+      return
+    }
+    setBusy(true)
+    let ok = 0
+    let fail = 0
+    for (const id of seleccionados) {
+      try {
+        await api('/api/rac/coordinacion', {
+          method: 'POST',
+          body: JSON.stringify({ entidad: 'reporte', id, accion: 'reenviar' }),
+        })
+        ok += 1
+      } catch {
+        fail += 1
+      }
+    }
+    setMsg(
+      fail
+        ? `Reenviados: ${ok} · No enviados: ${fail}`
+        : `Reenviados correctamente: ${ok}`
+    )
+    setSeleccionados([])
+    try {
+      if (tab === 'inbox') await cargarVista('pendientes')
+      if (tab === 'informes') await cargarVista('informes')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   if (boot) {
     return (
@@ -601,6 +657,28 @@ export default function RacSecundariaPage() {
                 <Download size={16} aria-hidden />
                 PDF reportes sin confirmar
               </button>
+              <button
+                type="button"
+                className="boletas-btn info"
+                disabled={busy || seleccionados.length === 0}
+                onClick={() => void reenviarSeleccionados()}
+              >
+                <Mail size={16} aria-hidden />
+                Reenviar seleccionados{seleccionados.length ? ` (${seleccionados.length})` : ''}
+              </button>
+            </div>
+          ) : null}
+          {tab === 'informes' && esAdmin ? (
+            <div className="boletas-filters">
+              <button
+                type="button"
+                className="boletas-btn info"
+                disabled={busy || seleccionados.length === 0}
+                onClick={() => void reenviarSeleccionados()}
+              >
+                <Mail size={16} aria-hidden />
+                Reenviar seleccionados{seleccionados.length ? ` (${seleccionados.length})` : ''}
+              </button>
             </div>
           ) : null}
           {tab === 'historial' ? (
@@ -676,6 +754,18 @@ export default function RacSecundariaPage() {
             <table className="boletas-table">
               <thead>
                 <tr>
+                  {puedeSeleccionarMasivo ? (
+                    <th className="rac-check-col">
+                      <label className="rac-check">
+                        <input
+                          type="checkbox"
+                          checked={todosSeleccionados}
+                          onChange={toggleTodos}
+                          aria-label="Seleccionar todos"
+                        />
+                      </label>
+                    </th>
+                  ) : null}
                   <th>Alumno</th>
                   <th>Detalle</th>
                   <th>Fecha</th>
@@ -689,8 +779,22 @@ export default function RacSecundariaPage() {
                 </tr>
               </thead>
               <tbody>
-                {lista.map((row, i) => (
+                {lista.map((row, i) => {
+                  const reporteId = Number(row.reporte_id)
+                  return (
                   <tr key={String(row.reporte_id ?? row.cita_id ?? row.suspension_id ?? i)}>
+                    {puedeSeleccionarMasivo ? (
+                      <td className="rac-check-col">
+                        <label className="rac-check">
+                          <input
+                            type="checkbox"
+                            checked={seleccionados.includes(reporteId)}
+                            onChange={() => toggleSeleccionado(reporteId)}
+                            aria-label={`Seleccionar ${String(row.nombre ?? 'reporte')}`}
+                          />
+                        </label>
+                      </td>
+                    ) : null}
                     <td>
                       {String(row.nombre ?? '')}
                       <small className="rac-mini">
