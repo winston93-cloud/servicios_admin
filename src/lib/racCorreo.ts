@@ -45,13 +45,24 @@ export function urlPublicaRac(mdv: string, alt: number): string {
   return `${urlBaseCorreos()}/reportes-academicos/estatus?id=${encodeURIComponent(mdv)}&alt=${alt}`
 }
 
+/**
+ * Si RAC_EMAIL_FORCE_TEST=1, todos los avisos RAC van a RAC_EMAIL_TO
+ * (default sistemas.desarrollo) en lugar de papás. Útil en pruebas pre-lanzamiento.
+ */
+export function destinatariosRacPrueba(to: string[]): string[] {
+  if (process.env.RAC_EMAIL_FORCE_TEST !== '1') return to
+  const prueba =
+    process.env.RAC_EMAIL_TO?.trim() || 'sistemas.desarrollo@winston93.edu.mx'
+  return [prueba]
+}
+
 export async function enviarAvisoRac(opts: {
   to: string[]
   subject: string
   html: string
 }): Promise<{ ok: boolean; error?: string }> {
   return enviarCorreoMasivo({
-    to: opts.to,
+    to: destinatariosRacPrueba(opts.to),
     subject: opts.subject,
     html: opts.html,
     nivel: 4,

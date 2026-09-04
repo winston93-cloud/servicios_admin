@@ -108,12 +108,19 @@ export async function autenticarRac(usuario: string, password: string): Promise<
 
   const { data: maestros } = await db
     .from('boleta_maestro')
-    .select('maestro_id, maestro_app, maestro_apm, maestro_nombre, maestro_usuario, maestro_clave, maestro_email')
+    .select(
+      'maestro_id, maestro_app, maestro_apm, maestro_nombre, maestro_usuario, maestro_clave, maestro_email, maestro_nivel'
+    )
     .ilike('maestro_usuario', u)
     .limit(1)
 
   if (maestros?.[0] && passwordMatches(maestros[0].maestro_clave as string, p)) {
     const m = maestros[0]
+    // Solo maestros de secundaria (nivel 4) entran a este módulo; otros niveles usan su app.
+    const nivelMaestro = Number(m.maestro_nivel ?? 0)
+    if (nivelMaestro !== 0 && nivelMaestro !== 4) {
+      return null
+    }
     const nombre = [m.maestro_nombre, m.maestro_app, m.maestro_apm]
       .map((x) => String(x ?? '').trim())
       .filter(Boolean)

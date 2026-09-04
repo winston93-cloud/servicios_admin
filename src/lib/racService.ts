@@ -63,6 +63,17 @@ export type AsignacionRac = {
   grupo_letra: string
 }
 
+/** ABC / BC / A → opciones de grupo concretas para el select del maestro. */
+function expandGrupoLetrasMaestro(raw: string | null | undefined): string[] {
+  const s = String(raw ?? '')
+    .trim()
+    .toUpperCase()
+  if (!s || s === '*' || s === 'ABC') return ['A', 'B', 'C']
+  if (s === 'ABCD') return ['A', 'B', 'C', 'D']
+  if (/^[A-F]{2,}$/.test(s)) return [...s]
+  return [s]
+}
+
 export async function listarAsignaciones(session: RacSesion): Promise<{
   asignaciones: AsignacionRac[]
   fisica: boolean
@@ -82,16 +93,20 @@ export async function listarAsignaciones(session: RacSesion): Promise<{
       .select('materia_id, materia_nombre, materia_grado')
       .in('materia_id', materiaIds)
     const map = new Map((materias ?? []).map((m) => [n(m.materia_id), m]))
-    const asignaciones = (grupos ?? []).map((g) => {
+    // Un renglón por materia+grupo (A/B/C), no un "ABC" que mezcla todo el grado.
+    const asignaciones: AsignacionRac[] = []
+    for (const g of grupos ?? []) {
       const m = map.get(n(g.materia_id))
-      return {
+      const base = {
         grupo_id: n(g.grupo_id),
         materia_id: n(g.materia_id),
         materia_nombre: String(m?.materia_nombre ?? ''),
         materia_grado: n(m?.materia_grado),
-        grupo_letra: String(g.grupo_letra ?? ''),
       }
-    })
+      for (const letra of expandGrupoLetrasMaestro(String(g.grupo_letra ?? ''))) {
+        asignaciones.push({ ...base, grupo_letra: letra })
+      }
+    }
     const blob = asignaciones.map((a) => a.materia_nombre.toUpperCase()).join(' ')
     return {
       asignaciones,

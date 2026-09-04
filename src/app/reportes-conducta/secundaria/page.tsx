@@ -108,7 +108,9 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
       <p className="rac-login-kicker">Acceso docente</p>
       <h2>Ingresar a Secundaria</h2>
       <p className="rac-login-lead">
-        Usa el usuario y contraseña del sistema de reportes de secundaria. Cada cuenta (maestro, psicología, prefectura, dirección o coordinación) abre su propio panel.
+        Acceso directo para maestros y staff de secundaria. Al entrar con tu
+        cuenta de maestro verás solo tus materias y grupos (A, B, C) para
+        capturar reportes académicos y de conducta.
       </p>
       <label>
         Usuario
@@ -409,7 +411,7 @@ export default function RacSecundariaPage() {
             : me.role === 'prefectura'
               ? 'Prefectura: uniforme, vialidad y retardo.'
               : me.role === 'maestro'
-                ? 'Captura de reportes de tu materia y seguimiento de citas.'
+                ? 'Al entrar ves solo tus materias y grupos. Elige materia · grado · grupo (ej. 3° B) para capturar reportes de tus alumnos.'
                 : 'Panel de coordinación/dirección: listado, suspensión, citatorios, informes, captura e impresión.'}
         </p>
       </div>
