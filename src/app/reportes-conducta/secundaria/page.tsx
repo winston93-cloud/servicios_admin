@@ -606,7 +606,9 @@ export default function RacSecundariaPage() {
                   <th>I</th>
                   <th>II</th>
                   <th>III</th>
-                  <th></th>
+                  <th title="Reporte: afecta el escalón del alumno. Informe: aviso sin afectar el número de reportes. Citar: citatorio.">
+                    Reporte | Informe | Cita
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -624,18 +626,53 @@ export default function RacSecundariaPage() {
                     <td><ChipFecha valor={a.r1 || '—'} /></td>
                     <td><ChipFecha valor={a.r2 || '—'} /></td>
                     <td><ChipFecha valor={a.r3 || '—'} /></td>
-                    <td>
+                    <td className="rac-actions rac-actions--captura">
                       <button
                         type="button"
                         className="boletas-btn primary"
+                        title="Crear reporte / aviso (escalones)"
                         onClick={() => {
                           setModal(a)
                           setModo('reporte')
+                          setMensaje('')
                           setMotivo(opcionesMotivo(tipo)[0]?.valor ?? 1)
                         }}
                       >
                         Reportar
                       </button>
+                      <button
+                        type="button"
+                        className="boletas-btn info"
+                        title={
+                          me.role === 'psicologia'
+                            ? 'Aviso de atención (sin escalones)'
+                            : 'Informe de aprendizaje (sin afectar el No de reportes)'
+                        }
+                        onClick={() => {
+                          setModal(a)
+                          setModo('informe')
+                          setMensaje('')
+                        }}
+                      >
+                        {me.role === 'psicologia' ? 'Aviso' : 'Informe'}
+                      </button>
+                      {(esAdmin || me.role === 'psicologia') ? (
+                        <button
+                          type="button"
+                          className="boletas-btn success"
+                          title="Generar citatorio"
+                          onClick={() => {
+                            setModal(a)
+                            setModo('cita')
+                            setMensaje('')
+                            setFechaCita('')
+                            setHoraCita('09:00')
+                            if (me.role === 'psicologia') setTipoCita(tiposCita[0]?.valor ?? 2)
+                          }}
+                        >
+                          Citar
+                        </button>
+                      ) : null}
                     </td>
                   </tr>
                 ))}
@@ -903,16 +940,23 @@ export default function RacSecundariaPage() {
       {modal ? (
         <div className="rac-modal" role="dialog" aria-modal="true">
           <div className="rac-modal-card">
-            <h3>{modal.nombre}</h3>
+            <h3>
+              {modo === 'informe'
+                ? me.role === 'psicologia'
+                  ? `Aviso de atención — ${modal.nombre}`
+                  : `Informe sobre actitud de aprendizaje — ${modal.nombre}`
+                : modo === 'cita'
+                  ? `Citatorio — ${modal.nombre}`
+                  : `Reporte / aviso — ${modal.nombre}`}
+            </h3>
+            {modo === 'informe' ? (
+              <p className="rac-mini">
+                {me.role === 'psicologia'
+                  ? 'No afecta el escalón de reportes del alumno.'
+                  : 'Envía un informe sin afectar el número de reportes del alumno.'}
+              </p>
+            ) : null}
             <div className="boletas-filters">
-              <label>
-                Acción
-                <select value={modo} onChange={(e) => setModo(e.target.value as typeof modo)}>
-                  <option value="reporte">Reporte / aviso</option>
-                  <option value="informe">Informe</option>
-                  <option value="cita">Cita</option>
-                </select>
-              </label>
               {modo === 'reporte' ? (
                 <label>
                   Motivo
@@ -951,8 +995,14 @@ export default function RacSecundariaPage() {
               ) : null}
             </div>
             <label className="rac-msg">
-              Observaciones
-              <textarea value={mensaje} onChange={(e) => setMensaje(e.target.value)} rows={4} required />
+              {modo === 'informe' ? 'Mensaje del informe' : 'Observaciones'}
+              <textarea
+                value={mensaje}
+                onChange={(e) => setMensaje(e.target.value)}
+                rows={4}
+                required
+                placeholder={modo === 'informe' ? 'Redacte aquí su informe' : undefined}
+              />
             </label>
             <div className="rac-actions">
               <button type="button" className="boletas-btn ghost" onClick={() => setModal(null)}>

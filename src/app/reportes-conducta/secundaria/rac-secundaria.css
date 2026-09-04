@@ -253,11 +253,20 @@ html[data-theme='light'] .rac-page select optgroup {
   transform: none;
 }
 
+.rac-page .rac-actions--captura {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+
 @media (max-width: 768px) {
   .rac-page .rac-actions .boletas-btn {
     min-height: 36px;
     padding: 0.3rem 0.5rem;
     font-size: 0.75rem;
+  }
+
+  .rac-page .rac-actions--captura {
+    flex-wrap: wrap;
   }
 }
 
