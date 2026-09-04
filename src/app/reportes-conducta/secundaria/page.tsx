@@ -695,29 +695,29 @@ export default function RacSecundariaPage() {
                     <td className="rac-actions">
                       {tab === 'inbox' && me.role === 'psicologia' ? (
                         <>
-                          <button type="button" className="boletas-btn primary" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'validar')}>
+                          <button type="button" className="boletas-btn success" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'validar')}>
                             Aprobar
                           </button>
-                          <button type="button" className="boletas-btn" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'denegar')}>
+                          <button type="button" className="boletas-btn danger" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'denegar')}>
                             Denegar
                           </button>
                         </>
                       ) : null}
                       {tab === 'inbox' && esAdmin ? (
                         <>
-                          <button type="button" className="boletas-btn" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'reenviar')}>
+                          <button type="button" className="boletas-btn info" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'reenviar')}>
                             Reenviar
                           </button>
-                          <button type="button" className="boletas-btn" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'confirmar')}>
+                          <button type="button" className="boletas-btn success" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'confirmar')}>
                             Confirmar
                           </button>
-                          <button type="button" className="boletas-btn" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'detener')}>
+                          <button type="button" className="boletas-btn danger" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'detener')}>
                             Detener
                           </button>
                         </>
                       ) : null}
                       {tab === 'informes' && esAdmin ? (
-                        <button type="button" className="boletas-btn" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'reenviar')}>
+                        <button type="button" className="boletas-btn info" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'reenviar')}>
                           Reenviar
                         </button>
                       ) : null}
@@ -741,14 +741,14 @@ export default function RacSecundariaPage() {
                               Validar cita
                             </button>
                           ) : null}
-                          <button type="button" className="boletas-btn" onClick={() => void accionCoord('cita', Number(row.cita_id), 'reenviar')}>
+                          <button type="button" className="boletas-btn info" onClick={() => void accionCoord('cita', Number(row.cita_id), 'reenviar')}>
                             Reenviar
                           </button>
-                          <button type="button" className="boletas-btn" onClick={() => void accionCoord('cita', Number(row.cita_id), 'confirmar')}>
+                          <button type="button" className="boletas-btn success" onClick={() => void accionCoord('cita', Number(row.cita_id), 'confirmar')}>
                             Enterado
                           </button>
                           {esAdmin ? (
-                            <button type="button" className="boletas-btn" onClick={() => void accionCoord('cita', Number(row.cita_id), 'detener')}>
+                            <button type="button" className="boletas-btn danger" onClick={() => void accionCoord('cita', Number(row.cita_id), 'detener')}>
                               Anular
                             </button>
                           ) : null}

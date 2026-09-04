@@ -574,6 +574,58 @@ html[data-theme='light'] .rac-page select optgroup {
   border-color: color-mix(in srgb, var(--rac-gold) 22%, transparent);
 }
 
+/* Acciones semánticas: contraste sólido en dark */
+.rac-page .boletas-btn.info {
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+  border-color: #7dd3fc;
+  color: #0b1220;
+  font-weight: 750;
+  box-shadow:
+    0 8px 20px rgba(2, 132, 199, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.rac-page .boletas-btn.info:hover:not(:disabled) {
+  filter: brightness(1.08);
+  box-shadow:
+    0 12px 26px rgba(2, 132, 199, 0.48),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.rac-page .boletas-btn.success {
+  background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
+  border-color: #86efac;
+  color: #052e16;
+  font-weight: 750;
+  box-shadow:
+    0 8px 20px rgba(22, 163, 74, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.rac-page .boletas-btn.success:hover:not(:disabled) {
+  filter: brightness(1.07);
+  box-shadow:
+    0 12px 26px rgba(22, 163, 74, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.rac-page .boletas-btn.danger {
+  background: linear-gradient(180deg, #fb7185 0%, #dc2626 100%);
+  border-color: #fda4af;
+  color: #450a0a;
+  font-weight: 750;
+  box-shadow:
+    0 8px 20px rgba(220, 38, 38, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.rac-page .boletas-btn.danger:hover:not(:disabled) {
+  filter: brightness(1.07);
+  box-shadow:
+    0 12px 26px rgba(220, 38, 38, 0.52),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
 .rac-page .servicios-back-btn {
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--rac-gold) 20%, transparent);
@@ -858,6 +910,39 @@ html[data-theme='light'] .rac-page .boletas-btn.ghost {
   background: transparent;
   border-color: #94a3b8;
   color: #0f172a;
+}
+
+html[data-theme='light'] .rac-page .boletas-btn.info {
+  background: linear-gradient(180deg, #0ea5e9 0%, #0369a1 100%);
+  border-color: #0284c7;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(3, 105, 161, 0.28);
+}
+
+html[data-theme='light'] .rac-page .boletas-btn.info:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+html[data-theme='light'] .rac-page .boletas-btn.success {
+  background: linear-gradient(180deg, #22c55e 0%, #15803d 100%);
+  border-color: #16a34a;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(21, 128, 61, 0.28);
+}
+
+html[data-theme='light'] .rac-page .boletas-btn.success:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+html[data-theme='light'] .rac-page .boletas-btn.danger {
+  background: linear-gradient(180deg, #f43f5e 0%, #b91c1c 100%);
+  border-color: #dc2626;
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(185, 28, 28, 0.3);
+}
+
+html[data-theme='light'] .rac-page .boletas-btn.danger:hover:not(:disabled) {
+  filter: brightness(1.05);
 }
 
 html[data-theme='light'] .rac-page .boletas-panel {
