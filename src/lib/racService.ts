@@ -508,7 +508,17 @@ export async function capturarCita(opts: {
     .select('cita_id')
     .maybeSingle()
   if (error || !data) throw new Error(error?.message || 'No se guardó la cita')
-  return { citaId: n(data.cita_id), envio: await enviarCorreoCita(n(data.cita_id)) }
+  const citaId = n(data.cita_id)
+  await sincronizarCitaGoogleCalendar({
+    citaId,
+    alumnoId: opts.alumnoId,
+    tipo: opts.tipo,
+    mensaje: opts.mensaje,
+    fecha: opts.fecha,
+    hora: opts.hora,
+    actorRole: opts.session.role,
+  })
+  return { citaId, envio: await enviarCorreoCita(citaId) }
 }
 
 async function hidratar(rows: Record<string, unknown>[]) {
@@ -744,8 +754,24 @@ export async function accionCita(
   const update: Record<string, unknown> = { cita_status: 1 }
   if (opts?.fecha && opts?.hora) update.cita_fecha = `${opts.fecha}T${opts.hora}:00`
   if (opts?.mensaje !== undefined) update.cita_mensaje = opts.mensaje
-  const { error } = await client.from('reporte_cita').update(update).eq('cita_id', id)
+  const { data: citaRow, error } = await client
+    .from('reporte_cita')
+    .update(update)
+    .eq('cita_id', id)
+    .select('cita_id, alumno_id, cita_tipo, cita_mensaje, cita_fecha, perfil_id')
+    .maybeSingle()
   if (error) throw new Error(error.message)
+  if (citaRow && opts?.fecha && opts?.hora && n(citaRow.perfil_id) === 4) {
+    await sincronizarCitaGoogleCalendar({
+      citaId: id,
+      alumnoId: n(citaRow.alumno_id),
+      tipo: n(citaRow.cita_tipo),
+      mensaje: String(opts.mensaje ?? citaRow.cita_mensaje ?? ''),
+      fecha: opts.fecha,
+      hora: opts.hora,
+      actorRole: 'psicologia',
+    })
+  }
   return enviarCorreoCita(id)
 }
 
@@ -773,9 +799,81 @@ export async function historialAlumno(query: string) {
     .select('*')
     .in('alumno_id', ids)
     .eq('reporte_ciclo_escolar', ciclo)
+    .eq('reporte_status', 1)
     .order('reporte_registro', { ascending: false })
     .limit(200)
   return { alumnos: alumnos ?? [], reportes: await hidratar((reps ?? []) as Record<string, unknown>[]) }
+}
+
+/** Historial de un alumno (kardex legacy): materia, motivo, observaciones, vuelta. */
+export async function historialDetalleAlumno(alumnoId: number) {
+  const ciclo = await cicloRac()
+  const alumno = await cargarAlumno(alumnoId)
+  if (!alumno || n(alumno.alumno_nivel) !== RAC_NIVEL_SECUNDARIA) {
+    throw new Error('Alumno no encontrado en secundaria')
+  }
+  const { data: reps, error } = await db()
+    .from('reporte_escolar')
+    .select('*')
+    .eq('alumno_id', alumnoId)
+    .eq('reporte_ciclo_escolar', ciclo)
+    .eq('reporte_status', 1)
+    .order('reporte_ciclo', { ascending: true })
+    .order('reporte_registro', { ascending: false })
+    .limit(300)
+  if (error) throw new Error(error.message)
+  return {
+    alumno: {
+      alumno_id: n(alumno.alumno_id),
+      alumno_ref: alumno.alumno_ref,
+      nombre: nombreAlumno(alumno),
+      grado: n(alumno.alumno_grado),
+      grupo: letraDesdeGrupoNum(n(alumno.alumno_grupo)),
+    },
+    reportes: await hidratar((reps ?? []) as Record<string, unknown>[]),
+  }
+}
+
+async function sincronizarCitaGoogleCalendar(opts: {
+  citaId: number
+  alumnoId: number
+  tipo: number
+  mensaje: string
+  fecha: string
+  hora: string
+  actorRole: RacSesion['role']
+}) {
+  // Solo citas de psicología secundaria → calendario AgendaW secundaria.
+  if (opts.actorRole !== 'psicologia') return
+  if (!opts.fecha || !opts.hora) return
+  const alumno = await cargarAlumno(opts.alumnoId)
+  const nombre = alumno ? nombreAlumno(alumno) : `Alumno ${opts.alumnoId}`
+  const ref = alumno?.alumno_ref ?? ''
+  const { createRacCitaCalendarEvent } = await import('@/lib/racGoogleCalendar')
+  const cal = await createRacCitaCalendarEvent({
+    summary: `Cita papás RAC — ${nombre}${ref ? ` (${ref})` : ''}`,
+    description: [
+      `Citatorio RAC secundaria`,
+      `Tipo: ${etiquetaTipoCitatorio(opts.tipo)}`,
+      `Alumno: ${nombre}`,
+      ref ? `No. control: ${ref}` : '',
+      opts.mensaje ? `Mensaje: ${opts.mensaje}` : '',
+      `cita_id: ${opts.citaId}`,
+    ]
+      .filter(Boolean)
+      .join('\n'),
+    date: opts.fecha,
+    time: opts.hora.slice(0, 5),
+    durationMinutes: 45,
+  })
+  if (cal.ok && cal.eventId) {
+    await db()
+      .from('reporte_cita')
+      .update({ cita_google_event_id: cal.eventId })
+      .eq('cita_id', opts.citaId)
+  } else if (!cal.skipped) {
+    console.warn('[rac] Google Calendar cita falló:', cal.error)
+  }
 }
 
 const PERFIL_ETIQUETA: Record<number, string> = {

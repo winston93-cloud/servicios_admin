@@ -40,6 +40,7 @@ export function tabsDeRol(role: RacRol): { id: RacTab; label: string }[] {
       { id: 'inbox', label: 'Aprobar reportes' },
       { id: 'citas', label: 'Citatorios' },
       { id: 'informes', label: 'Avisos de atención' },
+      { id: 'historial', label: 'Historial' },
     ]
   }
   return [

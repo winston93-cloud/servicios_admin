@@ -4,7 +4,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import { etiquetaGradoStaffSecundaria } from '@/lib/racCatalogo'
 import { opcionesMotivo } from '@/lib/racUi'
 import { etiquetaRol, esPanelAdminRac, tabsDeRol, tiposCapturaDeRol, tiposCitaDeRol, type RacTab } from '@/lib/racPermisos'
-import { ArrowLeft, Download, Eye, EyeOff, LogOut, Mail, Search, Send } from 'lucide-react'
+import { ArrowLeft, Download, Eye, EyeOff, FolderOpen, LogOut, Mail, Search, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import '../../dashboard/dashboard-module-card.css'
@@ -184,6 +184,10 @@ export default function RacSecundariaPage() {
   const [tipoCita, setTipoCita] = useState(2)
   const [citaValidar, setCitaValidar] = useState<CitaFila | null>(null)
   const [detalleVista, setDetalleVista] = useState<Record<string, unknown> | null>(null)
+  const [historialKardex, setHistorialKardex] = useState<{
+    alumno: { alumno_id: number; alumno_ref: string | number | null; nombre: string; grado: number; grupo: string }
+    reportes: Record<string, unknown>[]
+  } | null>(null)
   const [historialAlumnos, setHistorialAlumnos] = useState<AlumnoBusqueda[]>([])
   const [historialAlumnoId, setHistorialAlumnoId] = useState(0)
   const [historialTipo, setHistorialTipo] = useState(1)
@@ -307,6 +311,28 @@ export default function RacSecundariaPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me, tab, asigKey, tipo])
 
+  async function abrirHistorialAlumno(alumnoId: number) {
+    setBusy(true)
+    setMsg('')
+    try {
+      const data = await api<{
+        alumno: {
+          alumno_id: number
+          alumno_ref: string | number | null
+          nombre: string
+          grado: number
+          grupo: string
+        }
+        reportes: Record<string, unknown>[]
+      }>(`/api/rac/captura?historialAlumnoId=${alumnoId}`)
+      setHistorialKardex(data)
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'No se pudo cargar el historial')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function enviarCaptura() {
     if (!modal || !asig) return
     setBusy(true)
@@ -403,6 +429,10 @@ export default function RacSecundariaPage() {
   /** Misma captura que legacy coord: Reportar + Informe + Citar (prefectura y dirección). */
   const capturaConInformeYCita = esAdmin || me?.role === 'psicologia'
   const capturaConInforme = capturaConInformeYCita || me?.role === 'maestro'
+  const listaVisible =
+    tab === 'historial' && historialAlumnoId
+      ? lista.filter((r) => Number(r.alumno_id) === historialAlumnoId)
+      : lista
   const idsListaReportes = useMemo(
     () =>
       puedeSeleccionarMasivo
@@ -640,6 +670,16 @@ export default function RacSecundariaPage() {
                     <td className="rac-actions rac-actions--captura">
                       <button
                         type="button"
+                        className="boletas-btn ghost rac-btn-icon"
+                        title="Historial de reportes (materia, motivo y observaciones)"
+                        aria-label={`Historial de ${a.nombre}`}
+                        onClick={() => void abrirHistorialAlumno(a.alumno_id)}
+                      >
+                        <FolderOpen size={16} aria-hidden />
+                        <span className="rac-btn-label">Historial</span>
+                      </button>
+                      <button
+                        type="button"
                         className="boletas-btn primary"
                         title="Crear reporte / aviso (escalones)"
                         onClick={() => {
@@ -829,7 +869,7 @@ export default function RacSecundariaPage() {
                 </tr>
               </thead>
               <tbody>
-                {lista.map((row, i) => {
+                {listaVisible.map((row, i) => {
                   const reporteId = Number(row.reporte_id)
                   return (
                   <tr key={String(row.reporte_id ?? row.cita_id ?? row.suspension_id ?? i)}>
@@ -853,6 +893,9 @@ export default function RacSecundariaPage() {
                     </td>
                     <td>
                       {String(row.escalon ?? row.tipoEtiqueta ?? row.materia ?? '')}
+                      {row.materia ? (
+                        <span className="rac-mini">Materia: {String(row.materia)}</span>
+                      ) : null}
                       <span className="rac-mini">{String(row.motivo ?? row.mensaje ?? '')}</span>
                     </td>
                     <td>{String(row.fecha ?? '—')}</td>
@@ -960,6 +1003,46 @@ export default function RacSecundariaPage() {
             </table>
           </div>
         </section>
+      ) : null}
+
+      {historialKardex ? (
+        <div className="rac-modal" role="dialog" aria-modal="true" aria-labelledby="rac-historial-title">
+          <div className="rac-modal-card rac-detalle-card">
+            <h3 id="rac-historial-title">Historial de reportes</h3>
+            <p className="rac-mini">
+              {historialKardex.alumno.nombre} · {String(historialKardex.alumno.alumno_ref ?? '—')} ·{' '}
+              {historialKardex.alumno.grado}° {historialKardex.alumno.grupo}
+            </p>
+            {historialKardex.reportes.length === 0 ? (
+              <p>Sin historial en el ciclo actual.</p>
+            ) : (
+              <div className="rac-historial-lista">
+                {historialKardex.reportes.map((r) => (
+                  <section key={String(r.reporte_id)} className="rac-historial-item">
+                    <strong>
+                      {String(r.escalon ?? r.tipoEtiqueta ?? 'Reporte')}
+                      {r.vuelta != null ? ` · Vuelta ${String(r.vuelta)}` : ''}
+                    </strong>
+                    {r.materia ? <div>Materia: {String(r.materia)}</div> : null}
+                    {r.motivo ? <div>Motivo: {String(r.motivo)}</div> : null}
+                    <div className="rac-detalle-obs">
+                      Observaciones: {String(r.mensaje || '—')}
+                    </div>
+                    <div className="rac-mini">
+                      Fecha: {String(r.fecha ?? '—')} · Enviado: {r.enviado ? 'Sí' : 'No'} · Confirmado:{' '}
+                      {r.confirmado ? 'Sí' : 'No'}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
+            <div className="rac-actions">
+              <button type="button" className="boletas-btn primary" onClick={() => setHistorialKardex(null)}>
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {detalleVista ? (

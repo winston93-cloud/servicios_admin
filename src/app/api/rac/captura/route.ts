@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server'
 import { jsonRacError, requireRacSession } from '@/lib/racAuth'
-import { capturarCita, capturarInforme, capturarReporte, listarGrupoCaptura } from '@/lib/racService'
+import { capturarCita, capturarInforme, capturarReporte, historialDetalleAlumno, listarGrupoCaptura } from '@/lib/racService'
 
 export async function GET(req: Request) {
   try {
     await requireRacSession(req)
     const url = new URL(req.url)
+    const historialAlumnoId = Number(url.searchParams.get('historialAlumnoId') ?? 0)
+    if (historialAlumnoId > 0) {
+      const data = await historialDetalleAlumno(historialAlumnoId)
+      return NextResponse.json(data)
+    }
     const materiaId = Number(url.searchParams.get('materiaId') ?? 0)
     const grado = Number(url.searchParams.get('grado') ?? 0)
     const grupo = String(url.searchParams.get('grupo') ?? 'A')
