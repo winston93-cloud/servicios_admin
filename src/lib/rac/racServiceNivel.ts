@@ -516,7 +516,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     mensaje: string
   }) {
     const { fisica } = await listarAsignaciones(opts.session)
-    if (!puedeCapturarTipoNivel(opts.session.role, opts.tipo, fisica)) {
+    if (!puedeCapturarTipoNivel(opts.session.role, opts.tipo, fisica, cfg)) {
       throw new RacNivelAuthError('Este tipo de reporte no corresponde a tu cuenta', 403)
     }
     const ciclo = await cicloRac()

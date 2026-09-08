@@ -11,7 +11,7 @@ export async function GET(req: Request, { params }: Params) {
     const { slug } = await params
     const cfg = cfgDesdeRequestSlug(slug)
     const session = await requireRacNivelSession(cfg, req)
-    if (!puedePdfNivel(session.role)) {
+    if (!puedePdfNivel(session.role, cfg)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
     const svc = getServiceForSlug(slug)

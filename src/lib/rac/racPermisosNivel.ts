@@ -24,18 +24,23 @@ export function etiquetaRolNivel(role: RacRolNivel, cfg: RacNivelConfig): string
   return 'Coordinación'
 }
 
-/** Control escolar = Dirección = Coordinación: mismo panel (espejo Prefectura en secundaria). */
-function esPanelAdmin(role: RacRolNivel): boolean {
-  return role === 'coordinacion' || role === 'direccion' || role === 'control_escolar'
+/** En maternal/kinder no opera la cuenta de prefecta; admin = dirección/coordinación. */
+function esPanelAdmin(role: RacRolNivel, cfg?: Pick<RacNivelConfig, 'slug'>): boolean {
+  if (role === 'coordinacion' || role === 'direccion') return true
+  if (role === 'control_escolar') return cfg?.slug !== 'maternal-kinder'
+  return false
 }
 
-export function esPanelAdminNivel(role: RacRolNivel): boolean {
-  return esPanelAdmin(role)
+export function esPanelAdminNivel(
+  role: RacRolNivel,
+  cfg?: Pick<RacNivelConfig, 'slug'>
+): boolean {
+  return esPanelAdmin(role, cfg)
 }
 
 export function tabsDeRolNivel(
   role: RacRolNivel,
-  _cfg?: RacNivelConfig
+  cfg?: RacNivelConfig
 ): { id: RacTabNivel; label: string }[] {
   if (role === 'maestro') {
     return [
@@ -52,7 +57,13 @@ export function tabsDeRolNivel(
       { id: 'historial', label: 'Historial' },
     ]
   }
-  // Panel admin completo (dirección / coordinación / control escolar).
+  // Maternal/Kinder: sin prefecta — control escolar no tiene panel operativo aquí.
+  if (role === 'control_escolar' && cfg?.slug === 'maternal-kinder') {
+    return [
+      { id: 'citas', label: 'Citatorios' },
+    ]
+  }
+  // Panel admin completo (dirección / coordinación / control escolar en primaria).
   return [
     { id: 'inbox', label: 'Listado sin confirmar' },
     { id: 'suspensiones', label: 'Suspensión' },
@@ -63,18 +74,33 @@ export function tabsDeRolNivel(
   ]
 }
 
-export function tiposCapturaDeRolNivel(role: RacRolNivel, fisica: boolean) {
+export function tiposCapturaDeRolNivel(
+  role: RacRolNivel,
+  fisica: boolean,
+  cfg?: Pick<RacNivelConfig, 'slug'>
+) {
   if (role === 'psicologia') return [{ valor: RAC_TIPOS.conducta, etiqueta: 'Conducta' }]
   if (role === 'maestro') {
-    return fisica
+    // Maternal/Kinder: no hay prefecta; maestras/teachers también capturan uniforme.
+    const conUniforme = fisica || cfg?.slug === 'maternal-kinder'
+    return conUniforme
       ? [...RAC_TIPOS_CAPTURA_MAESTRO, { valor: RAC_TIPOS.uniforme, etiqueta: 'Uniforme' }]
       : RAC_TIPOS_CAPTURA_MAESTRO
+  }
+  // En maternal/kinder la cuenta de prefecta/control escolar no opera captura de uniforme.
+  if (cfg?.slug === 'maternal-kinder' && role === 'control_escolar') {
+    return [...RAC_TIPOS_CAPTURA_MAESTRO]
   }
   return [...RAC_TIPOS_CAPTURA_MAESTRO, ...RAC_TIPOS_PREFECTURA]
 }
 
-export function puedeCapturarTipoNivel(role: RacRolNivel, tipo: number, fisica = false): boolean {
-  return tiposCapturaDeRolNivel(role, fisica).some((t) => t.valor === tipo)
+export function puedeCapturarTipoNivel(
+  role: RacRolNivel,
+  tipo: number,
+  fisica = false,
+  cfg?: Pick<RacNivelConfig, 'slug'>
+): boolean {
+  return tiposCapturaDeRolNivel(role, fisica, cfg).some((t) => t.valor === tipo)
 }
 
 export function puedeInformeNivel(role: RacRolNivel): boolean {
@@ -87,17 +113,24 @@ export function tiposCitaDeRolNivel(role: RacRolNivel) {
   return [...RAC_TIPOS_CAPTURA_MAESTRO, ...RAC_TIPOS_PREFECTURA]
 }
 
-export function puedePdfNivel(role: RacRolNivel): boolean {
-  return esPanelAdmin(role)
+export function puedePdfNivel(
+  role: RacRolNivel,
+  cfg?: Pick<RacNivelConfig, 'slug'>
+): boolean {
+  return esPanelAdmin(role, cfg)
 }
 
-export function puedeVerVistaCoordNivel(role: RacRolNivel, vista: string): boolean {
-  const ids = new Set(tabsDeRolNivel(role).map((t) => t.id))
+export function puedeVerVistaCoordNivel(
+  role: RacRolNivel,
+  vista: string,
+  cfg?: RacNivelConfig
+): boolean {
+  const ids = new Set(tabsDeRolNivel(role, cfg).map((t) => t.id))
   if (vista === 'citas') return ids.has('citas')
   if (vista === 'suspensiones') return ids.has('suspensiones')
   if (vista === 'historial') return ids.has('historial')
   if (vista === 'informes') return ids.has('informes')
-  if (vista === 'control_escolar') return esPanelAdmin(role)
+  if (vista === 'control_escolar') return esPanelAdmin(role, cfg)
   if (vista === 'pendientes' || vista === 'todos') return ids.has('inbox')
   return false
 }

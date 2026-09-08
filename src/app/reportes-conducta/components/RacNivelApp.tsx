@@ -152,7 +152,9 @@ function LoginPanel({
       <p className="racn-login-kicker">Acceso docente · {config.titulo}</p>
       <h2>Ingresar a {config.titulo}</h2>
       <p className="racn-login-lead">
-        Maestro(a), Teacher, psicología, {config.etiquetaOperaciones.toLowerCase()} o dirección/coordinación.
+        {config.slug === 'maternal-kinder'
+          ? 'Maestro(a), Teacher, psicología o dirección/coordinación. Las docentes capturan académico, conducta (con visto bueno de psicología) y uniforme — no hay cuenta de prefecta en este nivel.'
+          : `Maestro(a), Teacher, psicología, ${config.etiquetaOperaciones.toLowerCase()} o dirección/coordinación.`}
         {config.modoGradoGrupo
           ? ' Los docentes entran con su grupo ya asignado — no eligen materia.'
           : ''}
@@ -226,8 +228,8 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   }, [asigKey, asignaciones])
 
   const tiposCaptura = useMemo(
-    () => (me ? tiposCapturaDeRolNivel(me.role, fisica) : []),
-    [me, fisica]
+    () => (me ? tiposCapturaDeRolNivel(me.role, fisica, config) : []),
+    [me, fisica, config]
   )
   const tabs = me ? tabsDeRolNivel(me.role, config) : []
   const tiposCita = me ? tiposCitaDeRolNivel(me.role) : []
@@ -246,7 +248,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
       }
       const nextTabs = tabsDeRolNivel(data.me.role, config)
       setTab((prev) => (nextTabs.some((t) => t.id === prev) ? prev : nextTabs[0]?.id ?? 'captura'))
-      const tipos = tiposCapturaDeRolNivel(data.me.role, Boolean(data.fisica))
+      const tipos = tiposCapturaDeRolNivel(data.me.role, Boolean(data.fisica), config)
       if (tipos[0]) setTipo(tipos[0].valor)
     } catch {
       setMe(null)
@@ -418,14 +420,14 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
       .catch((e) => setMsg(e instanceof Error ? e.message : 'Error al descargar PDF'))
   }
 
-  const esAdmin = Boolean(me && esPanelAdminNivel(me.role))
+  const esAdmin = Boolean(me && esPanelAdminNivel(me.role, config))
   const esMaestro = me?.role === 'maestro'
   const unSoloGrupo = esMaestro && asignaciones.length === 1
   const sinAsignaciones = asignaciones.length === 0
   const puedeSeleccionarMasivo = Boolean(esAdmin && (tab === 'inbox' || tab === 'informes'))
   const capturaConInformeYCita = esAdmin || me?.role === 'psicologia'
   const capturaConInforme = capturaConInformeYCita || me?.role === 'maestro'
-  const puedePdf = Boolean(me && puedePdfNivel(me.role))
+  const puedePdf = Boolean(me && puedePdfNivel(me.role, config))
   const listaVisible =
     tab === 'historial' && historialAlumnoId
       ? lista.filter((r) => Number(r.alumno_id) === historialAlumnoId)

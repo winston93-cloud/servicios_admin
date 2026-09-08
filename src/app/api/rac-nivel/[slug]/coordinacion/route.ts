@@ -13,7 +13,7 @@ export async function GET(req: Request, { params }: Params) {
     const svc = getServiceForSlug(slug)
     const url = new URL(req.url)
     const vista = url.searchParams.get('vista') ?? 'pendientes'
-    if (!puedeVerVistaCoordNivel(session.role, vista)) {
+    if (!puedeVerVistaCoordNivel(session.role, vista, cfg)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
     if (vista === 'citas') return NextResponse.json({ filas: await svc.inboxCitas(session) })
