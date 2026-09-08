@@ -369,6 +369,52 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     return data as AlumnoRow
   }
 
+  async function sincronizarCitaGoogleCalendar(opts: {
+    citaId: number
+    alumnoId: number
+    tipo: number
+    mensaje: string
+    fecha: string
+    hora: string
+    actorRole: RacSesionNivel['role']
+  }) {
+    if (opts.actorRole !== 'psicologia') return
+    if (!opts.fecha || !opts.hora) return
+    const alumno = await cargarAlumno(opts.alumnoId)
+    const nombre = nombreAlumno(alumno)
+    const ref = alumno.alumno_ref ?? ''
+    const level = cfg.slug === 'primaria' ? 'primaria' : 'maternal-kinder'
+    const { createRacCitaCalendarEvent, etiquetaNivelRacCalendar } = await import(
+      '@/lib/racGoogleCalendar'
+    )
+    const nivelEtiqueta = etiquetaNivelRacCalendar(level)
+    const cal = await createRacCitaCalendarEvent({
+      level,
+      summary: `Cita papás RAC — ${nombre}${ref ? ` (${ref})` : ''}`,
+      description: [
+        `Citatorio RAC ${nivelEtiqueta}`,
+        `Tipo: ${etiquetaTipoCitatorio(opts.tipo)}`,
+        `Alumno: ${nombre}`,
+        ref ? `No. control: ${ref}` : '',
+        opts.mensaje ? `Mensaje: ${opts.mensaje}` : '',
+        `cita_id: ${opts.citaId}`,
+      ]
+        .filter(Boolean)
+        .join('\n'),
+      date: opts.fecha,
+      time: opts.hora.slice(0, 5),
+      durationMinutes: 45,
+    })
+    if (cal.ok && cal.eventId) {
+      await db()
+        .from('reporte_cita')
+        .update({ cita_google_event_id: cal.eventId })
+        .eq('cita_id', opts.citaId)
+    } else if (!cal.skipped) {
+      console.warn(`[rac-nivel:${cfg.slug}] Google Calendar cita falló:`, cal.error)
+    }
+  }
+
   async function enviarCorreoReporte(reporteId: number) {
     const client = db()
     const { data: r } = await client.from('reporte_escolar').select('*').eq('reporte_id', reporteId).maybeSingle()
@@ -610,7 +656,17 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .select('cita_id')
       .maybeSingle()
     if (error || !data) throw new Error(error?.message || 'No se guardó la cita')
-    return { citaId: n(data.cita_id), envio: await enviarCorreoCita(n(data.cita_id)) }
+    const citaId = n(data.cita_id)
+    await sincronizarCitaGoogleCalendar({
+      citaId,
+      alumnoId: opts.alumnoId,
+      tipo: opts.tipo,
+      mensaje: opts.mensaje,
+      fecha: opts.fecha,
+      hora: opts.hora,
+      actorRole: opts.session.role,
+    })
+    return { citaId, envio: await enviarCorreoCita(citaId) }
   }
 
   async function hidratar(rows: Record<string, unknown>[]) {
@@ -867,9 +923,24 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     const update: Record<string, unknown> = { cita_status: 1 }
     if (opts?.fecha && opts?.hora) update.cita_fecha = `${opts.fecha}T${opts.hora}:00`
     if (opts?.mensaje !== undefined) update.cita_mensaje = opts.mensaje
-    const { error } = await client.from('reporte_cita').update(update).eq('cita_id', id)
+    const { data: citaRow, error } = await client
+      .from('reporte_cita')
+      .update(update)
+      .eq('cita_id', id)
+      .select('cita_id, alumno_id, cita_tipo, cita_mensaje, cita_fecha, perfil_id')
+      .maybeSingle()
     if (error) throw new Error(error.message)
-    // Sin Google Calendar en primaria/kinder (solo secundaria).
+    if (citaRow && opts?.fecha && opts?.hora && n(citaRow.perfil_id) === 4) {
+      await sincronizarCitaGoogleCalendar({
+        citaId: id,
+        alumnoId: n(citaRow.alumno_id),
+        tipo: n(citaRow.cita_tipo),
+        mensaje: String(opts.mensaje ?? citaRow.cita_mensaje ?? ''),
+        fecha: opts.fecha,
+        hora: opts.hora,
+        actorRole: 'psicologia',
+      })
+    }
     return enviarCorreoCita(id)
   }
 

@@ -851,6 +851,7 @@ async function sincronizarCitaGoogleCalendar(opts: {
   const ref = alumno?.alumno_ref ?? ''
   const { createRacCitaCalendarEvent } = await import('@/lib/racGoogleCalendar')
   const cal = await createRacCitaCalendarEvent({
+    level: 'secundaria',
     summary: `Cita papás RAC — ${nombre}${ref ? ` (${ref})` : ''}`,
     description: [
       `Citatorio RAC secundaria`,

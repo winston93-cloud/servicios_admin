@@ -1,10 +1,21 @@
 /**
- * Sync de citas RAC → Google Calendar (misma cuenta de servicio que AgendaW).
- * Destino por defecto: calendario de psicología secundaria.
+ * Sync de citas RAC → Google Calendar (misma cuenta de servicio y calendarios que AgendaW).
+ * Un calendario por psicóloga de nivel:
+ * - maternal/kinder → GOOGLE_CALENDAR_PSICOLOGA_EDUCATIVO
+ * - primaria → GOOGLE_CALENDAR_PSICOLOGA_PRIMARIA
+ * - secundaria → GOOGLE_CALENDAR_PSICOLOGA_SECUNDARIA
  */
 import { google } from 'googleapis'
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar.events']
+
+export type RacPsicologaCalendarLevel =
+  | 'maternal'
+  | 'kinder'
+  | 'maternal-kinder'
+  | 'educativo'
+  | 'primaria'
+  | 'secundaria'
 
 function getAuthClient(impersonateEmail: string) {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
@@ -25,21 +36,50 @@ function formatLocal(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`
 }
 
+/** Mismo mapeo que AgendaW `getPsicologaCalendarId`. */
+export function getRacPsicologaCalendarId(level: RacPsicologaCalendarLevel): string | null {
+  if (level === 'maternal' || level === 'kinder' || level === 'maternal-kinder' || level === 'educativo') {
+    return process.env.GOOGLE_CALENDAR_PSICOLOGA_EDUCATIVO?.trim() || null
+  }
+  if (level === 'primaria') {
+    return process.env.GOOGLE_CALENDAR_PSICOLOGA_PRIMARIA?.trim() || null
+  }
+  if (level === 'secundaria') {
+    return process.env.GOOGLE_CALENDAR_PSICOLOGA_SECUNDARIA?.trim() || null
+  }
+  return null
+}
+
+export function etiquetaNivelRacCalendar(level: RacPsicologaCalendarLevel): string {
+  if (level === 'maternal' || level === 'kinder' || level === 'maternal-kinder' || level === 'educativo') {
+    return 'Maternal / Kinder'
+  }
+  if (level === 'primaria') return 'Primaria'
+  return 'Secundaria'
+}
+
 export type RacCalendarEventInput = {
   summary: string
   description?: string
   date: string
   time: string
   durationMinutes?: number
+  /** Nivel del módulo RAC / AgendaW. Default secundaria (compat). */
+  level?: RacPsicologaCalendarLevel
 }
 
-/** Crea evento en el calendario de Psicología Secundaria (AgendaW). */
+/** Crea evento en el calendario de psicología del nivel indicado. */
 export async function createRacCitaCalendarEvent(
   eventData: RacCalendarEventInput
 ): Promise<{ ok: boolean; eventId?: string; error?: string; skipped?: boolean }> {
-  const calendarId = process.env.GOOGLE_CALENDAR_PSICOLOGA_SECUNDARIA?.trim()
+  const level = eventData.level ?? 'secundaria'
+  const calendarId = getRacPsicologaCalendarId(level)
   if (!calendarId) {
-    return { ok: false, skipped: true, error: 'Sin GOOGLE_CALENDAR_PSICOLOGA_SECUNDARIA' }
+    return {
+      ok: false,
+      skipped: true,
+      error: `Sin calendar ID para nivel ${level}`,
+    }
   }
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY) {
     return { ok: false, skipped: true, error: 'Sin credenciales Google Service Account' }
