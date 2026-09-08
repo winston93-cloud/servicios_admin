@@ -70,6 +70,11 @@ export const DASHBOARD_MODULE_PREVIEWS: Record<string, DashboardModulePreview> =
       'RRHH documental: genera contratos laborales (determinado, indeterminado y por hora) en PDF/DOCX listos para firma y archivo.',
     highlights: ['3 tipos de contrato', 'PDF y Word', 'Gestión centralizada'],
   },
+  Checador: {
+    synopsis:
+      'Reloj checador del personal: registra entradas y salidas del equipo desde el módulo de asistencia.',
+    highlights: ['Asistencia', 'Checadas', 'Personal'],
+  },
   Boletas: {
     synopsis:
       'Boletas de secundaria: captura de calificaciones, PDF, reportes de promedio (ciclos históricos) y envío autenticado.',

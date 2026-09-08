@@ -270,6 +270,20 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    label: 'Checador',
+    desc: 'Reloj checador de asistencia del personal.',
+    href: 'https://reloj-checador-ruddy.vercel.app/',
+    accent: 'indigo',
+    kicker: 'Empleados',
+    tags: ['Asistencia', 'Checadas'],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <polyline points="12 7 12 12 15 14" />
+      </svg>
+    ),
+  },
+  {
     label: 'Boletas',
     desc: 'Captura, consulta, PDF y promedios de secundaria (ciclos actuales y pasados).',
     path: '/boletas-secundaria',
