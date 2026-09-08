@@ -448,8 +448,154 @@
   color: #fff;
 }
 
+.racn-btn.info {
+  background: color-mix(in srgb, #0284c7 88%, #0f172a);
+  border-color: transparent;
+  color: #f8fafc;
+}
+
+.racn-btn.success {
+  background: color-mix(in srgb, #15803d 88%, #0f172a);
+  border-color: transparent;
+  color: #f8fafc;
+}
+
+.racn-btn.danger {
+  background: color-mix(in srgb, #b91c1c 88%, #0f172a);
+  border-color: transparent;
+  color: #f8fafc;
+}
+
+.racn-btn.download {
+  background: color-mix(in srgb, var(--racn-role, #0e7490) 78%, #0f172a);
+  border-color: transparent;
+  color: #f8fafc;
+}
+
 .racn-btn.ghost {
   background: transparent;
+}
+
+.racn-btn-icon {
+  gap: 0.35rem;
+}
+
+.racn-btn-label {
+  font-size: 0.8rem;
+}
+
+@media (max-width: 640px) {
+  .racn-btn-label {
+    display: none;
+  }
+}
+
+.racn-actions--captura {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: min(100%, 18rem);
+}
+
+.racn-check-col {
+  width: 2.75rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.racn-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--touch-min, 44px);
+  min-height: var(--touch-min, 44px);
+  margin: 0;
+  cursor: pointer;
+}
+
+.racn-check input[type='checkbox'] {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--racn-role, #0e7490);
+  cursor: pointer;
+}
+
+.racn-flag {
+  display: inline-block;
+  padding: 0.12rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.racn-flag--si {
+  background: color-mix(in srgb, #16a34a 22%, transparent);
+  color: #86efac;
+}
+
+.racn-flag--no {
+  background: color-mix(in srgb, #64748b 22%, transparent);
+  color: #cbd5e1;
+}
+
+[data-theme='light'] .racn-flag--si {
+  color: #166534;
+}
+
+[data-theme='light'] .racn-flag--no {
+  color: #475569;
+}
+
+.racn-detalle-card {
+  width: min(100%, 560px);
+}
+
+.racn-detalle-dl {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.racn-detalle-dl > div {
+  display: grid;
+  gap: 2px;
+}
+
+.racn-detalle-dl dt {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dash-muted, #94a3b8);
+}
+
+.racn-detalle-dl dd {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.racn-detalle-obs {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.racn-historial-lista {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 16px;
+  max-height: min(50dvh, 420px);
+  overflow: auto;
+}
+
+.racn-historial-item {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--racn-border, rgba(255, 255, 255, 0.12));
+  background: color-mix(in srgb, var(--dash-card-bg, #1a1b21) 88%, #000);
+}
+
+.racn-historial-item strong {
+  display: block;
+  margin-bottom: 4px;
 }
 
 .racn-table-wrap {

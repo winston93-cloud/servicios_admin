@@ -1,7 +1,11 @@
 import type { RacRolNivel } from './racNivelConfig'
 import type { RacNivelConfig } from './racNivelConfig'
 import { RAC_TIPOS } from '@/lib/racCatalogo'
-import { RAC_TIPOS_CAPTURA_MAESTRO, RAC_TIPOS_PREFECTURA } from '@/lib/racUi'
+import {
+  RAC_TIPOS_CAPTURA_MAESTRO,
+  RAC_TIPOS_CITA_PSICOLOGIA,
+  RAC_TIPOS_PREFECTURA,
+} from '@/lib/racUi'
 
 export type RacTabNivel =
   | 'captura'
@@ -20,7 +24,19 @@ export function etiquetaRolNivel(role: RacRolNivel, cfg: RacNivelConfig): string
   return 'Coordinación'
 }
 
-export function tabsDeRolNivel(role: RacRolNivel, cfg: RacNivelConfig): { id: RacTabNivel; label: string }[] {
+/** Control escolar = Dirección = Coordinación: mismo panel (espejo Prefectura en secundaria). */
+function esPanelAdmin(role: RacRolNivel): boolean {
+  return role === 'coordinacion' || role === 'direccion' || role === 'control_escolar'
+}
+
+export function esPanelAdminNivel(role: RacRolNivel): boolean {
+  return esPanelAdmin(role)
+}
+
+export function tabsDeRolNivel(
+  role: RacRolNivel,
+  _cfg?: RacNivelConfig
+): { id: RacTabNivel; label: string }[] {
   if (role === 'maestro') {
     return [
       { id: 'captura', label: 'Captura' },
@@ -33,14 +49,10 @@ export function tabsDeRolNivel(role: RacRolNivel, cfg: RacNivelConfig): { id: Ra
       { id: 'inbox', label: 'Aprobar reportes' },
       { id: 'citas', label: 'Citatorios' },
       { id: 'informes', label: 'Avisos de atención' },
+      { id: 'historial', label: 'Historial' },
     ]
   }
-  if (role === 'control_escolar') {
-    return [
-      { id: 'control_escolar', label: cfg.etiquetaOperaciones },
-      { id: 'citas', label: 'Citatorios' },
-    ]
-  }
+  // Panel admin completo (dirección / coordinación / control escolar).
   return [
     { id: 'inbox', label: 'Listado sin confirmar' },
     { id: 'suspensiones', label: 'Suspensión' },
@@ -53,7 +65,6 @@ export function tabsDeRolNivel(role: RacRolNivel, cfg: RacNivelConfig): { id: Ra
 
 export function tiposCapturaDeRolNivel(role: RacRolNivel, fisica: boolean) {
   if (role === 'psicologia') return [{ valor: RAC_TIPOS.conducta, etiqueta: 'Conducta' }]
-  if (role === 'control_escolar') return RAC_TIPOS_PREFECTURA
   if (role === 'maestro') {
     return fisica
       ? [...RAC_TIPOS_CAPTURA_MAESTRO, { valor: RAC_TIPOS.uniforme, etiqueta: 'Uniforme' }]
@@ -67,22 +78,32 @@ export function puedeCapturarTipoNivel(role: RacRolNivel, tipo: number, fisica =
 }
 
 export function puedeInformeNivel(role: RacRolNivel): boolean {
-  return role !== 'control_escolar'
-}
-
-export function puedeVerVistaCoordNivel(role: RacRolNivel, vista: string): boolean {
-  if (role === 'maestro') return vista === 'citas'
-  if (role === 'psicologia') {
-    return ['captura', 'inbox', 'citas', 'informes'].includes(vista) || vista === 'pendientes'
-  }
-  if (role === 'control_escolar') {
-    return vista === 'control_escolar' || vista === 'citas'
-  }
+  void role
   return true
 }
 
+export function tiposCitaDeRolNivel(role: RacRolNivel) {
+  if (role === 'psicologia') return RAC_TIPOS_CITA_PSICOLOGIA
+  return [...RAC_TIPOS_CAPTURA_MAESTRO, ...RAC_TIPOS_PREFECTURA]
+}
+
+export function puedePdfNivel(role: RacRolNivel): boolean {
+  return esPanelAdmin(role)
+}
+
+export function puedeVerVistaCoordNivel(role: RacRolNivel, vista: string): boolean {
+  const ids = new Set(tabsDeRolNivel(role).map((t) => t.id))
+  if (vista === 'citas') return ids.has('citas')
+  if (vista === 'suspensiones') return ids.has('suspensiones')
+  if (vista === 'historial') return ids.has('historial')
+  if (vista === 'informes') return ids.has('informes')
+  if (vista === 'control_escolar') return esPanelAdmin(role)
+  if (vista === 'pendientes' || vista === 'todos') return ids.has('inbox')
+  return false
+}
+
 export function puedeAccionCoordNivel(role: RacRolNivel, entidad: string, accion: string): boolean {
-  if (role === 'maestro' || role === 'control_escolar') return false
+  if (role === 'maestro') return false
   if (role === 'psicologia') {
     if (entidad === 'reporte') return accion === 'validar' || accion === 'denegar'
     if (entidad === 'cita') return accion === 'reenviar' || accion === 'confirmar'
