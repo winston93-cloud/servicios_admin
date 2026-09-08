@@ -1,16 +1,34 @@
 'use client'
 
 import ThemeToggle from '@/components/ThemeToggle'
+import { RAC_TIPOS } from '@/lib/racCatalogo'
 import type { RacNivelConfig } from '@/lib/rac/racNivelConfig'
 import type { RacRolNivel } from '@/lib/rac/racNivelConfig'
 import {
+  esPanelAdminNivel,
   etiquetaRolNivel,
+  puedePdfNivel,
   tabsDeRolNivel,
   tiposCapturaDeRolNivel,
+  tiposCitaDeRolNivel,
   type RacTabNivel,
 } from '@/lib/rac/racPermisosNivel'
 import { opcionesMotivo } from '@/lib/racUi'
-import { ArrowLeft, LogOut, RefreshCw, Send, Sparkles, Users, UsersRound } from 'lucide-react'
+import {
+  ArrowLeft,
+  Download,
+  Eye,
+  EyeOff,
+  FolderOpen,
+  LogOut,
+  Mail,
+  RefreshCw,
+  Search,
+  Send,
+  Sparkles,
+  Users,
+  UsersRound,
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import '../../dashboard/dashboard-module-card.css'
@@ -50,6 +68,23 @@ type AlumnoFila = {
   r3: string
 }
 
+type AlumnoBusqueda = {
+  alumno_id: number
+  alumno_ref: string | number | null
+  alumno_app: string | null
+  alumno_apm: string | null
+  alumno_nombre: string | null
+}
+
+type CitaFila = {
+  cita_id: number
+  nombre: string
+  mensaje: string
+  fecha: string
+  status: number
+  tipoEtiqueta: string
+}
+
 type RacNivelAppProps = {
   config: RacNivelConfig
   themeClass: string
@@ -82,6 +117,14 @@ function ChipFecha({ valor }: { valor: string }) {
   )
 }
 
+function ChipSiNo({ valor }: { valor: boolean }) {
+  return (
+    <span className={valor ? 'racn-flag racn-flag--si' : 'racn-flag racn-flag--no'}>
+      {valor ? 'Sí' : 'No'}
+    </span>
+  )
+}
+
 function LoginPanel({
   config,
   onOk,
@@ -91,6 +134,7 @@ function LoginPanel({
 }) {
   const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
+  const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -101,7 +145,7 @@ function LoginPanel({
     try {
       await api(`${config.apiBase}/auth/login`, {
         method: 'POST',
-        body: JSON.stringify({ usuario, password }),
+        body: JSON.stringify({ usuario: usuario.trim(), password: password.trim() }),
       })
       onOk()
     } catch (err) {
@@ -112,7 +156,7 @@ function LoginPanel({
   }
 
   return (
-    <form className="racn-login-card" onSubmit={(ev) => void submit(ev)}>
+    <form className="racn-login-card" onSubmit={(ev) => void submit(ev)} autoComplete="off">
       <p className="racn-login-kicker">Acceso docente · {config.titulo}</p>
       <h2>Ingresar a {config.titulo}</h2>
       <p className="racn-login-lead">
@@ -126,21 +170,39 @@ function LoginPanel({
         <input
           value={usuario}
           onChange={(e) => setUsuario(e.target.value)}
-          autoComplete="username"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          name={`rac-${config.slug}-usuario`}
           placeholder="Tu usuario"
           required
         />
       </label>
       <label>
         Contraseña
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-          required
-        />
+        <span className="racn-login-pw-wrap">
+          <input
+            type={showPw ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            name={`rac-${config.slug}-clave`}
+            required
+          />
+          <button
+            type="button"
+            className="racn-login-pw-toggle"
+            onClick={() => setShowPw((v) => !v)}
+            aria-label={showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          >
+            {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </span>
       </label>
+      <p className="racn-login-hint">
+        Si falla, revisa mayúsculas y caracteres especiales (copiar/pegar suele ser más seguro).
+      </p>
       {error ? <p className="racn-login-error">{error}</p> : null}
       <button type="submit" className="racn-login-submit" disabled={loading}>
         {loading ? 'Entrando…' : 'Entrar'}
@@ -169,6 +231,20 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   const [fechaCita, setFechaCita] = useState('')
   const [horaCita, setHoraCita] = useState('09:00')
   const [modo, setModo] = useState<'reporte' | 'informe' | 'cita'>('reporte')
+  const [tipoCita, setTipoCita] = useState(2)
+  const [citaValidar, setCitaValidar] = useState<CitaFila | null>(null)
+  const [detalleVista, setDetalleVista] = useState<Record<string, unknown> | null>(null)
+  const [historialKardex, setHistorialKardex] = useState<{
+    alumno: { alumno_id: number; alumno_ref: string | number | null; nombre: string; grado: number; grupo: string }
+    reportes: Record<string, unknown>[]
+  } | null>(null)
+  const [historialAlumnos, setHistorialAlumnos] = useState<AlumnoBusqueda[]>([])
+  const [historialAlumnoId, setHistorialAlumnoId] = useState(0)
+  const [historialTipo, setHistorialTipo] = useState(1)
+  const [historialMateriaId, setHistorialMateriaId] = useState(0)
+  const [seleccionados, setSeleccionados] = useState<number[]>([])
+  const puedeVerDetalleLista =
+    tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' || tab === 'suspensiones'
 
   const asig = useMemo(() => {
     const [mid, letra] = asigKey.split('|')
@@ -180,6 +256,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
     [me, fisica]
   )
   const tabs = me ? tabsDeRolNivel(me.role, config) : []
+  const tiposCita = me ? tiposCitaDeRolNivel(me.role) : []
 
   const refreshMe = useCallback(async () => {
     try {
@@ -231,10 +308,15 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
     setMsg('')
     try {
       const extra = vista === 'historial' ? `&q=${encodeURIComponent(q)}` : ''
-      const data = await api<{ filas?: Record<string, unknown>[] }>(
+      const data = await api<{ filas?: Record<string, unknown>[]; alumnos?: AlumnoBusqueda[] }>(
         `${config.apiBase}/coordinacion?vista=${vista}${extra}`
       )
       setLista(data.filas ?? [])
+      if (vista === 'historial') {
+        const alumnos = data.alumnos ?? []
+        setHistorialAlumnos(alumnos)
+        if (alumnos[0]) setHistorialAlumnoId(Number(alumnos[0].alumno_id))
+      }
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Error al cargar')
     } finally {
@@ -252,24 +334,57 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me, tab, asigKey, tipo])
 
+  async function abrirHistorialAlumno(alumnoId: number) {
+    setBusy(true)
+    setMsg('')
+    try {
+      const data = await api<{
+        alumno: {
+          alumno_id: number
+          alumno_ref: string | number | null
+          nombre: string
+          grado: number
+          grupo: string
+        }
+        reportes: Record<string, unknown>[]
+      }>(`${config.apiBase}/captura?historialAlumnoId=${alumnoId}`)
+      setHistorialKardex(data)
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'No se pudo cargar el historial')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function enviarCaptura() {
     if (!modal || !asig) return
     setBusy(true)
     try {
-      await api(`${config.apiBase}/captura`, {
+      const data = await api<{
+        pendienteValidacion?: boolean
+        envio?: { ok?: boolean; error?: string }
+      }>(`${config.apiBase}/captura`, {
         method: 'POST',
         body: JSON.stringify({
           accion: modo,
           alumnoId: modal.alumno_id,
           materiaId: asig.materia_id,
-          tipo,
+          tipo: modo === 'cita' && me?.role === 'psicologia' ? tipoCita : tipo,
           motivo,
           mensaje,
           fecha: fechaCita,
           hora: horaCita,
         }),
       })
-      setMsg('Registro guardado')
+      if (data.pendienteValidacion) {
+        setMsg(
+          'Guardado. La conducta queda pendiente de Psicología; el correo a papás se envía al validarla.'
+        )
+      } else if (data.envio && data.envio.ok === false) {
+        setMsg(`Guardado, pero el correo no salió: ${data.envio.error || 'error de envío'}.`)
+      } else {
+        setMsg('Registro guardado y correo enviado.')
+      }
       setModal(null)
       setMensaje('')
       await cargarGrupo()
@@ -280,14 +395,20 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
     }
   }
 
-  async function accionCoord(entidad: string, id: number, accion: string, fecha?: string) {
+  async function accionCoord(
+    entidad: string,
+    id: number,
+    accion: string,
+    extra?: { fecha?: string; hora?: string; mensaje?: string }
+  ) {
     setBusy(true)
     try {
       await api(`${config.apiBase}/coordinacion`, {
         method: 'POST',
-        body: JSON.stringify({ entidad, id, accion, fecha }),
+        body: JSON.stringify({ entidad, id, accion, ...extra }),
       })
       setMsg('Listo')
+      setCitaValidar(null)
       if (tab === 'inbox') await cargarVista('pendientes')
       if (tab === 'informes') await cargarVista('informes')
       if (tab === 'citas') await cargarVista('citas')
@@ -304,10 +425,88 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
     setMe(null)
   }
 
-  const esAdmin = me?.role === 'coordinacion' || me?.role === 'direccion'
+  function descargarPdf(url: string, nombre: string) {
+    void fetch(url, { credentials: 'include' })
+      .then(async (r) => {
+        if (!r.ok) {
+          const data = (await r.json().catch(() => ({}))) as { error?: string }
+          throw new Error(data.error || 'No se pudo generar el PDF')
+        }
+        return r.blob()
+      })
+      .then((blob) => {
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = nombre
+        a.click()
+        URL.revokeObjectURL(a.href)
+      })
+      .catch((e) => setMsg(e instanceof Error ? e.message : 'Error al descargar PDF'))
+  }
+
+  const esAdmin = Boolean(me && esPanelAdminNivel(me.role))
   const esMaestro = me?.role === 'maestro'
   const unSoloGrupo = esMaestro && asignaciones.length === 1
   const sinAsignaciones = asignaciones.length === 0
+  const puedePdf = Boolean(me && puedePdfNivel(me.role))
+  /** Misma captura que legacy/secundaria: Reportar + Informe + Citar (admin y psicología). */
+  const capturaConInformeYCita = esAdmin || me?.role === 'psicologia'
+  const capturaConInforme = capturaConInformeYCita || me?.role === 'maestro'
+  const puedeSeleccionarMasivo = Boolean(esAdmin && (tab === 'inbox' || tab === 'informes'))
+  const listaVisible =
+    tab === 'historial' && historialAlumnoId
+      ? lista.filter((r) => Number(r.alumno_id) === historialAlumnoId)
+      : lista
+  const idsListaReportes = useMemo(
+    () =>
+      puedeSeleccionarMasivo
+        ? lista.map((r) => Number(r.reporte_id)).filter((id) => Number.isFinite(id) && id > 0)
+        : [],
+    [lista, puedeSeleccionarMasivo]
+  )
+  const todosSeleccionados =
+    idsListaReportes.length > 0 && idsListaReportes.every((id) => seleccionados.includes(id))
+
+  useEffect(() => {
+    setSeleccionados([])
+  }, [tab, lista])
+
+  function toggleSeleccionado(id: number) {
+    setSeleccionados((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  function toggleTodos() {
+    setSeleccionados(todosSeleccionados ? [] : idsListaReportes)
+  }
+
+  async function reenviarSeleccionados() {
+    if (!seleccionados.length) {
+      setMsg('Selecciona al menos un reporte para reenviar.')
+      return
+    }
+    setBusy(true)
+    let ok = 0
+    let fail = 0
+    for (const id of seleccionados) {
+      try {
+        await api(`${config.apiBase}/coordinacion`, {
+          method: 'POST',
+          body: JSON.stringify({ entidad: 'reporte', id, accion: 'reenviar' }),
+        })
+        ok += 1
+      } catch {
+        fail += 1
+      }
+    }
+    setMsg(fail ? `Reenviados: ${ok} · No enviados: ${fail}` : `Reenviados correctamente: ${ok}`)
+    setSeleccionados([])
+    try {
+      if (tab === 'inbox') await cargarVista('pendientes')
+      if (tab === 'informes') await cargarVista('informes')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const stats = useMemo(() => {
     const conReporte = filas.filter((f) => f.aviso || f.r1 || f.r2 || f.r3).length
@@ -333,6 +532,15 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
     }
     return 'Panel de coordinación/dirección: listado, suspensión, citatorios, informes e impresión.'
   }, [me, config])
+
+  const materiasHistorial = useMemo(() => {
+    const seen = new Set<number>()
+    return asignaciones.filter((a) => {
+      if (!a.materia_id || seen.has(a.materia_id)) return false
+      seen.add(a.materia_id)
+      return Boolean(a.materia_nombre)
+    })
+  }, [asignaciones])
 
   if (boot) {
     return (
@@ -512,7 +720,15 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                       <th>I</th>
                       <th>II</th>
                       <th>III</th>
-                      <th></th>
+                      <th
+                        title={
+                          capturaConInformeYCita
+                            ? 'Reporte: afecta el escalón. Informe: sin afectar el No de reportes. Citar: citatorio.'
+                            : 'Reporte: afecta el escalón. Informe: sin afectar el No de reportes.'
+                        }
+                      >
+                        {capturaConInformeYCita ? 'Reporte | Informe | Cita' : 'Reporte | Informe'}
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -550,18 +766,65 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                           <td>
                             <ChipFecha valor={a.r3 || '—'} />
                           </td>
-                          <td>
+                          <td className="racn-actions racn-actions--captura">
+                            <button
+                              type="button"
+                              className="racn-btn ghost racn-btn-icon"
+                              title="Historial de reportes (motivo y observaciones)"
+                              aria-label={`Historial de ${a.nombre}`}
+                              onClick={() => void abrirHistorialAlumno(a.alumno_id)}
+                            >
+                              <FolderOpen size={16} aria-hidden />
+                              <span className="racn-btn-label">Historial</span>
+                            </button>
                             <button
                               type="button"
                               className="racn-btn primary"
+                              title="Crear reporte / aviso (escalones)"
                               onClick={() => {
                                 setModal(a)
                                 setModo('reporte')
+                                setMensaje('')
                                 setMotivo(opcionesMotivo(tipo)[0]?.valor ?? 1)
                               }}
                             >
                               Reportar
                             </button>
+                            {capturaConInforme ? (
+                              <button
+                                type="button"
+                                className="racn-btn info"
+                                title={
+                                  me.role === 'psicologia'
+                                    ? 'Aviso de atención (sin escalones)'
+                                    : 'Informe de aprendizaje (sin afectar el No de reportes)'
+                                }
+                                onClick={() => {
+                                  setModal(a)
+                                  setModo('informe')
+                                  setMensaje('')
+                                }}
+                              >
+                                {me.role === 'psicologia' ? 'Aviso' : 'Informe'}
+                              </button>
+                            ) : null}
+                            {capturaConInformeYCita ? (
+                              <button
+                                type="button"
+                                className="racn-btn success"
+                                title="Generar citatorio"
+                                onClick={() => {
+                                  setModal(a)
+                                  setModo('cita')
+                                  setMensaje('')
+                                  setFechaCita('')
+                                  setHoraCita('09:00')
+                                  if (me.role === 'psicologia') setTipoCita(tiposCita[0]?.valor ?? 2)
+                                }}
+                              >
+                                Citar
+                              </button>
+                            ) : null}
                           </td>
                         </tr>
                       ))
@@ -575,6 +838,44 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
 
         {tab === 'inbox' || tab === 'citas' || tab === 'suspensiones' || tab === 'historial' || tab === 'informes' ? (
           <section className="racn-panel">
+            {tab === 'inbox' && esAdmin ? (
+              <div className="racn-filters">
+                {puedePdf ? (
+                  <button
+                    type="button"
+                    className="racn-btn download"
+                    onClick={() =>
+                      descargarPdf(`${config.apiBase}/impresion?modo=pendientes`, 'rac-pendientes.pdf')
+                    }
+                  >
+                    <Download size={16} aria-hidden />
+                    PDF reportes sin confirmar
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="racn-btn info"
+                  disabled={busy || seleccionados.length === 0}
+                  onClick={() => void reenviarSeleccionados()}
+                >
+                  <Mail size={16} aria-hidden />
+                  Reenviar seleccionados{seleccionados.length ? ` (${seleccionados.length})` : ''}
+                </button>
+              </div>
+            ) : null}
+            {tab === 'informes' && esAdmin ? (
+              <div className="racn-filters">
+                <button
+                  type="button"
+                  className="racn-btn info"
+                  disabled={busy || seleccionados.length === 0}
+                  onClick={() => void reenviarSeleccionados()}
+                >
+                  <Mail size={16} aria-hidden />
+                  Reenviar seleccionados{seleccionados.length ? ` (${seleccionados.length})` : ''}
+                </button>
+              </div>
+            ) : null}
             {tab === 'historial' ? (
               <div className="racn-filters">
                 <label>
@@ -584,137 +885,415 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                 <button type="button" className="racn-btn" onClick={() => void cargarVista('historial')}>
                   Buscar
                 </button>
+                {historialAlumnos.length ? (
+                  <label>
+                    Alumno
+                    <select
+                      value={historialAlumnoId}
+                      onChange={(e) => setHistorialAlumnoId(Number(e.target.value))}
+                    >
+                      {historialAlumnos.map((a) => (
+                        <option key={a.alumno_id} value={a.alumno_id}>
+                          {[a.alumno_app, a.alumno_apm, a.alumno_nombre].filter(Boolean).join(' ')} ·{' '}
+                          {a.alumno_ref}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                <label>
+                  Tipo de reporte
+                  <select value={historialTipo} onChange={(e) => setHistorialTipo(Number(e.target.value))}>
+                    <option value={RAC_TIPOS.academico}>Académico</option>
+                    <option value={RAC_TIPOS.conducta}>Conducta</option>
+                    <option value={RAC_TIPOS.uniforme}>Uniforme</option>
+                    <option value={RAC_TIPOS.vialidad}>Vialidad</option>
+                    <option value={RAC_TIPOS.retardo}>Retardo</option>
+                  </select>
+                </label>
+                {historialTipo === RAC_TIPOS.academico && materiasHistorial.length ? (
+                  <label>
+                    Materia
+                    <select
+                      value={historialMateriaId}
+                      onChange={(e) => setHistorialMateriaId(Number(e.target.value))}
+                    >
+                      <option value={0}>Todas</option>
+                      {materiasHistorial.map((a) => (
+                        <option key={a.materia_id} value={a.materia_id}>
+                          {a.materia_nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                {historialAlumnoId && puedePdf ? (
+                  <button
+                    type="button"
+                    className="racn-btn download"
+                    onClick={() =>
+                      descargarPdf(
+                        `${config.apiBase}/impresion?modo=historial&alumnoId=${historialAlumnoId}&reporteTipo=${historialTipo}${
+                          historialMateriaId ? `&materiaId=${historialMateriaId}` : ''
+                        }`,
+                        `rac-historial-${historialAlumnoId}.pdf`
+                      )
+                    }
+                  >
+                    <Download size={16} aria-hidden />
+                    Imprimir PDF
+                  </button>
+                ) : null}
               </div>
             ) : null}
             <div className="racn-table-wrap">
               <table className="racn-table">
                 <thead>
                   <tr>
+                    {puedeSeleccionarMasivo ? (
+                      <th className="racn-check-col">
+                        <label className="racn-check">
+                          <input
+                            type="checkbox"
+                            checked={todosSeleccionados}
+                            onChange={toggleTodos}
+                            aria-label="Seleccionar todos"
+                          />
+                        </label>
+                      </th>
+                    ) : null}
                     <th>Alumno</th>
                     <th>Detalle</th>
                     <th>Fecha</th>
+                    {tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' ? (
+                      <>
+                        <th>Enviado</th>
+                        <th>Confirmado</th>
+                      </>
+                    ) : null}
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {lista.map((row, i) => (
-                    <tr key={String(row.reporte_id ?? row.cita_id ?? row.suspension_id ?? i)}>
-                      <td>
-                        {String(row.nombre ?? '')}
-                        <small className="racn-mini">
-                          {String(row.alumno_ref ?? '')} {String(row.grado ?? '')}° {String(row.grupo ?? '')}
-                        </small>
-                      </td>
-                      <td>
-                        {String(row.escalon ?? row.tipoEtiqueta ?? row.materia ?? '')}
-                        <span className="racn-mini">{String(row.motivo ?? row.mensaje ?? '')}</span>
-                      </td>
-                      <td>{String(row.fecha ?? '—')}</td>
-                      <td className="racn-actions">
-                        {tab === 'inbox' && me.role === 'psicologia' ? (
+                  {listaVisible.map((row, i) => {
+                    const reporteId = Number(row.reporte_id)
+                    return (
+                      <tr key={String(row.reporte_id ?? row.cita_id ?? row.suspension_id ?? i)}>
+                        {puedeSeleccionarMasivo ? (
+                          <td className="racn-check-col">
+                            <label className="racn-check">
+                              <input
+                                type="checkbox"
+                                checked={seleccionados.includes(reporteId)}
+                                onChange={() => toggleSeleccionado(reporteId)}
+                                aria-label={`Seleccionar ${String(row.nombre ?? 'reporte')}`}
+                              />
+                            </label>
+                          </td>
+                        ) : null}
+                        <td>
+                          {String(row.nombre ?? '')}
+                          <small className="racn-mini">
+                            {String(row.alumno_ref ?? '')} {String(row.grado ?? '')}° {String(row.grupo ?? '')}
+                          </small>
+                        </td>
+                        <td>
+                          {String(row.escalon ?? row.tipoEtiqueta ?? row.materia ?? '')}
+                          {row.materia ? (
+                            <span className="racn-mini">Materia: {String(row.materia)}</span>
+                          ) : null}
+                          <span className="racn-mini">{String(row.motivo ?? row.mensaje ?? '')}</span>
+                        </td>
+                        <td>{String(row.fecha ?? '—')}</td>
+                        {tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' ? (
                           <>
-                            <button
-                              type="button"
-                              className="racn-btn primary"
-                              onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'validar')}
-                            >
-                              Aprobar
-                            </button>
-                            <button
-                              type="button"
-                              className="racn-btn"
-                              onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'denegar')}
-                            >
-                              Denegar
-                            </button>
+                            <td>
+                              <ChipSiNo valor={Boolean(row.enviado ?? row.enviada)} />
+                            </td>
+                            <td>
+                              <ChipSiNo valor={Boolean(row.confirmado ?? row.confirmada)} />
+                            </td>
                           </>
                         ) : null}
-                        {tab === 'inbox' && esAdmin ? (
-                          <>
+                        <td className="racn-actions">
+                          {puedeVerDetalleLista ? (
                             <button
                               type="button"
-                              className="racn-btn"
+                              className="racn-btn ghost racn-btn-icon"
+                              title="Ver detalle del reporte / citatorio"
+                              aria-label="Ver detalle"
+                              onClick={() => setDetalleVista(row)}
+                            >
+                              <Search size={16} aria-hidden />
+                              <span className="racn-btn-label">Detalle</span>
+                            </button>
+                          ) : null}
+                          {tab === 'inbox' && me.role === 'psicologia' ? (
+                            <>
+                              <button
+                                type="button"
+                                className="racn-btn success"
+                                onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'validar')}
+                              >
+                                Aprobar
+                              </button>
+                              <button
+                                type="button"
+                                className="racn-btn danger"
+                                onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'denegar')}
+                              >
+                                Denegar
+                              </button>
+                            </>
+                          ) : null}
+                          {tab === 'inbox' && esAdmin ? (
+                            <>
+                              <button
+                                type="button"
+                                className="racn-btn info"
+                                onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'reenviar')}
+                              >
+                                Reenviar
+                              </button>
+                              <button
+                                type="button"
+                                className="racn-btn success"
+                                onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'confirmar')}
+                              >
+                                Confirmar
+                              </button>
+                              <button
+                                type="button"
+                                className="racn-btn danger"
+                                onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'detener')}
+                              >
+                                Detener
+                              </button>
+                            </>
+                          ) : null}
+                          {tab === 'informes' && esAdmin ? (
+                            <button
+                              type="button"
+                              className="racn-btn info"
                               onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'reenviar')}
                             >
                               Reenviar
                             </button>
+                          ) : null}
+                          {tab === 'citas' && (esAdmin || me.role === 'psicologia') ? (
+                            <>
+                              {esAdmin && Number(row.status) === 2 ? (
+                                <button
+                                  type="button"
+                                  className="racn-btn primary"
+                                  onClick={() =>
+                                    setCitaValidar({
+                                      cita_id: Number(row.cita_id),
+                                      nombre: String(row.nombre ?? ''),
+                                      mensaje: String(row.mensaje ?? ''),
+                                      fecha: String(row.fecha ?? ''),
+                                      status: Number(row.status ?? 0),
+                                      tipoEtiqueta: String(row.tipoEtiqueta ?? ''),
+                                    })
+                                  }
+                                >
+                                  Validar cita
+                                </button>
+                              ) : null}
+                              <button
+                                type="button"
+                                className="racn-btn info"
+                                onClick={() => void accionCoord('cita', Number(row.cita_id), 'reenviar')}
+                              >
+                                Reenviar
+                              </button>
+                              <button
+                                type="button"
+                                className="racn-btn success"
+                                onClick={() => void accionCoord('cita', Number(row.cita_id), 'confirmar')}
+                              >
+                                Enterado
+                              </button>
+                              {esAdmin ? (
+                                <button
+                                  type="button"
+                                  className="racn-btn danger"
+                                  onClick={() => void accionCoord('cita', Number(row.cita_id), 'detener')}
+                                >
+                                  Anular
+                                </button>
+                              ) : null}
+                            </>
+                          ) : null}
+                          {tab === 'suspensiones' && esAdmin ? (
                             <button
                               type="button"
-                              className="racn-btn"
-                              onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'confirmar')}
+                              className="racn-btn primary"
+                              onClick={() => {
+                                const fecha = window.prompt('Fecha de suspensión (AAAA-MM-DD)')
+                                if (fecha) void accionCoord('suspension', Number(row.suspension_id), 'aplicar', { fecha })
+                              }}
                             >
-                              Confirmar
+                              Aplicar fecha
                             </button>
-                            <button
-                              type="button"
-                              className="racn-btn"
-                              onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'detener')}
-                            >
-                              Detener
-                            </button>
-                          </>
-                        ) : null}
-                        {tab === 'informes' && esAdmin ? (
-                          <button
-                            type="button"
-                            className="racn-btn"
-                            onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'reenviar')}
-                          >
-                            Reenviar
-                          </button>
-                        ) : null}
-                        {tab === 'citas' && (esAdmin || me.role === 'psicologia') ? (
-                          <>
-                            <button
-                              type="button"
-                              className="racn-btn"
-                              onClick={() => void accionCoord('cita', Number(row.cita_id), 'reenviar')}
-                            >
-                              Reenviar
-                            </button>
-                            <button
-                              type="button"
-                              className="racn-btn"
-                              onClick={() => void accionCoord('cita', Number(row.cita_id), 'confirmar')}
-                            >
-                              Enterado
-                            </button>
-                          </>
-                        ) : null}
-                        {tab === 'suspensiones' && esAdmin ? (
-                          <button
-                            type="button"
-                            className="racn-btn primary"
-                            onClick={() => {
-                              const fecha = window.prompt('Fecha de suspensión (AAAA-MM-DD)')
-                              if (fecha) void accionCoord('suspension', Number(row.suspension_id), 'aplicar', fecha)
-                            }}
-                          >
-                            Aplicar fecha
-                          </button>
-                        ) : null}
-                      </td>
-                    </tr>
-                  ))}
+                          ) : null}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
           </section>
         ) : null}
 
+        {historialKardex ? (
+          <div className="racn-modal" role="dialog" aria-modal="true" aria-labelledby="racn-historial-title">
+            <div className="racn-modal-card racn-detalle-card">
+              <h3 id="racn-historial-title">Historial de reportes</h3>
+              <p className="racn-mini">
+                {historialKardex.alumno.nombre} · {String(historialKardex.alumno.alumno_ref ?? '—')} ·{' '}
+                {historialKardex.alumno.grado}° {historialKardex.alumno.grupo}
+              </p>
+              {historialKardex.reportes.length === 0 ? (
+                <p>Sin historial en el ciclo actual.</p>
+              ) : (
+                <div className="racn-historial-lista">
+                  {historialKardex.reportes.map((r) => (
+                    <section key={String(r.reporte_id)} className="racn-historial-item">
+                      <strong>
+                        {String(r.escalon ?? r.tipoEtiqueta ?? 'Reporte')}
+                        {r.vuelta != null ? ` · Vuelta ${String(r.vuelta)}` : ''}
+                      </strong>
+                      {r.materia ? <div>Materia: {String(r.materia)}</div> : null}
+                      {r.motivo ? <div>Motivo: {String(r.motivo)}</div> : null}
+                      <div className="racn-detalle-obs">Observaciones: {String(r.mensaje || '—')}</div>
+                      <div className="racn-mini">
+                        Fecha: {String(r.fecha ?? '—')} · Enviado: {r.enviado ? 'Sí' : 'No'} · Confirmado:{' '}
+                        {r.confirmado ? 'Sí' : 'No'}
+                      </div>
+                    </section>
+                  ))}
+                </div>
+              )}
+              <div className="racn-actions">
+                <button type="button" className="racn-btn primary" onClick={() => setHistorialKardex(null)}>
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {detalleVista ? (
+          <div className="racn-modal" role="dialog" aria-modal="true" aria-labelledby="racn-detalle-title">
+            <div className="racn-modal-card racn-detalle-card">
+              <h3 id="racn-detalle-title">Detalle</h3>
+              <dl className="racn-detalle-dl">
+                {detalleVista.reporte_id != null ? (
+                  <div>
+                    <dt>ID</dt>
+                    <dd>{String(detalleVista.reporte_id)}</dd>
+                  </div>
+                ) : null}
+                {detalleVista.cita_id != null ? (
+                  <div>
+                    <dt>ID cita</dt>
+                    <dd>{String(detalleVista.cita_id)}</dd>
+                  </div>
+                ) : null}
+                {detalleVista.suspension_id != null ? (
+                  <div>
+                    <dt>ID suspensión</dt>
+                    <dd>{String(detalleVista.suspension_id)}</dd>
+                  </div>
+                ) : null}
+                <div>
+                  <dt>No. Control</dt>
+                  <dd>{String(detalleVista.alumno_ref ?? '—')}</dd>
+                </div>
+                <div>
+                  <dt>Alumno</dt>
+                  <dd>{String(detalleVista.nombre ?? '—')}</dd>
+                </div>
+                <div>
+                  <dt>Grado y grupo</dt>
+                  <dd>
+                    {detalleVista.grado != null ? `${String(detalleVista.grado)}°` : '—'}{' '}
+                    {String(detalleVista.grupo ?? '')}
+                  </dd>
+                </div>
+                {detalleVista.materia || detalleVista.escalon || detalleVista.tipoEtiqueta ? (
+                  <div>
+                    <dt>Situación / materia</dt>
+                    <dd>
+                      {String(detalleVista.escalon ?? detalleVista.tipoEtiqueta ?? '')}
+                      {detalleVista.materia ? ` · ${String(detalleVista.materia)}` : ''}
+                    </dd>
+                  </div>
+                ) : null}
+                {detalleVista.motivo ? (
+                  <div>
+                    <dt>Motivo</dt>
+                    <dd>{String(detalleVista.motivo)}</dd>
+                  </div>
+                ) : null}
+                <div>
+                  <dt>Observaciones</dt>
+                  <dd className="racn-detalle-obs">{String(detalleVista.mensaje ?? '—')}</dd>
+                </div>
+                <div>
+                  <dt>Fecha</dt>
+                  <dd>{String(detalleVista.fecha ?? '—')}</dd>
+                </div>
+                {detalleVista.vuelta != null && detalleVista.vuelta !== '' ? (
+                  <div>
+                    <dt>No. vuelta</dt>
+                    <dd>{String(detalleVista.vuelta)}</dd>
+                  </div>
+                ) : null}
+                {detalleVista.enviado != null || detalleVista.enviada != null ? (
+                  <div>
+                    <dt>Enviado</dt>
+                    <dd>{detalleVista.enviado || detalleVista.enviada ? 'Sí' : 'No'}</dd>
+                  </div>
+                ) : null}
+                {detalleVista.confirmado != null || detalleVista.confirmada != null ? (
+                  <div>
+                    <dt>Confirmado</dt>
+                    <dd>{detalleVista.confirmado || detalleVista.confirmada ? 'Sí' : 'No'}</dd>
+                  </div>
+                ) : null}
+              </dl>
+              <div className="racn-actions">
+                <button type="button" className="racn-btn primary" onClick={() => setDetalleVista(null)}>
+                  Aceptar
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {modal ? (
           <div className="racn-modal" role="dialog" aria-modal="true">
             <div className="racn-modal-card">
-              <h3>{modal.nombre}</h3>
+              <h3>
+                {modo === 'informe'
+                  ? me.role === 'psicologia'
+                    ? `Aviso de atención — ${modal.nombre}`
+                    : `Informe sobre actitud de aprendizaje — ${modal.nombre}`
+                  : modo === 'cita'
+                    ? `Citatorio — ${modal.nombre}`
+                    : `Reporte / aviso — ${modal.nombre}`}
+              </h3>
+              {modo === 'informe' ? (
+                <p className="racn-mini">
+                  {me.role === 'psicologia'
+                    ? 'No afecta el escalón de reportes del alumno.'
+                    : 'Envía un informe sin afectar el número de reportes del alumno.'}
+                </p>
+              ) : null}
               <div className="racn-filters">
-                <label>
-                  Acción
-                  <select value={modo} onChange={(e) => setModo(e.target.value as typeof modo)}>
-                    <option value="reporte">Reporte / aviso</option>
-                    {me.role !== 'control_escolar' ? <option value="informe">Informe</option> : null}
-                    <option value="cita">Cita</option>
-                  </select>
-                </label>
                 {modo === 'reporte' ? (
                   <label>
                     Motivo
@@ -729,20 +1308,38 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                 ) : null}
                 {modo === 'cita' ? (
                   <>
+                    {me.role === 'psicologia' ? (
+                      <label>
+                        Tipo de citatorio
+                        <select value={tipoCita} onChange={(e) => setTipoCita(Number(e.target.value))}>
+                          {tiposCita.map((t) => (
+                            <option key={t.valor} value={t.valor}>
+                              {t.etiqueta}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : null}
                     <label>
                       Fecha
-                      <input type="date" value={fechaCita} onChange={(e) => setFechaCita(e.target.value)} />
+                      <input type="date" value={fechaCita} onChange={(e) => setFechaCita(e.target.value)} required />
                     </label>
                     <label>
                       Hora
-                      <input type="time" value={horaCita} onChange={(e) => setHoraCita(e.target.value)} />
+                      <input type="time" value={horaCita} onChange={(e) => setHoraCita(e.target.value)} required />
                     </label>
                   </>
                 ) : null}
               </div>
               <label className="racn-msg">
-                Observaciones
-                <textarea value={mensaje} onChange={(e) => setMensaje(e.target.value)} rows={4} required />
+                {modo === 'informe' ? 'Mensaje del informe' : 'Observaciones'}
+                <textarea
+                  value={mensaje}
+                  onChange={(e) => setMensaje(e.target.value)}
+                  rows={4}
+                  required
+                  placeholder={modo === 'informe' ? 'Redacte aquí su informe' : undefined}
+                />
               </label>
               <div className="racn-actions">
                 <button type="button" className="racn-btn ghost" onClick={() => setModal(null)}>
@@ -751,6 +1348,53 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                 <button type="button" className="racn-btn primary" disabled={busy} onClick={() => void enviarCaptura()}>
                   <Send size={16} aria-hidden />
                   Guardar y avisar
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {citaValidar ? (
+          <div className="racn-modal" role="dialog" aria-modal="true">
+            <div className="racn-modal-card">
+              <h3>Validar citatorio — {citaValidar.nombre}</h3>
+              <p className="racn-mini">{citaValidar.tipoEtiqueta}</p>
+              <div className="racn-filters">
+                <label>
+                  Fecha
+                  <input type="date" value={fechaCita} onChange={(e) => setFechaCita(e.target.value)} required />
+                </label>
+                <label>
+                  Hora
+                  <input type="time" value={horaCita} onChange={(e) => setHoraCita(e.target.value)} required />
+                </label>
+              </div>
+              <label className="racn-msg">
+                Mensaje
+                <textarea
+                  value={mensaje || citaValidar.mensaje}
+                  onChange={(e) => setMensaje(e.target.value)}
+                  rows={4}
+                />
+              </label>
+              <div className="racn-actions">
+                <button type="button" className="racn-btn ghost" onClick={() => setCitaValidar(null)}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="racn-btn primary"
+                  disabled={busy || !fechaCita}
+                  onClick={() =>
+                    void accionCoord('cita', citaValidar.cita_id, 'validar', {
+                      fecha: fechaCita,
+                      hora: horaCita,
+                      mensaje: mensaje || citaValidar.mensaje,
+                    })
+                  }
+                >
+                  <Send size={16} aria-hidden />
+                  Programar y enviar
                 </button>
               </div>
             </div>
