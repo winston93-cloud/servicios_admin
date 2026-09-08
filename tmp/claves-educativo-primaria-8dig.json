@@ -1,0 +1,195 @@
+{
+  "fecha": "2026-09-04T19:10:59.306Z",
+  "alcance": "maestro_nivel 1 (maternal), 2 (kinder/educativo), 3 (primaria winston)",
+  "secundaria": "NO TOCADA",
+  "clave_plana_8_digitos": "38928121",
+  "clave_md5": "7a929e4c69490a4c90d66c66cb3bbe4d",
+  "docentes_actualizados": 24,
+  "docentes": [
+    {
+      "maestro_id": 62,
+      "nivel": 1,
+      "usuario": "maternal.espanol",
+      "nombre": "VERÓNICA VEGA ORTEGA",
+      "email": "maternal.espanol@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 66,
+      "nivel": 1,
+      "usuario": "toddlers.nursery",
+      "nombre": "DARYAN MARTÍNEZ AVILÉS",
+      "email": "toddlers.nursery@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 68,
+      "nivel": 2,
+      "usuario": "kgartena.english",
+      "nombre": "HANNIA GUADALUPE NIETO PÉREZ",
+      "email": "kgartena.english@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 63,
+      "nivel": 2,
+      "usuario": "kinder1a.espanol",
+      "nombre": "ERIKA KEMPER GÁTICA",
+      "email": "kinder1a.espanol@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 64,
+      "nivel": 2,
+      "usuario": "kinder2a.espanol",
+      "nombre": "BLANCA ESTHELA GUERRERO RIVERA",
+      "email": "kinder2a.espanol@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 65,
+      "nivel": 2,
+      "usuario": "kinder3a.espanol",
+      "nombre": "CLAUDIA MAGDALENA BERRAL BARRAGÁN",
+      "email": "kinder3a.espanol@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 69,
+      "nivel": 2,
+      "usuario": "pre-firsta.english",
+      "nombre": "BÁRBARA GEORGINA ROSAS VICENCIO",
+      "email": "pre-firsta.english@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 67,
+      "nivel": 2,
+      "usuario": "pre-k1a.english",
+      "nombre": "DIANA LIZBETH MEDIAN ROJI",
+      "email": "pre-k1a.english@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 74,
+      "nivel": 3,
+      "usuario": "cuartoab",
+      "nombre": "TANIA SINAITH REYES CARRASCO",
+      "email": "cuartoab@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 83,
+      "nivel": 3,
+      "usuario": "fifthgradeab",
+      "nombre": "BEATRIZ ADRIANA SOTELO SÁNCHEZ",
+      "email": "fifthgradeab@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 78,
+      "nivel": 3,
+      "usuario": "firstgradeab",
+      "nombre": "JOSELINE PIMIENTA SOSA",
+      "email": "firstgradeab@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 79,
+      "nivel": 3,
+      "usuario": "firstgradec",
+      "nombre": "ELSA GUADALUPE RÍOS OLMEDA",
+      "email": "firstgradec@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 82,
+      "nivel": 3,
+      "usuario": "fourthgradeab",
+      "nombre": "PRISCILA BARRAGÁN DI BELLA",
+      "email": "fourthgradeab@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 70,
+      "nivel": 3,
+      "usuario": "primeroab",
+      "nombre": "BEATRIZ ZOE ÁNGELES ZAYA",
+      "email": "primeroab@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 71,
+      "nivel": 3,
+      "usuario": "primeroc",
+      "nombre": "QUETZALLI AMÉRICA HERNÁNDEZ BARRÓN",
+      "email": "primeroc@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 75,
+      "nivel": 3,
+      "usuario": "quintoab",
+      "nombre": "MARIA ELENA ANDRADE GUILLEN",
+      "email": "quintoab@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 80,
+      "nivel": 3,
+      "usuario": "secondgradeab",
+      "nombre": "MARÍA EUGENIA DEL ÁNGEL MARTÍNEZ",
+      "email": "secondgradeab@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 72,
+      "nivel": 3,
+      "usuario": "segundoab",
+      "nombre": "LETICIA ARIDE DIAZ ESPINOSA",
+      "email": "segundoab@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 76,
+      "nivel": 3,
+      "usuario": "sextoab",
+      "nombre": "GLORIA LUZ SOLÍS CHAVARRÍA",
+      "email": "sextoab@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 77,
+      "nivel": 3,
+      "usuario": "sextoc",
+      "nombre": "MARÍA CRISTINA CASTILLO RODÍGUEZ",
+      "email": "sextoc@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 84,
+      "nivel": 3,
+      "usuario": "sixthgradeab",
+      "nombre": "JUANITA MERCEDES HERNANDEZ GARCÍA",
+      "email": "sixthgradeab@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 85,
+      "nivel": 3,
+      "usuario": "sixthgradec",
+      "nombre": "MONICA XIMENA ACOSTA SALDÍVAR",
+      "email": "sixthgradec@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 73,
+      "nivel": 3,
+      "usuario": "terceroab",
+      "nombre": "CHRISTIAN OLYMPIA BLANCO HERNÁNDEZ",
+      "email": "terceroab@winston93.edu.mx"
+    },
+    {
+      "maestro_id": 81,
+      "nivel": 3,
+      "usuario": "thirdgradeab",
+      "nombre": "MARÍA DEL CARMEN UGALDE LÓPEZ",
+      "email": "thirdgradeab@winston93.edu.mx"
+    }
+  ],
+  "secundaria_sample_claves": [
+    {
+      "id": 40,
+      "usuario": "yoli",
+      "clave": "pO7!aS3#dF8$"
+    },
+    {
+      "id": 37,
+      "usuario": "lion",
+      "clave": "vB5%nM8&cX2!"
+    },
+    {
+      "id": 6,
+      "usuario": "Mirna",
+      "clave": "aB3$fG7*jK9@"
+    }
+  ]
+}

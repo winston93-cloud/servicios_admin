@@ -1,0 +1,257 @@
+{
+  "fecha": "2026-09-07T18:11:00.549Z",
+  "resultados": [
+    {
+      "control": 21318,
+      "alumno_id": 1914,
+      "nombre": "CORONA BADILLO ETHAN ALEXANDER",
+      "grado": 3,
+      "grupo": 1,
+      "mes": 2,
+      "plan": "Plan de pagos: 11 meses",
+      "ciclo": "2025-2026",
+      "cicloValor": 22,
+      "pagosCount": 11,
+      "todas": [
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "00",
+          "clase": "Cuota de Inicio de Curso",
+          "pagado": true,
+          "importe": 3290.03,
+          "importeLinea": 3290.03,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "01",
+          "clase": "Colegiatura Septiembre",
+          "pagado": true,
+          "importe": 4550,
+          "importeLinea": 4550,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "02",
+          "clase": "Colegiatura Octubre",
+          "pagado": true,
+          "importe": 4550,
+          "importeLinea": 4550,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "03",
+          "clase": "Colegiatura Noviembre",
+          "pagado": true,
+          "importe": 4550,
+          "importeLinea": 4550,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "04",
+          "clase": "Colegiatura Diciembre",
+          "pagado": true,
+          "importe": 4475,
+          "importeLinea": 4475,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "05",
+          "clase": "Colegiatura Enero",
+          "pagado": true,
+          "importe": 4550.04,
+          "importeLinea": 4550.04,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "16",
+          "clase": "Material (legacy)",
+          "pagado": true,
+          "importe": 675,
+          "importeLinea": 675,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "06",
+          "clase": "Colegiatura Febrero",
+          "pagado": true,
+          "importe": 4550,
+          "importeLinea": 4550,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "07",
+          "clase": "Colegiatura Marzo",
+          "pagado": true,
+          "importe": 4550,
+          "importeLinea": 4550,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "08",
+          "clase": "Colegiatura Abril",
+          "pagado": true,
+          "importe": 4550.05,
+          "importeLinea": 4550.05,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "09",
+          "clase": "Colegiatura Mayo",
+          "pagado": false,
+          "importe": 4400,
+          "importeLinea": 4700,
+          "recargo": 300
+        }
+      ],
+      "pendientes": [
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "09",
+          "clase": "Colegiatura Mayo",
+          "pagado": false,
+          "importe": 4400,
+          "importeLinea": 4700,
+          "recargo": 300
+        }
+      ],
+      "totalVentanilla": 4400,
+      "totalConRecargo": 4700
+    },
+    {
+      "control": 21330,
+      "alumno_id": 1926,
+      "nombre": "CORONA BADILLO MAXIMILIANO",
+      "grado": 5,
+      "grupo": 1,
+      "mes": 2,
+      "plan": "Plan de pagos: 11 meses",
+      "ciclo": "2025-2026",
+      "cicloValor": 22,
+      "pagosCount": 11,
+      "todas": [
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "00",
+          "clase": "Cuota de Inicio de Curso",
+          "pagado": true,
+          "importe": 3290,
+          "importeLinea": 3290,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "01",
+          "clase": "Colegiatura Septiembre",
+          "pagado": true,
+          "importe": 4550,
+          "importeLinea": 4550,
+          "recargo": 150
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "02",
+          "clase": "Colegiatura Octubre",
+          "pagado": true,
+          "importe": 4550,
+          "importeLinea": 4550,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "03",
+          "clase": "Colegiatura Noviembre",
+          "pagado": true,
+          "importe": 4550,
+          "importeLinea": 4550,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "04",
+          "clase": "Colegiatura Diciembre",
+          "pagado": true,
+          "importe": 4475,
+          "importeLinea": 4475,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "05",
+          "clase": "Colegiatura Enero",
+          "pagado": true,
+          "importe": 4550,
+          "importeLinea": 4550,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "16",
+          "clase": "Material (legacy)",
+          "pagado": true,
+          "importe": 600.01,
+          "importeLinea": 600.01,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "06",
+          "clase": "Colegiatura Febrero",
+          "pagado": true,
+          "importe": 4625,
+          "importeLinea": 4625,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "07",
+          "clase": "Colegiatura Marzo",
+          "pagado": true,
+          "importe": 4550,
+          "importeLinea": 4550,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "08",
+          "clase": "Colegiatura Abril",
+          "pagado": true,
+          "importe": 4550,
+          "importeLinea": 4550,
+          "recargo": 0
+        },
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "09",
+          "clase": "Colegiatura Mayo",
+          "pagado": false,
+          "importe": 4400,
+          "importeLinea": 4700,
+          "recargo": 300
+        }
+      ],
+      "pendientes": [
+        {
+          "seccion": "Cierre de ciclo 2025-2026",
+          "concepto": "09",
+          "clase": "Colegiatura Mayo",
+          "pagado": false,
+          "importe": 4400,
+          "importeLinea": 4700,
+          "recargo": 300
+        }
+      ],
+      "totalVentanilla": 4400,
+      "totalConRecargo": 4700
+    }
+  ]
+}

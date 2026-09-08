@@ -1,0 +1,334 @@
+{
+  "titulares": [
+    {
+      "nombre": "VERÓNICA VEGA ORTEGA",
+      "correo": "maternal.espanol@winston93.edu.mx",
+      "idioma": "es",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 1,
+      "grados": [
+        1,
+        2
+      ]
+    },
+    {
+      "nombre": "ERIKA KEMPER GÁTICA",
+      "correo": "kinder1a.espanol@winston93.edu.mx",
+      "idioma": "es",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 2,
+      "grados": [
+        1
+      ]
+    },
+    {
+      "nombre": "BLANCA ESTHELA GUERRERO RIVERA",
+      "correo": "kinder2a.espanol@winston93.edu.mx",
+      "idioma": "es",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 2,
+      "grados": [
+        2
+      ]
+    },
+    {
+      "nombre": "CLAUDIA MAGDALENA BERRAL BARRAGÁN",
+      "correo": "kinder3a.espanol@winston93.edu.mx",
+      "idioma": "es",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 2,
+      "grados": [
+        3
+      ]
+    },
+    {
+      "nombre": "DARYAN MARTÍNEZ AVILÉS",
+      "correo": "toddlers.nursery@winston93.edu.mx",
+      "idioma": "en",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 1,
+      "grados": [
+        1,
+        2
+      ]
+    },
+    {
+      "nombre": "DIANA LIZBETH MEDIAN ROJI",
+      "correo": "pre-k1a.english@winston93.edu.mx",
+      "idioma": "en",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 2,
+      "grados": [
+        1
+      ]
+    },
+    {
+      "nombre": "HANNIA GUADALUPE NIETO PÉREZ",
+      "correo": "kgartena.english@winston93.edu.mx",
+      "idioma": "en",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 2,
+      "grados": [
+        2
+      ]
+    },
+    {
+      "nombre": "BÁRBARA GEORGINA ROSAS VICENCIO",
+      "correo": "pre-firsta.english@winston93.edu.mx",
+      "idioma": "en",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 2,
+      "grados": [
+        3
+      ]
+    },
+    {
+      "nombre": "BEATRIZ ZOE ÁNGELES ZAYA",
+      "correo": "primeroab@winston93.edu.mx",
+      "idioma": "es",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 3,
+      "grados": [
+        1
+      ]
+    },
+    {
+      "nombre": "QUETZALLI AMÉRICA HERNÁNDEZ BARRÓN",
+      "correo": "primeroc@winston93.edu.mx",
+      "idioma": "es",
+      "letras": [
+        "C"
+      ],
+      "maestroNivel": 3,
+      "grados": [
+        1
+      ]
+    },
+    {
+      "nombre": "LETICIA ARIDE DIAZ ESPINOSA",
+      "correo": "segundoab@winston93.edu.mx",
+      "idioma": "es",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 3,
+      "grados": [
+        2
+      ]
+    },
+    {
+      "nombre": "CHRISTIAN OLYMPIA BLANCO HERNÁNDEZ",
+      "correo": "terceroab@winston93.edu.mx",
+      "idioma": "es",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 3,
+      "grados": [
+        3
+      ]
+    },
+    {
+      "nombre": "TANIA SINAITH REYES CARRASCO",
+      "correo": "cuartoab@winston93.edu.mx",
+      "idioma": "es",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 3,
+      "grados": [
+        4
+      ]
+    },
+    {
+      "nombre": "MARIA ELENA ANDRADE GUILLEN",
+      "correo": "quintoab@winston93.edu.mx",
+      "idioma": "es",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 3,
+      "grados": [
+        5
+      ]
+    },
+    {
+      "nombre": "GLORIA LUZ SOLÍS CHAVARRÍA",
+      "correo": "sextoab@winston93.edu.mx",
+      "idioma": "es",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 3,
+      "grados": [
+        6
+      ]
+    },
+    {
+      "nombre": "MARÍA CRISTINA CASTILLO RODÍGUEZ",
+      "correo": "sextoc@winston93.edu.mx",
+      "idioma": "es",
+      "letras": [
+        "C"
+      ],
+      "maestroNivel": 3,
+      "grados": [
+        6
+      ]
+    },
+    {
+      "nombre": "JOSELINE PIMIENTA SOSA",
+      "correo": "firstgradeab@winston93.edu.mx",
+      "idioma": "en",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 3,
+      "grados": [
+        1
+      ]
+    },
+    {
+      "nombre": "ELSA GUADALUPE RÍOS OLMEDA",
+      "correo": "firstgradec@winston93.edu.mx",
+      "idioma": "en",
+      "letras": [
+        "C"
+      ],
+      "maestroNivel": 3,
+      "grados": [
+        1
+      ]
+    },
+    {
+      "nombre": "MARÍA EUGENIA  DEL ÁNGEL MARTÍNEZ",
+      "correo": "secondgradeab@winston93.edu.mx",
+      "idioma": "en",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 3,
+      "grados": [
+        2
+      ]
+    },
+    {
+      "nombre": "MERIA DEL CARMEN UGALDE LÓPEZ",
+      "correo": "thirdgradeab@winston93.edu.mx",
+      "idioma": "en",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 3,
+      "grados": [
+        3
+      ]
+    },
+    {
+      "nombre": "PRISCILA BARRAGÁN DI BELLA",
+      "correo": "fourthgradeab@winston93.edu.mx",
+      "idioma": "en",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 3,
+      "grados": [
+        4
+      ]
+    },
+    {
+      "nombre": "BEATRIZ ADRIANA SOTELO SÁNCHEZ",
+      "correo": "fifthgradeab@winston93.edu.mx",
+      "idioma": "en",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 3,
+      "grados": [
+        5
+      ]
+    },
+    {
+      "nombre": "JUANITA MERCEDES HERNANDEZ GARCÍA",
+      "correo": "sixthgradeab@winston93.edu.mx",
+      "idioma": "en",
+      "letras": [
+        "A",
+        "B"
+      ],
+      "maestroNivel": 3,
+      "grados": [
+        6
+      ]
+    },
+    {
+      "nombre": "MONICA XIMENA ACOSTA SALDÍVAR",
+      "correo": "sixthgradec@winston93.edu.mx",
+      "idioma": "en",
+      "letras": [
+        "C"
+      ],
+      "maestroNivel": 3,
+      "grados": [
+        6
+      ]
+    }
+  ],
+  "correosSec": {
+    "ANA MONSERRAT LUQUE TORRES": "artes.m1@winston93.edu.mx",
+    "DINORAH LERMA": "mindfulness@winston93.edu.mx",
+    "INGRID SCHERYMN MEJÍA FLORES": "tecnología.m1@winston93.edu.mx",
+    "JACQUELINE PEREZ MORALES": "lenguamaterna.m2@winston93.edu.mx",
+    "JENNIFER LIZBETH LÓPEZ MORALES": "tecnologia.m2@winston93.edu.mx",
+    "JOSEFINA HERNÁNDEZ HUERTA": "direccion.secundaria@winston93.edu.mx",
+    "KARLA ILIANA CASTILLO ROMERO": "idiomas@winston93.edu.mx",
+    "LESLIE ALEJANDRA VICENCIO JUÁREZ": "idiomas@winston93.edu.mx",
+    "MARÍA CRISTINA CASTILLO RODRÍGUEZ": "cienciasexactas.m2@winston93.edu.mx",
+    "MARICRUZ GURROLA GONZALEZ": "controlescolariew@winston93.edu.mx",
+    "MARTHA PATRICIA SANCHEZ SANCHEZ": "cienciasexactas.m1@winston93.edu.mx",
+    "MEIGHLYING VEIGELIA REYES VARGAS": "civismo.m1@winston93.edu.mx",
+    "MELISSA ELIZABETH GÁMEZ WHIJARES": "emprendimiento@winston93.edu.mx",
+    "MIRNA ALICIA BOLAÑOS HERNANDEZ": "formacionsocial.m1@winston93.edu.mx",
+    "NOE TREJO COVARRUBIAS": "deportes.m1@winston93.edu.mx",
+    "ORLANDO SANCHEZ RICAÑO": "cienciassociales.m1@winston93.edu.mx",
+    "PAOLA ESTEFANIA VARGAS REYES": "psicología.secundaria@winston93.edu.mx",
+    "ROSA ROMERO": "idiomas@winston93.edu.mx"
+  }
+}

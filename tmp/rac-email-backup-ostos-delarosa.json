@@ -1,0 +1,34 @@
+{
+  "saved_at": "2026-09-04T13:37:13.424Z",
+  "prueba": "sistemas.desarrollo@winston93.edu.mx",
+  "rows": [
+    {
+      "familiar_id": 324,
+      "alumno_id": 336,
+      "tutor_id": 1,
+      "familiar_email": "lp.jenriquez@gmail.com",
+      "familiar_recibir_email": 1
+    },
+    {
+      "familiar_id": 1347,
+      "alumno_id": 336,
+      "tutor_id": 2,
+      "familiar_email": "cesar@live.com",
+      "familiar_recibir_email": 1
+    },
+    {
+      "familiar_id": 14320,
+      "alumno_id": 2201,
+      "tutor_id": 2,
+      "familiar_email": "v.noguera.ldg@gmail.com",
+      "familiar_recibir_email": 1
+    },
+    {
+      "familiar_id": 14319,
+      "alumno_id": 2201,
+      "tutor_id": 1,
+      "familiar_email": "karla.margot5@gmail.com",
+      "familiar_recibir_email": 1
+    }
+  ]
+}

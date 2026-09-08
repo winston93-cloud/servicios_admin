@@ -1,0 +1,42 @@
+{
+  "fecha": "2026-09-07T18:06:06.139Z",
+  "ciclo": "2026-2027",
+  "resultados": [
+    {
+      "control": 21318,
+      "nombre": "CORONA BADILLO ETHAN ALEXANDER",
+      "grado": 3,
+      "grupo": 1,
+      "plan": "Plan de pagos: 11 meses",
+      "filasVisibles": [
+        {
+          "seccion": "Colegiaturas del ciclo escolar",
+          "concepto": "00",
+          "clase": "Cuota de Inicio de Curso",
+          "pagado": false,
+          "importe": 3300,
+          "importeLinea": 3375,
+          "recargo": 75
+        }
+      ]
+    },
+    {
+      "control": 21330,
+      "nombre": "CORONA BADILLO MAXIMILIANO",
+      "grado": 5,
+      "grupo": 1,
+      "plan": "Plan de pagos: 11 meses",
+      "filasVisibles": [
+        {
+          "seccion": "Colegiaturas del ciclo escolar",
+          "concepto": "00",
+          "clase": "Cuota de Inicio de Curso",
+          "pagado": false,
+          "importe": 3300,
+          "importeLinea": 3375,
+          "recargo": 75
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,738 @@
+{
+  "altas": [
+    {
+      "id": 62,
+      "usuario": "maternal.espanol",
+      "email": "maternal.espanol@winston93.edu.mx",
+      "nivel": 1,
+      "nombre": "VERÓNICA VEGA ORTEGA"
+    },
+    {
+      "id": 63,
+      "usuario": "kinder1a.espanol",
+      "email": "kinder1a.espanol@winston93.edu.mx",
+      "nivel": 2,
+      "nombre": "ERIKA KEMPER GÁTICA"
+    },
+    {
+      "id": 64,
+      "usuario": "kinder2a.espanol",
+      "email": "kinder2a.espanol@winston93.edu.mx",
+      "nivel": 2,
+      "nombre": "BLANCA ESTHELA GUERRERO RIVERA"
+    },
+    {
+      "id": 65,
+      "usuario": "kinder3a.espanol",
+      "email": "kinder3a.espanol@winston93.edu.mx",
+      "nivel": 2,
+      "nombre": "CLAUDIA MAGDALENA BERRAL BARRAGÁN"
+    },
+    {
+      "id": 66,
+      "usuario": "toddlers.nursery",
+      "email": "toddlers.nursery@winston93.edu.mx",
+      "nivel": 1,
+      "nombre": "DARYAN MARTÍNEZ AVILÉS"
+    },
+    {
+      "id": 67,
+      "usuario": "pre-k1a.english",
+      "email": "pre-k1a.english@winston93.edu.mx",
+      "nivel": 2,
+      "nombre": "DIANA LIZBETH MEDIAN ROJI"
+    },
+    {
+      "id": 68,
+      "usuario": "kgartena.english",
+      "email": "kgartena.english@winston93.edu.mx",
+      "nivel": 2,
+      "nombre": "HANNIA GUADALUPE NIETO PÉREZ"
+    },
+    {
+      "id": 69,
+      "usuario": "pre-firsta.english",
+      "email": "pre-firsta.english@winston93.edu.mx",
+      "nivel": 2,
+      "nombre": "BÁRBARA GEORGINA ROSAS VICENCIO"
+    },
+    {
+      "id": 70,
+      "usuario": "primeroab",
+      "email": "primeroab@winston93.edu.mx",
+      "nivel": 3,
+      "nombre": "BEATRIZ ZOE ÁNGELES ZAYA"
+    },
+    {
+      "id": 71,
+      "usuario": "primeroc",
+      "email": "primeroc@winston93.edu.mx",
+      "nivel": 3,
+      "nombre": "QUETZALLI AMÉRICA HERNÁNDEZ BARRÓN"
+    },
+    {
+      "id": 72,
+      "usuario": "segundoab",
+      "email": "segundoab@winston93.edu.mx",
+      "nivel": 3,
+      "nombre": "LETICIA ARIDE DIAZ ESPINOSA"
+    },
+    {
+      "id": 73,
+      "usuario": "terceroab",
+      "email": "terceroab@winston93.edu.mx",
+      "nivel": 3,
+      "nombre": "CHRISTIAN OLYMPIA BLANCO HERNÁNDEZ"
+    },
+    {
+      "id": 74,
+      "usuario": "cuartoab",
+      "email": "cuartoab@winston93.edu.mx",
+      "nivel": 3,
+      "nombre": "TANIA SINAITH REYES CARRASCO"
+    },
+    {
+      "id": 75,
+      "usuario": "quintoab",
+      "email": "quintoab@winston93.edu.mx",
+      "nivel": 3,
+      "nombre": "MARIA ELENA ANDRADE GUILLEN"
+    },
+    {
+      "id": 76,
+      "usuario": "sextoab",
+      "email": "sextoab@winston93.edu.mx",
+      "nivel": 3,
+      "nombre": "GLORIA LUZ SOLÍS CHAVARRÍA"
+    },
+    {
+      "id": 77,
+      "usuario": "sextoc",
+      "email": "sextoc@winston93.edu.mx",
+      "nivel": 3,
+      "nombre": "MARÍA CRISTINA CASTILLO RODÍGUEZ"
+    },
+    {
+      "id": 78,
+      "usuario": "firstgradeab",
+      "email": "firstgradeab@winston93.edu.mx",
+      "nivel": 3,
+      "nombre": "JOSELINE PIMIENTA SOSA"
+    },
+    {
+      "id": 79,
+      "usuario": "firstgradec",
+      "email": "firstgradec@winston93.edu.mx",
+      "nivel": 3,
+      "nombre": "ELSA GUADALUPE RÍOS OLMEDA"
+    },
+    {
+      "id": 80,
+      "usuario": "secondgradeab",
+      "email": "secondgradeab@winston93.edu.mx",
+      "nivel": 3,
+      "nombre": "MARÍA EUGENIA  DEL ÁNGEL MARTÍNEZ"
+    },
+    {
+      "id": 81,
+      "usuario": "thirdgradeab",
+      "email": "thirdgradeab@winston93.edu.mx",
+      "nivel": 3,
+      "nombre": "MERIA DEL CARMEN UGALDE LÓPEZ"
+    },
+    {
+      "id": 82,
+      "usuario": "fourthgradeab",
+      "email": "fourthgradeab@winston93.edu.mx",
+      "nivel": 3,
+      "nombre": "PRISCILA BARRAGÁN DI BELLA"
+    },
+    {
+      "id": 83,
+      "usuario": "fifthgradeab",
+      "email": "fifthgradeab@winston93.edu.mx",
+      "nivel": 3,
+      "nombre": "BEATRIZ ADRIANA SOTELO SÁNCHEZ"
+    },
+    {
+      "id": 84,
+      "usuario": "sixthgradeab",
+      "email": "sixthgradeab@winston93.edu.mx",
+      "nivel": 3,
+      "nombre": "JUANITA MERCEDES HERNANDEZ GARCÍA"
+    },
+    {
+      "id": 85,
+      "usuario": "sixthgradec",
+      "email": "sixthgradec@winston93.edu.mx",
+      "nivel": 3,
+      "nombre": "MONICA XIMENA ACOSTA SALDÍVAR"
+    }
+  ],
+  "reusados": [],
+  "asignaciones": [
+    {
+      "ok": true,
+      "grupo_id": 274,
+      "maestro_id": 62,
+      "materia_id": 60,
+      "grupo_letra": "A",
+      "grado": 1,
+      "nivel": 1,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 275,
+      "maestro_id": 62,
+      "materia_id": 60,
+      "grupo_letra": "B",
+      "grado": 1,
+      "nivel": 1,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 276,
+      "maestro_id": 62,
+      "materia_id": 62,
+      "grupo_letra": "A",
+      "grado": 2,
+      "nivel": 1,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 277,
+      "maestro_id": 62,
+      "materia_id": 62,
+      "grupo_letra": "B",
+      "grado": 2,
+      "nivel": 1,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 278,
+      "maestro_id": 63,
+      "materia_id": 64,
+      "grupo_letra": "A",
+      "grado": 1,
+      "nivel": 2,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 279,
+      "maestro_id": 63,
+      "materia_id": 64,
+      "grupo_letra": "B",
+      "grado": 1,
+      "nivel": 2,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 280,
+      "maestro_id": 64,
+      "materia_id": 66,
+      "grupo_letra": "A",
+      "grado": 2,
+      "nivel": 2,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 281,
+      "maestro_id": 64,
+      "materia_id": 66,
+      "grupo_letra": "B",
+      "grado": 2,
+      "nivel": 2,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 282,
+      "maestro_id": 65,
+      "materia_id": 68,
+      "grupo_letra": "A",
+      "grado": 3,
+      "nivel": 2,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 283,
+      "maestro_id": 65,
+      "materia_id": 68,
+      "grupo_letra": "B",
+      "grado": 3,
+      "nivel": 2,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 284,
+      "maestro_id": 66,
+      "materia_id": 61,
+      "grupo_letra": "A",
+      "grado": 1,
+      "nivel": 1,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 285,
+      "maestro_id": 66,
+      "materia_id": 61,
+      "grupo_letra": "B",
+      "grado": 1,
+      "nivel": 1,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 286,
+      "maestro_id": 66,
+      "materia_id": 63,
+      "grupo_letra": "A",
+      "grado": 2,
+      "nivel": 1,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 287,
+      "maestro_id": 66,
+      "materia_id": 63,
+      "grupo_letra": "B",
+      "grado": 2,
+      "nivel": 1,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 288,
+      "maestro_id": 67,
+      "materia_id": 65,
+      "grupo_letra": "A",
+      "grado": 1,
+      "nivel": 2,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 289,
+      "maestro_id": 67,
+      "materia_id": 65,
+      "grupo_letra": "B",
+      "grado": 1,
+      "nivel": 2,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 290,
+      "maestro_id": 68,
+      "materia_id": 67,
+      "grupo_letra": "A",
+      "grado": 2,
+      "nivel": 2,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 291,
+      "maestro_id": 68,
+      "materia_id": 67,
+      "grupo_letra": "B",
+      "grado": 2,
+      "nivel": 2,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 292,
+      "maestro_id": 69,
+      "materia_id": 69,
+      "grupo_letra": "A",
+      "grado": 3,
+      "nivel": 2,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 293,
+      "maestro_id": 69,
+      "materia_id": 69,
+      "grupo_letra": "B",
+      "grado": 3,
+      "nivel": 2,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 294,
+      "maestro_id": 70,
+      "materia_id": 56,
+      "grupo_letra": "A",
+      "grado": 1,
+      "nivel": 3,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 295,
+      "maestro_id": 70,
+      "materia_id": 56,
+      "grupo_letra": "B",
+      "grado": 1,
+      "nivel": 3,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 296,
+      "maestro_id": 71,
+      "materia_id": 56,
+      "grupo_letra": "C",
+      "grado": 1,
+      "nivel": 3,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 297,
+      "maestro_id": 72,
+      "materia_id": 58,
+      "grupo_letra": "A",
+      "grado": 2,
+      "nivel": 3,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 298,
+      "maestro_id": 72,
+      "materia_id": 58,
+      "grupo_letra": "B",
+      "grado": 2,
+      "nivel": 3,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 299,
+      "maestro_id": 73,
+      "materia_id": 71,
+      "grupo_letra": "A",
+      "grado": 3,
+      "nivel": 3,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 300,
+      "maestro_id": 73,
+      "materia_id": 71,
+      "grupo_letra": "B",
+      "grado": 3,
+      "nivel": 3,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 301,
+      "maestro_id": 74,
+      "materia_id": 72,
+      "grupo_letra": "A",
+      "grado": 4,
+      "nivel": 3,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 302,
+      "maestro_id": 74,
+      "materia_id": 72,
+      "grupo_letra": "B",
+      "grado": 4,
+      "nivel": 3,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 303,
+      "maestro_id": 75,
+      "materia_id": 73,
+      "grupo_letra": "A",
+      "grado": 5,
+      "nivel": 3,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 304,
+      "maestro_id": 75,
+      "materia_id": 73,
+      "grupo_letra": "B",
+      "grado": 5,
+      "nivel": 3,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 305,
+      "maestro_id": 76,
+      "materia_id": 70,
+      "grupo_letra": "A",
+      "grado": 6,
+      "nivel": 3,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 306,
+      "maestro_id": 76,
+      "materia_id": 70,
+      "grupo_letra": "B",
+      "grado": 6,
+      "nivel": 3,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 307,
+      "maestro_id": 77,
+      "materia_id": 70,
+      "grupo_letra": "C",
+      "grado": 6,
+      "nivel": 3,
+      "idioma": "es"
+    },
+    {
+      "ok": true,
+      "grupo_id": 308,
+      "maestro_id": 78,
+      "materia_id": 57,
+      "grupo_letra": "A",
+      "grado": 1,
+      "nivel": 3,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 309,
+      "maestro_id": 78,
+      "materia_id": 57,
+      "grupo_letra": "B",
+      "grado": 1,
+      "nivel": 3,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 310,
+      "maestro_id": 79,
+      "materia_id": 57,
+      "grupo_letra": "C",
+      "grado": 1,
+      "nivel": 3,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 311,
+      "maestro_id": 80,
+      "materia_id": 59,
+      "grupo_letra": "A",
+      "grado": 2,
+      "nivel": 3,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 312,
+      "maestro_id": 80,
+      "materia_id": 59,
+      "grupo_letra": "B",
+      "grado": 2,
+      "nivel": 3,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 313,
+      "maestro_id": 81,
+      "materia_id": 74,
+      "grupo_letra": "A",
+      "grado": 3,
+      "nivel": 3,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 314,
+      "maestro_id": 81,
+      "materia_id": 74,
+      "grupo_letra": "B",
+      "grado": 3,
+      "nivel": 3,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 315,
+      "maestro_id": 82,
+      "materia_id": 75,
+      "grupo_letra": "A",
+      "grado": 4,
+      "nivel": 3,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 316,
+      "maestro_id": 82,
+      "materia_id": 75,
+      "grupo_letra": "B",
+      "grado": 4,
+      "nivel": 3,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 317,
+      "maestro_id": 83,
+      "materia_id": 76,
+      "grupo_letra": "A",
+      "grado": 5,
+      "nivel": 3,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 318,
+      "maestro_id": 83,
+      "materia_id": 76,
+      "grupo_letra": "B",
+      "grado": 5,
+      "nivel": 3,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 319,
+      "maestro_id": 84,
+      "materia_id": 77,
+      "grupo_letra": "A",
+      "grado": 6,
+      "nivel": 3,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 320,
+      "maestro_id": 84,
+      "materia_id": 77,
+      "grupo_letra": "B",
+      "grado": 6,
+      "nivel": 3,
+      "idioma": "en"
+    },
+    {
+      "ok": true,
+      "grupo_id": 321,
+      "maestro_id": 85,
+      "materia_id": 77,
+      "grupo_letra": "C",
+      "grado": 6,
+      "nivel": 3,
+      "idioma": "en"
+    }
+  ],
+  "emailsSec": [
+    {
+      "id": 37,
+      "usuario": "lion",
+      "email": "idiomas@winston93.edu.mx"
+    },
+    {
+      "id": 6,
+      "usuario": "Mirna",
+      "email": "formacionsocial.m1@winston93.edu.mx"
+    },
+    {
+      "id": 11,
+      "usuario": "Reyes",
+      "email": "civismo.m1@winston93.edu.mx"
+    },
+    {
+      "id": 25,
+      "usuario": "noe",
+      "email": "deportes.m1@winston93.edu.mx"
+    },
+    {
+      "id": 31,
+      "usuario": "amfl",
+      "email": "artes.m1@winston93.edu.mx"
+    },
+    {
+      "id": 34,
+      "usuario": "jaqueline",
+      "email": "lenguamaterna.m2@winston93.edu.mx"
+    },
+    {
+      "id": 41,
+      "usuario": "marta",
+      "email": "cienciasexactas.m1@winston93.edu.mx"
+    },
+    {
+      "id": 50,
+      "usuario": "karla",
+      "email": "idiomas@winston93.edu.mx"
+    },
+    {
+      "id": 51,
+      "usuario": "melissa",
+      "email": "emprendimiento@winston93.edu.mx"
+    },
+    {
+      "id": 55,
+      "usuario": "orlando",
+      "email": "cienciasexactas.m4@winston93.edu.mx"
+    },
+    {
+      "id": 56,
+      "usuario": "cristina",
+      "email": "lenguamaterna.m1@winston93.edu.mx"
+    },
+    {
+      "id": 57,
+      "usuario": "leslie",
+      "email": "idiomas@winston93.edu.mx"
+    },
+    {
+      "id": 58,
+      "usuario": "jenifer",
+      "email": "tecnologia.m2@winston93.edu.mx"
+    },
+    {
+      "id": 59,
+      "usuario": "ingrid",
+      "email": "roboticasec.m1@winston93.edu.mx"
+    },
+    {
+      "id": 60,
+      "usuario": "rosa",
+      "email": "idiomas@winston93.edu.mx"
+    },
+    {
+      "id": 61,
+      "usuario": "dinorah",
+      "email": "mindfulness@winston93.edu.mx"
+    }
+  ],
+  "errores": []
+}
