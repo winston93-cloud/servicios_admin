@@ -13,7 +13,7 @@ export async function GET(req: Request, { params }: Params) {
     const svc = getServiceForSlug(slug)
     const url = new URL(req.url)
     const vista = url.searchParams.get('vista') ?? 'pendientes'
-    if (!puedeVerVistaCoordNivel(session.role, vista)) {
+    if (!puedeVerVistaCoordNivel(session.role, vista, cfg)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
     if (vista === 'citas') return NextResponse.json({ filas: await svc.inboxCitas(session) })
@@ -39,18 +39,41 @@ export async function POST(req: Request, { params }: Params) {
     const body = (await req.json()) as {
       entidad?: string
       id?: number
+      ids?: number[]
       accion?: string
       fecha?: string
+      hora?: string
+      mensaje?: string
     }
     const entidad = body.entidad === 'cita' ? 'cita' : body.entidad === 'suspension' ? 'suspension' : 'reporte'
     const accion = String(body.accion ?? '')
     if (!puedeAccionCoordNivel(session.role, entidad, accion)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
+
+    // Reenvío masivo (misma acción repetida por id).
+    if (Array.isArray(body.ids) && body.ids.length > 0 && accion === 'reenviar') {
+      const results = []
+      for (const rawId of body.ids) {
+        const id = Number(rawId)
+        if (!id) continue
+        if (entidad === 'cita') {
+          results.push(await svc.accionCita(id, 'reenviar'))
+        } else {
+          results.push(await svc.accionReporte(id, 'reenviar'))
+        }
+      }
+      return NextResponse.json({ ok: true, count: results.length, results })
+    }
+
     const id = Number(body.id)
     if (body.entidad === 'cita') {
       return NextResponse.json(
-        await svc.accionCita(id, body.accion as 'reenviar' | 'confirmar' | 'detener' | 'validar')
+        await svc.accionCita(id, body.accion as 'reenviar' | 'confirmar' | 'detener' | 'validar', {
+          fecha: body.fecha,
+          hora: body.hora,
+          mensaje: body.mensaje,
+        })
       )
     }
     if (body.entidad === 'suspension') {

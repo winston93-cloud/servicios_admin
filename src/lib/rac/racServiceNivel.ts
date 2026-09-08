@@ -17,6 +17,7 @@ import {
   htmlCorreoRac,
   urlPublicaRac,
 } from '@/lib/racCorreo'
+import { filaPdfDesdeReporte, type FilaPdfReporte } from '@/lib/racPdf'
 import { RacNivelAuthError, type RacSesionNivel } from './racAuthNivel'
 import type { RacNivelConfig } from './racNivelConfig'
 import { RAC_MATERNAL_KINDER, RAC_PRIMARIA } from './racNivelConfig'
@@ -698,7 +699,12 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .eq('cita_ciclo_escolar', ciclo)
       .gt('cita_status', 0)
       .in('alumno_id', alumnoIds)
-    if (session.role === 'maestro') {
+    if (session.role === 'psicologia') {
+      q = q
+        .eq('perfil_id', 4)
+        .eq('usuario_id', session.id)
+        .in('cita_tipo', [RAC_TIPOS.conducta, RAC_TIPOS.seguimiento])
+    } else if (session.role === 'maestro') {
       const { asignaciones } = await listarAsignaciones(session)
       const ids = asignaciones.map((a) => a.materia_id)
       if (ids.length) q = q.in('materia_id', ids)
@@ -837,7 +843,11 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     return enviarCorreoReporte(id)
   }
 
-  async function accionCita(id: number, accion: 'reenviar' | 'confirmar' | 'detener' | 'validar') {
+  async function accionCita(
+    id: number,
+    accion: 'reenviar' | 'confirmar' | 'detener' | 'validar',
+    opts?: { fecha?: string; hora?: string; mensaje?: string }
+  ) {
     const client = db()
     if (accion === 'reenviar') return enviarCorreoCita(id)
     if (accion === 'confirmar') {
@@ -850,8 +860,12 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       if (error) throw new Error(error.message)
       return { ok: true }
     }
-    const { error } = await client.from('reporte_cita').update({ cita_status: 1 }).eq('cita_id', id)
+    const update: Record<string, unknown> = { cita_status: 1 }
+    if (opts?.fecha && opts?.hora) update.cita_fecha = `${opts.fecha}T${opts.hora}:00`
+    if (opts?.mensaje !== undefined) update.cita_mensaje = opts.mensaje
+    const { error } = await client.from('reporte_cita').update(update).eq('cita_id', id)
     if (error) throw new Error(error.message)
+    // Sin Google Calendar en primaria/kinder (calendario solo secundaria).
     return enviarCorreoCita(id)
   }
 
@@ -865,7 +879,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     const ciclo = await cicloRac()
     const q = query.trim()
     if (q.length < 2) return { alumnos: [], reportes: [] }
-    const safe = q.replace(/[%_,]/g, '')
+    const safe = q.replace(/[%_,.()]/g, '')
     const { data: alumnos } = await db()
       .from('alumno')
       .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_nivel')
@@ -879,9 +893,126 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .select('*')
       .in('alumno_id', ids)
       .eq('reporte_ciclo_escolar', ciclo)
+      .eq('reporte_status', 1)
       .order('reporte_registro', { ascending: false })
       .limit(200)
     return { alumnos: alumnos ?? [], reportes: await hidratar((reps ?? []) as Record<string, unknown>[]) }
+  }
+
+  /** Historial de un alumno (kardex): materia, motivo, observaciones, vuelta. */
+  async function historialDetalleAlumno(alumnoId: number) {
+    const ciclo = await cicloRac()
+    const alumno = await cargarAlumno(alumnoId)
+    if (!cfg.nivelesEscolares.includes(n(alumno.alumno_nivel) as (typeof cfg.nivelesEscolares)[number])) {
+      throw new Error(`Alumno no encontrado en ${cfg.titulo}`)
+    }
+    const { data: reps, error } = await db()
+      .from('reporte_escolar')
+      .select('*')
+      .eq('alumno_id', alumnoId)
+      .eq('reporte_ciclo_escolar', ciclo)
+      .eq('reporte_status', 1)
+      .order('reporte_ciclo', { ascending: true })
+      .order('reporte_registro', { ascending: false })
+      .limit(300)
+    if (error) throw new Error(error.message)
+    return {
+      alumno: {
+        alumno_id: n(alumno.alumno_id),
+        alumno_ref: alumno.alumno_ref,
+        nombre: nombreAlumno(alumno),
+        grado: n(alumno.alumno_grado),
+        grupo: letraDesdeGrupoNum(n(alumno.alumno_grupo)),
+      },
+      reportes: await hidratar((reps ?? []) as Record<string, unknown>[]),
+    }
+  }
+
+  const PERFIL_ETIQUETA: Record<number, string> = {
+    1: 'MAESTRO',
+    2: 'COORDINACIÓN',
+    4: 'PSICOLOGÍA',
+    5: cfg.etiquetaOperaciones.toUpperCase(),
+    6: 'DIRECCIÓN',
+  }
+
+  async function filasPdfDesdeQuery(rows: Record<string, unknown>[]): Promise<FilaPdfReporte[]> {
+    if (!rows.length) return []
+    const hidratados = (await hidratar(rows)).filter(
+      (r): r is NonNullable<typeof r> => r != null
+    )
+    return hidratados.map((r, i) => {
+      const raw = rows[i]
+      return filaPdfDesdeReporte({
+        reporte_id: r.reporte_id,
+        nombre: r.nombre,
+        materia: r.materia,
+        departamento: PERFIL_ETIQUETA[n(raw?.perfil_id)] ?? '',
+        tipo: r.tipo,
+        no: r.no,
+        motivo: r.motivo,
+        fecha: r.fecha,
+        enviado: r.enviado,
+        confirmado: r.confirmado,
+        vuelta: n(raw?.reporte_ciclo),
+      })
+    })
+  }
+
+  async function datosPdfPendientes() {
+    const ciclo = await cicloRac()
+    const alumnoIds = await idsAlumnosNivel()
+    if (!alumnoIds.length) {
+      return { ciclo, reportes: [] as FilaPdfReporte[], informes: [] as FilaPdfReporte[] }
+    }
+    const client = db()
+    const { data: reportes } = await client
+      .from('reporte_escolar')
+      .select('*')
+      .eq('reporte_ciclo_escolar', ciclo)
+      .eq('reporte_confirmado', 0)
+      .eq('reporte_status', 1)
+      .in('alumno_id', alumnoIds)
+      .neq('reporte_tipo', RAC_TIPOS.informeAcademico)
+      .lt('reporte_tipo', RAC_TIPOS.seguimiento)
+      .order('reporte_registro', { ascending: true })
+    const { data: informes } = await client
+      .from('reporte_escolar')
+      .select('*')
+      .eq('reporte_ciclo_escolar', ciclo)
+      .eq('reporte_confirmado', 0)
+      .eq('reporte_status', 1)
+      .in('alumno_id', alumnoIds)
+      .eq('reporte_tipo', RAC_TIPOS.informeAcademico)
+      .order('reporte_registro', { ascending: true })
+    return {
+      ciclo,
+      reportes: await filasPdfDesdeQuery((reportes ?? []) as Record<string, unknown>[]),
+      informes: await filasPdfDesdeQuery((informes ?? []) as Record<string, unknown>[]),
+    }
+  }
+
+  async function datosPdfHistorial(alumnoId: number, reporteTipo: number, materiaId?: number) {
+    const ciclo = await cicloRac()
+    const alumno = await cargarAlumno(alumnoId)
+    if (!cfg.nivelesEscolares.includes(n(alumno.alumno_nivel) as (typeof cfg.nivelesEscolares)[number])) {
+      throw new Error(`Alumno no encontrado en ${cfg.titulo}`)
+    }
+    let q = db()
+      .from('reporte_escolar')
+      .select('*')
+      .eq('alumno_id', alumnoId)
+      .eq('reporte_tipo', reporteTipo)
+      .eq('reporte_ciclo_escolar', ciclo)
+      .eq('reporte_status', 1)
+    if (reporteTipo === RAC_TIPOS.academico && materiaId) q = q.eq('materia_id', materiaId)
+    const { data, error } = await q.order('reporte_ciclo').order('reporte_no')
+    if (error) throw new Error(error.message)
+    return {
+      ciclo,
+      alumnoNombre: nombreAlumno(alumno),
+      filas: await filasPdfDesdeQuery((data ?? []) as Record<string, unknown>[]),
+    }
   }
 
   return {
@@ -898,6 +1029,9 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     accionCita,
     aplicarSuspension,
     historialAlumno,
+    historialDetalleAlumno,
+    datosPdfPendientes,
+    datosPdfHistorial,
   }
 }
 

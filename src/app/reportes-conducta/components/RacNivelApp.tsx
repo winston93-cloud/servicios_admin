@@ -523,14 +523,14 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
       return 'Conducta: reportar, aprobar pendientes, citatorios y avisos de atención.'
     }
     if (me.role === 'control_escolar') {
-      return `${config.etiquetaOperaciones}: uniforme, vialidad y retardo.`
+      return `Panel de ${config.etiquetaOperaciones.toLowerCase()}: listado, suspensión, citatorios, informes, captura e impresión.`
     }
     if (me.role === 'maestro') {
       return config.modoGradoGrupo
         ? 'Captura de reportes de tu grado y grupo — sin elegir materia.'
         : 'Captura de reportes y seguimiento de citas.'
     }
-    return 'Panel de coordinación/dirección: listado, suspensión, citatorios, informes e impresión.'
+    return 'Panel de coordinación/dirección/control escolar: listado, suspensión, citatorios, informes, captura e impresión.'
   }, [me, config])
 
   const materiasHistorial = useMemo(() => {
