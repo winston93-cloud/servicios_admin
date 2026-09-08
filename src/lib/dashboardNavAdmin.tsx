@@ -87,6 +87,20 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    label: 'Checador',
+    desc: 'Reloj checador de asistencia del personal.',
+    href: 'https://reloj-checador-ruddy.vercel.app/',
+    accent: 'indigo',
+    kicker: 'Empleados',
+    tags: ['Asistencia', 'Checadas'],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <polyline points="12 7 12 12 15 14" />
+      </svg>
+    ),
+  },
+  {
     label: 'Bajas administrativas',
     desc: 'Baja general de alumnos y aviso por correo al equipo institucional.',
     path: '/bajas-administrativas',
@@ -266,20 +280,6 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
         <line x1="8" y1="13" x2="16" y2="13" />
         <line x1="8" y1="17" x2="16" y2="17" />
         <line x1="10" y1="9" x2="12" y2="9" />
-      </svg>
-    ),
-  },
-  {
-    label: 'Checador',
-    desc: 'Reloj checador de asistencia del personal.',
-    href: 'https://reloj-checador-ruddy.vercel.app/',
-    accent: 'indigo',
-    kicker: 'Empleados',
-    tags: ['Asistencia', 'Checadas'],
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="9" />
-        <polyline points="12 7 12 12 15 14" />
       </svg>
     ),
   },
