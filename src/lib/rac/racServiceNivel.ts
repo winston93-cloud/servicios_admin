@@ -129,35 +129,55 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     return materiaId
   }
 
-  async function gradosDesdeAlumnos(): Promise<{ nivelEscolar: number; grado: number }[]> {
+  async function gradosYGruposDesdeAlumnos(): Promise<
+    { nivelEscolar: number; grado: number; grupos: string[] }[]
+  > {
+    const ciclo = await cicloRac()
     const { data } = await db()
       .from('alumno')
-      .select('alumno_nivel, alumno_grado')
+      .select('alumno_nivel, alumno_grado, alumno_grupo, alumno_status, alumno_ciclo_escolar')
       .in('alumno_nivel', cfg.nivelesEscolares)
       .neq('alumno_status', 0)
-    const map = new Map<string, { nivelEscolar: number; grado: number }>()
+    const map = new Map<string, { nivelEscolar: number; grado: number; letras: Set<string> }>()
     for (const a of data ?? []) {
+      if (n(a.alumno_status) === 2 && n(a.alumno_ciclo_escolar) !== ciclo) continue
       const nivelEscolar = n(a.alumno_nivel)
       const grado = n(a.alumno_grado)
       if (!grado) continue
-      map.set(`${nivelEscolar}-${grado}`, { nivelEscolar, grado })
+      const letra = letraDesdeGrupoNum(n(a.alumno_grupo))
+      if (!letra) continue
+      const key = `${nivelEscolar}-${grado}`
+      let entry = map.get(key)
+      if (!entry) {
+        entry = { nivelEscolar, grado, letras: new Set<string>() }
+        map.set(key, entry)
+      }
+      entry.letras.add(letra)
     }
-    const rows = [...map.values()].sort(
-      (a, b) => a.nivelEscolar - b.nivelEscolar || a.grado - b.grado
-    )
+    const rows = [...map.values()]
+      .map((e) => ({
+        nivelEscolar: e.nivelEscolar,
+        grado: e.grado,
+        grupos: [...e.letras].sort(),
+      }))
+      .sort((a, b) => a.nivelEscolar - b.nivelEscolar || a.grado - b.grado)
     if (rows.length) return rows
-    return cfg.gradosFallback.map((g) => ({ nivelEscolar: g.nivelEscolar, grado: g.grado }))
+    return cfg.gradosFallback.map((g) => ({
+      nivelEscolar: g.nivelEscolar,
+      grado: g.grado,
+      grupos: [...cfg.gruposCaptura],
+    }))
   }
 
   async function asignacionesDesdeGrados(
-    grados: { nivelEscolar: number; grado: number }[],
-    grupos: readonly string[]
+    grados: { nivelEscolar: number; grado: number; grupos?: readonly string[] }[]
   ): Promise<AsignacionRacNivel[]> {
     const asignaciones: AsignacionRacNivel[] = []
     await Promise.all(
       grados.map(async (g) => {
         try {
           const materiaId = await ensureSlotEs(g.nivelEscolar, g.grado)
+          const grupos = g.grupos?.length ? g.grupos : cfg.gruposCaptura
           for (const letra of grupos) {
             asignaciones.push({
               grupo_id: 0,
@@ -224,14 +244,9 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       }
     }
 
-    const grados = await gradosDesdeAlumnos()
-    let asignaciones = await asignacionesDesdeGrados(grados, cfg.gruposCaptura)
-    if (!asignaciones.length) {
-      asignaciones = await asignacionesDesdeGrados(
-        cfg.gradosFallback.map((g) => ({ nivelEscolar: g.nivelEscolar, grado: g.grado })),
-        cfg.gruposCaptura
-      )
-    }
+    // Staff: grados/grupos reales desde alumnos (1=A, 2=B, 3=C…), no solo cfg.gruposCaptura.
+    const gradosGrupos = await gradosYGruposDesdeAlumnos()
+    const asignaciones = await asignacionesDesdeGrados(gradosGrupos)
     return { asignaciones, fisica: true, ingles: true }
   }
 

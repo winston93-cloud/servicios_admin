@@ -45,31 +45,8 @@ export const RAC_PRIMARIA: RacNivelConfig = {
   rutaApp: '/reportes-conducta/primaria',
   rolOperaciones: 'control_escolar',
   etiquetaOperaciones: 'Control escolar',
-  gruposCaptura: ['A'],
-  gradosFallback: [
-    { nivelEscolar: 3, grado: 1 },
-    { nivelEscolar: 3, grado: 2 },
-    { nivelEscolar: 3, grado: 3 },
-    { nivelEscolar: 3, grado: 4 },
-    { nivelEscolar: 3, grado: 5 },
-    { nivelEscolar: 3, grado: 6 },
-  ],
-}
-
-export const RAC_MATERNAL_KINDER: RacNivelConfig = {
-  slug: 'maternal-kinder',
-  titulo: 'Maternal / Kinder',
-  subtitulo: 'Reportes académicos y de conducta',
-  kicker: 'Instituto Winston Churchill · Preescolar',
-  nivelesEscolares: [1, 2],
-  modoGradoGrupo: true,
-  cookieAuth: 'rac_maternal_kinder_auth',
-  apiBase: '/api/rac-nivel/maternal-kinder',
-  rutaApp: '/reportes-conducta/maternal-kinder',
-  rolOperaciones: 'control_escolar',
-  etiquetaOperaciones: 'Control escolar',
-  gruposCaptura: ['A'],
-  gradosFallback: [
+  /** Fallback si aún no hay alumnos con grupo; el combo real sale de la BD. */
+  gruposCaptura: ['A', 'B', 'C'],
     { nivelEscolar: 1, grado: 1 },
     { nivelEscolar: 2, grado: 1 },
     { nivelEscolar: 2, grado: 2 },
