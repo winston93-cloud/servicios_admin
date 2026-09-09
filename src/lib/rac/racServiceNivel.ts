@@ -90,9 +90,8 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     return resolverCicloEscolarSistemaValor()
   }
 
-  async function idsAlumnosNivel(): Promise<number[]> {
-    const { data } = await db().from('alumno').select('alumno_id').in('alumno_nivel', cfg.nivelesEscolares)
-    return (data ?? []).map((a) => n(a.alumno_id)).filter(Boolean)
+  function esAlumnoDeNivel(nivel: number): boolean {
+    return cfg.nivelesEscolares.includes(nivel as (typeof cfg.nivelesEscolares)[number])
   }
 
   async function nextMateriaId(): Promise<number> {
@@ -752,13 +751,9 @@ export function createRacNivelService(cfg: RacNivelConfig) {
 
   async function inboxReportes(session: RacSesionNivel, filtro: 'pendientes' | 'informes' | 'todos') {
     const ciclo = await cicloRac()
-    const alumnoIds = await idsAlumnosNivel()
-    if (!alumnoIds.length) return []
-    let q = db()
-      .from('reporte_escolar')
-      .select('*')
-      .eq('reporte_ciclo_escolar', ciclo)
-      .in('alumno_id', alumnoIds)
+    // Sin .in(alumno_id, miles de ids): eso tumba OpenResty (502) en primaria (~800+).
+    // Se filtra por nivel al hidratar, igual que el resto del módulo.
+    let q = db().from('reporte_escolar').select('*').eq('reporte_ciclo_escolar', ciclo)
     if (session.role === 'psicologia' && filtro === 'pendientes') {
       q = q.eq('reporte_status', 2).eq('reporte_tipo', RAC_TIPOS.conducta)
     } else {
@@ -781,14 +776,11 @@ export function createRacNivelService(cfg: RacNivelConfig) {
 
   async function inboxCitas(session: RacSesionNivel) {
     const ciclo = await cicloRac()
-    const alumnoIds = await idsAlumnosNivel()
-    if (!alumnoIds.length) return []
     let q = db()
       .from('reporte_cita')
       .select('*')
       .eq('cita_ciclo_escolar', ciclo)
       .gt('cita_status', 0)
-      .in('alumno_id', alumnoIds)
     if (session.role === 'maestro') {
       const { asignaciones } = await listarAsignaciones(session)
       const ids = asignaciones.map((a) => a.materia_id)
@@ -800,66 +792,71 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     const ids = [...new Set(rows.map((r) => n(r.alumno_id)))]
     const { data: alumnos } = await db()
       .from('alumno')
-      .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo')
+      .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_nivel')
       .in('alumno_id', ids.length ? ids : [0])
     const aMap = new Map((alumnos ?? []).map((a) => [n(a.alumno_id), a]))
-    return rows.map((c) => {
-      const a = aMap.get(n(c.alumno_id))
-      return {
-        cita_id: n(c.cita_id),
-        alumno_ref: a?.alumno_ref ?? null,
-        nombre: a ? nombreAlumno(a as AlumnoRow) : '',
-        grado: n(a?.alumno_grado),
-        grupo: letraDesdeGrupoNum(n(a?.alumno_grupo)),
-        tipo: n(c.cita_tipo),
-        tipoEtiqueta: etiquetaTipoCitatorio(n(c.cita_tipo)),
-        mensaje: String(c.cita_mensaje ?? ''),
-        fecha: c.cita_fecha ? String(c.cita_fecha).replace('T', ' ').slice(0, 16) : '',
-        enviada: n(c.cita_enviada) === 1,
-        confirmada: n(c.cita_confirmada) === 1,
-        status: n(c.cita_status),
-        mdv: String(c.cita_mdv ?? ''),
-      }
-    })
+    return rows
+      .map((c) => {
+        const a = aMap.get(n(c.alumno_id))
+        if (a && !esAlumnoDeNivel(n(a.alumno_nivel))) return null
+        return {
+          cita_id: n(c.cita_id),
+          alumno_ref: a?.alumno_ref ?? null,
+          nombre: a ? nombreAlumno(a as AlumnoRow) : '',
+          grado: n(a?.alumno_grado),
+          grupo: letraDesdeGrupoNum(n(a?.alumno_grupo)),
+          tipo: n(c.cita_tipo),
+          tipoEtiqueta: etiquetaTipoCitatorio(n(c.cita_tipo)),
+          mensaje: String(c.cita_mensaje ?? ''),
+          fecha: c.cita_fecha ? String(c.cita_fecha).replace('T', ' ').slice(0, 16) : '',
+          enviada: n(c.cita_enviada) === 1,
+          confirmada: n(c.cita_confirmada) === 1,
+          status: n(c.cita_status),
+          mdv: String(c.cita_mdv ?? ''),
+        }
+      })
+      .filter(Boolean)
   }
 
   async function inboxSuspensiones() {
     const ciclo = await cicloRac()
-    const alumnoIds = await idsAlumnosNivel()
-    if (!alumnoIds.length) return []
     const { data, error } = await db()
       .from('reporte_suspension')
       .select('*')
       .eq('suspension_ciclo_escolar', ciclo)
-      .in('alumno_id', alumnoIds)
       .order('suspension_id', { ascending: false })
+      .limit(300)
     if (error) throw new Error(error.message)
     const rows = data ?? []
-    const reporteIds = [...new Set(rows.map((r) => n(r.reporte_id)))]
+    const alumnoIds = [...new Set(rows.map((r) => n(r.alumno_id)).filter(Boolean))]
+    const reporteIds = [...new Set(rows.map((r) => n(r.reporte_id)).filter(Boolean))]
     const { data: alumnos } = await db()
       .from('alumno')
-      .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo')
-      .in('alumno_id', alumnoIds)
+      .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_nivel')
+      .in('alumno_id', alumnoIds.length ? alumnoIds : [0])
     const { data: reps } = await db()
       .from('reporte_escolar')
       .select('reporte_id, reporte_tipo')
       .in('reporte_id', reporteIds.length ? reporteIds : [0])
     const aMap = new Map((alumnos ?? []).map((a) => [n(a.alumno_id), a]))
     const rMap = new Map((reps ?? []).map((r) => [n(r.reporte_id), r]))
-    return rows.map((s) => {
-      const a = aMap.get(n(s.alumno_id))
-      const r = rMap.get(n(s.reporte_id))
-      return {
-        suspension_id: n(s.suspension_id),
-        alumno_ref: a?.alumno_ref ?? null,
-        nombre: a ? nombreAlumno(a as AlumnoRow) : '',
-        grado: n(a?.alumno_grado),
-        grupo: letraDesdeGrupoNum(n(a?.alumno_grupo)),
-        tipoEtiqueta: etiquetaTipoCitatorio(n(r?.reporte_tipo ?? 0)),
-        fecha: s.suspension_fecha ? String(s.suspension_fecha).slice(0, 10) : '',
-        enviada: n(s.suspension_enviada) === 1,
-      }
-    })
+    return rows
+      .map((s) => {
+        const a = aMap.get(n(s.alumno_id))
+        if (a && !esAlumnoDeNivel(n(a.alumno_nivel))) return null
+        const r = rMap.get(n(s.reporte_id))
+        return {
+          suspension_id: n(s.suspension_id),
+          alumno_ref: a?.alumno_ref ?? null,
+          nombre: a ? nombreAlumno(a as AlumnoRow) : '',
+          grado: n(a?.alumno_grado),
+          grupo: letraDesdeGrupoNum(n(a?.alumno_grupo)),
+          tipoEtiqueta: etiquetaTipoCitatorio(n(r?.reporte_tipo ?? 0)),
+          fecha: s.suspension_fecha ? String(s.suspension_fecha).slice(0, 10) : '',
+          enviada: n(s.suspension_enviada) === 1,
+        }
+      })
+      .filter(Boolean)
   }
 
   async function accionReporte(
@@ -1027,10 +1024,12 @@ export function createRacNivelService(cfg: RacNivelConfig) {
 
   async function filasPdfDesdeQuery(rows: Record<string, unknown>[]): Promise<FilaPdfReporte[]> {
     if (!rows.length) return []
-    const hidratados = await hidratar(rows)
-    return hidratados.map((r, i) => {
-      const raw = rows[i]
-      const row = r as NonNullable<(typeof hidratados)[number]>
+    const byId = new Map(rows.map((r) => [n(r.reporte_id), r]))
+    const hidratados = (await hidratar(rows)).filter(Boolean) as NonNullable<
+      Awaited<ReturnType<typeof hidratar>>[number]
+    >[]
+    return hidratados.map((row) => {
+      const raw = byId.get(row.reporte_id)
       return filaPdfDesdeReporte({
         reporte_id: row.reporte_id,
         nombre: row.nombre,
@@ -1049,8 +1048,6 @@ export function createRacNivelService(cfg: RacNivelConfig) {
 
   async function datosPdfPendientes() {
     const ciclo = await cicloRac()
-    const alumnoIds = await idsAlumnosNivel()
-    if (!alumnoIds.length) return { ciclo, reportes: [], informes: [] }
     const client = db()
     const { data: reportes } = await client
       .from('reporte_escolar')
@@ -1058,19 +1055,19 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .eq('reporte_ciclo_escolar', ciclo)
       .eq('reporte_confirmado', 0)
       .eq('reporte_status', 1)
-      .in('alumno_id', alumnoIds)
       .neq('reporte_tipo', RAC_TIPOS.informeAcademico)
       .lt('reporte_tipo', RAC_TIPOS.seguimiento)
       .order('reporte_registro', { ascending: true })
+      .limit(400)
     const { data: informes } = await client
       .from('reporte_escolar')
       .select('*')
       .eq('reporte_ciclo_escolar', ciclo)
       .eq('reporte_confirmado', 0)
       .eq('reporte_status', 1)
-      .in('alumno_id', alumnoIds)
       .eq('reporte_tipo', RAC_TIPOS.informeAcademico)
       .order('reporte_registro', { ascending: true })
+      .limit(400)
     return {
       ciclo,
       reportes: await filasPdfDesdeQuery((reportes ?? []) as Record<string, unknown>[]),
