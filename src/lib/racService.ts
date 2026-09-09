@@ -150,31 +150,49 @@ async function alumnosDeGrupo(grado: number, grupoLetra: string, ciclo: number):
   })
 }
 
-async function marcas(
-  alumnoId: number,
+async function marcasPorAlumnos(
+  alumnoIds: number[],
   tipo: number,
   ciclo: number,
   materiaId: number | null
-) {
+): Promise<Map<number, Record<number, string>>> {
+  const out = new Map<number, Record<number, string>>()
+  for (const id of alumnoIds) out.set(id, {})
+  if (!alumnoIds.length) return out
+
   let q = db()
     .from('reporte_escolar')
-    .select('reporte_no, reporte_registro, reporte_ciclo, reporte_status')
-    .eq('alumno_id', alumnoId)
+    .select('alumno_id, reporte_no, reporte_registro, reporte_ciclo, reporte_status')
+    .in('alumno_id', alumnoIds)
     .eq('reporte_tipo', tipo)
     .in('reporte_status', [1, 2])
     .eq('reporte_ciclo_escolar', ciclo)
   if (materiaId) q = q.eq('materia_id', materiaId)
-  const { data } = await q
-  const rows = data ?? []
-  const maxC = rows.reduce((acc, r) => Math.max(acc, n(r.reporte_ciclo)), 0)
-  const cur = rows.filter((r) => n(r.reporte_ciclo) === maxC)
-  const fechas: Record<number, string> = {}
-  for (const r of cur) {
-    const dia = String(r.reporte_registro ?? '').slice(0, 10)
-    const pend = n(r.reporte_status) === 2
-    fechas[n(r.reporte_no)] = pend ? `${dia}·pend` : dia
+  const { data, error } = await q
+  if (error) throw new Error(error.message)
+
+  const byAlumno = new Map<
+    number,
+    { reporte_no: unknown; reporte_registro: unknown; reporte_ciclo: unknown; reporte_status: unknown }[]
+  >()
+  for (const r of data ?? []) {
+    const aid = n(r.alumno_id)
+    const list = byAlumno.get(aid) ?? []
+    list.push(r)
+    byAlumno.set(aid, list)
   }
-  return fechas
+  for (const [aid, rows] of byAlumno) {
+    const maxC = rows.reduce((acc, r) => Math.max(acc, n(r.reporte_ciclo)), 0)
+    const cur = rows.filter((r) => n(r.reporte_ciclo) === maxC)
+    const fechas: Record<number, string> = {}
+    for (const r of cur) {
+      const dia = String(r.reporte_registro ?? '').slice(0, 10)
+      const pend = n(r.reporte_status) === 2
+      fechas[n(r.reporte_no)] = pend ? `${dia}·pend` : dia
+    }
+    out.set(aid, fechas)
+  }
+  return out
 }
 
 export async function listarGrupoCaptura(opts: {
@@ -204,10 +222,15 @@ export async function listarGrupoCaptura(opts: {
   const alumnos = await alumnosDeGrupo(grado, opts.grupoLetra, ciclo)
   // Solo académico lleva marcas por materia; staff (sin materia) acumula por tipo.
   const matFiltro = opts.tipo === 1 && materiaId > 0 ? materiaId : null
-  const filas = []
-  for (const a of alumnos) {
-    const f = await marcas(a.alumno_id, opts.tipo, ciclo, matFiltro)
-    filas.push({
+  const marcasMap = await marcasPorAlumnos(
+    alumnos.map((a) => a.alumno_id),
+    opts.tipo,
+    ciclo,
+    matFiltro
+  )
+  const filas = alumnos.map((a) => {
+    const f = marcasMap.get(a.alumno_id) ?? {}
+    return {
       alumno_id: a.alumno_id,
       alumno_ref: a.alumno_ref,
       nombre: nombreAlumno(a),
@@ -217,8 +240,8 @@ export async function listarGrupoCaptura(opts: {
       r1: f[1] ?? '',
       r2: f[2] ?? '',
       r3: f[3] ?? '',
-    })
-  }
+    }
+  })
   return {
     ciclo,
     materia: {

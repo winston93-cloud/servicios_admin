@@ -93,8 +93,22 @@ async function api<T>(url: string, init?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
     credentials: 'include',
   })
-  const data = (await res.json().catch(() => ({}))) as T & { error?: string }
-  if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
+  const text = await res.text()
+  let data = {} as T & { error?: string }
+  try {
+    data = text ? (JSON.parse(text) as T & { error?: string }) : ({} as T & { error?: string })
+  } catch {
+    data = {} as T & { error?: string }
+  }
+  if (!res.ok) {
+    const raw = data.error || text || `Error ${res.status}`
+    if (/<\s*html|bad gateway|502|503|504|openresty/i.test(raw) || res.status >= 502) {
+      throw new Error(
+        'El servicio de datos no respondió (error temporal). Espera unos segundos y pulsa Actualizar.'
+      )
+    }
+    throw new Error(data.error || `Error ${res.status}`)
+  }
   return data
 }
 

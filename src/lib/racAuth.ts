@@ -1,6 +1,7 @@
 import { createHmac, createHash, timingSafeEqual } from 'crypto'
 import { cookies } from 'next/headers'
 import { createDbAdmin } from './insforgeAdmin'
+import { mensajeErrorPublico, statusHttpDesdeError } from '@/lib/apiErrorPublico'
 
 export const RAC_AUTH_COOKIE = 'rac_secundaria_auth'
 
@@ -180,5 +181,8 @@ export function jsonRacError(err: unknown, fallback = 500) {
   if (err instanceof RacAuthError) {
     return { error: err.message, status: err.status }
   }
-  return { error: err instanceof Error ? err.message : String(err), status: fallback }
+  return {
+    error: mensajeErrorPublico(err),
+    status: statusHttpDesdeError(err, fallback),
+  }
 }

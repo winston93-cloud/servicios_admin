@@ -1,6 +1,7 @@
 import { createHmac, createHash, timingSafeEqual } from 'crypto'
 import { cookies } from 'next/headers'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
+import { mensajeErrorPublico, statusHttpDesdeError } from '@/lib/apiErrorPublico'
 import type { RacNivelConfig, RacRolNivel } from './racNivelConfig'
 import { esRacNivelSlug, racConfigDeSlug } from './racNivelConfig'
 
@@ -193,7 +194,10 @@ export function jsonRacNivelError(err: unknown, fallback = 500) {
   if (err instanceof RacNivelAuthError) {
     return { error: err.message, status: err.status }
   }
-  return { error: err instanceof Error ? err.message : String(err), status: fallback }
+  return {
+    error: mensajeErrorPublico(err),
+    status: statusHttpDesdeError(err, fallback),
+  }
 }
 
 export function cfgDesdeRequestSlug(slug: string): RacNivelConfig {
