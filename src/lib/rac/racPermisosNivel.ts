@@ -81,8 +81,9 @@ export function tiposCapturaDeRolNivel(
 ) {
   if (role === 'psicologia') return [{ valor: RAC_TIPOS.conducta, etiqueta: 'Conducta' }]
   if (role === 'maestro') {
-    // Maternal/Kinder: no hay prefecta; maestras/teachers también capturan uniforme.
-    const conUniforme = fisica || cfg?.slug === 'maternal-kinder'
+    // Primaria y maternal/kinder: maestras/teachers también capturan uniforme.
+    const conUniforme =
+      fisica || cfg?.slug === 'maternal-kinder' || cfg?.slug === 'primaria'
     return conUniforme
       ? [...RAC_TIPOS_CAPTURA_MAESTRO, { valor: RAC_TIPOS.uniforme, etiqueta: 'Uniforme' }]
       : RAC_TIPOS_CAPTURA_MAESTRO

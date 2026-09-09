@@ -154,7 +154,9 @@ function LoginPanel({
       <p className="racn-login-lead">
         {config.slug === 'maternal-kinder'
           ? 'Maestro(a), Teacher, psicología o dirección/coordinación. Las docentes capturan académico, conducta (con visto bueno de psicología) y uniforme — no hay cuenta de prefecta en este nivel.'
-          : `Maestro(a), Teacher, psicología, ${config.etiquetaOperaciones.toLowerCase()} o dirección/coordinación.`}
+          : config.slug === 'primaria'
+            ? `Maestro(a), Teacher, psicología, ${config.etiquetaOperaciones.toLowerCase()} o dirección/coordinación. Las docentes capturan académico, conducta (con visto bueno de psicología) y uniforme.`
+            : `Maestro(a), Teacher, psicología, ${config.etiquetaOperaciones.toLowerCase()} o dirección/coordinación.`}
         {config.modoGradoGrupo
           ? ' Los docentes entran con su grupo ya asignado — no eligen materia.'
           : ''}
