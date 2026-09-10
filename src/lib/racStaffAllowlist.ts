@@ -19,7 +19,36 @@ function e(local: string): string {
   return `${local}${DOMINIO}`.toLowerCase()
 }
 
-/** Tabla oficial confirmada con Mario (2026-09). */
+const SISTEMAS_DESARROLLO = e('sistemas.desarrollo')
+
+/** Roles de prueba para Sistemas (QA / bugs reportados). */
+function rolesTesterQa(panel: RacStaffPanel): RacStaffAllowEntry[] {
+  const base: RacStaffAllowEntry[] = [
+    {
+      email: SISTEMAS_DESARROLLO,
+      role: 'psicologia',
+      perfil: 4,
+      etiqueta: 'Psicología (QA)',
+    },
+    {
+      email: SISTEMAS_DESARROLLO,
+      role: 'direccion',
+      perfil: 6,
+      etiqueta: 'Directora (QA)',
+    },
+  ]
+  if (panel === 'secundaria') {
+    base.push({
+      email: SISTEMAS_DESARROLLO,
+      role: 'prefectura',
+      perfil: 5,
+      etiqueta: 'Asistente (QA)',
+    })
+  }
+  return base
+}
+
+/** Tabla oficial confirmada con Mario (2026-09) + tester Sistemas. */
 export const RAC_STAFF_ALLOWLIST: Record<RacStaffPanel, readonly RacStaffAllowEntry[]> = {
   'maternal-kinder': [
     {
@@ -40,6 +69,7 @@ export const RAC_STAFF_ALLOWLIST: Record<RacStaffPanel, readonly RacStaffAllowEn
       perfil: 4,
       etiqueta: 'Psicología',
     },
+    ...rolesTesterQa('maternal-kinder'),
   ],
   primaria: [
     {
@@ -60,6 +90,7 @@ export const RAC_STAFF_ALLOWLIST: Record<RacStaffPanel, readonly RacStaffAllowEn
       perfil: 4,
       etiqueta: 'Psicología',
     },
+    ...rolesTesterQa('primaria'),
   ],
   secundaria: [
     {
@@ -86,8 +117,9 @@ export const RAC_STAFF_ALLOWLIST: Record<RacStaffPanel, readonly RacStaffAllowEn
       perfil: 5,
       etiqueta: 'Asistente de dirección',
     },
+    ...rolesTesterQa('secundaria'),
   ],
-} as const
+}
 
 export function normRacEmail(s: string | null | undefined): string {
   return String(s ?? '')
@@ -95,15 +127,27 @@ export function normRacEmail(s: string | null | undefined): string {
     .toLowerCase()
 }
 
+/** Primera coincidencia (login password sin selector). */
 export function staffAllowEntryParaPanel(
   panel: RacStaffPanel,
   emailRaw: string | null | undefined
 ): RacStaffAllowEntry | null {
+  const entries = staffAllowEntriesParaPanel(panel, emailRaw)
+  return entries[0] ?? null
+}
+
+/** Todas las coincidencias (Google: selector si hay más de una). */
+export function staffAllowEntriesParaPanel(
+  panel: RacStaffPanel,
+  emailRaw: string | null | undefined
+): RacStaffAllowEntry[] {
   const email = normRacEmail(emailRaw)
-  if (!email) return null
-  return RAC_STAFF_ALLOWLIST[panel].find((x) => x.email === email) ?? null
+  if (!email) return []
+  return RAC_STAFF_ALLOWLIST[panel].filter((x) => x.email === email)
 }
 
 export function staffEmailsDelPanel(panel: RacStaffPanel): string[] {
-  return RAC_STAFF_ALLOWLIST[panel].map((x) => x.email)
+  return [...new Set(RAC_STAFF_ALLOWLIST[panel].map((x) => x.email))]
 }
+
+export const RAC_QA_TESTER_EMAIL = SISTEMAS_DESARROLLO

@@ -13,13 +13,16 @@ import {
 } from '@/lib/rac/racAuthNivel'
 import {
   normRacEmail,
-  staffAllowEntryParaPanel,
+  staffAllowEntriesParaPanel,
   type RacStaffPanel,
 } from '@/lib/racStaffAllowlist'
 
 export type RacGoogleAccountRef = {
   tipo: 'maestro' | 'usuario'
   id: number
+  /** Necesario cuando el mismo usuario tiene varios roles (QA Sistemas). */
+  role?: string
+  perfil?: number
 }
 
 export type RacGoogleCandidate = {
@@ -40,17 +43,16 @@ function nombreDePartes(...parts: unknown[]): string {
 }
 
 function sameAccount(a: RacGoogleAccountRef, b: RacGoogleAccountRef): boolean {
-  return a.tipo === b.tipo && Number(a.id) === Number(b.id)
+  if (a.tipo !== b.tipo || Number(a.id) !== Number(b.id)) return false
+  if (a.role != null || b.role != null) return String(a.role) === String(b.role)
+  return true
 }
 
-async function candidatoStaffPorAllowlist(
-  panel: RacStaffPanel,
-  emailRaw: string
-): Promise<RacGoogleCandidate | null> {
-  const email = normRacEmail(emailRaw)
-  const entry = staffAllowEntryParaPanel(panel, email)
-  if (!entry) return null
-
+async function resolverUsuarioPorEmail(email: string): Promise<{
+  usuario_id: number
+  usuario_username: string
+  nombre: string
+} | null> {
   const db = createDbAdmin()
   const { data: admins } = await db
     .from('usuario')
@@ -65,18 +67,33 @@ async function candidatoStaffPorAllowlist(
   const usuario = String(a.usuario_username ?? '').trim()
   const nombre =
     nombreDePartes(a.usuario_nombre, a.usuario_app, a.usuario_apm) || usuario || email
+  return { usuario_id: Number(a.usuario_id), usuario_username: usuario, nombre }
+}
 
-  // Rol/perfil oficiales por correo (no por perfil_id genérico de BD).
-  const role = entry.role
-  return {
-    tipo: 'usuario',
-    id: Number(a.usuario_id),
-    role,
-    perfil: entry.perfil,
-    nombre,
-    usuario,
-    etiquetaRol: entry.etiqueta,
-  }
+async function candidatosStaffPorAllowlist(
+  panel: RacStaffPanel,
+  emailRaw: string
+): Promise<RacGoogleCandidate[]> {
+  const email = normRacEmail(emailRaw)
+  const entries = staffAllowEntriesParaPanel(panel, email)
+  if (!entries.length) return []
+
+  const user = await resolverUsuarioPorEmail(email)
+  if (!user) return []
+
+  return entries.map((entry) => {
+    let role: string = entry.role
+    if (panel !== 'secundaria' && role === 'prefectura') role = 'control_escolar'
+    return {
+      tipo: 'usuario' as const,
+      id: user.usuario_id,
+      role,
+      perfil: entry.perfil,
+      nombre: user.nombre,
+      usuario: user.usuario_username,
+      etiquetaRol: entry.etiqueta,
+    }
+  })
 }
 
 /** Secundaria: maestros nivel 0|4 + staff allowlist oficial. */
@@ -112,9 +129,7 @@ export async function candidatosRacSecundariaPorEmail(
     })
   }
 
-  const staff = await candidatoStaffPorAllowlist('secundaria', email)
-  if (staff) out.push(staff)
-
+  out.push(...(await candidatosStaffPorAllowlist('secundaria', email)))
   return out
 }
 
@@ -151,16 +166,7 @@ export async function candidatosRacNivelPorEmail(
     })
   }
 
-  const panel = cfg.slug as RacStaffPanel
-  const staff = await candidatoStaffPorAllowlist(panel, email)
-  if (staff) {
-    // En nivel, prefectura no aplica; allowlist solo trae direccion/psicologia.
-    out.push({
-      ...staff,
-      role: staff.role === 'prefectura' ? 'control_escolar' : staff.role,
-    })
-  }
-
+  out.push(...(await candidatosStaffPorAllowlist(cfg.slug as RacStaffPanel, email)))
   return out
 }
 
@@ -199,7 +205,14 @@ export function resolverCandidatoUnico(
   if (!candidates.length) return { ok: false, code: 'none', candidates: [] }
 
   if (account) {
-    const hit = candidates.find((c) => sameAccount(c, account))
+    const hit = candidates.find((c) =>
+      sameAccount(c, {
+        tipo: account.tipo,
+        id: account.id,
+        role: account.role,
+        perfil: account.perfil,
+      })
+    )
     if (!hit) return { ok: false, code: 'none', candidates: [] }
     return { ok: true, candidate: hit }
   }

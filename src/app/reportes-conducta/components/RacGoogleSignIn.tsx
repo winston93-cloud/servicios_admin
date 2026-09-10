@@ -78,7 +78,10 @@ export default function RacGoogleSignIn({ authUrl, onOk, classPrefix = 'racn' }:
   const p = classPrefix
 
   const postGoogle = useCallback(
-    async (token: string, account?: { tipo: string; id: number }) => {
+    async (
+      token: string,
+      account?: { tipo: string; id: number; role?: string; perfil?: number }
+    ) => {
       setLoading(true)
       setError('')
       try {
@@ -182,21 +185,28 @@ export default function RacGoogleSignIn({ authUrl, onOk, classPrefix = 'racn' }:
       {candidates && idToken ? (
         <div className={`${p}-login-google-pick`} role="dialog" aria-label="Elegir cuenta">
           <p className={`${p}-login-google-pick-title`}>
-            Este correo está en varias cuentas
-            {emailAmbiguo ? ` (${emailAmbiguo})` : ''}. Elige con cuál entrar:
+            Elige con qué perfil entrar
+            {emailAmbiguo ? ` (${emailAmbiguo})` : ''}:
           </p>
           <ul className={`${p}-login-google-pick-list`}>
             {candidates.map((c) => (
-              <li key={`${c.tipo}-${c.id}`}>
+              <li key={`${c.tipo}-${c.id}-${c.role}-${c.perfil}`}>
                 <button
                   type="button"
                   className={`${p}-login-google-pick-btn`}
                   disabled={loading}
-                  onClick={() => void postGoogle(idToken, { tipo: c.tipo, id: c.id })}
+                  onClick={() =>
+                    void postGoogle(idToken, {
+                      tipo: c.tipo,
+                      id: c.id,
+                      role: c.role,
+                      perfil: c.perfil,
+                    })
+                  }
                 >
-                  <strong>{c.nombre}</strong>
+                  <strong>{c.etiquetaRol}</strong>
                   <span>
-                    {c.etiquetaRol} · @{c.usuario || c.id}
+                    {c.nombre} · @{c.usuario || c.id}
                   </span>
                 </button>
               </li>

@@ -20,6 +20,7 @@ Staff (allowlist en `src/lib/racStaffAllowlist.ts`):
 | Secundaria | `psicologia.secundaria@…` | Psicología |
 | Secundaria | `prefectura.secundaria@…` | Prefectura |
 | Secundaria | `asistente.secundaria@…` | Asistente |
+| **QA** (3 paneles) | `sistemas.desarrollo@…` | Selector: Psicología / Directora (+ Asistente en secundaria) |
 
 Cualquier otro correo staff **no** entra (ni Google ni password) a ese panel.
 
