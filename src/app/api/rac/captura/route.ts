@@ -51,6 +51,7 @@ export async function POST(req: Request) {
         alumnoId: Number(body.alumnoId),
         materiaId: Number(body.materiaId ?? 0),
         mensaje: String(body.mensaje ?? ''),
+        motivo: Number(body.motivo ?? 0),
       })
       return NextResponse.json({ ok: true, ...data })
     }

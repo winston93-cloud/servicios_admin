@@ -312,7 +312,8 @@ export async function enviarCorreoReporte(reporteId: number) {
   const subject = asuntoReporte(tipo, no)
   const frase = fraseRegistroAvisoRac(tipo, no)
   const motivoTxt = motivoReporte(tipo, n(r.reporte_motivo))
-  const mostrarMotivo = !(tipo === 5 || tipo === 8)
+  // Informe académico (5): sin catálogo de motivo. Aviso Psicología (8): sí muestra motivo.
+  const mostrarMotivo = tipo !== 5
   const html = htmlCorreoRac({
     titulo: subject,
     enlace,
@@ -479,18 +480,21 @@ export async function capturarInforme(opts: {
   alumnoId: number
   materiaId: number
   mensaje: string
+  /** Motivo del aviso de Psicología (tipo 8). Informe académico usa 0. */
+  motivo?: number
 }) {
   const ciclo = await cicloRac()
   if (!puedeInforme(opts.session.role)) {
     throw new RacAuthError('Tu cuenta no captura informes', 403)
   }
   const psico = opts.session.role === 'psicologia'
+  const motivoPsico = n(opts.motivo)
   const insert: Record<string, unknown> = {
     alumno_id: opts.alumnoId,
     perfil_id: opts.session.perfil,
     usuario_id: opts.session.id,
     reporte_tipo: psico ? RAC_TIPOS.avisoPsicologia : RAC_TIPOS.informeAcademico,
-    reporte_motivo: 0,
+    reporte_motivo: psico ? (motivoPsico > 0 ? motivoPsico : 1) : 0,
     reporte_no: 0,
     reporte_mensaje: opts.mensaje,
     reporte_status: 1,

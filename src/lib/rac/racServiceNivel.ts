@@ -8,6 +8,7 @@ import {
   etiquetaEscalon,
   etiquetaTipoCitatorio,
   etiquetaTipoReporte,
+  fraseRegistroAvisoRac,
   motivoReporte,
 } from '@/lib/racCatalogo'
 import {
@@ -477,15 +478,24 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     }
     const enlace = urlPublicaRac(String(r.reporte_mdv), alt)
     const subject = asuntoReporte(tipo, no)
+    const frase = fraseRegistroAvisoRac(tipo, no)
+    const motivoTxt = motivoReporte(tipo, n(r.reporte_motivo))
+    const mostrarMotivo = tipo !== 5
     const html = htmlCorreoRac({
       titulo: subject,
       enlace,
       cuerpoHtml: `<p>Estimada familia:</p>
-      <p>Se registró un <b>${escapeHtml(etiquetaEscalon(tipo, no))}</b> ${escapeHtml(etiquetaTipoReporte(tipo).toLowerCase())}
+      <p>Se registró un <b>${escapeHtml(frase)}</b>
       para <b>${escapeHtml(nombreAlumno(alumno))}</b> (control ${escapeHtml(String(alumno.alumno_ref ?? ''))}).</p>
-      <p>Motivo: <b>${escapeHtml(motivoReporte(tipo, n(r.reporte_motivo)))}</b>${
-        materiaNombre ? ` · Grupo: <b>${escapeHtml(materiaNombre)}</b>` : ''
-      }</p>
+      ${
+        mostrarMotivo
+          ? `<p>Motivo: <b>${escapeHtml(motivoTxt)}</b>${
+              materiaNombre ? ` · Grupo: <b>${escapeHtml(materiaNombre)}</b>` : ''
+            }</p>`
+          : materiaNombre
+            ? `<p>Grupo: <b>${escapeHtml(materiaNombre)}</b></p>`
+            : ''
+      }
       <p>${escapeHtml(String(r.reporte_mensaje ?? '')).replace(/\n/g, '<br>')}</p>`,
     })
     const envio = await enviarAvisoRac({ to, subject, html })
@@ -641,6 +651,8 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     alumnoId: number
     materiaId: number
     mensaje: string
+    /** Motivo del aviso de Psicología (tipo 8). Informe académico usa 0. */
+    motivo?: number
   }) {
     const ciclo = await cicloRac()
     if (!puedeInformeNivel(opts.session.role)) {
@@ -648,12 +660,13 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     }
     await cargarAlumno(opts.alumnoId)
     const psico = opts.session.role === 'psicologia'
+    const motivoPsico = n(opts.motivo)
     const insert: Record<string, unknown> = {
       alumno_id: opts.alumnoId,
       perfil_id: opts.session.perfil,
       usuario_id: opts.session.id,
       reporte_tipo: psico ? RAC_TIPOS.avisoPsicologia : RAC_TIPOS.informeAcademico,
-      reporte_motivo: 0,
+      reporte_motivo: psico ? (motivoPsico > 0 ? motivoPsico : 1) : 0,
       reporte_no: 0,
       reporte_mensaje: opts.mensaje,
       reporte_status: 1,

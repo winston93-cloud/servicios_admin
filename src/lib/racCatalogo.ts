@@ -138,6 +138,19 @@ export function motivoReporte(tipo: number, motivo: number): string {
     if (motivo === 60) return 'Retraso de 1 hora'
     if (motivo === 70) return 'Retraso mayor a 1 hora'
   }
+  // Aviso de Psicología (tipo 8): nunca «Desconocido» hacia papás.
+  if (tipo === 8) {
+    const p: Record<number, string> = {
+      1: 'Atención / orientación psicológica',
+      2: 'Seguimiento de caso',
+      3: 'Orientación a la familia',
+      4: 'Aviso informativo',
+      5: 'Canalización / apoyo externo',
+    }
+    // 0 = avisos viejos sin catálogo
+    if (motivo === 0) return 'Atención en Psicología'
+    return p[motivo] ?? 'Atención en Psicología'
+  }
   return 'Desconocido'
 }
 
@@ -169,6 +182,15 @@ export function opcionesMotivo(tipo: number): { valor: number; etiqueta: string 
       valor,
       etiqueta: motivoReporte(6, valor),
     }))
+  if (tipo === 8)
+    return [
+      { valor: 1, etiqueta: 'Atención / orientación psicológica' },
+      { valor: 2, etiqueta: 'Seguimiento de caso' },
+      { valor: 3, etiqueta: 'Orientación a la familia' },
+      { valor: 4, etiqueta: 'Aviso informativo' },
+      { valor: 5, etiqueta: 'Canalización / apoyo externo' },
+    ]
+  if (tipo === 5) return [{ valor: 0, etiqueta: 'Informe' }]
   return [{ valor: 0, etiqueta: 'Informe' }]
 }
 

@@ -782,6 +782,9 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                                   setModal(a)
                                   setModo('informe')
                                   setMensaje('')
+                                  if (me.role === 'psicologia') {
+                                    setMotivo(opcionesMotivo(8)[0]?.valor ?? 1)
+                                  }
                                 }}
                               >
                                 {me.role === 'psicologia' ? 'Aviso' : 'Informe'}
@@ -1267,16 +1270,16 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
               {modo === 'informe' ? (
                 <p className="racn-mini">
                   {me.role === 'psicologia'
-                    ? 'No afecta el escalón de reportes del alumno.'
+                    ? 'Elige el Motivo que verá la familia. El detalle de la situación va en Observaciones. No afecta el escalón de reportes.'
                     : 'Envía un informe sin afectar el número de reportes del alumno.'}
                 </p>
               ) : null}
               <div className="racn-filters">
-                {modo === 'reporte' ? (
+                {modo === 'reporte' || (modo === 'informe' && me?.role === 'psicologia') ? (
                   <label>
                     Motivo
                     <select value={motivo} onChange={(e) => setMotivo(Number(e.target.value))}>
-                      {opcionesMotivo(tipo).map((o) => (
+                      {opcionesMotivo(modo === 'informe' ? 8 : tipo).map((o) => (
                         <option key={o.valor} value={o.valor}>
                           {o.etiqueta}
                         </option>
