@@ -2,16 +2,27 @@
 
 Login con Google en los 3 paneles de `/reportes-conducta` (maternal-kinder, primaria, secundaria), conviviendo con usuario/contraseña.
 
-## Cómo funciona
+## Staff oficial (correo → rol)
 
-1. El docente/staff elige **Continuar con Google** (cuenta `@winston93.edu.mx`).
-2. El servidor verifica el `id_token` y busca el correo en:
-   - `boleta_maestro.maestro_email` (maestros del nivel)
-   - `usuario.usuario_email` (psicología, dirección, prefectura/asistente, control escolar)
-3. Se emite la **misma cookie HMAC** que el login por contraseña → mismos permisos.
-4. Si el correo está en **varias cuentas** (p. ej. `idiomas@…`), se muestra un **selector**.
+Maestros: `boleta_maestro.maestro_email` + nivel.
 
-En primaria / maternal-kinder, por Google **no** entran asistentes de coordinación (perfil 2); sí maestros, psicología, control escolar y dirección.
+Staff (allowlist en `src/lib/racStaffAllowlist.ts`):
+
+| Panel | Correo | Rol |
+|--------|--------|-----|
+| Maternal/Kinder | `direccion.kinder@…` | Dirección español |
+| Maternal/Kinder | `englishcoord.educativo@…` | Dirección inglés |
+| Maternal/Kinder | `psicologia.kinder@…` | Psicología |
+| Primaria | `direccion.primaria@…` | Dirección español |
+| Primaria | `coordinacioninglesprimaria@…` | Dirección inglés |
+| Primaria | `psicologia.primaria@…` | Psicología |
+| Secundaria | `direccion.secundaria@…` | Dirección |
+| Secundaria | `psicologia.secundaria@…` | Psicología |
+| Secundaria | `prefectura.secundaria@…` | Prefectura |
+| Secundaria | `asistente.secundaria@…` | Asistente |
+
+Cualquier otro correo staff **no** entra (ni Google ni password) a ese panel.
+
 
 ## Setup Google Cloud (primera vez)
 

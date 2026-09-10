@@ -4,6 +4,7 @@ import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { mensajeErrorPublico, statusHttpDesdeError } from '@/lib/apiErrorPublico'
 import type { RacNivelConfig, RacRolNivel } from './racNivelConfig'
 import { esRacNivelSlug, racConfigDeSlug } from './racNivelConfig'
+import { staffAllowEntryParaPanel, type RacStaffPanel } from '@/lib/racStaffAllowlist'
 
 export type RacSesionNivel = {
   role: RacRolNivel
@@ -151,7 +152,7 @@ export async function autenticarRacNivel(
   const { data: admins } = await db
     .from('usuario')
     .select(
-      'usuario_id, perfil_id, usuario_app, usuario_apm, usuario_nombre, usuario_username, usuario_password, usuario_status, nivel'
+      'usuario_id, perfil_id, usuario_app, usuario_apm, usuario_nombre, usuario_username, usuario_password, usuario_status, usuario_email, nivel'
     )
     .ilike('usuario_username', u)
     .limit(1)
@@ -160,14 +161,17 @@ export async function autenticarRacNivel(
     const a = admins[0]
     if (Number(a.usuario_status ?? 1) === 0) return null
     if (!passwordMatches(a.usuario_password as string, p)) return null
-    const perfil = Number(a.perfil_id ?? 2)
+    const panel = cfg.slug as RacStaffPanel
+    const allow = staffAllowEntryParaPanel(panel, a.usuario_email as string | null)
+    if (!allow) return null
+    const role = (allow.role === 'prefectura' ? 'control_escolar' : allow.role) as RacRolNivel
     const nombre = [a.usuario_nombre, a.usuario_app, a.usuario_apm]
       .map((x) => String(x ?? '').trim())
       .filter(Boolean)
       .join(' ')
     return {
-      role: rolDesdePerfilNivel(perfil, cfg),
-      perfil,
+      role,
+      perfil: allow.perfil,
       id: Number(a.usuario_id),
       nombre: nombre || u,
       usuario: u,

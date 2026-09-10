@@ -2,6 +2,7 @@ import { createHmac, createHash, timingSafeEqual } from 'crypto'
 import { cookies } from 'next/headers'
 import { createDbAdmin } from './insforgeAdmin'
 import { mensajeErrorPublico, statusHttpDesdeError } from '@/lib/apiErrorPublico'
+import { staffAllowEntryParaPanel } from '@/lib/racStaffAllowlist'
 
 export const RAC_AUTH_COOKIE = 'rac_secundaria_auth'
 
@@ -139,7 +140,7 @@ export async function autenticarRac(usuario: string, password: string): Promise<
   const { data: admins } = await db
     .from('usuario')
     .select(
-      'usuario_id, perfil_id, usuario_app, usuario_apm, usuario_nombre, usuario_username, usuario_password, usuario_status'
+      'usuario_id, perfil_id, usuario_app, usuario_apm, usuario_nombre, usuario_username, usuario_password, usuario_status, usuario_email'
     )
     .ilike('usuario_username', u)
     .limit(1)
@@ -148,14 +149,15 @@ export async function autenticarRac(usuario: string, password: string): Promise<
     const a = admins[0]
     if (Number(a.usuario_status ?? 1) === 0) return null
     if (!passwordMatches(a.usuario_password as string, p)) return null
-    const perfil = Number(a.perfil_id ?? 2)
+    const allow = staffAllowEntryParaPanel('secundaria', a.usuario_email as string | null)
+    if (!allow) return null
     const nombre = [a.usuario_nombre, a.usuario_app, a.usuario_apm]
       .map((x) => String(x ?? '').trim())
       .filter(Boolean)
       .join(' ')
     return {
-      role: rolDesdePerfil(perfil),
-      perfil,
+      role: allow.role,
+      perfil: allow.perfil,
       id: Number(a.usuario_id),
       nombre: nombre || u,
       usuario: u,

@@ -2,7 +2,6 @@ import { createDbAdmin } from '@/lib/insforgeAdmin'
 import {
   encodeRacSession,
   opcionesCookieRac,
-  rolDesdePerfil,
   type RacRol,
   type RacSesion,
 } from '@/lib/racAuth'
@@ -10,9 +9,13 @@ import type { RacNivelConfig, RacRolNivel } from '@/lib/rac/racNivelConfig'
 import {
   encodeRacNivelSession,
   opcionesCookieRacNivel,
-  rolDesdePerfilNivel,
   type RacSesionNivel,
 } from '@/lib/rac/racAuthNivel'
+import {
+  normRacEmail,
+  staffAllowEntryParaPanel,
+  type RacStaffPanel,
+} from '@/lib/racStaffAllowlist'
 
 export type RacGoogleAccountRef = {
   tipo: 'maestro' | 'usuario'
@@ -29,12 +32,6 @@ export type RacGoogleCandidate = {
   etiquetaRol: string
 }
 
-function normEmail(s: string): string {
-  return String(s ?? '')
-    .trim()
-    .toLowerCase()
-}
-
 function nombreDePartes(...parts: unknown[]): string {
   return parts
     .map((x) => String(x ?? '').trim())
@@ -42,31 +39,51 @@ function nombreDePartes(...parts: unknown[]): string {
     .join(' ')
 }
 
-function etiquetaRolSec(role: RacRol): string {
-  if (role === 'maestro') return 'Maestro(a)'
-  if (role === 'psicologia') return 'Psicología'
-  if (role === 'prefectura') return 'Prefectura / Asistente'
-  if (role === 'direccion') return 'Dirección'
-  return 'Coordinación'
-}
-
-function etiquetaRolNivel(role: RacRolNivel, cfg: RacNivelConfig): string {
-  if (role === 'maestro') return 'Maestro(a) / Teacher'
-  if (role === 'psicologia') return 'Psicología'
-  if (role === 'control_escolar') return cfg.etiquetaOperaciones
-  if (role === 'direccion') return 'Dirección'
-  return 'Coordinación'
-}
-
 function sameAccount(a: RacGoogleAccountRef, b: RacGoogleAccountRef): boolean {
   return a.tipo === b.tipo && Number(a.id) === Number(b.id)
 }
 
-/** Secundaria: maestros nivel 0|4 + cualquier staff activo con ese email. */
+async function candidatoStaffPorAllowlist(
+  panel: RacStaffPanel,
+  emailRaw: string
+): Promise<RacGoogleCandidate | null> {
+  const email = normRacEmail(emailRaw)
+  const entry = staffAllowEntryParaPanel(panel, email)
+  if (!entry) return null
+
+  const db = createDbAdmin()
+  const { data: admins } = await db
+    .from('usuario')
+    .select(
+      'usuario_id, usuario_app, usuario_apm, usuario_nombre, usuario_username, usuario_email, usuario_status'
+    )
+    .ilike('usuario_email', email)
+
+  const a = (admins ?? []).find((row) => Number(row.usuario_status ?? 1) !== 0)
+  if (!a) return null
+
+  const usuario = String(a.usuario_username ?? '').trim()
+  const nombre =
+    nombreDePartes(a.usuario_nombre, a.usuario_app, a.usuario_apm) || usuario || email
+
+  // Rol/perfil oficiales por correo (no por perfil_id genérico de BD).
+  const role = entry.role
+  return {
+    tipo: 'usuario',
+    id: Number(a.usuario_id),
+    role,
+    perfil: entry.perfil,
+    nombre,
+    usuario,
+    etiquetaRol: entry.etiqueta,
+  }
+}
+
+/** Secundaria: maestros nivel 0|4 + staff allowlist oficial. */
 export async function candidatosRacSecundariaPorEmail(
   emailRaw: string
 ): Promise<RacGoogleCandidate[]> {
-  const email = normEmail(emailRaw)
+  const email = normRacEmail(emailRaw)
   if (!email) return []
   const db = createDbAdmin()
   const out: RacGoogleCandidate[] = []
@@ -91,49 +108,22 @@ export async function candidatosRacSecundariaPorEmail(
       perfil: 1,
       nombre,
       usuario,
-      etiquetaRol: etiquetaRolSec('maestro'),
+      etiquetaRol: 'Maestro(a)',
     })
   }
 
-  const { data: admins } = await db
-    .from('usuario')
-    .select(
-      'usuario_id, perfil_id, usuario_app, usuario_apm, usuario_nombre, usuario_username, usuario_email, usuario_status'
-    )
-    .ilike('usuario_email', email)
-
-  for (const a of admins ?? []) {
-    if (Number(a.usuario_status ?? 1) === 0) continue
-    const perfil = Number(a.perfil_id ?? 2)
-    const role = rolDesdePerfil(perfil)
-    const usuario = String(a.usuario_username ?? '').trim()
-    const nombre =
-      nombreDePartes(a.usuario_nombre, a.usuario_app, a.usuario_apm) || usuario || email
-    out.push({
-      tipo: 'usuario',
-      id: Number(a.usuario_id),
-      role,
-      perfil,
-      nombre,
-      usuario,
-      etiquetaRol: etiquetaRolSec(role),
-    })
-  }
+  const staff = await candidatoStaffPorAllowlist('secundaria', email)
+  if (staff) out.push(staff)
 
   return out
 }
 
-/**
- * Primaria / Maternal-Kinder:
- * - maestros del nivel
- * - staff activo con perfil psicología (4), control escolar (5) o dirección (6)
- *   (asistentes de coordinación perfil 2 no entran por Google en estos paneles)
- */
+/** Primaria / Maternal-Kinder: maestros del nivel + staff allowlist del panel. */
 export async function candidatosRacNivelPorEmail(
   cfg: RacNivelConfig,
   emailRaw: string
 ): Promise<RacGoogleCandidate[]> {
-  const email = normEmail(emailRaw)
+  const email = normRacEmail(emailRaw)
   if (!email) return []
   const db = createDbAdmin()
   const out: RacGoogleCandidate[] = []
@@ -157,34 +147,17 @@ export async function candidatosRacNivelPorEmail(
       perfil: 1,
       nombre,
       usuario,
-      etiquetaRol: etiquetaRolNivel('maestro', cfg),
+      etiquetaRol: 'Maestro(a) / Teacher',
     })
   }
 
-  const { data: admins } = await db
-    .from('usuario')
-    .select(
-      'usuario_id, perfil_id, usuario_app, usuario_apm, usuario_nombre, usuario_username, usuario_email, usuario_status'
-    )
-    .ilike('usuario_email', email)
-
-  for (const a of admins ?? []) {
-    if (Number(a.usuario_status ?? 1) === 0) continue
-    const perfil = Number(a.perfil_id ?? 2)
-    // Primaria/M-K: no asistentes (perfil 2) ni perfiles ajenos al panel.
-    if (perfil !== 4 && perfil !== 5 && perfil !== 6) continue
-    const role = rolDesdePerfilNivel(perfil, cfg)
-    const usuario = String(a.usuario_username ?? '').trim()
-    const nombre =
-      nombreDePartes(a.usuario_nombre, a.usuario_app, a.usuario_apm) || usuario || email
+  const panel = cfg.slug as RacStaffPanel
+  const staff = await candidatoStaffPorAllowlist(panel, email)
+  if (staff) {
+    // En nivel, prefectura no aplica; allowlist solo trae direccion/psicologia.
     out.push({
-      tipo: 'usuario',
-      id: Number(a.usuario_id),
-      role,
-      perfil,
-      nombre,
-      usuario,
-      etiquetaRol: etiquetaRolNivel(role, cfg),
+      ...staff,
+      role: staff.role === 'prefectura' ? 'control_escolar' : staff.role,
     })
   }
 
