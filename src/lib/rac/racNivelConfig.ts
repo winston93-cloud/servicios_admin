@@ -70,7 +70,8 @@ export const RAC_MATERNAL_KINDER: RacNivelConfig = {
   etiquetaOperaciones: 'Control escolar',
   gruposCaptura: ['A', 'B'],
   gradosFallback: [
-    { nivelEscolar: 1, grado: 1 },
+    { nivelEscolar: 1, grado: 1 }, // Maternal A
+    { nivelEscolar: 1, grado: 2 }, // Maternal B
     { nivelEscolar: 2, grado: 1 },
     { nivelEscolar: 2, grado: 2 },
     { nivelEscolar: 2, grado: 3 },

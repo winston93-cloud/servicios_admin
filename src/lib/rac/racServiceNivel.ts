@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'crypto'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { grupoCoincide, letraDesdeGrupoNum } from '@/lib/boletasCiclo'
+import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 import { MATERIA_SLOT_ES } from '@/lib/catalogoMaestrosConstants'
 import {
@@ -74,16 +75,35 @@ export type AsignacionRacNivel = {
 }
 
 function etiquetaGrado(cfg: RacNivelConfig, grado: number, nivelEscolar?: number): string {
+  if (cfg.slug === 'maternal-kinder' && nivelEscolar != null) {
+    // Maternal A/B son grados (1/2); Kinder 1–3 también. Misma nomenclatura que el resto del sistema.
+    const label = etiquetaGradoEscolar(nivelEscolar, grado)
+    if (label) return label
+  }
   if (cfg.slug === 'maternal-kinder') {
-    if (nivelEscolar === 1) return 'Maternal'
+    if (nivelEscolar === 1) {
+      if (grado === 1) return 'Maternal A'
+      if (grado === 2) return 'Maternal B'
+      return `Maternal ${grado}`
+    }
     if (nivelEscolar === 2) {
-      if (grado === 1) return 'Kinder 1'
-      if (grado === 2) return 'Kinder 2'
-      if (grado === 3) return 'Kinder 3'
-      return `Kinder ${grado}`
+      if (grado === 1) return 'Kinder-1'
+      if (grado === 2) return 'Kinder-2'
+      if (grado === 3) return 'Kinder-3'
+      return `Kinder-${grado}`
     }
   }
   return `${grado}° Primaria`
+}
+
+/** Maternal: ficha con alumno_grupo=0 = salón del grado (A/B); no exige letra A/B/C. */
+function alumnoCoincideGrupoCaptura(
+  nivelEscolar: number,
+  grupoAlumno: number,
+  grupoLetra: string
+): boolean {
+  if (nivelEscolar === 1 && Number(grupoAlumno) === 0) return true
+  return grupoCoincide(grupoLetra, grupoAlumno)
 }
 
 export function createRacNivelService(cfg: RacNivelConfig) {
@@ -146,20 +166,21 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       const grado = n(a.alumno_grado)
       if (!grado) continue
       const letra = letraDesdeGrupoNum(n(a.alumno_grupo))
-      if (!letra) continue
+      // Maternal A/B: muchos alumnos vienen con grupo 0 (salón = grado). Igual registramos el grado.
+      if (!letra && !(nivelEscolar === 1)) continue
       const key = `${nivelEscolar}-${grado}`
       let entry = map.get(key)
       if (!entry) {
         entry = { nivelEscolar, grado, letras: new Set<string>() }
         map.set(key, entry)
       }
-      entry.letras.add(letra)
+      if (letra) entry.letras.add(letra)
     }
     const rows = [...map.values()]
       .map((e) => ({
         nivelEscolar: e.nivelEscolar,
         grado: e.grado,
-        grupos: [...e.letras].sort(),
+        grupos: e.letras.size ? [...e.letras].sort() : [...cfg.gruposCaptura],
       }))
       .sort((a, b) => a.nivelEscolar - b.nivelEscolar || a.grado - b.grado)
     if (rows.length) return rows
@@ -270,7 +291,8 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     if (error) throw new Error(error.message)
     return ((data ?? []) as AlumnoRow[]).filter((a) => {
       if (n(a.alumno_status) === 2 && n(a.alumno_ciclo_escolar) !== ciclo) return false
-      return grupoCoincide(grupoLetra, n(a.alumno_grupo))
+      const niv = n(a.alumno_nivel)
+      return alumnoCoincideGrupoCaptura(niv, n(a.alumno_grupo), grupoLetra)
     })
   }
 
