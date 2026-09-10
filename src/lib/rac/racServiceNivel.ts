@@ -96,14 +96,36 @@ function etiquetaGrado(cfg: RacNivelConfig, grado: number, nivelEscolar?: number
   return `${grado}° Primaria`
 }
 
-/** Maternal: ficha con alumno_grupo=0 = salón del grado (A/B); no exige letra A/B/C. */
+/** Grupo captura «*» = salón completo del grado (sin letra A/B/C en ficha). */
+const GRUPO_SALON = '*'
+
+function etiquetaAsignacionGrupo(
+  cfg: RacNivelConfig,
+  grado: number,
+  nivelEscolar: number,
+  grupoLetra: string
+): string {
+  const gradoLabel = etiquetaGrado(cfg, grado, nivelEscolar)
+  const raw = String(grupoLetra ?? '').trim().toUpperCase()
+  if (!raw || raw === GRUPO_SALON) return gradoLabel
+  return `${gradoLabel} · Grupo ${raw}`
+}
+
+/**
+ * Maternal: grado = Maternal A/B. `*` = solo ficha sin letra (grupo 0).
+ * Letra A/B/C: solo esa letra — no repetir el salón en A y en B.
+ */
 function alumnoCoincideGrupoCaptura(
   nivelEscolar: number,
   grupoAlumno: number,
   grupoLetra: string
 ): boolean {
-  if (nivelEscolar === 1 && Number(grupoAlumno) === 0) return true
-  return grupoCoincide(grupoLetra, grupoAlumno)
+  const raw = String(grupoLetra ?? '').trim().toUpperCase()
+  if (!raw || raw === GRUPO_SALON) {
+    if (nivelEscolar === 1) return Number(grupoAlumno) === 0
+    return true
+  }
+  return grupoCoincide(raw, grupoAlumno)
 }
 
 export function createRacNivelService(cfg: RacNivelConfig) {
@@ -159,35 +181,48 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .select('alumno_nivel, alumno_grado, alumno_grupo, alumno_status, alumno_ciclo_escolar')
       .in('alumno_nivel', cfg.nivelesEscolares)
       .neq('alumno_status', 0)
-    const map = new Map<string, { nivelEscolar: number; grado: number; letras: Set<string> }>()
+    const map = new Map<
+      string,
+      { nivelEscolar: number; grado: number; letras: Set<string>; tieneSinLetra: boolean }
+    >()
     for (const a of data ?? []) {
       if (n(a.alumno_status) === 2 && n(a.alumno_ciclo_escolar) !== ciclo) continue
       const nivelEscolar = n(a.alumno_nivel)
       const grado = n(a.alumno_grado)
       if (!grado) continue
       const letra = letraDesdeGrupoNum(n(a.alumno_grupo))
-      // Maternal A/B: muchos alumnos vienen con grupo 0 (salón = grado). Igual registramos el grado.
-      if (!letra && !(nivelEscolar === 1)) continue
+      // Maternal A/B: grupo 0 = salón del grado (sin letra). Kinder/primaria sin letra se omiten.
+      if (!letra && nivelEscolar !== 1) continue
       const key = `${nivelEscolar}-${grado}`
       let entry = map.get(key)
       if (!entry) {
-        entry = { nivelEscolar, grado, letras: new Set<string>() }
+        entry = { nivelEscolar, grado, letras: new Set<string>(), tieneSinLetra: false }
         map.set(key, entry)
       }
       if (letra) entry.letras.add(letra)
+      else entry.tieneSinLetra = true
     }
     const rows = [...map.values()]
-      .map((e) => ({
-        nivelEscolar: e.nivelEscolar,
-        grado: e.grado,
-        grupos: e.letras.size ? [...e.letras].sort() : [...cfg.gruposCaptura],
-      }))
+      .map((e) => {
+        // Maternal sin letras reales → un solo salón (no inventar Grupo A y B idénticos).
+        if (e.nivelEscolar === 1) {
+          const grupos: string[] = []
+          if (e.tieneSinLetra || e.letras.size === 0) grupos.push(GRUPO_SALON)
+          grupos.push(...[...e.letras].sort())
+          return { nivelEscolar: e.nivelEscolar, grado: e.grado, grupos }
+        }
+        return {
+          nivelEscolar: e.nivelEscolar,
+          grado: e.grado,
+          grupos: e.letras.size ? [...e.letras].sort() : [...cfg.gruposCaptura],
+        }
+      })
       .sort((a, b) => a.nivelEscolar - b.nivelEscolar || a.grado - b.grado)
     if (rows.length) return rows
     return cfg.gradosFallback.map((g) => ({
       nivelEscolar: g.nivelEscolar,
       grado: g.grado,
-      grupos: [...cfg.gruposCaptura],
+      grupos: g.nivelEscolar === 1 ? [GRUPO_SALON] : [...cfg.gruposCaptura],
     }))
   }
 
@@ -199,7 +234,11 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       grados.map(async (g) => {
         try {
           const materiaId = await ensureSlotEs(g.nivelEscolar, g.grado)
-          const grupos = g.grupos?.length ? g.grupos : cfg.gruposCaptura
+          const grupos = g.grupos?.length
+            ? g.grupos
+            : g.nivelEscolar === 1
+              ? [GRUPO_SALON]
+              : cfg.gruposCaptura
           for (const letra of grupos) {
             asignaciones.push({
               grupo_id: 0,
@@ -208,7 +247,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
               materia_grado: g.grado,
               materia_nivel: g.nivelEscolar,
               grupo_letra: letra,
-              etiqueta_grupo: `${etiquetaGrado(cfg, g.grado, g.nivelEscolar)} · Grupo ${letra}`,
+              etiqueta_grupo: etiquetaAsignacionGrupo(cfg, g.grado, g.nivelEscolar, letra),
             })
           }
         } catch {
@@ -220,7 +259,9 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       (a, b) =>
         a.materia_nivel - b.materia_nivel ||
         a.materia_grado - b.materia_grado ||
-        a.grupo_letra.localeCompare(b.grupo_letra)
+        (a.grupo_letra === GRUPO_SALON ? '' : a.grupo_letra).localeCompare(
+          b.grupo_letra === GRUPO_SALON ? '' : b.grupo_letra
+        )
     )
   }
 
