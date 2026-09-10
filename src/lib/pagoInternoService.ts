@@ -186,10 +186,45 @@ export async function guardarConceptoInterno(
 
 export async function eliminarConceptoInterno(
   conceptoId: number
-): Promise<{ ok: true } | { ok: false; mensaje: string }> {
+): Promise<
+  | { ok: true; modo: 'eliminado' | 'baja'; mensaje?: string }
+  | { ok: false; mensaje: string }
+> {
+  const { count: nPagos, error: errPagos } = await supabase
+    .from('pago_interno')
+    .select('*', { count: 'exact', head: true })
+    .eq('concepto_id', conceptoId)
+  if (errPagos) return { ok: false, mensaje: errPagos.message }
+
+  // Con pagos vivos no se puede borrar el catálogo (FK + historial). Dar de baja = ocultar.
+  if ((nPagos ?? 0) > 0) {
+    const { error } = await supabase
+      .from('concepto_interno')
+      .update({ visible: 0 })
+      .eq('concepto_id', conceptoId)
+    if (error) return { ok: false, mensaje: error.message }
+    return {
+      ok: true,
+      modo: 'baja',
+      mensaje: `Tiene ${nPagos} pago(s) registrado(s): se dio de baja (Visible = No). No se puede eliminar del todo.`,
+    }
+  }
+
+  // Sin pagos: quitar precios ligados y luego el concepto (evita error 23503 de FK).
+  const { error: errPrecios } = await supabase
+    .from('pago_interno_precio')
+    .delete()
+    .eq('concepto_id', conceptoId)
+  if (errPrecios) return { ok: false, mensaje: errPrecios.message }
+
   const { error } = await supabase.from('concepto_interno').delete().eq('concepto_id', conceptoId)
-  if (error) return { ok: false, mensaje: error.message }
-  return { ok: true }
+  if (error) {
+    const msg = error.message.includes('foreign key')
+      ? 'No se pudo eliminar: aún hay registros ligados a este concepto.'
+      : error.message
+    return { ok: false, mensaje: msg }
+  }
+  return { ok: true, modo: 'eliminado' }
 }
 
 // --- Precios ---

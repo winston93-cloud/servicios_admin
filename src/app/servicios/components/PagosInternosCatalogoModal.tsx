@@ -257,7 +257,15 @@ export default function PagosInternosCatalogoModal({
   }
 
   const onEliminarConcepto = async (c: ConceptoInterno) => {
-    if (!window.confirm(`¿Eliminar el concepto «${c.concepto_clase}»?`)) return
+    if (
+      !window.confirm(
+        `¿Eliminar el concepto «${c.concepto_clase ?? c.concepto_id}»?\n\nSi tiene pagos históricos, solo se dará de baja (Visible = No).`
+      )
+    ) {
+      return
+    }
+    setError(null)
+    setMensaje(null)
     setGuardando(true)
     const res = await eliminarConceptoInterno(c.concepto_id)
     setGuardando(false)
@@ -265,7 +273,11 @@ export default function PagosInternosCatalogoModal({
       setError(res.mensaje)
       return
     }
-    setMensaje('Concepto eliminado.')
+    setMensaje(
+      res.modo === 'baja'
+        ? (res.mensaje ?? 'Concepto dado de baja (Visible = No).')
+        : 'Concepto eliminado.'
+    )
     await cargar()
     onActualizado?.()
   }
