@@ -11,6 +11,7 @@ import '../../dashboard/dashboard-module-card.css'
 import '../../boletas-secundaria/boletas-secundaria.css'
 import '../reportes-conducta.css'
 import './rac-secundaria.css'
+import RacGoogleSignIn from '../components/RacGoogleSignIn'
 
 type Rol = 'maestro' | 'coordinacion' | 'psicologia' | 'prefectura' | 'direccion'
 
@@ -171,6 +172,7 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
       <button type="submit" className="rac-login-submit" disabled={loading}>
         {loading ? 'Entrando…' : 'Entrar'}
       </button>
+      <RacGoogleSignIn authUrl="/api/rac/auth/google" onOk={onOk} classPrefix="rac" />
     </form>
   )
 }

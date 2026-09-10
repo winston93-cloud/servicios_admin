@@ -31,6 +31,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import '../../dashboard/dashboard-module-card.css'
 import '../../boletas-secundaria/boletas-secundaria.css'
 import '../reportes-conducta.css'
+import RacGoogleSignIn from './RacGoogleSignIn'
 
 type Me = {
   role: RacRolNivel
@@ -199,6 +200,11 @@ function LoginPanel({
       <button type="submit" className="racn-login-submit" disabled={loading}>
         {loading ? 'Entrando…' : 'Entrar'}
       </button>
+      <RacGoogleSignIn
+        authUrl={`${config.apiBase}/auth/google`}
+        onOk={onOk}
+        classPrefix="racn"
+      />
     </form>
   )
 }
