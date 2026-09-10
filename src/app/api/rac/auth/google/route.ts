@@ -6,16 +6,20 @@ import {
   sesionSecundariaDesdeCandidato,
   type RacGoogleAccountRef,
 } from '@/lib/racAuthGoogle'
-import { RacGoogleAuthError, verificarIdTokenGoogle } from '@/lib/racGoogleIdToken'
+import { RacGoogleAuthError, verificarCredencialGoogle } from '@/lib/racGoogleIdToken'
 import { jsonRacError } from '@/lib/racAuth'
 
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as {
       idToken?: string
+      accessToken?: string
       account?: RacGoogleAccountRef
     }
-    const { email } = await verificarIdTokenGoogle(String(body.idToken ?? ''))
+    const { email } = await verificarCredencialGoogle({
+      idToken: body.idToken,
+      accessToken: body.accessToken,
+    })
     const candidates = await candidatosRacSecundariaPorEmail(email)
     const resolved = resolverCandidatoUnico(candidates, body.account ?? null)
 

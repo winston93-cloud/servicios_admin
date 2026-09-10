@@ -29,7 +29,21 @@ export function googleOAuthClientIdPublico(): string | null {
   return id || null
 }
 
-/** Verifica id_token de Google Identity Services y exige correo @winston93.edu.mx verificado. */
+function assertEmailInstitucional(emailRaw: string, emailVerified: boolean): string {
+  const email = String(emailRaw ?? '')
+    .trim()
+    .toLowerCase()
+  if (!email || !emailVerified) {
+    throw new RacGoogleAuthError('El correo de Google no está verificado.')
+  }
+  const dominio = email.split('@')[1] ?? ''
+  if (dominio !== DOMINIO_INSTITUCIONAL) {
+    throw new RacGoogleAuthError(`Solo se permiten cuentas @${DOMINIO_INSTITUCIONAL}.`)
+  }
+  return email
+}
+
+/** Verifica id_token de Google Identity Services. */
 export async function verificarIdTokenGoogle(idToken: string): Promise<{ email: string }> {
   const token = String(idToken ?? '').trim()
   if (!token) throw new RacGoogleAuthError('Falta el token de Google.')
@@ -44,17 +58,58 @@ export async function verificarIdTokenGoogle(idToken: string): Promise<{ email: 
     throw new RacGoogleAuthError('No se pudo verificar la sesión de Google.')
   }
 
-  const email = String(payload?.email ?? '')
-    .trim()
-    .toLowerCase()
-  if (!email || payload?.email_verified !== true) {
-    throw new RacGoogleAuthError('El correo de Google no está verificado.')
+  return {
+    email: assertEmailInstitucional(
+      String(payload?.email ?? ''),
+      payload?.email_verified === true
+    ),
+  }
+}
+
+/**
+ * Verifica access_token (flujo con prompt=select_account: siempre pide cuenta).
+ * Confirma aud del token y correo vía userinfo.
+ */
+export async function verificarAccessTokenGoogle(
+  accessToken: string
+): Promise<{ email: string }> {
+  const token = String(accessToken ?? '').trim()
+  if (!token) throw new RacGoogleAuthError('Falta el token de Google.')
+
+  const audEsperado = clientId()
+  const infoRes = await fetch(
+    `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(token)}`
+  )
+  if (!infoRes.ok) {
+    throw new RacGoogleAuthError('No se pudo verificar la sesión de Google.')
+  }
+  const info = (await infoRes.json()) as { aud?: string; error?: string }
+  if (info.error || String(info.aud ?? '') !== audEsperado) {
+    throw new RacGoogleAuthError('Token de Google no válido para esta aplicación.')
   }
 
-  const dominio = email.split('@')[1] ?? ''
-  if (dominio !== DOMINIO_INSTITUCIONAL) {
-    throw new RacGoogleAuthError(`Solo se permiten cuentas @${DOMINIO_INSTITUCIONAL}.`)
+  const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!userRes.ok) {
+    throw new RacGoogleAuthError('No se pudo leer el correo de Google.')
   }
+  const user = (await userRes.json()) as {
+    email?: string
+    email_verified?: boolean | string
+  }
+  const verified = user.email_verified === true || user.email_verified === 'true'
+  return { email: assertEmailInstitucional(String(user.email ?? ''), verified) }
+}
 
-  return { email }
+/** Acepta id_token (botón GIS) o access_token (selector de cuenta forzado). */
+export async function verificarCredencialGoogle(input: {
+  idToken?: string
+  accessToken?: string
+}): Promise<{ email: string }> {
+  const idToken = String(input.idToken ?? '').trim()
+  const accessToken = String(input.accessToken ?? '').trim()
+  if (accessToken) return verificarAccessTokenGoogle(accessToken)
+  if (idToken) return verificarIdTokenGoogle(idToken)
+  throw new RacGoogleAuthError('Falta el token de Google.')
 }

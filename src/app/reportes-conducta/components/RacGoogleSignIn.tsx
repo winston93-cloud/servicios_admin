@@ -20,22 +20,30 @@ type Props = {
   classPrefix?: 'rac' | 'racn'
 }
 
+type TokenClient = {
+  requestAccessToken: (override?: { prompt?: string }) => void
+}
+
 declare global {
   interface Window {
     google?: {
       accounts: {
-        id: {
-          initialize: (cfg: {
+        id?: {
+          disableAutoSelect?: () => void
+          cancel?: () => void
+        }
+        oauth2: {
+          initTokenClient: (cfg: {
             client_id: string
-            callback: (res: { credential?: string }) => void
-            auto_select?: boolean
-            cancel_on_tap_outside?: boolean
-          }) => void
-          renderButton: (
-            parent: HTMLElement,
-            options: Record<string, string | number | boolean>
-          ) => void
-          cancel: () => void
+            scope: string
+            prompt?: string
+            callback: (res: {
+              access_token?: string
+              error?: string
+              error_description?: string
+            }) => void
+            error_callback?: (err: { type?: string; message?: string }) => void
+          }) => TokenClient
         }
       }
     }
@@ -46,13 +54,13 @@ const GIS_SRC = 'https://accounts.google.com/gsi/client'
 
 function loadGisScript(): Promise<void> {
   if (typeof window === 'undefined') return Promise.resolve()
-  if (window.google?.accounts?.id) return Promise.resolve()
+  if (window.google?.accounts?.oauth2) return Promise.resolve()
   const existing = document.querySelector<HTMLScriptElement>(`script[src="${GIS_SRC}"]`)
   if (existing) {
     return new Promise((resolve, reject) => {
       existing.addEventListener('load', () => resolve())
       existing.addEventListener('error', () => reject(new Error('No se cargó Google Sign-In')))
-      if (window.google?.accounts?.id) resolve()
+      if (window.google?.accounts?.oauth2) resolve()
     })
   }
   return new Promise((resolve, reject) => {
@@ -68,10 +76,11 @@ function loadGisScript(): Promise<void> {
 
 export default function RacGoogleSignIn({ authUrl, onOk, classPrefix = 'racn' }: Props) {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID?.trim() || ''
-  const btnHost = useRef<HTMLDivElement>(null)
+  const tokenClientRef = useRef<TokenClient | null>(null)
+  const [ready, setReady] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [idToken, setIdToken] = useState<string | null>(null)
+  const [accessToken, setAccessToken] = useState<string | null>(null)
   const [candidates, setCandidates] = useState<RacGoogleCandidate[] | null>(null)
   const [emailAmbiguo, setEmailAmbiguo] = useState('')
 
@@ -89,7 +98,9 @@ export default function RacGoogleSignIn({ authUrl, onOk, classPrefix = 'racn' }:
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(account ? { idToken: token, account } : { idToken: token }),
+          body: JSON.stringify(
+            account ? { accessToken: token, account } : { accessToken: token }
+          ),
         })
         const data = (await res.json().catch(() => ({}))) as {
           ok?: boolean
@@ -99,7 +110,7 @@ export default function RacGoogleSignIn({ authUrl, onOk, classPrefix = 'racn' }:
           candidates?: RacGoogleCandidate[]
         }
         if (res.status === 409 && data.code === 'ambiguous' && data.candidates?.length) {
-          setIdToken(token)
+          setAccessToken(token)
           setCandidates(data.candidates)
           setEmailAmbiguo(data.email ?? '')
           return
@@ -108,7 +119,7 @@ export default function RacGoogleSignIn({ authUrl, onOk, classPrefix = 'racn' }:
           throw new Error(data.error || 'No se pudo entrar con Google')
         }
         setCandidates(null)
-        setIdToken(null)
+        setAccessToken(null)
         onOk()
       } catch (err) {
         setError(err instanceof Error ? err.message : 'No se pudo entrar con Google')
@@ -120,35 +131,46 @@ export default function RacGoogleSignIn({ authUrl, onOk, classPrefix = 'racn' }:
   )
 
   useEffect(() => {
-    if (!clientId || !btnHost.current) return
+    if (!clientId) return
     let cancelled = false
     void (async () => {
       try {
         await loadGisScript()
-        if (cancelled || !btnHost.current || !window.google?.accounts?.id) return
-        btnHost.current.innerHTML = ''
-        window.google.accounts.id.initialize({
+        if (cancelled || !window.google?.accounts?.oauth2) return
+        try {
+          window.google.accounts.id?.disableAutoSelect?.()
+        } catch {
+          /* ignore */
+        }
+        tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
           client_id: clientId,
+          scope: 'openid email profile',
+          prompt: 'select_account',
           callback: (res) => {
-            const cred = res.credential
-            if (!cred) {
+            if (res.error) {
+              if (res.error === 'access_denied' || res.error === 'popup_closed_by_user') {
+                setLoading(false)
+                return
+              }
+              setLoading(false)
+              setError(res.error_description || res.error || 'No se pudo iniciar con Google')
+              return
+            }
+            const token = res.access_token
+            if (!token) {
+              setLoading(false)
               setError('Google no devolvió credenciales.')
               return
             }
-            void postGoogle(cred)
+            void postGoogle(token)
           },
-          auto_select: false,
-          cancel_on_tap_outside: true,
+          error_callback: (err) => {
+            setLoading(false)
+            if (err?.type === 'popup_closed') return
+            setError(err?.message || 'No se pudo abrir Google')
+          },
         })
-        window.google.accounts.id.renderButton(btnHost.current, {
-          theme: 'outline',
-          size: 'large',
-          text: 'continue_with',
-          shape: 'rectangular',
-          logo_alignment: 'left',
-          width: 320,
-          locale: 'es',
-        })
+        if (!cancelled) setReady(true)
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'No se pudo iniciar Google')
@@ -158,12 +180,32 @@ export default function RacGoogleSignIn({ authUrl, onOk, classPrefix = 'racn' }:
     return () => {
       cancelled = true
       try {
-        window.google?.accounts?.id?.cancel()
+        window.google?.accounts?.id?.cancel?.()
       } catch {
         /* ignore */
       }
     }
   }, [clientId, postGoogle])
+
+  function abrirGoogle() {
+    setError('')
+    setCandidates(null)
+    setAccessToken(null)
+    setLoading(true)
+    try {
+      window.google?.accounts?.id?.disableAutoSelect?.()
+    } catch {
+      /* ignore */
+    }
+    const client = tokenClientRef.current
+    if (!client) {
+      setLoading(false)
+      setError('Google aún no está listo. Reintenta en un momento.')
+      return
+    }
+    // Siempre selector de cuenta (como login de inicio).
+    client.requestAccessToken({ prompt: 'select_account' })
+  }
 
   if (!clientId) {
     return (
@@ -178,12 +220,24 @@ export default function RacGoogleSignIn({ authUrl, onOk, classPrefix = 'racn' }:
       <div className={`${p}-login-divider`} role="separator">
         <span>o</span>
       </div>
-      <div className={`${p}-login-google-btn`} ref={btnHost} />
-      {loading ? <p className={`${p}-login-google-hint`}>Validando Google…</p> : null}
+      <button
+        type="button"
+        className={`${p}-login-google-custom`}
+        onClick={abrirGoogle}
+        disabled={loading || !ready}
+      >
+        <span className={`${p}-login-google-g`} aria-hidden>
+          G
+        </span>
+        {loading ? 'Conectando con Google…' : 'Continuar con Google'}
+      </button>
+      {!ready && !error ? (
+        <p className={`${p}-login-google-hint`}>Cargando Google…</p>
+      ) : null}
       {error ? <p className={`${p}-login-error`}>{error}</p> : null}
 
-      {candidates && idToken ? (
-        <div className={`${p}-login-google-pick`} role="dialog" aria-label="Elegir cuenta">
+      {candidates && accessToken ? (
+        <div className={`${p}-login-google-pick`} role="dialog" aria-label="Elegir perfil">
           <p className={`${p}-login-google-pick-title`}>
             Elige con qué perfil entrar
             {emailAmbiguo ? ` (${emailAmbiguo})` : ''}:
@@ -196,7 +250,7 @@ export default function RacGoogleSignIn({ authUrl, onOk, classPrefix = 'racn' }:
                   className={`${p}-login-google-pick-btn`}
                   disabled={loading}
                   onClick={() =>
-                    void postGoogle(idToken, {
+                    void postGoogle(accessToken, {
                       tipo: c.tipo,
                       id: c.id,
                       role: c.role,
@@ -217,7 +271,7 @@ export default function RacGoogleSignIn({ authUrl, onOk, classPrefix = 'racn' }:
             className={`${p}-login-google-pick-cancel`}
             onClick={() => {
               setCandidates(null)
-              setIdToken(null)
+              setAccessToken(null)
               setEmailAmbiguo('')
             }}
           >

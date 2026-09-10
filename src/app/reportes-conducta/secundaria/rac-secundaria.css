@@ -207,6 +207,42 @@
   min-height: 44px;
 }
 
+.rac-login-google-custom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--touch-min);
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  background: #fff;
+  color: #1f1f1f;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.rac-login-google-custom:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.rac-login-google-g {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 0.85rem;
+  background: conic-gradient(from 45deg, #ea4335, #fbbc05, #34a853, #4285f4, #ea4335);
+  color: #fff;
+  -webkit-text-stroke: 0.4px #fff;
+}
+
 .rac-login-google-hint {
   margin: 0;
   font-size: 0.8rem;
