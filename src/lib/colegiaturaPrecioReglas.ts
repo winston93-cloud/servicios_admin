@@ -3,7 +3,8 @@
  * - Beca Winston (alumno_beca: IMSS, Winston, etc.): se pierde después del día 10 del mes del concepto.
  * - Beca SEP (lista fija por alumno_ref, solo su ciclo de datos p.ej. 22):
  *   nunca se pierde dentro de ese ciclo; solo aplica recargo. No arrastra a 23+.
- * - Recargo: $75 por cada mes de atraso (a partir del día 11 del mes del concepto;
+ * - Recargo: $75 por cada mes de atraso (a partir del 11 a las 00:00 hora México;
+ *   el día 10 completo, hasta 23:59, sigue sin recargo y con beca Winston.
  *   cuota de inicio 00: límite ampliado al 24 de agosto, recargo desde el 25).
  *
  * El mes del concepto vive en un año calendario del ciclo (valor N → ago N+2003 … jul N+2004).
@@ -63,6 +64,30 @@ export function mesDeConcepto(conceptoNo: string): number | null {
   return CONCEPTO_MES[c] ?? null
 }
 
+/**
+ * Calendario de cobro en hora de México.
+ * Vercel corre en UTC (~6 h adelante): sin esto, el día 10 a las 18:00 ya cuenta
+ * como 11 y se cobra recargo / se pierde la beca antes de las 23:59.
+ * El límite es el día civil completo (día 10 hasta 23:59; recargo desde el 11 00:00).
+ */
+export const TZ_COLEGIO = 'America/Mexico_City'
+
+export function calendarioMexico(fecha: Date = new Date()): {
+  anio: number
+  mes: number
+  dia: number
+} {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TZ_COLEGIO,
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+  }).formatToParts(fecha)
+  const n = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((p) => p.type === type)?.value)
+  return { anio: n('year'), mes: n('month'), dia: n('day') }
+}
+
 /** Último día del mes del concepto sin recargo (00 = 24 ago; resto = 10). */
 export function diaLimiteSinRecargo(conceptoNo: string): number {
   const c = normalizarConceptoNo(conceptoNo)
@@ -87,18 +112,20 @@ export function becaWinstonAplicaEnFecha(
   const mesConcepto = mesDeConcepto(c)
   if (mesConcepto == null) return true
 
+  const hoyMx = calendarioMexico(fecha)
+
   if (cicloValor != null && cicloValor > 0) {
     const anioC = anioCalendarioConcepto(c, cicloValor)
     if (anioC == null) return true
     const iC = anioC * 12 + mesConcepto
-    const iA = fecha.getFullYear() * 12 + (fecha.getMonth() + 1)
+    const iA = hoyMx.anio * 12 + hoyMx.mes
     if (iA < iC) return true
-    if (iA === iC) return fecha.getDate() <= 10
+    if (iA === iC) return hoyMx.dia <= DIA_LIMITE_SIN_RECARGO
     return false
   }
 
-  const mesActual = fecha.getMonth() + 1
-  const dia = fecha.getDate()
+  const mesActual = hoyMx.mes
+  const dia = hoyMx.dia
   const iC = indiceMesCiclo(mesConcepto)
   const iA = indiceMesCiclo(mesActual)
   if (iC < 0 || iA < 0) return true
@@ -122,25 +149,26 @@ export function multiplicadorRecargoMeses(
   if (mesConcepto == null) return 0
 
   const diaLimite = diaLimiteSinRecargo(conceptoNo)
+  const hoyMx = calendarioMexico(fecha)
 
   if (cicloValor != null && cicloValor > 0) {
     const anioC = anioCalendarioConcepto(conceptoNo, cicloValor)
     if (anioC == null) return 0
     const iC = anioC * 12 + mesConcepto
-    const iA = fecha.getFullYear() * 12 + (fecha.getMonth() + 1)
+    const iA = hoyMx.anio * 12 + hoyMx.mes
     if (iA < iC) return 0
     let multiplo = iA - iC
-    if (fecha.getDate() > diaLimite) multiplo += 1
+    if (hoyMx.dia > diaLimite) multiplo += 1
     return Math.max(0, multiplo)
   }
 
   // Fallback legacy (solo mes): válido si la fecha ya está dentro del mismo ciclo del concepto.
   const iC = indiceMesCiclo(mesConcepto)
-  const iA = indiceMesCiclo(fecha.getMonth() + 1)
+  const iA = indiceMesCiclo(hoyMx.mes)
   if (iC < 0 || iA < 0 || iA < iC) return 0
 
   let multiplo = iA - iC
-  if (fecha.getDate() > diaLimite) multiplo += 1
+  if (hoyMx.dia > diaLimite) multiplo += 1
   return Math.max(0, multiplo)
 }
 
