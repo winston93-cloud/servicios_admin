@@ -167,12 +167,20 @@ export function calcularAdeudosAlumno(
   const festival = tipo === 4
   const umbral = tipo === 2 ? 0 : tipo === 3 ? 1 : 0
 
-  const esperados = conceptosEsperadosAcumulados(
+  let esperados = conceptosEsperadosAcumulados(
     fechaInscripcion,
     cicloLargo,
     planMes,
     fechaRef
   )
+
+  // Suspendidos / deudores colegiatura: la secuencia empieza en cuota de inicio (00).
+  // Si solo faltan 00 + SEP (01) deben entrar en tipo 3 (≥2 adeudos), aunque la
+  // fecha de inscripción caiga en sep+ y la tabla legacy ya no liste el 00.
+  if (!festival && !esperados.includes('00')) {
+    esperados = ['00', ...esperados]
+  }
+
   let faltantes = esperados.filter((c) => !pagos.includes(c))
 
   if (festival) {
