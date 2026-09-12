@@ -12,6 +12,7 @@ import {
   calcularAdeudosAlumno,
   cicloLargoDesdeValorCiclo,
   nivelesPorPlantel,
+  tieneInscripcionCompleta,
   type TipoReporteSuspension,
 } from './suspensionesAdeudos'
 import { etiquetaNivelGrado } from './suspensionesEtiquetas'
@@ -215,8 +216,6 @@ export async function generarListaDeudoresSuspension(
         'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, mes'
       )
       .eq('alumno_ciclo_escolar', cicloFicha)
-      // Solo reinscritos: nuevo ingreso empieza en agosto con cuota 00.
-      .eq('alumno_nuevo_ingreso', 0)
       .in('alumno_nivel', niveles)
       .not('alumno_status', 'in', '(0,2)')
       .range(offset, offset + PAGE_ALUMNO - 1)
@@ -296,13 +295,13 @@ export async function generarListaDeudoresSuspension(
       if (!esBecado100) continue
       if (bucket.fechaInscripcion) continue
     } else {
-      // Deudores / suspendidos: beca 100% no paga colegiatura → fuera.
-      // La inscripción (11/12/13) no se exige ni entra en el conteo: adeudos
-      // van de cuota de inicio (00) a junio/julio según plan 10/11.
+      // Activos del ciclo con inscripción completa (13 u 12).
+      // Beca 100% fuera. Adeudos = meses/cuota vencidos desde 00 (inscripción no cuenta).
       if (esBecado100) {
         excluidosBecados100++
         continue
       }
+      if (!tieneInscripcionCompleta(bucket.conceptos)) continue
     }
 
     const planMes = a.mes != null ? Number(a.mes) : null

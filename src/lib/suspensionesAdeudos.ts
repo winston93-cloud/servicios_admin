@@ -34,13 +34,15 @@ const MESES_CONCEPTO: Record<string, string> = {
 /**
  * Colegiatura de julio: solo plan 11 meses (`alumno.mes = 2`).
  * Concepto en referencia = 26 (no confundir con 11 = DIF1).
+ * Solo vence en julio del año de cierre del ciclo (cicloLargo + 1).
  */
 const CONCEPTO_JULIO = '26'
 
 /**
  * Secuencia de adeudo para suspendidos / deudores colegiatura.
  * Empieza en cuota de inicio (00) y llega a junio (10).
- * Inscripción (11/12/13) no entra. Julio (26) se suma aparte si plan 11.
+ * Inscripción (11/12/13) no entra en el conteo de meses.
+ * Julio (26) se suma aparte solo en julio de cierre y plan 11.
  */
 const SECUENCIA_DESDE_CUOTA_INICIO: string[] = [
   '00',
@@ -86,49 +88,69 @@ function mesCalendarioEfectivo(fecha = new Date()): number {
   return m
 }
 
+function aplicarTopePlan(esperados: string[], planMes: number | null): string[] {
+  if (planMes === 2) return esperados
+  return esperados.filter((c) => c !== CONCEPTO_JULIO)
+}
+
 /**
- * Conceptos esperados desde cuota de inicio (00) hasta el mes vigente.
- * - No usa fecha de inscripción.
- * - Plan 10 meses (`mes=1`): hasta junio (10).
- * - Plan 11 meses (`mes=2`): además julio (26) desde julio calendario.
+ * Conceptos vencidos del ciclo desde cuota de inicio (00).
+ * Ciclo escolar valor N → año largo cicloLargo = N+2003 (ej. 23 → 2026):
+ *   ago cicloLargo … jun cicloLargo+1; jul cicloLargo+1 = cierre (plan 11 → +26).
+ * La inscripción no forma parte de esta secuencia.
  */
 export function conceptosEsperadosDesdeCuotaInicio(
   planMes: number | null,
+  cicloLargo: number,
   fechaRef = new Date()
 ): string[] {
+  const year = fechaRef.getFullYear()
   const mesCalendario = fechaRef.getMonth() + 1
   const mesEfectivo = mesCalendarioEfectivo(fechaRef)
+  const anioCierre = cicloLargo + 1
 
-  let esperados: string[]
-
-  // Agosto (inicio de ciclo): solo cuota de inicio, sin importar el ajuste día < 10.
-  if (mesCalendario === 8) {
-    esperados = ['00']
-  } else if (mesCalendario === 7) {
-    // Julio = cierre de ciclo: plan completo hasta junio.
-    esperados = [...SECUENCIA_DESDE_CUOTA_INICIO]
-  } else {
-    const conceptoMes = MES_A_CONCEPTO[mesEfectivo]
-    if (!conceptoMes) {
-      esperados = ['00']
-    } else {
-      const idx = SECUENCIA_DESDE_CUOTA_INICIO.indexOf(conceptoMes)
-      if (idx < 0) esperados = [...SECUENCIA_DESDE_CUOTA_INICIO]
-      else esperados = SECUENCIA_DESDE_CUOTA_INICIO.slice(0, idx + 1)
-    }
+  // Antes de agosto del año de inicio del ciclo: aún no hay colegiaturas del ciclo.
+  if (year < cicloLargo || (year === cicloLargo && mesCalendario < 8)) {
+    return []
   }
 
-  // Julio (26) solo plan 11 meses y solo desde julio calendario.
-  if (planMes === 2 && mesCalendario >= 7 && !esperados.includes(CONCEPTO_JULIO)) {
-    esperados = [...esperados, CONCEPTO_JULIO]
+  // Después de julio del año de cierre: plan completo.
+  if (year > anioCierre || (year === anioCierre && mesCalendario > 7)) {
+    const full = [...SECUENCIA_DESDE_CUOTA_INICIO]
+    if (planMes === 2) full.push(CONCEPTO_JULIO)
+    return aplicarTopePlan(full, planMes)
   }
 
-  // Plan 10 meses (o sin plan) nunca exige julio.
-  if (planMes !== 2) {
-    esperados = esperados.filter((c) => c !== CONCEPTO_JULIO)
+  // Julio del año de cierre: hasta junio (+ julio si plan 11).
+  if (year === anioCierre && mesCalendario === 7) {
+    const full = [...SECUENCIA_DESDE_CUOTA_INICIO]
+    if (planMes === 2) full.push(CONCEPTO_JULIO)
+    return aplicarTopePlan(full, planMes)
   }
 
-  return esperados
+  // Agosto del año de inicio: solo cuota de inicio.
+  if (year === cicloLargo && mesCalendario === 8) {
+    return ['00']
+  }
+
+  // Sep–dic (año inicio) o ene–jun (año cierre): acumular hasta el mes vencido.
+  const conceptoMes = MES_A_CONCEPTO[mesEfectivo]
+  if (!conceptoMes) {
+    return ['00']
+  }
+  const idx = SECUENCIA_DESDE_CUOTA_INICIO.indexOf(conceptoMes)
+  if (idx < 0) {
+    return aplicarTopePlan([...SECUENCIA_DESDE_CUOTA_INICIO], planMes)
+  }
+  return SECUENCIA_DESDE_CUOTA_INICIO.slice(0, idx + 1)
+}
+
+/** Inscripción completa del ciclo: pago 13 (INS) o 12 (DIF2). */
+export function tieneInscripcionCompleta(pagosConcepto: Iterable<string>): boolean {
+  const pagos = new Set(
+    [...pagosConcepto].map((p) => String(p).padStart(2, '0').slice(-2))
+  )
+  return pagos.has('13') || pagos.has('12')
 }
 
 function adeudosInscripcionMaterial(pagos: string[]): string[] | null {
@@ -151,10 +173,9 @@ export function etiquetaModalidadPlan(planMes: number | null | undefined): strin
 export function calcularAdeudosAlumno(
   tipo: TipoReporteSuspension,
   pagosConcepto: string[],
-  /** @deprecated No se usa en tipos 2/3/4; la inscripción no cuenta. */
+  /** @deprecated Tipos 2/3/4 ya no usan fecha de inscripción para la secuencia. */
   _fechaInscripcion: string | null,
-  /** @deprecated No se usa en tipos 2/3/4. */
-  _cicloLargo: number,
+  cicloLargo: number,
   planMes: number | null,
   fechaRef = new Date()
 ): string | null {
@@ -168,7 +189,7 @@ export function calcularAdeudosAlumno(
   const festival = tipo === 4
   const umbral = tipo === 2 ? 0 : tipo === 3 ? 1 : 0
 
-  const esperados = conceptosEsperadosDesdeCuotaInicio(planMes, fechaRef)
+  const esperados = conceptosEsperadosDesdeCuotaInicio(planMes, cicloLargo, fechaRef)
   let faltantes = esperados.filter((c) => !pagos.includes(c))
 
   if (festival) {
