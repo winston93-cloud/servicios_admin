@@ -12,6 +12,7 @@ import {
   calcularAdeudosAlumno,
   cicloLargoDesdeValorCiclo,
   nivelesPorPlantel,
+  tieneInscripcionCompleta,
   type TipoReporteSuspension,
 } from './suspensionesAdeudos'
 import { etiquetaNivelGrado } from './suspensionesEtiquetas'
@@ -294,12 +295,13 @@ export async function generarListaDeudoresSuspension(
       if (!esBecado100) continue
       if (bucket.fechaInscripcion) continue
     } else {
-      // Población activa del ciclo: debe meses/cuota vencidos desde 00.
-      // Beca 100% fuera. La inscripción no forma parte del conteo ni excluye.
+      // Activos del ciclo con inscripción completa (13 u 12). Sin eso no deberían
+      // estar en clases. Beca 100% fuera. Adeudos = cuota/meses vencidos desde 00.
       if (esBecado100) {
         excluidosBecados100++
         continue
       }
+      if (!tieneInscripcionCompleta(bucket.conceptos)) continue
     }
 
     const planMes = a.mes != null ? Number(a.mes) : null
