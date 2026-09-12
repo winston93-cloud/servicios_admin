@@ -11,6 +11,9 @@ import {
 export const runtime = 'nodejs'
 export const maxDuration = 300
 
+/** Copia del primer aviso de cada lote (Winston o Educativo). */
+const COPIA_PRIMER_AVISO_PLANTEL = 'iwinston.adm@winston93.edu.mx'
+
 interface EnvioFila {
   alumnoId: number
   alumnoRef: string
@@ -50,22 +53,10 @@ export async function POST(request: Request) {
     let enviados = 0
     let errores = 0
     let sinCorreo = 0
+    let copiaPlantelEnviada = false
     const detalle: { alumnoRef: string; ok: boolean; mensaje: string }[] = []
 
     for (const fila of filas) {
-      // --- Envío a papás/tutores (producción) — deshabilitado en modo prueba ---
-      // const emailsPadres = (fila.emails ?? []).filter((e) => e.includes('@'))
-      // if (!emailsPadres.length) {
-      //   sinCorreo++
-      //   detalle.push({
-      //     alumnoRef: fila.alumnoRef,
-      //     ok: false,
-      //     mensaje: 'Sin correo autorizado',
-      //   })
-      //   continue
-      // }
-      // const destinatarios = emailsPadres
-
       const emailsPadres = (fila.emails ?? []).filter((e) => e.includes('@'))
       if (!SUSPENSIONES_ENVIO_MODO_PRUEBA && !emailsPadres.length) {
         sinCorreo++
@@ -108,11 +99,18 @@ export async function POST(request: Request) {
         fila.nivel
       )
 
+      // Solo el primer aviso del lote de este plantel (Winston o Educativo).
+      const bccExtra =
+        !SUSPENSIONES_ENVIO_MODO_PRUEBA && !copiaPlantelEnviada
+          ? [COPIA_PRIMER_AVISO_PLANTEL]
+          : undefined
+
       const res = await enviarCorreoMasivo({
         to: destinatarios,
         subject: asunto,
         html,
         nivel: fila.nivel,
+        bcc: bccExtra,
         attachments: [
           {
             filename: `carta_suspension_${fila.alumnoRef}.pdf`,
@@ -123,13 +121,16 @@ export async function POST(request: Request) {
       })
 
       if (res.ok) {
+        if (bccExtra?.length) copiaPlantelEnviada = true
         enviados++
         detalle.push({
           alumnoRef: fila.alumnoRef,
           ok: true,
           mensaje: SUSPENSIONES_ENVIO_MODO_PRUEBA
             ? `Prueba → ${SUSPENSIONES_CORREO_PRUEBA}`
-            : 'Enviado',
+            : bccExtra?.length
+              ? `Enviado (+ copia ${COPIA_PRIMER_AVISO_PLANTEL})`
+              : 'Enviado',
         })
       } else {
         errores++
@@ -145,7 +146,13 @@ export async function POST(request: Request) {
       ok: errores === 0,
       modoPrueba: SUSPENSIONES_ENVIO_MODO_PRUEBA,
       correoPrueba: SUSPENSIONES_ENVIO_MODO_PRUEBA ? SUSPENSIONES_CORREO_PRUEBA : undefined,
-      resumen: { enviados, errores, sinCorreo, total: filas.length },
+      resumen: {
+        enviados,
+        errores,
+        sinCorreo,
+        total: filas.length,
+        copiaPrimerAvisoPlantel: copiaPlantelEnviada ? COPIA_PRIMER_AVISO_PLANTEL : null,
+      },
       detalle,
     })
   } catch (e) {
