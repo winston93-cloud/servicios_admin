@@ -7,6 +7,7 @@ import {
   SUSPENSIONES_CORREO_PRUEBA,
   SUSPENSIONES_ENVIO_MODO_PRUEBA,
 } from '@/lib/suspensionesEnvioConfig'
+import { correosDireccionPorNivelEscolar } from '@/lib/racStaffAllowlist'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -99,18 +100,20 @@ export async function POST(request: Request) {
         fila.nivel
       )
 
-      // Solo el primer aviso del lote de este plantel (Winston o Educativo).
-      const bccExtra =
-        !SUSPENSIONES_ENVIO_MODO_PRUEBA && !copiaPlantelEnviada
-          ? [COPIA_PRIMER_AVISO_PLANTEL]
-          : undefined
+      const bccExtra: string[] = []
+      if (!SUSPENSIONES_ENVIO_MODO_PRUEBA) {
+        // Primer aviso del lote → administración Winston.
+        if (!copiaPlantelEnviada) bccExtra.push(COPIA_PRIMER_AVISO_PLANTEL)
+        // Directoras del nivel del alumno (español / inglés según aplique).
+        bccExtra.push(...correosDireccionPorNivelEscolar(fila.nivel))
+      }
 
       const res = await enviarCorreoMasivo({
         to: destinatarios,
         subject: asunto,
         html,
         nivel: fila.nivel,
-        bcc: bccExtra,
+        bcc: bccExtra.length ? bccExtra : undefined,
         attachments: [
           {
             filename: `carta_suspension_${fila.alumnoRef}.pdf`,
@@ -121,16 +124,16 @@ export async function POST(request: Request) {
       })
 
       if (res.ok) {
-        if (bccExtra?.length) copiaPlantelEnviada = true
+        if (!copiaPlantelEnviada && bccExtra.includes(COPIA_PRIMER_AVISO_PLANTEL)) {
+          copiaPlantelEnviada = true
+        }
         enviados++
         detalle.push({
           alumnoRef: fila.alumnoRef,
           ok: true,
           mensaje: SUSPENSIONES_ENVIO_MODO_PRUEBA
             ? `Prueba → ${SUSPENSIONES_CORREO_PRUEBA}`
-            : bccExtra?.length
-              ? `Enviado (+ copia ${COPIA_PRIMER_AVISO_PLANTEL})`
-              : 'Enviado',
+            : 'Enviado',
         })
       } else {
         errores++
