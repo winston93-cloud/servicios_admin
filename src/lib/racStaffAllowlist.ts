@@ -150,4 +150,26 @@ export function staffEmailsDelPanel(panel: RacStaffPanel): string[] {
   return [...new Set(RAC_STAFF_ALLOWLIST[panel].map((x) => x.email))]
 }
 
+/**
+ * Correos de dirección (oficiales) según nivel escolar del alumno.
+ * Excluye el tester QA (sistemas.desarrollo).
+ * 1–2 maternal/kinder · 3 primaria · 4 secundaria.
+ */
+export function correosDireccionPorNivelEscolar(nivel: number): string[] {
+  const n = Number(nivel)
+  let panel: RacStaffPanel | null = null
+  if (n === 1 || n === 2) panel = 'maternal-kinder'
+  else if (n === 3) panel = 'primaria'
+  else if (n === 4) panel = 'secundaria'
+  if (!panel) return []
+
+  return [
+    ...new Set(
+      RAC_STAFF_ALLOWLIST[panel]
+        .filter((x) => x.role === 'direccion' && x.email !== SISTEMAS_DESARROLLO)
+        .map((x) => x.email)
+    ),
+  ]
+}
+
 export const RAC_QA_TESTER_EMAIL = SISTEMAS_DESARROLLO
