@@ -46,7 +46,7 @@ export function construirHtmlDeudoresSuspendidos(resumen: ResumenDeudoresReporte
   const leyenda =
     resumen.tipo === 2
       ? 'Deudores desde 1 colegiatura pendiente · plan 10 meses hasta junio · plan 11 meses hasta julio · becados al 100% excluidos (no pagan colegiatura)'
-      : 'Suspendidos: 2 o más colegiaturas pendientes · plan 10 meses hasta junio · plan 11 meses hasta julio · becados al 100% excluidos (no pagan colegiatura)'
+      : 'Suspendidos: 2 o más adeudos desde cuota de inicio (00) · plan 10 meses hasta junio · plan 11 meses hasta julio · inscripción no cuenta · becados al 100% excluidos'
 
   const rows = resumen.filas
     .map(

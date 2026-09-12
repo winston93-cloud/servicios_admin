@@ -37,20 +37,24 @@ const MESES_CONCEPTO: Record<string, string> = {
  */
 const CONCEPTO_JULIO = '26'
 
-const TABLA_CONCEPTOS_POR_MES_INSCRIPCION: string[][] = [
-  [''],
-  ['05', '06', '07', '08', '09', '10'],
-  ['06', '07', '08', '09', '10'],
-  ['07', '08', '09', '10'],
-  ['08', '09', '10'],
-  ['09', '10'],
-  ['10'],
-  ['00', '01', '02', '03', '04', '16', '05', '06', '07', '08', '09', '10'],
-  ['00', '01', '02', '03', '04', '16', '05', '06', '07', '08', '09', '10'],
-  ['01', '02', '03', '04', '16', '05', '06', '07', '08', '09', '10'],
-  ['02', '03', '04', '16', '05', '06', '07', '08', '09', '10'],
-  ['03', '04', '16', '05', '06', '07', '08', '09', '10'],
-  ['04', '16', '05', '06', '07', '08', '09', '10'],
+/**
+ * Secuencia de adeudo para suspendidos / deudores colegiatura.
+ * Empieza en cuota de inicio (00) y llega a junio (10).
+ * Inscripción (11/12/13) no entra. Julio (26) se suma aparte si plan 11.
+ */
+const SECUENCIA_DESDE_CUOTA_INICIO: string[] = [
+  '00',
+  '01',
+  '02',
+  '03',
+  '04',
+  '16',
+  '05',
+  '06',
+  '07',
+  '08',
+  '09',
+  '10',
 ]
 
 /** Mes calendario → concepto colegiatura (legacy `$mes` en verificarAdeudos). */
@@ -74,6 +78,7 @@ function conceptosANombres(codigos: string[]): string[] {
   return codigos.map((c) => MESES_CONCEPTO[c] ?? c)
 }
 
+/** Mes “efectivo” para adeudo: antes del día 10 aún no vence el mes en curso. */
 function mesCalendarioEfectivo(fecha = new Date()): number {
   let m = fecha.getMonth() + 1
   if (fecha.getDate() < 10) m--
@@ -82,47 +87,43 @@ function mesCalendarioEfectivo(fecha = new Date()): number {
 }
 
 /**
- * Conceptos de colegiatura acumulados hasta la fecha.
- * - Plan 10 meses (`mes=1`): llegan hasta junio (10).
- * - Plan 11 meses (`mes=2`): además julio (26), solo desde julio calendario.
+ * Conceptos esperados desde cuota de inicio (00) hasta el mes vigente.
+ * - No usa fecha de inscripción.
+ * - Plan 10 meses (`mes=1`): hasta junio (10).
+ * - Plan 11 meses (`mes=2`): además julio (26) desde julio calendario.
  */
-function conceptosEsperadosAcumulados(
-  fechaInscripcion: string,
-  cicloLargo: number,
+export function conceptosEsperadosDesdeCuotaInicio(
   planMes: number | null,
   fechaRef = new Date()
 ): string[] {
-  const [anioStr, mesStr] = fechaInscripcion.split('-')
-  let mi = parseInt(mesStr, 10)
-  const anioInsc = parseInt(anioStr, 10)
-  if (anioInsc === cicloLargo && mi < 7) mi = 7
-
-  const mesActual = mesCalendarioEfectivo(fechaRef)
-  const tabla = TABLA_CONCEPTOS_POR_MES_INSCRIPCION[mi] ?? []
-  const conceptoMesActual = MES_A_CONCEPTO[mesActual]
+  const mesCalendario = fechaRef.getMonth() + 1
+  const mesEfectivo = mesCalendarioEfectivo(fechaRef)
 
   let esperados: string[]
-  if (!conceptoMesActual) {
-    // Julio/agosto: sin concepto “del mes”. En fin de ciclo exigir el plan
-    // completo hasta junio (ambos planes); julio se suma aparte si aplica.
-    if (mesActual === 7 || mesActual === 8) {
-      esperados = [...tabla]
-    } else {
-      // Misma heurística legacy cuando `$mes` queda vacío.
-      esperados = tabla.length ? [tabla[0]] : []
-    }
+
+  // Agosto (inicio de ciclo): solo cuota de inicio, sin importar el ajuste día < 10.
+  if (mesCalendario === 8) {
+    esperados = ['00']
+  } else if (mesCalendario === 7) {
+    // Julio = cierre de ciclo: plan completo hasta junio.
+    esperados = [...SECUENCIA_DESDE_CUOTA_INICIO]
   } else {
-    const idx = tabla.indexOf(conceptoMesActual)
-    if (idx < 0) esperados = [...tabla]
-    else esperados = tabla.slice(0, idx + 1)
+    const conceptoMes = MES_A_CONCEPTO[mesEfectivo]
+    if (!conceptoMes) {
+      esperados = ['00']
+    } else {
+      const idx = SECUENCIA_DESDE_CUOTA_INICIO.indexOf(conceptoMes)
+      if (idx < 0) esperados = [...SECUENCIA_DESDE_CUOTA_INICIO]
+      else esperados = SECUENCIA_DESDE_CUOTA_INICIO.slice(0, idx + 1)
+    }
   }
 
-  // Julio (26) solo plan 11 meses y solo desde julio.
-  if (planMes === 2 && mesActual >= 7 && !esperados.includes(CONCEPTO_JULIO)) {
+  // Julio (26) solo plan 11 meses y solo desde julio calendario.
+  if (planMes === 2 && mesCalendario >= 7 && !esperados.includes(CONCEPTO_JULIO)) {
     esperados = [...esperados, CONCEPTO_JULIO]
   }
 
-  // Plan 10 meses nunca debe exigir julio.
+  // Plan 10 meses (o sin plan) nunca exige julio.
   if (planMes !== 2) {
     esperados = esperados.filter((c) => c !== CONCEPTO_JULIO)
   }
@@ -150,8 +151,10 @@ export function etiquetaModalidadPlan(planMes: number | null | undefined): strin
 export function calcularAdeudosAlumno(
   tipo: TipoReporteSuspension,
   pagosConcepto: string[],
-  fechaInscripcion: string | null,
-  cicloLargo: number,
+  /** @deprecated No se usa en tipos 2/3/4; la inscripción no cuenta. */
+  _fechaInscripcion: string | null,
+  /** @deprecated No se usa en tipos 2/3/4. */
+  _cicloLargo: number,
   planMes: number | null,
   fechaRef = new Date()
 ): string | null {
@@ -162,25 +165,10 @@ export function calcularAdeudosAlumno(
     return lista?.length ? lista.join(', ') : null
   }
 
-  if (!fechaInscripcion) return null
-
   const festival = tipo === 4
   const umbral = tipo === 2 ? 0 : tipo === 3 ? 1 : 0
 
-  let esperados = conceptosEsperadosAcumulados(
-    fechaInscripcion,
-    cicloLargo,
-    planMes,
-    fechaRef
-  )
-
-  // Suspendidos / deudores colegiatura: la secuencia empieza en cuota de inicio (00).
-  // Si solo faltan 00 + SEP (01) deben entrar en tipo 3 (≥2 adeudos), aunque la
-  // fecha de inscripción caiga en sep+ y la tabla legacy ya no liste el 00.
-  if (!festival && !esperados.includes('00')) {
-    esperados = ['00', ...esperados]
-  }
-
+  const esperados = conceptosEsperadosDesdeCuotaInicio(planMes, fechaRef)
   let faltantes = esperados.filter((c) => !pagos.includes(c))
 
   if (festival) {

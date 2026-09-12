@@ -296,19 +296,20 @@ export async function generarListaDeudoresSuspension(
       if (!esBecado100) continue
       if (bucket.fechaInscripcion) continue
     } else {
-      // Deudores 1 mes / suspendidos: no pagan colegiatura → fuera del listado.
+      // Deudores / suspendidos: beca 100% no paga colegiatura → fuera.
+      // La inscripción (11/12/13) no se exige ni entra en el conteo: adeudos
+      // van de cuota de inicio (00) a junio/julio según plan 10/11.
       if (esBecado100) {
         excluidosBecados100++
         continue
       }
-      if (!bucket.fechaInscripcion) continue
     }
 
     const planMes = a.mes != null ? Number(a.mes) : null
     const adeudos = calcularAdeudosAlumno(
       tipo,
       [...bucket.conceptos],
-      bucket.fechaInscripcion,
+      null,
       cicloLargo,
       planMes
     )
