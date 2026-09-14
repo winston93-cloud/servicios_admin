@@ -1,5 +1,6 @@
 import { createDbAdmin } from '@/lib/insforgeAdmin'
-import type { BecariosSesion } from '@/lib/becariosAuth'
+import { BecariosAuthError, esRevisor, type BecariosSesion } from '@/lib/becariosAuth'
+import { becarioPorUsername } from '@/lib/becariosCatalog'
 
 export type BecarioEntrada = {
   entrada_id: number
@@ -61,15 +62,31 @@ function mapRow(r: Record<string, unknown>): BecarioEntrada {
   }
 }
 
+function filtroBecarioOpcional(raw: string | undefined): string | undefined {
+  const u = String(raw ?? '')
+    .trim()
+    .toLowerCase()
+  if (!u || u === 'todos' || u === 'all') return undefined
+  if (!becarioPorUsername(u)) throw new Error('Becario no válido')
+  return u
+}
+
 export async function obtenerEntradaDia(
   session: BecariosSesion,
-  fecha: string
+  fecha: string,
+  becarioUsername?: string
 ): Promise<BecarioEntrada | null> {
   const f = asDate(fecha)
+  const username = esRevisor(session)
+    ? filtroBecarioOpcional(becarioUsername)
+    : session.username
+  if (!username) {
+    throw new Error('Indica el becario para consultar un día concreto.')
+  }
   const { data, error } = await db()
     .from('becario_bitacora')
     .select('*')
-    .eq('becario_username', session.username)
+    .eq('becario_username', username)
     .eq('entrada_fecha', f)
     .maybeSingle()
   if (error) throw new Error(error.message)
@@ -78,24 +95,39 @@ export async function obtenerEntradaDia(
 
 export async function listarEntradas(
   session: BecariosSesion,
-  opts: { desde?: string; hasta?: string; limit?: number } = {}
+  opts: { desde?: string; hasta?: string; limit?: number; becario?: string } = {}
 ): Promise<BecarioEntrada[]> {
   let q = db()
     .from('becario_bitacora')
     .select('*')
-    .eq('becario_username', session.username)
     .order('entrada_fecha', { ascending: false })
+
+  if (esRevisor(session)) {
+    const filtro = filtroBecarioOpcional(opts.becario)
+    if (filtro) q = q.eq('becario_username', filtro)
+  } else {
+    q = q.eq('becario_username', session.username)
+  }
+
   if (opts.desde) q = q.gte('entrada_fecha', asDate(opts.desde))
   if (opts.hasta) q = q.lte('entrada_fecha', asDate(opts.hasta))
-  const { data, error } = await q.limit(opts.limit ?? 120)
+  const { data, error } = await q.limit(opts.limit ?? 200)
   if (error) throw new Error(error.message)
-  return (data ?? []).map((r) => mapRow(r as Record<string, unknown>))
+  const rows = (data ?? []).map((r) => mapRow(r as Record<string, unknown>))
+  return rows.sort((a, b) => {
+    if (a.entrada_fecha !== b.entrada_fecha) return a.entrada_fecha < b.entrada_fecha ? 1 : -1
+    return a.becario_username.localeCompare(b.becario_username)
+  })
 }
 
 export async function guardarEntradaDia(
   session: BecariosSesion,
   input: BecarioEntradaInput
 ): Promise<BecarioEntrada> {
+  if (esRevisor(session)) {
+    throw new BecariosAuthError('Las cuentas de revisión solo consultan; no capturan bitácora.', 403)
+  }
+
   const fecha = asDate(input.entrada_fecha)
   const avances = String(input.avances ?? '').trim()
   if (!avances) throw new Error('Describe al menos tus avances del día.')
@@ -137,6 +169,19 @@ export async function guardarEntradaDia(
     .maybeSingle()
   if (error || !data) throw new Error(error?.message || 'No se guardó la entrada')
   return mapRow(data as Record<string, unknown>)
+}
+
+export function etiquetaAlcanceReporte(
+  session: BecariosSesion,
+  becarioFiltro?: string
+): string {
+  if (!esRevisor(session)) return session.nombre
+  const filtro = filtroBecarioOpcional(becarioFiltro)
+  if (filtro) {
+    const p = becarioPorUsername(filtro)
+    return p?.nombre || filtro
+  }
+  return 'Todos los becarios (Kevin y Omar)'
 }
 
 export function inicioSemanaISO(fecha: string): string {

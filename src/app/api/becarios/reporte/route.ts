@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { jsonBecariosError, requireBecariosSession } from '@/lib/becariosAuth'
 import { excelBitacoraBecario, pdfBitacoraBecario } from '@/lib/becariosReportes'
 import {
+  etiquetaAlcanceReporte,
   finSemanaISO,
   hoyCDMX,
   inicioSemanaISO,
@@ -15,6 +16,7 @@ export async function GET(req: Request) {
     const formato = (url.searchParams.get('formato') || 'pdf').toLowerCase()
     const periodo = url.searchParams.get('periodo') || 'rango' // dia | semana | rango
     const pivot = url.searchParams.get('fecha') || hoyCDMX()
+    const becario = url.searchParams.get('becario') || undefined
     let desde = url.searchParams.get('desde') || ''
     let hasta = url.searchParams.get('hasta') || ''
 
@@ -29,12 +31,22 @@ export async function GET(req: Request) {
       if (!hasta) hasta = hoyCDMX()
     }
 
-    const entradas = await listarEntradas(session, { desde, hasta, limit: 200 })
-    const base = `bitacora-${session.username}-${desde}_${hasta}`
+    const entradas = await listarEntradas(session, {
+      desde,
+      hasta,
+      limit: 200,
+      becario,
+    })
+    const alcance = etiquetaAlcanceReporte(session, becario)
+    const slug =
+      session.role === 'revisor'
+        ? `revision-${(becario || 'todos').replace(/[^a-z0-9_-]/gi, '')}`
+        : session.username
+    const base = `bitacora-${slug}-${desde}_${hasta}`
 
     if (formato === 'xlsx' || formato === 'excel') {
       const buf = await excelBitacoraBecario({
-        nombre: session.nombre,
+        nombre: alcance,
         desde,
         hasta,
         entradas,
@@ -49,7 +61,7 @@ export async function GET(req: Request) {
     }
 
     const buf = pdfBitacoraBecario({
-      nombre: session.nombre,
+      nombre: alcance,
       desde,
       hasta,
       entradas,

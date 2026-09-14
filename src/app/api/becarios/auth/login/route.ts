@@ -4,6 +4,7 @@ import {
   autenticarBecario,
   encodeBecariosSession,
   jsonBecariosError,
+  mePublico,
   opcionesCookieBecarios,
 } from '@/lib/becariosAuth'
 
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
     const token = encodeBecariosSession(session)
     const res = NextResponse.json({
       ok: true,
-      me: { username: session.username, nombre: session.nombre },
+      me: mePublico(session),
     })
     res.cookies.set(opcionesCookieBecarios(token))
     return res

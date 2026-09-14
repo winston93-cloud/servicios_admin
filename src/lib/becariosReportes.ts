@@ -59,8 +59,9 @@ export function pdfBitacoraBecario(opts: {
     y += 6
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(11)
+    const quien = e.becario_nombre ? `${e.becario_nombre} · ` : ''
     const titulo = e.entrada_titulo ? ` — ${e.entrada_titulo}` : ''
-    doc.text(`${fmtFecha(e.entrada_fecha)}${titulo}`, 14, y)
+    doc.text(`${quien}${fmtFecha(e.entrada_fecha)}${titulo}`, 14, y)
     y += 5
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
@@ -90,6 +91,7 @@ export async function excelBitacoraBecario(opts: {
   wb.creator = 'servicios_admin'
   const ws = wb.addWorksheet('Bitácora')
   ws.columns = [
+    { header: 'Becario', key: 'becario', width: 16 },
     { header: 'Fecha', key: 'fecha', width: 12 },
     { header: 'Título', key: 'titulo', width: 28 },
     { header: 'Horas', key: 'horas', width: 8 },
@@ -103,6 +105,7 @@ export async function excelBitacoraBecario(opts: {
   ws.getRow(1).font = { bold: true }
   for (const e of opts.entradas) {
     ws.addRow({
+      becario: e.becario_nombre || e.becario_username,
       fecha: fmtFecha(e.entrada_fecha),
       titulo: e.entrada_titulo,
       horas: e.horas_aproximadas ?? '',

@@ -1,6 +1,8 @@
 'use client'
 
 import ThemeToggle from '@/components/ThemeToggle'
+import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
+import { limpiarSesionGoogleCliente } from '@/lib/racLogoutClient'
 import {
   ArrowLeft,
   BookOpen,
@@ -24,8 +26,17 @@ type BecarioCard = {
   accent: 'sky' | 'violet'
 }
 
+type Me = {
+  username: string
+  nombre: string
+  role: 'becario' | 'revisor'
+  email?: string | null
+}
+
 type Entrada = {
   entrada_id?: number
+  becario_username?: string
+  becario_nombre?: string
   entrada_fecha: string
   entrada_titulo: string
   avances: string
@@ -77,7 +88,7 @@ function fmtFechaLarga(iso: string): string {
 export default function BecariosPage() {
   const router = useRouter()
   const [boot, setBoot] = useState(true)
-  const [me, setMe] = useState<{ username: string; nombre: string } | null>(null)
+  const [me, setMe] = useState<Me | null>(null)
   const [becarios, setBecarios] = useState<BecarioCard[]>([])
   const [pick, setPick] = useState<string>('')
   const [password, setPassword] = useState('')
@@ -88,11 +99,15 @@ export default function BecariosPage() {
   const [lista, setLista] = useState<Entrada[]>([])
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
+  const [fechaConsulta, setFechaConsulta] = useState('')
+  const [filtroBecario, setFiltroBecario] = useState('todos')
   const [dirty, setDirty] = useState(false)
+
+  const esRevisor = me?.role === 'revisor'
 
   const refreshMe = useCallback(async () => {
     try {
-      const data = await api<{ me: { username: string; nombre: string } }>('/api/becarios/auth/me')
+      const data = await api<{ me: Me }>('/api/becarios/auth/me')
       setMe(data.me)
       return data.me
     } catch {
@@ -109,7 +124,8 @@ export default function BecariosPage() {
       } catch {
         /* ignore */
       }
-      await refreshMe()
+      const session = await refreshMe()
+      if (session?.role === 'revisor') setTab('hoy')
       setBoot(false)
     })()
   }, [refreshMe])
@@ -138,28 +154,71 @@ export default function BecariosPage() {
     }
   }, [])
 
-  const cargarHistorial = useCallback(async (d: string, h: string) => {
-    setBusy(true)
-    setMsg('')
-    try {
-      const q = new URLSearchParams()
-      if (d) q.set('desde', d)
-      if (h) q.set('hasta', h)
-      const data = await api<{ entradas: Entrada[]; desde: string; hasta: string }>(
-        `/api/becarios/bitacora?${q.toString()}`
-      )
-      setLista(data.entradas || [])
-      if (data.desde) setDesde(data.desde)
-      if (data.hasta) setHasta(data.hasta)
-    } catch (e) {
-      setMsg(e instanceof Error ? e.message : 'No se pudo cargar el historial')
-    } finally {
-      setBusy(false)
-    }
-  }, [])
+  const cargarHistorial = useCallback(
+    async (d: string, h: string, becario = filtroBecario) => {
+      setBusy(true)
+      setMsg('')
+      try {
+        const q = new URLSearchParams()
+        if (d) q.set('desde', d)
+        if (h) q.set('hasta', h)
+        if (becario && becario !== 'todos') q.set('becario', becario)
+        const data = await api<{ entradas: Entrada[]; desde: string; hasta: string; hoy: string }>(
+          `/api/becarios/bitacora?${q.toString()}`
+        )
+        setLista(data.entradas || [])
+        if (data.desde) setDesde(data.desde)
+        if (data.hasta) setHasta(data.hasta)
+        if (!fechaConsulta && data.hoy) setFechaConsulta(data.hoy)
+      } catch (e) {
+        setMsg(e instanceof Error ? e.message : 'No se pudo cargar el historial')
+      } finally {
+        setBusy(false)
+      }
+    },
+    [filtroBecario, fechaConsulta]
+  )
+
+  const cargarDiaRevisor = useCallback(
+    async (fecha: string, becario = filtroBecario) => {
+      setBusy(true)
+      setMsg('')
+      try {
+        const q = new URLSearchParams({ fecha })
+        if (becario && becario !== 'todos') q.set('becario', becario)
+        const data = await api<{ entradas: Entrada[]; hoy: string }>(
+          `/api/becarios/bitacora?${q.toString()}`
+        )
+        setLista(data.entradas || [])
+        setFechaConsulta(fecha || data.hoy)
+      } catch (e) {
+        setMsg(e instanceof Error ? e.message : 'No se pudo cargar el día')
+      } finally {
+        setBusy(false)
+      }
+    },
+    [filtroBecario]
+  )
 
   useEffect(() => {
     if (!me) return
+    if (me.role === 'revisor') {
+      if (tab === 'hoy') {
+        void (async () => {
+          try {
+            const meta = await api<{ hoy: string }>('/api/becarios/bitacora')
+            const f = fechaConsulta || meta.hoy
+            setFechaConsulta(f)
+            await cargarDiaRevisor(f, filtroBecario)
+          } catch (e) {
+            setMsg(e instanceof Error ? e.message : 'No se pudo cargar')
+          }
+        })()
+      } else {
+        void cargarHistorial(desde, hasta, filtroBecario)
+      }
+      return
+    }
     if (tab === 'hoy') {
       void (async () => {
         try {
@@ -190,7 +249,9 @@ export default function BecariosPage() {
         body: JSON.stringify({ username: pick, password }),
       })
       setPassword('')
-      await refreshMe()
+      const session = await refreshMe()
+      if (session?.role === 'revisor') setTab('hoy')
+      else setTab('hoy')
     } catch (err) {
       setMsg(err instanceof Error ? err.message : 'No se pudo entrar')
     } finally {
@@ -204,12 +265,15 @@ export default function BecariosPage() {
     } catch {
       /* igual limpiamos el cliente */
     }
+    limpiarSesionGoogleCliente()
     setMe(null)
     setPick('')
     setPassword('')
     setForm(EMPTY)
     setLista([])
     setMsg('')
+    setFiltroBecario('todos')
+    setTab('hoy')
   }
 
   function patchForm(partial: Partial<Entrada>) {
@@ -237,11 +301,16 @@ export default function BecariosPage() {
 
   function descargar(formato: 'pdf' | 'xlsx', periodo: 'dia' | 'semana' | 'rango') {
     const q = new URLSearchParams({ formato, periodo })
-    if (periodo === 'dia') q.set('fecha', form.entrada_fecha || hasta || desde)
-    else if (periodo === 'semana') q.set('fecha', form.entrada_fecha || hasta || desde)
-    else {
+    if (periodo === 'dia') {
+      q.set('fecha', esRevisor ? fechaConsulta || hasta || desde : form.entrada_fecha || hasta || desde)
+    } else if (periodo === 'semana') {
+      q.set('fecha', esRevisor ? fechaConsulta || hasta || desde : form.entrada_fecha || hasta || desde)
+    } else {
       if (desde) q.set('desde', desde)
       if (hasta) q.set('hasta', hasta)
+    }
+    if (esRevisor && filtroBecario && filtroBecario !== 'todos') {
+      q.set('becario', filtroBecario)
     }
     window.open(`/api/becarios/reporte?${q.toString()}`, '_blank')
   }
@@ -250,6 +319,26 @@ export default function BecariosPage() {
     const horas = lista.reduce((acc, e) => acc + (Number(e.horas_aproximadas) || 0), 0)
     return { n: lista.length, horas }
   }, [lista])
+
+  function FiltroBecarioSelect() {
+    if (!esRevisor) return null
+    return (
+      <label className="becarios-field">
+        Becario
+        <select
+          value={filtroBecario}
+          onChange={(e) => setFiltroBecario(e.target.value)}
+        >
+          <option value="todos">Todos</option>
+          {becarios.map((b) => (
+            <option key={b.username} value={b.username}>
+              {b.nombre}
+            </option>
+          ))}
+        </select>
+      </label>
+    )
+  }
 
   if (boot) {
     return (
@@ -278,8 +367,8 @@ export default function BecariosPage() {
             </div>
             <h1>Bitácora diaria</h1>
             <p className="becarios-lead">
-              Elige tu nombre e ingresa. Registra avances, observaciones y apuntes con la claridad
-              que el equipo necesita cada día.
+              Becarios: elige tu nombre e ingresa con tu clave. Dirección / Sistemas: entra con Google
+              institucional para revisar historial y reportes.
             </p>
             <form className="becarios-login-form" onSubmit={(e) => void login(e)} autoComplete="off">
               <div className="becarios-pick-grid" role="listbox" aria-label="Becarios">
@@ -311,13 +400,28 @@ export default function BecariosPage() {
                 />
               </label>
               <p className="becarios-login-hint">
-                En PC compartida: al terminar usa <strong>Salir</strong>. No guardes la contraseña en el navegador.
+                En PC compartida: al terminar usa <strong>Salir</strong>. No guardes la contraseña en el
+                navegador.
               </p>
               {msg ? <p className="becarios-msg">{msg}</p> : null}
               <button type="submit" className="becarios-btn primary" disabled={busy || !pick}>
                 Entrar a mi bitácora
               </button>
             </form>
+            <RacGoogleSignIn
+              authUrl="/api/becarios/auth/google"
+              onOk={() => {
+                void (async () => {
+                  const session = await refreshMe()
+                  if (session?.role === 'revisor') setTab('hoy')
+                })()
+              }}
+              classPrefix="becarios"
+            />
+            <p className="becarios-login-hint becarios-login-hint--google">
+              Google solo para <strong>sistemas.desarrollo@</strong> y <strong>dg@</strong>{' '}
+              winston93.edu.mx (revisión de historial y reportes).
+            </p>
           </div>
         </div>
       </div>
@@ -338,7 +442,7 @@ export default function BecariosPage() {
               <span className="becarios-avatar sm">{me.nombre.slice(0, 2).toUpperCase()}</span>
               <div>
                 <strong>{me.nombre}</strong>
-                <small>Bitácora de becario</small>
+                <small>{esRevisor ? 'Revisión de bitácora' : 'Bitácora de becario'}</small>
               </div>
             </div>
           </div>
@@ -358,7 +462,7 @@ export default function BecariosPage() {
             onClick={() => setTab('hoy')}
           >
             <NotebookPen size={16} aria-hidden />
-            Hoy
+            {esRevisor ? 'Día' : 'Hoy'}
           </button>
           <button
             type="button"
@@ -380,7 +484,7 @@ export default function BecariosPage() {
 
         {msg ? <p className="becarios-msg banner">{msg}</p> : null}
 
-        {tab === 'hoy' ? (
+        {tab === 'hoy' && !esRevisor ? (
           <section className="becarios-panel">
             <div className="becarios-panel-head">
               <div>
@@ -491,16 +595,91 @@ export default function BecariosPage() {
           </section>
         ) : null}
 
+        {tab === 'hoy' && esRevisor ? (
+          <section className="becarios-panel">
+            <div className="becarios-panel-head">
+              <div>
+                <span className="becarios-kicker">Consulta</span>
+                <h2>Día de bitácora</h2>
+                <p className="becarios-date-line">{fmtFechaLarga(fechaConsulta)}</p>
+              </div>
+            </div>
+            <div className="becarios-filters">
+              <label className="becarios-field">
+                Fecha
+                <input
+                  type="date"
+                  value={fechaConsulta}
+                  onChange={(e) => setFechaConsulta(e.target.value)}
+                />
+              </label>
+              <FiltroBecarioSelect />
+              <button
+                type="button"
+                className="becarios-btn primary"
+                disabled={busy || !fechaConsulta}
+                onClick={() => void cargarDiaRevisor(fechaConsulta, filtroBecario)}
+              >
+                Ver día
+              </button>
+            </div>
+            <div className="becarios-stats">
+              <div>
+                <strong>{resumenSemana.n}</strong>
+                <span>registros del día</span>
+              </div>
+              <div>
+                <strong>{resumenSemana.horas || '—'}</strong>
+                <span>horas sumadas</span>
+              </div>
+            </div>
+            <div className="becarios-timeline">
+              {lista.length === 0 ? (
+                <p className="becarios-empty">Sin entradas ese día.</p>
+              ) : (
+                lista.map((e) => (
+                  <article
+                    key={`${e.becario_username}-${e.entrada_fecha}-${e.entrada_id}`}
+                    className="becarios-card-entry"
+                  >
+                    <header>
+                      <time dateTime={e.entrada_fecha}>{fmtFechaLarga(e.entrada_fecha)}</time>
+                      {e.becario_nombre ? (
+                        <span className="becarios-chip">{e.becario_nombre}</span>
+                      ) : null}
+                      {e.horas_aproximadas != null ? (
+                        <span className="becarios-chip">{e.horas_aproximadas} h</span>
+                      ) : null}
+                    </header>
+                    {e.entrada_titulo ? <h3>{e.entrada_titulo}</h3> : null}
+                    <p className="becarios-clip">{e.avances}</p>
+                    {e.observaciones ? (
+                      <p className="becarios-clip muted">
+                        <strong>Obs.</strong> {e.observaciones}
+                      </p>
+                    ) : null}
+                  </article>
+                ))
+              )}
+            </div>
+          </section>
+        ) : null}
+
         {tab === 'historial' ? (
           <section className="becarios-panel">
             <div className="becarios-panel-head">
               <div>
                 <span className="becarios-kicker">Consulta</span>
                 <h2>Historial</h2>
-                <p className="becarios-date-line">Filtra por fecha o intervalo.</p>
+                <p className="becarios-date-line">
+                  {esRevisor
+                    ? 'Filtra por becario y por intervalo de fechas.'
+                    : 'Filtra por fecha o intervalo.'}
+                </p>
               </div>
             </div>
             <div className="becarios-filters">
+              <FiltroBecarioSelect />
               <label className="becarios-field">
                 Desde
                 <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
@@ -513,7 +692,7 @@ export default function BecariosPage() {
                 type="button"
                 className="becarios-btn primary"
                 disabled={busy}
-                onClick={() => void cargarHistorial(desde, hasta)}
+                onClick={() => void cargarHistorial(desde, hasta, filtroBecario)}
               >
                 Filtrar
               </button>
@@ -533,25 +712,33 @@ export default function BecariosPage() {
                 <p className="becarios-empty">Sin entradas en ese periodo.</p>
               ) : (
                 lista.map((e) => (
-                  <article key={`${e.entrada_fecha}-${e.entrada_id}`} className="becarios-card-entry">
+                  <article
+                    key={`${e.becario_username || me.username}-${e.entrada_fecha}-${e.entrada_id}`}
+                    className="becarios-card-entry"
+                  >
                     <header>
                       <time dateTime={e.entrada_fecha}>{fmtFechaLarga(e.entrada_fecha)}</time>
+                      {esRevisor && e.becario_nombre ? (
+                        <span className="becarios-chip">{e.becario_nombre}</span>
+                      ) : null}
                       {e.horas_aproximadas != null ? (
                         <span className="becarios-chip">{e.horas_aproximadas} h</span>
                       ) : null}
                     </header>
                     {e.entrada_titulo ? <h3>{e.entrada_titulo}</h3> : null}
                     <p className="becarios-clip">{e.avances}</p>
-                    <button
-                      type="button"
-                      className="becarios-btn ghost"
-                      onClick={() => {
-                        setForm((prev) => ({ ...prev, entrada_fecha: e.entrada_fecha }))
-                        setTab('hoy')
-                      }}
-                    >
-                      Abrir / editar
-                    </button>
+                    {!esRevisor ? (
+                      <button
+                        type="button"
+                        className="becarios-btn ghost"
+                        onClick={() => {
+                          setForm((prev) => ({ ...prev, entrada_fecha: e.entrada_fecha }))
+                          setTab('hoy')
+                        }}
+                      >
+                        Abrir / editar
+                      </button>
+                    ) : null}
                   </article>
                 ))
               )}
@@ -565,10 +752,14 @@ export default function BecariosPage() {
               <div>
                 <span className="becarios-kicker">Exportar</span>
                 <h2>Reportes</h2>
-                <p className="becarios-date-line">PDF o Excel · día, semana o rango.</p>
+                <p className="becarios-date-line">
+                  PDF o Excel · día, semana o rango
+                  {esRevisor ? ' · por becario o todos' : ''}.
+                </p>
               </div>
             </div>
             <div className="becarios-filters">
+              <FiltroBecarioSelect />
               <label className="becarios-field">
                 Desde
                 <input type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
@@ -580,7 +771,7 @@ export default function BecariosPage() {
               <button
                 type="button"
                 className="becarios-btn ghost"
-                onClick={() => void cargarHistorial(desde, hasta)}
+                onClick={() => void cargarHistorial(desde, hasta, filtroBecario)}
               >
                 Actualizar vista
               </button>
@@ -589,7 +780,7 @@ export default function BecariosPage() {
               <button type="button" className="becarios-export" onClick={() => descargar('pdf', 'dia')}>
                 <FileText size={20} aria-hidden />
                 <strong>PDF del día</strong>
-                <span>La fecha abierta en Hoy</span>
+                <span>{esRevisor ? 'Fecha del tab Día' : 'La fecha abierta en Hoy'}</span>
               </button>
               <button
                 type="button"
@@ -639,7 +830,8 @@ export default function BecariosPage() {
             </div>
             <p className="becarios-hint">
               Vista previa del filtro: <strong>{lista.length}</strong> entradas
-              {desde && hasta ? ` · ${desde} → ${hasta}` : ''}.
+              {desde && hasta ? ` · ${desde} → ${hasta}` : ''}
+              {esRevisor ? ` · ${filtroBecario === 'todos' ? 'todos' : filtroBecario}` : ''}.
             </p>
           </section>
         ) : null}

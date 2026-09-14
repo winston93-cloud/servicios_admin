@@ -1,13 +1,21 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import { cookies } from 'next/headers'
-import { becarioPorUsername, passwordBecario } from '@/lib/becariosCatalog'
+import {
+  becarioPorUsername,
+  passwordBecario,
+  revisorPorEmail,
+} from '@/lib/becariosCatalog'
 import { mensajeErrorPublico, statusHttpDesdeError } from '@/lib/apiErrorPublico'
 
 export const BECARIOS_AUTH_COOKIE = 'becarios_bitacora_auth'
 
+export type BecariosRol = 'becario' | 'revisor'
+
 export type BecariosSesion = {
   username: string
   nombre: string
+  role: BecariosRol
+  email?: string
   exp: number
 }
 
@@ -36,6 +44,7 @@ export function encodeBecariosSession(
 ): string {
   const full: BecariosSesion = {
     ...session,
+    role: session.role === 'revisor' ? 'revisor' : 'becario',
     exp: session.exp ?? Date.now() + 12 * 60 * 60 * 1000,
   }
   const payloadB64 = Buffer.from(JSON.stringify(full), 'utf8').toString('base64url')
@@ -51,11 +60,31 @@ export function decodeBecariosSession(token: string | null | undefined): Becario
     const a = Buffer.from(sig)
     const b = Buffer.from(expected)
     if (a.length !== b.length || !timingSafeEqual(a, b)) return null
-    const session = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as BecariosSesion
-    if (!session?.username || !session?.exp) return null
-    if (session.exp < Date.now()) return null
-    if (!becarioPorUsername(session.username)) return null
-    return session
+    const raw = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as Partial<BecariosSesion>
+    if (!raw?.username || !raw?.exp) return null
+    if (raw.exp < Date.now()) return null
+
+    const role: BecariosRol = raw.role === 'revisor' ? 'revisor' : 'becario'
+    if (role === 'revisor') {
+      const email = String(raw.email ?? '').trim().toLowerCase()
+      const perfil = revisorPorEmail(email)
+      if (!perfil) return null
+      return {
+        username: perfil.username,
+        nombre: perfil.nombre,
+        role: 'revisor',
+        email: perfil.email,
+        exp: raw.exp,
+      }
+    }
+
+    if (!becarioPorUsername(String(raw.username))) return null
+    return {
+      username: String(raw.username).trim().toLowerCase(),
+      nombre: String(raw.nombre ?? raw.username),
+      role: 'becario',
+      exp: raw.exp,
+    }
   } catch {
     return null
   }
@@ -116,8 +145,25 @@ export function autenticarBecario(usernameRaw: string, password: string): Becari
   return {
     username: perfil.username,
     nombre: perfil.nombre,
+    role: 'becario',
     exp: Date.now() + 12 * 60 * 60 * 1000,
   }
+}
+
+export function autenticarRevisorGoogle(emailRaw: string): BecariosSesion | null {
+  const perfil = revisorPorEmail(emailRaw)
+  if (!perfil) return null
+  return {
+    username: perfil.username,
+    nombre: perfil.nombre,
+    role: 'revisor',
+    email: perfil.email,
+    exp: Date.now() + 12 * 60 * 60 * 1000,
+  }
+}
+
+export function esRevisor(session: BecariosSesion): boolean {
+  return session.role === 'revisor'
 }
 
 export async function requireBecariosSession(req?: Request): Promise<BecariosSesion> {
@@ -134,4 +180,13 @@ export async function requireBecariosSession(req?: Request): Promise<BecariosSes
 export function jsonBecariosError(e: unknown): { error: string; status: number } {
   if (e instanceof BecariosAuthError) return { error: e.message, status: e.status }
   return { error: mensajeErrorPublico(e), status: statusHttpDesdeError(e) }
+}
+
+export function mePublico(session: BecariosSesion) {
+  return {
+    username: session.username,
+    nombre: session.nombre,
+    role: session.role,
+    email: session.email ?? null,
+  }
 }

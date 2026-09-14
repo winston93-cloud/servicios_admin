@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { jsonBecariosError, requireBecariosSession } from '@/lib/becariosAuth'
+import { esRevisor, jsonBecariosError, requireBecariosSession } from '@/lib/becariosAuth'
 import {
   finSemanaISO,
   guardarEntradaDia,
@@ -17,15 +17,24 @@ export async function GET(req: Request) {
     const desde = url.searchParams.get('desde')
     const hasta = url.searchParams.get('hasta')
     const modo = url.searchParams.get('modo') || 'rango'
+    const becario = url.searchParams.get('becario') || undefined
 
-    if (fecha) {
+    if (fecha && !esRevisor(session)) {
       const entrada = await obtenerEntradaDia(session, fecha)
+      return NextResponse.json({ ok: true, entrada, hoy: hoyCDMX() })
+    }
+
+    if (fecha && esRevisor(session) && becario && becario !== 'todos') {
+      const entrada = await obtenerEntradaDia(session, fecha, becario)
       return NextResponse.json({ ok: true, entrada, hoy: hoyCDMX() })
     }
 
     let d = desde || ''
     let h = hasta || ''
-    if (modo === 'semana') {
+    if (fecha && esRevisor(session) && (!desde || !hasta)) {
+      d = fecha
+      h = fecha
+    } else if (modo === 'semana') {
       const pivot = fecha || hoyCDMX()
       d = inicioSemanaISO(pivot)
       h = finSemanaISO(pivot)
@@ -36,8 +45,19 @@ export async function GET(req: Request) {
       d = dt.toISOString().slice(0, 10)
     }
 
-    const entradas = await listarEntradas(session, { desde: d || undefined, hasta: h || undefined })
-    return NextResponse.json({ ok: true, entradas, desde: d, hasta: h, hoy: hoyCDMX() })
+    const entradas = await listarEntradas(session, {
+      desde: d || undefined,
+      hasta: h || undefined,
+      becario,
+    })
+    return NextResponse.json({
+      ok: true,
+      entradas,
+      desde: d,
+      hasta: h,
+      hoy: hoyCDMX(),
+      entrada: null,
+    })
   } catch (e) {
     const { error, status } = jsonBecariosError(e)
     return NextResponse.json({ error }, { status })

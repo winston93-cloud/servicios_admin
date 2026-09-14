@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import {
   jsonBecariosError,
+  mePublico,
   opcionesCookieBecariosClear,
   requireBecariosSession,
 } from '@/lib/becariosAuth'
@@ -10,7 +11,7 @@ export async function GET(req: Request) {
     const session = await requireBecariosSession(req)
     return NextResponse.json({
       ok: true,
-      me: { username: session.username, nombre: session.nombre },
+      me: mePublico(session),
     })
   } catch (e) {
     const { error, status } = jsonBecariosError(e)

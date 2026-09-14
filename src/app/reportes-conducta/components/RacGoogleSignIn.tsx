@@ -16,8 +16,8 @@ type Props = {
   /** POST endpoint, p.ej. /api/rac/auth/google */
   authUrl: string
   onOk: () => void
-  /** Prefijo CSS: secundaria `rac` o primaria/M-K `racn` */
-  classPrefix?: 'rac' | 'racn'
+  /** Prefijo CSS: secundaria `rac`, primaria/M-K `racn`, becarios `becarios` */
+  classPrefix?: string
 }
 
 type TokenClient = {
