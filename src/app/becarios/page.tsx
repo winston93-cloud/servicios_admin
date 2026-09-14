@@ -267,12 +267,12 @@ export default function BecariosPage() {
           </header>
           <div className="becarios-login-card">
             <div className="becarios-kicker">
-              <Sparkles size={16} aria-hidden /> Programa de becarios
+              <Sparkles size={16} aria-hidden /> Winston · Becarios
             </div>
             <h1>Bitácora diaria</h1>
             <p className="becarios-lead">
-              Elige tu nombre, escribe tu contraseña y registra avances, observaciones y apuntes del
-              día.
+              Elige tu nombre e ingresa. Registra avances, observaciones y apuntes con la claridad
+              que el equipo necesita cada día.
             </p>
             <form className="becarios-login-form" onSubmit={(e) => void login(e)}>
               <div className="becarios-pick-grid" role="listbox" aria-label="Becarios">
