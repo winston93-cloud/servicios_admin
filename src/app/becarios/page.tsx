@@ -373,8 +373,9 @@ export default function BecariosPage() {
           <section className="becarios-panel">
             <div className="becarios-panel-head">
               <div>
+                <span className="becarios-kicker">Captura del día</span>
                 <h2>Registro del día</h2>
-                <p>{fmtFechaLarga(form.entrada_fecha)}</p>
+                <p className="becarios-date-line">{fmtFechaLarga(form.entrada_fecha)}</p>
               </div>
               <label className="becarios-field inline">
                 Fecha
@@ -483,8 +484,9 @@ export default function BecariosPage() {
           <section className="becarios-panel">
             <div className="becarios-panel-head">
               <div>
+                <span className="becarios-kicker">Consulta</span>
                 <h2>Historial</h2>
-                <p>Consulta por fecha o intervalo.</p>
+                <p className="becarios-date-line">Filtra por fecha o intervalo.</p>
               </div>
             </div>
             <div className="becarios-filters">
@@ -550,8 +552,9 @@ export default function BecariosPage() {
           <section className="becarios-panel">
             <div className="becarios-panel-head">
               <div>
+                <span className="becarios-kicker">Exportar</span>
                 <h2>Reportes</h2>
-                <p>Exporta tu bitácora en PDF o Excel (día, semana o rango).</p>
+                <p className="becarios-date-line">PDF o Excel · día, semana o rango.</p>
               </div>
             </div>
             <div className="becarios-filters">
