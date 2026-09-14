@@ -272,11 +272,40 @@ export function createRacNivelService(cfg: RacNivelConfig) {
   }> {
     const client = db()
     if (session.role === 'maestro') {
-      const { data: grupos, error } = await client
+      let { data: grupos, error } = await client
         .from('boleta_maestro_grupo')
         .select('grupo_id, maestro_id, materia_id, grupo_letra')
         .eq('maestro_id', session.id)
       if (error) throw new Error(error.message)
+
+      // Cuenta compartida sin filas propias: heredar grupos de colegas con el mismo email.
+      if (!grupos?.length) {
+        const { data: yo } = await client
+          .from('boleta_maestro')
+          .select('maestro_email')
+          .eq('maestro_id', session.id)
+          .maybeSingle()
+        const email = String(yo?.maestro_email ?? '')
+          .trim()
+          .toLowerCase()
+        if (email) {
+          const { data: colegas } = await client
+            .from('boleta_maestro')
+            .select('maestro_id')
+            .ilike('maestro_email', email)
+            .in('maestro_nivel', cfg.nivelesEscolares)
+          const ids = [...new Set((colegas ?? []).map((m) => n(m.maestro_id)).filter((id) => id > 0))]
+          if (ids.length) {
+            const { data: compartidos, error: errG } = await client
+              .from('boleta_maestro_grupo')
+              .select('grupo_id, maestro_id, materia_id, grupo_letra')
+              .in('maestro_id', ids)
+            if (errG) throw new Error(errG.message)
+            grupos = compartidos ?? []
+          }
+        }
+      }
+
       const materiaIds = [...new Set((grupos ?? []).map((g) => n(g.materia_id)))]
       if (materiaIds.length) {
         const { data: materias } = await client
@@ -285,6 +314,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
           .in('materia_id', materiaIds)
           .in('materia_nivel', cfg.nivelesEscolares)
         const map = new Map((materias ?? []).map((m) => [n(m.materia_id), m]))
+        const visto = new Set<string>()
         const asignaciones = (grupos ?? [])
           .map((g) => {
             const m = map.get(n(g.materia_id))
@@ -292,6 +322,9 @@ export function createRacNivelService(cfg: RacNivelConfig) {
             const grado = n(m.materia_grado)
             const nivelMat = n(m.materia_nivel)
             const letra = String(g.grupo_letra ?? 'A')
+            const key = `${n(g.materia_id)}|${grado}|${letra}`
+            if (visto.has(key)) return null
+            visto.add(key)
             return {
               grupo_id: n(g.grupo_id),
               materia_id: n(g.materia_id),

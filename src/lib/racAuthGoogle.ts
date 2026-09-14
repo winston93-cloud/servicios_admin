@@ -116,8 +116,13 @@ export async function candidatosRacSecundariaPorEmail(
     const nivel = Number(m.maestro_nivel ?? 0)
     if (nivel !== 0 && nivel !== 4) continue
     const usuario = String(m.maestro_usuario ?? '').trim()
-    const nombre =
+    const nombreBase =
       nombreDePartes(m.maestro_nombre, m.maestro_app, m.maestro_apm) || usuario || email
+    // Cuenta compartida (idiomas@…): distinguir Karla / Leslie / Rosa / shell IDIOMAS.
+    const nombre =
+      usuario && !nombreBase.toLowerCase().includes(usuario.toLowerCase())
+        ? `${nombreBase} (${usuario})`
+        : nombreBase
     out.push({
       tipo: 'maestro',
       id: Number(m.maestro_id),

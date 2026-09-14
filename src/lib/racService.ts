@@ -76,6 +76,64 @@ function expandGrupoLetrasMaestro(raw: string | null | undefined): string[] {
   return [s]
 }
 
+type GrupoMaestroRow = {
+  grupo_id: number
+  maestro_id: number
+  materia_id: number
+  grupo_letra: string | null
+}
+
+/**
+ * Cuentas compartidas (p. ej. idiomas@): varios boleta_maestro con el mismo email;
+ * el shell genérico a veces no tiene filas en boleta_maestro_grupo.
+ * Si el maestro de la sesión no tiene grupos, toma los de colegas con el mismo email.
+ */
+async function gruposMaestroConFallbackEmail(
+  client: ReturnType<typeof db>,
+  maestroId: number
+): Promise<GrupoMaestroRow[]> {
+  const { data: propios, error } = await client
+    .from('boleta_maestro_grupo')
+    .select('grupo_id, maestro_id, materia_id, grupo_letra')
+    .eq('maestro_id', maestroId)
+  if (error) throw new Error(error.message)
+  if (propios?.length) return propios as GrupoMaestroRow[]
+
+  const { data: yo, error: errYo } = await client
+    .from('boleta_maestro')
+    .select('maestro_email, maestro_nivel')
+    .eq('maestro_id', maestroId)
+    .maybeSingle()
+  if (errYo) throw new Error(errYo.message)
+  const email = String(yo?.maestro_email ?? '')
+    .trim()
+    .toLowerCase()
+  if (!email) return []
+
+  const { data: colegas, error: errCol } = await client
+    .from('boleta_maestro')
+    .select('maestro_id, maestro_nivel')
+    .ilike('maestro_email', email)
+  if (errCol) throw new Error(errCol.message)
+  const ids = [...new Set(
+    (colegas ?? [])
+      .filter((m) => {
+        const nivel = Number(m.maestro_nivel ?? 0)
+        return nivel === 0 || nivel === 4
+      })
+      .map((m) => n(m.maestro_id))
+      .filter((id) => id > 0)
+  )]
+  if (!ids.length) return []
+
+  const { data: compartidos, error: errG } = await client
+    .from('boleta_maestro_grupo')
+    .select('grupo_id, maestro_id, materia_id, grupo_letra')
+    .in('maestro_id', ids)
+  if (errG) throw new Error(errG.message)
+  return (compartidos ?? []) as GrupoMaestroRow[]
+}
+
 export async function listarAsignaciones(session: RacSesion): Promise<{
   asignaciones: AsignacionRac[]
   fisica: boolean
@@ -83,12 +141,8 @@ export async function listarAsignaciones(session: RacSesion): Promise<{
 }> {
   const client = db()
   if (session.role === 'maestro') {
-    const { data: grupos, error } = await client
-      .from('boleta_maestro_grupo')
-      .select('grupo_id, maestro_id, materia_id, grupo_letra')
-      .eq('maestro_id', session.id)
-    if (error) throw new Error(error.message)
-    const materiaIds = [...new Set((grupos ?? []).map((g) => n(g.materia_id)))]
+    const grupos = await gruposMaestroConFallbackEmail(client, session.id)
+    const materiaIds = [...new Set(grupos.map((g) => n(g.materia_id)))]
     if (!materiaIds.length) return { asignaciones: [], fisica: false, ingles: false }
     const { data: materias } = await client
       .from('boleta_materia')
@@ -97,7 +151,8 @@ export async function listarAsignaciones(session: RacSesion): Promise<{
     const map = new Map((materias ?? []).map((m) => [n(m.materia_id), m]))
     // Un renglón por materia+grupo (A/B/C), no un "ABC" que mezcla todo el grado.
     const asignaciones: AsignacionRac[] = []
-    for (const g of grupos ?? []) {
+    const visto = new Set<string>()
+    for (const g of grupos) {
       const m = map.get(n(g.materia_id))
       const base = {
         grupo_id: n(g.grupo_id),
@@ -106,6 +161,9 @@ export async function listarAsignaciones(session: RacSesion): Promise<{
         materia_grado: n(m?.materia_grado),
       }
       for (const letra of expandGrupoLetrasMaestro(String(g.grupo_letra ?? ''))) {
+        const key = `${base.materia_id}|${base.materia_grado}|${letra}`
+        if (visto.has(key)) continue
+        visto.add(key)
         asignaciones.push({ ...base, grupo_letra: letra })
       }
     }
