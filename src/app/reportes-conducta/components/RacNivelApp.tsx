@@ -31,6 +31,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import '../../dashboard/dashboard-module-card.css'
 import '../../boletas-secundaria/boletas-secundaria.css'
 import '../reportes-conducta.css'
+import { limpiarSesionGoogleCliente } from '@/lib/racLogoutClient'
 import RacGoogleSignIn from './RacGoogleSignIn'
 
 type Me = {
@@ -163,7 +164,7 @@ function LoginPanel({
   }
 
   return (
-    <form className="racn-login-card" onSubmit={(ev) => void submit(ev)}>
+    <form className="racn-login-card" onSubmit={(ev) => void submit(ev)} autoComplete="off">
       <p className="racn-login-kicker">Acceso docente · {config.titulo}</p>
       <h2>Ingresar a {config.titulo}</h2>
       <p className="racn-login-lead">
@@ -181,7 +182,11 @@ function LoginPanel({
         <input
           value={usuario}
           onChange={(e) => setUsuario(e.target.value)}
-          autoComplete="username"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          name={`rac-${config.slug}-usuario`}
           placeholder="Tu usuario"
           required
         />
@@ -192,10 +197,14 @@ function LoginPanel({
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
+          autoComplete="new-password"
+          name={`rac-${config.slug}-clave`}
           required
         />
       </label>
+      <p className="racn-login-hint">
+        En PCs del salón: al terminar usa <strong>Salir</strong> (cerrar solo Google no basta). No guardes la contraseña en el navegador.
+      </p>
       {error ? <p className="racn-login-error">{error}</p> : null}
       <button type="submit" className="racn-login-submit" disabled={loading}>
         {loading ? 'Entrando…' : 'Entrar'}
@@ -213,6 +222,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   const router = useRouter()
   const [boot, setBoot] = useState(true)
   const [me, setMe] = useState<Me | null>(null)
+  const [loginKey, setLoginKey] = useState(0)
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([])
   const [fisica, setFisica] = useState(false)
   const [tab, setTab] = useState<RacTabNivel>('captura')
@@ -419,8 +429,21 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   }
 
   async function logout() {
-    await api(`${config.apiBase}/auth/logout`, { method: 'POST' })
+    try {
+      await api(`${config.apiBase}/auth/logout`, { method: 'POST' })
+    } catch {
+      /* igual limpiamos el cliente */
+    }
+    limpiarSesionGoogleCliente()
     setMe(null)
+    setAsignaciones([])
+    setFilas([])
+    setLista([])
+    setAsigKey('')
+    setQ('')
+    setMsg('')
+    setModal(null)
+    setLoginKey((k) => k + 1)
   }
 
   function descargarPdf(url: string, nombre: string) {
@@ -557,7 +580,10 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
               <ThemeToggle />
             </div>
           </div>
-          <LoginPanel config={config} onOk={() => void refreshMe()} />
+          <LoginPanel key={loginKey} config={config} onOk={() => void refreshMe()} />
+          <p className="racn-login-shared-hint">
+            PC compartida: usa <strong>Salir</strong> al terminar tu turno.
+          </p>
         </div>
       </div>
     )

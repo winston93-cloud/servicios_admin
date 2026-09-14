@@ -199,10 +199,17 @@ export default function BecariosPage() {
   }
 
   async function logout() {
-    await api('/api/becarios/auth/me', { method: 'POST' }).catch(() => null)
+    try {
+      await api('/api/becarios/auth/me', { method: 'POST' })
+    } catch {
+      /* igual limpiamos el cliente */
+    }
     setMe(null)
+    setPick('')
+    setPassword('')
     setForm(EMPTY)
     setLista([])
+    setMsg('')
   }
 
   function patchForm(partial: Partial<Entrada>) {
@@ -274,7 +281,7 @@ export default function BecariosPage() {
               Elige tu nombre e ingresa. Registra avances, observaciones y apuntes con la claridad
               que el equipo necesita cada día.
             </p>
-            <form className="becarios-login-form" onSubmit={(e) => void login(e)}>
+            <form className="becarios-login-form" onSubmit={(e) => void login(e)} autoComplete="off">
               <div className="becarios-pick-grid" role="listbox" aria-label="Becarios">
                 {becarios.map((b) => (
                   <button
@@ -297,11 +304,15 @@ export default function BecariosPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
+                  autoComplete="new-password"
+                  name="becarios-clave"
                   required
                   placeholder="Tu clave de becario"
                 />
               </label>
+              <p className="becarios-login-hint">
+                En PC compartida: al terminar usa <strong>Salir</strong>. No guardes la contraseña en el navegador.
+              </p>
               {msg ? <p className="becarios-msg">{msg}</p> : null}
               <button type="submit" className="becarios-btn primary" disabled={busy || !pick}>
                 Entrar a mi bitácora

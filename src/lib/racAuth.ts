@@ -83,6 +83,19 @@ export function opcionesCookieRac(token: string) {
   }
 }
 
+/** Misma firma que login; imprescindible para que el browser borre la cookie en producción. */
+export function opcionesCookieRacClear() {
+  return {
+    name: RAC_AUTH_COOKIE,
+    value: '',
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge: 0,
+  }
+}
+
 export function md5Hex(raw: string): string {
   return createHash('md5').update(raw, 'utf8').digest('hex')
 }

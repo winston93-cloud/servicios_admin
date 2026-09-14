@@ -93,6 +93,18 @@ export function opcionesCookieRacNivel(cfg: RacNivelConfig, token: string) {
   }
 }
 
+export function opcionesCookieRacNivelClear(cfg: RacNivelConfig) {
+  return {
+    name: cfg.cookieAuth,
+    value: '',
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge: 0,
+  }
+}
+
 function md5Hex(raw: string): string {
   return createHash('md5').update(raw, 'utf8').digest('hex')
 }

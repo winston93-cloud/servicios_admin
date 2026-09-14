@@ -11,6 +11,7 @@ import '../../dashboard/dashboard-module-card.css'
 import '../../boletas-secundaria/boletas-secundaria.css'
 import '../reportes-conducta.css'
 import './rac-secundaria.css'
+import { limpiarSesionGoogleCliente } from '@/lib/racLogoutClient'
 import RacGoogleSignIn from '../components/RacGoogleSignIn'
 
 type Rol = 'maestro' | 'coordinacion' | 'psicologia' | 'prefectura' | 'direccion'
@@ -167,7 +168,11 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
           </button>
         </span>
       </label>
-      <p className="rac-login-hint">Si falla, revisa mayúsculas y caracteres especiales (copiar/pegar suele ser más seguro).</p>
+      <p className="rac-login-hint">
+        Si falla, revisa mayúsculas y caracteres especiales (copiar/pegar suele ser más seguro). En PCs
+        del salón: al terminar usa <strong>Salir</strong> (cerrar solo Google no basta). No guardes la
+        contraseña en el navegador.
+      </p>
       {error ? <p className="rac-login-error">{error}</p> : null}
       <button type="submit" className="rac-login-submit" disabled={loading}>
         {loading ? 'Entrando…' : 'Entrar'}
@@ -181,6 +186,7 @@ export default function RacSecundariaPage() {
   const router = useRouter()
   const [boot, setBoot] = useState(true)
   const [me, setMe] = useState<Me | null>(null)
+  const [loginKey, setLoginKey] = useState(0)
   const [asignaciones, setAsignaciones] = useState<Asignacion[]>([])
   const [fisica, setFisica] = useState(false)
   const [tab, setTab] = useState<Tab>('captura')
@@ -416,8 +422,21 @@ export default function RacSecundariaPage() {
   }
 
   async function logout() {
-    await api('/api/rac/auth/logout', { method: 'POST' })
+    try {
+      await api('/api/rac/auth/logout', { method: 'POST' })
+    } catch {
+      /* igual limpiamos el cliente */
+    }
+    limpiarSesionGoogleCliente()
     setMe(null)
+    setAsignaciones([])
+    setFilas([])
+    setLista([])
+    setAsigKey('')
+    setQ('')
+    setMsg('')
+    setModal(null)
+    setLoginKey((k) => k + 1)
   }
 
   function descargarPdf(url: string, nombre: string) {
@@ -534,7 +553,10 @@ export default function RacSecundariaPage() {
               <ThemeToggle />
             </div>
           </div>
-          <LoginPanel onOk={() => void refreshMe()} />
+          <LoginPanel key={loginKey} onOk={() => void refreshMe()} />
+          <p className="rac-login-shared-hint">
+            PC compartida: usa <strong>Salir</strong> al terminar tu turno.
+          </p>
         </div>
       </div>
     )
