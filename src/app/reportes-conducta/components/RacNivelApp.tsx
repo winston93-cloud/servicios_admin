@@ -367,7 +367,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
           accion: modo,
           alumnoId: modal.alumno_id,
           materiaId: asig.materia_id,
-          tipo: modo === 'cita' && me?.role === 'psicologia' ? tipoCita : tipo,
+          tipo: modo === 'cita' ? tipoCita : tipo,
           motivo,
           mensaje,
           fecha: fechaCita,
@@ -447,8 +447,9 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   const unSoloGrupo = esMaestro && asignaciones.length === 1
   const sinAsignaciones = asignaciones.length === 0
   const puedeSeleccionarMasivo = Boolean(esAdmin && (tab === 'inbox' || tab === 'informes'))
-  const capturaConInformeYCita = esAdmin || me?.role === 'psicologia'
-  const capturaConInforme = capturaConInformeYCita || me?.role === 'maestro'
+  const capturaConInformeYCita =
+    esAdmin || me?.role === 'psicologia' || me?.role === 'maestro'
+  const capturaConInforme = capturaConInformeYCita
   const puedePdf = Boolean(me && puedePdfNivel(me.role, config))
   const listaVisible =
     tab === 'historial' && historialAlumnoId
@@ -807,7 +808,11 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                                   setMensaje('')
                                   setFechaCita('')
                                   setHoraCita('09:00')
-                                  if (me.role === 'psicologia') setTipoCita(tiposCita[0]?.valor ?? 2)
+                                  setTipoCita(
+                                    me.role === 'psicologia'
+                                      ? (tiposCita[0]?.valor ?? 2)
+                                      : tipo
+                                  )
                                 }}
                               >
                                 Citar
@@ -1067,7 +1072,8 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                               Reenviar
                             </button>
                           ) : null}
-                          {tab === 'citas' && (esAdmin || me.role === 'psicologia') ? (
+                          {tab === 'citas' &&
+                          (esAdmin || me.role === 'psicologia' || me.role === 'maestro') ? (
                             <>
                               {esAdmin && Number(row.status) === 2 ? (
                                 <button
@@ -1295,18 +1301,16 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                 ) : null}
                 {modo === 'cita' ? (
                   <>
-                    {me.role === 'psicologia' ? (
-                      <label>
-                        Tipo de citatorio
-                        <select value={tipoCita} onChange={(e) => setTipoCita(Number(e.target.value))}>
-                          {tiposCita.map((t) => (
-                            <option key={t.valor} value={t.valor}>
-                              {t.etiqueta}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    ) : null}
+                    <label>
+                      Tipo de citatorio
+                      <select value={tipoCita} onChange={(e) => setTipoCita(Number(e.target.value))}>
+                        {tiposCita.map((t) => (
+                          <option key={t.valor} value={t.valor}>
+                            {t.etiqueta}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                     <label>
                       Fecha
                       <input type="date" value={fechaCita} onChange={(e) => setFechaCita(e.target.value)} required />

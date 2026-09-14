@@ -92,7 +92,10 @@ export function puedeVerVistaCoord(role: RacRol, vista: string): boolean {
 }
 
 export function puedeAccionCoord(role: RacRol, entidad: string, accion: string): boolean {
-  if (role === 'maestro') return false
+  if (role === 'maestro') {
+    // Maestros pueden gestionar sus citatorios (reenviar aviso / marcar enterado).
+    return entidad === 'cita' && (accion === 'reenviar' || accion === 'confirmar')
+  }
   if (role === 'psicologia') {
     if (entidad === 'reporte') return accion === 'validar' || accion === 'denegar'
     if (entidad === 'cita') return accion === 'reenviar' || accion === 'confirmar'

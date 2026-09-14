@@ -137,7 +137,9 @@ export function puedeVerVistaCoordNivel(
 }
 
 export function puedeAccionCoordNivel(role: RacRolNivel, entidad: string, accion: string): boolean {
-  if (role === 'maestro') return false
+  if (role === 'maestro') {
+    return entidad === 'cita' && (accion === 'reenviar' || accion === 'confirmar')
+  }
   if (role === 'psicologia') {
     if (entidad === 'reporte') return accion === 'validar' || accion === 'denegar'
     if (entidad === 'cita') return accion === 'reenviar' || accion === 'confirmar'

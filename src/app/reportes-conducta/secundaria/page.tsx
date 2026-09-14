@@ -362,7 +362,7 @@ export default function RacSecundariaPage() {
           accion: modo,
           alumnoId: modal.alumno_id,
           materiaId: asig.materia_id,
-          tipo: modo === 'cita' && me?.role === 'psicologia' ? tipoCita : tipo,
+          tipo: modo === 'cita' ? tipoCita : tipo,
           motivo,
           mensaje,
           fecha: fechaCita,
@@ -442,9 +442,10 @@ export default function RacSecundariaPage() {
   const esAdmin = Boolean(me && esPanelAdminRac(me.role))
   const tiposSelect = tiposCaptura
   const puedeSeleccionarMasivo = Boolean(esAdmin && (tab === 'inbox' || tab === 'informes'))
-  /** Misma captura que legacy coord: Reportar + Informe + Citar (prefectura y dirección). */
-  const capturaConInformeYCita = esAdmin || me?.role === 'psicologia'
-  const capturaConInforme = capturaConInformeYCita || me?.role === 'maestro'
+  /** Reportar + Informe + Citar: admin, psicología y maestros (p. ej. idiomas/lion). */
+  const capturaConInformeYCita =
+    esAdmin || me?.role === 'psicologia' || me?.role === 'maestro'
+  const capturaConInforme = capturaConInformeYCita
   const listaVisible =
     tab === 'historial' && historialAlumnoId
       ? lista.filter((r) => Number(r.alumno_id) === historialAlumnoId)
@@ -739,7 +740,11 @@ export default function RacSecundariaPage() {
                             setMensaje('')
                             setFechaCita('')
                             setHoraCita('09:00')
-                            if (me.role === 'psicologia') setTipoCita(tiposCita[0]?.valor ?? 2)
+                            setTipoCita(
+                              me.role === 'psicologia'
+                                ? (tiposCita[0]?.valor ?? 2)
+                                : tipo
+                            )
                           }}
                         >
                           Citar
@@ -969,7 +974,8 @@ export default function RacSecundariaPage() {
                           Reenviar
                         </button>
                       ) : null}
-                      {tab === 'citas' && (esAdmin || me.role === 'psicologia') ? (
+                      {tab === 'citas' &&
+                      (esAdmin || me.role === 'psicologia' || me.role === 'maestro') ? (
                         <>
                           {esAdmin && Number(row.status) === 2 ? (
                             <button
@@ -1187,18 +1193,16 @@ export default function RacSecundariaPage() {
               ) : null}
               {modo === 'cita' ? (
                 <>
-                  {me.role === 'psicologia' ? (
-                    <label>
-                      Tipo de citatorio
-                      <select value={tipoCita} onChange={(e) => setTipoCita(Number(e.target.value))}>
-                        {tiposCita.map((t) => (
-                          <option key={t.valor} value={t.valor}>
-                            {t.etiqueta}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  ) : null}
+                  <label>
+                    Tipo de citatorio
+                    <select value={tipoCita} onChange={(e) => setTipoCita(Number(e.target.value))}>
+                      {tiposCita.map((t) => (
+                        <option key={t.valor} value={t.valor}>
+                          {t.etiqueta}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <label>
                     Fecha
                     <input type="date" value={fechaCita} onChange={(e) => setFechaCita(e.target.value)} required />
