@@ -1,14 +1,32 @@
 'use client'
 
 import ThemeToggle from '@/components/ThemeToggle'
-import { boletasHubItems, type BoletasHubItem } from '@/lib/boletasHubNav'
-import { ArrowLeft, ArrowRight, FileText } from 'lucide-react'
+import { boletasHubItems, type BoletasHubId, type BoletasHubItem } from '@/lib/boletasHubNav'
+import { cicloEscolarEtiqueta, getCicloEscolarActual } from '@/lib/ciclosEscolares'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Baby,
+  BookMarked,
+  BookOpen,
+  GraduationCap,
+  Languages,
+  type LucideIcon,
+} from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import './boletas-hub.css'
 
 type NivelFilter = 'todos' | 'kinder' | 'primaria' | 'secundaria'
 type IdiomaFilter = 'todos' | 'espanol' | 'ingles'
+
+const ICONOS: Record<BoletasHubId, LucideIcon> = {
+  'kinder-espanol': Baby,
+  'kinder-ingles': Languages,
+  'primaria-espanol': BookOpen,
+  'primaria-ingles': BookMarked,
+  secundaria: GraduationCap,
+}
 
 function nivelDeItem(item: BoletasHubItem): Exclude<NivelFilter, 'todos'> {
   if (item.id.startsWith('kinder')) return 'kinder'
@@ -30,9 +48,10 @@ export default function BoletasHubPage() {
 
   const activos = items.filter((i) => i.activo).length
   const proximos = items.length - activos
+  const cicloEtiqueta = cicloEscolarEtiqueta(getCicloEscolarActual())
 
   const filtrados = useMemo(() => {
-    return items.filter((item) => {
+    const list = items.filter((item) => {
       const n = nivelDeItem(item)
       const idi = idiomaDeItem(item)
       if (nivel !== 'todos' && n !== nivel) return false
@@ -40,10 +59,16 @@ export default function BoletasHubPage() {
       if (idioma !== 'todos' && item.id === 'secundaria') return false
       return true
     })
+    // Activo primero: protagonista visual
+    return [...list].sort((a, b) => Number(b.activo) - Number(a.activo))
   }, [items, nivel, idioma])
+
+  const hayProximos = filtrados.some((i) => !i.activo)
 
   return (
     <div className="boletas-hub">
+      <div className="boletas-hub__glow" aria-hidden="true" />
+
       <header className="boletas-hub__top">
         <button
           type="button"
@@ -63,23 +88,12 @@ export default function BoletasHubPage() {
           <p className="boletas-hub__eyebrow">Instituto Winston Churchill</p>
           <h1 className="boletas-hub__title">Boletas escolares</h1>
           <p className="boletas-hub__lead">
-            5 sistemas · Kinder a Secundaria · captura, consulta y PDF
-          </p>
-          <p className="boletas-hub__status" aria-live="polite">
-            <span className="boletas-hub__status-live">{activos} activo</span>
-            <span className="boletas-hub__status-sep" aria-hidden>
-              ·
-            </span>
-            <span>{proximos} próximos</span>
+            Sistema integral · Kinder a Secundaria · captura, consulta y PDF
           </p>
         </header>
 
-        <div className="boletas-hub__filters" role="toolbar" aria-label="Filtrar módulos">
-          <div
-            className="boletas-hub__seg"
-            role="group"
-            aria-label="Nivel"
-          >
+        <div className="boletas-hub__toolbar" role="toolbar" aria-label="Filtrar módulos">
+          <div className="boletas-hub__seg" role="group" aria-label="Nivel">
             {(
               [
                 ['todos', 'Todos'],
@@ -100,11 +114,7 @@ export default function BoletasHubPage() {
             ))}
           </div>
 
-          <div
-            className="boletas-hub__seg boletas-hub__seg--lang"
-            role="group"
-            aria-label="Idioma"
-          >
+          <div className="boletas-hub__seg" role="group" aria-label="Idioma">
             {(
               [
                 ['todos', 'Todos'],
@@ -123,6 +133,12 @@ export default function BoletasHubPage() {
               </button>
             ))}
           </div>
+
+          <p className="boletas-hub__toolbar-status" aria-live="polite">
+            <span className="boletas-hub__status-live">{activos} activo</span>
+            <span aria-hidden> · </span>
+            <span>{proximos} próximos</span>
+          </p>
         </div>
 
         <section className="boletas-hub__grid" aria-label="Sistemas de boletas">
@@ -133,6 +149,7 @@ export default function BoletasHubPage() {
           ) : (
             filtrados.map((item) => {
               const live = item.activo
+              const Icon = ICONOS[item.id]
               return (
                 <article
                   key={item.id}
@@ -140,15 +157,19 @@ export default function BoletasHubPage() {
                 >
                   <div className="boletas-hub__card-head">
                     <div className="boletas-hub__card-icon" aria-hidden>
-                      <FileText size={22} strokeWidth={1.75} />
+                      <Icon size={20} strokeWidth={1.75} />
                     </div>
-                    {!live && (
-                      <span className="boletas-hub__card-badge">Próximo</span>
-                    )}
+                    {!live && <span className="boletas-hub__card-badge">Próximo</span>}
                   </div>
 
                   <h2 className="boletas-hub__card-title">{item.label}</h2>
                   <p className="boletas-hub__card-desc">{item.desc}</p>
+
+                  {live && (
+                    <p className="boletas-hub__card-cycle">
+                      Sistema en uso este ciclo · {cicloEtiqueta}
+                    </p>
+                  )}
 
                   <ul className="boletas-hub__card-chips" aria-label="Etiquetas">
                     {item.tags.slice(0, 2).map((tag) => (
@@ -156,25 +177,29 @@ export default function BoletasHubPage() {
                     ))}
                   </ul>
 
-                  <div className="boletas-hub__card-footer">
-                    {live ? (
+                  {live && (
+                    <div className="boletas-hub__card-footer">
                       <button
                         type="button"
                         className="boletas-hub__enter"
                         onClick={() => router.push(item.path)}
                       >
-                        Entrar
+                        Entrar al sistema
                         <ArrowRight size={16} aria-hidden />
                       </button>
-                    ) : (
-                      <span className="boletas-hub__soon-label">Disponible pronto</span>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </article>
               )
             })
           )}
         </section>
+
+        {hayProximos && (
+          <p className="boletas-hub__soon-note">
+            Se habilita al cerrar el ciclo de Secundaria
+          </p>
+        )}
       </main>
     </div>
   )
