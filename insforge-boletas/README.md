@@ -11,6 +11,9 @@ npx -y @insforge/cli@latest login
 npx -y @insforge/cli@latest create --name boletas   # o link a proyecto existente
 npx -y @insforge/cli@latest db query "$(cat migrations/20260813120000_boletas_schema.sql)"
 npx -y @insforge/cli@latest db query "$(cat migrations/20260813120100_boletas_seed_catalog.sql)"
+npx -y @insforge/cli@latest db query "$(cat migrations/20260915130000_kinder_espanol.sql)"
+npx -y @insforge/cli@latest db query "$(cat migrations/20260915140000_kinder_ingles.sql)"
+npx -y @insforge/cli@latest db query "$(cat migrations/20260915150000_primaria_espanol.sql)"
 ```
 
 Import masivo desde MySQL `winston_general` (cuando haya dump/CSV completo):
