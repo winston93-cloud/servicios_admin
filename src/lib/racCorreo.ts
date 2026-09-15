@@ -57,20 +57,34 @@ export function destinatariosRacPrueba(to: string[]): string[] {
   return [prueba]
 }
 
-/** Copia oculta en todos los avisos/reportes/citas/suspensiones RAC. */
-const BCC_RAC = ['prefectura.secundaria@winston93.edu.mx'] as const
+/**
+ * BCC institucional solo para secundaria.
+ * Maternal/Kinder y Primaria no deben copiar a prefectura.secundaria.
+ */
+const BCC_RAC_SECUNDARIA = ['prefectura.secundaria@winston93.edu.mx'] as const
+
+export type RacCorreoPanel = 'secundaria' | 'primaria' | 'maternal-kinder'
+
+function nivelCorreoRac(panel: RacCorreoPanel): number {
+  if (panel === 'maternal-kinder') return 2
+  if (panel === 'primaria') return 3
+  return 4
+}
 
 export async function enviarAvisoRac(opts: {
   to: string[]
   subject: string
   html: string
+  /** Default secundaria (módulo legacy). Kinder/primaria deben pasar su panel. */
+  panel?: RacCorreoPanel
 }): Promise<{ ok: boolean; error?: string }> {
+  const panel = opts.panel ?? 'secundaria'
   return enviarCorreoMasivo({
     to: destinatariosRacPrueba(opts.to),
     subject: opts.subject,
     html: opts.html,
-    nivel: 4,
-    bcc: [...BCC_RAC],
+    nivel: nivelCorreoRac(panel),
+    bcc: panel === 'secundaria' ? [...BCC_RAC_SECUNDARIA] : undefined,
   })
 }
 

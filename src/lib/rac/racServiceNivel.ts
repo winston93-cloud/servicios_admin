@@ -610,7 +610,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       }
       <p>${escapeHtml(String(r.reporte_mensaje ?? '')).replace(/\n/g, '<br>')}</p>`,
     })
-    const envio = await enviarAvisoRac({ to, subject, html })
+    const envio = await enviarAvisoRac({ to, subject, html, panel: cfg.slug })
     if (envio.ok) {
       await client.from('reporte_escolar').update({ reporte_enviado: 1 }).eq('reporte_id', reporteId)
     } else {
@@ -638,7 +638,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       <p>Fecha y hora: <b>${escapeHtml(fecha)}</b></p>
       <p>${escapeHtml(String(c.cita_mensaje ?? ''))}</p>`,
     })
-    const envio = await enviarAvisoRac({ to, subject, html })
+    const envio = await enviarAvisoRac({ to, subject, html, panel: cfg.slug })
     if (envio.ok) await client.from('reporte_cita').update({ cita_enviada: 1 }).eq('cita_id', citaId)
     return envio
   }
@@ -665,7 +665,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       <b>${escapeHtml(String(s.suspension_fecha ?? ''))}</b> por acumular tres reportes
       ${escapeHtml(etiquetaTipoCitatorio(n(r?.reporte_tipo ?? 2)).toLowerCase())}.</p>`,
     })
-    const envio = await enviarAvisoRac({ to, subject, html })
+    const envio = await enviarAvisoRac({ to, subject, html, panel: cfg.slug })
     if (envio.ok) {
       await client.from('reporte_suspension').update({ suspension_enviada: 1 }).eq('suspension_id', suspensionId)
     }
