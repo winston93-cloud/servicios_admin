@@ -14,6 +14,7 @@ npx -y @insforge/cli@latest db query "$(cat migrations/20260813120100_boletas_se
 npx -y @insforge/cli@latest db query "$(cat migrations/20260915130000_kinder_espanol.sql)"
 npx -y @insforge/cli@latest db query "$(cat migrations/20260915140000_kinder_ingles.sql)"
 npx -y @insforge/cli@latest db query "$(cat migrations/20260915150000_primaria_espanol.sql)"
+npx -y @insforge/cli@latest db query "$(cat migrations/20260915160000_primaria_ingles.sql)"
 ```
 
 Import masivo desde MySQL `winston_general` (cuando haya dump/CSV completo):

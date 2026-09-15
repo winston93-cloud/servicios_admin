@@ -91,7 +91,7 @@ export function boletasHubItems(): BoletasHubItem[] {
       kicker: 'Primaria',
       tags: ['Inglés', 'Primaria'],
       path: '/boletas/primaria-ingles',
-      activo: false,
+      activo: true,
       icon: ICON_BOOK_EN,
     },
     {
