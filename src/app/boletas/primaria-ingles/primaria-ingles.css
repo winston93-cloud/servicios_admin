@@ -382,3 +382,57 @@ html[data-theme='light'] .pi-list li button.is-active {
   text-align: center;
   color: var(--pi-mute);
 }
+
+/* —— Responsive refuerzo (PC + móvil) —— */
+@media (max-width: 768px) {
+  .pi-page {
+    overflow-x: clip;
+  }
+
+  .pi-top {
+    flex-wrap: wrap;
+    padding-top: max(0.85rem, env(safe-area-inset-top));
+  }
+
+  .pi-main {
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
+    min-width: 0;
+  }
+
+  .pi-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pi-filters label {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .pi-filters .pi-btn {
+    width: 100%;
+  }
+
+  .pi-actions .pi-btn {
+    flex: 1 1 auto;
+  }
+
+  .pi-list {
+    max-height: min(40vh, 320px);
+  }
+
+  .pi-title {
+    font-size: clamp(1.65rem, 7vw, 2.1rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .pi-user {
+    max-width: 7rem;
+  }
+
+  .pi-school {
+    display: none;
+  }
+}

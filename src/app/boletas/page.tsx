@@ -5,7 +5,7 @@ import { boletasHubItems, type BoletasHubId, type BoletasHubItem } from '@/lib/b
 import { cicloEscolarEtiqueta, getCicloEscolarActual } from '@/lib/ciclosEscolares'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import Image from 'next/image'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type TouchEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import './boletas-hub.css'
 
@@ -51,6 +51,7 @@ export default function BoletasHubPage() {
   const [selectedId, setSelectedId] = useState<BoletasHubId>(iniciales)
   const [slide, setSlide] = useState(0)
   const [paused, setPaused] = useState(false)
+  const touchStartX = useRef<number | null>(null)
 
   const selected: BoletasHubItem =
     items.find((i) => i.id === selectedId) ?? items[0]
@@ -69,6 +70,25 @@ export default function BoletasHubPage() {
     }, SLIDE_MS)
     return () => window.clearInterval(id)
   }, [paused])
+
+  function onTouchStart(e: TouchEvent) {
+    touchStartX.current = e.changedTouches[0]?.clientX ?? null
+  }
+
+  function onTouchEnd(e: TouchEvent) {
+    const start = touchStartX.current
+    touchStartX.current = null
+    if (start == null) return
+    const end = e.changedTouches[0]?.clientX
+    if (end == null) return
+    const delta = end - start
+    if (Math.abs(delta) < 48) return
+    setSlide((s) =>
+      delta < 0
+        ? (s + 1) % HUB_SLIDES.length
+        : (s - 1 + HUB_SLIDES.length) % HUB_SLIDES.length
+    )
+  }
 
   return (
     <div className="boletas-hub">
@@ -156,6 +176,8 @@ export default function BoletasHubPage() {
                   setPaused(false)
                 }
               }}
+              onTouchStart={onTouchStart}
+              onTouchEnd={onTouchEnd}
             >
               <div className="boletas-hub__carousel" aria-roledescription="carrusel">
                 {HUB_SLIDES.map((item, i) => (

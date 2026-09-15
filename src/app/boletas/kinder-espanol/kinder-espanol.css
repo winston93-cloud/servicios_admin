@@ -359,3 +359,57 @@ html[data-theme='light'] .ke-list li button.is-active {
   text-align: center;
   color: var(--ke-mute);
 }
+
+/* —— Responsive refuerzo (PC + móvil) —— */
+@media (max-width: 768px) {
+  .ke-page {
+    overflow-x: clip;
+  }
+
+  .ke-top {
+    flex-wrap: wrap;
+    padding-top: max(0.85rem, env(safe-area-inset-top));
+  }
+
+  .ke-main {
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
+    min-width: 0;
+  }
+
+  .ke-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ke-filters label {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .ke-filters .ke-btn {
+    width: 100%;
+  }
+
+  .ke-actions .ke-btn {
+    flex: 1 1 auto;
+  }
+
+  .ke-list {
+    max-height: min(40vh, 320px);
+  }
+
+  .ke-title {
+    font-size: clamp(1.65rem, 7vw, 2.1rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .ke-user {
+    max-width: 7rem;
+  }
+
+  .ke-school {
+    display: none;
+  }
+}

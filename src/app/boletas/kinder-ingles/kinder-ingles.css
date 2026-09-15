@@ -382,3 +382,57 @@ html[data-theme='light'] .ki-list li button.is-active {
   text-align: center;
   color: var(--ki-mute);
 }
+
+/* —— Responsive refuerzo (PC + móvil) —— */
+@media (max-width: 768px) {
+  .ki-page {
+    overflow-x: clip;
+  }
+
+  .ki-top {
+    flex-wrap: wrap;
+    padding-top: max(0.85rem, env(safe-area-inset-top));
+  }
+
+  .ki-main {
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
+    min-width: 0;
+  }
+
+  .ki-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ki-filters label {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .ki-filters .ki-btn {
+    width: 100%;
+  }
+
+  .ki-actions .ki-btn {
+    flex: 1 1 auto;
+  }
+
+  .ki-list {
+    max-height: min(40vh, 320px);
+  }
+
+  .ki-title {
+    font-size: clamp(1.65rem, 7vw, 2.1rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .ki-user {
+    max-width: 7rem;
+  }
+
+  .ki-school {
+    display: none;
+  }
+}
