@@ -22,7 +22,9 @@ export default function BoletasHubPage() {
   const cicloShort = cicloCorto(cicloEtiqueta)
 
   const iniciales = useMemo(() => {
-    const live = items.find((i) => i.activo)
+    // Preferir Secundaria si está activa; si no, el primer activo
+    const sec = items.find((i) => i.id === 'secundaria' && i.activo)
+    const live = sec ?? items.find((i) => i.activo)
     return live?.id ?? items[0]?.id ?? 'secundaria'
   }, [items])
 

@@ -7,6 +7,7 @@ import {
   KINDER_ES_GRUPOS,
   type KinderEsGrado,
 } from '@/lib/boletasKinderEsCatalog'
+import { cicloEscolarActualBoletas, etiquetaCicloBoletas, opcionesCicloBoletas } from '@/lib/boletasCiclo'
 import { ArrowLeft, LogOut, Printer, Save } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
@@ -17,26 +18,25 @@ type Me = {
   id: number
   nombre: string
   usuario: string
-  cicloActual: number
-  ciclos: { valor: number; etiqueta: string }[]
-  envOk: boolean
+  cicloActual?: number
+  ciclos?: { valor: number; etiqueta: string }[]
+  envOk?: boolean
 }
 
-type AlumnoLista = {
+type Alumno = {
   alumno_id: number
   alumno_ref: number | null
   nombre: string
   grupo_letra: string
 }
 
-type IndicadorCaptura = {
+type IndicadorFila = {
   id: number
   nombre: string
-  orden: number
   calificacion: string
 }
 
-async function apiJson<T>(url: string, init?: RequestInit): Promise<T> {
+async function api<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     ...init,
     headers: {
@@ -61,7 +61,7 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
     setLoading(true)
     setError('')
     try {
-      await apiJson('/api/boletas-secundaria/auth/login', {
+      await api('/api/boletas-secundaria/auth/login', {
         method: 'POST',
         body: JSON.stringify({ usuario, password }),
       })
@@ -75,8 +75,8 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
 
   return (
     <form className="ke-login ke-paper" onSubmit={submit}>
-      <h2>Acceso Kinder · Español</h2>
-      <p>Misma cuenta de maestros / admin del sistema de boletas.</p>
+      <h2>Kinder · Español</h2>
+      <p>Usa las mismas credenciales del sistema de boletas (admin o maestro).</p>
       <label>
         Usuario
         <input
@@ -96,7 +96,7 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
           required
         />
       </label>
-      {error ? <p className="ke-msg is-error">{error}</p> : null}
+      {error && <p className="ke-msg is-error">{error}</p>}
       <button type="submit" className="ke-btn primary" disabled={loading}>
         {loading ? 'Entrando…' : 'Entrar'}
       </button>
@@ -108,23 +108,27 @@ function KinderEsApp() {
   const router = useRouter()
   const [me, setMe] = useState<Me | null>(null)
   const [boot, setBoot] = useState(true)
+  const [msg, setMsg] = useState('')
+  const [err, setErr] = useState('')
+
+  const cicloDefault = cicloEscolarActualBoletas()
   const [grado, setGrado] = useState<KinderEsGrado>(1)
   const [grupo, setGrupo] = useState<(typeof KINDER_ES_GRUPOS)[number]>('A')
   const [bimestre, setBimestre] = useState(1)
-  const [ciclo, setCiclo] = useState(0)
-  const [alumnos, setAlumnos] = useState<AlumnoLista[]>([])
+  const [ciclo, setCiclo] = useState(cicloDefault)
+  const [alumnos, setAlumnos] = useState<Alumno[]>([])
   const [alumnoId, setAlumnoId] = useState<number | null>(null)
-  const [indicadores, setIndicadores] = useState<IndicadorCaptura[]>([])
+  const [indicadores, setIndicadores] = useState<IndicadorFila[]>([])
   const [alumnoNombre, setAlumnoNombre] = useState('')
-  const [msg, setMsg] = useState('')
-  const [err, setErr] = useState(false)
-  const [busy, setBusy] = useState(false)
+  const [loadingList, setLoadingList] = useState(false)
+  const [loadingCap, setLoadingCap] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   const refreshMe = useCallback(async () => {
     try {
-      const data = await apiJson<Me>('/api/boletas-secundaria/auth/me')
+      const data = await api<Me>('/api/boletas-secundaria/auth/me')
       setMe(data)
-      setCiclo((c) => c || data.cicloActual)
+      if (data.cicloActual) setCiclo(data.cicloActual)
     } catch {
       setMe(null)
     } finally {
@@ -136,139 +140,131 @@ function KinderEsApp() {
     void refreshMe()
   }, [refreshMe])
 
-  async function cargarAlumnos() {
-    if (!ciclo) return
-    setBusy(true)
+  const cargarAlumnos = useCallback(async () => {
+    setLoadingList(true)
+    setErr('')
     setMsg('')
-    setErr(false)
-    setAlumnoId(null)
-    setIndicadores([])
     try {
-      const q = new URLSearchParams({
-        grado: String(grado),
-        grupo,
-        ciclo: String(ciclo),
-      })
-      const d = await apiJson<{ alumnos: AlumnoLista[] }>(
-        `/api/boletas-kinder-espanol/alumnos?${q}`
+      const data = await api<{ alumnos: Alumno[] }>(
+        `/api/boletas-kinder-espanol/alumnos?grado=${grado}&grupo=${grupo}&ciclo=${ciclo}`
       )
-      setAlumnos(d.alumnos)
-      if (!d.alumnos.length) {
-        setMsg('No hay alumnos con esos filtros.')
+      setAlumnos(data.alumnos ?? [])
+      setAlumnoId(null)
+      setIndicadores([])
+      setAlumnoNombre('')
+      if (!(data.alumnos ?? []).length) {
+        setMsg('No hay alumnos para ese grado/grupo/ciclo.')
       }
     } catch (e) {
-      setErr(true)
-      setMsg(e instanceof Error ? e.message : 'Error al listar')
+      setErr(e instanceof Error ? e.message : 'Error al listar')
       setAlumnos([])
     } finally {
-      setBusy(false)
+      setLoadingList(false)
     }
-  }
+  }, [grado, grupo, ciclo])
 
-  async function abrirCaptura(id: number) {
-    if (!ciclo) return
-    setBusy(true)
-    setMsg('')
-    setErr(false)
-    setAlumnoId(id)
-    try {
-      const q = new URLSearchParams({
-        alumnoId: String(id),
-        bimestre: String(bimestre),
-        ciclo: String(ciclo),
-      })
-      const d = await apiJson<{
-        alumno: { nombre: string }
-        indicadores: IndicadorCaptura[]
-      }>(`/api/boletas-kinder-espanol/captura?${q}`)
-      setAlumnoNombre(d.alumno.nombre)
-      setIndicadores(d.indicadores)
-    } catch (e) {
-      setErr(true)
-      setMsg(e instanceof Error ? e.message : 'Error al cargar captura')
-      setIndicadores([])
-    } finally {
-      setBusy(false)
-    }
-  }
+  const abrirCaptura = useCallback(
+    async (id: number) => {
+      setLoadingCap(true)
+      setErr('')
+      setMsg('')
+      setAlumnoId(id)
+      try {
+        const data = await api<{
+          alumno: Alumno
+          indicadores: IndicadorFila[]
+        }>(
+          `/api/boletas-kinder-espanol/captura?alumnoId=${id}&bimestre=${bimestre}&ciclo=${ciclo}`
+        )
+        setAlumnoNombre(data.alumno.nombre)
+        setIndicadores(
+          (data.indicadores ?? []).map((i) => ({
+            id: i.id,
+            nombre: i.nombre,
+            calificacion: i.calificacion ?? '',
+          }))
+        )
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : 'Error al cargar captura')
+        setIndicadores([])
+      } finally {
+        setLoadingCap(false)
+      }
+    },
+    [bimestre, ciclo]
+  )
 
   useEffect(() => {
-    if (alumnoId && ciclo) {
-      void abrirCaptura(alumnoId)
-    }
-    // Recargar captura al cambiar trimestre/ciclo
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- abrirCaptura usa estado actual
-  }, [bimestre, ciclo])
+    if (alumnoId == null) return
+    void abrirCaptura(alumnoId)
+  }, [bimestre, ciclo, alumnoId, abrirCaptura])
 
   async function guardar() {
-    if (!alumnoId || !ciclo) return
-    setBusy(true)
+    if (alumnoId == null) return
+    setSaving(true)
+    setErr('')
     setMsg('')
-    setErr(false)
     try {
       const valores: Record<number, string> = {}
-      for (const ind of indicadores) {
-        valores[ind.id] = ind.calificacion
-      }
-      const d = await apiJson<{ saved: number }>('/api/boletas-kinder-espanol/captura', {
+      for (const ind of indicadores) valores[ind.id] = ind.calificacion
+      await api('/api/boletas-kinder-espanol/captura', {
         method: 'PUT',
         body: JSON.stringify({ alumnoId, bimestre, ciclo, valores }),
       })
-      setMsg(`Guardado (${d.saved} indicadores).`)
+      setMsg('Calificaciones guardadas.')
     } catch (e) {
-      setErr(true)
-      setMsg(e instanceof Error ? e.message : 'Error al guardar')
+      setErr(e instanceof Error ? e.message : 'Error al guardar')
     } finally {
-      setBusy(false)
+      setSaving(false)
     }
   }
 
   function abrirPdf() {
-    if (!alumnoId || !ciclo) return
-    const q = new URLSearchParams({
-      alumnoId: String(alumnoId),
-      bimestre: String(bimestre),
-      ciclo: String(ciclo),
-    })
-    window.open(`/api/boletas-kinder-espanol/pdf?${q}`, '_blank', 'noopener,noreferrer')
+    if (alumnoId == null) return
+    window.open(
+      `/api/boletas-kinder-espanol/pdf?alumnoId=${alumnoId}&bimestre=${bimestre}&ciclo=${ciclo}`,
+      '_blank',
+      'noopener,noreferrer'
+    )
   }
 
   async function logout() {
-    try {
-      await apiJson('/api/boletas-secundaria/auth/logout', { method: 'POST' })
-    } catch {
-      /* ignore */
-    }
+    await api('/api/boletas-secundaria/auth/logout', { method: 'POST' }).catch(() => null)
     setMe(null)
   }
 
+  const ciclosOpts = me?.ciclos?.length
+    ? me.ciclos
+    : opcionesCicloBoletas(ciclo)
+
   if (boot) {
-    return <p className="ke-boot">Cargando…</p>
+    return (
+      <div className="ke-page">
+        <p className="ke-boot">Cargando…</p>
+      </div>
+    )
   }
 
   if (!me) {
     return (
-      <>
+      <div className="ke-page">
         <header className="ke-top">
           <button type="button" className="ke-back" onClick={() => router.push('/boletas')}>
             <ArrowLeft size={15} aria-hidden />
             Boletas
           </button>
-          <p className="ke-school">Winston Churchill</p>
           <div className="ke-spacer" />
           <ThemeToggle />
         </header>
         <main className="ke-main">
-          <h1 className="ke-title">Kinder · Español</h1>
-          <p className="ke-lead">Captura de indicadores por trimestre.</p>
           <LoginPanel onOk={() => void refreshMe()} />
         </main>
-      </>
+      </div>
     )
   }
 
   return (
-    <>
+    <div className="ke-page">
       <header className="ke-top">
         <button type="button" className="ke-back" onClick={() => router.push('/boletas')}>
           <ArrowLeft size={15} aria-hidden />
@@ -276,7 +272,7 @@ function KinderEsApp() {
         </button>
         <p className="ke-school">Winston Churchill</p>
         <div className="ke-spacer" />
-        <span className="ke-user" title={me.nombre}>
+        <span className="ke-user" title={me.usuario}>
           {me.nombre}
         </span>
         <button type="button" className="ke-btn ghost" onClick={() => void logout()} aria-label="Salir">
@@ -288,10 +284,14 @@ function KinderEsApp() {
       <main className="ke-main">
         <h1 className="ke-title">Kinder · Español</h1>
         <p className="ke-lead">
-          Calificaciones en texto libre · K1–K3 · trimestres 1–3
-          {!me.envOk ? ' · aviso: falta configurar InsForge boletas' : ''}
+          Captura por indicador · Ciclo {etiquetaCicloBoletas(ciclo)}
         </p>
-        {msg ? <p className={`ke-msg${err ? ' is-error' : ''}`}>{msg}</p> : null}
+
+        {(msg || err) && (
+          <p className={`ke-msg${err ? ' is-error' : ''}`} role="status">
+            {err || msg}
+          </p>
+        )}
 
         <section className="ke-paper">
           <div className="ke-filters">
@@ -331,8 +331,8 @@ function KinderEsApp() {
             </label>
             <label>
               Ciclo
-              <select value={ciclo || ''} onChange={(e) => setCiclo(Number(e.target.value))}>
-                {me.ciclos.map((c) => (
+              <select value={ciclo} onChange={(e) => setCiclo(Number(e.target.value))}>
+                {ciclosOpts.map((c) => (
                   <option key={c.valor} value={c.valor}>
                     {c.etiqueta}
                   </option>
@@ -342,15 +342,15 @@ function KinderEsApp() {
             <button
               type="button"
               className="ke-btn primary"
-              disabled={busy || !ciclo}
               onClick={() => void cargarAlumnos()}
+              disabled={loadingList}
             >
-              Listar
+              {loadingList ? 'Buscando…' : 'Listar'}
             </button>
           </div>
 
           <div className="ke-layout">
-            <aside>
+            <div>
               {alumnos.length === 0 ? (
                 <p className="ke-empty">Elige filtros y pulsa Listar.</p>
               ) : (
@@ -371,26 +371,28 @@ function KinderEsApp() {
                   ))}
                 </ul>
               )}
-            </aside>
+            </div>
 
-            <div className="ke-form">
-              {!alumnoId || !indicadores.length ? (
+            <div>
+              {alumnoId == null ? (
                 <p className="ke-empty">Selecciona un alumno para capturar.</p>
+              ) : loadingCap ? (
+                <p className="ke-empty">Cargando captura…</p>
               ) : (
-                <>
+                <div className="ke-form">
                   <div className="ke-form-head">
                     <h2>{alumnoNombre}</h2>
                     <div className="ke-actions">
                       <button
                         type="button"
                         className="ke-btn primary"
-                        disabled={busy}
                         onClick={() => void guardar()}
+                        disabled={saving}
                       >
                         <Save size={16} aria-hidden />
-                        Guardar
+                        {saving ? 'Guardando…' : 'Guardar'}
                       </button>
-                      <button type="button" className="ke-btn" disabled={busy} onClick={abrirPdf}>
+                      <button type="button" className="ke-btn" onClick={abrirPdf}>
                         <Printer size={16} aria-hidden />
                         PDF
                       </button>
@@ -398,12 +400,11 @@ function KinderEsApp() {
                   </div>
                   <div className="ke-fields">
                     {indicadores.map((ind) => (
-                      <div className="ke-field" key={ind.id}>
-                        <label htmlFor={`ke-ind-${ind.id}`}>{ind.nombre}</label>
+                      <div key={ind.id} className="ke-field">
+                        <label htmlFor={`ind-${ind.id}`}>{ind.nombre}</label>
                         <input
-                          id={`ke-ind-${ind.id}`}
+                          id={`ind-${ind.id}`}
                           value={ind.calificacion}
-                          maxLength={40}
                           onChange={(e) => {
                             const v = e.target.value
                             setIndicadores((prev) =>
@@ -412,26 +413,26 @@ function KinderEsApp() {
                               )
                             )
                           }}
+                          maxLength={40}
+                          autoComplete="off"
                         />
                       </div>
                     ))}
                   </div>
-                </>
+                </div>
               )}
             </div>
           </div>
         </section>
       </main>
-    </>
+    </div>
   )
 }
 
 export default function BoletasKinderEspanolPage() {
   return (
     <ProtectedRoute roles={['usuario']}>
-      <div className="ke-page">
-        <KinderEsApp />
-      </div>
+      <KinderEsApp />
     </ProtectedRoute>
   )
 }
