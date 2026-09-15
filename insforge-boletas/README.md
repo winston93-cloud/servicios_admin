@@ -1,37 +1,41 @@
 # InsForge proyecto `boletas`
 
-Backend dedicado para **Boletas secundaria** (aparte de Winston Servicios).
+Backend dedicado para boletas (Kinder / Primaria / Secundaria). API: `https://5u3i4tmc.us-east.insforge.app`.
 
-## Setup
+## Estado (2026-09-15)
+
+Schema aplicado en el proyecto **Boletas** (tablas base + kinder ES/EN + primaria ES/EN).
+Catálogo secundaria sembrado. Alumnos operativos presentes (~2.3k).
+
+Este directorio tiene su propio `.insforge/` (link a Boletas). La raíz del repo sigue en **Winston Servicios**.
+
+## Migraciones
 
 ```bash
-# Desde este directorio (no deslinkea Winston Servicios en la raíz del repo)
 cd insforge-boletas
 npx -y @insforge/cli@latest login
-npx -y @insforge/cli@latest create --name boletas   # o link a proyecto existente
-npx -y @insforge/cli@latest db query "$(cat migrations/20260813120000_boletas_schema.sql)"
-npx -y @insforge/cli@latest db query "$(cat migrations/20260813120100_boletas_seed_catalog.sql)"
-npx -y @insforge/cli@latest db query "$(cat migrations/20260915130000_kinder_espanol.sql)"
-npx -y @insforge/cli@latest db query "$(cat migrations/20260915140000_kinder_ingles.sql)"
-npx -y @insforge/cli@latest db query "$(cat migrations/20260915150000_primaria_espanol.sql)"
-npx -y @insforge/cli@latest db query "$(cat migrations/20260915160000_primaria_ingles.sql)"
-```
-
-Import masivo desde MySQL `winston_general` (cuando haya dump/CSV completo):
-
-```bash
-node scripts/import-boletas-mysql.mjs --csv-dir ../data/boletas
-# o
-node scripts/import-boletas-mysql.mjs --mysql-url "$MYSQL_URL"
+npx -y @insforge/cli@latest link --project-id 4a695124-3af9-4b2e-945a-0df93df222e6
+# Preferir import (multi-statement):
+npx -y @insforge/cli@latest db import migrations/20260813120000_boletas_schema.sql
+npx -y @insforge/cli@latest db import migrations/20260813120100_boletas_seed_catalog.sql
+npx -y @insforge/cli@latest db import migrations/20260915130000_kinder_espanol.sql
+npx -y @insforge/cli@latest db import migrations/20260915140000_kinder_ingles.sql
+npx -y @insforge/cli@latest db import migrations/20260915150000_primaria_espanol.sql
+npx -y @insforge/cli@latest db import migrations/20260915160000_primaria_ingles.sql
 ```
 
 ## Secrets en servicios_admin
 
-En `.env.local` / Vercel (solo server):
+`.env.local` / Vercel (solo server) — ya configurados en producción/preview/development:
 
 ```
-BOLETAS_INSFORGE_URL=https://<project-id>.us-east.insforge.app
-BOLETAS_INSFORGE_API_KEY=<anon-or-service-key>
+BOLETAS_INSFORGE_URL=https://5u3i4tmc.us-east.insforge.app
+BOLETAS_INSFORGE_API_KEY=<api key del proyecto>
+BOLETAS_SESSION_SECRET=<secreto sesión>
 ```
 
-El cliente admin del módulo usa la API key con privilegios de escritura; las rutas Next nunca exponen la key al browser.
+## App
+
+- Hub: `/boletas`
+- Módulos: `/boletas/kinder-espanol`, `kinder-ingles`, `primaria-espanol`, `primaria-ingles`, `/boletas-secundaria`
+- Envío email unificado: `POST /api/boletas-envio` `{ modulo, alumnoId, bimestre, ciclo }`

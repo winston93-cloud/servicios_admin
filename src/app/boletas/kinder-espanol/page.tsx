@@ -8,7 +8,7 @@ import {
   type KinderEsGrado,
 } from '@/lib/boletasKinderEsCatalog'
 import { cicloEscolarActualBoletas, etiquetaCicloBoletas, opcionesCicloBoletas } from '@/lib/boletasCiclo'
-import { ArrowLeft, LogOut, Printer, Save } from 'lucide-react'
+import { ArrowLeft, LogOut, Printer, Save, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import './kinder-espanol.css'
@@ -123,6 +123,7 @@ function KinderEsApp() {
   const [loadingList, setLoadingList] = useState(false)
   const [loadingCap, setLoadingCap] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [sending, setSending] = useState(false)
 
   const refreshMe = useCallback(async () => {
     try {
@@ -226,6 +227,29 @@ function KinderEsApp() {
       '_blank',
       'noopener,noreferrer'
     )
+  }
+
+  async function enviar() {
+    if (alumnoId == null) return
+    setSending(true)
+    setErr('')
+    setMsg('')
+    try {
+      const data = await api<{ emails: string[] }>('/api/boletas-envio', {
+        method: 'POST',
+        body: JSON.stringify({
+          modulo: 'kinder-es',
+          alumnoId,
+          bimestre,
+          ciclo,
+        }),
+      })
+      setMsg(`Boleta enviada a: ${data.emails.join(', ')}`)
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Error al enviar')
+    } finally {
+      setSending(false)
+    }
   }
 
   async function logout() {
@@ -395,6 +419,15 @@ function KinderEsApp() {
                       <button type="button" className="ke-btn" onClick={abrirPdf}>
                         <Printer size={16} aria-hidden />
                         PDF
+                      </button>
+                      <button
+                        type="button"
+                        className="ke-btn"
+                        onClick={() => void enviar()}
+                        disabled={sending}
+                      >
+                        <Send size={16} aria-hidden />
+                        {sending ? 'Enviando…' : 'Enviar'}
                       </button>
                     </div>
                   </div>
