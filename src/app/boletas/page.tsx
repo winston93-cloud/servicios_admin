@@ -1,90 +1,181 @@
 'use client'
 
 import ThemeToggle from '@/components/ThemeToggle'
-import DashboardModuleCard from '@/components/dashboard/DashboardModuleCard'
-import { boletasHubItems } from '@/lib/boletasHubNav'
-import { ArrowLeft, GraduationCap } from 'lucide-react'
+import { boletasHubItems, type BoletasHubItem } from '@/lib/boletasHubNav'
+import { ArrowLeft, ArrowRight, FileText } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import '../dashboard/dashboard-module-card.css'
 import './boletas-hub.css'
+
+type NivelFilter = 'todos' | 'kinder' | 'primaria' | 'secundaria'
+type IdiomaFilter = 'todos' | 'espanol' | 'ingles'
+
+function nivelDeItem(item: BoletasHubItem): Exclude<NivelFilter, 'todos'> {
+  if (item.id.startsWith('kinder')) return 'kinder'
+  if (item.id.startsWith('primaria')) return 'primaria'
+  return 'secundaria'
+}
+
+function idiomaDeItem(item: BoletasHubItem): IdiomaFilter {
+  if (item.id === 'secundaria') return 'todos'
+  if (item.id.endsWith('ingles')) return 'ingles'
+  return 'espanol'
+}
 
 export default function BoletasHubPage() {
   const router = useRouter()
   const items = boletasHubItems()
+  const [nivel, setNivel] = useState<NivelFilter>('todos')
+  const [idioma, setIdioma] = useState<IdiomaFilter>('todos')
+
   const activos = items.filter((i) => i.activo).length
+  const proximos = items.length - activos
+
+  const filtrados = useMemo(() => {
+    return items.filter((item) => {
+      const n = nivelDeItem(item)
+      const idi = idiomaDeItem(item)
+      if (nivel !== 'todos' && n !== nivel) return false
+      if (idioma !== 'todos' && item.id !== 'secundaria' && idi !== idioma) return false
+      if (idioma !== 'todos' && item.id === 'secundaria') return false
+      return true
+    })
+  }, [items, nivel, idioma])
 
   return (
-    <div className="dashboard-container dashboard-home boletas-hub-page">
-      <div className="dashboard-home-bg" aria-hidden="true" />
-      <div className="boletas-hub-atmosphere" aria-hidden="true">
-        <span className="boletas-hub-orb boletas-hub-orb--a" />
-        <span className="boletas-hub-orb boletas-hub-orb--b" />
-        <span className="boletas-hub-grid" />
-      </div>
+    <div className="boletas-hub">
+      <header className="boletas-hub__top">
+        <button
+          type="button"
+          className="boletas-hub__back"
+          onClick={() => router.push('/dashboard')}
+        >
+          <ArrowLeft size={16} aria-hidden />
+          Volver
+        </button>
+        <p className="boletas-hub__school">Instituto Winston Churchill</p>
+        <div className="boletas-hub__top-spacer" />
+        <ThemeToggle />
+      </header>
 
-      <div className="dashboard-main boletas-hub-main">
-        <div className="dashboard-heading reportes-heading facturacion-cfdi-heading boletas-hub-heading">
-          <button
-            type="button"
-            className="servicios-back-btn"
-            onClick={() => router.push('/dashboard')}
+      <main className="boletas-hub__main">
+        <header className="boletas-hub__pagehead">
+          <p className="boletas-hub__eyebrow">Instituto Winston Churchill</p>
+          <h1 className="boletas-hub__title">Boletas escolares</h1>
+          <p className="boletas-hub__lead">
+            5 sistemas · Kinder a Secundaria · captura, consulta y PDF
+          </p>
+          <p className="boletas-hub__status" aria-live="polite">
+            <span className="boletas-hub__status-live">{activos} activo</span>
+            <span className="boletas-hub__status-sep" aria-hidden>
+              ·
+            </span>
+            <span>{proximos} próximos</span>
+          </p>
+        </header>
+
+        <div className="boletas-hub__filters" role="toolbar" aria-label="Filtrar módulos">
+          <div
+            className="boletas-hub__seg"
+            role="group"
+            aria-label="Nivel"
           >
-            <ArrowLeft size={16} aria-hidden />
-            Volver al inicio
-          </button>
+            {(
+              [
+                ['todos', 'Todos'],
+                ['kinder', 'Kinder'],
+                ['primaria', 'Primaria'],
+                ['secundaria', 'Secundaria'],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={`boletas-hub__seg-btn${nivel === value ? ' is-active' : ''}`}
+                aria-pressed={nivel === value}
+                onClick={() => setNivel(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
 
-          <p className="boletas-hub-brand">
-            <GraduationCap size={18} aria-hidden />
-            Instituto Winston Churchill
-          </p>
-          <h1 className="dashboard-title boletas-hub-title">
-            Sistema Integral de Boletas Escolares
-          </h1>
-          <p className="dashboard-subtitle boletas-hub-lead">
-            Cinco módulos de boletas por nivel e idioma. Elige el sistema con el que vas a
-            capturar, consultar o emitir calificaciones.
-          </p>
-
-          <div className="boletas-hub-meta">
-            <span className="boletas-hub-pill">
-              <strong>{items.length}</strong> sistemas
-            </span>
-            <span className="boletas-hub-pill boletas-hub-pill--live">
-              <strong>{activos}</strong> activo{activos === 1 ? '' : 's'}
-            </span>
-            <span className="boletas-hub-pill">Kinder · Primaria · Secundaria</span>
-            <div className="facturacion-cfdi-theme-row">
-              <ThemeToggle />
-            </div>
+          <div
+            className="boletas-hub__seg boletas-hub__seg--lang"
+            role="group"
+            aria-label="Idioma"
+          >
+            {(
+              [
+                ['todos', 'Todos'],
+                ['espanol', 'Español'],
+                ['ingles', 'Inglés'],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={`boletas-hub__seg-btn${idioma === value ? ' is-active' : ''}`}
+                aria-pressed={idioma === value}
+                onClick={() => setIdioma(value)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
 
-        <section className="boletas-hub-section" aria-label="Módulos de boletas">
-          <div className="boletas-hub-section-head">
-            <h2>Módulos</h2>
-            <p>Preescolar y primaria tienen boleta en español y en inglés. Secundaria usa una sola boleta.</p>
-          </div>
+        <section className="boletas-hub__grid" aria-label="Sistemas de boletas">
+          {filtrados.length === 0 ? (
+            <p className="boletas-hub__empty">
+              No hay módulos con ese filtro. Prueba “Todos” en nivel o idioma.
+            </p>
+          ) : (
+            filtrados.map((item) => {
+              const live = item.activo
+              return (
+                <article
+                  key={item.id}
+                  className={`boletas-hub__card${live ? ' boletas-hub__card--live' : ' boletas-hub__card--soon'}`}
+                >
+                  <div className="boletas-hub__card-head">
+                    <div className="boletas-hub__card-icon" aria-hidden>
+                      <FileText size={22} strokeWidth={1.75} />
+                    </div>
+                    {!live && (
+                      <span className="boletas-hub__card-badge">Próximo</span>
+                    )}
+                  </div>
 
-          <div className="dashboard-nav-grid boletas-hub-grid" role="list">
-            {items.map((item, index) => (
-              <div key={item.id} role="listitem" className={item.activo ? 'boletas-hub-item--live' : undefined}>
-                <DashboardModuleCard
-                  order={index + 1}
-                  label={item.label}
-                  desc={item.desc}
-                  accent={item.accent}
-                  icon={item.icon}
-                  kicker={item.kicker}
-                  tags={item.tags}
-                  badge={item.activo ? 'Activo' : 'Próximo'}
-                  featured={item.activo}
-                  onActivate={() => router.push(item.path)}
-                />
-              </div>
-            ))}
-          </div>
+                  <h2 className="boletas-hub__card-title">{item.label}</h2>
+                  <p className="boletas-hub__card-desc">{item.desc}</p>
+
+                  <ul className="boletas-hub__card-chips" aria-label="Etiquetas">
+                    {item.tags.slice(0, 2).map((tag) => (
+                      <li key={tag}>{tag}</li>
+                    ))}
+                  </ul>
+
+                  <div className="boletas-hub__card-footer">
+                    {live ? (
+                      <button
+                        type="button"
+                        className="boletas-hub__enter"
+                        onClick={() => router.push(item.path)}
+                      >
+                        Entrar
+                        <ArrowRight size={16} aria-hidden />
+                      </button>
+                    ) : (
+                      <span className="boletas-hub__soon-label">Disponible pronto</span>
+                    )}
+                  </div>
+                </article>
+              )
+            })
+          )}
         </section>
-      </div>
+      </main>
     </div>
   )
 }

@@ -100,7 +100,7 @@ export function boletasHubItems(): BoletasHubItem[] {
       desc: 'Boleta única de secundaria: captura por materia, PDF, envío y ciclos históricos.',
       accent: 'rose',
       kicker: 'Secundaria',
-      tags: ['Activo', 'PDF', 'Envío'],
+      tags: ['Secundaria', 'PDF'],
       path: '/boletas-secundaria',
       activo: true,
       icon: ICON_SEC,
