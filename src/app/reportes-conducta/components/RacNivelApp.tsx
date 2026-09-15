@@ -469,7 +469,10 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   const esMaestro = me?.role === 'maestro'
   const unSoloGrupo = esMaestro && asignaciones.length === 1
   const sinAsignaciones = asignaciones.length === 0
-  const puedeSeleccionarMasivo = Boolean(esAdmin && (tab === 'inbox' || tab === 'informes'))
+  const puedeSeleccionarMasivo = Boolean(
+    (esAdmin && (tab === 'inbox' || tab === 'informes')) ||
+      (me?.role === 'psicologia' && tab === 'informes')
+  )
   const capturaConInformeYCita =
     esAdmin || me?.role === 'psicologia' || me?.role === 'maestro'
   const capturaConInforme = capturaConInformeYCita
@@ -882,7 +885,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                 </button>
               </div>
             ) : null}
-            {tab === 'informes' && esAdmin ? (
+            {tab === 'informes' && (esAdmin || me?.role === 'psicologia') ? (
               <div className="racn-filters">
                 <button
                   type="button"
@@ -1089,13 +1092,19 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                               </button>
                             </>
                           ) : null}
-                          {tab === 'informes' && esAdmin ? (
+                          {tab === 'informes' && (esAdmin || me.role === 'psicologia') ? (
                             <button
                               type="button"
                               className="racn-btn info"
+                              title={
+                                Number(row.enviado) === 1
+                                  ? 'Volver a enviar el aviso a la familia'
+                                  : 'Enviar el aviso a la familia (aún no salió)'
+                              }
                               onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'reenviar')}
                             >
-                              Reenviar
+                              <Mail size={16} aria-hidden />
+                              {Number(row.enviado) === 1 ? 'Reenviar' : 'Enviar'}
                             </button>
                           ) : null}
                           {tab === 'citas' &&

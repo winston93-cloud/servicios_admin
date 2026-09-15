@@ -460,7 +460,10 @@ export default function RacSecundariaPage() {
 
   const esAdmin = Boolean(me && esPanelAdminRac(me.role))
   const tiposSelect = tiposCaptura
-  const puedeSeleccionarMasivo = Boolean(esAdmin && (tab === 'inbox' || tab === 'informes'))
+  const puedeSeleccionarMasivo = Boolean(
+    (esAdmin && (tab === 'inbox' || tab === 'informes')) ||
+      (me?.role === 'psicologia' && tab === 'informes')
+  )
   /** Reportar + Informe + Citar: admin, psicología y maestros (p. ej. idiomas/lion). */
   const capturaConInformeYCita =
     esAdmin || me?.role === 'psicologia' || me?.role === 'maestro'
@@ -804,7 +807,7 @@ export default function RacSecundariaPage() {
               </button>
             </div>
           ) : null}
-          {tab === 'informes' && esAdmin ? (
+          {tab === 'informes' && (esAdmin || me?.role === 'psicologia') ? (
             <div className="boletas-filters">
               <button
                 type="button"
@@ -991,9 +994,19 @@ export default function RacSecundariaPage() {
                           </button>
                         </>
                       ) : null}
-                      {tab === 'informes' && esAdmin ? (
-                        <button type="button" className="boletas-btn info" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'reenviar')}>
-                          Reenviar
+                      {tab === 'informes' && (esAdmin || me.role === 'psicologia') ? (
+                        <button
+                          type="button"
+                          className="boletas-btn info"
+                          title={
+                            Number(row.enviado) === 1
+                              ? 'Volver a enviar el aviso a la familia'
+                              : 'Enviar el aviso a la familia (aún no salió)'
+                          }
+                          onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'reenviar')}
+                        >
+                          <Mail size={16} aria-hidden />
+                          {Number(row.enviado) === 1 ? 'Reenviar' : 'Enviar'}
                         </button>
                       ) : null}
                       {tab === 'citas' &&
