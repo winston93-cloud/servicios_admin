@@ -1126,17 +1126,25 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     if (!safe) return { alumnos: [], reportes: [] }
     const tokens = safe.split(' ').filter((t) => t.length > 0)
     const primary = tokens[0]
-    const { data: candidatos } = await db()
+    // alumno_ref es numérico: ilike en esa columna tumba todo el .or().
+    const orParts = [
+      `alumno_app.ilike.%${primary}%`,
+      `alumno_apm.ilike.%${primary}%`,
+      `alumno_nombre.ilike.%${primary}%`,
+    ]
+    if (/^\d+$/.test(primary)) orParts.push(`alumno_ref.eq.${primary}`)
+
+    const { data: candidatos, error } = await db()
       .from('alumno')
       .select(
         'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_nivel, alumno_status'
       )
       .in('alumno_nivel', cfg.nivelesEscolares)
       .neq('alumno_status', 0)
-      .or(
-        `alumno_ref.ilike.%${primary}%,alumno_app.ilike.%${primary}%,alumno_apm.ilike.%${primary}%,alumno_nombre.ilike.%${primary}%`
-      )
-      .limit(40)
+      .or(orParts.join(','))
+      .limit(50)
+    if (error) throw new Error(error.message)
+
     const alumnos = ((candidatos ?? []) as AlumnoRow[])
       .filter((a) => {
         const blob = [a.alumno_ref, a.alumno_app, a.alumno_apm, a.alumno_nombre]

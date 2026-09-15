@@ -1069,7 +1069,6 @@ export default function RacSecundariaPage() {
                       setHistorialTipo(Number(e.target.value))
                       setHistorialMateriaId(0)
                     }}
-                    disabled={!historialAlumnoId}
                   >
                     <option value={1}>Académico</option>
                     <option value={2}>Conducta</option>
@@ -1084,7 +1083,6 @@ export default function RacSecundariaPage() {
                     <select
                       value={historialMateriaId}
                       onChange={(e) => setHistorialMateriaId(Number(e.target.value))}
-                      disabled={!historialAlumnoId}
                     >
                       <option value={0}>Todas</option>
                       {materiasHistorial.map((m) => (
