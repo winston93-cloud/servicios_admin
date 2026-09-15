@@ -38,4 +38,13 @@ BOLETAS_SESSION_SECRET=<secreto sesión>
 
 - Hub: `/boletas`
 - Módulos: `/boletas/kinder-espanol`, `kinder-ingles`, `primaria-espanol`, `primaria-ingles`, `/boletas-secundaria`
+
+## Sync roster `alumno` (Winston → Boletas)
+
+Si el listado sale vacío en el ciclo actual, re-sincroniza desde Winston Servicios:
+
+```bash
+node --env-file=.env.local scripts/sync-alumno-winston-a-boletas.mjs
+# o solo un ciclo: --ciclo=23
+```
 - Envío email unificado: `POST /api/boletas-envio` `{ modulo, alumnoId, bimestre, ciclo }`

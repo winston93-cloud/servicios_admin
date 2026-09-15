@@ -13,6 +13,7 @@ import { ArrowLeft, LogOut, Printer, Save, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import '../boletas-login-google.css'
+import '../boletas-modulos-ui.css'
 import './kinder-espanol.css'
 
 type Me = {
@@ -129,6 +130,7 @@ function KinderEsApp() {
   const [bimestre, setBimestre] = useState(1)
   const [ciclo, setCiclo] = useState(cicloDefault)
   const [alumnos, setAlumnos] = useState<Alumno[]>([])
+  const [didList, setDidList] = useState(false)
   const [alumnoId, setAlumnoId] = useState<number | null>(null)
   const [indicadores, setIndicadores] = useState<IndicadorFila[]>([])
   const [alumnoNombre, setAlumnoNombre] = useState('')
@@ -162,6 +164,7 @@ function KinderEsApp() {
         `/api/boletas-kinder-espanol/alumnos?grado=${grado}&grupo=${grupo}&ciclo=${ciclo}`
       )
       setAlumnos(data.alumnos ?? [])
+      setDidList(true)
       setAlumnoId(null)
       setIndicadores([])
       setAlumnoNombre('')
@@ -171,10 +174,16 @@ function KinderEsApp() {
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Error al listar')
       setAlumnos([])
+      setDidList(true)
     } finally {
       setLoadingList(false)
     }
   }, [grado, grupo, ciclo])
+
+  useEffect(() => {
+    if (!me) return
+    void cargarAlumnos()
+  }, [me, cargarAlumnos])
 
   const abrirCaptura = useCallback(
     async (id: number) => {
@@ -300,8 +309,8 @@ function KinderEsApp() {
   }
 
   return (
-    <div className="ke-page">
-      <header className="ke-top">
+    <div className="ke-page bm-page">
+      <header className="ke-top bm-top">
         <button type="button" className="ke-back" onClick={() => router.push('/boletas')}>
           <ArrowLeft size={15} aria-hidden />
           Boletas
@@ -318,10 +327,13 @@ function KinderEsApp() {
       </header>
 
       <main className="ke-main">
-        <h1 className="ke-title">Kinder · Español</h1>
-        <p className="ke-lead">
-          Captura por indicador · Ciclo {etiquetaCicloBoletas(ciclo)}
-        </p>
+        <header className="bm-hero">
+          <p className="bm-kicker">Sistema integral de boletas</p>
+          <h1 className="ke-title">Kinder · Español</h1>
+          <p className="ke-lead">
+            Captura por indicador · Ciclo {etiquetaCicloBoletas(ciclo)}
+          </p>
+        </header>
 
         {(msg || err) && (
           <p className={`ke-msg${err ? ' is-error' : ''}`} role="status">
@@ -329,8 +341,8 @@ function KinderEsApp() {
           </p>
         )}
 
-        <section className="ke-paper">
-          <div className="ke-filters">
+        <section className="ke-paper bm-panel">
+          <div className="ke-filters bm-filters">
             <label>
               Grado
               <select
@@ -385,12 +397,29 @@ function KinderEsApp() {
             </button>
           </div>
 
-          <div className="ke-layout">
+          <div className="ke-layout bm-layout">
             <div>
+              {alumnos.length > 0 ? (
+                <p className="bm-count">{alumnos.length} alumno{alumnos.length === 1 ? '' : 's'}</p>
+              ) : null}
               {alumnos.length === 0 ? (
-                <p className="ke-empty">Elige filtros y pulsa Listar.</p>
+                <p className="ke-empty bm-empty">
+                  {loadingList ? (
+                    'Cargando alumnos…'
+                  ) : didList ? (
+                    <>
+                      <strong>Sin alumnos en este filtro</strong>
+                      Prueba otro grado, grupo o ciclo.
+                    </>
+                  ) : (
+                    <>
+                      <strong>Listado</strong>
+                      Elige filtros y pulsa Listar.
+                    </>
+                  )}
+                </p>
               ) : (
-                <ul className="ke-list">
+                <ul className="ke-list bm-list">
                   {alumnos.map((a) => (
                     <li key={a.alumno_id}>
                       <button
@@ -399,7 +428,7 @@ function KinderEsApp() {
                         onClick={() => void abrirCaptura(a.alumno_id)}
                       >
                         {a.nombre}
-                        <span className="ke-list-meta">
+                        <span className="ke-list-meta bm-list-meta">
                           Ref {String(a.alumno_ref ?? '').padStart(5, '0')} · {a.grupo_letra}
                         </span>
                       </button>
@@ -411,13 +440,19 @@ function KinderEsApp() {
 
             <div>
               {alumnoId == null ? (
-                <p className="ke-empty">Selecciona un alumno para capturar.</p>
+                <p className="ke-empty bm-empty">
+                  <strong>Captura</strong>
+                  Selecciona un alumno de la lista.
+                </p>
               ) : loadingCap ? (
-                <p className="ke-empty">Cargando captura…</p>
+                <p className="ke-empty bm-empty">Cargando captura…</p>
               ) : (
                 <div className="ke-form">
-                  <div className="ke-form-head">
-                    <h2>{alumnoNombre}</h2>
+                  <div className="ke-form-head bm-form-head">
+                    <div>
+                      <span className="bm-badge">Trimestre {bimestre}</span>
+                      <h2 style={{ margin: '0.45rem 0 0', fontSize: '1.15rem' }}>{alumnoNombre}</h2>
+                    </div>
                     <div className="ke-actions">
                       <button
                         type="button"

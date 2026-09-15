@@ -7,6 +7,7 @@ import { ArrowLeft, LogOut, Printer, Save, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import '../boletas/boletas-login-google.css'
+import '../boletas/boletas-modulos-ui.css'
 import './boletas-secundaria.css'
 
 type Role = 'maestro' | 'admin'
@@ -291,8 +292,8 @@ function BoletasApp() {
 
   if (!me) {
     return (
-      <div className="boletas-shell">
-        <header className="boletas-header">
+      <div className="boletas-shell bm-page">
+        <header className="boletas-header bm-top">
           <button type="button" className="servicios-back-btn" onClick={() => router.push('/boletas')}>
             <ArrowLeft size={16} aria-hidden />
             Hub boletas
@@ -305,15 +306,15 @@ function BoletasApp() {
   }
 
   return (
-    <div className="boletas-shell">
-      <header className="boletas-header">
+    <div className="boletas-shell bm-page">
+      <header className="boletas-header bm-top">
         <button type="button" className="servicios-back-btn" onClick={() => router.push('/boletas')}>
           <ArrowLeft size={16} aria-hidden />
           Hub boletas
         </button>
         <div className="boletas-header-meta">
           <strong>{me.nombre}</strong>
-          <span className="boletas-badge">{me.role}</span>
+          <span className="boletas-badge bm-badge">{me.role}</span>
           {!me.envOk ? <span className="boletas-error">Sin InsForge boletas</span> : null}
         </div>
         <ThemeToggle />
@@ -323,7 +324,8 @@ function BoletasApp() {
         </button>
       </header>
 
-      <div className="boletas-heading">
+      <div className="boletas-heading bm-hero">
+        <p className="bm-kicker">Sistema integral de boletas</p>
         <h1>Boletas secundaria</h1>
         <p>Captura, consulta histórica, PDF y envío — ciclo {ciclo || me.cicloActual}</p>
       </div>
@@ -351,8 +353,8 @@ function BoletasApp() {
       {msg ? <p className="boletas-msg">{msg}</p> : null}
 
       {tab === 'captura' ? (
-        <section className="boletas-panel">
-          <div className="boletas-filters">
+        <section className="boletas-panel bm-panel">
+          <div className="boletas-filters bm-filters">
             <label>
               Materia / grupo
               <select value={asigKey} onChange={(e) => setAsigKey(e.target.value)}>
@@ -482,8 +484,8 @@ function BoletasApp() {
       ) : null}
 
       {tab === 'admin' && me.role === 'admin' ? (
-        <section className="boletas-panel boletas-admin">
-          <div className="boletas-filters">
+        <section className="boletas-panel boletas-admin bm-panel">
+          <div className="boletas-filters bm-filters">
             <label>
               Periodo activo
               <select value={periodoAdmin} onChange={(e) => setPeriodoAdmin(Number(e.target.value))}>
@@ -507,7 +509,7 @@ function BoletasApp() {
           </div>
 
           <h3>Nueva materia</h3>
-          <div className="boletas-filters">
+          <div className="boletas-filters bm-filters">
             <input
               placeholder="Nombre"
               value={nuevaMateria.materia_nombre}
@@ -573,8 +575,8 @@ function BoletasApp() {
       ) : null}
 
       {tab === 'reportes' ? (
-        <section className="boletas-panel">
-          <div className="boletas-filters">
+        <section className="boletas-panel bm-panel">
+          <div className="boletas-filters bm-filters">
             <label>
               Tipo
               <select value={repTipo} onChange={(e) => setRepTipo(e.target.value as 'alumnos' | 'materias')}>
@@ -662,11 +664,11 @@ function BoletasApp() {
       ) : null}
 
       {tab === 'envio' && me.role === 'admin' ? (
-        <section className="boletas-panel">
+        <section className="boletas-panel bm-panel">
           <p className="boletas-muted">
             Envío autenticado a familiares con correo activo (paridad Filtro + BoletaEmail). Requiere MAIL_PASS.
           </p>
-          <div className="boletas-filters">
+          <div className="boletas-filters bm-filters">
             <label>
               Ciclo
               <select value={ciclo} onChange={(e) => setCiclo(Number(e.target.value))}>
