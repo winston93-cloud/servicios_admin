@@ -280,9 +280,9 @@ function BoletasApp() {
     return (
       <div className="boletas-shell">
         <header className="boletas-header">
-          <button type="button" className="servicios-back-btn" onClick={() => router.push('/becas')}>
+          <button type="button" className="servicios-back-btn" onClick={() => router.push('/boletas')}>
             <ArrowLeft size={16} aria-hidden />
-            Hub Becas
+            Hub boletas
           </button>
           <ThemeToggle />
         </header>
@@ -294,9 +294,9 @@ function BoletasApp() {
   return (
     <div className="boletas-shell">
       <header className="boletas-header">
-        <button type="button" className="servicios-back-btn" onClick={() => router.push('/becas')}>
+        <button type="button" className="servicios-back-btn" onClick={() => router.push('/boletas')}>
           <ArrowLeft size={16} aria-hidden />
-          Hub Becas
+          Hub boletas
         </button>
         <div className="boletas-header-meta">
           <strong>{me.nombre}</strong>

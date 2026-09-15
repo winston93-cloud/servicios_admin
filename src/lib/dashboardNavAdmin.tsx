@@ -284,12 +284,13 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
-    label: 'Boletas',
-    desc: 'Captura, consulta, PDF y promedios de secundaria (ciclos actuales y pasados).',
-    path: '/boletas-secundaria',
+    label: 'Sistema Integral de Boletas Escolares',
+    desc: 'Hub de boletas: Kinder y Primaria (español e inglés) y Secundaria.',
+    path: '/boletas',
     accent: 'indigo',
     kicker: 'Control escolar',
-    tags: ['Boletas', 'Calificaciones'],
+    tags: ['Boletas', 'Kinder', 'Primaria', 'Secundaria'],
+    badge: 'Nuevo',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
@@ -302,11 +303,11 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   },
   {
     label: 'Becas',
-    desc: 'Renovaciones, solicitudes, permisos, bitácora y boletas de secundaria.',
+    desc: 'Renovaciones, solicitudes, permisos y bitácora de Control Escolar.',
     path: '/becas',
     accent: 'amber',
     kicker: 'Becas',
-    tags: ['Revisión', 'Boletas', 'Control Escolar'],
+    tags: ['Revisión', 'Control Escolar'],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />

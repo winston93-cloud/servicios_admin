@@ -105,7 +105,8 @@ function BecasHubView() {
           </button>
           <h1 className="dashboard-title">Becas</h1>
           <p className="dashboard-subtitle">
-            Panel de Control Escolar: renovaciones, solicitudes y boletas de secundaria.
+            Panel de Control Escolar: renovaciones, solicitudes, permisos y bitácora. Las boletas
+            escolares están en el Sistema Integral de Boletas.
           </p>
           <div className="facturacion-cfdi-theme-row">
             <ThemeToggle />

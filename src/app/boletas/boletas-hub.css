@@ -1,0 +1,250 @@
+/* Hub Sistema Integral de Boletas — Totality + atmósfera propia */
+
+.boletas-hub-page {
+  position: relative;
+  min-height: 100dvh;
+  overflow-x: clip;
+}
+
+.boletas-hub-atmosphere {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.boletas-hub-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(48px);
+  opacity: 0.45;
+  animation: boletas-hub-drift 18s ease-in-out infinite alternate;
+}
+
+.boletas-hub-orb--a {
+  width: min(52vw, 420px);
+  height: min(52vw, 420px);
+  top: -8%;
+  right: -6%;
+  background: radial-gradient(circle, rgba(0, 227, 253, 0.35), transparent 70%);
+}
+
+.boletas-hub-orb--b {
+  width: min(48vw, 380px);
+  height: min(48vw, 380px);
+  bottom: 8%;
+  left: -10%;
+  background: radial-gradient(circle, rgba(255, 246, 223, 0.22), transparent 72%);
+  animation-delay: -6s;
+}
+
+.boletas-hub-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 246, 223, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 246, 223, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 55% at 50% 20%, #000 20%, transparent 75%);
+  opacity: 0.5;
+}
+
+@keyframes boletas-hub-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(2%, 3%, 0) scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .boletas-hub-orb {
+    animation: none;
+  }
+}
+
+.boletas-hub-main {
+  position: relative;
+  z-index: 1;
+  max-width: 1180px;
+  margin-inline: auto;
+  padding-inline: var(--page-gutter);
+  padding-bottom: clamp(28px, 7vw, 56px);
+}
+
+.boletas-hub-heading {
+  margin-bottom: clamp(1.25rem, 3vw, 2rem);
+}
+
+.boletas-hub-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.85rem 0 0.35rem;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #00e3fd;
+}
+
+.boletas-hub-title {
+  max-width: 18ch;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.boletas-hub-lead {
+  max-width: 42rem;
+  text-wrap: pretty;
+}
+
+.boletas-hub-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+  margin-top: 1rem;
+}
+
+.boletas-hub-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 34px;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 246, 223, 0.16);
+  background: rgba(18, 19, 24, 0.55);
+  color: #c9c4b5;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.boletas-hub-pill strong {
+  color: #fff6df;
+  font-weight: 700;
+}
+
+.boletas-hub-pill--live {
+  border-color: rgba(0, 227, 253, 0.35);
+  background: rgba(0, 227, 253, 0.1);
+  color: #9aeee8;
+}
+
+.boletas-hub-pill--live strong {
+  color: #00e3fd;
+}
+
+.boletas-hub-section-head {
+  margin: 0 0 0.9rem;
+}
+
+.boletas-hub-section-head h2 {
+  margin: 0 0 0.25rem;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: clamp(1.05rem, 2.2vw, 1.25rem);
+  font-weight: 700;
+  color: #fff6df;
+  letter-spacing: -0.02em;
+}
+
+.boletas-hub-section-head p {
+  margin: 0;
+  max-width: 40rem;
+  color: var(--dash-muted, #94a3b8);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.boletas-hub-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+@media (min-width: 768px) {
+  .boletas-hub-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+@media (min-width: 1100px) {
+  .boletas-hub-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .boletas-hub-grid > :nth-child(1),
+  .boletas-hub-grid > :nth-child(2),
+  .boletas-hub-grid > :nth-child(3),
+  .boletas-hub-grid > :nth-child(4) {
+    grid-column: span 3;
+  }
+
+  .boletas-hub-grid > :nth-child(5) {
+    grid-column: 2 / span 4;
+  }
+}
+
+.boletas-hub-item--live .dash-nav-item {
+  box-shadow:
+    0 0 0 1px rgba(0, 227, 253, 0.28),
+    0 18px 40px rgba(0, 227, 253, 0.12);
+}
+
+html[data-theme='light'] .boletas-hub-brand {
+  color: #0891b2;
+}
+
+html[data-theme='light'] .boletas-hub-section-head h2 {
+  color: #1e3a5f;
+}
+
+html[data-theme='light'] .boletas-hub-pill {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(30, 58, 95, 0.14);
+  color: #475569;
+}
+
+html[data-theme='light'] .boletas-hub-pill strong {
+  color: #1e3a5f;
+}
+
+html[data-theme='light'] .boletas-hub-pill--live {
+  background: rgba(8, 145, 178, 0.1);
+  border-color: rgba(8, 145, 178, 0.28);
+  color: #0e7490;
+}
+
+html[data-theme='light'] .boletas-hub-pill--live strong {
+  color: #0e7490;
+}
+
+html[data-theme='light'] .boletas-hub-orb--a {
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.22), transparent 70%);
+}
+
+html[data-theme='light'] .boletas-hub-orb--b {
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.16), transparent 72%);
+}
+
+html[data-theme='light'] .boletas-hub-grid {
+  background-image:
+    linear-gradient(rgba(30, 58, 95, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(30, 58, 95, 0.05) 1px, transparent 1px);
+}
+
+@media (max-width: 640px) {
+  .boletas-hub-page .servicios-back-btn,
+  .boletas-hub-page .dash-module-action {
+    min-height: var(--touch-min);
+  }
+
+  .boletas-hub-title {
+    max-width: none;
+  }
+}

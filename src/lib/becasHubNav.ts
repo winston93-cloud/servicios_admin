@@ -24,7 +24,7 @@ function becasAdminBase(): string {
 
 const admin = () => becasAdminBase()
 
-/** Hub Becas: 5 tarjetas (Control Escolar + Boletas secundaria). */
+/** Hub Becas: renovaciones / solicitudes / permisos / bitácora + enlace al hub de boletas. */
 export const BECAS_HUB_NAV: BecasHubItem[] = [
   {
     id: 'renovaciones',
@@ -63,11 +63,11 @@ export const BECAS_HUB_NAV: BecasHubItem[] = [
     icon: 'scroll',
   },
   {
-    id: 'boletas-secundaria',
-    label: 'Boletas secundaria',
-    desc: 'Captura, consulta, PDF y promedios (ciclos actuales y pasados).',
+    id: 'boletas',
+    label: 'Sistema de boletas',
+    desc: 'Hub integral: Kinder, Primaria (ES/EN) y Secundaria.',
     accent: 'sky',
-    path: '/boletas-secundaria',
+    path: '/boletas',
     icon: 'book',
   },
 ]
