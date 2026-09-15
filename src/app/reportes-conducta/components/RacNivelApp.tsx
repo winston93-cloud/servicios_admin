@@ -389,9 +389,11 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
           'Guardado. La conducta queda pendiente de Psicología; el correo a papás se envía al validarla.'
         )
       } else if (data.envio && data.envio.ok === false) {
-        setMsg(`Guardado, pero el correo no salió: ${data.envio.error || 'error de envío'}.`)
+        setMsg(
+          `Guardado, pero el correo a la familia no salió: ${data.envio.error || 'error de envío'}. Se avisó a la cuenta institucional; puedes enviarlo desde «Avisos de atención» / bandeja con Enviar o Reenviar.`
+        )
       } else {
-        setMsg('Registro guardado y correo enviado.')
+        setMsg('Registro guardado y correo enviado a la familia.')
       }
       setModal(null)
       setMensaje('')
@@ -411,11 +413,35 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   ) {
     setBusy(true)
     try {
-      await api(`${config.apiBase}/coordinacion`, {
+      const data = await api<{ ok?: boolean; error?: string }>(`${config.apiBase}/coordinacion`, {
         method: 'POST',
         body: JSON.stringify({ entidad, id, accion, ...extra }),
       })
-      setMsg('Listo')
+      if (accion === 'reenviar' || (entidad === 'reporte' && accion === 'validar')) {
+        if (data.ok === false) {
+          setMsg(
+            `No se pudo enviar el correo a la familia${data.error ? `: ${data.error}` : ''}. Ya se avisó a la cuenta institucional; reinténtalo con Enviar/Reenviar en la bandeja.`
+          )
+        } else {
+          setMsg(
+            entidad === 'cita'
+              ? 'Citatorio enviado a la familia.'
+              : accion === 'validar'
+                ? 'Reporte aprobado y correo enviado a la familia.'
+                : 'Correo enviado a la familia correctamente.'
+          )
+        }
+      } else {
+        setMsg(
+          accion === 'confirmar'
+            ? 'Marcado como enterado.'
+            : accion === 'denegar'
+              ? 'Reporte denegado.'
+              : accion === 'detener'
+                ? 'Registro detenido.'
+                : 'Listo'
+        )
+      }
       setCitaValidar(null)
       if (tab === 'inbox') await cargarVista('pendientes')
       if (tab === 'informes') await cargarVista('informes')
@@ -513,16 +539,21 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
     let fail = 0
     for (const id of seleccionados) {
       try {
-        await api(`${config.apiBase}/coordinacion`, {
+        const data = await api<{ ok?: boolean }>(`${config.apiBase}/coordinacion`, {
           method: 'POST',
           body: JSON.stringify({ entidad: 'reporte', id, accion: 'reenviar' }),
         })
-        ok += 1
+        if (data.ok === false) fail += 1
+        else ok += 1
       } catch {
         fail += 1
       }
     }
-    setMsg(fail ? `Reenviados: ${ok} · No enviados: ${fail}` : `Reenviados correctamente: ${ok}`)
+    setMsg(
+      fail
+        ? `Enviados: ${ok} · No enviados: ${fail}. Por cada fallo se avisó a la cuenta institucional.`
+        : `Correo enviado a la familia correctamente (${ok}).`
+    )
     setSeleccionados([])
     try {
       if (tab === 'inbox') await cargarVista('pendientes')

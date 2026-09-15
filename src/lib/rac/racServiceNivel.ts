@@ -19,6 +19,7 @@ import {
   htmlCorreoRac,
   urlPublicaRac,
 } from '@/lib/racCorreo'
+import { avisarStaffFalloEnvioRac } from '@/lib/racFalloEnvio'
 import { filaPdfDesdeReporte, type FilaPdfReporte } from '@/lib/racPdf'
 import { RacNivelAuthError, type RacSesionNivel } from './racAuthNivel'
 import type { RacNivelConfig } from './racNivelConfig'
@@ -557,8 +558,23 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     if (!r) throw new Error('Reporte no encontrado')
     const alumno = await cargarAlumno(n(r.alumno_id))
     const to = await emailsFamilia(alumno.alumno_id)
-    if (!to.length) return { ok: false, error: 'La familia no tiene correo registrado' }
     const tipo = n(r.reporte_tipo)
+    const failNotify = async (motivoError: string) => {
+      await avisarStaffFalloEnvioRac({
+        panel: cfg.slug,
+        perfilId: n(r.perfil_id),
+        usuarioId: n(r.usuario_id),
+        alumnoNombre: nombreAlumno(alumno),
+        alumnoRef: alumno.alumno_ref ?? '',
+        tipoReporte: tipo,
+        motivoError,
+        reporteId,
+      })
+    }
+    if (!to.length) {
+      await failNotify('La familia no tiene correo registrado')
+      return { ok: false, error: 'La familia no tiene correo registrado' }
+    }
     const no = n(r.reporte_no)
     const alt = tipo === 5 ? 3 : tipo === 8 ? 4 : 1
     let materiaNombre = ''
@@ -595,7 +611,11 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       <p>${escapeHtml(String(r.reporte_mensaje ?? '')).replace(/\n/g, '<br>')}</p>`,
     })
     const envio = await enviarAvisoRac({ to, subject, html })
-    if (envio.ok) await client.from('reporte_escolar').update({ reporte_enviado: 1 }).eq('reporte_id', reporteId)
+    if (envio.ok) {
+      await client.from('reporte_escolar').update({ reporte_enviado: 1 }).eq('reporte_id', reporteId)
+    } else {
+      await failNotify(envio.error || 'Error de envío a la familia')
+    }
     return envio
   }
 
