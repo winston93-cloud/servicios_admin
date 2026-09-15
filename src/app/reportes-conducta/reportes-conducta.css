@@ -36,3 +36,26 @@
     min-height: var(--touch-min);
   }
 }
+
+/* Impresión RAC — bloques de filtros */
+.rac-print-legend {
+  flex: 1 1 100%;
+  margin: 0 0 0.15rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted, #94a3b8);
+}
+
+.rac-print-block {
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+@media (max-width: 640px) {
+  .rac-print-legend {
+    font-size: 0.72rem;
+  }
+}

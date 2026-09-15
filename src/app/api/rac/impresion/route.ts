@@ -32,7 +32,11 @@ export async function GET(req: Request) {
       })
     }
 
-    const datos = await datosPdfPendientes()
+    const datos = await datosPdfPendientes({
+      grado: Number(url.searchParams.get('grado') || 0) || undefined,
+      grupo: url.searchParams.get('grupo')?.trim() || undefined,
+      nivel: Number(url.searchParams.get('nivel') || 0) || undefined,
+    })
     const pdf = pdfReportesPendientes(datos)
     return new NextResponse(pdf, {
       headers: {

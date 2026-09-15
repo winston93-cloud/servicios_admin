@@ -22,7 +22,7 @@ import {
   urlPublicaRac,
 } from '@/lib/racCorreo'
 import { avisarStaffFalloEnvioRac } from '@/lib/racFalloEnvio'
-import { filaPdfDesdeReporte, type FilaPdfReporte } from '@/lib/racPdf'
+import { filaPdfDesdeReporte, filtrarFilasPdf, ordenarFilasPdf, type FilaPdfReporte } from '@/lib/racPdf'
 
 type AlumnoRow = {
   alumno_id: number
@@ -654,6 +654,7 @@ async function hidratar(rows: Record<string, unknown>[]) {
       nombre: a ? nombreAlumno(a) : '',
       grado: a ? n(a.alumno_grado) : 0,
       grupo: a ? letraDesdeGrupoNum(n(a.alumno_grupo)) : '',
+      nivel: a ? n(a.alumno_nivel) : 0,
       materia: materia || departamento,
       tipo: n(r.reporte_tipo),
       tipoEtiqueta: etiquetaTipoReporte(n(r.reporte_tipo)),
@@ -1007,20 +1008,29 @@ async function filasPdfDesdeQuery(rows: Record<string, unknown>[]): Promise<Fila
       enviado: r.enviado,
       confirmado: r.confirmado,
       vuelta: n(raw?.reporte_ciclo),
+      mensaje: r.mensaje,
+      grado: r.grado,
+      grupo: r.grupo,
+      nivel: r.nivel,
     })
   })
 }
 
-export async function datosPdfPendientes() {
+export type FiltroPdfPendientesRac = {
+  grado?: number
+  grupo?: string
+  nivel?: number
+}
+
+export async function datosPdfPendientes(filtro?: FiltroPdfPendientesRac) {
   const ciclo = await cicloRac()
   const client = db()
-  const base = client
+  const { data: reportes } = await client
     .from('reporte_escolar')
     .select('*')
     .eq('reporte_ciclo_escolar', ciclo)
     .eq('reporte_confirmado', 0)
     .eq('reporte_status', 1)
-  const { data: reportes } = await base
     .neq('reporte_tipo', RAC_TIPOS.informeAcademico)
     .lt('reporte_tipo', RAC_TIPOS.seguimiento)
     .order('reporte_registro', { ascending: true })
@@ -1032,10 +1042,16 @@ export async function datosPdfPendientes() {
     .eq('reporte_status', 1)
     .eq('reporte_tipo', RAC_TIPOS.informeAcademico)
     .order('reporte_registro', { ascending: true })
+  const reportesFilas = ordenarFilasPdf(
+    filtrarFilasPdf(await filasPdfDesdeQuery((reportes ?? []) as Record<string, unknown>[]), filtro)
+  )
+  const informesFilas = ordenarFilasPdf(
+    filtrarFilasPdf(await filasPdfDesdeQuery((informes ?? []) as Record<string, unknown>[]), filtro)
+  )
   return {
     ciclo,
-    reportes: await filasPdfDesdeQuery((reportes ?? []) as Record<string, unknown>[]),
-    informes: await filasPdfDesdeQuery((informes ?? []) as Record<string, unknown>[]),
+    reportes: reportesFilas,
+    informes: informesFilas,
   }
 }
 
@@ -1052,10 +1068,22 @@ export async function datosPdfHistorial(alumnoId: number, reporteTipo: number, m
   if (reporteTipo === RAC_TIPOS.academico && materiaId) q = q.eq('materia_id', materiaId)
   const { data, error } = await q.order('reporte_ciclo').order('reporte_no')
   if (error) throw new Error(error.message)
+
+  const { data: informesRaw } = await db()
+    .from('reporte_escolar')
+    .select('*')
+    .eq('alumno_id', alumnoId)
+    .eq('reporte_tipo', RAC_TIPOS.informeAcademico)
+    .eq('reporte_ciclo_escolar', ciclo)
+    .eq('reporte_status', 1)
+    .order('reporte_ciclo')
+    .order('reporte_no')
+
   return {
     ciclo,
     alumnoNombre: nombreAlumno(alumno),
     filas: await filasPdfDesdeQuery((data ?? []) as Record<string, unknown>[]),
+    informes: await filasPdfDesdeQuery((informesRaw ?? []) as Record<string, unknown>[]),
   }
 }
 

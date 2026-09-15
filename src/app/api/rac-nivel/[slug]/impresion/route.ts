@@ -37,7 +37,11 @@ export async function GET(req: Request, { params }: Params) {
       })
     }
 
-    const datos = await svc.datosPdfPendientes()
+    const datos = await svc.datosPdfPendientes({
+      grado: Number(url.searchParams.get('grado') || 0) || undefined,
+      grupo: url.searchParams.get('grupo')?.trim() || undefined,
+      nivel: Number(url.searchParams.get('nivel') || 0) || undefined,
+    })
     const pdf = pdfReportesPendientes(datos)
     return new NextResponse(pdf, {
       headers: {

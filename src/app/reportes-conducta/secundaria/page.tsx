@@ -214,6 +214,8 @@ export default function RacSecundariaPage() {
   const [historialAlumnoId, setHistorialAlumnoId] = useState(0)
   const [historialTipo, setHistorialTipo] = useState(1)
   const [historialMateriaId, setHistorialMateriaId] = useState(0)
+  const [printGrado, setPrintGrado] = useState(0)
+  const [printGrupo, setPrintGrupo] = useState('')
   const [seleccionados, setSeleccionados] = useState<number[]>([])
   const puedeVerDetalleLista =
     tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' || tab === 'suspensiones'
@@ -480,6 +482,13 @@ export default function RacSecundariaPage() {
         URL.revokeObjectURL(a.href)
       })
       .catch((e) => setMsg(e instanceof Error ? e.message : 'Error al descargar PDF'))
+  }
+
+  function urlPdfPendientes() {
+    const params = new URLSearchParams({ modo: 'pendientes' })
+    if (printGrado > 0) params.set('grado', String(printGrado))
+    if (printGrupo) params.set('grupo', printGrupo)
+    return `/api/rac/impresion?${params.toString()}`
   }
 
   const esAdmin = Boolean(me && esPanelAdminRac(me.role))
@@ -816,7 +825,7 @@ export default function RacSecundariaPage() {
               <button
                 type="button"
                 className="boletas-btn download"
-                onClick={() => descargarPdf('/api/rac/impresion?modo=pendientes', 'rac-pendientes.pdf')}
+                onClick={() => descargarPdf(urlPdfPendientes(), 'rac-pendientes.pdf')}
               >
                 <Download size={16} aria-hidden />
                 PDF reportes sin confirmar
@@ -846,73 +855,114 @@ export default function RacSecundariaPage() {
             </div>
           ) : null}
           {tab === 'historial' ? (
-            <div className="boletas-filters">
-              <label>
-                Buscar alumno
-                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Apellido o control" />
-              </label>
-              <button type="button" className="boletas-btn" onClick={() => void cargarVista('historial')}>
-                Buscar
-              </button>
-              {historialAlumnos.length ? (
-                <label>
-                  Alumno
-                  <select
-                    value={historialAlumnoId}
-                    onChange={(e) => setHistorialAlumnoId(Number(e.target.value))}
+            <>
+              {esAdmin ? (
+                <div className="boletas-filters rac-print-block">
+                  <p className="rac-print-legend">Impresión de reportes sin confirmar</p>
+                  <label>
+                    Grado
+                    <select
+                      value={printGrado}
+                      onChange={(e) => setPrintGrado(Number(e.target.value))}
+                    >
+                      <option value={0}>Todos</option>
+                      {[1, 2, 3].map((g) => (
+                        <option key={g} value={g}>
+                          {etiquetaGradoStaffSecundaria(g)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Grupo
+                    <select value={printGrupo} onChange={(e) => setPrintGrupo(e.target.value)}>
+                      <option value="">Todos</option>
+                      {['A', 'B', 'C'].map((g) => (
+                        <option key={g} value={g}>
+                          {g}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    className="boletas-btn download"
+                    onClick={() => descargarPdf(urlPdfPendientes(), 'rac-pendientes.pdf')}
                   >
-                    {historialAlumnos.map((a) => (
-                      <option key={a.alumno_id} value={a.alumno_id}>
-                        {[a.alumno_app, a.alumno_apm, a.alumno_nombre].filter(Boolean).join(' ')} · {a.alumno_ref}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    <Download size={16} aria-hidden />
+                    Imprimir reportes sin confirmar
+                  </button>
+                </div>
               ) : null}
-              <label>
-                Tipo de reporte
-                <select value={historialTipo} onChange={(e) => setHistorialTipo(Number(e.target.value))}>
-                  <option value={1}>Académico</option>
-                  <option value={2}>Conducta</option>
-                  <option value={3}>Uniforme</option>
-                  <option value={4}>Vialidad</option>
-                  <option value={6}>Retardo</option>
-                </select>
-              </label>
-              {historialTipo === 1 ? (
+              <div className="boletas-filters">
+                <p className="rac-print-legend">Historial por alumno</p>
                 <label>
-                  Materia
-                  <select
-                    value={historialMateriaId}
-                    onChange={(e) => setHistorialMateriaId(Number(e.target.value))}
-                  >
-                    <option value={0}>Todas</option>
-                    {asignaciones.map((a) => (
-                      <option key={a.materia_id} value={a.materia_id}>
-                        {a.materia_nombre}
-                      </option>
-                    ))}
-                  </select>
+                  Buscar alumno
+                  <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Apellido o control" />
                 </label>
-              ) : null}
-              {historialAlumnoId ? (
-                <button
-                  type="button"
-                  className="boletas-btn download"
-                  onClick={() =>
-                    descargarPdf(
-                      `/api/rac/impresion?modo=historial&alumnoId=${historialAlumnoId}&reporteTipo=${historialTipo}${
-                        historialMateriaId ? `&materiaId=${historialMateriaId}` : ''
-                      }`,
-                      `rac-historial-${historialAlumnoId}.pdf`
-                    )
-                  }
-                >
-                  <Download size={16} aria-hidden />
-                  Imprimir PDF
+                <button type="button" className="boletas-btn" onClick={() => void cargarVista('historial')}>
+                  Buscar
                 </button>
-              ) : null}
-            </div>
+                {historialAlumnos.length ? (
+                  <label>
+                    Alumno
+                    <select
+                      value={historialAlumnoId}
+                      onChange={(e) => setHistorialAlumnoId(Number(e.target.value))}
+                    >
+                      {historialAlumnos.map((a) => (
+                        <option key={a.alumno_id} value={a.alumno_id}>
+                          {[a.alumno_app, a.alumno_apm, a.alumno_nombre].filter(Boolean).join(' ')} · {a.alumno_ref}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                <label>
+                  Tipo de reporte
+                  <select value={historialTipo} onChange={(e) => setHistorialTipo(Number(e.target.value))}>
+                    <option value={1}>Académico</option>
+                    <option value={2}>Conducta</option>
+                    <option value={3}>Uniforme</option>
+                    <option value={4}>Vialidad</option>
+                    <option value={6}>Retardo</option>
+                  </select>
+                </label>
+                {historialTipo === 1 ? (
+                  <label>
+                    Materia
+                    <select
+                      value={historialMateriaId}
+                      onChange={(e) => setHistorialMateriaId(Number(e.target.value))}
+                    >
+                      <option value={0}>Todas</option>
+                      {asignaciones.map((a) => (
+                        <option key={a.materia_id} value={a.materia_id}>
+                          {a.materia_nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                {historialAlumnoId ? (
+                  <button
+                    type="button"
+                    className="boletas-btn download"
+                    onClick={() =>
+                      descargarPdf(
+                        `/api/rac/impresion?modo=historial&alumnoId=${historialAlumnoId}&reporteTipo=${historialTipo}${
+                          historialMateriaId ? `&materiaId=${historialMateriaId}` : ''
+                        }`,
+                        `rac-historial-${historialAlumnoId}.pdf`
+                      )
+                    }
+                  >
+                    <Download size={16} aria-hidden />
+                    Imprimir historial PDF
+                  </button>
+                ) : null}
+              </div>
+            </>
           ) : null}
           <div className="boletas-table-wrap">
             <table className="boletas-table">
