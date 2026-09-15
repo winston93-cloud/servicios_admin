@@ -108,11 +108,6 @@ export default function BoletasHubPage() {
       </header>
 
       <main className="boletas-hub__main">
-        <header className="boletas-hub__pagehead">
-          <h1 className="boletas-hub__title">Sistema Integral de Boletas Escolares</h1>
-          <p className="boletas-hub__lead">Ciclo {cicloEtiqueta}</p>
-        </header>
-
         <div className="boletas-hub__stage">
           <nav className="boletas-hub__index" aria-label="Sistemas de boletas">
             <ul className="boletas-hub__list">
@@ -146,20 +141,26 @@ export default function BoletasHubPage() {
             className="boletas-hub__stage-right"
             aria-label={`Vista de ${selected.label}`}
           >
-            <div className="boletas-hub__logo-flank" aria-hidden={false}>
+            <div className="boletas-hub__logo-flank">
               <Image
                 src="/logos/logo-winston-w.png"
                 alt="Instituto Winston Churchill"
-                width={160}
-                height={120}
+                width={72}
+                height={54}
                 className="boletas-hub__flank-logo boletas-hub__flank-logo--w"
                 priority
               />
+              <div className="boletas-hub__brand">
+                <h1 className="boletas-hub__title">
+                  Sistema Integral de Boletas Escolares
+                </h1>
+                <p className="boletas-hub__lead">Ciclo {cicloEtiqueta}</p>
+              </div>
               <Image
                 src="/logos/logo-winston-educativo.png"
                 alt="Winston Educativo"
-                width={160}
-                height={120}
+                width={72}
+                height={54}
                 className="boletas-hub__flank-logo boletas-hub__flank-logo--edu"
                 priority
               />
