@@ -5,9 +5,30 @@ import { boletasHubItems, type BoletasHubId, type BoletasHubItem } from '@/lib/b
 import { cicloEscolarEtiqueta, getCicloEscolarActual } from '@/lib/ciclosEscolares'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import Image from 'next/image'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import './boletas-hub.css'
+
+const HUB_SLIDES = [
+  {
+    src: '/boletas/hub/comunidad-winston.jpg',
+    alt: 'Comunidad Winston Churchill',
+  },
+  {
+    src: '/boletas/hub/pinlanes.jpg',
+    alt: 'Proyecto Pinlanes — feria escolar',
+  },
+  {
+    src: '/boletas/hub/egipto.jpg',
+    alt: 'Proyecto Egipto — secundaria',
+  },
+  {
+    src: '/boletas/hub/galeria-literatura.jpg',
+    alt: 'Galería de Literatura — primaria',
+  },
+] as const
+
+const SLIDE_MS = 5500
 
 function cicloCorto(etiqueta: string): string {
   const parts = etiqueta.split('-')
@@ -28,11 +49,26 @@ export default function BoletasHubPage() {
   }, [items])
 
   const [selectedId, setSelectedId] = useState<BoletasHubId>(iniciales)
+  const [slide, setSlide] = useState(0)
+  const [paused, setPaused] = useState(false)
 
   const selected: BoletasHubItem =
     items.find((i) => i.id === selectedId) ?? items[0]
 
   const live = selected.activo
+
+  useEffect(() => {
+    if (paused) return
+    const reduce =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduce) return
+
+    const id = window.setInterval(() => {
+      setSlide((s) => (s + 1) % HUB_SLIDES.length)
+    }, SLIDE_MS)
+    return () => window.clearInterval(id)
+  }, [paused])
 
   return (
     <div className="boletas-hub">
@@ -110,17 +146,57 @@ export default function BoletasHubPage() {
             className="boletas-hub__stage-right"
             aria-label={`Vista de ${selected.label}`}
           >
-            <div className="boletas-hub__portrait">
-              <Image
-                src="/boletas/hub/comunidad-winston.jpg"
-                alt="Comunidad Winston Churchill"
-                fill
-                sizes="(max-width: 860px) 100vw, 640px"
-                className="boletas-hub__portrait-img"
-                priority
-              />
+            <div
+              className="boletas-hub__portrait"
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => setPaused(false)}
+              onFocusCapture={() => setPaused(true)}
+              onBlurCapture={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                  setPaused(false)
+                }
+              }}
+            >
+              <div className="boletas-hub__carousel" aria-roledescription="carrusel">
+                {HUB_SLIDES.map((item, i) => (
+                  <div
+                    key={item.src}
+                    className={`boletas-hub__slide${i === slide ? ' is-active' : ''}`}
+                    aria-hidden={i !== slide}
+                  >
+                    <Image
+                      src={item.src}
+                      alt={item.alt}
+                      fill
+                      sizes="(max-width: 860px) 100vw, 640px"
+                      className="boletas-hub__portrait-img"
+                      priority={i === 0}
+                    />
+                  </div>
+                ))}
+              </div>
+
               <div className="boletas-hub__portrait-veil" aria-hidden />
+              <div className="boletas-hub__portrait-fade" aria-hidden />
               <div className="boletas-hub__portrait-grain" aria-hidden />
+
+              <div
+                className="boletas-hub__dots"
+                role="tablist"
+                aria-label="Fotos de la comunidad"
+              >
+                {HUB_SLIDES.map((item, i) => (
+                  <button
+                    key={item.src}
+                    type="button"
+                    role="tab"
+                    aria-selected={i === slide}
+                    aria-label={`Foto ${i + 1}: ${item.alt}`}
+                    className={`boletas-hub__dot${i === slide ? ' is-active' : ''}`}
+                    onClick={() => setSlide(i)}
+                  />
+                ))}
+              </div>
 
               <div className="boletas-hub__sheet">
                 <div className="boletas-hub__sheet-inner">
