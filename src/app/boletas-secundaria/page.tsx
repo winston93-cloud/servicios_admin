@@ -2,9 +2,11 @@
 
 import ThemeToggle from '@/components/ThemeToggle'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
 import { ArrowLeft, LogOut, Printer, Save, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import '../boletas/boletas-login-google.css'
 import './boletas-secundaria.css'
 
 type Role = 'maestro' | 'admin'
@@ -80,33 +82,44 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
   }
 
   return (
-    <form className="boletas-login" onSubmit={submit}>
-      <h2>Acceso boletas secundaria</h2>
-      <p className="boletas-muted">Maestro o administrador del sistema de boletas.</p>
-      <label>
-        Usuario
-        <input
-          value={usuario}
-          onChange={(e) => setUsuario(e.target.value)}
-          autoComplete="username"
-          required
-        />
-      </label>
-      <label>
-        Contraseña
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-          required
-        />
-      </label>
-      {error ? <p className="boletas-error">{error}</p> : null}
-      <button type="submit" className="boletas-btn primary" disabled={loading}>
-        {loading ? 'Entrando…' : 'Entrar'}
-      </button>
-    </form>
+    <div className="boletas-login">
+      <form onSubmit={submit}>
+        <h2>Acceso boletas secundaria</h2>
+        <p className="boletas-muted">Maestro o administrador del sistema de boletas.</p>
+        <label>
+          Usuario
+          <input
+            value={usuario}
+            onChange={(e) => setUsuario(e.target.value)}
+            autoComplete="username"
+            required
+          />
+        </label>
+        <label>
+          Contraseña
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            required
+          />
+        </label>
+        {error ? <p className="boletas-error">{error}</p> : null}
+        <button type="submit" className="boletas-btn primary" disabled={loading}>
+          {loading ? 'Entrando…' : 'Entrar'}
+        </button>
+      </form>
+      <RacGoogleSignIn
+        authUrl="/api/boletas-secundaria/auth/google"
+        onOk={onOk}
+        classPrefix="boletas"
+      />
+      <p className="boletas-login-google-hint">
+        Google: <strong>dg@</strong> y <strong>sistemas.desarrollo@</strong> winston93.edu.mx
+        (dirección · todos los niveles ES/EN).
+      </p>
+    </div>
   )
 }
 

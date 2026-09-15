@@ -1,6 +1,7 @@
 import { createHmac, createHash, timingSafeEqual } from 'crypto'
 import { cookies } from 'next/headers'
 import { createBoletasDb } from './boletasInsforge'
+import { boletasDirectoraPorEmail } from './boletasStaffAllowlist'
 
 export const BOLETAS_AUTH_COOKIE = 'boletas_secundaria_auth'
 
@@ -147,6 +148,22 @@ export async function autenticarBoletas(
   }
 
   return null
+}
+
+/**
+ * Google OAuth: dg@ y sistemas.desarrollo@ entran como admin
+ * (mismos privilegios que dirección en kinder/primaria ES-EN y secundaria).
+ */
+export function autenticarBoletasGoogle(emailRaw: string): BoletasSession | null {
+  const director = boletasDirectoraPorEmail(emailRaw)
+  if (!director) return null
+  return {
+    role: 'admin',
+    id: director.id,
+    nombre: director.nombre,
+    usuario: director.usuario,
+    exp: Date.now() + 12 * 60 * 60 * 1000,
+  }
 }
 
 export async function requireBoletasSession(

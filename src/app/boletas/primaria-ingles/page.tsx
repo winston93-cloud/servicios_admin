@@ -2,6 +2,7 @@
 
 import ThemeToggle from '@/components/ThemeToggle'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
 import {
   PRIMARIA_EN_ESCALA_HINT,
   PRIMARIA_EN_GRADOS,
@@ -12,6 +13,7 @@ import { cicloEscolarActualBoletas, etiquetaCicloBoletas, opcionesCicloBoletas }
 import { ArrowLeft, LogOut, Printer, Save, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import '../boletas-login-google.css'
 import './primaria-ingles.css'
 
 type Me = {
@@ -81,33 +83,43 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
   }
 
   return (
-    <form className="pi-login pi-paper" onSubmit={submit}>
-      <h2>Primaria · Inglés</h2>
-      <p>Usa las mismas credenciales del sistema de boletas (admin o maestro).</p>
-      <label>
-        Usuario
-        <input
-          value={usuario}
-          onChange={(e) => setUsuario(e.target.value)}
-          autoComplete="username"
-          required
-        />
-      </label>
-      <label>
-        Contraseña
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-          required
-        />
-      </label>
-      {error && <p className="pi-msg is-error">{error}</p>}
-      <button type="submit" className="pi-btn primary" disabled={loading}>
-        {loading ? 'Entrando…' : 'Entrar'}
-      </button>
-    </form>
+    <div className="pi-login pi-paper">
+      <form onSubmit={submit}>
+        <h2>Primaria · Inglés</h2>
+        <p>Usa las mismas credenciales del sistema de boletas (admin o maestro).</p>
+        <label>
+          Usuario
+          <input
+            value={usuario}
+            onChange={(e) => setUsuario(e.target.value)}
+            autoComplete="username"
+            required
+          />
+        </label>
+        <label>
+          Contraseña
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            required
+          />
+        </label>
+        {error && <p className="pi-msg is-error">{error}</p>}
+        <button type="submit" className="pi-btn primary" disabled={loading}>
+          {loading ? 'Entrando…' : 'Entrar'}
+        </button>
+      </form>
+      <RacGoogleSignIn
+        authUrl="/api/boletas-secundaria/auth/google"
+        onOk={onOk}
+        classPrefix="boletas"
+      />
+      <p className="boletas-login-google-hint">
+        Google: <strong>dg@</strong> y <strong>sistemas.desarrollo@</strong> (dirección ES/EN).
+      </p>
+    </div>
   )
 }
 

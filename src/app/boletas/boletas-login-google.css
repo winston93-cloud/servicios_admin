@@ -1,0 +1,118 @@
+/* Google Sign-In en logins de boletas (classPrefix="boletas") */
+
+.boletas-login-google {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
+}
+
+.boletas-login-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0.15rem 0;
+  color: color-mix(in srgb, currentColor 55%, transparent);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.boletas-login-divider::before,
+.boletas-login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.boletas-login-google-custom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--touch-min, 44px);
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  background: #fff;
+  color: #1f1f1f;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.boletas-login-google-custom:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.boletas-login-google-g {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 0.85rem;
+  background: conic-gradient(from 45deg, #ea4335, #fbbc05, #34a853, #4285f4, #ea4335);
+  color: #fff;
+}
+
+.boletas-login-google-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.boletas-login-error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #f87171;
+  text-align: center;
+}
+
+.boletas-login-google-pick {
+  margin-top: 4px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  background: color-mix(in srgb, #000 18%, transparent);
+}
+
+.boletas-login-google-pick-title {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+}
+
+.boletas-login-google-pick-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.boletas-login-google-pick-list button {
+  width: 100%;
+  min-height: var(--touch-min, 44px);
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+@media (max-width: 640px) {
+  .boletas-login-google-custom {
+    font-size: 0.9rem;
+  }
+}
