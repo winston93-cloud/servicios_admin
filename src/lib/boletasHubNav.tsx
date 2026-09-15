@@ -58,7 +58,7 @@ export function boletasHubItems(): BoletasHubItem[] {
       kicker: 'Preescolar',
       tags: ['Español', 'Kinder'],
       path: '/boletas/kinder-espanol',
-      activo: false,
+      activo: true,
       icon: ICON_BOOK_ES,
     },
     {
