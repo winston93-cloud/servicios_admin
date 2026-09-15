@@ -101,27 +101,7 @@ export default function BoletasHubPage() {
           <ArrowLeft size={15} aria-hidden />
           Volver
         </button>
-
-        <div className="boletas-hub__brand">
-          <Image
-            src="/logos/logo-winston-w.png"
-            alt="Instituto Winston Churchill"
-            width={48}
-            height={36}
-            className="boletas-hub__logo boletas-hub__logo--w"
-            priority
-          />
-          <Image
-            src="/logos/logo-winston-educativo.png"
-            alt="Winston Educativo"
-            width={48}
-            height={36}
-            className="boletas-hub__logo boletas-hub__logo--edu"
-            priority
-          />
-          <p className="boletas-hub__school">Instituto Winston Churchill</p>
-        </div>
-
+        <p className="boletas-hub__school">Instituto Winston Churchill</p>
         <div className="boletas-hub__top-spacer" />
         <span className="boletas-hub__ciclo-pill">Ciclo {cicloShort}</span>
         <ThemeToggle />
@@ -129,7 +109,7 @@ export default function BoletasHubPage() {
 
       <main className="boletas-hub__main">
         <header className="boletas-hub__pagehead">
-          <h1 className="boletas-hub__title">Boletas</h1>
+          <h1 className="boletas-hub__title">Sistema Integral de Boletas Escolares</h1>
           <p className="boletas-hub__lead">Ciclo {cicloEtiqueta}</p>
         </header>
 
@@ -166,6 +146,25 @@ export default function BoletasHubPage() {
             className="boletas-hub__stage-right"
             aria-label={`Vista de ${selected.label}`}
           >
+            <div className="boletas-hub__logo-flank" aria-hidden={false}>
+              <Image
+                src="/logos/logo-winston-w.png"
+                alt="Instituto Winston Churchill"
+                width={160}
+                height={120}
+                className="boletas-hub__flank-logo boletas-hub__flank-logo--w"
+                priority
+              />
+              <Image
+                src="/logos/logo-winston-educativo.png"
+                alt="Winston Educativo"
+                width={160}
+                height={120}
+                className="boletas-hub__flank-logo boletas-hub__flank-logo--edu"
+                priority
+              />
+            </div>
+
             <div
               className="boletas-hub__portrait"
               onMouseEnter={() => setPaused(true)}

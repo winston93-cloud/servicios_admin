@@ -68,29 +68,6 @@ html[data-theme='light'] .boletas-hub__top {
   color: var(--bh-ink);
 }
 
-.boletas-hub__brand {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  min-width: 0;
-}
-
-.boletas-hub__logo {
-  width: auto;
-  height: 32px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-.boletas-hub__logo--w {
-  height: 34px;
-}
-
-.boletas-hub__logo--edu {
-  height: 30px;
-  opacity: 0.92;
-}
-
 .boletas-hub__school {
   margin: 0;
   font-size: 0.78rem;
@@ -132,17 +109,47 @@ html[data-theme='light'] .boletas-hub__top {
 .boletas-hub__title {
   margin: 0;
   font-family: var(--bh-serif);
-  font-size: clamp(2.75rem, 7vw, 3.85rem);
+  font-size: clamp(1.75rem, 4.5vw, 2.65rem);
   font-weight: 400;
   letter-spacing: -0.025em;
-  line-height: 1.02;
+  line-height: 1.12;
   color: var(--bh-ink);
+  max-width: 18ch;
+  text-wrap: balance;
 }
 
 .boletas-hub__lead {
   margin: 0.4rem 0 0;
   font-size: 0.95rem;
   color: var(--bh-mute);
+}
+
+/* Logos grandes encima del carrusel */
+.boletas-hub__stage-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+.boletas-hub__logo-flank {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 0.15rem;
+}
+
+.boletas-hub__flank-logo {
+  width: auto;
+  height: clamp(72px, 12vw, 110px);
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.boletas-hub__flank-logo--edu {
+  opacity: 0.95;
 }
 
 /* —— Stage —— */
@@ -243,11 +250,6 @@ html[data-theme='light'] .boletas-hub__top {
 }
 
 /* —— Portrait + carousel + sheet —— */
-.boletas-hub__stage-right {
-  min-width: 0;
-  min-height: 0;
-}
-
 .boletas-hub__portrait {
   position: relative;
   isolation: isolate;
@@ -255,6 +257,7 @@ html[data-theme='light'] .boletas-hub__top {
   border-radius: 2px;
   border: 1px solid var(--bh-border);
   min-height: 360px;
+  flex: 1;
   height: 100%;
   background: #0c0a08;
   /* Degradado suave en el borde del carrusel (sale hacia el fondo) */
@@ -552,7 +555,12 @@ html[data-theme='light'] .boletas-hub__portrait-fade {
 
 @media (max-width: 768px) {
   .boletas-hub__title {
-    font-size: clamp(2.25rem, 11vw, 2.85rem);
+    font-size: clamp(1.55rem, 7vw, 2rem);
+    max-width: none;
+  }
+
+  .boletas-hub__flank-logo {
+    height: clamp(56px, 16vw, 80px);
   }
 
   .boletas-hub__sheet-doc {
@@ -577,16 +585,12 @@ html[data-theme='light'] .boletas-hub__portrait-fade {
     margin-left: auto;
   }
 
-  .boletas-hub__logo {
-    height: 28px;
+  .boletas-hub__logo-flank {
+    padding-inline: 0.25rem;
   }
 
-  .boletas-hub__logo--w {
-    height: 30px;
-  }
-
-  .boletas-hub__logo--edu {
-    height: 26px;
+  .boletas-hub__flank-logo {
+    height: 52px;
   }
 
   .boletas-hub__portrait {
