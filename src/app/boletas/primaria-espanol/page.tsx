@@ -14,6 +14,7 @@ import { ArrowLeft, LogOut, Printer, Save, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import '../boletas-login-google.css'
+import '../boletas-modulos-ui.css'
 import './primaria-espanol.css'
 
 type Me = {
@@ -136,6 +137,7 @@ function PrimariaEsApp() {
   const [bimestre, setBimestre] = useState(1)
   const [ciclo, setCiclo] = useState(cicloDefault)
   const [alumnos, setAlumnos] = useState<Alumno[]>([])
+  const [didList, setDidList] = useState(false)
   const [alumnoId, setAlumnoId] = useState<number | null>(null)
   const [bloques, setBloques] = useState<BloqueFila[]>([])
   const [alumnoNombre, setAlumnoNombre] = useState('')
@@ -169,6 +171,7 @@ function PrimariaEsApp() {
         `/api/boletas-primaria-espanol/alumnos?grado=${grado}&grupo=${grupo}&ciclo=${ciclo}`
       )
       setAlumnos(data.alumnos ?? [])
+      setDidList(true)
       setAlumnoId(null)
       setBloques([])
       setAlumnoNombre('')
@@ -178,10 +181,16 @@ function PrimariaEsApp() {
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Error al listar')
       setAlumnos([])
+      setDidList(true)
     } finally {
       setLoadingList(false)
     }
   }, [grado, grupo, ciclo])
+
+  useEffect(() => {
+    if (!me) return
+    void cargarAlumnos()
+  }, [me, cargarAlumnos])
 
   const abrirCaptura = useCallback(
     async (id: number) => {
@@ -318,8 +327,8 @@ async function logout() {
   }
 
   return (
-    <div className="pe-page">
-      <header className="pe-top">
+    <div className="pe-page bm-page">
+      <header className="pe-top bm-top">
         <button type="button" className="pe-back" onClick={() => router.push('/boletas')}>
           <ArrowLeft size={15} aria-hidden />
           Boletas
@@ -336,10 +345,13 @@ async function logout() {
       </header>
 
       <main className="pe-main">
-        <h1 className="pe-title">Primaria · Español</h1>
-        <p className="pe-lead">
-          Captura por bloques · Ciclo {etiquetaCicloBoletas(ciclo)}
-        </p>
+        <header className="bm-hero">
+          <p className="bm-kicker">Sistema integral de boletas</p>
+          <h1 className="pe-title">Primaria · Español</h1>
+          <p className="pe-lead">
+            Captura por bloques · Ciclo {etiquetaCicloBoletas(ciclo)}
+          </p>
+        </header>
 
         {(msg || err) && (
           <p className={`pe-msg${err ? ' is-error' : ''}`} role="status">
@@ -347,8 +359,8 @@ async function logout() {
           </p>
         )}
 
-        <section className="pe-paper">
-          <div className="pe-filters">
+        <section className="pe-paper bm-panel">
+          <div className="pe-filters bm-filters">
             <label>
               Grado
               <select
@@ -403,12 +415,29 @@ async function logout() {
             </button>
           </div>
 
-          <div className="pe-layout">
+          <div className="pe-layout bm-layout">
             <div>
+              {alumnos.length > 0 ? (
+                <p className="bm-count">{alumnos.length} alumno{alumnos.length === 1 ? '' : 's'}</p>
+              ) : null}
               {alumnos.length === 0 ? (
-                <p className="pe-empty">Elige filtros y pulsa Listar.</p>
+                <p className="pe-empty bm-empty">
+                  {loadingList ? (
+                    'Cargando alumnos…'
+                  ) : didList ? (
+                    <>
+                      <strong>Sin alumnos en este filtro</strong>
+                      Prueba otro grado, grupo o ciclo.
+                    </>
+                  ) : (
+                    <>
+                      <strong>Listado</strong>
+                      Elige filtros y pulsa Listar.
+                    </>
+                  )}
+                </p>
               ) : (
-                <ul className="pe-list">
+                <ul className="pe-list bm-list">
                   {alumnos.map((a) => (
                     <li key={a.alumno_id}>
                       <button
@@ -417,7 +446,7 @@ async function logout() {
                         onClick={() => void abrirCaptura(a.alumno_id)}
                       >
                         {a.nombre}
-                        <span className="pe-list-meta">
+                        <span className="pe-list-meta bm-list-meta">
                           Ref {String(a.alumno_ref ?? '').padStart(5, '0')} · {a.grupo_letra}
                         </span>
                       </button>
@@ -429,13 +458,19 @@ async function logout() {
 
             <div>
               {alumnoId == null ? (
-                <p className="pe-empty">Selecciona un alumno para capturar.</p>
+                <p className="pe-empty bm-empty">
+                  <strong>Captura</strong>
+                  Selecciona un alumno de la lista.
+                </p>
               ) : loadingCap ? (
-                <p className="pe-empty">Cargando captura…</p>
+                <p className="pe-empty bm-empty">Cargando captura…</p>
               ) : (
                 <div className="pe-form">
-                  <div className="pe-form-head">
-                    <h2>{alumnoNombre}</h2>
+                  <div className="pe-form-head bm-form-head">
+                    <div>
+                      <span className="bm-badge">Trimestre {bimestre}</span>
+                      <h2 style={{ margin: '0.45rem 0 0', fontSize: '1.15rem' }}>{alumnoNombre}</h2>
+                    </div>
                     <div className="pe-actions">
                       <button
                         type="button"

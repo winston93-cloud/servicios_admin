@@ -14,6 +14,7 @@ import { ArrowLeft, LogOut, Printer, Save, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import '../boletas-login-google.css'
+import '../boletas-modulos-ui.css'
 import './kinder-ingles.css'
 
 type Me = {
@@ -162,6 +163,7 @@ function KinderEnApp() {
   const [bimestre, setBimestre] = useState(1)
   const [ciclo, setCiclo] = useState(cicloDefault)
   const [alumnos, setAlumnos] = useState<Alumno[]>([])
+  const [didList, setDidList] = useState(false)
   const [alumnoId, setAlumnoId] = useState<number | null>(null)
   const [modo, setModo] = useState<'kinder' | 'maternal'>('kinder')
   const [subjects, setSubjects] = useState<IndicadorFila[]>([])
@@ -203,6 +205,7 @@ function KinderEnApp() {
         `/api/boletas-kinder-ingles/alumnos?grado=${grado}&grupo=${grupo}&ciclo=${ciclo}`
       )
       setAlumnos(data.alumnos ?? [])
+      setDidList(true)
       setAlumnoId(null)
       setSubjects([])
       setBehavioral([])
@@ -216,10 +219,16 @@ function KinderEnApp() {
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Error al listar')
       setAlumnos([])
+      setDidList(true)
     } finally {
       setLoadingList(false)
     }
   }, [grado, grupo, ciclo])
+
+  useEffect(() => {
+    if (!me) return
+    void cargarAlumnos()
+  }, [me, cargarAlumnos])
 
   const abrirCaptura = useCallback(
     async (id: number) => {
@@ -384,8 +393,8 @@ async function logout() {
   }
 
   return (
-    <div className="ki-page">
-      <header className="ki-top">
+    <div className="ki-page bm-page">
+      <header className="ki-top bm-top">
         <button type="button" className="ki-back" onClick={() => router.push('/boletas')}>
           <ArrowLeft size={15} aria-hidden />
           Boletas
@@ -402,10 +411,13 @@ async function logout() {
       </header>
 
       <main className="ki-main">
-        <h1 className="ki-title">Kinder · Inglés</h1>
-        <p className="ki-lead">
-          English Preschool · Ciclo {etiquetaCicloBoletas(ciclo)}
-        </p>
+        <header className="bm-hero">
+          <p className="bm-kicker">Sistema integral de boletas</p>
+          <h1 className="ki-title">Kinder · Inglés</h1>
+          <p className="ki-lead">
+            English Preschool · Ciclo {etiquetaCicloBoletas(ciclo)}
+          </p>
+        </header>
 
         {(msg || err) && (
           <p className={`ki-msg${err ? ' is-error' : ''}`} role="status">
@@ -413,8 +425,8 @@ async function logout() {
           </p>
         )}
 
-        <section className="ki-paper">
-          <div className="ki-filters">
+        <section className="ki-paper bm-panel">
+          <div className="ki-filters bm-filters">
             <label>
               Grado
               <select
@@ -469,12 +481,29 @@ async function logout() {
             </button>
           </div>
 
-          <div className="ki-layout">
+          <div className="ki-layout bm-layout">
             <div>
+              {alumnos.length > 0 ? (
+                <p className="bm-count">{alumnos.length} alumno{alumnos.length === 1 ? '' : 's'}</p>
+              ) : null}
               {alumnos.length === 0 ? (
-                <p className="ki-empty">Elige filtros y pulsa Listar.</p>
+                <p className="ki-empty bm-empty">
+                  {loadingList ? (
+                    'Cargando alumnos…'
+                  ) : didList ? (
+                    <>
+                      <strong>Sin alumnos en este filtro</strong>
+                      Prueba otro grado, grupo o ciclo.
+                    </>
+                  ) : (
+                    <>
+                      <strong>Listado</strong>
+                      Elige filtros y pulsa Listar.
+                    </>
+                  )}
+                </p>
               ) : (
-                <ul className="ki-list">
+                <ul className="ki-list bm-list">
                   {alumnos.map((a) => (
                     <li key={a.alumno_id}>
                       <button
@@ -483,7 +512,7 @@ async function logout() {
                         onClick={() => void abrirCaptura(a.alumno_id)}
                       >
                         {a.nombre}
-                        <span className="ki-list-meta">
+                        <span className="ki-list-meta bm-list-meta">
                           Ref {String(a.alumno_ref ?? '').padStart(5, '0')} · {a.grupo_letra}
                         </span>
                       </button>
@@ -495,13 +524,19 @@ async function logout() {
 
             <div>
               {alumnoId == null ? (
-                <p className="ki-empty">Selecciona un alumno para capturar.</p>
+                <p className="ki-empty bm-empty">
+                  <strong>Captura</strong>
+                  Selecciona un alumno de la lista.
+                </p>
               ) : loadingCap ? (
-                <p className="ki-empty">Cargando captura…</p>
+                <p className="ki-empty bm-empty">Cargando captura…</p>
               ) : (
                 <div className="ki-form">
-                  <div className="ki-form-head">
-                    <h2>{alumnoNombre}</h2>
+                  <div className="ki-form-head bm-form-head">
+                    <div>
+                      <span className="bm-badge">Trimestre {bimestre}</span>
+                      <h2 style={{ margin: '0.45rem 0 0', fontSize: '1.15rem' }}>{alumnoNombre}</h2>
+                    </div>
                     <div className="ki-actions">
                       <button
                         type="button"

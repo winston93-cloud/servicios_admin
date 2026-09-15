@@ -1,0 +1,274 @@
+/* UI compartida — módulos boletas (captura kinder/primaria/secundaria) */
+
+.bm-page {
+  position: relative;
+  isolation: isolate;
+}
+
+.bm-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 55% at 12% -10%, rgba(201, 162, 39, 0.14), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 100% 0%, rgba(59, 130, 196, 0.12), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(0, 227, 253, 0.05), transparent 45%);
+}
+
+html[data-theme='light'] .bm-page::before {
+  background:
+    radial-gradient(ellipse 90% 55% at 10% -8%, rgba(168, 132, 26, 0.12), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 100% 0%, rgba(30, 90, 138, 0.08), transparent 50%),
+    linear-gradient(180deg, rgba(255, 252, 245, 0.4), transparent 40%);
+}
+
+.bm-top {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  background: color-mix(in srgb, #09090b 72%, transparent);
+  border-bottom-color: rgba(201, 162, 39, 0.18) !important;
+}
+
+html[data-theme='light'] .bm-top {
+  background: color-mix(in srgb, #fffcf5 82%, transparent);
+  border-bottom-color: rgba(168, 132, 26, 0.22) !important;
+}
+
+.bm-hero {
+  margin-bottom: clamp(1.1rem, 2.5vw, 1.75rem);
+  animation: bm-fade-up 480ms ease both;
+}
+
+.bm-kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #c9a227;
+}
+
+html[data-theme='light'] .bm-kicker {
+  color: #a8841a;
+}
+
+.bm-hero h1,
+.bm-hero .bm-title {
+  margin: 0;
+  font-size: clamp(1.65rem, 4vw, 2.35rem);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+}
+
+.bm-hero p,
+.bm-hero .bm-lead {
+  margin: 0.4rem 0 0;
+  font-size: 0.95rem;
+  opacity: 0.78;
+  max-width: 42ch;
+}
+
+.bm-panel {
+  border-radius: 16px !important;
+  border: 1px solid rgba(201, 162, 39, 0.28) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 18px 40px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+  animation: bm-fade-up 560ms ease 60ms both;
+}
+
+html[data-theme='light'] .bm-panel {
+  border-color: rgba(168, 132, 26, 0.32) !important;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.8) inset,
+    0 14px 32px rgba(42, 36, 28, 0.08);
+}
+
+.bm-filters {
+  gap: 0.85rem !important;
+  padding: 1rem 1.1rem !important;
+  background: linear-gradient(
+    180deg,
+    rgba(201, 162, 39, 0.07),
+    transparent 70%
+  );
+  border-bottom: 1px solid rgba(232, 226, 214, 0.1);
+}
+
+html[data-theme='light'] .bm-filters {
+  background: linear-gradient(180deg, rgba(168, 132, 26, 0.08), transparent 70%);
+  border-bottom-color: rgba(42, 36, 28, 0.08);
+}
+
+.bm-filters label {
+  font-size: 0.68rem !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.bm-filters select,
+.bm-filters input {
+  min-height: var(--touch-min, 44px);
+  border-radius: 10px !important;
+  font-size: 16px !important;
+  border-color: rgba(201, 162, 39, 0.28) !important;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.bm-filters select:focus,
+.bm-filters input:focus {
+  outline: none;
+  border-color: rgba(201, 162, 39, 0.65) !important;
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.18);
+}
+
+.bm-btn-primary,
+.bm-filters .primary,
+.bm-filters button.primary {
+  min-height: var(--touch-min, 44px);
+  border-radius: 10px !important;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  box-shadow: 0 6px 16px rgba(59, 130, 196, 0.28);
+}
+
+.bm-layout {
+  gap: clamp(1rem, 2.5vw, 1.5rem) !important;
+  padding: clamp(0.85rem, 2vw, 1.15rem) !important;
+}
+
+.bm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: min(62vh, 560px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bm-list button {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-height: var(--touch-min, 44px);
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(232, 226, 214, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.bm-list button:hover {
+  border-color: rgba(201, 162, 39, 0.35);
+  background: rgba(201, 162, 39, 0.06);
+}
+
+.bm-list button.is-active {
+  border-color: rgba(201, 162, 39, 0.55);
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.16), rgba(59, 130, 196, 0.1));
+  box-shadow: 0 0 0 1px rgba(201, 162, 39, 0.2);
+}
+
+.bm-list-meta {
+  font-size: 0.75rem;
+  opacity: 0.65;
+}
+
+.bm-empty {
+  margin: 0;
+  padding: 1.4rem 1rem;
+  border-radius: 14px;
+  border: 1px dashed rgba(201, 162, 39, 0.28);
+  background: rgba(201, 162, 39, 0.04);
+  color: inherit;
+  opacity: 0.85;
+  text-align: center;
+  line-height: 1.5;
+  font-size: 0.92rem;
+}
+
+.bm-empty strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 650;
+  opacity: 1;
+}
+
+.bm-form-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(232, 226, 214, 0.12);
+}
+
+.bm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  background: rgba(201, 162, 39, 0.14);
+  color: #e8d48a;
+  border: 1px solid rgba(201, 162, 39, 0.3);
+}
+
+html[data-theme='light'] .bm-badge {
+  color: #7a6214;
+  background: rgba(168, 132, 26, 0.12);
+}
+
+.bm-count {
+  font-size: 0.78rem;
+  opacity: 0.7;
+  margin: 0 0 0.55rem;
+}
+
+@keyframes bm-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bm-hero,
+  .bm-panel {
+    animation: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .bm-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bm-list {
+    max-height: min(42vh, 360px);
+  }
+}
