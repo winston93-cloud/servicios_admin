@@ -656,6 +656,7 @@ async function hidratar(rows: Record<string, unknown>[]) {
       grupo: a ? letraDesdeGrupoNum(n(a.alumno_grupo)) : '',
       nivel: a ? n(a.alumno_nivel) : 0,
       materia: materia || departamento,
+      materia_id: n(r.materia_id),
       tipo: n(r.reporte_tipo),
       tipoEtiqueta: etiquetaTipoReporte(n(r.reporte_tipo)),
       escalon: etiquetaEscalon(n(r.reporte_tipo), n(r.reporte_no)),
@@ -890,16 +891,32 @@ export async function aplicarSuspension(id: number, fecha: string) {
 export async function historialAlumno(query: string) {
   const ciclo = await cicloRac()
   const q = query.trim()
-  if (q.length < 2) return { alumnos: [], reportes: [] }
-  const safe = q.replace(/[%_,]/g, '')
-  const { data: alumnos } = await db()
+  if (q.length < 1) return { alumnos: [], reportes: [] }
+  const safe = q.replace(/[%_,]/g, ' ').replace(/\s+/g, ' ').trim()
+  if (!safe) return { alumnos: [], reportes: [] }
+  const tokens = safe.split(' ').filter((t) => t.length > 0)
+  const primary = tokens[0]
+  const { data: candidatos } = await db()
     .from('alumno')
-    .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_nivel')
+    .select(
+      'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_nivel, alumno_status'
+    )
     .eq('alumno_nivel', RAC_NIVEL_SECUNDARIA)
-    .or(`alumno_ref.ilike.%${safe}%,alumno_app.ilike.%${safe}%,alumno_apm.ilike.%${safe}%,alumno_nombre.ilike.%${safe}%`)
-    .limit(20)
-  const ids = (alumnos ?? []).map((a) => n(a.alumno_id))
-  if (!ids.length) return { alumnos: alumnos ?? [], reportes: [] }
+    .neq('alumno_status', 0)
+    .or(
+      `alumno_ref.ilike.%${primary}%,alumno_app.ilike.%${primary}%,alumno_apm.ilike.%${primary}%,alumno_nombre.ilike.%${primary}%`
+    )
+    .limit(40)
+  const alumnos = ((candidatos ?? []) as AlumnoRow[])
+    .filter((a) => {
+      const blob = [a.alumno_ref, a.alumno_app, a.alumno_apm, a.alumno_nombre]
+        .map((x) => String(x ?? '').toLowerCase())
+        .join(' ')
+      return tokens.every((t) => blob.includes(t.toLowerCase()))
+    })
+    .slice(0, 15)
+  const ids = alumnos.map((a) => n(a.alumno_id))
+  if (!ids.length) return { alumnos, reportes: [] }
   const { data: reps } = await db()
     .from('reporte_escolar')
     .select('*')
@@ -908,7 +925,7 @@ export async function historialAlumno(query: string) {
     .eq('reporte_status', 1)
     .order('reporte_registro', { ascending: false })
     .limit(200)
-  return { alumnos: alumnos ?? [], reportes: await hidratar((reps ?? []) as Record<string, unknown>[]) }
+  return { alumnos, reportes: await hidratar((reps ?? []) as Record<string, unknown>[]) }
 }
 
 /** Historial de un alumno (kardex legacy): materia, motivo, observaciones, vuelta. */

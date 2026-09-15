@@ -74,6 +74,8 @@ type AlumnoBusqueda = {
   alumno_app?: string | null
   alumno_apm?: string | null
   alumno_nombre?: string | null
+  alumno_grado?: number | string | null
+  alumno_grupo?: number | string | null
 }
 
 type CitaFila = {
@@ -251,6 +253,8 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   const [historialAlumnoId, setHistorialAlumnoId] = useState(0)
   const [historialTipo, setHistorialTipo] = useState(1)
   const [historialMateriaId, setHistorialMateriaId] = useState(0)
+  const [historialSuggestOpen, setHistorialSuggestOpen] = useState(false)
+  const [historialBuscando, setHistorialBuscando] = useState(false)
   const [printGrado, setPrintGrado] = useState(0)
   const [printGrupo, setPrintGrupo] = useState('')
   const [printNivel, setPrintNivel] = useState(0)
@@ -343,8 +347,84 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
     if (tab === 'informes') void cargarVista('informes')
     if (tab === 'citas') void cargarVista('citas')
     if (tab === 'suspensiones') void cargarVista('suspensiones')
+    if (tab === 'historial') {
+      setLista([])
+      setSeleccionados([])
+      setHistorialAlumnos([])
+      setHistorialAlumnoId(0)
+      setHistorialMateriaId(0)
+      setHistorialSuggestOpen(false)
+      setQ('')
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me, tab, asigKey, tipo])
+
+  useEffect(() => {
+    if (tab !== 'historial' || !me) return
+    const term = q.trim()
+    if (term.length < 1) {
+      setHistorialAlumnos([])
+      setHistorialSuggestOpen(false)
+      return
+    }
+    if (historialAlumnoId > 0) return
+    const t = window.setTimeout(() => {
+      void (async () => {
+        setHistorialBuscando(true)
+        try {
+          const data = await api<{ alumnos?: AlumnoBusqueda[] }>(
+            `${config.apiBase}/coordinacion?vista=historial&q=${encodeURIComponent(term)}`
+          )
+          setHistorialAlumnos(data.alumnos ?? [])
+          setHistorialSuggestOpen(true)
+        } catch (e) {
+          setMsg(e instanceof Error ? e.message : 'Error al buscar alumnos')
+        } finally {
+          setHistorialBuscando(false)
+        }
+      })()
+    }, 280)
+    return () => window.clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, tab, me, historialAlumnoId, config.apiBase])
+
+  async function seleccionarAlumnoHistorial(a: AlumnoBusqueda) {
+    const nombre = [a.alumno_app, a.alumno_apm, a.alumno_nombre].filter(Boolean).join(' ')
+    setHistorialAlumnoId(Number(a.alumno_id))
+    setQ(`${nombre} · ${a.alumno_ref ?? ''}`)
+    setHistorialSuggestOpen(false)
+    setHistorialAlumnos([])
+    setHistorialMateriaId(0)
+    setBusy(true)
+    setMsg('')
+    try {
+      const data = await api<{
+        alumno: {
+          alumno_id: number
+          alumno_ref: string | number | null
+          nombre: string
+          grado: number
+          grupo: string
+        }
+        reportes: Record<string, unknown>[]
+      }>(`${config.apiBase}/captura?historialAlumnoId=${a.alumno_id}`)
+      setLista(data.reportes ?? [])
+    } catch (e) {
+      setLista([])
+      setMsg(e instanceof Error ? e.message : 'No se pudo cargar el historial')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function limpiarAlumnoHistorial() {
+    setHistorialAlumnoId(0)
+    setLista([])
+    setHistorialMateriaId(0)
+    setQ('')
+    setHistorialAlumnos([])
+    setHistorialSuggestOpen(false)
+  }
 
   async function abrirHistorialAlumno(alumnoId: number) {
     setBusy(true)
@@ -516,9 +596,29 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   const capturaConInforme = capturaConInformeYCita
   const puedePdf = Boolean(me && puedePdfNivel(me.role, config))
   const listaVisible =
-    tab === 'historial' && historialAlumnoId
-      ? lista.filter((r) => Number(r.alumno_id) === historialAlumnoId)
+    tab === 'historial'
+      ? lista.filter((r) => {
+          if (historialAlumnoId && Number(r.alumno_id) !== historialAlumnoId) return false
+          if (Number(r.tipo) !== historialTipo) return false
+          if (historialTipo === 1 && historialMateriaId > 0 && Number(r.materia_id) !== historialMateriaId) {
+            return false
+          }
+          return true
+        })
       : lista
+
+  const materiasHistorial = useMemo(() => {
+    const map = new Map<number, string>()
+    for (const r of lista) {
+      if (Number(r.tipo) !== 1) continue
+      const id = Number(r.materia_id)
+      const nombre = String(r.materia ?? '').trim()
+      if (id > 0 && nombre) map.set(id, nombre)
+    }
+    return [...map.entries()]
+      .map(([id, nombre]) => ({ id, nombre }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+  }, [lista])
   const idsListaReportes = useMemo(
     () =>
       puedeSeleccionarMasivo
@@ -1006,31 +1106,79 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                 ) : null}
                 <div className="racn-filters">
                   <p className="rac-print-legend">Historial por alumno</p>
-                  <label>
+                  <label className="rac-autocomplete">
                     Buscar alumno
-                    <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Apellido o control" />
+                    <input
+                      value={q}
+                      onChange={(e) => {
+                        setQ(e.target.value)
+                        if (historialAlumnoId) {
+                          setHistorialAlumnoId(0)
+                          setLista([])
+                          setHistorialMateriaId(0)
+                        }
+                        setHistorialSuggestOpen(true)
+                      }}
+                      onFocus={() => {
+                        if (historialAlumnos.length && !historialAlumnoId) setHistorialSuggestOpen(true)
+                      }}
+                      onBlur={() => {
+                        window.setTimeout(() => setHistorialSuggestOpen(false), 160)
+                      }}
+                      placeholder="Escribe apellido, nombre o control"
+                      autoComplete="off"
+                      aria-autocomplete="list"
+                      aria-expanded={historialSuggestOpen}
+                    />
+                    {historialSuggestOpen && !historialAlumnoId ? (
+                      <ul className="rac-suggest" role="listbox">
+                        {historialBuscando ? (
+                          <li className="rac-suggest__empty">Buscando…</li>
+                        ) : historialAlumnos.length === 0 ? (
+                          <li className="rac-suggest__empty">
+                            {q.trim().length < 1 ? 'Escribe para buscar' : 'Sin coincidencias'}
+                          </li>
+                        ) : (
+                          historialAlumnos.map((a) => {
+                            const nombre = [a.alumno_app, a.alumno_apm, a.alumno_nombre]
+                              .filter(Boolean)
+                              .join(' ')
+                            return (
+                              <li key={a.alumno_id}>
+                                <button
+                                  type="button"
+                                  role="option"
+                                  onMouseDown={(e) => e.preventDefault()}
+                                  onClick={() => void seleccionarAlumnoHistorial(a)}
+                                >
+                                  <strong>{nombre}</strong>
+                                  <span>
+                                    Control {a.alumno_ref ?? '—'}
+                                    {a.alumno_grado != null ? ` · ${a.alumno_grado}°` : ''}
+                                  </span>
+                                </button>
+                              </li>
+                            )
+                          })
+                        )}
+                      </ul>
+                    ) : null}
                   </label>
-                  <button type="button" className="racn-btn" onClick={() => void cargarVista('historial')}>
-                    Buscar
-                  </button>
-                  {historialAlumnos.length ? (
-                    <label>
-                      Alumno
-                      <select
-                        value={historialAlumnoId}
-                        onChange={(e) => setHistorialAlumnoId(Number(e.target.value))}
-                      >
-                        {historialAlumnos.map((a) => (
-                          <option key={a.alumno_id} value={a.alumno_id}>
-                            {[a.alumno_app, a.alumno_apm, a.alumno_nombre].filter(Boolean).join(' ')} · {a.alumno_ref}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                  {historialAlumnoId ? (
+                    <button type="button" className="racn-btn ghost" onClick={limpiarAlumnoHistorial}>
+                      Cambiar alumno
+                    </button>
                   ) : null}
                   <label>
                     Tipo de reporte
-                    <select value={historialTipo} onChange={(e) => setHistorialTipo(Number(e.target.value))}>
+                    <select
+                      value={historialTipo}
+                      onChange={(e) => {
+                        setHistorialTipo(Number(e.target.value))
+                        setHistorialMateriaId(0)
+                      }}
+                      disabled={!historialAlumnoId}
+                    >
                       <option value={1}>Académico</option>
                       <option value={2}>Conducta</option>
                       <option value={3}>Uniforme</option>
@@ -1040,15 +1188,16 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                   </label>
                   {historialTipo === 1 ? (
                     <label>
-                      Materia / grupo
+                      Materia
                       <select
                         value={historialMateriaId}
                         onChange={(e) => setHistorialMateriaId(Number(e.target.value))}
+                        disabled={!historialAlumnoId}
                       >
                         <option value={0}>Todas</option>
-                        {asignaciones.map((a) => (
-                          <option key={`${a.materia_id}-${a.grupo_letra}`} value={a.materia_id}>
-                            {a.etiqueta_grupo}
+                        {materiasHistorial.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.nombre}
                           </option>
                         ))}
                       </select>
@@ -1072,8 +1221,15 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                     </button>
                   ) : null}
                 </div>
+                {!historialAlumnoId ? (
+                  <p className="rac-print-hint">
+                    Escribe el nombre o número de control; elige un alumno de la lista para ver su historial e
+                    imprimirlo.
+                  </p>
+                ) : null}
               </>
             ) : null}
+            {tab !== 'historial' || historialAlumnoId > 0 ? (
             <div className="racn-table-wrap">
               <table className="racn-table">
                 <thead>
@@ -1279,6 +1435,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                 </tbody>
               </table>
             </div>
+            ) : null}
           </section>
         ) : null}
 
