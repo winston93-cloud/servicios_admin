@@ -13,6 +13,7 @@ import '../reportes-conducta.css'
 import './rac-secundaria.css'
 import { limpiarSesionGoogleCliente } from '@/lib/racLogoutClient'
 import RacGoogleSignIn from '../components/RacGoogleSignIn'
+import RacDetalleModal from '../components/RacDetalleModal'
 
 type Rol = 'maestro' | 'coordinacion' | 'psicologia' | 'prefectura' | 'direccion'
 
@@ -1390,94 +1391,7 @@ export default function RacSecundariaPage() {
         </div>
       ) : null}
 
-      {detalleVista ? (
-        <div className="rac-modal" role="dialog" aria-modal="true" aria-labelledby="rac-detalle-title">
-          <div className="rac-modal-card rac-detalle-card">
-            <h3 id="rac-detalle-title">Detalle</h3>
-            <dl className="rac-detalle-dl">
-              {detalleVista.reporte_id != null ? (
-                <div>
-                  <dt>ID</dt>
-                  <dd>{String(detalleVista.reporte_id)}</dd>
-                </div>
-              ) : null}
-              {detalleVista.cita_id != null ? (
-                <div>
-                  <dt>ID cita</dt>
-                  <dd>{String(detalleVista.cita_id)}</dd>
-                </div>
-              ) : null}
-              {detalleVista.suspension_id != null ? (
-                <div>
-                  <dt>ID suspensión</dt>
-                  <dd>{String(detalleVista.suspension_id)}</dd>
-                </div>
-              ) : null}
-              <div>
-                <dt>No. Control</dt>
-                <dd>{String(detalleVista.alumno_ref ?? '—')}</dd>
-              </div>
-              <div>
-                <dt>Alumno</dt>
-                <dd>{String(detalleVista.nombre ?? '—')}</dd>
-              </div>
-              <div>
-                <dt>Grado y grupo</dt>
-                <dd>
-                  {detalleVista.grado != null ? `${String(detalleVista.grado)}°` : '—'}{' '}
-                  {String(detalleVista.grupo ?? '')}
-                </dd>
-              </div>
-              {detalleVista.materia || detalleVista.escalon || detalleVista.tipoEtiqueta ? (
-                <div>
-                  <dt>Situación / materia</dt>
-                  <dd>
-                    {String(detalleVista.escalon ?? detalleVista.tipoEtiqueta ?? '')}
-                    {detalleVista.materia ? ` · ${String(detalleVista.materia)}` : ''}
-                  </dd>
-                </div>
-              ) : null}
-              {detalleVista.motivo ? (
-                <div>
-                  <dt>Motivo</dt>
-                  <dd>{String(detalleVista.motivo)}</dd>
-                </div>
-              ) : null}
-              <div>
-                <dt>Observaciones</dt>
-                <dd className="rac-detalle-obs">{String(detalleVista.mensaje ?? '—')}</dd>
-              </div>
-              <div>
-                <dt>Fecha</dt>
-                <dd>{String(detalleVista.fecha ?? '—')}</dd>
-              </div>
-              {detalleVista.vuelta != null && detalleVista.vuelta !== '' ? (
-                <div>
-                  <dt>No. vuelta</dt>
-                  <dd>{String(detalleVista.vuelta)}</dd>
-                </div>
-              ) : null}
-              {detalleVista.enviado != null || detalleVista.enviada != null ? (
-                <div>
-                  <dt>Enviado</dt>
-                  <dd>{detalleVista.enviado || detalleVista.enviada ? 'Sí' : 'No'}</dd>
-                </div>
-              ) : null}
-              {detalleVista.confirmado != null || detalleVista.confirmada != null ? (
-                <div>
-                  <dt>Confirmado</dt>
-                  <dd>{detalleVista.confirmado || detalleVista.confirmada ? 'Sí' : 'No'}</dd>
-                </div>
-              ) : null}
-            </dl>
-            <div className="rac-actions">
-              <button type="button" className="boletas-btn primary" onClick={() => setDetalleVista(null)}>
-                Aceptar
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {detalleVista ? <RacDetalleModal row={detalleVista} onClose={() => setDetalleVista(null)} /> : null}
 
       {modal ? (
         <div className="rac-modal" role="dialog" aria-modal="true">
