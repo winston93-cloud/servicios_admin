@@ -24,7 +24,7 @@ Key patterns:
 ## Consolidación NANOs InsForge → Winston Servicios
 
 - **SSIW / entrega a pie:** repo externo `~/Proyectos/ssiw` (`ssiw.vercel.app`). Handoff desde este admin en `/ssiw/entrar`. Tablas `registro_salida_pie` y `entregas_alumnos` viven en **Winston Servicios** (`g4ta4bfg`). Cutover Vercel hecho; NANO `winston-ssiw` borrable tras smoke.
-- **Boletas:** tablas `boleta_*` + captura en Winston Servicios. Cutover: `docs/MIGRACION-BOLETAS-WINSTON.md` + `scripts/setup-boletas-winston-vercel-env.mjs`. NANO `Boletas` (`5u3i4tmc`) borrable tras smoke.
+- **Boletas:** tablas `boleta_*` + captura en Winston Servicios. Migración: `docs/MIGRACION-BOLETAS-WINSTON.md`. NANO InsForge **Boletas** (`5u3i4tmc`) **eliminado** (2026-09-17); el módulo aún no está en producción operativa.
 - **Entersote / gym:** tabla `gym_estado` también en Winston Servicios; app local en PCs (sin repo).
 
 ## Facturación CFDI — estado y pendientes
@@ -89,5 +89,5 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 - **Sistema integral boletas:** `/boletas` — 5 módulos activos (Kinder ES/EN, Primaria ES/EN, Secundaria). Auth cookie compartida; envío `POST /api/boletas-envio`.
 - **Secundaria:** `/boletas-secundaria` — login maestro/admin, captura, admin, PDF, reportes, email.
 - **Kinder / Primaria:** `/boletas/kinder-espanol`, `kinder-ingles`, `primaria-espanol`, `primaria-ingles` — captura + PDF + email.
-- **Backend:** tablas `boleta_*` en **Winston Servicios** (`g4ta4bfg`). Env `BOLETAS_INSFORGE_URL` / `BOLETAS_INSFORGE_API_KEY` / `BOLETAS_SESSION_SECRET` (local + Vercel). Migración: `docs/MIGRACION-BOLETAS-WINSTON.md`. El NANO InsForge **Boletas** (`5u3i4tmc`) queda por borrar tras smoke.
+- **Backend:** tablas `boleta_*` en **Winston Servicios** (`g4ta4bfg`). Env `BOLETAS_INSFORGE_URL` / `BOLETAS_INSFORGE_API_KEY` / `BOLETAS_SESSION_SECRET` (local + Vercel). Migración: `docs/MIGRACION-BOLETAS-WINSTON.md`. NANO InsForge **Boletas** eliminado (2026-09-17); módulo aún no en producción operativa.
 - Legacy PHP `winston93.edu.mx/boletas` (y boletasek/ik/español/ingles) convive; no apagar hasta OK de Mario.

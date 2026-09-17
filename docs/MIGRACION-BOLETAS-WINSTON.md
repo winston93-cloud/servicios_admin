@@ -26,7 +26,7 @@ App: `servicios_admin` (`/boletas`, `/boletas-secundaria`, APIs `boletas-*`)
 1. `.env.local` / `env.example`: `BOLETAS_INSFORGE_*` → `g4ta4bfg`
 2. Vercel: `node scripts/setup-boletas-winston-vercel-env.mjs`
 3. Smoke `/boletas` y `/boletas-secundaria`
-4. Luego eliminar NANO **Boletas** en InsForge
+4. NANO **Boletas** eliminado en InsForge (2026-09-17). El módulo aún no está en producción operativa; detalles/smoke cuando Mario lo pida.
 
 ## Sync roster
 
