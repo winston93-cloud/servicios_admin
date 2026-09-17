@@ -68,3 +68,6 @@ scripts/.maestros-nuevos-*.json
 # deps locales para scripts
 .pydeps/
 .venv-pptx/
+
+# dumps locales de migración (no commit)
+tmp/
