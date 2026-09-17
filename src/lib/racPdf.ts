@@ -89,9 +89,11 @@ export function pdfHistorialAlumno(opts: {
   filas: FilaPdfReporte[]
   /** Página 2 legacy: informes académicos (tipo 5) con mensaje completo. */
   informes?: FilaPdfReporte[]
+  /** Título de portada (kardex completo vs historial por tipo). */
+  titulo?: string
 }): Buffer {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [210, 279] })
-  encabezadoPdf(doc, `Historial de reportes — ${opts.alumnoNombre}`, opts.ciclo)
+  encabezadoPdf(doc, opts.titulo ?? `Historial de reportes — ${opts.alumnoNombre}`, opts.ciclo)
   autoTable(doc, {
     startY: 42,
     head: [['#', 'Nombre', 'Reporte', 'Materia', 'Motivo', 'Fecha', 'Vuelta', 'RE', 'RC']],

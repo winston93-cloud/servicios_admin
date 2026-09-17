@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 
     if (modo === 'historial') {
       const alumnoId = Number(url.searchParams.get('alumnoId'))
-      const reporteTipo = Number(url.searchParams.get('reporteTipo') ?? 1)
+      const reporteTipo = Number(url.searchParams.get('reporteTipo') ?? 0)
       const materiaId = Number(url.searchParams.get('materiaId') ?? 0)
       if (!alumnoId) return NextResponse.json({ error: 'alumnoId requerido' }, { status: 400 })
       const datos = await datosPdfHistorial(

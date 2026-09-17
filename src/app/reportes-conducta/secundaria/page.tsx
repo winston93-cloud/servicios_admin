@@ -214,7 +214,7 @@ export default function RacSecundariaPage() {
   } | null>(null)
   const [historialAlumnos, setHistorialAlumnos] = useState<AlumnoBusqueda[]>([])
   const [historialAlumnoId, setHistorialAlumnoId] = useState(0)
-  const [historialTipo, setHistorialTipo] = useState(1)
+  const [historialTipo, setHistorialTipo] = useState(0)
   const [historialMateriaId, setHistorialMateriaId] = useState(0)
   const [historialSuggestOpen, setHistorialSuggestOpen] = useState(false)
   const [historialBuscando, setHistorialBuscando] = useState(false)
@@ -610,7 +610,8 @@ export default function RacSecundariaPage() {
     tab === 'historial'
       ? lista.filter((r) => {
           if (historialAlumnoId && Number(r.alumno_id) !== historialAlumnoId) return false
-          if (Number(r.tipo) !== historialTipo) return false
+          // 0 = Todos (kardex completo: académico, conducta, uniforme, etc. + informes).
+          if (historialTipo !== 0 && Number(r.tipo) !== historialTipo) return false
           if (historialTipo === 1 && historialMateriaId > 0 && Number(r.materia_id) !== historialMateriaId) {
             return false
           }
@@ -1109,55 +1110,61 @@ export default function RacSecundariaPage() {
                     Cambiar alumno
                   </button>
                 ) : null}
-                <label>
-                  Tipo de reporte
-                  <select
-                    value={historialTipo}
-                    onChange={(e) => {
-                      setHistorialTipo(Number(e.target.value))
-                      setHistorialMateriaId(0)
-                    }}
-                  >
-                    <option value={1}>Académico</option>
-                    <option value={2}>Conducta</option>
-                    <option value={3}>Uniforme</option>
-                    <option value={4}>Vialidad</option>
-                    <option value={6}>Retardo</option>
-                  </select>
-                </label>
-                {historialTipo === 1 ? (
                   <label>
-                    Materia
+                    Tipo de reporte
                     <select
-                      value={historialMateriaId}
-                      onChange={(e) => setHistorialMateriaId(Number(e.target.value))}
+                      value={historialTipo}
+                      onChange={(e) => {
+                        setHistorialTipo(Number(e.target.value))
+                        setHistorialMateriaId(0)
+                      }}
                     >
-                      <option value={0}>Todas</option>
-                      {materiasHistorial.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.nombre}
-                        </option>
-                      ))}
+                      <option value={0}>Todos (kardex)</option>
+                      <option value={1}>Académico</option>
+                      <option value={2}>Conducta</option>
+                      <option value={3}>Uniforme</option>
+                      <option value={4}>Vialidad</option>
+                      <option value={5}>Informe</option>
+                      <option value={6}>Retardo</option>
                     </select>
                   </label>
-                ) : null}
-                {historialAlumnoId ? (
-                  <button
-                    type="button"
-                    className="boletas-btn download"
-                    onClick={() =>
-                      descargarPdf(
-                        `/api/rac/impresion?modo=historial&alumnoId=${historialAlumnoId}&reporteTipo=${historialTipo}${
-                          historialMateriaId ? `&materiaId=${historialMateriaId}` : ''
-                        }`,
-                        `rac-historial-${historialAlumnoId}.pdf`
-                      )
-                    }
-                  >
-                    <Download size={16} aria-hidden />
-                    Imprimir historial PDF
-                  </button>
-                ) : null}
+                  {historialTipo === 1 ? (
+                    <label>
+                      Materia
+                      <select
+                        value={historialMateriaId}
+                        onChange={(e) => setHistorialMateriaId(Number(e.target.value))}
+                      >
+                        <option value={0}>Todas</option>
+                        {materiasHistorial.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
+                  {historialAlumnoId ? (
+                    <button
+                      type="button"
+                      className="boletas-btn download"
+                      onClick={() =>
+                        descargarPdf(
+                          `/api/rac/impresion?modo=historial&alumnoId=${historialAlumnoId}&reporteTipo=${historialTipo}${
+                            historialTipo === 1 && historialMateriaId
+                              ? `&materiaId=${historialMateriaId}`
+                              : ''
+                          }`,
+                          historialTipo === 0
+                            ? `rac-kardex-${historialAlumnoId}.pdf`
+                            : `rac-historial-${historialAlumnoId}.pdf`
+                        )
+                      }
+                    >
+                      <Download size={16} aria-hidden />
+                      {historialTipo === 0 ? 'Imprimir kardex PDF' : 'Imprimir historial PDF'}
+                    </button>
+                  ) : null}
               </div>
               {!historialAlumnoId ? (
                 <p className="rac-print-hint">

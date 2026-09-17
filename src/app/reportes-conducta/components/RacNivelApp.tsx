@@ -251,7 +251,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   } | null>(null)
   const [historialAlumnos, setHistorialAlumnos] = useState<AlumnoBusqueda[]>([])
   const [historialAlumnoId, setHistorialAlumnoId] = useState(0)
-  const [historialTipo, setHistorialTipo] = useState(1)
+  const [historialTipo, setHistorialTipo] = useState(0)
   const [historialMateriaId, setHistorialMateriaId] = useState(0)
   const [historialSuggestOpen, setHistorialSuggestOpen] = useState(false)
   const [historialBuscando, setHistorialBuscando] = useState(false)
@@ -621,7 +621,8 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
     tab === 'historial'
       ? lista.filter((r) => {
           if (historialAlumnoId && Number(r.alumno_id) !== historialAlumnoId) return false
-          if (Number(r.tipo) !== historialTipo) return false
+          // 0 = Todos (kardex completo).
+          if (historialTipo !== 0 && Number(r.tipo) !== historialTipo) return false
           if (historialTipo === 1 && historialMateriaId > 0 && Number(r.materia_id) !== historialMateriaId) {
             return false
           }
@@ -1225,10 +1226,12 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                         setHistorialMateriaId(0)
                       }}
                     >
+                      <option value={0}>Todos (kardex)</option>
                       <option value={1}>Académico</option>
                       <option value={2}>Conducta</option>
                       <option value={3}>Uniforme</option>
                       <option value={4}>Vialidad</option>
+                      <option value={5}>Informe</option>
                       <option value={6}>Retardo</option>
                     </select>
                   </label>
@@ -1255,14 +1258,18 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                       onClick={() =>
                         descargarPdf(
                           `${config.apiBase}/impresion?modo=historial&alumnoId=${historialAlumnoId}&reporteTipo=${historialTipo}${
-                            historialMateriaId ? `&materiaId=${historialMateriaId}` : ''
+                            historialTipo === 1 && historialMateriaId
+                              ? `&materiaId=${historialMateriaId}`
+                              : ''
                           }`,
-                          `rac-${config.slug}-historial-${historialAlumnoId}.pdf`
+                          historialTipo === 0
+                            ? `rac-${config.slug}-kardex-${historialAlumnoId}.pdf`
+                            : `rac-${config.slug}-historial-${historialAlumnoId}.pdf`
                         )
                       }
                     >
                       <Download size={16} aria-hidden />
-                      Imprimir historial PDF
+                      {historialTipo === 0 ? 'Imprimir kardex PDF' : 'Imprimir historial PDF'}
                     </button>
                   ) : null}
                 </div>
