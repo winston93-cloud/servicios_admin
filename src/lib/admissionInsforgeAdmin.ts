@@ -85,8 +85,9 @@ export function fechaMesAgendoAgendaW(agenda: AgendamientoCitaAgendaW | null): s
 
 /**
  * 2026-08-28: mensual por nivel (validación ciclo 23).
- * 2026-09-17: Maternal/Kinder — mes por fecha de AGENDA (created_at AgendaW), no por pago ni alta.
- * - Maternal/Kinder: agendo en el mes; sin AgendaW → fallback alta en el mes.
+ * 2026-09-17: Maternal/Kinder — no filtrar por mes de pago; agenda manda en columna/orden.
+ *   Corrección: no quitar del mes a quien tiene alta en el mes (mayo se vaciaba).
+ * - Maternal/Kinder: agendo en el mes **o** alta en el mes; columna preferir agendo.
  * - Primaria: alta en el mes, o reserva+cita AgendaW en el mes (ej. Samantha mayo).
  * - Secundaria sin AgendaW: mes de alta.
  * - Secundaria con AgendaW: reserva y cita en el mismo mes; columna = agendo.
@@ -115,22 +116,20 @@ export function evaluarFiltroMesNuevoIngresoAlumno(opts: {
         fechaEnRangoCalendario(ag.cita, opts.desde, opts.hasta)
     )
 
-  // 2026-09-17: Maternal/Kinder — pertenecer al mes según cuándo AGENDARON (no pago/alta).
+  // 2026-09-17: Maternal/Kinder — union agenda|alta (como primaria); pago no decide el mes.
+  // Orden/columna: fecha de agenda del mes, si no agendo real, si no alta.
   if (opts.nivel <= 2) {
     const enMesAgenda = reservas.filter((ag) =>
       fechaEnRangoCalendario(ag.agendo, opts.desde, opts.hasta)
     )
-    if (enMesAgenda.length > 0) {
-      return { incluir: true, fechaColumna: enMesAgenda[0].agendo }
-    }
-    // Tiene AgendaW en otro mes → no sale aquí (aunque el alta/pago sea de este mes).
-    if (reservas.length > 0) {
+    const altaEnMes = fechaEnRangoCalendario(fechaAlta, opts.desde, opts.hasta)
+    if (enMesAgenda.length === 0 && !altaEnMes) {
       return { incluir: false, fechaColumna: '' }
     }
-    // Sin match AgendaW: conserva alta en el mes como respaldo.
     return {
-      incluir: fechaEnRangoCalendario(fechaAlta, opts.desde, opts.hasta),
-      fechaColumna: fechaAlta,
+      incluir: true,
+      fechaColumna:
+        enMesAgenda.length > 0 ? enMesAgenda[0].agendo : agendoMasAntiguo || fechaAlta,
     }
   }
 
