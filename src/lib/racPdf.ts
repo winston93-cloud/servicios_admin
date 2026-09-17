@@ -94,24 +94,30 @@ export function pdfHistorialAlumno(opts: {
 }): Buffer {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [210, 279] })
   encabezadoPdf(doc, opts.titulo ?? `Historial de reportes — ${opts.alumnoNombre}`, opts.ciclo)
-  autoTable(doc, {
-    startY: 42,
-    head: [['#', 'Nombre', 'Reporte', 'Materia', 'Motivo', 'Fecha', 'Vuelta', 'RE', 'RC']],
-    body: opts.filas.map((f, i) => [
-      String(i + 1),
-      f.nombre.slice(0, 40),
-      f.reporteLabel,
-      f.materia.slice(0, 30),
-      f.motivo.slice(0, 30),
-      f.fecha,
-      String(f.vuelta),
-      f.enviado ? 'SI' : 'NO',
-      f.confirmado ? 'SI' : 'NO',
-    ]),
-    styles: { fontSize: 7, cellPadding: 1.5 },
-    headStyles: { fillColor: [168, 168, 168], textColor: 0 },
-    margin: { left: 10, right: 10 },
-  })
+  if (!opts.filas.length) {
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    doc.text('Sin reportes en el ciclo actual para este filtro.', 14, 48)
+  } else {
+    autoTable(doc, {
+      startY: 42,
+      head: [['#', 'Nombre', 'Reporte', 'Materia', 'Motivo', 'Fecha', 'Vuelta', 'RE', 'RC']],
+      body: opts.filas.map((f, i) => [
+        String(i + 1),
+        f.nombre.slice(0, 40),
+        f.reporteLabel,
+        f.materia.slice(0, 30),
+        f.motivo.slice(0, 30),
+        f.fecha,
+        String(f.vuelta),
+        f.enviado ? 'SI' : 'NO',
+        f.confirmado ? 'SI' : 'NO',
+      ]),
+      styles: { fontSize: 7, cellPadding: 1.5 },
+      headStyles: { fillColor: [168, 168, 168], textColor: 0 },
+      margin: { left: 10, right: 10 },
+    })
+  }
 
   // Página 2: informes académicos con el texto del mensaje (paridad secundaria_2.0).
   doc.addPage()

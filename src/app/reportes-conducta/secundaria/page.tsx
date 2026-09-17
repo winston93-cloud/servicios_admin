@@ -1119,7 +1119,7 @@ export default function RacSecundariaPage() {
                         setHistorialMateriaId(0)
                       }}
                     >
-                      <option value={0}>Todos (kardex)</option>
+                      <option value={0}>Todos</option>
                       <option value={1}>Académico</option>
                       <option value={2}>Conducta</option>
                       <option value={3}>Uniforme</option>
@@ -1155,14 +1155,12 @@ export default function RacSecundariaPage() {
                               ? `&materiaId=${historialMateriaId}`
                               : ''
                           }`,
-                          historialTipo === 0
-                            ? `rac-kardex-${historialAlumnoId}.pdf`
-                            : `rac-historial-${historialAlumnoId}.pdf`
+                          `rac-historial-${historialAlumnoId}.pdf`
                         )
                       }
                     >
                       <Download size={16} aria-hidden />
-                      {historialTipo === 0 ? 'Imprimir kardex PDF' : 'Imprimir historial PDF'}
+                      Imprimir historial PDF
                     </button>
                   ) : null}
               </div>

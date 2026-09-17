@@ -1279,16 +1279,14 @@ export function createRacNivelService(cfg: RacNivelConfig) {
   async function datosPdfHistorial(alumnoId: number, reporteTipo: number, materiaId?: number) {
     const ciclo = await cicloRac()
     const alumno = await cargarAlumno(alumnoId)
-    // reporteTipo 0 = Todos (kardex completo). Página 1 sin informes (detalle en pág. 2).
+    // reporteTipo 0 = Todos: todos los tipos activos del ciclo (incl. informes).
     let q = db()
       .from('reporte_escolar')
       .select('*')
       .eq('alumno_id', alumnoId)
       .eq('reporte_ciclo_escolar', ciclo)
       .eq('reporte_status', 1)
-    if (reporteTipo === 0) {
-      q = q.neq('reporte_tipo', RAC_TIPOS.informeAcademico)
-    } else {
+    if (reporteTipo > 0) {
       q = q.eq('reporte_tipo', reporteTipo)
       if (reporteTipo === RAC_TIPOS.academico && materiaId) q = q.eq('materia_id', materiaId)
     }
@@ -1308,10 +1306,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     return {
       ciclo,
       alumnoNombre: nombreAlumno(alumno),
-      titulo:
-        reporteTipo === 0
-          ? `Kardex de reportes — ${nombreAlumno(alumno)}`
-          : `Historial de reportes — ${nombreAlumno(alumno)}`,
+      titulo: `Historial de reportes — ${nombreAlumno(alumno)}`,
       filas: await filasPdfDesdeQuery((data ?? []) as Record<string, unknown>[]),
       informes: await filasPdfDesdeQuery((informesRaw ?? []) as Record<string, unknown>[]),
     }

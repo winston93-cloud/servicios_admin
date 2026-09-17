@@ -1226,7 +1226,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                         setHistorialMateriaId(0)
                       }}
                     >
-                      <option value={0}>Todos (kardex)</option>
+                      <option value={0}>Todos</option>
                       <option value={1}>Académico</option>
                       <option value={2}>Conducta</option>
                       <option value={3}>Uniforme</option>
@@ -1262,14 +1262,12 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                               ? `&materiaId=${historialMateriaId}`
                               : ''
                           }`,
-                          historialTipo === 0
-                            ? `rac-${config.slug}-kardex-${historialAlumnoId}.pdf`
-                            : `rac-${config.slug}-historial-${historialAlumnoId}.pdf`
+                          `rac-${config.slug}-historial-${historialAlumnoId}.pdf`
                         )
                       }
                     >
                       <Download size={16} aria-hidden />
-                      {historialTipo === 0 ? 'Imprimir kardex PDF' : 'Imprimir historial PDF'}
+                      Imprimir historial PDF
                     </button>
                   ) : null}
                 </div>
