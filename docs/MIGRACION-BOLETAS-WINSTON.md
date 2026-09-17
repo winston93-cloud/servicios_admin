@@ -19,7 +19,7 @@ App: `servicios_admin` (`/boletas`, `/boletas-secundaria`, APIs `boletas-*`)
 
 - `alumno`, `alumno_detalles`, `alumno_familiar`, `usuario`
 - `boleta_materia` (133 en Winston vs 43 en NANO)
-- `boleta_maestro` / `boleta_maestro_grupo` (se **añadieron** 8 maestros + 102 grupos faltantes)
+- `boleta_maestro` / `boleta_maestro_grupo`: **no** se conservó el merge del NANO. Tras revisión, el catálogo correcto es el de Servicios (`/servicios` catálogo maestros). Se revirtió a **63 maestros / 296 grupos** (0 duplicados lógicos).
 
 ## Cutover
 
