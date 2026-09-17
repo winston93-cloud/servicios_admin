@@ -7,7 +7,7 @@ function requireBoletasInsforgeEnv() {
   const apiKey = process.env.BOLETAS_INSFORGE_API_KEY
   if (!baseUrl || !apiKey) {
     throw new Error(
-      'Faltan BOLETAS_INSFORGE_URL y BOLETAS_INSFORGE_API_KEY (proyecto InsForge boletas).'
+      'Faltan BOLETAS_INSFORGE_URL y BOLETAS_INSFORGE_API_KEY (Winston Servicios / tablas boleta_*).'
     )
   }
   return { baseUrl, apiKey }
@@ -15,7 +15,7 @@ function requireBoletasInsforgeEnv() {
 
 let admin: InsForgeClient | null = null
 
-/** Cliente admin del proyecto InsForge «boletas». Solo servidor. */
+/** Cliente admin para tablas boleta_* (consolidado en Winston Servicios). Solo servidor. */
 export function createBoletasInsforgeAdmin(): InsForgeClient {
   if (!admin) {
     admin = createAdminClient(requireBoletasInsforgeEnv())

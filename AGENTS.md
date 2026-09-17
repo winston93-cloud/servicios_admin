@@ -23,7 +23,8 @@ Key patterns:
 
 ## Consolidación NANOs InsForge → Winston Servicios
 
-- **SSIW / entrega a pie:** repo externo `~/Proyectos/ssiw` (`ssiw.vercel.app`). Handoff desde este admin en `/ssiw/entrar`. Tablas `registro_salida_pie` y `entregas_alumnos` viven en **Winston Servicios** (`g4ta4bfg`). El NANO `winston-ssiw` (`xkeq76zc`) queda por borrar solo tras cutover de env en Vercel (ver `ssiw/MIGRACION-WINSTON-SERVICIOS.md`).
+- **SSIW / entrega a pie:** repo externo `~/Proyectos/ssiw` (`ssiw.vercel.app`). Handoff desde este admin en `/ssiw/entrar`. Tablas `registro_salida_pie` y `entregas_alumnos` viven en **Winston Servicios** (`g4ta4bfg`). Cutover Vercel hecho; NANO `winston-ssiw` borrable tras smoke.
+- **Boletas:** tablas `boleta_*` + captura en Winston Servicios. Cutover: `docs/MIGRACION-BOLETAS-WINSTON.md` + `scripts/setup-boletas-winston-vercel-env.mjs`. NANO `Boletas` (`5u3i4tmc`) borrable tras smoke.
 - **Entersote / gym:** tabla `gym_estado` también en Winston Servicios; app local en PCs (sin repo).
 
 ## Facturación CFDI — estado y pendientes
@@ -88,6 +89,5 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 - **Sistema integral boletas:** `/boletas` — 5 módulos activos (Kinder ES/EN, Primaria ES/EN, Secundaria). Auth cookie compartida; envío `POST /api/boletas-envio`.
 - **Secundaria:** `/boletas-secundaria` — login maestro/admin, captura, admin, PDF, reportes, email.
 - **Kinder / Primaria:** `/boletas/kinder-espanol`, `kinder-ingles`, `primaria-espanol`, `primaria-ingles` — captura + PDF + email.
-- **Backend:** InsForge **`boletas`** (`https://5u3i4tmc.us-east.insforge.app`). Schema en `insforge-boletas/` (aplicado).
-- **Env (solo server):** `BOLETAS_INSFORGE_URL`, `BOLETAS_INSFORGE_API_KEY`, `BOLETAS_SESSION_SECRET` (local + Vercel).
+- **Backend:** tablas `boleta_*` en **Winston Servicios** (`g4ta4bfg`). Env `BOLETAS_INSFORGE_URL` / `BOLETAS_INSFORGE_API_KEY` / `BOLETAS_SESSION_SECRET` (local + Vercel). Migración: `docs/MIGRACION-BOLETAS-WINSTON.md`. El NANO InsForge **Boletas** (`5u3i4tmc`) queda por borrar tras smoke.
 - Legacy PHP `winston93.edu.mx/boletas` (y boletasek/ik/español/ingles) convive; no apagar hasta OK de Mario.
