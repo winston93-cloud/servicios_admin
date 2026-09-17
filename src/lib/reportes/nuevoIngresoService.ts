@@ -184,7 +184,7 @@ export async function cargarNuevoIngreso(
      */
     rangoPago?: { desde: string; hasta: string }
     /**
-     * Reporte mensual: maternal/kinder por alta; primaria alta o agenda+cita; secundaria agenda+cita o alta.
+     * Reporte mensual: maternal/kinder por mes de agenda; primaria alta o agenda+cita; secundaria agenda+cita o alta.
      */
     rangoAgenda?: { desde: string; hasta: string }
     /** Título override (ej. reporte por mes). */
@@ -287,7 +287,7 @@ export async function cargarNuevoIngreso(
     })
   }
 
-  // 2026-08-28: mensual ordenado por fecha inscripción examen (columna Agenda), luego nombre.
+  // 2026-08-28 / 2026-09-17: mensual ordenado por fecha de agenda (columna Alta/Agenda), luego nombre.
   if (esReporteMes) {
     filasBase.sort((a, b) => {
       const cmp = a.alta.slice(0, 10).localeCompare(b.alta.slice(0, 10))

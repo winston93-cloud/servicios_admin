@@ -85,7 +85,8 @@ export function fechaMesAgendoAgendaW(agenda: AgendamientoCitaAgendaW | null): s
 
 /**
  * 2026-08-28: mensual por nivel (validación ciclo 23).
- * - Maternal/Kinder: mes de alumno_alta; columna = agendo AgendaW o alta.
+ * 2026-09-17: Maternal/Kinder — mes por fecha de AGENDA (created_at AgendaW), no por pago ni alta.
+ * - Maternal/Kinder: agendo en el mes; sin AgendaW → fallback alta en el mes.
  * - Primaria: alta en el mes, o reserva+cita AgendaW en el mes (ej. Samantha mayo).
  * - Secundaria sin AgendaW: mes de alta.
  * - Secundaria con AgendaW: reserva y cita en el mismo mes; columna = agendo.
@@ -114,10 +115,22 @@ export function evaluarFiltroMesNuevoIngresoAlumno(opts: {
         fechaEnRangoCalendario(ag.cita, opts.desde, opts.hasta)
     )
 
+  // 2026-09-17: Maternal/Kinder — pertenecer al mes según cuándo AGENDARON (no pago/alta).
   if (opts.nivel <= 2) {
+    const enMesAgenda = reservas.filter((ag) =>
+      fechaEnRangoCalendario(ag.agendo, opts.desde, opts.hasta)
+    )
+    if (enMesAgenda.length > 0) {
+      return { incluir: true, fechaColumna: enMesAgenda[0].agendo }
+    }
+    // Tiene AgendaW en otro mes → no sale aquí (aunque el alta/pago sea de este mes).
+    if (reservas.length > 0) {
+      return { incluir: false, fechaColumna: '' }
+    }
+    // Sin match AgendaW: conserva alta en el mes como respaldo.
     return {
       incluir: fechaEnRangoCalendario(fechaAlta, opts.desde, opts.hasta),
-      fechaColumna: agendoMasAntiguo || fechaAlta,
+      fechaColumna: fechaAlta,
     }
   }
 
