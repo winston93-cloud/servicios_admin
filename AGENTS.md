@@ -21,6 +21,11 @@ Key patterns:
 - For storage uploads, persist both the returned `url` and `key`.
 <!-- INSFORGE:END -->
 
+## Consolidación NANOs InsForge → Winston Servicios
+
+- **SSIW / entrega a pie:** repo externo `~/Proyectos/ssiw` (`ssiw.vercel.app`). Handoff desde este admin en `/ssiw/entrar`. Tablas `registro_salida_pie` y `entregas_alumnos` viven en **Winston Servicios** (`g4ta4bfg`). El NANO `winston-ssiw` (`xkeq76zc`) queda por borrar solo tras cutover de env en Vercel (ver `ssiw/MIGRACION-WINSTON-SERVICIOS.md`).
+- **Entersote / gym:** tabla `gym_estado` también en Winston Servicios; app local en PCs (sin repo).
+
 ## Facturación CFDI — estado y pendientes
 
 Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACION-CFDI-ROADMAP.md`.
