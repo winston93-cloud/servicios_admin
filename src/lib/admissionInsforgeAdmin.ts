@@ -117,14 +117,16 @@ export function evaluarFiltroMesNuevoIngresoAlumno(opts: {
     )
 
   // 2026-09-17: Maternal/Kinder — SOLO mes de agenda (created_at). Sin alta/pago.
+  // Isabella (agenda ene) NO debe salir en marzo; Adriel (agenda ene) NO en abril.
   if (opts.nivel <= 2) {
     const enMesAgenda = reservas
-      .filter((ag) => fechaEnRangoCalendario(ag.agendo, opts.desde, opts.hasta))
+      .filter((ag) => Boolean(ag.agendo) && fechaEnRangoCalendario(ag.agendo, opts.desde, opts.hasta))
       .sort((a, b) => a.agendo.localeCompare(b.agendo))
     if (enMesAgenda.length === 0) {
       return { incluir: false, fechaColumna: '' }
     }
-    return { incluir: true, fechaColumna: enMesAgenda[0].agendo }
+    // Columna = agenda del mes (nunca agendo de otro mes ni alta).
+    return { incluir: true, fechaColumna: enMesAgenda[0].agendo.slice(0, 10) }
   }
 
   if (opts.nivel === 3) {

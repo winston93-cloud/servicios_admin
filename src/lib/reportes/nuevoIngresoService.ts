@@ -241,6 +241,14 @@ export async function cargarNuevoIngreso(
       })
       if (!mes.incluir) continue
       fechaColumnaAlta = mes.fechaColumna
+      // 2026-09-17: candado Maternal/Kinder — jamás listar si la Agenda no cae en el mes
+      // (evita Isabella/Adriel con agenda enero apareciendo en marzo/abril por alta o pago).
+      if (nivel <= 2) {
+        const fAgenda = fechaColumnaAlta.slice(0, 10)
+        const d0 = agendaDesde!.slice(0, 10)
+        const d1 = agendaHasta!.slice(0, 10)
+        if (!fAgenda || fAgenda < d0 || fAgenda > d1) continue
+      }
     } else if (agendaReserva?.agendo) {
       // 2026-08-28: general — AgendaW si existe; si no, conserva alta abajo.
       fechaColumnaAlta = agendaReserva.agendo
