@@ -102,6 +102,7 @@ export default function BecariosPage() {
   const [fechaConsulta, setFechaConsulta] = useState('')
   const [filtroBecario, setFiltroBecario] = useState('todos')
   const [dirty, setDirty] = useState(false)
+  const [detalleEntrada, setDetalleEntrada] = useState<Entrada | null>(null)
 
   const esRevisor = me?.role === 'revisor'
 
@@ -640,7 +641,17 @@ export default function BecariosPage() {
                 lista.map((e) => (
                   <article
                     key={`${e.becario_username}-${e.entrada_fecha}-${e.entrada_id}`}
-                    className="becarios-card-entry"
+                    className="becarios-card-entry is-clickable"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Ver registro completo de ${e.becario_nombre || 'becario'}`}
+                    onClick={() => setDetalleEntrada(e)}
+                    onKeyDown={(ev) => {
+                      if (ev.key === 'Enter' || ev.key === ' ') {
+                        ev.preventDefault()
+                        setDetalleEntrada(e)
+                      }
+                    }}
                   >
                     <header>
                       <time dateTime={e.entrada_fecha}>{fmtFechaLarga(e.entrada_fecha)}</time>
@@ -658,6 +669,7 @@ export default function BecariosPage() {
                         <strong>Obs.</strong> {e.observaciones}
                       </p>
                     ) : null}
+                    <p className="becarios-card-hint">Clic para ver el registro completo</p>
                   </article>
                 ))
               )}
@@ -714,7 +726,25 @@ export default function BecariosPage() {
                 lista.map((e) => (
                   <article
                     key={`${e.becario_username || me.username}-${e.entrada_fecha}-${e.entrada_id}`}
-                    className="becarios-card-entry"
+                    className={`becarios-card-entry${esRevisor ? ' is-clickable' : ''}`}
+                    role={esRevisor ? 'button' : undefined}
+                    tabIndex={esRevisor ? 0 : undefined}
+                    aria-label={
+                      esRevisor
+                        ? `Ver registro completo de ${e.becario_nombre || 'becario'}`
+                        : undefined
+                    }
+                    onClick={esRevisor ? () => setDetalleEntrada(e) : undefined}
+                    onKeyDown={
+                      esRevisor
+                        ? (ev) => {
+                            if (ev.key === 'Enter' || ev.key === ' ') {
+                              ev.preventDefault()
+                              setDetalleEntrada(e)
+                            }
+                          }
+                        : undefined
+                    }
                   >
                     <header>
                       <time dateTime={e.entrada_fecha}>{fmtFechaLarga(e.entrada_fecha)}</time>
@@ -727,7 +757,9 @@ export default function BecariosPage() {
                     </header>
                     {e.entrada_titulo ? <h3>{e.entrada_titulo}</h3> : null}
                     <p className="becarios-clip">{e.avances}</p>
-                    {!esRevisor ? (
+                    {esRevisor ? (
+                      <p className="becarios-card-hint">Clic para ver el registro completo</p>
+                    ) : (
                       <button
                         type="button"
                         className="becarios-btn ghost"
@@ -738,7 +770,7 @@ export default function BecariosPage() {
                       >
                         Abrir / editar
                       </button>
-                    ) : null}
+                    )}
                   </article>
                 ))
               )}
@@ -836,6 +868,87 @@ export default function BecariosPage() {
           </section>
         ) : null}
       </div>
+
+      {detalleEntrada ? (
+        <div
+          className="becarios-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="becarios-detalle-title"
+          onClick={() => setDetalleEntrada(null)}
+        >
+          <div
+            className="becarios-modal-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <header className="becarios-modal-head">
+              <div>
+                <span className="becarios-kicker">Registro completo</span>
+                <h3 id="becarios-detalle-title">
+                  {detalleEntrada.entrada_titulo?.trim() || 'Bitácora del día'}
+                </h3>
+                <p className="becarios-date-line">
+                  {fmtFechaLarga(detalleEntrada.entrada_fecha)}
+                  {detalleEntrada.becario_nombre
+                    ? ` · ${detalleEntrada.becario_nombre}`
+                    : ''}
+                  {detalleEntrada.horas_aproximadas != null
+                    ? ` · ${detalleEntrada.horas_aproximadas} h`
+                    : ''}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="becarios-btn ghost"
+                onClick={() => setDetalleEntrada(null)}
+              >
+                Cerrar
+              </button>
+            </header>
+            <div className="becarios-detalle-grid">
+              <section>
+                <h4>Avances del día</h4>
+                <p className="becarios-detalle-body">
+                  {detalleEntrada.avances?.trim() || '—'}
+                </p>
+              </section>
+              <section>
+                <h4>Observaciones</h4>
+                <p className="becarios-detalle-body">
+                  {detalleEntrada.observaciones?.trim() || '—'}
+                </p>
+              </section>
+              <section>
+                <h4>Apuntes técnicos</h4>
+                <p className="becarios-detalle-body">
+                  {detalleEntrada.apuntes?.trim() || '—'}
+                </p>
+              </section>
+              <section>
+                <h4>Pendientes para mañana</h4>
+                <p className="becarios-detalle-body">
+                  {detalleEntrada.pendientes?.trim() || '—'}
+                </p>
+              </section>
+              <section>
+                <h4>Aprendizajes</h4>
+                <p className="becarios-detalle-body">
+                  {detalleEntrada.aprendizajes?.trim() || '—'}
+                </p>
+              </section>
+            </div>
+            <div className="becarios-actions">
+              <button
+                type="button"
+                className="becarios-btn primary"
+                onClick={() => setDetalleEntrada(null)}
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

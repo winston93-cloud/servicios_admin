@@ -688,6 +688,134 @@ html[data-theme='light'] .becarios-card-entry {
   transform: translateY(-2px);
 }
 
+.becarios-card-entry.is-clickable {
+  cursor: pointer;
+}
+
+.becarios-card-entry.is-clickable:focus-visible {
+  outline: 2px solid #00e3fd;
+  outline-offset: 2px;
+}
+
+.becarios-card-hint {
+  margin: 0.55rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: #00e3fd;
+  opacity: 0.9;
+}
+
+html[data-theme='light'] .becarios-card-hint {
+  color: #0369a1;
+}
+
+.becarios-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right))
+    max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+  background: rgba(18, 19, 24, 0.72);
+  backdrop-filter: blur(5px);
+}
+
+.becarios-modal-card {
+  width: min(100%, 640px);
+  max-height: min(92dvh, 760px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 1.1rem;
+  border: 1px solid rgba(255, 246, 223, 0.22);
+  background:
+    linear-gradient(165deg, rgba(0, 227, 253, 0.1) 0%, transparent 40%),
+    linear-gradient(160deg, rgba(58, 59, 68, 0.96), rgba(26, 27, 33, 0.98));
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+  padding: 1.15rem 1.2rem 1.25rem;
+}
+
+html[data-theme='light'] .becarios-modal-card {
+  background: #fff;
+  border-color: rgba(26, 27, 33, 0.12);
+  box-shadow: 0 18px 40px rgba(26, 27, 33, 0.14);
+}
+
+.becarios-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(255, 246, 223, 0.14);
+}
+
+html[data-theme='light'] .becarios-modal-head {
+  border-bottom-color: rgba(26, 27, 33, 0.1);
+}
+
+.becarios-modal-head h3 {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: clamp(1.1rem, 3vw, 1.35rem);
+  color: #fff6df;
+}
+
+html[data-theme='light'] .becarios-modal-head h3 {
+  color: #3a3000;
+}
+
+.becarios-detalle-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.becarios-detalle-grid section {
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 246, 223, 0.12);
+  background: rgba(18, 19, 24, 0.35);
+}
+
+html[data-theme='light'] .becarios-detalle-grid section {
+  background: #f7f4ec;
+  border-color: rgba(26, 27, 33, 0.08);
+}
+
+.becarios-detalle-grid h4 {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #00e3fd;
+}
+
+html[data-theme='light'] .becarios-detalle-grid h4 {
+  color: #0369a1;
+}
+
+.becarios-detalle-body {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.45;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 480px) {
+  .becarios-modal-head {
+    flex-direction: column;
+  }
+
+  .becarios-modal-head .becarios-btn {
+    width: 100%;
+  }
+}
+
 .becarios-card-entry header {
   display: flex;
   align-items: center;
