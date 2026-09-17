@@ -184,7 +184,7 @@ export async function cargarNuevoIngreso(
      */
     rangoPago?: { desde: string; hasta: string }
     /**
-     * Reporte mensual: maternal/kinder SOLO por mes de agenda;
+     * Reporte mensual: maternal/kinder por agenda efectiva (cita si reserva >30d);
      * primaria alta o agenda+cita; secundaria agenda+cita o alta.
      */
     rangoAgenda?: { desde: string; hasta: string }

@@ -69,6 +69,28 @@ function fechaEnRangoCalendario(fecha: string, desde: string, hasta: string): bo
   return Boolean(f) && f >= d0 && f <= d1
 }
 
+/** Días calendario entre dos YYYY-MM-DD (cita − agendo). */
+function diasEntreFechas(desde: string, hasta: string): number {
+  const a = Date.parse(`${desde.slice(0, 10)}T12:00:00Z`)
+  const b = Date.parse(`${hasta.slice(0, 10)}T12:00:00Z`)
+  if (Number.isNaN(a) || Number.isNaN(b)) return 0
+  return Math.round((b - a) / 86_400_000)
+}
+
+/**
+ * 2026-09-17: fecha de AGENDA para Maternal/Kinder.
+ * Si reservaron con >30 días de anticipación, el mes es el de la CITA (no el created_at temprano).
+ * Así Isabella (reservó ene, cita mar) va a marzo con fecha mar — no aparece ene en marzo.
+ * Pago y alta nunca entran aquí.
+ */
+function fechaAgendaMaternalKinder(ag: AgendamientoCitaAgendaW): string {
+  const agendo = ag.agendo.slice(0, 10)
+  const cita = ag.cita.slice(0, 10)
+  if (!agendo) return ''
+  if (cita && diasEntreFechas(agendo, cita) > 30) return cita
+  return agendo
+}
+
 /** Reserva en línea (created_at) vs cita de examen (appointment_date) en AgendaW. */
 export type AgendamientoCitaAgendaW = {
   agendo: string
@@ -85,9 +107,9 @@ export function fechaMesAgendoAgendaW(agenda: AgendamientoCitaAgendaW | null): s
 
 /**
  * 2026-08-28: mensual por nivel (validación ciclo 23).
- * 2026-09-17: Maternal/Kinder — listado SOLO por fecha de AGENDA (created_at AgendaW).
- *   Pago y alta no deciden inclusión ni orden.
- * - Maternal/Kinder: entra solo si agendó en el mes; columna = fecha agendo.
+ * 2026-09-17: Maternal/Kinder — mes por fecha de AGENDA efectiva (cita si reserva >30d antes).
+ *   Pago y alta no deciden. Columna siempre cae en el mes del reporte.
+ * - Maternal/Kinder: fechaAgendaMaternalKinder en el mes.
  * - Primaria: alta en el mes, o reserva+cita AgendaW en el mes (ej. Samantha mayo).
  * - Secundaria sin AgendaW: mes de alta.
  * - Secundaria con AgendaW: reserva y cita en el mismo mes; columna = agendo.
@@ -116,17 +138,17 @@ export function evaluarFiltroMesNuevoIngresoAlumno(opts: {
         fechaEnRangoCalendario(ag.cita, opts.desde, opts.hasta)
     )
 
-  // 2026-09-17: Maternal/Kinder — SOLO mes de agenda (created_at). Sin alta/pago.
-  // Isabella (agenda ene) NO debe salir en marzo; Adriel (agenda ene) NO en abril.
+  // 2026-09-17: Maternal/Kinder — mes de agenda efectiva (sin alta/pago).
+  // Isabella ene→cita mar: marzo con 03-18. Adriel ene→cita abr: abril con 04-13.
   if (opts.nivel <= 2) {
-    const enMesAgenda = reservas
-      .filter((ag) => Boolean(ag.agendo) && fechaEnRangoCalendario(ag.agendo, opts.desde, opts.hasta))
-      .sort((a, b) => a.agendo.localeCompare(b.agendo))
-    if (enMesAgenda.length === 0) {
+    const enMes = reservas
+      .map((ag) => ({ ag, fecha: fechaAgendaMaternalKinder(ag) }))
+      .filter(({ fecha }) => fecha && fechaEnRangoCalendario(fecha, opts.desde, opts.hasta))
+      .sort((a, b) => a.fecha.localeCompare(b.fecha))
+    if (enMes.length === 0) {
       return { incluir: false, fechaColumna: '' }
     }
-    // Columna = agenda del mes (nunca agendo de otro mes ni alta).
-    return { incluir: true, fechaColumna: enMesAgenda[0].agendo.slice(0, 10) }
+    return { incluir: true, fechaColumna: enMes[0].fecha }
   }
 
   if (opts.nivel === 3) {
