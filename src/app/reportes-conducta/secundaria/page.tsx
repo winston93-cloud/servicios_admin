@@ -221,6 +221,10 @@ export default function RacSecundariaPage() {
   const [printGrado, setPrintGrado] = useState(0)
   const [printGrupo, setPrintGrupo] = useState('')
   const [seleccionados, setSeleccionados] = useState<number[]>([])
+  /** Paridad secundaria_2.0: Informes filtro Confirmados / No confirmados / Todos. */
+  const [informesConfirmado, setInformesConfirmado] = useState<'all' | '0' | '1'>('all')
+  /** Listado: sin confirmar (legacy) / confirmados / todos los emitidos. */
+  const [listadoConfirmado, setListadoConfirmado] = useState<'all' | '0' | '1'>('0')
   const puedeVerDetalleLista =
     tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' || tab === 'suspensiones'
 
@@ -308,16 +312,35 @@ export default function RacSecundariaPage() {
     }
   }
 
-  async function cargarVista(vista: string) {
+  async function cargarVista(vista: string, confirmado?: 'all' | '0' | '1') {
     setBusy(true)
     setMsg('')
     try {
-      const extra = vista === 'historial' ? `&q=${encodeURIComponent(q)}` : ''
+      let vistaApi = vista
+      let conf = confirmado
+      if (vista === 'inbox-listado') {
+        // Listado: sin confirmar | confirmados | todos (tipos ≤5).
+        if (listadoConfirmado === '0') {
+          vistaApi = 'pendientes'
+          conf = '0'
+        } else if (listadoConfirmado === '1') {
+          vistaApi = 'todos'
+          conf = '1'
+        } else {
+          vistaApi = 'todos'
+          conf = 'all'
+        }
+      } else if (vista === 'informes') {
+        conf = confirmado ?? informesConfirmado
+      }
+      const confQs =
+        conf === '0' || conf === '1' || conf === 'all' ? `&confirmado=${conf}` : ''
+      const extra = vistaApi === 'historial' ? `&q=${encodeURIComponent(q)}` : confQs
       const data = await api<{ filas?: Record<string, unknown>[]; alumnos?: AlumnoBusqueda[] }>(
-        `/api/rac/coordinacion?vista=${vista}${extra}`
+        `/api/rac/coordinacion?vista=${vistaApi}${extra}`
       )
       setLista(data.filas ?? [])
-      if (vista === 'historial') {
+      if (vistaApi === 'historial') {
         const alumnos = data.alumnos ?? []
         setHistorialAlumnos(alumnos)
         if (alumnos[0]) setHistorialAlumnoId(Number(alumnos[0].alumno_id))
@@ -332,7 +355,7 @@ export default function RacSecundariaPage() {
   useEffect(() => {
     if (!me) return
     if (tab === 'captura' || tab === 'prefectura') void cargarGrupo()
-    if (tab === 'inbox') void cargarVista('pendientes')
+    if (tab === 'inbox') void cargarVista('inbox-listado')
     if (tab === 'informes') void cargarVista('informes')
     if (tab === 'citas') void cargarVista('citas')
     if (tab === 'suspensiones') void cargarVista('suspensiones')
@@ -347,7 +370,7 @@ export default function RacSecundariaPage() {
       setQ('')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me, tab, asigKey, tipo])
+  }, [me, tab, asigKey, tipo, informesConfirmado, listadoConfirmado])
 
   useEffect(() => {
     if (tab !== 'historial' || !me) return
@@ -518,7 +541,7 @@ export default function RacSecundariaPage() {
         )
       }
       setCitaValidar(null)
-      if (tab === 'inbox') await cargarVista('pendientes')
+      if (tab === 'inbox') await cargarVista('inbox-listado')
       if (tab === 'informes') await cargarVista('informes')
       if (tab === 'citas') await cargarVista('citas')
       if (tab === 'suspensiones') await cargarVista('suspensiones')
@@ -656,7 +679,7 @@ export default function RacSecundariaPage() {
     )
     setSeleccionados([])
     try {
-      if (tab === 'inbox') await cargarVista('pendientes')
+      if (tab === 'inbox') await cargarVista('inbox-listado')
       if (tab === 'informes') await cargarVista('informes')
     } finally {
       setBusy(false)
@@ -924,6 +947,17 @@ export default function RacSecundariaPage() {
         <section className="boletas-panel">
           {tab === 'inbox' && esAdmin ? (
             <div className="boletas-filters">
+              <label>
+                Filtro
+                <select
+                  value={listadoConfirmado}
+                  onChange={(e) => setListadoConfirmado(e.target.value as 'all' | '0' | '1')}
+                >
+                  <option value="0">Sin confirmar</option>
+                  <option value="1">Confirmados histórico</option>
+                  <option value="all">Todos los emitidos</option>
+                </select>
+              </label>
               <button
                 type="button"
                 className="boletas-btn download"
@@ -945,6 +979,20 @@ export default function RacSecundariaPage() {
           ) : null}
           {tab === 'informes' && (esAdmin || me?.role === 'psicologia') ? (
             <div className="boletas-filters">
+              <label>
+                Filtro
+                <select
+                  value={informesConfirmado}
+                  onChange={(e) => setInformesConfirmado(e.target.value as 'all' | '0' | '1')}
+                >
+                  <option value="all">Todos</option>
+                  <option value="1">Confirmados histórico</option>
+                  <option value="0">No confirmados</option>
+                </select>
+              </label>
+              <p className="rac-print-legend">
+                Solo informes de aprendizaje. Académico, uniforme y demás → Listado sin confirmar.
+              </p>
               <button
                 type="button"
                 className="boletas-btn info"

@@ -895,7 +895,11 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .filter(Boolean)
   }
 
-  async function inboxReportes(session: RacSesionNivel, filtro: 'pendientes' | 'informes' | 'todos') {
+  async function inboxReportes(
+    session: RacSesionNivel,
+    filtro: 'pendientes' | 'informes' | 'todos',
+    confirmado: 'all' | '0' | '1' = filtro === 'pendientes' ? '0' : 'all'
+  ) {
     const ciclo = await cicloRac()
     // Sin .in(alumno_id, miles de ids): eso tumba OpenResty (502) en primaria (~800+).
     // Se filtra por nivel al hidratar, igual que el resto del módulo.
@@ -904,9 +908,20 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       q = q.eq('reporte_status', 2).eq('reporte_tipo', RAC_TIPOS.conducta)
     } else {
       q = q.eq('reporte_status', 1)
-      if (filtro === 'pendientes') q = q.lte('reporte_tipo', 5).eq('reporte_confirmado', 0)
+      if (filtro === 'pendientes' || filtro === 'todos') {
+        q = q.lte('reporte_tipo', 5)
+        const conf = filtro === 'pendientes' && confirmado === 'all' ? '0' : confirmado
+        if (conf === '0') q = q.eq('reporte_confirmado', 0)
+        if (conf === '1') q = q.eq('reporte_confirmado', 1)
+      }
       if (filtro === 'informes') {
-        q = q.eq('reporte_tipo', session.role === 'psicologia' ? RAC_TIPOS.avisoPsicologia : RAC_TIPOS.informeAcademico)
+        // Paridad secundaria_2.0: Informes = tipo 5 (+ avisos psico 8) con filtro confirmado.
+        q = q.eq(
+          'reporte_tipo',
+          session.role === 'psicologia' ? RAC_TIPOS.avisoPsicologia : RAC_TIPOS.informeAcademico
+        )
+        if (confirmado === '0') q = q.eq('reporte_confirmado', 0)
+        if (confirmado === '1') q = q.eq('reporte_confirmado', 1)
       }
     }
     if (session.role === 'maestro') {
@@ -914,6 +929,14 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       const ids = asignaciones.map((a) => a.materia_id)
       if (!ids.length) return []
       q = q.in('materia_id', ids)
+    }
+    if (filtro === 'informes') {
+      const { data, error } = await q
+        .order('reporte_confirmado', { ascending: true })
+        .order('reporte_id', { ascending: false })
+        .limit(400)
+      if (error) throw new Error(error.message)
+      return hidratar((data ?? []) as Record<string, unknown>[])
     }
     const { data, error } = await q.order('reporte_registro', { ascending: false }).limit(400)
     if (error) throw new Error(error.message)

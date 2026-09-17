@@ -673,16 +673,35 @@ async function hidratar(rows: Record<string, unknown>[]) {
   })
 }
 
-export async function inboxReportes(session: RacSesion, filtro: 'pendientes' | 'informes' | 'todos') {
+/** Filtro de confirmación (paridad secundaria_2.0 Informes / listado). */
+export type RacConfirmadoFiltro = 'all' | '0' | '1'
+
+export async function inboxReportes(
+  session: RacSesion,
+  filtro: 'pendientes' | 'informes' | 'todos',
+  confirmado: RacConfirmadoFiltro = filtro === 'pendientes' ? '0' : 'all'
+) {
   const ciclo = await cicloRac()
   let q = db().from('reporte_escolar').select('*').eq('reporte_ciclo_escolar', ciclo)
   if (session.role === 'psicologia' && filtro === 'pendientes') {
     q = q.eq('reporte_status', 2).eq('reporte_tipo', RAC_TIPOS.conducta)
   } else {
     q = q.eq('reporte_status', 1)
-    if (filtro === 'pendientes') q = q.lte('reporte_tipo', 5).eq('reporte_confirmado', 0)
+    if (filtro === 'pendientes' || filtro === 'todos') {
+      q = q.lte('reporte_tipo', 5)
+      // pendientes = sin confirmar (legacy Listado); todos respeta confirmado.
+      const conf = filtro === 'pendientes' && confirmado === 'all' ? '0' : confirmado
+      if (conf === '0') q = q.eq('reporte_confirmado', 0)
+      if (conf === '1') q = q.eq('reporte_confirmado', 1)
+    }
     if (filtro === 'informes') {
-      q = q.eq('reporte_tipo', session.role === 'psicologia' ? RAC_TIPOS.avisoPsicologia : RAC_TIPOS.informeAcademico)
+      // Legacy Informes: solo tipo 5 (o avisos psico tipo 8) + filtro confirmado.
+      q = q.eq(
+        'reporte_tipo',
+        session.role === 'psicologia' ? RAC_TIPOS.avisoPsicologia : RAC_TIPOS.informeAcademico
+      )
+      if (confirmado === '0') q = q.eq('reporte_confirmado', 0)
+      if (confirmado === '1') q = q.eq('reporte_confirmado', 1)
     }
   }
   if (session.role === 'maestro') {
@@ -690,6 +709,15 @@ export async function inboxReportes(session: RacSesion, filtro: 'pendientes' | '
     const ids = asignaciones.map((a) => a.materia_id)
     if (!ids.length) return []
     q = q.in('materia_id', ids)
+  }
+  // Legacy Informes: no confirmados primero, luego id desc.
+  if (filtro === 'informes') {
+    const { data, error } = await q
+      .order('reporte_confirmado', { ascending: true })
+      .order('reporte_id', { ascending: false })
+      .limit(400)
+    if (error) throw new Error(error.message)
+    return hidratar((data ?? []) as Record<string, unknown>[])
   }
   const { data, error } = await q.order('reporte_registro', { ascending: false }).limit(400)
   if (error) throw new Error(error.message)

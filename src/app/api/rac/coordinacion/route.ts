@@ -26,7 +26,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ filas: h.reportes, alumnos: h.alumnos })
     }
     const filtro = vista === 'informes' || vista === 'todos' ? vista : 'pendientes'
-    return NextResponse.json({ filas: await inboxReportes(session, filtro) })
+    const confRaw = url.searchParams.get('confirmado')
+    const confirmado =
+      confRaw === '0' || confRaw === '1' ? confRaw : confRaw === 'all' ? 'all' : filtro === 'pendientes' ? '0' : 'all'
+    return NextResponse.json({ filas: await inboxReportes(session, filtro, confirmado) })
   } catch (e) {
     const { error, status } = jsonRacError(e)
     return NextResponse.json({ error }, { status })
