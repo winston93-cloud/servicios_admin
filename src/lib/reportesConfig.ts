@@ -22,8 +22,7 @@ export function reporteLegacyUrl(archivoPhp: string): string {
 
 /**
  * Fallback sync (calendario / env). En la UI de reportes el default de
- * becados usa `cicloActualSistema - 1` (becas suelen quedar en el ciclo
- * previo tras el avance de temporada).
+ * cada tile es la temporada vigente (`cicloActualSistema` / `es_actual`).
  */
 export function getCicloBecadosDefault(): number {
   return getCicloEscolarDefault()

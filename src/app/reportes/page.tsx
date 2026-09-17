@@ -196,36 +196,15 @@ function ReportesPageInner() {
 
   const paramsIniciales = useCallback(
     (entry: ReporteCatalogEntry): ParametrosReporte => {
+      // Default único: temporada vigente (`es_actual`). Evita abrir en el ciclo
+      // anterior (ej. 22) y generar reportes del año pasado por error.
       let ciclo = entry.cicloSistema
         ? entry.usaCiclo === 'inscripcion'
           ? cicloInscripcionSistema
           : cicloActualSistema
         : cicloSugeridoParaReporte(entry.usaCiclo, cicloActualSistema)
 
-      // Doble titulación: el ciclo vigente suele ir vacío; sugerir el anterior (pagos históricos).
-      if (entry.id === 'doble-titulacion') {
-        ciclo = Math.max(1, cicloActualSistema - 1)
-      }
-
-      // Becas: tras el avance de temporada las becas activas suelen seguir en el
-      // ciclo anterior (ej. fichas 23, beca_ciclo 22) hasta que se renueven.
-      if (entry.id === 'becados' || entry.id === 'becados-sexto') {
-        ciclo = Math.max(1, cicloActualSistema - 1)
-      }
-
-      // Bajas: las del año que acaba de cerrar quedan en el ciclo anterior;
-      // el vigente arranca casi vacío (salvo secundarias recientes).
-      if (entry.id === 'bajas') {
-        ciclo = Math.max(1, cicloActualSistema - 1)
-      }
-
-      // Deudores / suspendidos: las colegiaturas del ciclo que cierra (ej. 22)
-      // siguen siendo las relevantes en julio; el vigente aún no tiene meses.
-      if (entry.categoriaId === 'deudores') {
-        ciclo = Math.max(1, cicloActualSistema - 1)
-      }
-
-      // Nuevo ingreso / cuota inicio: temporada vigente.
+      // Nuevo ingreso / cuota inicio: siempre temporada vigente.
       if (
         entry.categoriaId === 'nuevo-ingreso' ||
         entry.categoriaId === 'nuevo-ingreso-mes' ||
