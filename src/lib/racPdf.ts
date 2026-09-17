@@ -87,9 +87,12 @@ export function pdfHistorialAlumno(opts: {
   ciclo: number
   alumnoNombre: string
   filas: FilaPdfReporte[]
-  /** Página 2 legacy: informes académicos (tipo 5) con mensaje completo. */
+  /**
+   * @deprecated La hoja 2 ya usa el detalle de `filas` (observaciones de los reportes
+   * de la hoja 1). Se mantiene por compatibilidad; si `filas` está vacío se usa como fallback.
+   */
   informes?: FilaPdfReporte[]
-  /** Título de portada (kardex completo vs historial por tipo). */
+  /** Título de portada. */
   titulo?: string
 }): Buffer {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [210, 279] })
@@ -106,8 +109,8 @@ export function pdfHistorialAlumno(opts: {
         String(i + 1),
         f.nombre.slice(0, 40),
         f.reporteLabel,
-        f.materia.slice(0, 30),
-        f.motivo.slice(0, 30),
+        (f.materia || f.departamento || '').slice(0, 30),
+        (f.motivo ?? '').slice(0, 30),
         f.fecha,
         String(f.vuelta),
         f.enviado ? 'SI' : 'NO',
@@ -119,31 +122,32 @@ export function pdfHistorialAlumno(opts: {
     })
   }
 
-  // Página 2: informes académicos con el texto del mensaje (paridad secundaria_2.0).
+  // Hoja 2: detalle/observaciones de los mismos reportes (kardex útil para papás).
+  // Legacy solo ponía informes tipo 5; con "Todos" eso dejaba la hoja vacía.
+  const detalle = opts.filas.length ? opts.filas : (opts.informes ?? [])
   doc.addPage()
-  encabezadoPdf(doc, `Informes académicos — ${opts.alumnoNombre}`, opts.ciclo)
-  const informes = opts.informes ?? []
-  if (!informes.length) {
+  encabezadoPdf(doc, `Detalle de reportes — ${opts.alumnoNombre}`, opts.ciclo)
+  if (!detalle.length) {
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(10)
-    doc.text('Sin informes académicos en este ciclo.', 14, 48)
+    doc.text('Sin detalle de reportes en este ciclo para este filtro.', 14, 48)
   } else {
     autoTable(doc, {
       startY: 42,
-      head: [['#', 'Reporte', 'Materia', 'Fecha', 'RE', 'RC', 'Mensaje']],
-      body: informes.map((f, i) => [
+      head: [['#', 'Reporte', 'Materia', 'Fecha', 'RE', 'RC', 'Observaciones']],
+      body: detalle.map((f, i) => [
         String(i + 1),
         f.reporteLabel,
-        (f.materia || f.departamento).slice(0, 28),
+        (f.materia || f.departamento || '').slice(0, 28),
         f.fecha,
         f.enviado ? 'SI' : 'NO',
         f.confirmado ? 'SI' : 'NO',
-        (f.mensaje || f.motivo || '').slice(0, 220),
+        (f.mensaje || f.motivo || '—').slice(0, 420),
       ]),
       styles: { fontSize: 7, cellPadding: 1.5, valign: 'top' },
       columnStyles: {
         0: { cellWidth: 10 },
-        1: { cellWidth: 32 },
+        1: { cellWidth: 36 },
         2: { cellWidth: 40 },
         3: { cellWidth: 22 },
         4: { cellWidth: 12 },
