@@ -184,7 +184,7 @@ export async function cargarNuevoIngreso(
      */
     rangoPago?: { desde: string; hasta: string }
     /**
-     * Reporte mensual: maternal/kinder agenda|alta (columna/orden por agenda);
+     * Reporte mensual: maternal/kinder SOLO por mes de agenda;
      * primaria alta o agenda+cita; secundaria agenda+cita o alta.
      */
     rangoAgenda?: { desde: string; hasta: string }
@@ -288,7 +288,7 @@ export async function cargarNuevoIngreso(
     })
   }
 
-  // 2026-08-28 / 2026-09-17: mensual ordenado por columna Alta/Agenda (preferir agendo), luego nombre.
+  // 2026-09-17: mensual Maternal/Kinder ordenado estrictamente por fecha de agenda ASC, luego nombre.
   if (esReporteMes) {
     filasBase.sort((a, b) => {
       const cmp = a.alta.slice(0, 10).localeCompare(b.alta.slice(0, 10))
