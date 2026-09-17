@@ -81,7 +81,7 @@ function diasEntreFechas(desde: string, hasta: string): number {
  * 2026-09-17: fecha de AGENDA para Maternal/Kinder.
  * Si reservaron con >30 días de anticipación, el mes es el de la CITA (no el created_at temprano).
  * Así Isabella (reservó ene, cita mar) va a marzo con fecha mar — no aparece ene en marzo.
- * Pago y alta nunca entran aquí.
+ * Pago nunca decide el mes.
  */
 function fechaAgendaMaternalKinder(ag: AgendamientoCitaAgendaW): string {
   const agendo = ag.agendo.slice(0, 10)
@@ -107,9 +107,8 @@ export function fechaMesAgendoAgendaW(agenda: AgendamientoCitaAgendaW | null): s
 
 /**
  * 2026-08-28: mensual por nivel (validación ciclo 23).
- * 2026-09-17: Maternal/Kinder — mes por fecha de AGENDA efectiva (cita si reserva >30d antes).
- *   Pago y alta no deciden. Columna siempre cae en el mes del reporte.
- * - Maternal/Kinder: fechaAgendaMaternalKinder en el mes.
+ * 2026-09-17: Maternal/Kinder — agenda efectiva; sin AW → alta (Adara); con AW en otro mes → no.
+ * - Maternal/Kinder: fechaAgenda en el mes; si no hay AgendaW, alta en el mes.
  * - Primaria: alta en el mes, o reserva+cita AgendaW en el mes (ej. Samantha mayo).
  * - Secundaria sin AgendaW: mes de alta.
  * - Secundaria con AgendaW: reserva y cita en el mismo mes; columna = agendo.
@@ -138,17 +137,24 @@ export function evaluarFiltroMesNuevoIngresoAlumno(opts: {
         fechaEnRangoCalendario(ag.cita, opts.desde, opts.hasta)
     )
 
-  // 2026-09-17: Maternal/Kinder — mes de agenda efectiva (sin alta/pago).
-  // Isabella ene→cita mar: marzo con 03-18. Adriel ene→cita abr: abril con 04-13.
+  // 2026-09-17: Maternal/Kinder — agenda manda; sin AW no vaciar el mes (Adara Maternal marzo).
   if (opts.nivel <= 2) {
     const enMes = reservas
       .map((ag) => ({ ag, fecha: fechaAgendaMaternalKinder(ag) }))
       .filter(({ fecha }) => fecha && fechaEnRangoCalendario(fecha, opts.desde, opts.hasta))
       .sort((a, b) => a.fecha.localeCompare(b.fecha))
-    if (enMes.length === 0) {
+    if (enMes.length > 0) {
+      return { incluir: true, fechaColumna: enMes[0].fecha }
+    }
+    // Tiene AgendaW pero su fecha efectiva es otro mes → no entra por alta/pago.
+    if (reservas.length > 0) {
       return { incluir: false, fechaColumna: '' }
     }
-    return { incluir: true, fechaColumna: enMes[0].fecha }
+    // Sin match AgendaW: respaldo por alta (ej. Adara 21843).
+    return {
+      incluir: fechaEnRangoCalendario(fechaAlta, opts.desde, opts.hasta),
+      fechaColumna: fechaAlta,
+    }
   }
 
   if (opts.nivel === 3) {
