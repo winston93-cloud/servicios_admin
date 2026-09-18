@@ -17,4 +17,10 @@ export const RAC_TIPOS_CITA_PSICOLOGIA = [
   { valor: 7, etiqueta: 'Por Seguimiento' },
 ]
 
+/** Etiqueta de pestaña con total visible, p. ej. «Citatorios (5)». */
+export function etiquetaTabConteo(label: string, n: number | null | undefined): string {
+  if (n == null || Number.isNaN(Number(n))) return label
+  return `${label} (${Number(n)})`
+}
+
 export { opcionesMotivo }

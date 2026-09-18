@@ -2,7 +2,7 @@
 
 import ThemeToggle from '@/components/ThemeToggle'
 import { etiquetaGradoStaffSecundaria } from '@/lib/racCatalogo'
-import { opcionesMotivo } from '@/lib/racUi'
+import { etiquetaTabConteo, opcionesMotivo } from '@/lib/racUi'
 import { etiquetaRol, esPanelAdminRac, tabsDeRol, tiposCapturaDeRol, tiposCitaDeRol, type RacTab } from '@/lib/racPermisos'
 import { ArrowLeft, Download, Eye, EyeOff, FolderOpen, LogOut, Mail, Search, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -226,6 +226,10 @@ export default function RacSecundariaPage() {
   const [informesConfirmado, setInformesConfirmado] = useState<'all' | '0' | '1'>('all')
   /** Listado: sin confirmar (legacy) / confirmados / todos los emitidos. */
   const [listadoConfirmado, setListadoConfirmado] = useState<'all' | '0' | '1'>('0')
+  /** Totales por pestaña (listado, citas, etc.) para no contar a mano. */
+  const [conteos, setConteos] = useState<
+    Partial<Record<'inbox' | 'citas' | 'suspensiones' | 'informes' | 'captura', number>>
+  >({})
   const puedeVerDetalleLista =
     tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' || tab === 'suspensiones'
 
@@ -306,6 +310,7 @@ export default function RacSecundariaPage() {
           : `materiaId=${asig.materia_id}&grupo=${encodeURIComponent(asig.grupo_letra)}&tipo=${tipo}`
       const data = await api<{ filas: AlumnoFila[] }>(`/api/rac/captura?${qs}`)
       setFilas(data.filas)
+      setConteos((c) => ({ ...c, captura: data.filas.length }))
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Error al cargar')
     } finally {
@@ -340,7 +345,12 @@ export default function RacSecundariaPage() {
       const data = await api<{ filas?: Record<string, unknown>[]; alumnos?: AlumnoBusqueda[] }>(
         `/api/rac/coordinacion?vista=${vistaApi}${extra}`
       )
-      setLista(data.filas ?? [])
+      const filas = data.filas ?? []
+      setLista(filas)
+      if (vista === 'inbox-listado') setConteos((c) => ({ ...c, inbox: filas.length }))
+      if (vista === 'informes') setConteos((c) => ({ ...c, informes: filas.length }))
+      if (vista === 'citas') setConteos((c) => ({ ...c, citas: filas.length }))
+      if (vista === 'suspensiones') setConteos((c) => ({ ...c, suspensiones: filas.length }))
       if (vistaApi === 'historial') {
         const alumnos = data.alumnos ?? []
         setHistorialAlumnos(alumnos)
@@ -352,6 +362,69 @@ export default function RacSecundariaPage() {
       setBusy(false)
     }
   }
+
+  const cargarConteosTabs = useCallback(async () => {
+    if (!me) return
+    const ids = new Set(tabsDeRol(me.role).map((t) => t.id))
+    const patch: Partial<Record<'inbox' | 'citas' | 'suspensiones' | 'informes', number>> = {}
+    const jobs: Promise<void>[] = []
+
+    if (ids.has('inbox')) {
+      let vistaApi = 'pendientes'
+      let conf: 'all' | '0' | '1' = '0'
+      if (listadoConfirmado === '1') {
+        vistaApi = 'todos'
+        conf = '1'
+      } else if (listadoConfirmado === 'all') {
+        vistaApi = 'todos'
+        conf = 'all'
+      }
+      jobs.push(
+        api<{ filas?: unknown[] }>(`/api/rac/coordinacion?vista=${vistaApi}&confirmado=${conf}`)
+          .then((d) => {
+            patch.inbox = d.filas?.length ?? 0
+          })
+          .catch(() => undefined)
+      )
+    }
+    if (ids.has('informes')) {
+      jobs.push(
+        api<{ filas?: unknown[] }>(
+          `/api/rac/coordinacion?vista=informes&confirmado=${informesConfirmado}`
+        )
+          .then((d) => {
+            patch.informes = d.filas?.length ?? 0
+          })
+          .catch(() => undefined)
+      )
+    }
+    if (ids.has('citas')) {
+      jobs.push(
+        api<{ filas?: unknown[] }>('/api/rac/coordinacion?vista=citas')
+          .then((d) => {
+            patch.citas = d.filas?.length ?? 0
+          })
+          .catch(() => undefined)
+      )
+    }
+    if (ids.has('suspensiones')) {
+      jobs.push(
+        api<{ filas?: unknown[] }>('/api/rac/coordinacion?vista=suspensiones')
+          .then((d) => {
+            patch.suspensiones = d.filas?.length ?? 0
+          })
+          .catch(() => undefined)
+      )
+    }
+    if (!jobs.length) return
+    await Promise.all(jobs)
+    setConteos((c) => ({ ...c, ...patch }))
+  }, [me, listadoConfirmado, informesConfirmado])
+
+  useEffect(() => {
+    if (!me) return
+    void cargarConteosTabs()
+  }, [me, cargarConteosTabs])
 
   useEffect(() => {
     if (!me) return
@@ -497,6 +570,7 @@ export default function RacSecundariaPage() {
       setModal(null)
       setMensaje('')
       await cargarGrupo()
+      void cargarConteosTabs()
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'No se pudo guardar')
     } finally {
@@ -546,6 +620,7 @@ export default function RacSecundariaPage() {
       if (tab === 'informes') await cargarVista('informes')
       if (tab === 'citas') await cargarVista('citas')
       if (tab === 'suspensiones') await cargarVista('suspensiones')
+      void cargarConteosTabs()
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Error')
     } finally {
@@ -564,6 +639,7 @@ export default function RacSecundariaPage() {
     setAsignaciones([])
     setFilas([])
     setLista([])
+    setConteos({})
     setAsigKey('')
     setQ('')
     setMsg('')
@@ -760,11 +836,19 @@ export default function RacSecundariaPage() {
       </div>
 
       <nav className="boletas-tabs" aria-label="Secciones">
-        {tabs.map((t) => (
-          <button key={t.id} type="button" className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}>
-            {t.label}
-          </button>
-        ))}
+        {tabs.map((t) => {
+          const n =
+            t.id === 'historial'
+              ? undefined
+              : t.id === 'prefectura'
+                ? conteos.captura
+                : conteos[t.id as keyof typeof conteos]
+          return (
+            <button key={t.id} type="button" className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}>
+              {etiquetaTabConteo(t.label, n)}
+            </button>
+          )
+        })}
       </nav>
 
       {msg ? <p className="boletas-msg">{msg}</p> : null}
