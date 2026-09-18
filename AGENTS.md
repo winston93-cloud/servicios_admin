@@ -27,6 +27,7 @@ Key patterns:
 - **Boletas:** tablas `boleta_*` + captura en Winston Servicios. Migración: `docs/MIGRACION-BOLETAS-WINSTON.md`. NANO InsForge **Boletas** (`5u3i4tmc`) **eliminado** (2026-09-17); el módulo aún no está en producción operativa.
 - **Entersote / gym:** tabla `gym_estado` también en Winston Servicios; app local en PCs (sin repo).
 - **Desayunos POS:** tablas `concepto_desayunos`, `pago_desayunos`, `desayunos_saldo`, `notificaciones` en Winston. Migración: `docs/MIGRACION-DESAYUNOS-WINSTON.md`. Apps: `/pos` + repo `~/Proyectos/services`. NANO **Desayunos** (`5g4kw6fw`) borrable **solo tras smoke** OK (Mario).
+- **Caja Chica / Monitoreo y Control:** tablas `categories`, `persons`, `executors`, `expenses`, `funds`, etc. en Winston. Migración: `docs/MIGRACION-CAJA-CHICA-WINSTON.md`. App: `~/Proyectos/Cchic` (`cchic.vercel.app`). NANO **Caja Chica** (`fvddcfy5`) borrable cuando Mario lo indique.
 
 ## Facturación CFDI — estado y pendientes
 
