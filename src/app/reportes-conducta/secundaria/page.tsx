@@ -815,7 +815,8 @@ export default function RacSecundariaPage() {
                 <select value={asigKey} onChange={(e) => setAsigKey(e.target.value)}>
                   {asignaciones.map((a) => (
                     <option key={`${a.materia_id}|${a.grupo_letra}|${a.grupo_id}`} value={`${a.materia_id}|${a.grupo_letra}`}>
-                      {a.materia_nombre} · {a.materia_grado}° · {a.grupo_letra || 'ABC'}
+                      {a.materia_nombre} · {etiquetaGradoStaffSecundaria(Number(a.materia_grado))} ·{' '}
+                      {a.grupo_letra || 'ABC'}
                     </option>
                   ))}
                 </select>
@@ -862,7 +863,7 @@ export default function RacSecundariaPage() {
                       <div className="boletas-alumno-cell">
                         <span>{a.nombre}</span>
                         <small>
-                          {a.alumno_ref ?? '—'} · {a.grado}° {a.grupo}
+                          {a.alumno_ref ?? '—'} · {etiquetaGradoStaffSecundaria(Number(a.grado))} {a.grupo}
                         </small>
                       </div>
                     </td>
@@ -1096,7 +1097,9 @@ export default function RacSecundariaPage() {
                                 <strong>{nombre}</strong>
                                 <span>
                                   Control {a.alumno_ref ?? '—'}
-                                  {a.alumno_grado != null ? ` · ${a.alumno_grado}°` : ''}
+                                  {a.alumno_grado != null
+                                    ? ` · ${etiquetaGradoStaffSecundaria(Number(a.alumno_grado))}`
+                                    : ''}
                                 </span>
                               </button>
                             </li>
@@ -1223,7 +1226,11 @@ export default function RacSecundariaPage() {
                     <td>
                       {String(row.nombre ?? '')}
                       <small className="rac-mini">
-                        {String(row.alumno_ref ?? '')} {String(row.grado ?? '')}° {String(row.grupo ?? '')}
+                        {String(row.alumno_ref ?? '')}{' '}
+                        {row.grado != null && row.grado !== ''
+                          ? etiquetaGradoStaffSecundaria(Number(row.grado))
+                          : ''}{' '}
+                        {String(row.grupo ?? '')}
                       </small>
                     </td>
                     <td>
@@ -1366,7 +1373,10 @@ export default function RacSecundariaPage() {
             <h3 id="rac-historial-title">Historial de reportes</h3>
             <p className="rac-mini">
               {historialKardex.alumno.nombre} · {String(historialKardex.alumno.alumno_ref ?? '—')} ·{' '}
-              {historialKardex.alumno.grado}° {historialKardex.alumno.grupo}
+              {historialKardex.alumno.grado != null
+                ? etiquetaGradoStaffSecundaria(Number(historialKardex.alumno.grado))
+                : ''}{' '}
+              {historialKardex.alumno.grupo}
             </p>
             {historialKardex.reportes.length === 0 ? (
               <p>Sin historial en el ciclo actual.</p>

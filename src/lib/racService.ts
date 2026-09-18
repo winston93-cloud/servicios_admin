@@ -345,6 +345,14 @@ async function cargarAlumno(id: number): Promise<AlumnoRow> {
   return data as AlumnoRow
 }
 
+async function assertAlumnoSecundaria(id: number): Promise<AlumnoRow> {
+  const alumno = await cargarAlumno(id)
+  if (n(alumno.alumno_nivel) !== RAC_NIVEL_SECUNDARIA) {
+    throw new Error('El alumno no pertenece a secundaria. Use el panel de su nivel (maternal/kinder o primaria).')
+  }
+  return alumno
+}
+
 export async function enviarCorreoReporte(reporteId: number) {
   const client = db()
   const { data: r } = await client.from('reporte_escolar').select('*').eq('reporte_id', reporteId).maybeSingle()
@@ -478,6 +486,7 @@ export async function capturarReporte(opts: {
   }
   const ciclo = await cicloRac()
   const client = db()
+  await assertAlumnoSecundaria(opts.alumnoId)
   // Solo académico (e informe académico vía capturarInforme) persiste materia.
   // Staff (psico/prefectura/dirección) reporta sin asignatura: materia_id queda vacío.
   const materiaId =
@@ -566,6 +575,7 @@ export async function capturarInforme(opts: {
   if (!puedeInforme(opts.session.role)) {
     throw new RacAuthError('Tu cuenta no captura informes', 403)
   }
+  await assertAlumnoSecundaria(opts.alumnoId)
   const psico = opts.session.role === 'psicologia'
   const motivoPsico = n(opts.motivo)
   const insert: Record<string, unknown> = {
@@ -597,6 +607,7 @@ export async function capturarCita(opts: {
   hora: string
 }) {
   const ciclo = await cicloRac()
+  await assertAlumnoSecundaria(opts.alumnoId)
   const { data, error } = await db()
     .from('reporte_cita')
     .insert({
@@ -644,34 +655,38 @@ async function hidratar(rows: Record<string, unknown>[]) {
     const { data: mats } = await client.from('boleta_materia').select('materia_id, materia_nombre').in('materia_id', materiaIds)
     mMap = new Map((mats ?? []).map((m) => [n(m.materia_id), String(m.materia_nombre)]))
   }
-  return rows.map((r) => {
-    const a = aMap.get(n(r.alumno_id))
-    const materia = mMap.get(n(r.materia_id)) ?? ''
-    const departamento = etiquetaDepartamentoRac(n(r.perfil_id))
-    return {
-      reporte_id: n(r.reporte_id),
-      alumno_id: n(r.alumno_id),
-      alumno_ref: a?.alumno_ref ?? null,
-      nombre: a ? nombreAlumno(a) : '',
-      grado: a ? n(a.alumno_grado) : 0,
-      grupo: a ? letraDesdeGrupoNum(n(a.alumno_grupo)) : '',
-      nivel: a ? n(a.alumno_nivel) : 0,
-      materia: materia || departamento,
-      materia_id: n(r.materia_id),
-      tipo: n(r.reporte_tipo),
-      tipoEtiqueta: etiquetaTipoReporte(n(r.reporte_tipo)),
-      escalon: etiquetaEscalon(n(r.reporte_tipo), n(r.reporte_no)),
-      motivo: motivoReporte(n(r.reporte_tipo), n(r.reporte_motivo)),
-      mensaje: String(r.reporte_mensaje ?? ''),
-      no: n(r.reporte_no),
-      vuelta: n(r.reporte_ciclo),
-      fecha: String(r.reporte_registro ?? '').slice(0, 10),
-      enviado: n(r.reporte_enviado) === 1,
-      confirmado: n(r.reporte_confirmado) === 1,
-      status: n(r.reporte_status),
-      mdv: String(r.reporte_mdv ?? ''),
-    }
-  })
+  return rows
+    .map((r) => {
+      const a = aMap.get(n(r.alumno_id))
+      // Panel secundaria: no mezclar maternal/kinder/primaria.
+      if (!a || n(a.alumno_nivel) !== RAC_NIVEL_SECUNDARIA) return null
+      const materia = mMap.get(n(r.materia_id)) ?? ''
+      const departamento = etiquetaDepartamentoRac(n(r.perfil_id))
+      return {
+        reporte_id: n(r.reporte_id),
+        alumno_id: n(r.alumno_id),
+        alumno_ref: a.alumno_ref ?? null,
+        nombre: nombreAlumno(a),
+        grado: n(a.alumno_grado),
+        grupo: letraDesdeGrupoNum(n(a.alumno_grupo)),
+        nivel: n(a.alumno_nivel),
+        materia: materia || departamento,
+        materia_id: n(r.materia_id),
+        tipo: n(r.reporte_tipo),
+        tipoEtiqueta: etiquetaTipoReporte(n(r.reporte_tipo)),
+        escalon: etiquetaEscalon(n(r.reporte_tipo), n(r.reporte_no)),
+        motivo: motivoReporte(n(r.reporte_tipo), n(r.reporte_motivo)),
+        mensaje: String(r.reporte_mensaje ?? ''),
+        no: n(r.reporte_no),
+        vuelta: n(r.reporte_ciclo),
+        fecha: String(r.reporte_registro ?? '').slice(0, 10),
+        enviado: n(r.reporte_enviado) === 1,
+        confirmado: n(r.reporte_confirmado) === 1,
+        status: n(r.reporte_status),
+        mdv: String(r.reporte_mdv ?? ''),
+      }
+    })
+    .filter(Boolean)
 }
 
 /** Filtro de confirmación (paridad secundaria_2.0 Informes / listado). */
@@ -744,34 +759,38 @@ export async function inboxCitas(session: RacSesion) {
   const ids = [...new Set(rows.map((r) => n(r.alumno_id)))]
   const { data: alumnos } = await db()
     .from('alumno')
-    .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo')
+    .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_nivel')
     .in('alumno_id', ids.length ? ids : [0])
   const aMap = new Map((alumnos ?? []).map((a) => [n(a.alumno_id), a]))
   const emisores = await resolverEmisoresRac(
     rows.map((c) => ({ perfil_id: n(c.perfil_id), usuario_id: n(c.usuario_id) }))
   )
-  return rows.map((c) => {
-    const a = aMap.get(n(c.alumno_id))
-    const emisor = emisorDeMapa(emisores, c.perfil_id, c.usuario_id)
-    return {
-      cita_id: n(c.cita_id),
-      alumno_ref: a?.alumno_ref ?? null,
-      nombre: a ? nombreAlumno(a as AlumnoRow) : '',
-      grado: n(a?.alumno_grado),
-      grupo: letraDesdeGrupoNum(n(a?.alumno_grupo)),
-      tipo: n(c.cita_tipo),
-      tipoEtiqueta: etiquetaTipoCitatorio(n(c.cita_tipo)),
-      mensaje: String(c.cita_mensaje ?? ''),
-      fecha: c.cita_fecha ? String(c.cita_fecha).replace('T', ' ').slice(0, 16) : '',
-      enviada: n(c.cita_enviada) === 1,
-      confirmada: n(c.cita_confirmada) === 1,
-      status: n(c.cita_status),
-      mdv: String(c.cita_mdv ?? ''),
-      emisor_departamento: emisor?.departamento ?? '',
-      emisor_nombre: emisor?.nombre ?? '',
-      emisor: emisor?.etiqueta ?? '',
-    }
-  })
+  return rows
+    .map((c) => {
+      const a = aMap.get(n(c.alumno_id))
+      if (!a || n(a.alumno_nivel) !== RAC_NIVEL_SECUNDARIA) return null
+      const emisor = emisorDeMapa(emisores, c.perfil_id, c.usuario_id)
+      return {
+        cita_id: n(c.cita_id),
+        alumno_ref: a.alumno_ref ?? null,
+        nombre: nombreAlumno(a as AlumnoRow),
+        grado: n(a.alumno_grado),
+        grupo: letraDesdeGrupoNum(n(a.alumno_grupo)),
+        nivel: n(a.alumno_nivel),
+        tipo: n(c.cita_tipo),
+        tipoEtiqueta: etiquetaTipoCitatorio(n(c.cita_tipo)),
+        mensaje: String(c.cita_mensaje ?? ''),
+        fecha: c.cita_fecha ? String(c.cita_fecha).replace('T', ' ').slice(0, 16) : '',
+        enviada: n(c.cita_enviada) === 1,
+        confirmada: n(c.cita_confirmada) === 1,
+        status: n(c.cita_status),
+        mdv: String(c.cita_mdv ?? ''),
+        emisor_departamento: emisor?.departamento ?? '',
+        emisor_nombre: emisor?.nombre ?? '',
+        emisor: emisor?.etiqueta ?? '',
+      }
+    })
+    .filter(Boolean)
 }
 
 export async function inboxSuspensiones() {
@@ -787,7 +806,7 @@ export async function inboxSuspensiones() {
   const reporteIds = [...new Set(rows.map((r) => n(r.reporte_id)))]
   const { data: alumnos } = await db()
     .from('alumno')
-    .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo')
+    .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_nivel')
     .in('alumno_id', alumnoIds.length ? alumnoIds : [0])
   const { data: reps } = await db()
     .from('reporte_escolar')
@@ -795,20 +814,24 @@ export async function inboxSuspensiones() {
     .in('reporte_id', reporteIds.length ? reporteIds : [0])
   const aMap = new Map((alumnos ?? []).map((a) => [n(a.alumno_id), a]))
   const rMap = new Map((reps ?? []).map((r) => [n(r.reporte_id), r]))
-  return rows.map((s) => {
-    const a = aMap.get(n(s.alumno_id))
-    const r = rMap.get(n(s.reporte_id))
-    return {
-      suspension_id: n(s.suspension_id),
-      alumno_ref: a?.alumno_ref ?? null,
-      nombre: a ? nombreAlumno(a as AlumnoRow) : '',
-      grado: n(a?.alumno_grado),
-      grupo: letraDesdeGrupoNum(n(a?.alumno_grupo)),
-      tipoEtiqueta: etiquetaTipoCitatorio(n(r?.reporte_tipo ?? 0)),
-      fecha: s.suspension_fecha ? String(s.suspension_fecha).slice(0, 10) : '',
-      enviada: n(s.suspension_enviada) === 1,
-    }
-  })
+  return rows
+    .map((s) => {
+      const a = aMap.get(n(s.alumno_id))
+      if (!a || n(a.alumno_nivel) !== RAC_NIVEL_SECUNDARIA) return null
+      const r = rMap.get(n(s.reporte_id))
+      return {
+        suspension_id: n(s.suspension_id),
+        alumno_ref: a.alumno_ref ?? null,
+        nombre: nombreAlumno(a as AlumnoRow),
+        grado: n(a.alumno_grado),
+        grupo: letraDesdeGrupoNum(n(a.alumno_grupo)),
+        nivel: n(a.alumno_nivel),
+        tipoEtiqueta: etiquetaTipoCitatorio(n(r?.reporte_tipo ?? 0)),
+        fecha: s.suspension_fecha ? String(s.suspension_fecha).slice(0, 10) : '',
+        enviada: n(s.suspension_enviada) === 1,
+      }
+    })
+    .filter(Boolean)
 }
 
 export async function accionReporte(
@@ -994,6 +1017,7 @@ export async function historialDetalleAlumno(alumnoId: number) {
       alumno_id: n(alumno.alumno_id),
       alumno_ref: alumno.alumno_ref,
       nombre: nombreAlumno(alumno),
+      nivel: n(alumno.alumno_nivel),
       grado: n(alumno.alumno_grado),
       grupo: letraDesdeGrupoNum(n(alumno.alumno_grupo)),
     },
@@ -1054,9 +1078,12 @@ const PERFIL_ETIQUETA: Record<number, string> = {
 
 async function filasPdfDesdeQuery(rows: Record<string, unknown>[]): Promise<FilaPdfReporte[]> {
   if (!rows.length) return []
-  const hidratados = await hidratar(rows)
-  return hidratados.map((r, i) => {
-    const raw = rows[i]
+  const byId = new Map(rows.map((r) => [n(r.reporte_id), r]))
+  const hidratados = (await hidratar(rows)).filter(Boolean) as NonNullable<
+    Awaited<ReturnType<typeof hidratar>>[number]
+  >[]
+  return hidratados.map((r) => {
+    const raw = byId.get(r.reporte_id)
     return filaPdfDesdeReporte({
       reporte_id: r.reporte_id,
       nombre: r.nombre,

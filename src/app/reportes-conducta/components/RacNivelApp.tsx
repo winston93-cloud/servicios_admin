@@ -941,9 +941,10 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                                 <span className="racn-alumno-nombre">{a.nombre}</span>
                                 <small>
                                   {a.alumno_ref ?? '—'} ·{' '}
-                                  {a.nivel
-                                    ? etiquetaGradoEscolar(a.nivel, a.grado)
-                                    : `${a.grado}°`}{' '}
+                                  {etiquetaGradoEscolar(
+                                    a.nivel ?? (config.slug === 'primaria' ? 3 : 2),
+                                    a.grado
+                                  ) || String(a.grado ?? '')}{' '}
                                   {a.grupo}
                                 </small>
                               </span>
@@ -1218,9 +1219,10 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                                     Control {a.alumno_ref ?? '—'}
                                     {a.alumno_grado != null
                                       ? ` · ${
-                                          a.alumno_nivel != null
-                                            ? etiquetaGradoEscolar(a.alumno_nivel, a.alumno_grado)
-                                            : `${a.alumno_grado}°`
+                                          etiquetaGradoEscolar(
+                                            a.alumno_nivel ?? (config.slug === 'primaria' ? 3 : 2),
+                                            a.alumno_grado
+                                          ) || String(a.alumno_grado)
                                         }`
                                       : ''}
                                   </span>
@@ -1350,11 +1352,13 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                           {String(row.nombre ?? '')}
                           <small className="racn-mini">
                             {String(row.alumno_ref ?? '')}{' '}
-                            {row.nivel != null && row.grado != null
-                              ? etiquetaGradoEscolar(row.nivel as number | string, row.grado as number | string)
-                              : row.grado != null
-                                ? `${String(row.grado)}°`
-                                : ''}{' '}
+                            {row.grado != null
+                              ? etiquetaGradoEscolar(
+                                  (row.nivel as number | string | null | undefined) ??
+                                    (config.slug === 'primaria' ? 3 : 2),
+                                  row.grado as number | string
+                                ) || String(row.grado)
+                              : ''}{' '}
                             {String(row.grupo ?? '')}
                           </small>
                         </td>
@@ -1530,9 +1534,10 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
               <h3 id="racn-historial-title">Historial de reportes</h3>
               <p className="racn-mini">
                 {historialKardex.alumno.nombre} · {String(historialKardex.alumno.alumno_ref ?? '—')} ·{' '}
-                {historialKardex.alumno.nivel
-                  ? etiquetaGradoEscolar(historialKardex.alumno.nivel, historialKardex.alumno.grado)
-                  : `${historialKardex.alumno.grado}°`}{' '}
+                {etiquetaGradoEscolar(
+                  historialKardex.alumno.nivel ?? (config.slug === 'primaria' ? 3 : 2),
+                  historialKardex.alumno.grado
+                ) || String(historialKardex.alumno.grado ?? '')}{' '}
                 {historialKardex.alumno.grupo}
               </p>
               {historialKardex.reportes.length === 0 ? (
