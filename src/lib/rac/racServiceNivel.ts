@@ -124,6 +124,35 @@ function alumnoCoincideGrupoCaptura(
   return grupoCoincide(raw, grupoAlumno)
 }
 
+/**
+ * Maternal A/B son grados; la letra de grupo es opcional.
+ * Si en ficha no hay letras (alumno_grupo=0), colapsar A/B del catálogo a un solo salón `*`.
+ * Si sí hay letras reales, conservar solo las asignadas a la maestra.
+ */
+function normalizarGruposMaternalAsignados(
+  letrasAsignadas: string[],
+  gruposReales: string[] | undefined
+): string[] {
+  const reales = (gruposReales ?? []).map((g) => String(g).trim().toUpperCase()).filter(Boolean)
+  const letrasReales = reales.filter((g) => g !== GRUPO_SALON)
+  const tieneSalon = reales.includes(GRUPO_SALON) || reales.length === 0
+
+  if (!letrasReales.length) return [GRUPO_SALON]
+
+  const asig = [
+    ...new Set(
+      letrasAsignadas
+        .map((l) => String(l ?? '').trim().toUpperCase())
+        .filter((l) => l && l !== GRUPO_SALON)
+    ),
+  ]
+  const inter = letrasReales.filter((g) => asig.length === 0 || asig.includes(g))
+  const out: string[] = []
+  if (tieneSalon) out.push(GRUPO_SALON)
+  out.push(...(inter.length ? inter : letrasReales))
+  return out
+}
+
 export function createRacNivelService(cfg: RacNivelConfig) {
   async function cicloRac(): Promise<number> {
     return resolverCicloEscolarSistemaValor()
@@ -310,29 +339,90 @@ export function createRacNivelService(cfg: RacNivelConfig) {
           .in('materia_id', materiaIds)
           .in('materia_nivel', cfg.nivelesEscolares)
         const map = new Map((materias ?? []).map((m) => [n(m.materia_id), m]))
-        const visto = new Set<string>()
-        const asignaciones = (grupos ?? [])
-          .map((g) => {
-            const m = map.get(n(g.materia_id))
-            if (!m) return null
-            const grado = n(m.materia_grado)
-            const nivelMat = n(m.materia_nivel)
-            const letra = String(g.grupo_letra ?? 'A')
-            const key = `${n(g.materia_id)}|${grado}|${letra}`
-            if (visto.has(key)) return null
-            visto.add(key)
-            return {
+
+        // Maternal: A/B del catálogo no son subgrupos si en ficha el salón no tiene letra.
+        const gruposRealesPorGrado =
+          cfg.slug === 'maternal-kinder'
+            ? new Map(
+                (await gradosYGruposDesdeAlumnos()).map((r) => [
+                  `${r.nivelEscolar}-${r.grado}`,
+                  r.grupos,
+                ] as const)
+              )
+            : null
+
+        type Agg = {
+          grupo_id: number
+          materia_id: number
+          materia_nombre: string
+          materia_grado: number
+          materia_nivel: number
+          letras: string[]
+        }
+        const porGrado = new Map<string, Agg>()
+        for (const g of grupos ?? []) {
+          const m = map.get(n(g.materia_id))
+          if (!m) continue
+          const grado = n(m.materia_grado)
+          const nivelMat = n(m.materia_nivel)
+          const key = `${nivelMat}-${grado}-${n(g.materia_id)}`
+          let agg = porGrado.get(key)
+          if (!agg) {
+            agg = {
               grupo_id: n(g.grupo_id),
               materia_id: n(g.materia_id),
               materia_nombre: String(m.materia_nombre ?? ''),
               materia_grado: grado,
               materia_nivel: nivelMat,
-              grupo_letra: letra,
-              etiqueta_grupo: `${etiquetaGrado(cfg, grado, nivelMat)} · Grupo ${letra}`,
+              letras: [],
             }
-          })
-          .filter(Boolean) as AsignacionRacNivel[]
-        if (asignaciones.length) return { asignaciones, fisica: true, ingles: true }
+            porGrado.set(key, agg)
+          }
+          const letraRaw = String(g.grupo_letra ?? '').trim().toUpperCase()
+          agg.letras.push(letraRaw || (nivelMat === 1 ? GRUPO_SALON : 'A'))
+        }
+
+        const visto = new Set<string>()
+        const asignaciones: AsignacionRacNivel[] = []
+        for (const agg of porGrado.values()) {
+          const letras =
+            agg.materia_nivel === 1 && gruposRealesPorGrado
+              ? normalizarGruposMaternalAsignados(
+                  agg.letras,
+                  gruposRealesPorGrado.get(`${agg.materia_nivel}-${agg.materia_grado}`)
+                )
+              : [...new Set(agg.letras.map((l) => l || 'A'))]
+          for (const letra of letras) {
+            const key = `${agg.materia_id}|${agg.materia_grado}|${letra}`
+            if (visto.has(key)) continue
+            visto.add(key)
+            asignaciones.push({
+              grupo_id: agg.grupo_id,
+              materia_id: agg.materia_id,
+              materia_nombre: agg.materia_nombre,
+              materia_grado: agg.materia_grado,
+              materia_nivel: agg.materia_nivel,
+              grupo_letra: letra,
+              etiqueta_grupo: etiquetaAsignacionGrupo(
+                cfg,
+                agg.materia_grado,
+                agg.materia_nivel,
+                letra
+              ),
+            })
+          }
+        }
+        if (asignaciones.length) {
+          asignaciones.sort(
+            (a, b) =>
+              a.materia_nivel - b.materia_nivel ||
+              a.materia_grado - b.materia_grado ||
+              (a.grupo_letra === GRUPO_SALON ? '' : a.grupo_letra).localeCompare(
+                b.grupo_letra === GRUPO_SALON ? '' : b.grupo_letra
+              )
+          )
+          return { asignaciones, fisica: true, ingles: true }
+        }
       }
     }
 
