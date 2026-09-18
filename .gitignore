@@ -71,3 +71,6 @@ scripts/.maestros-nuevos-*.json
 
 # dumps locales de migración (no commit)
 tmp/
+
+# reportes/exports locales (pueden tener datos personales)
+exports/
