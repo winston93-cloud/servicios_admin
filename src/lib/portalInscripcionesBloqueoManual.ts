@@ -14,10 +14,8 @@ export const MENSAJE_BLOQUEO_COORDINACION_SECUNDARIA =
  * El bloqueo aplica cuando el alumno liquida julio (concepto 26) del ciclo a cerrar.
  */
 export const BLOQUEOS_MANUALES_PORTAL_INSCRIPCION: BloqueoManualPortalInscripcion[] = [
-  {
-    alumno_id: 1740, // 21145 · DOMINIQUE MACKENZYE GRANIEL PADILLA
-    mensaje: MENSAJE_BLOQUEO_COORDINACION_SECUNDARIA,
-  },
+  // 2026-09-18: se retiró 1740 (21145 Mackenzye) — Dirección autorizó inicio de clases
+  // e inscripción fraccionada en colegiaturas sep/oct/nov.
 ]
 
 const CONCEPTO_JULIO = '26'
