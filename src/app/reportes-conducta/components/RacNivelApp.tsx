@@ -61,6 +61,7 @@ type AlumnoFila = {
   alumno_id: number
   alumno_ref: string | number | null
   nombre: string
+  nivel?: number
   grado: number
   grupo: string
   aviso: string
@@ -75,6 +76,7 @@ type AlumnoBusqueda = {
   alumno_app?: string | null
   alumno_apm?: string | null
   alumno_nombre?: string | null
+  alumno_nivel?: number | string | null
   alumno_grado?: number | string | null
   alumno_grupo?: number | string | null
 }
@@ -247,7 +249,14 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   const [citaValidar, setCitaValidar] = useState<CitaFila | null>(null)
   const [detalleVista, setDetalleVista] = useState<Record<string, unknown> | null>(null)
   const [historialKardex, setHistorialKardex] = useState<{
-    alumno: { alumno_id: number; alumno_ref: string | number | null; nombre: string; grado: number; grupo: string }
+    alumno: {
+      alumno_id: number
+      alumno_ref: string | number | null
+      nombre: string
+      nivel?: number
+      grado: number
+      grupo: string
+    }
     reportes: Record<string, unknown>[]
   } | null>(null)
   const [historialAlumnos, setHistorialAlumnos] = useState<AlumnoBusqueda[]>([])
@@ -931,7 +940,11 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                               <span>
                                 <span className="racn-alumno-nombre">{a.nombre}</span>
                                 <small>
-                                  {a.alumno_ref ?? '—'} · {a.grado}° {a.grupo}
+                                  {a.alumno_ref ?? '—'} ·{' '}
+                                  {a.nivel
+                                    ? etiquetaGradoEscolar(a.nivel, a.grado)
+                                    : `${a.grado}°`}{' '}
+                                  {a.grupo}
                                 </small>
                               </span>
                             </div>
@@ -1203,7 +1216,13 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                                   <strong>{nombre}</strong>
                                   <span>
                                     Control {a.alumno_ref ?? '—'}
-                                    {a.alumno_grado != null ? ` · ${a.alumno_grado}°` : ''}
+                                    {a.alumno_grado != null
+                                      ? ` · ${
+                                          a.alumno_nivel != null
+                                            ? etiquetaGradoEscolar(a.alumno_nivel, a.alumno_grado)
+                                            : `${a.alumno_grado}°`
+                                        }`
+                                      : ''}
                                   </span>
                                 </button>
                               </li>
@@ -1329,7 +1348,13 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                         <td>
                           {String(row.nombre ?? '')}
                           <small className="racn-mini">
-                            {String(row.alumno_ref ?? '')} {String(row.grado ?? '')}° {String(row.grupo ?? '')}
+                            {String(row.alumno_ref ?? '')}{' '}
+                            {row.nivel != null && row.grado != null
+                              ? etiquetaGradoEscolar(row.nivel as number | string, row.grado as number | string)
+                              : row.grado != null
+                                ? `${String(row.grado)}°`
+                                : ''}{' '}
+                            {String(row.grupo ?? '')}
                           </small>
                         </td>
                         <td>
@@ -1496,7 +1521,10 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
               <h3 id="racn-historial-title">Historial de reportes</h3>
               <p className="racn-mini">
                 {historialKardex.alumno.nombre} · {String(historialKardex.alumno.alumno_ref ?? '—')} ·{' '}
-                {historialKardex.alumno.grado}° {historialKardex.alumno.grupo}
+                {historialKardex.alumno.nivel
+                  ? etiquetaGradoEscolar(historialKardex.alumno.nivel, historialKardex.alumno.grado)
+                  : `${historialKardex.alumno.grado}°`}{' '}
+                {historialKardex.alumno.grupo}
               </p>
               {historialKardex.reportes.length === 0 ? (
                 <p>Sin historial en el ciclo actual.</p>

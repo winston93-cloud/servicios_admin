@@ -76,25 +76,19 @@ export type AsignacionRacNivel = {
 }
 
 function etiquetaGrado(cfg: RacNivelConfig, grado: number, nivelEscolar?: number): string {
-  if (cfg.slug === 'maternal-kinder' && nivelEscolar != null) {
-    // Maternal A/B son grados (1/2); Kinder 1–3 también. Misma nomenclatura que el resto del sistema.
-    const label = etiquetaGradoEscolar(nivelEscolar, grado)
-    if (label) return label
-  }
   if (cfg.slug === 'maternal-kinder') {
-    if (nivelEscolar === 1) {
-      if (grado === 1) return 'Maternal A'
-      if (grado === 2) return 'Maternal B'
-      return `Maternal ${grado}`
+    if (nivelEscolar != null) {
+      // Maternal A/B (nivel 1) y Kinder 1–3 (nivel 2). Misma nomenclatura que Servicios.
+      return etiquetaGradoEscolar(nivelEscolar, grado) || `Grado ${grado}`
     }
-    if (nivelEscolar === 2) {
-      if (grado === 1) return 'Kinder-1'
-      if (grado === 2) return 'Kinder-2'
-      if (grado === 3) return 'Kinder-3'
-      return `Kinder-${grado}`
-    }
+    // Sin nivel: no etiquetar como Primaria (bug Lucca / Kinder-3 → «3° Primaria»).
+    if (grado === 3) return 'Kinder-3'
+    return `Grado ${grado}`
   }
-  return `${grado}° Primaria`
+  if (cfg.slug === 'primaria' || nivelEscolar === 3) {
+    return etiquetaGradoEscolar(3, grado) || `${grado}° de Primaria`
+  }
+  return etiquetaGradoEscolar(nivelEscolar, grado) || `${grado}°`
 }
 
 /** Grupo captura «*» = salón completo del grado (sin letra A/B/C en ficha). */
@@ -454,6 +448,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
         alumno_id: a.alumno_id,
         alumno_ref: a.alumno_ref,
         nombre: nombreAlumno(a),
+        nivel: n(a.alumno_nivel),
         grado: n(a.alumno_grado),
         grupo: letraDesdeGrupoNum(n(a.alumno_grupo)),
         aviso: f[0] ?? '',
@@ -853,12 +848,12 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     if (materiaIds.length) {
       const { data: mats } = await client
         .from('boleta_materia')
-        .select('materia_id, materia_nombre, materia_grado')
+        .select('materia_id, materia_nombre, materia_grado, materia_nivel')
         .in('materia_id', materiaIds)
       mMap = new Map(
         (mats ?? []).map((m) => [
           n(m.materia_id),
-          `${etiquetaGrado(cfg, n(m.materia_grado))} · ${String(m.materia_nombre ?? '')}`,
+          `${etiquetaGrado(cfg, n(m.materia_grado), n(m.materia_nivel))} · ${String(m.materia_nombre ?? '')}`,
         ])
       )
     }
@@ -972,6 +967,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
           cita_id: n(c.cita_id),
           alumno_ref: a?.alumno_ref ?? null,
           nombre: a ? nombreAlumno(a as AlumnoRow) : '',
+          nivel: n(a?.alumno_nivel),
           grado: n(a?.alumno_grado),
           grupo: letraDesdeGrupoNum(n(a?.alumno_grupo)),
           tipo: n(c.cita_tipo),
@@ -1018,6 +1014,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
           suspension_id: n(s.suspension_id),
           alumno_ref: a?.alumno_ref ?? null,
           nombre: a ? nombreAlumno(a as AlumnoRow) : '',
+          nivel: n(a?.alumno_nivel),
           grado: n(a?.alumno_grado),
           grupo: letraDesdeGrupoNum(n(a?.alumno_grupo)),
           tipoEtiqueta: etiquetaTipoCitatorio(n(r?.reporte_tipo ?? 0)),
@@ -1208,6 +1205,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
         alumno_id: n(alumno.alumno_id),
         alumno_ref: alumno.alumno_ref,
         nombre: nombreAlumno(alumno),
+        nivel: n(alumno.alumno_nivel),
         grado: n(alumno.alumno_grado),
         grupo: letraDesdeGrupoNum(n(alumno.alumno_grupo)),
       },

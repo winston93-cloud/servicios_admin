@@ -1,5 +1,6 @@
 'use client'
 
+import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import './rac-detalle-modal.css'
 
 type Props = {
@@ -25,9 +26,15 @@ export default function RacDetalleModal({ row, onClose }: Props) {
   const esSusp = row.suspension_id != null
   const tituloTipo = String(row.escalon ?? row.tipoEtiqueta ?? (esCita ? 'Citatorio' : esSusp ? 'Suspensión' : 'Reporte'))
   const situacion = [tituloTipo, row.materia ? String(row.materia) : ''].filter(Boolean).join(' · ')
+  const gradoLabel =
+    row.nivel != null && row.grado != null
+      ? etiquetaGradoEscolar(row.nivel as number | string, row.grado as number | string)
+      : row.grado != null
+        ? `${String(row.grado)}°`
+        : ''
   const gradoGrupo =
     row.grado != null || row.grupo
-      ? `${row.grado != null ? `${String(row.grado)}°` : ''} ${String(row.grupo ?? '')}`.trim()
+      ? `${gradoLabel} ${String(row.grupo ?? '')}`.trim()
       : '—'
   const enviado = Boolean(row.enviado ?? row.enviada)
   const confirmado = Boolean(row.confirmado ?? row.confirmada)
