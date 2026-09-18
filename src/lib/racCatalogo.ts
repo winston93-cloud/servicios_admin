@@ -118,6 +118,7 @@ export function motivoReporte(tipo: number, motivo: number): string {
       12: 'Falda',
       13: 'Uñas',
       14: 'Chamarra',
+      15: 'Mandil', // Obligatorio en maternal/kinder
     }
     return u[motivo] ?? 'Uniforme'
   }
@@ -168,7 +169,7 @@ export function opcionesMotivo(tipo: number): { valor: number; etiqueta: string 
       { valor: 3, etiqueta: 'Faltas al reglamento' },
     ]
   if (tipo === 3)
-    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].map((valor) => ({
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((valor) => ({
       valor,
       etiqueta: motivoReporte(3, valor),
     }))
