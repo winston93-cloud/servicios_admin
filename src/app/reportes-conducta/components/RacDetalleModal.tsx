@@ -118,6 +118,18 @@ export default function RacDetalleModal({ row, onClose }: Props) {
                 <span className="rac-det__value">{String(row.vuelta)}</span>
               </div>
             ) : null}
+            {esCita && (row.emisor || row.emisor_departamento || row.emisor_nombre) ? (
+              <div className="rac-det__field rac-det__field--wide">
+                <span className="rac-det__label">Expedido por</span>
+                <span className="rac-det__value">
+                  {String(
+                    row.emisor ||
+                      [row.emisor_departamento, row.emisor_nombre].filter(Boolean).join(' · ') ||
+                      '—'
+                  )}
+                </span>
+              </div>
+            ) : null}
           </div>
         </section>
 

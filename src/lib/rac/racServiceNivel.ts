@@ -20,6 +20,7 @@ import {
   urlPublicaRac,
 } from '@/lib/racCorreo'
 import { avisarStaffFalloEnvioRac } from '@/lib/racFalloEnvio'
+import { emisorDeMapa, resolverEmisoresRac } from '@/lib/racEmisor'
 import { filaPdfDesdeReporte, filtrarFilasPdf, ordenarFilasPdf, type FilaPdfReporte } from '@/lib/racPdf'
 import { RacNivelAuthError, type RacSesionNivel } from './racAuthNivel'
 import type { RacNivelConfig } from './racNivelConfig'
@@ -959,10 +960,15 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .select('alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_nivel')
       .in('alumno_id', ids.length ? ids : [0])
     const aMap = new Map((alumnos ?? []).map((a) => [n(a.alumno_id), a]))
+    const emisores = await resolverEmisoresRac(
+      rows.map((c) => ({ perfil_id: n(c.perfil_id), usuario_id: n(c.usuario_id) })),
+      { etiquetaPerfil5: cfg.etiquetaOperaciones }
+    )
     return rows
       .map((c) => {
         const a = aMap.get(n(c.alumno_id))
         if (a && !esAlumnoDeNivel(n(a.alumno_nivel))) return null
+        const emisor = emisorDeMapa(emisores, c.perfil_id, c.usuario_id)
         return {
           cita_id: n(c.cita_id),
           alumno_ref: a?.alumno_ref ?? null,
@@ -978,6 +984,9 @@ export function createRacNivelService(cfg: RacNivelConfig) {
           confirmada: n(c.cita_confirmada) === 1,
           status: n(c.cita_status),
           mdv: String(c.cita_mdv ?? ''),
+          emisor_departamento: emisor?.departamento ?? '',
+          emisor_nombre: emisor?.nombre ?? '',
+          emisor: emisor?.etiqueta ?? '',
         }
       })
       .filter(Boolean)

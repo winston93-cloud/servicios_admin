@@ -1192,6 +1192,7 @@ export default function RacSecundariaPage() {
                   ) : null}
                   <th>Alumno</th>
                   <th>Detalle</th>
+                  {tab === 'citas' ? <th>Expedido por</th> : null}
                   <th>Fecha</th>
                   {tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' ? (
                     <>
@@ -1232,6 +1233,14 @@ export default function RacSecundariaPage() {
                       ) : null}
                       <span className="rac-mini">{String(row.motivo ?? row.mensaje ?? '')}</span>
                     </td>
+                    {tab === 'citas' ? (
+                      <td>
+                        {String(row.emisor_departamento || row.emisor || '—')}
+                        {row.emisor_nombre ? (
+                          <span className="rac-mini">{String(row.emisor_nombre)}</span>
+                        ) : null}
+                      </td>
+                    ) : null}
                     <td>{String(row.fecha ?? '—')}</td>
                     {tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' ? (
                       <>
