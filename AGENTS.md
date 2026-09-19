@@ -29,6 +29,7 @@ Key patterns:
 - **Desayunos POS:** tablas `concepto_desayunos`, `pago_desayunos`, `desayunos_saldo`, `notificaciones` en Winston. Migración: `docs/MIGRACION-DESAYUNOS-WINSTON.md`. Apps: `/pos` + repo `~/Proyectos/services`. NANO **Desayunos** (`5g4kw6fw`) borrable **solo tras smoke** OK (Mario).
 - **Caja Chica / Monitoreo y Control:** tablas `categories`, `persons`, `executors`, `expenses`, `funds`, etc. en Winston. Migración: `docs/MIGRACION-CAJA-CHICA-WINSTON.md`. App: `~/Proyectos/Cchic` (`cchic.vercel.app`). NANO **Caja Chica** (`fvddcfy5`) borrable cuando Mario lo indique.
 - **Cheques:** tablas `ch_cheques`, `ch_cheques_ed`, `ch_cheques_sw`, `ch_cheques_se`, `ch_nombres`, `ch_conceptos`, `ch_subconceptos`, `cheques_banco` en Winston. Migración: `docs/MIGRACION-CHEQUES-WINSTON.md`. App: `~/Proyectos/cheques_new` (`cheques-new.vercel.app`). NANO **Cheques** (`3p3q5w7a`) borrable **solo tras smoke** OK (Mario).
+- **Open House / Sesiones Inf.:** tablas `inscripciones`, `sesiones`, `kommo_lead_tracking`, `campamento_verano`, `taller_ia` en Winston. Migración: `docs/MIGRACION-OPEN-HOUSE-WINSTON.md`. App: `~/Proyectos/open_house` (`open-house-chi.vercel.app`). NANO **Open_House** (`ebcv45bg`) borrable **solo tras smoke** OK (Mario).
 - **Prórrogas y Ajustes:** app usa Winston (`pago_prorroga` + `alumno` / precios / becas). NANO **Prórrogas y Ajustes** (`nr8dsq6r`) ya eliminable (solo 1 tabla residual).
 
 ## Facturación CFDI — estado y pendientes
