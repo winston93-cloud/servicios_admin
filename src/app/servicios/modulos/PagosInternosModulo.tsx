@@ -24,7 +24,6 @@ import {
   mensajeManualesRequiereCuotaPadres,
   nivelGradoDesdeAlumno,
   obtenerSiguienteFolioPago,
-  repararFoliosWinstonTrasReinicio2671,
   resolverPlantelFolioPagoInterno,
   resolverPrecioInterno,
   resolverPreciosCuotaYManuales,
@@ -197,53 +196,17 @@ export default function PagosInternosModulo() {
     cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloPago)
   }, [alumnoSeleccionado, cicloPago, cargarDatosAlumno])
 
-  // Una sola vez por carga: revalida consecutivo Winston desde 2837 (API admin).
+  // Solo refresca el tip de folio. No auto-aplicar reparación Winston:
+  // cancelaba capturas Externo distintas (mismo alumno/concepto/fecha, otro nombre)
+  // y reescribía el talón al abrir el módulo.
   useEffect(() => {
     let cancelado = false
     void (async () => {
       try {
-        const r = await fetch('/api/servicios/reparar-folios-winston', {
-          method: 'POST',
-          cache: 'no-store',
-        })
-        const res = (await r.json()) as {
-          ok?: boolean
-          aplicada?: boolean
-          mensaje?: string
-        }
-        if (cancelado) return
-        if (!r.ok || res.ok === false) {
-          // Fallback cliente si la API falla
-          const local = await repararFoliosWinstonTrasReinicio2671()
-          if (cancelado) return
-          if (!local.ok) {
-            setError(local.mensaje)
-            return
-          }
-          setMensaje(local.mensaje)
-          if (local.aplicada && alumnoSeleccionado) {
-            await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloPago)
-          }
-          await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
-          return
-        }
-        setMensaje(res.mensaje ?? 'Folios revisados.')
-        if (res.aplicada && alumnoSeleccionado) {
-          await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloPago)
-        }
         await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
-      } catch (e) {
-        if (cancelado) return
-        const local = await repararFoliosWinstonTrasReinicio2671()
-        if (cancelado) return
-        if (!local.ok) {
-          setError(local.mensaje)
-          return
-        }
-        setMensaje(local.mensaje)
-        await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
-        if (local.aplicada && alumnoSeleccionado) {
-          await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloPago)
+      } catch {
+        if (!cancelado) {
+          /* tip se refresca al elegir alumno/concepto */
         }
       }
     })()

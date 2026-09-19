@@ -133,13 +133,24 @@ async function fetchPagosDesdeFecha(
  *    - Solo cancelar + recaptura: cancelado (pago_id menor) quema N; redo = N+1 (Emma).
  *    - Cancelar y recorrer: stub cancelado en N y contenido vigente en N+1.
  */
+/** Clave de «misma captura»: incluye concepto_otro (Externo 11404 cobra varios exámenes el mismo día). */
+function claveCapturaMismaFecha(p: PagoInternoRow): string {
+  const extra = String(p.concepto_otro ?? '')
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return `${Number(p.alumno_id)}|${Number(p.concepto_id)}|${String(p.pago_fecha ?? '').slice(0, 10)}|${extra}`
+}
+
 export function separarCanceladosFueraDeTalon(rows: PagoInternoRow[]): {
   enTalon: PagoInternoRow[]
   sombras: PagoInternoRow[]
 } {
   const porGrupo = new Map<string, PagoInternoRow[]>()
   for (const p of rows) {
-    const key = `${Number(p.alumno_id)}|${Number(p.concepto_id)}|${String(p.pago_fecha ?? '').slice(0, 10)}`
+    const key = claveCapturaMismaFecha(p)
     if (!porGrupo.has(key)) porGrupo.set(key, [])
     porGrupo.get(key)!.push(p)
   }
@@ -393,7 +404,7 @@ export async function cancelarCapturasDuplicadasWinston(
 
   const grupos = new Map<string, PagoInternoRow[]>()
   for (const p of rows) {
-    const key = `${p.alumno_id}|${p.concepto_id}|${String(p.pago_fecha ?? '').slice(0, 10)}`
+    const key = claveCapturaMismaFecha(p)
     if (!grupos.has(key)) grupos.set(key, [])
     grupos.get(key)!.push(p)
   }
