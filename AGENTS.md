@@ -28,6 +28,8 @@ Key patterns:
 - **Entersote / gym:** tabla `gym_estado` también en Winston Servicios; app local en PCs (sin repo).
 - **Desayunos POS:** tablas `concepto_desayunos`, `pago_desayunos`, `desayunos_saldo`, `notificaciones` en Winston. Migración: `docs/MIGRACION-DESAYUNOS-WINSTON.md`. Apps: `/pos` + repo `~/Proyectos/services`. NANO **Desayunos** (`5g4kw6fw`) borrable **solo tras smoke** OK (Mario).
 - **Caja Chica / Monitoreo y Control:** tablas `categories`, `persons`, `executors`, `expenses`, `funds`, etc. en Winston. Migración: `docs/MIGRACION-CAJA-CHICA-WINSTON.md`. App: `~/Proyectos/Cchic` (`cchic.vercel.app`). NANO **Caja Chica** (`fvddcfy5`) borrable cuando Mario lo indique.
+- **Cheques:** tablas `ch_cheques`, `ch_cheques_ed`, `ch_cheques_sw`, `ch_cheques_se`, `ch_nombres`, `ch_conceptos`, `ch_subconceptos`, `cheques_banco` en Winston. Migración: `docs/MIGRACION-CHEQUES-WINSTON.md`. App: `~/Proyectos/cheques_new` (`cheques-new.vercel.app`). NANO **Cheques** (`3p3q5w7a`) borrable **solo tras smoke** OK (Mario).
+- **Prórrogas y Ajustes:** app usa Winston (`pago_prorroga` + `alumno` / precios / becas). NANO **Prórrogas y Ajustes** (`nr8dsq6r`) ya eliminable (solo 1 tabla residual).
 
 ## Facturación CFDI — estado y pendientes
 
