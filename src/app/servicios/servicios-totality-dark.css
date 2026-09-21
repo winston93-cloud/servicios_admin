@@ -1147,15 +1147,22 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .sus-
 }
 
 /* ─── Credenciales (cred-) ─── */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cred-tabs {
+  background: rgba(255, 246, 223, 0.08);
+  border-color: rgba(255, 246, 223, 0.22);
+}
+
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cred-tab {
-  color: var(--sx-text-secondary);
+  color: rgba(255, 246, 223, 0.72);
   background: transparent;
 }
 
+/* Activo: texto oscuro sobre oro (el oro sobre fondo claro/blanco no se leía) */
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cred-tab--activo {
-  color: var(--sx-totality-gold);
-  background: rgba(255, 215, 0, 0.12);
-  border-color: rgba(255, 215, 0, 0.35);
+  color: #0c0a08;
+  background: var(--sx-totality-gold, #fff6df);
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .cred-select,
