@@ -17066,6 +17066,26 @@ a.pc-accion {
   background: color-mix(in srgb, currentColor 28%, transparent);
 }
 
+.portal-login-google-notice {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid rgba(252, 211, 77, 0.55);
+  background: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.28) 0%,
+    rgba(234, 88, 12, 0.18) 100%
+  );
+  color: #fff6df;
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow:
+    0 0 0 1px rgba(255, 246, 223, 0.08),
+    0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
 .portal-login-google-custom {
   display: inline-flex;
   align-items: center;
@@ -17186,6 +17206,13 @@ html[data-theme='light'] .portal-login-google-custom {
   background: #fff;
   border-color: #cbd5e1;
   color: #0f172a;
+}
+
+html[data-theme='light'] .portal-login-google-notice {
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  color: #9a3412;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.18);
 }
 
 html[data-theme='light'] .portal-login-google-pick {

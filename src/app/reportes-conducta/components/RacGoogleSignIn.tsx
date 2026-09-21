@@ -23,6 +23,8 @@ type Props = {
   onSuccess?: (data: Record<string, unknown>) => void
   /** Prefijo CSS: secundaria `rac`, primaria/M-K `racn`, becarios `becarios`, portal `portal` */
   classPrefix?: string
+  /** Aviso visible encima del botón (p.ej. portal: no disponible para papás). */
+  notice?: string
 }
 
 type TokenClient = {
@@ -84,6 +86,7 @@ export default function RacGoogleSignIn({
   onOk,
   onSuccess,
   classPrefix = 'racn',
+  notice,
 }: Props) {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID?.trim() || ''
   const tokenClientRef = useRef<TokenClient | null>(null)
@@ -233,6 +236,11 @@ export default function RacGoogleSignIn({
       <div className={`${p}-login-divider`} role="separator">
         <span>o</span>
       </div>
+      {notice ? (
+        <p className={`${p}-login-google-notice`} role="note">
+          {notice}
+        </p>
+      ) : null}
       <button
         type="button"
         className={`${p}-login-google-custom`}

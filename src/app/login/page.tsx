@@ -286,6 +286,7 @@ function LoginPageInner() {
             <RacGoogleSignIn
               authUrl="/api/auth/google"
               classPrefix="portal"
+              notice="Por ahora, el acceso con Google es solo para personal del colegio. Mamás y papás, por favor usen número de control y clave."
               onOk={() => {
                 /* sesión vía onSuccess */
               }}
