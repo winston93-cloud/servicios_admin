@@ -11,6 +11,7 @@ import {
   Users,
 } from 'lucide-react'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
+import { getCicloEscolarActual } from '@/lib/ciclosEscolares'
 import { gradoOpcionesPorNivel } from '@/lib/gradoEscolar'
 import { NIVELES_ESCOLARES_OPCIONES } from '@/lib/nivelEscolar'
 import { NIVELES_CREDENCIAL, urlVistaPreviaFondo } from '@/lib/credencialesConfig'
@@ -41,7 +42,8 @@ export default function CredencialesModulo() {
   const [fondoBust, setFondoBust] = useState(Date.now())
   const [mensajeFondo, setMensajeFondo] = useState<string | null>(null)
 
-  const cicloEfectivo = cicloReporte ?? cicloSeleccionado ?? cicloActualSistema ?? 22
+  const cicloEfectivo =
+    cicloReporte ?? cicloSeleccionado ?? cicloActualSistema ?? getCicloEscolarActual()
   const opcionesGrado = useMemo(() => {
     if (!nivel) return [{ valor: 0, etiqueta: 'Todos los grados' }]
     return [{ valor: 0, etiqueta: 'Todos los grados' }, ...gradoOpcionesPorNivel(nivel)]
