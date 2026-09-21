@@ -5,9 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { Eye, EyeOff } from 'lucide-react'
 import { safeAuthReturnPath } from '@/lib/authReturnPath'
-import { loginPortal } from '@/lib/portalAuthService'
+import { loginPortal, normalizarSesion } from '@/lib/portalAuthService'
 import { useAuth } from '@/contexts/AuthContext'
 import ThemeToggle from '@/components/ThemeToggle'
+import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
 
 type VistaLogin = 'entrar' | 'activar-clave'
 
@@ -197,6 +198,7 @@ function LoginPageInner() {
           </div>
 
           {vista === 'entrar' ? (
+            <>
             <form
               className="portal-access-form"
               onSubmit={handleSubmit}
@@ -280,6 +282,29 @@ function LoginPageInner() {
                 ¿Primera vez? Ve a <strong>Activar clave</strong> para registrar tu acceso.
               </p>
             </form>
+
+            <RacGoogleSignIn
+              authUrl="/api/auth/google"
+              classPrefix="portal"
+              onOk={() => {
+                /* sesión vía onSuccess */
+              }}
+              onSuccess={(data) => {
+                const session = normalizarSesion(data.session)
+                if (!session || session.role !== 'usuario') {
+                  setError(
+                    'No se pudo crear la sesión administrativa. Verifica que el correo esté en el catálogo.'
+                  )
+                  return
+                }
+                limpiarMensajes()
+                login(session)
+                setUsername('')
+                setPassword('')
+                router.push(afterLoginPath)
+              }}
+            />
+            </>
           ) : (
             <form className="portal-access-form" onSubmit={handleRegistrarClave}>
               <p className="portal-access-lead">

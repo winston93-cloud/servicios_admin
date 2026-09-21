@@ -16,7 +16,12 @@ type Props = {
   /** POST endpoint, p.ej. /api/rac/auth/google */
   authUrl: string
   onOk: () => void
-  /** Prefijo CSS: secundaria `rac`, primaria/M-K `racn`, becarios `becarios` */
+  /**
+   * Si se define, recibe el JSON completo del POST exitoso
+   * (p.ej. portal admin: `{ ok, session }` para sessionStorage).
+   */
+  onSuccess?: (data: Record<string, unknown>) => void
+  /** Prefijo CSS: secundaria `rac`, primaria/M-K `racn`, becarios `becarios`, portal `portal` */
   classPrefix?: string
 }
 
@@ -74,7 +79,12 @@ function loadGisScript(): Promise<void> {
   })
 }
 
-export default function RacGoogleSignIn({ authUrl, onOk, classPrefix = 'racn' }: Props) {
+export default function RacGoogleSignIn({
+  authUrl,
+  onOk,
+  onSuccess,
+  classPrefix = 'racn',
+}: Props) {
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID?.trim() || ''
   const tokenClientRef = useRef<TokenClient | null>(null)
   const [ready, setReady] = useState(false)
@@ -108,6 +118,8 @@ export default function RacGoogleSignIn({ authUrl, onOk, classPrefix = 'racn' }:
           error?: string
           email?: string
           candidates?: RacGoogleCandidate[]
+          session?: unknown
+          [key: string]: unknown
         }
         if (res.status === 409 && data.code === 'ambiguous' && data.candidates?.length) {
           setAccessToken(token)
@@ -120,6 +132,7 @@ export default function RacGoogleSignIn({ authUrl, onOk, classPrefix = 'racn' }:
         }
         setCandidates(null)
         setAccessToken(null)
+        onSuccess?.(data)
         onOk()
       } catch (err) {
         setError(err instanceof Error ? err.message : 'No se pudo entrar con Google')
@@ -127,7 +140,7 @@ export default function RacGoogleSignIn({ authUrl, onOk, classPrefix = 'racn' }:
         setLoading(false)
       }
     },
-    [authUrl, onOk]
+    [authUrl, onOk, onSuccess]
   )
 
   useEffect(() => {

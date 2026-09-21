@@ -17037,6 +17037,172 @@ a.pc-accion {
   cursor: wait;
 }
 
+/* 2026-09-21 - Google Auth en login portal (empleados @winston93.edu.mx) */
+.portal-login-google {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.85rem;
+  width: 100%;
+}
+
+.portal-login-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0.1rem 0;
+  color: color-mix(in srgb, var(--portal-access-muted, #94a3b8) 90%, transparent);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.portal-login-divider::before,
+.portal-login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: color-mix(in srgb, currentColor 28%, transparent);
+}
+
+.portal-login-google-custom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--touch-min, 44px);
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #fff 22%, transparent);
+  background: color-mix(in srgb, #fff 92%, #e2e8f0);
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 0.92rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.portal-login-google-custom:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.portal-login-google-custom:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.portal-login-google-g {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 0.85rem;
+  background: conic-gradient(from 45deg, #ea4335, #fbbc05, #34a853, #4285f4, #ea4335);
+  color: #fff;
+}
+
+.portal-login-google-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
+  text-align: center;
+  line-height: 1.4;
+  color: var(--portal-access-muted, #94a3b8);
+}
+
+.portal-login-error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #f87171;
+  text-align: center;
+}
+
+.portal-login-google-pick {
+  margin-top: 4px;
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #fff 18%, transparent);
+  background: color-mix(in srgb, #0f172a 55%, transparent);
+}
+
+.portal-login-google-pick-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.portal-login-google-pick-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.portal-login-google-pick-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  width: 100%;
+  min-height: var(--touch-min, 44px);
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, #fff 16%, transparent);
+  background: color-mix(in srgb, #fff 8%, transparent);
+  color: #f8fafc;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.portal-login-google-pick-btn span {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.portal-login-google-pick-cancel {
+  margin-top: 0.5rem;
+  width: 100%;
+  min-height: 40px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+
+html[data-theme='light'] .portal-login-google-custom {
+  background: #fff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+html[data-theme='light'] .portal-login-google-pick {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+html[data-theme='light'] .portal-login-google-pick-title,
+html[data-theme='light'] .portal-login-google-pick-btn {
+  color: #0f172a;
+}
+
+html[data-theme='light'] .portal-login-google-pick-btn {
+  background: #fff;
+  border-color: #e2e8f0;
+}
+
 .portal-access-foot {
   display: flex;
   align-items: center;
