@@ -391,6 +391,16 @@ export async function enviarCorreoReporte(reporteId: number) {
   const origenLabel = materiaNombre
     ? `Asignatura: <b>${escapeHtml(materiaNombre)}</b>`
     : `Departamento: <b>${escapeHtml(departamento)}</b>`
+  const emisores = await resolverEmisoresRac([
+    { perfil_id: n(r.perfil_id), usuario_id: n(r.usuario_id) },
+  ])
+  const emisor = emisorDeMapa(emisores, r.perfil_id, r.usuario_id)
+  const expedidoPor = emisor?.nombre?.trim() || ''
+  const emisorLabel = expedidoPor
+    ? `<p>Expedido por: <b>${escapeHtml(expedidoPor)}</b>${
+        emisor?.departamento ? ` (${escapeHtml(emisor.departamento)})` : ''
+      }</p>`
+    : ''
   const enlace = urlPublicaRac(String(r.reporte_mdv), alt)
   const subject = asuntoReporte(tipo, no)
   const frase = fraseRegistroAvisoRac(tipo, no)
@@ -408,6 +418,7 @@ export async function enviarCorreoReporte(reporteId: number) {
           ? `<p>Motivo: <b>${escapeHtml(motivoTxt)}</b> · ${origenLabel}</p>`
           : `<p>${origenLabel}</p>`
       }
+      ${emisorLabel}
       <p>${escapeHtml(String(r.reporte_mensaje ?? '')).replace(/\n/g, '<br>')}</p>`,
   })
   const envio = await enviarAvisoRac({ to, subject, html, panel: 'secundaria' })
@@ -1200,6 +1211,24 @@ export async function detallePublico(token: string, alt: number) {
   if (!r) return null
   const alumno = await cargarAlumno(n(r.alumno_id))
   const tipo = n(r.reporte_tipo)
+
+  let asignatura = ''
+  if (r.materia_id) {
+    const { data: m } = await client
+      .from('boleta_materia')
+      .select('materia_nombre')
+      .eq('materia_id', r.materia_id)
+      .maybeSingle()
+    asignatura = String(m?.materia_nombre ?? '').trim()
+  }
+
+  const emisores = await resolverEmisoresRac([
+    { perfil_id: n(r.perfil_id), usuario_id: n(r.usuario_id) },
+  ])
+  const emisor = emisorDeMapa(emisores, r.perfil_id, r.usuario_id)
+  const departamento = emisor?.departamento || etiquetaDepartamentoRac(n(r.perfil_id))
+  const expedidoPor = emisor?.nombre?.trim() || ''
+
   return {
     kind: alt === 5 ? ('suspension' as const) : ('reporte' as const),
     id: n(r.reporte_id),
@@ -1209,6 +1238,11 @@ export async function detallePublico(token: string, alt: number) {
     grado: n(alumno.alumno_grado),
     grupo: letraDesdeGrupoNum(n(alumno.alumno_grupo)),
     motivo: motivoReporte(tipo, n(r.reporte_motivo)),
+    /** Vacío en informe académico (tipo 5) sin catálogo útil; UI puede ocultarlo. */
+    mostrarMotivo: tipo !== 5,
+    asignatura,
+    departamento,
+    expedidoPor,
     mensaje: String(r.reporte_mensaje ?? ''),
     fecha: String(r.reporte_registro ?? '').slice(0, 10),
     confirmado: n(r.reporte_confirmado) === 1,

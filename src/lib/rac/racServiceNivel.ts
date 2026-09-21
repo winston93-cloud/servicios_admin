@@ -679,6 +679,16 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     const frase = fraseRegistroAvisoRac(tipo, no)
     const motivoTxt = motivoReporte(tipo, n(r.reporte_motivo))
     const mostrarMotivo = tipo !== 5
+    const emisores = await resolverEmisoresRac([
+      { perfil_id: n(r.perfil_id), usuario_id: n(r.usuario_id) },
+    ])
+    const emisor = emisorDeMapa(emisores, r.perfil_id, r.usuario_id)
+    const expedidoPor = emisor?.nombre?.trim() || ''
+    const emisorLabel = expedidoPor
+      ? `<p>Expedido por: <b>${escapeHtml(expedidoPor)}</b>${
+          emisor?.departamento ? ` (${escapeHtml(emisor.departamento)})` : ''
+        }</p>`
+      : ''
     const html = htmlCorreoRac({
       titulo: subject,
       enlace,
@@ -694,6 +704,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
             ? `<p>Grupo: <b>${escapeHtml(materiaNombre)}</b></p>`
             : ''
       }
+      ${emisorLabel}
       <p>${escapeHtml(String(r.reporte_mensaje ?? '')).replace(/\n/g, '<br>')}</p>`,
     })
     const envio = await enviarAvisoRac({ to, subject, html, panel: cfg.slug })

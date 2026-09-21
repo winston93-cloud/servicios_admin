@@ -10,9 +10,15 @@ type Detalle = {
   alumno: string
   ref?: string | number | null
   motivo?: string
+  mostrarMotivo?: boolean
+  asignatura?: string
+  departamento?: string
+  expedidoPor?: string
   mensaje?: string
   fecha?: string
   confirmado?: boolean
+  grado?: number
+  grupo?: string
 }
 
 function EstatusInner() {
@@ -70,9 +76,30 @@ function EstatusInner() {
             <strong>{detalle.alumno}</strong>
             {detalle.ref ? ` · ${detalle.ref}` : ''}
           </p>
-          {detalle.motivo ? <p>Motivo: {detalle.motivo}</p> : null}
+          {detalle.mostrarMotivo !== false && detalle.motivo ? (
+            <p>
+              Motivo: <strong>{detalle.motivo}</strong>
+            </p>
+          ) : null}
+          {detalle.asignatura ? (
+            <p>
+              Asignatura: <strong>{detalle.asignatura}</strong>
+            </p>
+          ) : detalle.departamento ? (
+            <p>
+              Departamento: <strong>{detalle.departamento}</strong>
+            </p>
+          ) : null}
+          {detalle.expedidoPor ? (
+            <p>
+              Expedido por: <strong>{detalle.expedidoPor}</strong>
+              {detalle.departamento && detalle.asignatura
+                ? ` (${detalle.departamento})`
+                : ''}
+            </p>
+          ) : null}
           {detalle.fecha ? <p>Fecha: {detalle.fecha}</p> : null}
-          <p>{detalle.mensaje}</p>
+          {detalle.mensaje ? <p className="rac-estatus-mensaje">{detalle.mensaje}</p> : null}
           {ok || detalle.confirmado ? (
             <p className="ok">Enterado. Gracias por confirmar.</p>
           ) : (
