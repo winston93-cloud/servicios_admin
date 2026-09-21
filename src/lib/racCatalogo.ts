@@ -125,6 +125,7 @@ export function motivoReporte(tipo: number, motivo: number): string {
   if (tipo === 4) {
     if (motivo === 1) return 'Estacionarse enfrente'
     if (motivo === 2) return 'Hacer doble fila'
+    if (motivo === 3) return 'Vuelta en U'
   }
   if (tipo === 5) return 'Informe'
   if (tipo === 6) {
@@ -177,6 +178,7 @@ export function opcionesMotivo(tipo: number): { valor: number; etiqueta: string 
     return [
       { valor: 1, etiqueta: 'Estacionarse enfrente' },
       { valor: 2, etiqueta: 'Hacer doble fila' },
+      { valor: 3, etiqueta: 'Vuelta en U' },
     ]
   if (tipo === 6)
     return [5, 10, 15, 20, 25, 30, 40, 50, 60, 70].map((valor) => ({
