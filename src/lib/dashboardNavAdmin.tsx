@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { DashboardModuleAccent } from '@/components/dashboard/DashboardModuleCard'
 import { urlProrrogasAjustesApp } from '@/lib/prorrogasAjustesConfig'
 import { urlCchicApp } from '@/lib/cchicConfig'
-import { urlChequesApp, urlContratosApp, urlSsiwEntregaLogin } from '@/lib/dashboardModulosConfig'
+import { urlChequesApp, urlContratosApp, urlSsiwEntregaLogin, urlUsaProgramApp } from '@/lib/dashboardModulosConfig'
 
 export type DashboardAdminNavItem = {
   label: string
@@ -146,6 +146,22 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M9 11l3 3L22 4" />
         <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Programa USA',
+    desc: 'Alumnos, pagos en USD, cartas de bienvenida y expediente documental de Winston–Hökku Academy.',
+    href: urlUsaProgramApp(),
+    accent: 'sky',
+    kicker: 'Doble titulación',
+    tags: ['Pagos USD', 'Expediente', 'Control Escolar'],
+    badge: 'Nuevo',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M2 12h20" />
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
       </svg>
     ),
   },

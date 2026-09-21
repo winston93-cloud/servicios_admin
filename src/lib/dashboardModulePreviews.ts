@@ -40,6 +40,11 @@ export const DASHBOARD_MODULE_PREVIEWS: Record<string, DashboardModulePreview> =
       'Cierra el circuito de nuevo ingreso: valida documentación completa y libera el recibo final cuando el expediente está en orden.',
     highlights: ['Checklist documental', 'Autorización NI', 'Recibo final'],
   },
+  'Programa USA': {
+    synopsis:
+      'Panel de Winston–Hökku Academy: captura inscritos, sincroniza las tres parcialidades en USD, envía cartas de bienvenida y cierra el expediente en Drive.',
+    highlights: ['Pagos USD $100 / $125 / $125', 'Cartas y alertas', 'Archivo documental'],
+  },
   'Agenda psicólogas': {
     synopsis:
       'Calendario del área de psicología: agenda citas, organiza horarios y da visibilidad al seguimiento socioemocional de la comunidad.',

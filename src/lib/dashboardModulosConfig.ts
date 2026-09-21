@@ -71,3 +71,11 @@ export function urlSsiwApp(): string {
 export function urlSsiwEntregaLogin(): string {
   return `${urlSsiwApp()}/entrega/login`
 }
+
+/** Programa USA / Winston–Hökku Academy (usa-program en Vercel). */
+export function urlUsaProgramApp(): string {
+  const explicit = process.env.NEXT_PUBLIC_USA_PROGRAM_URL?.trim()
+  if (explicit) return explicit.replace(/\/$/, '')
+
+  return 'https://winston-usa-program.vercel.app'
+}
