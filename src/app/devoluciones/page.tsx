@@ -159,7 +159,7 @@ function DevolucionesView() {
       setMsg({
         tipo: slackOk ? 'ok' : 'warn',
         texto: slackOk
-          ? `Guardado folio #${data.row.id}. Aviso enviado a #sistemaswinston.`
+          ? `Guardado folio #${data.row.id}. Aviso enviado a #avisos_devolucion.`
           : `Guardado folio #${data.row.id}. Historial OK, pero Slack falló: ${data.row.slack_error || 'sin detalle'}.`,
       })
       await cargarHistorial()
@@ -193,7 +193,7 @@ function DevolucionesView() {
         <p className="devoluciones-lead">
           Registra la autorización de Slack cuando el papá se arrepiente de un pago con tarjeta
           (inscripción, colegiatura u otro concepto). Queda historial y se avisa a{' '}
-          <strong>#sistemaswinston</strong>.
+          <strong>#avisos_devolucion</strong>.
         </p>
 
         <section className="devoluciones-form" aria-labelledby="dev-form-title">
