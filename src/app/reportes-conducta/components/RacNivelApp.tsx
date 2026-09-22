@@ -57,6 +57,8 @@ type Asignacion = {
   etiqueta_grupo: string
 }
 
+type MarcasSeccion = { es: string; en: string }
+
 type AlumnoFila = {
   alumno_id: number
   alumno_ref: string | number | null
@@ -68,6 +70,13 @@ type AlumnoFila = {
   r1: string
   r2: string
   r3: string
+  /** Académico MK/primaria: fechas por sección Español / Inglés. */
+  academico?: {
+    aviso: MarcasSeccion
+    r1: MarcasSeccion
+    r2: MarcasSeccion
+    r3: MarcasSeccion
+  }
 }
 
 type AlumnoBusqueda = {
@@ -132,6 +141,28 @@ function ChipFecha({ valor }: { valor: string }) {
   return (
     <span className={vacio ? 'racn-chip racn-chip--empty' : 'racn-chip racn-chip--set'}>
       {vacio ? '—' : valor}
+    </span>
+  )
+}
+
+/** Aviso / I / II / III académicos: Español (verde olivo) + Inglés (azul marino). */
+function ChipFechaSecciones({ es, en }: MarcasSeccion) {
+  const vacioEs = !es || es === '—' || es === '-'
+  const vacioEn = !en || en === '—' || en === '-'
+  return (
+    <span className="racn-chip-pair" aria-label="Español e Inglés">
+      <span
+        className={vacioEs ? 'racn-chip racn-chip--empty racn-chip--es' : 'racn-chip racn-chip--es'}
+        title="Español"
+      >
+        {vacioEs ? '—' : es}
+      </span>
+      <span
+        className={vacioEn ? 'racn-chip racn-chip--empty racn-chip--en' : 'racn-chip racn-chip--en'}
+        title="Inglés"
+      >
+        {vacioEn ? '—' : en}
+      </span>
     </span>
   )
 }
@@ -1004,6 +1035,14 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                   Actualizar
                 </button>
               </div>
+              {tipo === 1 ? (
+                <p className="racn-legend-secciones" role="note">
+                  <span className="racn-chip racn-chip--es">Español</span>
+                  <span className="racn-chip racn-chip--en">Inglés</span>
+                  Aviso e I–III van por sección (Maestra / Teacher). La suspensión académica aplica al
+                  cumplir 1 aviso + 3 reportes en la misma sección.
+                </p>
+              ) : null}
             </div>
             {sinAsignaciones ? (
               <div className="racn-empty">
@@ -1016,10 +1055,12 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                   <thead>
                     <tr>
                       <th>Alumno</th>
-                      <th>Aviso</th>
-                      <th>I</th>
-                      <th>II</th>
-                      <th>III</th>
+                      <th title={tipo === 1 ? 'Español (verde olivo) · Inglés (azul marino)' : undefined}>
+                        Aviso
+                      </th>
+                      <th title={tipo === 1 ? 'Español · Inglés' : undefined}>I</th>
+                      <th title={tipo === 1 ? 'Español · Inglés' : undefined}>II</th>
+                      <th title={tipo === 1 ? 'Español · Inglés' : undefined}>III</th>
                       <th
                         title={
                           capturaConInformeYCita
@@ -1060,16 +1101,32 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                             </div>
                           </td>
                           <td>
-                            <ChipFecha valor={a.aviso || '—'} />
+                            {a.academico ? (
+                              <ChipFechaSecciones es={a.academico.aviso.es} en={a.academico.aviso.en} />
+                            ) : (
+                              <ChipFecha valor={a.aviso || '—'} />
+                            )}
                           </td>
                           <td>
-                            <ChipFecha valor={a.r1 || '—'} />
+                            {a.academico ? (
+                              <ChipFechaSecciones es={a.academico.r1.es} en={a.academico.r1.en} />
+                            ) : (
+                              <ChipFecha valor={a.r1 || '—'} />
+                            )}
                           </td>
                           <td>
-                            <ChipFecha valor={a.r2 || '—'} />
+                            {a.academico ? (
+                              <ChipFechaSecciones es={a.academico.r2.es} en={a.academico.r2.en} />
+                            ) : (
+                              <ChipFecha valor={a.r2 || '—'} />
+                            )}
                           </td>
                           <td>
-                            <ChipFecha valor={a.r3 || '—'} />
+                            {a.academico ? (
+                              <ChipFechaSecciones es={a.academico.r3.es} en={a.academico.r3.en} />
+                            ) : (
+                              <ChipFecha valor={a.r3 || '—'} />
+                            )}
                           </td>
                           <td className="racn-actions racn-actions--captura">
                             <button

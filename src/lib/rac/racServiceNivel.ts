@@ -3,7 +3,7 @@ import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { grupoCoincide, letraDesdeGrupoNum } from '@/lib/boletasCiclo'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
-import { MATERIA_SLOT_ES } from '@/lib/catalogoMaestrosConstants'
+import { MATERIA_SLOT_EN, MATERIA_SLOT_ES } from '@/lib/catalogoMaestrosConstants'
 import {
   RAC_TIPOS,
   etiquetaEscalon,
@@ -191,6 +191,32 @@ export function createRacNivelService(cfg: RacNivelConfig) {
         materia_nivel: nivelEscolar,
         materia_grado: grado,
         materia_orden: MATERIA_SLOT_ES.orden,
+      },
+    ])
+    if (error) throw new Error(error.message)
+    return materiaId
+  }
+
+  /** Crea slot Teacher (inglés) si falta. */
+  async function ensureSlotEn(nivelEscolar: number, grado: number): Promise<number> {
+    const client = db()
+    const { data: existente } = await client
+      .from('boleta_materia')
+      .select('materia_id, materia_nombre, materia_nivel, materia_grado, materia_orden')
+      .eq('materia_nivel', nivelEscolar)
+      .eq('materia_grado', grado)
+      .eq('materia_orden', MATERIA_SLOT_EN.orden)
+      .maybeSingle()
+    if (existente) return n(existente.materia_id)
+
+    const materiaId = await nextMateriaId()
+    const { error } = await client.from('boleta_materia').insert([
+      {
+        materia_id: materiaId,
+        materia_nombre: MATERIA_SLOT_EN.nombre,
+        materia_nivel: nivelEscolar,
+        materia_grado: grado,
+        materia_orden: MATERIA_SLOT_EN.orden,
       },
     ])
     if (error) throw new Error(error.message)
@@ -526,13 +552,53 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     }
 
     const alumnos = await alumnosDeGrupo(grado, opts.grupoLetra, ciclo, nivelMat)
-    const matFiltro = opts.tipo === 1 ? materiaId : null
-    const marcasMap = await marcasPorAlumnos(
-      alumnos.map((a) => a.alumno_id),
-      opts.tipo,
-      ciclo,
-      matFiltro
-    )
+    const ids = alumnos.map((a) => a.alumno_id)
+
+    // Académico MK/primaria: tracks independientes Español (Maestro/a) e Inglés (Teacher).
+    if (opts.tipo === RAC_TIPOS.academico) {
+      // Secuencial: nextMateriaId no es atómico si ambos slots se crean a la vez.
+      const materiaEs = await ensureSlotEs(nivelMat, grado)
+      const materiaEn = await ensureSlotEn(nivelMat, grado)
+      const [marcasEs, marcasEn] = await Promise.all([
+        marcasPorAlumnos(ids, opts.tipo, ciclo, materiaEs),
+        marcasPorAlumnos(ids, opts.tipo, ciclo, materiaEn),
+      ])
+      const filas = alumnos.map((a) => {
+        const es = marcasEs.get(a.alumno_id) ?? {}
+        const en = marcasEn.get(a.alumno_id) ?? {}
+        const acad = {
+          aviso: { es: es[0] ?? '', en: en[0] ?? '' },
+          r1: { es: es[1] ?? '', en: en[1] ?? '' },
+          r2: { es: es[2] ?? '', en: en[2] ?? '' },
+          r3: { es: es[3] ?? '', en: en[3] ?? '' },
+        }
+        return {
+          alumno_id: a.alumno_id,
+          alumno_ref: a.alumno_ref,
+          nombre: nombreAlumno(a),
+          nivel: n(a.alumno_nivel),
+          grado: n(a.alumno_grado),
+          grupo: letraDesdeGrupoNum(n(a.alumno_grupo)),
+          aviso: acad.aviso.es || acad.aviso.en || '',
+          r1: acad.r1.es || acad.r1.en || '',
+          r2: acad.r2.es || acad.r2.en || '',
+          r3: acad.r3.es || acad.r3.en || '',
+          academico: acad,
+        }
+      })
+      return {
+        ciclo,
+        materia: {
+          materia_id: materiaId,
+          materia_nombre: `${etiquetaGrado(cfg, grado, nivelMat)} · Grupo ${opts.grupoLetra}`,
+          materia_grado: grado,
+        },
+        filas,
+      }
+    }
+
+    const matFiltro = null
+    const marcasMap = await marcasPorAlumnos(ids, opts.tipo, ciclo, matFiltro)
     const filas = alumnos.map((a) => {
       const f = marcasMap.get(a.alumno_id) ?? {}
       return {

@@ -997,6 +997,60 @@ html[data-theme='light'] .racn-page select {
   color: var(--racn-accent-light, #c7d2fe);
 }
 
+.racn-chip-pair {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 5.5rem;
+}
+
+.racn-chip--es:not(.racn-chip--empty) {
+  background: #556b2f;
+  color: #f5f7e8;
+}
+
+.racn-chip--en:not(.racn-chip--empty) {
+  background: #1e3a5f;
+  color: #e8f0ff;
+}
+
+.racn-chip--es.racn-chip--empty,
+.racn-chip--en.racn-chip--empty {
+  border: 1px dashed color-mix(in srgb, currentColor 35%, transparent);
+  background: transparent;
+  text-align: center;
+}
+
+.racn-legend-secciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 10px 0 0;
+  font-size: 0.78rem;
+  color: var(--dash-muted, #94a3b8);
+  line-height: 1.35;
+}
+
+.racn-legend-secciones .racn-chip {
+  font-size: 0.7rem;
+}
+
+html[data-theme='light'] .racn-chip--es:not(.racn-chip--empty) {
+  background: #6b8e23;
+  color: #fff;
+}
+
+html[data-theme='light'] .racn-chip--en:not(.racn-chip--empty) {
+  background: #1e3a5f;
+  color: #fff;
+}
+
+html[data-theme='light'] .racn-legend-secciones {
+  color: #475569;
+}
+
 .racn-mini {
   display: block;
   color: var(--dash-muted, #94a3b8);
