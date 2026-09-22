@@ -1519,6 +1519,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                     <th>Alumno</th>
                     <th>Detalle</th>
                     {tab === 'citas' ? <th>Expedido por</th> : null}
+                    {tab === 'suspensiones' ? <th>Sección</th> : null}
                     <th>Fecha</th>
                     {tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' ? (
                       <>
@@ -1560,21 +1561,43 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                             {String(row.grupo ?? '')}
                           </small>
                         </td>
-                        <td>
-                          {String(row.escalon ?? row.tipoEtiqueta ?? row.materia ?? '')}
-                          {row.materia ? (
-                            <span className="racn-mini">Materia: {String(row.materia)}</span>
-                          ) : null}
-                          <span className="racn-mini">{String(row.motivo ?? row.mensaje ?? '')}</span>
-                        </td>
-                        {tab === 'citas' ? (
-                          <td>
-                            {String(row.emisor_departamento || row.emisor || '—')}
-                            {row.emisor_nombre ? (
-                              <span className="racn-mini">{String(row.emisor_nombre)}</span>
-                            ) : null}
-                          </td>
+                    <td>
+                      {String(row.escalon ?? row.tipoEtiqueta ?? row.materia ?? '')}
+                      {row.materia ? (
+                        <span className="racn-mini">Materia: {String(row.materia)}</span>
+                      ) : null}
+                      <span className="racn-mini">{String(row.motivo ?? row.mensaje ?? '')}</span>
+                    </td>
+                    {tab === 'citas' ? (
+                      <td>
+                        {String(row.emisor_departamento || row.emisor || '—')}
+                        {row.emisor_nombre ? (
+                          <span className="racn-mini">{String(row.emisor_nombre)}</span>
                         ) : null}
+                      </td>
+                    ) : null}
+                    {tab === 'suspensiones' ? (
+                      <td>
+                        {row.seccion === 'es' || row.seccion === 'en' ? (
+                          <span
+                            className={
+                              row.seccion === 'en'
+                                ? 'racn-chip racn-chip--en'
+                                : 'racn-chip racn-chip--es'
+                            }
+                            title={
+                              row.seccion === 'en'
+                                ? 'Límite académico en Inglés (Teacher)'
+                                : 'Límite académico en Español (Maestra)'
+                            }
+                          >
+                            {String(row.seccionEtiqueta || (row.seccion === 'en' ? 'Inglés' : 'Español'))}
+                          </span>
+                        ) : (
+                          <span className="racn-chip racn-chip--empty">—</span>
+                        )}
+                      </td>
+                    ) : null}
                         <td>{String(row.fecha ?? '—')}</td>
                         {tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' ? (
                           <>
@@ -1708,11 +1731,21 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                               type="button"
                               className="racn-btn primary"
                               onClick={() => {
-                                const fecha = window.prompt('Fecha de suspensión (AAAA-MM-DD)')
-                                if (fecha) void accionCoord('suspension', Number(row.suspension_id), 'aplicar', { fecha })
+                                const seccionLbl = String(row.seccionEtiqueta ?? '').trim()
+                                const hint = seccionLbl
+                                  ? `Fecha de suspensión académica — ${seccionLbl} (AAAA-MM-DD)`
+                                  : 'Fecha de suspensión (AAAA-MM-DD)'
+                                const fecha = window.prompt(hint)
+                                if (fecha) {
+                                  void accionCoord('suspension', Number(row.suspension_id), 'aplicar', {
+                                    fecha,
+                                  })
+                                }
                               }}
                             >
-                              Aplicar fecha
+                              {row.seccionEtiqueta
+                                ? `Aplicar fecha (${String(row.seccionEtiqueta)})`
+                                : 'Aplicar fecha'}
                             </button>
                           ) : null}
                         </td>

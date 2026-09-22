@@ -107,6 +107,25 @@ function etiquetaAsignacionGrupo(
   return `${gradoLabel} · Grupo ${raw}`
 }
 
+/** Sección académica MK/primaria según slot Maestro(a)=ES / Teacher=EN. */
+function seccionAcademicaDeMateria(materia: {
+  materia_orden?: unknown
+  materia_nombre?: unknown
+} | null): { seccion: 'es' | 'en' | null; seccionEtiqueta: string } {
+  if (!materia) return { seccion: null, seccionEtiqueta: '' }
+  const orden = n(materia.materia_orden)
+  const nombre = String(materia.materia_nombre ?? '')
+    .trim()
+    .toLowerCase()
+  if (orden === MATERIA_SLOT_EN.orden || nombre === 'teacher' || /\bingl[eé]s\b/.test(nombre)) {
+    return { seccion: 'en', seccionEtiqueta: 'Inglés' }
+  }
+  if (orden === MATERIA_SLOT_ES.orden || nombre.includes('maestro') || /\bespa[nñ]ol\b/.test(nombre)) {
+    return { seccion: 'es', seccionEtiqueta: 'Español' }
+  }
+  return { seccion: null, seccionEtiqueta: '' }
+}
+
 /**
  * Maternal: grado = Maternal A/B. `*` = solo ficha sin letra (grupo 0).
  * Letra A/B/C: solo esa letra — no repetir el salón en A y en B.
@@ -849,16 +868,31 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     const to = await emailsFamilia(alumno.alumno_id)
     if (!to.length) return { ok: false, error: 'La familia no tiene correo registrado' }
     const enlace = urlPublicaRac(String(r?.reporte_mdv ?? ''), 5)
-    const subject = 'Aviso de suspensión'
+    const tipo = n(r?.reporte_tipo ?? 2)
+    let seccionEtiqueta = ''
+    if (tipo === RAC_TIPOS.academico && r?.materia_id) {
+      const { data: materia } = await client
+        .from('boleta_materia')
+        .select('materia_orden, materia_nombre')
+        .eq('materia_id', n(r.materia_id))
+        .maybeSingle()
+      seccionEtiqueta = seccionAcademicaDeMateria(materia).seccionEtiqueta
+    }
+    const seccionTxt = seccionEtiqueta
+      ? ` de la sección de <b>${escapeHtml(seccionEtiqueta)}</b>`
+      : ''
+    const subjectClean = seccionEtiqueta
+      ? `Aviso de suspensión académica (${seccionEtiqueta})`
+      : 'Aviso de suspensión'
     const html = htmlCorreoRac({
-      titulo: subject,
+      titulo: subjectClean,
       enlace,
       cuerpoHtml: `<p>Estimada familia:</p>
       <p>El alumno <b>${escapeHtml(nombreAlumno(alumno))}</b> queda suspendido el día
-      <b>${escapeHtml(String(s.suspension_fecha ?? ''))}</b> por acumular tres reportes
-      ${escapeHtml(etiquetaTipoCitatorio(n(r?.reporte_tipo ?? 2)).toLowerCase())}.</p>`,
+      <b>${escapeHtml(String(s.suspension_fecha ?? ''))}</b> por acumular el límite de avisos y reportes
+      ${escapeHtml(etiquetaTipoCitatorio(tipo).toLowerCase())}${seccionTxt}.</p>`,
     })
-    const envio = await enviarAvisoRac({ to, subject, html, panel: cfg.slug })
+    const envio = await enviarAvisoRac({ to, subject: subjectClean, html, panel: cfg.slug })
     if (envio.ok) {
       await client.from('reporte_suspension').update({ suspension_enviada: 1 }).eq('suspension_id', suspensionId)
     }
@@ -1221,15 +1255,35 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .in('alumno_id', alumnoIds.length ? alumnoIds : [0])
     const { data: reps } = await db()
       .from('reporte_escolar')
-      .select('reporte_id, reporte_tipo')
+      .select('reporte_id, reporte_tipo, materia_id')
       .in('reporte_id', reporteIds.length ? reporteIds : [0])
+    const materiaIds = [
+      ...new Set((reps ?? []).map((r) => n(r.materia_id)).filter((id) => id > 0)),
+    ]
+    const { data: materias } = materiaIds.length
+      ? await db()
+          .from('boleta_materia')
+          .select('materia_id, materia_nombre, materia_orden')
+          .in('materia_id', materiaIds)
+      : { data: [] as { materia_id: unknown; materia_nombre: unknown; materia_orden: unknown }[] }
     const aMap = new Map((alumnos ?? []).map((a) => [n(a.alumno_id), a]))
     const rMap = new Map((reps ?? []).map((r) => [n(r.reporte_id), r]))
+    const mMap = new Map((materias ?? []).map((m) => [n(m.materia_id), m]))
     return rows
       .map((s) => {
         const a = aMap.get(n(s.alumno_id))
         if (a && !esAlumnoDeNivel(n(a.alumno_nivel))) return null
         const r = rMap.get(n(s.reporte_id))
+        const tipo = n(r?.reporte_tipo ?? 0)
+        const materiaId = n(r?.materia_id)
+        const materia = materiaId ? mMap.get(materiaId) ?? null : null
+        const { seccion, seccionEtiqueta } =
+          tipo === RAC_TIPOS.academico ? seccionAcademicaDeMateria(materia) : { seccion: null, seccionEtiqueta: '' }
+        const tipoBase = etiquetaTipoCitatorio(tipo)
+        const tipoEtiqueta =
+          tipo === RAC_TIPOS.academico && seccionEtiqueta
+            ? `${tipoBase} · ${seccionEtiqueta}`
+            : tipoBase
         return {
           suspension_id: n(s.suspension_id),
           alumno_ref: a?.alumno_ref ?? null,
@@ -1237,7 +1291,15 @@ export function createRacNivelService(cfg: RacNivelConfig) {
           nivel: n(a?.alumno_nivel),
           grado: n(a?.alumno_grado),
           grupo: letraDesdeGrupoNum(n(a?.alumno_grupo)),
-          tipoEtiqueta: etiquetaTipoCitatorio(n(r?.reporte_tipo ?? 0)),
+          tipo,
+          tipoEtiqueta,
+          materia_id: materiaId || null,
+          seccion,
+          seccionEtiqueta,
+          mensaje:
+            tipo === RAC_TIPOS.academico && seccionEtiqueta
+              ? `Límite académico en ${seccionEtiqueta} (1 aviso + 3 reportes). La directora aplica la fecha de esta sección.`
+              : '',
           fecha: s.suspension_fecha ? String(s.suspension_fecha).slice(0, 10) : '',
           enviada: n(s.suspension_enviada) === 1,
         }
@@ -1265,13 +1327,18 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       const { data: r } = await client.from('reporte_escolar').select('*').eq('reporte_id', id).maybeSingle()
       if (!r) throw new Error('Reporte no encontrado')
       await client.from('reporte_escolar').update({ reporte_status: 3 }).eq('reporte_id', id)
-      const { data: later } = await client
+      let qLater = client
         .from('reporte_escolar')
         .select('reporte_id, reporte_no')
         .eq('alumno_id', r.alumno_id)
         .eq('reporte_tipo', r.reporte_tipo)
         .eq('reporte_ciclo', r.reporte_ciclo)
         .gt('reporte_no', r.reporte_no)
+      // Académico: no reordenar el otro track (Español vs Inglés).
+      if (n(r.reporte_tipo) === RAC_TIPOS.academico && n(r.materia_id) > 0) {
+        qLater = qLater.eq('materia_id', n(r.materia_id))
+      }
+      const { data: later } = await qLater
       for (const row of later ?? []) {
         await client.from('reporte_escolar').update({ reporte_no: n(row.reporte_no) - 1 }).eq('reporte_id', row.reporte_id)
       }
