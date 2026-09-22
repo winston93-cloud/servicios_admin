@@ -35,19 +35,11 @@ export async function notificarDevolucionSlack(data: {
   ]
 
   if (data.imageUrl) {
+    // Solo bloque image: un enlace aparte hace que Slack vuelva a unfurl/mostrar la misma foto.
     blocks.push({
       type: 'image',
       image_url: data.imageUrl,
       alt_text: `Autorización Slack — devolución #${data.id}`,
-    })
-    blocks.push({
-      type: 'context',
-      elements: [
-        {
-          type: 'mrkdwn',
-          text: `<${data.imageUrl}|Ver screenshot de autorización>`,
-        },
-      ],
     })
   }
 
