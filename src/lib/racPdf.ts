@@ -50,14 +50,16 @@ function encabezadoPdf(doc: jsPDF, titulo: string, ciclo: number) {
 function tablaReportes(doc: jsPDF, filas: FilaPdfReporte[], startY: number) {
   autoTable(doc, {
     startY,
-    head: [['#', 'ID', 'Nombre', 'Materia', 'Reporte', 'Motivo', 'Fecha', 'RE', 'RC', 'Vuelta']],
+    head: [['#', 'ID', 'Nombre', 'Grado', 'Grupo', 'Materia', 'Reporte', 'Motivo', 'Fecha', 'RE', 'RC', 'Vuelta']],
     body: filas.map((f, i) => [
       String(i + 1),
       String(f.reporte_id),
-      f.nombre.slice(0, 35),
-      (f.materia || f.departamento).slice(0, 24),
+      f.nombre.slice(0, 32),
+      f.grado && f.grado > 0 ? `${f.grado}°` : '—',
+      (f.grupo ?? '').trim() || '—',
+      (f.materia || f.departamento).slice(0, 22),
       f.reporteLabel,
-      f.motivo.slice(0, 30),
+      f.motivo.slice(0, 28),
       f.fecha,
       f.enviado ? 'SI' : 'NO',
       f.confirmado ? 'SI' : 'NO',
@@ -65,6 +67,16 @@ function tablaReportes(doc: jsPDF, filas: FilaPdfReporte[], startY: number) {
     ]),
     styles: { fontSize: 7, cellPadding: 1.5 },
     headStyles: { fillColor: [168, 168, 168], textColor: 0 },
+    columnStyles: {
+      0: { cellWidth: 8 },
+      1: { cellWidth: 12 },
+      3: { cellWidth: 12 },
+      4: { cellWidth: 12 },
+      8: { cellWidth: 20 },
+      9: { cellWidth: 10 },
+      10: { cellWidth: 10 },
+      11: { cellWidth: 12 },
+    },
     margin: { left: 10, right: 10 },
   })
 }
