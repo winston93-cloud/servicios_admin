@@ -1894,6 +1894,9 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                   onChange={(e) => setMensaje(e.target.value)}
                   rows={4}
                   required
+                  lang="es"
+                  spellCheck
+                  autoCorrect="on"
                   placeholder={modo === 'informe' ? 'Redacte aquí su informe' : undefined}
                 />
               </label>
@@ -1931,6 +1934,9 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                   value={mensaje || citaValidar.mensaje}
                   onChange={(e) => setMensaje(e.target.value)}
                   rows={4}
+                  lang="es"
+                  spellCheck
+                  autoCorrect="on"
                 />
               </label>
               <div className="racn-actions">

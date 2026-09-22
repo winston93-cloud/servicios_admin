@@ -1619,6 +1619,9 @@ export default function RacSecundariaPage() {
                 onChange={(e) => setMensaje(e.target.value)}
                 rows={4}
                 required
+                lang="es"
+                spellCheck
+                autoCorrect="on"
                 placeholder={modo === 'informe' ? 'Redacte aquí su informe' : undefined}
               />
             </label>
@@ -1656,6 +1659,9 @@ export default function RacSecundariaPage() {
                 value={mensaje || citaValidar.mensaje}
                 onChange={(e) => setMensaje(e.target.value)}
                 rows={4}
+                lang="es"
+                spellCheck
+                autoCorrect="on"
               />
             </label>
             <div className="rac-actions">
