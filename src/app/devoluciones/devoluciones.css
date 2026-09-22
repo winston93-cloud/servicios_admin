@@ -36,7 +36,7 @@ html[data-theme='light'] .devoluciones-bg {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+  margin-bottom: clamp(1.25rem, 3vw, 2rem);
 }
 
 .devoluciones-back {
@@ -58,12 +58,16 @@ html[data-theme='light'] .devoluciones-bg {
 }
 
 .devoluciones-main {
-  width: min(100%, 40rem);
+  width: min(100%, 42rem);
   margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-bottom: 2.5rem;
 }
 
 .devoluciones-kicker {
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.4rem;
   font-family: var(--font-space-grotesk, 'Space Grotesk', sans-serif);
   font-size: 0.78rem;
   font-weight: 700;
@@ -77,73 +81,388 @@ html[data-theme='light'] .devoluciones-bg {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem;
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.55rem;
   font-family: var(--font-space-grotesk, 'Space Grotesk', sans-serif);
-  font-size: clamp(1.75rem, 4vw, 2.35rem);
+  font-size: clamp(1.65rem, 4vw, 2.2rem);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.15;
 }
 
 .devoluciones-lead {
-  margin: 0 0 1.5rem;
-  font-size: 1.05rem;
+  margin: 0;
+  font-size: 1rem;
   line-height: 1.55;
   color: var(--dash-muted, #94a3b8);
-  max-width: 36rem;
+  max-width: 38rem;
 }
 
 html[data-theme='light'] .devoluciones-lead {
   color: #475569;
 }
 
-.devoluciones-panel {
-  display: flex;
-  gap: 1rem;
-  align-items: flex-start;
-  padding: 1.15rem 1.25rem;
+.devoluciones-form,
+.devoluciones-historial {
+  padding: 1.15rem 1.2rem;
   border-radius: 16px;
-  border: 1px solid color-mix(in srgb, #fb7185 35%, transparent);
-  background: color-mix(in srgb, var(--dash-card-bg, #1a1b21) 92%, #fb7185);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  background: color-mix(in srgb, var(--dash-card-bg, #1a1b21) 94%, transparent);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
 }
 
-html[data-theme='light'] .devoluciones-panel {
+html[data-theme='light'] .devoluciones-form,
+html[data-theme='light'] .devoluciones-historial {
   background: #fff;
-  border-color: rgba(244, 63, 94, 0.25);
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+  border-color: rgba(15, 23, 42, 0.1);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
 }
 
-.devoluciones-panel-icon {
-  flex-shrink: 0;
-  display: grid;
-  place-items: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 12px;
-  background: color-mix(in srgb, #fb7185 22%, transparent);
-  color: #fb7185;
-}
-
-.devoluciones-panel h2 {
-  margin: 0 0 0.35rem;
+.devoluciones-form h2,
+.devoluciones-historial h2 {
+  margin: 0 0 1rem;
   font-family: var(--font-space-grotesk, 'Space Grotesk', sans-serif);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
 }
 
-.devoluciones-panel p {
-  margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.5;
+.devoluciones-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.85rem;
+}
+
+.devoluciones-field span {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.devoluciones-field em {
+  font-style: normal;
+  font-weight: 500;
   color: var(--dash-muted, #94a3b8);
 }
 
-html[data-theme='light'] .devoluciones-panel p {
-  color: #64748b;
+.devoluciones-field input {
+  min-height: var(--touch-min, 44px);
+  padding: 0.55rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  background: color-mix(in srgb, var(--dash-bg, #0b0d12) 55%, transparent);
+  color: inherit;
+  font-size: 16px;
+}
+
+html[data-theme='light'] .devoluciones-field input {
+  background: #f8fafc;
+}
+
+.devoluciones-meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin-bottom: 0.9rem;
+  font-size: 0.82rem;
+  color: var(--dash-muted, #94a3b8);
+}
+
+.devoluciones-paste {
+  position: relative;
+  min-height: 11rem;
+  margin-bottom: 0.9rem;
+  border-radius: 14px;
+  border: 1.5px dashed color-mix(in srgb, #fb7185 55%, transparent);
+  background: color-mix(in srgb, #fb7185 6%, transparent);
+  outline: none;
+}
+
+.devoluciones-paste:focus-visible {
+  border-color: #fb7185;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #fb7185 28%, transparent);
+}
+
+.devoluciones-paste.has-preview {
+  border-style: solid;
+}
+
+.devoluciones-paste-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  min-height: 11rem;
+  padding: 1.25rem;
+  text-align: center;
+  color: var(--dash-muted, #94a3b8);
+}
+
+.devoluciones-paste-empty p {
+  margin: 0;
+  max-width: 22rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.devoluciones-paste-empty kbd {
+  display: inline-block;
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  font-size: 0.78rem;
+}
+
+.devoluciones-preview-wrap {
+  position: relative;
+  padding: 0.65rem;
+}
+
+.devoluciones-preview-wrap img {
+  display: block;
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #000;
+}
+
+.devoluciones-clear-img {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 36px;
+  padding: 0.3rem 0.65rem;
+  border-radius: 8px;
+  border: none;
+  background: rgba(15, 23, 42, 0.85);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.devoluciones-file-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.devoluciones-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: var(--touch-min, 44px);
+  padding: 0.5rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.devoluciones-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.devoluciones-btn.primary {
+  width: 100%;
+  background: linear-gradient(180deg, #fb7185 0%, #e11d48 100%);
+  color: #fff;
+  border-color: #be123c;
+}
+
+.devoluciones-btn.ghost {
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  border-color: color-mix(in srgb, currentColor 18%, transparent);
+  color: inherit;
+}
+
+.devoluciones-btn.sm {
+  min-height: 36px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+.devoluciones-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0 0 0.85rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.devoluciones-msg--ok {
+  background: color-mix(in srgb, #22c55e 18%, transparent);
+  color: #86efac;
+}
+
+.devoluciones-msg--warn {
+  background: color-mix(in srgb, #f59e0b 18%, transparent);
+  color: #fcd34d;
+}
+
+.devoluciones-msg--err {
+  background: color-mix(in srgb, #f43f5e 18%, transparent);
+  color: #fda4af;
+}
+
+html[data-theme='light'] .devoluciones-msg--ok {
+  color: #166534;
+}
+html[data-theme='light'] .devoluciones-msg--warn {
+  color: #92400e;
+}
+html[data-theme='light'] .devoluciones-msg--err {
+  color: #9f1239;
+}
+
+.devoluciones-hist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.devoluciones-hist-head h2 {
+  margin: 0;
+}
+
+.devoluciones-hist-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  color: var(--dash-muted, #94a3b8);
+  font-size: 0.9rem;
+}
+
+.devoluciones-hist-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.devoluciones-hist-item {
+  display: flex;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.65rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  background: color-mix(in srgb, var(--dash-bg, #0b0d12) 40%, transparent);
+}
+
+html[data-theme='light'] .devoluciones-hist-item {
+  background: #f8fafc;
+}
+
+.devoluciones-hist-thumb {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+
+.devoluciones-hist-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.devoluciones-hist-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.devoluciones-hist-body header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.2rem;
+}
+
+.devoluciones-hist-body time {
+  font-size: 0.78rem;
+  color: var(--dash-muted, #94a3b8);
+}
+
+.devoluciones-hist-asunto {
+  margin: 0 0 0.25rem;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.devoluciones-hist-asunto em {
+  color: var(--dash-muted, #94a3b8);
+  font-style: normal;
+}
+
+.devoluciones-hist-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.65rem;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--dash-muted, #94a3b8);
+}
+
+.devoluciones-badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.devoluciones-badge.ok {
+  background: color-mix(in srgb, #22c55e 22%, transparent);
+  color: #86efac;
+}
+
+.devoluciones-badge.warn {
+  background: color-mix(in srgb, #f59e0b 22%, transparent);
+  color: #fcd34d;
+}
+
+html[data-theme='light'] .devoluciones-badge.ok {
+  color: #166534;
+}
+html[data-theme='light'] .devoluciones-badge.warn {
+  color: #92400e;
+}
+
+.devoluciones-spin {
+  animation: devoluciones-spin 0.8s linear infinite;
+}
+
+@keyframes devoluciones-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (max-width: 480px) {
-  .devoluciones-panel {
-    flex-direction: column;
+  .devoluciones-hist-thumb {
+    width: 56px;
+    height: 56px;
   }
 }
