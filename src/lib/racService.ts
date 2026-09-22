@@ -439,13 +439,40 @@ export async function enviarCorreoCita(citaId: number) {
   if (!to.length) return { ok: false, error: 'La familia no tiene correo registrado' }
   const enlace = urlPublicaRac(String(c.cita_mdv), 2)
   const fecha = c.cita_fecha ? String(c.cita_fecha).replace('T', ' ').slice(0, 16) : 'por confirmar'
+
+  let materiaNombre = ''
+  if (c.materia_id) {
+    const { data: m } = await client
+      .from('boleta_materia')
+      .select('materia_nombre')
+      .eq('materia_id', c.materia_id)
+      .maybeSingle()
+    materiaNombre = String(m?.materia_nombre ?? '').trim()
+  }
+  const departamento = etiquetaDepartamentoRac(n(c.perfil_id))
+  const origenLabel = materiaNombre
+    ? `Asignatura: <b>${escapeHtml(materiaNombre)}</b>`
+    : `Departamento: <b>${escapeHtml(departamento)}</b>`
+  const emisores = await resolverEmisoresRac([
+    { perfil_id: n(c.perfil_id), usuario_id: n(c.usuario_id) },
+  ])
+  const emisor = emisorDeMapa(emisores, c.perfil_id, c.usuario_id)
+  const expedidoPor = emisor?.nombre?.trim() || ''
+  const emisorLabel = expedidoPor
+    ? `<p>Expedido por: <b>${escapeHtml(expedidoPor)}</b>${
+        emisor?.departamento ? ` (${escapeHtml(emisor.departamento)})` : ''
+      }</p>`
+    : ''
+
   const subject = `Citatorio ${etiquetaTipoCitatorio(n(c.cita_tipo))}`
   const html = htmlCorreoRac({
     titulo: subject,
     enlace,
     cuerpoHtml: `<p>Estimada familia:</p>
       <p>Citatorio <b>${escapeHtml(etiquetaTipoCitatorio(n(c.cita_tipo)))}</b> para
-      <b>${escapeHtml(nombreAlumno(alumno))}</b>.</p>
+      <b>${escapeHtml(nombreAlumno(alumno))}</b> (control ${escapeHtml(String(alumno.alumno_ref ?? ''))}).</p>
+      <p>${origenLabel}</p>
+      ${emisorLabel}
       <p>Fecha y hora: <b>${escapeHtml(fecha)}</b></p>
       <p>${escapeHtml(String(c.cita_mensaje ?? ''))}</p>`,
   })
@@ -1196,12 +1223,36 @@ export async function detallePublico(token: string, alt: number) {
     const { data: c } = await client.from('reporte_cita').select('*').eq('cita_mdv', token).maybeSingle()
     if (!c) return null
     const alumno = await cargarAlumno(n(c.alumno_id))
+
+    let asignatura = ''
+    if (c.materia_id) {
+      const { data: m } = await client
+        .from('boleta_materia')
+        .select('materia_nombre')
+        .eq('materia_id', c.materia_id)
+        .maybeSingle()
+      asignatura = String(m?.materia_nombre ?? '').trim()
+    }
+
+    const emisores = await resolverEmisoresRac([
+      { perfil_id: n(c.perfil_id), usuario_id: n(c.usuario_id) },
+    ])
+    const emisor = emisorDeMapa(emisores, c.perfil_id, c.usuario_id)
+    const departamento = emisor?.departamento || etiquetaDepartamentoRac(n(c.perfil_id))
+    const expedidoPor = emisor?.nombre?.trim() || ''
+
     return {
       kind: 'cita' as const,
       id: n(c.cita_id),
       titulo: `Citatorio ${etiquetaTipoCitatorio(n(c.cita_tipo))}`,
       alumno: nombreAlumno(alumno),
       ref: alumno.alumno_ref,
+      grado: n(alumno.alumno_grado),
+      grupo: letraDesdeGrupoNum(n(alumno.alumno_grupo)),
+      mostrarMotivo: false,
+      asignatura,
+      departamento,
+      expedidoPor,
       mensaje: String(c.cita_mensaje ?? ''),
       fecha: c.cita_fecha ? String(c.cita_fecha).replace('T', ' ').slice(0, 16) : '',
       confirmado: n(c.cita_confirmada) === 1,

@@ -725,13 +725,43 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     if (!to.length) return { ok: false, error: 'La familia no tiene correo registrado' }
     const enlace = urlPublicaRac(String(c.cita_mdv), 2)
     const fecha = c.cita_fecha ? String(c.cita_fecha).replace('T', ' ').slice(0, 16) : 'por confirmar'
+
+    let materiaNombre = ''
+    if (c.materia_id) {
+      const { data: m } = await client
+        .from('boleta_materia')
+        .select('materia_nombre, materia_grado, materia_nivel')
+        .eq('materia_id', c.materia_id)
+        .maybeSingle()
+      materiaNombre = m
+        ? `${etiquetaGrado(cfg, n(m.materia_grado), n(m.materia_nivel))} · ${String(m.materia_nombre ?? '')}`.trim()
+        : ''
+    }
+    const emisores = await resolverEmisoresRac([
+      { perfil_id: n(c.perfil_id), usuario_id: n(c.usuario_id) },
+    ])
+    const emisor = emisorDeMapa(emisores, c.perfil_id, c.usuario_id)
+    const expedidoPor = emisor?.nombre?.trim() || ''
+    const emisorLabel = expedidoPor
+      ? `<p>Expedido por: <b>${escapeHtml(expedidoPor)}</b>${
+          emisor?.departamento ? ` (${escapeHtml(emisor.departamento)})` : ''
+        }</p>`
+      : ''
+    const origenLabel = materiaNombre
+      ? `<p>Asignatura: <b>${escapeHtml(materiaNombre)}</b></p>`
+      : emisor?.departamento
+        ? `<p>Departamento: <b>${escapeHtml(emisor.departamento)}</b></p>`
+        : ''
+
     const subject = `Citatorio ${etiquetaTipoCitatorio(n(c.cita_tipo))}`
     const html = htmlCorreoRac({
       titulo: subject,
       enlace,
       cuerpoHtml: `<p>Estimada familia:</p>
       <p>Citatorio <b>${escapeHtml(etiquetaTipoCitatorio(n(c.cita_tipo)))}</b> para
-      <b>${escapeHtml(nombreAlumno(alumno))}</b>.</p>
+      <b>${escapeHtml(nombreAlumno(alumno))}</b> (control ${escapeHtml(String(alumno.alumno_ref ?? ''))}).</p>
+      ${origenLabel}
+      ${emisorLabel}
       <p>Fecha y hora: <b>${escapeHtml(fecha)}</b></p>
       <p>${escapeHtml(String(c.cita_mensaje ?? ''))}</p>`,
     })
