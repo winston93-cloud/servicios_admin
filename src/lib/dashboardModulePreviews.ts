@@ -25,6 +25,11 @@ export const DASHBOARD_MODULE_PREVIEWS: Record<string, DashboardModulePreview> =
       'Gestiona prórrogas de pago con seguimiento trazable: registra, consulta y coordina excepciones sin perder el control del adeudo.',
     highlights: ['Alta y seguimiento', 'Historial por alumno', 'Coordinación de pagos'],
   },
+  Devoluciones: {
+    synopsis:
+      'Reembolsos de pagos con tarjeta cuando la familia se arrepiente de una inscripción, colegiatura u otro concepto ya cobrado.',
+    highlights: ['Pago con tarjeta', 'Inscripción y colegiatura', 'Flujo para empleados'],
+  },
   'Bajas administrativas': {
     synopsis:
       'Proceso formal de baja: actualiza estatus, notifica al equipo y deja constancia institucional cuando un alumno sale del padrón activo.',

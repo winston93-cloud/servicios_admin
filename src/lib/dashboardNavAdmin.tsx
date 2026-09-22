@@ -87,6 +87,23 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    label: 'Devoluciones',
+    desc: 'Reembolsos cuando el papá se arrepiente de un pago con tarjeta (inscripción, colegiatura u otro concepto).',
+    path: '/devoluciones',
+    accent: 'rose',
+    kicker: 'Pagos',
+    tags: ['Tarjeta', 'Inscripción', 'Colegiatura'],
+    badge: 'Nuevo',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="5" width="20" height="14" rx="2" />
+        <line x1="2" y1="10" x2="22" y2="10" />
+        <path d="M12 14v3" />
+        <path d="M9.5 15.5 12 13l2.5 2.5" />
+      </svg>
+    ),
+  },
+  {
     label: 'Checador',
     desc: 'Reloj checador de asistencia del personal.',
     href: 'https://reloj-checador-ruddy.vercel.app/',
