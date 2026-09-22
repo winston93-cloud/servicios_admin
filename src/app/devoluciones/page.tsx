@@ -6,16 +6,22 @@ import {
   ArrowLeft,
   CheckCircle2,
   ClipboardPaste,
+  FileUp,
   ImagePlus,
   Loader2,
+  Paperclip,
   Save,
+  Send,
   Undo2,
   X,
 } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
 import { useAuth } from '@/contexts/AuthContext'
-import type { DevolucionTarjeta } from '@/lib/devolucionesService'
+import {
+  DEVOLUCION_ETAPAS_TOTAL,
+  type DevolucionTarjeta,
+} from '@/lib/devolucionesService'
 import './devoluciones.css'
 
 export default function DevolucionesPage() {
@@ -43,6 +49,7 @@ function DevolucionesView() {
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'err' | 'warn'; texto: string } | null>(null)
   const [historial, setHistorial] = useState<DevolucionTarjeta[]>([])
   const [cargandoHist, setCargandoHist] = useState(true)
+  const [busyId, setBusyId] = useState<number | null>(null)
   const zonaRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -170,6 +177,98 @@ function DevolucionesView() {
       })
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function subirAdjuntos(devolucionId: number, files: FileList | null) {
+    if (!files?.length) return
+    if (!realizadoPor) {
+      setMsg({ tipo: 'err', texto: 'No se identificó al usuario de sesión.' })
+      return
+    }
+    setBusyId(devolucionId)
+    setMsg(null)
+    try {
+      const archivos = []
+      for (const file of Array.from(files)) {
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error(`${file.name} supera 5 MB.`)
+        }
+        const b64 = await fileToBase64(file)
+        archivos.push({
+          nombre: file.name,
+          mimeType: file.type || 'application/pdf',
+          base64: b64,
+        })
+      }
+      const res = await fetch(`/api/devoluciones/${devolucionId}/adjuntos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ realizadoPor, archivos }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        message?: string
+        row?: DevolucionTarjeta
+      }
+      if (!res.ok || !data.ok || !data.row) {
+        throw new Error(data.message || 'No se pudieron subir los archivos')
+      }
+      setHistorial((prev) => prev.map((x) => (x.id === data.row!.id ? data.row! : x)))
+      setMsg({
+        tipo: 'ok',
+        texto: `Folio #${devolucionId}: ${archivos.length} archivo(s) adjunto(s).`,
+      })
+    } catch (e) {
+      setMsg({
+        tipo: 'err',
+        texto: e instanceof Error ? e.message : 'Error al adjuntar',
+      })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function enviarAdmvo(devolucionId: number) {
+    if (!realizadoPor) {
+      setMsg({ tipo: 'err', texto: 'No se identificó al usuario de sesión.' })
+      return
+    }
+    if (
+      !window.confirm(
+        `¿Enviar folio #${devolucionId} a #devolucion_admvo con screenshot y adjuntos? Pasará a etapa 2/4.`
+      )
+    ) {
+      return
+    }
+    setBusyId(devolucionId)
+    setMsg(null)
+    try {
+      const res = await fetch(`/api/devoluciones/${devolucionId}/enviar-admvo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ realizadoPor }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        message?: string
+        row?: DevolucionTarjeta
+      }
+      if (!res.ok || !data.ok || !data.row) {
+        throw new Error(data.message || 'No se pudo enviar a administración')
+      }
+      setHistorial((prev) => prev.map((x) => (x.id === data.row!.id ? data.row! : x)))
+      setMsg({
+        tipo: 'ok',
+        texto: `Folio #${devolucionId} enviado a #devolucion_admvo · etapa 2/${DEVOLUCION_ETAPAS_TOTAL}.`,
+      })
+    } catch (e) {
+      setMsg({
+        tipo: 'err',
+        texto: e instanceof Error ? e.message : 'Error al enviar Slack admvo',
+      })
+    } finally {
+      setBusyId(null)
     }
   }
 
@@ -319,39 +418,105 @@ function DevolucionesView() {
             <p className="devoluciones-hist-empty">Aún no hay devoluciones registradas.</p>
           ) : (
             <ul className="devoluciones-hist-list">
-              {historial.map((r) => (
-                <li key={r.id} className="devoluciones-hist-item">
-                  <a
-                    href={r.storage_url || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="devoluciones-hist-thumb"
-                    title="Ver screenshot"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={r.storage_url} alt="" />
-                  </a>
-                  <div className="devoluciones-hist-body">
-                    <header>
-                      <strong>#{r.id}</strong>
-                      <time dateTime={r.created_at}>{formatFecha(r.created_at)}</time>
-                    </header>
-                    <p className="devoluciones-hist-asunto">
-                      {r.asunto.trim() || <em>Sin asunto</em>}
-                    </p>
-                    <p className="devoluciones-hist-meta">
-                      {r.realizado_por}
-                      {r.slack_ok ? (
-                        <span className="devoluciones-badge ok">Slack OK</span>
-                      ) : (
-                        <span className="devoluciones-badge warn" title={r.slack_error || ''}>
-                          Slack pendiente
+              {historial.map((r) => {
+                const ocupado = busyId === r.id
+                const enEtapa1 = r.etapa === 1
+                return (
+                  <li key={r.id} className="devoluciones-hist-item">
+                    <a
+                      href={r.storage_url || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="devoluciones-hist-thumb"
+                      title="Ver screenshot"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={r.storage_url} alt="" />
+                    </a>
+                    <div className="devoluciones-hist-body">
+                      <header>
+                        <strong>#{r.id}</strong>
+                        <span className="devoluciones-etapa" title="Etapa del proceso">
+                          Etapa {r.etapa} / {DEVOLUCION_ETAPAS_TOTAL}
                         </span>
-                      )}
-                    </p>
-                  </div>
-                </li>
-              ))}
+                        <time dateTime={r.created_at}>{formatFecha(r.created_at)}</time>
+                      </header>
+                      <p className="devoluciones-hist-asunto">
+                        {r.asunto.trim() || <em>Sin asunto</em>}
+                      </p>
+                      <p className="devoluciones-hist-meta">
+                        {r.realizado_por}
+                        {r.slack_ok ? (
+                          <span className="devoluciones-badge ok">Slack avisos OK</span>
+                        ) : (
+                          <span className="devoluciones-badge warn" title={r.slack_error || ''}>
+                            Slack avisos pendiente
+                          </span>
+                        )}
+                        {r.etapa >= 2 ? (
+                          <span className="devoluciones-badge ok">Admvo OK</span>
+                        ) : null}
+                      </p>
+
+                      {(r.adjuntos?.length ?? 0) > 0 ? (
+                        <ul className="devoluciones-adjuntos">
+                          {r.adjuntos.map((a) => (
+                            <li key={a.id}>
+                              <a href={a.storage_url} target="_blank" rel="noopener noreferrer">
+                                <Paperclip size={12} aria-hidden />
+                                {a.nombre_archivo}
+                              </a>
+                              <span>{formatBytes(a.bytes)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+
+                      {enEtapa1 ? (
+                        <div className="devoluciones-etapa1-actions">
+                          <label className="devoluciones-btn ghost sm devoluciones-file-label">
+                            {ocupado ? (
+                              <Loader2 size={14} className="devoluciones-spin" aria-hidden />
+                            ) : (
+                              <FileUp size={14} aria-hidden />
+                            )}
+                            Adjuntar PDF / factura
+                            <input
+                              type="file"
+                              multiple
+                              accept="application/pdf,image/png,image/jpeg,image/webp,image/gif"
+                              disabled={ocupado}
+                              className="devoluciones-file-hidden"
+                              onChange={(e) => {
+                                void subirAdjuntos(r.id, e.target.files)
+                                e.target.value = ''
+                              }}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            className="devoluciones-btn danger sm"
+                            disabled={ocupado || !(r.adjuntos?.length > 0)}
+                            title={
+                              r.adjuntos?.length
+                                ? 'Enviar a #devolucion_admvo y pasar a etapa 2'
+                                : 'Primero adjunta al menos un archivo'
+                            }
+                            onClick={() => void enviarAdmvo(r.id)}
+                          >
+                            {ocupado ? (
+                              <Loader2 size={14} className="devoluciones-spin" aria-hidden />
+                            ) : (
+                              <Send size={14} aria-hidden />
+                            )}
+                            Enviar Slack
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </li>
+                )
+              })}
             </ul>
           )}
         </section>
@@ -370,5 +535,24 @@ function formatFecha(iso: string): string {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+  })
+}
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error(`No se pudo leer ${file.name}`))
+    reader.onload = () => {
+      const result = String(reader.result ?? '')
+      const b64 = result.includes(',') ? result.split(',')[1]! : result
+      resolve(b64)
+    }
+    reader.readAsDataURL(file)
   })
 }
