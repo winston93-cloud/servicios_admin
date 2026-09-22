@@ -10,6 +10,7 @@ import {
   etiquetaTipoCitatorio,
   etiquetaTipoReporte,
   fraseRegistroAvisoRac,
+  maxReporteNoEscalon,
   motivoReporte,
 } from '@/lib/racCatalogo'
 import {
@@ -722,6 +723,8 @@ export function createRacNivelService(cfg: RacNivelConfig) {
         r1: f[1] ?? '',
         r2: f[2] ?? '',
         r3: f[3] ?? '',
+        r4: f[4] ?? '',
+        r5: f[5] ?? '',
       }
     })
     return {
@@ -1053,7 +1056,11 @@ export function createRacNivelService(cfg: RacNivelConfig) {
         prev.filter((r) => n(r.reporte_ciclo) === reporteCiclo).reduce((acc, r) => Math.max(acc, n(r.reporte_no)), -1) +
         1
     }
-    if (reporteNo === 4) {
+    const maxNo = maxReporteNoEscalon(opts.tipo, {
+      maternalKinder: cfg.slug === 'maternal-kinder',
+    })
+    // Al superar el tope se reinicia el ciclo del escalón (mismo patrón legacy).
+    if (reporteNo === maxNo + 1) {
       reporteCiclo += 1
       reporteNo = opts.tipo > 2 ? 1 : 0
     }
@@ -1096,7 +1103,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
         cita_mdv: token,
       })
     }
-    if (reporteNo === 3) {
+    if (reporteNo === maxNo) {
       await client.from('reporte_suspension').insert({
         alumno_id: opts.alumnoId,
         reporte_id: reporteId,

@@ -56,12 +56,32 @@ export function etiquetaTipoCitatorio(tipo: number): string {
 export function etiquetaEscalon(tipo: number, no: number): string {
   if (tipo === 5) return 'Informe'
   if (tipo === 8) return 'Aviso'
-  if (tipo > 2) return 'Reporte'
+  if (tipo > 2) {
+    if (no === 1) return 'Reporte I'
+    if (no === 2) return 'Reporte II'
+    if (no === 3) return 'Reporte III'
+    if (no === 4) return 'Reporte IV'
+    if (no === 5) return 'Reporte V'
+    return 'Reporte'
+  }
   if (no <= 0) return 'Aviso'
   if (no === 1) return 'Reporte I'
   if (no === 2) return 'Reporte II'
   if (no === 3) return 'Reporte III'
   return `Reporte ${no}`
+}
+
+/**
+ * Tope de reporte_no del ciclo actual (antes de reiniciar).
+ * Académico/conducta: 0–3. Uniforme/vialidad/retardo: 1–3.
+ * Excepción: retardo en Maternal/Kinder → 1–5.
+ */
+export function maxReporteNoEscalon(
+  tipo: number,
+  opts?: { maternalKinder?: boolean }
+): number {
+  if (tipo === RAC_TIPOS.retardo && opts?.maternalKinder) return 5
+  return 3
 }
 
 /**
@@ -73,7 +93,14 @@ export function fraseRegistroAvisoRac(tipo: number, no: number): string {
   if (tipo === 8) return 'Aviso de atención en Psicología'
   if (tipo === 3) return 'Reporte de uniforme'
   if (tipo === 4) return 'Reporte de vialidad'
-  if (tipo === 6) return 'Reporte por retardo'
+  if (tipo === 6) {
+    if (no === 1) return 'Reporte por retardo I'
+    if (no === 2) return 'Reporte por retardo II'
+    if (no === 3) return 'Reporte por retardo III'
+    if (no === 4) return 'Reporte por retardo IV'
+    if (no === 5) return 'Reporte por retardo V'
+    return 'Reporte por retardo'
+  }
   if (tipo === 1) {
     if (no <= 0) return 'Aviso académico'
     if (no === 1) return 'Reporte académico I'

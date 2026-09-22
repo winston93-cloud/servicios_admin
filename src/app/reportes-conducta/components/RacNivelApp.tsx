@@ -70,6 +70,9 @@ type AlumnoFila = {
   r1: string
   r2: string
   r3: string
+  /** Retardo Maternal/Kinder: escalones IV y V. */
+  r4?: string
+  r5?: string
   /** Académico MK/primaria: fechas por sección Español / Inglés. */
   academico?: {
     aviso: MarcasSeccion
@@ -737,6 +740,8 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   const capturaConInformeYCita =
     esAdmin || me?.role === 'psicologia' || me?.role === 'maestro'
   const capturaConInforme = capturaConInformeYCita
+  /** Retardo en Maternal/Kinder: escalón I–V (resto de tipos/niveles siguen en 3). */
+  const retardoMkCinco = config.slug === 'maternal-kinder' && tipo === 6
   const puedePdf = Boolean(me && puedePdfNivel(me.role, config))
   const opcionesMaestrosCitas = useMemo(() => {
     if (tab !== 'citas') return [] as { key: string; label: string }[]
@@ -841,7 +846,9 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   }
 
   const stats = useMemo(() => {
-    const conReporte = filas.filter((f) => f.aviso || f.r1 || f.r2 || f.r3).length
+    const conReporte = filas.filter(
+      (f) => f.aviso || f.r1 || f.r2 || f.r3 || f.r4 || f.r5
+    ).length
     return {
       alumnos: filas.length,
       seguimiento: conReporte,
@@ -1043,6 +1050,12 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                   cumplir 1 aviso + 3 reportes en la misma sección.
                 </p>
               ) : null}
+              {retardoMkCinco ? (
+                <p className="racn-legend-secciones" role="note">
+                  Retardos en Maternal/Kinder: hasta <strong>5</strong> reportes (I–V). Al 5.º se genera
+                  la suspensión.
+                </p>
+              ) : null}
             </div>
             {sinAsignaciones ? (
               <div className="racn-empty">
@@ -1061,6 +1074,12 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                       <th title={tipo === 1 ? 'Español · Inglés' : undefined}>I</th>
                       <th title={tipo === 1 ? 'Español · Inglés' : undefined}>II</th>
                       <th title={tipo === 1 ? 'Español · Inglés' : undefined}>III</th>
+                      {retardoMkCinco ? (
+                        <>
+                          <th>IV</th>
+                          <th>V</th>
+                        </>
+                      ) : null}
                       <th
                         title={
                           capturaConInformeYCita
@@ -1075,7 +1094,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                   <tbody>
                     {filas.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="racn-empty-row">
+                        <td colSpan={retardoMkCinco ? 8 : 6} className="racn-empty-row">
                           No hay alumnos en este grado y grupo para el ciclo actual.
                         </td>
                       </tr>
@@ -1128,6 +1147,16 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                               <ChipFecha valor={a.r3 || '—'} />
                             )}
                           </td>
+                          {retardoMkCinco ? (
+                            <>
+                              <td>
+                                <ChipFecha valor={a.r4 || '—'} />
+                              </td>
+                              <td>
+                                <ChipFecha valor={a.r5 || '—'} />
+                              </td>
+                            </>
+                          ) : null}
                           <td className="racn-actions racn-actions--captura">
                             <button
                               type="button"
