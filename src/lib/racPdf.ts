@@ -3,7 +3,14 @@ import { join } from 'path'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { etiquetaCicloBoletas } from '@/lib/boletasCiclo'
-import { etiquetaEscalon, etiquetaTipoReporte, motivoReporte } from '@/lib/racCatalogo'
+import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
+import {
+  RAC_NIVEL_SECUNDARIA,
+  etiquetaEscalon,
+  etiquetaGradoStaffSecundaria,
+  etiquetaTipoReporte,
+  motivoReporte,
+} from '@/lib/racCatalogo'
 
 export type FilaPdfReporte = {
   reporte_id: number
@@ -47,6 +54,15 @@ function encabezadoPdf(doc: jsPDF, titulo: string, ciclo: number) {
   doc.text('Donde: RE = Reporte enviado, RC = Reporte confirmado.', 200, 32, { align: 'right' })
 }
 
+function etiquetaGradoPdf(f: FilaPdfReporte): string {
+  if (!f.grado || f.grado <= 0) return '—'
+  // Secundaria: 1→7mo, 2→8vo, 3→9no (mismo criterio que el panel de staff).
+  if (f.nivel == null || f.nivel === 0 || f.nivel === RAC_NIVEL_SECUNDARIA) {
+    return etiquetaGradoStaffSecundaria(f.grado)
+  }
+  return etiquetaGradoEscolar(f.nivel, f.grado) || `${f.grado}°`
+}
+
 function tablaReportes(doc: jsPDF, filas: FilaPdfReporte[], startY: number) {
   autoTable(doc, {
     startY,
@@ -55,7 +71,7 @@ function tablaReportes(doc: jsPDF, filas: FilaPdfReporte[], startY: number) {
       String(i + 1),
       String(f.reporte_id),
       f.nombre.slice(0, 32),
-      f.grado && f.grado > 0 ? `${f.grado}°` : '—',
+      etiquetaGradoPdf(f),
       (f.grupo ?? '').trim() || '—',
       (f.materia || f.departamento).slice(0, 22),
       f.reporteLabel,
@@ -70,7 +86,7 @@ function tablaReportes(doc: jsPDF, filas: FilaPdfReporte[], startY: number) {
     columnStyles: {
       0: { cellWidth: 8 },
       1: { cellWidth: 12 },
-      3: { cellWidth: 12 },
+      3: { cellWidth: 16 },
       4: { cellWidth: 12 },
       8: { cellWidth: 20 },
       9: { cellWidth: 10 },
