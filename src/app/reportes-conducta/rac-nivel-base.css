@@ -750,10 +750,22 @@ html[data-theme='light'] .racn-btn.ghost:hover:not(:disabled) {
 }
 
 .racn-actions--captura {
-  display: flex;
-  flex-wrap: wrap;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 6px;
-  min-width: min(100%, 18rem);
+  min-width: max-content;
+  white-space: nowrap;
+}
+
+/* Académico: Historial + Reportar + Informe + Citar en una sola fila */
+.racn-actions--captura .racn-btn {
+  flex-shrink: 0;
+  padding: 0.45rem 0.72rem;
+}
+
+.racn-actions--captura .racn-btn-icon {
+  padding-inline: 0.55rem;
 }
 
 .racn-check-col {
@@ -865,7 +877,8 @@ html[data-theme='light'] .racn-btn.ghost:hover:not(:disabled) {
 
 .racn-table {
   width: 100%;
-  min-width: 560px;
+  /* Espacio para chips ES/EN + 4 botones de captura en una fila */
+  min-width: 720px;
   border-collapse: collapse;
   font-size: 0.85rem;
 }
