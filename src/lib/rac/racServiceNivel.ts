@@ -117,10 +117,19 @@ function seccionAcademicaDeMateria(materia: {
   const nombre = String(materia.materia_nombre ?? '')
     .trim()
     .toLowerCase()
-  if (orden === MATERIA_SLOT_EN.orden || nombre === 'teacher' || /\bingl[eé]s\b/.test(nombre)) {
+  if (
+    orden === MATERIA_SLOT_EN.orden ||
+    nombre === 'teacher' ||
+    nombre.includes('teacher') ||
+    /\bingl[eé]s\b/.test(nombre)
+  ) {
     return { seccion: 'en', seccionEtiqueta: 'Inglés' }
   }
-  if (orden === MATERIA_SLOT_ES.orden || nombre.includes('maestro') || /\bespa[nñ]ol\b/.test(nombre)) {
+  if (
+    orden === MATERIA_SLOT_ES.orden ||
+    nombre.includes('maestro') ||
+    /\bespa[nñ]ol\b/.test(nombre)
+  ) {
     return { seccion: 'es', seccionEtiqueta: 'Español' }
   }
   return { seccion: null, seccionEtiqueta: '' }
@@ -505,24 +514,36 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     alumnoIds: number[],
     tipo: number,
     ciclo: number,
-    materiaId: number | null
+    materiaId: number | null | number[]
   ): Promise<Map<number, Record<number, string>>> {
     const out = new Map<number, Record<number, string>>()
     for (const id of alumnoIds) out.set(id, {})
     if (!alumnoIds.length) return out
 
+    const materiaIds = Array.isArray(materiaId)
+      ? [...new Set(materiaId.map((x) => n(x)).filter((x) => x > 0))]
+      : materiaId && n(materiaId) > 0
+        ? [n(materiaId)]
+        : null
+    // Académico con filtro de sección vacío → no inventar marcas de otras materias.
+    if (Array.isArray(materiaId) && !materiaIds?.length) return out
+
     let q = db()
       .from('reporte_escolar')
-      .select('alumno_id, reporte_no, reporte_registro, reporte_ciclo')
+      .select('alumno_id, reporte_no, reporte_registro, reporte_ciclo, materia_id')
       .in('alumno_id', alumnoIds)
       .eq('reporte_tipo', tipo)
       .eq('reporte_status', 1)
       .eq('reporte_ciclo_escolar', ciclo)
-    if (materiaId) q = q.eq('materia_id', materiaId)
+    if (materiaIds?.length === 1) q = q.eq('materia_id', materiaIds[0])
+    else if (materiaIds && materiaIds.length > 1) q = q.in('materia_id', materiaIds)
     const { data, error } = await q
     if (error) throw new Error(error.message)
 
-    const byAlumno = new Map<number, { reporte_no: unknown; reporte_registro: unknown; reporte_ciclo: unknown }[]>()
+    const byAlumno = new Map<
+      number,
+      { reporte_no: unknown; reporte_registro: unknown; reporte_ciclo: unknown }[]
+    >()
     for (const r of data ?? []) {
       const aid = n(r.alumno_id)
       const list = byAlumno.get(aid) ?? []
@@ -533,10 +554,76 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       const maxC = rows.reduce((acc, r) => Math.max(acc, n(r.reporte_ciclo)), 0)
       const cur = rows.filter((r) => n(r.reporte_ciclo) === maxC)
       const fechas: Record<number, string> = {}
-      for (const r of cur) fechas[n(r.reporte_no)] = String(r.reporte_registro ?? '').slice(0, 10)
+      for (const r of cur) {
+        const no = n(r.reporte_no)
+        const fecha = String(r.reporte_registro ?? '').slice(0, 10)
+        // Si hay varios materia_id de la misma sección, conservar la fecha más reciente.
+        if (!fechas[no] || fecha > fechas[no]) fechas[no] = fecha
+      }
       out.set(aid, fechas)
     }
     return out
+  }
+
+  /**
+   * Resuelve todos los materia_id de Español / Inglés para un grado.
+   * No crea slots nuevos (evitar Teacher fantasma vacío que tapa reportes históricos).
+   * Incluye materias usadas en reportes académicos de los alumnos del grupo.
+   */
+  async function idsMateriasSeccionAcademica(
+    nivelEscolar: number,
+    grado: number,
+    alumnoIds: number[],
+    ciclo: number
+  ): Promise<{ es: number[]; en: number[] }> {
+    const es = new Set<number>()
+    const en = new Set<number>()
+
+    const { data: matsGrado, error } = await db()
+      .from('boleta_materia')
+      .select('materia_id, materia_nombre, materia_orden, materia_nivel, materia_grado')
+      .eq('materia_nivel', nivelEscolar)
+      .eq('materia_grado', grado)
+    if (error) throw new Error(error.message)
+
+    for (const m of matsGrado ?? []) {
+      const sec = seccionAcademicaDeMateria(m).seccion
+      if (sec === 'es') es.add(n(m.materia_id))
+      if (sec === 'en') en.add(n(m.materia_id))
+    }
+
+    // Reportes ya capturados (pueden apuntar a materia Teacher antigua sin orden=2).
+    if (alumnoIds.length) {
+      const { data: reps } = await db()
+        .from('reporte_escolar')
+        .select('materia_id')
+        .in('alumno_id', alumnoIds)
+        .eq('reporte_tipo', RAC_TIPOS.academico)
+        .eq('reporte_ciclo_escolar', ciclo)
+        .eq('reporte_status', 1)
+      const mids = [
+        ...new Set((reps ?? []).map((r) => n(r.materia_id)).filter((id) => id > 0)),
+      ]
+      const pending = mids.filter((id) => !es.has(id) && !en.has(id))
+      if (pending.length) {
+        const { data: extra } = await db()
+          .from('boleta_materia')
+          .select('materia_id, materia_nombre, materia_orden, materia_nivel, materia_grado')
+          .in('materia_id', pending)
+        for (const m of extra ?? []) {
+          const sec = seccionAcademicaDeMateria(m).seccion
+          if (sec === 'es') es.add(n(m.materia_id))
+          else if (sec === 'en') en.add(n(m.materia_id))
+          else if (n(m.materia_nivel) === nivelEscolar && n(m.materia_grado) === grado) {
+            // Misma grado sin clasificar y no es Maestro(a) → contar como Inglés (Teachers legacy).
+            const nom = String(m.materia_nombre ?? '').toLowerCase()
+            if (!nom.includes('maestro')) en.add(n(m.materia_id))
+          }
+        }
+      }
+    }
+
+    return { es: [...es], en: [...en] }
   }
 
   async function listarGrupoCaptura(opts: {
@@ -575,12 +662,16 @@ export function createRacNivelService(cfg: RacNivelConfig) {
 
     // Académico MK/primaria: tracks independientes Español (Maestro/a) e Inglés (Teacher).
     if (opts.tipo === RAC_TIPOS.academico) {
-      // Secuencial: nextMateriaId no es atómico si ambos slots se crean a la vez.
-      const materiaEs = await ensureSlotEs(nivelMat, grado)
-      const materiaEn = await ensureSlotEn(nivelMat, grado)
+      // No usar ensureSlot* aquí: si crea un Teacher nuevo vacío, oculta reportes en materias legacy.
+      const { es: idsEs, en: idsEn } = await idsMateriasSeccionAcademica(
+        nivelMat,
+        grado,
+        ids,
+        ciclo
+      )
       const [marcasEs, marcasEn] = await Promise.all([
-        marcasPorAlumnos(ids, opts.tipo, ciclo, materiaEs),
-        marcasPorAlumnos(ids, opts.tipo, ciclo, materiaEn),
+        marcasPorAlumnos(ids, opts.tipo, ciclo, idsEs),
+        marcasPorAlumnos(ids, opts.tipo, ciclo, idsEn),
       ])
       const filas = alumnos.map((a) => {
         const es = marcasEs.get(a.alumno_id) ?? {}
@@ -913,7 +1004,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     }
     const ciclo = await cicloRac()
     const client = db()
-    await cargarAlumno(opts.alumnoId)
+    const alumno = await cargarAlumno(opts.alumnoId)
     const materiaId =
       opts.tipo === RAC_TIPOS.academico || opts.tipo === RAC_TIPOS.informeAcademico ? opts.materiaId : opts.materiaId
     const token = mdv('rep')
@@ -925,7 +1016,34 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .eq('reporte_tipo', opts.tipo)
       .eq('reporte_status', 1)
       .eq('reporte_ciclo_escolar', ciclo)
-    if (opts.tipo === 1 && materiaId) q = q.eq('materia_id', materiaId)
+    if (opts.tipo === RAC_TIPOS.academico && materiaId) {
+      // Escalón por sección: reunir todos los materia_id ES o EN del grado (incl. legacy).
+      const { data: matCap } = await client
+        .from('boleta_materia')
+        .select('materia_id, materia_nombre, materia_orden, materia_nivel, materia_grado')
+        .eq('materia_id', materiaId)
+        .maybeSingle()
+      const nivelAlum = n(alumno.alumno_nivel)
+      const gradoAlum = n(alumno.alumno_grado)
+      const { es: idsEs, en: idsEn } = await idsMateriasSeccionAcademica(
+        nivelAlum || n(matCap?.materia_nivel),
+        gradoAlum || n(matCap?.materia_grado),
+        [opts.alumnoId],
+        ciclo
+      )
+      const sec = seccionAcademicaDeMateria(matCap).seccion
+      const idsSec =
+        sec === 'en'
+          ? idsEn
+          : sec === 'es'
+            ? idsEs
+            : [...idsEs, ...idsEn].includes(materiaId)
+              ? [materiaId]
+              : [materiaId]
+      const idsFiltro = [...new Set([materiaId, ...idsSec].filter((x) => x > 0))]
+      if (idsFiltro.length === 1) q = q.eq('materia_id', idsFiltro[0])
+      else q = q.in('materia_id', idsFiltro)
+    }
     const { data: prev } = await q
     let reporteCiclo = 0
     let reporteNo = opts.tipo > 2 ? 1 : 0
