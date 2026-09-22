@@ -224,6 +224,10 @@ export default function RacSecundariaPage() {
   const [seleccionados, setSeleccionados] = useState<number[]>([])
   /** Paridad secundaria_2.0: Informes filtro Confirmados / No confirmados / Todos. */
   const [informesConfirmado, setInformesConfirmado] = useState<'all' | '0' | '1'>('all')
+  /** Citatorios: Confirmados / No confirmados / Todos. */
+  const [citasConfirmado, setCitasConfirmado] = useState<'all' | '0' | '1'>('all')
+  /** Citatorios: filtro por emisor (maestro / departamento). Vacío = todos. */
+  const [citasMaestroKey, setCitasMaestroKey] = useState('')
   /** Listado: sin confirmar (legacy) / confirmados / todos los emitidos. */
   const [listadoConfirmado, setListadoConfirmado] = useState<'all' | '0' | '1'>('0')
   /** Totales por pestaña (listado, citas, etc.) para no contar a mano. */
@@ -338,6 +342,8 @@ export default function RacSecundariaPage() {
         }
       } else if (vista === 'informes') {
         conf = confirmado ?? informesConfirmado
+      } else if (vista === 'citas') {
+        conf = confirmado ?? citasConfirmado
       }
       const confQs =
         conf === '0' || conf === '1' || conf === 'all' ? `&confirmado=${conf}` : ''
@@ -400,7 +406,9 @@ export default function RacSecundariaPage() {
     }
     if (ids.has('citas')) {
       jobs.push(
-        api<{ filas?: unknown[] }>('/api/rac/coordinacion?vista=citas')
+        api<{ filas?: unknown[] }>(
+          `/api/rac/coordinacion?vista=citas&confirmado=${citasConfirmado}`
+        )
           .then((d) => {
             patch.citas = d.filas?.length ?? 0
           })
@@ -419,7 +427,7 @@ export default function RacSecundariaPage() {
     if (!jobs.length) return
     await Promise.all(jobs)
     setConteos((c) => ({ ...c, ...patch }))
-  }, [me, listadoConfirmado, informesConfirmado])
+  }, [me, listadoConfirmado, informesConfirmado, citasConfirmado])
 
   useEffect(() => {
     if (!me) return
@@ -444,7 +452,7 @@ export default function RacSecundariaPage() {
       setQ('')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me, tab, asigKey, tipo, informesConfirmado, listadoConfirmado])
+  }, [me, tab, asigKey, tipo, informesConfirmado, listadoConfirmado, citasConfirmado])
 
   useEffect(() => {
     if (tab !== 'historial' || !me) return
@@ -683,6 +691,22 @@ export default function RacSecundariaPage() {
   const capturaConInformeYCita =
     esAdmin || me?.role === 'psicologia' || me?.role === 'maestro'
   const capturaConInforme = capturaConInformeYCita
+  const opcionesMaestrosCitas = useMemo(() => {
+    if (tab !== 'citas') return [] as { key: string; label: string }[]
+    const map = new Map<string, string>()
+    for (const r of lista) {
+      const key = String(r.emisor_key ?? `${Number(r.perfil_id) || 0}:${Number(r.usuario_id) || 0}`)
+      if (!key || key === '0:0') continue
+      const depto = String(r.emisor_departamento || r.emisor || '').trim()
+      const nombre = String(r.emisor_nombre ?? '').trim()
+      const label = nombre ? (depto ? `${depto} — ${nombre}` : nombre) : depto || key
+      if (!map.has(key)) map.set(key, label)
+    }
+    return [...map.entries()]
+      .map(([key, label]) => ({ key, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'es'))
+  }, [lista, tab])
+
   const listaVisible =
     tab === 'historial'
       ? lista.filter((r) => {
@@ -694,7 +718,12 @@ export default function RacSecundariaPage() {
           }
           return true
         })
-      : lista
+      : tab === 'citas' && citasMaestroKey
+        ? lista.filter((r) => {
+            const key = String(r.emisor_key ?? `${Number(r.perfil_id) || 0}:${Number(r.usuario_id) || 0}`)
+            return key === citasMaestroKey
+          })
+        : lista
 
   const materiasHistorial = useMemo(() => {
     const map = new Map<number, string>()
@@ -1089,6 +1118,38 @@ export default function RacSecundariaPage() {
                 <Mail size={16} aria-hidden />
                 Reenviar seleccionados{seleccionados.length ? ` (${seleccionados.length})` : ''}
               </button>
+            </div>
+          ) : null}
+          {tab === 'citas' ? (
+            <div className="boletas-filters">
+              <label>
+                Confirmación
+                <select
+                  value={citasConfirmado}
+                  onChange={(e) => {
+                    setCitasConfirmado(e.target.value as 'all' | '0' | '1')
+                    setCitasMaestroKey('')
+                  }}
+                >
+                  <option value="all">Todos</option>
+                  <option value="0">No confirmados</option>
+                  <option value="1">Confirmados</option>
+                </select>
+              </label>
+              <label>
+                Maestro / emisor
+                <select
+                  value={citasMaestroKey}
+                  onChange={(e) => setCitasMaestroKey(e.target.value)}
+                >
+                  <option value="">Todos</option>
+                  {opcionesMaestrosCitas.map((o) => (
+                    <option key={o.key} value={o.key}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
           ) : null}
           {tab === 'historial' ? (

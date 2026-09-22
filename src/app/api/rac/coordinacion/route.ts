@@ -19,7 +19,12 @@ export async function GET(req: Request) {
     if (!puedeVerVistaCoord(session.role, vista)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
-    if (vista === 'citas') return NextResponse.json({ filas: await inboxCitas(session) })
+    if (vista === 'citas') {
+      const confRaw = url.searchParams.get('confirmado')
+      const confirmado =
+        confRaw === '0' || confRaw === '1' ? confRaw : confRaw === 'all' ? 'all' : 'all'
+      return NextResponse.json({ filas: await inboxCitas(session, confirmado) })
+    }
     if (vista === 'suspensiones') return NextResponse.json({ filas: await inboxSuspensiones() })
     if (vista === 'historial') {
       const h = await historialAlumno(String(url.searchParams.get('q') ?? ''))

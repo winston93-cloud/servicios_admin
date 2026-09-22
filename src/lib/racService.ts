@@ -778,9 +778,14 @@ export async function inboxReportes(
   return hidratar((data ?? []) as Record<string, unknown>[])
 }
 
-export async function inboxCitas(session: RacSesion) {
+export async function inboxCitas(
+  session: RacSesion,
+  confirmado: 'all' | '0' | '1' = 'all'
+) {
   const ciclo = await cicloRac()
   let q = db().from('reporte_cita').select('*').eq('cita_ciclo_escolar', ciclo).gt('cita_status', 0)
+  if (confirmado === '0') q = q.eq('cita_confirmada', 0)
+  if (confirmado === '1') q = q.eq('cita_confirmada', 1)
   if (session.role === 'psicologia') {
     q = q
       .eq('perfil_id', 4)
@@ -791,7 +796,10 @@ export async function inboxCitas(session: RacSesion) {
     const ids = asignaciones.map((a) => a.materia_id)
     if (ids.length) q = q.in('materia_id', ids)
   }
-  const { data, error } = await q.order('cita_registro', { ascending: false }).limit(300)
+  const { data, error } = await q
+    .order('cita_confirmada', { ascending: true })
+    .order('cita_registro', { ascending: false })
+    .limit(300)
   if (error) throw new Error(error.message)
   const rows = data ?? []
   const ids = [...new Set(rows.map((r) => n(r.alumno_id)))]
@@ -808,8 +816,11 @@ export async function inboxCitas(session: RacSesion) {
       const a = aMap.get(n(c.alumno_id))
       if (!a || n(a.alumno_nivel) !== RAC_NIVEL_SECUNDARIA) return null
       const emisor = emisorDeMapa(emisores, c.perfil_id, c.usuario_id)
+      const perfilId = n(c.perfil_id)
+      const usuarioId = n(c.usuario_id)
       return {
         cita_id: n(c.cita_id),
+        alumno_id: n(c.alumno_id),
         alumno_ref: a.alumno_ref ?? null,
         nombre: nombreAlumno(a as AlumnoRow),
         grado: n(a.alumno_grado),
@@ -823,6 +834,9 @@ export async function inboxCitas(session: RacSesion) {
         confirmada: n(c.cita_confirmada) === 1,
         status: n(c.cita_status),
         mdv: String(c.cita_mdv ?? ''),
+        perfil_id: perfilId,
+        usuario_id: usuarioId,
+        emisor_key: `${perfilId}:${usuarioId}`,
         emisor_departamento: emisor?.departamento ?? '',
         emisor_nombre: emisor?.nombre ?? '',
         emisor: emisor?.etiqueta ?? '',
