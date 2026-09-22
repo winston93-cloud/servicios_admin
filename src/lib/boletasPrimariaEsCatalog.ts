@@ -148,6 +148,7 @@ export function maestraEspanolPrimaria(grado: number, grupoNum: number): string 
   const map: Record<string, string> = {
     '1_1': 'INGRAM MARTINEZ MARIA BELEN',
     '1_2': 'INGRAM MARTINEZ MARIA BELEN',
+    '1_3': 'HERNANDEZ BARON QUETZALLI AMERICA',
     '2_1': 'DIAZ ESPINOSA LETICIA FARIDE',
     '2_2': 'DIAZ ESPINOSA LETICIA FARIDE',
     '2_3': 'ANGELES ZAYAS BEATRIZ ZOE',
@@ -158,7 +159,6 @@ export function maestraEspanolPrimaria(grado: number, grupoNum: number): string 
     '4_3': 'SILVA RESENDIZ ROMANA ABIGAIL',
     '5_1': 'ANDRADE GUILLEN MARIA ELENA',
     '5_2': 'ANDRADE GUILLEN MARIA ELENA',
-    '5_3': 'HERNANDEZ BARON QUETZALLI AMERICA',
     '6_1': 'CASTILLO RODRIGUEZ MARIA CRISTINA',
     '6_2': 'CASTILLO RODRIGUEZ MARIA CRISTINA',
     '6_3': 'SOLIS CHAVARRIA GLORIA LUZ',
