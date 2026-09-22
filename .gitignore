@@ -36,6 +36,9 @@ yarn-error.log*
 # InsForge CLI (contiene api_key del proyecto)
 .insforge/
 
+# MCP local con API keys (no versionar)
+.cursor/mcp.json
+
 # vercel
 .vercel
 
