@@ -749,25 +749,6 @@ html[data-theme='light'] .racn-btn.ghost:hover:not(:disabled) {
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
 }
 
-.racn-actions--captura {
-  display: inline-flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 6px;
-  min-width: max-content;
-  white-space: nowrap;
-}
-
-/* Académico: Historial + Reportar + Informe + Citar en una sola fila */
-.racn-actions--captura .racn-btn {
-  flex-shrink: 0;
-  padding: 0.45rem 0.72rem;
-}
-
-.racn-actions--captura .racn-btn-icon {
-  padding-inline: 0.55rem;
-}
-
 .racn-check-col {
   width: 2.75rem;
   text-align: center;
@@ -1077,6 +1058,26 @@ html[data-theme='light'] .racn-legend-secciones {
   gap: 8px;
   align-items: center;
   min-width: min(100%, 12rem);
+}
+
+/* Debe ir DESPUÉS de .racn-actions: misma celda usa ambas clases y wrap ganaba. */
+.racn-actions.racn-actions--captura {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 5px;
+  min-width: max-content;
+  white-space: nowrap;
+}
+
+.racn-actions.racn-actions--captura .racn-btn {
+  flex-shrink: 0;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.78rem;
+}
+
+.racn-actions.racn-actions--captura .racn-btn-icon {
+  padding-inline: 0.5rem;
 }
 
 .racn-modal {
