@@ -234,13 +234,6 @@ function DevolucionesView() {
       setMsg({ tipo: 'err', texto: 'No se identificó al usuario de sesión.' })
       return
     }
-    if (
-      !window.confirm(
-        `¿Enviar folio #${devolucionId} a #devolucion_admvo con screenshot y adjuntos? Pasará a etapa 2/4.`
-      )
-    ) {
-      return
-    }
     setBusyId(devolucionId)
     setMsg(null)
     try {
