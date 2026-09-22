@@ -4,11 +4,11 @@ import { capturarCita, capturarInforme, capturarReporte, historialDetalleAlumno,
 
 export async function GET(req: Request) {
   try {
-    await requireRacSession(req)
+    const session = await requireRacSession(req)
     const url = new URL(req.url)
     const historialAlumnoId = Number(url.searchParams.get('historialAlumnoId') ?? 0)
     if (historialAlumnoId > 0) {
-      const data = await historialDetalleAlumno(historialAlumnoId)
+      const data = await historialDetalleAlumno(historialAlumnoId, session)
       return NextResponse.json(data)
     }
     const materiaId = Number(url.searchParams.get('materiaId') ?? 0)

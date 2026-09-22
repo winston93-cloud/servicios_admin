@@ -8,12 +8,12 @@ export async function GET(req: Request, { params }: Params) {
   try {
     const { slug } = await params
     const cfg = cfgDesdeRequestSlug(slug)
-    await requireRacNivelSession(cfg, req)
+    const session = await requireRacNivelSession(cfg, req)
     const svc = getServiceForSlug(slug)
     const url = new URL(req.url)
     const historialAlumnoId = Number(url.searchParams.get('historialAlumnoId') ?? 0)
     if (historialAlumnoId > 0) {
-      const data = await svc.historialDetalleAlumno(historialAlumnoId)
+      const data = await svc.historialDetalleAlumno(historialAlumnoId, session)
       return NextResponse.json(data)
     }
     const materiaId = Number(url.searchParams.get('materiaId') || 0)

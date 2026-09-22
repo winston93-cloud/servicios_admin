@@ -999,7 +999,7 @@ export async function aplicarSuspension(id: number, fecha: string) {
   return enviarCorreoSuspension(id)
 }
 
-export async function historialAlumno(query: string) {
+export async function historialAlumno(query: string, session?: RacSesion) {
   const ciclo = await cicloRac()
   const q = query.trim()
   if (q.length < 1) return { alumnos: [], reportes: [] }
@@ -1036,7 +1036,7 @@ export async function historialAlumno(query: string) {
     .slice(0, 15)
   const ids = alumnos.map((a) => n(a.alumno_id))
   if (!ids.length) return { alumnos, reportes: [] }
-  const { data: reps } = await db()
+  let qRep = db()
     .from('reporte_escolar')
     .select('*')
     .in('alumno_id', ids)
@@ -1044,17 +1044,33 @@ export async function historialAlumno(query: string) {
     .eq('reporte_status', 1)
     .order('reporte_registro', { ascending: false })
     .limit(200)
+  const materiaIds = session ? await materiaIdsPermitidasHistorialMaestro(session) : null
+  if (materiaIds) {
+    if (!materiaIds.length) return { alumnos, reportes: [] }
+    qRep = qRep.in('materia_id', materiaIds)
+  }
+  const { data: reps } = await qRep
   return { alumnos, reportes: await hidratar((reps ?? []) as Record<string, unknown>[]) }
 }
 
+/**
+ * Materias del maestro para historial/kardex. null = staff (ve todo).
+ * Prefetura: maestros no deben ver reportes de otras asignaturas.
+ */
+async function materiaIdsPermitidasHistorialMaestro(session: RacSesion): Promise<number[] | null> {
+  if (session.role !== 'maestro') return null
+  const { asignaciones } = await listarAsignaciones(session)
+  return [...new Set(asignaciones.map((a) => a.materia_id).filter((id) => id > 0))]
+}
+
 /** Historial de un alumno (kardex legacy): materia, motivo, observaciones, vuelta. */
-export async function historialDetalleAlumno(alumnoId: number) {
+export async function historialDetalleAlumno(alumnoId: number, session?: RacSesion) {
   const ciclo = await cicloRac()
   const alumno = await cargarAlumno(alumnoId)
   if (!alumno || n(alumno.alumno_nivel) !== RAC_NIVEL_SECUNDARIA) {
     throw new Error('Alumno no encontrado en secundaria')
   }
-  const { data: reps, error } = await db()
+  let q = db()
     .from('reporte_escolar')
     .select('*')
     .eq('alumno_id', alumnoId)
@@ -1063,6 +1079,24 @@ export async function historialDetalleAlumno(alumnoId: number) {
     .order('reporte_ciclo', { ascending: true })
     .order('reporte_registro', { ascending: false })
     .limit(300)
+  const materiaIds = session ? await materiaIdsPermitidasHistorialMaestro(session) : null
+  if (materiaIds) {
+    if (!materiaIds.length) {
+      return {
+        alumno: {
+          alumno_id: n(alumno.alumno_id),
+          alumno_ref: alumno.alumno_ref,
+          nombre: nombreAlumno(alumno),
+          nivel: n(alumno.alumno_nivel),
+          grado: n(alumno.alumno_grado),
+          grupo: letraDesdeGrupoNum(n(alumno.alumno_grupo)),
+        },
+        reportes: [],
+      }
+    }
+    q = q.in('materia_id', materiaIds)
+  }
+  const { data: reps, error } = await q
   if (error) throw new Error(error.message)
   return {
     alumno: {
@@ -1195,9 +1229,15 @@ export async function datosPdfPendientes(filtro?: FiltroPdfPendientesRac) {
   }
 }
 
-export async function datosPdfHistorial(alumnoId: number, reporteTipo: number, materiaId?: number) {
+export async function datosPdfHistorial(
+  alumnoId: number,
+  reporteTipo: number,
+  materiaId?: number,
+  session?: RacSesion
+) {
   const ciclo = await cicloRac()
   const alumno = await cargarAlumno(alumnoId)
+  const materiaIdsMaestro = session ? await materiaIdsPermitidasHistorialMaestro(session) : null
   // reporteTipo 0 = Todos: todos los tipos activos del ciclo (incl. informes).
   let q = db()
     .from('reporte_escolar')
@@ -1205,14 +1245,29 @@ export async function datosPdfHistorial(alumnoId: number, reporteTipo: number, m
     .eq('alumno_id', alumnoId)
     .eq('reporte_ciclo_escolar', ciclo)
     .eq('reporte_status', 1)
-  if (reporteTipo > 0) {
+  if (materiaIdsMaestro) {
+    if (!materiaIdsMaestro.length) {
+      return {
+        ciclo,
+        alumnoNombre: nombreAlumno(alumno),
+        titulo: `Historial de reportes — ${nombreAlumno(alumno)}`,
+        filas: [],
+        informes: [],
+      }
+    }
+    // Maestro: solo sus materias (ignora filtros de otras asignaturas).
+    q = q.in('materia_id', materiaIdsMaestro)
+  } else if (reporteTipo > 0) {
     q = q.eq('reporte_tipo', reporteTipo)
     if (reporteTipo === RAC_TIPOS.academico && materiaId) q = q.eq('materia_id', materiaId)
+  }
+  if (materiaIdsMaestro && reporteTipo > 0) {
+    q = q.eq('reporte_tipo', reporteTipo)
   }
   const { data, error } = await q.order('reporte_registro', { ascending: true })
   if (error) throw new Error(error.message)
 
-  const { data: informesRaw } = await db()
+  let qInf = db()
     .from('reporte_escolar')
     .select('*')
     .eq('alumno_id', alumnoId)
@@ -1221,6 +1276,17 @@ export async function datosPdfHistorial(alumnoId: number, reporteTipo: number, m
     .eq('reporte_status', 1)
     .order('reporte_ciclo')
     .order('reporte_no')
+  if (materiaIdsMaestro?.length) qInf = qInf.in('materia_id', materiaIdsMaestro)
+  else if (materiaIdsMaestro) {
+    return {
+      ciclo,
+      alumnoNombre: nombreAlumno(alumno),
+      titulo: `Historial de reportes — ${nombreAlumno(alumno)}`,
+      filas: await filasPdfDesdeQuery((data ?? []) as Record<string, unknown>[]),
+      informes: [],
+    }
+  }
+  const { data: informesRaw } = await qInf
 
   return {
     ciclo,

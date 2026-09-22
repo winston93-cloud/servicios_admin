@@ -26,7 +26,8 @@ export async function GET(req: Request, { params }: Params) {
       const datos = await svc.datosPdfHistorial(
         alumnoId,
         reporteTipo,
-        materiaId > 0 ? materiaId : undefined
+        materiaId > 0 ? materiaId : undefined,
+        session
       )
       const pdf = pdfHistorialAlumno(datos)
       return new NextResponse(pdf, {

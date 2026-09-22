@@ -27,7 +27,7 @@ export async function GET(req: Request) {
     }
     if (vista === 'suspensiones') return NextResponse.json({ filas: await inboxSuspensiones() })
     if (vista === 'historial') {
-      const h = await historialAlumno(String(url.searchParams.get('q') ?? ''))
+      const h = await historialAlumno(String(url.searchParams.get('q') ?? ''), session)
       return NextResponse.json({ filas: h.reportes, alumnos: h.alumnos })
     }
     const filtro = vista === 'informes' || vista === 'todos' ? vista : 'pendientes'

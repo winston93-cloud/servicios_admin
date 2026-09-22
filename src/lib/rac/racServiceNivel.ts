@@ -1550,7 +1550,15 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     return enviarCorreoSuspension(id)
   }
 
-  async function historialAlumno(query: string) {
+  async function materiaIdsPermitidasHistorialMaestro(
+    session: RacSesionNivel
+  ): Promise<number[] | null> {
+    if (session.role !== 'maestro') return null
+    const { asignaciones } = await listarAsignaciones(session)
+    return [...new Set(asignaciones.map((a) => a.materia_id).filter((id) => id > 0))]
+  }
+
+  async function historialAlumno(query: string, session?: RacSesionNivel) {
     const ciclo = await cicloRac()
     const q = query.trim()
     if (q.length < 1) return { alumnos: [], reportes: [] }
@@ -1587,7 +1595,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .slice(0, 15)
     const ids = alumnos.map((a) => n(a.alumno_id))
     if (!ids.length) return { alumnos, reportes: [] }
-    const { data: reps } = await db()
+    let qRep = db()
       .from('reporte_escolar')
       .select('*')
       .in('alumno_id', ids)
@@ -1595,14 +1603,20 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .eq('reporte_status', 1)
       .order('reporte_registro', { ascending: false })
       .limit(200)
+    const materiaIds = session ? await materiaIdsPermitidasHistorialMaestro(session) : null
+    if (materiaIds) {
+      if (!materiaIds.length) return { alumnos, reportes: [] }
+      qRep = qRep.in('materia_id', materiaIds)
+    }
+    const { data: reps } = await qRep
     return { alumnos, reportes: await hidratar((reps ?? []) as Record<string, unknown>[]) }
   }
 
   /** Historial de un alumno (kardex): materia, motivo, observaciones, vuelta. */
-  async function historialDetalleAlumno(alumnoId: number) {
+  async function historialDetalleAlumno(alumnoId: number, session?: RacSesionNivel) {
     const ciclo = await cicloRac()
     const alumno = await cargarAlumno(alumnoId)
-    const { data: reps, error } = await db()
+    let q = db()
       .from('reporte_escolar')
       .select('*')
       .eq('alumno_id', alumnoId)
@@ -1611,6 +1625,24 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .order('reporte_ciclo', { ascending: true })
       .order('reporte_registro', { ascending: false })
       .limit(300)
+    const materiaIds = session ? await materiaIdsPermitidasHistorialMaestro(session) : null
+    if (materiaIds) {
+      if (!materiaIds.length) {
+        return {
+          alumno: {
+            alumno_id: n(alumno.alumno_id),
+            alumno_ref: alumno.alumno_ref,
+            nombre: nombreAlumno(alumno),
+            nivel: n(alumno.alumno_nivel),
+            grado: n(alumno.alumno_grado),
+            grupo: letraDesdeGrupoNum(n(alumno.alumno_grupo)),
+          },
+          reportes: [],
+        }
+      }
+      q = q.in('materia_id', materiaIds)
+    }
+    const { data: reps, error } = await q
     if (error) throw new Error(error.message)
     return {
       alumno: {
@@ -1686,9 +1718,15 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     }
   }
 
-  async function datosPdfHistorial(alumnoId: number, reporteTipo: number, materiaId?: number) {
+  async function datosPdfHistorial(
+    alumnoId: number,
+    reporteTipo: number,
+    materiaId?: number,
+    session?: RacSesionNivel
+  ) {
     const ciclo = await cicloRac()
     const alumno = await cargarAlumno(alumnoId)
+    const materiaIdsMaestro = session ? await materiaIdsPermitidasHistorialMaestro(session) : null
     // reporteTipo 0 = Todos: todos los tipos activos del ciclo (incl. informes).
     let q = db()
       .from('reporte_escolar')
@@ -1696,14 +1734,26 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .eq('alumno_id', alumnoId)
       .eq('reporte_ciclo_escolar', ciclo)
       .eq('reporte_status', 1)
-    if (reporteTipo > 0) {
+    if (materiaIdsMaestro) {
+      if (!materiaIdsMaestro.length) {
+        return {
+          ciclo,
+          alumnoNombre: nombreAlumno(alumno),
+          titulo: `Historial de reportes — ${nombreAlumno(alumno)}`,
+          filas: [],
+          informes: [],
+        }
+      }
+      q = q.in('materia_id', materiaIdsMaestro)
+      if (reporteTipo > 0) q = q.eq('reporte_tipo', reporteTipo)
+    } else if (reporteTipo > 0) {
       q = q.eq('reporte_tipo', reporteTipo)
       if (reporteTipo === RAC_TIPOS.academico && materiaId) q = q.eq('materia_id', materiaId)
     }
     const { data, error } = await q.order('reporte_registro', { ascending: true })
     if (error) throw new Error(error.message)
 
-    const { data: informesRaw } = await db()
+    let qInf = db()
       .from('reporte_escolar')
       .select('*')
       .eq('alumno_id', alumnoId)
@@ -1712,6 +1762,17 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .eq('reporte_status', 1)
       .order('reporte_ciclo')
       .order('reporte_no')
+    if (materiaIdsMaestro?.length) qInf = qInf.in('materia_id', materiaIdsMaestro)
+    else if (materiaIdsMaestro) {
+      return {
+        ciclo,
+        alumnoNombre: nombreAlumno(alumno),
+        titulo: `Historial de reportes — ${nombreAlumno(alumno)}`,
+        filas: await filasPdfDesdeQuery((data ?? []) as Record<string, unknown>[]),
+        informes: [],
+      }
+    }
+    const { data: informesRaw } = await qInf
 
     return {
       ciclo,
