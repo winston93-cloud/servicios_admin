@@ -23,6 +23,7 @@ import {
   CalendarDays,
   Clock,
   School,
+  Bell,
 } from 'lucide-react'
 
 export type ServiciosModuloId =
@@ -73,7 +74,16 @@ export interface ServiciosMenuGroup {
   children: ServiciosSubMenuItem[]
 }
 
-export type ServiciosMenuEntry = ServiciosMenuLeaf | ServiciosMenuGroup
+/** Enlace a otra ruta de la app (no abre panel interno). */
+export interface ServiciosMenuLink {
+  type: 'link'
+  id: string
+  label: string
+  icon: LucideIcon
+  href: string
+}
+
+export type ServiciosMenuEntry = ServiciosMenuLeaf | ServiciosMenuGroup | ServiciosMenuLink
 
 export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
   { type: 'leaf', id: 'migracion-tablas', label: 'Migración de tablas', icon: Database },
@@ -155,12 +165,21 @@ export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
     label: 'Catálogo de maestros',
     icon: School,
   },
+  {
+    type: 'link',
+    id: 'notificaciones',
+    label: 'Notificaciones',
+    icon: Bell,
+    href: '/notificaciones',
+  },
 ]
 
 const MODULO_IDS = new Set<ServiciosModuloId>(
-  SERVICIOS_MENU.flatMap((entry) =>
-    entry.type === 'leaf' ? [entry.id] : entry.children.map((c) => c.id)
-  )
+  SERVICIOS_MENU.flatMap((entry) => {
+    if (entry.type === 'leaf') return [entry.id]
+    if (entry.type === 'group') return entry.children.map((c) => c.id)
+    return []
+  })
 )
 
 export function esServiciosModuloId(v: string): v is ServiciosModuloId {

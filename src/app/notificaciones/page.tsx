@@ -183,9 +183,9 @@ function NotificacionesView() {
     <div className="notif-page pos-totality-theme admin-app-shell">
       <div className="notif-bg" aria-hidden />
       <header className="notif-top">
-        <Link href="/dashboard" className="notif-back">
+        <Link href="/servicios" className="notif-back">
           <ArrowLeft size={18} aria-hidden />
-          Dashboard
+          Servicios
         </Link>
         <ThemeToggle />
       </header>

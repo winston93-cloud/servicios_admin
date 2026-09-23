@@ -90,7 +90,6 @@ const OCULTOS_KEVIN = [
   'reportes', // 2
   'prorrogas', // 4
   'devoluciones', // 5
-  'notificaciones', // 6
   'checador', // 7
   'bajas', // 8
   'monitoreo', // 9
@@ -137,7 +136,6 @@ const OCULTOS_ENFERMERIA = [
   'reportes', // 2
   'prorrogas', // 4
   'devoluciones', // 5
-  'notificaciones', // 6
   'checador', // 7
   'bajas', // 8
   'monitoreo', // 9
@@ -210,13 +208,16 @@ export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
   return new Set(list)
 }
 
-export function filtrarNavItemsAdminPorUsuario<T extends { id: string }>(
+export function filtrarNavItemsAdminPorUsuario<T extends { id: string; dashboardHidden?: boolean }>(
   items: T[],
   usuarioId: number | null | undefined
 ): T[] {
   const ocultos = modulosOcultosDeUsuario(Number(usuarioId) || 0)
-  if (!ocultos.size) return items
-  return items.filter((item) => !ocultos.has(item.id))
+  return items.filter((item) => {
+    if (item.dashboardHidden) return false
+    if (ocultos.size && ocultos.has(item.id)) return false
+    return true
+  })
 }
 
 /** Resuelve números 1..25 → ids de módulo. */

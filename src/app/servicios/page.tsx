@@ -299,6 +299,23 @@ function ServiciosPageInner() {
           aria-label="Módulos de servicios"
         >
           {SERVICIOS_MENU.map((entry) => {
+            if (entry.type === 'link') {
+              const Icon = entry.icon
+              return (
+                <button
+                  key={entry.id}
+                  type="button"
+                  className="servicios-nav-item"
+                  title={entry.label}
+                  onClick={() => router.push(entry.href)}
+                >
+                  <Icon className="servicios-nav-icon" size={20} strokeWidth={2.5} aria-hidden />
+                  <span className="servicios-nav-label">{entry.label}</span>
+                  <ChevronRight className="servicios-nav-chevron" size={16} strokeWidth={2.5} aria-hidden />
+                </button>
+              )
+            }
+
             if (entry.type === 'leaf') {
               const Icon = entry.icon
               const active = entry.id === moduloActivo
