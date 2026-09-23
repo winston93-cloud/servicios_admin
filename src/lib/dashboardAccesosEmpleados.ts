@@ -43,13 +43,13 @@ const OCULTOS_RUBEN_ALAN_CARLOS = [
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo actual: Mario (17) = mismo set que ruben/alan/carlos.
+ * Espejo: Mario (17) restablecido al pasar a Karla Margarita.
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
   37: OCULTOS_RUBEN_ALAN_CARLOS, // carlos
   38: OCULTOS_RUBEN_ALAN_CARLOS, // alan
-  17: OCULTOS_RUBEN_ALAN_CARLOS, // mario — espejo
+  // 17 mario — sin entrada = ve las 25 (espejo libre para la siguiente cuenta)
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
