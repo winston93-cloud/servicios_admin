@@ -60,19 +60,42 @@ const OCULTOS_KARLA_M = [
   'revision-pagados', // 25
 ] as const
 
+const OCULTOS_FATIMA_COORDING = [
+  'desayunos', // 1
+  'devoluciones', // 5
+  'checador', // 7
+  'bajas', // 8
+  'monitoreo', // 9
+  'control-escolar', // 10
+  'programa-usa', // 11
+  'agenda-psicologas', // 12
+  'agenda-directoras', // 13
+  'open-house', // 14
+  'facturacion', // 15
+  'news-desayunos', // 16
+  'sat', // 17
+  'cheques', // 18
+  'contratos', // 19
+  'becas', // 21
+  'becarios', // 22
+  'reportes-conducta', // 23
+] as const
+
 /**
  * Módulos OCULTOS por usuario_id.
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo actual: Mario (17) = Karla Margarita (karla_m).
+ * Espejo actual: Mario (17) = Fátima / coording.
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
   37: OCULTOS_RUBEN_ALAN_CARLOS, // carlos
   38: OCULTOS_RUBEN_ALAN_CARLOS, // alan
   3: OCULTOS_KARLA_M, // karla_m
-  // 17 mario — restablecido; siguiente: fatima (39)
+  39: OCULTOS_FATIMA_COORDING, // fatima
+  10: OCULTOS_FATIMA_COORDING, // coording
+  17: OCULTOS_FATIMA_COORDING, // mario — espejo
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
