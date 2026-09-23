@@ -73,7 +73,7 @@ export async function notificarDevolucionAdmvoSlack(data: {
     .join('\n')
 
   const text = [
-    `🧾 *Devolución lista para administración (etapa 2/4)*`,
+    `🧾 *Devolución lista para administración (etapa 2/5)*`,
     ``,
     `*Folio:* #${data.id}`,
     `*Asunto:* ${asuntoTxt}`,

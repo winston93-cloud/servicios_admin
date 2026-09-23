@@ -1,7 +1,7 @@
 import { createInsforgeAdmin } from '@/lib/insforgeAdmin'
 
 export const DEVOLUCIONES_BUCKET = 'devoluciones'
-export const DEVOLUCION_ETAPAS_TOTAL = 4
+export const DEVOLUCION_ETAPAS_TOTAL = 5
 export const ADJUNTO_MAX_BYTES = 5 * 1024 * 1024
 
 export type DevolucionAdjunto = {
@@ -86,7 +86,7 @@ function mapRow(r: Record<string, unknown>, adjuntos: DevolucionAdjunto[] = []):
     mime_type: String(r.mime_type ?? 'image/png'),
     slack_ok: Boolean(r.slack_ok),
     slack_error: r.slack_error == null ? null : String(r.slack_error),
-    etapa: Math.min(4, Math.max(1, n(r.etapa) || 1)),
+    etapa: Math.min(DEVOLUCION_ETAPAS_TOTAL, Math.max(1, n(r.etapa) || 1)),
     slack_admvo_ok: Boolean(r.slack_admvo_ok),
     slack_admvo_error: r.slack_admvo_error == null ? null : String(r.slack_admvo_error),
     etapa2_at: r.etapa2_at == null ? null : String(r.etapa2_at),
