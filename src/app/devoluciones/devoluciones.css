@@ -605,6 +605,91 @@ html[data-theme='light'] .devoluciones-badge.warn {
   }
 }
 
+/* Celebración confeti + fuegos al completar */
+.devoluciones-celebra {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(6, 8, 14, 0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.devoluciones-celebra-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.devoluciones-celebra-card {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 22rem);
+  padding: 1.35rem 1.25rem 1.15rem;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, #facc15 45%, transparent);
+  background: color-mix(in srgb, var(--dash-card-bg, #15171e) 92%, #facc15);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  text-align: center;
+  animation: devoluciones-celebra-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html[data-theme='light'] .devoluciones-celebra-card {
+  background: #fffbeb;
+  border-color: #facc15;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.18);
+}
+
+.devoluciones-celebra-kicker {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-space-grotesk, 'Space Grotesk', sans-serif);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fbbf24;
+}
+
+.devoluciones-celebra-card h2 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-space-grotesk, 'Space Grotesk', sans-serif);
+  font-size: clamp(1.35rem, 4vw, 1.7rem);
+  line-height: 1.2;
+}
+
+.devoluciones-celebra-card p {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--dash-muted, #94a3b8);
+}
+
+html[data-theme='light'] .devoluciones-celebra-card p {
+  color: #57534e;
+}
+
+.devoluciones-celebra-card .devoluciones-btn {
+  width: 100%;
+  justify-content: center;
+  min-height: var(--touch-min, 44px);
+}
+
+@keyframes devoluciones-celebra-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.86) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 @media (max-width: 480px) {
   .devoluciones-hist-thumb {
     width: 56px;

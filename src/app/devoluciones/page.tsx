@@ -22,6 +22,7 @@ import {
   DEVOLUCION_ETAPAS_TOTAL,
   type DevolucionTarjeta,
 } from '@/lib/devolucionesService'
+import CelebracionConfetiFuegos from '@/components/devoluciones/CelebracionConfetiFuegos'
 import './devoluciones.css'
 
 export default function DevolucionesPage() {
@@ -50,6 +51,7 @@ function DevolucionesView() {
   const [historial, setHistorial] = useState<DevolucionTarjeta[]>([])
   const [cargandoHist, setCargandoHist] = useState(true)
   const [busyId, setBusyId] = useState<number | null>(null)
+  const [celebra, setCelebra] = useState<{ cheque: number; folio: number } | null>(null)
   const zonaRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -287,6 +289,10 @@ function DevolucionesView() {
         throw new Error(data.message || 'No se pudo completar la devolución')
       }
       setHistorial((prev) => prev.map((x) => (x.id === data.row!.id ? data.row! : x)))
+      setCelebra({
+        folio: devolucionId,
+        cheque: Number(data.row.cheque_numero) || 0,
+      })
       setMsg({
         tipo: 'ok',
         texto: `Folio #${devolucionId}: cheque firmado · etapa 4/${DEVOLUCION_ETAPAS_TOTAL}.`,
@@ -303,6 +309,20 @@ function DevolucionesView() {
 
   return (
     <div className="devoluciones-page pos-totality-theme admin-app-shell">
+      <CelebracionConfetiFuegos
+        open={celebra != null}
+        titulo={
+          celebra?.cheque
+            ? `¡Cheque ${celebra.cheque} firmado!`
+            : '¡Devolución completada!'
+        }
+        subtitulo={
+          celebra
+            ? `Folio #${celebra.folio} · Ya puedes avisar a papá/mamá que pase por el cheque.`
+            : undefined
+        }
+        onClose={() => setCelebra(null)}
+      />
       <div className="devoluciones-bg" aria-hidden />
       <header className="devoluciones-top">
         <Link href="/dashboard" className="devoluciones-back">
