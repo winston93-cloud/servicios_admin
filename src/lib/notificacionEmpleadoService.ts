@@ -1,4 +1,10 @@
 import { createInsforgeAdmin } from '@/lib/insforgeAdmin'
+import {
+  enviarCorreoMasivo,
+  htmlCuerpoCorreoMasivo,
+  urlBaseCorreos,
+} from '@/lib/emailServicios'
+import { nombreCompletoUsuario } from '@/lib/usuarioCatalogoService'
 
 export type NotificacionEmpleado = {
   id: number
@@ -9,6 +15,13 @@ export type NotificacionEmpleado = {
   devolucion_id: number | null
   cheque_numero: number | null
   created_at: string
+}
+
+export type UsuarioNotifItem = {
+  usuario_id: number
+  nombre: string
+  email: string
+  username: string
 }
 
 function n(v: unknown): number {
@@ -27,6 +40,53 @@ function mapRow(r: Record<string, unknown>): NotificacionEmpleado {
     cheque_numero: r.cheque_numero == null ? null : n(r.cheque_numero),
     created_at: String(r.created_at ?? ''),
   }
+}
+
+function mapUsuarioBusqueda(r: Record<string, unknown>): UsuarioNotifItem {
+  const nombre =
+    nombreCompletoUsuario({
+      usuario_nombre: r.usuario_nombre == null ? null : String(r.usuario_nombre),
+      usuario_app: r.usuario_app == null ? null : String(r.usuario_app),
+      usuario_apm: r.usuario_apm == null ? null : String(r.usuario_apm),
+    }) || String(r.usuario_username ?? '').trim()
+  return {
+    usuario_id: n(r.usuario_id),
+    nombre,
+    email: String(r.usuario_email ?? '').trim(),
+    username: String(r.usuario_username ?? '').trim(),
+  }
+}
+
+/** Búsqueda autocomplete de empleados activos (sin password). */
+export async function buscarUsuariosParaNotificar(
+  query: string,
+  limit = 12
+): Promise<UsuarioNotifItem[]> {
+  const q = String(query ?? '').trim().toLowerCase()
+  if (q.length < 2) return []
+
+  const db = createInsforgeAdmin().database
+  const { data, error } = await db
+    .from('usuario')
+    .select(
+      'usuario_id, usuario_nombre, usuario_app, usuario_apm, usuario_username, usuario_email, usuario_status'
+    )
+    .order('usuario_nombre', { ascending: true })
+    .limit(500)
+
+  if (error) throw new Error(error.message)
+
+  const max = Math.min(30, Math.max(1, limit))
+  const out: UsuarioNotifItem[] = []
+  for (const raw of (data ?? []) as Record<string, unknown>[]) {
+    if (Number(raw.usuario_status) === 0) continue
+    const item = mapUsuarioBusqueda(raw)
+    const blob = `${item.nombre} ${item.username} ${item.email}`.toLowerCase()
+    if (!blob.includes(q)) continue
+    out.push(item)
+    if (out.length >= max) break
+  }
+  return out
 }
 
 export async function crearNotificacionEmpleado(opts: {
@@ -62,6 +122,113 @@ export async function crearNotificacionEmpleado(opts: {
     return { ok: false, message: error?.message || 'No se pudo crear la notificación' }
   }
   return { ok: true, row: mapRow(data as Record<string, unknown>) }
+}
+
+/**
+ * Crea notificación in-app + correo institucional a cada destinatario.
+ */
+export async function enviarNotificacionMasivaEmpleados(opts: {
+  usuarioIds: number[]
+  asunto: string
+  mensaje: string
+  enviadoPor: string
+}): Promise<
+  | {
+      ok: true
+      enviadas: number
+      correosOk: number
+      sinCorreo: string[]
+      errores: string[]
+    }
+  | { ok: false; message: string }
+> {
+  const ids = [...new Set((opts.usuarioIds ?? []).map(n).filter((id) => id > 0))]
+  if (!ids.length) return { ok: false, message: 'Selecciona al menos un destinatario.' }
+  if (ids.length > 40) return { ok: false, message: 'Máximo 40 destinatarios por envío.' }
+
+  const asunto = String(opts.asunto ?? '').trim().slice(0, 200)
+  const mensaje = String(opts.mensaje ?? '').trim().slice(0, 8000)
+  if (!asunto || !mensaje) return { ok: false, message: 'Asunto y mensaje requeridos.' }
+
+  const db = createInsforgeAdmin().database
+  const { data, error } = await db
+    .from('usuario')
+    .select(
+      'usuario_id, usuario_nombre, usuario_app, usuario_apm, usuario_username, usuario_email, usuario_status, nivel'
+    )
+    .in('usuario_id', ids)
+
+  if (error) return { ok: false, message: error.message }
+
+  const porId = new Map<number, Record<string, unknown>>()
+  for (const r of (data ?? []) as Record<string, unknown>[]) {
+    porId.set(n(r.usuario_id), r)
+  }
+
+  const por = String(opts.enviadoPor ?? '').trim() || 'Administración'
+  const dashboardUrl = `${urlBaseCorreos()}/dashboard`
+  let enviadas = 0
+  let correosOk = 0
+  const sinCorreo: string[] = []
+  const errores: string[] = []
+
+  for (const id of ids) {
+    const u = porId.get(id)
+    if (!u || Number(u.usuario_status) === 0) {
+      errores.push(`Usuario #${id} no encontrado o inactivo`)
+      continue
+    }
+    const dest = mapUsuarioBusqueda(u)
+    const created = await crearNotificacionEmpleado({
+      usuarioId: id,
+      asunto,
+      mensaje,
+    })
+    if (!created.ok) {
+      errores.push(`${dest.nombre || `#${id}`}: ${created.message}`)
+      continue
+    }
+    enviadas += 1
+
+    const email = dest.email.trim().toLowerCase()
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      sinCorreo.push(dest.nombre || dest.username || `#${id}`)
+      continue
+    }
+
+    const cuerpoTxt = [
+      `Hola ${dest.nombre || dest.username},`,
+      ``,
+      `Tienes una nueva notificación en Servicios Administrativos.`,
+      ``,
+      `De: ${por}`,
+      `Asunto: ${asunto}`,
+      ``,
+      mensaje,
+      ``,
+      `Entra al dashboard para verla en la campanita:`,
+      dashboardUrl,
+    ].join('\n')
+
+    const nivel = Number.isFinite(Number(u.nivel)) ? Number(u.nivel) : 0
+    const mail = await enviarCorreoMasivo({
+      to: [email],
+      subject: `[Winston] Notificación: ${asunto}`.slice(0, 180),
+      html: htmlCuerpoCorreoMasivo(cuerpoTxt, nivel),
+      nivel,
+    })
+    if (mail.ok) correosOk += 1
+    else errores.push(`Correo a ${email}: ${mail.error || 'falló'}`)
+  }
+
+  if (enviadas === 0) {
+    return {
+      ok: false,
+      message: errores[0] || 'No se pudo enviar ninguna notificación.',
+    }
+  }
+
+  return { ok: true, enviadas, correosOk, sinCorreo, errores }
 }
 
 /** Solo pendientes (no leídas) para la campanita. */
@@ -101,7 +268,6 @@ export async function marcarNotificacionesEmpleadoLeidas(opts: {
   const db = createInsforgeAdmin().database
   const ids = (opts.ids ?? []).map(n).filter((id) => id > 0)
 
-  // Folios vinculados: por ids (si vienen) o solo no leídas.
   let qSel = db.from('notificacion_empleado').select('id, devolucion_id').eq('usuario_id', uid)
   if (ids.length) qSel = qSel.in('id', ids)
   else qSel = qSel.eq('leida', false)
