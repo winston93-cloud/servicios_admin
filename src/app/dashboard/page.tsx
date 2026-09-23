@@ -404,7 +404,7 @@ export default function DashboardPage() {
                     ? navItemsAdmin.map((item, index) => (
                       <DashboardModuleCard
                         key={navItemKey(item)}
-                        order={index + 1}
+                        order={numeroCatalogoDeModulo(item.id) ?? index + 1}
                         label={item.label}
                         desc={item.desc}
                         accent={item.accent}
