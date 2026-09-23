@@ -100,12 +100,33 @@ const OCULTOS_KEVIN = [
   'revision-pagados', // 25
 ] as const
 
+const OCULTOS_LAURA_VINCULACION = [
+  'desayunos', // 1
+  'prorrogas', // 4
+  'devoluciones', // 5
+  'checador', // 7
+  'bajas', // 8
+  'monitoreo', // 9
+  'control-escolar', // 10
+  'programa-usa', // 11
+  'agenda-directoras', // 13
+  'facturacion', // 15
+  'sat', // 17
+  'cheques', // 18
+  'contratos', // 19
+  'boletas', // 20
+  'becarios', // 22
+  'reportes-conducta', // 23
+  'entregas-pie', // 24
+  'revision-pagados', // 25
+] as const
+
 /**
  * Módulos OCULTOS por usuario_id.
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo actual: Mario (17) = Kevin.
+ * Espejo actual: Mario (17) = Laura Domínguez Vinculación.
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
@@ -115,7 +136,8 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   39: OCULTOS_FATIMA_COORDING, // fatima
   10: OCULTOS_FATIMA_COORDING, // coording
   6: OCULTOS_KEVIN, // kevin
-  // 17 mario — restablecido; siguiente: Laura Domínguez Vinculación (58)
+  58: OCULTOS_LAURA_VINCULACION, // Laura Domínguez Vinculación
+  17: OCULTOS_LAURA_VINCULACION, // mario — espejo
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
