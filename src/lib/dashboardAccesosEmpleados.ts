@@ -81,23 +81,15 @@ const OCULTOS_FATIMA_COORDING = [
   'revision-pagados', // 25
 ] as const
 
-/** Mismos que Rubén, pero deja Programa USA (#11) y Becarios (#22). */
+/** Kevin: oculta 1,3,4,5,7,8,10. */
 const OCULTOS_KEVIN = [
   'desayunos', // 1
+  'servicios', // 3
+  'prorrogas', // 4
   'devoluciones', // 5
+  'checador', // 7
   'bajas', // 8
-  'monitoreo', // 9
   'control-escolar', // 10
-  'agenda-psicologas', // 12
-  'agenda-directoras', // 13
-  'open-house', // 14
-  'sat', // 17
-  'cheques', // 18
-  'contratos', // 19
-  'boletas', // 20
-  'becas', // 21
-  'reportes-conducta', // 23
-  'revision-pagados', // 25
 ] as const
 
 const OCULTOS_LAURA_VINCULACION = [
@@ -121,12 +113,40 @@ const OCULTOS_LAURA_VINCULACION = [
   'revision-pagados', // 25
 ] as const
 
+/** Enfermería: solo Servicios (#3). */
+const OCULTOS_ENFERMERIA = [
+  'desayunos', // 1
+  'reportes', // 2
+  'prorrogas', // 4
+  'devoluciones', // 5
+  'notificaciones', // 6
+  'checador', // 7
+  'bajas', // 8
+  'monitoreo', // 9
+  'control-escolar', // 10
+  'programa-usa', // 11
+  'agenda-psicologas', // 12
+  'agenda-directoras', // 13
+  'open-house', // 14
+  'facturacion', // 15
+  'news-desayunos', // 16
+  'sat', // 17
+  'cheques', // 18
+  'contratos', // 19
+  'boletas', // 20
+  'becas', // 21
+  'becarios', // 22
+  'reportes-conducta', // 23
+  'entregas-pie', // 24
+  'revision-pagados', // 25
+] as const
+
 /**
  * Módulos OCULTOS por usuario_id.
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo actual: Mario (17) = Laura Domínguez Vinculación.
+ * Espejo actual: Mario (17) = enfermería.
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
@@ -137,7 +157,8 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   10: OCULTOS_FATIMA_COORDING, // coording
   6: OCULTOS_KEVIN, // kevin
   58: OCULTOS_LAURA_VINCULACION, // Laura Domínguez Vinculación
-  17: OCULTOS_KEVIN, // mario — espejo Kevin (revisión)
+  40: OCULTOS_ENFERMERIA, // enfermeria
+  17: OCULTOS_ENFERMERIA, // mario — espejo enfermería
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
