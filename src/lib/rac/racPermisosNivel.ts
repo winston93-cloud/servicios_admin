@@ -24,11 +24,10 @@ export function etiquetaRolNivel(role: RacRolNivel, cfg: RacNivelConfig): string
   return 'Coordinación'
 }
 
-/** En maternal/kinder no opera la cuenta de prefecta; admin = dirección/coordinación. */
-function esPanelAdmin(role: RacRolNivel, cfg?: Pick<RacNivelConfig, 'slug'>): boolean {
-  if (role === 'coordinacion' || role === 'direccion') return true
-  if (role === 'control_escolar') return cfg?.slug !== 'maternal-kinder'
-  return false
+/** Panel admin = dirección / coordinación / control escolar (espejo Prefectura en secundaria). */
+function esPanelAdmin(role: RacRolNivel, _cfg?: Pick<RacNivelConfig, 'slug'>): boolean {
+  void _cfg
+  return role === 'coordinacion' || role === 'direccion' || role === 'control_escolar'
 }
 
 export function esPanelAdminNivel(
@@ -42,6 +41,7 @@ export function tabsDeRolNivel(
   role: RacRolNivel,
   cfg?: RacNivelConfig
 ): { id: RacTabNivel; label: string }[] {
+  void cfg
   if (role === 'maestro') {
     return [
       { id: 'captura', label: 'Captura' },
@@ -57,13 +57,7 @@ export function tabsDeRolNivel(
       { id: 'historial', label: 'Historial' },
     ]
   }
-  // Maternal/Kinder: sin prefecta — control escolar no tiene panel operativo aquí.
-  if (role === 'control_escolar' && cfg?.slug === 'maternal-kinder') {
-    return [
-      { id: 'citas', label: 'Citatorios' },
-    ]
-  }
-  // Panel admin completo (dirección / coordinación / control escolar en primaria).
+  // Panel admin completo (dirección / coordinación / control escolar).
   return [
     { id: 'inbox', label: 'Listado sin confirmar' },
     { id: 'suspensiones', label: 'Suspensión' },
@@ -87,10 +81,6 @@ export function tiposCapturaDeRolNivel(
     return conUniforme
       ? [...RAC_TIPOS_CAPTURA_MAESTRO, { valor: RAC_TIPOS.uniforme, etiqueta: 'Uniforme' }]
       : RAC_TIPOS_CAPTURA_MAESTRO
-  }
-  // En maternal/kinder la cuenta de prefecta/control escolar no opera captura de uniforme.
-  if (cfg?.slug === 'maternal-kinder' && role === 'control_escolar') {
-    return [...RAC_TIPOS_CAPTURA_MAESTRO]
   }
   return [...RAC_TIPOS_CAPTURA_MAESTRO, ...RAC_TIPOS_PREFECTURA]
 }

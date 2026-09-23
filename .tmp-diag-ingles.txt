@@ -1,0 +1,8 @@
+ciclo undefined
+
+Materias MK (ES/EN slots):
+
+Académicos MK activos: 0
+Por materia_id:
+
+Detalle:

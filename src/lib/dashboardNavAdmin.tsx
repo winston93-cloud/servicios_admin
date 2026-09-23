@@ -5,6 +5,8 @@ import { urlCchicApp } from '@/lib/cchicConfig'
 import { urlChequesApp, urlContratosApp, urlSsiwEntregaLogin, urlUsaProgramApp } from '@/lib/dashboardModulosConfig'
 
 export type DashboardAdminNavItem = {
+  /** Clave estable para ACL de visualización en dashboard. */
+  id: string
   label: string
   desc: string
   accent: DashboardModuleAccent
@@ -30,6 +32,7 @@ const ICON_DESAYUNOS = (
 
 export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   {
+    id: 'desayunos',
     label: 'Desayunos, Estancias y Comidas',
     desc: 'Cobros, pedidos y control de alimentación escolar en un solo flujo operativo.',
     path: '/pos',
@@ -39,6 +42,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     tags: ['POS', 'Estancias', 'Comidas'],
   },
   {
+    id: 'reportes',
     label: 'Reportes',
     desc: 'Consulta y generación de reportes administrativos por ciclo y área.',
     path: '/reportes',
@@ -54,6 +58,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'servicios',
     label: 'Servicios',
     desc: 'Alumnos, pagos, becas y herramientas administrativas del ciclo escolar.',
     path: '/servicios',
@@ -69,6 +74,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'prorrogas',
     label: 'Prórrogas',
     desc: 'Registro y seguimiento de prórrogas de pago escolar.',
     href: urlProrrogasAjustesApp(),
@@ -87,6 +93,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'devoluciones',
     label: 'Devoluciones',
     desc: 'Reembolsos cuando el papá se arrepiente de un pago con tarjeta (inscripción, colegiatura u otro concepto).',
     path: '/devoluciones',
@@ -104,6 +111,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'notificaciones',
     label: 'Notificaciones',
     desc: 'Avisa a empleados por la campanita del dashboard y correo institucional.',
     path: '/notificaciones',
@@ -119,6 +127,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'checador',
     label: 'Checador',
     desc: 'Reloj checador de asistencia del personal.',
     href: 'https://reloj-checador-ruddy.vercel.app/',
@@ -133,6 +142,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'bajas',
     label: 'Bajas administrativas',
     desc: 'Baja general de alumnos y aviso por correo al equipo institucional.',
     path: '/bajas-administrativas',
@@ -149,6 +159,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'monitoreo',
     label: 'Monitoreo y Control',
     desc: 'Caja chica, egresos, fondos y reportes de control.',
     href: urlCchicApp(),
@@ -168,6 +179,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'control-escolar',
     label: 'Control Escolar',
     desc: 'Autoriza documentación completa de nuevo ingreso y habilita el recibo final.',
     path: '/control-escolar',
@@ -182,6 +194,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'programa-usa',
     label: 'Programa USA',
     desc: 'Alumnos, pagos en USD, cartas de bienvenida y expediente documental de Winston–Hökku Academy.',
     href: urlUsaProgramApp(),
@@ -198,6 +211,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'agenda-psicologas',
     label: 'Agenda psicólogas',
     desc: 'Calendario y citas del área de psicología.',
     href: 'https://agendaw.vercel.app/admin/',
@@ -216,6 +230,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'agenda-directoras',
     label: 'Agenda directoras',
     desc: 'Panel de agenda para dirección escolar.',
     href: 'https://agendaw.vercel.app/admin/dashboard',
@@ -235,6 +250,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'open-house',
     label: 'Open House/Sesiones Inf. Admin',
     desc: 'Inscripciones y gestión de Open House y sesiones informativas.',
     href: 'https://open-house-chi.vercel.app/admin',
@@ -252,6 +268,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'facturacion',
     label: 'Facturación CFDI',
     desc: 'Timbrado, cancelaciones y devoluciones fiscales.',
     path: '/facturacion',
@@ -268,6 +285,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'news-desayunos',
     label: 'News y Desayunos',
     desc: 'Publicar folleto mensual (News) y menú de desayunos/comidas para familias.',
     path: '/news-desayunos',
@@ -285,6 +303,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'sat',
     label: 'Módulo SAT',
     desc: 'Descarga masiva de CFDI recibidos y conciliación fiscal.',
     path: '/facturacion/sat',
@@ -300,6 +319,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'cheques',
     label: 'Cheques',
     desc: 'Emisión, impresión y control de cheques (Winston, Educativo y Sociedades de Padres).',
     href: urlChequesApp(),
@@ -315,6 +335,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'contratos',
     label: 'Contratos',
     desc: 'Generación y gestión de contratos laborales (determinado, indeterminado y por hora).',
     href: urlContratosApp(),
@@ -332,6 +353,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'boletas',
     label: 'Sistema Integral de Boletas Escolares',
     desc: 'Hub de boletas: Kinder y Primaria (español e inglés) y Secundaria.',
     path: '/boletas',
@@ -350,6 +372,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'becas',
     label: 'Becas',
     desc: 'Renovaciones, solicitudes, permisos y bitácora de Control Escolar.',
     path: '/becas',
@@ -363,6 +386,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'becarios',
     label: 'Becarios',
     desc: 'Bitácora diaria de avances, observaciones y reportes del programa de becarios.',
     path: '/becarios',
@@ -380,6 +404,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'reportes-conducta',
     label: 'Reportes académicos y de conducta',
     desc: 'Captura y seguimiento de reportes académicos y de conducta escolar.',
     path: '/reportes-conducta',
@@ -395,6 +420,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'entregas-pie',
     label: 'Entregas a Pie',
     desc: 'Entrega de alumnos con salida a pie registrada para el día.',
     href: urlSsiwEntregaLogin(),
@@ -411,6 +437,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'revision-pagados',
     label: 'Revisión Pagados/No Pagados',
     desc: 'Entrada al colegio: busca por grupo (2a, 7b…) y ve lista verde pagó / rojo pendiente.',
     path: '/revision-pagados',
@@ -428,8 +455,8 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   },
 ]
 
-export function navItemKey(item: Pick<DashboardAdminNavItem, 'label' | 'path' | 'href'>): string {
-  return item.path ?? item.href ?? item.label
+export function navItemKey(item: Pick<DashboardAdminNavItem, 'id' | 'label' | 'path' | 'href'>): string {
+  return item.id || item.path || item.href || item.label
 }
 
 export function abrirNavItem(

@@ -17,6 +17,8 @@ import { etiquetaTabConteo, opcionesMotivo } from '@/lib/racUi'
 import {
   ArrowLeft,
   Download,
+  Eye,
+  EyeOff,
   FolderOpen,
   LogOut,
   Mail,
@@ -183,6 +185,7 @@ function LoginPanel({
 }) {
   const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
+  const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -193,7 +196,10 @@ function LoginPanel({
     try {
       await api(`${config.apiBase}/auth/login`, {
         method: 'POST',
-        body: JSON.stringify({ usuario, password }),
+        body: JSON.stringify({
+          usuario: usuario.trim(),
+          password: password.trim(),
+        }),
       })
       onOk()
     } catch (err) {
@@ -209,7 +215,7 @@ function LoginPanel({
       <h2>Ingresar a {config.titulo}</h2>
       <p className="racn-login-lead">
         {config.slug === 'maternal-kinder'
-          ? 'Maestro(a), Teacher, psicología o dirección/coordinación. Las docentes capturan académico, conducta (con visto bueno de psicología) y uniforme — no hay cuenta de prefecta en este nivel.'
+          ? `Maestro(a), Teacher, psicología, ${config.etiquetaOperaciones.toLowerCase()} o dirección/coordinación. Las docentes capturan académico, conducta (con visto bueno de psicología) y uniforme.`
           : config.slug === 'primaria'
             ? `Maestro(a), Teacher, psicología, ${config.etiquetaOperaciones.toLowerCase()} o dirección/coordinación. Las docentes capturan académico, conducta (con visto bueno de psicología) y uniforme.`
             : `Maestro(a), Teacher, psicología, ${config.etiquetaOperaciones.toLowerCase()} o dirección/coordinación.`}
@@ -233,17 +239,29 @@ function LoginPanel({
       </label>
       <label>
         Contraseña
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="new-password"
-          name={`rac-${config.slug}-clave`}
-          required
-        />
+        <span className="racn-login-pw-wrap">
+          <input
+            type={showPw ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            name={`rac-${config.slug}-clave`}
+            required
+          />
+          <button
+            type="button"
+            className="racn-login-pw-toggle"
+            onClick={() => setShowPw((v) => !v)}
+            aria-label={showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          >
+            {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </span>
       </label>
       <p className="racn-login-hint">
-        En PCs del salón: al terminar usa <strong>Salir</strong> (cerrar solo Google no basta). No guardes la contraseña en el navegador.
+        Si falla, revisa mayúsculas y caracteres especiales (copiar/pegar suele ser más seguro). En
+        PCs del salón: al terminar usa <strong>Salir</strong> (cerrar solo Google no basta). No
+        guardes la contraseña en el navegador.
       </p>
       {error ? <p className="racn-login-error">{error}</p> : null}
       <button type="submit" className="racn-login-submit" disabled={loading}>

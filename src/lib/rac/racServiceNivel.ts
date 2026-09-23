@@ -32,7 +32,7 @@ const PERFIL_ETIQUETA: Record<number, string> = {
   1: 'MAESTRO',
   2: 'COORDINACIÓN',
   4: 'PSICOLOGÍA',
-  5: 'PREFECTURA',
+  5: 'CONTROL ESCOLAR',
   6: 'DIRECCIÓN',
 }
 

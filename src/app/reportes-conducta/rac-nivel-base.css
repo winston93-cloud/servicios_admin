@@ -116,6 +116,38 @@
   outline-offset: 1px;
 }
 
+.racn-login-pw-wrap {
+  position: relative;
+  display: block;
+}
+
+.racn-login-pw-wrap input {
+  width: 100%;
+  padding-right: 2.75rem;
+}
+
+.racn-login-pw-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.45rem;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  min-height: 2.25rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dash-muted, #94a3b8);
+  cursor: pointer;
+}
+
+.racn-login-pw-toggle:hover {
+  color: inherit;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
 .racn-login-error {
   margin: 0;
   color: #fda4af;
