@@ -81,15 +81,33 @@ const OCULTOS_FATIMA_COORDING = [
   'revision-pagados', // 25
 ] as const
 
-/** Kevin: oculta 1,3,4,5,7,8,10. */
+/**
+ * Kevin: en el espejo previo (10 tarjetas visibles) Mario pidió quitar
+ * 1,3,4,5,7,8,10 de esa numeración en pantalla → quedan Servicios, Programa USA y Becarios.
+ */
 const OCULTOS_KEVIN = [
   'desayunos', // 1
-  'servicios', // 3
+  'reportes', // 2
   'prorrogas', // 4
   'devoluciones', // 5
+  'notificaciones', // 6
   'checador', // 7
   'bajas', // 8
+  'monitoreo', // 9
   'control-escolar', // 10
+  'agenda-psicologas', // 12
+  'agenda-directoras', // 13
+  'open-house', // 14
+  'facturacion', // 15
+  'news-desayunos', // 16
+  'sat', // 17
+  'cheques', // 18
+  'contratos', // 19
+  'boletas', // 20
+  'becas', // 21
+  'reportes-conducta', // 23
+  'entregas-pie', // 24
+  'revision-pagados', // 25
 ] as const
 
 const OCULTOS_LAURA_VINCULACION = [
@@ -191,4 +209,10 @@ export function idsDesdeNumerosCatalogo(nums: number[]): string[] {
     out.push(id)
   }
   return out
+}
+
+/** Número estable del catálogo (1..25) para una tarjeta, o null si no está. */
+export function numeroCatalogoDeModulo(moduleId: string): number | null {
+  const found = DASHBOARD_MODULOS_CATALOGO.find((m) => m.id === moduleId)
+  return found ? found.n : null
 }

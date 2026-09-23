@@ -6,7 +6,7 @@ import {
   navItemKey,
   type DashboardAdminNavItem,
 } from '@/lib/dashboardNavAdmin'
-import { filtrarNavItemsAdminPorUsuario } from '@/lib/dashboardAccesosEmpleados'
+import { filtrarNavItemsAdminPorUsuario, numeroCatalogoDeModulo } from '@/lib/dashboardAccesosEmpleados'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
