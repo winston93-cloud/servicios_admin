@@ -265,6 +265,42 @@ function DevolucionesView() {
     }
   }
 
+  async function completarDevolucion(devolucionId: number) {
+    if (!realizadoPor) {
+      setMsg({ tipo: 'err', texto: 'No se identificó al usuario de sesión.' })
+      return
+    }
+    setBusyId(devolucionId)
+    setMsg(null)
+    try {
+      const res = await fetch(`/api/devoluciones/${devolucionId}/completar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ realizadoPor }),
+      })
+      const data = (await res.json()) as {
+        ok?: boolean
+        message?: string
+        row?: DevolucionTarjeta
+      }
+      if (!res.ok || !data.ok || !data.row) {
+        throw new Error(data.message || 'No se pudo completar la devolución')
+      }
+      setHistorial((prev) => prev.map((x) => (x.id === data.row!.id ? data.row! : x)))
+      setMsg({
+        tipo: 'ok',
+        texto: `Folio #${devolucionId}: cheque firmado · etapa 4/${DEVOLUCION_ETAPAS_TOTAL}.`,
+      })
+    } catch (e) {
+      setMsg({
+        tipo: 'err',
+        texto: e instanceof Error ? e.message : 'Error al completar devolución',
+      })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
     <div className="devoluciones-page pos-totality-theme admin-app-shell">
       <div className="devoluciones-bg" aria-hidden />
@@ -503,6 +539,43 @@ function DevolucionesView() {
                               <Send size={14} aria-hidden />
                             )}
                             Enviar Slack
+                          </button>
+                        </div>
+                      ) : null}
+
+                      {r.cheque_numero && r.cheque_firma_status === 'pendiente_firma' ? (
+                        <div className="devoluciones-cheque-banner pendiente">
+                          <p>
+                            Cheque {r.cheque_numero}
+                            {r.cheque_entidad === 'educativo'
+                              ? ' (Educativo)'
+                              : r.cheque_entidad === 'winston'
+                                ? ' (Winston)'
+                                : ''}
+                            , Impreso, Pendiente Firma
+                          </p>
+                          <button
+                            type="button"
+                            className="devoluciones-btn danger sm"
+                            disabled={ocupado}
+                            onClick={() => void completarDevolucion(r.id)}
+                          >
+                            {ocupado ? (
+                              <Loader2 size={14} className="devoluciones-spin" aria-hidden />
+                            ) : (
+                              <CheckCircle2 size={14} aria-hidden />
+                            )}
+                            Completar Devolución
+                          </button>
+                        </div>
+                      ) : null}
+
+                      {r.cheque_numero && r.cheque_firma_status === 'firmado' ? (
+                        <div className="devoluciones-cheque-banner firmado">
+                          <p>Cheque {r.cheque_numero} Firmado</p>
+                          <button type="button" className="devoluciones-btn success sm" disabled>
+                            <CheckCircle2 size={14} aria-hidden />
+                            Completado
                           </button>
                         </div>
                       ) : null}

@@ -31,12 +31,20 @@ export type DevolucionTarjeta = {
   slack_admvo_error: string | null
   etapa2_at: string | null
   etapa2_por: string | null
+  cheque_numero: number | null
+  cheque_entidad: string | null
+  /** pendiente_firma | firmado | null */
+  cheque_firma_status: string | null
+  etapa3_at: string | null
+  etapa3_por: string | null
+  etapa4_at: string | null
+  etapa4_por: string | null
   created_at: string
   adjuntos: DevolucionAdjunto[]
 }
 
 const SELECT =
-  'id, asunto, realizado_por, usuario_id, storage_key, storage_url, mime_type, slack_ok, slack_error, etapa, slack_admvo_ok, slack_admvo_error, etapa2_at, etapa2_por, created_at'
+  'id, asunto, realizado_por, usuario_id, storage_key, storage_url, mime_type, slack_ok, slack_error, etapa, slack_admvo_ok, slack_admvo_error, etapa2_at, etapa2_por, cheque_numero, cheque_entidad, cheque_firma_status, etapa3_at, etapa3_por, etapa4_at, etapa4_por, created_at'
 
 const MIME_IMG = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'])
 const MIME_ADJUNTO = new Set([
@@ -83,6 +91,13 @@ function mapRow(r: Record<string, unknown>, adjuntos: DevolucionAdjunto[] = []):
     slack_admvo_error: r.slack_admvo_error == null ? null : String(r.slack_admvo_error),
     etapa2_at: r.etapa2_at == null ? null : String(r.etapa2_at),
     etapa2_por: r.etapa2_por == null ? null : String(r.etapa2_por),
+    cheque_numero: r.cheque_numero == null || n(r.cheque_numero) <= 0 ? null : n(r.cheque_numero),
+    cheque_entidad: r.cheque_entidad == null ? null : String(r.cheque_entidad),
+    cheque_firma_status: r.cheque_firma_status == null ? null : String(r.cheque_firma_status),
+    etapa3_at: r.etapa3_at == null ? null : String(r.etapa3_at),
+    etapa3_por: r.etapa3_por == null ? null : String(r.etapa3_por),
+    etapa4_at: r.etapa4_at == null ? null : String(r.etapa4_at),
+    etapa4_por: r.etapa4_por == null ? null : String(r.etapa4_por),
     created_at: String(r.created_at ?? ''),
     adjuntos,
   }
@@ -401,5 +416,44 @@ export async function enviarDevolucionAdmvo(opts: {
 
   const row = await cargarDevolucion(id)
   if (!row) return { ok: false, message: 'Enviado, pero no se pudo releer el folio.' }
+  return { ok: true, row }
+}
+
+/** Etapa 3→4: marca el cheque como firmado y cierra la devolución. */
+export async function completarFirmaDevolucion(opts: {
+  devolucionId: number
+  realizadoPor: string
+}): Promise<{ ok: true; row: DevolucionTarjeta } | { ok: false; message: string }> {
+  const realizadoPor = String(opts.realizadoPor ?? '').trim()
+  if (!realizadoPor) {
+    return { ok: false, message: 'Falta identificar quién completa la devolución.' }
+  }
+  const id = n(opts.devolucionId)
+  const actual = await cargarDevolucion(id)
+  if (!actual) return { ok: false, message: 'No se encontró la devolución.' }
+  if (!actual.cheque_numero) {
+    return { ok: false, message: 'Esta devolución aún no tiene cheque vinculado.' }
+  }
+  if (actual.cheque_firma_status === 'firmado' || actual.etapa >= 4) {
+    return { ok: true, row: actual }
+  }
+  if (actual.cheque_firma_status !== 'pendiente_firma' && actual.etapa < 3) {
+    return { ok: false, message: 'La devolución no está en pendiente de firma.' }
+  }
+
+  const client = createInsforgeAdmin()
+  const { error } = await client.database
+    .from('devolucion_tarjeta')
+    .update({
+      etapa: 4,
+      cheque_firma_status: 'firmado',
+      etapa4_at: new Date().toISOString(),
+      etapa4_por: realizadoPor.slice(0, 160),
+    })
+    .eq('id', id)
+  if (error) return { ok: false, message: error.message }
+
+  const row = await cargarDevolucion(id)
+  if (!row) return { ok: false, message: 'Actualizado, pero no se pudo releer el folio.' }
   return { ok: true, row }
 }
