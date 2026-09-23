@@ -115,7 +115,7 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   39: OCULTOS_FATIMA_COORDING, // fatima
   10: OCULTOS_FATIMA_COORDING, // coording
   6: OCULTOS_KEVIN, // kevin
-  17: OCULTOS_KEVIN, // mario — espejo
+  // 17 mario — restablecido; siguiente: Laura Domínguez Vinculación (58)
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
