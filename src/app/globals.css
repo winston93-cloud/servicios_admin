@@ -4026,93 +4026,34 @@ html[data-theme='light'] .dash-notif-item-btn p {
   color: #64748b;
 }
 
-.dash-notif-modal-layer {
-  display: grid;
-  place-items: center;
-  padding: 1rem;
-  pointer-events: auto;
-}
-
-.dash-notif-modal {
-  position: relative;
-  z-index: 1;
-  width: min(100%, 26rem);
-  max-height: min(85vh, 32rem);
-  overflow: auto;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: #15171e;
-  color: #f8fafc;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
-  isolation: isolate;
-}
-
-html[data-theme='light'] .dash-notif-modal {
-  background: #fff;
-  color: #0f172a;
-  border-color: #e2e8f0;
-}
-
-.dash-notif-modal header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 1rem 1rem 0.65rem;
-}
-
-.dash-notif-modal h2 {
-  margin: 0;
-  font-size: 1.05rem;
-  line-height: 1.35;
-  font-family: var(--font-space-grotesk, 'Space Grotesk', sans-serif);
-}
-
-.dash-notif-modal-body {
-  padding: 0 1rem 1rem;
-}
-
-.dash-notif-modal-body p {
-  margin: 0 0 0.75rem;
-  font-size: 0.95rem;
-  line-height: 1.5;
-  color: #cbd5e1;
-}
-
-html[data-theme='light'] .dash-notif-modal-body p {
-  color: #334155;
-}
-
-.dash-notif-meta {
-  font-size: 0.88rem !important;
-}
-
-.dash-notif-modal footer {
-  padding: 0 1rem 1rem;
-}
-
-.dash-notif-modal-ok {
+.dash-notif-entendido {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  width: 100%;
-  min-height: var(--touch-min, 44px);
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+  min-height: 40px;
+  padding: 0.35rem 0.85rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
   color: #052e16;
   font-weight: 700;
+  font-size: 0.82rem;
   cursor: pointer;
 }
 
-html[data-theme='light'] .dash-notif-modal-ok {
+html[data-theme='light'] .dash-notif-entendido {
   color: #fff;
 }
 
-.dash-notif-modal-ok:disabled {
+.dash-notif-entendido:disabled {
   opacity: 0.7;
   cursor: wait;
+}
+
+.dash-notif-modal-layer {
+  display: none;
 }
 
 @keyframes dash-notif-spin {

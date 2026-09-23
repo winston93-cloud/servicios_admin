@@ -27,8 +27,7 @@ export default function DashboardNotificacionesBell() {
   const [cargando, setCargando] = useState(false)
   const [rows, setRows] = useState<NotificacionEmpleado[]>([])
   const [noLeidas, setNoLeidas] = useState(0)
-  const [detalle, setDetalle] = useState<NotificacionEmpleado | null>(null)
-  const [marcando, setMarcando] = useState(false)
+  const [marcandoId, setMarcandoId] = useState<number | null>(null)
   const [mounted, setMounted] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
 
@@ -67,7 +66,7 @@ export default function DashboardNotificacionesBell() {
   }, [fetchNotifs])
 
   useEffect(() => {
-    if (!abierto || detalle) return
+    if (!abierto) return
     const onDoc = (e: MouseEvent) => {
       if (!wrapRef.current?.contains(e.target as Node)) setAbierto(false)
     }
@@ -80,7 +79,7 @@ export default function DashboardNotificacionesBell() {
       document.removeEventListener('mousedown', onDoc)
       window.removeEventListener('keydown', onKey)
     }
-  }, [abierto, detalle])
+  }, [abierto])
 
   async function abrirPanel() {
     const next = !abierto
@@ -88,10 +87,11 @@ export default function DashboardNotificacionesBell() {
     if (next) await fetchNotifs()
   }
 
-  async function confirmarLectura(notif: NotificacionEmpleado) {
+  /** Al abrir/ver la notificación: marcar leída + devolución → etapa 5 / historial. */
+  async function abrirYCerrar(notif: NotificacionEmpleado) {
     const sessionRaw = readPortalSessionForFetch()
     if (!sessionRaw) return
-    setMarcando(true)
+    setMarcandoId(notif.id)
     try {
       const res = await fetch('/api/notificaciones-empleado', {
         method: 'PATCH',
@@ -101,17 +101,17 @@ export default function DashboardNotificacionesBell() {
         },
         body: JSON.stringify({ ids: [notif.id] }),
       })
-      const data = (await res.json()) as { ok?: boolean }
-      if (res.ok && data.ok) {
-        setRows((prev) => prev.filter((r) => r.id !== notif.id))
-        setNoLeidas((n) => Math.max(0, n - 1))
+      const data = (await res.json()) as { ok?: boolean; message?: string }
+      if (!res.ok || !data.ok) {
+        console.warn('[notif] no se pudo marcar:', data.message)
+        return
       }
-    } catch {
-      /* ignore */
+      setRows((prev) => prev.filter((r) => r.id !== notif.id))
+      setNoLeidas((n) => Math.max(0, n - 1))
+    } catch (e) {
+      console.warn('[notif] error al marcar', e)
     } finally {
-      setMarcando(false)
-      setDetalle(null)
-      setAbierto(false)
+      setMarcandoId(null)
     }
   }
 
@@ -153,92 +153,36 @@ export default function DashboardNotificacionesBell() {
                 <p className="dash-notif-empty">No tienes notificaciones nuevas.</p>
               ) : (
                 <ul className="dash-notif-list">
-                  {rows.map((r) => (
-                    <li key={r.id}>
-                      <button
-                        type="button"
-                        className="dash-notif-item-btn is-nueva"
-                        onClick={() => {
-                          setDetalle(r)
-                          setAbierto(false)
-                        }}
-                      >
-                        <div className="dash-notif-item-title">
-                          <CheckCircle2 size={14} aria-hidden />
-                          <span>{r.asunto}</span>
+                  {rows.map((r) => {
+                    const ocupado = marcandoId === r.id
+                    return (
+                      <li key={r.id}>
+                        <div className="dash-notif-item-btn is-nueva">
+                          <div className="dash-notif-item-title">
+                            <CheckCircle2 size={14} aria-hidden />
+                            <span>{r.asunto}</span>
+                          </div>
+                          <p>{r.mensaje}</p>
+                          <time dateTime={r.created_at}>{formatFecha(r.created_at)}</time>
+                          <button
+                            type="button"
+                            className="dash-notif-entendido"
+                            disabled={ocupado}
+                            onClick={() => void abrirYCerrar(r)}
+                          >
+                            {ocupado ? (
+                              <Loader2 size={14} className="dash-notif-spin" aria-hidden />
+                            ) : (
+                              <CheckCircle2 size={14} aria-hidden />
+                            )}
+                            Entendido
+                          </button>
                         </div>
-                        <p>{r.mensaje}</p>
-                        <time dateTime={r.created_at}>{formatFecha(r.created_at)}</time>
-                      </button>
-                    </li>
-                  ))}
+                      </li>
+                    )
+                  })}
                 </ul>
               )}
-            </div>
-          </div>,
-          document.body
-        )
-      : null
-
-  const modal =
-    detalle && mounted
-      ? createPortal(
-          <div className="dash-notif-modal-layer" role="presentation">
-            <button
-              type="button"
-              className="dash-notif-backdrop"
-              aria-label="Cerrar detalle"
-              disabled={marcando}
-              onClick={() => void confirmarLectura(detalle)}
-            />
-            <div
-              className="dash-notif-modal"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="dash-notif-modal-title"
-            >
-              <header>
-                <h2 id="dash-notif-modal-title">{detalle.asunto}</h2>
-                <button
-                  type="button"
-                  className="dash-notif-close"
-                  disabled={marcando}
-                  onClick={() => void confirmarLectura(detalle)}
-                  aria-label="Cerrar"
-                >
-                  <X size={18} />
-                </button>
-              </header>
-              <div className="dash-notif-modal-body">
-                <p>{detalle.mensaje}</p>
-                {detalle.cheque_numero ? (
-                  <p className="dash-notif-meta">
-                    Cheque <strong>{detalle.cheque_numero}</strong>
-                    {detalle.devolucion_id ? (
-                      <>
-                        {' '}
-                        · Folio devolución <strong>#{detalle.devolucion_id}</strong>
-                      </>
-                    ) : null}
-                  </p>
-                ) : null}
-                <time dateTime={detalle.created_at}>{formatFecha(detalle.created_at)}</time>
-              </div>
-              <footer>
-                <button
-                  type="button"
-                  className="dash-notif-modal-ok"
-                  disabled={marcando}
-                  onClick={() => void confirmarLectura(detalle)}
-                >
-                  {marcando ? (
-                    <Loader2 size={16} className="dash-notif-spin" aria-hidden />
-                  ) : (
-                    <CheckCircle2 size={16} aria-hidden />
-                  )}
-                  Entendido
-                </button>
-              </footer>
             </div>
           </div>,
           document.body
@@ -262,7 +206,6 @@ export default function DashboardNotificacionesBell() {
         {noLeidas > 0 ? <span className="dash-notif-badge">{badge}</span> : null}
       </button>
       {panel}
-      {modal}
     </div>
   )
 }

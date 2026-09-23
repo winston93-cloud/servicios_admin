@@ -14,3 +14,7 @@ CREATE INDEX IF NOT EXISTS idx_notif_empleado_usuario_leida
 
 ALTER TABLE public.devolucion_tarjeta ADD COLUMN IF NOT EXISTS etapa5_at TIMESTAMPTZ;
 ALTER TABLE public.devolucion_tarjeta ADD COLUMN IF NOT EXISTS etapa5_por VARCHAR(160);
+
+ALTER TABLE public.devolucion_tarjeta DROP CONSTRAINT IF EXISTS devolucion_tarjeta_etapa_check;
+ALTER TABLE public.devolucion_tarjeta
+  ADD CONSTRAINT devolucion_tarjeta_etapa_check CHECK (etapa >= 1 AND etapa <= 5);

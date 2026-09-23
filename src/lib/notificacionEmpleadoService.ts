@@ -101,13 +101,10 @@ export async function marcarNotificacionesEmpleadoLeidas(opts: {
   const db = createInsforgeAdmin().database
   const ids = (opts.ids ?? []).map(n).filter((id) => id > 0)
 
-  // Lee primero los folios vinculados (antes de marcar leídas).
-  let qSel = db
-    .from('notificacion_empleado')
-    .select('id, devolucion_id')
-    .eq('usuario_id', uid)
-    .eq('leida', false)
+  // Folios vinculados: por ids (si vienen) o solo no leídas.
+  let qSel = db.from('notificacion_empleado').select('id, devolucion_id').eq('usuario_id', uid)
   if (ids.length) qSel = qSel.in('id', ids)
+  else qSel = qSel.eq('leida', false)
   const { data: pending, error: selErr } = await qSel
   if (selErr) return { ok: false, message: selErr.message }
 
@@ -130,7 +127,7 @@ export async function marcarNotificacionesEmpleadoLeidas(opts: {
   ]
   const por = String(opts.realizadoPor ?? '').trim().slice(0, 160) || 'sistema'
   for (const folio of folios) {
-    await db
+    const { error: upDevErr } = await db
       .from('devolucion_tarjeta')
       .update({
         etapa: 5,
@@ -138,10 +135,14 @@ export async function marcarNotificacionesEmpleadoLeidas(opts: {
         etapa5_por: por,
       })
       .eq('id', folio)
-      .lt('etapa', 5)
+      .lte('etapa', 4)
+    if (upDevErr) {
+      console.warn('[notif-empleado] no se pudo pasar folio a etapa 5:', folio, upDevErr.message)
+      return { ok: false, message: `No se pudo cerrar la devolución #${folio}: ${upDevErr.message}` }
+    }
   }
 
-  return { ok: true, updated: (data ?? []).length }
+  return { ok: true, updated: Math.max((data ?? []).length, folios.length) }
 }
 
 /** Aviso al titular que capturó la devolución (paso 1): cheque firmado. */
