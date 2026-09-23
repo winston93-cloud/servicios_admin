@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
   serverExternalPackages: [
     '@nodecfdi/sat-ws-descarga-masiva',
     '@nodecfdi/credentials',
+    '@napi-rs/canvas',
+    'pdfjs-dist',
   ],
 };
 
