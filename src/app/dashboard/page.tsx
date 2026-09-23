@@ -6,6 +6,7 @@ import {
   navItemKey,
   type DashboardAdminNavItem,
 } from '@/lib/dashboardNavAdmin'
+import { filtrarNavItemsAdminPorUsuario } from '@/lib/dashboardAccesosEmpleados'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -251,7 +252,10 @@ export default function DashboardPage() {
     return 'Buenas noches'
   })()
 
-  const navItemsAdmin = useMemo(() => [...NAV_ITEMS_ADMIN], [])
+  const navItemsAdmin = useMemo(() => {
+    const uid = Number(user?.usuario_id ?? session?.usuario_id ?? 0)
+    return filtrarNavItemsAdminPorUsuario(NAV_ITEMS_ADMIN, uid)
+  }, [user?.usuario_id, session?.usuario_id])
   const navItemsAlumno = useMemo(() => {
     const items = [...NAV_ITEMS_ALUMNO]
     if (becaFirmaAutorizada) items.push(NAV_ITEM_BECAS_FIRMA)
