@@ -1,50 +1,22 @@
+import 'server-only'
+
 import { createInsforgeAdmin } from '@/lib/insforgeAdmin'
 import { notificarChequeFirmadoDevolucion } from '@/lib/notificacionEmpleadoService'
+import {
+  ADJUNTO_MAX_BYTES,
+  DEVOLUCION_ETAPAS_TOTAL,
+  DEVOLUCIONES_BUCKET,
+  type DevolucionAdjunto,
+  type DevolucionTarjeta,
+} from '@/lib/devolucionesTypes'
 
-export const DEVOLUCIONES_BUCKET = 'devoluciones'
-export const DEVOLUCION_ETAPAS_TOTAL = 5
-export const ADJUNTO_MAX_BYTES = 5 * 1024 * 1024
-
-export type DevolucionAdjunto = {
-  id: number
-  devolucion_id: number
-  storage_key: string
-  storage_url: string
-  nombre_archivo: string
-  mime_type: string
-  bytes: number
-  subido_por: string | null
-  created_at: string
-}
-
-export type DevolucionTarjeta = {
-  id: number
-  asunto: string
-  realizado_por: string
-  usuario_id: number | null
-  storage_key: string
-  storage_url: string
-  mime_type: string
-  slack_ok: boolean
-  slack_error: string | null
-  etapa: number
-  slack_admvo_ok: boolean
-  slack_admvo_error: string | null
-  etapa2_at: string | null
-  etapa2_por: string | null
-  cheque_numero: number | null
-  cheque_entidad: string | null
-  /** pendiente_firma | firmado | null */
-  cheque_firma_status: string | null
-  etapa3_at: string | null
-  etapa3_por: string | null
-  etapa4_at: string | null
-  etapa4_por: string | null
-  etapa5_at: string | null
-  etapa5_por: string | null
-  created_at: string
-  adjuntos: DevolucionAdjunto[]
-}
+export {
+  ADJUNTO_MAX_BYTES,
+  DEVOLUCION_ETAPAS_TOTAL,
+  DEVOLUCIONES_BUCKET,
+  type DevolucionAdjunto,
+  type DevolucionTarjeta,
+} from '@/lib/devolucionesTypes'
 
 const SELECT =
   'id, asunto, realizado_por, usuario_id, storage_key, storage_url, mime_type, slack_ok, slack_error, etapa, slack_admvo_ok, slack_admvo_error, etapa2_at, etapa2_por, cheque_numero, cheque_entidad, cheque_firma_status, etapa3_at, etapa3_por, etapa4_at, etapa4_por, etapa5_at, etapa5_por, created_at'

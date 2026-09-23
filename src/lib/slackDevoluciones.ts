@@ -3,6 +3,8 @@
  * Misma idea que AgendaW (webhook Incoming); aquí además se adjunta la URL pública del screenshot.
  * Env: SLACK_WEBHOOK_SISTEMASWINSTON (URL del Incoming Webhook del canal).
  */
+import 'server-only'
+
 import { createInsforgeAdmin } from '@/lib/insforgeAdmin'
 
 const DEVOLUCIONES_BUCKET = 'devoluciones'

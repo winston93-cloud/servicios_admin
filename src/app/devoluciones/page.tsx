@@ -21,7 +21,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import {
   DEVOLUCION_ETAPAS_TOTAL,
   type DevolucionTarjeta,
-} from '@/lib/devolucionesService'
+} from '@/lib/devolucionesTypes'
 import CelebracionConfetiFuegos from '@/components/devoluciones/CelebracionConfetiFuegos'
 import './devoluciones.css'
 
