@@ -78,7 +78,7 @@ const OCULTOS_FATIMA_COORDING = [
   'contratos', // 19
   'becas', // 21
   'becarios', // 22
-  'reportes-conducta', // 23
+  'revision-pagados', // 25
 ] as const
 
 /**
