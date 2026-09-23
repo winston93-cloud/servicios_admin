@@ -146,7 +146,7 @@ const OCULTOS_ENFERMERIA = [
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo actual: Mario (17) = enfermería.
+ * Espejo actual: Mario (17) = Kevin.
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
@@ -158,7 +158,7 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   6: OCULTOS_KEVIN, // kevin
   58: OCULTOS_LAURA_VINCULACION, // Laura Domínguez Vinculación
   40: OCULTOS_ENFERMERIA, // enfermeria
-  17: OCULTOS_ENFERMERIA, // mario — espejo enfermería
+  17: OCULTOS_KEVIN, // mario — espejo Kevin
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
