@@ -65,8 +65,6 @@ export async function notificarDevolucionAdmvoSlack(data: {
     return { ok: false, error: 'Webhook Slack no configurado (SLACK_WEBHOOK_DEVOLUCION_ADMVO)' }
   }
 
-  const fecha = formatFechaMx(data.createdAt)
-  const asuntoTxt = data.asunto.trim() || '(sin asunto)'
   const links = data.adjuntos
     .filter((a) => a.url)
     .map((a) => `• <${a.url}|${a.nombre || 'archivo'}>`)
@@ -76,10 +74,7 @@ export async function notificarDevolucionAdmvoSlack(data: {
     `🧾 *Devolución lista para administración (etapa 2/5)*`,
     ``,
     `*Folio:* #${data.id}`,
-    `*Asunto:* ${asuntoTxt}`,
     `*Capturó:* ${data.realizadoPor}`,
-    `*Fecha captura:* ${fecha}`,
-    `*Envió Sistemas:* ${data.enviadoPor}`,
     ``,
     `*Archivos (${data.adjuntos.length}):*`,
     links || '—',
