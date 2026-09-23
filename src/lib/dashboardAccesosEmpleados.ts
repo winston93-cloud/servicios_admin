@@ -5,10 +5,10 @@ export const DASHBOARD_ESPEJO_USUARIO_ID = 17
 
 /**
  * Cuentas de sistemas que no se configuran en este flujo
- * (Mario sí se usa como espejo).
+ * (Mario sí se usa como espejo; kevin se configura cuando Mario lo indique).
  */
 export const DASHBOARD_SISTEMAS_PROTEGIDOS = new Set<number>([
-  6, // kevin — no tocar salvo indicación explícita
+  // vacío por ahora — kevin (6) se configura en este paso
 ])
 
 /** Catálogo numerado 1..25 para el flujo de configuración con Mario. */
