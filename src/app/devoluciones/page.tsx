@@ -545,78 +545,29 @@ function DevolucionesView() {
                         ) : null}
                       </p>
 
-                      {(r.adjuntos?.length ?? 0) > 0 ? (
-                        <div className="devoluciones-adjuntos-preview">
-                          {r.adjuntos.map((a) => {
-                            const esImg = String(a.mime_type || '').startsWith('image/')
-                            const esPdf =
-                              String(a.mime_type || '').includes('pdf') ||
-                              /\.pdf$/i.test(a.nombre_archivo || '')
-                            return (
-                              <div key={a.id} className="devoluciones-adjunto-card">
-                                {esImg ? (
-                                  <a
-                                    href={a.storage_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="devoluciones-adjunto-img"
-                                    title={a.nombre_archivo}
-                                  >
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={a.storage_url} alt={a.nombre_archivo} />
-                                  </a>
-                                ) : esPdf ? (
-                                  <a
-                                    href={a.storage_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="devoluciones-adjunto-pdf"
-                                    title={a.nombre_archivo}
-                                  >
-                                    <span className="devoluciones-adjunto-pdf-label">PDF</span>
-                                    <span className="devoluciones-adjunto-pdf-name">
-                                      {a.nombre_archivo}
-                                    </span>
-                                  </a>
-                                ) : (
-                                  <a
-                                    href={a.storage_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="devoluciones-adjunto-file"
-                                  >
-                                    <Paperclip size={16} aria-hidden />
-                                    {a.nombre_archivo}
-                                  </a>
-                                )}
-                                <div className="devoluciones-adjunto-meta">
-                                  <a
-                                    href={a.storage_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                  >
-                                    {a.nombre_archivo}
-                                  </a>
-                                  <span>{formatBytes(a.bytes)}</span>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      ) : null}
-
-                      {r.storage_url ? (
+                      {(r.adjuntos?.length ?? 0) > 0 || r.storage_url ? (
                         <ul className="devoluciones-adjuntos">
-                          <li>
-                            <a
-                              href={r.storage_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <Paperclip size={12} aria-hidden />
-                              Screenshot autorización
-                            </a>
-                          </li>
+                          {r.adjuntos?.map((a) => (
+                            <li key={a.id}>
+                              <a href={a.storage_url} target="_blank" rel="noopener noreferrer">
+                                <Paperclip size={12} aria-hidden />
+                                {a.nombre_archivo}
+                              </a>
+                              <span>{formatBytes(a.bytes)}</span>
+                            </li>
+                          ))}
+                          {r.storage_url ? (
+                            <li>
+                              <a
+                                href={r.storage_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Paperclip size={12} aria-hidden />
+                                Screenshot autorización
+                              </a>
+                            </li>
+                          ) : null}
                         </ul>
                       ) : null}
 
