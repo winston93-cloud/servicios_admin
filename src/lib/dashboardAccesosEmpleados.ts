@@ -159,12 +159,29 @@ const OCULTOS_ENFERMERIA = [
   'revision-pagados', // 25
 ] as const
 
+/** coordprim, coordkin, josefina: oculta 1,7-12,14,15,17-19,22. */
+const OCULTOS_COORD_JOSEFINA = [
+  'desayunos', // 1
+  'checador', // 7
+  'bajas', // 8
+  'monitoreo', // 9
+  'control-escolar', // 10
+  'programa-usa', // 11
+  'agenda-psicologas', // 12
+  'open-house', // 14
+  'facturacion', // 15
+  'sat', // 17
+  'cheques', // 18
+  'contratos', // 19
+  'becarios', // 22
+] as const
+
 /**
  * Módulos OCULTOS por usuario_id.
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo: Mario (17) restablecido. Siguiente: coordprim (7), coordkin (8), josefina (13).
+ * Espejo actual: Mario (17) = coordprim / coordkin / josefina.
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
@@ -176,7 +193,10 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   6: OCULTOS_KEVIN, // kevin
   58: OCULTOS_LAURA_VINCULACION, // Laura Domínguez Vinculación
   40: OCULTOS_ENFERMERIA, // enfermeria
-  // 17 mario — restablecido (ve las 25)
+  7: OCULTOS_COORD_JOSEFINA, // coordprim
+  8: OCULTOS_COORD_JOSEFINA, // coordkin
+  13: OCULTOS_COORD_JOSEFINA, // josefina
+  17: OCULTOS_COORD_JOSEFINA, // mario — espejo
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
