@@ -1,4 +1,5 @@
 import { createInsforgeAdmin } from '@/lib/insforgeAdmin'
+import { notificarChequeFirmadoDevolucion } from '@/lib/notificacionEmpleadoService'
 
 export const DEVOLUCIONES_BUCKET = 'devoluciones'
 export const DEVOLUCION_ETAPAS_TOTAL = 5
@@ -452,6 +453,14 @@ export async function completarFirmaDevolucion(opts: {
     })
     .eq('id', id)
   if (error) return { ok: false, message: error.message }
+
+  // Avisa al titular del paso 1 (cuenta institucional que capturó la devolución).
+  await notificarChequeFirmadoDevolucion({
+    usuarioId: actual.usuario_id,
+    devolucionId: id,
+    chequeNumero: actual.cheque_numero,
+    asuntoDevolucion: actual.asunto,
+  })
 
   const row = await cargarDevolucion(id)
   if (!row) return { ok: false, message: 'Actualizado, pero no se pudo releer el folio.' }

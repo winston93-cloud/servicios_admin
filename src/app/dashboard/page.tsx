@@ -15,6 +15,7 @@ import Image from 'next/image'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import DashboardAyudaModal from '@/components/dashboard/DashboardAyudaModal'
+import DashboardNotificacionesBell from '@/components/dashboard/DashboardNotificacionesBell'
 import { CircleHelp } from 'lucide-react'
 import './dashboard-module-card.css'
 import '@/components/dashboard/dashboard-ayuda.css'
@@ -304,6 +305,7 @@ export default function DashboardPage() {
             <span className="dashboard-welcome">
               Bienvenido, {session?.displayName ?? user?.usuario_nombre_completo}
             </span>
+            {mostrarPanelAdmin ? <DashboardNotificacionesBell /> : null}
             <ThemeToggle />
             <button onClick={handleLogout} className="dashboard-logout-btn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
