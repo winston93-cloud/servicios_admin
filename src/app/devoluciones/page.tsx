@@ -334,17 +334,20 @@ function DevolucionesView() {
       </header>
 
       <main className="devoluciones-main">
-        <p className="devoluciones-kicker">Pagos · Empleados Winston</p>
-        <h1 className="devoluciones-title">
-          <Undo2 size={34} strokeWidth={1.6} aria-hidden />
-          Devoluciones
-        </h1>
-        <p className="devoluciones-lead">
-          Registra la autorización de Slack cuando el papá se arrepiente de un pago con tarjeta
-          (inscripción, colegiatura u otro concepto). Queda historial y se avisa a{' '}
-          <strong>#avisos_devolucion</strong>.
-        </p>
+        <div className="devoluciones-intro">
+          <p className="devoluciones-kicker">Pagos · Empleados Winston</p>
+          <h1 className="devoluciones-title">
+            <Undo2 size={34} strokeWidth={1.6} aria-hidden />
+            Devoluciones
+          </h1>
+          <p className="devoluciones-lead">
+            Registra la autorización de Slack cuando el papá se arrepiente de un pago con tarjeta
+            (inscripción, colegiatura u otro concepto). Queda historial y se avisa a{' '}
+            <strong>#avisos_devolucion</strong>.
+          </p>
+        </div>
 
+        <div className="devoluciones-columns">
         <section className="devoluciones-form" aria-labelledby="dev-form-title">
           <h2 id="dev-form-title">Nueva devolución</h2>
 
@@ -514,16 +517,6 @@ function DevolucionesView() {
                 const cerrada = r.etapa >= 5
                 return (
                   <li key={r.id} className="devoluciones-hist-item">
-                    <a
-                      href={r.storage_url || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="devoluciones-hist-thumb"
-                      title="Ver screenshot"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={r.storage_url} alt="" />
-                    </a>
                     <div className="devoluciones-hist-body">
                       <header>
                         <strong>#{r.id}</strong>
@@ -553,16 +546,77 @@ function DevolucionesView() {
                       </p>
 
                       {(r.adjuntos?.length ?? 0) > 0 ? (
+                        <div className="devoluciones-adjuntos-preview">
+                          {r.adjuntos.map((a) => {
+                            const esImg = String(a.mime_type || '').startsWith('image/')
+                            const esPdf =
+                              String(a.mime_type || '').includes('pdf') ||
+                              /\.pdf$/i.test(a.nombre_archivo || '')
+                            return (
+                              <div key={a.id} className="devoluciones-adjunto-card">
+                                {esImg ? (
+                                  <a
+                                    href={a.storage_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="devoluciones-adjunto-img"
+                                    title={a.nombre_archivo}
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={a.storage_url} alt={a.nombre_archivo} />
+                                  </a>
+                                ) : esPdf ? (
+                                  <a
+                                    href={a.storage_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="devoluciones-adjunto-pdf"
+                                    title={a.nombre_archivo}
+                                  >
+                                    <span className="devoluciones-adjunto-pdf-label">PDF</span>
+                                    <span className="devoluciones-adjunto-pdf-name">
+                                      {a.nombre_archivo}
+                                    </span>
+                                  </a>
+                                ) : (
+                                  <a
+                                    href={a.storage_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="devoluciones-adjunto-file"
+                                  >
+                                    <Paperclip size={16} aria-hidden />
+                                    {a.nombre_archivo}
+                                  </a>
+                                )}
+                                <div className="devoluciones-adjunto-meta">
+                                  <a
+                                    href={a.storage_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    {a.nombre_archivo}
+                                  </a>
+                                  <span>{formatBytes(a.bytes)}</span>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : null}
+
+                      {r.storage_url ? (
                         <ul className="devoluciones-adjuntos">
-                          {r.adjuntos.map((a) => (
-                            <li key={a.id}>
-                              <a href={a.storage_url} target="_blank" rel="noopener noreferrer">
-                                <Paperclip size={12} aria-hidden />
-                                {a.nombre_archivo}
-                              </a>
-                              <span>{formatBytes(a.bytes)}</span>
-                            </li>
-                          ))}
+                          <li>
+                            <a
+                              href={r.storage_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <Paperclip size={12} aria-hidden />
+                              Screenshot autorización
+                            </a>
+                          </li>
                         </ul>
                       ) : null}
 
@@ -665,6 +719,7 @@ function DevolucionesView() {
               )
             })()}
         </section>
+        </div>
       </main>
     </div>
   )

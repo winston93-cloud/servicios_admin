@@ -65,10 +65,11 @@ export async function notificarDevolucionAdmvoSlack(data: {
     return { ok: false, error: 'Webhook Slack no configurado (SLACK_WEBHOOK_DEVOLUCION_ADMVO)' }
   }
 
-  const links = data.adjuntos
-    .filter((a) => a.url)
-    .map((a) => `• <${a.url}|${a.nombre || 'archivo'}>`)
-    .join('\n')
+  // Screenshot como enlace en Archivos; los adjuntos se despliegan abajo (al revés).
+  const archivoLinks: string[] = []
+  if (data.screenshotUrl) {
+    archivoLinks.push(`• <${data.screenshotUrl}|Screenshot autorización>`)
+  }
 
   const text = [
     `🧾 *Devolución lista para administración (etapa 2/5)*`,
@@ -76,8 +77,8 @@ export async function notificarDevolucionAdmvoSlack(data: {
     `*Folio:* #${data.id}`,
     `*Capturó:* ${data.realizadoPor}`,
     ``,
-    `*Archivos (${data.adjuntos.length}):*`,
-    links || '—',
+    `*Archivos (${archivoLinks.length}):*`,
+    archivoLinks.join('\n') || '—',
   ].join('\n')
 
   const blocks: Record<string, unknown>[] = [
@@ -87,24 +88,27 @@ export async function notificarDevolucionAdmvoSlack(data: {
     },
   ]
 
-  if (data.screenshotUrl) {
-    blocks.push({
-      type: 'image',
-      image_url: data.screenshotUrl,
-      alt_text: `Screenshot autorización — folio #${data.id}`,
-    })
-  }
-
   let imgs = 0
   for (const a of data.adjuntos) {
-    if (imgs >= 3) break
-    if (!a.url || !String(a.mime || '').startsWith('image/')) continue
+    if (!a.url) continue
+    const mime = String(a.mime || '')
+    if (mime.startsWith('image/') && imgs < 5) {
+      blocks.push({
+        type: 'image',
+        image_url: a.url,
+        alt_text: a.nombre || 'Adjunto',
+      })
+      imgs += 1
+      continue
+    }
+    // PDF / otros: bloque destacado (Slack no renderiza PDF en image_url).
     blocks.push({
-      type: 'image',
-      image_url: a.url,
-      alt_text: a.nombre || 'Adjunto',
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: `📄 *${a.nombre || 'archivo'}*\n<${a.url}|Abrir archivo>`,
+      },
     })
-    imgs += 1
   }
 
   return sendSlackWebhook(webhookUrl, text, blocks)
