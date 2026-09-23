@@ -159,7 +159,7 @@ const OCULTOS_ENFERMERIA = [
   'revision-pagados', // 25
 ] as const
 
-/** coordprim, coordkin, josefina: oculta 1,7-12,14,15,17-19,22. */
+/** coordprim, coordkin, josefina: oculta 1,7-12,14,15,17-19,22,24,25. */
 const OCULTOS_COORD_JOSEFINA = [
   'desayunos', // 1
   'checador', // 7
@@ -174,6 +174,8 @@ const OCULTOS_COORD_JOSEFINA = [
   'cheques', // 18
   'contratos', // 19
   'becarios', // 22
+  'entregas-pie', // 24
+  'revision-pagados', // 25
 ] as const
 
 /**
