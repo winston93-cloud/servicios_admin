@@ -11,3 +11,6 @@ CREATE TABLE IF NOT EXISTS public.notificacion_empleado (
 
 CREATE INDEX IF NOT EXISTS idx_notif_empleado_usuario_leida
   ON public.notificacion_empleado (usuario_id, leida, created_at DESC);
+
+ALTER TABLE public.devolucion_tarjeta ADD COLUMN IF NOT EXISTS etapa5_at TIMESTAMPTZ;
+ALTER TABLE public.devolucion_tarjeta ADD COLUMN IF NOT EXISTS etapa5_por VARCHAR(160);

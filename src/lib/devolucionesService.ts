@@ -40,12 +40,14 @@ export type DevolucionTarjeta = {
   etapa3_por: string | null
   etapa4_at: string | null
   etapa4_por: string | null
+  etapa5_at: string | null
+  etapa5_por: string | null
   created_at: string
   adjuntos: DevolucionAdjunto[]
 }
 
 const SELECT =
-  'id, asunto, realizado_por, usuario_id, storage_key, storage_url, mime_type, slack_ok, slack_error, etapa, slack_admvo_ok, slack_admvo_error, etapa2_at, etapa2_por, cheque_numero, cheque_entidad, cheque_firma_status, etapa3_at, etapa3_por, etapa4_at, etapa4_por, created_at'
+  'id, asunto, realizado_por, usuario_id, storage_key, storage_url, mime_type, slack_ok, slack_error, etapa, slack_admvo_ok, slack_admvo_error, etapa2_at, etapa2_por, cheque_numero, cheque_entidad, cheque_firma_status, etapa3_at, etapa3_por, etapa4_at, etapa4_por, etapa5_at, etapa5_por, created_at'
 
 const MIME_IMG = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'])
 const MIME_ADJUNTO = new Set([
@@ -99,6 +101,8 @@ function mapRow(r: Record<string, unknown>, adjuntos: DevolucionAdjunto[] = []):
     etapa3_por: r.etapa3_por == null ? null : String(r.etapa3_por),
     etapa4_at: r.etapa4_at == null ? null : String(r.etapa4_at),
     etapa4_por: r.etapa4_por == null ? null : String(r.etapa4_por),
+    etapa5_at: r.etapa5_at == null ? null : String(r.etapa5_at),
+    etapa5_por: r.etapa5_por == null ? null : String(r.etapa5_por),
     created_at: String(r.created_at ?? ''),
     adjuntos,
   }

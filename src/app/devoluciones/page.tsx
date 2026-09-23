@@ -52,6 +52,7 @@ function DevolucionesView() {
   const [cargandoHist, setCargandoHist] = useState(true)
   const [busyId, setBusyId] = useState<number | null>(null)
   const [celebra, setCelebra] = useState<{ cheque: number; folio: number } | null>(null)
+  const [pestana, setPestana] = useState<'proceso' | 'historial'>('proceso')
   const zonaRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -449,7 +450,7 @@ function DevolucionesView() {
 
         <section className="devoluciones-historial" aria-labelledby="dev-hist-title">
           <div className="devoluciones-hist-head">
-            <h2 id="dev-hist-title">Historial</h2>
+            <h2 id="dev-hist-title">Devoluciones</h2>
             <button
               type="button"
               className="devoluciones-btn ghost sm"
@@ -459,17 +460,58 @@ function DevolucionesView() {
               Actualizar
             </button>
           </div>
+
+          <div className="devoluciones-tabs" role="tablist" aria-label="Vista de devoluciones">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={pestana === 'proceso'}
+              className={`devoluciones-tab${pestana === 'proceso' ? ' is-active' : ''}`}
+              onClick={() => setPestana('proceso')}
+            >
+              En proceso
+              <span className="devoluciones-tab-count">
+                {historial.filter((r) => r.etapa < 5).length}
+              </span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={pestana === 'historial'}
+              className={`devoluciones-tab${pestana === 'historial' ? ' is-active' : ''}`}
+              onClick={() => setPestana('historial')}
+            >
+              Historial
+              <span className="devoluciones-tab-count">
+                {historial.filter((r) => r.etapa >= 5).length}
+              </span>
+            </button>
+          </div>
+
           {cargandoHist ? (
             <p className="devoluciones-hist-empty">
               <Loader2 size={16} className="devoluciones-spin" aria-hidden /> Cargando…
             </p>
-          ) : historial.length === 0 ? (
-            <p className="devoluciones-hist-empty">Aún no hay devoluciones registradas.</p>
-          ) : (
+          ) : (() => {
+              const lista =
+                pestana === 'historial'
+                  ? historial.filter((r) => r.etapa >= 5)
+                  : historial.filter((r) => r.etapa < 5)
+              if (lista.length === 0) {
+                return (
+                  <p className="devoluciones-hist-empty">
+                    {pestana === 'historial'
+                      ? 'Aún no hay devoluciones cerradas en historial.'
+                      : 'No hay devoluciones en proceso.'}
+                  </p>
+                )
+              }
+              return (
             <ul className="devoluciones-hist-list">
-              {historial.map((r) => {
+              {lista.map((r) => {
                 const ocupado = busyId === r.id
                 const enEtapa1 = r.etapa === 1
+                const cerrada = r.etapa >= 5
                 return (
                   <li key={r.id} className="devoluciones-hist-item">
                     <a
@@ -505,6 +547,9 @@ function DevolucionesView() {
                         {r.etapa >= 2 ? (
                           <span className="devoluciones-badge ok">Admvo OK</span>
                         ) : null}
+                        {cerrada ? (
+                          <span className="devoluciones-badge ok">Cerrada</span>
+                        ) : null}
                       </p>
 
                       {(r.adjuntos?.length ?? 0) > 0 ? (
@@ -521,7 +566,7 @@ function DevolucionesView() {
                         </ul>
                       ) : null}
 
-                      {enEtapa1 ? (
+                      {!cerrada && enEtapa1 ? (
                         <div className="devoluciones-etapa1-actions">
                           <label className="devoluciones-btn ghost sm devoluciones-file-label">
                             {ocupado ? (
@@ -563,7 +608,9 @@ function DevolucionesView() {
                         </div>
                       ) : null}
 
-                      {r.cheque_numero && r.cheque_firma_status === 'pendiente_firma' ? (
+                      {!cerrada &&
+                      r.cheque_numero &&
+                      r.cheque_firma_status === 'pendiente_firma' ? (
                         <div className="devoluciones-cheque-banner pendiente">
                           <p>
                             Cheque {r.cheque_numero}
@@ -590,7 +637,9 @@ function DevolucionesView() {
                         </div>
                       ) : null}
 
-                      {r.cheque_numero && r.cheque_firma_status === 'firmado' ? (
+                      {!cerrada &&
+                      r.cheque_numero &&
+                      r.cheque_firma_status === 'firmado' ? (
                         <div className="devoluciones-cheque-banner firmado">
                           <p>Cheque {r.cheque_numero} Firmado</p>
                           <button type="button" className="devoluciones-btn success sm" disabled>
@@ -599,12 +648,22 @@ function DevolucionesView() {
                           </button>
                         </div>
                       ) : null}
+
+                      {cerrada && r.cheque_numero ? (
+                        <div className="devoluciones-cheque-banner firmado">
+                          <p>
+                            Cheque {r.cheque_numero} Firmado · Folio cerrado (5/
+                            {DEVOLUCION_ETAPAS_TOTAL})
+                          </p>
+                        </div>
+                      ) : null}
                     </div>
                   </li>
                 )
               })}
             </ul>
-          )}
+              )
+            })()}
         </section>
       </main>
     </div>

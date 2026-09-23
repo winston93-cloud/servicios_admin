@@ -38,10 +38,16 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const body = (await request.json().catch(() => ({}))) as { ids?: number[] }
+    const body = (await request.json().catch(() => ({}))) as {
+      ids?: number[]
+    }
     const result = await marcarNotificacionesEmpleadoLeidas({
       usuarioId,
       ids: body.ids,
+      realizadoPor:
+        auth.session.displayName?.trim() ||
+        auth.session.usuario_username?.trim() ||
+        'empleado',
     })
     if (!result.ok) {
       return NextResponse.json({ ok: false, message: result.message }, { status: 400 })
