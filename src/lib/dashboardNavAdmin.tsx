@@ -455,8 +455,13 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   },
 ]
 
-export function navItemKey(item: Pick<DashboardAdminNavItem, 'id' | 'label' | 'path' | 'href'>): string {
-  return item.id || item.path || item.href || item.label
+export function navItemKey(item: {
+  id?: string
+  label?: string
+  path?: string
+  href?: string
+}): string {
+  return item.id || item.path || item.href || item.label || 'item'
 }
 
 export function abrirNavItem(
