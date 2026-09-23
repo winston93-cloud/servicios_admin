@@ -72,7 +72,7 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   37: OCULTOS_RUBEN_ALAN_CARLOS, // carlos
   38: OCULTOS_RUBEN_ALAN_CARLOS, // alan
   3: OCULTOS_KARLA_M, // karla_m
-  17: OCULTOS_KARLA_M, // mario — espejo
+  // 17 mario — restablecido; siguiente: fatima (39)
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
