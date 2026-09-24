@@ -317,7 +317,9 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   49: OCULTOS_ENFERMERIA, // estancia — solo Servicios
   57: OCULTOS_SARA, // sara — Desayunos, Servicios, Monitoreo
   52: OCULTOS_JUANITA, // juanita
-  17: OCULTOS_JUANITA, // mario — espejo juanita
+  4: OCULTOS_RECEPCION, // recepcion1
+  5: OCULTOS_RECEPCION, // recepcion2
+  17: OCULTOS_RECEPCION, // mario — espejo recepción
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
