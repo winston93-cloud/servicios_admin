@@ -331,6 +331,7 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   54: OCULTOS_COORDING_KINDER_ING, // kinder_ing (ex set visible de Fátima)
   6: OCULTOS_KEVIN, // kevin
   58: OCULTOS_LAURA_VINCULACION, // Laura Domínguez Vinculación
+  12: OCULTOS_LAURA_VINCULACION, // diana — mismo set que Laura Vinculación
   40: OCULTOS_ENFERMERIA, // enfermeria
   7: OCULTOS_COORD_JOSEFINA, // coordprim
   8: OCULTOS_COORD_JOSEFINA, // coordkin
