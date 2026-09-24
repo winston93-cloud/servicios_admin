@@ -337,12 +337,33 @@ const OCULTOS_KARLA = [
   'entregas-pie', // 24
 ] as const
 
+/** primaria1/2/3 + auxiliar1/2: oculta 1,5,7-15,17-22. */
+const OCULTOS_PRIMARIA_AUX = [
+  'desayunos', // 1
+  'devoluciones', // 5
+  'checador', // 7
+  'bajas', // 8
+  'monitoreo', // 9
+  'control-escolar', // 10
+  'programa-usa', // 11
+  'agenda-psicologas', // 12
+  'agenda-directoras', // 13
+  'open-house', // 14
+  'facturacion', // 15
+  'sat', // 17
+  'cheques', // 18
+  'contratos', // 19
+  'boletas', // 20
+  'becas', // 21
+  'becarios', // 22
+] as const
+
 /**
  * Módulos OCULTOS por usuario_id.
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo: Mario (17) restablecido. Siguiente: primaria1 (43), primaria2 (44), primaria3 (45).
+ * Espejo actual: Mario (17) = primaria/auxiliar.
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
@@ -371,7 +392,12 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   4: OCULTOS_RECEPCION, // recepcion1
   5: OCULTOS_RECEPCION, // recepcion2
   25: OCULTOS_KARLA, // karla (secundaria idiomas)
-  // 17 mario — restablecido; siguiente primaria1/2/3
+  43: OCULTOS_PRIMARIA_AUX, // primaria1
+  44: OCULTOS_PRIMARIA_AUX, // primaria2
+  45: OCULTOS_PRIMARIA_AUX, // primaria3
+  46: OCULTOS_PRIMARIA_AUX, // auxiliar1
+  47: OCULTOS_PRIMARIA_AUX, // auxiliar2
+  17: OCULTOS_PRIMARIA_AUX, // mario — espejo
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
