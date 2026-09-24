@@ -4,6 +4,17 @@ import { NAV_ITEMS_ADMIN } from '@/lib/dashboardNavAdmin'
 export const DASHBOARD_ESPEJO_USUARIO_ID = 17
 
 /**
+ * Cuentas con layout personalizado del dashboard:
+ * grid de 5 columnas + botón «Cambiar orden».
+ * laura (2), mario (17).
+ */
+export const DASHBOARD_LAYOUT_PERSONALIZADO_IDS = new Set<number>([2, 17])
+
+export function dashboardLayoutPersonalizado(usuarioId: number | null | undefined): boolean {
+  const uid = Number(usuarioId) || 0
+  return uid > 0 && DASHBOARD_LAYOUT_PERSONALIZADO_IDS.has(uid)
+}
+/**
  * Cuentas de sistemas que no se configuran en este flujo
  * (Mario sí se usa como espejo; kevin se configura cuando Mario lo indique).
  */
@@ -231,7 +242,7 @@ const OCULTOS_PREFECTURA = [
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo: Mario (17) restablecido. Siguiente: laura (2) — Departamento Administrativo.
+ * Espejo: Mario (17) restablecido. laura (2): sin ocultas + layout 5 cols / orden.
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben

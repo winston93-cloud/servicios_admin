@@ -6,7 +6,12 @@ import {
   navItemKey,
   type DashboardAdminNavItem,
 } from '@/lib/dashboardNavAdmin'
-import { filtrarNavItemsAdminPorUsuario, numeroCatalogoDeModulo } from '@/lib/dashboardAccesosEmpleados'
+import { filtrarNavItemsAdminPorUsuario, dashboardLayoutPersonalizado, numeroCatalogoDeModulo } from '@/lib/dashboardAccesosEmpleados'
+import {
+  aplicarOrdenDashboard,
+  guardarOrdenDashboard,
+  leerOrdenDashboard,
+} from '@/lib/dashboardNavOrder'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
@@ -16,8 +21,9 @@ import Image from 'next/image'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import DashboardAyudaModal from '@/components/dashboard/DashboardAyudaModal'
+import DashboardOrdenModal from '@/components/dashboard/DashboardOrdenModal'
 import DashboardNotificacionesBell from '@/components/dashboard/DashboardNotificacionesBell'
-import { CircleHelp } from 'lucide-react'
+import { CircleHelp, ListOrdered } from 'lucide-react'
 import './dashboard-module-card.css'
 import '@/components/dashboard/dashboard-ayuda.css'
 
@@ -140,6 +146,8 @@ export default function DashboardPage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [cicloVigenteNombre, setCicloVigenteNombre] = useState<string | null>(null)
   const [ayudaAbierta, setAyudaAbierta] = useState(false)
+  const [ordenAbierto, setOrdenAbierto] = useState(false)
+  const [ordenIds, setOrdenIds] = useState<string[]>([])
   const [becaFirmaAutorizada, setBecaFirmaAutorizada] = useState(false)
 
   // Solo un panel: alumno XOR personal (nunca mezclar módulos).
@@ -252,10 +260,33 @@ export default function DashboardPage() {
     return 'Buenas noches'
   })()
 
+  const usuarioIdAdmin = Number(user?.usuario_id ?? session?.usuario_id ?? 0)
+  const layoutPersonalizado =
+    mostrarPanelAdmin && dashboardLayoutPersonalizado(usuarioIdAdmin)
+
+  useEffect(() => {
+    if (!layoutPersonalizado || !(usuarioIdAdmin > 0)) {
+      setOrdenIds([])
+      return
+    }
+    setOrdenIds(leerOrdenDashboard(usuarioIdAdmin))
+  }, [layoutPersonalizado, usuarioIdAdmin])
+
   const navItemsAdmin = useMemo(() => {
-    const uid = Number(user?.usuario_id ?? session?.usuario_id ?? 0)
-    return filtrarNavItemsAdminPorUsuario(NAV_ITEMS_ADMIN, uid)
-  }, [user?.usuario_id, session?.usuario_id])
+    const base = filtrarNavItemsAdminPorUsuario(NAV_ITEMS_ADMIN, usuarioIdAdmin)
+    if (!layoutPersonalizado) return base
+    return aplicarOrdenDashboard(base, ordenIds)
+  }, [usuarioIdAdmin, layoutPersonalizado, ordenIds])
+
+  const ordenModalItems = useMemo(
+    () =>
+      navItemsAdmin.map((item) => ({
+        id: item.id,
+        label: item.label,
+        catalogN: numeroCatalogoDeModulo(item.id),
+      })),
+    [navItemsAdmin]
+  )
   const navItemsAlumno = useMemo(() => {
     const items = [...NAV_ITEMS_ALUMNO]
     if (becaFirmaAutorizada) items.push(NAV_ITEM_BECAS_FIRMA)
@@ -371,9 +402,23 @@ export default function DashboardPage() {
                     <span className="dashboard-ciclo-vigente-nombre">{cicloVigenteNombre}</span>
                   </p>
                 )}
+                {layoutPersonalizado ? (
+                  <div className="dashboard-orden-toolbar">
+                    <button
+                      type="button"
+                      className="dashboard-orden-btn"
+                      onClick={() => setOrdenAbierto(true)}
+                    >
+                      <ListOrdered size={18} strokeWidth={2.25} aria-hidden />
+                      Cambiar orden
+                    </button>
+                  </div>
+                ) : null}
               </div>
 
-              <div className="dashboard-nav-grid">
+              <div
+                className={`dashboard-nav-grid${layoutPersonalizado ? ' dashboard-nav-grid--cols-5' : ''}`}
+              >
                 {mostrarPanelAlumno
                   ? navItemsAlumno.map((item, index) => (
                       <div
@@ -583,6 +628,22 @@ export default function DashboardPage() {
             />
           </>
         )}
+
+        {layoutPersonalizado ? (
+          <DashboardOrdenModal
+            abierto={ordenAbierto}
+            items={ordenModalItems}
+            onCerrar={() => setOrdenAbierto(false)}
+            onGuardar={(ids) => {
+              guardarOrdenDashboard(usuarioIdAdmin, ids)
+              setOrdenIds(ids)
+            }}
+            onRestablecer={() => {
+              guardarOrdenDashboard(usuarioIdAdmin, [])
+              setOrdenIds([])
+            }}
+          />
+        ) : null}
 
       </div>
     </ProtectedRoute>
