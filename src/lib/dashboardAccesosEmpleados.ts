@@ -372,7 +372,7 @@ const OCULTOS_PRIMARIA_AUX = [
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo: Mario (17) restablecido.
+ * Espejo actual: Mario (17) = asistente (mismo set que josefina).
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
@@ -408,7 +408,7 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   45: OCULTOS_PRIMARIA_AUX, // primaria3
   46: OCULTOS_PRIMARIA_AUX, // auxiliar1
   47: OCULTOS_PRIMARIA_AUX, // auxiliar2
-  // 17 mario — restablecido
+  17: OCULTOS_COORD_JOSEFINA, // mario — espejo asistente
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
