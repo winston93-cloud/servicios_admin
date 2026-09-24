@@ -194,7 +194,7 @@ const OCULTOS_SARA = [
   'revision-pagados', // 25
 ] as const
 
-/** coordprim, coordkin, josefina: oculta 1,7-12,14,15,17-19,22,24,25. */
+/** coordprim, coordkin, josefina, asistente: oculta 1,7-12,14,15,17-19,22,24,25. */
 const OCULTOS_COORD_JOSEFINA = [
   'desayunos', // 1
   'checador', // 7
@@ -372,7 +372,7 @@ const OCULTOS_PRIMARIA_AUX = [
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo actual: Mario (17) = coordacademic (mismo set que josefina).
+ * Espejo actual: Mario (17) = asistente (mismo set que josefina).
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
@@ -389,6 +389,7 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   8: OCULTOS_COORD_JOSEFINA, // coordkin
   13: OCULTOS_COORD_JOSEFINA, // josefina
   42: OCULTOS_COORDACADEMIC, // coordacademic
+  60: OCULTOS_COORD_JOSEFINA, // asistente (dirección secundaria) — mismo set que josefina
   11: OCULTOS_PSICOLOGIA, // psicologia (primaria)
   55: OCULTOS_PSICOLOGIA, // psicologiak (maternal/kinder)
   56: OCULTOS_PSICOLOGIA, // psicologiasec (secundaria)
@@ -407,7 +408,7 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   45: OCULTOS_PRIMARIA_AUX, // primaria3
   46: OCULTOS_PRIMARIA_AUX, // auxiliar1
   47: OCULTOS_PRIMARIA_AUX, // auxiliar2
-  17: OCULTOS_COORDACADEMIC, // mario — espejo coordacademic
+  17: OCULTOS_COORD_JOSEFINA, // mario — espejo asistente
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
