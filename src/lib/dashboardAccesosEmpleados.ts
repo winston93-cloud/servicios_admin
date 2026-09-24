@@ -231,7 +231,7 @@ const OCULTOS_PREFECTURA = [
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo actual: Mario (17) = prefectura.
+ * Espejo: Mario (17) restablecido. Siguiente: laura (2) — Departamento Administrativo.
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
@@ -255,7 +255,7 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   31: OCULTOS_PREFECTURA, // prefectura
   49: OCULTOS_ENFERMERIA, // estancia — solo Servicios
   57: OCULTOS_ENFERMERIA, // sara — solo Servicios
-  17: OCULTOS_PREFECTURA, // mario — espejo prefectura
+  // 17 mario — restablecido; siguiente laura (2)
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
