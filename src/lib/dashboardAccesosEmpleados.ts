@@ -213,6 +213,15 @@ const OCULTOS_COORD_JOSEFINA = [
   'revision-pagados', // 25
 ] as const
 
+/** coordacademic: mismo que josefina + oculta 4,5,6,23. */
+const OCULTOS_COORDACADEMIC = [
+  ...OCULTOS_COORD_JOSEFINA,
+  'prorrogas', // 4
+  'devoluciones', // 5
+  'notificaciones', // 6
+  'reportes-conducta', // 23
+] as const
+
 /** psicología (3 niveles): oculta 1,4,5,7,9-11,13,15-22,24. */
 const OCULTOS_PSICOLOGIA = [
   'desayunos', // 1
