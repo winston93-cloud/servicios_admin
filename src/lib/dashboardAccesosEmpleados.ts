@@ -203,15 +203,17 @@ const OCULTOS_PSICOLOGIA = [
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo actual: Mario (17) = psicología (3 niveles).
+ * Espejo: Mario (17) restablecido.
+ * Siguiente (control escolar 3 niveles): fatima (39), controlprim (16), coordsec (50).
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
   37: OCULTOS_RUBEN_ALAN_CARLOS, // carlos
   38: OCULTOS_RUBEN_ALAN_CARLOS, // alan
   3: OCULTOS_KARLA_M, // karla_m
-  39: OCULTOS_FATIMA_COORDING, // fatima
-  10: OCULTOS_FATIMA_COORDING, // coording
+  10: OCULTOS_COORDING_KINDER_ING, // coording
+  54: OCULTOS_COORDING_KINDER_ING, // kinder_ing (ex set visible de Fátima)
+  // 39 fatima — restablecida (control escolar kinder; ve todas)
   6: OCULTOS_KEVIN, // kevin
   58: OCULTOS_LAURA_VINCULACION, // Laura Domínguez Vinculación
   40: OCULTOS_ENFERMERIA, // enfermeria
@@ -221,7 +223,7 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   11: OCULTOS_PSICOLOGIA, // psicologia (primaria)
   55: OCULTOS_PSICOLOGIA, // psicologiak (maternal/kinder)
   56: OCULTOS_PSICOLOGIA, // psicologiasec (secundaria)
-  17: OCULTOS_PSICOLOGIA, // mario — espejo
+  // 17 mario — restablecido
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
