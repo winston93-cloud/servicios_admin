@@ -25101,6 +25101,193 @@ html[data-theme='dark'] .ce-panel-close-btn {
   font-weight: 600;
 }
 
+.usr-aut {
+  margin-top: 0.9rem;
+  padding: 0.9rem;
+  border-radius: 12px;
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: rgba(120, 53, 15, 0.18);
+}
+
+.usr-aut[data-error='1'] {
+  border-color: #f87171;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.14);
+}
+
+.usr-aut-title,
+.usr-hist-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fde68a;
+}
+
+.usr-aut-cambios {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.7rem 0 0.8rem;
+  padding: 0;
+  list-style: none;
+}
+
+.usr-aut-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.usr-aut-tag--mas {
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  color: #6ee7b7;
+}
+
+.usr-aut-tag--menos {
+  background: rgba(248, 113, 113, 0.16);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  color: #fca5a5;
+}
+
+.usr-aut-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.usr-aut-campo input {
+  min-height: 44px;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  background: #020617;
+  color: #f1f5f9;
+  font-size: 0.92rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.usr-aut-campo input:focus {
+  outline: none;
+  border-color: rgba(251, 191, 36, 0.6);
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.14);
+}
+
+.usr-aut-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin: 0.75rem 0 0;
+}
+
+.usr-aut-meta div {
+  min-width: 0;
+}
+
+.usr-aut-meta dt {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+.usr-aut-meta dd {
+  margin: 0.15rem 0 0;
+  color: #e2e8f0;
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
+.usr-hist {
+  margin-top: 1rem;
+  padding: 0.95rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(2, 6, 23, 0.35);
+}
+
+.usr-hist-title {
+  color: #e2e8f0;
+}
+
+.usr-hist-vacio {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.65rem 0 0;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.usr-hist-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 260px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0.7rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.usr-hist-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.usr-hist-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.usr-hist-cuerpo strong {
+  color: #f1f5f9;
+  font-size: 0.85rem;
+}
+
+.usr-hist-cuerpo span {
+  color: #94a3b8;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.usr-hist-cuerpo b {
+  color: #fde68a;
+  font-weight: 600;
+}
+
+.usr-hist-fecha {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .usr-spin {
   animation: usr-spin 0.8s linear infinite;
 }
@@ -25127,8 +25314,17 @@ html[data-theme='dark'] .ce-panel-close-btn {
 
   .usr-form-grid input,
   .usr-form-grid select,
-  .usr-acc-copiar select {
+  .usr-acc-copiar select,
+  .usr-aut-campo input {
     font-size: 16px;
+  }
+
+  .usr-hist-item {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .usr-hist-fecha {
+    grid-column: 2;
   }
 
   .usr-acc {
@@ -25168,6 +25364,14 @@ html[data-theme='dark'] .ce-panel-close-btn {
 
   .usr-acc-legend {
     flex-wrap: wrap;
+  }
+
+  .usr-aut-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .usr-aut-tag {
+    white-space: normal;
   }
 }
 

@@ -1,5 +1,5 @@
 import { createDbAdmin } from '@/lib/insforgeAdmin'
-import { normalizarModulosDashboard } from '@/lib/dashboardAccesosEmpleados'
+import { modulosVisiblesDeUsuario, normalizarModulosDashboard } from '@/lib/dashboardAccesosEmpleados'
 
 export type UsuarioRegistro = {
   usuario_id: number
@@ -28,6 +28,26 @@ export type UsuarioInput = {
   usuario_status: number
   nivel: number
   dashboard_modulos: string[]
+}
+
+/** Datos de autorización que acompañan un cambio de accesos al dashboard. */
+export type AccesoAutorizacion = {
+  autorizado_por: string
+  operado_por_id: number | null
+  operado_por: string
+}
+
+export type UsuarioGuardarPayload = Partial<UsuarioInput> & Partial<AccesoAutorizacion>
+
+export type AccesoBitacoraRegistro = {
+  id: number
+  usuario_id: number
+  modulo_id: string
+  accion: 'otorgado' | 'retirado'
+  autorizado_por: string
+  operado_por_id: number | null
+  operado_por: string | null
+  created_at: string
 }
 
 const SELECT_USUARIO =
@@ -102,8 +122,68 @@ export async function listarUsuariosAdmin(): Promise<UsuarioRegistro[]> {
   return (data ?? []) as UsuarioRegistro[]
 }
 
-export async function crearUsuarioAdmin(raw: Partial<UsuarioInput>): Promise<UsuarioRegistro> {
+function normalizarAutorizacion(raw: Partial<AccesoAutorizacion>): AccesoAutorizacion {
+  const operadoId = Number(raw.operado_por_id)
+  return {
+    autorizado_por: String(raw.autorizado_por ?? '').trim().slice(0, 160),
+    operado_por_id: Number.isFinite(operadoId) && operadoId > 0 ? operadoId : null,
+    operado_por: String(raw.operado_por ?? '').trim().slice(0, 160),
+  }
+}
+
+function diffAccesos(antes: readonly string[], despues: readonly string[]) {
+  const a = new Set(antes)
+  const d = new Set(despues)
+  return {
+    otorgados: despues.filter((id) => !a.has(id)),
+    retirados: antes.filter((id) => !d.has(id)),
+  }
+}
+
+function exigirAutorizacion(
+  cambios: { otorgados: string[]; retirados: string[] },
+  aut: AccesoAutorizacion
+) {
+  if (!cambios.otorgados.length && !cambios.retirados.length) return
+  if (!aut.autorizado_por) {
+    throw new Error('Indica quién autorizó el cambio de accesos a sistemas')
+  }
+  if (!aut.operado_por) {
+    throw new Error('No se identificó al usuario que opera el cambio; vuelve a iniciar sesión')
+  }
+}
+
+async function registrarBitacoraAccesos(
+  usuarioId: number,
+  cambios: { otorgados: string[]; retirados: string[] },
+  aut: AccesoAutorizacion
+) {
+  const filas = [
+    ...cambios.otorgados.map((modulo_id) => ({ modulo_id, accion: 'otorgado' })),
+    ...cambios.retirados.map((modulo_id) => ({ modulo_id, accion: 'retirado' })),
+  ].map((f) => ({ ...f, usuario_id: usuarioId, ...aut }))
+  if (!filas.length) return
+  const { error } = await createDbAdmin().from('usuario_acceso_bitacora').insert(filas)
+  if (error) throw new Error(`Accesos guardados, pero falló la bitácora: ${error.message}`)
+}
+
+export async function listarBitacoraAccesos(usuarioId: number): Promise<AccesoBitacoraRegistro[]> {
+  if (!Number.isFinite(usuarioId) || usuarioId <= 0) throw new Error('ID de usuario inválido')
+  const { data, error } = await createDbAdmin()
+    .from('usuario_acceso_bitacora')
+    .select('id, usuario_id, modulo_id, accion, autorizado_por, operado_por_id, operado_por, created_at')
+    .eq('usuario_id', usuarioId)
+    .order('created_at', { ascending: false })
+    .limit(300)
+  if (error) throw new Error(error.message)
+  return (data ?? []) as AccesoBitacoraRegistro[]
+}
+
+export async function crearUsuarioAdmin(raw: UsuarioGuardarPayload): Promise<UsuarioRegistro> {
   const input = normalizarInput(raw)
+  const aut = normalizarAutorizacion(raw)
+  const cambios = diffAccesos([], input.dashboard_modulos)
+  exigirAutorizacion(cambios, aut)
   const db = createDbAdmin()
 
   const { data: existente } = await db
@@ -126,17 +206,23 @@ export async function crearUsuarioAdmin(raw: Partial<UsuarioInput>): Promise<Usu
     .single()
 
   if (error) throw new Error(error.message)
-  return data as UsuarioRegistro
+  const creado = data as UsuarioRegistro
+  await registrarBitacoraAccesos(creado.usuario_id, cambios, aut)
+  return creado
 }
 
 export async function actualizarUsuarioAdmin(
   usuarioId: number,
-  raw: Partial<UsuarioInput>
+  raw: UsuarioGuardarPayload
 ): Promise<UsuarioRegistro> {
   if (!Number.isFinite(usuarioId) || usuarioId <= 0) {
     throw new Error('ID de usuario inválido')
   }
   const input = normalizarInput(raw)
+  const aut = normalizarAutorizacion(raw)
+  const previos = await obtenerModulosDashboardUsuario(usuarioId)
+  const cambios = diffAccesos(modulosVisiblesDeUsuario(usuarioId, previos), input.dashboard_modulos)
+  exigirAutorizacion(cambios, aut)
   const db = createDbAdmin()
 
   const { data: choque } = await db
@@ -158,6 +244,7 @@ export async function actualizarUsuarioAdmin(
     .single()
 
   if (error) throw new Error(error.message)
+  await registrarBitacoraAccesos(usuarioId, cambios, aut)
   return data as UsuarioRegistro
 }
 
@@ -178,8 +265,15 @@ export async function fetchUsuariosCatalogo(): Promise<UsuarioRegistro[]> {
   return (json.usuarios ?? []) as UsuarioRegistro[]
 }
 
+export async function fetchBitacoraAccesos(usuarioId: number): Promise<AccesoBitacoraRegistro[]> {
+  const res = await fetch(`/api/usuarios?bitacora=${usuarioId}`, { cache: 'no-store' })
+  const json = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(json.error ?? 'No se pudo cargar el historial de accesos')
+  return (json.bitacora ?? []) as AccesoBitacoraRegistro[]
+}
+
 export async function fetchCrearUsuario(
-  input: Partial<UsuarioInput>
+  input: UsuarioGuardarPayload
 ): Promise<UsuarioRegistro> {
   const res = await fetch('/api/usuarios', {
     method: 'POST',
@@ -193,7 +287,7 @@ export async function fetchCrearUsuario(
 
 export async function fetchActualizarUsuario(
   usuarioId: number,
-  input: Partial<UsuarioInput>
+  input: UsuarioGuardarPayload
 ): Promise<UsuarioRegistro> {
   const res = await fetch('/api/usuarios', {
     method: 'PUT',

@@ -4,6 +4,7 @@ import {
   actualizarUsuarioAdmin,
   crearUsuarioAdmin,
   eliminarUsuarioAdmin,
+  listarBitacoraAccesos,
   listarUsuariosAdmin,
 } from '@/lib/usuarioCatalogoService'
 
@@ -21,6 +22,11 @@ export async function GET(request: Request) {
   const denegado = exigirPin(request)
   if (denegado) return denegado
   try {
+    const bitacoraId = new URL(request.url).searchParams.get('bitacora')
+    if (bitacoraId) {
+      const bitacora = await listarBitacoraAccesos(Number(bitacoraId))
+      return NextResponse.json({ bitacora })
+    }
     const usuarios = await listarUsuariosAdmin()
     return NextResponse.json({ usuarios })
   } catch (e) {

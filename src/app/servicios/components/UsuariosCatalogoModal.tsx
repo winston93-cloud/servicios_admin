@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Check,
+  History,
+  ShieldCheck,
   Eye,
   EyeOff,
   FileSpreadsheet,
@@ -18,18 +20,41 @@ import { useAuth } from '@/contexts/AuthContext'
 import { exportarUsuariosExcel } from '@/lib/exportarUsuariosExcel'
 import {
   DASHBOARD_MODULOS_ASIGNABLES,
+  DASHBOARD_MODULOS_CATALOGO,
   modulosVisiblesDeUsuario,
   normalizarModulosDashboard,
 } from '@/lib/dashboardAccesosEmpleados'
 import {
   fetchActualizarUsuario,
+  fetchBitacoraAccesos,
   fetchCrearUsuario,
   fetchEliminarUsuario,
   fetchUsuariosCatalogo,
   nombreCompletoUsuario,
+  type AccesoBitacoraRegistro,
   type UsuarioInput,
   type UsuarioRegistro,
 } from '@/lib/usuarioCatalogoService'
+
+const MODULO_POR_ID = new Map(DASHBOARD_MODULOS_CATALOGO.map((m) => [m.id, m]))
+
+function etiquetaModulo(id: string): string {
+  const m = MODULO_POR_ID.get(id)
+  return m ? `${m.n}. ${m.label}` : id
+}
+
+function fechaHoraMx(valor: string | Date): string {
+  const d = typeof valor === 'string' ? new Date(valor) : valor
+  if (Number.isNaN(d.getTime())) return String(valor)
+  return d.toLocaleString('es-MX', {
+    timeZone: 'America/Mexico_City',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
 
 const FORM_VACIO: UsuarioInput = {
   perfil_id: 6,
@@ -68,7 +93,40 @@ export default function UsuariosCatalogoModal({ abierto, onCerrar }: Props) {
   const [accesoError, setAccesoError] = useState(false)
   const [accesoLegado, setAccesoLegado] = useState(false)
   const [copiarDeId, setCopiarDeId] = useState('')
+  const [modulosOriginales, setModulosOriginales] = useState<string[]>([])
+  const [autorizadoPor, setAutorizadoPor] = useState('')
+  const [autorizacionError, setAutorizacionError] = useState(false)
+  const [bitacora, setBitacora] = useState<AccesoBitacoraRegistro[]>([])
+  const [bitacoraCargando, setBitacoraCargando] = useState(false)
   const accesosRef = useRef<HTMLFieldSetElement>(null)
+  const autorizacionRef = useRef<HTMLInputElement>(null)
+
+  const operadoPor = useMemo(() => {
+    const nombre = user?.usuario_nombre_completo?.trim()
+    const username = user?.usuario_username?.trim()
+    if (nombre && username && nombre !== username) return `${nombre} (${username})`
+    return nombre || username || ''
+  }, [user])
+
+  const cambiosAcceso = useMemo(() => {
+    const antes = new Set(modulosOriginales)
+    const despues = new Set(form.dashboard_modulos)
+    return {
+      otorgados: form.dashboard_modulos.filter((id) => !antes.has(id)),
+      retirados: modulosOriginales.filter((id) => !despues.has(id)),
+    }
+  }, [modulosOriginales, form.dashboard_modulos])
+
+  const hayCambiosAcceso = cambiosAcceso.otorgados.length + cambiosAcceso.retirados.length > 0
+
+  const nombresAutorizadores = useMemo(() => {
+    const set = new Set<string>()
+    for (const u of lista) {
+      const n = nombreCompletoUsuario(u)
+      if (n) set.add(n)
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, 'es'))
+  }, [lista])
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -114,13 +172,27 @@ export default function UsuariosCatalogoModal({ abierto, onCerrar }: Props) {
     setAccesoError(false)
     setAccesoLegado(false)
     setCopiarDeId('')
+    setModulosOriginales([])
+    setAutorizadoPor('')
+    setAutorizacionError(false)
+    setBitacora([])
     setFormAbierto(true)
     setMensaje(null)
     setError(null)
   }
 
   const abrirEdicion = (u: UsuarioRegistro) => {
+    const visibles = modulosVisiblesDeUsuario(u.usuario_id, u.dashboard_modulos)
     setEditandoId(u.usuario_id)
+    setModulosOriginales(visibles)
+    setAutorizadoPor('')
+    setAutorizacionError(false)
+    setBitacora([])
+    setBitacoraCargando(true)
+    fetchBitacoraAccesos(u.usuario_id)
+      .then(setBitacora)
+      .catch(() => setBitacora([]))
+      .finally(() => setBitacoraCargando(false))
     setForm({
       perfil_id: u.perfil_id,
       usuario_app: u.usuario_app ?? '',
@@ -131,7 +203,7 @@ export default function UsuariosCatalogoModal({ abierto, onCerrar }: Props) {
       usuario_password: u.usuario_password ?? '',
       usuario_status: Number(u.usuario_status) === 0 ? 0 : 1,
       nivel: Number(u.nivel ?? 0),
-      dashboard_modulos: modulosVisiblesDeUsuario(u.usuario_id, u.dashboard_modulos),
+      dashboard_modulos: visibles,
     })
     setMostrarClave(false)
     setAccesoError(false)
@@ -175,15 +247,27 @@ export default function UsuariosCatalogoModal({ abierto, onCerrar }: Props) {
       accesosRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
     }
+    if (hayCambiosAcceso && !autorizadoPor.trim()) {
+      setAutorizacionError(true)
+      autorizacionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      autorizacionRef.current?.focus({ preventScroll: true })
+      return
+    }
     setGuardando(true)
     setError(null)
     setMensaje(null)
+    const payload = {
+      ...form,
+      autorizado_por: autorizadoPor.trim(),
+      operado_por_id: Number(user?.usuario_id) || null,
+      operado_por: operadoPor,
+    }
     try {
       if (editandoId != null) {
-        await fetchActualizarUsuario(editandoId, form)
+        await fetchActualizarUsuario(editandoId, payload)
         setMensaje('Usuario actualizado.')
       } else {
-        await fetchCrearUsuario(form)
+        await fetchCrearUsuario(payload)
         setMensaje('Usuario creado.')
       }
       cerrarForm()
@@ -631,7 +715,116 @@ export default function UsuariosCatalogoModal({ abierto, onCerrar }: Props) {
                   Selecciona al menos un sistema para poder guardar.
                 </p>
               )}
+
+              {hayCambiosAcceso && (
+                <section
+                  className="usr-aut"
+                  data-error={autorizacionError ? '1' : undefined}
+                  aria-labelledby="usr-aut-title"
+                >
+                  <h4 id="usr-aut-title" className="usr-aut-title">
+                    <ShieldCheck size={16} aria-hidden />
+                    Autorización del cambio
+                  </h4>
+
+                  <ul className="usr-aut-cambios" aria-label="Sistemas que cambian">
+                    {cambiosAcceso.otorgados.map((id) => (
+                      <li key={`+${id}`} className="usr-aut-tag usr-aut-tag--mas">
+                        + {etiquetaModulo(id)}
+                      </li>
+                    ))}
+                    {cambiosAcceso.retirados.map((id) => (
+                      <li key={`-${id}`} className="usr-aut-tag usr-aut-tag--menos">
+                        − {etiquetaModulo(id)}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <label className="usr-aut-campo">
+                    <span>Autorizado por (jefe de área) *</span>
+                    <input
+                      ref={autorizacionRef}
+                      value={autorizadoPor}
+                      onChange={(e) => {
+                        setAutorizadoPor(e.target.value)
+                        if (e.target.value.trim()) setAutorizacionError(false)
+                      }}
+                      list="usr-aut-nombres"
+                      maxLength={160}
+                      placeholder="Ej. Josefina …"
+                      autoComplete="off"
+                    />
+                    <datalist id="usr-aut-nombres">
+                      {nombresAutorizadores.map((n) => (
+                        <option key={n} value={n} />
+                      ))}
+                    </datalist>
+                  </label>
+
+                  <dl className="usr-aut-meta">
+                    <div>
+                      <dt>Registrado por</dt>
+                      <dd>{operadoPor || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>Fecha</dt>
+                      <dd>{fechaHoraMx(new Date())}</dd>
+                    </div>
+                  </dl>
+
+                  {autorizacionError && (
+                    <p className="usr-acc-error" role="alert">
+                      Indica quién autorizó este cambio de accesos.
+                    </p>
+                  )}
+                </section>
+              )}
             </fieldset>
+
+            {editandoId != null && (
+              <section className="usr-hist" aria-labelledby="usr-hist-title">
+                <h4 id="usr-hist-title" className="usr-hist-title">
+                  <History size={16} aria-hidden />
+                  Historial de accesos
+                  {!bitacoraCargando && bitacora.length > 0 && (
+                    <span className="usr-acc-pill">{bitacora.length}</span>
+                  )}
+                </h4>
+                {bitacoraCargando ? (
+                  <p className="usr-hist-vacio">
+                    <Loader2 size={14} className="usr-spin" /> Cargando historial…
+                  </p>
+                ) : bitacora.length === 0 ? (
+                  <p className="usr-hist-vacio">
+                    Sin movimientos registrados todavía. A partir de ahora cada cambio queda aquí.
+                  </p>
+                ) : (
+                  <ul className="usr-hist-lista">
+                    {bitacora.map((b) => (
+                      <li key={b.id} className="usr-hist-item">
+                        <span
+                          className={`usr-aut-tag ${
+                            b.accion === 'otorgado' ? 'usr-aut-tag--mas' : 'usr-aut-tag--menos'
+                          }`}
+                        >
+                          {b.accion === 'otorgado' ? 'Otorgado' : 'Retirado'}
+                        </span>
+                        <div className="usr-hist-cuerpo">
+                          <strong>{etiquetaModulo(b.modulo_id)}</strong>
+                          <span>
+                            Autorizó: <b>{b.autorizado_por}</b>
+                            {' · '}Registró: {b.operado_por || '—'}
+                          </span>
+                        </div>
+                        <time className="usr-hist-fecha" dateTime={b.created_at}>
+                          {fechaHoraMx(b.created_at)}
+                        </time>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
 
             {error && (
               <p className="usr-alert usr-alert--err usr-form-alert" role="alert">
