@@ -198,10 +198,11 @@ const OCULTOS_PSICOLOGIA = [
   'entregas-pie', // 24
 ] as const
 
-/** Control escolar 3 niveles (fatima, controlprim, coordsec): oculta 1,4,6,7,9,12-15,17-19,22-24. */
+/** Control escolar 3 niveles (fatima, controlprim, coordsec): oculta 1,4-7,9,12-15,17-19,22-24. */
 const OCULTOS_CONTROL_ESCOLAR = [
   'desayunos', // 1
   'prorrogas', // 4
+  'devoluciones', // 5
   'notificaciones', // 6 (ya no sale en dashboard; se mantiene por claridad)
   'checador', // 7
   'monitoreo', // 9
