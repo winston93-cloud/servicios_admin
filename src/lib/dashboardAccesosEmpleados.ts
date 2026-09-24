@@ -238,11 +238,36 @@ const OCULTOS_PREFECTURA = [
 ] as const
 
 /**
+ * juanita: acceso solo a Desayunos, Reportes, Servicios, Monitoreo,
+ * Control escolar, SAT y Cheques. (News y Revisión pagados: con * — no van aún.)
+ */
+const OCULTOS_JUANITA = [
+  'prorrogas', // 4
+  'devoluciones', // 5
+  'notificaciones', // 6
+  'checador', // 7
+  'bajas', // 8
+  'programa-usa', // 11
+  'agenda-psicologas', // 12
+  'agenda-directoras', // 13
+  'open-house', // 14
+  'facturacion', // 15
+  'news-desayunos', // 16 *
+  'contratos', // 19
+  'boletas', // 20
+  'becas', // 21
+  'becarios', // 22
+  'reportes-conducta', // 23
+  'entregas-pie', // 24
+  'revision-pagados', // 25 *
+] as const
+
+/**
  * Módulos OCULTOS por usuario_id.
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo: Mario (17) restablecido. Siguiente: juanita (52).
+ * Espejo actual: Mario (17) = juanita.
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
@@ -266,7 +291,8 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   31: OCULTOS_PREFECTURA, // prefectura
   49: OCULTOS_ENFERMERIA, // estancia — solo Servicios
   57: OCULTOS_ENFERMERIA, // sara — solo Servicios
-  // 17 mario — restablecido; siguiente juanita (52)
+  52: OCULTOS_JUANITA, // juanita
+  17: OCULTOS_JUANITA, // mario — espejo juanita
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
