@@ -60,7 +60,8 @@ const OCULTOS_KARLA_M = [
   'revision-pagados', // 25
 ] as const
 
-const OCULTOS_FATIMA_COORDING = [
+/** coording / kinder_ing (dirección inglés kinder): oculta set previo de Fátima. */
+const OCULTOS_COORDING_KINDER_ING = [
   'desayunos', // 1
   'devoluciones', // 5
   'checador', // 7
