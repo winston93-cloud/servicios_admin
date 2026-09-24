@@ -176,12 +176,33 @@ const OCULTOS_COORD_JOSEFINA = [
   'revision-pagados', // 25
 ] as const
 
+/** psicología (3 niveles): oculta 1,4,5,7,9-11,13,15-22,24. */
+const OCULTOS_PSICOLOGIA = [
+  'desayunos', // 1
+  'prorrogas', // 4
+  'devoluciones', // 5
+  'checador', // 7
+  'monitoreo', // 9
+  'control-escolar', // 10
+  'programa-usa', // 11
+  'agenda-directoras', // 13
+  'facturacion', // 15
+  'news-desayunos', // 16
+  'sat', // 17
+  'cheques', // 18
+  'contratos', // 19
+  'boletas', // 20
+  'becas', // 21
+  'becarios', // 22
+  'entregas-pie', // 24
+] as const
+
 /**
  * Módulos OCULTOS por usuario_id.
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo: Mario (17) restablecido — listo para la siguiente cuenta.
+ * Espejo actual: Mario (17) = psicología (3 niveles).
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
@@ -196,7 +217,10 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   7: OCULTOS_COORD_JOSEFINA, // coordprim
   8: OCULTOS_COORD_JOSEFINA, // coordkin
   13: OCULTOS_COORD_JOSEFINA, // josefina
-  // 17 mario — restablecido (ve todas las tarjetas del dashboard)
+  11: OCULTOS_PSICOLOGIA, // psicologia (primaria)
+  55: OCULTOS_PSICOLOGIA, // psicologiak (maternal/kinder)
+  56: OCULTOS_PSICOLOGIA, // psicologiasec (secundaria)
+  17: OCULTOS_PSICOLOGIA, // mario — espejo
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
