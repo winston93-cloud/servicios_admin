@@ -320,7 +320,7 @@ const OCULTOS_RECEPCION = [
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo actual: Mario (17) = diana (mismo set que Laura Vinculación).
+ * Espejo: Mario (17) restablecido. Siguiente: karla (25) — Secundaria Idiomas.
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
@@ -348,7 +348,7 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   52: OCULTOS_JUANITA, // juanita
   4: OCULTOS_RECEPCION, // recepcion1
   5: OCULTOS_RECEPCION, // recepcion2
-  17: OCULTOS_LAURA_VINCULACION, // mario — espejo diana
+  // 17 mario — restablecido; siguiente karla (25)
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
