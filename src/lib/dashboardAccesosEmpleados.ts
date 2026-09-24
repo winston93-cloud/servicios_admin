@@ -288,11 +288,39 @@ const OCULTOS_JUANITA = [
 ] as const
 
 /**
+ * recepcion1 / recepcion2: Desayunos, Servicios, Monitoreo, SAT.
+ * (* Control escolar, News, Cheques — no van aún.)
+ */
+const OCULTOS_RECEPCION = [
+  'reportes', // 2
+  'prorrogas', // 4
+  'devoluciones', // 5
+  'notificaciones', // 6
+  'checador', // 7
+  'bajas', // 8
+  'control-escolar', // 10 *
+  'programa-usa', // 11
+  'agenda-psicologas', // 12
+  'agenda-directoras', // 13
+  'open-house', // 14
+  'facturacion', // 15
+  'news-desayunos', // 16 *
+  'cheques', // 18 *
+  'contratos', // 19
+  'boletas', // 20
+  'becas', // 21
+  'becarios', // 22
+  'reportes-conducta', // 23
+  'entregas-pie', // 24
+  'revision-pagados', // 25
+] as const
+
+/**
  * Módulos OCULTOS por usuario_id.
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo actual: Mario (17) = juanita.
+ * Espejo actual: Mario (17) = recepción.
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
