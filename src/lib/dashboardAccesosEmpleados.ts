@@ -169,6 +169,31 @@ const OCULTOS_ENFERMERIA = [
   'revision-pagados', // 25
 ] as const
 
+/** sara: Servicios + Desayunos + Monitoreo. */
+const OCULTOS_SARA = [
+  'reportes', // 2
+  'prorrogas', // 4
+  'devoluciones', // 5
+  'checador', // 7
+  'bajas', // 8
+  'control-escolar', // 10
+  'programa-usa', // 11
+  'agenda-psicologas', // 12
+  'agenda-directoras', // 13
+  'open-house', // 14
+  'facturacion', // 15
+  'news-desayunos', // 16
+  'sat', // 17
+  'cheques', // 18
+  'contratos', // 19
+  'boletas', // 20
+  'becas', // 21
+  'becarios', // 22
+  'reportes-conducta', // 23
+  'entregas-pie', // 24
+  'revision-pagados', // 25
+] as const
+
 /** coordprim, coordkin, josefina: oculta 1,7-12,14,15,17-19,22,24,25. */
 const OCULTOS_COORD_JOSEFINA = [
   'desayunos', // 1
@@ -290,7 +315,7 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   50: OCULTOS_CONTROL_ESCOLAR, // coordsec (CE secundaria)
   31: OCULTOS_PREFECTURA, // prefectura
   49: OCULTOS_ENFERMERIA, // estancia — solo Servicios
-  57: OCULTOS_ENFERMERIA, // sara — solo Servicios
+  57: OCULTOS_SARA, // sara — Desayunos, Servicios, Monitoreo
   52: OCULTOS_JUANITA, // juanita
   17: OCULTOS_JUANITA, // mario — espejo juanita
 }
