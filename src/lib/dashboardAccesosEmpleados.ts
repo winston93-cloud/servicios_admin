@@ -244,7 +244,9 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   39: OCULTOS_CONTROL_ESCOLAR, // fatima (CE kinder)
   16: OCULTOS_CONTROL_ESCOLAR, // controlprim (CE primaria)
   50: OCULTOS_CONTROL_ESCOLAR, // coordsec (CE secundaria)
-  17: OCULTOS_CONTROL_ESCOLAR, // mario — espejo
+  31: OCULTOS_CONTROL_ESCOLAR, // prefectura (igual que CE)
+  49: OCULTOS_ENFERMERIA, // estancia — solo Servicios
+  17: OCULTOS_CONTROL_ESCOLAR, // mario — espejo prefectura/CE
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
