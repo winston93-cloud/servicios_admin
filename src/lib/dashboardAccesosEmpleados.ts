@@ -428,16 +428,42 @@ export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
   return new Set(list)
 }
 
+/** Tarjetas que se pueden asignar a un usuario (las que sí salen en dashboard). */
+export const DASHBOARD_MODULOS_ASIGNABLES = NAV_ITEMS_ADMIN.map((item, idx) => ({
+  n: idx + 1,
+  item,
+})).filter(({ item }) => !item.dashboardHidden)
+
+const IDS_ASIGNABLES = new Set(DASHBOARD_MODULOS_ASIGNABLES.map(({ item }) => item.id))
+
+/** Limpia una lista de ids: solo asignables, sin duplicados, en orden de catálogo. */
+export function normalizarModulosDashboard(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  const pedidos = new Set(raw.map((x) => String(x ?? '').trim()).filter((id) => IDS_ASIGNABLES.has(id)))
+  return DASHBOARD_MODULOS_ASIGNABLES.map(({ item }) => item.id).filter((id) => pedidos.has(id))
+}
+
+/**
+ * Módulos visibles efectivos.
+ * `modulosDb` (columna usuario.dashboard_modulos) manda si no es null;
+ * si es null se usa el mapa legado DASHBOARD_MODULOS_OCULTOS.
+ */
+export function modulosVisiblesDeUsuario(
+  usuarioId: number | null | undefined,
+  modulosDb?: readonly string[] | null
+): string[] {
+  if (Array.isArray(modulosDb)) return normalizarModulosDashboard(modulosDb)
+  const ocultos = modulosOcultosDeUsuario(Number(usuarioId) || 0)
+  return DASHBOARD_MODULOS_ASIGNABLES.map(({ item }) => item.id).filter((id) => !ocultos.has(id))
+}
+
 export function filtrarNavItemsAdminPorUsuario<T extends { id: string; dashboardHidden?: boolean }>(
   items: T[],
-  usuarioId: number | null | undefined
+  usuarioId: number | null | undefined,
+  modulosDb?: readonly string[] | null
 ): T[] {
-  const ocultos = modulosOcultosDeUsuario(Number(usuarioId) || 0)
-  return items.filter((item) => {
-    if (item.dashboardHidden) return false
-    if (ocultos.size && ocultos.has(item.id)) return false
-    return true
-  })
+  const visibles = new Set(modulosVisiblesDeUsuario(usuarioId, modulosDb))
+  return items.filter((item) => !item.dashboardHidden && visibles.has(item.id))
 }
 
 /** Resuelve números 1..25 → ids de módulo. */

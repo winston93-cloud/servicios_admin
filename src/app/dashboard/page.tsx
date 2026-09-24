@@ -7,6 +7,7 @@ import {
   type DashboardAdminNavItem,
 } from '@/lib/dashboardNavAdmin'
 import { filtrarNavItemsAdminPorUsuario, dashboardLayoutPersonalizado, numeroCatalogoDeModulo } from '@/lib/dashboardAccesosEmpleados'
+import { fetchModulosDashboardUsuario } from '@/lib/usuarioCatalogoService'
 import {
   aplicarOrdenDashboard,
   guardarOrdenDashboard,
@@ -149,6 +150,7 @@ export default function DashboardPage() {
   const [ordenAbierto, setOrdenAbierto] = useState(false)
   const [ordenIds, setOrdenIds] = useState<string[]>([])
   const [becaFirmaAutorizada, setBecaFirmaAutorizada] = useState(false)
+  const [accesosDb, setAccesosDb] = useState<{ uid: number; modulos: string[] | null } | null>(null)
 
   // Solo un panel: alumno XOR personal (nunca mezclar módulos).
   const mostrarPanelAlumno = isAlumno && !isUsuario
@@ -272,11 +274,27 @@ export default function DashboardPage() {
     setOrdenIds(leerOrdenDashboard(usuarioIdAdmin))
   }, [layoutPersonalizado, usuarioIdAdmin])
 
+  useEffect(() => {
+    if (!mostrarPanelAdmin || !(usuarioIdAdmin > 0)) return
+    let cancelado = false
+    fetchModulosDashboardUsuario(usuarioIdAdmin)
+      .then((modulos) => {
+        if (!cancelado) setAccesosDb({ uid: usuarioIdAdmin, modulos })
+      })
+      .catch(() => {
+        if (!cancelado) setAccesosDb({ uid: usuarioIdAdmin, modulos: null })
+      })
+    return () => {
+      cancelado = true
+    }
+  }, [mostrarPanelAdmin, usuarioIdAdmin])
+
   const navItemsAdmin = useMemo(() => {
-    const base = filtrarNavItemsAdminPorUsuario(NAV_ITEMS_ADMIN, usuarioIdAdmin)
+    if (accesosDb?.uid !== usuarioIdAdmin) return []
+    const base = filtrarNavItemsAdminPorUsuario(NAV_ITEMS_ADMIN, usuarioIdAdmin, accesosDb.modulos)
     if (!layoutPersonalizado) return base
     return aplicarOrdenDashboard(base, ordenIds)
-  }, [usuarioIdAdmin, layoutPersonalizado, ordenIds])
+  }, [usuarioIdAdmin, accesosDb, layoutPersonalizado, ordenIds])
 
   const ordenModalItems = useMemo(
     () =>

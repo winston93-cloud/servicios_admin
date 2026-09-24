@@ -1,4 +1,5 @@
 import { createDbAdmin } from '@/lib/insforgeAdmin'
+import { normalizarModulosDashboard } from '@/lib/dashboardAccesosEmpleados'
 
 export type UsuarioRegistro = {
   usuario_id: number
@@ -12,6 +13,8 @@ export type UsuarioRegistro = {
   usuario_status: number | null
   usuario_alta: string | null
   nivel: number | null
+  /** null = cuenta legada (accesos definidos en código). */
+  dashboard_modulos: string[] | null
 }
 
 export type UsuarioInput = {
@@ -24,10 +27,11 @@ export type UsuarioInput = {
   usuario_password: string
   usuario_status: number
   nivel: number
+  dashboard_modulos: string[]
 }
 
 const SELECT_USUARIO =
-  'usuario_id, perfil_id, usuario_app, usuario_apm, usuario_nombre, usuario_username, usuario_email, usuario_password, usuario_status, usuario_alta, nivel'
+  'usuario_id, perfil_id, usuario_app, usuario_apm, usuario_nombre, usuario_username, usuario_email, usuario_password, usuario_status, usuario_alta, nivel, dashboard_modulos'
 
 function ahoraMysql(): string {
   return new Date().toISOString().slice(0, 19).replace('T', ' ')
@@ -39,6 +43,10 @@ function normalizarInput(raw: Partial<UsuarioInput>): UsuarioInput {
   if (!username) throw new Error('El usuario (username) es obligatorio')
   if (!password) throw new Error('La clave es obligatoria')
   if (username.length > 20) throw new Error('El username no puede pasar de 20 caracteres')
+  const modulos = normalizarModulosDashboard(raw.dashboard_modulos)
+  if (!modulos.length) {
+    throw new Error('Selecciona al menos un sistema del dashboard al que tendrá acceso')
+  }
 
   const perfilRaw = raw.perfil_id
   let perfil: number | null = null
@@ -57,7 +65,30 @@ function normalizarInput(raw: Partial<UsuarioInput>): UsuarioInput {
     usuario_password: password.slice(0, 255),
     usuario_status: Number(raw.usuario_status) === 0 ? 0 : 1,
     nivel: Number.isFinite(Number(raw.nivel)) ? Number(raw.nivel) : 0,
+    dashboard_modulos: modulos,
   }
+}
+
+/** Accesos guardados en BD para el dashboard (null = usar mapa legado). */
+export async function obtenerModulosDashboardUsuario(usuarioId: number): Promise<string[] | null> {
+  if (!Number.isFinite(usuarioId) || usuarioId <= 0) return null
+  const db = createDbAdmin()
+  const { data, error } = await db
+    .from('usuario')
+    .select('dashboard_modulos')
+    .eq('usuario_id', usuarioId)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  const raw = (data as { dashboard_modulos?: unknown } | null)?.dashboard_modulos
+  return Array.isArray(raw) ? raw.map(String) : null
+}
+
+/** Cliente: accesos del dashboard para la sesión actual. */
+export async function fetchModulosDashboardUsuario(usuarioId: number): Promise<string[] | null> {
+  const res = await fetch(`/api/dashboard-modulos?usuario_id=${usuarioId}`, { cache: 'no-store' })
+  const json = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(json.error ?? 'No se pudieron cargar los accesos')
+  return Array.isArray(json.modulos) ? (json.modulos as string[]) : null
 }
 
 export async function listarUsuariosAdmin(): Promise<UsuarioRegistro[]> {

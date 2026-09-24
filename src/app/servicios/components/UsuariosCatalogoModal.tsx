@@ -1,10 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  Check,
   Eye,
   EyeOff,
   FileSpreadsheet,
+  LayoutGrid,
   Loader2,
   Pencil,
   Plus,
@@ -14,6 +16,11 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { exportarUsuariosExcel } from '@/lib/exportarUsuariosExcel'
+import {
+  DASHBOARD_MODULOS_ASIGNABLES,
+  modulosVisiblesDeUsuario,
+  normalizarModulosDashboard,
+} from '@/lib/dashboardAccesosEmpleados'
 import {
   fetchActualizarUsuario,
   fetchCrearUsuario,
@@ -34,7 +41,10 @@ const FORM_VACIO: UsuarioInput = {
   usuario_password: '',
   usuario_status: 1,
   nivel: 0,
+  dashboard_modulos: [],
 }
+
+const TOTAL_ASIGNABLES = DASHBOARD_MODULOS_ASIGNABLES.length
 
 type Props = {
   abierto: boolean
@@ -55,6 +65,10 @@ export default function UsuariosCatalogoModal({ abierto, onCerrar }: Props) {
   const [form, setForm] = useState<UsuarioInput>(FORM_VACIO)
   const [mostrarClave, setMostrarClave] = useState(false)
   const [clavesVisibles, setClavesVisibles] = useState<Set<number>>(new Set())
+  const [accesoError, setAccesoError] = useState(false)
+  const [accesoLegado, setAccesoLegado] = useState(false)
+  const [copiarDeId, setCopiarDeId] = useState('')
+  const accesosRef = useRef<HTMLFieldSetElement>(null)
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -97,6 +111,9 @@ export default function UsuariosCatalogoModal({ abierto, onCerrar }: Props) {
     setEditandoId(null)
     setForm(FORM_VACIO)
     setMostrarClave(false)
+    setAccesoError(false)
+    setAccesoLegado(false)
+    setCopiarDeId('')
     setFormAbierto(true)
     setMensaje(null)
     setError(null)
@@ -114,8 +131,12 @@ export default function UsuariosCatalogoModal({ abierto, onCerrar }: Props) {
       usuario_password: u.usuario_password ?? '',
       usuario_status: Number(u.usuario_status) === 0 ? 0 : 1,
       nivel: Number(u.nivel ?? 0),
+      dashboard_modulos: modulosVisiblesDeUsuario(u.usuario_id, u.dashboard_modulos),
     })
     setMostrarClave(false)
+    setAccesoError(false)
+    setAccesoLegado(!Array.isArray(u.dashboard_modulos))
+    setCopiarDeId('')
     setFormAbierto(true)
     setMensaje(null)
     setError(null)
@@ -127,8 +148,33 @@ export default function UsuariosCatalogoModal({ abierto, onCerrar }: Props) {
     setForm(FORM_VACIO)
   }
 
+  const setModulos = (next: string[]) => {
+    setForm((f) => ({ ...f, dashboard_modulos: normalizarModulosDashboard(next) }))
+    if (next.length) setAccesoError(false)
+  }
+
+  const toggleModulo = (id: string) => {
+    const actual = new Set(form.dashboard_modulos)
+    if (actual.has(id)) actual.delete(id)
+    else actual.add(id)
+    setModulos([...actual])
+    setCopiarDeId('')
+  }
+
+  const copiarAccesosDe = (idTexto: string) => {
+    setCopiarDeId(idTexto)
+    const origen = lista.find((u) => String(u.usuario_id) === idTexto)
+    if (!origen) return
+    setModulos(modulosVisiblesDeUsuario(origen.usuario_id, origen.dashboard_modulos))
+  }
+
   const onGuardar = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!form.dashboard_modulos.length) {
+      setAccesoError(true)
+      accesosRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
     setGuardando(true)
     setError(null)
     setMensaje(null)
@@ -281,6 +327,7 @@ export default function UsuariosCatalogoModal({ abierto, onCerrar }: Props) {
                   <th>Perfil</th>
                   <th>Nivel</th>
                   <th>Estatus</th>
+                  <th>Sistemas</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -325,6 +372,19 @@ export default function UsuariosCatalogoModal({ abierto, onCerrar }: Props) {
                       </span>
                     </td>
                     <td>
+                      <span
+                        className="usr-acc-pill"
+                        title={
+                          Array.isArray(u.dashboard_modulos)
+                            ? 'Accesos registrados en el catálogo'
+                            : 'Configuración anterior (definida en código)'
+                        }
+                      >
+                        {modulosVisiblesDeUsuario(u.usuario_id, u.dashboard_modulos).length} /{' '}
+                        {TOTAL_ASIGNABLES}
+                      </span>
+                    </td>
+                    <td>
                       <div className="usr-row-actions">
                         <button
                           type="button"
@@ -349,7 +409,7 @@ export default function UsuariosCatalogoModal({ abierto, onCerrar }: Props) {
                 ))}
                 {!filtrados.length && (
                   <tr>
-                    <td colSpan={9} className="usr-empty">
+                    <td colSpan={10} className="usr-empty">
                       No hay usuarios con ese criterio.
                     </td>
                   </tr>
@@ -478,6 +538,106 @@ export default function UsuariosCatalogoModal({ abierto, onCerrar }: Props) {
                 </select>
               </label>
             </div>
+
+            <fieldset
+              ref={accesosRef}
+              className="usr-acc"
+              data-error={accesoError ? '1' : undefined}
+              aria-describedby="usr-acc-hint"
+            >
+              <legend className="usr-acc-legend">
+                <span className="usr-acc-legend-icon" aria-hidden>
+                  <LayoutGrid size={16} />
+                </span>
+                Acceso a sistemas del dashboard *
+                <span className="usr-acc-count" aria-live="polite">
+                  {form.dashboard_modulos.length} / {TOTAL_ASIGNABLES}
+                </span>
+              </legend>
+              <p id="usr-acc-hint" className="usr-acc-hint">
+                Marca las tarjetas que verá este usuario al entrar. Debe tener al menos una.
+              </p>
+              {accesoLegado && (
+                <p className="usr-acc-nota">
+                  Esta cuenta usaba la configuración anterior. Al guardar, estos accesos quedarán
+                  registrados aquí.
+                </p>
+              )}
+
+              <div className="usr-acc-toolbar">
+                <label className="usr-acc-copiar">
+                  <span>Copiar accesos de</span>
+                  <select value={copiarDeId} onChange={(e) => copiarAccesosDe(e.target.value)}>
+                    <option value="">— Elegir usuario —</option>
+                    {lista
+                      .filter((u) => u.usuario_id !== editandoId)
+                      .map((u) => (
+                        <option key={u.usuario_id} value={u.usuario_id}>
+                          {u.usuario_username}
+                          {nombreCompletoUsuario(u) ? ` · ${nombreCompletoUsuario(u)}` : ''}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <div className="usr-acc-rapidos">
+                  <button
+                    type="button"
+                    className="usr-acc-link"
+                    onClick={() => {
+                      setModulos(DASHBOARD_MODULOS_ASIGNABLES.map(({ item }) => item.id))
+                      setCopiarDeId('')
+                    }}
+                  >
+                    Todos
+                  </button>
+                  <button
+                    type="button"
+                    className="usr-acc-link"
+                    onClick={() => {
+                      setModulos([])
+                      setCopiarDeId('')
+                    }}
+                  >
+                    Ninguno
+                  </button>
+                </div>
+              </div>
+
+              <div className="usr-acc-grid">
+                {DASHBOARD_MODULOS_ASIGNABLES.map(({ n, item }) => {
+                  const activo = form.dashboard_modulos.includes(item.id)
+                  return (
+                    <label key={item.id} className="usr-acc-chip" data-on={activo ? '1' : undefined}>
+                      <input
+                        type="checkbox"
+                        checked={activo}
+                        onChange={() => toggleModulo(item.id)}
+                      />
+                      <span className="usr-acc-num">{n}</span>
+                      <span className="usr-acc-icon" aria-hidden>
+                        {item.icon}
+                      </span>
+                      <span className="usr-acc-label">{item.label}</span>
+                      <span className="usr-acc-check" aria-hidden>
+                        <Check size={14} strokeWidth={3} />
+                      </span>
+                    </label>
+                  )
+                })}
+              </div>
+
+              {accesoError && (
+                <p className="usr-acc-error" role="alert">
+                  Selecciona al menos un sistema para poder guardar.
+                </p>
+              )}
+            </fieldset>
+
+            {error && (
+              <p className="usr-alert usr-alert--err usr-form-alert" role="alert">
+                {error}
+              </p>
+            )}
 
             <div className="usr-form-actions">
               <button type="button" className="usr-btn usr-btn--ghost" onClick={cerrarForm}>
