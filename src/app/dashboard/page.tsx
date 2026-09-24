@@ -299,7 +299,9 @@ export default function DashboardPage() {
 
   return (
     <ProtectedRoute>
-      <div className="dashboard-container dashboard-home">
+      <div
+        className={`dashboard-container dashboard-home${layoutPersonalizado ? ' dashboard-home--layout-5' : ''}`}
+      >
         <div className="dashboard-home-bg" aria-hidden="true" />
 
         {/* Header */}

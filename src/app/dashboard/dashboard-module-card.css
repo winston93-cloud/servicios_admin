@@ -640,6 +640,99 @@ html[data-theme='light'] .dashboard-home .dash-module-preview-highlights li {
   }
 }
 
+/* —— Layout 5 cols (laura / mario): más aire interno y menos apretado —— */
+.dashboard-home--layout-5 .dash-nav-item--module {
+  min-height: 0;
+  border-radius: 18px;
+}
+
+.dashboard-home--layout-5 .dash-module-top {
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    'icon body'
+    'action action';
+  gap: 12px 14px;
+  padding: 16px 16px 14px;
+  min-height: 0;
+  align-items: start;
+}
+
+.dashboard-home--layout-5 .dash-module-icon {
+  grid-area: icon;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 12px;
+}
+
+.dashboard-home--layout-5 .dash-module-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.dashboard-home--layout-5 .dash-module-body {
+  grid-area: body;
+}
+
+.dashboard-home--layout-5 .dash-module-action {
+  grid-area: action;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+  padding-top: 2px;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  margin-top: 2px;
+  padding-top: 10px;
+}
+
+.dashboard-home--layout-5 .dash-module-meta {
+  margin-bottom: 8px;
+  gap: 6px;
+}
+
+.dashboard-home--layout-5 .dash-module-title {
+  font-size: clamp(0.92rem, 0.85vw + 0.55rem, 1.08rem);
+  line-height: 1.28;
+  margin-bottom: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dashboard-home--layout-5 .dash-module-desc {
+  display: none;
+}
+
+.dashboard-home--layout-5 .dash-module-tags {
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.dashboard-home--layout-5 .dash-module-tag {
+  padding: 3px 8px;
+  font-size: 9px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-home--layout-5 .dash-nav-item--module:hover,
+  .dashboard-home--layout-5 .dash-nav-item--module.is-previewing,
+  .dashboard-home--layout-5 .dash-nav-item--module:focus-within {
+    transform: translateY(-6px) scale(1.02);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-home--layout-5 .dash-module-top {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      'icon body'
+      'action action';
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dashboard-home .dash-nav-item--module,
   .dashboard-home .dash-nav-item--module:hover,
