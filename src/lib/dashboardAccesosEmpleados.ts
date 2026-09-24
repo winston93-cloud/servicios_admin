@@ -198,13 +198,31 @@ const OCULTOS_PSICOLOGIA = [
   'entregas-pie', // 24
 ] as const
 
+/** Control escolar 3 niveles (fatima, controlprim, coordsec): oculta 1,4,6,7,9,12-15,17-19,22-24. */
+const OCULTOS_CONTROL_ESCOLAR = [
+  'desayunos', // 1
+  'prorrogas', // 4
+  'notificaciones', // 6 (ya no sale en dashboard; se mantiene por claridad)
+  'checador', // 7
+  'monitoreo', // 9
+  'agenda-psicologas', // 12
+  'agenda-directoras', // 13
+  'open-house', // 14
+  'facturacion', // 15
+  'sat', // 17
+  'cheques', // 18
+  'contratos', // 19
+  'becarios', // 22
+  'reportes-conducta', // 23
+  'entregas-pie', // 24
+] as const
+
 /**
  * Módulos OCULTOS por usuario_id.
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo: Mario (17) restablecido.
- * Siguiente (control escolar 3 niveles): fatima (39), controlprim (16), coordsec (50).
+ * Espejo actual: Mario (17) = control escolar (3 niveles).
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
@@ -213,7 +231,6 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   3: OCULTOS_KARLA_M, // karla_m
   10: OCULTOS_COORDING_KINDER_ING, // coording
   54: OCULTOS_COORDING_KINDER_ING, // kinder_ing (ex set visible de Fátima)
-  // 39 fatima — restablecida (control escolar kinder; ve todas)
   6: OCULTOS_KEVIN, // kevin
   58: OCULTOS_LAURA_VINCULACION, // Laura Domínguez Vinculación
   40: OCULTOS_ENFERMERIA, // enfermeria
@@ -223,7 +240,10 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   11: OCULTOS_PSICOLOGIA, // psicologia (primaria)
   55: OCULTOS_PSICOLOGIA, // psicologiak (maternal/kinder)
   56: OCULTOS_PSICOLOGIA, // psicologiasec (secundaria)
-  // 17 mario — restablecido
+  39: OCULTOS_CONTROL_ESCOLAR, // fatima (CE kinder)
+  16: OCULTOS_CONTROL_ESCOLAR, // controlprim (CE primaria)
+  50: OCULTOS_CONTROL_ESCOLAR, // coordsec (CE secundaria)
+  17: OCULTOS_CONTROL_ESCOLAR, // mario — espejo
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
