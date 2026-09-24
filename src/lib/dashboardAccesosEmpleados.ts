@@ -246,6 +246,7 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   50: OCULTOS_CONTROL_ESCOLAR, // coordsec (CE secundaria)
   31: OCULTOS_CONTROL_ESCOLAR, // prefectura (igual que CE)
   49: OCULTOS_ENFERMERIA, // estancia — solo Servicios
+  57: OCULTOS_ENFERMERIA, // sara — solo Servicios
   17: OCULTOS_CONTROL_ESCOLAR, // mario — espejo prefectura/CE
 }
 
