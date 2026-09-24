@@ -218,12 +218,20 @@ const OCULTOS_CONTROL_ESCOLAR = [
   'entregas-pie', // 24
 ] as const
 
+/** prefectura: mismo que CE + oculta 8,10,11. */
+const OCULTOS_PREFECTURA = [
+  ...OCULTOS_CONTROL_ESCOLAR,
+  'bajas', // 8
+  'control-escolar', // 10
+  'programa-usa', // 11
+] as const
+
 /**
  * Módulos OCULTOS por usuario_id.
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo actual: Mario (17) = prefectura (mismo set que control escolar).
+ * Espejo actual: Mario (17) = prefectura.
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
@@ -244,10 +252,10 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   39: OCULTOS_CONTROL_ESCOLAR, // fatima (CE kinder)
   16: OCULTOS_CONTROL_ESCOLAR, // controlprim (CE primaria)
   50: OCULTOS_CONTROL_ESCOLAR, // coordsec (CE secundaria)
-  31: OCULTOS_CONTROL_ESCOLAR, // prefectura (igual que CE)
+  31: OCULTOS_PREFECTURA, // prefectura
   49: OCULTOS_ENFERMERIA, // estancia — solo Servicios
   57: OCULTOS_ENFERMERIA, // sara — solo Servicios
-  17: OCULTOS_CONTROL_ESCOLAR, // mario — espejo prefectura/CE
+  17: OCULTOS_PREFECTURA, // mario — espejo prefectura
 }
 
 export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
