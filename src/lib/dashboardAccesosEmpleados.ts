@@ -223,7 +223,7 @@ const OCULTOS_CONTROL_ESCOLAR = [
  * Sin entrada (o arreglo vacío) = ve las 25 tarjetas.
  * Solo afecta visualización del dashboard empleado; no bloquea rutas.
  *
- * Espejo actual: Mario (17) = control escolar (3 niveles).
+ * Espejo actual: Mario (17) = prefectura (mismo set que control escolar).
  */
 export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   1: OCULTOS_RUBEN_ALAN_CARLOS, // ruben
