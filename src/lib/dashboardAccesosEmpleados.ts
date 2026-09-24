@@ -213,10 +213,11 @@ const OCULTOS_COORD_JOSEFINA = [
   'revision-pagados', // 25
 ] as const
 
-/** asistente (dirección secundaria): mismo que josefina + oculta 5,21. */
+/** asistente (dirección secundaria): mismo que josefina + oculta 5,13,21. */
 const OCULTOS_ASISTENTE = [
   ...OCULTOS_COORD_JOSEFINA,
   'devoluciones', // 5
+  'agenda-directoras', // 13
   'becas', // 21
 ] as const
 
