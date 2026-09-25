@@ -50,6 +50,27 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alum
 
 /* ─── Formularios alumno ─── */
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-legend,
+/* 2026-09-25: historial contactos en dark totality */
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-historial-ayuda {
+  color: rgb(203 213 225 / 0.85);
+}
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-historial-filtro {
+  color: #e2e8f0;
+  background: rgb(30 41 59 / 0.7);
+  border-color: rgb(71 85 105 / 0.8);
+}
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-historial-filtro--activo {
+  color: #0f172a;
+  background: #93c5fd;
+  border-color: #93c5fd;
+}
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-historial-item {
+  background: rgb(15 23 42 / 0.55);
+  border-color: rgb(71 85 105 / 0.7);
+}
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-historial-resumen {
+  color: #f1f5f9;
+}
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-titulo,
 html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-placeholder-title {
   color: var(--sx-totality-gold, #fff6df) !important;

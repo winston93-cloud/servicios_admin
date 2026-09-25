@@ -1,6 +1,21 @@
 import { normalizarCurp } from './curp'
+import type { AppDatabaseClient } from './dbTypes'
 import { supabase } from './supabase'
 import { TUTOR_ID_MADRE, TUTOR_ID_PADRE } from './alumnoFamiliarTutor'
+import {
+  registrarEventoContactoAuditoria,
+  resolverAccionFamiliar,
+  type ActorContactoAuditoria,
+} from './alumnoContactoAuditoriaService'
+
+/** 2026-09-25: contexto opcional para historial (APIs admin / portal). */
+export interface FamiliarAuditoriaOpts {
+  db?: AppDatabaseClient
+  actor?: ActorContactoAuditoria
+  origen?: string
+  ip?: string | null
+  userAgent?: string | null
+}
 
 const SELECT_FAMILIAR =
   'familiar_id, alumno_id, tutor_id, familiar_app, familiar_apm, familiar_nombre, familiar_tel, familiar_cel, familiar_email, familiar_recibir_email, familiar_curp, familiar_empresa_tel'
@@ -131,8 +146,11 @@ export type ResultadoGuardarFamiliar =
 export type ResultadoGuardarFamiliarMadre = ResultadoGuardarFamiliar
 
 export async function guardarDatosFamiliar(
-  payload: GuardarDatosFamiliarPayload
+  payload: GuardarDatosFamiliarPayload,
+  auditoria?: FamiliarAuditoriaOpts
 ): Promise<ResultadoGuardarFamiliar> {
+  // 2026-09-25: db admin en APIs; cliente browser sigue usando supabase proxy
+  const db = auditoria?.db ?? supabase
   const fila = {
     familiar_app: payload.apellidoPaterno.trim() || null,
     familiar_apm: payload.apellidoMaterno.trim() || null,
@@ -145,8 +163,51 @@ export async function guardarDatosFamiliar(
     familiar_curp: normalizarCurp(payload.curp) || null,
   }
 
+  async function leerBefore(familiarId: number) {
+    const { data } = await db
+      .from('alumno_familiar')
+      .select(SELECT_FAMILIAR)
+      .eq('familiar_id', familiarId)
+      .maybeSingle()
+    return (data as Record<string, unknown> | null) ?? null
+  }
+
+  async function auditar(
+    accionHint: 'insert' | 'update',
+    familiarId: number,
+    before: Record<string, unknown> | null
+  ) {
+    if (!auditoria?.actor) return
+    const after = {
+      ...fila,
+      familiar_id: familiarId,
+      alumno_id: payload.alumnoId,
+      tutor_id: payload.tutorId,
+    }
+    const accion =
+      accionHint === 'insert'
+        ? 'familiar.insert'
+        : resolverAccionFamiliar(before, after)
+    await registrarEventoContactoAuditoria(db, {
+      actor: auditoria.actor,
+      accion,
+      entidad: 'alumno_familiar',
+      entidadId: familiarId,
+      alumnoId: payload.alumnoId,
+      detalle: {
+        origen: auditoria.origen ?? 'app',
+        before,
+        after,
+        tutor_id: payload.tutorId,
+      },
+      ip: auditoria.ip,
+      userAgent: auditoria.userAgent,
+    })
+  }
+
   if (payload.familiarId != null) {
-    const { error } = await supabase
+    const before = await leerBefore(payload.familiarId)
+    const { error } = await db
       .from('alumno_familiar')
       .update(fila)
       .eq('familiar_id', payload.familiarId)
@@ -156,10 +217,11 @@ export async function guardarDatosFamiliar(
       return { ok: false, mensaje: error.message }
     }
 
+    await auditar('update', payload.familiarId, before)
     return { ok: true, familiarId: payload.familiarId }
   }
 
-  const { data: existente } = await supabase
+  const { data: existente } = await db
     .from('alumno_familiar')
     .select('familiar_id')
     .eq('alumno_id', payload.alumnoId)
@@ -170,7 +232,8 @@ export async function guardarDatosFamiliar(
 
   if (existente?.familiar_id != null) {
     const familiarId = Number(existente.familiar_id)
-    const { error } = await supabase
+    const before = await leerBefore(familiarId)
+    const { error } = await db
       .from('alumno_familiar')
       .update(fila)
       .eq('familiar_id', familiarId)
@@ -178,6 +241,7 @@ export async function guardarDatosFamiliar(
       console.error('Error al actualizar familiar existente:', error)
       return { ok: false, mensaje: error.message }
     }
+    await auditar('update', familiarId, before)
     return { ok: true, familiarId }
   }
 
@@ -189,21 +253,21 @@ export async function guardarDatosFamiliar(
     familiar_factura: 0,
   }
 
-  let { data, error } = await supabase
+  let { data, error } = await db
     .from('alumno_familiar')
     .insert(filaInsert)
     .select('familiar_id')
     .single()
 
   if (error && (error.code === '23505' || error.message?.includes('duplicate key'))) {
-    const { data: maxRow } = await supabase
+    const { data: maxRow } = await db
       .from('alumno_familiar')
       .select('familiar_id')
       .order('familiar_id', { ascending: false })
       .limit(1)
       .maybeSingle()
     const siguienteId = (maxRow?.familiar_id ?? 0) + 1
-    const reintento = await supabase
+    const reintento = await db
       .from('alumno_familiar')
       .insert({ ...filaInsert, familiar_id: siguienteId })
       .select('familiar_id')
@@ -217,6 +281,7 @@ export async function guardarDatosFamiliar(
     return { ok: false, mensaje: error?.message ?? 'No se pudo crear el familiar.' }
   }
 
+  await auditar('insert', data.familiar_id, null)
   return { ok: true, familiarId: data.familiar_id }
 }
 

@@ -5,8 +5,6 @@ import { Loader2, Trash2 } from 'lucide-react'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
 import {
-  guardarPersonaAutorizada,
-  eliminarPersonaAutorizada,
   listarPersonasAutorizadas,
   SNAPSHOT_PERSONA_AUTORIZADA_VACIO,
   snapshotPersonaAutorizadaDesdeRegistro,
@@ -14,6 +12,7 @@ import {
   type AlumnoContactoRegistro,
   type SnapshotPersonaAutorizada,
 } from '@/lib/alumnoContactoService'
+import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import AlumnoFormGuardarBar, {
   type VarianteBotonGuardar,
@@ -154,23 +153,38 @@ export default function AlumnoPersonasAutorizadas({ alumno }: AlumnoPersonasAuto
     setMensajeGuardar(null)
     setErrorGuardar(false)
 
-    const resultado = await guardarPersonaAutorizada({
-      ...snapshotActual,
-      alumnoId,
-      contactoId: contactoSeleccionadoId,
+    // 2026-09-25: guardar vía API para historial (quién / cuándo)
+    const res = await fetch('/api/servicios/alumno-contacto', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...portalSessionFetchHeaders(),
+      },
+      body: JSON.stringify({
+        ...snapshotActual,
+        alumnoId,
+        contactoId: contactoSeleccionadoId,
+      }),
     })
+    const json = (await res.json().catch(() => ({}))) as {
+      ok?: boolean
+      contactoId?: number
+      error?: string
+    }
 
     setGuardando(false)
 
-    if (!resultado.ok) {
+    if (!res.ok || !json.ok || json.contactoId == null) {
       setErrorGuardar(true)
-      setMensajeGuardar(resultado.mensaje)
+      setMensajeGuardar(json.error ?? 'No se pudo guardar el contacto.')
       return
     }
 
+    const resultadoContactoId = json.contactoId
+
     const registros = await recargarLista(alumnoId)
     const actualizado =
-      registros.find((r) => r.contacto_id === resultado.contactoId) ?? null
+      registros.find((r) => r.contacto_id === resultadoContactoId) ?? null
 
     if (actualizado) {
       seleccionarContacto(actualizado)
@@ -207,13 +221,24 @@ export default function AlumnoPersonasAutorizadas({ alumno }: AlumnoPersonasAuto
       setMensajeGuardar(null)
       setErrorGuardar(false)
 
-      const resultado = await eliminarPersonaAutorizada(alumnoId, reg.contacto_id)
+      // 2026-09-25: eliminar vía API para dejar rastro en historial
+      const res = await fetch(
+        `/api/servicios/alumno-contacto?alumnoId=${alumnoId}&contactoId=${reg.contacto_id}`,
+        {
+          method: 'DELETE',
+          headers: { ...portalSessionFetchHeaders() },
+        }
+      )
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean
+        error?: string
+      }
 
       setEliminandoId(null)
 
-      if (!resultado.ok) {
+      if (!res.ok || !json.ok) {
         setErrorGuardar(true)
-        setMensajeGuardar(resultado.mensaje)
+        setMensajeGuardar(json.error ?? 'No se pudo eliminar.')
         return
       }
 

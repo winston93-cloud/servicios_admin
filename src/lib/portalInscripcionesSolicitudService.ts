@@ -5,6 +5,7 @@ import {
   CONTACTO_TIPO_AUTORIZADA,
   CONTACTO_TIPO_EMERGENCIA,
 } from './alumnoContactoService'
+import { registrarEventoContactoAuditoria } from './alumnoContactoAuditoriaService'
 import { TUTOR_ID_MADRE, TUTOR_ID_PADRE } from './alumnoFamiliarTutor'
 import { validarSolicitudInscripcion } from './portalInscripcionesValidacion'
 import type { SolicitudInscripcionFormulario } from './portalInscripcionesSolicitudTypes'
@@ -288,7 +289,8 @@ async function upsertFamiliar(
   alumnoId: number,
   tutorId: number,
   familiarId: number | null,
-  f: SolicitudInscripcionFormulario['mama']
+  f: SolicitudInscripcionFormulario['mama'],
+  actorLabel?: string
 ): Promise<void> {
   const fila = {
     familiar_app: f.apellidoPaterno.trim() || null,
@@ -312,6 +314,7 @@ async function upsertFamiliar(
   }
 
   let id = familiarId
+  let before: Record<string, unknown> | null = null
   if (id == null) {
     const { data: existente } = await supabase
       .from('alumno_familiar')
@@ -325,22 +328,63 @@ async function upsertFamiliar(
   }
 
   if (id != null) {
+    const { data: prev } = await supabase
+      .from('alumno_familiar')
+      .select(
+        'familiar_id, alumno_id, tutor_id, familiar_app, familiar_apm, familiar_nombre, familiar_email, familiar_recibir_email, familiar_cel, familiar_empresa_tel, familiar_curp'
+      )
+      .eq('familiar_id', id)
+      .maybeSingle()
+    before = (prev as Record<string, unknown> | null) ?? null
     const { error } = await supabase.from('alumno_familiar').update(fila).eq('familiar_id', id)
     if (error) throw new Error(error.message)
+    // 2026-09-25: historial portal (mamá/papá)
+    await registrarEventoContactoAuditoria(supabase, {
+      actor: { tipo: 'portal', label: actorLabel?.trim() || 'portal-inscripciones' },
+      accion: before ? 'familiar.update' : 'familiar.insert',
+      entidad: 'alumno_familiar',
+      entidadId: id,
+      alumnoId,
+      detalle: { origen: 'portal-inscripciones', before, after: { ...fila, familiar_id: id, alumno_id: alumnoId, tutor_id: tutorId }, tutor_id: tutorId },
+    })
     return
   }
 
   const filaInsert = { alumno_id: alumnoId, tutor_id: tutorId, ...fila }
-  let { error } = await supabase.from('alumno_familiar').insert(filaInsert)
+  let insertId: number | null = null
+  let { data: inserted, error } = await supabase
+    .from('alumno_familiar')
+    .insert(filaInsert)
+    .select('familiar_id')
+    .single()
   if (error && esErrorClaveDuplicada(error)) {
     const siguienteId = await siguienteFamiliarId(supabase)
     if (siguienteId != null) {
-      ;({ error } = await supabase
+      const reintento = await supabase
         .from('alumno_familiar')
-        .insert({ ...filaInsert, familiar_id: siguienteId }))
+        .insert({ ...filaInsert, familiar_id: siguienteId })
+        .select('familiar_id')
+        .single()
+      inserted = reintento.data
+      error = reintento.error
     }
   }
   if (error) throw new Error(error.message)
+  insertId = inserted?.familiar_id != null ? Number(inserted.familiar_id) : null
+  if (insertId != null) {
+    await registrarEventoContactoAuditoria(supabase, {
+      actor: { tipo: 'portal', label: actorLabel?.trim() || 'portal-inscripciones' },
+      accion: 'familiar.insert',
+      entidad: 'alumno_familiar',
+      entidadId: insertId,
+      alumnoId,
+      detalle: {
+        origen: 'portal-inscripciones',
+        after: { ...filaInsert, familiar_id: insertId },
+        tutor_id: tutorId,
+      },
+    })
+  }
 }
 
 async function siguienteContactoId(supabase: AppDatabaseClient): Promise<number | null> {
@@ -358,7 +402,8 @@ async function upsertContacto(
   supabase: AppDatabaseClient,
   alumnoId: number,
   tipo: number,
-  c: SolicitudInscripcionFormulario['emergencia']
+  c: SolicitudInscripcionFormulario['emergencia'],
+  actorLabel?: string
 ): Promise<void> {
   const fila = {
     contacto_nombre: c.nombre.trim() || null,
@@ -369,12 +414,35 @@ async function upsertContacto(
   }
 
   if (c.contactoId != null) {
+    const { data: prev } = await supabase
+      .from('alumno_contacto')
+      .select(
+        'contacto_id, alumno_id, tutor_clase, contacto_tipo, contacto_nombre, contacto_tel, contacto_cel'
+      )
+      .eq('contacto_id', c.contactoId)
+      .maybeSingle()
+    const before = (prev as Record<string, unknown> | null) ?? null
     const { error } = await supabase
       .from('alumno_contacto')
       .update(fila)
       .eq('contacto_id', c.contactoId)
       .eq('alumno_id', alumnoId)
     if (error) throw new Error(error.message)
+    // 2026-09-25: historial portal (emergencia / autorizados)
+    await registrarEventoContactoAuditoria(supabase, {
+      actor: { tipo: 'portal', label: actorLabel?.trim() || 'portal-inscripciones' },
+      accion: 'contacto.update',
+      entidad: 'alumno_contacto',
+      entidadId: c.contactoId,
+      alumnoId,
+      detalle: {
+        origen: 'portal-inscripciones',
+        before,
+        after: { ...fila, contacto_id: c.contactoId, alumno_id: alumnoId },
+        contacto_tipo: tipo,
+        parentesco: c.parentesco.trim() || null,
+      },
+    })
     return
   }
 
@@ -383,32 +451,59 @@ async function upsertContacto(
     ...fila,
     contacto_alta: new Date().toISOString(),
   }
-  let { error } = await supabase.from('alumno_contacto').insert(filaInsert)
+  let { data: inserted, error } = await supabase
+    .from('alumno_contacto')
+    .insert(filaInsert)
+    .select('contacto_id')
+    .single()
   if (error && esErrorClaveDuplicada(error)) {
     const siguienteId = await siguienteContactoId(supabase)
     if (siguienteId != null) {
-      ;({ error } = await supabase
+      const reintento = await supabase
         .from('alumno_contacto')
-        .insert({ ...filaInsert, contacto_id: siguienteId }))
+        .insert({ ...filaInsert, contacto_id: siguienteId })
+        .select('contacto_id')
+        .single()
+      inserted = reintento.data
+      error = reintento.error
     }
   }
   if (error) throw new Error(error.message)
+  const insertId = inserted?.contacto_id != null ? Number(inserted.contacto_id) : null
+  if (insertId != null) {
+    await registrarEventoContactoAuditoria(supabase, {
+      actor: { tipo: 'portal', label: actorLabel?.trim() || 'portal-inscripciones' },
+      accion: 'contacto.insert',
+      entidad: 'alumno_contacto',
+      entidadId: insertId,
+      alumnoId,
+      detalle: {
+        origen: 'portal-inscripciones',
+        after: { ...filaInsert, contacto_id: insertId },
+        contacto_tipo: tipo,
+        parentesco: c.parentesco.trim() || null,
+      },
+    })
+  }
 }
 
 export async function guardarSolicitudInscripcion(
   supabase: AppDatabaseClient,
   alumnoId: number,
-  form: SolicitudInscripcionFormulario
+  form: SolicitudInscripcionFormulario,
+  actorLabel?: string
 ): Promise<{ ok: true; fechaRegistro: string } | { ok: false; errores: string[] }> {
   const errores = validarSolicitudInscripcion(form)
   if (errores.length > 0) return { ok: false, errores }
 
+  const label = actorLabel?.trim() || 'portal-inscripciones'
+
   try {
     await upsertDetalle(supabase, alumnoId, form.detalleId, form)
     await upsertMedico(supabase, alumnoId, form.datoMedicoId, form)
-    await upsertFamiliar(supabase, alumnoId, TUTOR_ID_MADRE, form.mamaFamiliarId, form.mama)
-    await upsertFamiliar(supabase, alumnoId, TUTOR_ID_PADRE, form.papaFamiliarId, form.papa)
-    await upsertContacto(supabase, alumnoId, CONTACTO_TIPO_EMERGENCIA, form.emergencia)
+    await upsertFamiliar(supabase, alumnoId, TUTOR_ID_MADRE, form.mamaFamiliarId, form.mama, label)
+    await upsertFamiliar(supabase, alumnoId, TUTOR_ID_PADRE, form.papaFamiliarId, form.papa, label)
+    await upsertContacto(supabase, alumnoId, CONTACTO_TIPO_EMERGENCIA, form.emergencia, label)
 
     for (const autorizado of form.autorizados) {
       if (
@@ -418,7 +513,7 @@ export async function guardarSolicitudInscripcion(
       ) {
         continue
       }
-      await upsertContacto(supabase, alumnoId, CONTACTO_TIPO_AUTORIZADA, autorizado)
+      await upsertContacto(supabase, alumnoId, CONTACTO_TIPO_AUTORIZADA, autorizado, label)
     }
 
     const hoy = new Date().toISOString().slice(0, 10)

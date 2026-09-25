@@ -1,14 +1,20 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
-import { GraduationCap, ShieldCheck, UserRound } from 'lucide-react'
+import { GraduationCap, History, ShieldCheck, UserRound } from 'lucide-react'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 import AlumnoFormElementales from './alumno-forms/AlumnoFormElementales'
 import AlumnoFormMadre from './alumno-forms/AlumnoFormMadre'
 import AlumnoFormPadre from './alumno-forms/AlumnoFormPadre'
 import AlumnoPersonasAutorizadas from './alumno-forms/AlumnoPersonasAutorizadas'
+import AlumnoHistorialContactos from './alumno-forms/AlumnoHistorialContactos'
 
-export type AlumnoDatosTabId = 'elementales' | 'madre' | 'padre' | 'autorizadas'
+export type AlumnoDatosTabId =
+  | 'elementales'
+  | 'madre'
+  | 'padre'
+  | 'autorizadas'
+  | 'historial'
 
 const TABS: {
   id: AlumnoDatosTabId
@@ -39,6 +45,13 @@ const TABS: {
     label: 'Personas autorizadas',
     shortLabel: 'Autorizadas',
     icon: <ShieldCheck size={18} strokeWidth={2} aria-hidden />,
+  },
+  {
+    // 2026-09-25: historial append-only de contactos / quién recoge
+    id: 'historial',
+    label: 'Historial de contactos',
+    shortLabel: 'Historial',
+    icon: <History size={18} strokeWidth={2} aria-hidden />,
   },
 ]
 
@@ -97,6 +110,7 @@ export default function AlumnoDatosTabs({ alumno }: AlumnoDatosTabsProps) {
                 {tab.id === 'madre' && <AlumnoFormMadre alumno={alumno} />}
                 {tab.id === 'padre' && <AlumnoFormPadre alumno={alumno} />}
                 {tab.id === 'autorizadas' && <AlumnoPersonasAutorizadas alumno={alumno} />}
+                {tab.id === 'historial' && <AlumnoHistorialContactos alumno={alumno} />}
               </div>
             )
           })

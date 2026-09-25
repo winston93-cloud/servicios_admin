@@ -44,7 +44,14 @@ export async function POST(request: Request) {
     if (!auth.ok) return auth.response
 
     const supabase = createSupabaseAdmin()
-    const resultado = await guardarSolicitudInscripcion(supabase, alumnoId, formulario)
+    // 2026-09-25: actor portal = ctrl del alumno (sesión papás)
+    const actorLabel = `alumno:${auth.alumno.alumno_ref ?? alumnoId}`
+    const resultado = await guardarSolicitudInscripcion(
+      supabase,
+      alumnoId,
+      formulario,
+      actorLabel
+    )
 
     if (!resultado.ok) {
       return NextResponse.json({ ok: false, errores: resultado.errores }, { status: 422 })

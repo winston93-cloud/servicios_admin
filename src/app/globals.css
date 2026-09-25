@@ -10861,6 +10861,99 @@ html[data-theme='dark'] .servicios-sidebar-logout {
   }
 }
 
+/* 2026-09-25: timeline historial de contactos / quién recoge */
+.alumno-historial {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.alumno-historial-cabecera .alumno-contactos-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alumno-historial-ayuda {
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.alumno-historial-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.alumno-historial-filtro {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.alumno-historial-filtro--activo {
+  color: #fff;
+  background: #1e3a5f;
+  border-color: #1e3a5f;
+}
+
+.alumno-historial-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.alumno-historial-item {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 9rem) 1fr;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.alumno-historial-fecha {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.alumno-historial-resumen {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.alumno-historial-meta {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.alumno-historial-accion {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+}
+
+@media (max-width: 640px) {
+  .alumno-historial-item {
+    grid-template-columns: 1fr;
+  }
+}
+
 .alumno-form-clave-fila {
   display: flex;
   gap: 8px;

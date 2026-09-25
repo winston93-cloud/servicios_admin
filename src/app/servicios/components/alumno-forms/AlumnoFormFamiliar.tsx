@@ -6,13 +6,13 @@ import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
 import type { AlumnoFamiliarFormConfig } from '@/lib/alumnoFamiliarFormConfig'
 import {
-  guardarDatosFamiliar,
   obtenerFamiliarPorAlumnoId,
   snapshotDatosFamiliarDesdeRegistro,
   snapshotsDatosFamiliarIguales,
   type AlumnoFamiliarRegistro,
   type SnapshotDatosFamiliar,
 } from '@/lib/alumnoFamiliarService'
+import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import { normalizarCurp } from '@/lib/curp'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import AlumnoFormGuardarBar, {
@@ -149,23 +149,38 @@ export default function AlumnoFormFamiliar({ alumno, config }: AlumnoFormFamilia
     setMensajeGuardar(null)
     setErrorGuardar(false)
 
-    const resultado = await guardarDatosFamiliar({
-      ...snapshotActual,
-      alumnoId,
-      familiarId: familiar?.familiar_id ?? null,
-      tutorId,
+    // 2026-09-25: guardar vía API para registrar actor + historial
+    const res = await fetch('/api/servicios/alumno-familiar', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...portalSessionFetchHeaders(),
+      },
+      body: JSON.stringify({
+        ...snapshotActual,
+        alumnoId,
+        familiarId: familiar?.familiar_id ?? null,
+        tutorId,
+      }),
     })
+    const json = (await res.json().catch(() => ({}))) as {
+      ok?: boolean
+      familiarId?: number
+      error?: string
+    }
 
     setGuardando(false)
 
-    if (!resultado.ok) {
+    if (!res.ok || !json.ok || json.familiarId == null) {
       setErrorGuardar(true)
-      setMensajeGuardar(resultado.mensaje)
+      setMensajeGuardar(json.error ?? 'No se pudo guardar el familiar.')
       return
     }
 
+    const resultadoFamiliarId = json.familiarId
+
     setFamiliar({
-      familiar_id: resultado.familiarId,
+      familiar_id: resultadoFamiliarId,
       alumno_id: alumnoId,
       tutor_id: tutorId,
       familiar_app: snapshotActual.apellidoPaterno || null,
