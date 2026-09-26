@@ -518,17 +518,21 @@ export async function capturarReporte(opts: {
   motivo: number
   mensaje: string
 }) {
-  const { fisica } = await listarAsignaciones(opts.session)
+  const { fisica, asignaciones } = await listarAsignaciones(opts.session)
   if (!puedeCapturarTipo(opts.session.role, opts.tipo, fisica)) {
     throw new RacAuthError('Este tipo de reporte no corresponde a tu cuenta', 403)
   }
   const ciclo = await cicloRac()
   const client = db()
   await assertAlumnoSecundaria(opts.alumnoId)
-  // Solo académico (e informe académico vía capturarInforme) persiste materia.
-  // Staff (psico/prefectura/dirección) reporta sin asignatura: materia_id queda vacío.
+  // Académico siempre persiste materia. Maestro: cualquier tipo guarda la materia desde la que reporta
+  // (conducta, etc.). Staff (psico/prefectura/dirección) reporta sin asignatura: materia_id vacío.
+  const materiaDelMaestro =
+    opts.session.role === 'maestro' &&
+    opts.materiaId > 0 &&
+    asignaciones.some((a) => a.materia_id === opts.materiaId)
   const materiaId =
-    opts.tipo === RAC_TIPOS.academico && opts.materiaId > 0 ? opts.materiaId : 0
+    opts.materiaId > 0 && (opts.tipo === RAC_TIPOS.academico || materiaDelMaestro) ? opts.materiaId : 0
   const token = mdv('rep')
 
   let q = client
