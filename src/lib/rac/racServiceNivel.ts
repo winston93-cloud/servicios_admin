@@ -1228,7 +1228,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
         const emisor = emisorDeMapa(emisores, r.perfil_id, r.usuario_id)
         const expedidoPor = emisor?.nombre
           ? `${emisor.nombre}${emisor.departamento ? ` (${emisor.departamento})` : ''}`
-          : ''
+          : emisor?.departamento ?? ''
         return {
           reporte_id: n(r.reporte_id),
           alumno_id: n(r.alumno_id),

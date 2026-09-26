@@ -36,6 +36,14 @@ export type RacEmisorInfo = {
   etiqueta: string
 }
 
+/**
+ * Cuentas de staff que se muestran con un cargo fijo en lugar de «Departamento · Nombre».
+ * asistente (60): perfil 5 (Prefectura) pero firma como asistente de dirección.
+ */
+const EMISOR_CARGO_FIJO: Record<number, string> = {
+  60: 'Asistente de Dirección Secundaria',
+}
+
 function claveEmisor(perfilId: number, usuarioId: number): string {
   return `${perfilId}:${usuarioId}`
 }
@@ -99,6 +107,17 @@ export async function resolverEmisoresRac(
   }
 
   for (const r of unicos.values()) {
+    const cargoFijo = r.perfil_id !== 1 ? EMISOR_CARGO_FIJO[r.usuario_id] : undefined
+    if (cargoFijo) {
+      out.set(claveEmisor(r.perfil_id, r.usuario_id), {
+        perfilId: r.perfil_id,
+        usuarioId: r.usuario_id,
+        departamento: cargoFijo,
+        nombre: '',
+        etiqueta: cargoFijo,
+      })
+      continue
+    }
     const departamento = departamentoDePerfil(r.perfil_id, opts?.etiquetaPerfil5)
     const nombre =
       r.perfil_id === 1

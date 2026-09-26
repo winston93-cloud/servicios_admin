@@ -409,8 +409,10 @@ export async function enviarCorreoReporte(reporteId: number, opts?: { pruebaA?: 
       ? `Expedido por: <b>${escapeHtml(expedidoPor)}</b>${
           emisor?.departamento ? ` (${escapeHtml(emisor.departamento)})` : ''
         }`
-      : origenLabel
-  const emisorCorreo = !materiaNombre && expedidoPor ? '' : emisorLabel
+      : !materiaNombre && emisor?.departamento
+        ? `Expedido por: <b>${escapeHtml(emisor.departamento)}</b>`
+        : origenLabel
+  const emisorCorreo = !materiaNombre && (expedidoPor || emisor?.departamento) ? '' : emisorLabel
   const enlace = urlPublicaRac(String(r.reporte_mdv), alt)
   const subject = asuntoReporte(tipo, no)
   const frase = fraseRegistroAvisoRac(tipo, no)
@@ -485,8 +487,10 @@ export async function enviarCorreoCita(citaId: number) {
       ? `Expedido por: <b>${escapeHtml(expedidoPor)}</b>${
           emisor?.departamento ? ` (${escapeHtml(emisor.departamento)})` : ''
         }`
-      : origenLabel
-  const emisorCorreo = !materiaNombre && expedidoPor ? '' : emisorLabel
+      : !materiaNombre && emisor?.departamento
+        ? `Expedido por: <b>${escapeHtml(emisor.departamento)}</b>`
+        : origenLabel
+  const emisorCorreo = !materiaNombre && (expedidoPor || emisor?.departamento) ? '' : emisorLabel
 
   const subject = `Citatorio ${etiquetaTipoCitatorio(n(c.cita_tipo))}`
   const html = htmlCorreoRac({
@@ -734,7 +738,7 @@ async function hidratar(rows: Record<string, unknown>[]) {
       const emisor = emisorDeMapa(emisores, r.perfil_id, r.usuario_id)
       const expedidoPor = emisor?.nombre
         ? `${emisor.nombre} (${emisor.departamento || departamento})`
-        : departamento
+        : emisor?.departamento || departamento
       return {
         reporte_id: n(r.reporte_id),
         alumno_id: n(r.alumno_id),
