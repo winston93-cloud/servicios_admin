@@ -619,11 +619,16 @@ export default function RacSecundariaPage() {
             : accion === 'denegar'
               ? 'Reporte denegado.'
               : accion === 'detener'
-                ? 'Registro detenido.'
+                ? tab === 'historial'
+                  ? 'Reporte anulado.'
+                  : 'Registro detenido.'
                 : 'Listo'
         )
       }
       setCitaValidar(null)
+      if (tab === 'historial' && entidad === 'reporte' && accion === 'detener') {
+        setLista((prev) => prev.filter((r) => Number(r.reporte_id) !== id))
+      }
       if (tab === 'inbox') await cargarVista('inbox-listado')
       if (tab === 'informes') await cargarVista('informes')
       if (tab === 'citas') await cargarVista('citas')
@@ -1415,6 +1420,27 @@ export default function RacSecundariaPage() {
                         >
                           <Search size={16} aria-hidden />
                           <span className="rac-btn-label">Detalle</span>
+                        </button>
+                      ) : null}
+                      {tab === 'historial' && esAdmin && Number(row.reporte_id) > 0 ? (
+                        <button
+                          type="button"
+                          className="boletas-btn danger"
+                          title="Anular este reporte (deja de contar en el historial del alumno)"
+                          disabled={busy}
+                          onClick={() => {
+                            const materia = row.materia ? ` de ${String(row.materia)}` : ''
+                            const fecha = row.fecha ? ` (${String(row.fecha)})` : ''
+                            if (
+                              window.confirm(
+                                `¿Anular el reporte${materia}${fecha} de ${String(row.nombre ?? 'este alumno')}? Ya no aparecerá en su historial.`
+                              )
+                            ) {
+                              void accionCoord('reporte', Number(row.reporte_id), 'detener')
+                            }
+                          }}
+                        >
+                          Anular
                         </button>
                       ) : null}
                       {tab === 'inbox' && me.role === 'psicologia' ? (
