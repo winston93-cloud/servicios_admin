@@ -13,7 +13,7 @@ import {
   tiposCitaDeRolNivel,
   type RacTabNivel,
 } from '@/lib/rac/racPermisosNivel'
-import { etiquetaTabConteo, opcionesMotivo } from '@/lib/racUi'
+import { etiquetaTabConteo, opcionesMotivo, origenReporteRac } from '@/lib/racUi'
 import {
   ArrowLeft,
   Download,
@@ -1592,8 +1592,10 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                         </td>
                     <td>
                       {String(row.escalon ?? row.tipoEtiqueta ?? row.materia ?? '')}
-                      {row.materia ? (
-                        <span className="racn-mini">Materia: {String(row.materia)}</span>
+                      {origenReporteRac(row) ? (
+                        <span className="racn-mini">
+                          {origenReporteRac(row)!.etiqueta}: {origenReporteRac(row)!.valor}
+                        </span>
                       ) : null}
                       <span className="racn-mini">{String(row.motivo ?? row.mensaje ?? '')}</span>
                     </td>
@@ -1810,7 +1812,11 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                         {String(r.escalon ?? r.tipoEtiqueta ?? 'Reporte')}
                         {r.vuelta != null ? ` · Vuelta ${String(r.vuelta)}` : ''}
                       </strong>
-                      {r.materia ? <div>Materia: {String(r.materia)}</div> : null}
+                      {origenReporteRac(r) ? (
+                        <div>
+                          {origenReporteRac(r)!.etiqueta}: {origenReporteRac(r)!.valor}
+                        </div>
+                      ) : null}
                       {r.motivo ? <div>Motivo: {String(r.motivo)}</div> : null}
                       <div className="racn-detalle-obs">Observaciones: {String(r.mensaje || '—')}</div>
                       <div className="racn-mini">

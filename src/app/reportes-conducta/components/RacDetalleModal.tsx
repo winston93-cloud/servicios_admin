@@ -25,7 +25,15 @@ export default function RacDetalleModal({ row, onClose }: Props) {
   const esCita = row.cita_id != null
   const esSusp = row.suspension_id != null
   const tituloTipo = String(row.escalon ?? row.tipoEtiqueta ?? (esCita ? 'Citatorio' : esSusp ? 'Suspensión' : 'Reporte'))
-  const situacion = [tituloTipo, row.materia ? String(row.materia) : ''].filter(Boolean).join(' · ')
+  const tieneMateria = !esCita && !esSusp && row.expedido_por != null ? Number(row.materia_id) > 0 : Boolean(row.materia)
+  const situacion = [tituloTipo, tieneMateria ? String(row.materia) : ''].filter(Boolean).join(' · ')
+  const expedidoPor = esCita
+    ? String(
+        row.emisor ||
+          [row.emisor_departamento, row.emisor_nombre].filter(Boolean).join(' · ') ||
+          ''
+      )
+    : String(row.expedido_por ?? '')
   const gradoLabel =
     row.nivel != null && row.grado != null
       ? etiquetaGradoEscolar(row.nivel as number | string, row.grado as number | string)
@@ -102,7 +110,7 @@ export default function RacDetalleModal({ row, onClose }: Props) {
             </div>
             {situacion ? (
               <div className="rac-det__field rac-det__field--wide">
-                <span className="rac-det__label">Situación / materia</span>
+                <span className="rac-det__label">{tieneMateria ? 'Situación / materia' : 'Situación'}</span>
                 <span className="rac-det__value">{situacion}</span>
               </div>
             ) : null}
@@ -118,16 +126,10 @@ export default function RacDetalleModal({ row, onClose }: Props) {
                 <span className="rac-det__value">{String(row.vuelta)}</span>
               </div>
             ) : null}
-            {esCita && (row.emisor || row.emisor_departamento || row.emisor_nombre) ? (
+            {expedidoPor ? (
               <div className="rac-det__field rac-det__field--wide">
                 <span className="rac-det__label">Expedido por</span>
-                <span className="rac-det__value">
-                  {String(
-                    row.emisor ||
-                      [row.emisor_departamento, row.emisor_nombre].filter(Boolean).join(' · ') ||
-                      '—'
-                  )}
-                </span>
+                <span className="rac-det__value">{expedidoPor}</span>
               </div>
             ) : null}
           </div>

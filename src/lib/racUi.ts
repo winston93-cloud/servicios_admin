@@ -24,3 +24,10 @@ export function etiquetaTabConteo(label: string, n: number | null | undefined): 
 }
 
 export { opcionesMotivo }
+
+/** «Materia: X» si el reporte tiene asignatura; si no, «Expedido por: Nombre (Maestro)». */
+export function origenReporteRac(row: Record<string, unknown>): { etiqueta: string; valor: string } | null {
+  const valor = String(row.materia ?? '').trim()
+  if (!valor) return null
+  return { etiqueta: Number(row.materia_id) > 0 ? 'Materia' : 'Expedido por', valor }
+}

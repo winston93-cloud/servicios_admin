@@ -77,6 +77,8 @@ export async function enviarAvisoRac(opts: {
   html: string
   /** Default secundaria (módulo legacy). Kinder/primaria deben pasar su panel. */
   panel?: RacCorreoPanel
+  /** Omite la copia oculta institucional (envíos de prueba). */
+  sinBcc?: boolean
 }): Promise<{ ok: boolean; error?: string }> {
   const panel = opts.panel ?? 'secundaria'
   return enviarCorreoMasivo({
@@ -84,7 +86,7 @@ export async function enviarAvisoRac(opts: {
     subject: opts.subject,
     html: opts.html,
     nivel: nivelCorreoRac(panel),
-    bcc: panel === 'secundaria' ? [...BCC_RAC_SECUNDARIA] : undefined,
+    bcc: panel === 'secundaria' && !opts.sinBcc ? [...BCC_RAC_SECUNDARIA] : undefined,
   })
 }
 

@@ -353,14 +353,17 @@ async function assertAlumnoSecundaria(id: number): Promise<AlumnoRow> {
   return alumno
 }
 
-export async function enviarCorreoReporte(reporteId: number) {
+/** `pruebaA`: envía solo a esos correos (asunto «[PRUEBA]»), sin marcar enviado ni avisar al staff. */
+export async function enviarCorreoReporte(reporteId: number, opts?: { pruebaA?: string[] }) {
   const client = db()
   const { data: r } = await client.from('reporte_escolar').select('*').eq('reporte_id', reporteId).maybeSingle()
   if (!r) throw new Error('Reporte no encontrado')
   const alumno = await cargarAlumno(n(r.alumno_id))
-  const to = await emailsFamilia(alumno.alumno_id)
+  const prueba = Boolean(opts?.pruebaA?.length)
+  const to = prueba ? opts!.pruebaA! : await emailsFamilia(alumno.alumno_id)
   const tipo = n(r.reporte_tipo)
   const failNotify = async (motivoError: string) => {
+    if (prueba) return
     await avisarStaffFalloEnvioRac({
       panel: 'secundaria',
       perfilId: n(r.perfil_id),
@@ -401,6 +404,13 @@ export async function enviarCorreoReporte(reporteId: number) {
         emisor?.departamento ? ` (${escapeHtml(emisor.departamento)})` : ''
       }</p>`
     : ''
+  const origenCorreo =
+    !materiaNombre && expedidoPor
+      ? `Expedido por: <b>${escapeHtml(expedidoPor)}</b>${
+          emisor?.departamento ? ` (${escapeHtml(emisor.departamento)})` : ''
+        }`
+      : origenLabel
+  const emisorCorreo = !materiaNombre && expedidoPor ? '' : emisorLabel
   const enlace = urlPublicaRac(String(r.reporte_mdv), alt)
   const subject = asuntoReporte(tipo, no)
   const frase = fraseRegistroAvisoRac(tipo, no)
@@ -415,13 +425,20 @@ export async function enviarCorreoReporte(reporteId: number) {
       para <b>${escapeHtml(nombreAlumno(alumno))}</b> (control ${escapeHtml(String(alumno.alumno_ref ?? ''))}).</p>
       ${
         mostrarMotivo
-          ? `<p>Motivo: <b>${escapeHtml(motivoTxt)}</b> · ${origenLabel}</p>`
-          : `<p>${origenLabel}</p>`
+          ? `<p>Motivo: <b>${escapeHtml(motivoTxt)}</b> · ${origenCorreo}</p>`
+          : `<p>${origenCorreo}</p>`
       }
-      ${emisorLabel}
+      ${emisorCorreo}
       <p>${escapeHtml(String(r.reporte_mensaje ?? '')).replace(/\n/g, '<br>')}</p>`,
   })
-  const envio = await enviarAvisoRac({ to, subject, html, panel: 'secundaria' })
+  const envio = await enviarAvisoRac({
+    to,
+    subject: prueba ? `[PRUEBA] ${subject}` : subject,
+    html,
+    panel: 'secundaria',
+    sinBcc: prueba,
+  })
+  if (prueba) return envio
   if (envio.ok) {
     await client.from('reporte_escolar').update({ reporte_enviado: 1 }).eq('reporte_id', reporteId)
   } else {
@@ -463,6 +480,13 @@ export async function enviarCorreoCita(citaId: number) {
         emisor?.departamento ? ` (${escapeHtml(emisor.departamento)})` : ''
       }</p>`
     : ''
+  const origenCorreo =
+    !materiaNombre && expedidoPor
+      ? `Expedido por: <b>${escapeHtml(expedidoPor)}</b>${
+          emisor?.departamento ? ` (${escapeHtml(emisor.departamento)})` : ''
+        }`
+      : origenLabel
+  const emisorCorreo = !materiaNombre && expedidoPor ? '' : emisorLabel
 
   const subject = `Citatorio ${etiquetaTipoCitatorio(n(c.cita_tipo))}`
   const html = htmlCorreoRac({
@@ -471,8 +495,8 @@ export async function enviarCorreoCita(citaId: number) {
     cuerpoHtml: `<p>Estimada familia:</p>
       <p>Citatorio <b>${escapeHtml(etiquetaTipoCitatorio(n(c.cita_tipo)))}</b> para
       <b>${escapeHtml(nombreAlumno(alumno))}</b> (control ${escapeHtml(String(alumno.alumno_ref ?? ''))}).</p>
-      <p>${origenLabel}</p>
-      ${emisorLabel}
+      <p>${origenCorreo}</p>
+      ${emisorCorreo}
       <p>Fecha y hora: <b>${escapeHtml(fecha)}</b></p>
       <p>${escapeHtml(String(c.cita_mensaje ?? ''))}</p>`,
   })
@@ -697,6 +721,9 @@ async function hidratar(rows: Record<string, unknown>[]) {
     const { data: mats } = await client.from('boleta_materia').select('materia_id, materia_nombre').in('materia_id', materiaIds)
     mMap = new Map((mats ?? []).map((m) => [n(m.materia_id), String(m.materia_nombre)]))
   }
+  const emisores = await resolverEmisoresRac(
+    rows.map((r) => ({ perfil_id: n(r.perfil_id), usuario_id: n(r.usuario_id) }))
+  )
   return rows
     .map((r) => {
       const a = aMap.get(n(r.alumno_id))
@@ -704,6 +731,10 @@ async function hidratar(rows: Record<string, unknown>[]) {
       if (!a || n(a.alumno_nivel) !== RAC_NIVEL_SECUNDARIA) return null
       const materia = mMap.get(n(r.materia_id)) ?? ''
       const departamento = etiquetaDepartamentoRac(n(r.perfil_id))
+      const emisor = emisorDeMapa(emisores, r.perfil_id, r.usuario_id)
+      const expedidoPor = emisor?.nombre
+        ? `${emisor.nombre} (${emisor.departamento || departamento})`
+        : departamento
       return {
         reporte_id: n(r.reporte_id),
         alumno_id: n(r.alumno_id),
@@ -712,8 +743,9 @@ async function hidratar(rows: Record<string, unknown>[]) {
         grado: n(a.alumno_grado),
         grupo: letraDesdeGrupoNum(n(a.alumno_grupo)),
         nivel: n(a.alumno_nivel),
-        materia: materia || departamento,
-        materia_id: n(r.materia_id),
+        materia: materia || expedidoPor,
+        materia_id: materia ? n(r.materia_id) : 0,
+        expedido_por: expedidoPor,
         tipo: n(r.reporte_tipo),
         tipoEtiqueta: etiquetaTipoReporte(n(r.reporte_tipo)),
         escalon: etiquetaEscalon(n(r.reporte_tipo), n(r.reporte_no)),

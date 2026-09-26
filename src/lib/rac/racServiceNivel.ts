@@ -1214,12 +1214,21 @@ export function createRacNivelService(cfg: RacNivelConfig) {
         ])
       )
     }
+    const emisores = await resolverEmisoresRac(
+      rows.map((r) => ({ perfil_id: n(r.perfil_id), usuario_id: n(r.usuario_id) })),
+      { etiquetaPerfil5: cfg.etiquetaOperaciones }
+    )
     return rows
       .map((r) => {
         const a = aMap.get(n(r.alumno_id))
         if (a && !cfg.nivelesEscolares.includes(n(a.alumno_nivel) as (typeof cfg.nivelesEscolares)[number])) {
           return null
         }
+        const materia = mMap.get(n(r.materia_id)) ?? ''
+        const emisor = emisorDeMapa(emisores, r.perfil_id, r.usuario_id)
+        const expedidoPor = emisor?.nombre
+          ? `${emisor.nombre}${emisor.departamento ? ` (${emisor.departamento})` : ''}`
+          : ''
         return {
           reporte_id: n(r.reporte_id),
           alumno_id: n(r.alumno_id),
@@ -1228,8 +1237,9 @@ export function createRacNivelService(cfg: RacNivelConfig) {
           grado: a ? n(a.alumno_grado) : 0,
           grupo: a ? letraDesdeGrupoNum(n(a.alumno_grupo)) : '',
           nivel: a ? n(a.alumno_nivel) : 0,
-          materia: mMap.get(n(r.materia_id)) ?? '',
-          materia_id: n(r.materia_id),
+          materia: materia || expedidoPor,
+          materia_id: materia ? n(r.materia_id) : 0,
+          expedido_por: expedidoPor,
           tipo: n(r.reporte_tipo),
           tipoEtiqueta: etiquetaTipoReporte(n(r.reporte_tipo)),
           escalon: etiquetaEscalon(n(r.reporte_tipo), n(r.reporte_no)),

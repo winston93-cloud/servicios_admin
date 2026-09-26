@@ -2,7 +2,7 @@
 
 import ThemeToggle from '@/components/ThemeToggle'
 import { etiquetaGradoStaffSecundaria } from '@/lib/racCatalogo'
-import { etiquetaTabConteo, opcionesMotivo } from '@/lib/racUi'
+import { etiquetaTabConteo, opcionesMotivo, origenReporteRac } from '@/lib/racUi'
 import { etiquetaRol, esPanelAdminRac, tabsDeRol, tiposCapturaDeRol, tiposCitaDeRol, type RacTab } from '@/lib/racPermisos'
 import { ArrowLeft, Download, Eye, EyeOff, FolderOpen, LogOut, Mail, Search, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -1385,8 +1385,10 @@ export default function RacSecundariaPage() {
                     </td>
                     <td>
                       {String(row.escalon ?? row.tipoEtiqueta ?? row.materia ?? '')}
-                      {row.materia ? (
-                        <span className="rac-mini">Materia: {String(row.materia)}</span>
+                      {origenReporteRac(row) ? (
+                        <span className="rac-mini">
+                          {origenReporteRac(row)!.etiqueta}: {origenReporteRac(row)!.valor}
+                        </span>
                       ) : null}
                       <span className="rac-mini">{String(row.motivo ?? row.mensaje ?? '')}</span>
                     </td>
@@ -1429,7 +1431,8 @@ export default function RacSecundariaPage() {
                           title="Anular este reporte (deja de contar en el historial del alumno)"
                           disabled={busy}
                           onClick={() => {
-                            const materia = row.materia ? ` de ${String(row.materia)}` : ''
+                            const materia =
+                              Number(row.materia_id) > 0 && row.materia ? ` de ${String(row.materia)}` : ''
                             const fecha = row.fecha ? ` (${String(row.fecha)})` : ''
                             if (
                               window.confirm(
@@ -1559,7 +1562,11 @@ export default function RacSecundariaPage() {
                       {String(r.escalon ?? r.tipoEtiqueta ?? 'Reporte')}
                       {r.vuelta != null ? ` · Vuelta ${String(r.vuelta)}` : ''}
                     </strong>
-                    {r.materia ? <div>Materia: {String(r.materia)}</div> : null}
+                    {origenReporteRac(r) ? (
+                      <div>
+                        {origenReporteRac(r)!.etiqueta}: {origenReporteRac(r)!.valor}
+                      </div>
+                    ) : null}
                     {r.motivo ? <div>Motivo: {String(r.motivo)}</div> : null}
                     <div className="rac-detalle-obs">
                       Observaciones: {String(r.mensaje || '—')}
