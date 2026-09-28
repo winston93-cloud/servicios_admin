@@ -568,10 +568,8 @@ function Calendario({
                     className="tl-bloque"
                     style={{
                       top: ((b.ini - horaIni * 60) / 60) * PX_HORA,
-                      height: Math.max(26, ((b.fin - b.ini) / 60) * PX_HORA - 3),
-                      ['--tl-alto-bloque' as string]: `${Math.max(26, ((b.fin - b.ini) / 60) * PX_HORA - 3)}px`,
                       left: `calc(${b.carril * ancho}% + 2px)`,
-                      width: `calc(${ancho}% - 4px)`,
+                      maxWidth: `calc(${ancho}% - 4px)`,
                       ['--tl-color' as string]: b.taller?.color ?? COLORES_TALLER[0],
                     }}
                     data-ultimo={

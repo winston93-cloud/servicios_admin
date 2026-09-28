@@ -1072,15 +1072,14 @@
 .tl-bloque-hora { font-size: 0.76rem; font-weight: 600; opacity: 0.9; }
 .tl-bloque-meta { font-size: 0.74rem; opacity: 0.8; }
 
-/* Colapsado: solo el nombre. Hover / foco: se amplía encima de los demás. */
-.tl-bloque { transition: box-shadow 0.15s ease; }
+/* Colapsado: del tamaño del nombre. Hover / foco: se amplía encima de los demás. */
+.tl-bloque { width: max-content; height: auto; transition: box-shadow 0.15s ease; }
 .tl-bloque:hover,
 .tl-bloque:focus-visible,
 .tl-bloque:focus {
   z-index: 6;
-  height: auto !important;
-  min-height: var(--tl-alto-bloque);
   min-width: 230px;
+  max-width: 280px !important;
   overflow: visible;
   outline: none;
   box-shadow: 0 0 0 2px var(--tl-color), 0 14px 32px rgba(0, 0, 0, 0.5);
