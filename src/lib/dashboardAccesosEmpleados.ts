@@ -273,7 +273,8 @@ const OCULTOS_CONTROL_ESCOLAR = [
 
 /** prefectura: mismo que CE + oculta 8,10,11. */
 const OCULTOS_PREFECTURA = [
-  ...OCULTOS_CONTROL_ESCOLAR,
+  // Prefectura sí usa Reportes académicos y de conducta (captura / anular).
+  ...OCULTOS_CONTROL_ESCOLAR.filter((id) => id !== 'reportes-conducta'),
   'bajas', // 8
   'control-escolar', // 10
   'programa-usa', // 11
