@@ -37,6 +37,9 @@ export function requireInsforgeAdminEnv() {
   return { baseUrl: baseUrl.replace(/\/$/, ''), apiKey }
 }
 
+/** Tablas que solo se tocan desde sus APIs dedicadas (con su propia autorización). */
+const TABLAS_SOLO_SERVIDOR = ['acceso_autorizado']
+
 export async function proxyInsforgeDatabaseRequest(
   request: Request,
   upstreamPath: string,
@@ -52,6 +55,10 @@ export async function proxyInsforgeDatabaseRequest(
 
   const { baseUrl, apiKey } = env
   const incoming = new URL(request.url)
+  const pedido = decodeURIComponent(`${upstreamPath}${incoming.search}`).toLowerCase()
+  if (TABLAS_SOLO_SERVIDOR.some((t) => pedido.includes(t))) {
+    return Response.json({ message: 'Recurso no disponible.' }, { status: 403 })
+  }
   const target = `${baseUrl}${upstreamPath}${incoming.search}`
 
   const headers = new Headers()

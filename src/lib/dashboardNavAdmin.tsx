@@ -3,6 +3,7 @@ import type { DashboardModuleAccent } from '@/components/dashboard/DashboardModu
 import { urlProrrogasAjustesApp } from '@/lib/prorrogasAjustesConfig'
 import { urlCchicApp } from '@/lib/cchicConfig'
 import { urlChequesApp, urlContratosApp, urlSsiwEntregaLogin, urlUsaProgramApp } from '@/lib/dashboardModulosConfig'
+import { ACCESOS_USUARIOS_PERMITIDOS } from '@/lib/accesos/accesosTypes'
 
 export type DashboardAdminNavItem = {
   /** Clave estable para ACL de visualización en dashboard. */
@@ -24,6 +25,8 @@ export type DashboardAdminNavItem = {
    * si su usuario_id está aquí. Con lista en BD se asigna normal desde el catálogo de usuarios.
    */
   soloUsuariosLegacy?: readonly number[]
+  /** Solo estos usuario_id la ven, aunque se asigne desde el catálogo de usuarios. */
+  soloUsuarios?: readonly number[]
 }
 
 const ICON_DESAYUNOS = (
@@ -479,6 +482,24 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
         <circle cx="8.5" cy="7.5" r="1.5" />
         <circle cx="6.5" cy="12.5" r="1.5" />
         <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.75 1.5-1.63 0-.42-.16-.8-.43-1.1-.26-.29-.42-.67-.42-1.1 0-.9.73-1.67 1.65-1.67H16c3.05 0 5.5-2.45 5.5-5.5C21.5 6.07 17.2 2 12 2z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'accesos-autorizados',
+    label: 'Accesos Autorizados',
+    desc: 'Usuarios y contraseñas de equipos, correos y sistemas, cifrados y con bitácora.',
+    path: '/accesos',
+    accent: 'amber',
+    kicker: 'Seguridad',
+    tags: ['Contraseñas', 'Bóveda'],
+    badge: 'Nuevo',
+    soloUsuarios: ACCESOS_USUARIOS_PERMITIDOS,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        <circle cx="12" cy="16" r="1.5" />
       </svg>
     ),
   },

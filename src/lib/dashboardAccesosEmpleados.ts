@@ -453,11 +453,17 @@ export function modulosVisiblesDeUsuario(
   usuarioId: number | null | undefined,
   modulosDb?: readonly string[] | null
 ): string[] {
-  if (Array.isArray(modulosDb)) return normalizarModulosDashboard(modulosDb)
   const uid = Number(usuarioId) || 0
+  const restringidos = new Set(
+    DASHBOARD_MODULOS_ASIGNABLES.filter(({ item }) => item.soloUsuarios && !item.soloUsuarios.includes(uid)).map(({ item }) => item.id)
+  )
+  if (Array.isArray(modulosDb)) return normalizarModulosDashboard(modulosDb).filter((id) => !restringidos.has(id))
   const ocultos = modulosOcultosDeUsuario(uid)
   return DASHBOARD_MODULOS_ASIGNABLES.filter(
-    ({ item }) => !ocultos.has(item.id) && (!item.soloUsuariosLegacy || item.soloUsuariosLegacy.includes(uid))
+    ({ item }) =>
+      !ocultos.has(item.id) &&
+      !restringidos.has(item.id) &&
+      (!item.soloUsuariosLegacy || item.soloUsuariosLegacy.includes(uid))
   ).map(({ item }) => item.id)
 }
 
