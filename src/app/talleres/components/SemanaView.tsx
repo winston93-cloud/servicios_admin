@@ -20,8 +20,9 @@ import {
 } from '@/lib/talleres/talleresTypes'
 import MaestroCombo, { maestrosQueCoinciden, opcionesMaestros } from './MaestroCombo'
 
-const PX_HORA = 64
-const ANCHO_CARRIL = 104
+const PX_HORA = 84
+const ANCHO_CARRIL = 150
+const ANCHO_DIA_MIN = 180
 
 type Vista = 'tabla' | 'calendario'
 
@@ -368,7 +369,8 @@ function Calendario({
     const todos = [...bloquesPorDia.values()].flat()
     if (!todos.length) return [14, 18]
     let ini = Math.floor(Math.min(...todos.map((b) => b.ini)) / 60)
-    let fin = Math.ceil(Math.max(...todos.map((b) => b.fin)) / 60)
+    // Una hora extra abajo para que el bloque ampliado no se corte.
+    let fin = Math.min(24, Math.ceil(Math.max(...todos.map((b) => b.fin)) / 60) + 1)
     if (fin - ini < 4) fin = Math.min(24, ini + 4)
     if (fin - ini < 4) ini = Math.max(0, fin - 4)
     return [ini, fin]
@@ -377,14 +379,14 @@ function Calendario({
   const horas = Array.from({ length: horaFin - horaIni }, (_, i) => horaIni + i)
   const alto = (horaFin - horaIni) * PX_HORA
   const anchos = dias.map((d) =>
-    Math.max(130, Math.max(1, ...(bloquesPorDia.get(d.valor) ?? []).map((b) => b.carriles)) * ANCHO_CARRIL)
+    Math.max(ANCHO_DIA_MIN, Math.max(1, ...(bloquesPorDia.get(d.valor) ?? []).map((b) => b.carriles)) * ANCHO_CARRIL)
   )
   const columnas = anchos.map((w) => `minmax(${w}px, 1fr)`).join(' ')
   const anchoMin = 72 + anchos.reduce((s, w) => s + w, 0)
 
   return (
     <>
-      <p className="tl-muted tl-cal-ayuda">Desliza a los lados si un día tiene muchos talleres a la vez. Toca un bloque para editarlo.</p>
+      <p className="tl-muted tl-cal-ayuda">Pasa el mouse o enfoca un bloque para ver horario, lugar y maestro; haz clic para editarlo. Desliza a los lados si un día tiene muchos talleres.</p>
       <div className="tl-cal-wrap">
         <div
           className="tl-cal"
@@ -417,17 +419,25 @@ function Calendario({
                     style={{
                       top: ((b.ini - horaIni * 60) / 60) * PX_HORA,
                       height: Math.max(26, ((b.fin - b.ini) / 60) * PX_HORA - 3),
+                      ['--tl-alto-bloque' as string]: `${Math.max(26, ((b.fin - b.ini) / 60) * PX_HORA - 3)}px`,
                       left: `calc(${b.carril * ancho}% + 2px)`,
                       width: `calc(${ancho}% - 4px)`,
                       ['--tl-color' as string]: b.taller?.color ?? COLORES_TALLER[0],
                     }}
-                    title={`${nombre} — ${b.maestro ? nombreMaestroTaller(b.maestro) : ''}`}
+                    data-ultimo={
+                      b.carril === b.carriles - 1 && (b.carriles > 1 || d.valor === dias[dias.length - 1].valor)
+                        ? true
+                        : undefined
+                    }
+                    aria-label={`${nombre}, ${rango12(hhmm(b.ini), hhmm(b.fin))}${b.lugar ? `, ${b.lugar}` : ''}${b.maestro ? `, ${nombreMaestroTaller(b.maestro)}` : ''}. Editar`}
                     onClick={() => onEditar(b.asignacion)}
                   >
                     <span className="tl-bloque-nombre">{nombre}</span>
-                    <span className="tl-bloque-hora">{rango12(hhmm(b.ini), hhmm(b.fin))}</span>
-                    {b.lugar ? <span className="tl-bloque-meta">{b.lugar}</span> : null}
-                    {b.maestro ? <span className="tl-bloque-meta">{nombreMaestroTaller(b.maestro)}</span> : null}
+                    <span className="tl-bloque-det">
+                      <span className="tl-bloque-hora">{rango12(hhmm(b.ini), hhmm(b.fin))}</span>
+                      {b.lugar ? <span className="tl-bloque-meta">{b.lugar}</span> : null}
+                      {b.maestro ? <span className="tl-bloque-meta">{nombreMaestroTaller(b.maestro)}</span> : null}
+                    </span>
                   </button>
                 )
               })}

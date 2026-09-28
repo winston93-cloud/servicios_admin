@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { CalendarPlus, MapPin, Pencil, Search, Trash2, Users, X } from 'lucide-react'
 import {
   CATEGORIAS_TALLER,
@@ -99,8 +99,22 @@ export default function ProgramadosView({
 
   const sugerencias = useMemo<Sugerencia[]>(() => {
     const nq = norm(q)
-    if (!nq || elegida) return []
+    if (elegida) return []
     const cuenta = new Map<string, Sugerencia>()
+    if (!nq) {
+      for (const f of filas) {
+        for (const [tipo, valor] of [['Taller', f.t?.nombre], ['Maestro', f.maestro]] as const) {
+          if (!valor) continue
+          const k = `${tipo}|${valor}`
+          const s = cuenta.get(k)
+          if (s) s.total++
+          else cuenta.set(k, { tipo, valor, total: 1 })
+        }
+      }
+      return [...cuenta.values()].sort(
+        (a, b) => a.tipo.localeCompare(b.tipo) || a.valor.localeCompare(b.valor, 'es')
+      )
+    }
     const sumar = (tipo: TipoSugerencia, valor: string) => {
       if (!norm(valor).includes(nq)) return
       const k = `${tipo}|${valor}`
@@ -156,6 +170,10 @@ export default function ProgramadosView({
   }
 
   const mostrarLista = abierto && sugerencias.length > 0
+
+  useEffect(() => {
+    if (activa >= 0) document.getElementById(`${idLista}-${activa}`)?.scrollIntoView({ block: 'nearest' })
+  }, [activa, idLista])
   const secciones = nivel
     ? [nivel]
     : NIVELES_TALLER.map((n) => n.valor).filter((n) => resultado.some((f) => f.a.niveles.includes(n)))
@@ -205,6 +223,14 @@ export default function ProgramadosView({
               setActiva(-1)
             }}
             onFocus={() => setAbierto(true)}
+            onClick={() => {
+              if (q || elegida) {
+                setQ('')
+                setElegida(null)
+              }
+              setAbierto(true)
+              setActiva(-1)
+            }}
             onBlur={() => window.setTimeout(() => setAbierto(false), 120)}
             onKeyDown={(e) => {
               if (e.key === 'ArrowDown' && sugerencias.length) {

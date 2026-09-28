@@ -163,9 +163,12 @@ function TalleresView() {
               <ThemeToggle />
             </div>
           </div>
-          <p className="tl-kicker">Extracurricular{data ? ` · Ciclo ${data.ciclo.nombre}` : ''}</p>
-          <h1 className="tl-title">Talleres y Clases Especiales</h1>
-          <p className="tl-lead">Catálogo de talleres y maestros, y el horario semanal de lunes a sábado.</p>
+          <div className="tl-hero">
+          <div className="tl-min0">
+            <p className="tl-kicker">Extracurricular{data ? ` · Ciclo ${data.ciclo.nombre}` : ''}</p>
+            <h1 className="tl-title">Talleres y Clases Especiales</h1>
+            <p className="tl-lead">Catálogo de talleres y maestros, y el horario semanal de lunes a sábado.</p>
+          </div>
           {stats.length ? (
             <dl className="tl-stats">
               {stats.map((s) => (
@@ -176,6 +179,7 @@ function TalleresView() {
               ))}
             </dl>
           ) : null}
+          </div>
         </header>
 
         <nav className="tl-tabs" role="tablist" aria-label="Secciones">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import {
   etiquetaNivel,
@@ -87,6 +87,10 @@ export default function MaestroCombo({
 
   const mostrar = abierto && sugerencias.length > 0
 
+  useEffect(() => {
+    if (activa >= 0) document.getElementById(`${idLista}-${activa}`)?.scrollIntoView({ block: 'nearest' })
+  }, [activa, idLista])
+
   const elegir = (o: MaestroOpcion) => {
     onElegir(o.maestro.id, o.nombre)
     setAbierto(false)
@@ -122,6 +126,11 @@ export default function MaestroCombo({
             setActiva(-1)
           }}
           onFocus={() => setAbierto(true)}
+          onClick={() => {
+            if (q) onQ('')
+            setAbierto(true)
+            setActiva(-1)
+          }}
           onBlur={() => window.setTimeout(() => setAbierto(false), 120)}
           onKeyDown={(e) => {
             if (e.key === 'ArrowDown' && sugerencias.length) {
