@@ -9,6 +9,7 @@ import {
   Coffee,
   Construction,
   NotebookPen,
+  Palette,
   PenLine,
   Sparkles,
 } from 'lucide-react'
@@ -22,6 +23,7 @@ type ModuloProximamente =
   | 'boletas'
   | 'conducta'
   | 'firma-electronica'
+  | 'talleres'
   | 'general'
 type Accent = 'amber' | 'indigo' | 'rose' | 'sky'
 
@@ -84,6 +86,18 @@ const MODULOS: Record<
     ],
     icon: <PenLine size={34} strokeWidth={1.6} />,
   },
+  talleres: {
+    titulo: 'Talleres y Clases Especiales',
+    kicker: 'Extracurricular',
+    lead: 'Espacio listo en el dashboard para talleres extracurriculares y clases especiales.',
+    accent: 'indigo',
+    bullets: [
+      'Inscripción de alumnos por taller',
+      'Grupos, horarios y cupo',
+      'Cobro y seguimiento en el mismo portal',
+    ],
+    icon: <Palette size={34} strokeWidth={1.6} />,
+  },
   general: {
     titulo: 'Módulo en preparación',
     kicker: 'Winston digital',
@@ -106,7 +120,8 @@ function ProximamenteContent() {
     raw === 'desayunos' ||
     raw === 'boletas' ||
     raw === 'conducta' ||
-    raw === 'firma-electronica'
+    raw === 'firma-electronica' ||
+    raw === 'talleres'
       ? raw
       : 'general'
   const mod = MODULOS[key]

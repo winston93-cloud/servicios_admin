@@ -19,6 +19,11 @@ export type DashboardAdminNavItem = {
   featured?: boolean
   /** Si true, no se muestra en el dashboard (sigue en catálogo ACL). */
   dashboardHidden?: boolean
+  /**
+   * Usuarios sin `dashboard_modulos` en BD (mapa legado de ocultos) solo ven la tarjeta
+   * si su usuario_id está aquí. Con lista en BD se asigna normal desde el catálogo de usuarios.
+   */
+  soloUsuariosLegacy?: readonly number[]
 }
 
 const ICON_DESAYUNOS = (
@@ -454,6 +459,26 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
         <line x1="2" y1="10" x2="22" y2="10" />
         <path d="M7 15h4" />
         <path d="M16 14l1.5 1.5L20 13" />
+      </svg>
+    ),
+  },
+  {
+    id: 'talleres-clases-especiales',
+    label: 'Talleres y Clases Especiales',
+    desc: 'Inscripción, grupos y cobro de talleres extracurriculares y clases especiales.',
+    path: '/proximamente?m=talleres',
+    accent: 'violet',
+    kicker: 'Extracurricular',
+    tags: ['Talleres', 'Clases especiales'],
+    badge: 'Nuevo',
+    soloUsuariosLegacy: [2, 17], // laura, mario
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="13.5" cy="6.5" r="1.5" />
+        <circle cx="17.5" cy="10.5" r="1.5" />
+        <circle cx="8.5" cy="7.5" r="1.5" />
+        <circle cx="6.5" cy="12.5" r="1.5" />
+        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.75 1.5-1.63 0-.42-.16-.8-.43-1.1-.26-.29-.42-.67-.42-1.1 0-.9.73-1.67 1.65-1.67H16c3.05 0 5.5-2.45 5.5-5.5C21.5 6.07 17.2 2 12 2z" />
       </svg>
     ),
   },

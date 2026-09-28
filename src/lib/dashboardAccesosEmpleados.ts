@@ -453,8 +453,11 @@ export function modulosVisiblesDeUsuario(
   modulosDb?: readonly string[] | null
 ): string[] {
   if (Array.isArray(modulosDb)) return normalizarModulosDashboard(modulosDb)
-  const ocultos = modulosOcultosDeUsuario(Number(usuarioId) || 0)
-  return DASHBOARD_MODULOS_ASIGNABLES.map(({ item }) => item.id).filter((id) => !ocultos.has(id))
+  const uid = Number(usuarioId) || 0
+  const ocultos = modulosOcultosDeUsuario(uid)
+  return DASHBOARD_MODULOS_ASIGNABLES.filter(
+    ({ item }) => !ocultos.has(item.id) && (!item.soloUsuariosLegacy || item.soloUsuariosLegacy.includes(uid))
+  ).map(({ item }) => item.id)
 }
 
 export function filtrarNavItemsAdminPorUsuario<T extends { id: string; dashboardHidden?: boolean }>(
