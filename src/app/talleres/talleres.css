@@ -763,6 +763,101 @@
 
 .tl-horario-acc .tl-acciones { justify-content: center; }
 
+/* ── Programados: búsqueda con autocompletado ── */
+.tl-combo { position: relative; max-width: 560px; margin-bottom: 0.5rem; }
+.tl-combo .tl-search { flex: none; }
+.tl-combo .tl-input { padding-right: 2.75rem; }
+
+.tl-combo-x {
+  position: absolute;
+  right: 0.3rem;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--tl-muted);
+  cursor: pointer;
+}
+.tl-combo-x:hover { color: var(--tl-text); background: var(--tl-surface-2); }
+
+.tl-combo-lista {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.3rem;
+  list-style: none;
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--tl-border-strong);
+  border-radius: 0.75rem;
+  background: #15161d;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+[data-theme='light'] .tl-combo-lista { background: #ffffff; box-shadow: 0 16px 40px rgba(19, 35, 58, 0.14); }
+
+.tl-combo-lista li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: var(--touch-min, 44px);
+  padding: 0 0.65rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+.tl-combo-lista li[data-activa] { background: color-mix(in srgb, var(--tl-accent) 14%, transparent); }
+
+.tl-combo-tipo {
+  flex: 0 0 5.4rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tl-muted);
+}
+.tl-combo-valor { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--tl-text); }
+.tl-combo-total {
+  min-width: 1.6rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--tl-surface-2);
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--tl-text-soft);
+}
+
+.tl-mark { padding: 0 1px; border-radius: 3px; background: color-mix(in srgb, var(--tl-accent) 30%, transparent); color: inherit; }
+
+.tl-combo-estado { margin: 0 0 1rem; font-size: 0.82rem; color: var(--tl-muted); }
+.tl-combo-filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.2rem 0.15rem 0.6rem;
+  border: 1px solid var(--tl-border-strong);
+  border-radius: 999px;
+  color: var(--tl-text-soft);
+}
+.tl-combo-filtro strong { color: var(--tl-text); }
+.tl-combo-filtro button {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--tl-surface-2);
+  color: var(--tl-text-soft);
+  cursor: pointer;
+}
+
+.tl-asig-card .tl-mixto { display: inline-block; margin-top: 0.1rem; }
+
 /* ── Calendario semanal ── */
 .tl-cal-ayuda { margin: 0 0 0.6rem; font-size: 0.8rem; }
 .tl-cal-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 1.25rem; }
@@ -925,6 +1020,8 @@
 
 @media (max-width: 768px) {
   .tl-cal-wrap, .tl-cal-ayuda { display: none; }
+  .tl-combo { max-width: none; }
+  .tl-combo-tipo { flex-basis: 4.6rem; }
   .tl-agenda { display: block; margin-bottom: 1.25rem; }
   .tl-toolbar-der { width: 100%; }
   .tl-seg { flex: 1 1 100%; }

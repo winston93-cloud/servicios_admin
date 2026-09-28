@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, CalendarDays, CheckCircle2, GraduationCap, Loader2, Palette, RefreshCw } from 'lucide-react'
+import { ArrowLeft, CalendarDays, CheckCircle2, GraduationCap, ListChecks, Loader2, Palette, RefreshCw } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
@@ -15,15 +15,17 @@ import {
   type TalleresSnapshot,
 } from '@/lib/talleres/talleresTypes'
 import SemanaView from './components/SemanaView'
+import ProgramadosView from './components/ProgramadosView'
 import TalleresCatalogo from './components/TalleresCatalogo'
 import MaestrosCatalogo from './components/MaestrosCatalogo'
 import AsignacionModal from './components/AsignacionModal'
 import './talleres.css'
 
-type Tab = 'semana' | 'talleres' | 'maestros'
+type Tab = 'semana' | 'programados' | 'talleres' | 'maestros'
 
 const TABS: { id: Tab; etiqueta: string; icon: typeof CalendarDays }[] = [
   { id: 'semana', etiqueta: 'Horario semanal', icon: CalendarDays },
+  { id: 'programados', etiqueta: 'Programados', icon: ListChecks },
   { id: 'talleres', etiqueta: 'Talleres', icon: Palette },
   { id: 'maestros', etiqueta: 'Maestros', icon: GraduationCap },
 ]
@@ -205,6 +207,16 @@ function TalleresView() {
           <>
             {tab === 'semana' ? (
               <SemanaView
+                talleres={data.talleres}
+                maestros={data.maestros}
+                asignaciones={data.asignaciones}
+                onNueva={() => setModalAsig({ abierto: true, asignacion: null })}
+                onEditar={(a) => setModalAsig({ abierto: true, asignacion: a })}
+                onEliminar={(a) => void eliminar('asignacion', a.id, nombreAsignacion(a))}
+              />
+            ) : null}
+            {tab === 'programados' ? (
+              <ProgramadosView
                 talleres={data.talleres}
                 maestros={data.maestros}
                 asignaciones={data.asignaciones}
