@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, CalendarDays, CheckCircle2, GraduationCap, ListChecks, Loader2, Palette, RefreshCw } from 'lucide-react'
+import { ArrowLeft, CalendarDays, CheckCircle2, GraduationCap, ListChecks, Loader2, Palette, RefreshCw, UserPlus } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
@@ -16,15 +16,17 @@ import {
 } from '@/lib/talleres/talleresTypes'
 import SemanaView from './components/SemanaView'
 import ProgramadosView from './components/ProgramadosView'
+import InscripcionesView from './components/inscripciones/InscripcionesView'
 import TalleresCatalogo from './components/TalleresCatalogo'
 import MaestrosCatalogo from './components/MaestrosCatalogo'
 import AsignacionModal from './components/AsignacionModal'
 import './talleres.css'
 
-type Tab = 'semana' | 'programados' | 'talleres' | 'maestros'
+type Tab = 'semana' | 'inscripciones' | 'programados' | 'talleres' | 'maestros'
 
 const TABS: { id: Tab; etiqueta: string; icon: typeof CalendarDays }[] = [
   { id: 'semana', etiqueta: 'Horario semanal', icon: CalendarDays },
+  { id: 'inscripciones', etiqueta: 'Inscripciones', icon: UserPlus },
   { id: 'programados', etiqueta: 'Programados', icon: ListChecks },
   { id: 'talleres', etiqueta: 'Talleres', icon: Palette },
   { id: 'maestros', etiqueta: 'Maestros', icon: GraduationCap },
@@ -122,6 +124,14 @@ function TalleresView() {
     }
   }, [])
 
+  const aplicarConteos = useCallback((conteos: Record<number, number>) => {
+    setData((prev) =>
+      prev
+        ? { ...prev, asignaciones: prev.asignaciones.map((a) => ({ ...a, inscritos: conteos[a.id] ?? a.inscritos })) }
+        : prev
+    )
+  }, [])
+
   const usoPorTaller = useMemo(() => {
     const m = new Map<number, number>()
     for (const a of data?.asignaciones ?? []) m.set(a.taller_id, (m.get(a.taller_id) ?? 0) + 1)
@@ -144,6 +154,7 @@ function TalleresView() {
         { etiqueta: 'Talleres activos', valor: data.talleres.filter((t) => t.activo).length },
         { etiqueta: 'Maestros activos', valor: data.maestros.filter((m) => m.activo).length },
         { etiqueta: 'Sesiones por semana', valor: data.asignaciones.reduce((s, a) => s + a.horarios.length, 0) },
+        { etiqueta: 'Alumnos inscritos', valor: data.asignaciones.reduce((s, a) => s + a.inscritos, 0) },
       ]
     : []
 
@@ -217,6 +228,14 @@ function TalleresView() {
                 onNueva={() => setModalAsig({ abierto: true, asignacion: null })}
                 onEditar={(a) => setModalAsig({ abierto: true, asignacion: a })}
                 onEliminar={(a) => void eliminar('asignacion', a.id, nombreAsignacion(a))}
+              />
+            ) : null}
+            {tab === 'inscripciones' ? (
+              <InscripcionesView
+                data={data}
+                onConteos={aplicarConteos}
+                onAviso={setAviso}
+                onError={setError}
               />
             ) : null}
             {tab === 'programados' ? (

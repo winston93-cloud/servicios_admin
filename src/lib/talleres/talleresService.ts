@@ -19,7 +19,12 @@ import {
 } from '@/lib/talleres/talleresTypes'
 
 export class TalleresError extends Error {
-  constructor(message: string, public status = 400) {
+  constructor(
+    message: string,
+    public status = 400,
+    /** Avisos que el usuario puede aceptar reenviando con `forzar: true`. */
+    public advertencias?: string[]
+  ) {
     super(message)
   }
 }
@@ -95,7 +100,18 @@ async function listarAsignaciones(ciclo: number): Promise<TallerAsignacion[]> {
   const rows = (data ?? []) as Record<string, unknown>[]
   const ids = rows.map((r) => Number(r.id))
   const horariosPor = new Map<number, TallerHorario[]>()
+  const inscritosPor = new Map<number, number>()
   if (ids.length) {
+    const { data: ins, error: iErr } = await db()
+      .from('taller_inscripcion')
+      .select('asignacion_id')
+      .in('asignacion_id', ids)
+      .eq('estado', 'inscrito')
+    fail(iErr, 'Inscripciones')
+    for (const r of (ins ?? []) as { asignacion_id: number }[]) {
+      const aid = Number(r.asignacion_id)
+      inscritosPor.set(aid, (inscritosPor.get(aid) ?? 0) + 1)
+    }
     const { data: hs, error: hErr } = await db()
       .from('taller_horario')
       .select('id, asignacion_id, dia, hora_inicio, hora_fin, lugar')
@@ -125,6 +141,7 @@ async function listarAsignaciones(ciclo: number): Promise<TallerAsignacion[]> {
     cupo_min: r.cupo_min == null ? null : Number(r.cupo_min),
     notas: (r.notas as string | null) ?? null,
     activo: Boolean(r.activo),
+    inscritos: inscritosPor.get(Number(r.id)) ?? 0,
     horarios: (horariosPor.get(Number(r.id)) ?? []).sort(
       (a, b) => a.dia - b.dia || minutosDeHora(a.hora_inicio) - minutosDeHora(b.hora_inicio)
     ),
@@ -369,6 +386,22 @@ export async function guardarAsignacion(body: Record<string, unknown>): Promise<
 }
 
 export async function eliminarAsignacion(id: number): Promise<void> {
+  const { data: ins, error: iErr } = await db()
+    .from('taller_inscripcion')
+    .select('id, estado')
+    .eq('asignacion_id', id)
+  fail(iErr, 'Revisar inscripciones')
+  const activos = ((ins ?? []) as { estado: string }[]).filter((r) => r.estado === 'inscrito').length
+  if (activos) {
+    throw new TalleresError(
+      `Este grupo tiene ${activos} ${activos === 1 ? 'alumno inscrito' : 'alumnos inscritos'}. Muévelos o dalos de baja en «Inscripciones» antes de eliminarlo.`,
+      409
+    )
+  }
+  if ((ins ?? []).length) {
+    const { error: dErr } = await db().from('taller_inscripcion').delete().eq('asignacion_id', id)
+    fail(dErr, 'Limpiar bajas')
+  }
   const { error } = await db().from('taller_asignacion').delete().eq('id', id)
   fail(error, 'Eliminar asignación')
 }

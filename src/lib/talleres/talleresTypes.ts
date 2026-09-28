@@ -73,6 +73,108 @@ export type TallerAsignacion = {
   notas: string | null
   activo: boolean
   horarios: TallerHorario[]
+  /** Alumnos con estado 'inscrito'. */
+  inscritos: number
+}
+
+/* ───────────── Inscripciones de alumnos ───────────── */
+
+export type AlumnoTaller = {
+  alumno_id: number
+  alumno_ref: number | null
+  nombre: string
+  nivel: number
+  grado: number | null
+  grupo: number | null
+}
+
+export type EstadoInscripcion = 'inscrito' | 'baja'
+
+export type TallerInscripcion = {
+  id: number
+  asignacion_id: number
+  alumno: AlumnoTaller
+  estado: EstadoInscripcion
+  notas: string | null
+  fecha_alta: string
+  fecha_baja: string | null
+  motivo_baja: string | null
+  registrado_por: string | null
+}
+
+/** Resultado de búsqueda de alumnos: incluye sus grupos inscritos del ciclo. */
+export type AlumnoBusquedaTaller = AlumnoTaller & { asignaciones: number[] }
+
+/** Grado en escala única: K1..K3 = -2..0, 1°..6° = 1..6, 7°..9° = 7..9. */
+export function gradoGlobal(nivel: number, grado: number | null): number | null {
+  if (grado == null) return null
+  if (nivel === 1) return grado - 5
+  if (nivel === 2) return grado - 3
+  if (nivel === 3) return grado
+  if (nivel === 4) return grado + 6
+  return null
+}
+
+export function etiquetaGradoAlumno(a: Pick<AlumnoTaller, 'nivel' | 'grado' | 'grupo'>): string {
+  const letra = a.grupo && a.grupo >= 1 && a.grupo <= 26 ? String.fromCharCode(64 + a.grupo) : ''
+  let g = ''
+  if (a.grado != null) {
+    if (a.nivel === 1) g = `Maternal ${a.grado}`
+    else if (a.nivel === 2) g = `K${a.grado}`
+    else if (a.nivel === 4) g = `${a.grado + 6}°`
+    else g = `${a.grado}°`
+  }
+  return [g, letra].filter(Boolean).join(' ') || etiquetaNivel(a.nivel)
+}
+
+/**
+ * Grados que admite un taller según su texto libre («1° a 3°», «K1 y K2», «Primaria y 7° a 9°»).
+ * null = no se pudo interpretar → no se restringe.
+ */
+export function gradosPermitidos(texto: string | null): Set<number> | null {
+  const t = (texto ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  if (!t.trim()) return null
+  const out = new Set<number>()
+  const rango = (a: number, b: number) => {
+    for (let i = Math.min(a, b); i <= Math.max(a, b); i++) out.add(i)
+  }
+  if (/maternal/.test(t)) rango(-4, -3)
+  if (/kinder/.test(t)) rango(-2, 0)
+  if (/primaria/.test(t)) rango(1, 6)
+  if (/secundaria/.test(t)) rango(7, 9)
+  const items = [...t.matchAll(/k\s*(\d)|(\d+)\s*°?/g)].map((m) => ({
+    valor: m[1] ? Number(m[1]) - 3 : Number(m[2]),
+    ini: m.index ?? 0,
+    fin: (m.index ?? 0) + m[0].length,
+  }))
+  for (let i = 0; i < items.length; i++) {
+    const sig = items[i + 1]
+    if (sig && /^\s*(a|al|-|–)\s*$/.test(t.slice(items[i].fin, sig.ini))) {
+      rango(items[i].valor, sig.valor)
+      i++
+    } else {
+      out.add(items[i].valor)
+    }
+  }
+  return out.size ? out : null
+}
+
+export type EstadoCupo = 'lleno' | 'casi' | 'bajo' | 'ok' | 'libre'
+
+/** lleno ≥ máx · casi ≥ 85 % del máx · bajo < mínimo · ok · libre (sin cupo definido). */
+export function estadoCupo(a: Pick<TallerAsignacion, 'cupo' | 'cupo_min' | 'inscritos'>): EstadoCupo {
+  if (a.cupo && a.inscritos >= a.cupo) return 'lleno'
+  if (a.cupo_min && a.inscritos < a.cupo_min) return 'bajo'
+  if (a.cupo && a.inscritos >= Math.ceil(a.cupo * 0.85)) return 'casi'
+  return a.cupo || a.cupo_min ? 'ok' : 'libre'
+}
+
+export function textoCupo(a: Pick<TallerAsignacion, 'cupo' | 'cupo_min' | 'inscritos'>): string {
+  const e = estadoCupo(a)
+  if (e === 'lleno') return 'Cupo lleno'
+  if (e === 'bajo') return `Faltan ${(a.cupo_min ?? 0) - a.inscritos} para el mínimo`
+  if (a.cupo) return `${a.cupo - a.inscritos} lugares libres`
+  return 'Sin cupo definido'
 }
 
 export function lugarDeHorario(a: Pick<TallerAsignacion, 'lugar'>, h: TallerHorario): string | null {
