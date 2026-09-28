@@ -465,8 +465,8 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   {
     id: 'talleres-clases-especiales',
     label: 'Talleres y Clases Especiales',
-    desc: 'Inscripción, grupos y cobro de talleres extracurriculares y clases especiales.',
-    path: '/proximamente?m=talleres',
+    desc: 'Catálogo de talleres y maestros, y horario semanal de lunes a sábado.',
+    path: '/talleres',
     accent: 'violet',
     kicker: 'Extracurricular',
     tags: ['Talleres', 'Clases especiales'],
