@@ -880,6 +880,114 @@
 .tl-combo-talleres { color: var(--tl-text-soft); }
 .tl-combo-lista-maestro .tl-combo-total { margin-top: 0.1rem; }
 
+/* ── Día actual ── */
+.tl-hoy-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  margin-bottom: 1rem;
+}
+.tl-hoy-fecha {
+  margin: 0;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--tl-gold);
+  text-transform: capitalize;
+}
+.tl-hoy-sub { margin: 0.15rem 0 0; font-size: 0.85rem; }
+
+.tl-hoy-resumen { display: flex; gap: 0.5rem; margin: 0; }
+.tl-hoy-resumen > div {
+  min-width: 86px;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--tl-border);
+  border-radius: 0.65rem;
+  background: var(--tl-surface-2);
+}
+.tl-hoy-resumen > div[data-estado='curso'] { border-color: var(--tl-border-strong); }
+.tl-hoy-resumen dt { font-size: 0.68rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tl-muted); }
+.tl-hoy-resumen dd {
+  margin: 0;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--tl-gold);
+}
+
+.tl-hoy-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.9rem; }
+.tl-hoy-bloque {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+.tl-hoy-hora {
+  position: sticky;
+  top: 0.5rem;
+  padding-top: 0.7rem;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: right;
+  color: var(--tl-accent);
+  white-space: nowrap;
+}
+.tl-hoy-bloque > ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.6rem;
+  border-left: 2px solid var(--tl-border);
+}
+
+.tl-hoy-item {
+  display: grid;
+  gap: 0.3rem;
+  width: 100%;
+  min-height: var(--touch-min, 44px);
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--tl-border);
+  border-left: 4px solid var(--tl-color);
+  border-radius: 0.75rem;
+  background: var(--tl-surface-2);
+  color: var(--tl-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, opacity 0.15s ease;
+}
+.tl-hoy-item:hover, .tl-hoy-item:focus-visible { border-color: var(--tl-color); outline: none; }
+.tl-hoy-item[data-estado='curso'] {
+  background: color-mix(in srgb, var(--tl-color) 14%, var(--tl-surface-2));
+  box-shadow: 0 0 0 1px var(--tl-color);
+}
+.tl-hoy-item[data-estado='terminado'] { opacity: 0.55; }
+
+.tl-hoy-item-top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.5rem; }
+.tl-hoy-item-top strong { font-size: 1rem; color: var(--tl-gold); }
+.tl-hoy-estado {
+  margin-left: auto;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border: 1px solid var(--tl-border);
+  color: var(--tl-text-soft);
+}
+.tl-hoy-estado[data-estado='curso'] { background: var(--tl-ok); border-color: transparent; color: #04140d; }
+[data-theme='light'] .tl-hoy-estado[data-estado='curso'] { color: #ffffff; }
+.tl-hoy-estado[data-estado='proximo'] { border-color: var(--tl-border-strong); color: var(--tl-accent); }
+
+.tl-hoy-item-meta { display: flex; flex-wrap: wrap; gap: 0.2rem 0.85rem; font-size: 0.82rem; color: var(--tl-text-soft); }
+.tl-hoy-item-meta > span { display: inline-flex; align-items: center; gap: 0.25rem; }
+.tl-hoy-item-maestro { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.5rem; font-size: 0.82rem; color: var(--tl-text); }
+
 /* ── Calendario semanal ── */
 .tl-cal-ayuda { margin: 0 0 0.6rem; font-size: 0.8rem; }
 .tl-cal-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 1.25rem; }
@@ -1075,6 +1183,12 @@
   .tl-cal-wrap, .tl-cal-ayuda { display: none; }
   .tl-combo { max-width: none; }
   .tl-stats { flex-basis: 100%; }
+  .tl-seg button { padding: 0 0.5rem; font-size: 0.8rem; }
+  .tl-hoy-resumen { width: 100%; }
+  .tl-hoy-resumen > div { flex: 1; min-width: 0; }
+  .tl-hoy-bloque { grid-template-columns: minmax(0, 1fr); gap: 0.35rem; }
+  .tl-hoy-hora { position: static; padding-top: 0; text-align: left; }
+  .tl-hoy-bloque > ul { grid-template-columns: minmax(0, 1fr); padding-left: 0.6rem; }
   .tl-combo-maestro { flex: 1 1 100%; width: 100%; }
   .tl-combo-lista-maestro { min-width: 0; }
   .tl-combo-tipo { flex-basis: 4.6rem; }

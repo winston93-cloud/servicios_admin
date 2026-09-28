@@ -1,7 +1,7 @@
 'use client'
 
-import { Fragment, useMemo, useState } from 'react'
-import { CalendarDays, CalendarPlus, MapPin, Pencil, Table2, Trash2, Users } from 'lucide-react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
+import { CalendarDays, CalendarPlus, Clock, MapPin, Pencil, Table2, Trash2, Users } from 'lucide-react'
 import {
   CATEGORIAS_TALLER,
   COLORES_TALLER,
@@ -24,7 +24,7 @@ const PX_HORA = 84
 const ANCHO_CARRIL = 150
 const ANCHO_DIA_MIN = 180
 
-type Vista = 'tabla' | 'calendario'
+type Vista = 'hoy' | 'tabla' | 'calendario'
 
 type Bloque = {
   asignacion: TallerAsignacion
@@ -150,6 +150,9 @@ export default function SemanaView({
         </div>
         <div className="tl-toolbar-der">
           <div className="tl-seg" role="group" aria-label="Tipo de vista">
+            <button type="button" data-activo={vista === 'hoy' || undefined} aria-pressed={vista === 'hoy'} onClick={() => setVista('hoy')}>
+              <Clock size={16} aria-hidden /> Día actual
+            </button>
             <button type="button" data-activo={vista === 'tabla' || undefined} aria-pressed={vista === 'tabla'} onClick={() => setVista('tabla')}>
               <Table2 size={16} aria-hidden /> Tabla
             </button>
@@ -176,7 +179,15 @@ export default function SemanaView({
         </div>
       </div>
 
-      {visibles.length === 0 ? (
+      {vista === 'hoy' ? (
+        <DiaActual
+          asignaciones={visibles}
+          nivel={nivel}
+          tallerPorId={tallerPorId}
+          maestroPorId={maestroPorId}
+          onEditar={onEditar}
+        />
+      ) : visibles.length === 0 ? (
         <p className="tl-empty">
           {asignaciones.length
             ? 'Ningún taller coincide con el filtro.'
@@ -205,6 +216,145 @@ export default function SemanaView({
         />
       )}
     </section>
+  )
+}
+
+type EstadoHoy = 'curso' | 'proximo' | 'terminado'
+
+const ETIQUETA_ESTADO: Record<EstadoHoy, string> = {
+  curso: 'En curso',
+  proximo: 'Próximo',
+  terminado: 'Terminado',
+}
+
+function DiaActual({
+  asignaciones,
+  nivel,
+  tallerPorId,
+  maestroPorId,
+  onEditar,
+}: {
+  asignaciones: TallerAsignacion[]
+  nivel: number
+  tallerPorId: Map<number, Taller>
+  maestroPorId: Map<number, TallerMaestro>
+  onEditar: (a: TallerAsignacion) => void
+}) {
+  const [ahora, setAhora] = useState(() => new Date())
+  useEffect(() => {
+    const t = window.setInterval(() => setAhora(new Date()), 60_000)
+    return () => window.clearInterval(t)
+  }, [])
+
+  const dia = ahora.getDay()
+  const minAhora = ahora.getHours() * 60 + ahora.getMinutes()
+  const fecha = ahora.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
+  const horaTxt = ahora.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit', hour12: true })
+
+  const sesiones = useMemo(
+    () =>
+      asignaciones
+        .flatMap((a) =>
+          a.horarios
+            .filter((h) => h.dia === dia)
+            .map((h) => ({
+              a,
+              h,
+              t: tallerPorId.get(a.taller_id),
+              m: maestroPorId.get(a.maestro_id),
+              ini: minutosDeHora(h.hora_inicio),
+              fin: minutosDeHora(h.hora_fin),
+              lugar: lugarDeHorario(a, h),
+            }))
+        )
+        .sort((x, y) => x.ini - y.ini || x.fin - y.fin || (x.t?.nombre ?? '').localeCompare(y.t?.nombre ?? '', 'es')),
+    [asignaciones, dia, tallerPorId, maestroPorId]
+  )
+
+  const estadoDe = (ini: number, fin: number): EstadoHoy =>
+    minAhora >= fin ? 'terminado' : minAhora >= ini ? 'curso' : 'proximo'
+
+  const bloques = useMemo(() => {
+    const out: { ini: number; items: typeof sesiones }[] = []
+    for (const s of sesiones) {
+      const ultimo = out[out.length - 1]
+      if (ultimo && ultimo.ini === s.ini) ultimo.items.push(s)
+      else out.push({ ini: s.ini, items: [s] })
+    }
+    return out
+  }, [sesiones])
+
+  const enCurso = sesiones.filter((s) => estadoDe(s.ini, s.fin) === 'curso').length
+  const proximos = sesiones.filter((s) => estadoDe(s.ini, s.fin) === 'proximo').length
+
+  return (
+    <div className="tl-hoy">
+      <div className="tl-hoy-head">
+        <div className="tl-min0">
+          <p className="tl-hoy-fecha">{fecha}</p>
+          <p className="tl-muted tl-hoy-sub">
+            Son las {horaTxt}
+            {nivel ? ` · ${etiquetaNivel(nivel)}` : ''}
+          </p>
+        </div>
+        {sesiones.length ? (
+          <dl className="tl-hoy-resumen">
+            <div><dt>Hoy</dt><dd>{sesiones.length}</dd></div>
+            <div data-estado="curso"><dt>En curso</dt><dd>{enCurso}</dd></div>
+            <div><dt>Próximos</dt><dd>{proximos}</dd></div>
+          </dl>
+        ) : null}
+      </div>
+
+      {sesiones.length === 0 ? (
+        <p className="tl-empty">
+          {dia === 0 ? 'Hoy es domingo: no hay talleres.' : 'No hay talleres programados para hoy con este filtro.'}
+        </p>
+      ) : (
+        <ol className="tl-hoy-lista">
+          {bloques.map((b) => (
+            <li key={b.ini} className="tl-hoy-bloque">
+              <span className="tl-hoy-hora">{hora12(hhmm(b.ini))}</span>
+              <ul>
+                {b.items.map((s) => {
+                  const estado = estadoDe(s.ini, s.fin)
+                  const cupo = etiquetaCupo(s.a)
+                  const otros = s.a.niveles.filter((n) => n !== nivel)
+                  return (
+                    <li key={`${s.a.id}-${s.ini}`}>
+                      <button
+                        type="button"
+                        className="tl-hoy-item"
+                        data-estado={estado}
+                        style={{ ['--tl-color' as string]: s.t?.color ?? COLORES_TALLER[0] }}
+                        onClick={() => onEditar(s.a)}
+                      >
+                        <span className="tl-hoy-item-top">
+                          <strong>{s.t?.nombre ?? 'Taller'}</strong>
+                          {s.t?.grados ? <span className="tl-grados">{s.t.grados}</span> : null}
+                          <span className="tl-hoy-estado" data-estado={estado}>{ETIQUETA_ESTADO[estado]}</span>
+                        </span>
+                        <span className="tl-hoy-item-meta">
+                          <span><Clock size={13} aria-hidden /> {rango12(hhmm(s.ini), hhmm(s.fin))}</span>
+                          {s.lugar ? <span><MapPin size={13} aria-hidden /> {s.lugar}</span> : null}
+                          {cupo ? <span><Users size={13} aria-hidden /> {cupo}</span> : null}
+                        </span>
+                        <span className="tl-hoy-item-maestro">
+                          {s.m ? nombreMaestroTaller(s.m) : 'Maestro eliminado'}
+                          {nivel && otros.length ? <span className="tl-mixto">Con {otros.map(etiquetaNivel).join(' y ')}</span> : null}
+                          {!nivel ? <span className="tl-mixto">{s.a.niveles.map(etiquetaNivel).join(' + ')}</span> : null}
+                        </span>
+                        {s.a.notas ? <span className="tl-horario-nota">{s.a.notas}</span> : null}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
   )
 }
 
