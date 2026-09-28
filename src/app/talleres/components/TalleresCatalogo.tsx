@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import {
+  CATEGORIAS_TALLER,
   COLORES_TALLER,
   NIVELES_TALLER,
   nombreTallerCompleto,
@@ -14,6 +15,7 @@ type Borrador = {
   id?: number
   nombre: string
   grados: string
+  categoria: string
   descripcion: string
   niveles: number[]
   color: string
@@ -23,6 +25,7 @@ type Borrador = {
 const VACIO: Borrador = {
   nombre: '',
   grados: '',
+  categoria: '',
   descripcion: '',
   niveles: [],
   color: COLORES_TALLER[0],
@@ -50,7 +53,7 @@ export default function TalleresCatalogo({
     const q = busqueda.trim().toLowerCase()
     return talleres.filter(
       (t) =>
-        (!q || nombreTallerCompleto(t).toLowerCase().includes(q)) &&
+        (!q || `${nombreTallerCompleto(t)} ${t.categoria ?? ''}`.toLowerCase().includes(q)) &&
         (!nivel || t.niveles.includes(nivel))
     )
   }, [talleres, busqueda, nivel])
@@ -113,6 +116,7 @@ export default function TalleresCatalogo({
                       <span className="tl-min0">
                         <strong>{t.nombre}</strong>
                         {t.grados ? <span className="tl-sub"> {t.grados}</span> : null}
+                        {t.categoria ? <span className="tl-cat">{t.categoria}</span> : null}
                         {t.descripcion ? <span className="tl-desc">{t.descripcion}</span> : null}
                       </span>
                     </span>
@@ -132,6 +136,7 @@ export default function TalleresCatalogo({
                           id: t.id,
                           nombre: t.nombre,
                           grados: t.grados ?? '',
+                          categoria: t.categoria ?? '',
                           descripcion: t.descripcion ?? '',
                           niveles: t.niveles,
                           color: t.color ?? COLORES_TALLER[0],
@@ -176,7 +181,14 @@ export default function TalleresCatalogo({
               <input className="tl-input" value={borrador.grados} maxLength={60} placeholder="Ej. 1° a 3°"
                 onChange={(e) => setBorrador({ ...borrador, grados: e.target.value })} />
             </Campo>
-            <Campo etiqueta="Niveles *" completo>
+            <Campo etiqueta="Categoría" ayuda="Elige una o escribe otra">
+              <input className="tl-input" list="tl-categorias" value={borrador.categoria} maxLength={40} placeholder="Ej. Deportivo"
+                onChange={(e) => setBorrador({ ...borrador, categoria: e.target.value })} />
+              <datalist id="tl-categorias">
+                {CATEGORIAS_TALLER.map((c) => <option key={c} value={c} />)}
+              </datalist>
+            </Campo>
+            <Campo etiqueta="Niveles *">
               <NivelesChips valor={borrador.niveles} onChange={(niveles) => setBorrador({ ...borrador, niveles })} />
             </Campo>
             <Campo etiqueta="Color en el calendario" completo>

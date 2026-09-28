@@ -4,6 +4,7 @@ import {
   DIAS_TALLER,
   etiquetaDia,
   hora12,
+  lugarDeHorario,
   minutosDeHora,
   nombreMaestroTaller,
   nombreTallerCompleto,
@@ -23,11 +24,11 @@ export class TalleresError extends Error {
   }
 }
 
-const SELECT_TALLER = 'id, nombre, grados, descripcion, niveles, color, activo'
+const SELECT_TALLER = 'id, nombre, grados, categoria, descripcion, niveles, color, activo'
 const SELECT_MAESTRO =
   'id, nombre, apellido_paterno, apellido_materno, email, celular, especialidad, niveles, notas, activo'
 const SELECT_ASIGNACION =
-  'id, taller_id, maestro_id, ciclo_escolar, niveles, lugar, cupo, notas, activo'
+  'id, taller_id, maestro_id, ciclo_escolar, niveles, lugar, cupo, cupo_min, notas, activo'
 
 function db() {
   return createDbAdmin()
@@ -60,6 +61,7 @@ function mapTaller(r: Record<string, unknown>): Taller {
     id: Number(r.id),
     nombre: String(r.nombre ?? ''),
     grados: (r.grados as string | null) ?? null,
+    categoria: (r.categoria as string | null) ?? null,
     descripcion: (r.descripcion as string | null) ?? null,
     niveles: normalizarNiveles(r.niveles),
     color: (r.color as string | null) ?? null,
@@ -96,7 +98,7 @@ async function listarAsignaciones(ciclo: number): Promise<TallerAsignacion[]> {
   if (ids.length) {
     const { data: hs, error: hErr } = await db()
       .from('taller_horario')
-      .select('id, asignacion_id, dia, hora_inicio, hora_fin')
+      .select('id, asignacion_id, dia, hora_inicio, hora_fin, lugar')
       .in('asignacion_id', ids)
     fail(hErr, 'Horarios')
     for (const h of (hs ?? []) as Record<string, unknown>[]) {
@@ -107,6 +109,7 @@ async function listarAsignaciones(ciclo: number): Promise<TallerAsignacion[]> {
         dia: Number(h.dia),
         hora_inicio: normalizarHora(h.hora_inicio) ?? '00:00',
         hora_fin: normalizarHora(h.hora_fin) ?? '00:00',
+        lugar: (h.lugar as string | null) ?? null,
       })
       horariosPor.set(aid, list)
     }
@@ -119,6 +122,7 @@ async function listarAsignaciones(ciclo: number): Promise<TallerAsignacion[]> {
     niveles: normalizarNiveles(r.niveles),
     lugar: (r.lugar as string | null) ?? null,
     cupo: r.cupo == null ? null : Number(r.cupo),
+    cupo_min: r.cupo_min == null ? null : Number(r.cupo_min),
     notas: (r.notas as string | null) ?? null,
     activo: Boolean(r.activo),
     horarios: (horariosPor.get(Number(r.id)) ?? []).sort(
@@ -156,6 +160,7 @@ function tallerDesdeBody(body: Record<string, unknown>) {
   return {
     nombre,
     grados: texto(body.grados, 60),
+    categoria: texto(body.categoria, 40),
     descripcion: texto(body.descripcion, 2000),
     niveles,
     color,
@@ -257,12 +262,19 @@ function horariosDesdeBody(raw: unknown): TallerHorario[] {
     if (minutosDeHora(fin) <= minutosDeHora(ini)) {
       throw new TalleresError(`El ${etiquetaDia(dia)} la hora de fin debe ser después de la de inicio.`)
     }
-    const h = { dia, hora_inicio: ini, hora_fin: fin }
+    const h = { dia, hora_inicio: ini, hora_fin: fin, lugar: texto(item?.lugar, 80) }
     const choque = out.find((o) => rangosSeTraslapan(o, h))
     if (choque) throw new TalleresError(`Hay dos horarios encimados el ${etiquetaDia(dia)}.`)
     out.push(h)
   }
   return out
+}
+
+/** '' / null → null; entero > 0 → número; cualquier otra cosa → NaN. */
+function enteroPositivo(raw: unknown): number | null {
+  if (raw === '' || raw == null) return null
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : NaN
 }
 
 function describirChoque(h: TallerHorario): string {
@@ -277,9 +289,13 @@ export async function guardarAsignacion(body: Record<string, unknown>): Promise<
   if (!maestroId) throw new TalleresError('Selecciona el maestro.')
   const horarios = horariosDesdeBody(body.horarios)
   const lugar = texto(body.lugar, 80)
-  const cupoNum = Number(body.cupo)
-  const cupo = body.cupo === '' || body.cupo == null ? null : Number.isFinite(cupoNum) && cupoNum > 0 ? Math.floor(cupoNum) : NaN
-  if (Number.isNaN(cupo)) throw new TalleresError('El cupo debe ser un número mayor a cero.')
+  const cupo = enteroPositivo(body.cupo)
+  const cupoMin = enteroPositivo(body.cupo_min)
+  if (Number.isNaN(cupo)) throw new TalleresError('El cupo máximo debe ser un número mayor a cero.')
+  if (Number.isNaN(cupoMin)) throw new TalleresError('El cupo mínimo debe ser un número mayor a cero.')
+  if (cupo && cupoMin && cupoMin > cupo) {
+    throw new TalleresError('El cupo mínimo no puede ser mayor que el máximo.')
+  }
 
   const snap = await snapshotTalleres()
   const taller = snap.talleres.find((t) => t.id === tallerId)
@@ -294,23 +310,26 @@ export async function guardarAsignacion(body: Record<string, unknown>): Promise<
   let niveles = normalizarNiveles(body.niveles).filter((n) => comunes.includes(n))
   if (!niveles.length) niveles = comunes
 
+  const norm = (s: string | null) => (s ?? '').trim().toLowerCase()
   for (const otra of snap.asignaciones) {
     if (otra.id === id) continue
     const mismoMaestro = otra.maestro_id === maestroId
-    const mismoLugar = Boolean(lugar && otra.lugar && otra.lugar.trim().toLowerCase() === lugar.toLowerCase())
-    if (!mismoMaestro && !mismoLugar) continue
     for (const h of horarios) {
-      const choque = otra.horarios.find((o) => rangosSeTraslapan(o, h))
-      if (!choque) continue
-      const t = snap.talleres.find((x) => x.id === otra.taller_id)
-      const nombreOtro = t ? nombreTallerCompleto(t) : 'otro taller'
-      if (mismoMaestro) {
-        throw new TalleresError(
-          `${nombreMaestroTaller(maestro)} ya tiene «${nombreOtro}» el ${describirChoque(choque)}.`,
-          409
-        )
+      const lugarH = lugarDeHorario({ lugar }, h)
+      for (const o of otra.horarios) {
+        if (!rangosSeTraslapan(o, h)) continue
+        const mismoLugar = Boolean(lugarH && norm(lugarH) === norm(lugarDeHorario(otra, o)))
+        if (!mismoMaestro && !mismoLugar) continue
+        const t = snap.talleres.find((x) => x.id === otra.taller_id)
+        const nombreOtro = t ? nombreTallerCompleto(t) : 'otro taller'
+        if (mismoMaestro) {
+          throw new TalleresError(
+            `${nombreMaestroTaller(maestro)} ya tiene «${nombreOtro}» el ${describirChoque(o)}.`,
+            409
+          )
+        }
+        throw new TalleresError(`«${lugarH}» ya está ocupado por «${nombreOtro}» el ${describirChoque(o)}.`, 409)
       }
-      throw new TalleresError(`«${lugar}» ya está ocupado por «${nombreOtro}» el ${describirChoque(choque)}.`, 409)
     }
   }
 
@@ -320,6 +339,7 @@ export async function guardarAsignacion(body: Record<string, unknown>): Promise<
     niveles,
     lugar,
     cupo,
+    cupo_min: cupoMin,
     notas: texto(body.notas, 2000),
   }
 

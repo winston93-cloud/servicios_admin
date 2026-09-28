@@ -25,10 +25,13 @@ export const COLORES_TALLER = [
   '#e879f9',
 ] as const
 
+export const CATEGORIAS_TALLER = ['Deportivo', 'Artístico', 'Concurso', 'Académico', 'Tecnológico'] as const
+
 export type Taller = {
   id: number
   nombre: string
   grados: string | null
+  categoria: string | null
   descripcion: string | null
   niveles: number[]
   color: string | null
@@ -54,6 +57,8 @@ export type TallerHorario = {
   /** HH:MM (24 h) */
   hora_inicio: string
   hora_fin: string
+  /** Solo si ese día cambia respecto a `TallerAsignacion.lugar`. */
+  lugar?: string | null
 }
 
 export type TallerAsignacion = {
@@ -64,9 +69,22 @@ export type TallerAsignacion = {
   niveles: number[]
   lugar: string | null
   cupo: number | null
+  cupo_min: number | null
   notas: string | null
   activo: boolean
   horarios: TallerHorario[]
+}
+
+export function lugarDeHorario(a: Pick<TallerAsignacion, 'lugar'>, h: TallerHorario): string | null {
+  const propio = (h.lugar ?? '').trim()
+  return propio || (a.lugar ?? '').trim() || null
+}
+
+export function etiquetaCupo(a: Pick<TallerAsignacion, 'cupo' | 'cupo_min'>): string | null {
+  if (a.cupo_min && a.cupo) return `${a.cupo_min} a ${a.cupo} alumnos`
+  if (a.cupo) return `Máx. ${a.cupo}`
+  if (a.cupo_min) return `Mín. ${a.cupo_min}`
+  return null
 }
 
 export type TalleresSnapshot = {

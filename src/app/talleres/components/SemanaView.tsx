@@ -6,7 +6,9 @@ import {
   COLORES_TALLER,
   DIAS_TALLER,
   NIVELES_TALLER,
+  etiquetaCupo,
   hora12,
+  lugarDeHorario,
   minutosDeHora,
   nombreMaestroTaller,
   nombreTallerCompleto,
@@ -26,6 +28,7 @@ type Bloque = {
   dia: number
   ini: number
   fin: number
+  lugar: string | null
   carril: number
   carriles: number
 }
@@ -96,6 +99,7 @@ export default function SemanaView({
             dia: d.valor,
             ini: minutosDeHora(h.hora_inicio),
             fin: minutosDeHora(h.hora_fin),
+            lugar: lugarDeHorario(a, h),
           }))
       )
       map.set(d.valor, acomodarCarriles(base))
@@ -181,7 +185,7 @@ export default function SemanaView({
                       {hora12(`${String(Math.floor(b.fin / 60)).padStart(2, '0')}:${String(b.fin % 60).padStart(2, '0')}`)}
                     </span>
                     {b.maestro ? <span className="tl-bloque-meta">{nombreMaestroTaller(b.maestro)}</span> : null}
-                    {b.asignacion.lugar ? <span className="tl-bloque-meta">{b.asignacion.lugar}</span> : null}
+                    {b.lugar ? <span className="tl-bloque-meta">{b.lugar}</span> : null}
                   </button>
                 )
               })}
@@ -212,7 +216,7 @@ export default function SemanaView({
                         <span className="tl-min0">
                           <strong>{b.taller ? nombreTallerCompleto(b.taller) : 'Taller'}</strong>
                           <span className="tl-desc">
-                            {[b.maestro ? nombreMaestroTaller(b.maestro) : '', b.asignacion.lugar ?? ''].filter(Boolean).join(' · ')}
+                            {[b.maestro ? nombreMaestroTaller(b.maestro) : '', b.lugar ?? ''].filter(Boolean).join(' · ')}
                           </span>
                         </span>
                       </button>
@@ -237,15 +241,20 @@ export default function SemanaView({
           {visibles.map((a) => {
             const t = tallerPorId.get(a.taller_id)
             const m = maestroPorId.get(a.maestro_id)
+            const lugares = [...new Set(a.horarios.map((h) => lugarDeHorario(a, h)).filter(Boolean))].join(' / ')
+            const cupo = etiquetaCupo(a)
             return (
               <li key={a.id} className="tl-asig-card" style={{ ['--tl-color' as string]: t?.color ?? COLORES_TALLER[0] }}>
                 <div className="tl-min0">
-                  <p className="tl-asig-titulo">{t ? nombreTallerCompleto(t) : 'Taller eliminado'}</p>
+                  <p className="tl-asig-titulo">
+                    {t ? nombreTallerCompleto(t) : 'Taller eliminado'}
+                    {t?.categoria ? <span className="tl-cat">{t.categoria}</span> : null}
+                  </p>
                   <p className="tl-asig-horario">{resumenHorarios(a.horarios)}</p>
                   <p className="tl-asig-meta">
                     <span>{m ? nombreMaestroTaller(m) : 'Maestro eliminado'}</span>
-                    {a.lugar ? <span><MapPin size={13} aria-hidden /> {a.lugar}</span> : null}
-                    {a.cupo ? <span><Users size={13} aria-hidden /> Cupo {a.cupo}</span> : null}
+                    {lugares ? <span><MapPin size={13} aria-hidden /> {lugares}</span> : null}
+                    {cupo ? <span><Users size={13} aria-hidden /> {cupo}</span> : null}
                   </p>
                   <NivelesBadges niveles={a.niveles} />
                 </div>

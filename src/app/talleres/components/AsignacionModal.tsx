@@ -6,6 +6,7 @@ import {
   DIAS_TALLER,
   etiquetaDia,
   hora12,
+  lugarDeHorario,
   minutosDeHora,
   nombreMaestroTaller,
   nombreTallerCompleto,
@@ -18,7 +19,7 @@ import {
 } from '@/lib/talleres/talleresTypes'
 import { Campo, NivelesChips, TlModal } from './TalleresUi'
 
-type Tramo = { hora_inicio: string; hora_fin: string }
+type Tramo = { hora_inicio: string; hora_fin: string; lugar?: string }
 
 const TRAMO_DEFAULT: Tramo = { hora_inicio: '15:00', hora_fin: '16:00' }
 
@@ -61,6 +62,7 @@ export default function AsignacionModal({
   const [niveles, setNiveles] = useState<number[]>([])
   const [lugar, setLugar] = useState('')
   const [cupo, setCupo] = useState('')
+  const [cupoMin, setCupoMin] = useState('')
   const [notas, setNotas] = useState('')
   const [tramos, setTramos] = useState<Map<number, Tramo>>(new Map())
   const [ultimo, setUltimo] = useState<Tramo>(TRAMO_DEFAULT)
@@ -73,15 +75,17 @@ export default function AsignacionModal({
       setNiveles(asignacion.niveles)
       setLugar(asignacion.lugar ?? '')
       setCupo(asignacion.cupo ? String(asignacion.cupo) : '')
+      setCupoMin(asignacion.cupo_min ? String(asignacion.cupo_min) : '')
       setNotas(asignacion.notas ?? '')
-      setTramos(new Map(asignacion.horarios.map((h) => [h.dia, { hora_inicio: h.hora_inicio, hora_fin: h.hora_fin }])))
-      setUltimo(asignacion.horarios[0] ?? TRAMO_DEFAULT)
+      setTramos(new Map(asignacion.horarios.map((h) => [h.dia, { hora_inicio: h.hora_inicio, hora_fin: h.hora_fin, lugar: h.lugar ?? '' }])))
+      setUltimo(asignacion.horarios[0] ? { hora_inicio: asignacion.horarios[0].hora_inicio, hora_fin: asignacion.horarios[0].hora_fin } : TRAMO_DEFAULT)
     } else {
       setTallerId(0)
       setMaestroId(0)
       setNiveles([])
       setLugar('')
       setCupo('')
+      setCupoMin('')
       setNotas('')
       setTramos(new Map())
       setUltimo(TRAMO_DEFAULT)
@@ -129,7 +133,7 @@ export default function AsignacionModal({
   const toggleDia = (dia: number) => {
     const next = new Map(tramos)
     if (next.has(dia)) next.delete(dia)
-    else next.set(dia, { ...ultimo })
+    else next.set(dia, { hora_inicio: ultimo.hora_inicio, hora_fin: ultimo.hora_fin })
     setTramos(next)
   }
 
@@ -143,41 +147,43 @@ export default function AsignacionModal({
     const t = { ...(next.get(dia) ?? ultimo), [campo]: valor }
     next.set(dia, t)
     setTramos(next)
-    setUltimo(t)
+    if (campo !== 'lugar') setUltimo({ hora_inicio: t.hora_inicio, hora_fin: t.hora_fin })
   }
 
   const copiarATodos = (dia: number) => {
     const t = tramos.get(dia)
     if (!t) return
-    setTramos(new Map([...tramos.keys()].map((d) => [d, { ...t }])))
+    setTramos(new Map([...tramos.entries()].map(([d, actual]) => [d, { ...actual, hora_inicio: t.hora_inicio, hora_fin: t.hora_fin }])))
   }
 
   const horarios: TallerHorario[] = useMemo(
     () =>
       [...tramos.entries()]
         .sort(([a], [b]) => a - b)
-        .map(([dia, t]) => ({ dia, hora_inicio: t.hora_inicio, hora_fin: t.hora_fin })),
+        .map(([dia, t]) => ({ dia, hora_inicio: t.hora_inicio, hora_fin: t.hora_fin, lugar: (t.lugar ?? '').trim() || null })),
     [tramos]
   )
 
   const conflictos = useMemo(() => {
     const out: string[] = []
-    const lugarNorm = lugar.trim().toLowerCase()
+    const norm = (x: string | null) => (x ?? '').trim().toLowerCase()
     for (const otra of asignaciones) {
       if (otra.id === asignacion?.id) continue
       const mismoMaestro = maestroId > 0 && otra.maestro_id === maestroId
-      const mismoLugar = Boolean(lugarNorm && otra.lugar?.trim().toLowerCase() === lugarNorm)
-      if (!mismoMaestro && !mismoLugar) continue
       const t = talleres.find((x) => x.id === otra.taller_id)
       for (const h of horarios) {
-        const c = otra.horarios.find((o) => rangosSeTraslapan(o, h))
-        if (!c) continue
-        const cuando = `${etiquetaDia(c.dia)} ${hora12(c.hora_inicio)} – ${hora12(c.hora_fin)}`
-        out.push(
-          mismoMaestro
-            ? `El maestro ya tiene «${t ? nombreTallerCompleto(t) : 'otro taller'}» el ${cuando}.`
-            : `«${lugar.trim()}» está ocupado por «${t ? nombreTallerCompleto(t) : 'otro taller'}» el ${cuando}.`
-        )
+        const lugarH = lugarDeHorario({ lugar }, h)
+        for (const c of otra.horarios) {
+          if (!rangosSeTraslapan(c, h)) continue
+          const mismoLugar = Boolean(lugarH && norm(lugarH) === norm(lugarDeHorario(otra, c)))
+          if (!mismoMaestro && !mismoLugar) continue
+          const cuando = `${etiquetaDia(c.dia)} ${hora12(c.hora_inicio)} – ${hora12(c.hora_fin)}`
+          out.push(
+            mismoMaestro
+              ? `El maestro ya tiene «${t ? nombreTallerCompleto(t) : 'otro taller'}» el ${cuando}.`
+              : `«${lugarH}» está ocupado por «${t ? nombreTallerCompleto(t) : 'otro taller'}» el ${cuando}.`
+          )
+        }
       }
     }
     return [...new Set(out)]
@@ -195,6 +201,7 @@ export default function AsignacionModal({
       niveles,
       lugar,
       cupo,
+      cupo_min: cupoMin,
       notas,
       horarios,
     })
@@ -240,10 +247,13 @@ export default function AsignacionModal({
           <Campo etiqueta="Niveles de este grupo" completo ayuda={taller ? 'Niveles en común entre el taller y el maestro.' : 'Primero elige el taller.'}>
             <NivelesChips valor={niveles} onChange={setNiveles} permitidos={nivelesComunes} disabled={!taller} />
           </Campo>
-          <Campo etiqueta="Lugar" ayuda="Ej. Aula 20, Cancha 1, Medios 2">
+          <Campo etiqueta="Lugar" ayuda="Ej. Aula 20, Cancha 1. Si un día cambia, se ajusta abajo." completo>
             <input className="tl-input" value={lugar} maxLength={80} onChange={(e) => setLugar(e.target.value)} />
           </Campo>
-          <Campo etiqueta="Cupo">
+          <Campo etiqueta="Cupo mínimo">
+            <input className="tl-input" type="number" inputMode="numeric" min={1} value={cupoMin} onChange={(e) => setCupoMin(e.target.value)} />
+          </Campo>
+          <Campo etiqueta="Cupo máximo">
             <input className="tl-input" type="number" inputMode="numeric" min={1} value={cupo} onChange={(e) => setCupo(e.target.value)} />
           </Campo>
         </div>
@@ -288,6 +298,9 @@ export default function AsignacionModal({
                     <span className="tl-tramo-sep" aria-hidden>–</span>
                     <input type="time" className="tl-input tl-time" step={300} value={t.hora_fin}
                       aria-label={`Fin ${etiquetaDia(h.dia)}`} onChange={(e) => setTramo(h.dia, 'hora_fin', e.target.value)} />
+                    <input className="tl-input tl-tramo-lugar" value={tramos.get(h.dia)?.lugar ?? ''} maxLength={80}
+                      placeholder={lugar.trim() ? `${lugar.trim()} (igual)` : 'Lugar ese día'}
+                      aria-label={`Lugar el ${etiquetaDia(h.dia)}`} onChange={(e) => setTramo(h.dia, 'lugar', e.target.value)} />
                     <span className="tl-tramo-dur">{duracion(t)}</span>
                     <span className="tl-tramo-acc">
                       {i === 0 && horarios.length > 1 ? (

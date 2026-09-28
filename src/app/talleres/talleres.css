@@ -355,6 +355,17 @@
 .tl-nombre-color { display: flex; align-items: flex-start; gap: 0.6rem; }
 .tl-dot { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; margin-top: 0.3rem; }
 .tl-sub { color: var(--tl-text-soft); font-weight: 500; }
+.tl-cat {
+  display: inline-block;
+  margin-left: 0.45rem;
+  padding: 0.05rem 0.45rem;
+  border: 1px solid var(--tl-border);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--tl-text-soft);
+  vertical-align: middle;
+}
 .tl-desc { display: block; margin-top: 0.15rem; font-size: 0.8rem; color: var(--tl-muted); }
 
 .tl-contacto { display: grid; gap: 0.2rem; font-size: 0.82rem; }
@@ -531,7 +542,7 @@
 
 .tl-tramo {
   display: grid;
-  grid-template-columns: 6.5rem minmax(0, 8.5rem) auto minmax(0, 8.5rem) 1fr auto;
+  grid-template-columns: 5.8rem minmax(0, 7.5rem) auto minmax(0, 7.5rem) minmax(0, 1fr) 4.6rem auto;
   align-items: center;
   gap: 0.5rem;
   padding: 0.45rem 0.6rem;
@@ -757,12 +768,14 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
     grid-template-areas:
       'dia dia acc'
-      'ini fin fin';
+      'ini fin fin'
+      'lug lug lug';
   }
   .tl-tramo-dia { grid-area: dia; }
   .tl-tramo-acc { grid-area: acc; }
   .tl-tramo input:nth-of-type(1) { grid-area: ini; }
   .tl-tramo input:nth-of-type(2) { grid-area: fin; }
+  .tl-tramo .tl-tramo-lugar { grid-area: lug; }
   .tl-tramo-sep, .tl-tramo-dur { display: none; }
   .tl-asig-lista { grid-template-columns: minmax(0, 1fr); }
 }
