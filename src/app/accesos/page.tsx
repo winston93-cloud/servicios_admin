@@ -103,6 +103,7 @@ function AccesosView() {
       onVolver={() => router.push('/dashboard')}
       onCerrar={estado === 'abierta' ? () => void cerrar() : undefined}
       expira={estado === 'abierta' ? expira : 0}
+      centrado={estado !== 'abierta'}
     >
       {estado === 'cargando' ? (
         <div className="ac-vacio">
@@ -127,11 +128,13 @@ function Marco({
   onVolver,
   onCerrar,
   expira = 0,
+  centrado = false,
 }: {
   children: React.ReactNode
   onVolver: () => void
   onCerrar?: () => void
   expira?: number
+  centrado?: boolean
 }) {
   return (
     <div className="ac-page">
@@ -146,7 +149,7 @@ function Marco({
             <ThemeToggle />
           </div>
         </header>
-        <div className="ac-hero">
+        <div className="ac-hero" data-centrado={centrado || undefined}>
           <p className="ac-kicker">Seguridad</p>
           <h1 className="ac-title">Accesos Autorizados</h1>
           <p className="ac-lead">Usuarios y contraseñas de equipos, correos y sistemas, guardados de forma segura.</p>

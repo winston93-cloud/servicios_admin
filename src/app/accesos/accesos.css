@@ -114,6 +114,7 @@
 }
 
 .ac-hero { margin-bottom: 1.25rem; }
+.ac-hero[data-centrado] { text-align: center; }
 .ac-kicker {
   margin: 0 0 0.35rem;
   font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
