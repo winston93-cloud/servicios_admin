@@ -105,7 +105,7 @@ export default function SemanaView({
   const nivel = nivelElegido ?? nivelInicial
   const [maestroId, setMaestroId] = useState(0)
   const [maestroQ, setMaestroQ] = useState('')
-  const [vista, setVista] = useState<Vista>('tabla')
+  const [vista, setVista] = useState<Vista>('hoy')
 
   const tallerPorId = useMemo(() => new Map(talleres.map((t) => [t.id, t])), [talleres])
   const maestroPorId = useMemo(() => new Map(maestros.map((m) => [m.id, m])), [maestros])
