@@ -18,6 +18,7 @@ import {
   type TallerAsignacion,
   type TallerMaestro,
 } from '@/lib/talleres/talleresTypes'
+import MaestroCombo, { maestrosQueCoinciden, opcionesMaestros } from './MaestroCombo'
 
 const PX_HORA = 64
 const ANCHO_CARRIL = 104
@@ -102,25 +103,29 @@ export default function SemanaView({
   const [nivelElegido, setNivel] = useState<number | null>(null)
   const nivel = nivelElegido ?? nivelInicial
   const [maestroId, setMaestroId] = useState(0)
+  const [maestroQ, setMaestroQ] = useState('')
   const [vista, setVista] = useState<Vista>('tabla')
 
   const tallerPorId = useMemo(() => new Map(talleres.map((t) => [t.id, t])), [talleres])
   const maestroPorId = useMemo(() => new Map(maestros.map((m) => [m.id, m])), [maestros])
 
-  const visibles = useMemo(
-    () =>
-      asignaciones.filter(
-        (a) => (!nivel || a.niveles.includes(nivel)) && (!maestroId || a.maestro_id === maestroId)
-      ),
-    [asignaciones, nivel, maestroId]
+  const delNivel = useMemo(
+    () => asignaciones.filter((a) => !nivel || a.niveles.includes(nivel)),
+    [asignaciones, nivel]
   )
+  const opciones = useMemo(() => opcionesMaestros(maestros, talleres, delNivel), [maestros, talleres, delNivel])
+
+  const visibles = useMemo(() => {
+    if (maestroId) return delNivel.filter((a) => a.maestro_id === maestroId)
+    const ids = maestrosQueCoinciden(opciones, maestroQ)
+    return ids ? delNivel.filter((a) => ids.has(a.maestro_id)) : delNivel
+  }, [delNivel, maestroId, maestroQ, opciones])
 
   const dias = useMemo(() => {
     const usados = new Set(visibles.flatMap((a) => a.horarios.map((h) => h.dia)))
     return DIAS_TALLER.filter((d) => d.valor <= 5 || usados.has(d.valor))
   }, [visibles])
 
-  const maestrosConAsignacion = maestros.filter((m) => asignaciones.some((a) => a.maestro_id === m.id))
   const nivelesSeccion = nivel
     ? [nivel]
     : NIVELES_TALLER.map((n) => n.valor).filter((n) => visibles.some((a) => a.niveles.includes(n)))
@@ -151,12 +156,19 @@ export default function SemanaView({
               <CalendarDays size={16} aria-hidden /> Calendario
             </button>
           </div>
-          <select className="tl-input tl-select-sm" value={maestroId} onChange={(e) => setMaestroId(Number(e.target.value))} aria-label="Filtrar por maestro">
-            <option value={0}>Todos los maestros</option>
-            {maestrosConAsignacion.map((m) => (
-              <option key={m.id} value={m.id}>{nombreMaestroTaller(m)}</option>
-            ))}
-          </select>
+          <MaestroCombo
+            opciones={opciones}
+            q={maestroQ}
+            elegidoId={maestroId}
+            onQ={(v) => {
+              setMaestroQ(v)
+              setMaestroId(0)
+            }}
+            onElegir={(id, nombre) => {
+              setMaestroId(id)
+              setMaestroQ(nombre)
+            }}
+          />
           <button type="button" className="tl-btn tl-btn-primary" onClick={onNueva}>
             <CalendarPlus size={16} aria-hidden /> Programar taller
           </button>

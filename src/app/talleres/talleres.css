@@ -858,6 +858,18 @@
 
 .tl-asig-card .tl-mixto { display: inline-block; margin-top: 0.1rem; }
 
+/* Buscador de maestro en el horario semanal */
+.tl-combo-maestro { flex: 1 1 300px; width: 320px; max-width: 100%; margin-bottom: 0; }
+.tl-combo-maestro .tl-input[data-elegido] { border-color: var(--tl-border-strong); color: var(--tl-gold); font-weight: 600; }
+.tl-combo-lista-maestro { min-width: min(420px, 92vw); max-height: 380px; }
+.tl-combo-lista-maestro li { align-items: flex-start; padding: 0.5rem 0.65rem; }
+.tl-combo-maestro-info { display: grid; gap: 0.15rem; flex: 1; min-width: 0; }
+.tl-combo-maestro-info .tl-combo-valor { font-weight: 600; }
+.tl-combo-desc { display: flex; flex-wrap: wrap; gap: 0.1rem 0.5rem; font-size: 0.76rem; line-height: 1.3; }
+.tl-combo-niveles { font-weight: 700; color: var(--tl-accent); white-space: nowrap; }
+.tl-combo-talleres { color: var(--tl-text-soft); }
+.tl-combo-lista-maestro .tl-combo-total { margin-top: 0.1rem; }
+
 /* ── Calendario semanal ── */
 .tl-cal-ayuda { margin: 0 0 0.6rem; font-size: 0.8rem; }
 .tl-cal-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 1.25rem; }
@@ -1021,6 +1033,8 @@
 @media (max-width: 768px) {
   .tl-cal-wrap, .tl-cal-ayuda { display: none; }
   .tl-combo { max-width: none; }
+  .tl-combo-maestro { flex: 1 1 100%; width: 100%; }
+  .tl-combo-lista-maestro { min-width: 0; }
   .tl-combo-tipo { flex-basis: 4.6rem; }
   .tl-agenda { display: block; margin-bottom: 1.25rem; }
   .tl-toolbar-der { width: 100%; }

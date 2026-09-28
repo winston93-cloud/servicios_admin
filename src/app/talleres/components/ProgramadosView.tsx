@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 import { CalendarPlus, MapPin, Pencil, Search, Trash2, Users, X } from 'lucide-react'
 import {
   CATEGORIAS_TALLER,
@@ -17,6 +17,7 @@ import {
   type TallerAsignacion,
   type TallerMaestro,
 } from '@/lib/talleres/talleresTypes'
+import { norm, Resaltar } from './busqueda'
 
 type TipoSugerencia = 'Taller' | 'Maestro' | 'Lugar' | 'Categoría' | 'Día'
 
@@ -36,28 +37,9 @@ type Fila = {
 
 const MAX_SUGERENCIAS = 8
 
-function norm(s: string): string {
-  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
-}
-
 function ordenCategoria(c: string): number {
   const i = CATEGORIAS_TALLER.findIndex((x) => norm(x) === norm(c))
   return i === -1 ? CATEGORIAS_TALLER.length : i
-}
-
-/** Resalta la primera coincidencia (sin acentos) dentro del texto. */
-function Resaltar({ texto, q }: { texto: string; q: string }): ReactNode {
-  const nq = norm(q)
-  if (!nq) return texto
-  const i = norm(texto).indexOf(nq)
-  if (i === -1) return texto
-  return (
-    <>
-      {texto.slice(0, i)}
-      <mark className="tl-mark">{texto.slice(i, i + nq.length)}</mark>
-      {texto.slice(i + nq.length)}
-    </>
-  )
 }
 
 export default function ProgramadosView({
