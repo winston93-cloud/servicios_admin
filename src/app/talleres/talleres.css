@@ -585,14 +585,191 @@
 
 .tl-preview strong { color: var(--tl-gold); }
 
+/* ── Toolbar de la semana ── */
+.tl-toolbar-semana { justify-content: space-between; }
+.tl-toolbar-der { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; min-width: 0; }
+.tl-toolbar-semana .tl-btn-primary { margin-left: 0; }
+.tl-chip-num {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.4rem;
+  margin-left: 0.3rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--tl-surface-2);
+  font-size: 0.72rem;
+}
+.tl-chip[data-activo] .tl-chip-num { background: rgba(0, 0, 0, 0.18); }
+[data-theme='light'] .tl-chip[data-activo] .tl-chip-num { background: rgba(255, 255, 255, 0.22); }
+
+.tl-seg {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--tl-border);
+  border-radius: 0.7rem;
+  background: var(--tl-surface-2);
+}
+.tl-seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 38px;
+  padding: 0 0.85rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--tl-text-soft);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tl-seg button[data-activo] { background: var(--tl-accent); color: var(--tl-accent-ink); }
+
+.tl-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ── Tabla semanal por nivel (formato del PDF) ── */
+.tl-nivel + .tl-nivel { margin-top: 1.75rem; }
+
+.tl-nivel-titulo {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  margin: 0 0 0.6rem;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 1.15rem;
+  color: var(--tl-gold);
+}
+.tl-nivel-titulo span { font-family: inherit; font-size: 0.8rem; font-weight: 500; color: var(--tl-muted); }
+
+.tl-horario-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--tl-border);
+  border-radius: 0.85rem;
+}
+
+.tl-horario {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.tl-horario thead th {
+  position: sticky;
+  top: 0;
+  padding: 0.6rem 0.5rem;
+  background: var(--tl-surface-2);
+  border-bottom: 1px solid var(--tl-border);
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--tl-text-soft);
+}
+.tl-horario thead th.tl-horario-col-taller { width: 26%; text-align: left; padding-left: 0.9rem; }
+.tl-horario thead th.tl-horario-col-acc { width: 104px; }
+
+.tl-horario-cat th {
+  padding: 0.5rem 0.9rem;
+  background: color-mix(in srgb, var(--tl-accent) 8%, transparent);
+  border-top: 1px solid var(--tl-border);
+  border-bottom: 1px solid var(--tl-border);
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--tl-accent);
+}
+.tl-horario-cat th span { margin-left: 0.35rem; color: var(--tl-muted); font-weight: 500; }
+
+.tl-horario-fila td,
+.tl-horario-fila th { border-bottom: 1px solid var(--tl-border); vertical-align: middle; }
+.tl-horario-fila:hover { background: color-mix(in srgb, var(--tl-color) 6%, transparent); }
+
+.tl-horario-taller {
+  padding: 0.65rem 0.75rem 0.65rem 0.9rem;
+  text-align: left;
+  font-weight: 400;
+  border-left: 4px solid var(--tl-color);
+}
+
+.tl-horario-nombre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.45rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tl-gold);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tl-horario-nombre strong { font-size: 0.95rem; }
+.tl-horario-nombre:hover strong { text-decoration: underline; text-underline-offset: 3px; }
+
+.tl-grados {
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tl-color) 22%, transparent);
+  color: var(--tl-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tl-horario-meta { display: block; margin-top: 0.2rem; font-size: 0.78rem; color: var(--tl-text-soft); }
+.tl-horario-tags { display: flex; flex-wrap: wrap; gap: 0.2rem 0.6rem; color: var(--tl-muted); }
+.tl-horario-tags > span { display: inline-flex; align-items: center; gap: 0.25rem; }
+.tl-mixto {
+  padding: 0 0.45rem;
+  border: 1px dashed var(--tl-border-strong);
+  border-radius: 999px;
+  color: var(--tl-accent);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.tl-horario-nota { display: block; margin-top: 0.25rem; font-size: 0.74rem; font-style: italic; color: var(--tl-muted); }
+
+.tl-horario-fila td { padding: 0.45rem 0.4rem; text-align: center; }
+.tl-horario-fila td + td { border-left: 1px solid color-mix(in srgb, var(--tl-border) 60%, transparent); }
+
+.tl-slot {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--tl-color) 16%, transparent);
+  line-height: 1.2;
+}
+.tl-slot + .tl-slot { margin-top: 0.3rem; }
+.tl-slot b { font-size: 0.8rem; color: var(--tl-text); white-space: nowrap; }
+.tl-slot span { display: inline-flex; align-items: center; justify-content: center; gap: 0.2rem; font-size: 0.72rem; color: var(--tl-text-soft); }
+.tl-slot-vacio { color: var(--tl-muted); opacity: 0.5; }
+
+.tl-horario-acc .tl-acciones { justify-content: center; }
+
 /* ── Calendario semanal ── */
+.tl-cal-ayuda { margin: 0 0 0.6rem; font-size: 0.8rem; }
 .tl-cal-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 1.25rem; }
 
 .tl-cal {
   display: grid;
-  grid-template-columns: 4.5rem repeat(6, minmax(120px, 1fr));
   grid-template-rows: auto var(--tl-alto);
-  min-width: 820px;
   border: 1px solid var(--tl-border);
   border-radius: 0.85rem;
   overflow: hidden;
@@ -747,8 +924,49 @@
 }
 
 @media (max-width: 768px) {
-  .tl-cal-wrap { display: none; }
+  .tl-cal-wrap, .tl-cal-ayuda { display: none; }
   .tl-agenda { display: block; margin-bottom: 1.25rem; }
+  .tl-toolbar-der { width: 100%; }
+  .tl-seg { flex: 1 1 100%; }
+  .tl-seg button { flex: 1; justify-content: center; min-height: var(--touch-min, 44px); }
+
+  /* Tabla → tarjetas por grupo, solo con los días que tienen clase */
+  .tl-horario-wrap { overflow: visible; border: 0; border-radius: 0; }
+  .tl-horario { min-width: 0; }
+  .tl-horario thead { display: none; }
+  .tl-horario, .tl-horario tbody { display: block; }
+  .tl-horario-cat { display: block; }
+  .tl-horario-cat th { display: block; margin-top: 0.9rem; border: 0; border-radius: 0.5rem; }
+  .tl-horario-fila {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.4rem;
+    margin-top: 0.55rem;
+    padding: 0.7rem;
+    border: 1px solid var(--tl-border);
+    border-left: 4px solid var(--tl-color);
+    border-radius: 0.75rem;
+    background: var(--tl-surface-2);
+  }
+  .tl-horario-fila td, .tl-horario-fila th { border: 0; }
+  .tl-horario-fila td + td { border-left: 0; }
+  .tl-horario-taller { grid-column: 1 / -1; padding: 0 5.8rem 0.3rem 0; border-left: 0; }
+  .tl-horario-fila td { padding: 0; text-align: left; }
+  .tl-horario-fila td[data-vacio] { display: none; }
+  .tl-horario-fila td[data-dia]::before {
+    content: attr(data-dia);
+    display: block;
+    margin-bottom: 0.2rem;
+    font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--tl-accent);
+  }
+  .tl-slot span { justify-content: flex-start; }
+  .tl-horario-acc { position: absolute; top: 0.55rem; right: 0.55rem; }
   .tl-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
   .tl-stat { padding: 0.55rem 0.65rem; }
   .tl-stat dd { font-size: 1.25rem; }

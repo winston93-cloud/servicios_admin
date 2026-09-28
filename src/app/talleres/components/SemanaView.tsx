@@ -1,25 +1,28 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { CalendarPlus, MapPin, Pencil, Trash2, Users } from 'lucide-react'
+import { Fragment, useMemo, useState } from 'react'
+import { CalendarDays, CalendarPlus, MapPin, Pencil, Table2, Trash2, Users } from 'lucide-react'
 import {
+  CATEGORIAS_TALLER,
   COLORES_TALLER,
   DIAS_TALLER,
   NIVELES_TALLER,
   etiquetaCupo,
+  etiquetaNivel,
   hora12,
   lugarDeHorario,
   minutosDeHora,
   nombreMaestroTaller,
   nombreTallerCompleto,
-  resumenHorarios,
   type Taller,
   type TallerAsignacion,
   type TallerMaestro,
 } from '@/lib/talleres/talleresTypes'
-import { NivelesBadges } from './TalleresUi'
 
 const PX_HORA = 64
+const ANCHO_CARRIL = 104
+
+type Vista = 'tabla' | 'calendario'
 
 type Bloque = {
   asignacion: TallerAsignacion
@@ -31,6 +34,18 @@ type Bloque = {
   lugar: string | null
   carril: number
   carriles: number
+}
+
+function hhmm(min: number): string {
+  return `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
+}
+
+/** "3:00 – 4:00 PM"; si cambia AM/PM, ambos sufijos. */
+function rango12(ini: string, fin: string): string {
+  const a = hora12(ini)
+  const b = hora12(fin)
+  const sufA = a.slice(-2)
+  return sufA === b.slice(-2) ? `${a.slice(0, -3)} – ${b}` : `${a} – ${b}`
 }
 
 /** Reparte bloques encimados del mismo día en carriles lado a lado. */
@@ -57,6 +72,11 @@ function acomodarCarriles(bloques: Omit<Bloque, 'carril' | 'carriles'>[]): Bloqu
   return out
 }
 
+function ordenCategoria(c: string | null): number {
+  const i = CATEGORIAS_TALLER.findIndex((x) => x.toLowerCase() === (c ?? '').trim().toLowerCase())
+  return i === -1 ? (c ? CATEGORIAS_TALLER.length : CATEGORIAS_TALLER.length + 1) : i
+}
+
 export default function SemanaView({
   talleres,
   maestros,
@@ -72,8 +92,17 @@ export default function SemanaView({
   onEditar: (a: TallerAsignacion) => void
   onEliminar: (a: TallerAsignacion) => void
 }) {
-  const [nivel, setNivel] = useState(0)
+  const conteoNivel = useMemo(() => {
+    const m = new Map<number, number>()
+    for (const n of NIVELES_TALLER) m.set(n.valor, asignaciones.filter((a) => a.niveles.includes(n.valor)).length)
+    return m
+  }, [asignaciones])
+
+  const nivelInicial = NIVELES_TALLER.find((n) => (conteoNivel.get(n.valor) ?? 0) > 0)?.valor ?? 0
+  const [nivelElegido, setNivel] = useState<number | null>(null)
+  const nivel = nivelElegido ?? nivelInicial
   const [maestroId, setMaestroId] = useState(0)
+  const [vista, setVista] = useState<Vista>('tabla')
 
   const tallerPorId = useMemo(() => new Map(talleres.map((t) => [t.id, t])), [talleres])
   const maestroPorId = useMemo(() => new Map(maestros.map((m) => [m.id, m])), [maestros])
@@ -86,10 +115,226 @@ export default function SemanaView({
     [asignaciones, nivel, maestroId]
   )
 
+  const dias = useMemo(() => {
+    const usados = new Set(visibles.flatMap((a) => a.horarios.map((h) => h.dia)))
+    return DIAS_TALLER.filter((d) => d.valor <= 5 || usados.has(d.valor))
+  }, [visibles])
+
+  const maestrosConAsignacion = maestros.filter((m) => asignaciones.some((a) => a.maestro_id === m.id))
+  const nivelesSeccion = nivel
+    ? [nivel]
+    : NIVELES_TALLER.map((n) => n.valor).filter((n) => visibles.some((a) => a.niveles.includes(n)))
+
+  return (
+    <section className="tl-panel" aria-label="Horario semanal de talleres">
+      <div className="tl-toolbar tl-toolbar-semana">
+        <div className="tl-chips" role="group" aria-label="Filtrar por nivel">
+          {NIVELES_TALLER.map((n) => {
+            const total = conteoNivel.get(n.valor) ?? 0
+            return (
+              <button key={n.valor} type="button" className="tl-chip" data-activo={nivel === n.valor || undefined}
+                aria-pressed={nivel === n.valor} disabled={!total} onClick={() => setNivel(n.valor)}>
+                {n.etiqueta} <span className="tl-chip-num">{total}</span>
+              </button>
+            )
+          })}
+          <button type="button" className="tl-chip" data-activo={!nivel || undefined} aria-pressed={!nivel} onClick={() => setNivel(0)}>
+            Todos
+          </button>
+        </div>
+        <div className="tl-toolbar-der">
+          <div className="tl-seg" role="group" aria-label="Tipo de vista">
+            <button type="button" data-activo={vista === 'tabla' || undefined} aria-pressed={vista === 'tabla'} onClick={() => setVista('tabla')}>
+              <Table2 size={16} aria-hidden /> Tabla
+            </button>
+            <button type="button" data-activo={vista === 'calendario' || undefined} aria-pressed={vista === 'calendario'} onClick={() => setVista('calendario')}>
+              <CalendarDays size={16} aria-hidden /> Calendario
+            </button>
+          </div>
+          <select className="tl-input tl-select-sm" value={maestroId} onChange={(e) => setMaestroId(Number(e.target.value))} aria-label="Filtrar por maestro">
+            <option value={0}>Todos los maestros</option>
+            {maestrosConAsignacion.map((m) => (
+              <option key={m.id} value={m.id}>{nombreMaestroTaller(m)}</option>
+            ))}
+          </select>
+          <button type="button" className="tl-btn tl-btn-primary" onClick={onNueva}>
+            <CalendarPlus size={16} aria-hidden /> Programar taller
+          </button>
+        </div>
+      </div>
+
+      {visibles.length === 0 ? (
+        <p className="tl-empty">
+          {asignaciones.length
+            ? 'Ningún taller coincide con el filtro.'
+            : 'Todavía no hay talleres programados. Da de alta talleres y maestros, luego usa «Programar taller».'}
+        </p>
+      ) : vista === 'tabla' ? (
+        nivelesSeccion.map((n) => (
+          <TablaNivel
+            key={n}
+            nivel={n}
+            asignaciones={visibles.filter((a) => a.niveles.includes(n))}
+            dias={dias}
+            tallerPorId={tallerPorId}
+            maestroPorId={maestroPorId}
+            onEditar={onEditar}
+            onEliminar={onEliminar}
+          />
+        ))
+      ) : (
+        <Calendario
+          asignaciones={visibles}
+          dias={dias}
+          tallerPorId={tallerPorId}
+          maestroPorId={maestroPorId}
+          onEditar={onEditar}
+        />
+      )}
+    </section>
+  )
+}
+
+function TablaNivel({
+  nivel,
+  asignaciones,
+  dias,
+  tallerPorId,
+  maestroPorId,
+  onEditar,
+  onEliminar,
+}: {
+  nivel: number
+  asignaciones: TallerAsignacion[]
+  dias: readonly (typeof DIAS_TALLER)[number][]
+  tallerPorId: Map<number, Taller>
+  maestroPorId: Map<number, TallerMaestro>
+  onEditar: (a: TallerAsignacion) => void
+  onEliminar: (a: TallerAsignacion) => void
+}) {
+  const grupos = useMemo(() => {
+    const filas = asignaciones.map((a) => ({ a, t: tallerPorId.get(a.taller_id), m: maestroPorId.get(a.maestro_id) }))
+    filas.sort(
+      (x, y) =>
+        ordenCategoria(x.t?.categoria ?? null) - ordenCategoria(y.t?.categoria ?? null) ||
+        (x.t?.nombre ?? '').localeCompare(y.t?.nombre ?? '', 'es', { numeric: true }) ||
+        (x.t?.grados ?? '').localeCompare(y.t?.grados ?? '', 'es', { numeric: true })
+    )
+    const out: { categoria: string; filas: typeof filas }[] = []
+    for (const f of filas) {
+      const cat = f.t?.categoria?.trim() || 'Sin categoría'
+      const ultimo = out[out.length - 1]
+      if (ultimo && ultimo.categoria === cat) ultimo.filas.push(f)
+      else out.push({ categoria: cat, filas: [f] })
+    }
+    return out
+  }, [asignaciones, tallerPorId, maestroPorId])
+
+  const columnas = dias.length + 2
+
+  return (
+    <div className="tl-nivel">
+      <h3 className="tl-nivel-titulo">
+        {etiquetaNivel(nivel)}
+        <span>{asignaciones.length} {asignaciones.length === 1 ? 'grupo' : 'grupos'}</span>
+      </h3>
+      <div className="tl-horario-wrap">
+        <table className="tl-horario">
+          <thead>
+            <tr>
+              <th scope="col" className="tl-horario-col-taller">Taller</th>
+              {dias.map((d) => (
+                <th key={d.valor} scope="col">{d.etiqueta}</th>
+              ))}
+              <th scope="col" className="tl-horario-col-acc"><span className="tl-sr">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {grupos.map((g) => (
+              <Fragment key={g.categoria}>
+                <tr className="tl-horario-cat">
+                  <th scope="rowgroup" colSpan={columnas}>
+                    {g.categoria} <span>{g.filas.length}</span>
+                  </th>
+                </tr>
+                {g.filas.map(({ a, t, m }) => {
+                  const otros = a.niveles.filter((n) => n !== nivel)
+                  const cupo = etiquetaCupo(a)
+                  return (
+                    <tr key={a.id} className="tl-horario-fila" style={{ ['--tl-color' as string]: t?.color ?? COLORES_TALLER[0] }}>
+                      <th scope="row" className="tl-horario-taller">
+                        <button type="button" className="tl-horario-nombre" onClick={() => onEditar(a)}>
+                          <strong>{t?.nombre ?? 'Taller eliminado'}</strong>
+                          {t?.grados ? <span className="tl-grados">{t.grados}</span> : null}
+                        </button>
+                        <span className="tl-horario-meta">{m ? nombreMaestroTaller(m) : 'Maestro eliminado'}</span>
+                        <span className="tl-horario-meta tl-horario-tags">
+                          {cupo ? <span><Users size={12} aria-hidden /> {cupo}</span> : null}
+                          {otros.length ? <span className="tl-mixto">Con {otros.map(etiquetaNivel).join(' y ')}</span> : null}
+                        </span>
+                        {a.notas ? <span className="tl-horario-nota">{a.notas}</span> : null}
+                      </th>
+                      {dias.map((d) => {
+                        const hs = a.horarios
+                          .filter((h) => h.dia === d.valor)
+                          .sort((x, y) => minutosDeHora(x.hora_inicio) - minutosDeHora(y.hora_inicio))
+                        return (
+                          <td key={d.valor} data-dia={d.etiqueta} data-vacio={!hs.length || undefined}>
+                            {hs.length ? (
+                              hs.map((h, i) => {
+                                const lugar = lugarDeHorario(a, h)
+                                return (
+                                  <span key={i} className="tl-slot">
+                                    <b>{rango12(h.hora_inicio, h.hora_fin)}</b>
+                                    {lugar ? <span><MapPin size={11} aria-hidden /> {lugar}</span> : null}
+                                  </span>
+                                )
+                              })
+                            ) : (
+                              <span className="tl-slot-vacio" aria-label="Sin clase">·</span>
+                            )}
+                          </td>
+                        )
+                      })}
+                      <td className="tl-horario-acc">
+                        <div className="tl-acciones">
+                          <button type="button" className="tl-icon-btn" aria-label={`Editar ${t ? nombreTallerCompleto(t) : 'taller'}`} onClick={() => onEditar(a)}>
+                            <Pencil size={16} aria-hidden />
+                          </button>
+                          <button type="button" className="tl-icon-btn tl-danger" aria-label={`Eliminar ${t ? nombreTallerCompleto(t) : 'taller'}`} onClick={() => onEliminar(a)}>
+                            <Trash2 size={16} aria-hidden />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function Calendario({
+  asignaciones,
+  dias,
+  tallerPorId,
+  maestroPorId,
+  onEditar,
+}: {
+  asignaciones: TallerAsignacion[]
+  dias: readonly (typeof DIAS_TALLER)[number][]
+  tallerPorId: Map<number, Taller>
+  maestroPorId: Map<number, TallerMaestro>
+  onEditar: (a: TallerAsignacion) => void
+}) {
   const bloquesPorDia = useMemo(() => {
     const map = new Map<number, Bloque[]>()
-    for (const d of DIAS_TALLER) {
-      const base = visibles.flatMap((a) =>
+    for (const d of dias) {
+      const base = asignaciones.flatMap((a) =>
         a.horarios
           .filter((h) => h.dia === d.valor)
           .map((h) => ({
@@ -105,7 +350,7 @@ export default function SemanaView({
       map.set(d.valor, acomodarCarriles(base))
     }
     return map
-  }, [visibles, tallerPorId, maestroPorId])
+  }, [asignaciones, dias, tallerPorId, maestroPorId])
 
   const [horaIni, horaFin] = useMemo(() => {
     const todos = [...bloquesPorDia.values()].flat()
@@ -119,39 +364,27 @@ export default function SemanaView({
 
   const horas = Array.from({ length: horaFin - horaIni }, (_, i) => horaIni + i)
   const alto = (horaFin - horaIni) * PX_HORA
-  const maestrosConAsignacion = maestros.filter((m) => asignaciones.some((a) => a.maestro_id === m.id))
-
-  const etiquetaBloque = (b: Bloque) =>
-    `${b.taller ? nombreTallerCompleto(b.taller) : 'Taller'} — ${b.maestro ? nombreMaestroTaller(b.maestro) : ''}`
+  const anchos = dias.map((d) =>
+    Math.max(130, Math.max(1, ...(bloquesPorDia.get(d.valor) ?? []).map((b) => b.carriles)) * ANCHO_CARRIL)
+  )
+  const columnas = anchos.map((w) => `minmax(${w}px, 1fr)`).join(' ')
+  const anchoMin = 72 + anchos.reduce((s, w) => s + w, 0)
 
   return (
-    <section className="tl-panel" aria-label="Horario semanal de talleres">
-      <div className="tl-toolbar">
-        <div className="tl-chips" role="group" aria-label="Filtrar por nivel">
-          <button type="button" className="tl-chip" data-activo={!nivel || undefined} aria-pressed={!nivel} onClick={() => setNivel(0)}>Todos</button>
-          {NIVELES_TALLER.map((n) => (
-            <button key={n.valor} type="button" className="tl-chip" data-activo={nivel === n.valor || undefined}
-              aria-pressed={nivel === n.valor} onClick={() => setNivel(n.valor)}>
-              {n.etiqueta}
-            </button>
-          ))}
-        </div>
-        <select className="tl-input tl-select-sm" value={maestroId} onChange={(e) => setMaestroId(Number(e.target.value))} aria-label="Filtrar por maestro">
-          <option value={0}>Todos los maestros</option>
-          {maestrosConAsignacion.map((m) => (
-            <option key={m.id} value={m.id}>{nombreMaestroTaller(m)}</option>
-          ))}
-        </select>
-        <button type="button" className="tl-btn tl-btn-primary" onClick={onNueva}>
-          <CalendarPlus size={16} aria-hidden /> Programar taller
-        </button>
-      </div>
-
-      {/* Escritorio / tablet: cuadrícula de horas */}
+    <>
+      <p className="tl-muted tl-cal-ayuda">Desliza a los lados si un día tiene muchos talleres a la vez. Toca un bloque para editarlo.</p>
       <div className="tl-cal-wrap">
-        <div className="tl-cal" style={{ ['--tl-alto' as string]: `${alto}px`, ['--tl-px-hora' as string]: `${PX_HORA}px` }}>
+        <div
+          className="tl-cal"
+          style={{
+            gridTemplateColumns: `72px ${columnas}`,
+            minWidth: anchoMin,
+            ['--tl-alto' as string]: `${alto}px`,
+            ['--tl-px-hora' as string]: `${PX_HORA}px`,
+          }}
+        >
           <div className="tl-cal-head tl-cal-esquina" aria-hidden />
-          {DIAS_TALLER.map((d) => (
+          {dias.map((d) => (
             <div key={d.valor} className="tl-cal-head">{d.etiqueta}</div>
           ))}
           <div className="tl-cal-horas" aria-hidden>
@@ -159,11 +392,11 @@ export default function SemanaView({
               <span key={h} className="tl-cal-hora">{hora12(`${String(h).padStart(2, '0')}:00`)}</span>
             ))}
           </div>
-          {DIAS_TALLER.map((d) => (
+          {dias.map((d) => (
             <div key={d.valor} className="tl-cal-col">
               {(bloquesPorDia.get(d.valor) ?? []).map((b) => {
-                const color = b.taller?.color ?? COLORES_TALLER[0]
                 const ancho = 100 / b.carriles
+                const nombre = b.taller ? nombreTallerCompleto(b.taller) : 'Taller'
                 return (
                   <button
                     key={`${b.asignacion.id}-${b.dia}-${b.ini}`}
@@ -174,18 +407,15 @@ export default function SemanaView({
                       height: Math.max(26, ((b.fin - b.ini) / 60) * PX_HORA - 3),
                       left: `calc(${b.carril * ancho}% + 2px)`,
                       width: `calc(${ancho}% - 4px)`,
-                      ['--tl-color' as string]: color,
+                      ['--tl-color' as string]: b.taller?.color ?? COLORES_TALLER[0],
                     }}
-                    title={etiquetaBloque(b)}
+                    title={`${nombre} — ${b.maestro ? nombreMaestroTaller(b.maestro) : ''}`}
                     onClick={() => onEditar(b.asignacion)}
                   >
-                    <span className="tl-bloque-nombre">{b.taller ? nombreTallerCompleto(b.taller) : 'Taller'}</span>
-                    <span className="tl-bloque-hora">
-                      {hora12(`${String(Math.floor(b.ini / 60)).padStart(2, '0')}:${String(b.ini % 60).padStart(2, '0')}`)} –{' '}
-                      {hora12(`${String(Math.floor(b.fin / 60)).padStart(2, '0')}:${String(b.fin % 60).padStart(2, '0')}`)}
-                    </span>
-                    {b.maestro ? <span className="tl-bloque-meta">{nombreMaestroTaller(b.maestro)}</span> : null}
+                    <span className="tl-bloque-nombre">{nombre}</span>
+                    <span className="tl-bloque-hora">{rango12(hhmm(b.ini), hhmm(b.fin))}</span>
                     {b.lugar ? <span className="tl-bloque-meta">{b.lugar}</span> : null}
+                    {b.maestro ? <span className="tl-bloque-meta">{nombreMaestroTaller(b.maestro)}</span> : null}
                   </button>
                 )
               })}
@@ -194,9 +424,8 @@ export default function SemanaView({
         </div>
       </div>
 
-      {/* Móvil: agenda por día */}
       <div className="tl-agenda">
-        {DIAS_TALLER.map((d) => {
+        {dias.map((d) => {
           const bloques = [...(bloquesPorDia.get(d.valor) ?? [])].sort((a, b) => a.ini - b.ini)
           return (
             <div key={d.valor} className="tl-agenda-dia">
@@ -210,8 +439,8 @@ export default function SemanaView({
                       <button type="button" className="tl-agenda-item" style={{ ['--tl-color' as string]: b.taller?.color ?? COLORES_TALLER[0] }}
                         onClick={() => onEditar(b.asignacion)}>
                         <span className="tl-agenda-hora">
-                          {hora12(`${String(Math.floor(b.ini / 60)).padStart(2, '0')}:${String(b.ini % 60).padStart(2, '0')}`)}
-                          <small>{hora12(`${String(Math.floor(b.fin / 60)).padStart(2, '0')}:${String(b.fin % 60).padStart(2, '0')}`)}</small>
+                          {hora12(hhmm(b.ini))}
+                          <small>{hora12(hhmm(b.fin))}</small>
                         </span>
                         <span className="tl-min0">
                           <strong>{b.taller ? nombreTallerCompleto(b.taller) : 'Taller'}</strong>
@@ -228,49 +457,6 @@ export default function SemanaView({
           )
         })}
       </div>
-
-      <h3 className="tl-seccion">Talleres programados ({visibles.length})</h3>
-      {visibles.length === 0 ? (
-        <p className="tl-empty">
-          {asignaciones.length
-            ? 'Ningún taller coincide con el filtro.'
-            : 'Todavía no hay talleres programados. Da de alta talleres y maestros, luego usa «Programar taller».'}
-        </p>
-      ) : (
-        <ul className="tl-asig-lista">
-          {visibles.map((a) => {
-            const t = tallerPorId.get(a.taller_id)
-            const m = maestroPorId.get(a.maestro_id)
-            const lugares = [...new Set(a.horarios.map((h) => lugarDeHorario(a, h)).filter(Boolean))].join(' / ')
-            const cupo = etiquetaCupo(a)
-            return (
-              <li key={a.id} className="tl-asig-card" style={{ ['--tl-color' as string]: t?.color ?? COLORES_TALLER[0] }}>
-                <div className="tl-min0">
-                  <p className="tl-asig-titulo">
-                    {t ? nombreTallerCompleto(t) : 'Taller eliminado'}
-                    {t?.categoria ? <span className="tl-cat">{t.categoria}</span> : null}
-                  </p>
-                  <p className="tl-asig-horario">{resumenHorarios(a.horarios)}</p>
-                  <p className="tl-asig-meta">
-                    <span>{m ? nombreMaestroTaller(m) : 'Maestro eliminado'}</span>
-                    {lugares ? <span><MapPin size={13} aria-hidden /> {lugares}</span> : null}
-                    {cupo ? <span><Users size={13} aria-hidden /> {cupo}</span> : null}
-                  </p>
-                  <NivelesBadges niveles={a.niveles} />
-                </div>
-                <div className="tl-acciones">
-                  <button type="button" className="tl-icon-btn" aria-label="Editar horario" onClick={() => onEditar(a)}>
-                    <Pencil size={16} aria-hidden />
-                  </button>
-                  <button type="button" className="tl-icon-btn tl-danger" aria-label="Eliminar horario" onClick={() => onEliminar(a)}>
-                    <Trash2 size={16} aria-hidden />
-                  </button>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
-      )}
-    </section>
+    </>
   )
 }
