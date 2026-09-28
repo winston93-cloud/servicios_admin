@@ -889,13 +889,34 @@
   gap: 0.75rem 1.25rem;
   margin-bottom: 1rem;
 }
+.tl-hoy-titulo { display: flex; align-items: center; gap: 0.9rem; min-width: 0; }
 .tl-hoy-fecha {
   margin: 0;
   font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--tl-gold);
-  text-transform: capitalize;
+}
+
+.tl-reloj { display: flex; align-items: center; gap: 0.65rem; flex: 0 0 auto; }
+.tl-reloj-cara { width: 64px; height: 64px; filter: drop-shadow(0 4px 14px rgba(0, 227, 253, 0.18)); }
+.tl-reloj-aro { fill: var(--tl-surface-2); stroke: var(--tl-border-strong); stroke-width: 2; }
+.tl-reloj-marca { stroke: var(--tl-muted); stroke-width: 0.8; opacity: 0.6; }
+.tl-reloj-marca-h { stroke: var(--tl-text); stroke-width: 2.2; stroke-linecap: round; }
+.tl-reloj-hora { stroke: var(--tl-gold); stroke-width: 4.5; stroke-linecap: round; }
+.tl-reloj-min { stroke: var(--tl-text); stroke-width: 3; stroke-linecap: round; }
+.tl-reloj-seg { stroke: var(--tl-accent); stroke-width: 1.4; stroke-linecap: round; }
+[data-theme='light'] .tl-reloj-seg { stroke: #d6334f; }
+.tl-reloj-centro { fill: var(--tl-accent); }
+[data-theme='light'] .tl-reloj-centro { fill: #d6334f; }
+[data-theme='light'] .tl-reloj-cara { filter: drop-shadow(0 4px 12px rgba(19, 35, 58, 0.14)); }
+.tl-reloj-digital {
+  min-width: 7.5rem;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--tl-accent);
 }
 .tl-hoy-sub { margin: 0.15rem 0 0; font-size: 0.85rem; }
 
@@ -1184,6 +1205,9 @@
   .tl-stats { flex-basis: 100%; }
   .tl-seg button { padding: 0 0.5rem; font-size: 0.8rem; }
   .tl-hoy-resumen { width: 100%; }
+  .tl-hoy-titulo { flex-wrap: wrap; }
+  .tl-reloj-cara { width: 52px; height: 52px; }
+  .tl-reloj-digital { font-size: 1.15rem; min-width: 0; }
   .tl-hoy-resumen > div { flex: 1; min-width: 0; }
   .tl-hoy-bloque { grid-template-columns: minmax(0, 1fr); gap: 0.35rem; }
   .tl-hoy-hora { position: static; padding-top: 0; text-align: left; }

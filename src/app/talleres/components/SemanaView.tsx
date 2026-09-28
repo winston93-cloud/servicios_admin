@@ -101,7 +101,7 @@ export default function SemanaView({
   }, [asignaciones])
 
   const nivelInicial = NIVELES_TALLER.find((n) => (conteoNivel.get(n.valor) ?? 0) > 0)?.valor ?? 0
-  const [nivelElegido, setNivel] = useState<number | null>(null)
+  const [nivelElegido, setNivel] = useState<number | null>(0)
   const nivel = nivelElegido ?? nivelInicial
   const [maestroId, setMaestroId] = useState(0)
   const [maestroQ, setMaestroQ] = useState('')
@@ -219,6 +219,52 @@ export default function SemanaView({
   )
 }
 
+/** Reloj analógico + digital que avanza cada segundo (hora del dispositivo). */
+function Reloj() {
+  const [ahora, setAhora] = useState(() => new Date())
+  useEffect(() => {
+    let intervalo = 0
+    const tick = () => setAhora(new Date())
+    const arranque = window.setTimeout(() => {
+      tick()
+      intervalo = window.setInterval(tick, 1000)
+    }, 1000 - (Date.now() % 1000))
+    return () => {
+      window.clearTimeout(arranque)
+      window.clearInterval(intervalo)
+    }
+  }, [])
+
+  const s = ahora.getSeconds()
+  const m = ahora.getMinutes() + s / 60
+  const h = (ahora.getHours() % 12) + m / 60
+  const digital = ahora.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true })
+
+  return (
+    <div className="tl-reloj" role="timer" aria-label={`Hora actual ${digital}`}>
+      <svg viewBox="0 0 100 100" className="tl-reloj-cara" aria-hidden>
+        <circle cx="50" cy="50" r="47" className="tl-reloj-aro" />
+        {Array.from({ length: 60 }, (_, i) => (
+          <line
+            key={i}
+            x1="50"
+            y1={i % 5 === 0 ? 7 : 8.5}
+            x2="50"
+            y2={i % 5 === 0 ? 15 : 11.5}
+            className={i % 5 === 0 ? 'tl-reloj-marca-h' : 'tl-reloj-marca'}
+            transform={`rotate(${i * 6} 50 50)`}
+          />
+        ))}
+        <line x1="50" y1="54" x2="50" y2="27" className="tl-reloj-hora" transform={`rotate(${h * 30} 50 50)`} />
+        <line x1="50" y1="56" x2="50" y2="17" className="tl-reloj-min" transform={`rotate(${m * 6} 50 50)`} />
+        <line x1="50" y1="60" x2="50" y2="12" className="tl-reloj-seg" transform={`rotate(${s * 6} 50 50)`} />
+        <circle cx="50" cy="50" r="3" className="tl-reloj-centro" />
+      </svg>
+      <span className="tl-reloj-digital">{digital}</span>
+    </div>
+  )
+}
+
 type EstadoHoy = 'curso' | 'proximo' | 'terminado'
 
 const ETIQUETA_ESTADO: Record<EstadoHoy, string> = {
@@ -248,8 +294,8 @@ function DiaActual({
 
   const dia = ahora.getDay()
   const minAhora = ahora.getHours() * 60 + ahora.getMinutes()
-  const fecha = ahora.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
-  const horaTxt = ahora.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit', hour12: true })
+  const fechaTxt = ahora.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
+  const fecha = fechaTxt.charAt(0).toUpperCase() + fechaTxt.slice(1)
 
   const sesiones = useMemo(
     () =>
@@ -290,12 +336,12 @@ function DiaActual({
   return (
     <div className="tl-hoy">
       <div className="tl-hoy-head">
-        <div className="tl-min0">
-          <p className="tl-hoy-fecha">{fecha}</p>
-          <p className="tl-muted tl-hoy-sub">
-            Son las {horaTxt}
-            {nivel ? ` · ${etiquetaNivel(nivel)}` : ''}
-          </p>
+        <div className="tl-hoy-titulo">
+          <Reloj />
+          <div className="tl-min0">
+            <p className="tl-hoy-fecha">{fecha}</p>
+            <p className="tl-muted tl-hoy-sub">{nivel ? etiquetaNivel(nivel) : 'Todos los niveles'}</p>
+          </div>
         </div>
         {sesiones.length ? (
           <dl className="tl-hoy-resumen">
