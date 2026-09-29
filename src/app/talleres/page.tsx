@@ -1,8 +1,9 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, CalendarDays, CheckCircle2, GraduationCap, ListChecks, Loader2, Palette, RefreshCw, UserPlus } from 'lucide-react'
+import { ArrowLeft, CalendarDays, CheckCircle2, ClipboardCheck, GraduationCap, ListChecks, Loader2, Palette, RefreshCw, UserPlus } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
@@ -168,6 +169,9 @@ function TalleresView() {
               <ArrowLeft size={16} aria-hidden /> Dashboard
             </button>
             <div className="tl-topbar-der">
+              <Link href="/talleres/asistencia" className="tl-btn-asistencia">
+                <ClipboardCheck size={16} aria-hidden /> Asistencia<span className="tl-ocultar-movil"> diaria</span>
+              </Link>
               <button type="button" className="tl-icon-btn" onClick={() => void cargar()} aria-label="Recargar" disabled={cargando}>
                 <RefreshCw size={16} aria-hidden className={cargando ? 'tl-spin' : undefined} />
               </button>

@@ -266,3 +266,49 @@ export function resumenHorarios(horarios: TallerHorario[]): string {
     .map((h) => `${etiquetaDia(h.dia)} ${hora12(h.hora_inicio)} – ${hora12(h.hora_fin)}`)
     .join(' · ')
 }
+
+/* ───────────── Asistencia diaria ───────────── */
+
+export type AlumnoAsistencia = {
+  alumno_id: number
+  nombre: string
+  nivel: number
+  grado: string
+}
+
+export type RegistroAsistencia = {
+  /** Alumnos contados en el salón (puede diferir de la lista). */
+  total_alumnos: number | null
+  faltas: number[]
+  registrado_por: string | null
+  updated_at: string
+}
+
+export type SesionAsistencia = {
+  asignacion_id: number
+  taller: string
+  grados: string | null
+  color: string
+  maestro: string
+  niveles: number[]
+  hora_inicio: string
+  hora_fin: string
+  lugar: string | null
+  alumnos: AlumnoAsistencia[]
+  registro: RegistroAsistencia | null
+}
+
+export type AsistenciaDia = {
+  ciclo: { valor: number; nombre: string }
+  /** YYYY-MM-DD consultado. */
+  fecha: string
+  /** YYYY-MM-DD de hoy en Ciudad de México. */
+  hoy: string
+  /** 0 = domingo … 6 = sábado. */
+  dia: number
+  /** Se puede guardar (hoy o hasta DIAS_EDITABLES_ASISTENCIA atrás). */
+  editable: boolean
+  sesiones: SesionAsistencia[]
+}
+
+export const DIAS_EDITABLES_ASISTENCIA = 30
