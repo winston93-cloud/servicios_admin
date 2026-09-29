@@ -426,7 +426,7 @@ export default function PortalInscripcionesView() {
       estadoVista.pasos.every((p) => p.estado === 'completado')
   )
   const colegiaturasDesbloqueadas = Boolean(
-    estadoVista && !estadoVista.bloqueo && procesoCompleto
+    estadoVista && !estadoVista.bloqueo && (procesoCompleto || adeudoAutorizado)
   )
 
   /** Facturas 11/12/13: si el proceso ya está completo quedan dentro del acordeón
