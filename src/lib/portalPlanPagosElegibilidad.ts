@@ -16,9 +16,13 @@ import {
   parsearReferenciaPago,
 } from '@/lib/pagoReferenciaColegiatura'
 import { slotsColegiaturaPortal } from '@/lib/portalPagosCandados'
+import { tieneAutorizacionReinscripcionConAdeudoTemporada } from '@/lib/portalAdmisionesProrroga'
 
 export type ElegibilidadPlanColegiaturas =
-  | { ok: true; motivo: 'proceso_completo' | 'ya_registrado' | 'ya_tiene_colegiaturas' }
+  | {
+      ok: true
+      motivo: 'proceso_completo' | 'ya_registrado' | 'ya_tiene_colegiaturas' | 'autorizacion_adeudo'
+    }
   | { ok: false; error: string }
 
 async function tieneColegiaturasCiclo(
@@ -56,6 +60,21 @@ export async function elegibilidadParaRegistrarPlanColegiaturas(
 
   if (await tieneColegiaturasCiclo(alumno, cicloColegiaturasValor)) {
     return { ok: true, motivo: 'ya_tiene_colegiaturas' }
+  }
+
+  const esReinscrito = formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 0
+  if (esReinscrito) {
+    const cicloActual = await obtenerCicloEscolarActual()
+    if (
+      cicloActual &&
+      (await tieneAutorizacionReinscripcionConAdeudoTemporada(
+        db,
+        Number(alumno.alumno_ref),
+        Number(cicloActual.valor)
+      ))
+    ) {
+      return { ok: true, motivo: 'autorizacion_adeudo' }
+    }
   }
 
   const sol = await evaluarSolicitudCapturada(db, alumno)
@@ -100,7 +119,6 @@ export async function elegibilidadParaRegistrarPlanColegiaturas(
     }
   }
 
-  const esReinscrito = formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 0
   if (esReinscrito) {
     const cicloActual = await obtenerCicloEscolarActual()
     const cea = Number(cicloActual?.valor) || cicloColegiaturasValor
