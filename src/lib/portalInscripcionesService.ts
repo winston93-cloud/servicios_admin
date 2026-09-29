@@ -197,6 +197,7 @@ export async function construirEstadoPortalInscripciones(
   let reinscripcionInfo: ReinscripcionPeriodo | null = null
   let cierreCiclo: CierreCicloPortal | null = null
   let dobleAdeudoPrevio: EstadoPortalInscripciones['dobleAdeudoPrevio'] = null
+  let autorizacionAdeudo = false
 
   const adeudoEgresado: AlumnoPagoEgresadoRegistro | null =
     await obtenerAdeudoEgresadoActivoPorAlumno(supabase, alumno.alumno_id)
@@ -225,18 +226,17 @@ export async function construirEstadoPortalInscripciones(
       cicloCierreEfectivo
     )
     cierreCiclo = resumenCierre
-    if (
+    autorizacionAdeudo = Boolean(
       resumenCierre &&
-      esReinscrito &&
-      !modoAdeudoEgresado &&
-      resumenCierre.requerido &&
-      !resumenCierre.liquidado &&
-      (await tieneAutorizacionReinscripcionConAdeudo(
-        supabase,
-        Number(alumno.alumno_ref),
-        resumenCierre.ciclo.valor
-      ))
-    ) {
+        esReinscrito &&
+        !modoAdeudoEgresado &&
+        (await tieneAutorizacionReinscripcionConAdeudo(
+          supabase,
+          Number(alumno.alumno_ref),
+          resumenCierre.ciclo.valor
+        ))
+    )
+    if (resumenCierre && autorizacionAdeudo && resumenCierre.requerido && !resumenCierre.liquidado) {
       cierreCiclo = { ...resumenCierre, autorizadoConAdeudo: true }
     }
 
@@ -406,7 +406,7 @@ export async function construirEstadoPortalInscripciones(
     }
   }
 
-  if (!solCapturada && esReinscrito) {
+  if (!solCapturada && esReinscrito && !autorizacionAdeudo) {
     showPayment = false
   }
   if (solCapturada && !esReinscrito && (Number(alumno.alumno_status) === 1 || Number(alumno.alumno_status) === 2)) {
@@ -465,6 +465,9 @@ export async function construirEstadoPortalInscripciones(
   }
 
   const flujoActivo = bloqueo == null && !modoAdeudoEgresado
+  // Autorización especial: los pasos no esperan solicitud ni pago previos.
+  const pasosLibres = autorizacionAdeudo && flujoActivo
+  const solOk = solCapturada || pasosLibres
   // Con bloqueo psico/académico aún pueden liquidar el ciclo anterior (cierre).
   // Adeudo egresado: solo matriz de cierre, sin pasos de reinscripción.
   const pasosVisibles =
@@ -591,7 +594,7 @@ export async function construirEstadoPortalInscripciones(
   }
 
   let montoInscripcion: number | null = null
-  if (flujoActivo && solCapturada && !insPagada && showPayment) {
+  if (flujoActivo && solOk && !insPagada && showPayment) {
     if (calcReinscripcion?.pagable) {
       montoInscripcion = calcReinscripcion.monto
     } else if (!esReinscrito) {
@@ -660,7 +663,7 @@ export async function construirEstadoPortalInscripciones(
     descripcion: 'Imprime el reglamento, la carta compromiso y fírmala.',
     estado: resolverEstadoPaso(
       reglamentoVistoServidor,
-      pasosVisibles && solCapturada
+      pasosVisibles && solOk
     ),
     detalle: reglamentoVistoServidor
       ? cuotaInicioCursoPagada
@@ -668,11 +671,11 @@ export async function construirEstadoPortalInscripciones(
         : 'Reglamento consultado.'
       : urlReglamento
         ? 'Descarga el reglamento y la carta compromiso para imprimir y firmar.'
-        : solCapturada
+        : solOk
           ? 'Consulta información en tu coordinación académica; el PDF aún no está publicado.'
           : 'Se habilita al completar la solicitud.',
     accion:
-      pasosVisibles && solCapturada && urlReglamento
+      pasosVisibles && solOk && urlReglamento
         ? { tipo: 'externo', href: urlReglamento, etiqueta: 'Ver reglamento y carta compromiso' }
         : null,
   })
@@ -686,8 +689,8 @@ export async function construirEstadoPortalInscripciones(
       : 'Paga inscripción en ventanilla (baucher), comercio electrónico o SPEI.',
     estado: resolverEstadoPaso(
       insPagada,
-      pasosVisibles && solCapturada && (showPayment || insPagada),
-      pasosVisibles && solCapturada && showPayment && !insPagada
+      pasosVisibles && solOk && (showPayment || insPagada),
+      pasosVisibles && solOk && showPayment && !insPagada
     ),
     detalle: insPagada
       ? facturasInscripcion.length > 0
@@ -695,12 +698,12 @@ export async function construirEstadoPortalInscripciones(
         : 'Pago registrado correctamente. La factura aparecerá aquí al terminar el timbrado.'
       : showPayment
         ? 'Pendiente de pago.'
-        : solCapturada
+        : solOk
           ? 'El pago se habilitará en la ventana oficial de reinscripción.'
           : 'Completa la solicitud para habilitar el pago.',
     // Si ya pagó: PDF/XML (no el comprobante genérico). Si no: enlace a pagar.
     accion:
-      pasosVisibles && solCapturada && showPayment && !insPagada
+      pasosVisibles && solOk && showPayment && !insPagada
         ? {
             tipo: 'ruta-interna',
             href: '/portal-inscripciones/pago',
@@ -711,7 +714,7 @@ export async function construirEstadoPortalInscripciones(
   })
 
   if (requiereDocs) {
-    const docsDisponibles = Boolean(pasosVisibles && solCapturada && insPagada)
+    const docsDisponibles = Boolean(pasosVisibles && solOk && (insPagada || pasosLibres))
     pasos.push({
       id: 'documentos',
       orden: 4,
@@ -741,7 +744,7 @@ export async function construirEstadoPortalInscripciones(
   const docsPortalOk = !requiereDocs || docsEnviados
   const autorizacionControlEscolarOk = !requiereDocs || reciboHabilitado
   const pasosPreviosRecibo = Boolean(
-    solCapturada && insPagada && docsPortalOk && autorizacionControlEscolarOk
+    (pasosLibres || (solCapturada && insPagada)) && docsPortalOk && autorizacionControlEscolarOk
   )
   const puedeRecibo = Boolean(pasosVisibles && pasosPreviosRecibo)
 
@@ -800,7 +803,7 @@ export async function construirEstadoPortalInscripciones(
   const progresoPct =
     pasosTotales > 0 ? Math.round((pasosCompletados / pasosTotales) * 100) : 0
 
-  if (flujoActivo && showInfo && !solCapturada) {
+  if (flujoActivo && showInfo && !solCapturada && !pasosLibres) {
     aviso = combinarAvisos(
       aviso,
       'Para habilitar las opciones de pago primero debe llenar (o actualizar) y guardar la solicitud de inscripción.'

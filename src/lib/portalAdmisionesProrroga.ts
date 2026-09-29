@@ -1,5 +1,6 @@
 import type { AppDatabaseClient } from '@/lib/dbTypes'
 import { hoyIso } from './portalAdmisionesCiclo'
+import { cicloCierreValor } from './portalCierreCicloAnterior'
 import { normalizarConceptoNo } from './pagoReferenciaColegiatura'
 
 export interface ProrrogaInscripcionActiva {
@@ -170,6 +171,19 @@ export async function tieneAutorizacionReinscripcionConAdeudo(
     .limit(1)
   if (error || !data) return false
   return (data as unknown[]).length > 0
+}
+
+/** Misma autorización, resolviendo el ciclo de cierre desde la temporada vigente (22→23, 23→24…). */
+export async function tieneAutorizacionReinscripcionConAdeudoTemporada(
+  supabase: AppDatabaseClient,
+  alumnoRef: number,
+  cicloTemporadaActual: number
+): Promise<boolean> {
+  return tieneAutorizacionReinscripcionConAdeudo(
+    supabase,
+    alumnoRef,
+    cicloCierreValor(cicloTemporadaActual)
+  )
 }
 
 /** Prórroga activa de Dif1 (concepto 11) sustituye lista hardcodeada refs_prorroga_dif1. */

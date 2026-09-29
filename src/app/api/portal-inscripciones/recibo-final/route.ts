@@ -7,6 +7,7 @@ import { documentosNiYaEnviados } from '@/lib/portalDocumentosNiService'
 import { requiereDocumentosAdmision } from '@/lib/portalDocumentosAdmision'
 import { documentacionOkParaReciboFinal } from '@/lib/controlEscolarService'
 import { obtenerPortalInscripcionProgreso } from '@/lib/portalInscripcionProgreso'
+import { tieneAutorizacionReinscripcionConAdeudoTemporada } from '@/lib/portalAdmisionesProrroga'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
 import {
   inscripcionCompletaPagada,
@@ -74,7 +75,15 @@ export async function GET(request: Request) {
       }
     }
 
-    if (!solOk || !insPagada || !docsPortalOk || !autorizacionOk) {
+    const autorizadoConAdeudo =
+      esReinscrito &&
+      (await tieneAutorizacionReinscripcionConAdeudoTemporada(
+        supabase,
+        Number(alumno.alumno_ref),
+        cicloSistema.valor
+      ))
+
+    if ((!autorizadoConAdeudo && (!solOk || !insPagada)) || !docsPortalOk || !autorizacionOk) {
       return NextResponse.json(
         {
           error:

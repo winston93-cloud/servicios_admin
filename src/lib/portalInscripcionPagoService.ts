@@ -12,6 +12,7 @@ import { resolverCicloPagoInscripcionPortal } from './portalInscripcionesCiclo'
 import { inscripcionCompletaPagada, solicitudCapturada } from './portalInscripcionesSolicitud'
 import { calcularReinscripcionDiferido } from './portalReinscripcionService'
 import { obtenerCicloPorValor } from './ciclosEscolaresService'
+import { tieneAutorizacionReinscripcionConAdeudoTemporada } from './portalAdmisionesProrroga'
 
 export interface VistaPagoInscripcionPortal {
   ciclo: CicloEscolarRegistro
@@ -33,7 +34,14 @@ export async function construirVistaPagoInscripcion(
   pagos: PagoDetalleRegistro[]
 ): Promise<VistaPagoInscripcionPortal> {
   const esReinscrito = formaIngresoPorDefecto(alumno.alumno_nuevo_ingreso) === 0
-  const solCompleta = await solicitudCapturada(supabase, alumno)
+  const solCompleta =
+    (await solicitudCapturada(supabase, alumno)) ||
+    (esReinscrito &&
+      (await tieneAutorizacionReinscripcionConAdeudoTemporada(
+        supabase,
+        Number(alumno.alumno_ref),
+        ciclo.valor
+      )))
 
   // Reinscritos: ciclo destino y montos calendáricos (11 / 12 / 13 según ventanas).
   if (esReinscrito) {
