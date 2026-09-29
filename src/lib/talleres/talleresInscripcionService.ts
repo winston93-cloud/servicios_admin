@@ -235,21 +235,21 @@ async function validarInscripcion(opts: {
   if (vigentes.some((v) => v.asignacion_id === asignacionId)) {
     throw new TalleresError(`${alumno.nombre} ya está inscrito en este grupo.`, 409)
   }
+  const avisos: string[] = []
   for (const v of vigentes) {
     const otra = snap.asignaciones.find((a) => a.id === v.asignacion_id)
     if (!otra) continue
     for (const h of asignacion.horarios) {
       const choque = otra.horarios.find((o) => rangosSeTraslapan(o, h))
       if (choque) {
-        throw new TalleresError(
-          `${alumno.nombre} ya está en «${describirGrupo(snap, otra)}» el ${etiquetaDia(choque.dia)} ${hora12(choque.hora_inicio)} – ${hora12(choque.hora_fin)}; se empalma con este horario.`,
-          409
+        avisos.push(
+          `${alumno.nombre} ya está en «${describirGrupo(snap, otra)}» el ${etiquetaDia(choque.dia)} ${hora12(choque.hora_inicio)} – ${hora12(choque.hora_fin)}; se empalma con este horario (por ejemplo, si alterna días a prueba).`
         )
+        break
       }
     }
   }
 
-  const avisos: string[] = []
   const permitidos = gradosPermitidos(taller?.grados ?? null)
   const g = gradoGlobal(alumno.nivel, alumno.grado)
   if (permitidos && g != null && !permitidos.has(g)) {

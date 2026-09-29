@@ -59,21 +59,14 @@ export function evaluarAlumnoEnGrupo(opts: {
   const { alumno, grupo, asignaciones, tallerPorId, ignorarAsignacionId } = opts
   if (alumno.asignaciones.includes(grupo.id)) return { bloqueado: 'Ya está inscrito en este grupo', avisos: [] }
   if (!grupo.niveles.includes(alumno.nivel)) return { bloqueado: 'Es de otro nivel', avisos: [] }
+  const avisos: string[] = []
   for (const id of alumno.asignaciones) {
     if (id === ignorarAsignacionId) continue
     const otra = asignaciones.find((a) => a.id === id)
     if (!otra) continue
-    for (const h of grupo.horarios) {
-      const c = otra.horarios.find((o) => rangosSeTraslapan(o, h))
-      if (c) {
-        return {
-          bloqueado: `Choca con ${nombreGrupo(otra, tallerPorId)} (${DIA_CORTO[c.dia]} ${hora12(c.hora_inicio)})`,
-          avisos: [],
-        }
-      }
-    }
+    const c = grupo.horarios.map((h) => otra.horarios.find((o) => rangosSeTraslapan(o, h))).find(Boolean)
+    if (c) avisos.push(`Choca con ${nombreGrupo(otra, tallerPorId)} (${DIA_CORTO[c.dia]} ${hora12(c.hora_inicio)})`)
   }
-  const avisos: string[] = []
   const t = tallerPorId.get(grupo.taller_id)
   const permitidos = gradosPermitidos(t?.grados ?? null)
   const g = gradoGlobal(alumno.nivel, alumno.grado)
