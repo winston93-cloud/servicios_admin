@@ -76,7 +76,8 @@ export async function evaluarVentanaPortalReinscrito(
   pagos: PagoDetalleRegistro[],
   cen: number,
   calc: ReinscripcionDiferido,
-  cicloTemporadaActual: number
+  cicloTemporadaActual: number,
+  opciones?: { adeudoAutorizado?: boolean }
 ): Promise<EstadoVentanaPortal> {
   const cd = hoyIso()
   const alumnoMes = Number(alumno.mes ?? 0)
@@ -107,6 +108,10 @@ export async function evaluarVentanaPortalReinscrito(
   const { fechaIniDif1, fechaFinDif1, fechaIniDif2, fechaFinDif2 } = ventanas
   const hasDif = base.hasDif
   const prorrogaDif1 = await tieneAccesoProrrogaDif1(supabase, alumnoRef, cen)
+  const colegiaturaCubierta = (tipo: Parameters<typeof colegiaturaRequeridaCubierta>[2]) =>
+    opciones?.adeudoAutorizado
+      ? { ok: true, mensaje: '' }
+      : colegiaturaRequeridaCubierta(pagos, alumnoRef, tipo, cen)
   const authDif2 = await obtenerAutorizacionPortalDif2(supabase, alumnoRef, cen)
 
   const pagable = calc.pagable && calc.monto > 0
@@ -121,7 +126,7 @@ export async function evaluarVentanaPortalReinscrito(
     base.msg2 = `El portal de reinscripción se abre en las fechas registradas: primer periodo del ${fechaIniDif1} al ${fechaFinDif1}; segundo periodo del ${fechaIniDif2} al ${fechaFinDif2}.`
     showInfo = true
   } else if (fechaIniDif1 && cd < fechaIniDif1 && !prorrogaDif1) {
-    const col = colegiaturaRequeridaCubierta(pagos, alumnoRef, 'febrero', cen)
+    const col = colegiaturaCubierta('febrero')
     base.msg2 = `Su primer periodo de reinscripción es de ${fechaIniDif1} al ${fechaFinDif1}.`
     if (!col.ok) {
       base.errorPagoPendiente = true
@@ -138,7 +143,7 @@ export async function evaluarVentanaPortalReinscrito(
     cd <= fechaFinDif2
   ) {
     const tipoCol = alumnoMes === 1 ? 'junio' : 'julio'
-    const col = colegiaturaRequeridaCubierta(pagos, alumnoRef, tipoCol, cen)
+    const col = colegiaturaCubierta(tipoCol)
     if (!col.ok && !authDif2.activa) {
       base.errorPagoPendiente = true
       base.msg3 = col.mensaje
@@ -160,7 +165,7 @@ export async function evaluarVentanaPortalReinscrito(
       portalAbierto = true
       showInfo = true
     } else {
-      const col = colegiaturaRequeridaCubierta(pagos, alumnoRef, 'febrero', cen)
+      const col = colegiaturaCubierta('febrero')
       if (!col.ok) {
         base.errorPagoPendiente = true
         base.msg3 = col.mensaje

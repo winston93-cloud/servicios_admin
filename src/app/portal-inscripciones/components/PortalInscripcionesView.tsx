@@ -406,9 +406,12 @@ export default function PortalInscripcionesView() {
     return aplicarReciboFinalVistoEnEstado(conReglamento, reciboFinalVisto)
   }, [estado, reglamentoVisto, reciboFinalVisto])
 
-  const cierrePendiente = Boolean(
+  const adeudoCierre = Boolean(
     estadoVista?.cierreCiclo?.requerido && !estadoVista.cierreCiclo.liquidado
   )
+  // Autorización especial: el adeudo se muestra, pero no frena pasos ni colegiaturas nuevas.
+  const adeudoAutorizado = adeudoCierre && Boolean(estadoVista?.cierreCiclo?.autorizadoConAdeudo)
+  const cierrePendiente = adeudoCierre && !adeudoAutorizado
   const cicloCierreValorUi = estadoVista?.cierreCiclo?.ciclo.valor ?? null
   const dobleAdeudo = estadoVista?.dobleAdeudoPrevio ?? null
   const cicloDobleValorUi = dobleAdeudo?.ciclo.valor ?? null
@@ -564,13 +567,13 @@ export default function PortalInscripcionesView() {
   )
 
   useEffect(() => {
-    if (cierrePendiente && cicloCierreValorUi != null) {
+    if (adeudoCierre && cicloCierreValorUi != null) {
       void cargarMatrizCierre(cicloCierreValorUi)
     } else {
       setMatrizCierre(null)
       revalidarCierreRef.current = false
     }
-  }, [cierrePendiente, cicloCierreValorUi, cargarMatrizCierre])
+  }, [adeudoCierre, cicloCierreValorUi, cargarMatrizCierre])
 
   useEffect(() => {
     if (cicloDobleValorUi != null) {
@@ -583,12 +586,12 @@ export default function PortalInscripcionesView() {
   // Si la matriz de cierre ya trae todos los conceptos pagados pero el estado
   // aún marca adeudo, revalidar una vez (misma fuente de verdad al estado).
   useEffect(() => {
-    if (!cierrePendiente || !matrizCierre || revalidarCierreRef.current) return
+    if (!adeudoCierre || !matrizCierre || revalidarCierreRef.current) return
     const filas = matrizCierre.secciones.flatMap((s) => s.filas)
     if (filas.length === 0 || filas.some((f) => !f.pagado)) return
     revalidarCierreRef.current = true
     void cargar()
-  }, [cierrePendiente, matrizCierre, cargar])
+  }, [adeudoCierre, matrizCierre, cargar])
 
   const refrescarTrasPagoCierre = useCallback(async () => {
     revalidarCierreRef.current = false
@@ -821,7 +824,7 @@ export default function PortalInscripcionesView() {
           </section>
         )}
 
-        {estadoVista && cierrePendiente && estadoVista.cierreCiclo && (
+        {estadoVista && adeudoCierre && estadoVista.cierreCiclo && (
           <section
             ref={cierreRef}
             id="cierre-ciclo"
@@ -831,14 +834,16 @@ export default function PortalInscripcionesView() {
             <div className="portal-inscripciones-colegiaturas-head">
               <div>
                 <h2 className="portal-inscripciones-colegiaturas-titulo">
-                  {estadoVista.modoAdeudoEgresado
+                  {estadoVista.modoAdeudoEgresado || adeudoAutorizado
                     ? `Adeudos del ciclo ${estadoVista.cierreCiclo.ciclo.nombre}`
                     : `Cierre de ciclo ${estadoVista.cierreCiclo.ciclo.nombre}`}
                 </h2>
                 <p className="portal-inscripciones-colegiaturas-sub">
                   {estadoVista.modoAdeudoEgresado
                     ? 'Liquida las colegiaturas pendientes del ciclo que cursaste (un pago a la vez). Tu estatus de egresado no cambia.'
-                    : estadoVista.gradoEtiqueta === 'Egresado' && !estadoVista.bloqueo
+                    : adeudoAutorizado
+                      ? 'Estas colegiaturas siguen pendientes. Por autorización especial puedes continuar tu reinscripción mientras se liquidan (un pago a la vez).'
+                      : estadoVista.gradoEtiqueta === 'Egresado' && !estadoVista.bloqueo
                       ? 'Liquida las colegiaturas pendientes de este ciclo (un pago a la vez). Tu estatus de egresado no cambia.'
                       : 'Liquida las colegiaturas pendientes de este ciclo (un pago a la vez) para habilitar tu reinscripción.'}
                 </p>

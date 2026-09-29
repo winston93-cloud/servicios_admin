@@ -151,6 +151,27 @@ export async function obtenerAutorizacionPortalDif2(
   }
 }
 
+/**
+ * Reinscripción autorizada con adeudo del ciclo que cierra (tabla portal_autorizacion_adeudo).
+ * Abre los pasos y las colegiaturas del ciclo nuevo; el adeudo sigue pendiente.
+ */
+export async function tieneAutorizacionReinscripcionConAdeudo(
+  supabase: AppDatabaseClient,
+  alumnoRef: number,
+  cicloCierre: number
+): Promise<boolean> {
+  if (!(alumnoRef > 0) || !(cicloCierre > 0)) return false
+  const { data, error } = await supabase
+    .from('portal_autorizacion_adeudo')
+    .select('id')
+    .eq('alumno_ref', alumnoRef)
+    .eq('ciclo_cierre', cicloCierre)
+    .eq('activo', true)
+    .limit(1)
+  if (error || !data) return false
+  return (data as unknown[]).length > 0
+}
+
 /** Prórroga activa de Dif1 (concepto 11) sustituye lista hardcodeada refs_prorroga_dif1. */
 export async function tieneAccesoProrrogaDif1(
   supabase: AppDatabaseClient,

@@ -14,6 +14,7 @@ import {
   parsearReferenciaPago,
 } from './pagoReferenciaColegiatura'
 import { esDeudorReinscrito } from './portalAdmisionesDeudor'
+import { tieneAutorizacionReinscripcionConAdeudo } from './portalAdmisionesProrroga'
 import { resumenCierreCicloParaReinscrito } from './portalCierreCicloAnterior'
 import { resumenAdeudoDobleTitulacionCiclo } from './portalDobleTitulacionAdeudo'
 import {
@@ -217,12 +218,27 @@ export async function construirEstadoPortalInscripciones(
   }
 
   if ((esReinscrito || modoAdeudoEgresado) && pagosCierreEfectivos && cicloCierreEfectivo) {
-    cierreCiclo = await resumenCierreCicloParaReinscrito(
+    const resumenCierre = await resumenCierreCicloParaReinscrito(
       supabase,
       alumno,
       pagosCierreEfectivos,
       cicloCierreEfectivo
     )
+    cierreCiclo = resumenCierre
+    if (
+      resumenCierre &&
+      esReinscrito &&
+      !modoAdeudoEgresado &&
+      resumenCierre.requerido &&
+      !resumenCierre.liquidado &&
+      (await tieneAutorizacionReinscripcionConAdeudo(
+        supabase,
+        Number(alumno.alumno_ref),
+        resumenCierre.ciclo.valor
+      ))
+    ) {
+      cierreCiclo = { ...resumenCierre, autorizadoConAdeudo: true }
+    }
 
     const doble = resumenAdeudoDobleTitulacionCiclo(
       pagosCierreEfectivos,
@@ -270,7 +286,8 @@ export async function construirEstadoPortalInscripciones(
   let liberateInfo = false
   let errorPagoPendiente = false
 
-  const debeCerrarCicloAnterior = Boolean(cierreCiclo?.requerido)
+  const adeudoAutorizado = Boolean(cierreCiclo?.autorizadoConAdeudo)
+  const debeCerrarCicloAnterior = Boolean(cierreCiclo?.requerido) && !adeudoAutorizado
 
   if (modoAdeudoEgresado && adeudoEgresado) {
     // Solo liquidar adeudos del ciclo indicado; sin reinscripción ni cambio de ficha.
@@ -319,7 +336,8 @@ export async function construirEstadoPortalInscripciones(
         pagos,
         cen,
         calcReinscripcion,
-        cea
+        cea,
+        { adeudoAutorizado }
       )
 
       showInfo = ventana.showInfo
@@ -336,7 +354,14 @@ export async function construirEstadoPortalInscripciones(
         diferido: calcReinscripcion.diferido,
       }
 
-      aviso = combinarAvisos(ventana.msg1, ventana.msg2, ventana.msg3)
+      aviso = combinarAvisos(
+        ventana.msg1,
+        ventana.msg2,
+        ventana.msg3,
+        adeudoAutorizado && cierreCiclo
+          ? `Autorización especial: puedes continuar tu reinscripción, pero las colegiaturas pendientes del ciclo ${cierreCiclo.ciclo.nombre} siguen como adeudo.`
+          : null
+      )
 
       if (ventana.graduated) {
         bloqueo = 'egresado'

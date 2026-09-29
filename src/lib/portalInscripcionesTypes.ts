@@ -60,6 +60,8 @@ export interface CierreCicloPortal {
   liquidado: boolean
   ciclo: { valor: number; nombre: string }
   planEtiqueta: string
+  /** Autorización especial: reinscribe con el adeudo del ciclo anterior aún pendiente. */
+  autorizadoConAdeudo?: boolean
 }
 
 export interface EstadoPortalInscripciones {
