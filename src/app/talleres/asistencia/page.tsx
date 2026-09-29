@@ -38,17 +38,24 @@ const CLAVE_NOMBRE = 'talleres-asistencia-nombre'
 
 type Borrador = {
   faltas: Set<number>
+  /** Sin faltas: conteo físico editable. Con faltas: inscritos − faltas (bloqueado). */
   total: number
-  /** El conteo se editó a mano; ya no sigue a la lista. */
-  totalManual: boolean
   sucio: boolean
 }
 
 function borradorDesde(s: SesionAsistencia): Borrador {
   const faltas = new Set(s.registro?.faltas ?? [])
-  const presentes = s.alumnos.length - faltas.size
-  const total = s.registro?.total_alumnos ?? presentes
-  return { faltas, total, totalManual: total !== presentes, sucio: false }
+  const total = faltas.size
+    ? s.alumnos.length - faltas.size
+    : (s.registro?.total_alumnos ?? s.alumnos.length)
+  return { faltas, total, sucio: false }
+}
+
+/** Conteo guardado que no cuadra con la lista: faltan por registrar las faltas. */
+function faltasPendientes(s: SesionAsistencia): number {
+  const r = s.registro
+  if (!r || r.faltas.length || r.total_alumnos == null) return 0
+  return s.alumnos.length - r.total_alumnos
 }
 
 function sumarDias(fecha: string, dias: number): string {
@@ -178,13 +185,15 @@ export default function AsistenciaTalleresPage() {
     let registrados = 0
     let presentes = 0
     let faltas = 0
+    let porCompletar = 0
     for (const s of sesiones) {
       if (!s.registro) continue
       registrados++
+      if (faltasPendientes(s) !== 0) porCompletar++
       faltas += s.registro.faltas.length
       presentes += s.registro.total_alumnos ?? s.alumnos.length - s.registro.faltas.length
     }
-    return { registrados, presentes, faltas }
+    return { registrados, presentes, faltas, porCompletar }
   }, [sesiones])
 
   const actualizar = (id: number, cambio: (b: Borrador, s: SesionAsistencia) => Borrador) => {
@@ -198,14 +207,16 @@ export default function AsistenciaTalleresPage() {
       const faltas = new Set(b.faltas)
       if (faltas.has(alumnoId)) faltas.delete(alumnoId)
       else faltas.add(alumnoId)
-      return { ...b, faltas, total: b.totalManual ? b.total : s.alumnos.length - faltas.size }
+      return { ...b, faltas, total: s.alumnos.length - faltas.size }
     })
 
   const todosPresentes = (id: number) =>
-    actualizar(id, (b, s) => ({ ...b, faltas: new Set(), total: b.totalManual ? b.total : s.alumnos.length }))
+    actualizar(id, (b, s) => ({ ...b, faltas: new Set(), total: s.alumnos.length }))
 
   const cambiarTotal = (id: number, valor: number) =>
-    actualizar(id, (b) => ({ ...b, total: Math.max(0, Math.min(500, Math.round(valor) || 0)), totalManual: true }))
+    actualizar(id, (b) =>
+      b.faltas.size ? b : { ...b, total: Math.max(0, Math.min(500, Math.round(valor) || 0)) }
+    )
 
   const guardar = async (s: SesionAsistencia) => {
     const b = borradores[s.asignacion_id]
@@ -369,6 +380,12 @@ export default function AsistenciaTalleresPage() {
               <span className="as-progreso-txt">
                 <strong>{resumen.registrados}</strong> de {sesiones.length} talleres registrados
               </span>
+              {resumen.porCompletar ? (
+                <span className="as-por-completar">
+                  <span className="as-pulso" aria-hidden />
+                  {resumen.porCompletar} {resumen.porCompletar === 1 ? 'taller' : 'talleres'} con faltas por registrar
+                </span>
+              ) : null}
             </div>
             <dl className="as-kpis">
               <div data-tono="ok"><dt>Presentes</dt><dd>{resumen.presentes}</dd></div>
@@ -460,7 +477,15 @@ function TarjetaSesion({
   const estado = b.sucio ? 'sucio' : s.registro ? 'ok' : 'pend'
   const etiquetaEstado = b.sucio ? 'Sin guardar' : s.registro ? 'Registrado' : 'Pendiente'
   const cuerpoId = `as-cuerpo-${s.asignacion_id}`
-  const difiere = b.total !== presentes
+  const bloqueado = faltas > 0
+  const diferencia = inscritos - b.total
+  const pendientes = b.sucio ? 0 : faltasPendientes(s)
+  const avisoPendiente =
+    pendientes > 0
+      ? `Faltan registrar ${pendientes} ${pendientes === 1 ? 'falta' : 'faltas'}`
+      : pendientes < 0
+        ? `Hay ${-pendientes} ${pendientes === -1 ? 'alumno' : 'alumnos'} más que en la lista`
+        : null
 
   return (
     <li className="as-card" data-estado={estado} data-abierta={abierta || undefined} style={{ ['--as-color' as string]: s.color, ['--tl-color' as string]: s.color }}>
@@ -479,6 +504,9 @@ function TarjetaSesion({
         </span>
         <span className="as-card-lado">
           <span className="as-estado" data-estado={estado}>{etiquetaEstado}</span>
+          {avisoPendiente ? (
+            <span className="as-pulso" role="img" aria-label={avisoPendiente} title={avisoPendiente} />
+          ) : null}
           <span className="as-conteo" aria-label={`${b.total} en el salón de ${inscritos} inscritos`}>
             <strong>{b.total}</strong>/{inscritos}
           </span>
@@ -533,10 +561,14 @@ function TarjetaSesion({
           <div className="as-total">
             <label htmlFor={`as-total-${s.asignacion_id}`}>
               <strong>Alumnos en el salón</strong>
-              <span>Conteo físico al pasar por el taller</span>
+              <span>
+                {bloqueado
+                  ? `Automático: ${inscritos} inscritos − ${faltas} ${faltas === 1 ? 'falta' : 'faltas'}`
+                  : 'Conteo físico al pasar por el taller'}
+              </span>
             </label>
-            <div className="as-stepper">
-              <button type="button" onClick={() => onTotal(b.total - 1)} disabled={!editable || b.total <= 0} aria-label="Uno menos">
+            <div className="as-stepper" data-bloqueado={bloqueado || undefined}>
+              <button type="button" onClick={() => onTotal(b.total - 1)} disabled={!editable || bloqueado || b.total <= 0} aria-label="Uno menos">
                 <Minus size={18} aria-hidden />
               </button>
               <input
@@ -547,15 +579,19 @@ function TarjetaSesion({
                 max={500}
                 value={b.total}
                 disabled={!editable}
+                readOnly={bloqueado}
+                aria-readonly={bloqueado}
                 onChange={(e) => onTotal(Number(e.target.value))}
               />
-              <button type="button" onClick={() => onTotal(b.total + 1)} disabled={!editable} aria-label="Uno más">
+              <button type="button" onClick={() => onTotal(b.total + 1)} disabled={!editable || bloqueado} aria-label="Uno más">
                 <Plus size={18} aria-hidden />
               </button>
             </div>
-            {inscritos && difiere ? (
+            {inscritos && !bloqueado && diferencia !== 0 ? (
               <p className="as-difiere">
-                El conteo ({b.total}) no coincide con la lista ({presentes} presentes).
+                {diferencia > 0
+                  ? `Contaste ${b.total} de ${inscritos}: marca en la lista ${diferencia === 1 ? 'la falta' : `las ${diferencia} faltas`}.`
+                  : `Contaste ${b.total}: hay ${-diferencia} más que los ${inscritos} de la lista.`}
               </p>
             ) : null}
           </div>

@@ -179,7 +179,10 @@ export async function guardarAsistencia(body: Record<string, unknown>): Promise<
     : []
 
   let total: number | null = null
-  if (body.total_alumnos !== null && body.total_alumnos !== undefined && body.total_alumnos !== '') {
+  if (faltas.length) {
+    // Con faltas marcadas, el total sale de la lista.
+    total = inscritos.size - faltas.length
+  } else if (body.total_alumnos !== null && body.total_alumnos !== undefined && body.total_alumnos !== '') {
     total = Number(body.total_alumnos)
     if (!Number.isInteger(total) || total < 0 || total > 500) {
       throw new TalleresError('El total de alumnos debe ser un número entre 0 y 500.')

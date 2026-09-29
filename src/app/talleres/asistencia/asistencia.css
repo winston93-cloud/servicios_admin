@@ -543,3 +543,35 @@ a.tl-back { text-decoration: none; }
   .as-quien { flex-wrap: wrap; }
   .as-quien input { flex-basis: 100%; }
 }
+
+/* ── Faltas por registrar: indicador pulsante ── */
+.as-pulso {
+  flex: none;
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--as-pend);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--as-falta) 55%, transparent);
+  animation: as-pulso 1.1s ease-in-out infinite;
+}
+@keyframes as-pulso {
+  0%, 100% { transform: scale(0.75); background: var(--as-pend); box-shadow: 0 0 0 0 color-mix(in srgb, var(--as-pend) 55%, transparent); }
+  50% { transform: scale(1.25); background: var(--as-falta); box-shadow: 0 0 0 7px color-mix(in srgb, var(--as-falta) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .as-pulso { animation-name: as-pulso-color; }
+  @keyframes as-pulso-color {
+    0%, 100% { background: var(--as-pend); }
+    50% { background: var(--as-falta); }
+  }
+}
+.as-por-completar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--as-pend);
+}
+.as-stepper[data-bloqueado] input { color: var(--as-ok); border-style: dashed; cursor: default; }
