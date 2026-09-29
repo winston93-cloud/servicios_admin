@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { CalendarPlus, MapPin, Pencil, Search, Trash2, Users, X } from 'lucide-react'
+import { CalendarPlus, Check, MapPin, Pencil, Search, Trash2, Users, X } from 'lucide-react'
 import {
   CATEGORIAS_TALLER,
   COLORES_TALLER,
   NIVELES_TALLER,
+  estadoCupo,
   etiquetaCupo,
+  textoCupo,
   etiquetaDia,
   etiquetaNivel,
   lugarDeHorario,
@@ -37,6 +39,80 @@ type Fila = {
 
 const MAX_SUGERENCIAS = 8
 
+function CupoGrupo({
+  asignacion: a,
+  etiqueta,
+  taller,
+  onGuardar,
+}: {
+  asignacion: TallerAsignacion
+  etiqueta: string | null
+  taller: Taller | undefined
+  onGuardar: (a: TallerAsignacion, cupoMin: string, cupo: string) => Promise<boolean>
+}) {
+  const [editando, setEditando] = useState(false)
+  const [min, setMin] = useState('')
+  const [max, setMax] = useState('')
+  const [guardando, setGuardando] = useState(false)
+  const estado = estadoCupo(a)
+  const ajustado =
+    (a.cupo ?? null) !== (taller?.cupo_max ?? null) || (a.cupo_min ?? null) !== (taller?.cupo_min ?? null)
+
+  const abrir = () => {
+    setMin(a.cupo_min ? String(a.cupo_min) : '')
+    setMax(a.cupo ? String(a.cupo) : '')
+    setEditando(true)
+  }
+
+  const guardar = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setGuardando(true)
+    const ok = await onGuardar(a, min, max)
+    setGuardando(false)
+    if (ok) setEditando(false)
+  }
+
+  if (!editando) {
+    return (
+      <button type="button" className="tl-cupo-chip" data-estado={estado} onClick={abrir} title={`${textoCupo(a)} · clic para cambiar el cupo`}>
+        <Users size={13} aria-hidden />
+        <span>{a.inscritos} {a.inscritos === 1 ? 'inscrito' : 'inscritos'}</span>
+        <span className="tl-cupo-chip-sep">·</span>
+        <span>{etiqueta ?? 'Sin cupo, definir'}</span>
+        {ajustado && taller && (taller.cupo_max || taller.cupo_min) ? <span className="tl-cupo-chip-tag">ajustado</span> : null}
+        <Pencil size={12} aria-hidden />
+      </button>
+    )
+  }
+
+  return (
+    <form className="tl-cupo-edit" onSubmit={guardar}>
+      <label>
+        <span>Mínimo</span>
+        <input className="tl-input" type="number" inputMode="numeric" min={1} value={min} autoFocus
+          onChange={(e) => setMin(e.target.value)} placeholder={taller?.cupo_min ? String(taller.cupo_min) : '—'} />
+      </label>
+      <label>
+        <span>Máximo</span>
+        <input className="tl-input" type="number" inputMode="numeric" min={1} value={max}
+          onChange={(e) => setMax(e.target.value)} placeholder={taller?.cupo_max ? String(taller.cupo_max) : '—'} />
+      </label>
+      <div className="tl-cupo-edit-acciones">
+        {taller && (taller.cupo_max || taller.cupo_min) ? (
+          <button type="button" className="tl-btn tl-btn-sm" disabled={guardando}
+            onClick={() => { setMin(taller.cupo_min ? String(taller.cupo_min) : ''); setMax(taller.cupo_max ? String(taller.cupo_max) : '') }}>
+            Usar el del taller
+          </button>
+        ) : null}
+        <button type="button" className="tl-btn tl-btn-sm" onClick={() => setEditando(false)} disabled={guardando}>Cancelar</button>
+        <button type="submit" className="tl-btn tl-btn-sm tl-btn-primary" disabled={guardando}>
+          <Check size={14} aria-hidden /> {guardando ? 'Guardando…' : 'Guardar'}
+        </button>
+      </div>
+    </form>
+  )
+}
+
 function ordenCategoria(c: string): number {
   const i = CATEGORIAS_TALLER.findIndex((x) => norm(x) === norm(c))
   return i === -1 ? CATEGORIAS_TALLER.length : i
@@ -49,6 +125,7 @@ export default function ProgramadosView({
   onNueva,
   onEditar,
   onEliminar,
+  onCupo,
 }: {
   talleres: Taller[]
   maestros: TallerMaestro[]
@@ -56,6 +133,7 @@ export default function ProgramadosView({
   onNueva: () => void
   onEditar: (a: TallerAsignacion) => void
   onEliminar: (a: TallerAsignacion) => void
+  onCupo: (a: TallerAsignacion, cupoMin: string, cupo: string) => Promise<boolean>
 }) {
   const idLista = useId()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -322,8 +400,8 @@ export default function ProgramadosView({
                         <p className="tl-asig-meta">
                           <span><Resaltar texto={f.maestro} q={resaltado} /></span>
                           {f.lugares.length ? <span><MapPin size={13} aria-hidden /> {f.lugares.join(' / ')}</span> : null}
-                          {cupo ? <span><Users size={13} aria-hidden /> {cupo}</span> : null}
                         </p>
+                        <CupoGrupo asignacion={f.a} etiqueta={cupo} taller={f.t} onGuardar={onCupo} />
                         {otros.length ? <span className="tl-mixto">Con {otros.map(etiquetaNivel).join(' y ')}</span> : null}
                         {f.a.notas ? <p className="tl-horario-nota">{f.a.notas}</p> : null}
                       </div>

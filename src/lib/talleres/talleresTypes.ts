@@ -35,6 +35,9 @@ export type Taller = {
   descripcion: string | null
   niveles: number[]
   color: string | null
+  /** Cupo base; cada grupo lo hereda y puede ajustarlo en Programados. */
+  cupo_min: number | null
+  cupo_max: number | null
   activo: boolean
 }
 

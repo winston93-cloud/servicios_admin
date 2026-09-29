@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireEmpleadoPortal } from '@/lib/portalApiEmpleadoAuth'
 import {
   TalleresError,
+  actualizarCupoAsignacion,
   eliminarAsignacion,
   eliminarCatalogo,
   guardarAsignacion,
@@ -44,6 +45,10 @@ export async function POST(request: Request) {
   if (!auth.ok) return auth.response
   try {
     const body = (await request.json()) as Record<string, unknown>
+    if (body.recurso === 'cupo') {
+      await actualizarCupoAsignacion(body)
+      return NextResponse.json(await snapshotTalleres())
+    }
     const recurso = parseRecurso(body.recurso)
     if (!recurso) return NextResponse.json({ error: 'Recurso inválido.' }, { status: 400 })
     if (recurso === 'taller') await guardarTaller(body)

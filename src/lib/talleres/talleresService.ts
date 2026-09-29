@@ -29,7 +29,7 @@ export class TalleresError extends Error {
   }
 }
 
-const SELECT_TALLER = 'id, nombre, grados, categoria, descripcion, niveles, color, activo'
+const SELECT_TALLER = 'id, nombre, grados, categoria, descripcion, niveles, color, cupo_min, cupo_max, activo'
 const SELECT_MAESTRO =
   'id, nombre, apellido_paterno, apellido_materno, email, celular, especialidad, niveles, notas, activo'
 const SELECT_ASIGNACION =
@@ -70,6 +70,8 @@ function mapTaller(r: Record<string, unknown>): Taller {
     descripcion: (r.descripcion as string | null) ?? null,
     niveles: normalizarNiveles(r.niveles),
     color: (r.color as string | null) ?? null,
+    cupo_min: r.cupo_min == null ? null : Number(r.cupo_min),
+    cupo_max: r.cupo_max == null ? null : Number(r.cupo_max),
     activo: Boolean(r.activo),
   }
 }
@@ -174,6 +176,7 @@ function tallerDesdeBody(body: Record<string, unknown>) {
   if (!niveles.length) throw new TalleresError('Selecciona al menos un nivel para el taller.')
   const colorRaw = String(body.color ?? '').trim()
   const color = /^#[0-9a-f]{6}$/i.test(colorRaw) ? colorRaw : COLORES_TALLER[0]
+  const { cupo, cupoMin } = cuposDesdeBody(body.cupo_max, body.cupo_min)
   return {
     nombre,
     grados: texto(body.grados, 60),
@@ -181,8 +184,65 @@ function tallerDesdeBody(body: Record<string, unknown>) {
     descripcion: texto(body.descripcion, 2000),
     niveles,
     color,
+    cupo_min: cupoMin,
+    cupo_max: cupo,
     activo: body.activo === undefined ? true : Boolean(body.activo),
   }
+}
+
+function cuposDesdeBody(rawMax: unknown, rawMin: unknown): { cupo: number | null; cupoMin: number | null } {
+  const cupo = enteroPositivo(rawMax)
+  const cupoMin = enteroPositivo(rawMin)
+  if (Number.isNaN(cupo)) throw new TalleresError('El cupo máximo debe ser un número mayor a cero.')
+  if (Number.isNaN(cupoMin)) throw new TalleresError('El cupo mínimo debe ser un número mayor a cero.')
+  if (cupo && cupoMin && cupoMin > cupo) {
+    throw new TalleresError('El cupo mínimo no puede ser mayor que el máximo.')
+  }
+  return { cupo, cupoMin }
+}
+
+/**
+ * Al cambiar el cupo base del taller, los grupos del ciclo actual que seguían el valor anterior
+ * (o no tenían) toman el nuevo; los que se ajustaron a mano en Programados se respetan.
+ */
+async function propagarCupoTaller(
+  tallerId: number,
+  antes: { cupo_min: number | null; cupo_max: number | null },
+  ahora: { cupo_min: number | null; cupo_max: number | null }
+): Promise<void> {
+  if (antes.cupo_min === ahora.cupo_min && antes.cupo_max === ahora.cupo_max) return
+  const ciclo = await cicloActualTalleres()
+  const { data, error } = await db()
+    .from('taller_asignacion')
+    .select('id, cupo, cupo_min')
+    .eq('taller_id', tallerId)
+    .eq('ciclo_escolar', ciclo.valor)
+  fail(error, 'Grupos del taller')
+  for (const g of (data ?? []) as { id: number; cupo: number | null; cupo_min: number | null }[]) {
+    const cupo = g.cupo == null || g.cupo === antes.cupo_max ? ahora.cupo_max : g.cupo
+    const cupoMin = g.cupo_min == null || g.cupo_min === antes.cupo_min ? ahora.cupo_min : g.cupo_min
+    if (cupo === g.cupo && cupoMin === g.cupo_min) continue
+    if (cupo && cupoMin && cupoMin > cupo) continue
+    const { error: uErr } = await db()
+      .from('taller_asignacion')
+      .update({ cupo, cupo_min: cupoMin, updated_at: new Date().toISOString() })
+      .eq('id', g.id)
+    fail(uErr, 'Actualizar cupo del grupo')
+  }
+}
+
+/** Ajuste rápido del cupo de un grupo (desde Programados). */
+export async function actualizarCupoAsignacion(body: Record<string, unknown>): Promise<void> {
+  const id = Number(body.id) || 0
+  if (!id) throw new TalleresError('Falta el grupo.')
+  const { cupo, cupoMin } = cuposDesdeBody(body.cupo, body.cupo_min)
+  const { data, error } = await db()
+    .from('taller_asignacion')
+    .update({ cupo, cupo_min: cupoMin, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select('id')
+  fail(error, 'Guardar cupo')
+  if (!data || !(data as unknown[]).length) throw new TalleresError('El grupo ya no existe.', 404)
 }
 
 function errorDuplicado(error: { message?: string; code?: string } | null): boolean {
@@ -192,6 +252,12 @@ function errorDuplicado(error: { message?: string; code?: string } | null): bool
 export async function guardarTaller(body: Record<string, unknown>): Promise<void> {
   const input = tallerDesdeBody(body)
   const id = Number(body.id) || 0
+  let antes: { cupo_min: number | null; cupo_max: number | null } | null = null
+  if (id) {
+    const { data, error } = await db().from('taller').select('cupo_min, cupo_max').eq('id', id).maybeSingle()
+    fail(error, 'Taller')
+    antes = (data as typeof antes) ?? null
+  }
   const q = id
     ? db().from('taller').update({ ...input, updated_at: new Date().toISOString() }).eq('id', id)
     : db().from('taller').insert([input])
@@ -200,6 +266,7 @@ export async function guardarTaller(body: Record<string, unknown>): Promise<void
     throw new TalleresError(`Ya existe un taller «${nombreTallerCompleto(input)}».`, 409)
   }
   fail(error, 'Guardar taller')
+  if (id && antes) await propagarCupoTaller(id, antes, input)
 }
 
 /* ───────────── Maestros de taller ───────────── */
@@ -306,19 +373,20 @@ export async function guardarAsignacion(body: Record<string, unknown>): Promise<
   if (!maestroId) throw new TalleresError('Selecciona el maestro.')
   const horarios = horariosDesdeBody(body.horarios)
   const lugar = texto(body.lugar, 80)
-  const cupo = enteroPositivo(body.cupo)
-  const cupoMin = enteroPositivo(body.cupo_min)
-  if (Number.isNaN(cupo)) throw new TalleresError('El cupo máximo debe ser un número mayor a cero.')
-  if (Number.isNaN(cupoMin)) throw new TalleresError('El cupo mínimo debe ser un número mayor a cero.')
-  if (cupo && cupoMin && cupoMin > cupo) {
-    throw new TalleresError('El cupo mínimo no puede ser mayor que el máximo.')
-  }
+  let { cupo, cupoMin } = cuposDesdeBody(body.cupo, body.cupo_min)
 
   const snap = await snapshotTalleres()
   const taller = snap.talleres.find((t) => t.id === tallerId)
   const maestro = snap.maestros.find((m) => m.id === maestroId)
   if (!taller || !taller.activo) throw new TalleresError('El taller no existe o está inactivo.')
   if (!maestro || !maestro.activo) throw new TalleresError('El maestro no existe o está inactivo.')
+  if (!id) {
+    cupo ??= taller.cupo_max
+    cupoMin ??= taller.cupo_min
+    if (cupo && cupoMin && cupoMin > cupo) {
+      throw new TalleresError('El cupo mínimo del taller es mayor que el máximo de este grupo; ajusta ambos.')
+    }
+  }
 
   const comunes = taller.niveles.filter((n) => maestro.niveles.includes(n))
   if (!comunes.length) {

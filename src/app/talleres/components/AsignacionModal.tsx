@@ -122,6 +122,10 @@ export default function AsignacionModal({
     if (m && !m.niveles.some((n) => t.niveles.includes(n))) setMaestroId(0)
     const comunes = m ? t.niveles.filter((n) => m.niveles.includes(n)) : t.niveles
     setNiveles(comunes)
+    if (!asignacion) {
+      setCupo(t.cupo_max ? String(t.cupo_max) : '')
+      setCupoMin(t.cupo_min ? String(t.cupo_min) : '')
+    }
   }
 
   const cambiarMaestro = (id: number) => {

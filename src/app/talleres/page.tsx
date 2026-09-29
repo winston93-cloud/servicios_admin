@@ -246,6 +246,7 @@ function TalleresView() {
                 onNueva={() => setModalAsig({ abierto: true, asignacion: null })}
                 onEditar={(a) => setModalAsig({ abierto: true, asignacion: a })}
                 onEliminar={(a) => void eliminar('asignacion', a.id, nombreAsignacion(a))}
+                onCupo={(a, cupoMin, cupo) => guardar({ recurso: 'cupo', id: a.id, cupo_min: cupoMin, cupo })}
               />
             ) : null}
             {tab === 'talleres' ? (

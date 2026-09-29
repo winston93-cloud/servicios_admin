@@ -19,6 +19,8 @@ type Borrador = {
   descripcion: string
   niveles: number[]
   color: string
+  cupo_min: string
+  cupo_max: string
   activo: boolean
 }
 
@@ -29,7 +31,16 @@ const VACIO: Borrador = {
   descripcion: '',
   niveles: [],
   color: COLORES_TALLER[0],
+  cupo_min: '',
+  cupo_max: '',
   activo: true,
+}
+
+function etiquetaCupoTaller(t: Taller): string {
+  if (t.cupo_min && t.cupo_max) return `${t.cupo_min} a ${t.cupo_max}`
+  if (t.cupo_max) return `Máx. ${t.cupo_max}`
+  if (t.cupo_min) return `Mín. ${t.cupo_min}`
+  return '—'
 }
 
 export default function TalleresCatalogo({
@@ -102,6 +113,7 @@ export default function TalleresCatalogo({
               <tr>
                 <th>Taller</th>
                 <th>Niveles</th>
+                <th className="tl-num">Cupo</th>
                 <th className="tl-num">Horarios</th>
                 <th>Estado</th>
                 <th aria-label="Acciones" />
@@ -122,6 +134,7 @@ export default function TalleresCatalogo({
                     </span>
                   </td>
                   <td><NivelesBadges niveles={t.niveles} /></td>
+                  <td className="tl-num tl-nowrap">{etiquetaCupoTaller(t)}</td>
                   <td className="tl-num">{usoPorTaller.get(t.id) ?? 0}</td>
                   <td>
                     <span className="tl-estado" data-activo={t.activo || undefined}>{t.activo ? 'Activo' : 'Inactivo'}</span>
@@ -140,6 +153,8 @@ export default function TalleresCatalogo({
                           descripcion: t.descripcion ?? '',
                           niveles: t.niveles,
                           color: t.color ?? COLORES_TALLER[0],
+                          cupo_min: t.cupo_min ? String(t.cupo_min) : '',
+                          cupo_max: t.cupo_max ? String(t.cupo_max) : '',
                           activo: t.activo,
                         })
                       }
@@ -191,6 +206,19 @@ export default function TalleresCatalogo({
             <Campo etiqueta="Niveles *">
               <NivelesChips valor={borrador.niveles} onChange={(niveles) => setBorrador({ ...borrador, niveles })} />
             </Campo>
+            <Campo etiqueta="Cupo mínimo" ayuda="Alumnos necesarios para abrir el grupo">
+              <input className="tl-input" type="number" inputMode="numeric" min={1} value={borrador.cupo_min} placeholder="Ej. 8"
+                onChange={(e) => setBorrador({ ...borrador, cupo_min: e.target.value })} />
+            </Campo>
+            <Campo etiqueta="Cupo máximo" ayuda="Al llegar a este número el grupo se pone en rojo">
+              <input className="tl-input" type="number" inputMode="numeric" min={1} value={borrador.cupo_max} placeholder="Ej. 20"
+                onChange={(e) => setBorrador({ ...borrador, cupo_max: e.target.value })} />
+            </Campo>
+            {borrador.id ? (
+              <p className="tl-ayuda-cupo" data-completo>
+                Los grupos de este taller toman el nuevo cupo, salvo los que ya se ajustaron a mano en Programados.
+              </p>
+            ) : null}
             <Campo etiqueta="Color en el calendario" completo>
               <div className="tl-colores" role="radiogroup" aria-label="Color">
                 {COLORES_TALLER.map((c) => (
