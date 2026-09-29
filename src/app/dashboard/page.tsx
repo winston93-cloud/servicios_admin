@@ -24,7 +24,9 @@ import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import DashboardAyudaModal from '@/components/dashboard/DashboardAyudaModal'
 import DashboardOrdenModal from '@/components/dashboard/DashboardOrdenModal'
 import DashboardNotificacionesBell from '@/components/dashboard/DashboardNotificacionesBell'
-import { CircleHelp, ListOrdered } from 'lucide-react'
+import DashboardBuscador from '@/components/dashboard/DashboardBuscador'
+import { buscarModulos } from '@/lib/dashboardBusqueda'
+import { CircleHelp, ListOrdered, SearchX } from 'lucide-react'
 import './dashboard-module-card.css'
 import '@/components/dashboard/dashboard-ayuda.css'
 
@@ -151,6 +153,7 @@ export default function DashboardPage() {
   const [ordenIds, setOrdenIds] = useState<string[]>([])
   const [becaFirmaAutorizada, setBecaFirmaAutorizada] = useState(false)
   const [accesosDb, setAccesosDb] = useState<{ uid: number; modulos: string[] | null } | null>(null)
+  const [busqueda, setBusqueda] = useState('')
 
   // Solo un panel: alumno XOR personal (nunca mezclar módulos).
   const mostrarPanelAlumno = isAlumno && !isUsuario
@@ -296,6 +299,25 @@ export default function DashboardPage() {
     return aplicarOrdenDashboard(base, ordenIds)
   }, [usuarioIdAdmin, accesosDb, layoutPersonalizado, ordenIds])
 
+  const modulosVisibles = useMemo(
+    () => buscarModulos(navItemsAdmin, busqueda).map((r) => r.item),
+    [navItemsAdmin, busqueda]
+  )
+
+  const sugerenciasBusqueda = useMemo(
+    () =>
+      modulosVisibles.map((item) => ({
+        key: item.id,
+        label: item.label,
+        desc: item.desc,
+        kicker: item.kicker,
+        accent: item.accent,
+        icon: item.icon,
+        external: Boolean(item.href),
+      })),
+    [modulosVisibles]
+  )
+
   const ordenModalItems = useMemo(
     () =>
       navItemsAdmin.map((item) => ({
@@ -422,19 +444,45 @@ export default function DashboardPage() {
                     <span className="dashboard-ciclo-vigente-nombre">{cicloVigenteNombre}</span>
                   </p>
                 )}
-                {layoutPersonalizado ? (
-                  <div className="dashboard-orden-toolbar">
-                    <button
-                      type="button"
-                      className="dashboard-orden-btn"
-                      onClick={() => setOrdenAbierto(true)}
-                    >
-                      <ListOrdered size={18} strokeWidth={2.25} aria-hidden />
-                      Cambiar orden
-                    </button>
+                {mostrarPanelAdmin && navItemsAdmin.length ? (
+                  <div className="dashboard-herramientas">
+                    <DashboardBuscador
+                      q={busqueda}
+                      onQ={setBusqueda}
+                      sugerencias={sugerenciasBusqueda}
+                      total={navItemsAdmin.length}
+                      coincidencias={modulosVisibles.length}
+                      onAbrir={(id) => {
+                        const item = navItemsAdmin.find((x) => x.id === id)
+                        if (item) handleNavItemAdmin(item)
+                      }}
+                    />
+                    {layoutPersonalizado ? (
+                      <button
+                        type="button"
+                        className="dashboard-orden-btn"
+                        onClick={() => setOrdenAbierto(true)}
+                      >
+                        <ListOrdered size={18} strokeWidth={2.25} aria-hidden />
+                        Cambiar orden
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
+
+              {mostrarPanelAdmin && busqueda.trim() && !modulosVisibles.length ? (
+                <div className="dash-buscador-vacio" role="status">
+                  <SearchX size={28} strokeWidth={1.75} aria-hidden />
+                  <p className="dash-buscador-vacio-titulo">No encontramos «{busqueda.trim()}»</p>
+                  <p className="dash-buscador-vacio-txt">
+                    Revisa la ortografía o busca por área: pagos, alumnos, becas, facturación…
+                  </p>
+                  <button type="button" className="dashboard-orden-btn" onClick={() => setBusqueda('')}>
+                    Ver todos los módulos
+                  </button>
+                </div>
+              ) : null}
 
               <div
                 className={`dashboard-nav-grid${layoutPersonalizado ? ' dashboard-nav-grid--cols-5' : ''}`}
@@ -466,7 +514,7 @@ export default function DashboardPage() {
                       </div>
                     ))
                   : mostrarPanelAdmin
-                    ? navItemsAdmin.map((item, index) => (
+                    ? modulosVisibles.map((item, index) => (
                       <DashboardModuleCard
                         key={navItemKey(item)}
                         order={numeroCatalogoDeModulo(item.id) ?? index + 1}
