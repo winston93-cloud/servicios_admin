@@ -26,7 +26,7 @@ type Tab = 'semana' | 'inscripciones' | 'programados' | 'talleres' | 'maestros'
 
 const TABS: { id: Tab; etiqueta: string; icon: typeof CalendarDays }[] = [
   { id: 'semana', etiqueta: 'Horario semanal', icon: CalendarDays },
-  { id: 'inscripciones', etiqueta: 'Inscripciones', icon: UserPlus },
+  { id: 'inscripciones', etiqueta: 'Altas/Bajas', icon: UserPlus },
   { id: 'programados', etiqueta: 'Programados', icon: ListChecks },
   { id: 'talleres', etiqueta: 'Talleres', icon: Palette },
   { id: 'maestros', etiqueta: 'Maestros', icon: GraduationCap },

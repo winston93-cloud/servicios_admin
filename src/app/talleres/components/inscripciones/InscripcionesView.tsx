@@ -165,7 +165,7 @@ export default function InscripcionesView({
   }
 
   return (
-    <section className="tl-panel tl-ins" aria-label="Inscripciones a talleres">
+    <section className="tl-panel tl-ins" aria-label="Altas y bajas en talleres">
       <div className="tl-ins-top">
         <div className="tl-seg" role="group" aria-label="Consultar por">
           <button type="button" data-activo={modo === 'taller' || undefined} aria-pressed={modo === 'taller'} onClick={() => setModo('taller')}>
