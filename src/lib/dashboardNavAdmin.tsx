@@ -474,7 +474,8 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     kicker: 'Extracurricular',
     tags: ['Talleres', 'Clases especiales'],
     badge: 'Nuevo',
-    soloUsuariosLegacy: [2, 7, 17], // laura, coordprim (dirección primaria español), mario
+    // laura, coordprim / coordkin / josefina (direcciones primaria, kinder y secundaria), mario
+    soloUsuariosLegacy: [2, 7, 8, 13, 17],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="13.5" cy="6.5" r="1.5" />
