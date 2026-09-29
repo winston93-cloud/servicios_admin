@@ -1,5 +1,8 @@
 import type { Metadata } from 'next'
+import { listarEnlaces } from '@/lib/enlacesX/enlacesXService'
 import TecnologiasDePuntaView from './TecnologiasDePuntaView'
+
+export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
   title: 'Enlaces de X · Tecnologías de punta',
@@ -10,6 +13,10 @@ export const metadata: Metadata = {
   },
 }
 
-export default function TecnologiasDePuntaPage() {
-  return <TecnologiasDePuntaView />
+export default async function TecnologiasDePuntaPage() {
+  const enlaces = await listarEnlaces().catch((e) => {
+    console.error('tecnologias-de-punta:', e)
+    return null
+  })
+  return <TecnologiasDePuntaView inicial={enlaces ?? []} errorCarga={enlaces === null} />
 }
