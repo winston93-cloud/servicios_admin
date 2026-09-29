@@ -2,7 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Bricolage_Grotesque } from 'next/font/google'
-import { ArrowUp, ArrowUpRight, Check, Link2, Search, SearchX, X } from 'lucide-react'
+import {
+  ArrowDownWideNarrow,
+  ArrowUp,
+  ArrowUpNarrowWide,
+  ArrowUpRight,
+  Check,
+  Link2,
+  Search,
+  SearchX,
+  X,
+} from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
 import { normalizarBusqueda, tokensBusqueda, tramosCoincidencia } from '@/lib/dashboardBusqueda'
 import { CATEGORIAS, ENLACES_X, type CategoriaEnlace, type EnlaceX } from './enlacesX'
@@ -167,7 +177,8 @@ export default function TecnologiasDePuntaView() {
       const clave = e.fecha.slice(0, 7)
       let g = grupos[grupos.length - 1]
       if (!g || g.clave !== clave) {
-        g = { clave, etiqueta: fmtMes.format(aFecha(e.fecha)), items: [] }
+        const mes = fmtMes.format(aFecha(e.fecha))
+        g = { clave, etiqueta: mes.charAt(0).toUpperCase() + mes.slice(1), items: [] }
         grupos.push(g)
       }
       g.items.push(e)
@@ -233,6 +244,15 @@ export default function TecnologiasDePuntaView() {
             <button type="button" aria-pressed={orden === 'recientes'} onClick={() => setOrden('recientes')}>Recientes</button>
             <button type="button" aria-pressed={orden === 'antiguos'} onClick={() => setOrden('antiguos')}>Antiguos</button>
           </div>
+          <button
+            type="button"
+            className="tp-orden-movil"
+            onClick={() => setOrden(orden === 'recientes' ? 'antiguos' : 'recientes')}
+            aria-label={orden === 'recientes' ? 'Ver primero los más antiguos' : 'Ver primero los más recientes'}
+            title={orden === 'recientes' ? 'Recientes primero' : 'Antiguos primero'}
+          >
+            {orden === 'recientes' ? <ArrowDownWideNarrow size={20} aria-hidden /> : <ArrowUpNarrowWide size={20} aria-hidden />}
+          </button>
         </div>
         <div className="tp-chips" role="group" aria-label="Categorías">
           <button type="button" className="tp-chip" aria-pressed={cat === 'todas'} onClick={() => setCat('todas')}>

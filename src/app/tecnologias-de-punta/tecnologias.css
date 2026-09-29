@@ -243,6 +243,19 @@
   color: var(--tp-bg);
 }
 
+.tp-orden-movil {
+  display: none;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--tp-line);
+  border-radius: 12px;
+  background: var(--tp-surface);
+  color: var(--tp-ink);
+  cursor: pointer;
+}
+
 .tp-chips {
   display: flex;
   gap: 0.5rem;
@@ -356,7 +369,6 @@
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  text-transform: capitalize;
 }
 .tp-mes-h small {
   font-size: 0.8rem;
@@ -663,7 +675,8 @@
   .tp-page { --tp-barra-h: 124px; }
   .tp-buscar input { font-size: 16px; }
   .tp-kbd { display: none; }
-  .tp-orden button { padding: 0 0.65rem; font-size: 0.8rem; }
+  .tp-orden { display: none; }
+  .tp-orden-movil { display: grid; }
   .tp-kicker { font-size: 0.68rem; letter-spacing: 0.06em; }
   .tp-mast-top .theme-toggle-label { display: none; }
   .tp-datos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -675,6 +688,5 @@
 
 @media (max-width: 480px) {
   .tp-barra-in { gap: 0.5rem; }
-  .tp-orden button { padding: 0 0.5rem; }
   .tp-h1-a { font-size: clamp(2.6rem, 14vw, 3.4rem); }
 }
