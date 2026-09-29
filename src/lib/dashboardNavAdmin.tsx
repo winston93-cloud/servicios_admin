@@ -504,6 +504,25 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
       </svg>
     ),
   },
+  {
+    id: 'enlaces-x',
+    label: 'Enlaces de X · Tecnologías de punta',
+    desc: 'Publicaciones de IA, agentes y desarrollo compartidas por Dirección General, en español.',
+    path: '/tecnologias-de-punta',
+    accent: 'violet',
+    kicker: 'Desarrollo',
+    tags: ['IA', 'Agentes', 'X'],
+    badge: 'Nuevo',
+    // mario
+    soloUsuariosLegacy: [17],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 4h4.5L20 20h-4.5z" />
+        <path d="M20 4l-6.5 7.2" />
+        <path d="M4 20l6.5-7.2" />
+      </svg>
+    ),
+  },
 ]
 
 export function navItemKey(item: {
