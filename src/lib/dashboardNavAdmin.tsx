@@ -474,8 +474,8 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     kicker: 'Extracurricular',
     tags: ['Talleres', 'Clases especiales'],
     badge: 'Nuevo',
-    // laura, coordprim / coordkin / josefina (direcciones primaria, kinder y secundaria), mario
-    soloUsuariosLegacy: [2, 7, 8, 13, 17],
+    // laura, coordprim / coordkin / josefina (direcciones primaria, kinder y secundaria), mario, santiago (DG)
+    soloUsuariosLegacy: [2, 7, 8, 13, 17, 59],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="13.5" cy="6.5" r="1.5" />
@@ -513,8 +513,8 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     kicker: 'Desarrollo',
     tags: ['IA', 'Agentes', 'X'],
     badge: 'Nuevo',
-    // mario
-    soloUsuariosLegacy: [17],
+    // laura, mario, santiago (DG)
+    soloUsuariosLegacy: [2, 17, 59],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 4h4.5L20 20h-4.5z" />

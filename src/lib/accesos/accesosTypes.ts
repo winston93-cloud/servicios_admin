@@ -1,5 +1,5 @@
 /** usuario_id con acceso a la bóveda (laura, mario). La tarjeta del dashboard usa la misma lista. */
-export const ACCESOS_USUARIOS_PERMITIDOS: readonly number[] = [2, 17]
+export const ACCESOS_USUARIOS_PERMITIDOS: readonly number[] = [2, 17, 59]
 
 export const CATEGORIAS_ACCESO = [
   { id: 'equipo', etiqueta: 'Computadoras y equipos', corta: 'Equipos' },
