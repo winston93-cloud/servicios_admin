@@ -312,3 +312,57 @@ export type AsistenciaDia = {
 }
 
 export const DIAS_EDITABLES_ASISTENCIA = 30
+
+/* ───────────── Reportes ───────────── */
+
+export type SesionHoras = {
+  fecha: string
+  /** 1 = lunes … 6 = sábado. */
+  dia: number
+  /** null si ese día no tiene horario (la asistencia se guardó fuera de horario). */
+  hora_inicio: string | null
+  hora_fin: string | null
+  minutos: number
+  alumnos: number | null
+}
+
+export type GrupoHoras = {
+  asignacion_id: number
+  taller: string
+  color: string
+  niveles: number[]
+  minutos: number
+  sesiones: SesionHoras[]
+}
+
+export type MaestroHoras = {
+  maestro_id: number
+  nombre: string
+  minutos: number
+  sesiones: number
+  /** YYYY-MM-DD con al menos una clase registrada. */
+  dias: string[]
+  grupos: GrupoHoras[]
+}
+
+export type ReporteHorasMaestros = {
+  ciclo: { valor: number; nombre: string }
+  nivel: number
+  desde: string
+  hasta: string
+  maestros: MaestroHoras[]
+  total_minutos: number
+  total_sesiones: number
+  /** Sesiones con asistencia en un día sin horario definido (no suman horas). */
+  sin_horario: number
+}
+
+export const MAX_DIAS_REPORTE = 400
+
+/** 750 → "12 h 30 min" */
+export function textoDuracion(minutos: number): string {
+  const h = Math.floor(minutos / 60)
+  const m = minutos % 60
+  if (!h) return `${m} min`
+  return m ? `${h} h ${m} min` : `${h} h`
+}

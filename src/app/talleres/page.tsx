@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, CalendarDays, CheckCircle2, ClipboardCheck, GraduationCap, ListChecks, Loader2, Palette, RefreshCw, UserPlus } from 'lucide-react'
+import { ArrowLeft, CalendarDays, CheckCircle2, ClipboardCheck, FileSpreadsheet, GraduationCap, ListChecks, Loader2, Palette, RefreshCw, UserPlus } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
@@ -20,10 +20,11 @@ import ProgramadosView from './components/ProgramadosView'
 import InscripcionesView from './components/inscripciones/InscripcionesView'
 import TalleresCatalogo from './components/TalleresCatalogo'
 import MaestrosCatalogo from './components/MaestrosCatalogo'
+import ReportesView from './components/ReportesView'
 import AsignacionModal from './components/AsignacionModal'
 import './talleres.css'
 
-type Tab = 'semana' | 'inscripciones' | 'programados' | 'talleres' | 'maestros'
+type Tab = 'semana' | 'inscripciones' | 'programados' | 'talleres' | 'maestros' | 'reportes'
 
 const TABS: { id: Tab; etiqueta: string; icon: typeof CalendarDays }[] = [
   { id: 'semana', etiqueta: 'Horario semanal', icon: CalendarDays },
@@ -31,6 +32,7 @@ const TABS: { id: Tab; etiqueta: string; icon: typeof CalendarDays }[] = [
   { id: 'programados', etiqueta: 'Programados', icon: ListChecks },
   { id: 'talleres', etiqueta: 'Talleres', icon: Palette },
   { id: 'maestros', etiqueta: 'Maestros', icon: GraduationCap },
+  { id: 'reportes', etiqueta: 'Reportes', icon: FileSpreadsheet },
 ]
 
 export default function TalleresPage() {
@@ -271,6 +273,7 @@ function TalleresView() {
                 onEliminar={(m: TallerMaestro) => void eliminar('maestro', m.id, nombreMaestroTaller(m))}
               />
             ) : null}
+            {tab === 'reportes' ? <ReportesView asignaciones={data.asignaciones} onError={setError} /> : null}
 
             <AsignacionModal
               abierto={modalAsig.abierto}
