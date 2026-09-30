@@ -425,7 +425,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   const cargarConteosTabs = useCallback(async () => {
     if (!me) return
     const ids = new Set(tabsDeRolNivel(me.role, config).map((t) => t.id))
-    const patch: Partial<Record<'inbox' | 'citas' | 'suspensiones' | 'informes', number>> = {}
+    const patch: Partial<Record<'inbox' | 'citas' | 'suspensiones' | 'informes' | 'captura', number>> = {}
     const jobs: Promise<void>[] = []
     const base = `${config.apiBase}/coordinacion`
 
@@ -461,6 +461,16 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
         api<{ filas?: unknown[] }>(`${base}?vista=citas&confirmado=${citasConfirmado}`)
           .then((d) => {
             patch.citas = d.filas?.length ?? 0
+          })
+          .catch(() => undefined)
+      )
+    }
+    // Reportar = reportes sin confirmar sin informes: Reportar + Informes = Listado sin confirmar.
+    if (ids.has('suspensiones') && ids.has('captura')) {
+      jobs.push(
+        api<{ filas?: { tipo?: number }[] }>(`${base}?vista=pendientes&confirmado=0`)
+          .then((d) => {
+            patch.captura = (d.filas ?? []).filter((r) => Number(r.tipo) !== 5).length
           })
           .catch(() => undefined)
       )
@@ -998,9 +1008,8 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
 
         <nav className="racn-tabs" aria-label="Secciones">
           {tabs.map((t) => {
-            // Reportar/captura muestra alumnos del grupo elegido, no reportes: sin conteo.
-            const n =
-              t.id === 'historial' || t.id === 'captura' || t.id === 'control_escolar'
+                        const n =
+              t.id === 'historial' || t.id === 'control_escolar'
                 ? undefined
                 : conteos[t.id as keyof typeof conteos]
             return (

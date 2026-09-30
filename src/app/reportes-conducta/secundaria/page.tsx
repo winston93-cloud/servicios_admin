@@ -373,7 +373,7 @@ export default function RacSecundariaPage() {
   const cargarConteosTabs = useCallback(async () => {
     if (!me) return
     const ids = new Set(tabsDeRol(me.role).map((t) => t.id))
-    const patch: Partial<Record<'inbox' | 'citas' | 'suspensiones' | 'informes', number>> = {}
+    const patch: Partial<Record<'inbox' | 'citas' | 'suspensiones' | 'informes' | 'captura', number>> = {}
     const jobs: Promise<void>[] = []
 
     if (ids.has('inbox')) {
@@ -412,6 +412,16 @@ export default function RacSecundariaPage() {
         )
           .then((d) => {
             patch.citas = d.filas?.length ?? 0
+          })
+          .catch(() => undefined)
+      )
+    }
+    // Reportar = reportes sin confirmar sin informes: Reportar + Informes = Listado sin confirmar.
+    if (ids.has('suspensiones') && ids.has('captura')) {
+      jobs.push(
+        api<{ filas?: { tipo?: number }[] }>('/api/rac/coordinacion?vista=pendientes&confirmado=0')
+          .then((d) => {
+            patch.captura = (d.filas ?? []).filter((r) => Number(r.tipo) !== 5).length
           })
           .catch(() => undefined)
       )
@@ -895,9 +905,8 @@ export default function RacSecundariaPage() {
 
       <nav className="boletas-tabs" aria-label="Secciones">
         {tabs.map((t) => {
-          // Reportar/captura muestra alumnos del grupo elegido, no reportes: sin conteo.
-          const n =
-            t.id === 'historial' || t.id === 'captura' || t.id === 'prefectura'
+                    const n =
+            t.id === 'historial' || t.id === 'prefectura'
               ? undefined
               : conteos[t.id as keyof typeof conteos]
           return (
