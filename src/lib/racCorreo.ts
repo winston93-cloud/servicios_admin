@@ -65,7 +65,7 @@ export type RacCorreoPanel = 'secundaria' | 'primaria' | 'maternal-kinder'
  */
 const BCC_RAC_POR_PANEL: Record<RacCorreoPanel, readonly string[]> = {
   secundaria: ['prefectura.secundaria@winston93.edu.mx'],
-  'maternal-kinder': ['tablet.iew@winston93.edu.mx'],
+  'maternal-kinder': ['confirmacionreportes.iew@winston93.edu.mx'],
   primaria: [],
 }
 
