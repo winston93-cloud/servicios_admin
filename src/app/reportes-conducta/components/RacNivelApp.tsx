@@ -1665,7 +1665,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                             </td>
                           </>
                         ) : null}
-                        <td className="racn-actions">
+                        <td className="racn-actions racn-actions--captura">
                           {puedeVerDetalleLista ? (
                             <button
                               type="button"
