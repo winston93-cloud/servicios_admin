@@ -258,8 +258,7 @@ export default function RacSecundariaPage() {
   const esStaff = Boolean(me && me.role !== 'maestro')
   const [materiasGrado, setMateriasGrado] = useState<{ materia_id: number; materia_nombre: string }[]>([])
   const [materiaFiltro, setMateriaFiltro] = useState(0)
-  const filtraAsignatura = esStaff && tipo === 1
-  const materiaCaptura = filtraAsignatura && materiaFiltro > 0 ? materiaFiltro : (asig?.materia_id ?? 0)
+  const materiaCaptura = esStaff && tipo === 1 && materiaFiltro > 0 ? materiaFiltro : (asig?.materia_id ?? 0)
   const gradoStaff = asig?.materia_grado ?? 0
 
   useEffect(() => {
@@ -337,9 +336,10 @@ export default function RacSecundariaPage() {
     setMsg('')
     try {
       const qs =
-        me && me.role !== 'maestro' && !(tipo === 1 && materiaFiltro > 0)
-          ? `grado=${asig.materia_grado}&grupo=${encodeURIComponent(asig.grupo_letra)}&tipo=${tipo}`
-          : `materiaId=${materiaCaptura}&grupo=${encodeURIComponent(asig.grupo_letra)}&tipo=${tipo}`
+        me && me.role !== 'maestro'
+          ? `grado=${asig.materia_grado}&grupo=${encodeURIComponent(asig.grupo_letra)}&tipo=${tipo}` +
+            (materiaFiltro > 0 ? `&asignatura=${materiaFiltro}` : '')
+          : `materiaId=${asig.materia_id}&grupo=${encodeURIComponent(asig.grupo_letra)}&tipo=${tipo}`
       const data = await api<{ filas: AlumnoFila[] }>(`/api/rac/captura?${qs}`)
       setFilas(data.filas)
     } catch (e) {
@@ -1008,7 +1008,7 @@ export default function RacSecundariaPage() {
                 ))}
               </select>
             </label>
-            {filtraAsignatura && materiasGrado.length ? (
+            {esStaff && materiasGrado.length ? (
               <label>
                 Asignatura
                 <select value={materiaFiltro} onChange={(e) => setMateriaFiltro(Number(e.target.value))}>
@@ -1046,6 +1046,14 @@ export default function RacSecundariaPage() {
                 </tr>
               </thead>
               <tbody>
+                {!busy && !filas.length && materiaFiltro > 0 ? (
+                  <tr>
+                    <td colSpan={6} className="rac-vacio-filtro">
+                      Ningún alumno de este grupo tiene reportes de este tipo en{' '}
+                      {materiasGrado.find((m) => m.materia_id === materiaFiltro)?.materia_nombre ?? 'esta asignatura'}.
+                    </td>
+                  </tr>
+                ) : null}
                 {filas.map((a) => (
                   <tr key={a.alumno_id}>
                     <td>

@@ -34,6 +34,7 @@ export async function GET(req: Request) {
       grado: grado || undefined,
       grupoLetra: grupo,
       tipo,
+      asignaturaId: Number(url.searchParams.get('asignatura') ?? 0) || undefined,
     })
     return NextResponse.json(data)
   } catch (e) {

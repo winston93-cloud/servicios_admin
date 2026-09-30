@@ -273,6 +273,8 @@ export async function listarGrupoCaptura(opts: {
   grado?: number
   grupoLetra: string
   tipo: number
+  /** Staff: solo alumnos con reportes del tipo en esta asignatura. */
+  asignaturaId?: number
 }) {
   const ciclo = await cicloRac()
   const materiaId = n(opts.materiaId)
@@ -294,14 +296,19 @@ export async function listarGrupoCaptura(opts: {
 
   const alumnos = await alumnosDeGrupo(grado, opts.grupoLetra, ciclo)
   // Solo académico lleva marcas por materia; staff (sin materia) acumula por tipo.
-  const matFiltro = opts.tipo === 1 && materiaId > 0 ? materiaId : null
+  const asignaturaId = n(opts.asignaturaId)
+  const matFiltro = asignaturaId > 0 ? asignaturaId : opts.tipo === 1 && materiaId > 0 ? materiaId : null
   const marcasMap = await marcasPorAlumnos(
     alumnos.map((a) => a.alumno_id),
     opts.tipo,
     ciclo,
     matFiltro
   )
-  const filas = alumnos.map((a) => {
+  const visibles =
+    asignaturaId > 0
+      ? alumnos.filter((a) => Object.keys(marcasMap.get(a.alumno_id) ?? {}).length > 0)
+      : alumnos
+  const filas = visibles.map((a) => {
     const f = marcasMap.get(a.alumno_id) ?? {}
     return {
       alumno_id: a.alumno_id,

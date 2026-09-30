@@ -1327,3 +1327,14 @@ html[data-theme='light'] .rac-page .boletas-msg {
   border-color: color-mix(in srgb, var(--rac-role) 25%, #cbd5e1);
   color: #0f172a;
 }
+
+.rac-page .rac-vacio-filtro {
+  padding: 1.25rem 1rem;
+  text-align: center;
+  color: var(--dash-muted, #94a3b8);
+  font-size: 0.9rem;
+}
+
+html[data-theme='light'] .rac-page .rac-vacio-filtro {
+  color: #64748b;
+}
