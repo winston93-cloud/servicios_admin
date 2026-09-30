@@ -978,16 +978,39 @@ export async function accionReporte(
       .filter((x) => n(x.reporte_ciclo) === reporteCiclo)
       .reduce((acc, x) => Math.max(acc, n(x.reporte_no)), 0)
   }
-  if (reporteNo === 3) {
-    await client
-      .from('reporte_escolar')
-      .update({ reporte_status: 1, reporte_no: 0, reporte_ciclo: reporteCiclo + 1 })
+  const noFinal = reporteNo === 3 ? 0 : reporteNo + pivot
+  const cicloFinal = reporteNo === 3 ? reporteCiclo + 1 : reporteCiclo
+  await client
+    .from('reporte_escolar')
+    .update({ reporte_status: 1, reporte_no: noFinal, reporte_ciclo: cicloFinal })
+    .eq('reporte_id', id)
+  // Mismo escalonamiento que capturarReporte: los de conducta pendientes de validar lo omiten al capturarse.
+  if (noFinal === 2) {
+    await client.from('reporte_cita').insert({
+      alumno_id: r.alumno_id,
+      materia_id: r.materia_id || null,
+      perfil_id: r.perfil_id,
+      usuario_id: r.usuario_id,
+      cita_tipo: 2,
+      cita_mensaje: `Citatorio generado por ${etiquetaEscalon(2, 2)}.`,
+      cita_status: 2,
+      cita_ciclo_escolar: ciclo,
+      cita_mdv: r.reporte_mdv,
+    })
+  }
+  if (noFinal === 3) {
+    const { data: yaSusp } = await client
+      .from('reporte_suspension')
+      .select('suspension_id')
       .eq('reporte_id', id)
-  } else {
-    await client
-      .from('reporte_escolar')
-      .update({ reporte_status: 1, reporte_no: reporteNo + pivot, reporte_ciclo: reporteCiclo })
-      .eq('reporte_id', id)
+      .maybeSingle()
+    if (!yaSusp) {
+      await client.from('reporte_suspension').insert({
+        alumno_id: r.alumno_id,
+        reporte_id: id,
+        suspension_ciclo_escolar: ciclo,
+      })
+    }
   }
   return enviarCorreoReporte(id)
 }
