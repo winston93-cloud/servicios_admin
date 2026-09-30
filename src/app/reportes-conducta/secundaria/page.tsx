@@ -316,7 +316,6 @@ export default function RacSecundariaPage() {
           : `materiaId=${asig.materia_id}&grupo=${encodeURIComponent(asig.grupo_letra)}&tipo=${tipo}`
       const data = await api<{ filas: AlumnoFila[] }>(`/api/rac/captura?${qs}`)
       setFilas(data.filas)
-      setConteos((c) => ({ ...c, captura: data.filas.length }))
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Error al cargar')
     } finally {
@@ -896,12 +895,11 @@ export default function RacSecundariaPage() {
 
       <nav className="boletas-tabs" aria-label="Secciones">
         {tabs.map((t) => {
+          // Reportar/captura muestra alumnos del grupo elegido, no reportes: sin conteo.
           const n =
-            t.id === 'historial'
+            t.id === 'historial' || t.id === 'captura' || t.id === 'prefectura'
               ? undefined
-              : t.id === 'prefectura'
-                ? conteos.captura
-                : conteos[t.id as keyof typeof conteos]
+              : conteos[t.id as keyof typeof conteos]
           return (
             <button key={t.id} type="button" className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}>
               {etiquetaTabConteo(t.label, n)}

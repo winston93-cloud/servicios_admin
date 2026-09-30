@@ -369,7 +369,6 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
           : `${config.apiBase}/captura?nivelEscolar=${asig.materia_nivel ?? config.nivelesEscolares[0]}&grado=${asig.materia_grado}&grupo=${encodeURIComponent(asig.grupo_letra)}&tipo=${tipo}`
       )
       setFilas(data.filas)
-      setConteos((c) => ({ ...c, captura: data.filas.length }))
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Error al cargar')
     } finally {
@@ -999,12 +998,11 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
 
         <nav className="racn-tabs" aria-label="Secciones">
           {tabs.map((t) => {
+            // Reportar/captura muestra alumnos del grupo elegido, no reportes: sin conteo.
             const n =
-              t.id === 'historial'
+              t.id === 'historial' || t.id === 'captura' || t.id === 'control_escolar'
                 ? undefined
-                : t.id === 'control_escolar'
-                  ? conteos.captura
-                  : conteos[t.id as keyof typeof conteos]
+                : conteos[t.id as keyof typeof conteos]
             return (
               <button
                 key={t.id}
