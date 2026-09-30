@@ -256,6 +256,32 @@ export default function RacSecundariaPage() {
   }, [asigKey, asignaciones, me])
 
   const esStaff = Boolean(me && me.role !== 'maestro')
+  const [materiasGrado, setMateriasGrado] = useState<{ materia_id: number; materia_nombre: string }[]>([])
+  const [materiaFiltro, setMateriaFiltro] = useState(0)
+  const filtraAsignatura = esStaff && tipo === 1
+  const materiaCaptura = filtraAsignatura && materiaFiltro > 0 ? materiaFiltro : (asig?.materia_id ?? 0)
+  const gradoStaff = asig?.materia_grado ?? 0
+
+  useEffect(() => {
+    setMateriaFiltro(0)
+    if (!esStaff || !gradoStaff) {
+      setMateriasGrado([])
+      return
+    }
+    let cancelado = false
+    api<{ materias: { materia_id: number; materia_nombre: string }[] }>(
+      `/api/rac/captura?materiasGrado=${gradoStaff}`
+    )
+      .then((d) => {
+        if (!cancelado) setMateriasGrado(d.materias ?? [])
+      })
+      .catch(() => {
+        if (!cancelado) setMateriasGrado([])
+      })
+    return () => {
+      cancelado = true
+    }
+  }, [esStaff, gradoStaff])
   const gradosStaff = useMemo(
     () => [...new Set(asignaciones.map((a) => a.materia_grado).filter(Boolean))].sort((a, b) => a - b),
     [asignaciones]
@@ -311,9 +337,9 @@ export default function RacSecundariaPage() {
     setMsg('')
     try {
       const qs =
-        me && me.role !== 'maestro'
+        me && me.role !== 'maestro' && !(tipo === 1 && materiaFiltro > 0)
           ? `grado=${asig.materia_grado}&grupo=${encodeURIComponent(asig.grupo_letra)}&tipo=${tipo}`
-          : `materiaId=${asig.materia_id}&grupo=${encodeURIComponent(asig.grupo_letra)}&tipo=${tipo}`
+          : `materiaId=${materiaCaptura}&grupo=${encodeURIComponent(asig.grupo_letra)}&tipo=${tipo}`
       const data = await api<{ filas: AlumnoFila[] }>(`/api/rac/captura?${qs}`)
       setFilas(data.filas)
     } catch (e) {
@@ -463,7 +489,7 @@ export default function RacSecundariaPage() {
       setQ('')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me, tab, asigKey, tipo, informesConfirmado, listadoConfirmado, citasConfirmado])
+  }, [me, tab, asigKey, tipo, materiaFiltro, informesConfirmado, listadoConfirmado, citasConfirmado])
 
   useEffect(() => {
     if (tab !== 'historial' || !me) return
@@ -567,7 +593,7 @@ export default function RacSecundariaPage() {
         body: JSON.stringify({
           accion: modo,
           alumnoId: modal.alumno_id,
-          materiaId: asig.materia_id,
+          materiaId: materiaCaptura,
           tipo: modo === 'cita' ? tipoCita : tipo,
           motivo,
           mensaje,
@@ -982,6 +1008,19 @@ export default function RacSecundariaPage() {
                 ))}
               </select>
             </label>
+            {filtraAsignatura && materiasGrado.length ? (
+              <label>
+                Asignatura
+                <select value={materiaFiltro} onChange={(e) => setMateriaFiltro(Number(e.target.value))}>
+                  <option value={0}>Todas</option>
+                  {materiasGrado.map((m) => (
+                    <option key={m.materia_id} value={m.materia_id}>
+                      {m.materia_nombre}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <button type="button" className="boletas-btn" onClick={() => void cargarGrupo()} disabled={busy}>
               Actualizar
             </button>

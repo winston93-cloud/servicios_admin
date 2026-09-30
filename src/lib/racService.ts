@@ -193,6 +193,19 @@ export async function listarAsignaciones(session: RacSesion): Promise<{
   return { asignaciones, fisica: true, ingles: true }
 }
 
+/** Asignaturas de secundaria de un grado (1–3), para filtrar académicos por materia. */
+export async function materiasSecundariaGrado(grado: number) {
+  if (!(grado >= 1 && grado <= 3)) return []
+  const { data, error } = await db()
+    .from('boleta_materia')
+    .select('materia_id, materia_nombre, materia_orden')
+    .eq('materia_nivel', 4)
+    .eq('materia_grado', grado)
+    .order('materia_orden', { ascending: true })
+  if (error) throw new Error(error.message)
+  return (data ?? []).map((m) => ({ materia_id: n(m.materia_id), materia_nombre: String(m.materia_nombre ?? '') }))
+}
+
 async function alumnosDeGrupo(grado: number, grupoLetra: string, ciclo: number): Promise<AlumnoRow[]> {
   const { data, error } = await db()
     .from('alumno')

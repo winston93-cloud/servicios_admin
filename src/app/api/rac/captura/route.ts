@@ -1,6 +1,13 @@
 import { NextResponse } from 'next/server'
 import { jsonRacError, requireRacSession } from '@/lib/racAuth'
-import { capturarCita, capturarInforme, capturarReporte, historialDetalleAlumno, listarGrupoCaptura } from '@/lib/racService'
+import {
+  capturarCita,
+  capturarInforme,
+  capturarReporte,
+  historialDetalleAlumno,
+  listarGrupoCaptura,
+  materiasSecundariaGrado,
+} from '@/lib/racService'
 
 export async function GET(req: Request) {
   try {
@@ -10,6 +17,10 @@ export async function GET(req: Request) {
     if (historialAlumnoId > 0) {
       const data = await historialDetalleAlumno(historialAlumnoId, session)
       return NextResponse.json(data)
+    }
+    const materiasGrado = Number(url.searchParams.get('materiasGrado') ?? 0)
+    if (materiasGrado > 0) {
+      return NextResponse.json({ materias: await materiasSecundariaGrado(materiasGrado) })
     }
     const materiaId = Number(url.searchParams.get('materiaId') ?? 0)
     const grado = Number(url.searchParams.get('grado') ?? 0)
