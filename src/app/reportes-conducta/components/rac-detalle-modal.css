@@ -223,6 +223,74 @@
   outline-offset: 2px;
 }
 
+label.rac-det__section-title {
+  display: block;
+}
+
+.rac-det__textarea {
+  display: block;
+  width: 100%;
+  min-height: 8.5rem;
+  resize: vertical;
+  box-sizing: border-box;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, #f59e0b 40%, var(--dash-border, #334155));
+  background: color-mix(in srgb, var(--dash-bg, #020617) 70%, transparent);
+  color: var(--dash-text, #e2e8f0);
+  font: inherit;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.rac-det__textarea:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 1px;
+}
+
+.rac-det__hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.78rem !important;
+  color: var(--dash-muted, #94a3b8);
+}
+
+.rac-det__actions--editar {
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.rac-det__btn--ghost {
+  color: var(--dash-text, #e2e8f0);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--dash-border, #334155) 90%, transparent);
+}
+
+.rac-det__btn--aprobar {
+  color: #fff;
+  background: #16a34a;
+}
+
+.rac-det__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: none;
+}
+
+html[data-theme='light'] .rac-det__textarea {
+  background: #fff;
+  color: #0f172a;
+  border-color: color-mix(in srgb, #f59e0b 45%, #e2e8f0);
+}
+
+html[data-theme='light'] .rac-det__hint {
+  color: #64748b;
+}
+
+html[data-theme='light'] .rac-det__btn--ghost {
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
 html[data-theme='light'] .rac-det__card {
   background:
     linear-gradient(
@@ -292,5 +360,9 @@ html[data-theme='light'] .rac-det__badge {
 
   .rac-det__actions {
     justify-content: stretch;
+  }
+
+  .rac-det__textarea {
+    font-size: 16px;
   }
 }

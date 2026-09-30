@@ -282,6 +282,8 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   const [tipoCita, setTipoCita] = useState(2)
   const [citaValidar, setCitaValidar] = useState<CitaFila | null>(null)
   const [detalleVista, setDetalleVista] = useState<Record<string, unknown> | null>(null)
+  const [edicionReporte, setEdicionReporte] = useState<Record<string, unknown> | null>(null)
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false)
   const [historialKardex, setHistorialKardex] = useState<{
     alumno: {
       alumno_id: number
@@ -630,6 +632,29 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
       setMsg(e instanceof Error ? e.message : 'No se pudo guardar')
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function guardarEdicionReporte(mensaje: string, aprobar: boolean) {
+    if (!edicionReporte) return
+    const id = Number(edicionReporte.reporte_id)
+    setGuardandoEdicion(true)
+    try {
+      await api<{ ok?: boolean }>(`${config.apiBase}/coordinacion`, {
+        method: 'POST',
+        body: JSON.stringify({ entidad: 'reporte', id, accion: 'editar', mensaje }),
+      })
+      setEdicionReporte(null)
+      if (aprobar) {
+        await accionCoord('reporte', id, 'validar')
+      } else {
+        setMsg('Reporte actualizado. Sigue pendiente de aprobar.')
+        await cargarVista('inbox-listado')
+      }
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : 'No se pudo guardar el reporte')
+    } finally {
+      setGuardandoEdicion(false)
     }
   }
 
@@ -1657,6 +1682,13 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                             <>
                               <button
                                 type="button"
+                                className="racn-btn info"
+                                onClick={() => setEdicionReporte(row)}
+                              >
+                                Editar
+                              </button>
+                              <button
+                                type="button"
                                 className="racn-btn success"
                                 onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'validar')}
                               >
@@ -1837,6 +1869,16 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
         ) : null}
 
         {detalleVista ? <RacDetalleModal row={detalleVista} onClose={() => setDetalleVista(null)} /> : null}
+        {edicionReporte ? (
+          <RacDetalleModal
+            row={edicionReporte}
+            onClose={() => setEdicionReporte(null)}
+            editable={{
+              guardando: guardandoEdicion,
+              onGuardar: (mensaje, aprobar) => void guardarEdicionReporte(mensaje, aprobar),
+            }}
+          />
+        ) : null}
 
         {modal ? (
           <div className="racn-modal" role="dialog" aria-modal="true">

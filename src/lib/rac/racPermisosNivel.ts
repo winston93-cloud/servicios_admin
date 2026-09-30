@@ -142,8 +142,8 @@ export function puedeAccionCoordNivel(role: RacRolNivel, entidad: string, accion
   }
   if (role === 'psicologia') {
     if (entidad === 'reporte') {
-      // Validar/denegar conducta pendiente; reenviar avisos de atención (o reportes ya activos).
-      return accion === 'validar' || accion === 'denegar' || accion === 'reenviar'
+      // Validar/editar/denegar conducta pendiente; reenviar avisos de atención (o reportes ya activos).
+      return accion === 'validar' || accion === 'editar' || accion === 'denegar' || accion === 'reenviar'
     }
     if (entidad === 'cita') return accion === 'reenviar' || accion === 'confirmar'
     return false

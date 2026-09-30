@@ -1,11 +1,17 @@
 'use client'
 
+import { useState } from 'react'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import './rac-detalle-modal.css'
 
 type Props = {
   row: Record<string, unknown>
   onClose: () => void
+  /** Psicología: corrige la redacción de un reporte pendiente antes de aprobarlo. */
+  editable?: {
+    guardando: boolean
+    onGuardar: (mensaje: string, aprobar: boolean) => void
+  }
 }
 
 function Flag({ ok }: { ok: boolean }) {
@@ -21,7 +27,9 @@ function Flag({ ok }: { ok: boolean }) {
  * Legacy secundaria_2.0: ID = reporte_id (no el control del alumno), No Control, Alumno,
  * Grado/Grupo, Asignatura, Motivo, Observaciones, Fecha, No Vuelta.
  */
-export default function RacDetalleModal({ row, onClose }: Props) {
+export default function RacDetalleModal({ row, onClose, editable }: Props) {
+  const [mensaje, setMensaje] = useState(String(row.mensaje ?? ''))
+  const mensajeValido = mensaje.trim().length > 0
   const esCita = row.cita_id != null
   const esSusp = row.suspension_id != null
   const tituloTipo = String(row.escalon ?? row.tipoEtiqueta ?? (esCita ? 'Citatorio' : esSusp ? 'Suspensión' : 'Reporte'))
@@ -63,7 +71,7 @@ export default function RacDetalleModal({ row, onClose }: Props) {
       <div className="rac-det__card">
         <header className="rac-det__head">
           <div className="rac-det__head-text">
-            <p className="rac-det__eyebrow">Detalle</p>
+            <p className="rac-det__eyebrow">{editable ? 'Revisar y editar' : 'Detalle'}</p>
             <h3 id="rac-det-title">{String(row.nombre ?? 'Registro')}</h3>
             <p className="rac-det__sub">
               Control {String(row.alumno_ref ?? '—')}
@@ -136,8 +144,28 @@ export default function RacDetalleModal({ row, onClose }: Props) {
         </section>
 
         <section className="rac-det__obs" aria-label="Observaciones">
-          <h4 className="rac-det__section-title">Observaciones</h4>
-          <p>{String(row.mensaje ?? '—')}</p>
+          {editable ? (
+            <>
+              <label className="rac-det__section-title" htmlFor="rac-det-mensaje">
+                Observaciones (editable)
+              </label>
+              <textarea
+                id="rac-det-mensaje"
+                className="rac-det__textarea"
+                value={mensaje}
+                onChange={(e) => setMensaje(e.target.value)}
+                rows={6}
+                maxLength={5000}
+                disabled={editable.guardando}
+              />
+              <p className="rac-det__hint">La familia recibirá este texto cuando apruebes el reporte.</p>
+            </>
+          ) : (
+            <>
+              <h4 className="rac-det__section-title">Observaciones</h4>
+              <p>{String(row.mensaje ?? '—')}</p>
+            </>
+          )}
         </section>
 
         {muestraEnvio || muestraConf ? (
@@ -157,11 +185,40 @@ export default function RacDetalleModal({ row, onClose }: Props) {
           </section>
         ) : null}
 
-        <div className="rac-det__actions">
-          <button type="button" className="rac-det__btn" onClick={onClose}>
-            Aceptar
-          </button>
-        </div>
+        {editable ? (
+          <div className="rac-det__actions rac-det__actions--editar">
+            <button
+              type="button"
+              className="rac-det__btn rac-det__btn--ghost"
+              onClick={onClose}
+              disabled={editable.guardando}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="rac-det__btn rac-det__btn--ghost"
+              onClick={() => editable.onGuardar(mensaje, false)}
+              disabled={editable.guardando || !mensajeValido}
+            >
+              Guardar
+            </button>
+            <button
+              type="button"
+              className="rac-det__btn rac-det__btn--aprobar"
+              onClick={() => editable.onGuardar(mensaje, true)}
+              disabled={editable.guardando || !mensajeValido}
+            >
+              {editable.guardando ? 'Guardando…' : 'Guardar y aprobar'}
+            </button>
+          </div>
+        ) : (
+          <div className="rac-det__actions">
+            <button type="button" className="rac-det__btn" onClick={onClose}>
+              Aceptar
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

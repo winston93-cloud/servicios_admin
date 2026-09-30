@@ -98,7 +98,7 @@ export function puedeAccionCoord(role: RacRol, entidad: string, accion: string):
   }
   if (role === 'psicologia') {
     if (entidad === 'reporte') {
-      return accion === 'validar' || accion === 'denegar' || accion === 'reenviar'
+      return accion === 'validar' || accion === 'editar' || accion === 'denegar' || accion === 'reenviar'
     }
     if (entidad === 'cita') return accion === 'reenviar' || accion === 'confirmar'
     return false

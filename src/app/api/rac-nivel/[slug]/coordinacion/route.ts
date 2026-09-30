@@ -70,6 +70,9 @@ export async function POST(req: Request, { params }: Params) {
     if (body.entidad === 'suspension') {
       return NextResponse.json(await svc.aplicarSuspension(id, String(body.fecha ?? '')))
     }
+    if (accion === 'editar') {
+      return NextResponse.json(await svc.editarReportePendiente(id, String(body.mensaje ?? '')))
+    }
     return NextResponse.json(
       await svc.accionReporte(
         id,

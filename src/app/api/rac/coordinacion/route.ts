@@ -5,6 +5,7 @@ import {
   accionCita,
   accionReporte,
   aplicarSuspension,
+  editarReportePendiente,
   historialAlumno,
   inboxCitas,
   inboxReportes,
@@ -69,6 +70,9 @@ export async function POST(req: Request) {
     }
     if (body.entidad === 'suspension') {
       return NextResponse.json(await aplicarSuspension(id, String(body.fecha ?? '')))
+    }
+    if (accion === 'editar') {
+      return NextResponse.json(await editarReportePendiente(id, String(body.mensaje ?? '')))
     }
     return NextResponse.json(
       await accionReporte(

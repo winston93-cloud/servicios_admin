@@ -1015,6 +1015,23 @@ export async function accionReporte(
   return enviarCorreoReporte(id)
 }
 
+/** Psicología corrige la redacción de un reporte de conducta antes de aprobarlo. */
+export async function editarReportePendiente(id: number, mensaje: string) {
+  const texto = mensaje.trim()
+  if (!texto) throw new Error('Escribe el mensaje del reporte.')
+  if (texto.length > 5000) throw new Error('El mensaje es demasiado largo.')
+  const { data, error } = await db()
+    .from('reporte_escolar')
+    .update({ reporte_mensaje: texto })
+    .eq('reporte_id', id)
+    .eq('reporte_status', 2)
+    .eq('reporte_tipo', RAC_TIPOS.conducta)
+    .select('reporte_id')
+  if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Solo se pueden editar reportes pendientes de aprobar.')
+  return { ok: true }
+}
+
 export async function accionCita(
   id: number,
   accion: 'reenviar' | 'confirmar' | 'detener' | 'validar',
