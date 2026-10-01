@@ -525,6 +525,26 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     ),
   },
   {
+    id: 'registro-entrada-salida',
+    label: 'Registro de entrada/salida',
+    desc: 'Registro de entradas y salidas del personal.',
+    href: 'https://winston-registro.vercel.app/login',
+    accent: 'emerald',
+    kicker: 'Personal',
+    tags: ['Entradas', 'Salidas'],
+    badge: 'Nuevo',
+    // laura, mario, santiago (DG)
+    soloUsuariosLegacy: [2, 17, 59],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+        <path d="M3 12h3" />
+        <path d="M18 12h3" />
+      </svg>
+    ),
+  },
+  {
     id: 'team-english',
     label: 'Team English',
     desc: 'Teachers de inglés: perfiles y C.V., planeaciones semanales, capacitaciones, desempeño y classrooms.',
