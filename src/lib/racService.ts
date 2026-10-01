@@ -85,6 +85,49 @@ type GrupoMaestroRow = {
   grupo_letra: string | null
 }
 
+function normNombreMaestro(raw: unknown): string {
+  return String(raw ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase()
+}
+
+/**
+ * Una maestra puede tener una cuenta por materia (lenguamaterna.m1@, cienciasexactas.m2@…).
+ * Entre como entre, ve las materias de todas sus cuentas de secundaria: mismo nombre y
+ * primer apellido, y segundo apellido igual cuando ambas cuentas lo tienen.
+ */
+async function maestrosMismaPersona(client: ReturnType<typeof db>, maestroId: number): Promise<number[]> {
+  const { data: yo, error } = await client
+    .from('boleta_maestro')
+    .select('maestro_nombre, maestro_app, maestro_apm')
+    .eq('maestro_id', maestroId)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  const nombre = normNombreMaestro(yo?.maestro_nombre)
+  const app = normNombreMaestro(yo?.maestro_app)
+  if (!nombre || !app) return []
+  const apm = normNombreMaestro(yo?.maestro_apm)
+  const { data: otros, error: errOtros } = await client
+    .from('boleta_maestro')
+    .select('maestro_id, maestro_nombre, maestro_app, maestro_apm, maestro_nivel')
+    .ilike('maestro_app', String(yo?.maestro_app ?? '').trim())
+    .neq('maestro_id', maestroId)
+  if (errOtros) throw new Error(errOtros.message)
+  return (otros ?? [])
+    .filter((m) => {
+      const nivel = Number(m.maestro_nivel ?? 0)
+      if (nivel !== 0 && nivel !== 4) return false
+      if (normNombreMaestro(m.maestro_nombre) !== nombre || normNombreMaestro(m.maestro_app) !== app) return false
+      const otroApm = normNombreMaestro(m.maestro_apm)
+      return !apm || !otroApm || otroApm === apm
+    })
+    .map((m) => n(m.maestro_id))
+    .filter((id) => id > 0)
+}
+
 /**
  * Cuentas compartidas (p. ej. idiomas@): varios boleta_maestro con el mismo email;
  * el shell genérico a veces no tiene filas en boleta_maestro_grupo.
@@ -94,10 +137,11 @@ async function gruposMaestroConFallbackEmail(
   client: ReturnType<typeof db>,
   maestroId: number
 ): Promise<GrupoMaestroRow[]> {
+  const cuentas = [maestroId, ...(await maestrosMismaPersona(client, maestroId))]
   const { data: propios, error } = await client
     .from('boleta_maestro_grupo')
     .select('grupo_id, maestro_id, materia_id, grupo_letra')
-    .eq('maestro_id', maestroId)
+    .in('maestro_id', cuentas)
   if (error) throw new Error(error.message)
   if (propios?.length) return propios as GrupoMaestroRow[]
 
