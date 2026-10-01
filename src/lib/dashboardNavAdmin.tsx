@@ -475,8 +475,9 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     tags: ['Talleres', 'Clases especiales'],
     badge: 'Nuevo',
     // laura, coordprim / coordkin / josefina (direcciones primaria, kinder y secundaria),
-    // coording / kinder_ing (direcciones de inglés primaria y kinder), mario, santiago (DG)
-    soloUsuariosLegacy: [2, 7, 8, 10, 13, 17, 54, 59],
+    // coording / kinder_ing (direcciones de inglés primaria y kinder), fatima (control escolar kinder),
+    // mario, santiago (DG)
+    soloUsuariosLegacy: [2, 7, 8, 10, 13, 17, 39, 54, 59],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="13.5" cy="6.5" r="1.5" />
