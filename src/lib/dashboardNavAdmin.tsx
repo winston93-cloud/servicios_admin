@@ -533,8 +533,8 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     kicker: 'Alumnos',
     tags: ['Código QR', 'Entradas', 'Salidas'],
     badge: 'Nuevo',
-    // laura, mario, santiago (DG)
-    soloUsuariosLegacy: [2, 17, 59],
+    // laura, kevin, mario, santiago (DG)
+    soloUsuariosLegacy: [2, 6, 17, 59],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="7" height="7" rx="1" />
