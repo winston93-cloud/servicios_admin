@@ -1,0 +1,100 @@
+/* Team English — Totality (oscuro) + claro */
+
+.te-page {
+  --te-bg: #0a0b0f;
+  --te-surface: rgba(24, 25, 32, 0.82);
+  --te-border: rgba(208, 198, 171, 0.16);
+  --te-text: #e9e2cf;
+  --te-text-soft: #b1a98f;
+  --te-accent: #00e3fd;
+  --te-gold: #fff6df;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0, 227, 253, 0.12), transparent),
+    var(--te-bg);
+  color: var(--te-text);
+  font-family: var(--font-inter), Inter, system-ui, sans-serif;
+}
+
+[data-theme='light'] .te-page {
+  --te-bg: #f4f6fa;
+  --te-surface: #ffffff;
+  --te-border: #dde3ec;
+  --te-text: #13233a;
+  --te-text-soft: #475569;
+  --te-accent: #1e3a5f;
+  --te-gold: #13233a;
+  background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(30, 58, 95, 0.08), transparent), var(--te-bg);
+}
+
+.te-shell { max-width: 1280px; margin: 0 auto; padding: 1.25rem clamp(0.85rem, 3vw, 1.5rem) 3rem; min-width: 0; }
+
+.te-topbar { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 2rem; }
+
+.te-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: var(--touch-min, 44px);
+  padding: 0 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--te-border);
+  background: var(--te-surface);
+  color: var(--te-accent);
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.te-hero {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  padding: clamp(2rem, 6vw, 4rem) 1rem;
+  border: 1px dashed var(--te-border);
+  border-radius: 1rem;
+  background: var(--te-surface);
+  text-align: center;
+}
+
+.te-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 0.5rem;
+  border-radius: 1rem;
+  background: rgba(0, 227, 253, 0.12);
+  color: var(--te-accent);
+}
+
+[data-theme='light'] .te-icon { background: #e0f2fe; }
+
+.te-kicker {
+  margin: 0;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--te-accent);
+}
+
+.te-title {
+  margin: 0;
+  font-family: var(--font-space-grotesk), 'Space Grotesk', sans-serif;
+  font-size: clamp(1.5rem, 4vw, 2.1rem);
+  font-weight: 700;
+  color: var(--te-gold);
+}
+
+.te-lead { margin: 0; color: var(--te-text-soft); font-size: 0.95rem; }
+
+@media (max-width: 480px) {
+  .te-topbar { margin-bottom: 1.25rem; }
+  .te-back { padding: 0 0.8rem; }
+}

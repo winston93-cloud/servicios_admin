@@ -524,6 +524,26 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
       </svg>
     ),
   },
+  {
+    id: 'team-english',
+    label: 'Team English',
+    desc: 'Sistema del equipo de inglés.',
+    path: '/team-english',
+    accent: 'sky',
+    kicker: 'Inglés',
+    tags: ['English', 'Team'],
+    badge: 'Nuevo',
+    // mario (en construcción)
+    soloUsuariosLegacy: [17],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 5h9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-3 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" />
+        <path d="M17 9h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1v3l-3-3h-3a2 2 0 0 1-1.6-.8" />
+        <path d="M6 12V8h3" />
+        <path d="M6 10h2.5" />
+      </svg>
+    ),
+  },
 ]
 
 export function navItemKey(item: {
