@@ -40,13 +40,12 @@ function fail(error: { message?: string } | null | undefined, ctx: string): void
   if (error) throw new Error(`${ctx}: ${error.message ?? 'error'}`)
 }
 
-/** Directoras de inglés ven su nivel; sistemas/dirección general ven ambos. */
+/** Solo inglés Primaria: su directora más sistemas y dirección general. */
 const NIVELES_POR_USUARIO: Record<number, TeNivel[]> = {
   10: [3], // coording · inglés primaria
-  54: [2], // kinder_ing · inglés kinder
-  2: [2, 3], // laura
-  17: [2, 3], // mario
-  59: [2, 3], // santiago (DG)
+  2: [3], // laura
+  17: [3], // mario
+  59: [3], // santiago (DG)
 }
 
 export function nivelesPermitidos(usuarioId: number | null | undefined): TeNivel[] {
@@ -176,7 +175,7 @@ export async function equipo(nivel: TeNivel, incluirInactivas = true): Promise<T
       celular: m.maestro_celular || null,
       usuario: m.maestro_usuario || null,
       grupos: a ? [...a.grupos].sort() : [],
-      grados: a ? [...a.grados].sort((x, y) => x - y) : gradosNivel(nivel),
+      grados: a ? [...a.grados].sort((x, y) => x - y) : gradosNivel(),
       manual: Boolean(p.manual) && !a,
       activo,
       emoji: String(p.emoji ?? TE_EMOJIS[id % TE_EMOJIS.length]),
@@ -778,7 +777,7 @@ export async function accion(nivel: TeNivel, body: Record<string, unknown>, quie
 /* ── Portal de la teacher ── */
 
 export async function equipoDeTeacher(maestroId: number): Promise<{ nivel: TeNivel; teacher: TeTeacher } | null> {
-  for (const nivel of [3, 2] as TeNivel[]) {
+  for (const nivel of [3] as TeNivel[]) {
     const t = (await equipo(nivel, false)).find((x) => x.maestro_id === maestroId)
     if (t) return { nivel, teacher: t }
   }

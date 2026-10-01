@@ -135,7 +135,7 @@ function Portal({ data, setData, onOk, onError }: {
   return (
     <>
       <section className="te-hero">
-        <p className="te-kicker">{data.nivel === 2 ? 'Kinder' : 'Primaria'} · {data.teacher.grupos.join(', ') || 'Teacher'}</p>
+        <p className="te-kicker">Primaria · {data.teacher.grupos.join(', ') || 'Teacher'}</p>
         <h1 className="te-title">Hi, {nombreCorto}! <span className="te-title-emoji" aria-hidden>{data.teacher.emoji}</span></h1>
         <p className="te-lead">Sube tu planeación de la semana; tu directora la revisa antes de aplicarla.</p>
       </section>

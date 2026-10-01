@@ -7,11 +7,9 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import {
-  TE_NIVELES,
   calcularDesempeno,
   etiquetaNivelTe,
   lunesDe,
-  type TeNivel,
   type TeSnapshot,
 } from '@/lib/teamEnglish/teTypes'
 import TeachersSeccion from './components/TeachersSeccion'
@@ -47,22 +45,20 @@ function leerHash(): Seccion | null {
 
 function TeamEnglish() {
   const router = useRouter()
-  const [nivel, setNivel] = useState<TeNivel | null>(null)
   const [snap, setSnap] = useState<TeSnapshot | null>(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [seccion, setSeccion] = useState<Seccion | null>(null)
   const [aviso, setAviso] = useState<{ texto: string; tipo: 'ok' | 'error' } | null>(null)
 
-  const cargar = useCallback(async (n: TeNivel | null) => {
+  const cargar = useCallback(async () => {
     setCargando(true)
     setError(null)
     try {
-      const res = await fetch(`/api/team-english${n ? `?nivel=${n}` : ''}`, { headers: portalSessionFetchHeaders(), cache: 'no-store' })
+      const res = await fetch('/api/team-english', { headers: portalSessionFetchHeaders(), cache: 'no-store' })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'No se pudo cargar Team English.')
       setSnap(json as TeSnapshot)
-      setNivel((json as TeSnapshot).nivel)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al cargar')
     } finally {
@@ -71,8 +67,7 @@ function TeamEnglish() {
   }, [])
 
   useEffect(() => {
-    const guardado = Number(window.localStorage.getItem('team-english-nivel')) as TeNivel
-    void cargar(guardado === 2 || guardado === 3 ? guardado : null)
+    void cargar()
     setSeccion(leerHash())
     const onHash = () => setSeccion(leerHash())
     window.addEventListener('hashchange', onHash)
@@ -92,13 +87,7 @@ function TeamEnglish() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const cambiarNivel = (n: TeNivel) => {
-    window.localStorage.setItem('team-english-nivel', String(n))
-    setNivel(n)
-    void cargar(n)
-  }
-
-  const recargar = useCallback(() => cargar(nivel), [cargar, nivel])
+  const recargar = cargar
   const avisar = useCallback((texto: string, tipo: 'ok' | 'error' = 'ok') => setAviso({ texto, tipo }), [])
 
   const resumen = useMemo(() => {
@@ -143,16 +132,6 @@ function TeamEnglish() {
             <ArrowLeft size={16} aria-hidden /> {seccion ? 'Team English' : 'Dashboard'}
           </button>
           <div className="te-topbar-der">
-            {snap && snap.niveles.length > 1 ? (
-              <div className="te-niveles" role="radiogroup" aria-label="Nivel">
-                {TE_NIVELES.filter((n) => snap.niveles.includes(n.valor)).map((n) => (
-                  <button key={n.valor} type="button" role="radio" aria-checked={nivel === n.valor}
-                    data-activo={nivel === n.valor || undefined} onClick={() => cambiarNivel(n.valor)}>
-                    <span aria-hidden>{n.emoji}</span> {n.etiqueta}
-                  </button>
-                ))}
-              </div>
-            ) : null}
             <button type="button" className="te-icon-btn" onClick={() => void recargar()} aria-label="Recargar" disabled={cargando}>
               <RefreshCw size={16} aria-hidden className={cargando ? 'te-spin' : undefined} />
             </button>

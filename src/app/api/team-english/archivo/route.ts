@@ -3,6 +3,7 @@ import { cookieBoletasDesdeHeader } from '@/lib/boletasAuth'
 import { parsePortalSessionHeader } from '@/lib/insforgeDbProxyShared'
 import { requireEmpleadoPortal } from '@/lib/portalApiEmpleadoAuth'
 import { TeError, descargar, nivelDeKey, nivelesPermitidos, resolverNivel, subirArchivoDirectora } from '@/lib/teamEnglish/teService'
+import type { TeNivel } from '@/lib/teamEnglish/teTypes'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
     const session = parsePortalSessionHeader(request.headers.get('x-portal-session'))
     let permitido = false
     if (session?.role === 'usuario') {
-      permitido = nivelesPermitidos(session.usuario_id).includes(info.nivel as 2 | 3)
+      permitido = nivelesPermitidos(session.usuario_id).includes(info.nivel as TeNivel)
     } else {
       const teacher = cookieBoletasDesdeHeader(request.headers.get('cookie'))
       permitido =

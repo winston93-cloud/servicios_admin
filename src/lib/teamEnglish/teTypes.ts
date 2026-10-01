@@ -1,9 +1,9 @@
 /** Team English: tipos y cálculos compartidos (cliente + servidor). */
 
-export type TeNivel = 2 | 3
+/** Solo inglés Primaria (nivel 3). */
+export type TeNivel = 3
 
 export const TE_NIVELES: { valor: TeNivel; etiqueta: string; emoji: string }[] = [
-  { valor: 2, etiqueta: 'Kinder', emoji: '🧸' },
   { valor: 3, etiqueta: 'Primaria', emoji: '🎒' },
 ]
 
@@ -11,12 +11,12 @@ export function etiquetaNivelTe(n: number): string {
   return TE_NIVELES.find((x) => x.valor === n)?.etiqueta ?? `Nivel ${n}`
 }
 
-export function gradosNivel(n: TeNivel): number[] {
-  return n === 2 ? [1, 2, 3] : [1, 2, 3, 4, 5, 6]
+export function gradosNivel(): number[] {
+  return [1, 2, 3, 4, 5, 6]
 }
 
-export function etiquetaGrado(nivel: number, grado: number): string {
-  return nivel === 2 ? `K${grado}` : `${grado}°`
+export function etiquetaGrado(_nivel: number, grado: number): string {
+  return `${grado}°`
 }
 
 export const TE_EMOJIS = ['🌷', '🌸', '🌻', '🌈', '🦄', '🐰', '🐻', '🐼', '🐱', '🦊', '🐨', '🐥', '🍓', '🍒', '🧁', '⭐', '🌙', '☁️', '🎀', '💖'] as const
