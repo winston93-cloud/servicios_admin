@@ -1,8 +1,9 @@
 import type { Metadata } from 'next'
-import { Fredoka, Nunito } from 'next/font/google'
+import localFont from 'next/font/local'
 
-const fredoka = Fredoka({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--te-font-display' })
-const nunito = Nunito({ subsets: ['latin'], weight: ['400', '600', '700', '800'], variable: '--te-font-body' })
+// Locales: Google a veces sirve Fredoka por /l/font?kit=…&skey=… y Turbopack no puede resolverlo en el build.
+const fredoka = localFont({ src: './fonts/Fredoka-latin.woff2', weight: '300 700', variable: '--te-font-display' })
+const nunito = localFont({ src: './fonts/Nunito-latin.woff2', weight: '200 1000', variable: '--te-font-body' })
 
 export const metadata: Metadata = {
   title: 'Team English · Instituto Winston Churchill',
