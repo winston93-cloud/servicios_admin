@@ -527,20 +527,22 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   {
     id: 'registro-entrada-salida',
     label: 'Registro de entrada/salida',
-    desc: 'Registro de entradas y salidas del personal.',
+    desc: 'Registro del acceso de entradas y salidas de los alumnos mediante código QR.',
     href: 'https://winston-registro.vercel.app/login',
     accent: 'emerald',
-    kicker: 'Personal',
-    tags: ['Entradas', 'Salidas'],
+    kicker: 'Alumnos',
+    tags: ['Código QR', 'Entradas', 'Salidas'],
     badge: 'Nuevo',
     // laura, mario, santiago (DG)
     soloUsuariosLegacy: [2, 17, 59],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 7v5l3 2" />
-        <path d="M3 12h3" />
-        <path d="M18 12h3" />
+        <rect x="3" y="3" width="7" height="7" rx="1" />
+        <rect x="14" y="3" width="7" height="7" rx="1" />
+        <rect x="3" y="14" width="7" height="7" rx="1" />
+        <path d="M14 14h3v3h-3z" />
+        <path d="M21 14v7h-4" />
+        <path d="M14 21h.01" />
       </svg>
     ),
   },
