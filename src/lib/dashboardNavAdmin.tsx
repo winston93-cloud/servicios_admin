@@ -527,14 +527,14 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   {
     id: 'team-english',
     label: 'Team English',
-    desc: 'Sistema del equipo de inglés.',
+    desc: 'Teachers de inglés: perfiles y C.V., planeaciones semanales, capacitaciones, desempeño y classrooms.',
     path: '/team-english',
-    accent: 'sky',
-    kicker: 'Inglés',
-    tags: ['English', 'Team'],
+    accent: 'rose',
+    kicker: 'English Department',
+    tags: ['Teachers', 'Planeación', 'Desempeño'],
     badge: 'Nuevo',
-    // mario (en construcción)
-    soloUsuariosLegacy: [17],
+    // coording / kinder_ing (direcciones de inglés primaria y kinder), laura, mario, santiago (DG)
+    soloUsuariosLegacy: [2, 10, 17, 54, 59],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 5h9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9l-3 3v-3H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" />
