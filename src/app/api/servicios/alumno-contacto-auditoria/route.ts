@@ -6,6 +6,7 @@ import {
   resumenEventoContactoAuditoria,
   insertarBaselineContactoAuditoria,
 } from '@/lib/alumnoContactoAuditoriaService'
+import { vistaEventoHistorial } from '@/lib/alumnoContactoHistorialVista'
 
 export const runtime = 'nodejs'
 
@@ -53,11 +54,17 @@ export async function GET(request: Request) {
       })
     }
 
+    // 2026-10-02: se agrega `vista` (lenguaje llano) y ya no se envían ip/user_agent al cliente
     return NextResponse.json({
       ok: true,
       eventos: eventos.map((e) => ({
-        ...e,
+        id: e.id,
+        created_at: e.created_at,
+        actor_tipo: e.actor_tipo,
+        actor_label: e.actor_label,
+        accion: e.accion,
         resumen: resumenEventoContactoAuditoria(e),
+        vista: vistaEventoHistorial(e),
       })),
     })
   } catch (e) {

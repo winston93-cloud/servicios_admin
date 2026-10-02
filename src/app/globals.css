@@ -10861,96 +10861,385 @@ html[data-theme='dark'] .servicios-sidebar-logout {
   }
 }
 
-/* 2026-09-25: timeline historial de contactos / quién recoge */
-.alumno-historial {
+/* 2026-10-02: rediseño Historial de contactos (filtros con contador, cambios por día,
+   antes → ahora, contactos iniciales agrupados). Paleta por variables; dark las redefine. */
+.ahc {
+  --ahc-texto: #0f172a;
+  --ahc-texto-suave: #64748b;
+  --ahc-fondo: #ffffff;
+  --ahc-fondo-suave: #f8fafc;
+  --ahc-borde: #e2e8f0;
+  --ahc-activo-fondo: #1e3a5f;
+  --ahc-activo-texto: #ffffff;
+  --ahc-verde: #15803d;
+  --ahc-verde-fondo: #dcfce7;
+  --ahc-rojo: #b91c1c;
+  --ahc-rojo-fondo: #fee2e2;
+  --ahc-ambar: #b45309;
+  --ahc-ambar-fondo: #fef3c7;
+  --ahc-azul: #1d4ed8;
+  --ahc-azul-fondo: #dbeafe;
+  --ahc-morado: #6d28d9;
+  --ahc-morado-fondo: #ede9fe;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
+  color: var(--ahc-texto);
 }
 
-.alumno-historial-cabecera .alumno-contactos-titulo {
+.ahc-titulo {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  margin: 0;
 }
 
-.alumno-historial-ayuda {
-  margin: 0 0 4px;
-  font-size: 13px;
-  line-height: 1.45;
-  color: #64748b;
-}
-
-.alumno-historial-filtros {
+.ahc-filtros {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.alumno-historial-filtro {
-  min-height: 36px;
-  padding: 0 12px;
+.ahc-filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
   font-size: 13px;
   font-weight: 600;
-  color: #334155;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
+  color: var(--ahc-texto);
+  background: var(--ahc-fondo-suave);
+  border: 1px solid var(--ahc-borde);
   border-radius: 999px;
   cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.alumno-historial-filtro--activo {
-  color: #fff;
-  background: #1e3a5f;
-  border-color: #1e3a5f;
+.ahc-filtro:hover {
+  border-color: var(--ahc-activo-fondo);
 }
 
-.alumno-historial-lista {
+.ahc-filtro--activo {
+  color: var(--ahc-activo-texto);
+  background: var(--ahc-activo-fondo);
+  border-color: var(--ahc-activo-fondo);
+}
+
+.ahc-contador {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 20px;
+  margin-left: 6px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  background: rgb(100 116 139 / 0.18);
+}
+
+.ahc-filtro .ahc-contador {
+  margin-left: 0;
+}
+
+.ahc-filtro--activo .ahc-contador {
+  background: rgb(255 255 255 / 0.22);
+}
+
+.ahc-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ahc-seccion-titulo {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ahc-texto-suave);
+}
+
+.ahc-vacio {
+  margin: 0;
+  padding: 14px 16px;
+  font-size: 14px;
+  color: var(--ahc-texto-suave);
+  background: var(--ahc-fondo-suave);
+  border: 1px dashed var(--ahc-borde);
+  border-radius: 12px;
+}
+
+.ahc-dia {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ahc-dia-titulo {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ahc-texto);
+}
+
+.ahc-lista {
   margin: 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
-.alumno-historial-item {
+.ahc-evento {
+  --ahc-tono: var(--ahc-ambar);
+  --ahc-tono-fondo: var(--ahc-ambar-fondo);
   display: grid;
-  grid-template-columns: minmax(7.5rem, 9rem) 1fr;
+  grid-template-columns: 32px 1fr auto;
   gap: 12px;
+  align-items: start;
   padding: 12px 14px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--ahc-fondo);
+  border: 1px solid var(--ahc-borde);
+  border-left: 4px solid var(--ahc-tono);
   border-radius: 12px;
 }
 
-.alumno-historial-fecha {
-  font-size: 12px;
-  font-weight: 600;
-  color: #64748b;
+.ahc-tono-verde {
+  --ahc-tono: var(--ahc-verde);
+  --ahc-tono-fondo: var(--ahc-verde-fondo);
 }
 
-.alumno-historial-resumen {
-  margin: 0 0 4px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #0f172a;
+.ahc-tono-rojo {
+  --ahc-tono: var(--ahc-rojo);
+  --ahc-tono-fondo: var(--ahc-rojo-fondo);
 }
 
-.alumno-historial-meta {
+.ahc-tono-azul {
+  --ahc-tono: var(--ahc-azul);
+  --ahc-tono-fondo: var(--ahc-azul-fondo);
+}
+
+.ahc-evento-icono {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: var(--ahc-tono);
+  background: var(--ahc-tono-fondo);
+  border-radius: 999px;
+}
+
+.ahc-evento-cuerpo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ahc-evento-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
   margin: 0;
-  font-size: 12px;
-  color: #64748b;
+  font-size: 14px;
 }
 
-.alumno-historial-accion {
-  font-family: ui-monospace, monospace;
-  font-size: 11px;
+.ahc-evento-accion {
+  font-weight: 600;
+  color: var(--ahc-tono);
+}
+
+.ahc-evento-persona {
+  font-weight: 700;
+  color: var(--ahc-texto);
+}
+
+.ahc-evento-etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.ahc-chip {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ahc-texto-suave);
+  background: var(--ahc-fondo-suave);
+  border: 1px solid var(--ahc-borde);
+  border-radius: 999px;
+}
+
+.ahc-chip--padres {
+  color: var(--ahc-morado);
+  background: var(--ahc-morado-fondo);
+  border-color: transparent;
+}
+
+.ahc-chip--recoge {
+  color: var(--ahc-verde);
+  background: var(--ahc-verde-fondo);
+  border-color: transparent;
+}
+
+.ahc-chip--emergencia {
+  color: var(--ahc-rojo);
+  background: var(--ahc-rojo-fondo);
+  border-color: transparent;
+}
+
+.ahc-cambios {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 2px 0 0;
+  padding: 8px 10px;
+  background: var(--ahc-fondo-suave);
+  border-radius: 8px;
+}
+
+.ahc-cambio {
+  display: grid;
+  grid-template-columns: minmax(8rem, 10rem) 1fr;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.ahc-cambio dt {
+  color: var(--ahc-texto-suave);
+}
+
+.ahc-cambio dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.ahc-antes {
+  color: var(--ahc-texto-suave);
+  text-decoration: line-through;
+}
+
+.ahc-despues {
+  font-weight: 700;
+  color: var(--ahc-texto);
+}
+
+.ahc-evento-quien {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--ahc-texto-suave);
+  text-align: right;
+}
+
+.ahc-evento-quien time {
+  font-weight: 700;
+  color: var(--ahc-texto);
+}
+
+.ahc-inicial {
+  background: var(--ahc-fondo);
+  border: 1px solid var(--ahc-borde);
+  border-radius: 12px;
+}
+
+.ahc-inicial-resumen {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.ahc-inicial-resumen::-webkit-details-marker {
+  display: none;
+}
+
+.ahc-inicial-flecha {
+  color: var(--ahc-texto-suave);
+  transition: transform 0.15s ease;
+}
+
+.ahc-inicial[open] .ahc-inicial-flecha {
+  transform: rotate(180deg);
+}
+
+.ahc-inicial-grupos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  padding: 4px 16px 16px;
+}
+
+.ahc-inicial-grupo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ahc-inicial-grupo ul {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ahc-persona {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  background: var(--ahc-fondo-suave);
+  border: 1px solid var(--ahc-borde);
+  border-radius: 8px;
+}
+
+.ahc-persona-nombre {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ahc-persona-datos {
+  font-size: 12px;
+  color: var(--ahc-texto-suave);
 }
 
 @media (max-width: 640px) {
-  .alumno-historial-item {
+  .ahc-evento {
+    grid-template-columns: 32px 1fr;
+  }
+
+  .ahc-evento-quien {
+    grid-column: 2;
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .ahc-cambio {
     grid-template-columns: 1fr;
+    gap: 2px;
   }
 }
 
