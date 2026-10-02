@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import type { AppDatabaseClient } from './dbTypes'
 
 const CANDIDATOS_POR_CONSULTA = 80
 const RESULTADOS_MAX = 15
@@ -241,7 +242,8 @@ function puntuarAlumno(
 async function consultarCandidatos(
   termino: string,
   cicloEscolar: number | null,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  db: AppDatabaseClient = supabase
 ): Promise<AlumnoBusquedaRow[]> {
   const esc = escaparIlike(termino)
   const patron = `%${esc}%`
@@ -256,7 +258,7 @@ async function consultarCandidatos(
   }
   const or = orParts.join(',')
 
-  let query = supabase
+  let query = db
     .from('alumno')
     .select(
       'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_ciclo_escolar, alumno_status'
@@ -289,6 +291,8 @@ export type BuscarAlumnosServiciosOpciones = {
    */
   cualquierCiclo?: boolean
   signal?: AbortSignal
+  /** Cliente de base de datos (por defecto el del navegador; en servidor, el admin). */
+  db?: AppDatabaseClient
 }
 
 /**
@@ -318,7 +322,7 @@ export async function buscarAlumnosServicios(
   const terminosValidos = [...terminosBusqueda].filter((t) => t.length >= MIN_CARACTERES)
 
   const lotes = await Promise.all(
-    terminosValidos.map((termino) => consultarCandidatos(termino, cicloFiltro, signal))
+    terminosValidos.map((termino) => consultarCandidatos(termino, cicloFiltro, signal, opts.db))
   )
   for (const filas of lotes) {
     for (const fila of filas) {

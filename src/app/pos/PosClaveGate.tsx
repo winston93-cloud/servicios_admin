@@ -45,7 +45,8 @@ export default function PosClaveGate({ children }: { children: ReactNode }) {
         setError(data.error || 'Contraseña incorrecta.')
         return
       }
-      router.replace('/dashboard')
+      setClave('')
+      setFase('ok')
     } catch {
       setError('No se pudo validar la contraseña. Intenta de nuevo.')
     } finally {

@@ -1,7 +1,5 @@
 import type { AuthSession } from '@/lib/portalAuthService'
 import { normalizarSesion } from '@/lib/portalAuthService'
-import { requireDesayunosAdminEnv } from '@/lib/desayunosInsforge'
-
 const PORTAL_SESSION_HEADER = 'x-portal-session'
 
 export function parsePortalSessionHeader(raw: string | null): AuthSession | null {
@@ -89,11 +87,4 @@ export async function proxyInsforgeDatabaseRequest(
     statusText: upstream.statusText,
     headers: responseHeaders,
   })
-}
-
-export async function proxyDesayunosDatabaseRequest(
-  request: Request,
-  upstreamPath: string
-): Promise<Response> {
-  return proxyInsforgeDatabaseRequest(request, upstreamPath, requireDesayunosAdminEnv())
 }
