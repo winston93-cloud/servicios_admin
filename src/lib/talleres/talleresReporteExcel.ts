@@ -1,5 +1,12 @@
 import ExcelJS from 'exceljs'
-import { etiquetaDia, etiquetaNivel, hora12, textoDuracion, type ReporteHorasMaestros } from '@/lib/talleres/talleresTypes'
+import {
+  etiquetaDia,
+  etiquetaNivel,
+  hora12,
+  textoDuracion,
+  textoIncidencia,
+  type ReporteHorasMaestros,
+} from '@/lib/talleres/talleresTypes'
 
 const NAVY = 'FF1E3A5F'
 const NAVY_SUAVE = 'FFE8EEF6'
@@ -8,6 +15,8 @@ const GRIS = 'FFF4F6FA'
 const BORDE = 'FFD5DCE6'
 const TEXTO = 'FF13233A'
 const MUTED = 'FF64748B'
+const AMBAR = 'FFB45309'
+const AMBAR_SUAVE = 'FFFFF3DC'
 
 const borde: Partial<ExcelJS.Borders> = {
   top: { style: 'thin', color: { argb: BORDE } },
@@ -135,9 +144,10 @@ export async function excelHorasMaestros(
     { width: 11 },
     { width: 11 },
     { width: 60 },
+    { width: 22 },
   ]
-  let f = encabezado(res, 8, 'Horas impartidas por maestro', r, generadoPor, generado)
-  filaTitulos(res, f, ['No.', 'Maestro', 'Talleres', 'Días con clase', 'Sesiones', 'Horas', 'Tiempo (h:mm)', 'Días de clase'])
+  let f = encabezado(res, 9, 'Horas impartidas por maestro', r, generadoPor, generado)
+  filaTitulos(res, f, ['No.', 'Maestro', 'Talleres', 'Días con clase', 'Sesiones', 'Horas', 'Tiempo (h:mm)', 'Días de clase', 'Llegó tarde / salió antes (informativo)'])
   const filaTitulo = f
   r.maestros.forEach((m, i) => {
     f++
@@ -151,18 +161,20 @@ export async function excelHorasMaestros(
       horas(m.minutos),
       hhmm(m.minutos),
       m.dias.map(fechaDia).join(', '),
+      m.incidencias ? `${m.incidencias} ${m.incidencias === 1 ? 'clase' : 'clases'} · ${textoDuracion(m.minutos_no_impartidos)}` : '—',
     ]
     row.eachCell({ includeEmpty: true }, (c, col) => {
       c.border = borde
-      c.font = { size: 10, color: { argb: TEXTO }, bold: col === 2 || col === 6 }
-      c.alignment = { vertical: 'top', wrapText: true, horizontal: col === 1 || (col >= 4 && col <= 7) ? 'center' : 'left' }
-      if (i % 2) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRIS } }
+      c.font = { size: 10, color: { argb: col === 9 && m.incidencias ? AMBAR : TEXTO }, bold: col === 2 || col === 6 || (col === 9 && m.incidencias > 0) }
+      c.alignment = { vertical: 'top', wrapText: true, horizontal: col === 1 || (col >= 4 && col <= 7) || col === 9 ? 'center' : 'left' }
+      if (col === 9 && m.incidencias) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AMBAR_SUAVE } }
+      else if (i % 2) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRIS } }
     })
     row.getCell(6).numFmt = '0.00'
   })
   if (!r.maestros.length) {
     f++
-    res.mergeCells(`A${f}:H${f}`)
+    res.mergeCells(`A${f}:I${f}`)
     res.getCell(`A${f}`).value = 'Sin clases con asistencia registrada en el periodo.'
     res.getCell(`A${f}`).font = { italic: true, color: { argb: MUTED } }
     res.getCell(`A${f}`).alignment = { horizontal: 'center' }
@@ -178,22 +190,24 @@ export async function excelHorasMaestros(
     horas(r.total_minutos),
     hhmm(r.total_minutos),
     textoDuracion(r.total_minutos),
+    r.total_incidencias ? `${r.total_incidencias} · ${textoDuracion(r.total_minutos_no_impartidos)}` : '—',
   ]
   total.eachCell({ includeEmpty: true }, (c, col) => {
     c.font = { bold: true, size: 11, color: { argb: NAVY } }
     c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CIAN_SUAVE } }
     c.border = { ...borde, top: { style: 'medium', color: { argb: NAVY } } }
-    c.alignment = { vertical: 'middle', horizontal: col >= 4 && col <= 7 ? 'center' : 'left' }
+    c.alignment = { vertical: 'middle', horizontal: (col >= 4 && col <= 7) || col === 9 ? 'center' : 'left' }
   })
   total.getCell(6).numFmt = '0.00'
   total.height = 22
-  if (r.maestros.length) res.autoFilter = { from: { row: filaTitulo, column: 1 }, to: { row: f - 1, column: 8 } }
+  if (r.maestros.length) res.autoFilter = { from: { row: filaTitulo, column: 1 }, to: { row: f - 1, column: 9 } }
 
   f += 2
   const nota = res.getCell(`A${f}`)
-  res.mergeCells(`A${f}:H${f}`)
+  res.mergeCells(`A${f}:I${f}`)
   nota.value =
     'Solo se cuentan los días con asistencia guardada. La duración de cada clase se toma del horario del grupo para ese día de la semana.' +
+    ' Las llegadas tarde y salidas anticipadas del maestro son informativas: no se descuentan de las horas.' +
     (r.sin_horario
       ? ` ${r.sin_horario} ${r.sin_horario === 1 ? 'registro' : 'registros'} de asistencia en días sin horario no suman horas (ver hoja Detalle).`
       : '')
@@ -218,13 +232,13 @@ export async function excelHorasMaestros(
 
   /* ── Detalle ── */
   const det = wb.addWorksheet('Detalle', { properties: { tabColor: { argb: 'FF00B8D4' } } })
-  det.columns = [{ width: 32 }, { width: 36 }, { width: 13 }, { width: 12 }, { width: 22 }, { width: 10 }, { width: 12 }]
-  f = encabezado(det, 7, 'Detalle de clases impartidas', r, generadoPor, generado)
+  det.columns = [{ width: 32 }, { width: 36 }, { width: 13 }, { width: 12 }, { width: 22 }, { width: 10 }, { width: 12 }, { width: 44 }]
+  f = encabezado(det, 8, 'Detalle de clases impartidas', r, generadoPor, generado)
   const filaTituloDet = f
-  filaTitulos(det, f, ['Maestro', 'Taller', 'Fecha', 'Día', 'Horario', 'Horas', 'Alumnos en clase'])
+  filaTitulos(det, f, ['Maestro', 'Taller', 'Fecha', 'Día', 'Horario', 'Horas', 'Alumnos en clase', 'Incidencia del maestro (informativo)'])
   for (const m of r.maestros) {
     f++
-    det.mergeCells(`A${f}:G${f}`)
+    det.mergeCells(`A${f}:H${f}`)
     const c = det.getCell(`A${f}`)
     c.value = `${m.nombre} · ${m.dias.length} ${m.dias.length === 1 ? 'día' : 'días'} · ${textoDuracion(m.minutos)}`
     c.font = { bold: true, size: 10, color: { argb: NAVY } }
@@ -243,18 +257,24 @@ export async function excelHorasMaestros(
         s.hora_inicio && s.hora_fin ? `${hora12(s.hora_inicio)} – ${hora12(s.hora_fin)}` : 'Sin horario ese día',
         horas(s.minutos),
         s.alumnos ?? '—',
+        s.incidencia && s.hora_inicio && s.hora_fin
+          ? [textoIncidencia(s.hora_inicio, s.hora_fin, s.incidencia), s.incidencia.motivo, s.incidencia.nota]
+              .filter(Boolean)
+              .join(' · ')
+          : '',
       ]
       row.eachCell({ includeEmpty: true }, (cell, col) => {
         cell.border = borde
-        cell.font = { size: 10, color: { argb: s.minutos ? TEXTO : 'FFB45309' } }
-        cell.alignment = { vertical: 'middle', horizontal: col >= 3 ? 'center' : 'left' }
-        if (i % 2) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRIS } }
+        cell.font = { size: 10, color: { argb: s.minutos && !(col === 8 && s.incidencia) ? TEXTO : AMBAR } }
+        cell.alignment = { vertical: 'middle', wrapText: col === 8, horizontal: col >= 3 && col < 8 ? 'center' : 'left' }
+        if (col === 8 && s.incidencia) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AMBAR_SUAVE } }
+        else if (i % 2) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRIS } }
       })
       row.getCell(6).numFmt = '0.00'
     })
     f++
     const sub = det.getRow(f)
-    sub.values = ['', '', '', '', 'Subtotal', horas(m.minutos), '']
+    sub.values = ['', '', '', '', 'Subtotal', horas(m.minutos), '', m.incidencias ? `${m.incidencias} con incidencia · ${textoDuracion(m.minutos_no_impartidos)}` : '']
     sub.eachCell({ includeEmpty: true }, (cell, col) => {
       cell.font = { bold: true, size: 10, color: { argb: NAVY } }
       cell.alignment = { horizontal: col >= 5 ? 'center' : 'left' }
@@ -264,7 +284,7 @@ export async function excelHorasMaestros(
   }
   f++
   const totDet = det.getRow(f)
-  totDet.values = ['TOTAL', '', '', '', `${r.total_sesiones} sesiones`, horas(r.total_minutos), '']
+  totDet.values = ['TOTAL', '', '', '', `${r.total_sesiones} sesiones`, horas(r.total_minutos), '', r.total_incidencias ? `${r.total_incidencias} con incidencia · ${textoDuracion(r.total_minutos_no_impartidos)}` : '']
   totDet.eachCell({ includeEmpty: true }, (cell, col) => {
     cell.font = { bold: true, size: 11, color: { argb: NAVY } }
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CIAN_SUAVE } }

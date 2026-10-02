@@ -1,13 +1,14 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { AlertTriangle, CalendarRange, ChevronDown, Clock, FileSpreadsheet, Loader2, Search } from 'lucide-react'
+import { AlertTriangle, CalendarRange, ChevronDown, Clock, FileSpreadsheet, Loader2, Search, Timer } from 'lucide-react'
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import {
   DIAS_TALLER,
   NIVELES_TALLER,
   etiquetaNivel,
   textoDuracion,
+  textoIncidencia,
   type ReporteHorasMaestros,
   type TallerAsignacion,
 } from '@/lib/talleres/talleresTypes'
@@ -190,7 +191,22 @@ export default function ReportesView({ asignaciones, onError }: Props) {
             <div><dt>Días con clase</dt><dd>{totalDias}</dd></div>
             <div><dt>Sesiones</dt><dd>{reporte.total_sesiones}</dd></div>
             <div data-destacado><dt>Total horas</dt><dd>{horasDecimal(reporte.total_minutos)}</dd></div>
+            {reporte.total_incidencias ? (
+              <div data-ambar>
+                <dt>Llegó tarde / salió antes</dt>
+                <dd>{reporte.total_incidencias}</dd>
+              </div>
+            ) : null}
           </dl>
+
+          {reporte.total_incidencias ? (
+            <p className="tl-rep-info">
+              <Timer size={16} aria-hidden />
+              {reporte.total_incidencias === 1 ? 'Hubo 1 clase' : `Hubo ${reporte.total_incidencias} clases`} en que el
+              maestro llegó tarde o salió antes ({textoDuracion(reporte.total_minutos_no_impartidos)} en total). Es
+              informativo: no se descuenta de las horas.
+            </p>
+          ) : null}
 
           {reporte.sin_horario > 0 ? (
             <p className="tl-rep-alerta">
@@ -216,6 +232,12 @@ export default function ReportesView({ asignaciones, onError }: Props) {
                           {m.sesiones === 1 ? 'sesión' : 'sesiones'} · {m.grupos.length}{' '}
                           {m.grupos.length === 1 ? 'grupo' : 'grupos'}
                         </span>
+                        {m.incidencias ? (
+                          <span className="tl-rep-inc">
+                            <Timer size={12} aria-hidden /> {m.incidencias}{' '}
+                            {m.incidencias === 1 ? 'incidencia' : 'incidencias'} · {textoDuracion(m.minutos_no_impartidos)}
+                          </span>
+                        ) : null}
                       </span>
                       <span className="tl-rep-horas">
                         <b>{horasDecimal(m.minutos)} h</b>
@@ -249,7 +271,7 @@ export default function ReportesView({ asignaciones, onError }: Props) {
                             <div className="tl-table-wrap">
                               <table className="tl-rep-tabla">
                                 <thead>
-                                  <tr><th>Fecha</th><th>Horario</th><th>Horas</th><th>Alumnos</th></tr>
+                                  <tr><th>Fecha</th><th>Horario</th><th>Horas</th><th>Alumnos</th><th>Maestro</th></tr>
                                 </thead>
                                 <tbody>
                                   {g.sesiones.map((s) => (
@@ -260,6 +282,15 @@ export default function ReportesView({ asignaciones, onError }: Props) {
                                       </td>
                                       <td>{horasDecimal(s.minutos)}</td>
                                       <td>{s.alumnos ?? '—'}</td>
+                                      <td>
+                                        {s.incidencia && s.hora_inicio && s.hora_fin ? (
+                                          <span className="tl-rep-inc" title={[s.incidencia.motivo, s.incidencia.nota].filter(Boolean).join(' · ') || undefined}>
+                                            {textoIncidencia(s.hora_inicio, s.hora_fin, s.incidencia)}
+                                          </span>
+                                        ) : (
+                                          <span className="tl-rep-ok">A tiempo</span>
+                                        )}
+                                      </td>
                                     </tr>
                                   ))}
                                 </tbody>

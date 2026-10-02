@@ -4,6 +4,7 @@ import {
   MAX_DIAS_REPORTE,
   NIVELES_TALLER,
   minutosDeHora,
+  minutosIncidencia,
   nombreMaestroTaller,
   nombreTallerCompleto,
   type GrupoHoras,
@@ -11,6 +12,7 @@ import {
   type ReporteHorasMaestros,
 } from '@/lib/talleres/talleresTypes'
 import { TalleresError, snapshotTalleres } from '@/lib/talleres/talleresService'
+import { SELECT_INCIDENCIA, mapIncidencia } from '@/lib/talleres/talleresAsistenciaService'
 
 function fecha(raw: unknown, campo: string): string {
   const s = String(raw ?? '').trim()
@@ -27,6 +29,7 @@ function diaSemana(f: string): number {
 /**
  * Horas impartidas por maestro en un nivel y rango de fechas.
  * Solo cuentan los días con asistencia guardada; la duración sale del horario del grupo para ese día.
+ * Llegadas tarde / salidas anticipadas del maestro se reportan aparte y no se descuentan.
  */
 export async function reporteHorasMaestros(params: {
   nivel: unknown
@@ -45,12 +48,20 @@ export async function reporteHorasMaestros(params: {
   const asignaciones = snap.asignaciones.filter((a) => a.niveles.includes(nivel))
   const base = { ciclo: snap.ciclo, nivel, desde, hasta }
   if (!asignaciones.length) {
-    return { ...base, maestros: [], total_minutos: 0, total_sesiones: 0, sin_horario: 0 }
+    return {
+      ...base,
+      maestros: [],
+      total_minutos: 0,
+      total_sesiones: 0,
+      sin_horario: 0,
+      total_incidencias: 0,
+      total_minutos_no_impartidos: 0,
+    }
   }
 
   const { data, error } = await createDbAdmin()
     .from('taller_asistencia')
-    .select('asignacion_id, fecha, total_alumnos')
+    .select(`asignacion_id, fecha, total_alumnos, ${SELECT_INCIDENCIA}`)
     .in('asignacion_id', asignaciones.map((a) => a.id))
     .gte('fecha', desde)
     .lte('fecha', hasta)
@@ -63,7 +74,7 @@ export async function reporteHorasMaestros(params: {
   const grupos = new Map<number, GrupoHoras>()
   let sinHorario = 0
 
-  for (const r of (data ?? []) as { asignacion_id: number; fecha: string; total_alumnos: number | null }[]) {
+  for (const r of (data ?? []) as Record<string, unknown>[]) {
     const a = aPorId.get(Number(r.asignacion_id))
     if (!a) continue
     const f = String(r.fecha).slice(0, 10)
@@ -76,6 +87,10 @@ export async function reporteHorasMaestros(params: {
       0
     )
     if (!delDia.length) sinHorario++
+    const incidencia = mapIncidencia(r)
+    const perdidos = delDia.length
+      ? minutosIncidencia(delDia[0].hora_inicio, delDia.at(-1)!.hora_fin, incidencia)
+      : { tarde: 0, antes: 0 }
     let g = grupos.get(a.id)
     if (!g) {
       const t = tPorId.get(a.taller_id)
@@ -97,6 +112,8 @@ export async function reporteHorasMaestros(params: {
       hora_fin: delDia.at(-1)?.hora_fin ?? null,
       minutos,
       alumnos: r.total_alumnos == null ? null : Number(r.total_alumnos),
+      incidencia,
+      minutos_no_impartidos: perdidos.tarde + perdidos.antes,
     })
   }
 
@@ -113,12 +130,19 @@ export async function reporteHorasMaestros(params: {
         sesiones: 0,
         dias: [],
         grupos: [],
+        incidencias: 0,
+        minutos_no_impartidos: 0,
       }
       maestros.set(a.maestro_id, m)
     }
     m.minutos += g.minutos
     m.sesiones += g.sesiones.length
     m.grupos.push(g)
+    for (const ss of g.sesiones) {
+      if (!ss.incidencia) continue
+      m.incidencias++
+      m.minutos_no_impartidos += ss.minutos_no_impartidos
+    }
   }
   for (const m of maestros.values()) {
     m.dias = [...new Set(m.grupos.flatMap((g) => g.sesiones.map((s) => s.fecha)))].sort()
@@ -132,5 +156,7 @@ export async function reporteHorasMaestros(params: {
     total_minutos: lista.reduce((s, m) => s + m.minutos, 0),
     total_sesiones: lista.reduce((s, m) => s + m.sesiones, 0),
     sin_horario: sinHorario,
+    total_incidencias: lista.reduce((s, m) => s + m.incidencias, 0),
+    total_minutos_no_impartidos: lista.reduce((s, m) => s + m.minutos_no_impartidos, 0),
   }
 }

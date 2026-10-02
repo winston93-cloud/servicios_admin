@@ -276,12 +276,54 @@ export type AlumnoAsistencia = {
   grado: string
 }
 
+/** El maestro llegó tarde y/o salió antes de la hora del horario (HH:MM; null = a tiempo). */
+export type IncidenciaMaestro = {
+  llegada: string | null
+  salida: string | null
+  motivo: string | null
+  nota: string | null
+  registrado_por: string | null
+  updated_at: string | null
+}
+
 export type RegistroAsistencia = {
   /** Alumnos contados en el salón (puede diferir de la lista). */
   total_alumnos: number | null
   faltas: number[]
   registrado_por: string | null
   updated_at: string
+  incidencia: IncidenciaMaestro | null
+}
+
+export const MOTIVOS_INCIDENCIA = ['Se retiró', 'Permiso de dirección', 'Emergencia', 'Otro'] as const
+
+/** "15:35" con 5 → "15:40" */
+export function horaMasMinutos(hhmm: string, minutos: number): string {
+  const t = minutosDeHora(hhmm) + minutos
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
+}
+
+/** Minutos que no se impartieron respecto al horario `inicio`–`fin`. */
+export function minutosIncidencia(
+  inicio: string,
+  fin: string,
+  inc: Pick<IncidenciaMaestro, 'llegada' | 'salida'> | null
+): { tarde: number; antes: number } {
+  if (!inc) return { tarde: 0, antes: 0 }
+  return {
+    tarde: inc.llegada ? Math.max(0, minutosDeHora(inc.llegada) - minutosDeHora(inicio)) : 0,
+    antes: inc.salida ? Math.max(0, minutosDeHora(fin) - minutosDeHora(inc.salida)) : 0,
+  }
+}
+
+/** "Llegó 3:10 PM (+10 min) · Salió 3:35 PM (−25 min)" */
+export function textoIncidencia(inicio: string, fin: string, inc: IncidenciaMaestro | null): string {
+  if (!inc || (!inc.llegada && !inc.salida)) return ''
+  const { tarde, antes } = minutosIncidencia(inicio, fin, inc)
+  const partes: string[] = []
+  if (inc.llegada) partes.push(`Llegó ${hora12(inc.llegada)} (+${tarde} min)`)
+  if (inc.salida) partes.push(`Salió ${hora12(inc.salida)} (−${antes} min)`)
+  return partes.join(' · ')
 }
 
 export type SesionAsistencia = {
@@ -324,6 +366,9 @@ export type SesionHoras = {
   hora_fin: string | null
   minutos: number
   alumnos: number | null
+  /** Informativo: no se descuenta de `minutos`. */
+  incidencia: IncidenciaMaestro | null
+  minutos_no_impartidos: number
 }
 
 export type GrupoHoras = {
@@ -343,6 +388,9 @@ export type MaestroHoras = {
   /** YYYY-MM-DD con al menos una clase registrada. */
   dias: string[]
   grupos: GrupoHoras[]
+  /** Clases en que llegó tarde o salió antes (informativo). */
+  incidencias: number
+  minutos_no_impartidos: number
 }
 
 export type ReporteHorasMaestros = {
@@ -355,6 +403,8 @@ export type ReporteHorasMaestros = {
   total_sesiones: number
   /** Sesiones con asistencia en un día sin horario definido (no suman horas). */
   sin_horario: number
+  total_incidencias: number
+  total_minutos_no_impartidos: number
 }
 
 export const MAX_DIAS_REPORTE = 400

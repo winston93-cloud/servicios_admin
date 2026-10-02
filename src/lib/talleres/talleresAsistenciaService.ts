@@ -6,8 +6,10 @@ import {
   lugarDeHorario,
   minutosDeHora,
   nombreMaestroTaller,
+  hora12,
   type AlumnoAsistencia,
   type AsistenciaDia,
+  type IncidenciaMaestro,
   type RegistroAsistencia,
   type SesionAsistencia,
 } from '@/lib/talleres/talleresTypes'
@@ -101,7 +103,7 @@ async function registrosDelDia(fecha: string, asignacionIds: number[]): Promise<
   if (!asignacionIds.length) return out
   const { data, error } = await db()
     .from('taller_asistencia')
-    .select('asignacion_id, total_alumnos, faltas, registrado_por, updated_at')
+    .select(`asignacion_id, total_alumnos, faltas, registrado_por, updated_at, ${SELECT_INCIDENCIA}`)
     .eq('fecha', fecha)
     .in('asignacion_id', asignacionIds)
   fail(error, 'Asistencia')
@@ -111,9 +113,29 @@ async function registrosDelDia(fecha: string, asignacionIds: number[]): Promise<
       faltas: Array.isArray(r.faltas) ? (r.faltas as unknown[]).map(Number) : [],
       registrado_por: (r.registrado_por as string | null) ?? null,
       updated_at: String(r.updated_at ?? ''),
+      incidencia: mapIncidencia(r),
     })
   }
   return out
+}
+
+export const SELECT_INCIDENCIA =
+  'llegada_maestro, salida_maestro, incidencia_motivo, incidencia_nota, incidencia_por, incidencia_at'
+
+const hhmm = (v: unknown) => (v ? String(v).slice(0, 5) : null)
+
+export function mapIncidencia(r: Record<string, unknown>): IncidenciaMaestro | null {
+  const llegada = hhmm(r.llegada_maestro)
+  const salida = hhmm(r.salida_maestro)
+  if (!llegada && !salida) return null
+  return {
+    llegada,
+    salida,
+    motivo: (r.incidencia_motivo as string | null) ?? null,
+    nota: (r.incidencia_nota as string | null) ?? null,
+    registrado_por: (r.incidencia_por as string | null) ?? null,
+    updated_at: (r.incidencia_at as string | null) ?? null,
+  }
 }
 
 export async function asistenciaDelDia(rawFecha: unknown): Promise<AsistenciaDia> {
@@ -198,5 +220,79 @@ export async function guardarAsistencia(body: Record<string, unknown>): Promise<
       { onConflict: 'asignacion_id,fecha' }
     )
   fail(error, 'Guardar asistencia')
-  return { total_alumnos: total, faltas, registrado_por: registradoPor, updated_at }
+  const { data: inc } = await db()
+    .from('taller_asistencia')
+    .select(SELECT_INCIDENCIA)
+    .eq('asignacion_id', asignacionId)
+    .eq('fecha', fecha)
+    .maybeSingle()
+  return {
+    total_alumnos: total,
+    faltas,
+    registrado_por: registradoPor,
+    updated_at,
+    incidencia: inc ? mapIncidencia(inc as Record<string, unknown>) : null,
+  }
+}
+
+function horaOpcional(raw: unknown, campo: string): string | null {
+  const s = String(raw ?? '').trim()
+  if (!s) return null
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(s.slice(0, 5))) throw new TalleresError(`Hora de ${campo} inválida.`)
+  return s.slice(0, 5)
+}
+
+/** Registra (o quita, si ambas horas vienen vacías) la llegada tarde / salida anticipada del maestro. */
+export async function guardarIncidencia(body: Record<string, unknown>): Promise<IncidenciaMaestro | null> {
+  const hoy = hoyMexico()
+  const fecha = fechaValida(body.fecha)
+  if (!esEditable(fecha, hoy)) {
+    throw new TalleresError(`Solo se puede editar hoy o los últimos ${DIAS_EDITABLES_ASISTENCIA} días.`)
+  }
+  const asignacionId = Number(body.asignacion_id) || 0
+  const snap = await snapshotTalleres()
+  const asignacion = snap.asignaciones.find((a) => a.id === asignacionId)
+  if (!asignacion) throw new TalleresError('El taller no existe o no es del ciclo actual.', 404)
+  const delDia = asignacion.horarios.filter((h) => h.dia === diaSemana(fecha))
+  if (!delDia.length) throw new TalleresError('Ese taller no tiene clase en la fecha elegida.')
+  const inicio = Math.min(...delDia.map((h) => minutosDeHora(h.hora_inicio)))
+  const fin = Math.max(...delDia.map((h) => minutosDeHora(h.hora_fin)))
+  const rango = `${hora12(delDia[0].hora_inicio)} – ${hora12(delDia.at(-1)!.hora_fin)}`
+
+  const { data: fila, error: fErr } = await db()
+    .from('taller_asistencia')
+    .select('id')
+    .eq('asignacion_id', asignacionId)
+    .eq('fecha', fecha)
+    .maybeSingle()
+  fail(fErr, 'Asistencia')
+  if (!fila) throw new TalleresError('Primero guarda la asistencia de este taller.')
+
+  const llegada = horaOpcional(body.llegada, 'llegada')
+  const salida = horaOpcional(body.salida, 'salida')
+  if (llegada && (minutosDeHora(llegada) <= inicio || minutosDeHora(llegada) >= fin)) {
+    throw new TalleresError(`La hora de llegada debe quedar dentro de la clase (${rango}) y después del inicio.`)
+  }
+  if (salida && (minutosDeHora(salida) <= inicio || minutosDeHora(salida) >= fin)) {
+    throw new TalleresError(`La hora de salida debe quedar dentro de la clase (${rango}) y antes del final.`)
+  }
+  if (llegada && salida && minutosDeHora(salida) <= minutosDeHora(llegada)) {
+    throw new TalleresError('La salida debe ser después de la llegada.')
+  }
+
+  const hay = Boolean(llegada || salida)
+  const cambios = {
+    llegada_maestro: llegada,
+    salida_maestro: salida,
+    incidencia_motivo: hay ? String(body.motivo ?? '').trim().slice(0, 60) || null : null,
+    incidencia_nota: hay ? String(body.nota ?? '').trim().slice(0, 300) || null : null,
+    incidencia_por: hay ? String(body.registrado_por ?? '').trim().slice(0, 80) || null : null,
+    incidencia_at: hay ? new Date().toISOString() : null,
+  }
+  const { error } = await db()
+    .from('taller_asistencia')
+    .update(cambios)
+    .eq('id', Number((fila as { id: number }).id))
+  fail(error, 'Guardar incidencia')
+  return mapIncidencia(cambios)
 }
