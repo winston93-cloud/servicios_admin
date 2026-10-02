@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   CalendarDays,
   Check,
@@ -12,7 +12,10 @@ import {
   ShoppingCart,
   Trash2,
   UserRound,
+  UtensilsCrossed,
+  Wallet,
   X,
+  type LucideIcon,
 } from 'lucide-react'
 import { posApi } from '@/lib/pos/posApi'
 import {
@@ -45,6 +48,47 @@ const diaSemana = (iso: string) => (fechaIsoADate(iso).getDay() + 6) % 7
 function semanaHabil(desde: string): string[] {
   const inicio = diaHabilDesde(desde)
   return Array.from({ length: 5 - diaSemana(inicio) }, (_, i) => sumarDias(inicio, i))
+}
+
+type Categoria = 'desayuno' | 'comida' | 'estancia' | 'tarea' | 'otro'
+
+/** Color de la tecla según el tipo de servicio (se deduce del nombre del catálogo). */
+function categoriaProducto(p: PosProducto): Categoria {
+  const n = p.nombre.toLowerCase()
+  if (n.includes('desayuno') || n.includes('media')) return 'desayuno'
+  if (n.includes('comida')) return 'comida'
+  if (n.includes('est')) return 'estancia'
+  if (n.includes('tarea')) return 'tarea'
+  return 'otro'
+}
+
+function StepHead({
+  id,
+  icono: Icono,
+  titulo,
+  detalle,
+  listo,
+  children,
+}: {
+  id: string
+  icono: LucideIcon
+  titulo: string
+  detalle?: string
+  listo?: boolean
+  children?: ReactNode
+}) {
+  return (
+    <header className="cj-step-head">
+      <span className={`cj-step-icon${listo ? ' is-done' : ''}`} aria-hidden>
+        {listo ? <Check size={18} strokeWidth={2.5} /> : <Icono size={18} strokeWidth={2.25} />}
+      </span>
+      <div className="cj-step-title">
+        <h2 id={id}>{titulo}</h2>
+        {detalle ? <p>{detalle}</p> : null}
+      </div>
+      {children}
+    </header>
+  )
 }
 
 function billetesSugeridos(total: number): number[] {
@@ -282,10 +326,13 @@ export default function VentaView({ productos, activa }: { productos: PosProduct
       <div className="cj-venta-main">
         {/* Paso 1 */}
         <section className="cj-card cj-step cj-area-cliente" aria-labelledby="cj-paso1">
-          <header className="cj-step-head">
-            <span className={`cj-step-num${cliente ? ' is-done' : ''}`}>{cliente ? <Check size={16} /> : 1}</span>
-            <h2 id="cj-paso1">¿Para quién es?</h2>
-          </header>
+          <StepHead
+            id="cj-paso1"
+            icono={UserRound}
+            titulo="¿Para quién es?"
+            detalle="Alumno, docente o externo"
+            listo={!!cliente}
+          />
 
           {cliente ? (
             <div className="cj-cliente">
@@ -312,7 +359,23 @@ export default function VentaView({ productos, activa }: { productos: PosProduct
               </button>
             </div>
           ) : (
-            <ClienteBuscador ref={buscadorRef} onSeleccion={seleccionarCliente} />
+            <>
+              <ClienteBuscador ref={buscadorRef} onSeleccion={seleccionarCliente} />
+              <div className="cj-cliente-vacio">
+                <span className="cj-cliente-vacio-icon" aria-hidden>
+                  <UserRound size={30} strokeWidth={1.75} />
+                </span>
+                <p className="cj-cliente-vacio-titulo">Empieza por la persona</p>
+                <p className="cj-cliente-vacio-texto">
+                  Escribe nombre, apellidos o número de control. Usa las flechas y Enter para elegir.
+                </p>
+                <div className="cj-cliente-vacio-keys">
+                  <span><kbd className="cj-kbd">F2</kbd> Buscar</span>
+                  <span><kbd className="cj-kbd">F4</kbd> Código</span>
+                  <span><kbd className="cj-kbd">F9</kbd> Pago</span>
+                </div>
+              </div>
+            </>
           )}
 
           {cliente ? (
@@ -368,10 +431,13 @@ export default function VentaView({ productos, activa }: { productos: PosProduct
 
         {/* Paso 2 */}
         <section className="cj-card cj-step cj-area-productos" aria-labelledby="cj-paso2">
-          <header className="cj-step-head">
-            <span className={`cj-step-num${carrito.length ? ' is-done' : ''}`}>{carrito.length ? <Check size={16} /> : 2}</span>
-            <h2 id="cj-paso2">Productos y días</h2>
-          </header>
+          <StepHead
+            id="cj-paso2"
+            icono={UtensilsCrossed}
+            titulo="Productos y días"
+            detalle="Toca un producto o escribe su código"
+            listo={carrito.length > 0}
+          />
 
           <div className="cj-fechas">
             <p className="cj-label">
@@ -463,7 +529,7 @@ export default function VentaView({ productos, activa }: { productos: PosProduct
                   key={p.id}
                   type="button"
                   role="listitem"
-                  className={`cj-prod${resaltado ? ' is-match' : ''}`}
+                  className={`cj-prod cj-prod--${categoriaProducto(p)}${resaltado ? ' is-match' : ''}`}
                   onClick={() => agregar(p)}
                   title={`Agregar ${p.nombre}`}
                 >
@@ -478,16 +544,18 @@ export default function VentaView({ productos, activa }: { productos: PosProduct
 
         {/* Carrito */}
         <section className="cj-card cj-area-orden" aria-labelledby="cj-carrito">
-          <header className="cj-card-head">
-            <h2 id="cj-carrito">
-              <Receipt size={18} aria-hidden /> Orden
-            </h2>
+          <StepHead
+            id="cj-carrito"
+            icono={Receipt}
+            titulo="Orden"
+            detalle={carrito.length ? `${piezas} ${piezas === 1 ? 'servicio' : 'servicios'} agrupados por día` : 'Aún sin productos'}
+          >
             {carrito.length ? (
-              <button type="button" className="cj-btn cj-btn--ghost cj-btn--sm" onClick={() => setCarrito([])}>
+              <button type="button" className="cj-btn cj-btn--ghost cj-btn--sm cj-step-action" onClick={() => setCarrito([])}>
                 <Trash2 size={15} aria-hidden /> Vaciar
               </button>
             ) : null}
-          </header>
+          </StepHead>
 
           {carrito.length === 0 ? (
             <div className="cj-empty">
@@ -569,10 +637,7 @@ export default function VentaView({ productos, activa }: { productos: PosProduct
       {/* Cobro */}
       <aside className="cj-venta-side">
         <section className="cj-card cj-cobro cj-area-cobro" aria-labelledby="cj-cobro">
-          <header className="cj-step-head">
-            <span className="cj-step-num">3</span>
-            <h2 id="cj-cobro">Cobrar</h2>
-          </header>
+          <StepHead id="cj-cobro" icono={Wallet} titulo="Cobrar" detalle="Captura el pago y presiona P" />
 
           <div className="cj-cobro-body">
             <div className="cj-cobro-resumen">
