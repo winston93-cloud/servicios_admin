@@ -28,8 +28,8 @@ function diaSemana(f: string): number {
 
 /**
  * Horas impartidas por maestro en un nivel y rango de fechas.
- * Solo cuentan los días con asistencia guardada; la duración sale del horario del grupo para ese día.
- * Llegadas tarde / salidas anticipadas del maestro se reportan aparte y no se descuentan.
+ * Cuentan los días con asistencia o con horario del maestro registrado; la duración sale del horario del grupo.
+ * Si el maestro no asistió, esa clase no suma. Llegadas tarde / salidas anticipadas son informativas.
  */
 export async function reporteHorasMaestros(params: {
   nivel: unknown
@@ -56,6 +56,7 @@ export async function reporteHorasMaestros(params: {
       sin_horario: 0,
       total_incidencias: 0,
       total_minutos_no_impartidos: 0,
+      total_faltas_maestro: 0,
     }
   }
 
@@ -82,13 +83,13 @@ export async function reporteHorasMaestros(params: {
     const delDia = a.horarios
       .filter((h) => h.dia === dia)
       .sort((x, y) => minutosDeHora(x.hora_inicio) - minutosDeHora(y.hora_inicio))
-    const minutos = delDia.reduce(
+    const incidencia = mapIncidencia(r)
+    const minutos = incidencia?.falto ? 0 : delDia.reduce(
       (s, h) => s + Math.max(0, minutosDeHora(h.hora_fin) - minutosDeHora(h.hora_inicio)),
       0
     )
     if (!delDia.length) sinHorario++
-    const incidencia = mapIncidencia(r)
-    const perdidos = delDia.length
+    const perdidos = delDia.length && !incidencia?.falto
       ? minutosIncidencia(delDia[0].hora_inicio, delDia.at(-1)!.hora_fin, incidencia)
       : { tarde: 0, antes: 0 }
     let g = grupos.get(a.id)
@@ -132,20 +133,27 @@ export async function reporteHorasMaestros(params: {
         grupos: [],
         incidencias: 0,
         minutos_no_impartidos: 0,
+        faltas_maestro: 0,
       }
       maestros.set(a.maestro_id, m)
     }
     m.minutos += g.minutos
-    m.sesiones += g.sesiones.length
+    m.sesiones += g.sesiones.filter((ss) => !ss.incidencia?.falto).length
     m.grupos.push(g)
     for (const ss of g.sesiones) {
       if (!ss.incidencia) continue
+      if (ss.incidencia.falto) {
+        m.faltas_maestro++
+        continue
+      }
       m.incidencias++
       m.minutos_no_impartidos += ss.minutos_no_impartidos
     }
   }
   for (const m of maestros.values()) {
-    m.dias = [...new Set(m.grupos.flatMap((g) => g.sesiones.map((s) => s.fecha)))].sort()
+    m.dias = [
+      ...new Set(m.grupos.flatMap((g) => g.sesiones.filter((s) => !s.incidencia?.falto).map((s) => s.fecha))),
+    ].sort()
     m.grupos.sort((x, y) => x.taller.localeCompare(y.taller, 'es', { numeric: true }))
   }
   const lista = [...maestros.values()].sort((x, y) => x.nombre.localeCompare(y.nombre, 'es'))
@@ -158,5 +166,6 @@ export async function reporteHorasMaestros(params: {
     sin_horario: sinHorario,
     total_incidencias: lista.reduce((s, m) => s + m.incidencias, 0),
     total_minutos_no_impartidos: lista.reduce((s, m) => s + m.minutos_no_impartidos, 0),
+    total_faltas_maestro: lista.reduce((s, m) => s + m.faltas_maestro, 0),
   }
 }

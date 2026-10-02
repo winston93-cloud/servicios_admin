@@ -40,6 +40,13 @@ function nombreGrupo(taller: string, niveles: number[], nivel: number): string {
   return otros.length ? `${taller} (compartido con ${otros.map(etiquetaNivel).join(' y ')})` : taller
 }
 
+function textoIncidencias(faltas: number, incidencias: number, minutos: number): string {
+  const partes: string[] = []
+  if (faltas) partes.push(`${faltas} ${faltas === 1 ? 'falta' : 'faltas'}`)
+  if (incidencias) partes.push(`${incidencias} tarde/antes · ${textoDuracion(minutos)}`)
+  return partes.join(' · ') || '—'
+}
+
 function horas(minutos: number): number {
   return Math.round((minutos / 60) * 100) / 100
 }
@@ -147,7 +154,7 @@ export async function excelHorasMaestros(
     { width: 22 },
   ]
   let f = encabezado(res, 9, 'Horas impartidas por maestro', r, generadoPor, generado)
-  filaTitulos(res, f, ['No.', 'Maestro', 'Talleres', 'Días con clase', 'Sesiones', 'Horas', 'Tiempo (h:mm)', 'Días de clase', 'Llegó tarde / salió antes (informativo)'])
+  filaTitulos(res, f, ['No.', 'Maestro', 'Talleres', 'Días con clase', 'Sesiones', 'Horas', 'Tiempo (h:mm)', 'Días de clase', 'Faltas del maestro / llegó tarde o salió antes'])
   const filaTitulo = f
   r.maestros.forEach((m, i) => {
     f++
@@ -161,13 +168,14 @@ export async function excelHorasMaestros(
       horas(m.minutos),
       hhmm(m.minutos),
       m.dias.map(fechaDia).join(', '),
-      m.incidencias ? `${m.incidencias} ${m.incidencias === 1 ? 'clase' : 'clases'} · ${textoDuracion(m.minutos_no_impartidos)}` : '—',
+      textoIncidencias(m.faltas_maestro, m.incidencias, m.minutos_no_impartidos),
     ]
+    const conInc = m.incidencias + m.faltas_maestro > 0
     row.eachCell({ includeEmpty: true }, (c, col) => {
       c.border = borde
-      c.font = { size: 10, color: { argb: col === 9 && m.incidencias ? AMBAR : TEXTO }, bold: col === 2 || col === 6 || (col === 9 && m.incidencias > 0) }
+      c.font = { size: 10, color: { argb: col === 9 && conInc ? AMBAR : TEXTO }, bold: col === 2 || col === 6 || (col === 9 && conInc) }
       c.alignment = { vertical: 'top', wrapText: true, horizontal: col === 1 || (col >= 4 && col <= 7) || col === 9 ? 'center' : 'left' }
-      if (col === 9 && m.incidencias) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AMBAR_SUAVE } }
+      if (col === 9 && conInc) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AMBAR_SUAVE } }
       else if (i % 2) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GRIS } }
     })
     row.getCell(6).numFmt = '0.00'
@@ -190,7 +198,7 @@ export async function excelHorasMaestros(
     horas(r.total_minutos),
     hhmm(r.total_minutos),
     textoDuracion(r.total_minutos),
-    r.total_incidencias ? `${r.total_incidencias} · ${textoDuracion(r.total_minutos_no_impartidos)}` : '—',
+    textoIncidencias(r.total_faltas_maestro, r.total_incidencias, r.total_minutos_no_impartidos),
   ]
   total.eachCell({ includeEmpty: true }, (c, col) => {
     c.font = { bold: true, size: 11, color: { argb: NAVY } }
@@ -206,8 +214,8 @@ export async function excelHorasMaestros(
   const nota = res.getCell(`A${f}`)
   res.mergeCells(`A${f}:I${f}`)
   nota.value =
-    'Solo se cuentan los días con asistencia guardada. La duración de cada clase se toma del horario del grupo para ese día de la semana.' +
-    ' Las llegadas tarde y salidas anticipadas del maestro son informativas: no se descuentan de las horas.' +
+    'Se cuentan los días con asistencia o con horario del maestro registrado; la duración de cada clase se toma del horario del grupo para ese día de la semana.' +
+    ' Las clases a las que el maestro no asistió no suman horas. Las llegadas tarde y salidas anticipadas son informativas: no se descuentan.' +
     (r.sin_horario
       ? ` ${r.sin_horario} ${r.sin_horario === 1 ? 'registro' : 'registros'} de asistencia en días sin horario no suman horas (ver hoja Detalle).`
       : '')
@@ -235,7 +243,7 @@ export async function excelHorasMaestros(
   det.columns = [{ width: 32 }, { width: 36 }, { width: 13 }, { width: 12 }, { width: 22 }, { width: 10 }, { width: 12 }, { width: 44 }]
   f = encabezado(det, 8, 'Detalle de clases impartidas', r, generadoPor, generado)
   const filaTituloDet = f
-  filaTitulos(det, f, ['Maestro', 'Taller', 'Fecha', 'Día', 'Horario', 'Horas', 'Alumnos en clase', 'Incidencia del maestro (informativo)'])
+  filaTitulos(det, f, ['Maestro', 'Taller', 'Fecha', 'Día', 'Horario', 'Horas', 'Alumnos en clase', 'Incidencia del maestro'])
   for (const m of r.maestros) {
     f++
     det.mergeCells(`A${f}:H${f}`)
@@ -274,7 +282,7 @@ export async function excelHorasMaestros(
     })
     f++
     const sub = det.getRow(f)
-    sub.values = ['', '', '', '', 'Subtotal', horas(m.minutos), '', m.incidencias ? `${m.incidencias} con incidencia · ${textoDuracion(m.minutos_no_impartidos)}` : '']
+    sub.values = ['', '', '', '', 'Subtotal', horas(m.minutos), '', m.incidencias + m.faltas_maestro ? textoIncidencias(m.faltas_maestro, m.incidencias, m.minutos_no_impartidos) : '']
     sub.eachCell({ includeEmpty: true }, (cell, col) => {
       cell.font = { bold: true, size: 10, color: { argb: NAVY } }
       cell.alignment = { horizontal: col >= 5 ? 'center' : 'left' }
@@ -284,7 +292,7 @@ export async function excelHorasMaestros(
   }
   f++
   const totDet = det.getRow(f)
-  totDet.values = ['TOTAL', '', '', '', `${r.total_sesiones} sesiones`, horas(r.total_minutos), '', r.total_incidencias ? `${r.total_incidencias} con incidencia · ${textoDuracion(r.total_minutos_no_impartidos)}` : '']
+  totDet.values = ['TOTAL', '', '', '', `${r.total_sesiones} sesiones`, horas(r.total_minutos), '', r.total_incidencias + r.total_faltas_maestro ? textoIncidencias(r.total_faltas_maestro, r.total_incidencias, r.total_minutos_no_impartidos) : '']
   totDet.eachCell({ includeEmpty: true }, (cell, col) => {
     cell.font = { bold: true, size: 11, color: { argb: NAVY } }
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: CIAN_SUAVE } }

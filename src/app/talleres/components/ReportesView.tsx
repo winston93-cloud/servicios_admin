@@ -121,8 +121,8 @@ export default function ReportesView({ asignaciones, onError }: Props) {
             <Clock size={18} aria-hidden /> Horas impartidas por maestro
           </h2>
           <p className="tl-rep-lead">
-            Para el pago por hora: suma las clases de cada maestro en el periodo. Solo cuentan los días en que se guardó
-            asistencia; la duración sale del horario del grupo para ese día.
+            Para el pago por hora: suma las clases de cada maestro en el periodo. Cuentan los días con asistencia o con
+            horario del maestro registrado (sin las clases a las que no asistió); la duración sale del horario del grupo.
           </p>
         </div>
       </header>
@@ -191,6 +191,12 @@ export default function ReportesView({ asignaciones, onError }: Props) {
             <div><dt>Días con clase</dt><dd>{totalDias}</dd></div>
             <div><dt>Sesiones</dt><dd>{reporte.total_sesiones}</dd></div>
             <div data-destacado><dt>Total horas</dt><dd>{horasDecimal(reporte.total_minutos)}</dd></div>
+            {reporte.total_faltas_maestro ? (
+              <div data-ambar>
+                <dt>Maestro no asistió</dt>
+                <dd>{reporte.total_faltas_maestro}</dd>
+              </div>
+            ) : null}
             {reporte.total_incidencias ? (
               <div data-ambar>
                 <dt>Llegó tarde / salió antes</dt>
@@ -199,6 +205,14 @@ export default function ReportesView({ asignaciones, onError }: Props) {
             ) : null}
           </dl>
 
+          {reporte.total_faltas_maestro ? (
+            <p className="tl-rep-info">
+              <Timer size={16} aria-hidden />
+              {reporte.total_faltas_maestro === 1
+                ? 'En 1 clase el maestro no asistió; esa clase no suma horas.'
+                : `En ${reporte.total_faltas_maestro} clases el maestro no asistió; esas clases no suman horas.`}
+            </p>
+          ) : null}
           {reporte.total_incidencias ? (
             <p className="tl-rep-info">
               <Timer size={16} aria-hidden />
@@ -232,6 +246,12 @@ export default function ReportesView({ asignaciones, onError }: Props) {
                           {m.sesiones === 1 ? 'sesión' : 'sesiones'} · {m.grupos.length}{' '}
                           {m.grupos.length === 1 ? 'grupo' : 'grupos'}
                         </span>
+                        {m.faltas_maestro ? (
+                          <span className="tl-rep-inc" data-falta>
+                            <Timer size={12} aria-hidden /> No asistió a {m.faltas_maestro}{' '}
+                            {m.faltas_maestro === 1 ? 'clase' : 'clases'}
+                          </span>
+                        ) : null}
                         {m.incidencias ? (
                           <span className="tl-rep-inc">
                             <Timer size={12} aria-hidden /> {m.incidencias}{' '}
@@ -284,7 +304,7 @@ export default function ReportesView({ asignaciones, onError }: Props) {
                                       <td>{s.alumnos ?? '—'}</td>
                                       <td>
                                         {s.incidencia && s.hora_inicio && s.hora_fin ? (
-                                          <span className="tl-rep-inc" title={[s.incidencia.motivo, s.incidencia.nota].filter(Boolean).join(' · ') || undefined}>
+                                          <span className="tl-rep-inc" data-falta={s.incidencia.falto || undefined} title={[s.incidencia.motivo, s.incidencia.nota].filter(Boolean).join(' · ') || undefined}>
                                             {textoIncidencia(s.hora_inicio, s.hora_fin, s.incidencia)}
                                           </span>
                                         ) : (

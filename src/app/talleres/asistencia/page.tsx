@@ -18,11 +18,11 @@ import {
   RefreshCw,
   Save,
   Timer,
-  Trash2,
   User,
   X,
 } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
+import { TlModal } from '../components/TalleresUi'
 import { parsePortalSessionHeader, readPortalSessionForFetch } from '@/lib/insforgeDbProxyShared'
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import {
@@ -45,7 +45,7 @@ import './asistencia.css'
 
 const CLAVE_NOMBRE = 'talleres-asistencia-nombre'
 
-type DatosIncidencia = { llegada: string | null; salida: string | null; motivo: string; nota: string }
+type DatosIncidencia = { falto: boolean; llegada: string | null; salida: string | null; motivo: string; nota: string }
 
 type Borrador = {
   faltas: Set<number>
@@ -113,6 +113,7 @@ export default function AsistenciaTalleresPage() {
   const [borradores, setBorradores] = useState<Record<number, Borrador>>({})
   const [abierta, setAbierta] = useState<number | null>(null)
   const [guardando, setGuardando] = useState<number | null>(null)
+  const [modalInc, setModalInc] = useState<number | null>(null)
   const [nombre, setNombre] = useState('')
   const [empleado, setEmpleado] = useState<string | null>(null)
 
@@ -266,6 +267,7 @@ export default function AsistenciaTalleresPage() {
       setBorradores((prev) => ({ ...prev, [s.asignacion_id]: { ...b, sucio: false } }))
       setAviso(`Asistencia de ${s.taller} guardada.`)
       setAbierta(null)
+      setModalInc(s.asignacion_id)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al guardar')
     } finally {
@@ -275,7 +277,7 @@ export default function AsistenciaTalleresPage() {
 
   const guardarIncidencia = async (
     s: SesionAsistencia,
-    datos: { llegada: string | null; salida: string | null; motivo: string; nota: string }
+    datos: DatosIncidencia
   ): Promise<boolean> => {
     if (!fecha) return false
     const quien = empleado ?? nombre.trim()
@@ -298,13 +300,15 @@ export default function AsistenciaTalleresPage() {
         prev
           ? {
               ...prev,
-              sesiones: prev.sesiones.map((x) =>
-                x.asignacion_id === s.asignacion_id && x.registro ? { ...x, registro: { ...x.registro, incidencia } } : x
-              ),
+              sesiones: prev.sesiones.map((x) => (x.asignacion_id === s.asignacion_id ? { ...x, incidencia } : x)),
             }
           : prev
       )
-      setAviso(incidencia ? `Horario del maestro de ${s.taller} registrado.` : `Se quitó la incidencia de ${s.taller}.`)
+      setAviso(
+        incidencia
+          ? `${s.taller}: ${textoIncidencia(s.hora_inicio, s.hora_fin, incidencia)}.`
+          : `${s.taller}: el maestro llegó a tiempo.`
+      )
       return true
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al guardar')
@@ -356,7 +360,7 @@ export default function AsistenciaTalleresPage() {
           <p className="tl-kicker">Talleres{data ? ` · Ciclo ${data.ciclo.nombre}` : ''}</p>
           <h1 className="tl-title">Asistencia diaria</h1>
           <p className="tl-lead">
-            Todos aparecen presentes: toca a quien falte y guarda. Registra también cuántos alumnos hay en el salón.
+            Todos aparecen presentes: toca a quien falte y guarda. Con el botón «Maestro» anota si llegó tarde, salió antes o no asistió.
           </p>
         </header>
 
@@ -487,7 +491,7 @@ export default function AsistenciaTalleresPage() {
                     onTodos={() => todosPresentes(s.asignacion_id)}
                     onTotal={(v) => cambiarTotal(s.asignacion_id, v)}
                     onGuardar={() => void guardar(s)}
-                    onIncidencia={(d) => guardarIncidencia(s, d)}
+                    onIncidencia={() => setModalInc(s.asignacion_id)}
                   />
                 ))}
               </ul>
@@ -495,6 +499,20 @@ export default function AsistenciaTalleresPage() {
           ))
         ) : null}
       </div>
+      {(() => {
+        const s = modalInc != null ? sesiones.find((x) => x.asignacion_id === modalInc) : undefined
+        return s && data?.editable ? (
+          <ModalIncidencia
+            key={`${s.asignacion_id}-${s.incidencia?.updated_at ?? ''}`}
+            s={s}
+            onCerrar={() => setModalInc(null)}
+            onGuardar={async (d) => {
+              const ok = await guardarIncidencia(s, d)
+              if (ok) setModalInc(null)
+            }}
+          />
+        ) : null
+      })()}
     </div>
   )
 }
@@ -522,9 +540,9 @@ function TarjetaSesion({
   onTodos: () => void
   onTotal: (v: number) => void
   onGuardar: () => void
-  onIncidencia: (d: DatosIncidencia) => Promise<boolean>
+  onIncidencia: () => void
 }) {
-  const incidencia = s.registro?.incidencia ?? null
+  const incidencia = s.incidencia
   const txtIncidencia = textoIncidencia(s.hora_inicio, s.hora_fin, incidencia)
   const inscritos = s.alumnos.length
   const faltas = b.faltas.size
@@ -544,6 +562,7 @@ function TarjetaSesion({
 
   return (
     <li className="as-card" data-estado={estado} data-abierta={abierta || undefined} style={{ ['--as-color' as string]: s.color, ['--tl-color' as string]: s.color }}>
+      <div className="as-card-fila">
       <button type="button" className="as-card-head" onClick={onAbrir} aria-expanded={abierta} aria-controls={cuerpoId}>
         <span className="as-card-info">
           <span className="as-card-top">
@@ -574,6 +593,20 @@ function TarjetaSesion({
           <ChevronDown size={18} aria-hidden className="as-chevron" />
         </span>
       </button>
+      {editable ? (
+        <button
+          type="button"
+          className="as-inc-btn"
+          data-con={incidencia ? (incidencia.falto ? 'falta' : 'inc') : undefined}
+          onClick={onIncidencia}
+          aria-label={`Horario del maestro de ${s.taller}${txtIncidencia ? `: ${txtIncidencia}` : ''}`}
+          title="¿Llegó tarde, salió antes o no asistió?"
+        >
+          <Timer size={20} aria-hidden />
+          <span>Maestro</span>
+        </button>
+      ) : null}
+      </div>
 
       {abierta ? (
         <div className="as-card-cuerpo" id={cuerpoId}>
@@ -656,12 +689,8 @@ function TarjetaSesion({
             ) : null}
           </div>
 
-          {s.registro ? (
-            <PanelIncidencia key={incidencia?.updated_at ?? 'sin'} s={s} incidencia={incidencia} editable={editable} onGuardar={onIncidencia} />
-          ) : editable ? (
-            <p className="as-inc-hint">
-              <Timer size={14} aria-hidden /> Al guardar la asistencia podrás anotar si el maestro llegó tarde o salió antes.
-            </p>
+          {incidencia ? (
+            <ResumenIncidencia s={s} incidencia={incidencia} editable={editable} onEditar={onIncidencia} />
           ) : null}
 
           <div className="as-pie">
@@ -691,79 +720,94 @@ function TarjetaSesion({
 const RAPIDOS_TARDE = [5, 10, 15, 30]
 const RAPIDOS_ANTES = [15, 30, 45, 60]
 
-function PanelIncidencia({
+function ResumenIncidencia({
   s,
   incidencia,
   editable,
+  onEditar,
+}: {
+  s: SesionAsistencia
+  incidencia: IncidenciaMaestro
+  editable: boolean
+  onEditar: () => void
+}) {
+  const duracion = minutosDeHora(s.hora_fin) - minutosDeHora(s.hora_inicio)
+  const perdidos = minutosIncidencia(s.hora_inicio, s.hora_fin, incidencia)
+  return (
+    <div className="as-inc-resumen" data-falta={incidencia.falto || undefined}>
+      <Timer size={18} aria-hidden className="as-inc-icono" />
+      <div className="as-inc-resumen-txt">
+        <strong>{textoIncidencia(s.hora_inicio, s.hora_fin, incidencia)}</strong>
+        <span>
+          {incidencia.falto
+            ? 'Esta clase no suma horas al maestro'
+            : `Impartió ${textoDuracion(Math.max(0, duracion - perdidos.tarde - perdidos.antes))} de ${textoDuracion(duracion)}`}
+          {incidencia.motivo ? ` · ${incidencia.motivo}` : ''}
+          {incidencia.nota ? ` · ${incidencia.nota}` : ''}
+        </span>
+        {incidencia.registrado_por ? <small>Anotó: {incidencia.registrado_por}</small> : null}
+      </div>
+      {editable ? (
+        <button type="button" className="as-btn-sec as-inc-editar" onClick={onEditar}>
+          Editar
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+function ModalIncidencia({
+  s,
+  onCerrar,
   onGuardar,
 }: {
   s: SesionAsistencia
-  incidencia: IncidenciaMaestro | null
-  editable: boolean
-  onGuardar: (d: DatosIncidencia) => Promise<boolean>
+  onCerrar: () => void
+  onGuardar: (d: DatosIncidencia) => Promise<void>
 }) {
-  const [abierto, setAbierto] = useState(false)
-  const [tarde, setTarde] = useState(Boolean(incidencia?.llegada))
-  const [antes, setAntes] = useState(Boolean(incidencia?.salida))
-  const [llegada, setLlegada] = useState(incidencia?.llegada ?? '')
-  const [salida, setSalida] = useState(incidencia?.salida ?? '')
-  const [motivo, setMotivo] = useState(incidencia?.motivo ?? '')
-  const [nota, setNota] = useState(incidencia?.nota ?? '')
+  const inc = s.incidencia
+  const [falto, setFalto] = useState(Boolean(inc?.falto))
+  const [tarde, setTarde] = useState(Boolean(inc?.llegada))
+  const [antes, setAntes] = useState(Boolean(inc?.salida))
+  const [llegada, setLlegada] = useState(inc?.llegada ?? '')
+  const [salida, setSalida] = useState(inc?.salida ?? '')
+  const [motivo, setMotivo] = useState(inc?.motivo ?? '')
+  const [nota, setNota] = useState(inc?.nota ?? '')
   const [guardando, setGuardando] = useState(false)
 
   const ini = minutosDeHora(s.hora_inicio)
   const fin = minutosDeHora(s.hora_fin)
   const duracion = fin - ini
-  const mLlegada = tarde && llegada ? minutosDeHora(llegada) : null
-  const mSalida = antes && salida ? minutosDeHora(salida) : null
+  const usaTarde = tarde && !falto
+  const usaAntes = antes && !falto
+  const mLlegada = usaTarde && llegada ? minutosDeHora(llegada) : null
+  const mSalida = usaAntes && salida ? minutosDeHora(salida) : null
   const minTarde = mLlegada != null ? mLlegada - ini : 0
   const minAntes = mSalida != null ? fin - mSalida : 0
   const rango = `${hora12(s.hora_inicio)} – ${hora12(s.hora_fin)}`
+  const hayAlgo = falto || usaTarde || usaAntes
 
   let problema: string | null = null
-  if (tarde && !llegada) problema = 'Indica a qué hora llegó.'
-  else if (antes && !salida) problema = 'Indica a qué hora se fue.'
+  if (usaTarde && !llegada) problema = 'Indica a qué hora llegó.'
+  else if (usaAntes && !salida) problema = 'Indica a qué hora se fue.'
   else if (mLlegada != null && (mLlegada <= ini || mLlegada >= fin)) problema = `La llegada debe quedar dentro de la clase (${rango}).`
   else if (mSalida != null && (mSalida <= ini || mSalida >= fin)) problema = `La salida debe quedar dentro de la clase (${rango}).`
   else if (mLlegada != null && mSalida != null && mSalida <= mLlegada) problema = 'La salida debe ser después de la llegada.'
-  else if (!tarde && !antes) problema = 'Elige «Llegó tarde», «Salió antes» o ambas.'
 
-  const guardar = async (datos: DatosIncidencia) => {
-    setGuardando(true)
-    const ok = await onGuardar(datos)
-    setGuardando(false)
-    if (ok) setAbierto(false)
-  }
-
-  if (!abierto) {
-    const txt = textoIncidencia(s.hora_inicio, s.hora_fin, incidencia)
-    if (!txt) {
-      return editable ? (
-        <button type="button" className="as-inc-abrir" onClick={() => setAbierto(true)}>
-          <Timer size={18} aria-hidden /> ¿El maestro llegó tarde o salió antes?
-        </button>
-      ) : null
+  const enviar = async () => {
+    if (!hayAlgo && !inc) {
+      onCerrar()
+      return
     }
-    const perdidos = minutosIncidencia(s.hora_inicio, s.hora_fin, incidencia)
-    return (
-      <div className="as-inc-resumen">
-        <Timer size={18} aria-hidden className="as-inc-icono" />
-        <div className="as-inc-resumen-txt">
-          <strong>{txt}</strong>
-          <span>
-            Impartió {textoDuracion(Math.max(0, duracion - perdidos.tarde - perdidos.antes))} de {textoDuracion(duracion)}
-            {incidencia?.motivo ? ` · ${incidencia.motivo}` : ''}
-            {incidencia?.nota ? ` · ${incidencia.nota}` : ''}
-          </span>
-          {incidencia?.registrado_por ? <small>Anotó: {incidencia.registrado_por}</small> : null}
-        </div>
-        {editable ? (
-          <button type="button" className="as-btn-sec as-inc-editar" onClick={() => setAbierto(true)}>
-            Editar
-          </button>
-        ) : null}
-      </div>
-    )
+    setGuardando(true)
+    await onGuardar({
+      falto,
+      llegada: usaTarde ? llegada : null,
+      salida: usaAntes ? salida : null,
+      motivo: hayAlgo ? motivo : '',
+      nota: hayAlgo ? nota : '',
+    })
+    setGuardando(false)
   }
 
   const opcion = (
@@ -776,12 +820,14 @@ function PanelIncidencia({
     desdeInicio: boolean,
     id: string
   ) => (
-    <div className="as-inc-opcion" data-activo={activo || undefined} role="group" aria-label={titulo}>
-      <button type="button" className="as-inc-toggle" aria-pressed={activo} onClick={() => setActivo(!activo)}>
-        <span className="as-inc-caja" aria-hidden>{activo ? <Check size={16} strokeWidth={3} /> : null}</span>
+    <div className="as-inc-opcion" data-activo={(activo && !falto) || undefined} data-deshabilitado={falto || undefined}
+      role="group" aria-label={titulo}>
+      <button type="button" className="as-inc-toggle" aria-pressed={activo && !falto} disabled={falto}
+        onClick={() => setActivo(!activo)}>
+        <span className="as-inc-caja" aria-hidden>{activo && !falto ? <Check size={16} strokeWidth={3} /> : null}</span>
         {titulo}
       </button>
-      {activo ? (
+      {activo && !falto ? (
         <div className="as-inc-campos">
           <div className="as-inc-rapidos" role="group" aria-label={`${titulo}: minutos`}>
             {rapidos
@@ -808,52 +854,68 @@ function PanelIncidencia({
   )
 
   return (
-    <div className="as-inc-panel">
-      <p className="as-inc-titulo">
-        <Timer size={16} aria-hidden /> Horario real del maestro · clase de {rango}
-      </p>
-      {opcion(tarde, setTarde, 'Llegó tarde', llegada, setLlegada, RAPIDOS_TARDE, true, `as-inc-lleg-${s.asignacion_id}`)}
-      {opcion(antes, setAntes, 'Salió antes', salida, setSalida, RAPIDOS_ANTES, false, `as-inc-sal-${s.asignacion_id}`)}
-
-      {(tarde || antes) && !problema ? (
-        <p className="as-inc-calculo">
-          Impartió <strong>{textoDuracion(Math.max(0, duracion - minTarde - minAntes))}</strong> de {textoDuracion(duracion)} ·{' '}
-          <strong>{minTarde + minAntes} min menos</strong>
-        </p>
-      ) : problema && (tarde || antes) ? (
-        <p className="as-difiere">{problema}</p>
-      ) : null}
-
-      <div className="as-inc-motivos" role="group" aria-label="Motivo (opcional)">
-        <span className="as-inc-label">Motivo <small>(opcional)</small></span>
-        <div className="as-inc-rapidos">
-          {MOTIVOS_INCIDENCIA.map((m) => (
-            <button key={m} type="button" className="as-inc-rapido" data-activo={motivo === m || undefined}
-              aria-pressed={motivo === m} onClick={() => setMotivo(motivo === m ? '' : m)}>
-              {m}
-            </button>
-          ))}
-        </div>
-        <input className="as-inc-nota" value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300}
-          placeholder="Nota (opcional)" aria-label="Nota" />
-      </div>
-
-      <div className="as-inc-acciones">
-        {incidencia ? (
-          <button type="button" className="as-inc-quitar" disabled={guardando}
-            onClick={() => void guardar({ llegada: null, salida: null, motivo: '', nota: '' })}>
-            <Trash2 size={16} aria-hidden /> Quitar
+    <TlModal
+      abierto
+      titulo="¿Cómo estuvo el maestro hoy?"
+      subtitulo={`${s.taller}${s.grados ? ` ${s.grados}` : ''} · ${s.maestro} · ${rango}`}
+      onCerrar={onCerrar}
+      pie={
+        <>
+          <button type="button" className="tl-btn" onClick={onCerrar} disabled={guardando}>
+            Cerrar
           </button>
+          <button
+            type="button"
+            className="tl-btn tl-btn-primary"
+            data-a-tiempo={!hayAlgo || undefined}
+            disabled={guardando || Boolean(problema)}
+            onClick={() => void enviar()}
+          >
+            {guardando ? <Loader2 size={16} className="tl-spin" aria-hidden /> : hayAlgo ? <Save size={16} aria-hidden /> : <CheckCheck size={16} aria-hidden />}
+            {hayAlgo ? 'Guardar' : 'Llegó a tiempo'}
+          </button>
+        </>
+      }
+    >
+      <div className="as-inc-modal">
+        <p className="as-inc-ayuda">
+          Si el maestro dio su clase completa, solo pulsa <strong>«Llegó a tiempo»</strong>.
+        </p>
+        <div className="as-inc-opcion as-inc-falto" data-activo={falto || undefined} role="group" aria-label="No asistió">
+          <button type="button" className="as-inc-toggle" aria-pressed={falto} onClick={() => setFalto(!falto)}>
+            <span className="as-inc-caja" aria-hidden>{falto ? <Check size={16} strokeWidth={3} /> : null}</span>
+            El maestro no asistió
+          </button>
+          {falto ? <p className="as-inc-nota-falto">Esta clase no sumará horas en el reporte del maestro.</p> : null}
+        </div>
+        {opcion(tarde, setTarde, 'Llegó tarde', llegada, setLlegada, RAPIDOS_TARDE, true, `as-inc-lleg-${s.asignacion_id}`)}
+        {opcion(antes, setAntes, 'Salió antes', salida, setSalida, RAPIDOS_ANTES, false, `as-inc-sal-${s.asignacion_id}`)}
+
+        {problema ? (
+          <p className="as-difiere">{problema}</p>
+        ) : usaTarde || usaAntes ? (
+          <p className="as-inc-calculo">
+            Impartió <strong>{textoDuracion(Math.max(0, duracion - minTarde - minAntes))}</strong> de {textoDuracion(duracion)} ·{' '}
+            <strong>{minTarde + minAntes} min menos</strong>
+          </p>
         ) : null}
-        <button type="button" className="as-inc-cancelar" onClick={() => setAbierto(false)} disabled={guardando}>
-          Cancelar
-        </button>
-        <button type="button" className="as-btn-guardar" disabled={guardando || Boolean(problema)}
-          onClick={() => void guardar({ llegada: tarde ? llegada : null, salida: antes ? salida : null, motivo, nota })}>
-          {guardando ? <Loader2 size={18} className="tl-spin" aria-hidden /> : <Save size={18} aria-hidden />}
-          Guardar horario
-        </button>
+
+        {hayAlgo ? (
+          <div className="as-inc-motivos" role="group" aria-label="Motivo (opcional)">
+            <span className="as-inc-label">Motivo <small>(opcional)</small></span>
+            <div className="as-inc-rapidos">
+              {MOTIVOS_INCIDENCIA.map((m) => (
+                <button key={m} type="button" className="as-inc-rapido" data-activo={motivo === m || undefined}
+                  aria-pressed={motivo === m} onClick={() => setMotivo(motivo === m ? '' : m)}>
+                  {m}
+                </button>
+              ))}
+            </div>
+            <input className="as-inc-nota" value={nota} onChange={(e) => setNota(e.target.value)} maxLength={300}
+              placeholder="Nota (opcional)" aria-label="Nota" />
+          </div>
+        ) : null}
       </div>
-    </div>
+    </TlModal>
   )
 }

@@ -98,21 +98,28 @@ async function alumnosDeGrupos(asignacionIds: number[]): Promise<Map<number, Alu
   return out
 }
 
-async function registrosDelDia(fecha: string, asignacionIds: number[]): Promise<Map<number, RegistroAsistencia>> {
-  const out = new Map<number, RegistroAsistencia>()
+type FilaDia = { registro: RegistroAsistencia | null; incidencia: IncidenciaMaestro | null }
+
+async function registrosDelDia(fecha: string, asignacionIds: number[]): Promise<Map<number, FilaDia>> {
+  const out = new Map<number, FilaDia>()
   if (!asignacionIds.length) return out
   const { data, error } = await db()
     .from('taller_asistencia')
-    .select(`asignacion_id, total_alumnos, faltas, registrado_por, updated_at, ${SELECT_INCIDENCIA}`)
+    .select(`asignacion_id, total_alumnos, faltas, registrado_por, updated_at, lista_pasada, ${SELECT_INCIDENCIA}`)
     .eq('fecha', fecha)
     .in('asignacion_id', asignacionIds)
   fail(error, 'Asistencia')
   for (const r of (data ?? []) as Record<string, unknown>[]) {
     out.set(Number(r.asignacion_id), {
-      total_alumnos: r.total_alumnos == null ? null : Number(r.total_alumnos),
-      faltas: Array.isArray(r.faltas) ? (r.faltas as unknown[]).map(Number) : [],
-      registrado_por: (r.registrado_por as string | null) ?? null,
-      updated_at: String(r.updated_at ?? ''),
+      registro:
+        r.lista_pasada === false
+          ? null
+          : {
+              total_alumnos: r.total_alumnos == null ? null : Number(r.total_alumnos),
+              faltas: Array.isArray(r.faltas) ? (r.faltas as unknown[]).map(Number) : [],
+              registrado_por: (r.registrado_por as string | null) ?? null,
+              updated_at: String(r.updated_at ?? ''),
+            },
       incidencia: mapIncidencia(r),
     })
   }
@@ -120,15 +127,17 @@ async function registrosDelDia(fecha: string, asignacionIds: number[]): Promise<
 }
 
 export const SELECT_INCIDENCIA =
-  'llegada_maestro, salida_maestro, incidencia_motivo, incidencia_nota, incidencia_por, incidencia_at'
+  'maestro_falto, llegada_maestro, salida_maestro, incidencia_motivo, incidencia_nota, incidencia_por, incidencia_at'
 
 const hhmm = (v: unknown) => (v ? String(v).slice(0, 5) : null)
 
 export function mapIncidencia(r: Record<string, unknown>): IncidenciaMaestro | null {
-  const llegada = hhmm(r.llegada_maestro)
-  const salida = hhmm(r.salida_maestro)
-  if (!llegada && !salida) return null
+  const falto = r.maestro_falto === true
+  const llegada = falto ? null : hhmm(r.llegada_maestro)
+  const salida = falto ? null : hhmm(r.salida_maestro)
+  if (!falto && !llegada && !salida) return null
   return {
+    falto,
     llegada,
     salida,
     motivo: (r.incidencia_motivo as string | null) ?? null,
@@ -167,7 +176,8 @@ export async function asistenciaDelDia(rawFecha: unknown): Promise<AsistenciaDia
         hora_fin: h.hora_fin,
         lugar: lugarDeHorario(a, h),
         alumnos: alumnos.get(a.id) ?? [],
-        registro: registros.get(a.id) ?? null,
+        registro: registros.get(a.id)?.registro ?? null,
+        incidencia: registros.get(a.id)?.incidencia ?? null,
       }
     })
     .sort(
@@ -216,23 +226,11 @@ export async function guardarAsistencia(body: Record<string, unknown>): Promise<
   const { error } = await db()
     .from('taller_asistencia')
     .upsert(
-      [{ asignacion_id: asignacionId, fecha, total_alumnos: total, faltas, registrado_por: registradoPor, updated_at }],
+      [{ asignacion_id: asignacionId, fecha, total_alumnos: total, faltas, registrado_por: registradoPor, updated_at, lista_pasada: true }],
       { onConflict: 'asignacion_id,fecha' }
     )
   fail(error, 'Guardar asistencia')
-  const { data: inc } = await db()
-    .from('taller_asistencia')
-    .select(SELECT_INCIDENCIA)
-    .eq('asignacion_id', asignacionId)
-    .eq('fecha', fecha)
-    .maybeSingle()
-  return {
-    total_alumnos: total,
-    faltas,
-    registrado_por: registradoPor,
-    updated_at,
-    incidencia: inc ? mapIncidencia(inc as Record<string, unknown>) : null,
-  }
+  return { total_alumnos: total, faltas, registrado_por: registradoPor, updated_at }
 }
 
 function horaOpcional(raw: unknown, campo: string): string | null {
@@ -242,7 +240,10 @@ function horaOpcional(raw: unknown, campo: string): string | null {
   return s.slice(0, 5)
 }
 
-/** Registra (o quita, si ambas horas vienen vacías) la llegada tarde / salida anticipada del maestro. */
+/**
+ * Registra (o quita, si no viene nada) que el maestro no asistió, llegó tarde o salió antes.
+ * No requiere pase de lista: si aún no hay fila del día se crea con `lista_pasada = false`.
+ */
 export async function guardarIncidencia(body: Record<string, unknown>): Promise<IncidenciaMaestro | null> {
   const hoy = hoyMexico()
   const fecha = fechaValida(body.fecha)
@@ -261,15 +262,15 @@ export async function guardarIncidencia(body: Record<string, unknown>): Promise<
 
   const { data: fila, error: fErr } = await db()
     .from('taller_asistencia')
-    .select('id')
+    .select('id, lista_pasada')
     .eq('asignacion_id', asignacionId)
     .eq('fecha', fecha)
     .maybeSingle()
   fail(fErr, 'Asistencia')
-  if (!fila) throw new TalleresError('Primero guarda la asistencia de este taller.')
 
-  const llegada = horaOpcional(body.llegada, 'llegada')
-  const salida = horaOpcional(body.salida, 'salida')
+  const falto = body.falto === true
+  const llegada = falto ? null : horaOpcional(body.llegada, 'llegada')
+  const salida = falto ? null : horaOpcional(body.salida, 'salida')
   if (llegada && (minutosDeHora(llegada) <= inicio || minutosDeHora(llegada) >= fin)) {
     throw new TalleresError(`La hora de llegada debe quedar dentro de la clase (${rango}) y después del inicio.`)
   }
@@ -280,8 +281,9 @@ export async function guardarIncidencia(body: Record<string, unknown>): Promise<
     throw new TalleresError('La salida debe ser después de la llegada.')
   }
 
-  const hay = Boolean(llegada || salida)
+  const hay = Boolean(falto || llegada || salida)
   const cambios = {
+    maestro_falto: falto,
     llegada_maestro: llegada,
     salida_maestro: salida,
     incidencia_motivo: hay ? String(body.motivo ?? '').trim().slice(0, 60) || null : null,
@@ -289,10 +291,19 @@ export async function guardarIncidencia(body: Record<string, unknown>): Promise<
     incidencia_por: hay ? String(body.registrado_por ?? '').trim().slice(0, 80) || null : null,
     incidencia_at: hay ? new Date().toISOString() : null,
   }
-  const { error } = await db()
-    .from('taller_asistencia')
-    .update(cambios)
-    .eq('id', Number((fila as { id: number }).id))
-  fail(error, 'Guardar incidencia')
+  const f = fila as { id: number; lista_pasada: boolean } | null
+  if (!f) {
+    if (!hay) return null
+    const { error } = await db()
+      .from('taller_asistencia')
+      .insert([{ asignacion_id: asignacionId, fecha, faltas: [], lista_pasada: false, ...cambios }])
+    fail(error, 'Guardar incidencia')
+  } else if (!hay && f.lista_pasada === false) {
+    const { error } = await db().from('taller_asistencia').delete().eq('id', Number(f.id))
+    fail(error, 'Quitar incidencia')
+  } else {
+    const { error } = await db().from('taller_asistencia').update(cambios).eq('id', Number(f.id))
+    fail(error, 'Guardar incidencia')
+  }
   return mapIncidencia(cambios)
 }
