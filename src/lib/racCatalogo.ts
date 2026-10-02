@@ -123,6 +123,7 @@ export function motivoReporte(tipo: number, motivo: number): string {
     if (motivo === 1) return 'Incumplimiento de tarea'
     if (motivo === 2) return 'Incumplimiento de trabajo en clase'
     if (motivo === 3) return 'Libro y cuaderno'
+    if (motivo === 4) return 'Incumplimiento de tablet'
   }
   if (tipo === 2) {
     if (motivo === 1) return 'Conducta inapropiada'
@@ -183,12 +184,17 @@ export function motivoReporte(tipo: number, motivo: number): string {
   return 'Desconocido'
 }
 
-export function opcionesMotivo(tipo: number): { valor: number; etiqueta: string }[] {
+export function opcionesMotivo(
+  tipo: number,
+  opts?: { maternalKinder?: boolean }
+): { valor: number; etiqueta: string }[] {
   if (tipo === 1)
     return [
       { valor: 1, etiqueta: 'Incumplimiento de tarea' },
       { valor: 2, etiqueta: 'Incumplimiento de trabajo en clase' },
       { valor: 3, etiqueta: 'Libro y cuaderno' },
+      // Solo Maternal/Kinder (pedido de psicología kínder).
+      ...(opts?.maternalKinder ? [{ valor: 4, etiqueta: 'Incumplimiento de tablet' }] : []),
     ]
   if (tipo === 2)
     return [

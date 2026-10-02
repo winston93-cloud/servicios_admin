@@ -1911,7 +1911,9 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                   <label>
                     Motivo
                     <select value={motivo} onChange={(e) => setMotivo(Number(e.target.value))}>
-                      {opcionesMotivo(modo === 'informe' ? 8 : tipo).map((o) => (
+                      {opcionesMotivo(modo === 'informe' ? 8 : tipo, {
+                        maternalKinder: config.slug === 'maternal-kinder',
+                      }).map((o) => (
                         <option key={o.valor} value={o.valor}>
                           {o.etiqueta}
                         </option>
