@@ -281,7 +281,7 @@ export default function VentaView({ productos, activa }: { productos: PosProduct
     <div className="cj-venta">
       <div className="cj-venta-main">
         {/* Paso 1 */}
-        <section className="cj-card cj-step" aria-labelledby="cj-paso1">
+        <section className="cj-card cj-step cj-area-cliente" aria-labelledby="cj-paso1">
           <header className="cj-step-head">
             <span className={`cj-step-num${cliente ? ' is-done' : ''}`}>{cliente ? <Check size={16} /> : 1}</span>
             <h2 id="cj-paso1">¿Para quién es?</h2>
@@ -367,7 +367,7 @@ export default function VentaView({ productos, activa }: { productos: PosProduct
         </section>
 
         {/* Paso 2 */}
-        <section className="cj-card cj-step" aria-labelledby="cj-paso2">
+        <section className="cj-card cj-step cj-area-productos" aria-labelledby="cj-paso2">
           <header className="cj-step-head">
             <span className={`cj-step-num${carrito.length ? ' is-done' : ''}`}>{carrito.length ? <Check size={16} /> : 2}</span>
             <h2 id="cj-paso2">Productos y días</h2>
@@ -477,7 +477,7 @@ export default function VentaView({ productos, activa }: { productos: PosProduct
         </section>
 
         {/* Carrito */}
-        <section className="cj-card" aria-labelledby="cj-carrito">
+        <section className="cj-card cj-area-orden" aria-labelledby="cj-carrito">
           <header className="cj-card-head">
             <h2 id="cj-carrito">
               <Receipt size={18} aria-hidden /> Orden
@@ -568,87 +568,102 @@ export default function VentaView({ productos, activa }: { productos: PosProduct
 
       {/* Cobro */}
       <aside className="cj-venta-side">
-        <section className="cj-card cj-cobro" aria-labelledby="cj-cobro">
+        <section className="cj-card cj-cobro cj-area-cobro" aria-labelledby="cj-cobro">
           <header className="cj-step-head">
             <span className="cj-step-num">3</span>
             <h2 id="cj-cobro">Cobrar</h2>
           </header>
 
-          <div className="cj-total">
-            <span className="cj-total-label">Total</span>
-            <span className="cj-total-value">{moneda(total)}</span>
-            <span className="cj-total-meta">
-              {piezas} {piezas === 1 ? 'servicio' : 'servicios'} · {grupos.length} {grupos.length === 1 ? 'día' : 'días'}
-            </span>
-          </div>
+          <div className="cj-cobro-body">
+            <div className="cj-cobro-resumen">
+              <div className="cj-total">
+                <span className="cj-total-label">Total</span>
+                <span className="cj-total-value">{moneda(total)}</span>
+                <span className="cj-total-meta">
+                  {piezas} {piezas === 1 ? 'servicio' : 'servicios'} · {grupos.length}{' '}
+                  {grupos.length === 1 ? 'día' : 'días'}
+                </span>
+              </div>
 
-          <label className="cj-label" htmlFor="cj-recibido">
-            Pago recibido
-          </label>
-          <div className="cj-input-wrap">
-            <span className="cj-input-icon cj-input-icon--text" aria-hidden>
-              $
-            </span>
-            <input
-              id="cj-recibido"
-              ref={recibidoRef}
-              className="cj-input cj-input--xl"
-              inputMode="decimal"
-              placeholder="0.00"
-              value={recibido}
-              onChange={(e) => setRecibido(e.target.value.replace(/[^\d.]/g, ''))}
-              onKeyDown={(e) => {
-                if (e.key === 'p' || e.key === 'P' || e.key === 'Enter') {
-                  e.preventDefault()
-                  void cobrar()
-                }
-              }}
-              autoComplete="off"
-            />
-            <kbd className="cj-input-trail cj-kbd">F9</kbd>
-          </div>
+              <div
+                className={`cj-cambio${recibido === '' ? '' : cambio >= 0 ? ' is-ok' : ' is-bad'}`}
+                aria-live="polite"
+              >
+                <span>{recibido !== '' && cambio < 0 ? 'Faltan' : 'Cambio'}</span>
+                <strong>{recibido === '' ? '$0.00' : moneda(Math.abs(cambio))}</strong>
+              </div>
+            </div>
 
-          <div className="cj-chips cj-chips--cash">
-            <button type="button" className="cj-chip" disabled={total <= 0} onClick={() => setRecibido(total.toFixed(2))}>
-              Exacto
-            </button>
-            {billetesSugeridos(total).map((b) => (
-              <button key={b} type="button" className="cj-chip" onClick={() => setRecibido(String(b))}>
-                {moneda(b).replace('.00', '')}
+            <div className="cj-cobro-pago">
+              <label className="cj-label" htmlFor="cj-recibido">
+                Pago recibido
+              </label>
+              <div className="cj-input-wrap">
+                <span className="cj-input-icon cj-input-icon--text" aria-hidden>
+                  $
+                </span>
+                <input
+                  id="cj-recibido"
+                  ref={recibidoRef}
+                  className="cj-input cj-input--xl"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  value={recibido}
+                  onChange={(e) => setRecibido(e.target.value.replace(/[^\d.]/g, ''))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'p' || e.key === 'P' || e.key === 'Enter') {
+                      e.preventDefault()
+                      void cobrar()
+                    }
+                  }}
+                  autoComplete="off"
+                />
+                <kbd className="cj-input-trail cj-kbd">F9</kbd>
+              </div>
+
+              <div className="cj-chips cj-chips--cash">
+                <button
+                  type="button"
+                  className="cj-chip"
+                  disabled={total <= 0}
+                  onClick={() => setRecibido(total.toFixed(2))}
+                >
+                  Exacto
+                </button>
+                {billetesSugeridos(total).map((b) => (
+                  <button key={b} type="button" className="cj-chip" onClick={() => setRecibido(String(b))}>
+                    {moneda(b).replace('.00', '')}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                className="cj-btn cj-btn--primary cj-btn--xl cj-btn--block"
+                onClick={() => void cobrar()}
+                disabled={!puedeCobrar}
+              >
+                {cobrando ? 'Registrando…' : `Cobrar ${total > 0 ? moneda(total) : ''}`}
+                {!cobrando ? <kbd className="cj-kbd cj-kbd--btn">P</kbd> : null}
               </button>
-            ))}
+
+              {!cliente ? (
+                <p className="cj-hint">
+                  <UserRound size={14} aria-hidden /> Falta elegir alumno o persona.
+                </p>
+              ) : null}
+
+              <details className="cj-atajos">
+                <summary>Atajos de teclado</summary>
+                <ul>
+                  <li><kbd className="cj-kbd">F2</kbd> Buscar alumno</li>
+                  <li><kbd className="cj-kbd">F4</kbd> Código de producto</li>
+                  <li><kbd className="cj-kbd">F9</kbd> Pago recibido</li>
+                  <li><kbd className="cj-kbd">P</kbd> / <kbd className="cj-kbd">Enter</kbd> en el pago: cobrar</li>
+                </ul>
+              </details>
+            </div>
           </div>
-
-          <div className={`cj-cambio${recibido === '' ? '' : cambio >= 0 ? ' is-ok' : ' is-bad'}`} aria-live="polite">
-            <span>{recibido !== '' && cambio < 0 ? 'Faltan' : 'Cambio'}</span>
-            <strong>{recibido === '' ? '—' : moneda(Math.abs(cambio))}</strong>
-          </div>
-
-          <button
-            type="button"
-            className="cj-btn cj-btn--primary cj-btn--xl cj-btn--block"
-            onClick={() => void cobrar()}
-            disabled={!puedeCobrar}
-          >
-            {cobrando ? 'Registrando…' : `Cobrar ${total > 0 ? moneda(total) : ''}`}
-            {!cobrando ? <kbd className="cj-kbd cj-kbd--btn">P</kbd> : null}
-          </button>
-
-          {!cliente ? (
-            <p className="cj-hint">
-              <UserRound size={14} aria-hidden /> Falta elegir alumno o persona.
-            </p>
-          ) : null}
-
-          <details className="cj-atajos">
-            <summary>Atajos de teclado</summary>
-            <ul>
-              <li><kbd className="cj-kbd">F2</kbd> Buscar alumno</li>
-              <li><kbd className="cj-kbd">F4</kbd> Código de producto</li>
-              <li><kbd className="cj-kbd">F9</kbd> Pago recibido</li>
-              <li><kbd className="cj-kbd">P</kbd> / <kbd className="cj-kbd">Enter</kbd> en el pago: cobrar</li>
-            </ul>
-          </details>
         </section>
       </aside>
 
