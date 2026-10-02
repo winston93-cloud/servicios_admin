@@ -70,7 +70,7 @@ export default function VentaView({ productos, activa }: { productos: PosProduct
   const [cargandoHist, setCargandoHist] = useState(false)
   const [fechas, setFechas] = useState<string[]>(() => [diaHabilDesde(hoy)])
   const [calAbierto, setCalAbierto] = useState(false)
-  const [lineaFecha, setLineaFecha] = useState<string | null>(null)
+  const [productoFechas, setProductoFechas] = useState<number | null>(null)
   const [carrito, setCarrito] = useState<Linea[]>([])
   const [codigo, setCodigo] = useState('')
   const [recibido, setRecibido] = useState('')
@@ -140,21 +140,22 @@ export default function VentaView({ productos, activa }: { productos: PosProduct
         .filter((l) => l.cantidad > 0)
     )
 
-  const moverLinea = (key: string, fecha: string) => {
+  const fechasDeProducto = (productoId: number) =>
+    carrito.filter((l) => l.productoId === productoId).map((l) => l.fecha).sort()
+
+  /** Igual que el calendario original: cada día marcado es una partida del producto; desmarcar la quita. */
+  const cambiarFechasProducto = (productoId: number, nuevas: string[]) => {
+    if (!nuevas.length) return
     setCarrito((prev) => {
-      const linea = prev.find((l) => l.key === key)
-      if (!linea) return prev
-      const nuevaKey = lineaKey(linea.productoId, fecha)
-      const resto = prev.filter((l) => l.key !== key)
-      const existente = resto.find((l) => l.key === nuevaKey)
-      if (existente) {
-        return resto.map((l) =>
-          l.key === nuevaKey ? { ...l, cantidad: Math.min(20, l.cantidad + linea.cantidad) } : l
-        )
-      }
-      return [...resto, { ...linea, key: nuevaKey, fecha }]
+      const actuales = prev.filter((l) => l.productoId === productoId)
+      const cantidadBase = actuales[0]?.cantidad ?? 1
+      const conservadas = prev.filter((l) => l.productoId !== productoId || nuevas.includes(l.fecha))
+      const existentes = new Set(actuales.map((l) => l.fecha))
+      const agregadas = nuevas
+        .filter((f) => !existentes.has(f))
+        .map((fecha) => ({ key: lineaKey(productoId, fecha), productoId, fecha, cantidad: cantidadBase }))
+      return [...conservadas, ...agregadas]
     })
-    setLineaFecha(null)
   }
 
   const total = useMemo(
@@ -537,9 +538,9 @@ export default function VentaView({ productos, activa }: { productos: PosProduct
                               <button
                                 type="button"
                                 className="cj-icon-btn cj-icon-btn--sm"
-                                onClick={() => setLineaFecha(l.key)}
-                                aria-label="Cambiar día"
-                                title="Cambiar día"
+                                onClick={() => setProductoFechas(l.productoId)}
+                                aria-label={`Días de ${p.nombre}`}
+                                title="Elegir días (cada día marcado agrega una partida)"
                               >
                                 <CalendarDays size={16} />
                               </button>
@@ -651,21 +652,41 @@ export default function VentaView({ productos, activa }: { productos: PosProduct
         </section>
       </aside>
 
-      {/* Cambiar día de una línea */}
-      {lineaFecha ? (
-        <div className="cj-overlay" role="dialog" aria-modal="true" aria-label="Cambiar día" onClick={() => setLineaFecha(null)}>
+      {/* Días de un producto (calendario de selección múltiple) */}
+      {productoFechas != null && porId.get(productoFechas) ? (
+        <div
+          className="cj-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cj-dias-title"
+          onClick={() => setProductoFechas(null)}
+          onKeyDown={(e) => e.key === 'Escape' && setProductoFechas(null)}
+        >
           <div className="cj-dialog cj-dialog--sm" onClick={(e) => e.stopPropagation()}>
             <header className="cj-dialog-head">
-              <h3>Mover al día…</h3>
-              <button type="button" className="cj-icon-btn cj-icon-btn--sm" onClick={() => setLineaFecha(null)} aria-label="Cerrar">
+              <div>
+                <h3 id="cj-dias-title">{porId.get(productoFechas)?.nombre}</h3>
+                <p className="cj-muted cj-small">
+                  {fechasDeProducto(productoFechas).length} {fechasDeProducto(productoFechas).length === 1 ? 'día seleccionado' : 'días seleccionados'} · cada día es una partida
+                </p>
+              </div>
+              <button type="button" className="cj-icon-btn cj-icon-btn--sm" onClick={() => setProductoFechas(null)} aria-label="Cerrar">
                 <X size={18} />
               </button>
             </header>
             <Calendario
-              multiple={false}
-              seleccion={[carrito.find((l) => l.key === lineaFecha)?.fecha ?? hoy]}
-              onCambio={([f]) => f && moverLinea(lineaFecha, f)}
+              seleccion={fechasDeProducto(productoFechas)}
+              onCambio={(fs) => cambiarFechasProducto(productoFechas, fs)}
+              conHoy
             />
+            <button
+              type="button"
+              className="cj-btn cj-btn--primary cj-btn--block cj-dialog-listo"
+              onClick={() => setProductoFechas(null)}
+              autoFocus
+            >
+              Listo
+            </button>
           </div>
         </div>
       ) : null}

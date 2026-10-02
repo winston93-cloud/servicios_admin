@@ -6,6 +6,8 @@ import {
   fechaMx,
   sumarDias,
   tipoClienteDeRef,
+  type PosBusqueda,
+  type PosCampoCoincidente,
   type PosCliente,
   type PosExterno,
   type PosExternoInput,
@@ -230,9 +232,21 @@ function mapExternoCliente(e: PosExterno): PosCliente {
   return { ref: `E${e.id}`, nombre: e.nombreCompleto, tipo: 'externo', nivel: null, grado: null, grupo: null }
 }
 
-export async function buscarClientes(consulta: string): Promise<PosCliente[]> {
+function normalizarBusqueda(t: string): string {
+  return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+function camposPersona(partes: Record<'nombre' | 'app' | 'apm', string>, tokens: string[]): PosCampoCoincidente[] {
+  return (Object.keys(partes) as ('nombre' | 'app' | 'apm')[]).filter((k) => {
+    const v = normalizarBusqueda(partes[k])
+    return v && tokens.some((t) => v.includes(t))
+  })
+}
+
+export async function buscarClientes(consulta: string): Promise<PosBusqueda> {
+  const ciclo = numeroCicloEscolarAdmin()
   const q = texto(consulta, 80)
-  if (q.length < 2) return []
+  if (q.length < 2) return { clientes: [], ciclo }
 
   const tokens = q.split(' ').filter((t) => t.length >= 2)
   const orMaestro = new Set<string>()
@@ -248,7 +262,7 @@ export async function buscarClientes(consulta: string): Promise<PosCliente[]> {
   const refExterno = /^e(\d+)$/i.exec(q)
 
   const [alumnos, maestros, externos] = await Promise.all([
-    buscarAlumnosServicios(q, numeroCicloEscolarAdmin(), { db: db() }),
+    buscarAlumnosServicios(q, ciclo, { db: db() }),
     db()
       .from('boleta_maestro')
       .select('maestro_id, maestro_nombre, maestro_app, maestro_apm')
@@ -262,33 +276,64 @@ export async function buscarClientes(consulta: string): Promise<PosCliente[]> {
       .limit(4),
   ])
 
-  const tokensNorm = tokens.map((t) => t.toLowerCase())
+  const tokensNorm = normalizarBusqueda(q).split(' ').filter(Boolean)
   const coincideTodo = (nombre: string) => {
-    const n = nombre.toLowerCase()
+    const n = normalizarBusqueda(nombre)
     return tokensNorm.every((t) => n.includes(t))
   }
 
-  const resultado: PosCliente[] = alumnos.slice(0, 8).map((a) => ({
-    ref: String(a.alumno_ref ?? ''),
-    nombre: a.nombre_completo,
-    tipo: 'alumno',
-    nivel: a.alumno_nivel != null ? Number(a.alumno_nivel) : null,
-    grado: a.alumno_grado != null ? String(a.alumno_grado) : null,
-    grupo: a.alumno_grupo != null ? String(a.alumno_grupo) : null,
-  }))
+  const candidatos: { c: PosCliente; completo: boolean; orden: number }[] = alumnos.map((a, i) => {
+    const nombre = a.nombre_completo
+    return {
+      c: {
+        ref: String(a.alumno_ref ?? ''),
+        nombre,
+        tipo: 'alumno' as const,
+        nivel: a.alumno_nivel != null ? Number(a.alumno_nivel) : null,
+        grado: a.alumno_grado != null ? String(a.alumno_grado) : null,
+        grupo: a.alumno_grupo != null ? String(a.alumno_grupo) : null,
+        estatus: a.alumno_status != null ? Number(a.alumno_status) : null,
+        campos: a.campos_coincidentes.length
+          ? a.campos_coincidentes
+          : camposPersona(
+              { nombre: a.alumno_nombre ?? '', app: a.alumno_app ?? '', apm: a.alumno_apm ?? '' },
+              tokensNorm
+            ),
+      },
+      completo: coincideTodo(nombre) || String(a.alumno_ref) === q,
+      orden: i,
+    }
+  })
 
   const vistos = new Set<number>()
   for (const m of (maestros.data ?? []) as FilaMaestro[]) {
     if (vistos.has(m.maestro_id)) continue
     vistos.add(m.maestro_id)
     const c = mapMaestro(m)
-    if (refMaestro || coincideTodo(c.nombre)) resultado.push(c)
+    const completo = !!refMaestro || coincideTodo(c.nombre)
+    if (!completo) continue
+    c.campos = refMaestro
+      ? ['ref']
+      : camposPersona(
+          { nombre: m.maestro_nombre ?? '', app: m.maestro_app ?? '', apm: m.maestro_apm ?? '' },
+          tokensNorm
+        )
+    candidatos.push({ c, completo, orden: 100 + candidatos.length })
   }
   for (const e of (externos.data ?? []) as FilaPersonal[]) {
-    const c = mapExternoCliente(mapExterno(e))
-    if (refExterno || coincideTodo(c.nombre)) resultado.push(c)
+    const ext = mapExterno(e)
+    const c = mapExternoCliente(ext)
+    const completo = !!refExterno || coincideTodo(c.nombre)
+    if (!completo) continue
+    c.campos = refExterno ? ['ref'] : camposPersona({ nombre: ext.nombre, app: ext.app, apm: ext.apm }, tokensNorm)
+    candidatos.push({ c, completo, orden: 200 + candidatos.length })
   }
-  return resultado.slice(0, 12)
+
+  const clientes = candidatos
+    .sort((a, b) => Number(b.completo) - Number(a.completo) || a.orden - b.orden)
+    .slice(0, 15)
+    .map((x) => x.c)
+  return { clientes, ciclo }
 }
 
 type FilaAlumnoRef = {

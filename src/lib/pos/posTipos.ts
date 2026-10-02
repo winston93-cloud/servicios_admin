@@ -4,6 +4,8 @@ export const POS_ZONA_HORARIA = 'America/Monterrey'
 
 export type PosClienteTipo = 'alumno' | 'maestro' | 'externo'
 
+export type PosCampoCoincidente = 'nombre' | 'app' | 'apm' | 'ref'
+
 export interface PosCliente {
   /** alumno_ref, `P{maestro_id}` o `E{personal.id}`. */
   ref: string
@@ -12,6 +14,20 @@ export interface PosCliente {
   nivel: number | null
   grado: string | null
   grupo: string | null
+  /** alumno_status (solo alumnos). */
+  estatus?: number | null
+  campos?: PosCampoCoincidente[]
+}
+
+export interface PosBusqueda {
+  clientes: PosCliente[]
+  /** Ciclo escolar consultado (numérico, se calcula por fecha). */
+  ciclo: number
+}
+
+/** 22 → «2025-2026», 23 → «2026-2027», … */
+export function etiquetaCicloEscolar(ciclo: number): string {
+  return `${2003 + ciclo}-${2004 + ciclo}`
 }
 
 export interface PosProducto {

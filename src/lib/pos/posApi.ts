@@ -1,5 +1,5 @@
 import type {
-  PosCliente,
+  PosBusqueda,
   PosExterno,
   PosExternoInput,
   PosPago,
@@ -32,8 +32,7 @@ async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
 const post = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body) })
 
 export const posApi = {
-  buscar: (q: string, signal?: AbortSignal) =>
-    pedir<{ clientes: PosCliente[] }>(`buscar?q=${encodeURIComponent(q)}`, { signal }).then((r) => r.clientes),
+  buscar: (q: string, signal?: AbortSignal) => pedir<PosBusqueda>(`buscar?q=${encodeURIComponent(q)}`, { signal }),
   productos: (todos = false) =>
     pedir<{ productos: PosProducto[] }>(`productos${todos ? '?todos=1' : ''}`).then((r) => r.productos),
   guardarProducto: (p: PosProductoInput) =>

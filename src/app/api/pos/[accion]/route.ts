@@ -41,7 +41,7 @@ export async function GET(request: Request, ctx: Ctx) {
   try {
     switch (accion) {
       case 'buscar':
-        return NextResponse.json({ clientes: await buscarClientes(url.searchParams.get('q') ?? '') })
+        return NextResponse.json(await buscarClientes(url.searchParams.get('q') ?? ''))
       case 'productos':
         return NextResponse.json({
           productos: await listarProductos(url.searchParams.get('todos') === '1'),

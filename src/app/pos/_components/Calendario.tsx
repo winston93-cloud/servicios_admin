@@ -12,9 +12,17 @@ type Props = {
   multiple?: boolean
   /** Permite elegir sábados y domingos. */
   finesDeSemana?: boolean
+  /** Botón «Hoy» (agrega hoy si es día hábil); oculta «Limpiar». */
+  conHoy?: boolean
 }
 
-export default function Calendario({ seleccion, onCambio, multiple = true, finesDeSemana = false }: Props) {
+export default function Calendario({
+  seleccion,
+  onCambio,
+  multiple = true,
+  finesDeSemana = false,
+  conHoy = false,
+}: Props) {
   const hoy = fechaMx()
   const inicial = fechaIsoADate(seleccion[0] ?? hoy)
   const [mes, setMes] = useState(() => new Date(inicial.getFullYear(), inicial.getMonth(), 1, 12))
@@ -84,12 +92,32 @@ export default function Calendario({ seleccion, onCambio, multiple = true, fines
       </div>
       {multiple ? (
         <div className="cj-cal-foot">
-          <button type="button" className="cj-chip" onClick={() => onCambio(semanaHabil)} disabled={!semanaHabil.length}>
+          {conHoy ? (
+            <button
+              type="button"
+              className="cj-chip"
+              disabled={elegidas.has(hoy) || (!finesDeSemana && esFinDeSemana(hoy))}
+              onClick={() => {
+                setMes(new Date(fechaIsoADate(hoy).getFullYear(), fechaIsoADate(hoy).getMonth(), 1, 12))
+                onCambio([...seleccion, hoy].sort())
+              }}
+            >
+              Hoy
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="cj-chip"
+            onClick={() => onCambio([...new Set([...seleccion, ...semanaHabil])].sort())}
+            disabled={!semanaHabil.length}
+          >
             Días hábiles restantes del mes
           </button>
-          <button type="button" className="cj-chip" onClick={() => onCambio([])} disabled={!seleccion.length}>
-            Limpiar
-          </button>
+          {!conHoy ? (
+            <button type="button" className="cj-chip" onClick={() => onCambio([])} disabled={!seleccion.length}>
+              Limpiar
+            </button>
+          ) : null}
         </div>
       ) : null}
     </div>

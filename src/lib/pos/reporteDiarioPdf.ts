@@ -50,7 +50,7 @@ function paginaDesayunos(pdf: jsPDF, fechaTitulo: string, pagos: PosPago[], cata
     conTipo
   )
   const externos = columna(de((p) => p.tipo === 'externo'), conTipo)
-  const maestros = columna(de((p) => p.tipo === 'maestro'), conTipo)
+  const maestros = columna(de((p) => p.tipo === 'maestro'))
   const primaria = ['5', '4', '3', '2', '1'].map((g) =>
     columna(de((p) => p.tipo === 'alumno' && p.nivel === 3 && grado(p) === g))
   )
@@ -68,7 +68,7 @@ function paginaDesayunos(pdf: jsPDF, fechaTitulo: string, pagos: PosPago[], cata
   ]
   const head = [
     totales,
-    [`9° / 3° SEC  ${gd}`, `8° / 2° SEC  ${gd}`, `7° / 1° SEC  ${gd}`, 'KINDER / MATERNAL', `6°  ${gd}`, 'EXTERNOS', 'MAESTRAS'],
+    [`9° / 3° SEC  ${gd}`, `8° / 2° SEC  ${gd}`, `7° / 1° SEC  ${gd}`, 'KINDER / MATERNAL', `6°  ${gd}`, 'EXTERNOS', `MAESTRAS  ${gd}`],
   ]
 
   const colsSup = [secundaria[0], secundaria[1], secundaria[2], kinder, sexto, externos, maestros]
@@ -175,7 +175,7 @@ function paginaServicios(pdf: jsPDF, pagos: PosPago[], catalogo: PosProducto[]) 
   })
 }
 
-/** Genera el PDF de cocina (hoja de desayunos + estancias/comidas/tareas) y lo abre. */
+/** Genera el Reporte Ludy (formato que se imprime para la cocinera) (hoja de desayunos + estancias/comidas/tareas) y lo abre. */
 export function generarReporteDiarioPdf(
   fecha: string,
   pagos: PosPago[],
@@ -197,7 +197,7 @@ export function generarReporteDiarioPdf(
   } else {
     const a = document.createElement('a')
     a.href = url
-    a.download = `Reporte_Cocina_${fecha}.pdf`
+    a.download = `Reporte_Ludy_${fecha}.pdf`
     document.body.appendChild(a)
     a.click()
     a.remove()

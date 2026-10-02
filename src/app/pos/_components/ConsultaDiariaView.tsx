@@ -163,7 +163,7 @@ export default function ConsultaDiariaView({ productos }: { productos: PosProduc
             <RefreshCw size={16} className={cargando ? 'cj-spin' : ''} aria-hidden /> Actualizar
           </button>
           <button type="button" className="cj-btn cj-btn--primary" onClick={imprimir} disabled={cargando}>
-            <FileDown size={16} aria-hidden /> Hoja de cocina
+            <FileDown size={16} aria-hidden /> Reporte Ludy
           </button>
         </div>
       </header>

@@ -55,7 +55,7 @@ export default function ReportesView() {
       generarReporteDiarioPdf(fechaCocina, pagos, productos, ventana)
     } catch (e) {
       ventana?.close()
-      toast(e instanceof Error ? e.message : 'No se pudo generar la hoja de cocina.', 'error')
+      toast(e instanceof Error ? e.message : 'No se pudo generar el Reporte Ludy.', 'error')
     } finally {
       setGenerandoPdf(false)
     }
@@ -107,7 +107,7 @@ export default function ReportesView() {
       <header className="cj-page-head">
         <div>
           <h1 className="cj-h1">Reportes</h1>
-          <p className="cj-muted">Hoja de cocina del día y corte contable con reparto Ludy / caja.</p>
+          <p className="cj-muted">Reporte Ludy del día (para la cocinera) y corte contable con reparto Ludy / caja.</p>
         </div>
       </header>
 
@@ -116,7 +116,7 @@ export default function ReportesView() {
           <span className="cj-report-icon" aria-hidden>
             <ChefHat size={22} />
           </span>
-          <h2>Hoja de cocina</h2>
+          <h2>Reporte Ludy</h2>
           <p className="cj-muted cj-small">
             Desayunos por grado (incluye Kinder, Maternal, docentes y externos) + estancias, comidas y tareas.
           </p>
@@ -126,7 +126,7 @@ export default function ReportesView() {
               className="cj-input cj-input--date"
               value={fechaCocina}
               onChange={(e) => e.target.value && setFechaCocina(e.target.value)}
-              aria-label="Fecha de la hoja de cocina"
+              aria-label="Fecha del Reporte Ludy"
             />
             <button type="button" className="cj-btn cj-btn--primary" onClick={() => void hojaCocina()} disabled={generandoPdf}>
               {generandoPdf ? <Loader2 size={16} className="cj-spin" aria-hidden /> : <FileDown size={16} aria-hidden />}
