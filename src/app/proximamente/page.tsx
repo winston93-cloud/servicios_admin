@@ -41,12 +41,12 @@ const MODULOS: Record<
   desayunos: {
     titulo: 'Desayunos, Estancias y Comidas',
     kicker: 'Cafetería escolar',
-    lead: 'El menú digital, pedidos y estancias escolares llegan pronto a este mismo portal.',
+    lead: 'Por ahora los desayunos, comidas, estancias y tareas se contratan y pagan directamente en la caja del Colegio.',
     accent: 'amber',
     bullets: [
-      'Consulta de servicios de alimentación',
-      'Pedidos y seguimiento en línea',
-      'Todo desde tu cuenta familiar Winston',
+      'Acude a caja con el nombre o referencia del alumno',
+      'Puedes pagar varios días por adelantado',
+      'La consulta en línea llegará más adelante a este portal',
     ],
     icon: <Coffee size={34} strokeWidth={1.6} />,
   },
