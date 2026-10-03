@@ -183,6 +183,12 @@ function normalizarGruposMaternalAsignados(
   return out
 }
 
+/** Violación del índice único de escalón (`reporte_escolar_escalon_unico`). */
+function esChoqueEscalon(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false
+  return error.code === '23505' || /duplicate key|reporte_escolar_escalon_unico/i.test(error.message ?? '')
+}
+
 export function createRacNivelService(cfg: RacNivelConfig) {
   async function cicloRac(): Promise<number> {
     return resolverCicloEscolarSistemaValor()
@@ -1033,56 +1039,70 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     const materiaId = opts.materiaId
     const token = mdv('rep')
 
-    let q = client
-      .from('reporte_escolar')
-      .select('reporte_no, reporte_ciclo')
-      .eq('alumno_id', opts.alumnoId)
-      .eq('reporte_tipo', opts.tipo)
-      .eq('reporte_status', 1)
-      .eq('reporte_ciclo_escolar', ciclo)
-    if (opts.tipo === RAC_TIPOS.academico && materiaId) {
-      const idsFiltro = await idsEscalonAcademico(opts.alumnoId, materiaId, ciclo)
-      if (idsFiltro.length === 1) q = q.eq('materia_id', idsFiltro[0])
-      else q = q.in('materia_id', idsFiltro)
-    }
-    const { data: prev } = await q
-    let reporteCiclo = 0
-    let reporteNo = opts.tipo > 2 ? 1 : 0
-    if (prev?.length) {
-      reporteCiclo = prev.reduce((acc, r) => Math.max(acc, n(r.reporte_ciclo)), 0)
-      reporteNo =
-        prev.filter((r) => n(r.reporte_ciclo) === reporteCiclo).reduce((acc, r) => Math.max(acc, n(r.reporte_no)), -1) +
-        1
-    }
+    const idsAcademico =
+      opts.tipo === RAC_TIPOS.academico && materiaId ? await idsEscalonAcademico(opts.alumnoId, materiaId, ciclo) : null
     const maxNo = maxReporteNoEscalon(opts.tipo, {
       maternalKinder: cfg.slug === 'maternal-kinder',
     })
-    // Al superar el tope se reinicia el ciclo del escalón (mismo patrón legacy).
-    if (reporteNo === maxNo + 1) {
-      reporteCiclo += 1
-      reporteNo = opts.tipo > 2 ? 1 : 0
+    const calcularEscalon = async () => {
+      let q = client
+        .from('reporte_escolar')
+        .select('reporte_no, reporte_ciclo')
+        .eq('alumno_id', opts.alumnoId)
+        .eq('reporte_tipo', opts.tipo)
+        .eq('reporte_status', 1)
+        .eq('reporte_ciclo_escolar', ciclo)
+      if (idsAcademico) {
+        if (idsAcademico.length === 1) q = q.eq('materia_id', idsAcademico[0])
+        else q = q.in('materia_id', idsAcademico)
+      }
+      const { data: prev, error: errPrev } = await q
+      if (errPrev) throw new Error(errPrev.message)
+      let reporteCiclo = 0
+      let reporteNo = opts.tipo > 2 ? 1 : 0
+      if (prev?.length) {
+        reporteCiclo = prev.reduce((acc, r) => Math.max(acc, n(r.reporte_ciclo)), 0)
+        reporteNo =
+          prev.filter((r) => n(r.reporte_ciclo) === reporteCiclo).reduce((acc, r) => Math.max(acc, n(r.reporte_no)), -1) +
+          1
+      }
+      // Al superar el tope se reinicia el ciclo del escalón (mismo patrón legacy).
+      if (reporteNo === maxNo + 1) {
+        reporteCiclo += 1
+        reporteNo = opts.tipo > 2 ? 1 : 0
+      }
+      return { reporteCiclo, reporteNo }
     }
 
     let status = 1
     if (opts.tipo === 2 && opts.session.perfil !== 4) status = 2
 
-    const insert: Record<string, unknown> = {
-      alumno_id: opts.alumnoId,
-      perfil_id: opts.session.perfil,
-      usuario_id: opts.session.id,
-      reporte_tipo: opts.tipo,
-      reporte_motivo: opts.motivo,
-      reporte_no: reporteNo,
-      reporte_mensaje: opts.mensaje,
-      reporte_status: status,
-      reporte_ciclo: reporteCiclo,
-      reporte_ciclo_escolar: ciclo,
-      reporte_mdv: token,
+    let reporteNo = 0
+    let created: { reporte_id: unknown } | null = null
+    // Índice único de escalón: si otra captura simultánea tomó el número, recalcular y reintentar.
+    for (let intento = 0; intento < 3 && !created; intento++) {
+      const escalon = await calcularEscalon()
+      reporteNo = escalon.reporteNo
+      const insert: Record<string, unknown> = {
+        alumno_id: opts.alumnoId,
+        perfil_id: opts.session.perfil,
+        usuario_id: opts.session.id,
+        reporte_tipo: opts.tipo,
+        reporte_motivo: opts.motivo,
+        reporte_no: escalon.reporteNo,
+        reporte_mensaje: opts.mensaje,
+        reporte_status: status,
+        reporte_ciclo: escalon.reporteCiclo,
+        reporte_ciclo_escolar: ciclo,
+        reporte_mdv: token,
+      }
+      if (materiaId) insert.materia_id = materiaId
+      const { data, error } = await client.from('reporte_escolar').insert(insert).select('reporte_id').maybeSingle()
+      if (error && esChoqueEscalon(error) && intento < 2) continue
+      if (error || !data) throw new Error(error?.message || 'No se pudo guardar el reporte')
+      created = data
     }
-    if (materiaId) insert.materia_id = materiaId
-
-    const { data: created, error } = await client.from('reporte_escolar').insert(insert).select('reporte_id').maybeSingle()
-    if (error || !created) throw new Error(error?.message || 'No se pudo guardar el reporte')
+    if (!created) throw new Error('No se pudo guardar el reporte')
     const reporteId = n(created.reporte_id)
 
     if (status === 2) {
@@ -1521,6 +1541,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
           .eq('reporte_ciclo', r.reporte_ciclo)
           .eq('reporte_status', 1)
           .gt('reporte_no', r.reporte_no)
+        .order('reporte_no', { ascending: true })
         // Académico: mismo escalón que al capturar (sección ES o EN), sin tocar el otro track.
         if (n(r.reporte_tipo) === RAC_TIPOS.academico && n(r.materia_id) > 0) {
           const ids = await idsEscalonAcademico(n(r.alumno_id), n(r.materia_id), n(r.reporte_ciclo_escolar))
@@ -1535,40 +1556,47 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       return { ok: true }
     }
     const ciclo = await cicloRac()
-    // Reclamar el pendiente de forma atómica: un doble clic no debe escalar ni citar dos veces.
-    const { data: reclamado, error: errReclamo } = await client
-      .from('reporte_escolar')
-      .update({ reporte_status: 1 })
-      .eq('reporte_id', id)
-      .eq('reporte_status', 2)
-      .select('*')
-    if (errReclamo) throw new Error(errReclamo.message)
-    const r = reclamado?.[0]
-    if (!r) throw new Error('El reporte ya fue procesado.')
-    const { data: prev } = await client
-      .from('reporte_escolar')
-      .select('reporte_no, reporte_ciclo')
-      .eq('alumno_id', r.alumno_id)
-      .eq('reporte_tipo', 2)
-      .eq('reporte_status', 1)
-      .eq('reporte_ciclo_escolar', ciclo)
-      .neq('reporte_id', id)
-    let reporteCiclo = 0
-    let reporteNo = 0
-    let pivot = 0
-    if (prev?.length) {
-      pivot = 1
-      reporteCiclo = prev.reduce((acc, x) => Math.max(acc, n(x.reporte_ciclo)), 0)
-      reporteNo = prev
-        .filter((x) => n(x.reporte_ciclo) === reporteCiclo)
-        .reduce((acc, x) => Math.max(acc, n(x.reporte_no)), 0)
+    // Calcular el escalón y aprobar en un solo update condicionado al pendiente: un doble clic no escala
+    // ni cita dos veces, y el índice único de escalón detecta capturas simultáneas (se recalcula).
+    const { data: r } = await client.from('reporte_escolar').select('*').eq('reporte_id', id).maybeSingle()
+    if (!r) throw new Error('Reporte no encontrado')
+    if (n(r.reporte_status) !== 2) throw new Error('El reporte ya fue procesado.')
+    let noFinal = 0
+    let aprobado = false
+    for (let intento = 0; intento < 3 && !aprobado; intento++) {
+      const { data: prev, error: errPrev } = await client
+        .from('reporte_escolar')
+        .select('reporte_no, reporte_ciclo')
+        .eq('alumno_id', r.alumno_id)
+        .eq('reporte_tipo', 2)
+        .eq('reporte_status', 1)
+        .eq('reporte_ciclo_escolar', ciclo)
+        .neq('reporte_id', id)
+      if (errPrev) throw new Error(errPrev.message)
+      let reporteCiclo = 0
+      let reporteNo = 0
+      let pivot = 0
+      if (prev?.length) {
+        pivot = 1
+        reporteCiclo = prev.reduce((acc, x) => Math.max(acc, n(x.reporte_ciclo)), 0)
+        reporteNo = prev
+          .filter((x) => n(x.reporte_ciclo) === reporteCiclo)
+          .reduce((acc, x) => Math.max(acc, n(x.reporte_no)), 0)
+      }
+      noFinal = reporteNo === 3 ? 0 : reporteNo + pivot
+      const cicloFinal = reporteNo === 3 ? reporteCiclo + 1 : reporteCiclo
+      const { data: upd, error: errUpd } = await client
+        .from('reporte_escolar')
+        .update({ reporte_status: 1, reporte_no: noFinal, reporte_ciclo: cicloFinal })
+        .eq('reporte_id', id)
+        .eq('reporte_status', 2)
+        .select('reporte_id')
+      if (errUpd && esChoqueEscalon(errUpd) && intento < 2) continue
+      if (errUpd) throw new Error(errUpd.message)
+      if (!upd?.length) throw new Error('El reporte ya fue procesado.')
+      aprobado = true
     }
-    const noFinal = reporteNo === 3 ? 0 : reporteNo + pivot
-    const cicloFinal = reporteNo === 3 ? reporteCiclo + 1 : reporteCiclo
-    await client
-      .from('reporte_escolar')
-      .update({ reporte_status: 1, reporte_no: noFinal, reporte_ciclo: cicloFinal })
-      .eq('reporte_id', id)
+    if (!aprobado) throw new Error('No se pudo aprobar el reporte; inténtalo de nuevo.')
     // Mismo escalonamiento que capturarReporte: los de conducta pendientes de validar lo omiten al capturarse.
     if (noFinal === 2) {
       await client.from('reporte_cita').insert({
