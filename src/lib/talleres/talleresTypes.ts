@@ -354,10 +354,8 @@ export type AsistenciaDia = {
   hoy: string
   /** 0 = domingo … 6 = sábado. */
   dia: number
-  /** Se puede guardar (hoy; con `historial`, hasta DIAS_EDITABLES_ASISTENCIA atrás). */
+  /** Se puede guardar: hoy y hasta DIAS_EDITABLES_ASISTENCIA atrás (días futuros, solo consulta). */
   editable: boolean
-  /** Administrador de Talleres: puede navegar a otros días. Sin sesión solo existe hoy. */
-  historial: boolean
   sesiones: SesionAsistencia[]
 }
 

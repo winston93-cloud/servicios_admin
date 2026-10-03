@@ -168,7 +168,7 @@ function TalleresView() {
               <ArrowLeft size={16} aria-hidden /> Dashboard
             </button>
             <div className="tl-topbar-der">
-              <Link href="/talleres/asistencia" className="tl-btn-asistencia">
+              <Link href="/talleres/asistencia?desde=talleres" className="tl-btn-asistencia">
                 <ClipboardCheck size={16} aria-hidden /> Asistencia<span className="tl-ocultar-movil"> diaria</span>
               </Link>
               <button type="button" className="tl-icon-btn" onClick={() => void cargar()} aria-label="Recargar" disabled={cargando}>

@@ -18,7 +18,10 @@ import {
   RefreshCw,
   Save,
   Timer,
+  Trash2,
+  Undo2,
   User,
+  WifiOff,
   X,
 } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -46,29 +49,49 @@ import './asistencia.css'
 const CLAVE_NOMBRE = 'talleres-asistencia-nombre'
 const CLAVE_BORRADORES = 'talleres-asistencia-borradores'
 
-type BorradoresGuardados = { fecha: string; items: Record<number, { faltas: number[]; total: number }> }
+type ItemsBorrador = Record<number, { faltas: number[]; total: number }>
+/** Borradores por fecha: cambiar de día no pierde lo marcado. */
+type BorradoresGuardados = Record<string, ItemsBorrador>
+const MAX_DIAS_BORRADOR = 14
 
-function leerBorradoresLocales(fecha: string): BorradoresGuardados['items'] {
+function leerTodosLosBorradores(): BorradoresGuardados {
   try {
-    const raw = JSON.parse(localStorage.getItem(CLAVE_BORRADORES) ?? 'null') as BorradoresGuardados | null
-    return raw && raw.fecha === fecha && raw.items ? raw.items : {}
+    const raw = JSON.parse(localStorage.getItem(CLAVE_BORRADORES) ?? 'null') as unknown
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+    const viejo = raw as { fecha?: unknown; items?: unknown }
+    if (typeof viejo.fecha === 'string' && viejo.items && typeof viejo.items === 'object') {
+      return { [viejo.fecha]: viejo.items as ItemsBorrador }
+    }
+    return raw as BorradoresGuardados
   } catch {
     return {}
   }
 }
 
-function guardarBorradoresLocales(fecha: string, borradores: Record<number, Borrador>) {
+function leerBorradoresLocales(fecha: string): ItemsBorrador {
+  return leerTodosLosBorradores()[fecha] ?? {}
+}
+
+function escribirBorradores(todos: BorradoresGuardados) {
   try {
-    const items = Object.fromEntries(
-      Object.entries(borradores)
-        .filter(([, b]) => b.sucio)
-        .map(([id, b]) => [id, { faltas: [...b.faltas], total: b.total }])
-    )
-    if (Object.keys(items).length) localStorage.setItem(CLAVE_BORRADORES, JSON.stringify({ fecha, items }))
-    else localStorage.removeItem(CLAVE_BORRADORES)
+    const fechas = Object.keys(todos).sort().slice(-MAX_DIAS_BORRADOR)
+    if (!fechas.length) localStorage.removeItem(CLAVE_BORRADORES)
+    else localStorage.setItem(CLAVE_BORRADORES, JSON.stringify(Object.fromEntries(fechas.map((f) => [f, todos[f]]))))
   } catch {
     /* sin almacenamiento */
   }
+}
+
+function guardarBorradoresLocales(fecha: string, borradores: Record<number, Borrador>) {
+  const items = Object.fromEntries(
+    Object.entries(borradores)
+      .filter(([, b]) => b.sucio)
+      .map(([id, b]) => [id, { faltas: [...b.faltas], total: b.total }])
+  )
+  const todos = leerTodosLosBorradores()
+  if (Object.keys(items).length) todos[fecha] = items
+  else delete todos[fecha]
+  escribirBorradores(todos)
 }
 
 type DatosIncidencia = { falto: boolean; llegada: string | null; salida: string | null; motivo: string; nota: string }
@@ -80,13 +103,13 @@ type Borrador = {
   sucio: boolean
 }
 
-function descartarBorradoresLocales() {
-  try {
-    localStorage.removeItem(CLAVE_BORRADORES)
-  } catch {
-    /* sin almacenamiento */
-  }
+function descartarBorradoresLocales(fecha: string) {
+  const todos = leerTodosLosBorradores()
+  delete todos[fecha]
+  escribirBorradores(todos)
 }
+
+type Deshacer = { id: number; texto: string; ejecutar: () => Promise<void> }
 
 function borradorDesde(s: SesionAsistencia): Borrador {
   const enLista = new Set(s.alumnos.map((a) => a.alumno_id))
@@ -151,14 +174,28 @@ export default function AsistenciaTalleresPage() {
   const [modalInc, setModalInc] = useState<number | null>(null)
   const [nombre, setNombre] = useState('')
   const [empleado, setEmpleado] = useState<string | null>(null)
+  const [desdeAdmin, setDesdeAdmin] = useState(false)
+  const [enLinea, setEnLinea] = useState(true)
+  const [deshacer, setDeshacer] = useState<Deshacer | null>(null)
+  const [deshaciendo, setDeshaciendo] = useState(false)
 
   useEffect(() => {
     const s = parsePortalSessionHeader(readPortalSessionForFetch())
     if (s?.role === 'usuario') setEmpleado(s.displayName || 'Personal')
+    setDesdeAdmin(new URLSearchParams(window.location.search).get('desde') === 'talleres')
+    setEnLinea(navigator.onLine)
+    const on = () => setEnLinea(true)
+    const off = () => setEnLinea(false)
+    window.addEventListener('online', on)
+    window.addEventListener('offline', off)
     try {
       setNombre(localStorage.getItem(CLAVE_NOMBRE) ?? '')
     } catch {
       /* sin almacenamiento */
+    }
+    return () => {
+      window.removeEventListener('online', on)
+      window.removeEventListener('offline', off)
     }
   }, [])
 
@@ -193,6 +230,7 @@ export default function AsistenciaTalleresPage() {
         )
       )
       setAbierta(null)
+      setDeshacer(null)
     } catch (e) {
       if (esCancelacion(e) || ctrl.signal.aborted) return
       setErrorCarga(mensajeDe(e, 'No se pudo cargar la asistencia.'))
@@ -211,6 +249,12 @@ export default function AsistenciaTalleresPage() {
     return () => window.clearTimeout(t)
   }, [aviso])
 
+  useEffect(() => {
+    if (!deshacer || deshaciendo) return
+    const t = window.setTimeout(() => setDeshacer(null), 10_000)
+    return () => window.clearTimeout(t)
+  }, [deshacer, deshaciendo])
+
   const haySinGuardar = Object.values(borradores).some((b) => b.sucio)
 
   useEffect(() => {
@@ -225,12 +269,102 @@ export default function AsistenciaTalleresPage() {
   }, [haySinGuardar])
 
   const irA = (f: string) => {
-    if (f === fecha || guardando != null) return
-    if (haySinGuardar) {
-      if (!window.confirm('Hay listas sin guardar. ¿Cambiar de día y descartarlas?')) return
-      descartarBorradoresLocales()
+    if (f === fecha || guardando != null || deshaciendo) return
+    if (haySinGuardar && fecha) {
+      setAviso(`Lo que no guardaste del ${fechaLarga(fecha).toLowerCase()} se quedó en este dispositivo.`)
     }
     void cargar(f)
+  }
+
+  const aplicarSesion = (id: number, cambios: Partial<Pick<SesionAsistencia, 'registro' | 'incidencia'>>) => {
+    setData((prev) =>
+      prev
+        ? { ...prev, sesiones: prev.sesiones.map((x) => (x.asignacion_id === id ? { ...x, ...cambios } : x)) }
+        : prev
+    )
+    if ('registro' in cambios) {
+      setBorradores((prev) => {
+        const s = sesiones.find((x) => x.asignacion_id === id)
+        return s ? { ...prev, [id]: borradorDesde({ ...s, registro: cambios.registro ?? null }) } : prev
+      })
+    }
+  }
+
+  /** Vuelve el pase de lista de `s` a `previo` (null = como si no se hubiera pasado). */
+  const restaurarRegistro = async (s: SesionAsistencia, fechaDe: string, previo: RegistroAsistencia | null) => {
+    const json = await fetchTalleres<{ registro: RegistroAsistencia | null }>('/api/talleres/asistencia', {
+      method: 'POST',
+      json: previo
+        ? {
+            asignacion_id: s.asignacion_id,
+            fecha: fechaDe,
+            faltas: previo.faltas,
+            total_alumnos: previo.total_alumnos,
+            registrado_por: previo.registrado_por,
+          }
+        : { accion: 'quitar', asignacion_id: s.asignacion_id, fecha: fechaDe },
+    })
+    if (fechaRef.current === fechaDe) aplicarSesion(s.asignacion_id, { registro: json.registro ?? null })
+  }
+
+  const restaurarIncidencia = async (s: SesionAsistencia, fechaDe: string, previo: IncidenciaMaestro | null) => {
+    const json = await fetchTalleres<{ incidencia?: IncidenciaMaestro | null }>('/api/talleres/asistencia', {
+      method: 'POST',
+      json: {
+        accion: 'incidencia',
+        asignacion_id: s.asignacion_id,
+        fecha: fechaDe,
+        falto: previo?.falto ?? false,
+        llegada: previo?.llegada ?? null,
+        salida: previo?.salida ?? null,
+        motivo: previo?.motivo ?? '',
+        nota: previo?.nota ?? '',
+        registrado_por: previo?.registrado_por ?? empleado ?? nombre.trim(),
+      },
+    })
+    if (fechaRef.current === fechaDe) aplicarSesion(s.asignacion_id, { incidencia: json.incidencia ?? null })
+  }
+
+  const ejecutarDeshacer = async () => {
+    if (!deshacer || deshaciendo) return
+    setDeshaciendo(true)
+    setError(null)
+    try {
+      await deshacer.ejecutar()
+      setModalInc((m) => (m === deshacer.id ? null : m))
+      setDeshacer(null)
+      setAviso('Listo, se deshizo el cambio.')
+    } catch (e) {
+      setError(mensajeDe(e, 'No se pudo deshacer. Revisa tu conexión e intenta otra vez.'))
+    } finally {
+      setDeshaciendo(false)
+    }
+  }
+
+  const descartarCambios = (s: SesionAsistencia) =>
+    setBorradores((prev) => ({ ...prev, [s.asignacion_id]: borradorDesde(s) }))
+
+  const quitarRegistro = async (s: SesionAsistencia) => {
+    if (!fecha || !s.registro) return
+    if (!window.confirm(`¿Quitar el pase de lista de ${s.taller}? Quedará como pendiente.`)) return
+    const previo = s.registro
+    const fechaDe = fecha
+    setGuardando(s.asignacion_id)
+    setError(null)
+    try {
+      await restaurarRegistro(s, fechaDe, null)
+      setAbierta(null)
+      setAviso(null)
+      setDeshacer({
+        id: s.asignacion_id,
+        texto: `Se quitó el pase de lista de ${s.taller}.`,
+        ejecutar: () => restaurarRegistro(s, fechaDe, previo),
+      })
+    } catch (e) {
+      setError(mensajeDe(e, 'No se pudo quitar el registro.'))
+    } finally {
+      setGuardando(null)
+    }
   }
 
   const sesiones = useMemo(() => data?.sesiones ?? [], [data])
@@ -304,6 +438,7 @@ export default function AsistenciaTalleresPage() {
     setGuardando(s.asignacion_id)
     setError(null)
     const fechaGuardada = fecha
+    const previo = s.registro
     try {
       const json = await fetchTalleres<{ registro: RegistroAsistencia }>('/api/talleres/asistencia', {
         method: 'POST',
@@ -329,7 +464,12 @@ export default function AsistenciaTalleresPage() {
           : prev
       )
       setBorradores((prev) => ({ ...prev, [s.asignacion_id]: { ...b, sucio: false } }))
-      setAviso(`Asistencia de ${s.taller} guardada.`)
+      setAviso(null)
+      setDeshacer({
+        id: s.asignacion_id,
+        texto: `Asistencia de ${s.taller} guardada.`,
+        ejecutar: () => restaurarRegistro(s, fechaGuardada, previo),
+      })
       setAbierta(null)
       setModalInc(s.asignacion_id)
     } catch (e) {
@@ -352,6 +492,7 @@ export default function AsistenciaTalleresPage() {
     }
     setError(null)
     const fechaGuardada = fecha
+    const previo = s.incidencia
     try {
       const json = await fetchTalleres<{ incidencia?: IncidenciaMaestro | null }>('/api/talleres/asistencia', {
         method: 'POST',
@@ -367,11 +508,15 @@ export default function AsistenciaTalleresPage() {
             }
           : prev
       )
-      setAviso(
-        incidencia
-          ? `${s.taller}: ${textoIncidencia(s.hora_inicio, s.hora_fin, incidencia)}.`
-          : `${s.taller}: el maestro llegó a tiempo.`
-      )
+      const texto = incidencia
+        ? `${s.taller}: ${textoIncidencia(s.hora_inicio, s.hora_fin, incidencia)}.`
+        : `${s.taller}: el maestro llegó a tiempo.`
+      if (previo || incidencia) {
+        setAviso(null)
+        setDeshacer({ id: s.asignacion_id, texto, ejecutar: () => restaurarIncidencia(s, fechaGuardada, previo) })
+      } else {
+        setAviso(texto)
+      }
       return true
     } catch (e) {
       setError(mensajeDe(e, 'No se pudo guardar.'))
@@ -398,7 +543,7 @@ export default function AsistenciaTalleresPage() {
       <div className="tl-shell as-shell">
         <header className="tl-header">
           <div className="tl-topbar">
-            {empleado ? (
+            {desdeAdmin ? (
               <Link href="/talleres" className="tl-back">
                 <ArrowLeft size={16} aria-hidden /> Talleres
               </Link>
@@ -412,14 +557,14 @@ export default function AsistenciaTalleresPage() {
                 type="button"
                 className="tl-icon-btn"
                 onClick={() => {
-                  if (haySinGuardar) {
+                  if (haySinGuardar && fecha) {
                     if (!window.confirm('Hay listas sin guardar. ¿Recargar y descartarlas?')) return
-                    descartarBorradoresLocales()
+                    descartarBorradoresLocales(fecha)
                   }
                   void cargar(fecha)
                 }}
                 aria-label="Recargar"
-                disabled={cargando || guardando != null}
+                disabled={cargando || guardando != null || deshaciendo}
               >
                 <RefreshCw size={16} aria-hidden className={cargando ? 'tl-spin' : undefined} />
               </button>
@@ -450,12 +595,31 @@ export default function AsistenciaTalleresPage() {
               </button>
             </p>
           ) : null}
+          {deshacer ? (
+            <p className="tl-msg tl-msg-ok as-deshacer" role="status">
+              <Check size={16} aria-hidden /> <span>{deshacer.texto}</span>
+              <button type="button" className="as-deshacer-btn" onClick={() => void ejecutarDeshacer()} disabled={deshaciendo}>
+                {deshaciendo ? <Loader2 size={16} className="tl-spin" aria-hidden /> : <Undo2 size={16} aria-hidden />}
+                Deshacer
+              </button>
+              <button type="button" className="tl-msg-x" onClick={() => setDeshacer(null)} aria-label="Cerrar aviso" disabled={deshaciendo}>
+                ×
+              </button>
+            </p>
+          ) : null}
           {aviso ? (
             <p className="tl-msg tl-msg-ok" role="status">
               <Check size={16} aria-hidden /> {aviso}
             </p>
           ) : null}
         </div>
+
+        {!enLinea ? (
+          <p className="as-sin-red" role="status">
+            <WifiOff size={18} aria-hidden />
+            <span>Sin internet. Sigue marcando: lo que hagas se queda en este dispositivo y lo guardas cuando regrese la señal.</span>
+          </p>
+        ) : null}
 
         {!empleado ? (
           <label className="as-quien" htmlFor="as-nombre">
@@ -472,9 +636,9 @@ export default function AsistenciaTalleresPage() {
           </label>
         ) : null}
 
-        {fecha && data?.historial ? (
+        {fecha ? (
           <nav className="as-dias" aria-label="Día" aria-busy={cargando || undefined}>
-            <button type="button" className="as-flecha" onClick={() => irA(sumarDias(semana[0], -7))} aria-label="Semana anterior" disabled={guardando != null}>
+            <button type="button" className="as-flecha" onClick={() => irA(sumarDias(semana[0], -7))} aria-label="Semana anterior" disabled={guardando != null || deshaciendo}>
               <ChevronLeft size={18} aria-hidden />
             </button>
             <div className="as-dias-lista">
@@ -486,7 +650,7 @@ export default function AsistenciaTalleresPage() {
                   data-activo={f === fecha || undefined}
                   data-hoy={f === hoy || undefined}
                   aria-pressed={f === fecha}
-                  disabled={guardando != null}
+                  disabled={guardando != null || deshaciendo}
                   onClick={() => irA(f)}
                 >
                   <span className="as-dia-nombre">{DIAS_TALLER[i].etiqueta.slice(0, 3)}</span>
@@ -494,11 +658,11 @@ export default function AsistenciaTalleresPage() {
                 </button>
               ))}
             </div>
-            <button type="button" className="as-flecha" onClick={() => irA(sumarDias(semana[0], 7))} aria-label="Semana siguiente" disabled={guardando != null}>
+            <button type="button" className="as-flecha" onClick={() => irA(sumarDias(semana[0], 7))} aria-label="Semana siguiente" disabled={guardando != null || deshaciendo}>
               <ChevronRight size={18} aria-hidden />
             </button>
             {hoy && fecha !== hoy ? (
-              <button type="button" className="as-hoy-btn" onClick={() => irA(hoy)} disabled={guardando != null}>Hoy</button>
+              <button type="button" className="as-hoy-btn" onClick={() => irA(hoy)} disabled={guardando != null || deshaciendo}>Hoy</button>
             ) : null}
           </nav>
         ) : null}
@@ -507,7 +671,15 @@ export default function AsistenciaTalleresPage() {
           <section className="as-resumen" aria-label="Resumen del día">
             <div className="as-resumen-fecha">
               <strong>{fechaLarga(data.fecha)}</strong>
-              <span>{data.fecha === data.hoy ? 'Hoy' : data.editable ? 'Día pasado · editable' : 'Solo consulta'}</span>
+              <span>
+                {data.fecha === data.hoy
+                  ? 'Hoy'
+                  : data.editable
+                    ? 'Día pasado · se puede corregir'
+                    : data.fecha > data.hoy
+                      ? 'Día próximo · solo consulta'
+                      : 'Solo consulta'}
+              </span>
             </div>
             <div className="as-progreso" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Talleres registrados">
               <div className="as-progreso-barra"><span style={{ width: `${pct}%` }} /></div>
@@ -584,6 +756,8 @@ export default function AsistenciaTalleresPage() {
                     onTodos={() => todosPresentes(s.asignacion_id)}
                     onTotal={(v) => cambiarTotal(s.asignacion_id, v)}
                     onGuardar={() => void guardar(s)}
+                    onDescartar={() => descartarCambios(s)}
+                    onQuitar={() => void quitarRegistro(s)}
                     onIncidencia={() => setModalInc(s.asignacion_id)}
                   />
                 ))}
@@ -621,6 +795,8 @@ function TarjetaSesion({
   onTodos,
   onTotal,
   onGuardar,
+  onDescartar,
+  onQuitar,
   onIncidencia,
 }: {
   s: SesionAsistencia
@@ -633,6 +809,8 @@ function TarjetaSesion({
   onTodos: () => void
   onTotal: (v: number) => void
   onGuardar: () => void
+  onDescartar: () => void
+  onQuitar: () => void
   onIncidencia: () => void
 }) {
   const incidencia = s.incidencia
@@ -796,10 +974,21 @@ function TarjetaSesion({
               <span />
             )}
             {editable ? (
-              <button type="button" className="as-btn-guardar" onClick={onGuardar} disabled={guardando}>
-                {guardando ? <Loader2 size={18} className="tl-spin" aria-hidden /> : <Save size={18} aria-hidden />}
-                {s.registro ? 'Actualizar asistencia' : 'Guardar asistencia'}
-              </button>
+              <div className="as-pie-acciones">
+                {b.sucio ? (
+                  <button type="button" className="as-btn-terciario" onClick={onDescartar} disabled={guardando}>
+                    <Undo2 size={16} aria-hidden /> Descartar cambios
+                  </button>
+                ) : s.registro ? (
+                  <button type="button" className="as-btn-terciario as-btn-quitar" onClick={onQuitar} disabled={guardando}>
+                    <Trash2 size={16} aria-hidden /> Quitar registro
+                  </button>
+                ) : null}
+                <button type="button" className="as-btn-guardar" onClick={onGuardar} disabled={guardando}>
+                  {guardando ? <Loader2 size={18} className="tl-spin" aria-hidden /> : <Save size={18} aria-hidden />}
+                  {s.registro ? 'Actualizar asistencia' : 'Guardar asistencia'}
+                </button>
+              </div>
             ) : (
               <span className="as-solo-consulta">Solo consulta</span>
             )}

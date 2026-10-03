@@ -804,3 +804,65 @@ a.tl-back { text-decoration: none; }
   .as-btn-sec,
   .as-inc-rapido { min-height: var(--touch-min, 44px); }
 }
+
+/* ── Deshacer / descartar / sin red ── */
+.as-pie-acciones { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.5rem; }
+.as-btn-terciario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: var(--touch-min, 44px);
+  padding: 0 1rem;
+  border: 1px solid var(--tl-border);
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--tl-text-soft);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.as-btn-terciario:hover { color: var(--tl-text); background: var(--tl-surface-2); }
+.as-btn-terciario:disabled { opacity: 0.55; cursor: wait; }
+.as-btn-quitar { color: var(--as-falta); border-color: color-mix(in srgb, var(--as-falta) 40%, transparent); }
+.as-btn-quitar:hover { color: var(--as-falta); background: var(--as-falta-bg); }
+
+.as-deshacer { flex-wrap: wrap; }
+.as-deshacer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: var(--touch-min, 44px);
+  padding: 0 0.9rem;
+  border: 1px solid currentColor;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.as-deshacer-btn:disabled { opacity: 0.6; cursor: wait; }
+
+.as-sin-red {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #f5b942;
+  border-radius: 0.85rem;
+  background: rgba(245, 185, 66, 0.12);
+  color: #f5d48a;
+  font-size: 0.875rem;
+}
+.as-sin-red span { min-width: 0; }
+[data-theme='light'] .as-sin-red { border-color: #e7b257; background: #fff3dc; color: #8a4b00; }
+
+@media (max-width: 640px) {
+  .as-pie-acciones { flex-direction: column-reverse; align-items: stretch; }
+  .as-btn-terciario { width: 100%; }
+  .as-deshacer > span { flex: 1 1 calc(100% - 2rem); }
+  .as-deshacer-btn { flex: 1; justify-content: center; }
+}

@@ -24,12 +24,6 @@ import type { TallerAsignacion } from '@/lib/talleres/talleresTypes'
 
 const ZONA = 'America/Mexico_City'
 
-/**
- * `historial`: quien administra Talleres puede ver y corregir hasta DIAS_EDITABLES_ASISTENCIA atrás.
- * Sin eso (estancia, sin sesión) solo existe el día de hoy.
- */
-export type AccesoAsistencia = { historial: boolean }
-
 function fechaMx(iso: unknown): string | null {
   if (!iso) return null
   const d = new Date(String(iso))
@@ -66,16 +60,10 @@ export function fechaValida(raw: unknown): string {
   return s
 }
 
-function esEditable(fecha: string, hoy: string, acceso: AccesoAsistencia): boolean {
-  if (!acceso.historial) return fecha === hoy
+/** Hoy y hasta DIAS_EDITABLES_ASISTENCIA atrás; los días futuros solo se consultan. */
+function esEditable(fecha: string, hoy: string): boolean {
   const d = diasEntre(fecha, hoy)
   return d >= 0 && d <= DIAS_EDITABLES_ASISTENCIA
-}
-
-function exigirFechaPermitida(fecha: string, hoy: string, acceso: AccesoAsistencia): void {
-  if (!acceso.historial && fecha !== hoy) {
-    throw new TalleresError('Solo se puede pasar lista del día de hoy.', 403)
-  }
 }
 
 /**
@@ -220,10 +208,9 @@ function programadoDelDia(a: TallerAsignacion, fecha: string) {
   }
 }
 
-export async function asistenciaDelDia(rawFecha: unknown, acceso: AccesoAsistencia): Promise<AsistenciaDia> {
+export async function asistenciaDelDia(rawFecha: unknown): Promise<AsistenciaDia> {
   const hoy = hoyMexico()
   const fecha = rawFecha ? fechaValida(rawFecha) : hoy
-  exigirFechaPermitida(fecha, hoy, acceso)
   const dia = diaSemana(fecha)
   const snap = await snapshotTalleres()
   const tallerPorId = new Map(snap.talleres.map((t) => [t.id, t]))
@@ -265,26 +252,25 @@ export async function asistenciaDelDia(rawFecha: unknown, acceso: AccesoAsistenc
     fecha,
     hoy,
     dia,
-    editable: esEditable(fecha, hoy, acceso),
-    historial: acceso.historial,
+    editable: esEditable(fecha, hoy),
     sesiones,
   }
 }
 
-function exigirEditable(fecha: string, hoy: string, acceso: AccesoAsistencia): void {
-  exigirFechaPermitida(fecha, hoy, acceso)
-  if (!esEditable(fecha, hoy, acceso)) {
-    throw new TalleresError(`Solo se puede editar hoy o los últimos ${DIAS_EDITABLES_ASISTENCIA} días.`)
+function exigirEditable(fecha: string, hoy: string): void {
+  if (!esEditable(fecha, hoy)) {
+    throw new TalleresError(
+      fecha > hoy
+        ? 'Todavía no llega ese día: solo se puede pasar lista de hoy o días anteriores.'
+        : `Solo se puede editar hoy o los últimos ${DIAS_EDITABLES_ASISTENCIA} días.`
+    )
   }
 }
 
-export async function guardarAsistencia(
-  body: Record<string, unknown>,
-  acceso: AccesoAsistencia
-): Promise<RegistroAsistencia> {
+export async function guardarAsistencia(body: Record<string, unknown>): Promise<RegistroAsistencia> {
   const hoy = hoyMexico()
   const fecha = fechaValida(body.fecha)
-  exigirEditable(fecha, hoy, acceso)
+  exigirEditable(fecha, hoy)
   const asignacionId = idEntero(body.asignacion_id)
   const snap = await snapshotTalleres()
   const asignacion = snap.asignaciones.find((a) => a.id === asignacionId)
@@ -353,13 +339,10 @@ function horaOpcional(raw: unknown, campo: string): string | null {
  * Registra (o quita, si no viene nada) que el maestro no asistió, llegó tarde o salió antes.
  * No requiere pase de lista: si aún no hay fila del día se crea con `lista_pasada = false`.
  */
-export async function guardarIncidencia(
-  body: Record<string, unknown>,
-  acceso: AccesoAsistencia
-): Promise<IncidenciaMaestro | null> {
+export async function guardarIncidencia(body: Record<string, unknown>): Promise<IncidenciaMaestro | null> {
   const hoy = hoyMexico()
   const fecha = fechaValida(body.fecha)
-  exigirEditable(fecha, hoy, acceso)
+  exigirEditable(fecha, hoy)
   const asignacionId = idEntero(body.asignacion_id)
   const snap = await snapshotTalleres()
   const asignacion = snap.asignaciones.find((a) => a.id === asignacionId)
@@ -425,4 +408,41 @@ export async function guardarIncidencia(
     fail(error, 'Guardar incidencia')
   }
   return mapIncidencia(cambios)
+}
+
+/**
+ * Deshace el pase de lista del día (se equivocaron de taller o de día).
+ * Si hay incidencia del maestro se conserva; si no, la fila desaparece.
+ */
+export async function quitarAsistencia(body: Record<string, unknown>): Promise<void> {
+  const hoy = hoyMexico()
+  const fecha = fechaValida(body.fecha)
+  exigirEditable(fecha, hoy)
+  const asignacionId = idEntero(body.asignacion_id)
+  if (!asignacionId) throw new TalleresError('Taller inválido.')
+  const { data: fila, error: fErr } = await db()
+    .from('taller_asistencia')
+    .select('id, maestro_falto, llegada_maestro, salida_maestro')
+    .eq('asignacion_id', asignacionId)
+    .eq('fecha', fecha)
+    .maybeSingle()
+  fail(fErr, 'Asistencia')
+  const f = fila as { id: number; maestro_falto: boolean; llegada_maestro: string | null; salida_maestro: string | null } | null
+  if (!f) return
+  if (f.maestro_falto || f.llegada_maestro || f.salida_maestro) {
+    const { error } = await db()
+      .from('taller_asistencia')
+      .update({
+        lista_pasada: false,
+        total_alumnos: null,
+        faltas: [],
+        registrado_por: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', f.id)
+    fail(error, 'Quitar asistencia')
+  } else {
+    const { error } = await db().from('taller_asistencia').delete().eq('id', f.id)
+    fail(error, 'Quitar asistencia')
+  }
 }
