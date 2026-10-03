@@ -3,6 +3,7 @@ import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { puedeAccederPortalAlumno } from '@/lib/alumnoStatus'
 import { alumnoTieneAdeudoEgresadoActivo } from '@/lib/adeudosEgresadosService'
 import type { AuthSession } from '@/lib/portalAuthService'
+import { ponerCookieSesionPortal } from '@/lib/portalSesionFirmada'
 
 export const runtime = 'nodejs'
 
@@ -118,6 +119,12 @@ async function loginAlumno(refInput: string, password: string): Promise<AuthSess
   return sessionDesdeAlumno(alumno)
 }
 
+function responderSesion(session: AuthSession) {
+  const res = NextResponse.json({ ok: true, session })
+  ponerCookieSesionPortal(res, session)
+  return res
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -136,17 +143,17 @@ export async function POST(request: Request) {
     if (esNumeroControl) {
       const alumno = await loginAlumno(username, password)
       if (alumno) {
-        return NextResponse.json({ ok: true, session: alumno })
+        return responderSesion(alumno)
       }
       // Fallback raro: usuario staff con username numérico
       const staff = await loginUsuario(username, password)
       if (staff) {
-        return NextResponse.json({ ok: true, session: staff })
+        return responderSesion(staff)
       }
     } else {
       const staff = await loginUsuario(username, password)
       if (staff) {
-        return NextResponse.json({ ok: true, session: staff })
+        return responderSesion(staff)
       }
     }
 

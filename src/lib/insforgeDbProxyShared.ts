@@ -38,12 +38,13 @@ export function requireInsforgeAdminEnv() {
 /** Tablas que solo se tocan desde sus APIs dedicadas (con su propia autorización). */
 const TABLAS_SOLO_SERVIDOR = ['acceso_autorizado']
 
+/** `session` debe venir de la cookie firmada (`sesionPortalDeRequest`), nunca del header. */
 export async function proxyInsforgeDatabaseRequest(
   request: Request,
   upstreamPath: string,
+  session: AuthSession | null,
   env: { baseUrl: string; apiKey: string } = requireInsforgeAdminEnv()
 ): Promise<Response> {
-  const session = parsePortalSessionHeader(request.headers.get(PORTAL_SESSION_HEADER))
   if (!session) {
     return Response.json(
       { message: 'Sesión requerida. Inicia sesión de nuevo.' },

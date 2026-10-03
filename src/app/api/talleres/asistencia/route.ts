@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { parsePortalSessionHeader, portalSessionHeaderName } from '@/lib/insforgeDbProxyShared'
+import { sesionPortalDeRequest } from '@/lib/portalSesionFirmada'
 import { TalleresError } from '@/lib/talleres/talleresService'
 import { asistenciaDelDia, guardarAsistencia, guardarIncidencia } from '@/lib/talleres/talleresAsistenciaService'
 
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Record<string, unknown>
-    const session = parsePortalSessionHeader(request.headers.get(portalSessionHeaderName()))
+    const session = sesionPortalDeRequest(request)
     if (session?.role === 'usuario' && session.displayName) body.registrado_por = session.displayName
     if (body.accion === 'incidencia') {
       return NextResponse.json({ ok: true, incidencia: await guardarIncidencia(body) })

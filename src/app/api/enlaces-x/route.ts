@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { parsePortalSessionHeader, portalSessionHeaderName } from '@/lib/insforgeDbProxyShared'
+import { sesionPortalDeRequest } from '@/lib/portalSesionFirmada'
 import {
   crearEnlace,
   eliminarEnlace,
@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic'
 // Lectura pública; altas y bajas solo con el PIN de administración.
 
 function quien(request: Request): string {
-  const s = parsePortalSessionHeader(request.headers.get(portalSessionHeaderName()))
+  const s = sesionPortalDeRequest(request)
   return (s?.role === 'usuario' && s.displayName) || 'Administrador (PIN)'
 }
 

@@ -39,8 +39,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    setSession(getStoredSession())
-    setLoading(false)
+    const guardada = getStoredSession()
+    if (!guardada) {
+      setLoading(false)
+      return
+    }
+    // La cookie firmada manda: sin ella (sesión vieja o vencida) las APIs responden 401.
+    let vivo = true
+    void fetch('/api/auth/sesion', { cache: 'no-store' })
+      .then(async (res) => {
+        if (!vivo) return
+        if (res.status === 401) {
+          clearSession()
+          setSession(null)
+          return
+        }
+        const body = (await res.json().catch(() => ({}))) as { session?: unknown }
+        const firmada = res.ok ? normalizarSesion(body.session) : null
+        if (firmada) storeSession(firmada)
+        setSession(firmada ?? guardada)
+      })
+      .catch(() => {
+        if (vivo) setSession(guardada)
+      })
+      .finally(() => {
+        if (vivo) setLoading(false)
+      })
+    return () => {
+      vivo = false
+    }
   }, [])
 
   const login = useCallback((next: AuthSession) => {
@@ -58,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     clearSession()
     setSession(null)
+    void fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
   }, [])
 
   const user = useMemo(

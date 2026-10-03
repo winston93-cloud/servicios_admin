@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { cookieBoletasDesdeHeader } from '@/lib/boletasAuth'
-import { parsePortalSessionHeader } from '@/lib/insforgeDbProxyShared'
+import { sesionPortalDeRequest } from '@/lib/portalSesionFirmada'
 import { requireEmpleadoPortal } from '@/lib/portalApiEmpleadoAuth'
 import { TeError, descargar, nivelDeKey, nivelesPermitidos, resolverNivel, subirArchivoDirectora } from '@/lib/teamEnglish/teService'
 import type { TeNivel } from '@/lib/teamEnglish/teTypes'
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     const info = nivelDeKey(key)
     if (!info) throw new TeError('Archivo no válido.', 400)
 
-    const session = parsePortalSessionHeader(request.headers.get('x-portal-session'))
+    const session = sesionPortalDeRequest(request)
     let permitido = false
     if (session?.role === 'usuario') {
       permitido = nivelesPermitidos(session.usuario_id).includes(info.nivel as TeNivel)

@@ -1,14 +1,12 @@
 import type { AuthSession } from '@/lib/portalAuthService'
-import { parsePortalSessionHeader } from '@/lib/insforgeDbProxyShared'
+import { sesionPortalDeRequest } from '@/lib/portalSesionFirmada'
 import { NextResponse } from 'next/server'
 
 /** Rutas internas: solo sesión de personal (`role: usuario`), no papás/alumnos. */
 export function requireEmpleadoPortal(
   request: Request
 ): { ok: true; session: AuthSession } | { ok: false; response: NextResponse } {
-  const session = parsePortalSessionHeader(
-    request.headers.get('x-portal-session')
-  )
+  const session = sesionPortalDeRequest(request)
   if (!session) {
     return {
       ok: false,

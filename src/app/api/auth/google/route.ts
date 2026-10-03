@@ -10,6 +10,7 @@ import {
   sessionDesdeUsuarioPortal,
 } from '@/lib/portalAuthGoogle'
 import { RacGoogleAuthError, verificarCredencialGoogle } from '@/lib/racGoogleIdToken'
+import { ponerCookieSesionPortal } from '@/lib/portalSesionFirmada'
 
 export const runtime = 'nodejs'
 
@@ -65,7 +66,9 @@ export async function POST(req: Request) {
     }
 
     const session = sessionDesdeUsuarioPortal(elegido)
-    return NextResponse.json({ ok: true, session })
+    const res = NextResponse.json({ ok: true, session })
+    ponerCookieSesionPortal(res, session)
+    return res
   } catch (e) {
     if (e instanceof RacGoogleAuthError) {
       return NextResponse.json({ error: e.message }, { status: e.status })

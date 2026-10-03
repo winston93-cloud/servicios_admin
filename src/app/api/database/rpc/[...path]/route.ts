@@ -1,4 +1,5 @@
 import { proxyInsforgeDatabaseRequest } from '@/lib/insforgeDbProxyShared'
+import { sesionPortalDeRequest } from '@/lib/portalSesionFirmada'
 
 export const runtime = 'nodejs'
 
@@ -7,7 +8,7 @@ type RouteContext = { params: Promise<{ path: string[] }> }
 async function handle(request: Request, context: RouteContext) {
   const { path } = await context.params
   const segment = path.map(encodeURIComponent).join('/')
-  return proxyInsforgeDatabaseRequest(request, `/api/database/rpc/${segment}`)
+  return proxyInsforgeDatabaseRequest(request, `/api/database/rpc/${segment}`, sesionPortalDeRequest(request))
 }
 
 export async function GET(request: Request, context: RouteContext) {
