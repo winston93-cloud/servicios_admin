@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'crypto'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
+import { fechaMxDeTimestamp } from '@/lib/rac/racFecha'
 import { grupoCoincide, letraDesdeGrupoNum } from '@/lib/boletasCiclo'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 import { RacAuthError, type RacSesion } from '@/lib/racAuth'
@@ -303,7 +304,7 @@ async function marcasPorAlumnos(
     const cur = rows.filter((r) => n(r.reporte_ciclo) === maxC)
     const fechas: Record<number, string> = {}
     for (const r of cur) {
-      const dia = String(r.reporte_registro ?? '').slice(0, 10)
+      const dia = fechaMxDeTimestamp(r.reporte_registro)
       const pend = n(r.reporte_status) === 2
       fechas[n(r.reporte_no)] = pend ? `${dia}·pend` : dia
     }
@@ -821,7 +822,7 @@ async function hidratar(rows: Record<string, unknown>[]) {
         mensaje: String(r.reporte_mensaje ?? ''),
         no: n(r.reporte_no),
         vuelta: n(r.reporte_ciclo),
-        fecha: String(r.reporte_registro ?? '').slice(0, 10),
+        fecha: fechaMxDeTimestamp(r.reporte_registro),
         enviado: n(r.reporte_enviado) === 1,
         confirmado: n(r.reporte_confirmado) === 1,
         status: n(r.reporte_status),
@@ -840,7 +841,12 @@ export async function inboxReportes(
   confirmado: RacConfirmadoFiltro = filtro === 'pendientes' ? '0' : 'all'
 ) {
   const ciclo = await cicloRac()
-  let q = db().from('reporte_escolar').select('*').eq('reporte_ciclo_escolar', ciclo)
+  // Filtrar el nivel en la BD: el tope de filas se aplica sobre la tabla compartida por los 3 niveles.
+  let q = db()
+    .from('reporte_escolar')
+    .select('*, alumno!inner(alumno_nivel)')
+    .eq('alumno.alumno_nivel', RAC_NIVEL_SECUNDARIA)
+    .eq('reporte_ciclo_escolar', ciclo)
   if (session.role === 'psicologia' && filtro === 'pendientes') {
     q = q.eq('reporte_status', 2).eq('reporte_tipo', RAC_TIPOS.conducta)
   } else {
@@ -887,7 +893,12 @@ export async function inboxCitas(
   confirmado: 'all' | '0' | '1' = 'all'
 ) {
   const ciclo = await cicloRac()
-  let q = db().from('reporte_cita').select('*').eq('cita_ciclo_escolar', ciclo).gt('cita_status', 0)
+  let q = db()
+    .from('reporte_cita')
+    .select('*, alumno!inner(alumno_nivel)')
+    .eq('alumno.alumno_nivel', RAC_NIVEL_SECUNDARIA)
+    .eq('cita_ciclo_escolar', ciclo)
+    .gt('cita_status', 0)
   if (confirmado === '0') q = q.eq('cita_confirmada', 0)
   if (confirmado === '1') q = q.eq('cita_confirmada', 1)
   if (session.role === 'psicologia') {
@@ -898,7 +909,8 @@ export async function inboxCitas(
   } else if (session.role === 'maestro') {
     const { asignaciones } = await listarAsignaciones(session)
     const ids = asignaciones.map((a) => a.materia_id)
-    if (ids.length) q = q.in('materia_id', ids)
+    if (!ids.length) return []
+    q = q.in('materia_id', ids)
   }
   const { data, error } = await q
     .order('cita_confirmada', { ascending: true })
@@ -990,11 +1002,46 @@ export async function inboxSuspensiones() {
     .filter(Boolean)
 }
 
+type TablaRacConAlumno = 'reporte_escolar' | 'reporte_cita' | 'reporte_suspension'
+const ID_TABLA_RAC: Record<TablaRacConAlumno, string> = {
+  reporte_escolar: 'reporte_id',
+  reporte_cita: 'cita_id',
+  reporte_suspension: 'suspension_id',
+}
+
+/** Coordinación de secundaria no debe actuar sobre registros de alumnos de otro nivel. */
+async function assertRegistroSecundaria(tabla: TablaRacConAlumno, id: number) {
+  const { data } = await db().from(tabla).select('alumno_id').eq(ID_TABLA_RAC[tabla], id).maybeSingle()
+  if (!data) throw new Error('Registro no encontrado')
+  await assertAlumnoSecundaria(n(data.alumno_id))
+}
+
+/** Al anular: retira el citatorio aún sin agendar y la suspensión sin fecha que generó ese reporte. */
+async function deshacerEfectosReporteAnulado(reporteId: number, alumnoId: unknown, reporteMdv: unknown) {
+  const client = db()
+  const token = String(reporteMdv ?? '').trim()
+  if (token) {
+    await client
+      .from('reporte_cita')
+      .update({ cita_status: 0 })
+      .eq('alumno_id', alumnoId)
+      .eq('cita_mdv', token)
+      .eq('cita_status', 2)
+  }
+  await client
+    .from('reporte_suspension')
+    .delete()
+    .eq('reporte_id', reporteId)
+    .is('suspension_fecha', null)
+    .eq('suspension_enviada', 0)
+}
+
 export async function accionReporte(
   id: number,
   accion: 'reenviar' | 'detener' | 'confirmar' | 'denegar' | 'validar'
 ) {
   const client = db()
+  await assertRegistroSecundaria('reporte_escolar', id)
   if (accion === 'reenviar') return enviarCorreoReporte(id)
   if (accion === 'confirmar') {
     const { error } = await client.from('reporte_escolar').update({ reporte_confirmado: 1 }).eq('reporte_id', id)
@@ -1002,29 +1049,53 @@ export async function accionReporte(
     return { ok: true }
   }
   if (accion === 'denegar') {
-    const { error } = await client.from('reporte_escolar').update({ reporte_status: 0 }).eq('reporte_id', id)
+    const { data, error } = await client
+      .from('reporte_escolar')
+      .update({ reporte_status: 0 })
+      .eq('reporte_id', id)
+      .eq('reporte_status', 2)
+      .select('reporte_id')
     if (error) throw new Error(error.message)
+    if (!data?.length) throw new Error('El reporte ya no está pendiente de validar.')
     return { ok: true }
   }
   if (accion === 'detener') {
     const { data: r } = await client.from('reporte_escolar').select('*').eq('reporte_id', id).maybeSingle()
     if (!r) throw new Error('Reporte no encontrado')
-    await client.from('reporte_escolar').update({ reporte_status: 3 }).eq('reporte_id', id)
-    const { data: later } = await client
-      .from('reporte_escolar')
-      .select('reporte_id, reporte_no')
-      .eq('alumno_id', r.alumno_id)
-      .eq('reporte_tipo', r.reporte_tipo)
-      .eq('reporte_ciclo', r.reporte_ciclo)
-      .gt('reporte_no', r.reporte_no)
-    for (const row of later ?? []) {
-      await client.from('reporte_escolar').update({ reporte_no: n(row.reporte_no) - 1 }).eq('reporte_id', row.reporte_id)
+    if (n(r.reporte_status) === 3) throw new Error('El reporte ya estaba anulado.')
+    const contabaEnEscalon = n(r.reporte_status) === 1
+    const { error } = await client.from('reporte_escolar').update({ reporte_status: 3 }).eq('reporte_id', id)
+    if (error) throw new Error(error.message)
+    if (contabaEnEscalon) {
+      let qLater = client
+        .from('reporte_escolar')
+        .select('reporte_id, reporte_no')
+        .eq('alumno_id', r.alumno_id)
+        .eq('reporte_tipo', r.reporte_tipo)
+        .eq('reporte_ciclo_escolar', r.reporte_ciclo_escolar)
+        .eq('reporte_ciclo', r.reporte_ciclo)
+        .eq('reporte_status', 1)
+        .gt('reporte_no', r.reporte_no)
+      if (n(r.reporte_tipo) === RAC_TIPOS.academico && r.materia_id) qLater = qLater.eq('materia_id', r.materia_id)
+      const { data: later } = await qLater
+      for (const row of later ?? []) {
+        await client.from('reporte_escolar').update({ reporte_no: n(row.reporte_no) - 1 }).eq('reporte_id', row.reporte_id)
+      }
     }
+    await deshacerEfectosReporteAnulado(id, r.alumno_id, r.reporte_mdv)
     return { ok: true }
   }
   const ciclo = await cicloRac()
-  const { data: r } = await client.from('reporte_escolar').select('*').eq('reporte_id', id).maybeSingle()
-  if (!r) throw new Error('Reporte no encontrado')
+  // Reclamar el pendiente de forma atómica: un doble clic no debe escalar ni citar dos veces.
+  const { data: reclamado, error: errReclamo } = await client
+    .from('reporte_escolar')
+    .update({ reporte_status: 1 })
+    .eq('reporte_id', id)
+    .eq('reporte_status', 2)
+    .select('*')
+  if (errReclamo) throw new Error(errReclamo.message)
+  const r = reclamado?.[0]
+  if (!r) throw new Error('El reporte ya fue procesado.')
   const { data: prev } = await client
     .from('reporte_escolar')
     .select('reporte_no, reporte_ciclo')
@@ -1032,6 +1103,7 @@ export async function accionReporte(
     .eq('reporte_tipo', 2)
     .eq('reporte_status', 1)
     .eq('reporte_ciclo_escolar', ciclo)
+    .neq('reporte_id', id)
   let reporteCiclo = 0
   let reporteNo = 0
   let pivot = 0
@@ -1084,6 +1156,7 @@ export async function editarReportePendiente(id: number, mensaje: string) {
   const texto = mensaje.trim()
   if (!texto) throw new Error('Escribe el mensaje del reporte.')
   if (texto.length > 5000) throw new Error('El mensaje es demasiado largo.')
+  await assertRegistroSecundaria('reporte_escolar', id)
   const { data, error } = await db()
     .from('reporte_escolar')
     .update({ reporte_mensaje: texto })
@@ -1102,6 +1175,7 @@ export async function accionCita(
   opts?: { fecha?: string; hora?: string; mensaje?: string }
 ) {
   const client = db()
+  await assertRegistroSecundaria('reporte_cita', id)
   if (accion === 'reenviar') return enviarCorreoCita(id)
   if (accion === 'confirmar') {
     const { error } = await client.from('reporte_cita').update({ cita_confirmada: 1 }).eq('cita_id', id)
@@ -1138,6 +1212,7 @@ export async function accionCita(
 }
 
 export async function aplicarSuspension(id: number, fecha: string) {
+  await assertRegistroSecundaria('reporte_suspension', id)
   const { error } = await db().from('reporte_suspension').update({ suspension_fecha: fecha }).eq('suspension_id', id)
   if (error) throw new Error(error.message)
   return enviarCorreoSuspension(id)
@@ -1345,7 +1420,8 @@ export async function datosPdfPendientes(filtro?: FiltroPdfPendientesRac) {
   const client = db()
   const { data: reportes } = await client
     .from('reporte_escolar')
-    .select('*')
+    .select('*, alumno!inner(alumno_nivel)')
+    .eq('alumno.alumno_nivel', RAC_NIVEL_SECUNDARIA)
     .eq('reporte_ciclo_escolar', ciclo)
     .eq('reporte_confirmado', 0)
     .eq('reporte_status', 1)
@@ -1354,7 +1430,8 @@ export async function datosPdfPendientes(filtro?: FiltroPdfPendientesRac) {
     .order('reporte_registro', { ascending: true })
   const { data: informes } = await client
     .from('reporte_escolar')
-    .select('*')
+    .select('*, alumno!inner(alumno_nivel)')
+    .eq('alumno.alumno_nivel', RAC_NIVEL_SECUNDARIA)
     .eq('reporte_ciclo_escolar', ciclo)
     .eq('reporte_confirmado', 0)
     .eq('reporte_status', 1)
@@ -1441,11 +1518,23 @@ export async function datosPdfHistorial(
   }
 }
 
+/** Anulado, denegado o aún sin validar: la familia no ve el contenido ni puede confirmarlo. */
+function avisoRetiradoPublico(kind: 'cita' | 'reporte' | 'suspension') {
+  return {
+    kind,
+    retirado: true as const,
+    titulo: 'Aviso no disponible',
+    alumno: '',
+    mensaje: 'La escuela retiró este aviso. Si tienes dudas, comunícate con la coordinación.',
+  }
+}
+
 export async function detallePublico(token: string, alt: number) {
   const client = db()
   if (alt === 2) {
     const { data: c } = await client.from('reporte_cita').select('*').eq('cita_mdv', token).maybeSingle()
     if (!c) return null
+    if (n(c.cita_status) === 0) return avisoRetiradoPublico('cita')
     const alumno = await cargarAlumno(n(c.alumno_id))
 
     let asignatura = ''
@@ -1484,6 +1573,7 @@ export async function detallePublico(token: string, alt: number) {
   }
   const { data: r } = await client.from('reporte_escolar').select('*').eq('reporte_mdv', token).maybeSingle()
   if (!r) return null
+  if (n(r.reporte_status) !== 1) return avisoRetiradoPublico(alt === 5 ? 'suspension' : 'reporte')
   const alumno = await cargarAlumno(n(r.alumno_id))
   const tipo = n(r.reporte_tipo)
 
@@ -1519,7 +1609,7 @@ export async function detallePublico(token: string, alt: number) {
     departamento,
     expedidoPor,
     mensaje: String(r.reporte_mensaje ?? ''),
-    fecha: String(r.reporte_registro ?? '').slice(0, 10),
+    fecha: fechaMxDeTimestamp(r.reporte_registro),
     confirmado: n(r.reporte_confirmado) === 1,
     status: n(r.reporte_status),
   }
@@ -1527,11 +1617,23 @@ export async function detallePublico(token: string, alt: number) {
 
 export async function confirmarPublico(token: string, alt: number) {
   if (alt === 2) {
-    const { error } = await db().from('reporte_cita').update({ cita_confirmada: 1 }).eq('cita_mdv', token)
+    const { data, error } = await db()
+      .from('reporte_cita')
+      .update({ cita_confirmada: 1 })
+      .eq('cita_mdv', token)
+      .gt('cita_status', 0)
+      .select('cita_id')
     if (error) throw new Error(error.message)
+    if (!data?.length) throw new Error('Este aviso ya no está disponible.')
     return { ok: true }
   }
-  const { error } = await db().from('reporte_escolar').update({ reporte_confirmado: 1 }).eq('reporte_mdv', token)
+  const { data, error } = await db()
+    .from('reporte_escolar')
+    .update({ reporte_confirmado: 1 })
+    .eq('reporte_mdv', token)
+    .eq('reporte_status', 1)
+    .select('reporte_id')
   if (error) throw new Error(error.message)
+  if (!data?.length) throw new Error('Este aviso ya no está disponible.')
   return { ok: true }
 }

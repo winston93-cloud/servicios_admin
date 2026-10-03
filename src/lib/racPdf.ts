@@ -49,7 +49,7 @@ function encabezadoPdf(doc: jsPDF, titulo: string, ciclo: number) {
   doc.text(titulo, 200, 12, { align: 'right' })
   doc.setFontSize(11)
   doc.text(`Ciclo escolar ${etiquetaCicloBoletas(ciclo)}`, 200, 20, { align: 'right' })
-  doc.text(new Date().toLocaleDateString('es-MX'), 200, 26, { align: 'right' })
+  doc.text(new Date().toLocaleDateString('es-MX', { timeZone: 'America/Mexico_City' }), 200, 26, { align: 'right' })
   doc.setFontSize(8)
   doc.text('Donde: RE = Reporte enviado, RC = Reporte confirmado.', 200, 32, { align: 'right' })
 }

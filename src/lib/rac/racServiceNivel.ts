@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'crypto'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
+import { fechaMxDeTimestamp } from '@/lib/rac/racFecha'
 import { grupoCoincide, letraDesdeGrupoNum } from '@/lib/boletasCiclo'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
@@ -557,7 +558,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       const fechas: Record<number, string> = {}
       for (const r of cur) {
         const no = n(r.reporte_no)
-        const fecha = String(r.reporte_registro ?? '').slice(0, 10)
+        const fecha = fechaMxDeTimestamp(r.reporte_registro)
         // Si hay varios materia_id de la misma sección, conservar la fecha más reciente.
         if (!fechas[no] || fecha > fechas[no]) fechas[no] = fecha
       }
@@ -625,6 +626,25 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     }
 
     return { es: [...es], en: [...en] }
+  }
+
+  /** materia_id que comparten escalón académico con `materiaId` (toda la sección ES o EN del grado, incl. legacy). */
+  async function idsEscalonAcademico(alumnoId: number, materiaId: number, ciclo: number): Promise<number[]> {
+    const alumno = await cargarAlumno(alumnoId)
+    const { data: matCap } = await db()
+      .from('boleta_materia')
+      .select('materia_id, materia_nombre, materia_orden, materia_nivel, materia_grado')
+      .eq('materia_id', materiaId)
+      .maybeSingle()
+    const { es: idsEs, en: idsEn } = await idsMateriasSeccionAcademica(
+      n(alumno.alumno_nivel) || n(matCap?.materia_nivel),
+      n(alumno.alumno_grado) || n(matCap?.materia_grado),
+      [alumnoId],
+      ciclo
+    )
+    const sec = seccionAcademicaDeMateria(matCap).seccion
+    const idsSec = sec === 'en' ? idsEn : sec === 'es' ? idsEs : []
+    return [...new Set([materiaId, ...idsSec].filter((x) => x > 0))]
   }
 
   async function listarGrupoCaptura(opts: {
@@ -1007,9 +1027,9 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     }
     const ciclo = await cicloRac()
     const client = db()
-    const alumno = await cargarAlumno(opts.alumnoId)
-    const materiaId =
-      opts.tipo === RAC_TIPOS.academico || opts.tipo === RAC_TIPOS.informeAcademico ? opts.materiaId : opts.materiaId
+    await cargarAlumno(opts.alumnoId)
+    // Staff (psico/dirección) también guarda la materia «Maestro(a)» del grupo: así el titular ve esos reportes.
+    const materiaId = opts.materiaId
     const token = mdv('rep')
 
     let q = client
@@ -1020,30 +1040,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .eq('reporte_status', 1)
       .eq('reporte_ciclo_escolar', ciclo)
     if (opts.tipo === RAC_TIPOS.academico && materiaId) {
-      // Escalón por sección: reunir todos los materia_id ES o EN del grado (incl. legacy).
-      const { data: matCap } = await client
-        .from('boleta_materia')
-        .select('materia_id, materia_nombre, materia_orden, materia_nivel, materia_grado')
-        .eq('materia_id', materiaId)
-        .maybeSingle()
-      const nivelAlum = n(alumno.alumno_nivel)
-      const gradoAlum = n(alumno.alumno_grado)
-      const { es: idsEs, en: idsEn } = await idsMateriasSeccionAcademica(
-        nivelAlum || n(matCap?.materia_nivel),
-        gradoAlum || n(matCap?.materia_grado),
-        [opts.alumnoId],
-        ciclo
-      )
-      const sec = seccionAcademicaDeMateria(matCap).seccion
-      const idsSec =
-        sec === 'en'
-          ? idsEn
-          : sec === 'es'
-            ? idsEs
-            : [...idsEs, ...idsEn].includes(materiaId)
-              ? [materiaId]
-              : [materiaId]
-      const idsFiltro = [...new Set([materiaId, ...idsSec].filter((x) => x > 0))]
+      const idsFiltro = await idsEscalonAcademico(opts.alumnoId, materiaId, ciclo)
       if (idsFiltro.length === 1) q = q.eq('materia_id', idsFiltro[0])
       else q = q.in('materia_id', idsFiltro)
     }
@@ -1247,7 +1244,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
           mensaje: String(r.reporte_mensaje ?? ''),
           no: n(r.reporte_no),
           vuelta: n(r.reporte_ciclo),
-          fecha: String(r.reporte_registro ?? '').slice(0, 10),
+          fecha: fechaMxDeTimestamp(r.reporte_registro),
           enviado: n(r.reporte_enviado) === 1,
           confirmado: n(r.reporte_confirmado) === 1,
           status: n(r.reporte_status),
@@ -1264,8 +1261,12 @@ export function createRacNivelService(cfg: RacNivelConfig) {
   ) {
     const ciclo = await cicloRac()
     // Sin .in(alumno_id, miles de ids): eso tumba OpenResty (502) en primaria (~800+).
-    // Se filtra por nivel al hidratar, igual que el resto del módulo.
-    let q = db().from('reporte_escolar').select('*').eq('reporte_ciclo_escolar', ciclo)
+    // El nivel se filtra en la BD con el join a alumno, antes del tope de filas.
+    let q = db()
+      .from('reporte_escolar')
+      .select('*, alumno!inner(alumno_nivel)')
+      .in('alumno.alumno_nivel', cfg.nivelesEscolares)
+      .eq('reporte_ciclo_escolar', ciclo)
     if (session.role === 'psicologia' && filtro === 'pendientes') {
       q = q.eq('reporte_status', 2).eq('reporte_tipo', RAC_TIPOS.conducta)
     } else {
@@ -1312,7 +1313,8 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     const ciclo = await cicloRac()
     let q = db()
       .from('reporte_cita')
-      .select('*')
+      .select('*, alumno!inner(alumno_nivel)')
+      .in('alumno.alumno_nivel', cfg.nivelesEscolares)
       .eq('cita_ciclo_escolar', ciclo)
       .gt('cita_status', 0)
     if (confirmado === '0') q = q.eq('cita_confirmada', 0)
@@ -1320,7 +1322,8 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     if (session.role === 'maestro') {
       const { asignaciones } = await listarAsignaciones(session)
       const ids = asignaciones.map((a) => a.materia_id)
-      if (ids.length) q = q.in('materia_id', ids)
+      if (!ids.length) return []
+      q = q.in('materia_id', ids)
     }
     const { data, error } = await q
       .order('cita_confirmada', { ascending: true })
@@ -1442,11 +1445,48 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .filter(Boolean)
   }
 
+  /** Reporte por id, validando que el alumno sea de este panel (coordinación no actúa sobre otros niveles). */
+  async function reporteDelNivel(id: number): Promise<Record<string, unknown>> {
+    const { data: r } = await db().from('reporte_escolar').select('*').eq('reporte_id', id).maybeSingle()
+    if (!r) throw new Error('Reporte no encontrado')
+    await cargarAlumno(n(r.alumno_id))
+    return r as Record<string, unknown>
+  }
+
+  /** Coordinación del panel no debe actuar sobre citas/suspensiones de alumnos de otro nivel. */
+  async function assertRegistroDelNivel(tabla: 'reporte_cita' | 'reporte_suspension', id: number) {
+    const col = tabla === 'reporte_cita' ? 'cita_id' : 'suspension_id'
+    const { data } = await db().from(tabla).select('alumno_id').eq(col, id).maybeSingle()
+    if (!data) throw new Error('Registro no encontrado')
+    await cargarAlumno(n(data.alumno_id))
+  }
+
+  /** Al anular: retira el citatorio aún sin agendar y la suspensión sin fecha que generó ese reporte. */
+  async function deshacerEfectosReporteAnulado(reporteId: number, alumnoId: unknown, reporteMdv: unknown) {
+    const client = db()
+    const token = String(reporteMdv ?? '').trim()
+    if (token) {
+      await client
+        .from('reporte_cita')
+        .update({ cita_status: 0 })
+        .eq('alumno_id', alumnoId)
+        .eq('cita_mdv', token)
+        .eq('cita_status', 2)
+    }
+    await client
+      .from('reporte_suspension')
+      .delete()
+      .eq('reporte_id', reporteId)
+      .is('suspension_fecha', null)
+      .eq('suspension_enviada', 0)
+  }
+
   async function accionReporte(
     id: number,
     accion: 'reenviar' | 'detener' | 'confirmar' | 'denegar' | 'validar'
   ) {
     const client = db()
+    const actual = await reporteDelNivel(id)
     if (accion === 'reenviar') return enviarCorreoReporte(id)
     if (accion === 'confirmar') {
       const { error } = await client.from('reporte_escolar').update({ reporte_confirmado: 1 }).eq('reporte_id', id)
@@ -1454,34 +1494,56 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       return { ok: true }
     }
     if (accion === 'denegar') {
-      const { error } = await client.from('reporte_escolar').update({ reporte_status: 0 }).eq('reporte_id', id)
+      const { data, error } = await client
+        .from('reporte_escolar')
+        .update({ reporte_status: 0 })
+        .eq('reporte_id', id)
+        .eq('reporte_status', 2)
+        .select('reporte_id')
       if (error) throw new Error(error.message)
+      if (!data?.length) throw new Error('El reporte ya no está pendiente de validar.')
       return { ok: true }
     }
     if (accion === 'detener') {
-      const { data: r } = await client.from('reporte_escolar').select('*').eq('reporte_id', id).maybeSingle()
-      if (!r) throw new Error('Reporte no encontrado')
-      await client.from('reporte_escolar').update({ reporte_status: 3 }).eq('reporte_id', id)
-      let qLater = client
-        .from('reporte_escolar')
-        .select('reporte_id, reporte_no')
-        .eq('alumno_id', r.alumno_id)
-        .eq('reporte_tipo', r.reporte_tipo)
-        .eq('reporte_ciclo', r.reporte_ciclo)
-        .gt('reporte_no', r.reporte_no)
-      // Académico: no reordenar el otro track (Español vs Inglés).
-      if (n(r.reporte_tipo) === RAC_TIPOS.academico && n(r.materia_id) > 0) {
-        qLater = qLater.eq('materia_id', n(r.materia_id))
+      const r = actual
+      if (n(r.reporte_status) === 3) throw new Error('El reporte ya estaba anulado.')
+      const contabaEnEscalon = n(r.reporte_status) === 1
+      const { error } = await client.from('reporte_escolar').update({ reporte_status: 3 }).eq('reporte_id', id)
+      if (error) throw new Error(error.message)
+      if (contabaEnEscalon) {
+        let qLater = client
+          .from('reporte_escolar')
+          .select('reporte_id, reporte_no')
+          .eq('alumno_id', r.alumno_id)
+          .eq('reporte_tipo', r.reporte_tipo)
+          .eq('reporte_ciclo_escolar', r.reporte_ciclo_escolar)
+          .eq('reporte_ciclo', r.reporte_ciclo)
+          .eq('reporte_status', 1)
+          .gt('reporte_no', r.reporte_no)
+        // Académico: mismo escalón que al capturar (sección ES o EN), sin tocar el otro track.
+        if (n(r.reporte_tipo) === RAC_TIPOS.academico && n(r.materia_id) > 0) {
+          const ids = await idsEscalonAcademico(n(r.alumno_id), n(r.materia_id), n(r.reporte_ciclo_escolar))
+          qLater = ids.length === 1 ? qLater.eq('materia_id', ids[0]) : qLater.in('materia_id', ids)
+        }
+        const { data: later } = await qLater
+        for (const row of later ?? []) {
+          await client.from('reporte_escolar').update({ reporte_no: n(row.reporte_no) - 1 }).eq('reporte_id', row.reporte_id)
+        }
       }
-      const { data: later } = await qLater
-      for (const row of later ?? []) {
-        await client.from('reporte_escolar').update({ reporte_no: n(row.reporte_no) - 1 }).eq('reporte_id', row.reporte_id)
-      }
+      await deshacerEfectosReporteAnulado(id, r.alumno_id, r.reporte_mdv)
       return { ok: true }
     }
     const ciclo = await cicloRac()
-    const { data: r } = await client.from('reporte_escolar').select('*').eq('reporte_id', id).maybeSingle()
-    if (!r) throw new Error('Reporte no encontrado')
+    // Reclamar el pendiente de forma atómica: un doble clic no debe escalar ni citar dos veces.
+    const { data: reclamado, error: errReclamo } = await client
+      .from('reporte_escolar')
+      .update({ reporte_status: 1 })
+      .eq('reporte_id', id)
+      .eq('reporte_status', 2)
+      .select('*')
+    if (errReclamo) throw new Error(errReclamo.message)
+    const r = reclamado?.[0]
+    if (!r) throw new Error('El reporte ya fue procesado.')
     const { data: prev } = await client
       .from('reporte_escolar')
       .select('reporte_no, reporte_ciclo')
@@ -1489,6 +1551,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .eq('reporte_tipo', 2)
       .eq('reporte_status', 1)
       .eq('reporte_ciclo_escolar', ciclo)
+      .neq('reporte_id', id)
     let reporteCiclo = 0
     let reporteNo = 0
     let pivot = 0
@@ -1541,6 +1604,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     const texto = mensaje.trim()
     if (!texto) throw new Error('Escribe el mensaje del reporte.')
     if (texto.length > 5000) throw new Error('El mensaje es demasiado largo.')
+    await reporteDelNivel(id)
     const { data, error } = await db()
       .from('reporte_escolar')
       .update({ reporte_mensaje: texto })
@@ -1559,6 +1623,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     opts?: { fecha?: string; hora?: string; mensaje?: string }
   ) {
     const client = db()
+    await assertRegistroDelNivel('reporte_cita', id)
     if (accion === 'reenviar') return enviarCorreoCita(id)
     if (accion === 'confirmar') {
       const { error } = await client.from('reporte_cita').update({ cita_confirmada: 1 }).eq('cita_id', id)
@@ -1595,6 +1660,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
   }
 
   async function aplicarSuspension(id: number, fecha: string) {
+    await assertRegistroDelNivel('reporte_suspension', id)
     const { error } = await db().from('reporte_suspension').update({ suspension_fecha: fecha }).eq('suspension_id', id)
     if (error) throw new Error(error.message)
     return enviarCorreoSuspension(id)
@@ -1740,7 +1806,8 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     const client = db()
     const { data: reportes } = await client
       .from('reporte_escolar')
-      .select('*')
+      .select('*, alumno!inner(alumno_nivel)')
+      .in('alumno.alumno_nivel', cfg.nivelesEscolares)
       .eq('reporte_ciclo_escolar', ciclo)
       .eq('reporte_confirmado', 0)
       .eq('reporte_status', 1)
@@ -1750,7 +1817,8 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .limit(800)
     const { data: informes } = await client
       .from('reporte_escolar')
-      .select('*')
+      .select('*, alumno!inner(alumno_nivel)')
+      .in('alumno.alumno_nivel', cfg.nivelesEscolares)
       .eq('reporte_ciclo_escolar', ciclo)
       .eq('reporte_confirmado', 0)
       .eq('reporte_status', 1)

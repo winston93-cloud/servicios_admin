@@ -19,6 +19,7 @@ type Detalle = {
   confirmado?: boolean
   grado?: number
   grupo?: string
+  retirado?: boolean
 }
 
 function EstatusInner() {
@@ -69,7 +70,12 @@ function EstatusInner() {
         <h1>Reportes académicos y de conducta</h1>
       </header>
       {error ? <p className="err">{error}</p> : null}
-      {detalle ? (
+      {detalle?.retirado ? (
+        <article>
+          <h2>{detalle.titulo}</h2>
+          <p>{detalle.mensaje}</p>
+        </article>
+      ) : detalle ? (
         <article>
           <h2>{detalle.titulo}</h2>
           <p>
