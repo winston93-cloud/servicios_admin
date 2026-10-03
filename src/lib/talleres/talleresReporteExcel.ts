@@ -47,8 +47,33 @@ function textoIncidencias(faltas: number, incidencias: number, minutos: number):
   return partes.join(' · ') || '—'
 }
 
+/** Sin redondear: el formato de celda muestra 2 decimales y la suma de la columna cuadra con el TOTAL. */
 function horas(minutos: number): number {
-  return Math.round((minutos / 60) * 100) / 100
+  return minutos / 60
+}
+
+/** Minutos de grupos compartidos con otro nivel: también aparecen completos en el reporte de ese nivel. */
+function minutosCompartidos(r: ReporteHorasMaestros): number {
+  return r.maestros.reduce(
+    (s, m) => s + m.grupos.filter((g) => g.niveles.length > 1).reduce((x, g) => x + g.minutos, 0),
+    0
+  )
+}
+
+function avisoCompartidos(r: ReporteHorasMaestros): string | null {
+  const min = minutosCompartidos(r)
+  if (!min) return null
+  return `Atención: el TOTAL incluye ${textoDuracion(min)} de grupos compartidos con otros niveles. Esas horas también aparecen completas en el reporte del otro nivel; si se suman ambos reportes, descuéntalas una vez para no pagarlas doble.`
+}
+
+function filaAviso(ws: ExcelJS.Worksheet, fila: number, columnas: number, texto: string) {
+  ws.mergeCells(fila, 1, fila, columnas)
+  const c = ws.getCell(fila, 1)
+  c.value = texto
+  c.font = { bold: true, size: 10, color: { argb: AMBAR } }
+  c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: AMBAR_SUAVE } }
+  c.alignment = { wrapText: true, vertical: 'middle', indent: 1 }
+  ws.getRow(fila).height = 32
 }
 
 function hhmm(minutos: number): string {
@@ -209,12 +234,18 @@ export async function excelHorasMaestros(
   total.getCell(6).numFmt = '0.00'
   total.height = 22
   if (r.maestros.length) res.autoFilter = { from: { row: filaTitulo, column: 1 }, to: { row: f - 1, column: 9 } }
+  const aviso = avisoCompartidos(r)
+  if (aviso) {
+    f++
+    filaAviso(res, f, 9, aviso)
+  }
 
   f += 2
   const nota = res.getCell(`A${f}`)
   res.mergeCells(`A${f}:I${f}`)
   nota.value =
-    'Se cuentan los días con asistencia o con horario del maestro registrado; la duración de cada clase se toma del horario del grupo para ese día de la semana.' +
+    'Se cuentan los días con asistencia o con horario del maestro registrado; el maestro y la duración de cada clase son los que tenía el grupo el día que se pasó lista.' +
+    ' Una clase sin pase de lista ni incidencia registrada no aparece en este reporte.' +
     ' Las clases a las que el maestro no asistió no suman horas. Las llegadas tarde y salidas anticipadas son informativas: no se descuentan.' +
     (r.sin_horario
       ? ` ${r.sin_horario} ${r.sin_horario === 1 ? 'registro' : 'registros'} de asistencia en días sin horario no suman horas (ver hoja Detalle).`
@@ -300,6 +331,7 @@ export async function excelHorasMaestros(
     cell.alignment = { horizontal: col >= 5 ? 'center' : 'left' }
   })
   totDet.getCell(6).numFmt = '0.00'
+  if (aviso) filaAviso(det, f + 1, 8, aviso)
   configurarHoja(det, filaTituloDet)
 
   /* ── Calendario ── */
@@ -321,7 +353,7 @@ export async function excelHorasMaestros(
     const porDia = new Map<string, number>()
     for (const g of m.grupos) for (const s of g.sesiones) porDia.set(s.fecha, (porDia.get(s.fecha) ?? 0) + s.minutos)
     const row = cal.getRow(f)
-    row.values = [m.nombre, ...fechas.map((d) => (porDia.has(d) ? horas(porDia.get(d)!) : '')), horas(m.minutos)]
+    row.values = [m.nombre, ...fechas.map((d) => (porDia.get(d) ? horas(porDia.get(d)!) : '')), horas(m.minutos)]
     row.eachCell({ includeEmpty: true }, (cell, col) => {
       cell.border = borde
       cell.alignment = { vertical: 'middle', horizontal: col === 1 ? 'left' : 'center' }

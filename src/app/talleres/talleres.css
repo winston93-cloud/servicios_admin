@@ -1900,3 +1900,88 @@
   .tl-rep-stats dd { font-size: 1.25rem; }
   .tl-rep-tabla th, .tl-rep-tabla td { padding: 0.35rem 0.45rem; }
 }
+
+/* ── Estados de carga / error ── */
+.tl-error-carga {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  padding: 1.5rem 1rem;
+  border: 1px dashed color-mix(in srgb, var(--tl-danger) 55%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--tl-danger) 8%, var(--tl-surface));
+  color: var(--tl-text);
+  text-align: center;
+}
+.tl-error-carga p { margin: 0; max-width: 46ch; overflow-wrap: anywhere; }
+.tl-error-carga-sm { margin: 0.5rem 0; padding: 0.85rem; gap: 0.5rem; font-size: 0.875rem; }
+
+.tl-pie-falta {
+  flex: 1 1 12rem;
+  min-width: 0;
+  align-self: center;
+  font-size: 0.8125rem;
+  color: var(--tl-muted);
+}
+
+.tl-baja-colegio {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid #f5b942;
+  background: rgba(245, 185, 66, 0.14);
+  color: #f5b942;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+[data-theme='light'] .tl-baja-colegio { border-color: #e7b257; background: #fff3dc; color: #8a4b00; }
+
+.tl-combo-error { color: var(--tl-danger); }
+
+/* ── Contraste ── */
+[data-theme='light'] .tl-page { --tl-muted: #5b6678; }
+.tl-btn-danger,
+.tl-cupo-pill[data-estado='lleno'],
+.tl-cupo-chip[data-estado='lleno'],
+.tl-cupo-chip[data-estado='lleno'] .tl-cupo-chip-tag { color: #2a0a12; }
+.tl-cupo-chip[data-estado='lleno'] .tl-cupo-chip-tag { background: rgba(42, 10, 18, 0.14); }
+[data-theme='light'] .tl-btn-danger,
+[data-theme='light'] .tl-cupo-pill[data-estado='lleno'],
+[data-theme='light'] .tl-cupo-chip[data-estado='lleno'],
+[data-theme='light'] .tl-cupo-chip[data-estado='lleno'] .tl-cupo-chip-tag { color: #ffffff; }
+[data-theme='light'] .tl-cupo-chip[data-estado='lleno'] .tl-cupo-chip-tag { background: rgba(255, 255, 255, 0.22); }
+
+/* ── Táctil ── */
+.tl-msg-x { min-width: 44px; min-height: 44px; }
+
+@media (pointer: coarse) {
+  .tl-chip,
+  .tl-preset,
+  .tl-btn-sm,
+  .tl-ins-niveles .tl-chip,
+  .tl-ins-bajas summary { min-height: var(--touch-min, 44px); }
+  .tl-ins-bajas summary { display: flex; align-items: center; }
+  .tl-color { min-width: var(--touch-min, 44px); min-height: var(--touch-min, 44px); }
+  .tl-combo-x { min-width: var(--touch-min, 44px); min-height: var(--touch-min, 44px); }
+  .tl-combo-filtro button { width: 32px; height: 32px; position: relative; }
+  .tl-combo-filtro button::after { content: ''; position: absolute; inset: -6px; }
+  .tl-input,
+  .tl-page input,
+  .tl-page select,
+  .tl-page textarea { font-size: 16px; }
+}
+
+@media (max-width: 768px) {
+  .tl-toasts {
+    top: auto;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 480px) {
+  .tl-error-carga { padding: 1.1rem 0.85rem; }
+  .tl-error-carga .tl-btn { width: 100%; justify-content: center; }
+}

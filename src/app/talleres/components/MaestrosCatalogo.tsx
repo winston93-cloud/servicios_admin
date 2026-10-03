@@ -164,7 +164,13 @@ export default function MaestrosCatalogo({
         pie={
           <>
             <button type="button" className="tl-btn" onClick={() => setBorrador(null)} disabled={guardando}>Cancelar</button>
-            <button type="button" className="tl-btn tl-btn-primary" onClick={() => void guardar()} disabled={guardando}>
+            <button
+              type="button"
+              className="tl-btn tl-btn-primary"
+              onClick={() => void guardar()}
+              disabled={guardando || !borrador?.nombre.trim() || !borrador?.niveles.length}
+              title={!borrador?.nombre.trim() ? 'Escribe el nombre del maestro' : !borrador?.niveles.length ? 'Elige al menos un nivel' : undefined}
+            >
               {guardando ? 'Guardando…' : 'Guardar'}
             </button>
           </>
@@ -190,7 +196,7 @@ export default function MaestrosCatalogo({
             <Campo etiqueta="Celular">
               <input className="tl-input" type="tel" inputMode="tel" value={borrador.celular} maxLength={30} onChange={(e) => set('celular', e.target.value)} />
             </Campo>
-            <Campo etiqueta="Niveles que atiende *" completo>
+            <Campo etiqueta="Niveles que atiende *" completo grupo>
               <NivelesChips valor={borrador.niveles} onChange={(niveles) => set('niveles', niveles)} />
             </Campo>
             <Campo etiqueta="Notas" completo>

@@ -16,9 +16,11 @@ import {
   type TallerInscripcion,
   type TalleresSnapshot,
 } from '@/lib/talleres/talleresTypes'
-import { TalleresError, snapshotTalleres } from '@/lib/talleres/talleresService'
+import { TalleresError, idEntero, snapshotTalleres } from '@/lib/talleres/talleresService'
 
-const SELECT_ALUMNO = 'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo'
+const SELECT_ALUMNO =
+  'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_status'
+const ALUMNO_STATUS_BAJA = [0, 3]
 const SELECT_INSCRIPCION =
   'id, asignacion_id, alumno_id, estado, notas, fecha_alta, fecha_baja, motivo_baja, registrado_por'
 const ALUMNO_ACTIVO = 1
@@ -53,6 +55,7 @@ function mapAlumno(r: Record<string, unknown>): AlumnoTaller {
     nivel: Number(r.alumno_nivel) || 0,
     grado: r.alumno_grado == null ? null : Number(r.alumno_grado),
     grupo: r.alumno_grupo == null ? null : Number(r.alumno_grupo),
+    baja_colegio: r.alumno_status != null && ALUMNO_STATUS_BAJA.includes(Number(r.alumno_status)),
   }
 }
 
@@ -213,7 +216,7 @@ async function validarInscripcion(opts: {
 
   const { data, error } = await db()
     .from('alumno')
-    .select(`${SELECT_ALUMNO}, alumno_status`)
+    .select(SELECT_ALUMNO)
     .eq('alumno_id', alumnoId)
     .maybeSingle()
   fail(error, 'Alumno')
@@ -267,8 +270,8 @@ async function validarInscripcion(opts: {
 /* ───────────── Altas, cambios y bajas ───────────── */
 
 export async function inscribirAlumno(body: Record<string, unknown>, registradoPor: string | null): Promise<void> {
-  const asignacionId = Number(body.asignacion_id) || 0
-  const alumnoId = Number(body.alumno_id) || 0
+  const asignacionId = idEntero(body.asignacion_id)
+  const alumnoId = idEntero(body.alumno_id)
   if (!asignacionId || !alumnoId) throw new TalleresError('Selecciona el grupo y el alumno.')
   const snap = await snapshotTalleres()
   const { alumno } = await validarInscripcion({ snap, asignacionId, alumnoId, forzar: Boolean(body.forzar) })
@@ -310,6 +313,7 @@ export async function inscribirAlumno(body: Record<string, unknown>, registradoP
         registrado_por: registradoPor,
       },
     ])
+  if (error?.code === '23505') throw new TalleresError(`${alumno.nombre} ya está inscrito en este grupo.`, 409)
   fail(error, 'Inscribir')
 }
 
@@ -320,38 +324,67 @@ async function inscripcionPorId(id: number) {
   return data as Record<string, unknown>
 }
 
-/** Cambia al alumno a otro grupo (mismas validaciones que una alta). */
+/**
+ * Cambia al alumno a otro grupo (mismas validaciones que una alta).
+ * El grupo de origen conserva la fila como baja «Cambio de grupo», así sus listas pasadas siguen completas.
+ */
 export async function moverInscripcion(body: Record<string, unknown>, registradoPor: string | null): Promise<void> {
-  const id = Number(body.id) || 0
-  const destino = Number(body.asignacion_id) || 0
+  const id = idEntero(body.id)
+  const destino = idEntero(body.asignacion_id)
   if (!id || !destino) throw new TalleresError('Selecciona el grupo destino.')
   const ins = await inscripcionPorId(id)
+  if (ins.estado !== 'inscrito') throw new TalleresError('El alumno ya no está inscrito en este grupo.')
   if (Number(ins.asignacion_id) === destino) throw new TalleresError('El alumno ya está en ese grupo.')
+  const alumnoId = Number(ins.alumno_id)
   const snap = await snapshotTalleres()
-  await validarInscripcion({
+  const { alumno } = await validarInscripcion({
     snap,
     asignacionId: destino,
-    alumnoId: Number(ins.alumno_id),
+    alumnoId,
     excluirInscripcionId: id,
     forzar: Boolean(body.forzar),
   })
-  const { error: dErr } = await db()
-    .from('taller_inscripcion')
-    .delete()
-    .eq('asignacion_id', destino)
-    .eq('alumno_id', Number(ins.alumno_id))
-    .eq('estado', 'baja')
-  fail(dErr, 'Limpiar baja previa')
   const ahora = new Date().toISOString()
-  const { error } = await db()
+  const { data: previa, error: pErr } = await db()
     .from('taller_inscripcion')
-    .update({ asignacion_id: destino, estado: 'inscrito', fecha_baja: null, motivo_baja: null, registrado_por: registradoPor, updated_at: ahora })
-    .eq('id', id)
+    .select('id')
+    .eq('asignacion_id', destino)
+    .eq('alumno_id', alumnoId)
+    .maybeSingle()
+  fail(pErr, 'Revisar grupo destino')
+  const alta = {
+    estado: 'inscrito',
+    fecha_alta: ahora,
+    fecha_baja: null,
+    motivo_baja: null,
+    notas: (ins.notas as string | null) ?? null,
+    registrado_por: registradoPor,
+    updated_at: ahora,
+  }
+  const { error } = previa
+    ? await db().from('taller_inscripcion').update(alta).eq('id', Number((previa as { id: number }).id))
+    : await db()
+        .from('taller_inscripcion')
+        .insert([
+          { ...alta, asignacion_id: destino, alumno_id: alumnoId, alumno_ref: alumno.alumno_ref, ciclo_escolar: snap.ciclo.valor },
+        ])
   fail(error, 'Mover alumno')
+  const destinoAsig = snap.asignaciones.find((a) => a.id === destino)
+  const t = destinoAsig ? snap.talleres.find((x) => x.id === destinoAsig.taller_id) : undefined
+  const { error: bErr } = await db()
+    .from('taller_inscripcion')
+    .update({
+      estado: 'baja',
+      fecha_baja: ahora,
+      motivo_baja: `Cambio de grupo${t ? ` a ${nombreTallerCompleto(t)}` : ''}`.slice(0, 200),
+      updated_at: ahora,
+    })
+    .eq('id', id)
+  fail(bErr, 'Cerrar grupo anterior')
 }
 
 export async function reactivarInscripcion(body: Record<string, unknown>, registradoPor: string | null): Promise<void> {
-  const id = Number(body.id) || 0
+  const id = idEntero(body.id)
   const ins = await inscripcionPorId(id)
   if (ins.estado === 'inscrito') throw new TalleresError('El alumno ya está inscrito.')
   const snap = await snapshotTalleres()
@@ -371,7 +404,7 @@ export async function reactivarInscripcion(body: Record<string, unknown>, regist
 }
 
 export async function actualizarNotasInscripcion(body: Record<string, unknown>): Promise<void> {
-  const id = Number(body.id) || 0
+  const id = idEntero(body.id)
   await inscripcionPorId(id)
   const { error } = await db()
     .from('taller_inscripcion')

@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Loader2, Search, UserPlus, X } from 'lucide-react'
-import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
+import { esCancelacion, fetchTalleres, mensajeDe } from '../fetchTalleres'
 import { etiquetaGradoAlumno, etiquetaNivel, type AlumnoBusquedaTaller } from '@/lib/talleres/talleresTypes'
 import { Resaltar } from '../busqueda'
 
@@ -37,6 +37,7 @@ export default function AlumnoBuscador({
   const [cargando, setCargando] = useState(false)
   const [abierto, setAbierto] = useState(false)
   const [activa, setActiva] = useState(-1)
+  const [errorBusqueda, setErrorBusqueda] = useState<string | null>(null)
   const clave = niveles.join(',')
 
   useEffect(() => {
@@ -44,23 +45,28 @@ export default function AlumnoBuscador({
     if (limpia.length < 2) {
       setResultados([])
       setCargando(false)
+      setErrorBusqueda(null)
       return
     }
     const ctrl = new AbortController()
     setCargando(true)
     const t = window.setTimeout(async () => {
       try {
-        const res = await fetch(
+        const json = await fetchTalleres<{ alumnos?: AlumnoBusquedaTaller[] }>(
           `/api/talleres/inscripciones?q=${encodeURIComponent(limpia)}&niveles=${clave}`,
-          { headers: portalSessionFetchHeaders(), signal: ctrl.signal, cache: 'no-store' }
+          {},
+          ctrl.signal
         )
-        const json = await res.json()
         if (!ctrl.signal.aborted) {
-          setResultados(res.ok ? ((json.alumnos ?? []) as AlumnoBusquedaTaller[]) : [])
+          setResultados(json.alumnos ?? [])
+          setErrorBusqueda(null)
           setActiva(-1)
         }
-      } catch {
-        if (!ctrl.signal.aborted) setResultados([])
+      } catch (e) {
+        if (!ctrl.signal.aborted && !esCancelacion(e)) {
+          setResultados([])
+          setErrorBusqueda(mensajeDe(e, 'No se pudo buscar.'))
+        }
       } finally {
         if (!ctrl.signal.aborted) setCargando(false)
       }
@@ -154,7 +160,9 @@ export default function AlumnoBuscador({
       </div>
       {mostrar ? (
         <ul id={idLista} role="listbox" className="tl-combo-lista tl-alumno-lista" aria-label="Alumnos">
-          {!cargando && evaluados.length === 0 ? (
+          {!cargando && errorBusqueda ? (
+            <li className="tl-combo-vacio tl-combo-error" role="presentation">{errorBusqueda}</li>
+          ) : !cargando && evaluados.length === 0 ? (
             <li className="tl-combo-vacio" role="presentation">
               Sin coincidencias{niveles.length ? ` en ${niveles.map(etiquetaNivel).join(' y ')}` : ''}.
             </li>

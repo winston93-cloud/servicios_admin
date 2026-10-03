@@ -3,6 +3,7 @@ import {
   COLORES_TALLER,
   DIAS_TALLER,
   etiquetaDia,
+  etiquetaNivel,
   hora12,
   lugarDeHorario,
   minutosDeHora,
@@ -48,6 +49,61 @@ function fail(error: { message?: string } | null, contexto: string): void {
   if (error) throw new TalleresError(`${contexto}: ${error.message ?? 'error de base de datos'}`, 500)
 }
 
+/** Id entero positivo; cualquier otra cosa (decimales, texto, notación científica) → 0. */
+export function idEntero(raw: unknown): number {
+  const n = Number(raw)
+  return Number.isSafeInteger(n) && n > 0 ? n : 0
+}
+
+const PAGINA = 1000
+const TROZO_IDS = 150
+
+/** PostgREST corta en 1000 filas: pide páginas hasta agotar. La consulta debe ir ordenada. */
+export async function todasLasFilas<T>(
+  pagina: (desde: number, hasta: number) => PromiseLike<{ data: unknown; error: { message?: string } | null }>,
+  contexto: string
+): Promise<T[]> {
+  const out: T[] = []
+  for (let desde = 0; ; desde += PAGINA) {
+    const { data, error } = await pagina(desde, desde + PAGINA - 1)
+    fail(error, contexto)
+    const filas = (data ?? []) as T[]
+    out.push(...filas)
+    if (filas.length < PAGINA) return out
+  }
+}
+
+/** Igual que `todasLasFilas`, partiendo la lista de ids para no exceder el largo de la URL. */
+export async function filasPorIds<T>(
+  ids: number[],
+  pagina: (trozo: number[], desde: number, hasta: number) => PromiseLike<{ data: unknown; error: { message?: string } | null }>,
+  contexto: string
+): Promise<T[]> {
+  const unicos = [...new Set(ids)]
+  const out: T[] = []
+  for (let i = 0; i < unicos.length; i += TROZO_IDS) {
+    const trozo = unicos.slice(i, i + TROZO_IDS)
+    out.push(...(await todasLasFilas<T>((d, h) => pagina(trozo, d, h), contexto)))
+  }
+  return out
+}
+
+/** Baja general (0) y baja temporal (3): ya no asisten, no ocupan cupo ni salen en listas. */
+const ALUMNO_STATUS_BAJA = new Set([0, 3])
+
+/** Alumnos (de `ids`) que siguen en el colegio. */
+export async function alumnosVigentes(ids: number[]): Promise<Set<number>> {
+  const filas = await filasPorIds<{ alumno_id: number; alumno_status: number | null }>(
+    ids,
+    (trozo, d, h) =>
+      db().from('alumno').select('alumno_id, alumno_status').in('alumno_id', trozo).order('alumno_id').range(d, h),
+    'Estatus de alumnos'
+  )
+  return new Set(
+    filas.filter((r) => !ALUMNO_STATUS_BAJA.has(Number(r.alumno_status))).map((r) => Number(r.alumno_id))
+  )
+}
+
 /** Ciclo de temporada (`ciclos_escolares.es_actual`); nunca un valor fijo. */
 export async function cicloActualTalleres(): Promise<{ valor: number; nombre: string }> {
   const { data, error } = await db()
@@ -57,7 +113,7 @@ export async function cicloActualTalleres(): Promise<{ valor: number; nombre: st
     .maybeSingle()
   fail(error, 'Ciclo escolar')
   const row = data as { valor: number; nombre: string } | null
-  if (!row) throw new TalleresError('No hay ciclo escolar marcado como actual.', 500)
+  if (!row) throw new TalleresError('No hay ciclo escolar marcado como actual.', 503)
   return { valor: Number(row.valor), nombre: String(row.nombre) }
 }
 
@@ -91,35 +147,61 @@ function mapMaestro(r: Record<string, unknown>): TallerMaestro {
   }
 }
 
-async function listarAsignaciones(ciclo: number): Promise<TallerAsignacion[]> {
-  const { data, error } = await db()
-    .from('taller_asignacion')
-    .select(SELECT_ASIGNACION)
-    .eq('ciclo_escolar', ciclo)
-    .eq('activo', true)
-    .order('id', { ascending: true })
-  fail(error, 'Asignaciones')
-  const rows = (data ?? []) as Record<string, unknown>[]
+/** Grupos activos del ciclo, o grupos puntuales por id (cualquier ciclo, aunque estén dados de baja). */
+async function listarAsignaciones(filtro: { ciclo: number } | { ids: number[] }): Promise<TallerAsignacion[]> {
+  const rows =
+    'ciclo' in filtro
+      ? await todasLasFilas<Record<string, unknown>>(
+          (d, h) =>
+            db()
+              .from('taller_asignacion')
+              .select(SELECT_ASIGNACION)
+              .eq('ciclo_escolar', filtro.ciclo)
+              .eq('activo', true)
+              .order('id', { ascending: true })
+              .range(d, h),
+          'Asignaciones'
+        )
+      : await filasPorIds<Record<string, unknown>>(
+          filtro.ids,
+          (trozo, d, h) =>
+            db().from('taller_asignacion').select(SELECT_ASIGNACION).in('id', trozo).order('id').range(d, h),
+          'Asignaciones'
+        )
   const ids = rows.map((r) => Number(r.id))
   const horariosPor = new Map<number, TallerHorario[]>()
   const inscritosPor = new Map<number, number>()
   if (ids.length) {
-    const { data: ins, error: iErr } = await db()
-      .from('taller_inscripcion')
-      .select('asignacion_id')
-      .in('asignacion_id', ids)
-      .eq('estado', 'inscrito')
-    fail(iErr, 'Inscripciones')
-    for (const r of (ins ?? []) as { asignacion_id: number }[]) {
+    const ins = await filasPorIds<{ asignacion_id: number; alumno_id: number }>(
+      ids,
+      (trozo, d, h) =>
+        db()
+          .from('taller_inscripcion')
+          .select('asignacion_id, alumno_id')
+          .in('asignacion_id', trozo)
+          .eq('estado', 'inscrito')
+          .order('id')
+          .range(d, h),
+      'Inscripciones'
+    )
+    const vigentes = await alumnosVigentes(ins.map((r) => Number(r.alumno_id)))
+    for (const r of ins) {
+      if (!vigentes.has(Number(r.alumno_id))) continue
       const aid = Number(r.asignacion_id)
       inscritosPor.set(aid, (inscritosPor.get(aid) ?? 0) + 1)
     }
-    const { data: hs, error: hErr } = await db()
-      .from('taller_horario')
-      .select('id, asignacion_id, dia, hora_inicio, hora_fin, lugar')
-      .in('asignacion_id', ids)
-    fail(hErr, 'Horarios')
-    for (const h of (hs ?? []) as Record<string, unknown>[]) {
+    const hs = await filasPorIds<Record<string, unknown>>(
+      ids,
+      (trozo, d, h) =>
+        db()
+          .from('taller_horario')
+          .select('id, asignacion_id, dia, hora_inicio, hora_fin, lugar')
+          .in('asignacion_id', trozo)
+          .order('id')
+          .range(d, h),
+      'Horarios'
+    )
+    for (const h of hs) {
       const aid = Number(h.asignacion_id)
       const list = horariosPor.get(aid) ?? []
       list.push({
@@ -155,7 +237,7 @@ export async function snapshotTalleres(): Promise<TalleresSnapshot> {
   const [t, m, asignaciones] = await Promise.all([
     db().from('taller').select(SELECT_TALLER).order('nombre', { ascending: true }),
     db().from('taller_maestro').select(SELECT_MAESTRO).order('nombre', { ascending: true }),
-    listarAsignaciones(ciclo.valor),
+    listarAsignaciones({ ciclo: ciclo.valor }),
   ])
   fail(t.error, 'Talleres')
   fail(m.error, 'Maestros de taller')
@@ -165,6 +247,10 @@ export async function snapshotTalleres(): Promise<TalleresSnapshot> {
     maestros: ((m.data ?? []) as Record<string, unknown>[]).map(mapMaestro),
     asignaciones,
   }
+}
+
+export async function asignacionesPorIds(ids: number[]): Promise<TallerAsignacion[]> {
+  return ids.length ? listarAsignaciones({ ids }) : []
 }
 
 /* ───────────── Talleres ───────────── */
@@ -233,7 +319,7 @@ async function propagarCupoTaller(
 
 /** Ajuste rápido del cupo de un grupo (desde Programados). */
 export async function actualizarCupoAsignacion(body: Record<string, unknown>): Promise<void> {
-  const id = Number(body.id) || 0
+  const id = idEntero(body.id)
   if (!id) throw new TalleresError('Falta el grupo.')
   const { cupo, cupoMin } = cuposDesdeBody(body.cupo, body.cupo_min)
   const { data, error } = await db()
@@ -251,7 +337,7 @@ function errorDuplicado(error: { message?: string; code?: string } | null): bool
 
 export async function guardarTaller(body: Record<string, unknown>): Promise<void> {
   const input = tallerDesdeBody(body)
-  const id = Number(body.id) || 0
+  const id = idEntero(body.id)
   let antes: { cupo_min: number | null; cupo_max: number | null } | null = null
   if (id) {
     const { data, error } = await db().from('taller').select('cupo_min, cupo_max').eq('id', id).maybeSingle()
@@ -295,7 +381,7 @@ function maestroDesdeBody(body: Record<string, unknown>) {
 
 export async function guardarMaestro(body: Record<string, unknown>): Promise<void> {
   const input = maestroDesdeBody(body)
-  const id = Number(body.id) || 0
+  const id = idEntero(body.id)
   const q = id
     ? db().from('taller_maestro').update({ ...input, updated_at: new Date().toISOString() }).eq('id', id)
     : db().from('taller_maestro').insert([input])
@@ -347,8 +433,7 @@ function horariosDesdeBody(raw: unknown): TallerHorario[] {
       throw new TalleresError(`El ${etiquetaDia(dia)} la hora de fin debe ser después de la de inicio.`)
     }
     const h = { dia, hora_inicio: ini, hora_fin: fin, lugar: texto(item?.lugar, 80) }
-    const choque = out.find((o) => rangosSeTraslapan(o, h))
-    if (choque) throw new TalleresError(`Hay dos horarios encimados el ${etiquetaDia(dia)}.`)
+    if (out.some((o) => o.dia === dia)) throw new TalleresError(`Solo puede haber un horario el ${etiquetaDia(dia)}.`)
     out.push(h)
   }
   return out
@@ -366,9 +451,9 @@ function describirChoque(h: TallerHorario): string {
 }
 
 export async function guardarAsignacion(body: Record<string, unknown>): Promise<void> {
-  const id = Number(body.id) || 0
-  const tallerId = Number(body.taller_id) || 0
-  const maestroId = Number(body.maestro_id) || 0
+  const id = idEntero(body.id)
+  const tallerId = idEntero(body.taller_id)
+  const maestroId = idEntero(body.maestro_id)
   if (!tallerId) throw new TalleresError('Selecciona el taller.')
   if (!maestroId) throw new TalleresError('Selecciona el maestro.')
   const horarios = horariosDesdeBody(body.horarios)
@@ -394,6 +479,12 @@ export async function guardarAsignacion(body: Record<string, unknown>): Promise<
   }
   let niveles = normalizarNiveles(body.niveles).filter((n) => comunes.includes(n))
   if (!niveles.length) niveles = comunes
+  if (id) {
+    if (!snap.asignaciones.some((a) => a.id === id)) {
+      throw new TalleresError('El grupo ya no existe o no es del ciclo actual. Recarga la página.', 404)
+    }
+    await validarNivelesDeInscritos(id, niveles)
+  }
 
   const norm = (s: string | null) => (s ?? '').trim().toLowerCase()
   for (const otra of snap.asignaciones) {
@@ -428,32 +519,89 @@ export async function guardarAsignacion(body: Record<string, unknown>): Promise<
     notas: texto(body.notas, 2000),
   }
 
-  let asignacionId = id
-  if (id) {
-    const { error } = await db()
-      .from('taller_asignacion')
-      .update({ ...input, updated_at: new Date().toISOString() })
-      .eq('id', id)
-    fail(error, 'Guardar asignación')
-    const { error: delErr } = await db().from('taller_horario').delete().eq('asignacion_id', id)
-    fail(delErr, 'Actualizar horario')
-  } else {
+  if (!id) {
     const { data, error } = await db()
       .from('taller_asignacion')
       .insert([{ ...input, ciclo_escolar: snap.ciclo.valor }])
       .select('id')
       .single()
     fail(error, 'Crear asignación')
-    asignacionId = Number((data as { id: number }).id)
+    const nuevoId = Number((data as { id: number }).id)
+    const { error: hErr } = await db()
+      .from('taller_horario')
+      .insert(horarios.map((h) => ({ asignacion_id: nuevoId, ...h })))
+    if (hErr) {
+      await db().from('taller_asignacion').delete().eq('id', nuevoId)
+      fail(hErr, 'Guardar horario')
+    }
+    return
   }
 
+  // Primero el horario nuevo y luego se quita el anterior: si algo falla, el grupo nunca queda sin horario.
+  const anteriores = (snap.asignaciones.find((a) => a.id === id)?.horarios ?? [])
+    .map((h) => h.id)
+    .filter((x): x is number => Number.isFinite(x))
   const { error: hErr } = await db()
     .from('taller_horario')
-    .insert(horarios.map((h) => ({ asignacion_id: asignacionId, ...h })))
+    .insert(horarios.map((h) => ({ asignacion_id: id, ...h })))
   fail(hErr, 'Guardar horario')
+  if (anteriores.length) {
+    const { error: delErr } = await db().from('taller_horario').delete().in('id', anteriores)
+    fail(delErr, 'Actualizar horario')
+  }
+  const { error } = await db()
+    .from('taller_asignacion')
+    .update({ ...input, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  fail(error, 'Guardar asignación')
 }
 
-export async function eliminarAsignacion(id: number): Promise<void> {
+/** No quitar un nivel del grupo mientras tenga alumnos inscritos de ese nivel. */
+async function validarNivelesDeInscritos(asignacionId: number, niveles: number[]): Promise<void> {
+  const ins = await todasLasFilas<{ alumno_id: number }>(
+    (d, h) =>
+      db()
+        .from('taller_inscripcion')
+        .select('alumno_id')
+        .eq('asignacion_id', asignacionId)
+        .eq('estado', 'inscrito')
+        .order('id')
+        .range(d, h),
+    'Inscripciones del grupo'
+  )
+  if (!ins.length) return
+  const alumnos = await filasPorIds<{ alumno_id: number; alumno_nivel: number | null; alumno_status: number | null }>(
+    ins.map((r) => Number(r.alumno_id)),
+    (trozo, d, h) =>
+      db()
+        .from('alumno')
+        .select('alumno_id, alumno_nivel, alumno_status')
+        .in('alumno_id', trozo)
+        .order('alumno_id')
+        .range(d, h),
+    'Alumnos del grupo'
+  )
+  const fuera = new Map<number, number>()
+  for (const a of alumnos) {
+    if (ALUMNO_STATUS_BAJA.has(Number(a.alumno_status))) continue
+    const n = Number(a.alumno_nivel) || 0
+    if (n && !niveles.includes(n)) fuera.set(n, (fuera.get(n) ?? 0) + 1)
+  }
+  if (!fuera.size) return
+  const detalle = [...fuera.entries()]
+    .map(([n, c]) => `${c} de ${etiquetaNivel(n)}`)
+    .join(' y ')
+  throw new TalleresError(
+    `Este grupo tiene alumnos inscritos (${detalle}) del nivel que quieres quitar. Muévelos o dalos de baja en «Inscripciones» primero.`,
+    409
+  )
+}
+
+/**
+ * Sin historial: se borra. Con pases de lista o incidencias registradas: baja lógica (`activo = false`),
+ * para que las horas ya impartidas sigan en el reporte del maestro.
+ */
+export async function eliminarAsignacion(id: number): Promise<{ modo: 'eliminado' | 'desactivado' }> {
   const { data: ins, error: iErr } = await db()
     .from('taller_inscripcion')
     .select('id, estado')
@@ -466,10 +614,25 @@ export async function eliminarAsignacion(id: number): Promise<void> {
       409
     )
   }
+  const { data: asis, error: aErr } = await db()
+    .from('taller_asistencia')
+    .select('id')
+    .eq('asignacion_id', id)
+    .limit(1)
+  fail(aErr, 'Revisar asistencia')
+  if (asis && (asis as unknown[]).length) {
+    const { error } = await db()
+      .from('taller_asignacion')
+      .update({ activo: false, updated_at: new Date().toISOString() })
+      .eq('id', id)
+    fail(error, 'Dar de baja el grupo')
+    return { modo: 'desactivado' }
+  }
   if ((ins ?? []).length) {
     const { error: dErr } = await db().from('taller_inscripcion').delete().eq('asignacion_id', id)
     fail(dErr, 'Limpiar bajas')
   }
   const { error } = await db().from('taller_asignacion').delete().eq('id', id)
   fail(error, 'Eliminar asignación')
+  return { modo: 'eliminado' }
 }

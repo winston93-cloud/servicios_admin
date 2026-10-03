@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -9,6 +9,7 @@ import {
   Loader2,
   MapPin,
   Printer,
+  RefreshCw,
   RotateCcw,
   StickyNote,
   Trash2,
@@ -16,7 +17,7 @@ import {
   UserRound,
   Users,
 } from 'lucide-react'
-import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
+import { ErrorTalleres, esCancelacion, fetchTalleres, mensajeDe } from '../fetchTalleres'
 import {
   CATEGORIAS_TALLER,
   COLORES_TALLER,
@@ -57,6 +58,7 @@ type Ctx = {
   tallerPorId: Map<number, Taller>
   maestroPorId: Map<number, TallerMaestro>
   rev: number
+  ocupado: boolean
   enviar: (body: Record<string, unknown>, exito: string, alTerminar?: () => void) => Promise<boolean>
   quitar: (id: number, modo: 'baja' | 'eliminar', exito: string, motivo?: string) => Promise<boolean>
   pedirMover: (ins: TallerInscripcion) => void
@@ -91,35 +93,38 @@ export default function InscripcionesView({
   const tallerPorId = useMemo(() => new Map(data.talleres.map((t) => [t.id, t])), [data.talleres])
   const maestroPorId = useMemo(() => new Map(data.maestros.map((m) => [m.id, m])), [data.maestros])
 
+  // Evita doble envío por doble toque antes de que React pinte el botón deshabilitado.
+  const ocupadoRef = useRef(false)
+
   const enviar = useCallback(
     async (body: Record<string, unknown>, exito: string, alTerminar?: () => void): Promise<boolean> => {
+      if (ocupadoRef.current) return false
+      ocupadoRef.current = true
       setOcupado(true)
       try {
-        const res = await fetch('/api/talleres/inscripciones', {
+        const json = await fetchTalleres<{ conteos?: Record<number, number> }>('/api/talleres/inscripciones', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...portalSessionFetchHeaders() },
-          body: JSON.stringify(body),
+          json: body,
         })
-        const json = await res.json()
-        if (res.status === 422 && Array.isArray(json.advertencias)) {
-          setConfirmar({
-            avisos: json.advertencias as string[],
-            ejecutar: async () => {
-              await enviar({ ...body, forzar: true }, exito, alTerminar)
-            },
-          })
-          return false
-        }
-        if (!res.ok) throw new Error(json.error || 'No se pudo guardar.')
         onConteos(json.conteos ?? {})
         setRev((r) => r + 1)
         onAviso(exito)
         alTerminar?.()
         return true
       } catch (e) {
-        onError(e instanceof Error ? e.message : 'Error al guardar')
+        if (e instanceof ErrorTalleres && e.status === 422 && e.advertencias?.length) {
+          setConfirmar({
+            avisos: e.advertencias,
+            ejecutar: async () => {
+              await enviar({ ...body, forzar: true }, exito, alTerminar)
+            },
+          })
+          return false
+        }
+        onError(mensajeDe(e, 'No se pudo guardar.'))
         return false
       } finally {
+        ocupadoRef.current = false
         setOcupado(false)
       }
     },
@@ -128,24 +133,24 @@ export default function InscripcionesView({
 
   const quitar = useCallback(
     async (id: number, modoQuitar: 'baja' | 'eliminar', exito: string, motivo?: string): Promise<boolean> => {
+      if (ocupadoRef.current) return false
+      ocupadoRef.current = true
       setOcupado(true)
       try {
         const qs = new URLSearchParams({ id: String(id), modo: modoQuitar })
         if (motivo) qs.set('motivo', motivo)
-        const res = await fetch(`/api/talleres/inscripciones?${qs}`, {
+        const json = await fetchTalleres<{ conteos?: Record<number, number> }>(`/api/talleres/inscripciones?${qs}`, {
           method: 'DELETE',
-          headers: portalSessionFetchHeaders(),
         })
-        const json = await res.json()
-        if (!res.ok) throw new Error(json.error || 'No se pudo completar.')
         onConteos(json.conteos ?? {})
         setRev((r) => r + 1)
         onAviso(exito)
         return true
       } catch (e) {
-        onError(e instanceof Error ? e.message : 'Error')
+        onError(mensajeDe(e, 'No se pudo completar.'))
         return false
       } finally {
+        ocupadoRef.current = false
         setOcupado(false)
       }
     },
@@ -157,6 +162,7 @@ export default function InscripcionesView({
     tallerPorId,
     maestroPorId,
     rev,
+    ocupado,
     enviar,
     quitar,
     pedirMover: setMover,
@@ -195,6 +201,7 @@ export default function InscripcionesView({
             <button
               type="button"
               className="tl-btn tl-btn-primary"
+              disabled={ocupado}
               onClick={async () => {
                 const c = confirmar
                 setConfirmar(null)
@@ -324,7 +331,7 @@ function PorTaller({ ctx }: { ctx: Ctx }) {
 
       <div className="tl-ins-detalle">
         {seleccionado ? (
-          <GrupoDetalle ctx={ctx} grupo={seleccionado} onVolver={() => setGrupoId(0)} />
+          <GrupoDetalle key={seleccionado.id} ctx={ctx} grupo={seleccionado} onVolver={() => setGrupoId(0)} />
         ) : (
           <div className="tl-ins-placeholder">
             <Users size={36} aria-hidden />
@@ -361,24 +368,27 @@ function CupoMedidor({ grupo }: { grupo: TallerAsignacion }) {
 }
 
 function GrupoDetalle({ ctx, grupo, onVolver }: { ctx: Ctx; grupo: TallerAsignacion; onVolver: () => void }) {
-  const { data, tallerPorId, maestroPorId, rev, enviar, quitar, pedirMover, pedirBaja, pedirNotas } = ctx
+  const { data, tallerPorId, maestroPorId, rev, ocupado, enviar, quitar, pedirMover, pedirBaja, pedirNotas } = ctx
   const t = tallerPorId.get(grupo.taller_id)
   const m = maestroPorId.get(grupo.maestro_id)
   const [lista, setLista] = useState<TallerInscripcion[] | null>(null)
+  const [errorLista, setErrorLista] = useState<string | null>(null)
+  const [intento, setIntento] = useState(0)
   const [verBajas, setVerBajas] = useState(false)
   const [filtro, setFiltro] = useState('')
 
   useEffect(() => {
-    let vivo = true
-    setLista((prev) => (prev && prev[0]?.asignacion_id === grupo.id ? prev : null))
-    fetch(`/api/talleres/inscripciones?asignacion_id=${grupo.id}`, { headers: portalSessionFetchHeaders(), cache: 'no-store' })
-      .then((r) => r.json())
-      .then((j) => vivo && setLista((j.inscripciones ?? []) as TallerInscripcion[]))
-      .catch(() => vivo && setLista([]))
-    return () => {
-      vivo = false
-    }
-  }, [grupo.id, rev])
+    const ctrl = new AbortController()
+    fetchTalleres<{ inscripciones?: TallerInscripcion[] }>(`/api/talleres/inscripciones?asignacion_id=${grupo.id}`, {}, ctrl.signal)
+      .then((j) => {
+        setLista(j.inscripciones ?? [])
+        setErrorLista(null)
+      })
+      .catch((e) => {
+        if (!esCancelacion(e)) setErrorLista(mensajeDe(e, 'No se pudo cargar la lista de alumnos.'))
+      })
+    return () => ctrl.abort()
+  }, [grupo.id, rev, intento])
 
   const activos = (lista ?? []).filter((i) => i.estado === 'inscrito')
   const bajas = (lista ?? []).filter((i) => i.estado === 'baja')
@@ -461,7 +471,9 @@ function GrupoDetalle({ ctx, grupo, onVolver }: { ctx: Ctx; grupo: TallerAsignac
         </div>
       </div>
 
-      {lista == null ? (
+      {errorLista ? (
+        <ErrorReintentar mensaje={errorLista} onReintentar={() => setIntento((n) => n + 1)} />
+      ) : lista == null ? (
         <p className="tl-loading"><Loader2 size={18} className="tl-spin" aria-hidden /> Cargando alumnos…</p>
       ) : visibles.length === 0 ? (
         <p className="tl-empty tl-empty-sm">
@@ -486,6 +498,9 @@ function GrupoDetalle({ ctx, grupo, onVolver }: { ctx: Ctx; grupo: TallerAsignac
                   <td className="tl-num">{i.estado === 'inscrito' ? k + 1 : '—'}</td>
                   <td>
                     <strong><Resaltar texto={i.alumno.nombre} q={filtro} /></strong>
+                    {i.alumno.baja_colegio && i.estado === 'inscrito' ? (
+                      <span className="tl-baja-colegio" title="No ocupa cupo ni aparece en la lista de asistencia">Baja del colegio</span>
+                    ) : null}
                     <span className="tl-desc">
                       {i.alumno.alumno_ref ? `No. ${i.alumno.alumno_ref}` : ''}
                       {i.estado === 'baja' ? ` · Baja ${fechaCorta(i.fecha_baja)}${i.motivo_baja ? ` — ${i.motivo_baja}` : ''}` : ''}
@@ -498,7 +513,7 @@ function GrupoDetalle({ ctx, grupo, onVolver }: { ctx: Ctx; grupo: TallerAsignac
                   </td>
                   <td className="tl-ins-notas">{i.notas ?? <span className="tl-muted">—</span>}</td>
                   <td className="tl-acciones">
-                    <AccionesInscripcion ins={i} quitar={quitar} enviar={enviar} pedirMover={pedirMover} pedirBaja={pedirBaja} pedirNotas={pedirNotas} />
+                    <AccionesInscripcion ins={i} ocupado={ocupado} quitar={quitar} enviar={enviar} pedirMover={pedirMover} pedirBaja={pedirBaja} pedirNotas={pedirNotas} />
                   </td>
                 </tr>
               ))}
@@ -512,6 +527,7 @@ function GrupoDetalle({ ctx, grupo, onVolver }: { ctx: Ctx; grupo: TallerAsignac
 
 function AccionesInscripcion({
   ins,
+  ocupado,
   quitar,
   enviar,
   pedirMover,
@@ -519,6 +535,7 @@ function AccionesInscripcion({
   pedirNotas,
 }: {
   ins: TallerInscripcion
+  ocupado: boolean
   quitar: Ctx['quitar']
   enviar: Ctx['enviar']
   pedirMover: Ctx['pedirMover']
@@ -528,11 +545,11 @@ function AccionesInscripcion({
   if (ins.estado === 'baja') {
     return (
       <div className="tl-acciones">
-        <button type="button" className="tl-icon-btn" aria-label={`Reinscribir a ${ins.alumno.nombre}`} title="Reinscribir"
+        <button type="button" className="tl-icon-btn" aria-label={`Reinscribir a ${ins.alumno.nombre}`} title="Reinscribir" disabled={ocupado}
           onClick={() => void enviar({ accion: 'reactivar', id: ins.id }, `${ins.alumno.nombre} reinscrito.`)}>
           <RotateCcw size={16} aria-hidden />
         </button>
-        <button type="button" className="tl-icon-btn tl-danger" aria-label={`Eliminar registro de ${ins.alumno.nombre}`} title="Eliminar del historial"
+        <button type="button" className="tl-icon-btn tl-danger" aria-label={`Eliminar registro de ${ins.alumno.nombre}`} title="Eliminar del historial" disabled={ocupado}
           onClick={() => {
             if (window.confirm(`¿Eliminar definitivamente el registro de ${ins.alumno.nombre}? No quedará en el historial.`)) {
               void quitar(ins.id, 'eliminar', 'Registro eliminado.')
@@ -545,13 +562,13 @@ function AccionesInscripcion({
   }
   return (
     <div className="tl-acciones">
-      <button type="button" className="tl-icon-btn" aria-label={`Notas de ${ins.alumno.nombre}`} title="Notas" onClick={() => pedirNotas(ins)}>
+      <button type="button" className="tl-icon-btn" aria-label={`Notas de ${ins.alumno.nombre}`} title="Notas" disabled={ocupado} onClick={() => pedirNotas(ins)}>
         <StickyNote size={16} aria-hidden />
       </button>
-      <button type="button" className="tl-icon-btn" aria-label={`Cambiar de grupo a ${ins.alumno.nombre}`} title="Cambiar de grupo" onClick={() => pedirMover(ins)}>
+      <button type="button" className="tl-icon-btn" aria-label={`Cambiar de grupo a ${ins.alumno.nombre}`} title="Cambiar de grupo" disabled={ocupado} onClick={() => pedirMover(ins)}>
         <ArrowRightLeft size={16} aria-hidden />
       </button>
-      <button type="button" className="tl-icon-btn tl-danger" aria-label={`Dar de baja a ${ins.alumno.nombre}`} title="Dar de baja" onClick={() => pedirBaja(ins)}>
+      <button type="button" className="tl-icon-btn tl-danger" aria-label={`Dar de baja a ${ins.alumno.nombre}`} title="Dar de baja" disabled={ocupado} onClick={() => pedirBaja(ins)}>
         <UserMinus size={16} aria-hidden />
       </button>
     </div>
@@ -561,22 +578,26 @@ function AccionesInscripcion({
 /* ───────────── Por alumno ───────────── */
 
 function PorAlumno({ ctx }: { ctx: Ctx }) {
-  const { data, tallerPorId, maestroPorId, rev, enviar, quitar, pedirMover, pedirBaja, pedirNotas } = ctx
+  const { data, tallerPorId, maestroPorId, rev, ocupado, enviar, quitar, pedirMover, pedirBaja, pedirNotas } = ctx
   const [alumnoSel, setAlumnoSel] = useState<AlumnoTaller | null>(null)
   const [inscripciones, setInscripciones] = useState<TallerInscripcion[] | null>(null)
+  const [errorIns, setErrorIns] = useState<string | null>(null)
+  const [intento, setIntento] = useState(0)
   const [filtro, setFiltro] = useState('')
 
   useEffect(() => {
     if (!alumnoSel) return
-    let vivo = true
-    fetch(`/api/talleres/inscripciones?alumno_id=${alumnoSel.alumno_id}`, { headers: portalSessionFetchHeaders(), cache: 'no-store' })
-      .then((r) => r.json())
-      .then((j) => vivo && setInscripciones((j.inscripciones ?? []) as TallerInscripcion[]))
-      .catch(() => vivo && setInscripciones([]))
-    return () => {
-      vivo = false
-    }
-  }, [alumnoSel, rev])
+    const ctrl = new AbortController()
+    fetchTalleres<{ inscripciones?: TallerInscripcion[] }>(`/api/talleres/inscripciones?alumno_id=${alumnoSel.alumno_id}`, {}, ctrl.signal)
+      .then((j) => {
+        setInscripciones(j.inscripciones ?? [])
+        setErrorIns(null)
+      })
+      .catch((e) => {
+        if (!esCancelacion(e)) setErrorIns(mensajeDe(e, 'No se pudieron cargar sus talleres.'))
+      })
+    return () => ctrl.abort()
+  }, [alumnoSel, rev, intento])
 
   const vigentes = (inscripciones ?? []).filter((i) => i.estado === 'inscrito')
   const bajas = (inscripciones ?? []).filter((i) => i.estado === 'baja')
@@ -645,7 +666,9 @@ function PorAlumno({ ctx }: { ctx: Ctx }) {
           </header>
 
           <h4 className="tl-ins-sub">Talleres inscritos <span>{vigentes.length}</span></h4>
-          {inscripciones == null ? (
+          {errorIns ? (
+            <ErrorReintentar mensaje={errorIns} onReintentar={() => setIntento((n) => n + 1)} />
+          ) : inscripciones == null ? (
             <p className="tl-loading"><Loader2 size={18} className="tl-spin" aria-hidden /> Cargando…</p>
           ) : vigentes.length === 0 ? (
             <p className="tl-empty tl-empty-sm">No está inscrito en ningún taller todavía.</p>
@@ -666,7 +689,7 @@ function PorAlumno({ ctx }: { ctx: Ctx }) {
                       </p>
                       {i.notas ? <p className="tl-horario-nota">{i.notas}</p> : null}
                     </div>
-                    <AccionesInscripcion ins={i} quitar={quitar} enviar={enviar} pedirMover={pedirMover} pedirBaja={pedirBaja} pedirNotas={pedirNotas} />
+                    <AccionesInscripcion ins={i} ocupado={ocupado} quitar={quitar} enviar={enviar} pedirMover={pedirMover} pedirBaja={pedirBaja} pedirNotas={pedirNotas} />
                   </li>
                 )
               })}
@@ -685,7 +708,7 @@ function PorAlumno({ ctx }: { ctx: Ctx }) {
                         <strong>{g ? nombreGrupo(g, tallerPorId) : 'Taller'}</strong>
                         <span className="tl-desc">Baja {fechaCorta(i.fecha_baja)}{i.motivo_baja ? ` — ${i.motivo_baja}` : ''}</span>
                       </span>
-                      <AccionesInscripcion ins={i} quitar={quitar} enviar={enviar} pedirMover={pedirMover} pedirBaja={pedirBaja} pedirNotas={pedirNotas} />
+                      <AccionesInscripcion ins={i} ocupado={ocupado} quitar={quitar} enviar={enviar} pedirMover={pedirMover} pedirBaja={pedirBaja} pedirNotas={pedirNotas} />
                     </li>
                   )
                 })}
@@ -698,7 +721,7 @@ function PorAlumno({ ctx }: { ctx: Ctx }) {
             <input className="tl-input tl-select-sm" placeholder="Filtrar taller o maestro…" aria-label="Filtrar talleres disponibles"
               value={filtro} onChange={(e) => setFiltro(e.target.value)} onClick={() => filtro && setFiltro('')} />
           </div>
-          {disponibles.length === 0 ? (
+          {errorIns || inscripciones == null ? null : disponibles.length === 0 ? (
             <p className="tl-empty tl-empty-sm">No hay más grupos de {etiquetaNivel(alumnoSel.nivel)} disponibles.</p>
           ) : (
             <ul className="tl-disp-lista">
@@ -716,7 +739,7 @@ function PorAlumno({ ctx }: { ctx: Ctx }) {
                   <span className="tl-cupo-pill" data-estado={estadoCupo(a)} title={textoCupo(a)}>
                     {a.inscritos}{a.cupo ? `/${a.cupo}` : ''}
                   </span>
-                  <button type="button" className="tl-btn tl-btn-primary" disabled={Boolean(ev.bloqueado)}
+                  <button type="button" className="tl-btn tl-btn-primary" disabled={Boolean(ev.bloqueado) || ocupado}
                     onClick={() => void enviar(
                       { accion: 'inscribir', asignacion_id: a.id, alumno_id: alumnoSel.alumno_id },
                       `${alumnoSel.nombre} inscrito en ${t ? nombreTallerCompleto(t) : 'el taller'}.`
@@ -736,24 +759,28 @@ function PorAlumno({ ctx }: { ctx: Ctx }) {
 /* ───────────── Modales ───────────── */
 
 function MoverModal({ ctx, inscripcion, onCerrar }: { ctx: Ctx; inscripcion: TallerInscripcion; onCerrar: () => void }) {
-  const { data, tallerPorId, maestroPorId, enviar } = ctx
+  const { data, tallerPorId, maestroPorId, enviar, ocupado } = ctx
   const [vigentes, setVigentes] = useState<number[] | null>(null)
+  const [errorVig, setErrorVig] = useState<string | null>(null)
+  const [intento, setIntento] = useState(0)
   const [destino, setDestino] = useState(0)
 
   useEffect(() => {
-    let vivo = true
-    fetch(`/api/talleres/inscripciones?alumno_id=${inscripcion.alumno.alumno_id}`, { headers: portalSessionFetchHeaders(), cache: 'no-store' })
-      .then((r) => r.json())
+    const ctrl = new AbortController()
+    fetchTalleres<{ inscripciones?: TallerInscripcion[] }>(
+      `/api/talleres/inscripciones?alumno_id=${inscripcion.alumno.alumno_id}`,
+      {},
+      ctrl.signal
+    )
       .then((j) => {
-        if (!vivo) return
-        const lista = (j.inscripciones ?? []) as TallerInscripcion[]
-        setVigentes(lista.filter((i) => i.estado === 'inscrito').map((i) => i.asignacion_id))
+        setVigentes((j.inscripciones ?? []).filter((i) => i.estado === 'inscrito').map((i) => i.asignacion_id))
+        setErrorVig(null)
       })
-      .catch(() => vivo && setVigentes([]))
-    return () => {
-      vivo = false
-    }
-  }, [inscripcion.alumno.alumno_id])
+      .catch((e) => {
+        if (!esCancelacion(e)) setErrorVig(mensajeDe(e, 'No se pudieron revisar sus horarios.'))
+      })
+    return () => ctrl.abort()
+  }, [inscripcion.alumno.alumno_id, intento])
 
   const origen = data.asignaciones.find((a) => a.id === inscripcion.asignacion_id)
   const tOrigen = origen ? tallerPorId.get(origen.taller_id) : undefined
@@ -791,7 +818,7 @@ function MoverModal({ ctx, inscripcion, onCerrar }: { ctx: Ctx; inscripcion: Tal
           <button
             type="button"
             className="tl-btn tl-btn-primary"
-            disabled={!elegido || Boolean(elegido.ev.bloqueado)}
+            disabled={!elegido || Boolean(elegido.ev.bloqueado) || ocupado}
             onClick={() =>
               void enviar(
                 { accion: 'mover', id: inscripcion.id, asignacion_id: destino },
@@ -805,7 +832,9 @@ function MoverModal({ ctx, inscripcion, onCerrar }: { ctx: Ctx; inscripcion: Tal
         </>
       }
     >
-      {vigentes == null ? (
+      {errorVig ? (
+        <ErrorReintentar mensaje={errorVig} onReintentar={() => setIntento((n) => n + 1)} />
+      ) : vigentes == null ? (
         <p className="tl-loading"><Loader2 size={18} className="tl-spin" aria-hidden /> Revisando horarios…</p>
       ) : opciones.length === 0 ? (
         <p className="tl-empty tl-empty-sm">No hay otros grupos de {etiquetaNivel(inscripcion.alumno.nivel)}.</p>
@@ -840,7 +869,7 @@ function MoverModal({ ctx, inscripcion, onCerrar }: { ctx: Ctx; inscripcion: Tal
 const MOTIVOS_BAJA = ['Decisión de los papás', 'Cambio de taller', 'Choque de horario', 'Baja de la escuela', 'Faltas']
 
 function BajaModal({ ctx, inscripcion, onCerrar }: { ctx: Ctx; inscripcion: TallerInscripcion; onCerrar: () => void }) {
-  const { data, tallerPorId, quitar } = ctx
+  const { data, tallerPorId, quitar, ocupado } = ctx
   const [motivo, setMotivo] = useState('')
   const g = data.asignaciones.find((a) => a.id === inscripcion.asignacion_id)
   return (
@@ -855,6 +884,7 @@ function BajaModal({ ctx, inscripcion, onCerrar }: { ctx: Ctx; inscripcion: Tall
           <button
             type="button"
             className="tl-btn tl-btn-danger"
+            disabled={ocupado}
             onClick={async () => {
               if (await quitar(inscripcion.id, 'baja', `${inscripcion.alumno.nombre} dado de baja.`, motivo.trim() || undefined)) onCerrar()
             }}
@@ -880,7 +910,7 @@ function BajaModal({ ctx, inscripcion, onCerrar }: { ctx: Ctx; inscripcion: Tall
 }
 
 function NotasModal({ ctx, inscripcion, onCerrar }: { ctx: Ctx; inscripcion: TallerInscripcion; onCerrar: () => void }) {
-  const { enviar } = ctx
+  const { enviar, ocupado } = ctx
   const [notas, setNotas] = useState(inscripcion.notas ?? '')
   return (
     <TlModal
@@ -891,7 +921,7 @@ function NotasModal({ ctx, inscripcion, onCerrar }: { ctx: Ctx; inscripcion: Tal
       pie={
         <>
           <button type="button" className="tl-btn" onClick={onCerrar}>Cancelar</button>
-          <button type="button" className="tl-btn tl-btn-primary"
+          <button type="button" className="tl-btn tl-btn-primary" disabled={ocupado}
             onClick={() => void enviar({ accion: 'notas', id: inscripcion.id, notas }, 'Notas guardadas.', onCerrar)}>
             Guardar
           </button>
@@ -901,5 +931,16 @@ function NotasModal({ ctx, inscripcion, onCerrar }: { ctx: Ctx; inscripcion: Tal
       <textarea className="tl-input tl-textarea" rows={4} maxLength={1000} value={notas} autoFocus
         onChange={(e) => setNotas(e.target.value)} aria-label="Notas" />
     </TlModal>
+  )
+}
+
+function ErrorReintentar({ mensaje, onReintentar }: { mensaje: string; onReintentar: () => void }) {
+  return (
+    <div className="tl-error-carga tl-error-carga-sm" role="alert">
+      <p>{mensaje}</p>
+      <button type="button" className="tl-btn" onClick={onReintentar}>
+        <RefreshCw size={16} aria-hidden /> Reintentar
+      </button>
+    </div>
   )
 }

@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
-import { requireEmpleadoPortal } from '@/lib/portalApiEmpleadoAuth'
+import { leerCuerpo, requireAdminTalleres, responderErrorTalleres } from '@/lib/talleres/talleresApi'
 import {
-  TalleresError,
   actualizarCupoAsignacion,
   eliminarAsignacion,
   eliminarCatalogo,
   guardarAsignacion,
   guardarMaestro,
   guardarTaller,
+  idEntero,
   snapshotTalleres,
 } from '@/lib/talleres/talleresService'
 
@@ -20,31 +20,22 @@ function parseRecurso(raw: unknown): Recurso | null {
   return raw === 'taller' || raw === 'maestro' || raw === 'asignacion' ? raw : null
 }
 
-function responderError(e: unknown, contexto: string) {
-  if (e instanceof TalleresError) {
-    return NextResponse.json({ error: e.message }, { status: e.status })
-  }
-  console.error(contexto, e)
-  const message = e instanceof Error ? e.message : 'Error inesperado'
-  return NextResponse.json({ error: message }, { status: 500 })
-}
-
 export async function GET(request: Request) {
-  const auth = requireEmpleadoPortal(request)
+  const auth = await requireAdminTalleres(request)
   if (!auth.ok) return auth.response
   try {
     return NextResponse.json(await snapshotTalleres())
   } catch (e) {
-    return responderError(e, 'GET /api/talleres:')
+    return responderErrorTalleres(e, 'GET /api/talleres:')
   }
 }
 
 /** Crear o actualizar (con `id`) un taller, maestro o asignación. */
 export async function POST(request: Request) {
-  const auth = requireEmpleadoPortal(request)
+  const auth = await requireAdminTalleres(request)
   if (!auth.ok) return auth.response
   try {
-    const body = (await request.json()) as Record<string, unknown>
+    const body = await leerCuerpo(request)
     if (body.recurso === 'cupo') {
       await actualizarCupoAsignacion(body)
       return NextResponse.json(await snapshotTalleres())
@@ -56,25 +47,23 @@ export async function POST(request: Request) {
     else await guardarAsignacion(body)
     return NextResponse.json(await snapshotTalleres())
   } catch (e) {
-    return responderError(e, 'POST /api/talleres:')
+    return responderErrorTalleres(e, 'POST /api/talleres:')
   }
 }
 
 export async function DELETE(request: Request) {
-  const auth = requireEmpleadoPortal(request)
+  const auth = await requireAdminTalleres(request)
   if (!auth.ok) return auth.response
   try {
     const url = new URL(request.url)
     const recurso = parseRecurso(url.searchParams.get('recurso'))
-    const id = Number(url.searchParams.get('id'))
-    if (!recurso || !(id > 0)) {
+    const id = idEntero(url.searchParams.get('id'))
+    if (!recurso || !id) {
       return NextResponse.json({ error: 'Parámetros inválidos.' }, { status: 400 })
     }
-    let modo: 'eliminado' | 'desactivado' = 'eliminado'
-    if (recurso === 'asignacion') await eliminarAsignacion(id)
-    else modo = (await eliminarCatalogo(recurso, id)).modo
+    const { modo } = recurso === 'asignacion' ? await eliminarAsignacion(id) : await eliminarCatalogo(recurso, id)
     return NextResponse.json({ modo, ...(await snapshotTalleres()) })
   } catch (e) {
-    return responderError(e, 'DELETE /api/talleres:')
+    return responderErrorTalleres(e, 'DELETE /api/talleres:')
   }
 }

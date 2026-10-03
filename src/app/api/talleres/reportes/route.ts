@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { requireEmpleadoPortal } from '@/lib/portalApiEmpleadoAuth'
-import { TalleresError } from '@/lib/talleres/talleresService'
+import { requireAdminTalleres, responderErrorTalleres } from '@/lib/talleres/talleresApi'
 import { reporteHorasMaestros } from '@/lib/talleres/talleresReportesService'
 import { excelHorasMaestros } from '@/lib/talleres/talleresReporteExcel'
 import { etiquetaNivel } from '@/lib/talleres/talleresTypes'
@@ -9,7 +8,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
-  const auth = requireEmpleadoPortal(request)
+  const auth = await requireAdminTalleres(request)
   if (!auth.ok) return auth.response
   try {
     const url = new URL(request.url)
@@ -31,8 +30,6 @@ export async function GET(request: Request) {
       },
     })
   } catch (e) {
-    if (e instanceof TalleresError) return NextResponse.json({ error: e.message }, { status: e.status })
-    console.error('GET /api/talleres/reportes:', e)
-    return NextResponse.json({ error: e instanceof Error ? e.message : 'Error inesperado' }, { status: 500 })
+    return responderErrorTalleres(e, 'GET /api/talleres/reportes:')
   }
 }

@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import { AlertTriangle, CalendarRange, ChevronDown, Clock, FileSpreadsheet, Loader2, Search, Timer } from 'lucide-react'
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
+import { fetchTalleres, mensajeDe } from './fetchTalleres'
 import {
   DIAS_TALLER,
   NIVELES_TALLER,
@@ -73,12 +74,9 @@ export default function ReportesView({ asignaciones, onError }: Props) {
     if (nivel == null || rangoInvalido) return
     setCargando(true)
     try {
-      const res = await fetch(query(), { headers: portalSessionFetchHeaders(), cache: 'no-store' })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'No se pudo generar el reporte.')
-      setReporte(json as ReporteHorasMaestros)
+      setReporte(await fetchTalleres<ReporteHorasMaestros>(query()))
     } catch (e) {
-      onError(e instanceof Error ? e.message : 'Error al generar el reporte')
+      onError(mensajeDe(e, 'No se pudo generar el reporte.'))
     } finally {
       setCargando(false)
     }
@@ -89,7 +87,9 @@ export default function ReportesView({ asignaciones, onError }: Props) {
     setDescargando(true)
     try {
       const url = `/api/talleres/reportes?nivel=${reporte.nivel}&desde=${reporte.desde}&hasta=${reporte.hasta}&formato=xlsx`
-      const res = await fetch(url, { headers: portalSessionFetchHeaders(), cache: 'no-store' })
+      const res = await fetch(url, { headers: portalSessionFetchHeaders(), cache: 'no-store' }).catch(() => {
+        throw new Error('No se pudo conectar con el servidor. Revisa tu conexión e intenta de nuevo.')
+      })
       if (!res.ok) {
         const json = await res.json().catch(() => ({}))
         throw new Error(json.error || 'No se pudo generar el Excel.')
@@ -103,7 +103,7 @@ export default function ReportesView({ asignaciones, onError }: Props) {
       a.remove()
       window.setTimeout(() => URL.revokeObjectURL(a.href), 2000)
     } catch (e) {
-      onError(e instanceof Error ? e.message : 'Error al descargar')
+      onError(mensajeDe(e, 'No se pudo descargar el Excel.'))
     } finally {
       setDescargando(false)
     }
@@ -112,6 +112,12 @@ export default function ReportesView({ asignaciones, onError }: Props) {
   const vigente =
     reporte && reporte.nivel === nivel && reporte.desde === desde && reporte.hasta === hasta ? reporte : null
   const totalDias = reporte ? new Set(reporte.maestros.flatMap((m) => m.dias)).size : 0
+  const minutosCompartidos = reporte
+    ? reporte.maestros.reduce(
+        (s, m) => s + m.grupos.filter((g) => g.niveles.length > 1).reduce((x, g) => x + g.minutos, 0),
+        0
+      )
+    : 0
 
   return (
     <section className="tl-panel tl-rep">
@@ -122,7 +128,8 @@ export default function ReportesView({ asignaciones, onError }: Props) {
           </h2>
           <p className="tl-rep-lead">
             Para el pago por hora: suma las clases de cada maestro en el periodo. Cuentan los días con asistencia o con
-            horario del maestro registrado (sin las clases a las que no asistió); la duración sale del horario del grupo.
+            horario del maestro registrado (sin las clases a las que no asistió); el maestro y la duración son los que tenía
+            el grupo el día que se pasó lista.
           </p>
         </div>
       </header>
@@ -222,6 +229,15 @@ export default function ReportesView({ asignaciones, onError }: Props) {
             </p>
           ) : null}
 
+          {minutosCompartidos > 0 ? (
+            <p className="tl-rep-alerta">
+              <AlertTriangle size={16} aria-hidden />
+              El total incluye {textoDuracion(minutosCompartidos)} de grupos compartidos con otros niveles. Esas horas
+              también aparecen completas en el reporte del otro nivel: si sumas ambos reportes, descuéntalas una vez para no
+              pagarlas doble.
+            </p>
+          ) : null}
+
           {reporte.sin_horario > 0 ? (
             <p className="tl-rep-alerta">
               <AlertTriangle size={16} aria-hidden />
@@ -275,7 +291,7 @@ export default function ReportesView({ asignaciones, onError }: Props) {
                       {m.grupos.map((g) => {
                         const otros = g.niveles.filter((n) => n !== reporte.nivel)
                         return (
-                          <div key={g.asignacion_id} className="tl-rep-grupo">
+                          <div key={`${g.asignacion_id}-${g.maestro_id}`} className="tl-rep-grupo">
                             <p className="tl-rep-grupo-titulo">
                               <span className="tl-dot" style={{ background: g.color }} aria-hidden />
                               <span className="tl-min0">
@@ -295,7 +311,7 @@ export default function ReportesView({ asignaciones, onError }: Props) {
                                 </thead>
                                 <tbody>
                                   {g.sesiones.map((s) => (
-                                    <tr key={s.fecha} data-sin-horario={!s.hora_inicio || undefined}>
+                                    <tr key={`${s.fecha}-${s.hora_inicio ?? ''}`} data-sin-horario={!s.hora_inicio || undefined}>
                                       <td>{fechaChip(s.fecha)}</td>
                                       <td>
                                         {s.hora_inicio ? `${horaCorta(s.hora_inicio)} – ${horaCorta(s.hora_fin)}` : 'Sin horario'}

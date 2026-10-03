@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { requireEmpleadoPortal } from '@/lib/portalApiEmpleadoAuth'
-import { TalleresError } from '@/lib/talleres/talleresService'
+import { leerCuerpo, requireAdminTalleres, responderErrorTalleres } from '@/lib/talleres/talleresApi'
+import { idEntero } from '@/lib/talleres/talleresService'
 import {
   actualizarNotasInscripcion,
   bajaInscripcion,
@@ -18,27 +18,18 @@ import { normalizarNiveles } from '@/lib/talleres/talleresTypes'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-function responderError(e: unknown, contexto: string) {
-  if (e instanceof TalleresError) {
-    return NextResponse.json({ error: e.message, advertencias: e.advertencias }, { status: e.status })
-  }
-  console.error(contexto, e)
-  const message = e instanceof Error ? e.message : 'Error inesperado'
-  return NextResponse.json({ error: message }, { status: 500 })
-}
-
 /**
  * ?asignacion_id=N → alumnos del grupo (inscritos y bajas)
  * ?alumno_id=N     → grupos del alumno en el ciclo
  * ?q=texto&niveles=3,4 → búsqueda de alumnos activos
  */
 export async function GET(request: Request) {
-  const auth = requireEmpleadoPortal(request)
+  const auth = await requireAdminTalleres(request)
   if (!auth.ok) return auth.response
   try {
     const url = new URL(request.url)
-    const asignacionId = Number(url.searchParams.get('asignacion_id'))
-    const alumnoId = Number(url.searchParams.get('alumno_id'))
+    const asignacionId = idEntero(url.searchParams.get('asignacion_id'))
+    const alumnoId = idEntero(url.searchParams.get('alumno_id'))
     const q = url.searchParams.get('q')
     if (asignacionId > 0) return NextResponse.json({ inscripciones: await inscripcionesDeGrupo(asignacionId) })
     if (alumnoId > 0) return NextResponse.json(await inscripcionesDeAlumno(alumnoId))
@@ -48,16 +39,16 @@ export async function GET(request: Request) {
     }
     return NextResponse.json({ error: 'Parámetros inválidos.' }, { status: 400 })
   } catch (e) {
-    return responderError(e, 'GET /api/talleres/inscripciones:')
+    return responderErrorTalleres(e, 'GET /api/talleres/inscripciones:')
   }
 }
 
 /** { accion: 'inscribir' | 'mover' | 'reactivar' | 'notas', ... , forzar? } */
 export async function POST(request: Request) {
-  const auth = requireEmpleadoPortal(request)
+  const auth = await requireAdminTalleres(request)
   if (!auth.ok) return auth.response
   try {
-    const body = (await request.json()) as Record<string, unknown>
+    const body = await leerCuerpo(request)
     const quien = auth.session.displayName || auth.session.usuario_username || null
     switch (body.accion) {
       case 'inscribir': await inscribirAlumno(body, quien); break
@@ -68,25 +59,25 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ ok: true, conteos: await conteoInscritos() })
   } catch (e) {
-    return responderError(e, 'POST /api/talleres/inscripciones:')
+    return responderErrorTalleres(e, 'POST /api/talleres/inscripciones:')
   }
 }
 
 /** ?id=N&modo=baja|eliminar&motivo=… */
 export async function DELETE(request: Request) {
-  const auth = requireEmpleadoPortal(request)
+  const auth = await requireAdminTalleres(request)
   if (!auth.ok) return auth.response
   try {
     const url = new URL(request.url)
-    const id = Number(url.searchParams.get('id'))
+    const id = idEntero(url.searchParams.get('id'))
     const modo = url.searchParams.get('modo')
-    if (!(id > 0) || (modo !== 'baja' && modo !== 'eliminar')) {
+    if (!id || (modo !== 'baja' && modo !== 'eliminar')) {
       return NextResponse.json({ error: 'Parámetros inválidos.' }, { status: 400 })
     }
     if (modo === 'baja') await bajaInscripcion(id, url.searchParams.get('motivo'))
     else await eliminarInscripcion(id)
     return NextResponse.json({ ok: true, conteos: await conteoInscritos() })
   } catch (e) {
-    return responderError(e, 'DELETE /api/talleres/inscripciones:')
+    return responderErrorTalleres(e, 'DELETE /api/talleres/inscripciones:')
   }
 }

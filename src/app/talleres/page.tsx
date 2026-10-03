@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, CalendarDays, CheckCircle2, ClipboardCheck, FileSpreadsheet, GraduationCap, ListChecks, Loader2, Palette, RefreshCw, UserPlus } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
-import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
+import { fetchTalleres, mensajeDe } from './components/fetchTalleres'
 import {
   nombreMaestroTaller,
   nombreTallerCompleto,
@@ -56,16 +56,16 @@ function TalleresView() {
     asignacion: null,
   })
 
+  const [errorCarga, setErrorCarga] = useState<string | null>(null)
+
   const cargar = useCallback(async () => {
     setCargando(true)
     setError(null)
+    setErrorCarga(null)
     try {
-      const res = await fetch('/api/talleres', { headers: portalSessionFetchHeaders(), cache: 'no-store' })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'No se pudo cargar la información.')
-      setData(json as TalleresSnapshot)
+      setData(await fetchTalleres<TalleresSnapshot>('/api/talleres'))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al cargar')
+      setErrorCarga(mensajeDe(e, 'No se pudo cargar la información.'))
     } finally {
       setCargando(false)
     }
@@ -85,18 +85,11 @@ function TalleresView() {
     setGuardando(true)
     setError(null)
     try {
-      const res = await fetch('/api/talleres', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...portalSessionFetchHeaders() },
-        body: JSON.stringify(body),
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'No se pudo guardar.')
-      setData(json as TalleresSnapshot)
+      setData(await fetchTalleres<TalleresSnapshot>('/api/talleres', { method: 'POST', json: body }))
       setAviso(body.id ? 'Cambios guardados.' : 'Registro creado.')
       return true
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al guardar')
+      setError(mensajeDe(e, 'No se pudo guardar.'))
       return false
     } finally {
       setGuardando(false)
@@ -106,22 +99,26 @@ function TalleresView() {
   const eliminar = useCallback(async (recurso: 'taller' | 'maestro' | 'asignacion', id: number, nombre: string) => {
     const pregunta =
       recurso === 'asignacion'
-        ? `¿Eliminar el horario de «${nombre}»?`
+        ? `¿Eliminar el horario de «${nombre}»? Si ya tiene asistencia registrada, se quita del horario pero sus horas se conservan en los reportes.`
         : `¿Eliminar «${nombre}»? Si ya tiene horarios asignados solo se marcará como inactivo.`
     if (!window.confirm(pregunta)) return
     setGuardando(true)
     setError(null)
     try {
-      const res = await fetch(`/api/talleres?recurso=${recurso}&id=${id}`, {
-        method: 'DELETE',
-        headers: portalSessionFetchHeaders(),
-      })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'No se pudo eliminar.')
-      setData(json as TalleresSnapshot)
-      setAviso(json.modo === 'desactivado' ? `«${nombre}» tiene horarios; quedó como inactivo.` : `«${nombre}» eliminado.`)
+      const json = await fetchTalleres<TalleresSnapshot & { modo?: string }>(
+        `/api/talleres?recurso=${recurso}&id=${id}`,
+        { method: 'DELETE' }
+      )
+      setData(json)
+      setAviso(
+        json.modo !== 'desactivado'
+          ? `«${nombre}» eliminado.`
+          : recurso === 'asignacion'
+            ? `«${nombre}» se quitó del horario; su asistencia y horas se conservan en los reportes.`
+            : `«${nombre}» tiene horarios; quedó como inactivo.`
+      )
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al eliminar')
+      setError(mensajeDe(e, 'No se pudo eliminar.'))
     } finally {
       setGuardando(false)
     }
@@ -157,7 +154,7 @@ function TalleresView() {
         { etiqueta: 'Talleres activos', valor: data.talleres.filter((t) => t.activo).length },
         { etiqueta: 'Maestros activos', valor: data.maestros.filter((m) => m.activo).length },
         { etiqueta: 'Sesiones por semana', valor: data.asignaciones.reduce((s, a) => s + a.horarios.length, 0) },
-        { etiqueta: 'Alumnos inscritos', valor: data.asignaciones.reduce((s, a) => s + a.inscritos, 0) },
+        { etiqueta: 'Inscripciones activas', valor: data.asignaciones.reduce((s, a) => s + a.inscritos, 0) },
       ]
     : []
 
@@ -209,10 +206,20 @@ function TalleresView() {
         </nav>
 
         <div className="tl-toasts" aria-live="polite">
-          {error ? (
+          {error || (data && errorCarga) ? (
             <p className="tl-msg tl-msg-error" role="alert">
-              <span>{error}</span>
-              <button type="button" className="tl-msg-x" onClick={() => setError(null)} aria-label="Cerrar aviso">×</button>
+              <span>{error || errorCarga}</span>
+              <button
+                type="button"
+                className="tl-msg-x"
+                onClick={() => {
+                  setError(null)
+                  setErrorCarga(null)
+                }}
+                aria-label="Cerrar aviso"
+              >
+                ×
+              </button>
             </p>
           ) : null}
           {aviso ? (
@@ -224,6 +231,13 @@ function TalleresView() {
 
         {cargando && !data ? (
           <p className="tl-loading"><Loader2 size={18} className="tl-spin" aria-hidden /> Cargando…</p>
+        ) : errorCarga && !data ? (
+          <div className="tl-error-carga" role="alert">
+            <p>{errorCarga}</p>
+            <button type="button" className="tl-btn tl-btn-primary" onClick={() => void cargar()} disabled={cargando}>
+              <RefreshCw size={16} aria-hidden className={cargando ? 'tl-spin' : undefined} /> Reintentar
+            </button>
+          </div>
         ) : data ? (
           <>
             {tab === 'semana' ? (

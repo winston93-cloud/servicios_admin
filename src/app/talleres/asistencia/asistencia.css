@@ -623,9 +623,9 @@ a.tl-back { text-decoration: none; }
   --as-inc-glow: rgba(245, 158, 11, 0.55);
 }
 .as-inc-btn[data-con='falta'] {
-  --as-inc-a: #ff8fa8;
-  --as-inc-b: #e11d48;
-  --as-inc-ink: #fff;
+  --as-inc-a: #fb7185;
+  --as-inc-b: #f43f5e;
+  --as-inc-ink: #2a0a12;
   --as-inc-glow: rgba(225, 29, 72, 0.55);
 }
 [data-theme='light'] .as-inc-btn {
@@ -795,4 +795,12 @@ a.tl-back { text-decoration: none; }
   .as-inc-rapido { flex: 1 1 auto; }
   .as-inc-resumen { flex-wrap: wrap; }
   .as-inc-editar { width: 100%; justify-content: center; }
+}
+
+.as-cargando-dia { padding: 0.5rem 0; font-size: 0.875rem; }
+.as-grupo[data-cargando] { opacity: 0.55; pointer-events: none; transition: opacity 0.15s; }
+
+@media (pointer: coarse) {
+  .as-btn-sec,
+  .as-inc-rapido { min-height: var(--touch-min, 44px); }
 }

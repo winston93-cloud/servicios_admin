@@ -89,6 +89,8 @@ export type AlumnoTaller = {
   nivel: number
   grado: number | null
   grupo: number | null
+  /** Baja general o temporal del colegio: no cuenta en cupo ni sale en asistencia. */
+  baja_colegio?: boolean
 }
 
 export type EstadoInscripcion = 'inscrito' | 'baja'
@@ -352,8 +354,10 @@ export type AsistenciaDia = {
   hoy: string
   /** 0 = domingo … 6 = sábado. */
   dia: number
-  /** Se puede guardar (hoy o hasta DIAS_EDITABLES_ASISTENCIA atrás). */
+  /** Se puede guardar (hoy; con `historial`, hasta DIAS_EDITABLES_ASISTENCIA atrás). */
   editable: boolean
+  /** Administrador de Talleres: puede navegar a otros días. Sin sesión solo existe hoy. */
+  historial: boolean
   sesiones: SesionAsistencia[]
 }
 
@@ -377,6 +381,8 @@ export type SesionHoras = {
 
 export type GrupoHoras = {
   asignacion_id: number
+  /** Maestro que impartió (si el grupo cambió de maestro, cada uno tiene su propio GrupoHoras). */
+  maestro_id: number
   taller: string
   color: string
   niveles: number[]

@@ -1,42 +1,36 @@
 import { NextResponse } from 'next/server'
-import { sesionPortalDeRequest } from '@/lib/portalSesionFirmada'
-import { TalleresError } from '@/lib/talleres/talleresService'
+import { adminTalleresOpcional, leerCuerpo, responderErrorTalleres } from '@/lib/talleres/talleresApi'
 import { asistenciaDelDia, guardarAsistencia, guardarIncidencia } from '@/lib/talleres/talleresAsistenciaService'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// Pública: el personal de estancia pasa lista sin iniciar sesión.
+// Pública para el día de hoy: el personal de estancia pasa lista sin iniciar sesión.
+// Días anteriores solo con sesión de quien administra Talleres.
 
-function responderError(e: unknown, contexto: string) {
-  if (e instanceof TalleresError) {
-    return NextResponse.json({ error: e.message }, { status: e.status })
-  }
-  console.error(contexto, e)
-  return NextResponse.json({ error: 'Error inesperado. Intenta de nuevo.' }, { status: 500 })
-}
+const SIN_CACHE = { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' }
 
 export async function GET(request: Request) {
   try {
+    const admin = await adminTalleresOpcional(request)
     const fecha = new URL(request.url).searchParams.get('fecha')
-    return NextResponse.json(await asistenciaDelDia(fecha), {
-      headers: { 'Cache-Control': 'no-store' },
-    })
+    return NextResponse.json(await asistenciaDelDia(fecha, { historial: Boolean(admin) }), { headers: SIN_CACHE })
   } catch (e) {
-    return responderError(e, 'GET /api/talleres/asistencia:')
+    return responderErrorTalleres(e, 'GET /api/talleres/asistencia:')
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as Record<string, unknown>
-    const session = sesionPortalDeRequest(request)
-    if (session?.role === 'usuario' && session.displayName) body.registrado_por = session.displayName
+    const body = await leerCuerpo(request)
+    const admin = await adminTalleresOpcional(request)
+    if (admin?.displayName) body.registrado_por = admin.displayName
+    const acceso = { historial: Boolean(admin) }
     if (body.accion === 'incidencia') {
-      return NextResponse.json({ ok: true, incidencia: await guardarIncidencia(body) })
+      return NextResponse.json({ ok: true, incidencia: await guardarIncidencia(body, acceso) }, { headers: SIN_CACHE })
     }
-    return NextResponse.json({ ok: true, registro: await guardarAsistencia(body) })
+    return NextResponse.json({ ok: true, registro: await guardarAsistencia(body, acceso) }, { headers: SIN_CACHE })
   } catch (e) {
-    return responderError(e, 'POST /api/talleres/asistencia:')
+    return responderErrorTalleres(e, 'POST /api/talleres/asistencia:')
   }
 }

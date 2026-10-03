@@ -30,6 +30,22 @@ const PRESETS: { etiqueta: string; dias: number[] }[] = [
   { etiqueta: 'Solo sábado', dias: [6] },
 ]
 
+function firmaFormulario(
+  tallerId: number,
+  maestroId: number,
+  niveles: number[],
+  lugar: string,
+  cupo: string,
+  cupoMin: string,
+  notas: string,
+  tramos: Map<number, Tramo>
+): string {
+  const dias = [...tramos.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([d, t]) => [d, t.hora_inicio, t.hora_fin, t.lugar ?? ''])
+  return JSON.stringify([tallerId, maestroId, [...niveles].sort(), lugar, cupo, cupoMin, notas, dias])
+}
+
 function duracion(t: Tramo): string {
   const min = minutosDeHora(t.hora_fin) - minutosDeHora(t.hora_inicio)
   if (min <= 0) return 'Horario inválido'
@@ -66,9 +82,24 @@ export default function AsignacionModal({
   const [notas, setNotas] = useState('')
   const [tramos, setTramos] = useState<Map<number, Tramo>>(new Map())
   const [ultimo, setUltimo] = useState<Tramo>(TRAMO_DEFAULT)
+  const [firmaInicial, setFirmaInicial] = useState('')
 
   useEffect(() => {
     if (!abierto) return
+    setFirmaInicial(
+      asignacion
+        ? firmaFormulario(
+            asignacion.taller_id,
+            asignacion.maestro_id,
+            asignacion.niveles,
+            asignacion.lugar ?? '',
+            asignacion.cupo ? String(asignacion.cupo) : '',
+            asignacion.cupo_min ? String(asignacion.cupo_min) : '',
+            asignacion.notas ?? '',
+            new Map(asignacion.horarios.map((h) => [h.dia, { hora_inicio: h.hora_inicio, hora_fin: h.hora_fin, lugar: h.lugar ?? '' }]))
+          )
+        : firmaFormulario(0, 0, [], '', '', '', '', new Map())
+    )
     if (asignacion) {
       setTallerId(asignacion.taller_id)
       setMaestroId(asignacion.maestro_id)
@@ -194,7 +225,23 @@ export default function AsignacionModal({
   }, [asignaciones, asignacion, maestroId, lugar, horarios, talleres])
 
   const invalidos = horarios.some((h) => minutosDeHora(h.hora_fin) <= minutosDeHora(h.hora_inicio))
-  const listo = tallerId > 0 && maestroId > 0 && horarios.length > 0 && !invalidos && conflictos.length === 0
+  const listo =
+    tallerId > 0 && maestroId > 0 && niveles.length > 0 && horarios.length > 0 && !invalidos && conflictos.length === 0
+  const falta = !tallerId
+    ? 'Elige el taller.'
+    : !maestroId
+      ? 'Elige el maestro.'
+      : !niveles.length
+        ? 'Elige al menos un nivel.'
+        : !horarios.length
+          ? 'Marca al menos un día con horario.'
+          : invalidos
+            ? 'Revisa los horarios: la hora de fin debe ser después de la de inicio.'
+            : conflictos.length
+              ? 'Hay choques de horario (ver arriba).'
+              : null
+  const sucio = abierto && firmaInicial !== '' &&
+    firmaFormulario(tallerId, maestroId, niveles, lugar, cupo, cupoMin, notas, tramos) !== firmaInicial
 
   const guardar = async () => {
     const ok = await onGuardar({
@@ -219,9 +266,18 @@ export default function AsignacionModal({
       titulo={asignacion ? 'Editar horario del taller' : 'Programar taller'}
       subtitulo="Elige taller y maestro, luego arma los días y horas de la semana."
       onCerrar={() => !guardando && onCerrar()}
+      cambiosSinGuardar={sucio && !guardando}
       pie={
         <>
-          <button type="button" className="tl-btn" onClick={onCerrar} disabled={guardando}>Cancelar</button>
+          {falta && !guardando ? <span className="tl-pie-falta" role="status">{falta}</span> : null}
+          <button
+            type="button"
+            className="tl-btn"
+            onClick={() => (sucio && !window.confirm('Hay cambios sin guardar. ¿Cerrar y descartarlos?') ? null : onCerrar())}
+            disabled={guardando}
+          >
+            Cancelar
+          </button>
           <button type="button" className="tl-btn tl-btn-primary" onClick={() => void guardar()} disabled={guardando || !listo}>
             {guardando ? 'Guardando…' : asignacion ? 'Guardar cambios' : 'Programar'}
           </button>
@@ -248,7 +304,7 @@ export default function AsignacionModal({
               ))}
             </select>
           </Campo>
-          <Campo etiqueta="Niveles de este grupo" completo ayuda={taller ? 'Niveles en común entre el taller y el maestro.' : 'Primero elige el taller.'}>
+          <Campo etiqueta="Niveles de este grupo" completo grupo ayuda={taller ? 'Niveles en común entre el taller y el maestro.' : 'Primero elige el taller.'}>
             <NivelesChips valor={niveles} onChange={setNiveles} permitidos={nivelesComunes} disabled={!taller} />
           </Campo>
           <Campo etiqueta="Lugar" ayuda="Ej. Aula 20, Cancha 1. Si un día cambia, se ajusta abajo." completo>

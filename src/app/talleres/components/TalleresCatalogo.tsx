@@ -180,7 +180,13 @@ export default function TalleresCatalogo({
         pie={
           <>
             <button type="button" className="tl-btn" onClick={() => setBorrador(null)} disabled={guardando}>Cancelar</button>
-            <button type="button" className="tl-btn tl-btn-primary" onClick={() => void guardar()} disabled={guardando}>
+            <button
+              type="button"
+              className="tl-btn tl-btn-primary"
+              onClick={() => void guardar()}
+              disabled={guardando || !borrador?.nombre.trim() || !borrador?.niveles.length}
+              title={!borrador?.nombre.trim() ? 'Escribe el nombre del taller' : !borrador?.niveles.length ? 'Elige al menos un nivel' : undefined}
+            >
               {guardando ? 'Guardando…' : 'Guardar'}
             </button>
           </>
@@ -203,7 +209,7 @@ export default function TalleresCatalogo({
                 {CATEGORIAS_TALLER.map((c) => <option key={c} value={c} />)}
               </datalist>
             </Campo>
-            <Campo etiqueta="Niveles *">
+            <Campo etiqueta="Niveles *" grupo>
               <NivelesChips valor={borrador.niveles} onChange={(niveles) => setBorrador({ ...borrador, niveles })} />
             </Campo>
             <Campo etiqueta="Cupo mínimo" ayuda="Alumnos necesarios para abrir el grupo">
@@ -219,7 +225,7 @@ export default function TalleresCatalogo({
                 Los grupos de este taller toman el nuevo cupo, salvo los que ya se ajustaron a mano en Programados.
               </p>
             ) : null}
-            <Campo etiqueta="Color en el calendario" completo>
+            <Campo etiqueta="Color en el calendario" completo grupo>
               <div className="tl-colores" role="radiogroup" aria-label="Color">
                 {COLORES_TALLER.map((c) => (
                   <button key={c} type="button" role="radio" aria-checked={borrador.color === c} aria-label={c}
