@@ -125,6 +125,12 @@ export function rolDesdePerfilNivel(perfil: number, cfg: RacNivelConfig): RacRol
   return 'coordinacion'
 }
 
+/** `ilike` trata `%`, `_` y `*` como comodines: exigir el usuario exacto (sin distinguir mayúsculas). */
+function coincidenciaExacta<T extends Record<string, unknown>>(rows: T[] | null, col: string, usuario: string): T | null {
+  const buscado = usuario.toLowerCase()
+  return (rows ?? []).find((r) => String(r[col] ?? '').trim().toLowerCase() === buscado) ?? null
+}
+
 export async function autenticarRacNivel(
   cfg: RacNivelConfig,
   usuario: string,
@@ -142,10 +148,11 @@ export async function autenticarRacNivel(
     )
     .ilike('maestro_usuario', u)
     .in('maestro_nivel', cfg.nivelesEscolares)
-    .limit(1)
+    .limit(20)
 
-  if (maestros?.[0] && passwordMatches(maestros[0].maestro_clave as string, p)) {
-    const m = maestros[0]
+  const maestro = coincidenciaExacta(maestros, 'maestro_usuario', u)
+  if (maestro && passwordMatches(maestro.maestro_clave as string, p)) {
+    const m = maestro
     const nombre = [m.maestro_nombre, m.maestro_app, m.maestro_apm]
       .map((x) => String(x ?? '').trim())
       .filter(Boolean)
@@ -167,10 +174,11 @@ export async function autenticarRacNivel(
       'usuario_id, perfil_id, usuario_app, usuario_apm, usuario_nombre, usuario_username, usuario_password, usuario_status, usuario_email, nivel'
     )
     .ilike('usuario_username', u)
-    .limit(1)
+    .limit(20)
 
-  if (admins?.[0]) {
-    const a = admins[0]
+  const admin = coincidenciaExacta(admins, 'usuario_username', u)
+  if (admin) {
+    const a = admin
     if (Number(a.usuario_status ?? 1) === 0) return null
     if (!passwordMatches(a.usuario_password as string, p)) return null
     const panel = cfg.slug as RacStaffPanel
