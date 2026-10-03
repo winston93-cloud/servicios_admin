@@ -120,7 +120,7 @@ export function descargarCsv(opts: {
   a.href = url
   a.download = `${(taller ? nombreTallerCompleto(taller) : 'taller').replace(/[^\w\-° ]+/g, '').trim()} - lista.csv`
   a.click()
-  URL.revokeObjectURL(url)
+  setTimeout(() => URL.revokeObjectURL(url), 30_000)
 }
 
 function esc(s: string): string {
@@ -161,7 +161,10 @@ td:first-child{width:28px;text-align:center}.dia{width:56px;text-align:center}
 <tbody>${filas || `<tr><td colspan="${4 + dias.length}">Sin alumnos inscritos</td></tr>`}</tbody></table>
 <script>window.onload=function(){window.print()}</script></body></html>`
   const w = window.open('', '_blank')
-  if (!w) return
+  if (!w) {
+    window.alert('El navegador bloqueó la ventana de impresión. Permite ventanas emergentes para este sitio e intenta de nuevo.')
+    return
+  }
   w.document.open()
   w.document.write(html)
   w.document.close()
