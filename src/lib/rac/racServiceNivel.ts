@@ -353,11 +353,12 @@ export function createRacNivelService(cfg: RacNivelConfig) {
   }> {
     const client = db()
     if (session.role === 'maestro') {
-      let { data: grupos, error } = await client
+      const res = await client
         .from('boleta_maestro_grupo')
         .select('grupo_id, maestro_id, materia_id, grupo_letra')
         .eq('maestro_id', session.id)
-      if (error) throw new Error(error.message)
+      if (res.error) throw new Error(res.error.message)
+      let grupos = res.data
 
       // Cuenta compartida sin filas propias: heredar grupos de colegas con el mismo email.
       if (!grupos?.length) {

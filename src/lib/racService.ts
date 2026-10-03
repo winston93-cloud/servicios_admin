@@ -778,12 +778,14 @@ async function hidratar(rows: Record<string, unknown>[]) {
   const client = db()
   const alumnoIds = [...new Set(rows.map((r) => n(r.alumno_id)))]
   const materiaIds = [...new Set(rows.map((r) => n(r.materia_id)).filter(Boolean))]
-  const { data: alumnos } = await client
+  const { data: alumnos, error: errAlumnos } = await client
     .from('alumno')
     .select(
       'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_status, alumno_ciclo_escolar, alumno_nivel'
     )
     .in('alumno_id', alumnoIds)
+  // Sin alumnos todas las filas se descartan: mejor error visible que bandeja vacía.
+  if (errAlumnos) throw new Error(errAlumnos.message)
   const aMap = new Map((alumnos ?? []).map((a) => [n(a.alumno_id), a as AlumnoRow]))
   let mMap = new Map<number, string>()
   if (materiaIds.length) {
