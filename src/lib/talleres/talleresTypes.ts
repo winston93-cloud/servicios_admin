@@ -354,12 +354,11 @@ export type AsistenciaDia = {
   hoy: string
   /** 0 = domingo … 6 = sábado. */
   dia: number
-  /** Se puede guardar: hoy y hasta DIAS_EDITABLES_ASISTENCIA atrás (días futuros, solo consulta). */
+  /** Estancia corrige cualquier día y taller. */
   editable: boolean
   sesiones: SesionAsistencia[]
 }
 
-export const DIAS_EDITABLES_ASISTENCIA = 30
 
 /* ───────────── Reportes ───────────── */
 

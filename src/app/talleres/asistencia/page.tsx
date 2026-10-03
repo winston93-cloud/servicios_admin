@@ -672,13 +672,7 @@ export default function AsistenciaTalleresPage() {
             <div className="as-resumen-fecha">
               <strong>{fechaLarga(data.fecha)}</strong>
               <span>
-                {data.fecha === data.hoy
-                  ? 'Hoy'
-                  : data.editable
-                    ? 'Día pasado · se puede corregir'
-                    : data.fecha > data.hoy
-                      ? 'Día próximo · solo consulta'
-                      : 'Solo consulta'}
+                {data.fecha === data.hoy ? 'Hoy' : data.fecha < data.hoy ? 'Día pasado' : 'Día próximo'}
               </span>
             </div>
             <div className="as-progreso" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Talleres registrados">

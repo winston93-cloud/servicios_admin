@@ -1,7 +1,6 @@
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import {
   COLORES_TALLER,
-  DIAS_EDITABLES_ASISTENCIA,
   etiquetaGradoAlumno,
   lugarDeHorario,
   minutosDeHora,
@@ -46,10 +45,6 @@ function diaSemana(fecha: string): number {
   return new Date(`${fecha}T12:00:00Z`).getUTCDay()
 }
 
-function diasEntre(desde: string, hasta: string): number {
-  return Math.round((Date.parse(`${hasta}T12:00:00Z`) - Date.parse(`${desde}T12:00:00Z`)) / 86_400_000)
-}
-
 /** YYYY-MM-DD que exista en el calendario (rechaza 2026-02-30). */
 export function fechaValida(raw: unknown): string {
   const s = String(raw ?? '').trim()
@@ -58,12 +53,6 @@ export function fechaValida(raw: unknown): string {
     throw new TalleresError('Fecha inválida.')
   }
   return s
-}
-
-/** Hoy y hasta DIAS_EDITABLES_ASISTENCIA atrás; los días futuros solo se consultan. */
-function esEditable(fecha: string, hoy: string): boolean {
-  const d = diasEntre(fecha, hoy)
-  return d >= 0 && d <= DIAS_EDITABLES_ASISTENCIA
 }
 
 /**
@@ -252,25 +241,13 @@ export async function asistenciaDelDia(rawFecha: unknown): Promise<AsistenciaDia
     fecha,
     hoy,
     dia,
-    editable: esEditable(fecha, hoy),
+    editable: true,
     sesiones,
   }
 }
 
-function exigirEditable(fecha: string, hoy: string): void {
-  if (!esEditable(fecha, hoy)) {
-    throw new TalleresError(
-      fecha > hoy
-        ? 'Todavía no llega ese día: solo se puede pasar lista de hoy o días anteriores.'
-        : `Solo se puede editar hoy o los últimos ${DIAS_EDITABLES_ASISTENCIA} días.`
-    )
-  }
-}
-
 export async function guardarAsistencia(body: Record<string, unknown>): Promise<RegistroAsistencia> {
-  const hoy = hoyMexico()
   const fecha = fechaValida(body.fecha)
-  exigirEditable(fecha, hoy)
   const asignacionId = idEntero(body.asignacion_id)
   const snap = await snapshotTalleres()
   const asignacion = snap.asignaciones.find((a) => a.id === asignacionId)
@@ -340,9 +317,7 @@ function horaOpcional(raw: unknown, campo: string): string | null {
  * No requiere pase de lista: si aún no hay fila del día se crea con `lista_pasada = false`.
  */
 export async function guardarIncidencia(body: Record<string, unknown>): Promise<IncidenciaMaestro | null> {
-  const hoy = hoyMexico()
   const fecha = fechaValida(body.fecha)
-  exigirEditable(fecha, hoy)
   const asignacionId = idEntero(body.asignacion_id)
   const snap = await snapshotTalleres()
   const asignacion = snap.asignaciones.find((a) => a.id === asignacionId)
@@ -415,9 +390,7 @@ export async function guardarIncidencia(body: Record<string, unknown>): Promise<
  * Si hay incidencia del maestro se conserva; si no, la fila desaparece.
  */
 export async function quitarAsistencia(body: Record<string, unknown>): Promise<void> {
-  const hoy = hoyMexico()
   const fecha = fechaValida(body.fecha)
-  exigirEditable(fecha, hoy)
   const asignacionId = idEntero(body.asignacion_id)
   if (!asignacionId) throw new TalleresError('Taller inválido.')
   const { data: fila, error: fErr } = await db()
