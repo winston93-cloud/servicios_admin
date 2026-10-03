@@ -1164,3 +1164,11 @@ html[data-theme='light'] .racn-legend-secciones {
 [data-theme='light'] .racn-modal-card textarea::placeholder {
   color: #94a3b8;
 }
+
+@media (max-width: 768px) {
+  .racn-modal-card select,
+  .racn-modal-card input,
+  .racn-modal-card textarea {
+    font-size: 16px;
+  }
+}

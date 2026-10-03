@@ -399,9 +399,18 @@ html[data-theme='light'] .rac-page select optgroup {
 
 @media (max-width: 768px) {
   .rac-page .rac-actions .boletas-btn {
-    min-height: 36px;
-    padding: 0.3rem 0.5rem;
-    font-size: 0.75rem;
+    min-height: var(--touch-min, 44px);
+    padding: 0.3rem 0.65rem;
+    font-size: 0.78rem;
+  }
+
+  .rac-page .boletas-filters select,
+  .rac-page .boletas-filters input,
+  .rac-page .rac-msg textarea,
+  .rac-page .rac-modal-card select,
+  .rac-page .rac-modal-card input,
+  .rac-page .rac-modal-card textarea {
+    font-size: 16px;
   }
 
   .rac-page .rac-actions--captura {

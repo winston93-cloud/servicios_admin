@@ -701,6 +701,10 @@ export default function RacSecundariaPage() {
     }
   }
 
+  function accionConfirmada(pregunta: string, entidad: string, id: number, accion: string) {
+    if (window.confirm(pregunta)) void accionCoord(entidad, id, accion)
+  }
+
   async function logout() {
     try {
       await api('/api/rac/auth/logout', { method: 'POST' })
@@ -1530,23 +1534,23 @@ export default function RacSecundariaPage() {
                           <button type="button" className="boletas-btn info" onClick={() => setEdicionReporte(row)}>
                             Editar
                           </button>
-                          <button type="button" className="boletas-btn success" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'validar')}>
+                          <button type="button" className="boletas-btn success" disabled={busy} onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'validar')}>
                             Aprobar
                           </button>
-                          <button type="button" className="boletas-btn danger" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'denegar')}>
+                          <button type="button" className="boletas-btn danger" disabled={busy} onClick={() => accionConfirmada('¿Denegar este reporte? No se enviará a la familia.', 'reporte', Number(row.reporte_id), 'denegar')}>
                             Denegar
                           </button>
                         </>
                       ) : null}
                       {tab === 'inbox' && esAdmin ? (
                         <>
-                          <button type="button" className="boletas-btn info" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'reenviar')}>
+                          <button type="button" className="boletas-btn info" disabled={busy} onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'reenviar')}>
                             Reenviar
                           </button>
-                          <button type="button" className="boletas-btn success" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'confirmar')}>
+                          <button type="button" className="boletas-btn success" disabled={busy} onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'confirmar')}>
                             Confirmar
                           </button>
-                          <button type="button" className="boletas-btn danger" onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'detener')}>
+                          <button type="button" className="boletas-btn danger" disabled={busy} onClick={() => accionConfirmada('¿Detener este reporte? Dejará de contar en el escalón del alumno.', 'reporte', Number(row.reporte_id), 'detener')}>
                             Detener
                           </button>
                         </>
@@ -1560,6 +1564,7 @@ export default function RacSecundariaPage() {
                               ? 'Volver a enviar el aviso a la familia'
                               : 'Enviar el aviso a la familia (aún no salió)'
                           }
+                          disabled={busy}
                           onClick={() => void accionCoord('reporte', Number(row.reporte_id), 'reenviar')}
                         >
                           <Mail size={16} aria-hidden />
@@ -1587,14 +1592,14 @@ export default function RacSecundariaPage() {
                               Validar cita
                             </button>
                           ) : null}
-                          <button type="button" className="boletas-btn info" onClick={() => void accionCoord('cita', Number(row.cita_id), 'reenviar')}>
+                          <button type="button" className="boletas-btn info" disabled={busy} onClick={() => void accionCoord('cita', Number(row.cita_id), 'reenviar')}>
                             Reenviar
                           </button>
-                          <button type="button" className="boletas-btn success" onClick={() => void accionCoord('cita', Number(row.cita_id), 'confirmar')}>
+                          <button type="button" className="boletas-btn success" disabled={busy} onClick={() => void accionCoord('cita', Number(row.cita_id), 'confirmar')}>
                             Enterado
                           </button>
                           {esAdmin ? (
-                            <button type="button" className="boletas-btn danger" onClick={() => void accionCoord('cita', Number(row.cita_id), 'detener')}>
+                            <button type="button" className="boletas-btn danger" disabled={busy} onClick={() => accionConfirmada('¿Anular este citatorio?', 'cita', Number(row.cita_id), 'detener')}>
                               Anular
                             </button>
                           ) : null}
@@ -1604,9 +1609,15 @@ export default function RacSecundariaPage() {
                         <button
                           type="button"
                           className="boletas-btn primary"
+                          disabled={busy}
                           onClick={() => {
-                            const fecha = window.prompt('Fecha de suspensión (AAAA-MM-DD)')
-                            if (fecha) void accionCoord('suspension', Number(row.suspension_id), 'aplicar', { fecha })
+                            const fecha = window.prompt('Fecha de suspensión (AAAA-MM-DD)')?.trim()
+                            if (!fecha) return
+                            if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+                              setMsg('Fecha no válida: usa el formato AAAA-MM-DD (ej. 2026-10-15).')
+                              return
+                            }
+                            void accionCoord('suspension', Number(row.suspension_id), 'aplicar', { fecha })
                           }}
                         >
                           Aplicar fecha
@@ -1616,6 +1627,13 @@ export default function RacSecundariaPage() {
                   </tr>
                   )
                 })}
+                {listaVisible.length === 0 && !busy ? (
+                  <tr>
+                    <td colSpan={99} className="rac-vacio-filtro">
+                      No hay registros en esta vista.
+                    </td>
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </div>
