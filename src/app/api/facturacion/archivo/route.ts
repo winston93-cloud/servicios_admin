@@ -7,8 +7,9 @@ import { sesionPortalDeRequest } from '@/lib/portalSesionFirmada'
 
 export const runtime = 'nodejs'
 
-/** false = solo registra en logs los accesos sin código ni sesión (observación); true = los rechaza. */
-const EXIGIR_PERMISO = false
+const PAGINA_SIN_PERMISO = `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Factura no disponible</title>
+<style>body{margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;background:#f4f6fa;color:#13233a;padding:1rem}main{max-width:420px;text-align:center;background:#fff;border:1px solid #dde3ec;border-radius:16px;padding:2rem 1.5rem}h1{font-size:1.25rem;margin:0 0 .5rem}p{color:#475569;line-height:1.5;margin:0 0 1.25rem}a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 1.25rem;border-radius:10px;background:#1e3a5f;color:#fff;text-decoration:none;font-weight:600}</style></head>
+<body><main><h1>Factura no disponible</h1><p>Para ver tu factura, entra al portal de pagos con tu número de control y ábrela desde tu tabla de pagos.</p><a href="/login">Ir al portal</a></main></body></html>`
 
 async function descargarClave(key: string) {
   const client = createInsforgeAdmin()
@@ -55,12 +56,10 @@ export async function GET(request: Request) {
         referer: request.headers.get('referer') ?? '',
         ua: (request.headers.get('user-agent') ?? '').slice(0, 120),
       })
-      if (EXIGIR_PERMISO) {
-        return NextResponse.json(
-          { error: 'Factura no disponible. Ábrela desde el portal de pagos con tu sesión.' },
-          { status: 403, headers: { 'Cache-Control': 'no-store' } }
-        )
-      }
+      return new NextResponse(PAGINA_SIN_PERMISO, {
+        status: 403,
+        headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+      })
     }
 
     const key = storageKeyFactura(f)
@@ -93,7 +92,7 @@ export async function GET(request: Request) {
         'Content-Disposition': `inline; filename="${f}"`,
         'Cache-Control': 'private, max-age=120',
         'X-Factura-Origen': 'insforge',
-        'X-Factura-Acceso': motivo ?? 'sin-permiso',
+        'X-Factura-Acceso': motivo,
       },
     })
   } catch (e) {
