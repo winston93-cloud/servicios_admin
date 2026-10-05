@@ -96,6 +96,7 @@ const OCULTOS_COORDING_KINDER_ING = [
 /**
  * Kevin: en el espejo previo (10 tarjetas visibles) Mario pidió quitar
  * 1,3,4,5,7,8,10 de esa numeración en pantalla → quedan Servicios, Programa USA y Becarios.
+ * Después se le agregó Entrega a pie.
  */
 const OCULTOS_KEVIN = [
   'desayunos', // 1
@@ -117,7 +118,6 @@ const OCULTOS_KEVIN = [
   'boletas', // 20
   'becas', // 21
   'reportes-conducta', // 23
-  'entregas-pie', // 24
   'revision-pagados', // 25
 ] as const
 
