@@ -1,7 +1,8 @@
 # AgendaW en Winston Servicios
 
 Desde **2026-10-05** las tablas de admisión viven en InsForge **Winston Servicios** (`g4ta4bfg`).
-El proyecto InsForge **AgendaW** (`sr6a9iza`) quedó retirado: el código de agendaw rechaza esa URL.
+El proyecto InsForge **AgendaW** (`sr6a9iza`) fue **eliminado** el mismo día (el código de agendaw rechaza esa URL).
+Respaldo previo: `~/Respaldos/agendaw-insforge-20261005.sql.gz` (pg_dump completo).
 
 - App: **agendaw.vercel.app** (repo `~/Proyectos/agendaw`): papás (`/agendar`), admin psicólogas/vinculación (`/admin`), directoras (`/admin/dashboard`).
 - Todo el acceso a datos es del servidor con `WINSTON_SERVICIOS_URL` + `WINSTON_SERVICIOS_API_KEY` (`src/lib/insforge/server.ts`).
@@ -24,7 +25,7 @@ RLS activo con política `agendaw_deny_anon` (solo la API key del servidor acced
 ## Migración
 
 - Esquema: `migrations/agendaw/20261005120000_agendaw_en_winston_servicios.sql`.
-- Espejo/verificación: `node --env-file=.env.local scripts/migrar-agendaw-a-winston.mjs [--copiar] [--borrar-sobrantes]`.
+- Espejo/verificación (histórico; ya no hay origen): `scripts/migrar-agendaw-a-winston.mjs`.
 - `migrations/agendaw/OBSOLETO-NO-EJECUTAR_*`: no ejecutar (borra `wsp` de Winston).
 
 ## Autenticación
