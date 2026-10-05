@@ -52,18 +52,7 @@ export type TallerMaestro = {
   niveles: number[]
   notas: string | null
   activo: boolean
-  /** 2026-10-05 — Número de empleado en el reloj checador (sin él, sus clases no llegan a la prenómina). */
-  numero_empleado: string | null
-  /** 2026-10-05 — Campus del reloj: educativo = WINSTON, kinder = EDUCATIVO. */
-  institucion_reloj: InstitucionReloj | null
 }
-
-export type InstitucionReloj = 'educativo' | 'kinder'
-
-export const INSTITUCIONES_RELOJ: { valor: InstitucionReloj; etiqueta: string }[] = [
-  { valor: 'educativo', etiqueta: 'Winston' },
-  { valor: 'kinder', etiqueta: 'Educativo (Kinder)' },
-]
 
 export type TallerHorario = {
   id?: number

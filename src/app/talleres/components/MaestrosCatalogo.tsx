@@ -3,10 +3,8 @@
 import { useMemo, useState } from 'react'
 import { Mail, Pencil, Phone, Plus, Search, Trash2 } from 'lucide-react'
 import {
-  INSTITUCIONES_RELOJ,
   NIVELES_TALLER,
   nombreMaestroTaller,
-  type InstitucionReloj,
   type TallerMaestro,
 } from '@/lib/talleres/talleresTypes'
 import { Campo, NivelesBadges, NivelesChips, TlModal } from './TalleresUi'
@@ -22,9 +20,6 @@ type Borrador = {
   niveles: number[]
   notas: string
   activo: boolean
-  // 2026-10-05 — Liga con el reloj checador: sin número, sus clases no llegan a la prenómina.
-  numero_empleado: string
-  institucion_reloj: InstitucionReloj
 }
 
 const VACIO: Borrador = {
@@ -37,8 +32,6 @@ const VACIO: Borrador = {
   niveles: [],
   notas: '',
   activo: true,
-  numero_empleado: '',
-  institucion_reloj: 'educativo',
 }
 
 export default function MaestrosCatalogo({
@@ -106,7 +99,6 @@ export default function MaestrosCatalogo({
                 <th>Maestro</th>
                 <th>Contacto</th>
                 <th>Niveles</th>
-                <th>Reloj checador</th>
                 <th className="tl-num">Talleres</th>
                 <th>Estado</th>
                 <th aria-label="Acciones" />
@@ -127,16 +119,6 @@ export default function MaestrosCatalogo({
                     </span>
                   </td>
                   <td><NivelesBadges niveles={m.niveles} /></td>
-                  <td>
-                    {m.numero_empleado ? (
-                      <span className="tl-reloj" data-ligado>
-                        No. {m.numero_empleado}
-                        <span className="tl-desc">{INSTITUCIONES_RELOJ.find((i) => i.valor === m.institucion_reloj)?.etiqueta ?? ''}</span>
-                      </span>
-                    ) : (
-                      <span className="tl-reloj" title="Sin número de empleado sus clases no pasan a la prenómina del reloj">Sin ligar</span>
-                    )}
-                  </td>
                   <td className="tl-num">{usoPorMaestro.get(m.id) ?? 0}</td>
                   <td>
                     <span className="tl-estado" data-activo={m.activo || undefined}>{m.activo ? 'Activo' : 'Inactivo'}</span>
@@ -158,8 +140,6 @@ export default function MaestrosCatalogo({
                           niveles: m.niveles,
                           notas: m.notas ?? '',
                           activo: m.activo,
-                          numero_empleado: m.numero_empleado ?? '',
-                          institucion_reloj: m.institucion_reloj ?? 'educativo',
                         })
                       }
                     >
@@ -218,28 +198,6 @@ export default function MaestrosCatalogo({
             </Campo>
             <Campo etiqueta="Niveles que atiende *" completo grupo>
               <NivelesChips valor={borrador.niveles} onChange={(niveles) => set('niveles', niveles)} />
-            </Campo>
-            <Campo etiqueta="No. de empleado (reloj checador)" ayuda="El mismo número con el que checa; así sus clases pasan a la prenómina.">
-              <input
-                className="tl-input"
-                inputMode="numeric"
-                value={borrador.numero_empleado}
-                maxLength={12}
-                placeholder="Ej. 2253"
-                onChange={(e) => set('numero_empleado', e.target.value.replace(/\D/g, ''))}
-              />
-            </Campo>
-            <Campo etiqueta="Campus en el reloj">
-              <select
-                className="tl-input"
-                value={borrador.institucion_reloj}
-                disabled={!borrador.numero_empleado}
-                onChange={(e) => set('institucion_reloj', e.target.value as InstitucionReloj)}
-              >
-                {INSTITUCIONES_RELOJ.map((i) => (
-                  <option key={i.valor} value={i.valor}>{i.etiqueta}</option>
-                ))}
-              </select>
             </Campo>
             <Campo etiqueta="Notas" completo>
               <textarea className="tl-input tl-textarea" rows={3} value={borrador.notas} maxLength={2000} onChange={(e) => set('notas', e.target.value)} />

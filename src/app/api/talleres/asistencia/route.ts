@@ -1,7 +1,6 @@
-import { NextResponse, after } from 'next/server'
+import { NextResponse } from 'next/server'
 import { adminTalleresOpcional, leerCuerpo, responderErrorTalleres } from '@/lib/talleres/talleresApi'
 import { asistenciaDelDia, guardarAsistencia, guardarIncidencia, quitarAsistencia } from '@/lib/talleres/talleresAsistenciaService'
-import { avisarReloj } from '@/lib/talleres/talleresRelojSync'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -25,9 +24,6 @@ export async function POST(request: Request) {
     const body = await leerCuerpo(request)
     const admin = await adminTalleresOpcional(request)
     if (admin?.displayName) body.registrado_por = admin.displayName
-    // 2026-10-05 — Al responder, el reloj checador relee ese día y confirma la sesión del maestro.
-    const fecha = typeof body.fecha === 'string' ? body.fecha.slice(0, 10) : undefined
-    after(() => avisarReloj(fecha))
     if (body.accion === 'incidencia') {
       return NextResponse.json({ ok: true, incidencia: await guardarIncidencia(body) }, { headers: SIN_CACHE })
     }

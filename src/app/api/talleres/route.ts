@@ -1,4 +1,4 @@
-import { NextResponse, after } from 'next/server'
+import { NextResponse } from 'next/server'
 import { leerCuerpo, requireAdminTalleres, responderErrorTalleres } from '@/lib/talleres/talleresApi'
 import {
   actualizarCupoAsignacion,
@@ -10,7 +10,6 @@ import {
   idEntero,
   snapshotTalleres,
 } from '@/lib/talleres/talleresService'
-import { avisarReloj } from '@/lib/talleres/talleresRelojSync'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -39,7 +38,6 @@ export async function POST(request: Request) {
     const body = await leerCuerpo(request)
     if (body.recurso === 'cupo') {
       await actualizarCupoAsignacion(body)
-      after(() => avisarReloj())
       return NextResponse.json(await snapshotTalleres())
     }
     const recurso = parseRecurso(body.recurso)
@@ -47,8 +45,6 @@ export async function POST(request: Request) {
     if (recurso === 'taller') await guardarTaller(body)
     else if (recurso === 'maestro') await guardarMaestro(body)
     else await guardarAsignacion(body)
-    // 2026-10-05 — Maestros (número de empleado) y grupos alimentan el catálogo del reloj checador.
-    if (recurso !== 'taller' || body.id) after(() => avisarReloj())
     return NextResponse.json(await snapshotTalleres())
   } catch (e) {
     return responderErrorTalleres(e, 'POST /api/talleres:')
@@ -66,7 +62,6 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Parámetros inválidos.' }, { status: 400 })
     }
     const { modo } = recurso === 'asignacion' ? await eliminarAsignacion(id) : await eliminarCatalogo(recurso, id)
-    after(() => avisarReloj())
     return NextResponse.json({ modo, ...(await snapshotTalleres()) })
   } catch (e) {
     return responderErrorTalleres(e, 'DELETE /api/talleres:')

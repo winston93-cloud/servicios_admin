@@ -402,11 +402,6 @@
 
 .tl-estado { font-size: 0.78rem; font-weight: 600; color: var(--tl-muted); }
 .tl-estado[data-activo] { color: var(--tl-ok); }
-/* 2026-10-05 — Liga del maestro con el reloj checador */
-.tl-reloj { font-size: 0.8rem; font-weight: 600; color: #f5b942; }
-.tl-reloj[data-ligado] { color: var(--tl-ok); font-variant-numeric: tabular-nums; }
-[data-theme='light'] .tl-reloj { color: #b7791f; }
-[data-theme='light'] .tl-reloj[data-ligado] { color: var(--tl-ok); }
 
 .tl-empty {
   margin: 0;
