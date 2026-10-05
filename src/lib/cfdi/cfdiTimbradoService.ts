@@ -12,6 +12,11 @@ import { construirPayloadFacturoPorTi, receptorDesdeDatosFacturacion, RECEPTOR_P
 import { guardarArchivosCfdi } from './cfdiStorage'
 import { timbrarConFacturoPorTi } from './facturoPorTiClient'
 import type { CfdiTimbradoLoteResultado, CfdiTimbradoResultado } from './cfdiTypes'
+import { firmarEnlaceFactura } from './facturaEnlaceFirmado'
+
+function enlaceProxyFactura(nombreBase: string | null, ext: 'pdf' | 'xml'): string | null {
+  return nombreBase ? firmarEnlaceFactura(`/api/facturacion/archivo?f=${nombreBase}.${ext}`) : null
+}
 
 type PagoDetalle = {
   pago_id: number
@@ -294,8 +299,8 @@ async function ejecutarTimbradoPago(
       mensaje: `Timbrado OK pero falló actualizar pago_detalle: ${updErr.message}`,
       uuid: resp.uuid,
       emisor: clave,
-      pdfUrl,
-      xmlUrl,
+      pdfUrl: enlaceProxyFactura(nombreBase, 'pdf') ?? pdfUrl,
+      xmlUrl: enlaceProxyFactura(nombreBase, 'xml') ?? xmlUrl,
     }
   }
 
@@ -306,8 +311,8 @@ async function ejecutarTimbradoPago(
     mensaje: resp.mensaje,
     uuid: resp.uuid,
     emisor: clave,
-    pdfUrl: pdfUrl ?? (pdfPath ? `/api/facturacion/archivo?f=${encodeURIComponent(pdfPath)}` : null),
-    xmlUrl: xmlUrl ?? (xmlPath ? `/api/facturacion/archivo?f=${encodeURIComponent(xmlPath)}` : null),
+    pdfUrl: enlaceProxyFactura(nombreBase, 'pdf') ?? pdfUrl,
+    xmlUrl: enlaceProxyFactura(nombreBase, 'xml') ?? xmlUrl,
   }
 }
 

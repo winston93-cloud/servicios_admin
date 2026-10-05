@@ -2,8 +2,13 @@ import { NextResponse } from 'next/server'
 import { createInsforgeAdmin, createDbAdmin } from '@/lib/insforgeAdmin'
 import { CFDI_BUCKET } from '@/lib/cfdi/cfdiStorage'
 import { storageKeyFactura } from '@/lib/portalFacturaRutas'
+import { motivoAccesoFactura, PARAM_CODIGO_FACTURA } from '@/lib/cfdi/facturaEnlaceFirmado'
+import { sesionPortalDeRequest } from '@/lib/portalSesionFirmada'
 
 export const runtime = 'nodejs'
+
+/** false = solo registra en logs los accesos sin código ni sesión (observación); true = los rechaza. */
+const EXIGIR_PERMISO = false
 
 async function descargarClave(key: string) {
   const client = createInsforgeAdmin()
@@ -41,6 +46,21 @@ export async function GET(request: Request) {
 
     if (!/^factura\d{9}\.(pdf|xml)$/i.test(f)) {
       return NextResponse.json({ error: 'Nombre de factura inválido' }, { status: 400 })
+    }
+
+    const motivo = motivoAccesoFactura(f, url.searchParams.get(PARAM_CODIGO_FACTURA), sesionPortalDeRequest(request))
+    if (!motivo) {
+      console.warn('[factura] acceso sin código ni sesión', {
+        f,
+        referer: request.headers.get('referer') ?? '',
+        ua: (request.headers.get('user-agent') ?? '').slice(0, 120),
+      })
+      if (EXIGIR_PERMISO) {
+        return NextResponse.json(
+          { error: 'Factura no disponible. Ábrela desde el portal de pagos con tu sesión.' },
+          { status: 403, headers: { 'Cache-Control': 'no-store' } }
+        )
+      }
     }
 
     const key = storageKeyFactura(f)

@@ -21,6 +21,7 @@ import {
 } from './portalAdmisionesProrroga'
 import { normalizarConceptoNo, parsearReferenciaPago, formatearAlumnoRefParaReferencia } from './pagoReferenciaColegiatura'
 import { rutasFacturaDesdeReferencia } from './portalFacturaRutas'
+import { firmarRutasFactura } from '@/lib/cfdi/facturaEnlaceFirmado'
 import type { FilaMatrizPortal } from './portalPagosMatrizService'
 import { proyectarReinscripcionAlumno } from './portalReinscripcionProyeccion'
 
@@ -189,11 +190,8 @@ export async function calcularReinscripcionDiferido(
   for (const c of ['11', '12', '13'] as const) {
     const p = pagos.find((x) => x.concepto === c)
     if (p) {
-      const facturas = rutasFacturaDesdeReferencia(
-        p.referencia,
-        formatearAlumnoRefParaReferencia(alumno.alumno_ref),
-        c,
-        cen
+      const facturas = firmarRutasFactura(
+        rutasFacturaDesdeReferencia(p.referencia, formatearAlumnoRefParaReferencia(alumno.alumno_ref), c, cen)
       )
       filasPagadas.push({
         conceptoNo: c,

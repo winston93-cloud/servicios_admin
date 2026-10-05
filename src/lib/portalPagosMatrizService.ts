@@ -13,6 +13,7 @@ import {
   conceptoFacturaCambridge,
   rutasFacturaDesdeReferencia,
 } from './portalFacturaRutas'
+import { firmarRutasFactura } from '@/lib/cfdi/facturaEnlaceFirmado'
 import {
   normalizarConceptoNo,
   parsearReferenciaPago,
@@ -281,11 +282,8 @@ async function construirFilas(
         )
       : conceptoNo
 
-    const facturas = rutasFacturaDesdeReferencia(
-      pago?.pago_referencia,
-      control,
-      codigoFactura,
-      ciclo.valor
+    const facturas = firmarRutasFactura(
+      rutasFacturaDesdeReferencia(pago?.pago_referencia, control, codigoFactura, ciclo.valor)
     )
 
     if (pago) {

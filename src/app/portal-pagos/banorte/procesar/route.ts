@@ -9,6 +9,7 @@ import {
 } from '@/lib/banortePagoService'
 import { ejecutarVentaPayw2 } from '@/lib/banortePayw2'
 import { rutasFacturaDesdeReferencia } from '@/lib/portalFacturaRutas'
+import { firmarRutasFactura } from '@/lib/cfdi/facturaEnlaceFirmado'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const runtime = 'nodejs'
@@ -166,11 +167,13 @@ export async function POST(request: Request) {
     )
   }
 
-  const rutasFactura = rutasFacturaDesdeReferencia(
-    referencia,
-    referencia.slice(0, 5),
-    referencia.slice(5, 7),
-    Number(referencia.slice(7, 9)) || 0
+  const rutasFactura = firmarRutasFactura(
+    rutasFacturaDesdeReferencia(
+      referencia,
+      referencia.slice(0, 5),
+      referencia.slice(5, 7),
+      Number(referencia.slice(7, 9)) || 0
+    )
   )
   const facturaOk = Boolean(registro.factura?.ok)
   const pdfHref = facturaOk ? registro.factura?.pdfUrl || rutasFactura.pdf : null

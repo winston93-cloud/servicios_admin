@@ -41,6 +41,7 @@ import { evaluarBloqueoCupoPortal } from './cupoInscripcionPrimaria'
 import { evaluarBloqueoManualPortalReinscripcion } from './portalInscripcionesBloqueoManual'
 import { getPaymentConcept } from './boucherCore'
 import { rutasFacturaDesdeReferencia } from './portalFacturaRutas'
+import { firmarRutasFactura } from '@/lib/cfdi/facturaEnlaceFirmado'
 import {
   marcarPortalInscripcionProgreso,
   obtenerPortalInscripcionProgreso,
@@ -84,11 +85,8 @@ export function facturasPagoInscripcion(
       )
     })
     if (!pago) continue
-    const rutas = rutasFacturaDesdeReferencia(
-      pago.pago_referencia,
-      control,
-      c,
-      cicloEscolar
+    const rutas = firmarRutasFactura(
+      rutasFacturaDesdeReferencia(pago.pago_referencia, control, c, cicloEscolar)
     )
     if (!rutas.pdf) continue
     out.push({
