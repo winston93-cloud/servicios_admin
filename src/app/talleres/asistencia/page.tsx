@@ -49,7 +49,8 @@ import './asistencia.css'
 const CLAVE_NOMBRE = 'talleres-asistencia-nombre'
 const CLAVE_BORRADORES = 'talleres-asistencia-borradores'
 
-type ItemsBorrador = Record<number, { faltas: number[]; total: number }>
+/** `at`: última edición (ms). Sin `at` = borrador anterior a este campo. */
+type ItemsBorrador = Record<number, { faltas: number[]; total: number; at?: number }>
 /** Borradores por fecha: cambiar de día no pierde lo marcado. */
 type BorradoresGuardados = Record<string, ItemsBorrador>
 const MAX_DIAS_BORRADOR = 14
@@ -82,13 +83,25 @@ function escribirBorradores(todos: BorradoresGuardados) {
   }
 }
 
+function mismasFaltas(a: Iterable<number>, b: Iterable<number>): boolean {
+  const x = [...a].sort((m, n) => m - n)
+  const y = [...b].sort((m, n) => m - n)
+  return x.length === y.length && x.every((v, i) => v === y[i])
+}
+
 function guardarBorradoresLocales(fecha: string, borradores: Record<number, Borrador>) {
+  const todos = leerTodosLosBorradores()
+  const previos = todos[fecha] ?? {}
+  const ahora = Date.now()
   const items = Object.fromEntries(
     Object.entries(borradores)
       .filter(([, b]) => b.sucio)
-      .map(([id, b]) => [id, { faltas: [...b.faltas], total: b.total }])
+      .map(([id, b]) => {
+        const previo = previos[Number(id)]
+        const igual = previo && previo.total === b.total && mismasFaltas(previo.faltas, b.faltas)
+        return [id, { faltas: [...b.faltas], total: b.total, at: igual && previo.at ? previo.at : ahora }]
+      })
   )
-  const todos = leerTodosLosBorradores()
   if (Object.keys(items).length) todos[fecha] = items
   else delete todos[fecha]
   escribirBorradores(todos)
@@ -222,10 +235,17 @@ export default function AsistenciaTalleresPage() {
         Object.fromEntries(
           d.sesiones.map((s) => {
             const local = d.editable ? locales[s.asignacion_id] : undefined
-            if (!local) return [s.asignacion_id, borradorDesde(s)]
+            const guardado = borradorDesde(s)
+            if (!local) return [s.asignacion_id, guardado]
+            const guardadoEn = s.registro ? Date.parse(s.registro.updated_at) : NaN
+            if (s.registro && (!local.at || Number.isNaN(guardadoEn) || guardadoEn >= local.at)) {
+              return [s.asignacion_id, guardado]
+            }
             const enLista = new Set(s.alumnos.map((a) => a.alumno_id))
             const faltas = new Set(local.faltas.filter((id) => enLista.has(id)))
-            return [s.asignacion_id, { faltas, total: faltas.size ? s.alumnos.length - faltas.size : local.total, sucio: true }]
+            const total = faltas.size ? s.alumnos.length - faltas.size : local.total
+            const sucio = total !== guardado.total || !mismasFaltas(faltas, guardado.faltas)
+            return [s.asignacion_id, { faltas, total, sucio }]
           })
         )
       )
