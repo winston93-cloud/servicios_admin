@@ -71,7 +71,7 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 
 ### Hecho reciente (Banorte CE + Storage)
 
-- Bucket InsForge `cfdi` (público).
+- Bucket InsForge `cfdi` **privado** (desde 2026-10-03): solo el servidor lee/sube con `INSFORGE_API_KEY`. Papás descargan vía proxy con enlace firmado (`?c=`, `src/lib/cfdi/facturaEnlaceFirmado.ts`) o sesión del portal; personal con su sesión. No volver a hacerlo público.
 - Tras pago Banorte aprobado: `timbrarReferencia` + upload XML/PDF; falló PAC → pago queda, factura pendiente.
 - Proxy `/api/facturacion/archivo?f=factura….pdf|xml` **solo InsForge** (sin fallback hosting).
 - Migración script `scripts/migrar-facturas-cfdi-insforge.mjs` (copia inicial desde hosting → bucket `cfdi`).
