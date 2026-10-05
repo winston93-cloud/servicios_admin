@@ -93,6 +93,7 @@ export async function GET(request: Request) {
         'Content-Disposition': `inline; filename="${f}"`,
         'Cache-Control': 'private, max-age=120',
         'X-Factura-Origen': 'insforge',
+        'X-Factura-Acceso': motivo ?? 'sin-permiso',
       },
     })
   } catch (e) {
