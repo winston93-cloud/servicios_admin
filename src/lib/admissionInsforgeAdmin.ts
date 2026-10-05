@@ -1,42 +1,8 @@
-import { createAdminClient, type InsForgeClient } from '@insforge/sdk'
-import type { AppDatabaseClient } from './dbTypes'
+import { createDbAdmin } from './insforgeAdmin'
 
-function requireAdmissionInsforgeEnv() {
-  const baseUrl =
-    process.env.ADMISSION_INSFORGE_URL ??
-    process.env.NEXT_PUBLIC_ADMISSION_INSFORGE_URL ??
-    process.env.NEXT_PUBLIC_AGENDAW_INSFORGE_URL
-  const apiKey =
-    process.env.ADMISSION_INSFORGE_API_KEY ??
-    process.env.AGENDAW_INSFORGE_API_KEY
-  if (!baseUrl || !apiKey) {
-    throw new Error(
-      'Faltan ADMISSION_INSFORGE_URL y ADMISSION_INSFORGE_API_KEY (proyecto InsForge AgendaW).'
-    )
-  }
-  return { baseUrl: baseUrl.replace(/\/$/, ''), apiKey }
-}
-
-let admin: InsForgeClient | null = null
-
-export function admissionEnvConfigured(): boolean {
-  try {
-    requireAdmissionInsforgeEnv()
-    return true
-  } catch {
-    return false
-  }
-}
-
-export function createAdmissionInsforgeAdmin(): InsForgeClient {
-  if (!admin) {
-    admin = createAdminClient(requireAdmissionInsforgeEnv())
-  }
-  return admin
-}
-
-export function createAdmissionDb(): AppDatabaseClient {
-  return createAdmissionInsforgeAdmin().database
+/** Las tablas de AgendaW (admission_*) viven en Winston Servicios desde 2026-10-05. */
+function createAdmissionDb() {
+  return createDbAdmin()
 }
 
 const NIVEL_A_LEVEL: Record<number, string> = {
@@ -255,8 +221,6 @@ export async function mapaAgendamientoAgendaW(
   nivel: number,
   refsAlumnos?: number[]
 ): Promise<MapaAgendamientoAgendaW | null> {
-  if (!admissionEnvConfigured()) return null
-
   const level = levelAgendaDesdeNivel(nivel)
   if (!level) return null
 
