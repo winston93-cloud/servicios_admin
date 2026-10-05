@@ -78,6 +78,10 @@ export async function POST(request: Request) {
     const ctrl = entero(body.ctrl)
     const qr = entero(body.qr)
     const referidoRef = entero(body.referidoRef)
+    // 2026-10-05 — Mes a condonar elegido en el módulo (concepto 01…10/26); vacío = próximo pendiente.
+    const conceptoNo = /^\d{1,2}$/.test(String(body.conceptoNo ?? '').trim())
+      ? String(body.conceptoNo).trim()
+      : null
     if (!ctrl || !qr) {
       return NextResponse.json(
         { error: 'Escanea el código QR y elige al alumno que recomienda.' },
@@ -86,7 +90,7 @@ export async function POST(request: Request) {
     }
 
     if (accion === 'revisar') {
-      const revision = await revisarFamiliaWinston({ ctrl, qr, referidoRef })
+      const revision = await revisarFamiliaWinston({ ctrl, qr, referidoRef, conceptoNo })
       const correoPreview =
         revision.beneficiado && revision.mesPropuesto && revision.destinatarios.length > 0
           ? textoCorreoFamiliaWinston({
@@ -105,7 +109,13 @@ export async function POST(request: Request) {
           { status: 400 }
         )
       }
-      const r = await aplicarFamiliaWinston({ ctrl, qr, referidoRef, validadoPor: a.usuario })
+      const r = await aplicarFamiliaWinston({
+        ctrl,
+        qr,
+        referidoRef,
+        conceptoNo,
+        validadoPor: a.usuario,
+      })
       if (!r.ok) return NextResponse.json({ error: r.mensaje, revision: r.revision }, { status: 409 })
       return NextResponse.json(r)
     }

@@ -101,6 +101,8 @@ export default function FamiliaWinstonModulo() {
   const [revision, setRevision] = useState<RevisionFamiliaWinston | null>(null)
   const [correoPreview, setCorreoPreview] = useState<string | null>(null)
   const [claveRevisada, setClaveRevisada] = useState('')
+  /** 2026-10-05 — Mes a condonar elegido ('' = próxima colegiatura pendiente). */
+  const [mesElegido, setMesElegido] = useState('')
   const [revisando, setRevisando] = useState(false)
   const [aplicando, setAplicando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -119,7 +121,7 @@ export default function FamiliaWinstonModulo() {
 
   const ctrl = beneficiado ? soloDigitos(String(beneficiado.alumno_ref)) : ''
   const referidoRef = referido ? soloDigitos(String(referido.alumno_ref)) : ''
-  const claveActual = `${qr}|${ctrl}|${referidoRef}`
+  const claveActual = `${qr}|${ctrl}|${referidoRef}|${mesElegido}`
   const completo = qr.length >= DIGITOS_QR && !!ctrl && !!referidoRef
 
   const cargarHistorial = useCallback(async () => {
@@ -248,15 +250,15 @@ export default function FamiliaWinstonModulo() {
   const revisar = useCallback(async () => {
     setError(null)
     setRevisando(true)
-    const clave = `${qr}|${ctrl}|${referidoRef}`
-    if (clave !== claveRevisada) setRevision(null)
-    setClaveRevisada(clave)
+    const base = `${qr}|${ctrl}|${referidoRef}`
+    if (!claveRevisada.startsWith(`${base}|`)) setRevision(null)
+    setClaveRevisada(`${base}|${mesElegido}`)
     try {
       const { ok, data } = await postApi<{
         revision?: RevisionFamiliaWinston
         correoPreview?: string | null
         error?: string
-      }>({ accion: 'revisar', qr, ctrl, referidoRef })
+      }>({ accion: 'revisar', qr, ctrl, referidoRef, conceptoNo: mesElegido })
       if (!ok || !data.revision) {
         setRevision(null)
         setError(data.error ?? 'No se pudo revisar el comprobante.')
@@ -269,7 +271,12 @@ export default function FamiliaWinstonModulo() {
     } finally {
       setRevisando(false)
     }
-  }, [qr, ctrl, referidoRef, claveRevisada])
+  }, [qr, ctrl, referidoRef, mesElegido, claveRevisada])
+
+  /* Otro beneficiado = otras colegiaturas pendientes: volver a proponer la próxima. */
+  useEffect(() => {
+    setMesElegido('')
+  }, [ctrl])
 
   /* Revisión automática en cuanto están los 3 datos. */
   useEffect(() => {
@@ -287,6 +294,7 @@ export default function FamiliaWinstonModulo() {
     setRevision(null)
     setCorreoPreview(null)
     setClaveRevisada('')
+    setMesElegido('')
     setError(null)
     setAplicado(null)
     setCamara(false)
@@ -305,7 +313,7 @@ export default function FamiliaWinstonModulo() {
     try {
       const { ok: okRes, data } = await postApi<
         ResultadoAplicado & { error?: string; revision?: RevisionFamiliaWinston }
-      >({ accion: 'aplicar', qr, ctrl, referidoRef })
+      >({ accion: 'aplicar', qr, ctrl, referidoRef, conceptoNo: revision.mesPropuesto.conceptoNo })
       if (!okRes) {
         setError(data.error ?? 'No se pudo aplicar el beneficio.')
         if (data.revision) setRevision(data.revision)
@@ -341,7 +349,10 @@ export default function FamiliaWinstonModulo() {
     }
   }
 
-  const revisionVigente = !!revision && claveRevisada === claveActual
+  const revisionVigente =
+    !!revision && claveRevisada.startsWith(`${qr}|${ctrl}|${referidoRef}|`)
+  const mesActivo = mesElegido || revision?.mesesDisponibles[0]?.conceptoNo || ''
+  const cambiandoMes = revisando && !!revision && claveRevisada !== claveActual
   const errores = revision?.checks.filter((c) => c.nivel === 'error') ?? []
   const soloFaltanDias = errores.length === 1 && errores[0].id === 'dias-clases'
   const qrSinComprobante = qrBuscado === qr && qr.length >= DIGITOS_QR && comprobantesQr.length === 0
@@ -606,7 +617,7 @@ export default function FamiliaWinstonModulo() {
                     </p>
                     <p className="fw-veredicto-sub">
                       {revision.puedeAplicar
-                        ? 'Revisa los datos y presiona «Validar y aplicar».'
+                        ? 'Revisa los datos, elige el mes si quieres otro y presiona «Validar y aplicar».'
                         : soloFaltanDias && revision.fechaDisponible
                           ? `Se podrá validar a partir del ${fechaCorta(revision.fechaDisponible)}.`
                           : errores[0]?.texto}
@@ -614,7 +625,9 @@ export default function FamiliaWinstonModulo() {
                   </div>
                 </div>
 
-                {revision.puedeAplicar && revision.mesPropuesto && revision.beneficiado ? (
+                {revision.beneficiado &&
+                revision.mesesDisponibles.length > 0 &&
+                (revision.puedeAplicar || errores.every((e) => e.id === 'mes')) ? (
                   <div className="fw-resumen">
                     <div className="fw-dato">
                       <span>
@@ -622,13 +635,35 @@ export default function FamiliaWinstonModulo() {
                       </span>
                       <strong>{revision.beneficiado.nombre}</strong>
                     </div>
+                    {/* 2026-10-05 — Elegir el mes a condonar entre las colegiaturas pendientes. */}
                     <div className="fw-dato fw-dato--acento">
                       <span>
                         <CalendarDays size={14} aria-hidden /> Colegiatura que se condona
+                        {cambiandoMes ? <Loader2 className="usr-spin" size={13} aria-hidden /> : null}
                       </span>
                       <strong>
-                        {revision.mesPropuesto.mes} {revision.mesPropuesto.cicloEtiqueta}
+                        {revision.mesPropuesto
+                          ? `${revision.mesPropuesto.mes} ${revision.mesPropuesto.cicloEtiqueta}`
+                          : 'Elige un mes'}
                       </strong>
+                      {revision.mesesDisponibles.length > 1 ? (
+                        <div className="fw-meses" role="radiogroup" aria-label="Mes a condonar">
+                          {revision.mesesDisponibles.map((m, i) => (
+                            <button
+                              key={m.conceptoNo}
+                              type="button"
+                              role="radio"
+                              aria-checked={mesActivo === m.conceptoNo}
+                              className={`fw-mes ${mesActivo === m.conceptoNo ? 'fw-mes--activo' : ''}`}
+                              disabled={aplicando}
+                              onClick={() => setMesElegido(i === 0 ? '' : m.conceptoNo)}
+                            >
+                              {m.mes}
+                              {i === 0 ? <small>próxima</small> : null}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                     <div className="fw-dato">
                       <span>
@@ -694,7 +729,7 @@ export default function FamiliaWinstonModulo() {
                     <button
                       type="button"
                       className="usr-btn usr-btn--primary fw-btn-aplicar"
-                      disabled={aplicando}
+                      disabled={aplicando || revisando}
                       onClick={() => void aplicar()}
                     >
                       {aplicando ? (

@@ -508,6 +508,63 @@ html[data-theme='dark'] .fw-pasos-guia li::before {
   font-size: 16px;
 }
 
+/* 2026-10-05 — Selector del mes a condonar. */
+.fw-meses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.fw-mes {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 82px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--fw-borde-fuerte);
+  background: var(--fw-fondo-alt);
+  color: var(--fw-texto);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.fw-mes small {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fw-suave);
+}
+
+.fw-mes:hover:not(:disabled) {
+  border-color: var(--fw-acento);
+}
+
+.fw-mes--activo {
+  border-color: var(--fw-acento);
+  background: var(--fw-acento);
+  color: #fff;
+}
+
+.fw-mes--activo small {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+html[data-theme='dark'] .fw-mes--activo,
+html[data-theme='dark'] .fw-mes--activo small {
+  color: #001018;
+}
+
+.fw-mes:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
 .fw-dato-correos {
   display: flex;
   flex-direction: column;

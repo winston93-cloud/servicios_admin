@@ -96,6 +96,8 @@ export interface RevisionFamiliaWinston {
   beneficiado: AlumnoFamiliaWinston | null
   referido: AlumnoFamiliaWinston | null
   mesPropuesto: MesPropuesto | null
+  /** 2026-10-05 — Colegiaturas pendientes que se pueden elegir para condonar. */
+  mesesDisponibles: MesPropuesto[]
   destinatarios: DestinatarioFamiliaWinston[]
   diasClases: number | null
   fechaDisponible: string | null
@@ -290,26 +292,26 @@ async function cargarDestinatarios(
   return out
 }
 
-/** Primera colegiatura del plan (01…10, 26 si 11 meses) sin pago vigente en el ciclo. */
-function proximaColegiaturaPendiente(
-  pagos: FilaPago[],
-  ciclo: number,
-  planMeses: 1 | 2
-): string | null {
+/**
+ * Colegiaturas del plan (01…10, 26 si 11 meses) sin pago vigente en el ciclo, en orden del plan.
+ * 2026-10-05 — Antes solo devolvía la primera; ahora todas para poder elegir el mes a condonar.
+ */
+function colegiaturasPendientes(pagos: FilaPago[], ciclo: number, planMeses: 1 | 2): string[] {
   const cubiertos = new Set<string>()
   for (const p of pagos) {
     if (!pagoVigente(p)) continue
     const parsed = parsearReferenciaPago(p.pago_referencia)
     if (parsed && parsed.cicloEscolar === ciclo) cubiertos.add(normalizarConceptoNo(parsed.conceptoNo))
   }
+  const out: string[] = []
   for (const slot of slotsColegiaturaPortal(planMeses)) {
     for (const raw of slot) {
       const c = normalizarConceptoNo(raw)
-      if (!CONCEPTOS_COLEGIATURA.has(c)) continue
-      if (!cubiertos.has(c)) return c
+      if (!CONCEPTOS_COLEGIATURA.has(c) || cubiertos.has(c) || out.includes(c)) continue
+      out.push(c)
     }
   }
-  return null
+  return out
 }
 
 function primeraColegiaturaPagada(pagos: FilaPago[], ciclo: number): boolean {
@@ -390,6 +392,8 @@ export async function revisarFamiliaWinston(opts: {
   ctrl: number
   qr: number
   referidoRef: number | null
+  /** Mes elegido (concepto 01…10/26); sin él se propone la próxima colegiatura pendiente. */
+  conceptoNo?: string | null
   db?: AppDatabaseClient
 }): Promise<RevisionFamiliaWinston> {
   const db = opts.db ?? createDbAdmin()
@@ -401,6 +405,7 @@ export async function revisarFamiliaWinston(opts: {
     beneficiado: null,
     referido: null,
     mesPropuesto: null,
+    mesesDisponibles: [],
     destinatarios: [],
     diasClases: null,
     fechaDisponible: null,
@@ -552,8 +557,8 @@ export async function revisarFamiliaWinston(opts: {
 
   if (beneficiado && beneficiado.status === 1) {
     const pagos = await cargarPagos(db, beneficiado.alumno_id)
-    const concepto = proximaColegiaturaPendiente(pagos, beneficiado.ciclo, beneficiado.planMeses)
-    if (!concepto) {
+    const pendientes = colegiaturasPendientes(pagos, beneficiado.ciclo, beneficiado.planMeses)
+    if (pendientes.length === 0) {
       checks.push({
         id: 'mes',
         nivel: 'error',
@@ -561,17 +566,30 @@ export async function revisarFamiliaWinston(opts: {
       })
     } else {
       const ciclo = await cargarCiclo(db, beneficiado.ciclo)
-      res.mesPropuesto = {
-        conceptoNo: concepto,
-        mes: MES_POR_CONCEPTO[concepto],
+      res.mesesDisponibles = pendientes.map((c) => ({
+        conceptoNo: c,
+        mes: MES_POR_CONCEPTO[c],
         ciclo: beneficiado.ciclo,
         cicloEtiqueta: ciclo.nombre,
+      }))
+      const pedido = opts.conceptoNo ? normalizarConceptoNo(opts.conceptoNo) : null
+      const elegido = pedido ? res.mesesDisponibles.find((m) => m.conceptoNo === pedido) : undefined
+      if (pedido && !elegido) {
+        checks.push({
+          id: 'mes',
+          nivel: 'error',
+          texto: `La colegiatura de ${(MES_POR_CONCEPTO[pedido] ?? pedido).toUpperCase()} ya no está pendiente; elige otro mes.`,
+        })
+      } else {
+        res.mesPropuesto = elegido ?? res.mesesDisponibles[0]
+        checks.push({
+          id: 'mes',
+          nivel: 'ok',
+          texto: `Se condona la colegiatura de ${res.mesPropuesto.mes.toUpperCase()} ${ciclo.nombre}${
+            res.mesPropuesto === res.mesesDisponibles[0] ? ' (próxima pendiente)' : ' (mes elegido)'
+          }.`,
+        })
       }
-      checks.push({
-        id: 'mes',
-        nivel: 'ok',
-        texto: `Se condona la colegiatura de ${res.mesPropuesto.mes.toUpperCase()} ${ciclo.nombre} (próxima pendiente).`,
-      })
     }
 
     const { data: condonaciones } = await db
@@ -669,6 +687,7 @@ export async function aplicarFamiliaWinston(opts: {
   qr: number
   referidoRef: number
   validadoPor: string
+  conceptoNo?: string | null
 }): Promise<ResultadoAplicarFamiliaWinston> {
   const db = createDbAdmin()
   const revision = await revisarFamiliaWinston({ ...opts, db })
