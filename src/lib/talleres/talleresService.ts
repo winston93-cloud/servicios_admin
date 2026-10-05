@@ -12,6 +12,7 @@ import {
   normalizarHora,
   normalizarNiveles,
   rangosSeTraslapan,
+  type InstitucionReloj,
   type Taller,
   type TallerAsignacion,
   type TallerHorario,
@@ -32,7 +33,7 @@ export class TalleresError extends Error {
 
 const SELECT_TALLER = 'id, nombre, grados, categoria, descripcion, niveles, color, cupo_min, cupo_max, activo'
 const SELECT_MAESTRO =
-  'id, nombre, apellido_paterno, apellido_materno, email, celular, especialidad, niveles, notas, activo'
+  'id, nombre, apellido_paterno, apellido_materno, email, celular, especialidad, niveles, notas, activo, numero_empleado, institucion_reloj'
 const SELECT_ASIGNACION =
   'id, taller_id, maestro_id, ciclo_escolar, niveles, lugar, cupo, cupo_min, notas, activo'
 
@@ -144,7 +145,14 @@ function mapMaestro(r: Record<string, unknown>): TallerMaestro {
     niveles: normalizarNiveles(r.niveles),
     notas: (r.notas as string | null) ?? null,
     activo: Boolean(r.activo),
+    numero_empleado: (r.numero_empleado as string | null) ?? null,
+    institucion_reloj: institucionReloj(r.institucion_reloj),
   }
+}
+
+// 2026-10-05 — Liga maestro de taller ↔ empleado del reloj checador.
+function institucionReloj(raw: unknown): InstitucionReloj | null {
+  return raw === 'educativo' || raw === 'kinder' ? raw : null
 }
 
 /** Grupos activos del ciclo, o grupos puntuales por id (cualquier ciclo, aunque estén dados de baja). */
@@ -366,6 +374,15 @@ function maestroDesdeBody(body: Record<string, unknown>) {
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     throw new TalleresError('El correo del maestro no es válido.')
   }
+  // 2026-10-05 — Número de empleado del reloj checador (opcional) y su campus.
+  const numeroEmpleado = String(body.numero_empleado ?? '').trim() || null
+  if (numeroEmpleado && !/^\d{1,12}$/.test(numeroEmpleado)) {
+    throw new TalleresError('El número de empleado del reloj solo lleva dígitos.')
+  }
+  const institucion = institucionReloj(body.institucion_reloj)
+  if (numeroEmpleado && !institucion) {
+    throw new TalleresError('Elige el campus del reloj donde está dado de alta el maestro.')
+  }
   return {
     nombre,
     apellido_paterno: texto(body.apellido_paterno, 80),
@@ -376,6 +393,8 @@ function maestroDesdeBody(body: Record<string, unknown>) {
     niveles,
     notas: texto(body.notas, 2000),
     activo: body.activo === undefined ? true : Boolean(body.activo),
+    numero_empleado: numeroEmpleado,
+    institucion_reloj: numeroEmpleado ? institucion : null,
   }
 }
 
