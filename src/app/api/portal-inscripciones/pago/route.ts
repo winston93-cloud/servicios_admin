@@ -4,7 +4,7 @@ import { esEstatusBloqueo } from '@/lib/alumnoStatus'
 import { evaluarBloqueoCupoPortal } from '@/lib/cupoInscripcionPrimaria'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
-import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
+import { validarAlumnoPortal, sesionDeAlumnoOPersonal } from '@/lib/portalApiAlumnoAuth'
 import { construirVistaPagoInscripcion } from '@/lib/portalInscripcionPagoService'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
 import { inscripcionCompletaPagada } from '@/lib/portalInscripcionesSolicitud'
@@ -17,6 +17,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const alumnoId = Number(body.alumnoId)
+
+    const sinSesion = sesionDeAlumnoOPersonal(request, alumnoId)
+    if (sinSesion) return sinSesion
 
     const auth = await validarAlumnoPortal(alumnoId)
     if (!auth.ok) return auth.response

@@ -4,6 +4,18 @@ import type { AlumnoRegistro } from './alumnoDatosService'
 import { puedeAccederPortalAlumno } from './alumnoStatus'
 import { createSupabaseAdmin } from './supabaseAdmin'
 import { alumnoTieneAdeudoEgresadoActivo } from './adeudosEgresadosService'
+import { sesionPortalDeRequest } from './portalSesionFirmada'
+
+/** La sesión firmada debe ser de ese alumno (o de personal). */
+export function sesionDeAlumnoOPersonal(request: Request, alumnoId: number): NextResponse | null {
+  const s = sesionPortalDeRequest(request)
+  if (s?.role === 'usuario') return null
+  if (s?.role === 'alumno' && Number(s.alumno_id) === Number(alumnoId)) return null
+  return NextResponse.json(
+    { error: 'Tu sesión expiró. Vuelve a iniciar sesión en el portal.' },
+    { status: 401, headers: { 'Cache-Control': 'no-store' } }
+  )
+}
 
 export type AlumnoAuthResult =
   | { ok: true; alumno: AlumnoRegistro }

@@ -17,6 +17,7 @@ import {
 import { asegurarColegiaturasBecaCompletaCero } from '@/lib/colegiaturasBecaCompletaService'
 import { construirMatrizPortalPagos } from '@/lib/portalPagosMatrizService'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
+import { sesionDeAlumnoOPersonal } from '@/lib/portalApiAlumnoAuth'
 import { proyectarReinscripcionAlumno } from '@/lib/portalReinscripcionProyeccion'
 
 export const runtime = 'nodejs'
@@ -45,6 +46,8 @@ export async function POST(request: Request) {
     if (!alumnoId) {
       return NextResponse.json({ error: 'alumnoId es obligatorio' }, { status: 400 })
     }
+    const sinSesion = sesionDeAlumnoOPersonal(request, alumnoId)
+    if (sinSesion) return sinSesion
 
     const alumno = await obtenerAlumnoPorId(alumnoId)
     if (!alumno) {

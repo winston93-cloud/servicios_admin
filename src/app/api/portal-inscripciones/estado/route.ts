@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { obtenerCicloEscolarActual, obtenerCicloPorValor } from '@/lib/ciclosEscolaresService'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
-import { validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
+import { validarAlumnoPortal, sesionDeAlumnoOPersonal } from '@/lib/portalApiAlumnoAuth'
 import { construirEstadoPortalInscripciones } from '@/lib/portalInscripcionesService'
 import { resolverCicloPagoInscripcionPortal } from '@/lib/portalInscripcionesCiclo'
 import { formaIngresoPorDefecto } from '@/lib/alumnoFormaIngreso'
@@ -16,6 +16,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     const alumnoId = Number(body.alumnoId)
+
+    const sinSesion = sesionDeAlumnoOPersonal(request, alumnoId)
+    if (sinSesion) return sinSesion
 
     const auth = await validarAlumnoPortal(alumnoId)
     if (!auth.ok) return auth.response
