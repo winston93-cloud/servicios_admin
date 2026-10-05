@@ -24,6 +24,7 @@ import {
   Clock,
   School,
   Bell,
+  HeartHandshake,
 } from 'lucide-react'
 
 export type ServiciosModuloId =
@@ -53,6 +54,7 @@ export type ServiciosModuloId =
   | 'pagos-colegiaturas-paquete'
   | 'adeudos-egresados'
   | 'catalogo-maestros'
+  | 'familia-winston'
 
 export interface ServiciosSubMenuItem {
   id: ServiciosModuloId
@@ -164,6 +166,13 @@ export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
     id: 'catalogo-maestros',
     label: 'Catálogo de maestros',
     icon: School,
+  },
+  // 2026-10-05 — Familia Winston: validar QR de recomendación y condonar la próxima colegiatura.
+  {
+    type: 'leaf',
+    id: 'familia-winston',
+    label: 'Familia Winston',
+    icon: HeartHandshake,
   },
   {
     type: 'link',

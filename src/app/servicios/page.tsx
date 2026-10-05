@@ -39,6 +39,8 @@ import CargoExtraModulo from './modulos/CargoExtraModulo'
 import PagosColegiaturasPaqueteModulo from './modulos/PagosColegiaturasPaqueteModulo'
 import AdeudosEgresadosModulo from './modulos/AdeudosEgresadosModulo'
 import CatalogoMaestrosModulo from './modulos/CatalogoMaestrosModulo'
+// 2026-10-05 — Familia Winston: validación de QR y condonación automática.
+import FamiliaWinstonModulo from './modulos/FamiliaWinstonModulo'
 import CicloEscolarSelector from './components/CicloEscolarSelector'
 import ThemeToggle from '@/components/ThemeToggle'
 import { AlumnoSeleccionadoProvider } from '@/contexts/AlumnoSeleccionadoContext'
@@ -124,6 +126,8 @@ function ServiciosPanelContenido({
       return <AdeudosEgresadosModulo />
     case 'catalogo-maestros':
       return <CatalogoMaestrosModulo />
+    case 'familia-winston':
+      return <FamiliaWinstonModulo />
     default:
       return <ServiciosModuloPlaceholder titulo={titulo} />
   }
