@@ -324,6 +324,68 @@ function primeraColegiaturaPagada(pagos: FilaPago[], ciclo: number): boolean {
   })
 }
 
+export interface AlumnoQrFamiliaWinston {
+  alumno_id: number
+  alumno_ref: string
+  alumno_nombre: string
+  alumno_app: string
+  alumno_apm: string
+  alumno_nivel: number
+  alumno_grado: string | null
+  alumno_grupo: string | null
+  alumno_ciclo_escolar: number | null
+  alumno_status: number | null
+}
+
+/**
+ * 2026-10-05 — Al escanear el QR: comprobantes con ese código y el alumno que recomendó,
+ * para llenar en automático «quién recomendó» en el módulo.
+ */
+export async function buscarComprobantesPorQr(qr: number): Promise<
+  { comprobante: ComprobanteFamiliaWinston; alumno: AlumnoQrFamiliaWinston | null }[]
+> {
+  const db = createDbAdmin()
+  const { data, error } = await db
+    .from('wsp')
+    .select(SELECT_WSP)
+    .eq('qr', qr)
+    .order('id', { ascending: true })
+    .limit(5)
+  if (error) throw new Error(error.message)
+  const filas = (data ?? []) as FilaWsp[]
+  const out: { comprobante: ComprobanteFamiliaWinston; alumno: AlumnoQrFamiliaWinston | null }[] = []
+  for (const f of filas) {
+    const { data: a } = await db
+      .from('alumno')
+      .select(
+        'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_ciclo_escolar, alumno_status'
+      )
+      .eq('alumno_ref', Number(f.ctrl))
+      .order('alumno_ciclo_escolar', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const r = a as Record<string, unknown> | null
+    out.push({
+      comprobante: mapComprobante(f),
+      alumno: r
+        ? {
+            alumno_id: Number(r.alumno_id),
+            alumno_ref: String(r.alumno_ref),
+            alumno_nombre: String(r.alumno_nombre ?? '').trim(),
+            alumno_app: String(r.alumno_app ?? '').trim(),
+            alumno_apm: String(r.alumno_apm ?? '').trim(),
+            alumno_nivel: Number(r.alumno_nivel) || 0,
+            alumno_grado: r.alumno_grado != null ? String(r.alumno_grado) : null,
+            alumno_grupo: r.alumno_grupo != null ? String(r.alumno_grupo) : null,
+            alumno_ciclo_escolar: r.alumno_ciclo_escolar != null ? Number(r.alumno_ciclo_escolar) : null,
+            alumno_status: r.alumno_status != null ? Number(r.alumno_status) : null,
+          }
+        : null,
+    })
+  }
+  return out
+}
+
 export async function revisarFamiliaWinston(opts: {
   ctrl: number
   qr: number

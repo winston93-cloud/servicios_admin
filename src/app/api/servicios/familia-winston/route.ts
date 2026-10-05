@@ -3,6 +3,7 @@ import { requireEmpleadoPortal } from '@/lib/portalApiEmpleadoAuth'
 import { cookieUsuariosValida } from '@/lib/usuariosCatalogoAuth'
 import {
   aplicarFamiliaWinston,
+  buscarComprobantesPorQr,
   guardarInicioClases,
   listarCiclosInicioClases,
   listarHistorialFamiliaWinston,
@@ -67,12 +68,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, ciclos: await listarCiclosInicioClases() })
     }
 
+    // 2026-10-05 — Al escanear: comprobantes con ese QR para llenar «quién recomendó».
+    if (accion === 'qr') {
+      const qrBuscado = entero(body.qr)
+      if (!qrBuscado) return NextResponse.json({ error: 'Código QR inválido.' }, { status: 400 })
+      return NextResponse.json({ ok: true, comprobantes: await buscarComprobantesPorQr(qrBuscado) })
+    }
+
     const ctrl = entero(body.ctrl)
     const qr = entero(body.qr)
     const referidoRef = entero(body.referidoRef)
     if (!ctrl || !qr) {
       return NextResponse.json(
-        { error: 'Escribe el código del QR y la matrícula del alumno que recomienda.' },
+        { error: 'Escanea el código QR y elige al alumno que recomienda.' },
         { status: 400 }
       )
     }
