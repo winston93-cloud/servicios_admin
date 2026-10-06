@@ -28,8 +28,10 @@ export function Avatar({ emoji, fotoKey, nombre, tam = 'md' }: { emoji: string; 
   )
 }
 
-export function Hoja({ abierta, titulo, emoji, onCerrar, children, pie }: {
+export function Hoja({ abierta, titulo, emoji, onCerrar, children, pie, ancho }: {
   abierta: boolean
+  /** Ventana centrada y amplia (expedientes) en lugar del panel lateral. */
+  ancho?: boolean
   titulo: string
   emoji?: string
   onCerrar: () => void
@@ -54,8 +56,8 @@ export function Hoja({ abierta, titulo, emoji, onCerrar, children, pie }: {
   }, [abierta, onCerrar])
   if (!abierta) return null
   return (
-    <div className="te-hoja-fondo" onMouseDown={(e) => e.target === e.currentTarget && onCerrar()}>
-      <div className="te-hoja" role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1} ref={ref}>
+    <div className="te-hoja-fondo" data-ancho={ancho || undefined} onMouseDown={(e) => e.target === e.currentTarget && onCerrar()}>
+      <div className="te-hoja" data-ancho={ancho || undefined} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1} ref={ref}>
         <header className="te-hoja-head">
           <h2 id={id}>
             {emoji ? <span aria-hidden>{emoji}</span> : null} {titulo}

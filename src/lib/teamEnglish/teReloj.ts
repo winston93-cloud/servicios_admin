@@ -1,5 +1,5 @@
 import { createAdminClient } from '@insforge/sdk'
-import type { TeIncidencia, TeRelojEstado, TeTeacher } from './teTypes'
+import type { TeIncidencia, TeRelojEstado, TeRelojFicha, TeTeacher } from './teTypes'
 
 /**
  * Faltas, retardos y permisos de las teachers a partir del Reloj Checador (proyecto InsForge aparte, solo lectura).
@@ -93,6 +93,32 @@ function fechas(desde: string, hasta: string): string[] {
   return out
 }
 
+const DIAS = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+
+function hhmm(seg: number): string {
+  return `${String(Math.floor(seg / 3600)).padStart(2, '0')}:${String(Math.floor((seg % 3600) / 60)).padStart(2, '0')}`
+}
+
+/** Agrupa días consecutivos con el mismo horario: «Lun–Vie 07:10–15:10 · Sáb 08:00–12:00». */
+function textoHorario(bloques: Map<string, { ini: number; fin: number }>, templateId: string): string | null {
+  const partes: string[] = []
+  let grupo: { d0: number; d1: number; txt: string } | null = null
+  const cerrar = () => {
+    if (grupo) partes.push(`${DIAS[grupo.d0]}${grupo.d1 > grupo.d0 ? `–${DIAS[grupo.d1]}` : ''} ${grupo.txt}`)
+  }
+  for (let d = 1; d <= 7; d++) {
+    const b = bloques.get(`${templateId}|${d}`)
+    const txt = b ? `${hhmm(b.ini)}–${hhmm(b.fin)}` : null
+    if (txt && grupo && grupo.txt === txt && grupo.d1 === d - 1) grupo.d1 = d
+    else {
+      cerrar()
+      grupo = txt ? { d0: d, d1: d, txt } : null
+    }
+  }
+  cerrar()
+  return partes.length ? partes.join(' · ') : null
+}
+
 function num(v: unknown): number | null {
   return v == null || v === '' ? null : Number(v)
 }
@@ -133,13 +159,14 @@ export async function incidenciasReloj(teachers: TeTeacher[], desde: string, hoy
 }
 
 async function calcular(r: Db, teachers: TeTeacher[], desde: string, hoy: string): Promise<Resultado> {
-  const empRes = await r.from('rn_employees').select('employee_number, full_name').eq('is_active', true)
+  const empRes = await r.from('rn_employees').select('employee_number, full_name, department, institution').eq('is_active', true)
   if (empRes.error) throw new Error(`Reloj empleados: ${empRes.error.message}`)
-  const empleados = ((empRes.data ?? []) as Fila[])
-    .map((e) => ({ numero: String(e.employee_number), nombre: String(e.full_name ?? '') }))
-    .filter((e) => !e.numero.startsWith('__'))
+  const filasEmp = ((empRes.data ?? []) as Fila[]).filter((e) => !String(e.employee_number).startsWith('__'))
+  const empleados = filasEmp.map((e) => ({ numero: String(e.employee_number), nombre: String(e.full_name ?? '') }))
+  const datosEmp = new Map(filasEmp.map((e) => [String(e.employee_number), e]))
+  const texto = (v: unknown) => (v == null || String(v).trim() === '' ? null : String(v).trim())
 
-  const vinculos = teachers.map((t) => {
+  const vinculos: TeRelojEstado['vinculos'] = teachers.map((t) => {
     const e = empatar(t.nombre, empleados)
     return { maestro_id: t.maestro_id, empleado: e?.numero ?? null, nombre: e?.nombre ?? null }
   })
@@ -240,6 +267,23 @@ async function calcular(r: Db, teachers: TeTeacher[], desde: string, hoy: string
     if (!v.empleado) continue
     const pol = politica.get(v.empleado)
     const alta = primeraChecada.get(v.empleado)
+    const emp = datosEmp.get(v.empleado)
+    const vigente = horarios.find(
+      (x) => String(x.employee_number) === v.empleado && String(x.valid_from).slice(0, 10) <= hoy && (!x.valid_to || String(x.valid_to).slice(0, 10) >= hoy),
+    )
+    const ficha: TeRelojFicha = {
+      departamento: texto(emp?.department),
+      institucion: texto(emp?.institution),
+      horario: vigente ? textoHorario(bloques, String(vigente.template_id)) : null,
+      primera_checada: alta ?? null,
+      dias_laborables: 0,
+      dias_asistidos: 0,
+      puntuales: 0,
+      minutos_vs_entrada: null,
+    }
+    v.ficha = ficha
+    let sumaEntradas = 0
+    let nEntradas = 0
     if (!alta) continue
     for (const fecha of fechas(desde, hoy)) {
       if (fecha < alta) continue
@@ -270,7 +314,10 @@ async function calcular(r: Db, teachers: TeTeacher[], desde: string, hoy: string
       const entrada = entradas.get(k)
       if (entrada == null) {
         const terminoDia = fecha < ahora.fecha || (fecha === ahora.fecha && ahora.seg > fin)
-        if (terminoDia && diasConChecada.has(fecha)) agregar(v.maestro_id, fecha, 'falta', null, false, 'Sin checadas')
+        if (terminoDia && diasConChecada.has(fecha)) {
+          ficha.dias_laborables++
+          agregar(v.maestro_id, fecha, 'falta', null, false, 'Sin checadas')
+        }
         continue
       }
 
@@ -279,9 +326,16 @@ async function calcular(r: Db, teachers: TeTeacher[], desde: string, hoy: string
       const autoPermiso = num(pol?.auto_after_late_minutes) ?? num(h.auto_after_late_minutes) ?? num(tpln?.auto_after_late_minutes) ?? autoGlobal
       const tarde = Math.floor((entrada - ini) / 60)
       const sinEntrada = entrada > (ini + fin) / 2
+      ficha.dias_laborables++
+      ficha.dias_asistidos++
+      if (!sinEntrada) {
+        sumaEntradas += entrada - ini
+        nEntradas++
+        if (tarde <= tolerancia) ficha.puntuales++
+      }
       if (tarde > tolerancia && !sinEntrada) {
         const justificada = clases.includes('JUSTIFICA_ENTRADA')
-        const hora = `${String(Math.floor(entrada / 3600)).padStart(2, '0')}:${String(Math.floor((entrada % 3600) / 60)).padStart(2, '0')}`
+        const hora = hhmm(entrada)
         if (justificada) agregar(v.maestro_id, fecha, 'retardo', tarde, true, `Entrada ${hora} · justificada (${codigos.join(', ')})`)
         else if (tarde >= autoPermiso) agregar(v.maestro_id, fecha, 'permiso_llegada', tarde, false, `Entrada ${hora}`)
         else agregar(v.maestro_id, fecha, 'retardo', tarde, false, `Entrada ${hora}`)
@@ -289,6 +343,7 @@ async function calcular(r: Db, teachers: TeTeacher[], desde: string, hoy: string
       const salida = (usos.get(k) ?? []).find((u) => u.motivo === 'EARLY_EXIT')
       if (salida) agregar(v.maestro_id, fecha, 'permiso_salida', salida.minutos, false, 'Salida anticipada en el Reloj')
     }
+    if (nEntradas) ficha.minutos_vs_entrada = Math.round(sumaEntradas / nEntradas / 60)
   }
   return { incidencias, estado }
 }

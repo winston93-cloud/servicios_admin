@@ -3,12 +3,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FileText, Loader2, Plus, Search, Trash2, Upload } from 'lucide-react'
 import {
+  ESTADOS_PLANEACION,
+  RUBROS,
   TE_EMOJIS,
   TIPOS_ANTECEDENTE,
+  TIPOS_INCIDENCIA,
   calcularDesempeno,
   etiquetaGrado,
+  etiquetaNivelTe,
   fechaLarga,
   nivelDesempeno,
+  textoSemana,
   type TeAntecedente,
   type TeTeacher,
   type TipoAntecedente,
@@ -17,7 +22,7 @@ import type { SeccionProps } from '../seccionTipos'
 import { teAbrirArchivo, teAccion, teSubir } from '../teApi'
 import { ACEPTAR_DOCS, Avatar, Campo, Hoja, SelectorArchivo, Vacio } from './ui'
 
-type Pestana = 'perfil' | 'antecedentes' | 'resumen'
+type Pestana = 'expediente' | 'perfil' | 'antecedentes'
 
 export default function TeachersSeccion({ snap, recargar, avisar }: SeccionProps) {
   const [busqueda, setBusqueda] = useState('')
@@ -150,29 +155,343 @@ function AgregarTeacher({ abierta, snap, onCerrar, recargar, avisar }: SeccionPr
 }
 
 function PerfilTeacher({ teacher, snap, onCerrar, recargar, avisar }: SeccionProps & { teacher: TeTeacher | null; onCerrar: () => void }) {
-  const [pestana, setPestana] = useState<Pestana>('perfil')
+  const [pestana, setPestana] = useState<Pestana>('expediente')
   useEffect(() => {
-    if (teacher) setPestana('perfil')
+    if (teacher) setPestana('expediente')
   }, [teacher?.maestro_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!teacher) return null
   return (
-    <Hoja abierta titulo={teacher.nombre} emoji={teacher.emoji} onCerrar={onCerrar}>
+    <Hoja abierta ancho titulo={`Expediente · ${teacher.nombre}`} emoji="🗂️" onCerrar={onCerrar}>
+      <CabezaExpediente teacher={teacher} snap={snap} recargar={recargar} avisar={avisar} />
       <div className="te-pestanas" role="tablist">
         {([
-          ['perfil', '🪪 Perfil'],
+          ['expediente', '📋 Expediente'],
+          ['perfil', '✏️ Editar datos'],
           ['antecedentes', `🗂️ Historial (${teacher.antecedentes})`],
-          ['resumen', '📊 Resumen'],
         ] as [Pestana, string][]).map(([id, txt]) => (
           <button key={id} type="button" role="tab" aria-selected={pestana === id} data-activo={pestana === id || undefined} onClick={() => setPestana(id)}>
             {txt}
           </button>
         ))}
       </div>
+      {pestana === 'expediente' ? <Expediente teacher={teacher} snap={snap} avisar={avisar} onEditar={() => setPestana('perfil')} /> : null}
       {pestana === 'perfil' ? <FormPerfil teacher={teacher} snap={snap} recargar={recargar} avisar={avisar} /> : null}
       {pestana === 'antecedentes' ? <Antecedentes teacher={teacher} snap={snap} recargar={recargar} avisar={avisar} /> : null}
-      {pestana === 'resumen' ? <Resumen teacher={teacher} snap={snap} /> : null}
     </Hoja>
+  )
+}
+
+function antiguedad(desde: string | null, hoy: string): string | null {
+  if (!desde) return null
+  const [a1, m1] = desde.split('-').map(Number)
+  const [a2, m2] = hoy.split('-').map(Number)
+  const meses = (a2 - a1) * 12 + (m2 - m1)
+  if (meses < 1) return 'menos de un mes'
+  const a = Math.floor(meses / 12)
+  const m = meses % 12
+  return [a ? `${a} año${a === 1 ? '' : 's'}` : '', m ? `${m} mes${m === 1 ? '' : 'es'}` : ''].filter(Boolean).join(' y ')
+}
+
+function pct(n: number, d: number): string {
+  return d ? `${Math.round((n / d) * 100)}%` : '—'
+}
+
+function CabezaExpediente({ teacher, snap, recargar, avisar }: SeccionProps & { teacher: TeTeacher }) {
+  const reloj = snap.reloj.vinculos.find((v) => v.maestro_id === teacher.maestro_id)
+  const ficha = reloj?.ficha
+  const d = calcularDesempeno(teacher.maestro_id, snap.incidencias, snap.inicio_ciclo, snap.hoy, snap.ponderadores)
+  const nd = nivelDesempeno(d.total)
+  const planes = snap.planeaciones.filter((p) => p.maestro_id === teacher.maestro_id)
+  const caps = snap.capacitaciones.filter((c) => c.estado === 'realizada' && c.participantes.some((p) => p.maestro_id === teacher.maestro_id && p.asistio !== false))
+  const horas = caps.reduce((s, c) => s + (c.horas ?? 0), 0)
+  const ingreso = teacher.fecha_ingreso ?? null
+  const ant = antiguedad(ingreso, snap.hoy)
+  const llega = ficha?.minutos_vs_entrada
+
+  const kpis: { e: string; k: string; v: string; s?: string; tono?: string }[] = [
+    { e: nd.emoji, k: 'Desempeño del ciclo', v: `${d.total.toFixed(1)}%`, s: nd.etiqueta, tono: nd.tono },
+    {
+      e: '🕐',
+      k: 'Asistencia (Reloj)',
+      v: ficha ? pct(ficha.dias_asistidos, ficha.dias_laborables) : '—',
+      s: ficha ? `${ficha.dias_asistidos} de ${ficha.dias_laborables} días` : 'Sin vincular',
+    },
+    {
+      e: '⏱️',
+      k: 'Puntualidad',
+      v: ficha ? pct(ficha.puntuales, ficha.dias_asistidos) : '—',
+      s: llega == null ? undefined : llega <= 0 ? `Llega ${Math.abs(llega)} min antes, en promedio` : `Llega ${llega} min tarde, en promedio`,
+    },
+    { e: '⏰', k: 'Retardos / faltas', v: `${d.conteos.retardo} / ${d.conteos.falta}`, s: `🚪 ${d.conteos.permiso_llegada + d.conteos.permiso_salida} permisos · 🤒 ${d.conteos.enfermedad}` },
+    { e: '📚', k: 'Planeaciones aprobadas', v: `${planes.filter((p) => p.estado === 'aprobada').length}/${planes.length}`, s: `⏳ ${planes.filter((p) => p.estado === 'pendiente').length} por revisar` },
+    { e: '🎓', k: 'Capacitación', v: `${horas} h`, s: `${caps.length} curso${caps.length === 1 ? '' : 's'} realizados` },
+  ]
+
+  return (
+    <section className="te-exp-hero" data-inactiva={!teacher.activo || undefined}>
+      <div className="te-exp-id">
+        <div className="te-exp-foto"><Avatar emoji={teacher.emoji} fotoKey={teacher.foto_key} nombre={teacher.nombre} tam="lg" /></div>
+        <div className="te-min0">
+          <h3>{teacher.nombre}</h3>
+          <p className="te-exp-puesto">
+            {teacher.puesto || 'Teacher'} · {etiquetaNivelTe(snap.nivel)}
+            {!teacher.activo ? ' · 💤 Inactiva' : ''}
+          </p>
+          <div className="te-teacher-grupos te-exp-grupos">
+            {teacher.grupos.length
+              ? teacher.grupos.map((g) => <span key={g} className="te-chip">{etiquetaGrado(snap.nivel, Number(g[0]))}{g.slice(1)}</span>)
+              : <span className="te-chip te-chip-suave">Sin grupo asignado</span>}
+          </div>
+          <p className="te-perfil-contacto">
+            {teacher.email ? <a href={`mailto:${teacher.email}`}>✉️ {teacher.email}</a> : null}
+            {teacher.celular ? <a href={`tel:${teacher.celular}`}>📱 {teacher.celular}</a> : null}
+            {teacher.telefono && teacher.telefono !== teacher.celular ? <a href={`tel:${teacher.telefono}`}>☎️ {teacher.telefono}</a> : null}
+          </p>
+          <p className="te-exp-meta">
+            {reloj?.empleado ? <span>🪪 Empleada #{reloj.empleado}</span> : <span>🪪 Sin vincular al Reloj</span>}
+            {ficha?.horario ? <span>🕐 {ficha.horario}</span> : null}
+            {ingreso ? <span>📅 Ingresó {fechaLarga(ingreso)}{ant ? ` (${ant})` : ''}</span> : null}
+          </p>
+        </div>
+      </div>
+      <BloqueCV teacher={teacher} snap={snap} recargar={recargar} avisar={avisar} />
+      <ul className="te-exp-kpis">
+        {kpis.map((x) => (
+          <li key={x.k} data-tono={x.tono}>
+            <span aria-hidden>{x.e}</span>
+            <small>{x.k}</small>
+            <b>{x.v}</b>
+            {x.s ? <em>{x.s}</em> : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function BloqueCV({ teacher, snap, recargar, avisar }: SeccionProps & { teacher: TeTeacher }) {
+  const [subiendo, setSubiendo] = useState(false)
+  const subir = async (file: File | null) => {
+    if (!file) return
+    setSubiendo(true)
+    try {
+      await teSubir(snap.nivel, { tipo: 'cv', maestro_id: teacher.maestro_id, archivo: file })
+      await recargar()
+      avisar('C.V. subido.')
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : 'Error', 'error')
+    } finally {
+      setSubiendo(false)
+    }
+  }
+  const quitar = async () => {
+    if (!window.confirm('¿Quitar el C.V.?')) return
+    try {
+      await teAccion(snap.nivel, 'quitar_archivo_perfil', { maestro_id: teacher.maestro_id, campo: 'cv' })
+      await recargar()
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : 'Error', 'error')
+    }
+  }
+  return (
+    <div className="te-cv" data-ok={!!teacher.cv_key || undefined}>
+      <FileText size={22} aria-hidden />
+      <div className="te-min0">
+        <strong>Currículum (C.V.)</strong>
+        <span>{teacher.cv_nombre ?? 'Aún no se ha subido'}</span>
+      </div>
+      <div className="te-fila-botones">
+        {teacher.cv_key ? (
+          <button type="button" className="te-btn te-btn-sm" onClick={() => teAbrirArchivo(teacher.cv_key!).catch((e) => avisar(e.message, 'error'))}>
+            Ver
+          </button>
+        ) : null}
+        <label className="te-btn te-btn-primary te-btn-sm">
+          <input type="file" accept={ACEPTAR_DOCS} hidden onChange={(e) => void subir(e.target.files?.[0] ?? null)} />
+          {subiendo ? <Loader2 size={14} className="te-spin" aria-hidden /> : <Upload size={14} aria-hidden />} {teacher.cv_key ? 'Reemplazar' : 'Subir'}
+        </label>
+        {teacher.cv_key ? (
+          <button type="button" className="te-icon-btn" aria-label="Quitar C.V." onClick={() => void quitar()}>
+            <Trash2 size={16} aria-hidden />
+          </button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function Dato({ k, v }: { k: string; v: string | null | undefined }) {
+  return (
+    <div>
+      <dt>{k}</dt>
+      <dd data-vacio={!v || undefined}>{v || 'Sin capturar'}</dd>
+    </div>
+  )
+}
+
+function Expediente({ teacher, snap, avisar, onEditar }: { teacher: TeTeacher; snap: SeccionProps['snap']; avisar: SeccionProps['avisar']; onEditar: () => void }) {
+  const reloj = snap.reloj.vinculos.find((v) => v.maestro_id === teacher.maestro_id)
+  const ficha = reloj?.ficha
+  const d = calcularDesempeno(teacher.maestro_id, snap.incidencias, snap.inicio_ciclo, snap.hoy, snap.ponderadores)
+  const incid = snap.incidencias.filter((i) => i.maestro_id === teacher.maestro_id && i.fecha >= snap.inicio_ciclo)
+  const planes = snap.planeaciones.filter((p) => p.maestro_id === teacher.maestro_id).sort((a, b) => b.semana.localeCompare(a.semana))
+  const caps = snap.capacitaciones
+    .filter((c) => c.participantes.some((p) => p.maestro_id === teacher.maestro_id))
+    .sort((a, b) => b.fecha_inicio.localeCompare(a.fecha_inicio))
+  const cls = snap.classroom.filter((c) => c.maestro_id === teacher.maestro_id).sort((a, b) => b.semana.localeCompare(a.semana))
+  const [verInc, setVerInc] = useState(false)
+  const incVisibles = verInc ? incid : incid.slice(0, 6)
+
+  return (
+    <div className="te-exp-grid">
+      <section className="te-exp-card">
+        <header><h4>🪪 Datos personales y laborales</h4><button type="button" className="te-btn te-btn-ghost te-btn-sm" onClick={onEditar}>✏️ Editar</button></header>
+        <dl className="te-exp-datos">
+          <Dato k="Nombre completo" v={teacher.nombre} />
+          <Dato k="Correo institucional" v={teacher.email} />
+          <Dato k="Celular" v={teacher.celular} />
+          <Dato k="Teléfono" v={teacher.telefono} />
+          <Dato k="Usuario del sistema" v={teacher.usuario} />
+          <Dato k="Puesto" v={teacher.puesto} />
+          <Dato k="Fecha de ingreso" v={teacher.fecha_ingreso ? `${fechaLarga(teacher.fecha_ingreso)} · ${antiguedad(teacher.fecha_ingreso, snap.hoy) ?? ''}` : null} />
+          <Dato k="Grupos" v={teacher.grupos.map((g) => `${etiquetaGrado(snap.nivel, Number(g[0]))}${g.slice(1)}`).join(', ')} />
+          <Dato k="No. de empleada (Reloj)" v={reloj?.empleado ? `#${reloj.empleado} · ${reloj.nombre}` : null} />
+          <Dato k="Departamento" v={ficha?.departamento} />
+          <Dato k="Institución" v={ficha?.institucion ? ficha.institucion[0].toUpperCase() + ficha.institucion.slice(1) : null} />
+          <Dato k="Horario" v={ficha?.horario} />
+          <Dato k="Primera checada registrada" v={ficha?.primera_checada ? fechaLarga(ficha.primera_checada) : null} />
+        </dl>
+      </section>
+
+      <section className="te-exp-card">
+        <header><h4>🎓 Formación y perfil profesional</h4></header>
+        <dl className="te-exp-datos te-exp-datos-1">
+          <Dato k="Nivel de inglés" v={teacher.nivel_ingles} />
+          <Dato k="Formación académica" v={teacher.formacion} />
+          <Dato k="Certificaciones" v={teacher.certificaciones} />
+        </dl>
+        <div className="te-exp-notas">
+          <small>📝 Notas de la directora</small>
+          <p>{teacher.notas || 'Sin notas todavía.'}</p>
+        </div>
+      </section>
+
+      <section className="te-exp-card">
+        <header><h4>📈 Desempeño del ciclo</h4><small>desde {fechaLarga(snap.inicio_ciclo)}</small></header>
+        <ul className="te-exp-rubros">
+          {RUBROS.map((r) => (
+            <li key={r.clave}>
+              <span>{r.emoji} {r.etiqueta}</span>
+              <i style={{ ['--p' as string]: d.rubros[r.clave] / 100 }} aria-hidden />
+              <b>{d.rubros[r.clave].toFixed(1)}%</b>
+            </li>
+          ))}
+        </ul>
+        {incid.length ? (
+          <>
+            <ul className="te-incidencias">
+              {incVisibles.map((x) => {
+                const tipo = TIPOS_INCIDENCIA.find((y) => y.valor === x.tipo)
+                return (
+                  <li key={x.id}>
+                    <span aria-hidden>{tipo?.emoji}</span>
+                    <span className="te-min0">
+                      <b>{tipo?.etiqueta}</b> · {fechaLarga(x.fecha)}
+                      {x.minutos ? ` · ${x.minutos} min` : ''}
+                      {x.justificada ? ' · ✔️ Justificada' : ''}
+                      {x.origen === 'reloj' ? <span className="te-reloj-badge">🕐 Reloj</span> : null}
+                      {x.notas ? <small>{x.notas}</small> : null}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+            {incid.length > 6 ? (
+              <button type="button" className="te-btn te-btn-ghost te-btn-sm" onClick={() => setVerInc((v) => !v)}>
+                {verInc ? 'Ver menos' : `Ver las ${incid.length} incidencias`}
+              </button>
+            ) : null}
+          </>
+        ) : (
+          <p className="te-nota">🌟 Sin incidencias en el ciclo.</p>
+        )}
+      </section>
+
+      <section className="te-exp-card">
+        <header><h4>📚 Planeaciones</h4><small>{planes.length} en el ciclo</small></header>
+        {planes.length ? (
+          <ul className="te-exp-lista">
+            {planes.slice(0, 8).map((p) => {
+              const e = ESTADOS_PLANEACION[p.estado]
+              return (
+                <li key={p.id}>
+                  <span className="te-min0">
+                    <b>{textoSemana(p.semana)}</b> · Grado {etiquetaGrado(snap.nivel, p.grado)}
+                    {p.titulo ? <small>{p.titulo}</small> : null}
+                  </span>
+                  <span className="te-sello">{e.emoji} {e.etiqueta}</span>
+                  {p.archivo_key ? (
+                    <button type="button" className="te-btn te-btn-ghost te-btn-sm" onClick={() => teAbrirArchivo(p.archivo_key!).catch((er) => avisar(er.message, 'error'))}>📎</button>
+                  ) : null}
+                </li>
+              )
+            })}
+          </ul>
+        ) : (
+          <p className="te-nota">Aún no hay planeaciones registradas en el sistema.</p>
+        )}
+      </section>
+
+      <section className="te-exp-card">
+        <header><h4>🎓 Capacitaciones</h4><small>{caps.length}</small></header>
+        {caps.length ? (
+          <ul className="te-exp-lista">
+            {caps.map((c) => {
+              const yo = c.participantes.find((p) => p.maestro_id === teacher.maestro_id)
+              return (
+                <li key={c.id}>
+                  <span className="te-min0">
+                    <b>{c.titulo}</b>
+                    <small>{fechaLarga(c.fecha_inicio)}{c.horas ? ` · ${c.horas} h` : ''}{c.proveedor ? ` · ${c.proveedor}` : ''}</small>
+                  </span>
+                  <span className="te-sello">
+                    {c.estado === 'programada' ? '🗓️ Programada' : c.estado === 'cancelada' ? '🚫 Cancelada' : yo?.asistio === false ? '❌ No asistió' : '✅ Realizada'}
+                  </span>
+                  {yo?.constancia_key ? (
+                    <button type="button" className="te-btn te-btn-ghost te-btn-sm" onClick={() => teAbrirArchivo(yo.constancia_key!).catch((er) => avisar(er.message, 'error'))}>📜</button>
+                  ) : null}
+                </li>
+              )
+            })}
+          </ul>
+        ) : (
+          <p className="te-nota">Sin capacitaciones registradas.</p>
+        )}
+      </section>
+
+      <section className="te-exp-card">
+        <header><h4>💻 Revisiones de Classroom</h4><small>{cls.length}</small></header>
+        {cls.length ? (
+          <ul className="te-exp-lista">
+            {cls.slice(0, 8).map((c) => {
+              const ok = [c.actualizado, c.actividades_calificadas, c.trabajos_revisados].filter(Boolean).length
+              return (
+                <li key={c.id}>
+                  <span className="te-min0">
+                    <b>{textoSemana(c.semana)}</b> · {c.grupo}
+                    {c.notas ? <small>{c.notas}</small> : null}
+                  </span>
+                  <span className="te-sello">{ok === 3 ? '✅ 100%' : `${ok}/3`}</span>
+                </li>
+              )
+            })}
+          </ul>
+        ) : (
+          <p className="te-nota">Sin revisiones de Classroom registradas.</p>
+        )}
+      </section>
+    </div>
   )
 }
 
@@ -266,30 +585,6 @@ function FormPerfil({ teacher, snap, recargar, avisar }: SeccionProps & { teache
           </button>
         ))}
       </fieldset>
-
-      <div className="te-cv" data-ok={!!teacher.cv_key || undefined}>
-        <FileText size={22} aria-hidden />
-        <div className="te-min0">
-          <strong>Currículum (C.V.)</strong>
-          <span>{teacher.cv_nombre ?? 'Aún no se ha subido'}</span>
-        </div>
-        <div className="te-fila-botones">
-          {teacher.cv_key ? (
-            <button type="button" className="te-btn te-btn-sm" onClick={() => teAbrirArchivo(teacher.cv_key!).catch((e) => avisar(e.message, 'error'))}>
-              Ver
-            </button>
-          ) : null}
-          <label className="te-btn te-btn-primary te-btn-sm">
-            <input type="file" accept={ACEPTAR_DOCS} hidden onChange={(e) => void subir('cv', e.target.files?.[0] ?? null)} />
-            {subiendo === 'cv' ? <Loader2 size={14} className="te-spin" aria-hidden /> : <Upload size={14} aria-hidden />} {teacher.cv_key ? 'Reemplazar' : 'Subir'}
-          </label>
-          {teacher.cv_key ? (
-            <button type="button" className="te-icon-btn" aria-label="Quitar C.V." onClick={() => void quitar('cv')}>
-              <Trash2 size={16} aria-hidden />
-            </button>
-          ) : null}
-        </div>
-      </div>
 
       <div className="te-form">
         <Campo etiqueta="Puesto"><input className="te-input" value={f.puesto} onChange={(e) => set('puesto', e.target.value)} placeholder="Homeroom teacher 3°" /></Campo>
@@ -420,34 +715,5 @@ function Antecedentes({ teacher, snap, recargar, avisar }: SeccionProps & { teac
         </ol>
       )}
     </div>
-  )
-}
-
-function Resumen({ teacher, snap }: { teacher: TeTeacher; snap: SeccionProps['snap'] }) {
-  const planes = snap.planeaciones.filter((p) => p.maestro_id === teacher.maestro_id)
-  const caps = snap.capacitaciones.filter((c) => c.participantes.some((p) => p.maestro_id === teacher.maestro_id))
-  const realizadas = caps.filter((c) => c.estado === 'realizada')
-  const horas = realizadas.reduce((s, c) => s + (c.horas ?? 0), 0)
-  const d = calcularDesempeno(teacher.maestro_id, snap.incidencias, snap.inicio_ciclo, snap.hoy, snap.ponderadores)
-  const nd = nivelDesempeno(d.total)
-  const cls = snap.classroom.filter((c) => c.maestro_id === teacher.maestro_id)
-  const clsOk = cls.filter((c) => c.actualizado && c.actividades_calificadas && c.trabajos_revisados).length
-
-  const datos: [string, string, string][] = [
-    ['📚', 'Planeaciones del ciclo', `${planes.length} · ✅ ${planes.filter((p) => p.estado === 'aprobada').length} · ⏳ ${planes.filter((p) => p.estado === 'pendiente').length} · ✏️ ${planes.filter((p) => p.estado === 'cambios').length}`],
-    ['🎓', 'Capacitaciones', `${realizadas.length} realizadas (${horas} h) · ${caps.filter((c) => c.estado === 'programada').length} programadas`],
-    [nd.emoji, 'Desempeño del ciclo', `${d.total.toFixed(1)}% · ${nd.etiqueta}`],
-    ['🗓️', 'Incidencias del ciclo', `🚫 ${d.conteos.falta} · ⏰ ${d.conteos.retardo} · 🚪 ${d.conteos.permiso_llegada + d.conteos.permiso_salida} · 🤒 ${d.conteos.enfermedad}`],
-    ['💻', 'Classrooms revisados', cls.length ? `${clsOk}/${cls.length} revisiones al 100%` : 'Sin revisiones aún'],
-  ]
-  return (
-    <ul className="te-resumen">
-      {datos.map(([e, k, v]) => (
-        <li key={k}>
-          <span aria-hidden>{e}</span>
-          <div className="te-min0"><small>{k}</small><strong>{v}</strong></div>
-        </li>
-      ))}
-    </ul>
   )
 }

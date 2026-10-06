@@ -142,8 +142,21 @@ export type TeIncidencia = {
   origen?: 'manual' | 'reloj'
 }
 
+export type TeRelojFicha = {
+  departamento: string | null
+  institucion: string | null
+  /** Ej. «Lun–Vie 07:10–15:10». */
+  horario: string | null
+  primera_checada: string | null
+  dias_laborables: number
+  dias_asistidos: number
+  puntuales: number
+  /** Minutos promedio de la primera checada respecto a su hora de entrada (negativo = antes). */
+  minutos_vs_entrada: number | null
+}
+
 export type TeRelojEstado = {
-  vinculos: { maestro_id: number; empleado: string | null; nombre: string | null }[]
+  vinculos: { maestro_id: number; empleado: string | null; nombre: string | null; ficha?: TeRelojFicha }[]
   error: string | null
   actualizado: string
 }
