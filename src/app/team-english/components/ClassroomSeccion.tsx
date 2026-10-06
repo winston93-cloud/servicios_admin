@@ -1,10 +1,19 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { etiquetaGrado, lunesDe, type TeClassroom, type TeClassroomResumen, type TeNivel, type TeTeacher } from '@/lib/teamEnglish/teTypes'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  etiquetaGrado,
+  lunesDe,
+  type TeClassroom,
+  type TeClassroomCurso,
+  type TeClassroomDetalle,
+  type TeClassroomResumen,
+  type TeNivel,
+  type TeTeacher,
+} from '@/lib/teamEnglish/teTypes'
 import type { SeccionProps } from '../seccionTipos'
-import { teAccion, teClassroomGoogle } from '../teApi'
-import { Avatar, Semana, Vacio } from './ui'
+import { teAccion, teClassroomDetalle, teClassroomGoogle } from '../teApi'
+import { Avatar, Hoja, Semana, Vacio } from './ui'
 
 const cacheGoogle = new Map<string, TeClassroomResumen>()
 
@@ -22,6 +31,8 @@ function PanelGoogle({ nivel, teacher }: { nivel: TeNivel; teacher: TeTeacher })
   const [datos, setDatos] = useState<TeClassroomResumen | null>(cacheGoogle.get(clave) ?? null)
   const [error, setError] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
+  const [curso, setCurso] = useState<TeClassroomCurso | null>(null)
+  const cerrarCurso = useCallback(() => setCurso(null), [])
 
   const cargar = async (forzar = false) => {
     if (!forzar && cacheGoogle.has(clave)) return
@@ -79,16 +90,135 @@ function PanelGoogle({ nivel, teacher }: { nivel: TeNivel; teacher: TeTeacher })
                 </dl>
                 <footer>
                   <span className="te-chip te-chip-suave">🕒 {haceCuanto(c.ultima_actividad)}</span>
-                  {c.enlace ? (
-                    <a className="te-btn te-btn-sm" href={c.enlace} target="_blank" rel="noopener noreferrer">Abrir en Classroom ↗</a>
-                  ) : null}
+                  <button type="button" className="te-btn te-btn-primary te-btn-sm" onClick={() => setCurso(c)}>Ver detalle</button>
                 </footer>
               </article>
             </li>
           ))}
         </ul>
       ) : null}
+      <DetalleCurso nivel={nivel} teacher={teacher} curso={curso} onCerrar={cerrarCurso} />
     </section>
+  )
+}
+
+const fmtFecha = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', timeZone: 'America/Monterrey' })
+const fecha = (iso: string | null) => (iso ? fmtFecha.format(new Date(iso)) : '—')
+const pct = (n: number, d: number) => (d ? Math.round((100 * n) / d) : 0)
+const cacheDetalle = new Map<string, TeClassroomDetalle>()
+
+const TIPOS_TAREA: Record<string, string> = {
+  ASSIGNMENT: '📝 Tarea',
+  SHORT_ANSWER_QUESTION: '❓ Pregunta',
+  MULTIPLE_CHOICE_QUESTION: '🔘 Opción múltiple',
+}
+
+function DetalleCurso({ nivel, teacher, curso, onCerrar }: { nivel: TeNivel; teacher: TeTeacher; curso: TeClassroomCurso | null; onCerrar: () => void }) {
+  const clave = curso ? `${teacher.maestro_id}-${curso.id}` : ''
+  const [datos, setDatos] = useState<TeClassroomDetalle | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [cargando, setCargando] = useState(false)
+
+  useEffect(() => {
+    if (!curso) return
+    const previo = cacheDetalle.get(clave) ?? null
+    setDatos(previo)
+    setError(null)
+    if (previo) return
+    let vivo = true
+    setCargando(true)
+    teClassroomDetalle(nivel, teacher.maestro_id, curso.id)
+      .then((r) => {
+        cacheDetalle.set(clave, r)
+        if (vivo) setDatos(r)
+      })
+      .catch((e: unknown) => vivo && setError(e instanceof Error ? e.message : 'No se pudo leer la clase.'))
+      .finally(() => vivo && setCargando(false))
+    return () => {
+      vivo = false
+    }
+  }, [clave, curso, nivel, teacher.maestro_id])
+
+  const ahora = new Date().toISOString()
+  const t = datos?.tareas ?? []
+  const asignados = t.reduce((s, x) => s + x.asignados, 0)
+  const entregadas = t.reduce((s, x) => s + x.entregadas, 0)
+  const calificadas = t.reduce((s, x) => s + x.calificadas, 0)
+  const vencidasSinCalificar = t.filter((x) => x.entrega && x.entrega < ahora && x.entregadas > x.calificadas).length
+
+  return (
+    <Hoja abierta={!!curso} titulo={curso?.nombre ?? ''} emoji="💻" onCerrar={onCerrar}
+      pie={curso?.enlace ? (
+        <a className="te-btn te-btn-ghost" href={curso.enlace} target="_blank" rel="noopener noreferrer">Abrir en Classroom ↗</a>
+      ) : undefined}>
+      {error ? (
+        <p className="te-gclass-error" role="alert">😿 {error}</p>
+      ) : cargando && !datos ? (
+        <p className="te-cargando">Leyendo tareas y entregas…</p>
+      ) : datos ? (
+        <>
+          <dl className="te-gdet-resumen">
+            <div><dt>Alumnos</dt><dd>{datos.alumnos}</dd></div>
+            <div><dt>Tareas</dt><dd>{t.length}</dd></div>
+            <div><dt>Entregadas</dt><dd>{pct(entregadas, asignados)}%</dd></div>
+            <div><dt>Calificadas</dt><dd>{pct(calificadas, entregadas)}%</dd></div>
+            <div data-alerta={vencidasSinCalificar > 0 || undefined}><dt>Vencidas sin calificar</dt><dd>{vencidasSinCalificar}</dd></div>
+          </dl>
+
+          <section className="te-gdet-bloque">
+            <h3>📝 Tareas</h3>
+            {!t.length ? <p className="te-nota">Aún no hay tareas publicadas.</p> : (
+              <ul className="te-gdet-tareas">
+                {t.map((x) => {
+                  const pendientes = Math.max(x.entregadas - x.calificadas, 0)
+                  return (
+                    <li key={x.id}>
+                      <div className="te-gdet-tarea-top">
+                        <strong>{x.titulo}</strong>
+                        <span className="te-chip te-chip-suave">{TIPOS_TAREA[x.tipo] ?? x.tipo}</span>
+                      </div>
+                      <small>
+                        Publicada {fecha(x.publicada)} · Entrega {fecha(x.entrega)}
+                        {x.puntos ? ` · ${x.puntos} pts` : ''}
+                      </small>
+                      <div className="te-gdet-barras">
+                        <span>Entregadas <b>{x.entregadas}/{x.asignados}</b></span>
+                        <span>Calificadas <b>{x.calificadas}/{x.entregadas}</b></span>
+                        {x.tarde ? <span>Tarde <b>{x.tarde}</b></span> : null}
+                        {pendientes ? <span data-alerta>Por calificar <b>{pendientes}</b></span> : null}
+                      </div>
+                      <div className="te-gdet-barra" aria-hidden>
+                        <span style={{ width: `${pct(x.calificadas, x.asignados)}%` }} data-tipo="calificadas" />
+                        <span style={{ width: `${pct(pendientes, x.asignados)}%` }} data-tipo="pendientes" />
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </section>
+
+          <section className="te-gdet-bloque">
+            <h3>📣 Avisos recientes</h3>
+            {!datos.avisos.length ? <p className="te-nota">Sin avisos.</p> : (
+              <ul className="te-gdet-pubs">
+                {datos.avisos.map((a) => <li key={a.id}><small>{fecha(a.fecha)}</small><p>{a.texto || '(sin texto)'}</p></li>)}
+              </ul>
+            )}
+          </section>
+
+          <section className="te-gdet-bloque">
+            <h3>📚 Materiales</h3>
+            {!datos.materiales.length ? <p className="te-nota">Sin materiales.</p> : (
+              <ul className="te-gdet-pubs">
+                {datos.materiales.map((m) => <li key={m.id}><small>{fecha(m.fecha)}</small><p>{m.texto || '(sin título)'}</p></li>)}
+              </ul>
+            )}
+          </section>
+          <p className="te-nota">Se muestran las {t.length >= 60 ? '60 tareas más recientes' : 'tareas publicadas'}, con avisos y materiales recientes. Solo lectura.</p>
+        </>
+      ) : null}
+    </Hoja>
   )
 }
 

@@ -1,6 +1,6 @@
 import { google, type classroom_v1 } from 'googleapis'
 import { TeError } from './teService'
-import type { TeClassroomCurso, TeClassroomResumen } from './teTypes'
+import type { TeClassroomCurso, TeClassroomDetalle, TeClassroomPublicacion, TeClassroomResumen, TeClassroomTarea } from './teTypes'
 
 /** Deben coincidir con los alcances de la delegación de dominio del service account en admin.google.com. */
 const SCOPES = [
@@ -69,6 +69,18 @@ async function resumenCurso(cr: classroom_v1.Classroom, c: classroom_v1.Schema$C
   }
 }
 
+function errorGoogle(e: unknown, email: string): never {
+  if (e instanceof TeError) throw e
+  const err = e as { code?: number; response?: { data?: { error?: string } }; message?: string }
+  const codigo = err.response?.data?.error
+  if (codigo === 'unauthorized_client') {
+    throw new TeError('Google aún no autoriza los permisos de Classroom para la cuenta de servicio.', 502)
+  }
+  if (codigo === 'invalid_grant') throw new TeError(`Google no reconoce el correo ${email}.`, 404)
+  if (err.code === 403 || err.code === 404) throw new TeError('Esa clase no es de esta teacher.', 404)
+  throw new TeError(`Classroom: ${err.message ?? 'error'}`, 502)
+}
+
 /** Solo lectura: clases activas donde el correo es maestro. */
 export async function resumenClassroomTeacher(rawEmail: unknown): Promise<TeClassroomResumen> {
   const email = normalizarCorreoTeacher(rawEmail)
@@ -78,12 +90,86 @@ export async function resumenClassroomTeacher(rawEmail: unknown): Promise<TeClas
     const cursos = await Promise.all((r.data.courses ?? []).map((c) => resumenCurso(cr, c)))
     return { email, cursos }
   } catch (e) {
-    const msg = (e as { response?: { data?: { error?: string; error_description?: string } }; message?: string })
-    const codigo = msg.response?.data?.error
-    if (codigo === 'unauthorized_client') {
-      throw new TeError('Google aún no autoriza los permisos de Classroom para la cuenta de servicio.', 502)
+    errorGoogle(e, email)
+  }
+}
+
+const MAX_TAREAS = 60
+
+function fechaEntrega(t: classroom_v1.Schema$CourseWork): string | null {
+  const d = t.dueDate
+  if (!d?.year || !d.month || !d.day) return null
+  const hh = String(t.dueTime?.hours ?? 23).padStart(2, '0')
+  const mm = String(t.dueTime?.minutes ?? 59).padStart(2, '0')
+  return `${d.year}-${String(d.month).padStart(2, '0')}-${String(d.day).padStart(2, '0')}T${hh}:${mm}:00Z`
+}
+
+function publicacion(id: string | null | undefined, texto: string | null | undefined, fecha: string | null | undefined, enlace: string | null | undefined): TeClassroomPublicacion {
+  const limpio = String(texto ?? '').replace(/\s+/g, ' ').trim()
+  return { id: id ?? '', texto: limpio.length > 280 ? `${limpio.slice(0, 280)}…` : limpio, fecha: fecha ?? null, enlace: enlace ?? null }
+}
+
+async function entregasCurso(cr: classroom_v1.Classroom, courseId: string): Promise<classroom_v1.Schema$StudentSubmission[]> {
+  const out: classroom_v1.Schema$StudentSubmission[] = []
+  let pageToken: string | undefined
+  do {
+    const r = await cr.courses.courseWork.studentSubmissions.list({ courseId, courseWorkId: '-', pageSize: 1000, pageToken })
+    out.push(...(r.data.studentSubmissions ?? []))
+    pageToken = r.data.nextPageToken ?? undefined
+  } while (pageToken && out.length < 20_000)
+  return out
+}
+
+/** Solo lectura: tareas con estado de entregas, avisos y materiales de una clase de la teacher. */
+export async function detalleClassroomCurso(rawEmail: unknown, courseId: string): Promise<TeClassroomDetalle> {
+  const email = normalizarCorreoTeacher(rawEmail)
+  if (!/^[0-9]{1,30}$/.test(courseId)) throw new TeError('Clase inválida.')
+  const cr = clienteClassroom(email)
+  try {
+    await cr.courses.teachers.get({ courseId, userId: 'me' })
+    const [alumnos, trabajos, entregas, avisos, materiales] = await Promise.all([
+      contarAlumnos(cr, courseId),
+      cr.courses.courseWork.list({ courseId, pageSize: MAX_TAREAS, orderBy: 'updateTime desc' }),
+      entregasCurso(cr, courseId),
+      cr.courses.announcements.list({ courseId, pageSize: 15, orderBy: 'updateTime desc' }),
+      cr.courses.courseWorkMaterials.list({ courseId, pageSize: 15, orderBy: 'updateTime desc' }),
+    ])
+    const porTarea = new Map<string, classroom_v1.Schema$StudentSubmission[]>()
+    for (const s of entregas) {
+      if (!s.courseWorkId) continue
+      const lista = porTarea.get(s.courseWorkId) ?? []
+      lista.push(s)
+      porTarea.set(s.courseWorkId, lista)
     }
-    if (codigo === 'invalid_grant') throw new TeError(`Google no reconoce el correo ${email}.`, 404)
-    throw new TeError(`Classroom: ${msg.message ?? 'error'}`, 502)
+    const tareas: TeClassroomTarea[] = (trabajos.data.courseWork ?? [])
+      .map((t) => {
+        const subs = porTarea.get(t.id ?? '') ?? []
+        return {
+          id: t.id ?? '',
+          titulo: t.title?.trim() || '(sin título)',
+          tipo: t.workType ?? 'ASSIGNMENT',
+          publicada: t.creationTime ?? null,
+          entrega: fechaEntrega(t),
+          puntos: t.maxPoints ?? null,
+          enlace: t.alternateLink ?? null,
+          asignados: subs.length,
+          entregadas: subs.filter((s) => s.state === 'TURNED_IN' || s.state === 'RETURNED').length,
+          tarde: subs.filter((s) => s.late).length,
+          calificadas: subs.filter((s) => s.assignedGrade != null).length,
+          devueltas: subs.filter((s) => s.state === 'RETURNED').length,
+        }
+      })
+      .sort((a, b) => (b.publicada ?? '').localeCompare(a.publicada ?? ''))
+    return {
+      curso_id: courseId,
+      alumnos,
+      tareas,
+      avisos: (avisos.data.announcements ?? []).map((a) => publicacion(a.id, a.text, a.creationTime, a.alternateLink)),
+      materiales: (materiales.data.courseWorkMaterial ?? []).map((m) =>
+        publicacion(m.id, m.title || m.description, m.creationTime, m.alternateLink),
+      ),
+    }
+  } catch (e) {
+    errorGoogle(e, email)
   }
 }

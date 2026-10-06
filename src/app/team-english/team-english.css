@@ -901,6 +901,27 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
 .te-gclass-curso footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
 .te-gclass-curso footer a { text-decoration: none; }
 
+.te-gdet-resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.5rem; margin: 0; }
+.te-gdet-resumen > div { padding: 0.55rem 0.7rem; border: 2px solid var(--te-borde); border-radius: 0.9rem; background: var(--te-hoja-2); }
+.te-gdet-resumen > div[data-alerta] { background: color-mix(in oklch, var(--te-fresa) 35%, var(--te-hoja)); }
+.te-gdet-resumen dt { color: var(--te-tinta-suave); font-size: 0.72rem; font-weight: 700; }
+.te-gdet-resumen dd { margin: 0; font-family: var(--te-display); font-size: 1.3rem; font-weight: 700; }
+.te-gdet-bloque { display: grid; gap: 0.6rem; }
+.te-gdet-bloque h3 { margin: 0; font-family: var(--te-display); font-size: 1.05rem; font-weight: 700; }
+.te-gdet-tareas, .te-gdet-pubs { display: grid; gap: 0.55rem; margin: 0; padding: 0; list-style: none; }
+.te-gdet-tareas li { display: grid; gap: 0.35rem; padding: 0.7rem 0.8rem; border: 2px solid var(--te-borde); border-radius: 0.9rem; background: var(--te-hoja); }
+.te-gdet-tarea-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.4rem; }
+.te-gdet-tarea-top strong { flex: 1 1 12rem; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.te-gdet-tareas small, .te-gdet-pubs small { color: var(--te-tinta-suave); font-size: 0.78rem; font-weight: 700; }
+.te-gdet-barras { display: flex; flex-wrap: wrap; gap: 0.3rem 0.8rem; font-size: 0.82rem; color: var(--te-tinta-suave); }
+.te-gdet-barras b { color: var(--te-tinta); }
+.te-gdet-barras [data-alerta] { color: var(--te-tinta); font-weight: 700; }
+.te-gdet-barra { display: flex; height: 8px; overflow: hidden; border-radius: 999px; background: var(--te-hoja-2); }
+.te-gdet-barra [data-tipo='calificadas'] { background: var(--te-matcha); }
+.te-gdet-barra [data-tipo='pendientes'] { background: var(--te-limon); }
+.te-gdet-pubs li { padding: 0.55rem 0.75rem; border-radius: 0.8rem; background: var(--te-hoja-2); }
+.te-gdet-pubs p { margin: 0.15rem 0 0; font-size: 0.88rem; overflow-wrap: anywhere; }
+
 /* ── Portal teacher ── */
 .te-login {
   display: grid;
