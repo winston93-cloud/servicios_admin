@@ -1,5 +1,5 @@
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
-import type { TeClassroomDetalle, TeClassroomResumen, TeNivel } from '@/lib/teamEnglish/teTypes'
+import type { TeClassroomDetalle, TeClassroomResumen, TeCoMaestrasPlan, TeNivel } from '@/lib/teamEnglish/teTypes'
 
 async function leerJson(res: Response): Promise<Record<string, unknown>> {
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>
@@ -30,6 +30,20 @@ export async function teClassroomDetalle(nivel: TeNivel, maestroId: number, curs
     { headers: portalSessionFetchHeaders(), cache: 'no-store' },
   )
   return (await leerJson(res)) as unknown as TeClassroomDetalle
+}
+
+export async function teCoMaestrasPlan(nivel: TeNivel): Promise<TeCoMaestrasPlan> {
+  const res = await fetch(`/api/team-english/classroom/comaestras?nivel=${nivel}`, { headers: portalSessionFetchHeaders(), cache: 'no-store' })
+  return (await leerJson(res)) as unknown as TeCoMaestrasPlan
+}
+
+export async function teCoMaestrasAplicar(email: string, cursos: string[], quitar: boolean): Promise<{ ok: number; errores: string[] }> {
+  const res = await fetch('/api/team-english/classroom/comaestras', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...portalSessionFetchHeaders() },
+    body: JSON.stringify({ email, cursos, quitar }),
+  })
+  return (await leerJson(res)) as unknown as { ok: number; errores: string[] }
 }
 
 export async function teSubir(nivel: TeNivel, campos: Record<string, string | number | Blob | null | undefined>): Promise<void> {

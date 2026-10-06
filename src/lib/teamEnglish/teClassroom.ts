@@ -1,6 +1,14 @@
 import { google, type classroom_v1 } from 'googleapis'
 import { TeError } from './teService'
-import type { TeClassroomCurso, TeClassroomDetalle, TeClassroomPublicacion, TeClassroomResumen, TeClassroomTarea } from './teTypes'
+import type {
+  TeClassroomCurso,
+  TeClassroomDetalle,
+  TeClassroomPublicacion,
+  TeClassroomResumen,
+  TeClassroomTarea,
+  TeCoMaestrasCurso,
+  TeCoMaestrasPlan,
+} from './teTypes'
 
 /** Deben coincidir con los alcances de la delegación de dominio del service account en admin.google.com. */
 const SCOPES = [
@@ -14,11 +22,21 @@ const SCOPES = [
 
 const DOMINIO = '@winston93.edu.mx'
 
-function clienteClassroom(email: string): classroom_v1.Classroom {
+/** Super admin de Workspace: Google solo deja agregar co-maestros directamente a un administrador. */
+const ADMIN_WORKSPACE = 'sistemas.desarrollo@winston93.edu.mx'
+const SCOPES_ADMIN = ['https://www.googleapis.com/auth/classroom.rosters', 'https://www.googleapis.com/auth/classroom.courses.readonly']
+
+/** Únicas cuentas que se pueden agregar o quitar como co-maestras. */
+export const CO_MAESTRAS_PERMITIDAS = [
+  { email: 'coordinacioninglesprimaria@winston93.edu.mx', etiqueta: 'Coordinación Inglés Primaria' },
+  { email: 'sistemas.desarrollo@winston93.edu.mx', etiqueta: 'Sistemas (pruebas)' },
+] as const
+
+function clienteClassroom(email: string, scopes: string[] = SCOPES): classroom_v1.Classroom {
   const sa = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
   const key = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, '\n')
   if (!sa || !key) throw new TeError('Falta configurar la cuenta de servicio de Google.', 500)
-  const auth = new google.auth.JWT({ email: sa, key, scopes: SCOPES, subject: email })
+  const auth = new google.auth.JWT({ email: sa, key, scopes, subject: email })
   return google.classroom({ version: 'v1', auth })
 }
 
@@ -172,4 +190,78 @@ export async function detalleClassroomCurso(rawEmail: unknown, courseId: string)
   } catch (e) {
     errorGoogle(e, email)
   }
+}
+
+function coMaestraPermitida(raw: unknown): string {
+  const email = String(raw ?? '').trim().toLowerCase()
+  if (!CO_MAESTRAS_PERMITIDAS.some((c) => c.email === email)) throw new TeError('Esa cuenta no se puede agregar como co-maestra.')
+  return email
+}
+
+/** Clases activas de las teachers y si cada cuenta permitida ya es maestra en ellas. Solo lectura. */
+export async function planCoMaestras(teachers: { nombre: string; email: string | null }[]): Promise<TeCoMaestrasPlan> {
+  const cursos = new Map<string, TeCoMaestrasCurso>()
+  const errores: string[] = []
+  for (const t of teachers) {
+    if (!t.email) continue
+    try {
+      const cr = clienteClassroom(normalizarCorreoTeacher(t.email))
+      const r = await cr.courses.list({ teacherId: 'me', courseStates: ['ACTIVE'], pageSize: 50 })
+      for (const c of r.data.courses ?? []) {
+        if (!c.id || cursos.has(c.id)) continue
+        const maestros = await cr.courses.teachers.list({ courseId: c.id, pageSize: 50 })
+        const correos = new Set((maestros.data.teachers ?? []).map((m) => m.profile?.emailAddress?.toLowerCase()).filter(Boolean))
+        cursos.set(c.id, {
+          id: c.id,
+          nombre: c.name ?? '(sin nombre)',
+          seccion: c.section ?? null,
+          teacher: t.nombre,
+          ya: CO_MAESTRAS_PERMITIDAS.filter((p) => correos.has(p.email)).map((p) => p.email),
+        })
+      }
+    } catch (e) {
+      try {
+        errorGoogle(e, t.email)
+      } catch (te) {
+        errores.push(`${t.nombre}: ${te instanceof Error ? te.message : 'error'}`)
+      }
+    }
+  }
+  return {
+    cuentas: CO_MAESTRAS_PERMITIDAS.map((c) => ({ ...c })),
+    cursos: [...cursos.values()].sort((a, b) => a.teacher.localeCompare(b.teacher, 'es') || a.nombre.localeCompare(b.nombre, 'es')),
+    errores,
+  }
+}
+
+/** Escritura: agrega o quita una cuenta permitida como co-maestra en las clases indicadas. */
+export async function aplicarCoMaestra(rawEmail: unknown, cursoIds: string[], quitar: boolean): Promise<{ ok: number; errores: string[] }> {
+  const email = coMaestraPermitida(rawEmail)
+  const ids = [...new Set(cursoIds.map(String).filter((id) => /^[0-9]{1,30}$/.test(id)))].slice(0, 200)
+  if (!ids.length) throw new TeError('No hay clases seleccionadas.')
+  const cr = clienteClassroom(ADMIN_WORKSPACE, SCOPES_ADMIN)
+  let ok = 0
+  const errores: string[] = []
+  for (const courseId of ids) {
+    try {
+      if (quitar) await cr.courses.teachers.delete({ courseId, userId: email })
+      else await cr.courses.teachers.create({ courseId, requestBody: { userId: email } })
+      ok++
+    } catch (e) {
+      const err = e as { code?: number; message?: string; response?: { data?: { error?: string } } }
+      if (err.response?.data?.error === 'unauthorized_client') {
+        throw new TeError('Google aún no autoriza el permiso de escritura (classroom.rosters).', 502)
+      }
+      if (!quitar && err.code === 409) {
+        ok++
+        continue
+      }
+      if (quitar && err.code === 404) {
+        ok++
+        continue
+      }
+      errores.push(`${courseId}: ${err.message ?? 'error'}`)
+    }
+  }
+  return { ok, errores }
 }
