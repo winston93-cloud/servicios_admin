@@ -1,5 +1,5 @@
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
-import type { TeNivel } from '@/lib/teamEnglish/teTypes'
+import type { TeClassroomResumen, TeNivel } from '@/lib/teamEnglish/teTypes'
 
 async function leerJson(res: Response): Promise<Record<string, unknown>> {
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>
@@ -14,6 +14,14 @@ export async function teAccion<T = Record<string, unknown>>(nivel: TeNivel, acci
     body: JSON.stringify({ ...datos, nivel, accion }),
   })
   return (await leerJson(res)) as T
+}
+
+export async function teClassroomGoogle(nivel: TeNivel, maestroId: number): Promise<TeClassroomResumen> {
+  const res = await fetch(`/api/team-english/classroom?nivel=${nivel}&maestro_id=${maestroId}`, {
+    headers: portalSessionFetchHeaders(),
+    cache: 'no-store',
+  })
+  return (await leerJson(res)) as unknown as TeClassroomResumen
 }
 
 export async function teSubir(nivel: TeNivel, campos: Record<string, string | number | Blob | null | undefined>): Promise<void> {

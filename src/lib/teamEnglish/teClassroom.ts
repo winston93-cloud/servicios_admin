@@ -1,5 +1,6 @@
 import { google, type classroom_v1 } from 'googleapis'
 import { TeError } from './teService'
+import type { TeClassroomCurso, TeClassroomResumen } from './teTypes'
 
 /** Deben coincidir con los alcances de la delegación de dominio del service account en admin.google.com. */
 const SCOPES = [
@@ -12,23 +13,6 @@ const SCOPES = [
 ]
 
 const DOMINIO = '@winston93.edu.mx'
-
-export type TeClassroomCurso = {
-  id: string
-  nombre: string
-  seccion: string | null
-  enlace: string | null
-  alumnos: number
-  tareas: number
-  tareas_30d: number
-  avisos_30d: number
-  ultima_actividad: string | null
-}
-
-export type TeClassroomResumen = {
-  email: string
-  cursos: TeClassroomCurso[]
-}
 
 function clienteClassroom(email: string): classroom_v1.Classroom {
   const sa = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL

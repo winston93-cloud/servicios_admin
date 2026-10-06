@@ -883,6 +883,24 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
 .te-nota-btn { min-height: 40px; padding: 0.3rem 0.6rem; border: 0; border-radius: 0.7rem; background: transparent; color: var(--te-tinta-suave); font: inherit; font-size: 0.85rem; font-weight: 600; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
 .te-nota-btn:hover { background: var(--te-hoja-2); }
 
+.te-gclass { display: grid; gap: 0.9rem; margin-bottom: 1.2rem; padding: 1rem; border: 2px solid var(--te-borde); border-radius: var(--te-radio); background: color-mix(in oklch, var(--te-cielo) 35%, var(--te-hoja)); box-shadow: 4px 4px 0 var(--te-sombra); }
+.te-gclass > header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem; }
+.te-gclass > header .te-min0 { flex: 1; display: grid; min-width: 0; line-height: 1.25; }
+.te-gclass > header strong { font-family: var(--te-display); font-weight: 600; overflow-wrap: anywhere; }
+.te-gclass > header small { color: var(--te-tinta-suave); font-size: 0.8rem; font-weight: 700; overflow-wrap: anywhere; }
+.te-gclass-error { margin: 0; padding: 0.7rem 0.9rem; border: 2px solid var(--te-borde); border-radius: 1rem; background: color-mix(in oklch, var(--te-fresa) 35%, var(--te-hoja)); font-weight: 700; }
+.te-gclass-cursos { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 0.8rem; margin: 0; padding: 0; list-style: none; }
+.te-gclass-curso { display: grid; gap: 0.7rem; height: 100%; padding: 0.85rem; border: 2px solid var(--te-borde); border-radius: 1rem; background: var(--te-hoja); }
+.te-gclass-curso .te-min0 { display: grid; min-width: 0; }
+.te-gclass-curso strong { font-family: var(--te-display); font-weight: 600; overflow-wrap: anywhere; }
+.te-gclass-curso small { color: var(--te-tinta-suave); font-size: 0.8rem; font-weight: 700; }
+.te-gclass-curso dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.45rem; margin: 0; }
+.te-gclass-curso dl > div { padding: 0.4rem 0.55rem; border-radius: 0.7rem; background: var(--te-hoja-2); }
+.te-gclass-curso dt { color: var(--te-tinta-suave); font-size: 0.72rem; font-weight: 700; }
+.te-gclass-curso dd { margin: 0; font-family: var(--te-display); font-size: 1.15rem; font-weight: 700; }
+.te-gclass-curso footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.te-gclass-curso footer a { text-decoration: none; }
+
 /* ── Portal teacher ── */
 .te-login {
   display: grid;
@@ -944,6 +962,9 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
   .te-rango { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .te-semana { width: 100%; justify-content: space-between; }
   .te-semana-texto { min-width: 0; flex: 1; }
+  .te-gclass { padding: 0.85rem; }
+  .te-gclass > header .te-btn { width: 100%; min-height: 44px; }
+  .te-gclass-curso footer .te-btn { flex: 1 1 100%; min-height: 44px; justify-content: center; }
   .te-hero-emoji { width: 58px; height: 58px; font-size: 1.8rem; }
 }
 

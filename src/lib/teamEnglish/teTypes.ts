@@ -164,6 +164,24 @@ export type TeClassroom = {
   revisado_por: string | null
 }
 
+/** Clase activa de Google Classroom (lectura vía delegación de dominio). */
+export type TeClassroomCurso = {
+  id: string
+  nombre: string
+  seccion: string | null
+  enlace: string | null
+  alumnos: number
+  tareas: number
+  tareas_30d: number
+  avisos_30d: number
+  ultima_actividad: string | null
+}
+
+export type TeClassroomResumen = {
+  email: string
+  cursos: TeClassroomCurso[]
+}
+
 export type TeSnapshot = {
   nivel: TeNivel
   niveles: TeNivel[]
