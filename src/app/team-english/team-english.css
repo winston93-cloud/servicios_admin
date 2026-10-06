@@ -615,6 +615,28 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
 .te-exp-lista li > .te-min0 { flex: 1 1 12rem; }
 .te-exp-lista small { display: block; color: var(--te-tinta-suave); font-size: 0.78rem; overflow-wrap: anywhere; }
 
+.te-exp-datos > div[data-completo] { grid-column: 1 / -1; }
+.te-exp-barra { display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; font-size: 0.8rem; white-space: nowrap; }
+.te-exp-barra i { width: 90px; height: 10px; border-radius: 999px; border: 1.5px solid var(--te-borde); background: linear-gradient(90deg, var(--c, var(--te-matcha)) calc(var(--p) * 100%), var(--te-hoja) 0); }
+.te-exp-barra[data-tono='top'] { --c: var(--te-matcha); }
+.te-exp-barra[data-tono='warn'] { --c: var(--te-limon); }
+.te-exp-barra[data-tono='bad'] { --c: var(--te-fresa); }
+.te-exp-form { display: grid; gap: 1rem; }
+.te-exp-fieldset { margin: 0; padding: 0.9rem 1rem 1rem; border: 2px solid var(--te-borde); border-radius: var(--te-radio); background: var(--te-hoja); box-shadow: 3px 3px 0 var(--te-sombra); min-width: 0; }
+.te-exp-fieldset legend { padding: 0 0.5rem; font-family: var(--te-display); font-size: 1.05rem; font-weight: 700; }
+.te-exp-acciones { position: sticky; bottom: -1.2rem; z-index: 2; padding: 0.75rem 0; background: linear-gradient(transparent, var(--te-papel) 35%); }
+.te-exp-lista li.te-exp-lista-form { display: block; padding: 0; background: none; }
+.te-exp-card h4 small { font-family: inherit; font-size: 0.8rem; color: var(--te-muted); }
+.te-tabla-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 2px solid var(--te-borde); border-radius: var(--te-radio); background: var(--te-hoja); box-shadow: 3px 3px 0 var(--te-sombra); }
+.te-tabla-exp { width: 100%; min-width: 1100px; border-collapse: collapse; font-size: 0.86rem; }
+.te-tabla-exp th { position: sticky; top: 0; padding: 0.65rem 0.7rem; text-align: left; font-family: var(--te-display); font-weight: 700; font-size: 0.8rem; background: var(--te-lavanda); border-bottom: 2px solid var(--te-borde); white-space: nowrap; }
+.te-tabla-exp td { padding: 0.5rem 0.7rem; border-bottom: 1px solid color-mix(in oklch, var(--te-borde) 20%, transparent); vertical-align: middle; }
+.te-tabla-exp tbody tr { cursor: pointer; transition: background-color 0.15s; }
+.te-tabla-exp tbody tr:hover { background: var(--te-hoja-2); }
+.te-tabla-nombre { display: inline-flex; align-items: center; gap: 0.55rem; min-height: 44px; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
+.te-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.8rem; }
+.te-tabla-exp .te-exp-barra { margin: 0; }
+
 @media (max-width: 1024px) {
   .te-exp-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .te-exp-hero { grid-template-columns: minmax(0, 1fr); }
@@ -632,7 +654,9 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
   .te-exp-datos { grid-template-columns: minmax(0, 1fr); }
   .te-exp-rubros li { grid-template-columns: minmax(0, 1fr) 3.4rem; }
   .te-exp-rubros i { grid-column: 1 / -1; grid-row: 2; }
-  .te-exp-lista .te-btn, .te-exp-card > header .te-btn { min-height: var(--touch-min, 44px); }
+  .te-exp-lista .te-btn, .te-exp-card > header .te-btn, .te-exp-lista .te-icon-btn { min-height: var(--touch-min, 44px); min-width: 44px; }
+  .te-exp-acciones .te-btn { flex: 1 1 100%; }
+  .te-exp-barra i { width: 70px; }
 }
 
 .te-pestanas { display: flex; gap: 0.4rem; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }

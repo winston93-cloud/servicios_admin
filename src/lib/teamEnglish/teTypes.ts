@@ -396,3 +396,215 @@ export function normalizarPonderadores(raw: unknown): Ponderadores {
 }
 
 export const TE_MAX_ARCHIVO_MB = 15
+
+/* ── Expediente personal ── */
+
+export type TeCampo = {
+  clave: string
+  etiqueta: string
+  tipo?: 'text' | 'date' | 'email' | 'tel' | 'number' | 'textarea' | 'select'
+  opciones?: string[]
+  max?: number
+  requerido?: boolean
+  mayusculas?: boolean
+  patron?: RegExp
+  placeholder?: string
+  completo?: boolean
+}
+
+export const GRUPOS_GENERALES: { clave: string; etiqueta: string; emoji: string; campos: TeCampo[] }[] = [
+  {
+    clave: 'personal',
+    etiqueta: 'Datos personales',
+    emoji: '🪪',
+    campos: [
+      { clave: 'fecha_nacimiento', etiqueta: 'Fecha de nacimiento', tipo: 'date' },
+      { clave: 'lugar_nacimiento', etiqueta: 'Lugar de nacimiento', max: 120 },
+      { clave: 'nacionalidad', etiqueta: 'Nacionalidad', max: 60, placeholder: 'Mexicana' },
+      { clave: 'estado_civil', etiqueta: 'Estado civil', tipo: 'select', opciones: ['Soltera', 'Casada', 'Unión libre', 'Divorciada', 'Viuda', 'Otro'] },
+      { clave: 'curp', etiqueta: 'CURP', max: 18, mayusculas: true, patron: /^[A-Z][AEIOUX][A-Z]{2}\d{6}[HMX][A-Z]{5}[A-Z\d]\d$/ },
+      { clave: 'rfc', etiqueta: 'RFC', max: 13, mayusculas: true, patron: /^[A-ZÑ&]{3,4}\d{6}[A-Z\d]{3}$/ },
+      { clave: 'nss', etiqueta: 'Número de Seguro Social', max: 11, patron: /^\d{11}$/ },
+    ],
+  },
+  {
+    clave: 'contacto',
+    etiqueta: 'Contacto personal',
+    emoji: '📱',
+    campos: [
+      { clave: 'correo_personal', etiqueta: 'Correo personal', tipo: 'email', max: 120 },
+      { clave: 'celular_personal', etiqueta: 'Celular personal', tipo: 'tel', max: 20 },
+      { clave: 'telefono_casa', etiqueta: 'Teléfono de casa', tipo: 'tel', max: 20 },
+    ],
+  },
+  {
+    clave: 'domicilio',
+    etiqueta: 'Domicilio',
+    emoji: '🏠',
+    campos: [
+      { clave: 'calle', etiqueta: 'Calle y número', max: 160, completo: true },
+      { clave: 'colonia', etiqueta: 'Colonia', max: 120 },
+      { clave: 'municipio', etiqueta: 'Municipio', max: 80 },
+      { clave: 'estado', etiqueta: 'Estado', max: 60 },
+      { clave: 'cp', etiqueta: 'Código postal', max: 5, patron: /^\d{5}$/ },
+    ],
+  },
+  {
+    clave: 'laboral',
+    etiqueta: 'Datos laborales',
+    emoji: '💼',
+    campos: [
+      { clave: 'tipo_contrato', etiqueta: 'Tipo de contrato', tipo: 'select', opciones: ['Indeterminado', 'Temporal', 'Por horas', 'Honorarios', 'Periodo de prueba'] },
+      { clave: 'horas_semana', etiqueta: 'Horas por semana', tipo: 'number', max: 3 },
+      { clave: 'anios_experiencia', etiqueta: 'Años de experiencia docente', tipo: 'number', max: 2 },
+      { clave: 'materias', etiqueta: 'Materias / áreas que imparte', max: 300, completo: true },
+    ],
+  },
+  {
+    clave: 'salud',
+    etiqueta: 'Salud',
+    emoji: '🩺',
+    campos: [
+      { clave: 'tipo_sangre', etiqueta: 'Tipo de sangre', tipo: 'select', opciones: ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'] },
+      { clave: 'alergias', etiqueta: 'Alergias', tipo: 'textarea', max: 1000 },
+      { clave: 'condiciones', etiqueta: 'Condiciones médicas a considerar', tipo: 'textarea', max: 1000 },
+    ],
+  },
+  {
+    clave: 'individual',
+    etiqueta: 'Perfil individual',
+    emoji: '✨',
+    campos: [
+      { clave: 'otros_idiomas', etiqueta: 'Otros idiomas', max: 200 },
+      { clave: 'habilidades', etiqueta: 'Habilidades y fortalezas', tipo: 'textarea', max: 2000, completo: true },
+      { clave: 'areas_mejora', etiqueta: 'Áreas de oportunidad', tipo: 'textarea', max: 2000, completo: true },
+      { clave: 'metas', etiqueta: 'Metas profesionales', tipo: 'textarea', max: 2000, completo: true },
+      { clave: 'intereses', etiqueta: 'Intereses y pasatiempos', tipo: 'textarea', max: 1000, completo: true },
+    ],
+  },
+]
+
+export const CAMPOS_GENERALES: TeCampo[] = GRUPOS_GENERALES.flatMap((g) => g.campos)
+
+export type TipoItemExpediente = 'formacion' | 'certificacion' | 'experiencia' | 'contacto' | 'documento'
+
+export const TIPOS_ITEM: Record<TipoItemExpediente, { etiqueta: string; plural: string; emoji: string; archivo: boolean; campos: TeCampo[] }> = {
+  formacion: {
+    etiqueta: 'Formación académica',
+    plural: 'Formación académica',
+    emoji: '🎓',
+    archivo: true,
+    campos: [
+      { clave: 'grado', etiqueta: 'Grado', tipo: 'select', opciones: ['Bachillerato', 'Técnico', 'Licenciatura', 'Especialidad', 'Maestría', 'Doctorado', 'Diplomado', 'Otro'], requerido: true },
+      { clave: 'carrera', etiqueta: 'Carrera / programa', max: 200, requerido: true },
+      { clave: 'institucion', etiqueta: 'Institución', max: 200 },
+      { clave: 'anio', etiqueta: 'Año de término', tipo: 'number', max: 4 },
+      { clave: 'estatus', etiqueta: 'Estatus', tipo: 'select', opciones: ['Titulada', 'Pasante', 'En curso', 'Trunca'] },
+      { clave: 'cedula', etiqueta: 'Cédula profesional', max: 20 },
+    ],
+  },
+  certificacion: {
+    etiqueta: 'Certificación',
+    plural: 'Certificaciones',
+    emoji: '📜',
+    archivo: true,
+    campos: [
+      { clave: 'nombre', etiqueta: 'Certificación', max: 200, requerido: true, placeholder: 'TKT, CELTA, TOEFL…' },
+      { clave: 'emisor', etiqueta: 'Emitida por', max: 200, placeholder: 'Cambridge, ETS…' },
+      { clave: 'resultado', etiqueta: 'Nivel / puntaje', max: 60, placeholder: 'C1 · 600' },
+      { clave: 'fecha', etiqueta: 'Fecha de obtención', tipo: 'date' },
+      { clave: 'vigencia', etiqueta: 'Vigente hasta', tipo: 'date' },
+    ],
+  },
+  experiencia: {
+    etiqueta: 'Experiencia laboral',
+    plural: 'Experiencia laboral',
+    emoji: '💼',
+    archivo: false,
+    campos: [
+      { clave: 'institucion', etiqueta: 'Institución / empresa', max: 200, requerido: true },
+      { clave: 'puesto', etiqueta: 'Puesto', max: 120 },
+      { clave: 'desde', etiqueta: 'Desde', tipo: 'date' },
+      { clave: 'hasta', etiqueta: 'Hasta', tipo: 'date' },
+      { clave: 'descripcion', etiqueta: 'Funciones / logros', tipo: 'textarea', max: 2000, completo: true },
+    ],
+  },
+  contacto: {
+    etiqueta: 'Contacto de emergencia',
+    plural: 'Contactos de emergencia',
+    emoji: '🆘',
+    archivo: false,
+    campos: [
+      { clave: 'nombre', etiqueta: 'Nombre', max: 160, requerido: true },
+      { clave: 'parentesco', etiqueta: 'Parentesco', max: 60 },
+      { clave: 'telefono', etiqueta: 'Teléfono', tipo: 'tel', max: 20, requerido: true },
+      { clave: 'telefono2', etiqueta: 'Otro teléfono', tipo: 'tel', max: 20 },
+    ],
+  },
+  documento: {
+    etiqueta: 'Documento',
+    plural: 'Documentos',
+    emoji: '📁',
+    archivo: true,
+    campos: [
+      {
+        clave: 'nombre',
+        etiqueta: 'Documento',
+        tipo: 'select',
+        requerido: true,
+        opciones: ['INE', 'CURP', 'Acta de nacimiento', 'Comprobante de domicilio', 'Título', 'Cédula profesional', 'Constancia de situación fiscal', 'Certificado médico', 'Carta de antecedentes no penales', 'Contrato', 'Otro'],
+      },
+      { clave: 'notas', etiqueta: 'Notas', max: 300 },
+      { clave: 'vence', etiqueta: 'Vence (si aplica)', tipo: 'date' },
+    ],
+  },
+}
+
+export type TeExpedienteItem = {
+  id: number
+  maestro_id: number
+  tipo: TipoItemExpediente
+  datos: Record<string, string>
+  archivo_key: string | null
+  archivo_nombre: string | null
+  registrado_por: string | null
+  updated_at: string
+}
+
+export type TeExpediente = {
+  maestro_id: number
+  general: Record<string, string>
+  actualizado: string | null
+  actualizado_por: string | null
+  items: TeExpedienteItem[]
+}
+
+export type TeDirectorioFila = {
+  maestro_id: number
+  general: Record<string, string>
+  items: Partial<Record<TipoItemExpediente, number>>
+}
+
+/** % de campos generales capturados + al menos un registro de formación, contacto de emergencia y documento. */
+export function completitudExpediente(general: Record<string, string>, items: Partial<Record<TipoItemExpediente, number>>, conCv: boolean): number {
+  const llenos = CAMPOS_GENERALES.filter((c) => String(general[c.clave] ?? '').trim()).length
+  const extras = [conCv, (items.formacion ?? 0) > 0, (items.contacto ?? 0) > 0, (items.documento ?? 0) > 0].filter(Boolean).length
+  return Math.round(((llenos + extras) / (CAMPOS_GENERALES.length + 4)) * 100)
+}
+
+export function tituloItem(it: Pick<TeExpedienteItem, 'tipo' | 'datos'>): { titulo: string; detalle: string } {
+  const d = it.datos
+  const j = (...xs: (string | undefined)[]) => xs.filter((x) => x && x.trim()).join(' · ')
+  switch (it.tipo) {
+    case 'formacion':
+      return { titulo: j(d.grado, d.carrera), detalle: j(d.institucion, d.anio, d.estatus, d.cedula ? `Cédula ${d.cedula}` : '') }
+    case 'certificacion':
+      return { titulo: d.nombre ?? '', detalle: j(d.emisor, d.resultado, d.fecha ? `obtenida ${d.fecha}` : '', d.vigencia ? `vigente hasta ${d.vigencia}` : '') }
+    case 'experiencia':
+      return { titulo: j(d.puesto, d.institucion), detalle: j(d.desde && `${d.desde} – ${d.hasta || 'actual'}`, d.descripcion) }
+    case 'contacto':
+      return { titulo: j(d.nombre, d.parentesco), detalle: j(d.telefono, d.telefono2) }
+    case 'documento':
+      return { titulo: d.nombre ?? '', detalle: j(d.notas, d.vence ? `vence ${d.vence}` : '') }
+  }
+}

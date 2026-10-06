@@ -8,6 +8,13 @@ import {
   TE_MAX_ARCHIVO_MB,
   TIPOS_ANTECEDENTE,
   TIPOS_INCIDENCIA,
+  CAMPOS_GENERALES,
+  TIPOS_ITEM,
+  type TeCampo,
+  type TeDirectorioFila,
+  type TeExpediente,
+  type TeExpedienteItem,
+  type TipoItemExpediente,
   gradosNivel,
   hoyMx,
   inicioCicloEscolar,
@@ -363,7 +370,7 @@ const MIME_PERMITIDOS = [
   'image/webp',
 ]
 
-export type TipoArchivo = 'cv' | 'foto' | 'antecedente' | 'planeacion' | 'constancia'
+export type TipoArchivo = 'cv' | 'foto' | 'antecedente' | 'planeacion' | 'constancia' | 'expediente'
 
 async function subir(tipo: TipoArchivo, nivel: TeNivel, maestroId: number, file: File): Promise<{ key: string; nombre: string }> {
   if (!file || typeof file.arrayBuffer !== 'function' || !file.size) throw new TeError('Selecciona un archivo.')
@@ -394,7 +401,7 @@ export async function descargar(key: string): Promise<{ bytes: Uint8Array; tipo:
 
 /** El nivel va en la ruta del archivo: `{tipo}/{nivel}/{maestro}/…`. */
 export function nivelDeKey(key: string): { nivel: number; maestroId: number; tipo: string } | null {
-  const m = /^(cv|foto|antecedente|planeacion|constancia)\/(\d)\/(\d+)\//.exec(key)
+  const m = /^(cv|foto|antecedente|planeacion|constancia|expediente)\/(\d)\/(\d+)\//.exec(key)
   return m ? { tipo: m[1], nivel: Number(m[2]), maestroId: Number(m[3]) } : null
 }
 
@@ -518,6 +525,27 @@ export async function subirArchivoDirectora(nivel: TeNivel, form: FormData, quie
     await borrarArchivo(prev?.archivo_key as string)
     return
   }
+  if (tipo === 'expediente') {
+    const itemId = entero(form.get('item_id'), 'El registro')
+    const { data: prev, error: e1 } = await db()
+      .from('te_expediente_item')
+      .select('tipo, archivo_key')
+      .eq('id', itemId)
+      .eq('maestro_id', maestroId)
+      .eq('nivel', nivel)
+      .maybeSingle()
+    fail(e1, 'Expediente')
+    if (!prev) throw new TeError('Registro no encontrado.', 404)
+    if (!TIPOS_ITEM[prev.tipo as TipoItemExpediente]?.archivo) throw new TeError('Ese registro no lleva archivo.')
+    const subido = await subir('expediente', nivel, maestroId, file)
+    const { error } = await db()
+      .from('te_expediente_item')
+      .update({ archivo_key: subido.key, archivo_nombre: subido.nombre, updated_at: new Date().toISOString() })
+      .eq('id', itemId)
+    fail(error, 'Expediente')
+    await borrarArchivo(prev.archivo_key as string)
+    return
+  }
   if (tipo === 'constancia') {
     const capId = entero(form.get('capacitacion_id'), 'La capacitación')
     const subido = await subir('constancia', nivel, maestroId, file)
@@ -537,6 +565,84 @@ export async function subirArchivoDirectora(nivel: TeNivel, form: FormData, quie
     return
   }
   throw new TeError('Tipo de archivo no válido.')
+}
+
+/* ── Expediente personal ── */
+
+function validarCampos(raw: unknown, campos: TeCampo[]): Record<string, string> {
+  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const out: Record<string, string> = {}
+  for (const c of campos) {
+    let v = String(o[c.clave] ?? '').trim()
+    if (!v) {
+      if (c.requerido) throw new TeError(`${c.etiqueta} es obligatorio.`)
+      continue
+    }
+    if (c.mayusculas) v = v.toUpperCase()
+    if (c.tipo === 'date') v = fecha(v, c.etiqueta)!
+    else if (c.tipo === 'number') {
+      if (!/^\d+$/.test(v) || v.length > (c.max ?? 6)) throw new TeError(`${c.etiqueta} debe ser un número.`)
+    } else if (c.tipo === 'select') {
+      if (!c.opciones?.includes(v)) throw new TeError(`${c.etiqueta}: opción no válida.`)
+    } else {
+      if (v.length > (c.max ?? 500)) throw new TeError(`${c.etiqueta}: máximo ${c.max ?? 500} caracteres.`)
+      if (c.tipo === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) throw new TeError(`${c.etiqueta} no es válido.`)
+      if (c.tipo === 'tel' && !/^[\d\s()+-]{7,20}$/.test(v)) throw new TeError(`${c.etiqueta} no es válido.`)
+    }
+    if (c.patron && !c.patron.test(v)) throw new TeError(`${c.etiqueta} no tiene el formato correcto.`)
+    out[c.clave] = v
+  }
+  return out
+}
+
+function filaItem(r: Record<string, unknown>): TeExpedienteItem {
+  return {
+    id: Number(r.id),
+    maestro_id: Number(r.maestro_id),
+    tipo: r.tipo as TipoItemExpediente,
+    datos: (r.datos ?? {}) as Record<string, string>,
+    archivo_key: (r.archivo_key as string) ?? null,
+    archivo_nombre: (r.archivo_nombre as string) ?? null,
+    registrado_por: (r.registrado_por as string) ?? null,
+    updated_at: String(r.updated_at ?? ''),
+  }
+}
+
+async function expediente(nivel: TeNivel, maestroId: number): Promise<TeExpediente> {
+  const [gen, items] = await Promise.all([
+    db().from('te_expediente').select('datos, updated_at, updated_by').eq('maestro_id', maestroId).eq('nivel', nivel).maybeSingle(),
+    db().from('te_expediente_item').select('*').eq('maestro_id', maestroId).eq('nivel', nivel).order('created_at'),
+  ])
+  fail(gen.error, 'Expediente')
+  fail(items.error, 'Expediente')
+  return {
+    maestro_id: maestroId,
+    general: (gen.data?.datos ?? {}) as Record<string, string>,
+    actualizado: (gen.data?.updated_at as string) ?? null,
+    actualizado_por: (gen.data?.updated_by as string) ?? null,
+    items: ((items.data ?? []) as Record<string, unknown>[]).map(filaItem),
+  }
+}
+
+async function directorio(nivel: TeNivel): Promise<TeDirectorioFila[]> {
+  const [gen, items] = await Promise.all([
+    db().from('te_expediente').select('maestro_id, datos').eq('nivel', nivel),
+    db().from('te_expediente_item').select('maestro_id, tipo').eq('nivel', nivel),
+  ])
+  fail(gen.error, 'Expedientes')
+  fail(items.error, 'Expedientes')
+  const filas = new Map<number, TeDirectorioFila>()
+  const fila = (id: number) => {
+    if (!filas.has(id)) filas.set(id, { maestro_id: id, general: {}, items: {} })
+    return filas.get(id)!
+  }
+  for (const g of (gen.data ?? []) as Record<string, unknown>[]) fila(Number(g.maestro_id)).general = (g.datos ?? {}) as Record<string, string>
+  for (const it of (items.data ?? []) as Record<string, unknown>[]) {
+    const f = fila(Number(it.maestro_id))
+    const t = it.tipo as TipoItemExpediente
+    f.items[t] = (f.items[t] ?? 0) + 1
+  }
+  return [...filas.values()]
 }
 
 /* ── Acciones JSON de la directora ── */
@@ -777,6 +883,75 @@ export async function accion(nivel: TeNivel, body: Record<string, unknown>, quie
     }
     case 'candidatos':
       return { candidatos: await candidatos(nivel) }
+    case 'expediente': {
+      const id = entero(body.maestro_id, 'La teacher')
+      await asegurarEnEquipo(nivel, id)
+      return { expediente: await expediente(nivel, id) }
+    }
+    case 'directorio':
+      return { directorio: await directorio(nivel) }
+    case 'guardar_expediente': {
+      const id = entero(body.maestro_id, 'La teacher')
+      await asegurarEnEquipo(nivel, id)
+      const datos = validarCampos(body.datos, CAMPOS_GENERALES)
+      const { error } = await db()
+        .from('te_expediente')
+        .upsert([{ maestro_id: id, nivel, datos, updated_by: quien, updated_at: ahora }], { onConflict: 'maestro_id' })
+      fail(error, 'Expediente')
+      return { ok: true }
+    }
+    case 'borrar_expediente': {
+      const id = entero(body.maestro_id, 'La teacher')
+      const { error } = await db().from('te_expediente').delete().eq('maestro_id', id).eq('nivel', nivel)
+      fail(error, 'Expediente')
+      return { ok: true }
+    }
+    case 'expediente_item': {
+      const maestroId = entero(body.maestro_id, 'La teacher')
+      await asegurarEnEquipo(nivel, maestroId)
+      const tipo = String(body.tipo ?? '') as TipoItemExpediente
+      const def = TIPOS_ITEM[tipo]
+      if (!def) throw new TeError('Tipo de registro no válido.')
+      const datos = validarCampos(body.datos, def.campos)
+      if (body.id) {
+        const itemId = entero(body.id, 'El registro')
+        const { data, error } = await db()
+          .from('te_expediente_item')
+          .update({ datos, updated_at: ahora, registrado_por: quien })
+          .eq('id', itemId)
+          .eq('maestro_id', maestroId)
+          .eq('nivel', nivel)
+          .eq('tipo', tipo)
+          .select('id')
+        fail(error, 'Expediente')
+        if (!data?.length) throw new TeError('Registro no encontrado.', 404)
+        return { id: itemId }
+      }
+      const { data, error } = await db()
+        .from('te_expediente_item')
+        .insert([{ maestro_id: maestroId, nivel, tipo, datos, registrado_por: quien }])
+        .select('id')
+        .single()
+      fail(error, 'Expediente')
+      return { id: Number(data?.id) }
+    }
+    case 'eliminar_expediente_item': {
+      const itemId = entero(body.id, 'El registro')
+      const { data } = await db().from('te_expediente_item').select('archivo_key').eq('id', itemId).eq('nivel', nivel).maybeSingle()
+      const { error } = await db().from('te_expediente_item').delete().eq('id', itemId).eq('nivel', nivel)
+      fail(error, 'Expediente')
+      await borrarArchivo(data?.archivo_key as string)
+      return { ok: true }
+    }
+    case 'quitar_archivo_item': {
+      const itemId = entero(body.id, 'El registro')
+      const { data } = await db().from('te_expediente_item').select('archivo_key').eq('id', itemId).eq('nivel', nivel).maybeSingle()
+      if (!data) throw new TeError('Registro no encontrado.', 404)
+      const { error } = await db().from('te_expediente_item').update({ archivo_key: null, archivo_nombre: null, updated_at: ahora }).eq('id', itemId)
+      fail(error, 'Expediente')
+      await borrarArchivo(data.archivo_key as string)
+      return { ok: true }
+    }
     default:
       throw new TeError('Acción no válida.')
   }

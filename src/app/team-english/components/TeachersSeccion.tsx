@@ -14,21 +14,26 @@ import {
   fechaLarga,
   nivelDesempeno,
   textoSemana,
+  completitudExpediente,
   type TeAntecedente,
+  type TeExpediente,
+  type TipoItemExpediente,
   type TeTeacher,
   type TipoAntecedente,
 } from '@/lib/teamEnglish/teTypes'
 import type { SeccionProps } from '../seccionTipos'
 import { teAbrirArchivo, teAccion, teSubir } from '../teApi'
 import { ACEPTAR_DOCS, Avatar, Campo, Hoja, SelectorArchivo, Vacio } from './ui'
+import { FormGeneral, GeneralesLectura, ItemsLectura, ListaItems, TablaGeneral } from './ExpedienteForms'
 
-type Pestana = 'expediente' | 'perfil' | 'antecedentes'
+type Pestana = 'expediente' | 'general' | 'individual' | 'perfil' | 'antecedentes'
 
 export default function TeachersSeccion({ snap, recargar, avisar }: SeccionProps) {
   const [busqueda, setBusqueda] = useState('')
   const [verInactivas, setVerInactivas] = useState(false)
   const [abiertaId, setAbiertaId] = useState<number | null>(null)
   const [agregando, setAgregando] = useState(false)
+  const [vista, setVista] = useState<'tarjetas' | 'tabla'>('tarjetas')
 
   const lista = useMemo(() => {
     const q = busqueda.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -57,12 +62,19 @@ export default function TeachersSeccion({ snap, recargar, avisar }: SeccionProps
             Ver inactivas ({inactivas})
           </label>
         ) : null}
+        <div className="te-filtros" role="radiogroup" aria-label="Vista">
+          {([['tarjetas', '🗂️ Tarjetas'], ['tabla', '📇 Información general']] as const).map(([id, txt]) => (
+            <button key={id} type="button" role="radio" aria-checked={vista === id} data-activo={vista === id || undefined} onClick={() => setVista(id)}>{txt}</button>
+          ))}
+        </div>
         <button type="button" className="te-btn te-btn-primary" onClick={() => setAgregando(true)}>
           <Plus size={16} aria-hidden /> Agregar teacher
         </button>
       </div>
 
-      {!lista.length ? (
+      {vista === 'tabla' ? (
+        <TablaGeneral snap={snap} lista={lista} avisar={avisar} onAbrir={setAbiertaId} />
+      ) : !lista.length ? (
         <Vacio emoji="🔍" titulo="No encontré teachers">
           Prueba con otro nombre o grupo. Las teachers con asignación «Teacher» en el catálogo de maestros aparecen solas.
         </Vacio>
@@ -156,18 +168,37 @@ function AgregarTeacher({ abierta, snap, onCerrar, recargar, avisar }: SeccionPr
 
 function PerfilTeacher({ teacher, snap, onCerrar, recargar, avisar }: SeccionProps & { teacher: TeTeacher | null; onCerrar: () => void }) {
   const [pestana, setPestana] = useState<Pestana>('expediente')
+  const [exp, setExp] = useState<TeExpediente | null>(null)
+  const maestroId = teacher?.maestro_id ?? null
+
+  const cargarExp = useCallback(async () => {
+    if (maestroId == null) return
+    try {
+      const r = await teAccion<{ expediente: TeExpediente }>(snap.nivel, 'expediente', { maestro_id: maestroId })
+      setExp(r.expediente)
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : 'Error', 'error')
+    }
+  }, [snap.nivel, maestroId, avisar])
+
   useEffect(() => {
-    if (teacher) setPestana('expediente')
-  }, [teacher?.maestro_id]) // eslint-disable-line react-hooks/exhaustive-deps
+    if (maestroId == null) return
+    setPestana('expediente')
+    setExp(null)
+    void cargarExp()
+  }, [maestroId, cargarExp])
 
   if (!teacher) return null
+  const base = { teacher, snap, avisar, recargarExp: cargarExp }
   return (
     <Hoja abierta ancho titulo={`Expediente · ${teacher.nombre}`} emoji="🗂️" onCerrar={onCerrar}>
-      <CabezaExpediente teacher={teacher} snap={snap} recargar={recargar} avisar={avisar} />
+      <CabezaExpediente teacher={teacher} snap={snap} recargar={recargar} avisar={avisar} exp={exp} />
       <div className="te-pestanas" role="tablist">
         {([
           ['expediente', '📋 Expediente'],
-          ['perfil', '✏️ Editar datos'],
+          ['general', '🧾 Datos generales'],
+          ['individual', '🎓 Formación, contactos y documentos'],
+          ['perfil', '✏️ Perfil Team English'],
           ['antecedentes', `🗂️ Historial (${teacher.antecedentes})`],
         ] as [Pestana, string][]).map(([id, txt]) => (
           <button key={id} type="button" role="tab" aria-selected={pestana === id} data-activo={pestana === id || undefined} onClick={() => setPestana(id)}>
@@ -175,7 +206,20 @@ function PerfilTeacher({ teacher, snap, onCerrar, recargar, avisar }: SeccionPro
           </button>
         ))}
       </div>
-      {pestana === 'expediente' ? <Expediente teacher={teacher} snap={snap} avisar={avisar} onEditar={() => setPestana('perfil')} /> : null}
+      {(pestana === 'expediente' || pestana === 'general' || pestana === 'individual') && !exp ? (
+        <p className="te-cargando"><Loader2 size={18} className="te-spin" aria-hidden /> Cargando expediente…</p>
+      ) : null}
+      {pestana === 'expediente' && exp ? (
+        <Expediente teacher={teacher} snap={snap} avisar={avisar} exp={exp} onEditar={setPestana} />
+      ) : null}
+      {pestana === 'general' && exp ? <FormGeneral {...base} exp={exp} /> : null}
+      {pestana === 'individual' && exp ? (
+        <div className="te-exp-grid">
+          {(['formacion', 'certificacion', 'experiencia', 'contacto', 'documento'] as TipoItemExpediente[]).map((t) => (
+            <ListaItems key={t} tipo={t} {...base} exp={exp} />
+          ))}
+        </div>
+      ) : null}
       {pestana === 'perfil' ? <FormPerfil teacher={teacher} snap={snap} recargar={recargar} avisar={avisar} /> : null}
       {pestana === 'antecedentes' ? <Antecedentes teacher={teacher} snap={snap} recargar={recargar} avisar={avisar} /> : null}
     </Hoja>
@@ -197,7 +241,7 @@ function pct(n: number, d: number): string {
   return d ? `${Math.round((n / d) * 100)}%` : '—'
 }
 
-function CabezaExpediente({ teacher, snap, recargar, avisar }: SeccionProps & { teacher: TeTeacher }) {
+function CabezaExpediente({ teacher, snap, recargar, avisar, exp }: SeccionProps & { teacher: TeTeacher; exp: TeExpediente | null }) {
   const reloj = snap.reloj.vinculos.find((v) => v.maestro_id === teacher.maestro_id)
   const ficha = reloj?.ficha
   const d = calcularDesempeno(teacher.maestro_id, snap.incidencias, snap.inicio_ciclo, snap.hoy, snap.ponderadores)
@@ -208,6 +252,9 @@ function CabezaExpediente({ teacher, snap, recargar, avisar }: SeccionProps & { 
   const ingreso = teacher.fecha_ingreso ?? null
   const ant = antiguedad(ingreso, snap.hoy)
   const llega = ficha?.minutos_vs_entrada
+  const conteoItems: Partial<Record<TipoItemExpediente, number>> = {}
+  for (const it of exp?.items ?? []) conteoItems[it.tipo] = (conteoItems[it.tipo] ?? 0) + 1
+  const completo = exp ? completitudExpediente(exp.general, conteoItems, !!teacher.cv_key) : null
 
   const kpis: { e: string; k: string; v: string; s?: string; tono?: string }[] = [
     { e: nd.emoji, k: 'Desempeño del ciclo', v: `${d.total.toFixed(1)}%`, s: nd.etiqueta, tono: nd.tono },
@@ -253,6 +300,12 @@ function CabezaExpediente({ teacher, snap, recargar, avisar }: SeccionProps & { 
             {ficha?.horario ? <span>🕐 {ficha.horario}</span> : null}
             {ingreso ? <span>📅 Ingresó {fechaLarga(ingreso)}{ant ? ` (${ant})` : ''}</span> : null}
           </p>
+          {completo != null ? (
+            <span className="te-exp-barra" data-tono={completo >= 80 ? 'top' : completo >= 50 ? 'warn' : 'bad'} title="Datos generales, formación, contacto de emergencia, documentos y C.V.">
+              <i style={{ ['--p' as string]: completo / 100 }} aria-hidden />
+              <b>Expediente {completo}% completo</b>
+            </span>
+          ) : null}
         </div>
       </div>
       <BloqueCV teacher={teacher} snap={snap} recargar={recargar} avisar={avisar} />
@@ -330,7 +383,7 @@ function Dato({ k, v }: { k: string; v: string | null | undefined }) {
   )
 }
 
-function Expediente({ teacher, snap, avisar, onEditar }: { teacher: TeTeacher; snap: SeccionProps['snap']; avisar: SeccionProps['avisar']; onEditar: () => void }) {
+function Expediente({ teacher, snap, avisar, exp, onEditar }: { teacher: TeTeacher; snap: SeccionProps['snap']; avisar: SeccionProps['avisar']; exp: TeExpediente; onEditar: (p: Pestana) => void }) {
   const reloj = snap.reloj.vinculos.find((v) => v.maestro_id === teacher.maestro_id)
   const ficha = reloj?.ficha
   const d = calcularDesempeno(teacher.maestro_id, snap.incidencias, snap.inicio_ciclo, snap.hoy, snap.ponderadores)
@@ -346,7 +399,7 @@ function Expediente({ teacher, snap, avisar, onEditar }: { teacher: TeTeacher; s
   return (
     <div className="te-exp-grid">
       <section className="te-exp-card">
-        <header><h4>🪪 Datos personales y laborales</h4><button type="button" className="te-btn te-btn-ghost te-btn-sm" onClick={onEditar}>✏️ Editar</button></header>
+        <header><h4>🏫 Datos en la escuela</h4><button type="button" className="te-btn te-btn-ghost te-btn-sm" onClick={() => onEditar('perfil')}>✏️ Editar</button></header>
         <dl className="te-exp-datos">
           <Dato k="Nombre completo" v={teacher.nombre} />
           <Dato k="Correo institucional" v={teacher.email} />
@@ -365,7 +418,7 @@ function Expediente({ teacher, snap, avisar, onEditar }: { teacher: TeTeacher; s
       </section>
 
       <section className="te-exp-card">
-        <header><h4>🎓 Formación y perfil profesional</h4></header>
+        <header><h4>📝 Resumen profesional y notas</h4></header>
         <dl className="te-exp-datos te-exp-datos-1">
           <Dato k="Nivel de inglés" v={teacher.nivel_ingles} />
           <Dato k="Formación académica" v={teacher.formacion} />
@@ -376,6 +429,9 @@ function Expediente({ teacher, snap, avisar, onEditar }: { teacher: TeTeacher; s
           <p>{teacher.notas || 'Sin notas todavía.'}</p>
         </div>
       </section>
+
+      <GeneralesLectura exp={exp} onEditar={() => onEditar('general')} />
+      <ItemsLectura exp={exp} avisar={avisar} onEditar={() => onEditar('individual')} />
 
       <section className="te-exp-card">
         <header><h4>📈 Desempeño del ciclo</h4><small>desde {fechaLarga(snap.inicio_ciclo)}</small></header>

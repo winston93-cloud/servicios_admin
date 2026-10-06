@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { sumarDias, textoSemana } from '@/lib/teamEnglish/teTypes'
 import { teArchivoUrl } from '../teApi'
@@ -55,7 +56,9 @@ export function Hoja({ abierta, titulo, emoji, onCerrar, children, pie, ancho }:
     }
   }, [abierta, onCerrar])
   if (!abierta) return null
-  return (
+  /** Fuera de las secciones animadas: un ancestro con transform encierra al position: fixed. */
+  const destino = typeof document !== 'undefined' ? document.querySelector('.te-page') : null
+  const hoja = (
     <div className="te-hoja-fondo" data-ancho={ancho || undefined} onMouseDown={(e) => e.target === e.currentTarget && onCerrar()}>
       <div className="te-hoja" data-ancho={ancho || undefined} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1} ref={ref}>
         <header className="te-hoja-head">
@@ -71,6 +74,7 @@ export function Hoja({ abierta, titulo, emoji, onCerrar, children, pie, ancho }:
       </div>
     </div>
   )
+  return destino ? createPortal(hoja, destino) : hoja
 }
 
 export function Campo({ etiqueta, children, completo, ayuda }: { etiqueta: string; children: ReactNode; completo?: boolean; ayuda?: string }) {
