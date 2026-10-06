@@ -58,6 +58,8 @@ export interface AlumnoFamiliaWinston {
   planMeses: 1 | 2
   alta: string | null
   sexo: 'H' | 'M' | null
+  /** 2026-10-06 — alumno_nuevo_ingreso = 1 en su ciclo más reciente. */
+  nuevoIngreso: boolean
 }
 
 export interface ComprobanteFamiliaWinston {
@@ -225,7 +227,7 @@ async function cargarAlumno(
   const { data, error } = await db
     .from('alumno')
     .select(
-      'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_status, alumno_ciclo_escolar, alumno_alta, mes'
+      'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_status, alumno_ciclo_escolar, alumno_alta, alumno_nuevo_ingreso, mes'
     )
     .eq('alumno_ref', ref)
     .order('alumno_ciclo_escolar', { ascending: false })
@@ -257,7 +259,34 @@ async function cargarAlumno(
     planMeses: Number(a.mes) === 2 ? 2 : 1,
     alta: a.alumno_alta ? String(a.alumno_alta).slice(0, 10) : null,
     sexo: sexoRaw === 'H' || sexoRaw === 'M' ? sexoRaw : null,
+    nuevoIngreso: Number(a.alumno_nuevo_ingreso) === 1,
   }
+}
+
+/** Días máximos desde el alta para contar como alumno nuevo cuando no hay otra señal. */
+const DIAS_ALTA_NUEVO = 400
+
+/**
+ * 2026-10-06 — ¿El recomendado entró nuevo? Sí si tiene la marca de nuevo ingreso, si su primera
+ * inscripción (concepto 13) es de este ciclo o del anterior (los que entran a medio ciclo), o si se
+ * dio de alta hace menos de DIAS_ALTA_NUEVO días. Evita recomendar a alumnos de años anteriores.
+ */
+function entroComoNuevo(
+  alumno: AlumnoFamiliaWinston,
+  pagos: FilaPago[]
+): { nuevo: boolean; desde: string | null } {
+  const inscripciones = pagos
+    .filter((p) => pagoVigente(p))
+    .map((p) => ({ p, ref: parsearReferenciaPago(p.pago_referencia) }))
+    .filter((x) => !!x.ref && normalizarConceptoNo(x.ref.conceptoNo) === CONCEPTO_INSCRIPCION)
+    .sort((a, b) => String(a.p.pago_fecha ?? '').localeCompare(String(b.p.pago_fecha ?? '')))
+  const primera = inscripciones[0]
+  const desde = alumno.alta ?? (primera?.p.pago_fecha ? String(primera.p.pago_fecha).slice(0, 10) : null)
+  const nuevo =
+    alumno.nuevoIngreso ||
+    (!!primera?.ref && primera.ref.cicloEscolar >= alumno.ciclo - 1) ||
+    (!!alumno.alta && diasEntre(alumno.alta, hoyMx()) <= DIAS_ALTA_NUEVO)
+  return { nuevo, desde }
 }
 
 async function cargarPagos(db: AppDatabaseClient, alumnoId: number): Promise<FilaPago[]> {
@@ -849,6 +878,18 @@ export async function revisarFamiliaWinston(opts: {
         ...pagosClaveReferido(pagosReferido, referido.ciclo),
         estudiaDesde: null,
         diasEstudiando: null,
+      }
+
+      // 2026-10-06 — Solo cuenta un alumno que entró nuevo (no uno inscrito de años anteriores).
+      const ingreso = entroComoNuevo(referido, pagosReferido)
+      if (!ingreso.nuevo) {
+        checks.push({
+          id: 'nuevo-ingreso',
+          nivel: 'error',
+          texto: `${referido.nombre} no es alumno de nuevo ingreso: está en la escuela desde ${
+            ingreso.desde ? `el ${fechaCorta(ingreso.desde)}` : 'ciclos anteriores'
+          }. Familia Winston es solo por alumnos que entran nuevos.`,
+        })
       }
       if (primeraColegiaturaPagada(pagosReferido, referido.ciclo)) {
         checks.push({ id: 'pago-referido', nivel: 'ok', texto: 'Ya pagó su primera colegiatura del ciclo.' })
