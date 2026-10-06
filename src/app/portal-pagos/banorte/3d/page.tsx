@@ -5,7 +5,7 @@ import {
   urlRespuestaBanorteComercio,
   urlPortalPagosAlumno,
 } from '@/lib/banorteConfig'
-import { guardarMontoPendienteBanorte, normalizarReferenciaBanorte } from '@/lib/banortePagoService'
+import { guardarMontoPendienteBanorte, normalizarReferenciaBanorte, pagosMismoConcepto } from '@/lib/banortePagoService'
 import { esEstatusBloqueo } from '@/lib/alumnoStatus'
 import { evaluarBloqueoCupoPortal } from '@/lib/cupoInscripcionPrimaria'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
@@ -153,6 +153,48 @@ export default async function Banorte3dPage({ searchParams }: PageProps) {
             )
           }
         }
+      }
+    }
+
+    if (param(q.confirmar) !== '1') {
+      const previos = await pagosMismoConcepto(supabase, referencia)
+      if (previos.length) {
+        const otra = new URLSearchParams()
+        for (const [k, v] of Object.entries(q)) if (typeof v === 'string') otra.set(k, v)
+        otra.set('confirmar', '1')
+        const fmt = (iso: string) =>
+          iso ? new Date(iso).toLocaleString('es-MX', { timeZone: 'America/Monterrey', dateStyle: 'long', timeStyle: 'short' }) : 'fecha no disponible'
+        return (
+          <div className="banorte-body">
+            <link rel="stylesheet" href="/banorte-flow.css" />
+            <main className="banorte-main">
+              <section className="banorte-card banorte-result banorte-result--error">
+                <h1 className="banorte-result-title">Este concepto ya tiene un pago</h1>
+                <p className="banorte-result-msg">
+                  Ya registramos {previos.length === 1 ? 'un pago' : `${previos.length} pagos`} de «{concepto}»:
+                </p>
+                <ul className="banorte-result-msg">
+                  {previos.map((p) => (
+                    <li key={p.referencia}>
+                      ${p.importe.toFixed(2)} · {fmt(p.fecha)} · referencia <code>{p.referencia}</code>
+                    </li>
+                  ))}
+                </ul>
+                <p className="banorte-result-msg">
+                  Si su pago anterior mostró un error, revise primero su historial: es probable que sí se haya cobrado.
+                </p>
+                <div className="banorte-actions">
+                  <Link href={urlPortalPagosAlumno()} className="banorte-btn banorte-btn--primary">
+                    Ver mi historial
+                  </Link>
+                  <a href={`?${otra.toString()}`} className="banorte-btn banorte-btn--ghost">
+                    Sí, quiero pagar otra vez
+                  </a>
+                </div>
+              </section>
+            </main>
+          </div>
+        )
       }
     }
 

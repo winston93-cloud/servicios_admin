@@ -213,6 +213,25 @@ function scriptPersistenciaTarjeta(referencia: string): string {
   load();
 })();
 (function () {
+  var form = document.getElementById("banorte-pay-form");
+  if (!form) return;
+  form.addEventListener("submit", function (ev) {
+    if (form.getAttribute("data-enviando") === "1") {
+      ev.preventDefault();
+      return;
+    }
+    form.setAttribute("data-enviando", "1");
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn) {
+      btn.textContent = "Procesando pago… no cierre ni recargue esta página";
+      setTimeout(function () { btn.disabled = true; }, 0);
+    }
+  });
+  window.addEventListener("pageshow", function (ev) {
+    if (ev.persisted) window.location.reload();
+  });
+})();
+(function () {
   var input = document.getElementById("CUSTOMER_REF1");
   var count = document.getElementById("char-count");
   if (!input || !count) return;

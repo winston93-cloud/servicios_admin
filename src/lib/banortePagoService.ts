@@ -63,6 +63,56 @@ async function obtenerMaxPagoId(supabase: AppDatabaseClient): Promise<number> {
   return Number(data.pago_id)
 }
 
+/**
+ * Espera a que aparezca el pago de una referencia (el primer envío puede seguir timbrando).
+ * Devuelve el estatus de factura del pago o null si no apareció a tiempo.
+ */
+export async function esperarPagoRegistrado(
+  supabase: AppDatabaseClient,
+  referencia: string,
+  maxMs = 14_000
+): Promise<{ facturado: boolean } | null> {
+  const ref = normalizarReferenciaBanorte(referencia)
+  const limite = Date.now() + maxMs
+  for (;;) {
+    const { data } = await supabase
+      .from('pago_detalle')
+      .select('facturo')
+      .eq('pago_referencia', ref)
+      .limit(1)
+      .maybeSingle()
+    if (data) return { facturado: String(data.facturo ?? '').toUpperCase() === 'SI' }
+    if (Date.now() >= limite) return null
+    await new Promise((r) => setTimeout(r, 1500))
+  }
+}
+
+/** Pagos vigentes del mismo alumno + concepto + ciclo (primeros 9 dígitos de la referencia). */
+export async function pagosMismoConcepto(
+  supabase: AppDatabaseClient,
+  referencia: string
+): Promise<{ referencia: string; fecha: string; importe: number }[]> {
+  const ref = normalizarReferenciaBanorte(referencia)
+  if (ref.length !== 12) return []
+  const { data, error } = await supabase
+    .from('pago_detalle')
+    .select('pago_referencia, pago_registro, pago_fecha, pago_importe, pago_cancelado')
+    .gte('pago_referencia', `${ref.slice(0, 9)}000`)
+    .lte('pago_referencia', `${ref.slice(0, 9)}999`)
+    .neq('pago_referencia', ref)
+  if (error) {
+    console.error('pagosMismoConcepto:', error.message)
+    return []
+  }
+  return ((data ?? []) as Record<string, unknown>[])
+    .filter((p) => Number(p.pago_cancelado ?? 0) === 0)
+    .map((p) => ({
+      referencia: String(p.pago_referencia),
+      fecha: String(p.pago_registro ?? p.pago_fecha ?? ''),
+      importe: Number(p.pago_importe ?? 0),
+    }))
+}
+
 async function existePagoPorReferencia(
   supabase: AppDatabaseClient,
   referencia: string

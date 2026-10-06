@@ -3,6 +3,7 @@ import { htmlFormularioComercioElectronico } from '@/lib/banorteComercioFormHtml
 import { htmlResultadoBanorte, respuestaHtml } from '@/lib/banorteHtml'
 import { obtenerDetalleErrorPayw2 } from '@/lib/banortePaywErrors'
 import {
+  esperarPagoRegistrado,
   normalizarReferenciaBanorte,
   registrarIntentoPaywFallido,
   registrarPagoBanorteExitoso,
@@ -13,6 +14,7 @@ import { firmarRutasFactura } from '@/lib/cfdi/facturaEnlaceFirmado'
 import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 function str(form: FormData, key: string): string {
   const v = form.get(key)
@@ -117,6 +119,42 @@ export async function POST(request: Request) {
       payw,
       detalle
     )
+
+    // PAYW-3039: la referencia ya se usó, casi siempre porque el formulario se envió dos veces y el
+    // primer envío sí se cobró. Nunca mostrar «error» en ese caso: el papá vuelve a pagar con otra referencia.
+    if (payw.paywCode === 'PAYW-3039') {
+      const previo = await esperarPagoRegistrado(supabase, referencia)
+      if (previo) {
+        const rutas = firmarRutasFactura(
+          rutasFacturaDesdeReferencia(
+            referencia,
+            referencia.slice(0, 5),
+            referencia.slice(5, 7),
+            Number(referencia.slice(7, 9)) || 0
+          )
+        )
+        return respuestaHtml(
+          htmlResultadoBanorte({
+            exito: true,
+            titulo: 'Pago ya registrado',
+            mensaje: 'Su pago con esta referencia ya fue aprobado y registrado. No es necesario volver a pagar.',
+            referencia,
+            facturaPdf: previo.facturado ? rutas.pdf : null,
+            facturaXml: previo.facturado ? rutas.xml : null,
+            facturaPendiente: previo.facturado ? null : 'La factura electrónica aparecerá en su historial en unos minutos.',
+          })
+        )
+      }
+      return respuestaHtml(
+        htmlResultadoBanorte({
+          exito: false,
+          titulo: 'No vuelva a pagar todavía',
+          mensaje:
+            'Banorte indica que esta referencia ya se usó en una transacción, por lo que el cargo pudo haberse aplicado. Revise su historial de pagos en unos minutos o contacte al plantel antes de intentar de nuevo.',
+          referencia,
+        })
+      )
+    }
     const html = htmlFormularioComercioElectronico(
       datosFormularioDesdePost(request, campos, referencia, nivel),
       {
