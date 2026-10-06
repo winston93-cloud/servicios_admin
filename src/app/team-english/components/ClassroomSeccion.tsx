@@ -12,11 +12,11 @@ import {
   type TeTeacher,
 } from '@/lib/teamEnglish/teTypes'
 import type { SeccionProps } from '../seccionTipos'
-import { teAccion, teClassroomDetalle, teClassroomGoogle } from '../teApi'
+import { teAccion, teClassroomDetalle, teClassroomGoogle, teSincronizarCoMaestras } from '../teApi'
 import { Avatar, Hoja, Semana, Vacio } from './ui'
-import CoMaestrasHoja from './CoMaestrasHoja'
 
 const cacheGoogle = new Map<string, TeClassroomResumen>()
+const sincronizado = new Set<number>()
 
 function haceCuanto(iso: string | null): string {
   if (!iso) return 'Sin actividad'
@@ -91,7 +91,12 @@ function PanelGoogle({ nivel, teacher }: { nivel: TeNivel; teacher: TeTeacher })
                 </dl>
                 <footer>
                   <span className="te-chip te-chip-suave">🕒 {haceCuanto(c.ultima_actividad)}</span>
-                  <button type="button" className="te-btn te-btn-primary te-btn-sm" onClick={() => setCurso(c)}>Ver detalle</button>
+                  <div className="te-gclass-botones">
+                    {c.enlace ? (
+                      <a className="te-btn te-btn-ghost te-btn-sm" href={c.enlace} target="_blank" rel="noopener noreferrer">Abrir en Classroom ↗</a>
+                    ) : null}
+                    <button type="button" className="te-btn te-btn-primary te-btn-sm" onClick={() => setCurso(c)}>Ver detalle</button>
+                  </div>
                 </footer>
               </article>
             </li>
@@ -246,8 +251,17 @@ export default function ClassroomSeccion({ snap, recargar, avisar }: SeccionProp
   const [locales, setLocales] = useState<Record<string, Partial<TeClassroom>>>({})
   const [notaAbierta, setNotaAbierta] = useState<string | null>(null)
   const [seleccion, setSeleccion] = useState<number | null>(null)
-  const [coMaestras, setCoMaestras] = useState(false)
-  const cerrarCoMaestras = useCallback(() => setCoMaestras(false), [])
+
+  useEffect(() => {
+    if (sincronizado.has(snap.nivel)) return
+    sincronizado.add(snap.nivel)
+    teSincronizarCoMaestras(snap.nivel)
+      .then((r) => {
+        if (r.agregadas) avisar(`Acceso listo en ${r.agregadas === 1 ? '1 clase nueva' : `${r.agregadas} clases nuevas`} de Classroom.`, 'ok')
+        if (r.errores.length) console.warn('Co-maestras Classroom:', r.errores)
+      })
+      .catch((e: unknown) => console.warn('Co-maestras Classroom:', e))
+  }, [snap.nivel, avisar])
   const activas = useMemo(() => snap.teachers.filter((x) => x.activo), [snap.teachers])
   const teacherSel = activas.find((t) => t.maestro_id === seleccion) ?? null
 
@@ -319,9 +333,7 @@ export default function ClassroomSeccion({ snap, recargar, avisar }: SeccionProp
           <span style={{ ['--p' as string]: pct / 100 }} />
           <small>{pct.toFixed(0)}% · {alDia}/{filas.length} grupos al día</small>
         </div>
-        {snap.gestiona_classroom ? (
-          <button type="button" className="te-btn te-btn-ghost te-btn-sm" onClick={() => setCoMaestras(true)}>🧑‍🏫 Co-maestras</button>
-        ) : null}
+
       </div>
       {activas.length ? (
         <div className="te-filtros" role="group" aria-label="Teacher">
@@ -395,9 +407,6 @@ export default function ClassroomSeccion({ snap, recargar, avisar }: SeccionProp
           })}
         </ul>
       )}
-      {snap.gestiona_classroom ? (
-        <CoMaestrasHoja nivel={snap.nivel} abierta={coMaestras} onCerrar={cerrarCoMaestras} avisar={avisar} />
-      ) : null}
     </>
   )
 }

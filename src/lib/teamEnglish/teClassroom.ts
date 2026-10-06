@@ -6,8 +6,7 @@ import type {
   TeClassroomPublicacion,
   TeClassroomResumen,
   TeClassroomTarea,
-  TeCoMaestrasCurso,
-  TeCoMaestrasPlan,
+  TeCoMaestrasSync,
 } from './teTypes'
 
 /** Deben coincidir con los alcances de la delegación de dominio del service account en admin.google.com. */
@@ -26,11 +25,10 @@ const DOMINIO = '@winston93.edu.mx'
 const ADMIN_WORKSPACE = 'sistemas.desarrollo@winston93.edu.mx'
 const SCOPES_ADMIN = ['https://www.googleapis.com/auth/classroom.rosters', 'https://www.googleapis.com/auth/classroom.courses.readonly']
 
-/** Únicas cuentas que se pueden agregar o quitar como co-maestras. */
-export const CO_MAESTRAS_PERMITIDAS = [
-  { email: 'coordinacioninglesprimaria@winston93.edu.mx', etiqueta: 'Coordinación Inglés Primaria' },
-  { email: 'sistemas.desarrollo@winston93.edu.mx', etiqueta: 'Sistemas (pruebas)' },
-] as const
+/** Cuentas que deben poder abrir todas las clases de las teachers (se agregan como co-maestras). */
+const CO_MAESTRAS = ['coordinacioninglesprimaria@winston93.edu.mx', 'sistemas.desarrollo@winston93.edu.mx']
+/** Cuentas que se retiran de las clases en la siguiente sincronización. */
+const CO_MAESTRAS_RETIRAR: string[] = []
 
 function clienteClassroom(email: string, scopes: string[] = SCOPES): classroom_v1.Classroom {
   const sa = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
@@ -192,76 +190,56 @@ export async function detalleClassroomCurso(rawEmail: unknown, courseId: string)
   }
 }
 
-function coMaestraPermitida(raw: unknown): string {
-  const email = String(raw ?? '').trim().toLowerCase()
-  if (!CO_MAESTRAS_PERMITIDAS.some((c) => c.email === email)) throw new TeError('Esa cuenta no se puede agregar como co-maestra.')
-  return email
-}
-
-/** Clases activas de las teachers y si cada cuenta permitida ya es maestra en ellas. Solo lectura. */
-export async function planCoMaestras(teachers: { nombre: string; email: string | null }[]): Promise<TeCoMaestrasPlan> {
-  const cursos = new Map<string, TeCoMaestrasCurso>()
-  const errores: string[] = []
-  for (const t of teachers) {
-    if (!t.email) continue
+/** Solo agrega o quita estas cuentas; nunca toca a la teacher dueña ni a otros maestros. */
+async function sincronizarCurso(
+  admin: classroom_v1.Classroom,
+  teacher: classroom_v1.Classroom,
+  courseId: string,
+  r: TeCoMaestrasSync,
+): Promise<void> {
+  const maestros = await teacher.courses.teachers.list({ courseId, pageSize: 50 })
+  const correos = new Set((maestros.data.teachers ?? []).map((m) => m.profile?.emailAddress?.toLowerCase()).filter(Boolean))
+  for (const email of CO_MAESTRAS) {
+    if (correos.has(email)) continue
     try {
-      const cr = clienteClassroom(normalizarCorreoTeacher(t.email))
-      const r = await cr.courses.list({ teacherId: 'me', courseStates: ['ACTIVE'], pageSize: 50 })
-      for (const c of r.data.courses ?? []) {
-        if (!c.id || cursos.has(c.id)) continue
-        const maestros = await cr.courses.teachers.list({ courseId: c.id, pageSize: 50 })
-        const correos = new Set((maestros.data.teachers ?? []).map((m) => m.profile?.emailAddress?.toLowerCase()).filter(Boolean))
-        cursos.set(c.id, {
-          id: c.id,
-          nombre: c.name ?? '(sin nombre)',
-          seccion: c.section ?? null,
-          teacher: t.nombre,
-          ya: CO_MAESTRAS_PERMITIDAS.filter((p) => correos.has(p.email)).map((p) => p.email),
-        })
-      }
+      await admin.courses.teachers.create({ courseId, requestBody: { userId: email } })
+      r.agregadas++
     } catch (e) {
-      try {
-        errorGoogle(e, t.email)
-      } catch (te) {
-        errores.push(`${t.nombre}: ${te instanceof Error ? te.message : 'error'}`)
-      }
+      if ((e as { code?: number }).code !== 409) throw e
     }
   }
-  return {
-    cuentas: CO_MAESTRAS_PERMITIDAS.map((c) => ({ ...c })),
-    cursos: [...cursos.values()].sort((a, b) => a.teacher.localeCompare(b.teacher, 'es') || a.nombre.localeCompare(b.nombre, 'es')),
-    errores,
+  for (const email of CO_MAESTRAS_RETIRAR) {
+    if (!correos.has(email)) continue
+    await admin.courses.teachers.delete({ courseId, userId: email })
+    r.quitadas++
   }
 }
 
-/** Escritura: agrega o quita una cuenta permitida como co-maestra en las clases indicadas. */
-export async function aplicarCoMaestra(rawEmail: unknown, cursoIds: string[], quitar: boolean): Promise<{ ok: number; errores: string[] }> {
-  const email = coMaestraPermitida(rawEmail)
-  const ids = [...new Set(cursoIds.map(String).filter((id) => /^[0-9]{1,30}$/.test(id)))].slice(0, 200)
-  if (!ids.length) throw new TeError('No hay clases seleccionadas.')
-  const cr = clienteClassroom(ADMIN_WORKSPACE, SCOPES_ADMIN)
-  let ok = 0
-  const errores: string[] = []
-  for (const courseId of ids) {
+/** Deja a las cuentas de CO_MAESTRAS como co-maestras en todas las clases activas de las teachers. */
+export async function sincronizarCoMaestras(emails: string[]): Promise<TeCoMaestrasSync> {
+  const r: TeCoMaestrasSync = { clases: 0, agregadas: 0, quitadas: 0, errores: [] }
+  const admin = clienteClassroom(ADMIN_WORKSPACE, SCOPES_ADMIN)
+  const vistos = new Set<string>()
+  for (const raw of emails) {
+    let email = raw
     try {
-      if (quitar) await cr.courses.teachers.delete({ courseId, userId: email })
-      else await cr.courses.teachers.create({ courseId, requestBody: { userId: email } })
-      ok++
+      email = normalizarCorreoTeacher(raw)
+      const cr = clienteClassroom(email)
+      const cursos = await cr.courses.list({ teacherId: 'me', courseStates: ['ACTIVE'], pageSize: 50 })
+      for (const c of cursos.data.courses ?? []) {
+        if (!c.id || vistos.has(c.id)) continue
+        vistos.add(c.id)
+        r.clases++
+        await sincronizarCurso(admin, cr, c.id, r)
+      }
     } catch (e) {
-      const err = e as { code?: number; message?: string; response?: { data?: { error?: string } } }
+      const err = e as { response?: { data?: { error?: string } }; message?: string }
       if (err.response?.data?.error === 'unauthorized_client') {
-        throw new TeError('Google aún no autoriza el permiso de escritura (classroom.rosters).', 502)
+        r.errores.push('Google aún no autoriza el permiso classroom.rosters.')
+        break
       }
-      if (!quitar && err.code === 409) {
-        ok++
-        continue
-      }
-      if (quitar && err.code === 404) {
-        ok++
-        continue
-      }
-      errores.push(`${courseId}: ${err.message ?? 'error'}`)
+      r.errores.push(`${email}: ${err.message ?? 'error'}`)
     }
   }
-  return { ok, errores }
+  return r
 }

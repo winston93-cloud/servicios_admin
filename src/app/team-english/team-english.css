@@ -922,18 +922,7 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
 .te-gdet-pubs li { padding: 0.55rem 0.75rem; border-radius: 0.8rem; background: var(--te-hoja-2); }
 .te-gdet-pubs p { margin: 0.15rem 0 0; font-size: 0.88rem; overflow-wrap: anywhere; }
 
-.te-comaestras-cuentas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 0.7rem; }
-.te-comaestras-cuentas article { display: grid; gap: 0.35rem; padding: 0.8rem; border: 2px solid var(--te-borde); border-radius: 1rem; background: var(--te-hoja-2); }
-.te-comaestras-cuentas small { color: var(--te-tinta-suave); font-size: 0.78rem; font-weight: 700; overflow-wrap: anywhere; }
-.te-comaestras-cuentas .te-chip { justify-self: start; }
-.te-comaestras-acciones { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.2rem; }
-.te-comaestras-acciones .te-btn { flex: 1 1 auto; min-height: 44px; }
-.te-tabla-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 2px solid var(--te-borde); border-radius: 1rem; }
-.te-comaestras-tabla { width: 100%; min-width: 480px; border-collapse: collapse; font-size: 0.85rem; }
-.te-comaestras-tabla th, .te-comaestras-tabla td { padding: 0.5rem 0.65rem; border-bottom: 1px solid var(--te-linea); text-align: left; vertical-align: top; }
-.te-comaestras-tabla th { background: var(--te-hoja-2); font-family: var(--te-display); font-weight: 600; }
-.te-comaestras-tabla td:nth-child(n + 3), .te-comaestras-tabla th:nth-child(n + 3) { text-align: center; }
-.te-comaestras-tabla tr:last-child td { border-bottom: 0; }
+.te-gclass-botones { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 
 /* ── Portal teacher ── */
 .te-login {
@@ -998,7 +987,8 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
   .te-semana-texto { min-width: 0; flex: 1; }
   .te-gclass { padding: 0.85rem; }
   .te-gclass > header .te-btn { width: 100%; min-height: 44px; }
-  .te-gclass-curso footer .te-btn { flex: 1 1 100%; min-height: 44px; justify-content: center; }
+  .te-gclass-botones { flex: 1 1 100%; }
+  .te-gclass-curso footer .te-btn { flex: 1 1 auto; min-height: 44px; justify-content: center; }
   .te-hero-emoji { width: 58px; height: 58px; font-size: 1.8rem; }
 }
 

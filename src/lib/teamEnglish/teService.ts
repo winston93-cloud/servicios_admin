@@ -48,13 +48,6 @@ const NIVELES_POR_USUARIO: Record<number, TeNivel[]> = {
   59: [3], // santiago (DG)
 }
 
-/** Agrega/quita co-maestras en Google Classroom (escritura en Google). */
-const GESTIONA_CLASSROOM = new Set([17])
-
-export function gestionaClassroom(usuarioId: number | null | undefined): boolean {
-  return GESTIONA_CLASSROOM.has(Number(usuarioId))
-}
-
 export function nivelesPermitidos(usuarioId: number | null | undefined): TeNivel[] {
   return NIVELES_POR_USUARIO[Number(usuarioId)] ?? []
 }

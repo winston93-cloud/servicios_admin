@@ -204,18 +204,10 @@ export type TeClassroomPublicacion = {
   enlace: string | null
 }
 
-export type TeCoMaestrasCurso = {
-  id: string
-  nombre: string
-  seccion: string | null
-  teacher: string
-  /** Cuentas permitidas que ya son maestras de la clase. */
-  ya: string[]
-}
-
-export type TeCoMaestrasPlan = {
-  cuentas: { email: string; etiqueta: string }[]
-  cursos: TeCoMaestrasCurso[]
+export type TeCoMaestrasSync = {
+  clases: number
+  agregadas: number
+  quitadas: number
   errores: string[]
 }
 
@@ -238,8 +230,6 @@ export type TeSnapshot = {
   incidencias: TeIncidencia[]
   classroom: TeClassroom[]
   ponderadores: Ponderadores
-  /** Puede agregar/quitar co-maestras en Google Classroom. */
-  gestiona_classroom?: boolean
 }
 
 /* ── Fechas ── */
