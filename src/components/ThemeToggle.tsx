@@ -1,7 +1,9 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Moon, Sun } from 'lucide-react'
 import { useTheme } from '@/contexts/ThemeContext'
+import { DEFAULT_THEME } from '@/lib/theme'
 
 type ThemeToggleProps = {
   className?: string
@@ -9,7 +11,13 @@ type ThemeToggleProps = {
 
 export default function ThemeToggle({ className = '' }: ThemeToggleProps) {
   const { theme, toggleTheme } = useTheme()
-  const isDark = theme === 'dark'
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const isDark = (mounted ? theme : DEFAULT_THEME) === 'dark'
 
   return (
     <button
@@ -20,6 +28,7 @@ export default function ThemeToggle({ className = '' }: ThemeToggleProps) {
       aria-checked={isDark}
       aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
       title={isDark ? 'Modo claro' : 'Modo oscuro'}
+      suppressHydrationWarning
     >
       <span className="theme-toggle-track" aria-hidden>
         <Sun size={15} className="theme-toggle-icon theme-toggle-icon--sun" />

@@ -1,9 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Check, Eye, EyeOff, Loader2, Pencil, Save } from 'lucide-react'
+import { Check, Eye, EyeOff, Loader2, Pencil, Save, ShieldAlert } from 'lucide-react'
 import AlumnoCampoFecha from './AlumnoCampoFecha'
 import AlumnoCurpModal from './AlumnoCurpModal'
+import AlumnoSituacionDelicadaModal from './AlumnoSituacionDelicadaModal'
 import { normalizarCurp } from '@/lib/curp'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 import {
@@ -36,12 +37,23 @@ import {
   formaIngresoPorDefecto,
 } from '@/lib/alumnoFormaIngreso'
 import { SEXO_ALUMNO_OPCIONES, sexoAlumnoPorDefecto } from '@/lib/alumnoSexo'
+import { useAuth } from '@/contexts/AuthContext'
+import {
+  etiquetaSituacionDelicada,
+  guardarSituacionDelicada,
+  obtenerSituacionDelicadaPorAlumnoId,
+  snapshotDesdeRegistro,
+  snapshotGuardado as snapshotSituacionGuardado,
+  SITUACION_DELICADA_VACIA,
+  type SnapshotSituacionDelicada,
+} from '@/lib/alumnoSituacionDelicadaService'
 
 interface AlumnoFormElementalesProps {
   alumno: AlumnoBusquedaResultado
 }
 
 export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesProps) {
+  const { user } = useAuth()
   const { cicloSeleccionado, opcionesCatalogo } = useCicloEscolar()
   const opcionesCicloForm = useMemo(
     () => (opcionesCatalogo.length > 0 ? opcionesCatalogo : [...CICLOS_ESCOLARES_OPCIONES]),
@@ -74,6 +86,11 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   const [fechaNacimientoIso, setFechaNacimientoIso] = useState('')
   const [fechaNacimientoTexto, setFechaNacimientoTexto] = useState('')
   const [modalCurpAbierto, setModalCurpAbierto] = useState(false)
+  const [modalSituacionAbierto, setModalSituacionAbierto] = useState(false)
+  const [situacion, setSituacion] = useState<SnapshotSituacionDelicada>(SITUACION_DELICADA_VACIA)
+  const [cargandoSituacion, setCargandoSituacion] = useState(false)
+  const [guardandoSituacion, setGuardandoSituacion] = useState(false)
+  const [errorSituacion, setErrorSituacion] = useState<string | null>(null)
   const [formaIngreso, setFormaIngreso] = useState<number>(0)
   const [sexoAlumno, setSexoAlumno] = useState<string>('')
   const [estatusAlumno, setEstatusAlumno] = useState<number>(1)
@@ -213,6 +230,33 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
   }, [alumno.alumno_ref, alumno.alumno_id, cicloSeleccionado, opcionesCicloForm])
 
   useEffect(() => {
+    let activo = true
+    setCargandoSituacion(true)
+    setErrorSituacion(null)
+    setSituacion(SITUACION_DELICADA_VACIA)
+    setModalSituacionAbierto(false)
+
+    obtenerSituacionDelicadaPorAlumnoId(alumno.alumno_id, alumno.alumno_ref)
+      .then((registro) => {
+        if (!activo) return
+        setSituacion(snapshotDesdeRegistro(registro))
+      })
+      .catch((err) => {
+        if (!activo) return
+        setErrorSituacion(
+          err instanceof Error ? err.message : 'No se pudo cargar la situación delicada.'
+        )
+      })
+      .finally(() => {
+        if (activo) setCargandoSituacion(false)
+      })
+
+    return () => {
+      activo = false
+    }
+  }, [alumno.alumno_id, alumno.alumno_ref])
+
+  useEffect(() => {
     if (modificado) {
       setGuardadoReciente(false)
       if (mensajeGuardar && !errorGuardar) setMensajeGuardar(null)
@@ -274,6 +318,36 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
     setGuardadoReciente(true)
     setMensajeGuardar('Los datos se guardaron correctamente.')
   }, [datos, modificado, guardando, snapshotActual])
+
+  const onGuardarSituacion = useCallback(
+    async (snapshot: SnapshotSituacionDelicada) => {
+      if (!datos) return false
+      setGuardandoSituacion(true)
+      setErrorSituacion(null)
+      try {
+        const resultado = await guardarSituacionDelicada({
+          ...snapshot,
+          alumnoRef: datos.alumno.alumno_ref,
+          alumnoId: datos.alumno.alumno_id,
+          actualizadoPor: user?.usuario_nombre_completo ?? user?.usuario_username ?? null,
+        })
+        if (!resultado.ok) {
+          setErrorSituacion(resultado.mensaje)
+          return false
+        }
+        setSituacion(snapshotSituacionGuardado(snapshot))
+        return true
+      } catch (err) {
+        setErrorSituacion(
+          err instanceof Error ? err.message : 'No se pudo guardar la situación delicada.'
+        )
+        return false
+      } finally {
+        setGuardandoSituacion(false)
+      }
+    },
+    [datos, user]
+  )
 
   if (cargando) {
     return (
@@ -594,23 +668,44 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
             </select>
           </div>
 
-          <div className="alumno-form-field alumno-form-field--estatus">
-            <label htmlFor="alumno_status" className="alumno-form-label">
-              Estatus del alumno
-            </label>
-            <select
-              id="alumno_status"
-              name="alumno_status"
-              className="alumno-form-select alumno-form-select--estatus"
-              value={String(estatusAlumno)}
-              onChange={(e) => setEstatusAlumno(Number(e.target.value))}
-            >
-              {ESTATUS_ALUMNO_OPCIONES.map((opcion) => (
-                <option key={opcion.valor} value={opcion.valor}>
-                  {opcion.etiqueta}
-                </option>
-              ))}
-            </select>
+          <div className="alumno-form-estatus-situacion">
+            <div className="alumno-form-field alumno-form-field--estatus">
+              <label htmlFor="alumno_status" className="alumno-form-label">
+                Estatus del alumno
+              </label>
+              <select
+                id="alumno_status"
+                name="alumno_status"
+                className="alumno-form-select alumno-form-select--estatus"
+                value={String(estatusAlumno)}
+                onChange={(e) => setEstatusAlumno(Number(e.target.value))}
+              >
+                {ESTATUS_ALUMNO_OPCIONES.map((opcion) => (
+                  <option key={opcion.valor} value={opcion.valor}>
+                    {opcion.etiqueta}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="alumno-form-field alumno-form-field--situacion">
+              <span className="alumno-form-label" id="alumno_situacion_label">
+                Situación delicada
+              </span>
+              <button
+                type="button"
+                className={`alumno-form-situacion-btn${
+                  situacion.noCorresponde ? '' : ' alumno-form-situacion-btn--activa'
+                }`}
+                onClick={() => setModalSituacionAbierto(true)}
+                aria-labelledby="alumno_situacion_label"
+                disabled={cargandoSituacion}
+              >
+                <ShieldAlert size={16} aria-hidden />
+                {cargandoSituacion
+                  ? 'Cargando…'
+                  : etiquetaSituacionDelicada(situacion)}
+              </button>
+            </div>
           </div>
         </div>
       </fieldset>
@@ -649,6 +744,15 @@ export default function AlumnoFormElementales({ alumno }: AlumnoFormElementalesP
         nombreAlumno={nombreCompleto || undefined}
         fechaNacimiento={fechaNacimientoIso || detalles?.alumno_fecha_nac}
         sexoRegistrado={sexoAlumno || detalles?.alumno_sexo}
+      />
+      <AlumnoSituacionDelicadaModal
+        isOpen={modalSituacionAbierto}
+        onClose={() => setModalSituacionAbierto(false)}
+        nombreAlumno={nombreCompleto || undefined}
+        valorInicial={situacion}
+        guardando={guardandoSituacion}
+        error={errorSituacion}
+        onGuardar={onGuardarSituacion}
       />
     </form>
   )

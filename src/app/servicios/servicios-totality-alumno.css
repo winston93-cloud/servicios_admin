@@ -303,6 +303,85 @@ html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alum
   color: #fdba74 !important;
 }
 
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-situacion-btn {
+  background: var(--sx-input-bg) !important;
+  color: var(--sx-text) !important;
+  border-color: var(--sx-input-border) !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-situacion-btn:hover:not(:disabled) {
+  background: rgba(0, 227, 253, 0.1) !important;
+  border-color: rgba(0, 227, 253, 0.45) !important;
+  color: #bdf4ff !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-form-situacion-btn--activa {
+  background: rgba(154, 52, 18, 0.42) !important;
+  border-color: #fb923c !important;
+  color: #fdba74 !important;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-curp-modal,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-situacion-modal {
+  background: var(--sx-card);
+  box-shadow: var(--sx-card-shadow);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-curp-modal-header {
+  background: linear-gradient(180deg, rgba(13, 14, 19, 0.9) 0%, var(--sx-card) 100%);
+  border-bottom-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-curp-modal-titulo {
+  color: var(--sx-totality-gold, #fff6df);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-curp-modal-subtitulo,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-curp-modal-ayuda,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-curp-modal-contador,
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-situacion-check-hint {
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-situacion-check {
+  background: rgba(13, 14, 19, 0.5);
+  border-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-situacion-check--aplica {
+  background: rgba(154, 52, 18, 0.42);
+  border-color: #fb923c;
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-situacion-check strong {
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-situacion-textarea {
+  background: var(--sx-input-bg);
+  color: var(--sx-text);
+  border-color: var(--sx-input-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-situacion-textarea:disabled {
+  background: rgba(13, 14, 19, 0.75);
+  color: var(--sx-text-muted);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-curp-modal-footer {
+  border-top-color: var(--sx-card-border);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-curp-modal-btn--sec {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--sx-text);
+}
+
+html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-curp-modal-btn--pri {
+  background: #1e3a5f;
+  color: #fff;
+}
+
 /* ─── Móvil ─── */
 @media (max-width: 640px) {
   html[data-theme='dark'] .pos-totality-theme.admin-app-shell .servicios-app .alumno-contactos-tabla-scroll {
