@@ -74,6 +74,9 @@ export interface ComprobanteFamiliaWinston {
   pagoReferencia: string | null
   correoEnviadoEn: string | null
   correoResultado: string | null
+  /** 2026-10-06 — Interesado (alumno nuevo) que AgendaW guarda al generar el comprobante. */
+  interesadoNombre: string | null
+  interesadoNivelGrado: string | null
 }
 
 export interface MesPropuesto {
@@ -126,6 +129,9 @@ type FilaWsp = {
   pago_referencia: string | null
   correo_enviado_en: string | null
   correo_resultado: string | null
+  interesado_nombre?: string | null
+  interesado_nivel_grado?: string | null
+  appointment_id?: string | null
 }
 
 type FilaPago = {
@@ -156,11 +162,14 @@ function mapComprobante(f: FilaWsp): ComprobanteFamiliaWinston {
     pagoReferencia: f.pago_referencia,
     correoEnviadoEn: f.correo_enviado_en,
     correoResultado: f.correo_resultado,
+    interesadoNombre: f.interesado_nombre?.trim() || null,
+    interesadoNivelGrado: f.interesado_nivel_grado?.trim() || null,
   }
 }
 
+/* 2026-10-06 — + interesado y cita de AgendaW (migración 20261006160000_wsp_interesado). */
 const SELECT_WSP =
-  'id, ctrl, qr, status, referido_alumno_ref, validado_en, validado_por, concepto_condonado, ciclo_condonado, pago_referencia, correo_enviado_en, correo_resultado'
+  'id, ctrl, qr, status, referido_alumno_ref, validado_en, validado_por, concepto_condonado, ciclo_condonado, pago_referencia, correo_enviado_en, correo_resultado, interesado_nombre, interesado_nivel_grado, appointment_id'
 
 /** Fecha de hoy en Cd. Madero (YYYY-MM-DD). */
 function hoyMx(): string {
@@ -387,12 +396,208 @@ export interface AlumnoQrFamiliaWinston {
 }
 
 /**
+ * 2026-10-06 — Alumno recomendado que se llena solo al leer el QR.
+ * fuente: «guardado» (ya se validó antes), «cita» (cita de AgendaW ligada al comprobante y ya
+ * inscrito), «nombre» (nombre del interesado = un solo alumno), «apellido» (comprobante viejo
+ * sin interesado: solo sugerencias de nuevo ingreso que comparten apellido, no se elige solo).
+ */
+export interface RecomendadoQrFamiliaWinston {
+  alumno: AlumnoQrFamiliaWinston | null
+  fuente: 'guardado' | 'cita' | 'nombre' | 'apellido' | null
+  interesadoNombre: string | null
+  candidatos: AlumnoQrFamiliaWinston[]
+}
+
+export interface ComprobanteQrFamiliaWinston {
+  comprobante: ComprobanteFamiliaWinston
+  alumno: AlumnoQrFamiliaWinston | null
+  recomendado: RecomendadoQrFamiliaWinston
+}
+
+const SELECT_ALUMNO_QR =
+  'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_ciclo_escolar, alumno_status, alumno_nuevo_ingreso'
+
+const MAX_SUGERENCIAS_APELLIDO = 5
+
+function mapAlumnoQr(r: Record<string, unknown>): AlumnoQrFamiliaWinston {
+  return {
+    alumno_id: Number(r.alumno_id),
+    alumno_ref: String(r.alumno_ref),
+    alumno_nombre: String(r.alumno_nombre ?? '').trim(),
+    alumno_app: String(r.alumno_app ?? '').trim(),
+    alumno_apm: String(r.alumno_apm ?? '').trim(),
+    alumno_nivel: Number(r.alumno_nivel) || 0,
+    alumno_grado: r.alumno_grado != null ? String(r.alumno_grado) : null,
+    alumno_grupo: r.alumno_grupo != null ? String(r.alumno_grupo) : null,
+    alumno_ciclo_escolar: r.alumno_ciclo_escolar != null ? Number(r.alumno_ciclo_escolar) : null,
+    alumno_status: r.alumno_status != null ? Number(r.alumno_status) : null,
+  }
+}
+
+/** Mayúsculas sin acentos ni ñ y con espacios simples: «Santibañez » = «SANTIBANEZ». */
+function normalizarNombre(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function clavePalabras(s: string): string {
+  return normalizarNombre(s).split(' ').filter(Boolean).sort().join(' ')
+}
+
+/** Una fila por alumno_ref (la del ciclo más reciente; las filas vienen ordenadas desc). */
+function unicosPorRef(filas: Record<string, unknown>[]): Record<string, unknown>[] {
+  const vistos = new Set<string>()
+  return filas.filter((r) => {
+    const ref = String(r.alumno_ref)
+    if (vistos.has(ref)) return false
+    vistos.add(ref)
+    return true
+  })
+}
+
+async function cargarAlumnoQr(db: AppDatabaseClient, ref: number): Promise<AlumnoQrFamiliaWinston | null> {
+  const { data } = await db
+    .from('alumno')
+    .select(SELECT_ALUMNO_QR)
+    .eq('alumno_ref', ref)
+    .order('alumno_ciclo_escolar', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return data ? mapAlumnoQr(data as Record<string, unknown>) : null
+}
+
+/** Alumnos cuyo nombre completo es el del interesado (mismas palabras, sin importar acentos/orden). */
+async function alumnosPorNombre(
+  db: AppDatabaseClient,
+  nombre: string,
+  excluirRef: number
+): Promise<AlumnoQrFamiliaWinston[]> {
+  const palabras = normalizarNombre(nombre).split(' ').filter((p) => p.length >= 3)
+  if (palabras.length < 2) return []
+  const { data: ultimo } = await db
+    .from('alumno')
+    .select('alumno_ciclo_escolar')
+    .order('alumno_ciclo_escolar', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  const cicloMax = Number((ultimo as { alumno_ciclo_escolar?: number } | null)?.alumno_ciclo_escolar) || 0
+  // La palabra más larga filtra en la base; vocales y N son comodín porque en la base
+  // hay nombres con y sin acento/ñ («HERNÁNDEZ», «SANTIBANEZ»).
+  const larga = [...palabras].sort((a, b) => b.length - a.length)[0]
+  const patron = `%${larga.replace(/[AEIOUN]/g, '_')}%`
+  const { data, error } = await db
+    .from('alumno')
+    .select(SELECT_ALUMNO_QR)
+    .gte('alumno_ciclo_escolar', cicloMax - 1)
+    .or(`alumno_nombre.ilike.${patron},alumno_app.ilike.${patron},alumno_apm.ilike.${patron}`)
+    .order('alumno_ciclo_escolar', { ascending: false })
+    .limit(300)
+  if (error) throw new Error(error.message)
+  const clave = clavePalabras(nombre)
+  return unicosPorRef((data ?? []) as Record<string, unknown>[])
+    .filter((r) => Number(r.alumno_ref) !== excluirRef)
+    .filter((r) => clavePalabras([r.alumno_nombre, r.alumno_app, r.alumno_apm].map((x) => String(x ?? '')).join(' ')) === clave)
+    .map(mapAlumnoQr)
+}
+
+/** Comprobantes viejos: nuevo ingreso del mismo ciclo que comparten apellido con quien recomendó. */
+async function sugerenciasPorApellido(
+  db: AppDatabaseClient,
+  beneficiado: AlumnoQrFamiliaWinston
+): Promise<AlumnoQrFamiliaWinston[]> {
+  const apellidos = [beneficiado.alumno_app, beneficiado.alumno_apm].map((s) => s.trim()).filter(Boolean)
+  if (!apellidos.length || beneficiado.alumno_ciclo_escolar == null) return []
+  const consulta = (campo: 'alumno_app' | 'alumno_apm') =>
+    db
+      .from('alumno')
+      .select(SELECT_ALUMNO_QR)
+      .eq('alumno_ciclo_escolar', beneficiado.alumno_ciclo_escolar as number)
+      .eq('alumno_nuevo_ingreso', 1)
+      .in(campo, apellidos)
+      .limit(50)
+  const [porApp, porApm] = await Promise.all([consulta('alumno_app'), consulta('alumno_apm')])
+  const filas = unicosPorRef([
+    ...((porApp.data ?? []) as Record<string, unknown>[]),
+    ...((porApm.data ?? []) as Record<string, unknown>[]),
+  ]).filter((r) => String(r.alumno_ref) !== beneficiado.alumno_ref)
+  if (!filas.length || filas.length > MAX_SUGERENCIAS_APELLIDO) return []
+  // Fuera los que ya generaron un beneficio con otro comprobante.
+  const refs = filas.map((r) => Number(r.alumno_ref))
+  const { data: usados } = await db
+    .from('wsp')
+    .select('referido_alumno_ref')
+    .in('referido_alumno_ref', refs)
+    .in('status', ['aplicando', 'autorizado'])
+  const yaUsados = new Set(
+    ((usados ?? []) as { referido_alumno_ref: number | null }[]).map((u) => Number(u.referido_alumno_ref))
+  )
+  return filas.filter((r) => !yaUsados.has(Number(r.alumno_ref))).map(mapAlumnoQr)
+}
+
+async function resolverRecomendado(
+  db: AppDatabaseClient,
+  f: FilaWsp,
+  beneficiado: AlumnoQrFamiliaWinston | null
+): Promise<RecomendadoQrFamiliaWinston> {
+  const ctrl = Number(f.ctrl)
+  let interesadoNombre = f.interesado_nombre?.trim() || null
+  const res = (
+    alumno: AlumnoQrFamiliaWinston | null,
+    fuente: RecomendadoQrFamiliaWinston['fuente'],
+    candidatos: AlumnoQrFamiliaWinston[] = []
+  ): RecomendadoQrFamiliaWinston => ({ alumno, fuente, interesadoNombre, candidatos })
+
+  if (f.referido_alumno_ref != null) {
+    const a = await cargarAlumnoQr(db, Number(f.referido_alumno_ref))
+    if (a) return res(a, 'guardado')
+  }
+
+  if (f.appointment_id) {
+    const { data: cita } = await db
+      .from('admission_appointments')
+      .select('alumno_ref, student_name, student_last_name_p, student_last_name_m')
+      .eq('id', f.appointment_id)
+      .maybeSingle()
+    const c = cita as Record<string, unknown> | null
+    if (c) {
+      interesadoNombre ??=
+        [c.student_name, c.student_last_name_p, c.student_last_name_m]
+          .map((x) => String(x ?? '').trim())
+          .filter(Boolean)
+          .join(' ')
+          .toUpperCase() || null
+      const ref = Number(c.alumno_ref)
+      if (ref > 0 && ref !== ctrl) {
+        const a = await cargarAlumnoQr(db, ref)
+        if (a) return res(a, 'cita')
+      }
+    }
+  }
+
+  if (interesadoNombre) {
+    const porNombre = await alumnosPorNombre(db, interesadoNombre, ctrl)
+    if (porNombre.length === 1) return res(porNombre[0], 'nombre')
+    return res(null, null, porNombre.slice(0, MAX_SUGERENCIAS_APELLIDO))
+  }
+
+  if (beneficiado) {
+    const sugeridos = await sugerenciasPorApellido(db, beneficiado)
+    if (sugeridos.length) return res(null, 'apellido', sugeridos)
+  }
+  return res(null, null)
+}
+
+/**
  * 2026-10-05 — Al escanear el QR: comprobantes con ese código y el alumno que recomendó,
  * para llenar en automático «quién recomendó» en el módulo.
+ * 2026-10-06 — También el alumno recomendado (ver RecomendadoQrFamiliaWinston).
  */
-export async function buscarComprobantesPorQr(qr: number): Promise<
-  { comprobante: ComprobanteFamiliaWinston; alumno: AlumnoQrFamiliaWinston | null }[]
-> {
+export async function buscarComprobantesPorQr(qr: number): Promise<ComprobanteQrFamiliaWinston[]> {
   const db = createDbAdmin()
   const { data, error } = await db
     .from('wsp')
@@ -402,34 +607,13 @@ export async function buscarComprobantesPorQr(qr: number): Promise<
     .limit(5)
   if (error) throw new Error(error.message)
   const filas = (data ?? []) as FilaWsp[]
-  const out: { comprobante: ComprobanteFamiliaWinston; alumno: AlumnoQrFamiliaWinston | null }[] = []
+  const out: ComprobanteQrFamiliaWinston[] = []
   for (const f of filas) {
-    const { data: a } = await db
-      .from('alumno')
-      .select(
-        'alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_ciclo_escolar, alumno_status'
-      )
-      .eq('alumno_ref', Number(f.ctrl))
-      .order('alumno_ciclo_escolar', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-    const r = a as Record<string, unknown> | null
+    const alumno = await cargarAlumnoQr(db, Number(f.ctrl))
     out.push({
       comprobante: mapComprobante(f),
-      alumno: r
-        ? {
-            alumno_id: Number(r.alumno_id),
-            alumno_ref: String(r.alumno_ref),
-            alumno_nombre: String(r.alumno_nombre ?? '').trim(),
-            alumno_app: String(r.alumno_app ?? '').trim(),
-            alumno_apm: String(r.alumno_apm ?? '').trim(),
-            alumno_nivel: Number(r.alumno_nivel) || 0,
-            alumno_grado: r.alumno_grado != null ? String(r.alumno_grado) : null,
-            alumno_grupo: r.alumno_grupo != null ? String(r.alumno_grupo) : null,
-            alumno_ciclo_escolar: r.alumno_ciclo_escolar != null ? Number(r.alumno_ciclo_escolar) : null,
-            alumno_status: r.alumno_status != null ? Number(r.alumno_status) : null,
-          }
-        : null,
+      alumno,
+      recomendado: await resolverRecomendado(db, f, alumno),
     })
   }
   return out

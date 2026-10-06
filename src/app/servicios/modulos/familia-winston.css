@@ -350,6 +350,14 @@ html[data-theme='dark'] .fw-pasos-guia li::before {
   gap: 6px;
 }
 
+/* 2026-10-06 — Sugerencias de alumno recomendado (paso 3). */
+.fw-sugerencias {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
 .fw-comprobante {
   display: flex;
   flex-wrap: wrap;

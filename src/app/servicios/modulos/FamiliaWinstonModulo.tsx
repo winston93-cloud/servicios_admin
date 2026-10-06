@@ -6,6 +6,8 @@
  * en automático la próxima colegiatura pendiente de su hijo y se le manda el correo.
  * 2026-10-05 — Rediseño en 3 pasos: lectura del QR con cámara (jsQR, cualquier navegador),
  * búsqueda por nombre o número de control y «quién recomendó» se llena solo al leer el QR.
+ * 2026-10-06 — «A quién recomendó» también se llena solo con el interesado/cita que AgendaW
+ * guarda en el comprobante; en comprobantes viejos se sugieren alumnos por apellido.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
@@ -34,8 +36,9 @@ import UsuariosPinGate from '../components/UsuariosPinGate'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 import type {
   AlumnoQrFamiliaWinston,
-  ComprobanteFamiliaWinston,
+  ComprobanteQrFamiliaWinston,
   FilaHistorialFamiliaWinston,
+  RecomendadoQrFamiliaWinston,
   RevisionFamiliaWinston,
 } from '@/lib/familiaWinstonService'
 import './familia-winston.css'
@@ -49,7 +52,18 @@ type ResultadoAplicado = {
   correo: { enviado: boolean; destinatarios: string[]; detalle: string }
 }
 
-type ComprobanteQr = { comprobante: ComprobanteFamiliaWinston; alumno: AlumnoQrFamiliaWinston | null }
+type ComprobanteQr = ComprobanteQrFamiliaWinston
+
+/* 2026-10-06 — Por qué «¿A quién recomendó?» se llenó solo. */
+const TEXTO_FUENTE: Record<'guardado' | 'cita' | 'nombre', string> = {
+  guardado: 'ya estaba registrado en este comprobante.',
+  cita: 'es el interesado de la cita de AgendaW con la que se generó el comprobante.',
+  nombre: 'su nombre es el del interesado que trae el comprobante.',
+}
+
+function nombreAlumnoQr(a: AlumnoQrFamiliaWinston): string {
+  return [a.alumno_nombre, a.alumno_app, a.alumno_apm].filter(Boolean).join(' ')
+}
 
 const API = '/api/servicios/familia-winston'
 const DIGITOS_QR = 6
@@ -114,6 +128,7 @@ export default function FamiliaWinstonModulo() {
   const [buscandoQr, setBuscandoQr] = useState(false)
   const [qrBuscado, setQrBuscado] = useState('')
   const [comprobantesQr, setComprobantesQr] = useState<ComprobanteQr[]>([])
+  const [recomendadoQr, setRecomendadoQr] = useState<RecomendadoQrFamiliaWinston | null>(null)
 
   const [revision, setRevision] = useState<RevisionFamiliaWinston | null>(null)
   const [correoPreview, setCorreoPreview] = useState<string | null>(null)
@@ -235,7 +250,14 @@ export default function FamiliaWinstonModulo() {
     }
   }, [camara])
 
-  /* Al tener el código completo: buscar el comprobante y llenar «quién recomendó». */
+  /* 2026-10-06 — Elegir comprobante llena los dos alumnos: quién recomendó y a quién recomendó. */
+  const elegirComprobante = useCallback((item: ComprobanteQr) => {
+    if (item.alumno) setBeneficiado(alumnoParaBuscador(item.alumno))
+    setRecomendadoQr(item.recomendado)
+    setReferido(item.recomendado.alumno ? alumnoParaBuscador(item.recomendado.alumno) : null)
+  }, [])
+
+  /* Al tener el código completo: buscar el comprobante y llenar los dos alumnos. */
   useEffect(() => {
     if (qr.length < DIGITOS_QR || qr === qrBuscado) return
     const id = window.setTimeout(async () => {
@@ -252,9 +274,8 @@ export default function FamiliaWinstonModulo() {
         const lista = data.comprobantes ?? []
         setComprobantesQr(lista)
         setQrBuscado(qr)
-        if (lista.length === 1 && lista[0].alumno) {
-          setBeneficiado(alumnoParaBuscador(lista[0].alumno))
-        }
+        setRecomendadoQr(null)
+        if (lista.length === 1) elegirComprobante(lista[0])
       } catch {
         setError('Error de conexión al buscar el comprobante.')
       } finally {
@@ -262,7 +283,7 @@ export default function FamiliaWinstonModulo() {
       }
     }, 250)
     return () => window.clearTimeout(id)
-  }, [qr, qrBuscado])
+  }, [qr, qrBuscado, elegirComprobante])
 
   const revisar = useCallback(async () => {
     setError(null)
@@ -314,6 +335,7 @@ export default function FamiliaWinstonModulo() {
     setQr('')
     setQrBuscado('')
     setComprobantesQr([])
+    setRecomendadoQr(null)
     setBeneficiado(null)
     setReferido(null)
     setRevision(null)
@@ -491,7 +513,8 @@ export default function FamiliaWinstonModulo() {
                 ) : null}
                 {qrBuscado === qr && comprobantesQr.length > 0 ? (
                   <div className="fw-comprobantes">
-                    {comprobantesQr.map(({ comprobante: c, alumno }) => {
+                    {comprobantesQr.map((item) => {
+                      const { comprobante: c, alumno } = item
                       const usado = c.status === 'autorizado'
                       const elegido = alumno && ctrl === soloDigitos(String(alumno.alumno_ref))
                       return (
@@ -499,7 +522,7 @@ export default function FamiliaWinstonModulo() {
                           key={c.id}
                           type="button"
                           className={`fw-comprobante ${elegido ? 'fw-comprobante--activo' : ''}`}
-                          onClick={() => alumno && setBeneficiado(alumnoParaBuscador(alumno))}
+                          onClick={() => elegirComprobante(item)}
                           disabled={!alumno}
                         >
                           <span className="fw-comprobante-folio">{c.folio}</span>
@@ -513,6 +536,12 @@ export default function FamiliaWinstonModulo() {
                                   .join(' ')} · No. control ${alumno.alumno_ref}`
                               : `No. control ${c.ctrl} (no encontrado)`}
                           </span>
+                          {item.recomendado.interesadoNombre ? (
+                            <span className="fw-comprobante-alumno">
+                              Interesado: {item.recomendado.interesadoNombre}
+                              {c.interesadoNivelGrado ? ` · ${c.interesadoNivelGrado}` : ''}
+                            </span>
+                          ) : null}
                         </button>
                       )
                     })}
@@ -555,10 +584,54 @@ export default function FamiliaWinstonModulo() {
                 </p>
                 {/* 2026-10-06: el número del comprobante es el de quien recomienda → se ponía aquí por error */}
                 <p className="fw-paso-ayuda">
-                  El alumno nuevo que se inscribió gracias a la recomendación: búscalo por el nombre del
-                  «interesado» que viene en el comprobante. El número de control del comprobante es el de
-                  quien recomendó, no va aquí.
+                  El alumno nuevo que se inscribió gracias a la recomendación. Se llena solo al leer el
+                  QR si el comprobante trae al interesado; si no, búscalo por el nombre del «interesado»
+                  que viene en el PDF (el número de control del comprobante es el de quien recomendó).
                 </p>
+                {/* 2026-10-06 — Explica de dónde salió el alumno o muestra sugerencias para elegir. */}
+                {recomendadoQr?.alumno &&
+                recomendadoQr.fuente &&
+                recomendadoQr.fuente !== 'apellido' &&
+                referidoRef === soloDigitos(recomendadoQr.alumno.alumno_ref) ? (
+                  <p className="fw-alert fw-alert--ok">
+                    Se llenó solo: {nombreAlumnoQr(recomendadoQr.alumno)} {TEXTO_FUENTE[recomendadoQr.fuente]}
+                  </p>
+                ) : null}
+                {!referido && recomendadoQr && !recomendadoQr.alumno ? (
+                  recomendadoQr.candidatos.length > 0 ? (
+                    <div className="fw-sugerencias">
+                      <p className="fw-nota">
+                        {recomendadoQr.fuente === 'apellido'
+                          ? 'Este comprobante es anterior y no trae el nombre del interesado. Alumnos de nuevo ingreso que comparten apellido con quien recomendó; elige el que aparece en el PDF:'
+                          : `Hay varios alumnos llamados ${recomendadoQr.interesadoNombre ?? 'como el interesado'}; elige uno:`}
+                      </p>
+                      <div className="fw-comprobantes">
+                        {recomendadoQr.candidatos.map((a) => (
+                          <button
+                            key={a.alumno_ref}
+                            type="button"
+                            className="fw-comprobante"
+                            onClick={() => setReferido(alumnoParaBuscador(a))}
+                          >
+                            <span className="fw-comprobante-alumno">
+                              {nombreAlumnoQr(a)} · No. control {a.alumno_ref}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : recomendadoQr.interesadoNombre ? (
+                    <p className="fw-alert fw-alert--warn">
+                      Interesado del comprobante: {recomendadoQr.interesadoNombre}. Todavía no aparece como
+                      alumno inscrito; búscalo por su nombre.
+                    </p>
+                  ) : (
+                    <p className="fw-alert fw-alert--warn">
+                      Este comprobante es anterior y no trae el nombre del interesado: búscalo por el nombre
+                      que viene en el PDF.
+                    </p>
+                  )
+                ) : null}
                 <AlumnoAutocomplete
                   key={`ref-${formKey}`}
                   etiqueta="Nombre o número de control"
