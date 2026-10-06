@@ -182,6 +182,43 @@ export type TeClassroomResumen = {
   cursos: TeClassroomCurso[]
 }
 
+export type TeClassroomTarea = {
+  id: string
+  titulo: string
+  tipo: string
+  publicada: string | null
+  entrega: string | null
+  puntos: number | null
+  enlace: string | null
+  asignados: number
+  entregadas: number
+  tarde: number
+  calificadas: number
+  devueltas: number
+}
+
+export type TeClassroomPublicacion = {
+  id: string
+  texto: string
+  fecha: string | null
+  enlace: string | null
+}
+
+export type TeCoMaestrasSync = {
+  clases: number
+  agregadas: number
+  quitadas: number
+  errores: string[]
+}
+
+export type TeClassroomDetalle = {
+  curso_id: string
+  alumnos: number
+  tareas: TeClassroomTarea[]
+  avisos: TeClassroomPublicacion[]
+  materiales: TeClassroomPublicacion[]
+}
+
 export type TeSnapshot = {
   nivel: TeNivel
   niveles: TeNivel[]
