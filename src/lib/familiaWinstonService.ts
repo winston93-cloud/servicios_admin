@@ -114,6 +114,10 @@ export interface RevisionFamiliaWinston {
   destinatarios: DestinatarioFamiliaWinston[]
   diasClases: number | null
   fechaDisponible: string | null
+  /** 2026-10-06 — Interesado que trae el comprobante (AgendaW); null en comprobantes viejos. */
+  interesadoComprobante: string | null
+  /** 2026-10-06 — Comprobante viejo: hay que escribir el nombre del interesado del PDF para confirmar. */
+  requiereNombrePdf: boolean
 }
 
 type FilaWsp = {
@@ -539,13 +543,68 @@ async function sugerenciasPorApellido(
   return filas.filter((r) => !yaUsados.has(Number(r.alumno_ref))).map(mapAlumnoQr)
 }
 
+/** Distancia de edición (para tolerar una letra de diferencia al escribir el nombre). */
+function distancia(a: string, b: string): number {
+  const fila = Array.from({ length: b.length + 1 }, (_, j) => j)
+  for (let i = 1; i <= a.length; i++) {
+    let previo = fila[0]
+    fila[0] = i
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = fila[j]
+      fila[j] = Math.min(fila[j] + 1, fila[j - 1] + 1, previo + (a[i - 1] === b[j - 1] ? 0 : 1))
+      previo = tmp
+    }
+  }
+  return fila[b.length]
+}
+
+/**
+ * 2026-10-06 — ¿El nombre escrito/guardado es el de este alumno? Al menos dos palabras y
+ * todas deben estar en su nombre (sin acentos; una letra de error en palabras de 5+ letras).
+ */
+function nombreCoincide(escrito: string, nombreAlumno: string): boolean {
+  const pal = normalizarNombre(escrito).split(' ').filter((p) => p.length >= 2)
+  const del = normalizarNombre(nombreAlumno).split(' ').filter(Boolean)
+  if (pal.length < 2) return false
+  return pal.every((p) => del.some((d) => d === p || (p.length >= 5 && d.length >= 5 && distancia(p, d) <= 1)))
+}
+
+/** Interesado según AgendaW: número de control (si ya se inscribió y la cita está ligada) y nombre. */
+async function interesadoDelComprobante(
+  db: AppDatabaseClient,
+  f: FilaWsp
+): Promise<{ ref: number | null; nombre: string | null }> {
+  let nombre = f.interesado_nombre?.trim() || null
+  let ref: number | null = null
+  if (f.appointment_id) {
+    const { data: cita } = await db
+      .from('admission_appointments')
+      .select('alumno_ref, student_name, student_last_name_p, student_last_name_m')
+      .eq('id', f.appointment_id)
+      .maybeSingle()
+    const c = cita as Record<string, unknown> | null
+    if (c) {
+      nombre ??=
+        [c.student_name, c.student_last_name_p, c.student_last_name_m]
+          .map((x) => String(x ?? '').trim())
+          .filter(Boolean)
+          .join(' ')
+          .toUpperCase() || null
+      const n = Number(c.alumno_ref)
+      if (n > 0 && n !== Number(f.ctrl)) ref = n
+    }
+  }
+  return { ref, nombre }
+}
+
 async function resolverRecomendado(
   db: AppDatabaseClient,
   f: FilaWsp,
   beneficiado: AlumnoQrFamiliaWinston | null
 ): Promise<RecomendadoQrFamiliaWinston> {
   const ctrl = Number(f.ctrl)
-  let interesadoNombre = f.interesado_nombre?.trim() || null
+  const interesado = await interesadoDelComprobante(db, f)
+  const interesadoNombre = interesado.nombre
   const res = (
     alumno: AlumnoQrFamiliaWinston | null,
     fuente: RecomendadoQrFamiliaWinston['fuente'],
@@ -557,26 +616,9 @@ async function resolverRecomendado(
     if (a) return res(a, 'guardado')
   }
 
-  if (f.appointment_id) {
-    const { data: cita } = await db
-      .from('admission_appointments')
-      .select('alumno_ref, student_name, student_last_name_p, student_last_name_m')
-      .eq('id', f.appointment_id)
-      .maybeSingle()
-    const c = cita as Record<string, unknown> | null
-    if (c) {
-      interesadoNombre ??=
-        [c.student_name, c.student_last_name_p, c.student_last_name_m]
-          .map((x) => String(x ?? '').trim())
-          .filter(Boolean)
-          .join(' ')
-          .toUpperCase() || null
-      const ref = Number(c.alumno_ref)
-      if (ref > 0 && ref !== ctrl) {
-        const a = await cargarAlumnoQr(db, ref)
-        if (a) return res(a, 'cita')
-      }
-    }
+  if (interesado.ref != null) {
+    const a = await cargarAlumnoQr(db, interesado.ref)
+    if (a) return res(a, 'cita')
   }
 
   if (interesadoNombre) {
@@ -625,6 +667,8 @@ export async function revisarFamiliaWinston(opts: {
   referidoRef: number | null
   /** Mes elegido (concepto 01…10/26); sin él se propone la próxima colegiatura pendiente. */
   conceptoNo?: string | null
+  /** 2026-10-06 — Nombre del interesado escrito tal como viene en el PDF (comprobantes viejos). */
+  interesadoPdf?: string | null
   db?: AppDatabaseClient
 }): Promise<RevisionFamiliaWinston> {
   const db = opts.db ?? createDbAdmin()
@@ -641,6 +685,8 @@ export async function revisarFamiliaWinston(opts: {
     destinatarios: [],
     diasClases: null,
     fechaDisponible: null,
+    interesadoComprobante: null,
+    requiereNombrePdf: false,
   }
 
   const { data: wspRows, error: wspError } = await db
@@ -729,6 +775,57 @@ export async function revisarFamiliaWinston(opts: {
         nivel: 'ok',
         texto: `Alumno recomendado: ${referido.nombre} (${referido.alumno_ref}), inscrito.`,
       })
+
+      // 2026-10-06 — Candado: el recomendado tiene que ser el interesado del comprobante.
+      // Con datos de AgendaW se compara contra la cita/nombre; en comprobantes viejos contra
+      // el nombre que se escribe del PDF. Sin esto cualquier alumno nuevo «procedía».
+      const interesado = await interesadoDelComprobante(db, fila)
+      res.interesadoComprobante = interesado.nombre
+      if (interesado.ref != null) {
+        checks.push(
+          interesado.ref === referido.alumno_ref
+            ? { id: 'interesado', nivel: 'ok', texto: `Es el interesado de la cita con la que se generó el comprobante.` }
+            : {
+                id: 'interesado',
+                nivel: 'error',
+                texto: `El comprobante es para ${interesado.nombre ?? 'otro alumno'} (${interesado.ref}), no para ${referido.nombre}.`,
+              }
+        )
+      } else if (interesado.nombre) {
+        checks.push(
+          nombreCoincide(interesado.nombre, referido.nombre)
+            ? { id: 'interesado', nivel: 'ok', texto: `Coincide con el interesado del comprobante: ${interesado.nombre}.` }
+            : {
+                id: 'interesado',
+                nivel: 'error',
+                texto: `El comprobante es para ${interesado.nombre}, no para ${referido.nombre}.`,
+              }
+        )
+      } else {
+        res.requiereNombrePdf = true
+        const escrito = (opts.interesadoPdf ?? '').trim()
+        if (!escrito) {
+          checks.push({
+            id: 'interesado',
+            nivel: 'error',
+            texto: 'Comprobante anterior sin interesado guardado: escribe el nombre del interesado tal como viene en el PDF para confirmar que es el alumno correcto.',
+          })
+        } else if (normalizarNombre(escrito).split(' ').filter((p) => p.length >= 2).length < 2) {
+          checks.push({
+            id: 'interesado',
+            nivel: 'error',
+            texto: 'Escribe el nombre completo del interesado (nombre y apellidos) como viene en el PDF.',
+          })
+        } else if (!nombreCoincide(escrito, referido.nombre)) {
+          checks.push({
+            id: 'interesado',
+            nivel: 'error',
+            texto: `En el PDF dice «${escrito}», pero elegiste a ${referido.nombre}. Elige al alumno del PDF.`,
+          })
+        } else {
+          checks.push({ id: 'interesado', nivel: 'ok', texto: `Coincide con el interesado del PDF: ${escrito.toUpperCase()}.` })
+        }
+      }
 
       const { data: usados, error: usadosError } = await db
         .from('wsp')
@@ -928,6 +1025,7 @@ export async function aplicarFamiliaWinston(opts: {
   referidoRef: number
   validadoPor: string
   conceptoNo?: string | null
+  interesadoPdf?: string | null
 }): Promise<ResultadoAplicarFamiliaWinston> {
   const db = createDbAdmin()
   const revision = await revisarFamiliaWinston({ ...opts, db })
@@ -1014,6 +1112,10 @@ export async function aplicarFamiliaWinston(opts: {
       concepto_condonado: mesPropuesto.conceptoNo,
       ciclo_condonado: mesPropuesto.ciclo,
       updated_at: new Date().toISOString(),
+      // 2026-10-06: en comprobantes viejos queda guardado el interesado confirmado del PDF
+      ...(revision.requiereNombrePdf && opts.interesadoPdf?.trim()
+        ? { interesado_nombre: opts.interesadoPdf.trim().toUpperCase().slice(0, 200) }
+        : {}),
     })
     .eq('id', comprobante.id)
   if (fin.error) console.error('familia-winston: no se pudo cerrar wsp', comprobante.id, fin.error.message)

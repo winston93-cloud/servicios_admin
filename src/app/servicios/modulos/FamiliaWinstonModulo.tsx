@@ -129,6 +129,8 @@ export default function FamiliaWinstonModulo() {
   const [qrBuscado, setQrBuscado] = useState('')
   const [comprobantesQr, setComprobantesQr] = useState<ComprobanteQr[]>([])
   const [recomendadoQr, setRecomendadoQr] = useState<RecomendadoQrFamiliaWinston | null>(null)
+  /** 2026-10-06 — Comprobante viejo: nombre del interesado escrito del PDF (el servidor lo cruza). */
+  const [interesadoPdf, setInteresadoPdf] = useState('')
 
   const [revision, setRevision] = useState<RevisionFamiliaWinston | null>(null)
   const [correoPreview, setCorreoPreview] = useState<string | null>(null)
@@ -153,7 +155,8 @@ export default function FamiliaWinstonModulo() {
 
   const ctrl = beneficiado ? soloDigitos(String(beneficiado.alumno_ref)) : ''
   const referidoRef = referido ? soloDigitos(String(referido.alumno_ref)) : ''
-  const claveActual = `${qr}|${ctrl}|${referidoRef}|${mesElegido}`
+  const pdfLimpio = interesadoPdf.trim().replace(/\s+/g, ' ')
+  const claveActual = `${qr}|${ctrl}|${referidoRef}|${pdfLimpio}|${mesElegido}`
   const completo = qr.length >= DIGITOS_QR && !!ctrl && !!referidoRef
 
   const cargarHistorial = useCallback(async () => {
@@ -254,6 +257,7 @@ export default function FamiliaWinstonModulo() {
   const elegirComprobante = useCallback((item: ComprobanteQr) => {
     if (item.alumno) setBeneficiado(alumnoParaBuscador(item.alumno))
     setRecomendadoQr(item.recomendado)
+    setInteresadoPdf('')
     setReferido(item.recomendado.alumno ? alumnoParaBuscador(item.recomendado.alumno) : null)
   }, [])
 
@@ -290,13 +294,13 @@ export default function FamiliaWinstonModulo() {
     setRevisando(true)
     const base = `${qr}|${ctrl}|${referidoRef}`
     if (!claveRevisada.startsWith(`${base}|`)) setRevision(null)
-    setClaveRevisada(`${base}|${mesElegido}`)
+    setClaveRevisada(`${base}|${pdfLimpio}|${mesElegido}`)
     try {
       const { ok, data } = await postApi<{
         revision?: RevisionFamiliaWinston
         correoPreview?: string | null
         error?: string
-      }>({ accion: 'revisar', qr, ctrl, referidoRef, conceptoNo: mesElegido })
+      }>({ accion: 'revisar', qr, ctrl, referidoRef, conceptoNo: mesElegido, interesadoPdf: pdfLimpio })
       if (!ok || !data.revision) {
         setRevision(null)
         setError(data.error ?? 'No se pudo revisar el comprobante.')
@@ -309,7 +313,7 @@ export default function FamiliaWinstonModulo() {
     } finally {
       setRevisando(false)
     }
-  }, [qr, ctrl, referidoRef, mesElegido, claveRevisada])
+  }, [qr, ctrl, referidoRef, mesElegido, pdfLimpio, claveRevisada])
 
   /* Otro beneficiado = otras colegiaturas pendientes: volver a proponer la próxima. */
   useEffect(() => {
@@ -336,6 +340,7 @@ export default function FamiliaWinstonModulo() {
     setQrBuscado('')
     setComprobantesQr([])
     setRecomendadoQr(null)
+    setInteresadoPdf('')
     setBeneficiado(null)
     setReferido(null)
     setRevision(null)
@@ -360,7 +365,14 @@ export default function FamiliaWinstonModulo() {
     try {
       const { ok: okRes, data } = await postApi<
         ResultadoAplicado & { error?: string; revision?: RevisionFamiliaWinston }
-      >({ accion: 'aplicar', qr, ctrl, referidoRef, conceptoNo: revision.mesPropuesto.conceptoNo })
+      >({
+        accion: 'aplicar',
+        qr,
+        ctrl,
+        referidoRef,
+        conceptoNo: revision.mesPropuesto.conceptoNo,
+        interesadoPdf: pdfLimpio,
+      })
       if (!okRes) {
         setError(data.error ?? 'No se pudo aplicar el beneficio.')
         if (data.revision) setRevision(data.revision)
@@ -641,6 +653,25 @@ export default function FamiliaWinstonModulo() {
                   excluirRefs={ctrl ? [ctrl] : undefined}
                   mensajeExcluido={`${beneficiado?.nombre_completo ?? 'Ese alumno'} es quien recomendó; no se puede recomendar a sí mismo. Busca al alumno nuevo por su nombre.`}
                 />
+                {/* 2026-10-06 — Comprobante viejo: se escribe el interesado del PDF y el servidor
+                    lo cruza con el alumno elegido (si no coincide, no procede). */}
+                {(recomendadoQr && !recomendadoQr.interesadoNombre) || revision?.requiereNombrePdf ? (
+                  <label className="fw-campo fw-campo-pdf">
+                    <strong>Nombre del interesado según el PDF</strong>
+                    <input
+                      type="text"
+                      className="fw-input"
+                      autoComplete="off"
+                      placeholder="Ej. Luca Mazatini Bustamante"
+                      value={interesadoPdf}
+                      onChange={(e) => setInteresadoPdf(e.target.value)}
+                    />
+                    <span className="fw-sub">
+                      Cópialo del comprobante («Este documento certifica que el interesado…»). Si no coincide
+                      con el alumno elegido, no procede.
+                    </span>
+                  </label>
+                ) : null}
               </div>
             </div>
           </section>

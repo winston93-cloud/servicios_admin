@@ -808,6 +808,11 @@ html[data-theme='dark'] .fw-exito-datos div {
   font-weight: 600;
 }
 
+/* 2026-10-06 — Nombre del interesado del PDF (comprobantes viejos), debajo del buscador. */
+.fw-campo-pdf {
+  margin-top: 12px;
+}
+
 .fw-config {
   gap: 10px;
 }

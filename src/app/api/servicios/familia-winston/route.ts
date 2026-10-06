@@ -82,6 +82,8 @@ export async function POST(request: Request) {
     const conceptoNo = /^\d{1,2}$/.test(String(body.conceptoNo ?? '').trim())
       ? String(body.conceptoNo).trim()
       : null
+    // 2026-10-06 — Nombre del interesado escrito del PDF (comprobantes viejos sin interesado guardado).
+    const interesadoPdf = String(body.interesadoPdf ?? '').trim().slice(0, 200) || null
     if (!ctrl || !qr) {
       return NextResponse.json(
         { error: 'Escanea el código QR y elige al alumno que recomienda.' },
@@ -90,7 +92,7 @@ export async function POST(request: Request) {
     }
 
     if (accion === 'revisar') {
-      const revision = await revisarFamiliaWinston({ ctrl, qr, referidoRef, conceptoNo })
+      const revision = await revisarFamiliaWinston({ ctrl, qr, referidoRef, conceptoNo, interesadoPdf })
       const correoPreview =
         revision.beneficiado && revision.mesPropuesto && revision.destinatarios.length > 0
           ? textoCorreoFamiliaWinston({
@@ -114,6 +116,7 @@ export async function POST(request: Request) {
         qr,
         referidoRef,
         conceptoNo,
+        interesadoPdf,
         validadoPor: a.usuario,
       })
       if (!r.ok) return NextResponse.json({ error: r.mensaje, revision: r.revision }, { status: 409 })
