@@ -72,7 +72,7 @@ const OCULTOS_KARLA_M = [
   'revision-pagados', // 25
 ] as const
 
-/** coording / kinder_ing (dirección inglés kinder): oculta set previo de Fátima. */
+/** coording (dirección inglés primaria) / kinder_ing (dirección inglés kinder): oculta set previo de Fátima. */
 const OCULTOS_COORDING_KINDER_ING = [
   'desayunos', // 1
   'devoluciones', // 5
@@ -389,7 +389,7 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   37: OCULTOS_RUBEN_ALAN_CARLOS, // carlos
   38: OCULTOS_RUBEN_ALAN_CARLOS, // alan
   3: OCULTOS_KARLA_M, // karla_m
-  10: OCULTOS_COORDING_KINDER_ING, // coording
+  10: OCULTOS_COORDING_KINDER_ING, // coording (inglés primaria)
   54: OCULTOS_COORDING_KINDER_ING, // kinder_ing (ex set visible de Fátima)
   6: OCULTOS_KEVIN, // kevin
   58: OCULTOS_LAURA_VINCULACION, // Laura Domínguez Vinculación
