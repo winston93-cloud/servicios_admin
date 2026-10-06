@@ -48,12 +48,11 @@ function fail(error: { message?: string } | null | undefined, ctx: string): void
   if (error) throw new Error(`${ctx}: ${error.message ?? 'error'}`)
 }
 
-/** Solo inglés Primaria: su directora más sistemas y dirección general. */
+/** Solo inglés Primaria: su directora, laura y mario. Nadie más. */
 const NIVELES_POR_USUARIO: Record<number, TeNivel[]> = {
   10: [3], // coording · inglés primaria
   2: [3], // laura
   17: [3], // mario
-  59: [3], // santiago (DG)
 }
 
 export function nivelesPermitidos(usuarioId: number | null | undefined): TeNivel[] {
