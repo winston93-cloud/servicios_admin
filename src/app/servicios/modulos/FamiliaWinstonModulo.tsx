@@ -15,10 +15,12 @@ import {
   CheckCircle2,
   ChevronDown,
   ClipboardCheck,
+  GraduationCap,
   HeartHandshake,
   Loader2,
   Mail,
   QrCode,
+  Receipt,
   RefreshCw,
   RotateCcw,
   ShieldCheck,
@@ -67,6 +69,21 @@ function fmtFechaHora(iso: string | null): string {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return iso
   return d.toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })
+}
+
+function dinero(n: number): string {
+  return n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
+}
+
+/** 2026-10-06 — «36 días (1 mes y 6 días)» para la antigüedad del alumno recomendado. */
+function textoAntiguedad(dias: number): string {
+  const meses = Math.floor(dias / 30)
+  const resto = dias % 30
+  const detalle =
+    meses > 0
+      ? ` (${meses} ${meses === 1 ? 'mes' : 'meses'}${resto ? ` y ${resto} ${resto === 1 ? 'día' : 'días'}` : ''})`
+      : ''
+  return `${dias} ${dias === 1 ? 'día' : 'días'}${detalle}`
 }
 
 function alumnoParaBuscador(a: AlumnoQrFamiliaWinston): AlumnoBusquedaResultado {
@@ -277,6 +294,14 @@ export default function FamiliaWinstonModulo() {
   useEffect(() => {
     setMesElegido('')
   }, [ctrl])
+
+  /* 2026-10-06 — Si quien recomendó quedó también como recomendado, se quita (no puede ser el mismo). */
+  useEffect(() => {
+    if (ctrl && referidoRef === ctrl) {
+      setReferido(null)
+      setFormKey((k) => k + 1)
+    }
+  }, [ctrl, referidoRef])
 
   /* Revisión automática en cuanto están los 3 datos. */
   useEffect(() => {
@@ -528,8 +553,11 @@ export default function FamiliaWinstonModulo() {
                 <p className="fw-paso-titulo">
                   <UserPlus size={16} aria-hidden /> ¿A quién recomendó?
                 </p>
+                {/* 2026-10-06: el número del comprobante es el de quien recomienda → se ponía aquí por error */}
                 <p className="fw-paso-ayuda">
-                  El alumno nuevo que se inscribió gracias a la recomendación.
+                  El alumno nuevo que se inscribió gracias a la recomendación: búscalo por el nombre del
+                  «interesado» que viene en el comprobante. El número de control del comprobante es el de
+                  quien recomendó, no va aquí.
                 </p>
                 <AlumnoAutocomplete
                   key={`ref-${formKey}`}
@@ -537,6 +565,8 @@ export default function FamiliaWinstonModulo() {
                   alumnoSeleccionado={referido}
                   onSeleccionar={setReferido}
                   autoFocus={false}
+                  excluirRefs={ctrl ? [ctrl] : undefined}
+                  mensajeExcluido={`${beneficiado?.nombre_completo ?? 'Ese alumno'} es quien recomendó; no se puede recomendar a sí mismo. Busca al alumno nuevo por su nombre.`}
                 />
               </div>
             </div>
@@ -624,6 +654,50 @@ export default function FamiliaWinstonModulo() {
                     </p>
                   </div>
                 </div>
+
+                {/* 2026-10-06 — Alumno recomendado: cuándo pagó su inscripción y cuánto lleva estudiando */}
+                {revision.referido && revision.infoReferido ? (
+                  <div className="fw-resumen fw-referido">
+                    <div className="fw-dato">
+                      <span>
+                        <UserPlus size={14} aria-hidden /> Alumno recomendado
+                      </span>
+                      <strong>{revision.referido.nombre}</strong>
+                      <small className="fw-sub">No. control {revision.referido.alumno_ref}</small>
+                    </div>
+                    <div className="fw-dato">
+                      <span>
+                        <Receipt size={14} aria-hidden /> Pagó su inscripción
+                      </span>
+                      <strong>
+                        {revision.infoReferido.inscripcion
+                          ? `${fechaCorta(revision.infoReferido.inscripcion.fecha)} · ${dinero(revision.infoReferido.inscripcion.importe)}`
+                          : 'Sin pago de inscripción registrado'}
+                      </strong>
+                      {revision.infoReferido.primeraColegiatura ? (
+                        <small className="fw-sub">
+                          Primera colegiatura ({revision.infoReferido.primeraColegiatura.mes}):{' '}
+                          {fechaCorta(revision.infoReferido.primeraColegiatura.fecha)}
+                        </small>
+                      ) : null}
+                    </div>
+                    <div className="fw-dato">
+                      <span>
+                        <GraduationCap size={14} aria-hidden /> Lleva estudiando
+                      </span>
+                      <strong>
+                        {revision.infoReferido.diasEstudiando != null
+                          ? textoAntiguedad(revision.infoReferido.diasEstudiando)
+                          : '—'}
+                      </strong>
+                      {revision.infoReferido.estudiaDesde ? (
+                        <small className="fw-sub">
+                          Desde el {fechaCorta(revision.infoReferido.estudiaDesde)}
+                        </small>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
 
                 {revision.beneficiado &&
                 revision.mesesDisponibles.length > 0 &&

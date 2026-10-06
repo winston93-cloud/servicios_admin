@@ -89,12 +89,22 @@ export interface DestinatarioFamiliaWinston {
   tutorId: number
 }
 
+/** 2026-10-06 — Datos del alumno recomendado para mostrar: inscripción, primera colegiatura y antigüedad. */
+export interface InfoReferidoFamiliaWinston {
+  inscripcion: { fecha: string | null; importe: number; referencia: string } | null
+  primeraColegiatura: { mes: string; fecha: string | null; importe: number } | null
+  /** Desde cuándo cuenta como estudiante (inicio de clases o su alta, lo más tarde). */
+  estudiaDesde: string | null
+  diasEstudiando: number | null
+}
+
 export interface RevisionFamiliaWinston {
   puedeAplicar: boolean
   checks: CheckFamiliaWinston[]
   comprobante: ComprobanteFamiliaWinston | null
   beneficiado: AlumnoFamiliaWinston | null
   referido: AlumnoFamiliaWinston | null
+  infoReferido: InfoReferidoFamiliaWinston | null
   mesPropuesto: MesPropuesto | null
   /** 2026-10-05 — Colegiaturas pendientes que se pueden elegir para condonar. */
   mesesDisponibles: MesPropuesto[]
@@ -122,7 +132,10 @@ type FilaPago = {
   pago_referencia: string | null
   pago_cancelado: number | null
   pago_importe: number | string | null
+  pago_fecha?: string | null
 }
+
+const CONCEPTO_INSCRIPCION = '13'
 
 export function folioWsp(id: number): string {
   return `WSP-${String(id).padStart(5, '0')}`
@@ -237,7 +250,7 @@ async function cargarAlumno(
 async function cargarPagos(db: AppDatabaseClient, alumnoId: number): Promise<FilaPago[]> {
   const { data, error } = await db
     .from('pago_detalle')
-    .select('pago_referencia, pago_cancelado, pago_importe')
+    .select('pago_referencia, pago_cancelado, pago_importe, pago_fecha')
     .eq('alumno_id', alumnoId)
   if (error) throw new Error(error.message)
   return (data ?? []) as FilaPago[]
@@ -326,6 +339,40 @@ function primeraColegiaturaPagada(pagos: FilaPago[], ciclo: number): boolean {
   })
 }
 
+/**
+ * 2026-10-06 — Inscripción (concepto 13) y primera colegiatura pagada del ciclo del alumno
+ * recomendado. La inscripción del ciclo manda; si no hay, la más reciente que tenga.
+ */
+function pagosClaveReferido(
+  pagos: FilaPago[],
+  ciclo: number
+): Pick<InfoReferidoFamiliaWinston, 'inscripcion' | 'primeraColegiatura'> {
+  const vigentes = pagos
+    .filter((p) => pagoVigente(p) && Number(p.pago_importe) > 0)
+    .map((p) => ({ p, ref: parsearReferenciaPago(p.pago_referencia) }))
+    .filter((x): x is { p: FilaPago; ref: NonNullable<typeof x.ref> } => !!x.ref)
+    .sort((a, b) => String(a.p.pago_fecha ?? '').localeCompare(String(b.p.pago_fecha ?? '')))
+  const fecha = (p: FilaPago) => (p.pago_fecha ? String(p.pago_fecha).slice(0, 10) : null)
+
+  const inscripciones = vigentes.filter((x) => normalizarConceptoNo(x.ref.conceptoNo) === CONCEPTO_INSCRIPCION)
+  const insc = inscripciones.find((x) => x.ref.cicloEscolar === ciclo) ?? inscripciones[inscripciones.length - 1]
+  const coleg = vigentes.find(
+    (x) => x.ref.cicloEscolar === ciclo && CONCEPTOS_COLEGIATURA.has(normalizarConceptoNo(x.ref.conceptoNo))
+  )
+  return {
+    inscripcion: insc
+      ? { fecha: fecha(insc.p), importe: Number(insc.p.pago_importe), referencia: String(insc.p.pago_referencia) }
+      : null,
+    primeraColegiatura: coleg
+      ? {
+          mes: MES_POR_CONCEPTO[normalizarConceptoNo(coleg.ref.conceptoNo)],
+          fecha: fecha(coleg.p),
+          importe: Number(coleg.p.pago_importe),
+        }
+      : null,
+  }
+}
+
 export interface AlumnoQrFamiliaWinston {
   alumno_id: number
   alumno_ref: string
@@ -404,6 +451,7 @@ export async function revisarFamiliaWinston(opts: {
     comprobante: null,
     beneficiado: null,
     referido: null,
+    infoReferido: null,
     mesPropuesto: null,
     mesesDisponibles: [],
     destinatarios: [],
@@ -477,7 +525,8 @@ export async function revisarFamiliaWinston(opts: {
     checks.push({
       id: 'referido',
       nivel: 'error',
-      texto: 'El alumno recomendado no puede ser el mismo que recibe el beneficio.',
+      // 2026-10-06: el número del comprobante es el de quien recomienda; se confundía con el del alumno nuevo
+      texto: `Un alumno no se puede recomendar a sí mismo: ${opts.ctrl} es quien recomendó. En «¿A quién recomendó?» va el alumno nuevo (el «interesado» que aparece en el comprobante).`,
     })
   } else {
     const referido = await cargarAlumno(db, opts.referidoRef)
@@ -515,6 +564,11 @@ export async function revisarFamiliaWinston(opts: {
       }
 
       const pagosReferido = await cargarPagos(db, referido.alumno_id)
+      res.infoReferido = {
+        ...pagosClaveReferido(pagosReferido, referido.ciclo),
+        estudiaDesde: null,
+        diasEstudiando: null,
+      }
       if (primeraColegiaturaPagada(pagosReferido, referido.ciclo)) {
         checks.push({ id: 'pago-referido', nivel: 'ok', texto: 'Ya pagó su primera colegiatura del ciclo.' })
       } else {
@@ -537,6 +591,8 @@ export async function revisarFamiliaWinston(opts: {
           referido.alta && referido.alta > ciclo.inicioClases ? referido.alta : ciclo.inicioClases
         const dias = diasEntre(inicio, hoyMx())
         res.diasClases = Math.max(0, dias)
+        res.infoReferido.estudiaDesde = inicio
+        res.infoReferido.diasEstudiando = Math.max(0, dias)
         res.fechaDisponible = sumarDias(inicio, DIAS_CLASES_REQUERIDOS)
         if (dias >= DIAS_CLASES_REQUERIDOS) {
           checks.push({

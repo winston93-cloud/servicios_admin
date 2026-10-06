@@ -114,6 +114,10 @@ interface AlumnoAutocompleteProps {
    * Si se define, no usa el proxy de BD (sirve para pantallas sin login).
    */
   apiBusqueda?: string
+  /** 2026-10-06 — No. control que no se pueden elegir (p. ej. Familia Winston: quien recomendó). */
+  excluirRefs?: string[]
+  /** Aviso cuando lo que se buscó era solo un alumno excluido. */
+  mensajeExcluido?: string
 }
 
 export default function AlumnoAutocomplete({
@@ -123,7 +127,10 @@ export default function AlumnoAutocomplete({
   etiqueta = 'Buscar alumno',
   cualquierCiclo = false,
   apiBusqueda,
+  excluirRefs,
+  mensajeExcluido = 'Ese alumno no se puede elegir aquí.',
 }: AlumnoAutocompleteProps) {
+  const excluirClave = (excluirRefs ?? []).join('|')
   const baseId = useId()
   const listboxId = `${baseId}-listbox`
   const inputRef = useRef<HTMLInputElement>(null)
@@ -276,13 +283,17 @@ export default function AlumnoAutocomplete({
           })
         }
         if (controller.signal.aborted) return
-        setResultados(lista)
+        const excluidos = new Set(excluirClave ? excluirClave.split('|') : [])
+        const filtrada = lista.filter((a) => !excluidos.has(String(a.alumno_ref)))
+        setResultados(filtrada)
         setAbierto(true)
-        setIndiceActivo(lista.length > 0 ? 0 : -1)
+        setIndiceActivo(filtrada.length > 0 ? 0 : -1)
         setMensajeVacio(
-          lista.length === 0
-            ? 'No encontramos alumnos con ese criterio. Prueba otro nombre o apellido.'
-            : null
+          filtrada.length > 0
+            ? null
+            : lista.length > 0
+              ? mensajeExcluido
+              : 'No encontramos alumnos con ese criterio. Prueba otro nombre o apellido.'
         )
       } catch (e) {
         if ((e as Error).name !== 'AbortError') {
@@ -295,7 +306,7 @@ export default function AlumnoAutocomplete({
     }, 110)
 
     return () => window.clearTimeout(timer)
-  }, [consulta, alumnoVisible, cicloSeleccionado, cualquierCiclo, apiBusqueda])
+  }, [consulta, alumnoVisible, cicloSeleccionado, cualquierCiclo, apiBusqueda, excluirClave, mensajeExcluido])
 
   useEffect(() => {
     if (indiceActivo < 0 || !listRef.current) return
