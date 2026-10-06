@@ -984,8 +984,24 @@ html[data-theme='dark'] .fw-tab--activa {
   font-size: 14px;
 }
 
+/* 2026-10-06 — Opciones legibles en ambos temas: en oscuro el navegador pinta la lista oscura y el texto quedaba ilegible. */
 .fw-input option {
+  background: #ffffff;
   color: #0f172a;
+}
+
+html[data-theme='dark'] .fw select.fw-input {
+  color-scheme: dark;
+}
+
+html[data-theme='dark'] .fw-input option {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.fw-input option:checked {
+  background: var(--fw-acento-suave);
+  color: var(--fw-texto);
 }
 
 .fw-kpis {
