@@ -56,6 +56,7 @@ export default function DesempenoSeccion({ snap, recargar, avisar }: SeccionProp
   }
 
   const np = nivelDesempeno(promedio)
+  const sinVinculo = activas.filter((t) => !snap.reloj.vinculos.find((v) => v.maestro_id === t.maestro_id)?.empleado)
   return (
     <>
       <div className="te-toolbar">
@@ -84,9 +85,15 @@ export default function DesempenoSeccion({ snap, recargar, avisar }: SeccionProp
         <div className="te-min0 te-desemp-info">
           <p><b>{fechaLarga(rango.desde)}</b> al <b>{fechaLarga(rango.hasta)}</b> · {dias} días hábiles · {incPeriodo.length} incidencias</p>
           <p className="te-nota">
-            Cada rubro es el % de días hábiles sin esa incidencia (las justificadas cuentan la mitad). El total pondera los rubros
-            según tus porcentajes.
+            Faltas, retardos y permisos llegan solos del 🕐 Reloj Checador: tolerancia de 5 min; de 6 a 20 min es retardo y desde
+            21 min, permiso de llegada. Cada rubro es el % de días hábiles sin esa incidencia (las justificadas cuentan la mitad) y
+            el total pondera los rubros según tus porcentajes.
           </p>
+          {snap.reloj.error ? (
+            <p className="te-reloj-aviso" role="alert">⚠️ No se pudo leer el Reloj Checador ({snap.reloj.error}). Solo se muestran incidencias capturadas a mano.</p>
+          ) : sinVinculo.length ? (
+            <p className="te-reloj-aviso">⚠️ Sin vincular al Reloj: {sinVinculo.map((t) => t.nombre).join(', ')}. Revisa que su nombre coincida con el de RH.</p>
+          ) : null}
           <button type="button" className="te-btn te-btn-ghost te-btn-sm" aria-expanded={verPesos} onClick={() => setVerPesos((v) => !v)}>
             ⚖️ Ponderadores: {RUBROS.map((r) => `${r.emoji} ${snap.ponderadores[r.clave]}%`).join(' · ')}
           </button>
@@ -103,6 +110,7 @@ export default function DesempenoSeccion({ snap, recargar, avisar }: SeccionProp
             const n = nivelDesempeno(d.total)
             const abiertaEsta = abierta === t.maestro_id
             const suyas = incPeriodo.filter((x) => x.maestro_id === t.maestro_id)
+            const vinculo = snap.reloj.vinculos.find((v) => v.maestro_id === t.maestro_id)
             return (
               <li key={t.maestro_id} style={{ ['--i' as string]: i }} data-tono={n.tono}>
                 <button type="button" className="te-rank-fila" aria-expanded={abiertaEsta} onClick={() => setAbierta(abiertaEsta ? null : t.maestro_id)}>
@@ -133,6 +141,9 @@ export default function DesempenoSeccion({ snap, recargar, avisar }: SeccionProp
                         </li>
                       ))}
                     </ul>
+                    <p className="te-nota te-reloj-vinculo">
+                      {vinculo?.empleado ? `🕐 Reloj: #${vinculo.empleado} · ${vinculo.nombre}` : '🕐 Sin vincular al Reloj Checador'}
+                    </p>
                     {suyas.length ? (
                       <ul className="te-incidencias">
                         {suyas.map((x) => {
@@ -144,11 +155,14 @@ export default function DesempenoSeccion({ snap, recargar, avisar }: SeccionProp
                                 <b>{tipo?.etiqueta}</b> · {fechaLarga(x.fecha)}
                                 {x.minutos ? ` · ${x.minutos} min` : ''}
                                 {x.justificada ? ' · ✔️ Justificada' : ''}
+                                {x.origen === 'reloj' ? <span className="te-reloj-badge">🕐 Reloj</span> : null}
                                 {x.notas ? <small>{x.notas}</small> : null}
                               </span>
-                              <button type="button" className="te-icon-btn" aria-label="Eliminar incidencia" onClick={() => void eliminar(x.id)}>
-                                <Trash2 size={15} aria-hidden />
-                              </button>
+                              {x.origen === 'reloj' ? null : (
+                                <button type="button" className="te-icon-btn" aria-label="Eliminar incidencia" onClick={() => void eliminar(x.id)}>
+                                  <Trash2 size={15} aria-hidden />
+                                </button>
+                              )}
                             </li>
                           )
                         })}

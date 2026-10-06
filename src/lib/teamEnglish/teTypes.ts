@@ -138,6 +138,14 @@ export type TeIncidencia = {
   justificada: boolean
   notas: string
   registrado_por: string | null
+  /** 'reloj' = calculada del Reloj Checador (no editable). */
+  origen?: 'manual' | 'reloj'
+}
+
+export type TeRelojEstado = {
+  vinculos: { maestro_id: number; empleado: string | null; nombre: string | null }[]
+  error: string | null
+  actualizado: string
 }
 
 export const RUBROS = [
@@ -230,6 +238,7 @@ export type TeSnapshot = {
   incidencias: TeIncidencia[]
   classroom: TeClassroom[]
   ponderadores: Ponderadores
+  reloj: TeRelojEstado
 }
 
 /* ── Fechas ── */

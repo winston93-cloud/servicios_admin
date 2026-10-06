@@ -842,6 +842,9 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
 .te-incidencias li > span:first-child { font-size: 1.2rem; }
 .te-incidencias .te-min0 { flex: 1; }
 .te-incidencias small { display: block; color: var(--te-muted); }
+.te-reloj-badge { display: inline-block; margin-left: 0.4rem; padding: 0.05rem 0.45rem; border-radius: 999px; font-size: 0.72rem; font-weight: 700; background: color-mix(in srgb, var(--te-muted) 18%, transparent); color: inherit; vertical-align: middle; white-space: nowrap; }
+.te-reloj-aviso { margin: 0.4rem 0; padding: 0.5rem 0.75rem; border-radius: 0.8rem; font-size: 0.85rem; background: color-mix(in srgb, #f59e0b 16%, transparent); border: 1px solid color-mix(in srgb, #f59e0b 45%, transparent); overflow-wrap: anywhere; }
+.te-reloj-vinculo { margin: 0.2rem 0 0.5rem; overflow-wrap: anywhere; }
 
 /* ── Classrooms ── */
 .te-leyenda { margin-bottom: 1rem; }

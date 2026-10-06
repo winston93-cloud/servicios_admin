@@ -1,4 +1,5 @@
 import { createDbAdmin, createInsforgeAdmin } from '@/lib/insforgeAdmin'
+import { incidenciasReloj } from './teReloj'
 import {
   ESTADOS_PLANEACION,
   MODALIDADES,
@@ -285,6 +286,19 @@ export async function snapshot(nivel: TeNivel, niveles: TeNivel[]): Promise<TeSn
   fail(incRes.error, 'Incidencias')
   fail(clsRes.error, 'Classroom')
   fail(cfgRes.error, 'Configuración')
+  const manuales: TeIncidencia[] = ((incRes.data ?? []) as Record<string, unknown>[]).map((r) => ({
+    id: Number(r.id),
+    maestro_id: Number(r.maestro_id),
+    fecha: String(r.fecha).slice(0, 10),
+    tipo: r.tipo as TeIncidencia['tipo'],
+    minutos: r.minutos == null ? null : Number(r.minutos),
+    justificada: Boolean(r.justificada),
+    notas: String(r.notas ?? ''),
+    registrado_por: (r.registrado_por as string) ?? null,
+    origen: 'manual',
+  }))
+  const reloj = await incidenciasReloj(teachers.filter((t) => t.activo), inicio, hoy)
+  const capturadas = new Set(manuales.map((i) => `${i.maestro_id}|${i.fecha}|${i.tipo}`))
   return {
     nivel,
     niveles,
@@ -293,16 +307,9 @@ export async function snapshot(nivel: TeNivel, niveles: TeNivel[]): Promise<TeSn
     teachers,
     planeaciones: ((planRes.data ?? []) as Record<string, unknown>[]).map(mapPlaneacion),
     capacitaciones,
-    incidencias: ((incRes.data ?? []) as Record<string, unknown>[]).map((r) => ({
-      id: Number(r.id),
-      maestro_id: Number(r.maestro_id),
-      fecha: String(r.fecha).slice(0, 10),
-      tipo: r.tipo as TeIncidencia['tipo'],
-      minutos: r.minutos == null ? null : Number(r.minutos),
-      justificada: Boolean(r.justificada),
-      notas: String(r.notas ?? ''),
-      registrado_por: (r.registrado_por as string) ?? null,
-    })),
+    incidencias: [...manuales, ...reloj.incidencias.filter((i) => !capturadas.has(`${i.maestro_id}|${i.fecha}|${i.tipo}`))].sort(
+      (a, b) => b.fecha.localeCompare(a.fecha),
+    ),
     classroom: ((clsRes.data ?? []) as Record<string, unknown>[]).map((r) => ({
       id: Number(r.id),
       maestro_id: Number(r.maestro_id),
@@ -315,6 +322,7 @@ export async function snapshot(nivel: TeNivel, niveles: TeNivel[]): Promise<TeSn
       revisado_por: (r.revisado_por as string) ?? null,
     })) as TeClassroom[],
     ponderadores: normalizarPonderadores(cfgRes.data?.ponderadores),
+    reloj: reloj.estado,
   }
 }
 
