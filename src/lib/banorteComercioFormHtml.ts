@@ -227,9 +227,6 @@ function scriptPersistenciaTarjeta(referencia: string): string {
       setTimeout(function () { btn.disabled = true; }, 0);
     }
   });
-  window.addEventListener("pageshow", function (ev) {
-    if (ev.persisted) window.location.reload();
-  });
 })();
 (function () {
   var input = document.getElementById("CUSTOMER_REF1");
