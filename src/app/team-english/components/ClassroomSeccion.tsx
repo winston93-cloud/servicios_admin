@@ -252,18 +252,37 @@ export default function ClassroomSeccion({ snap, recargar, avisar }: SeccionProp
   const [notaAbierta, setNotaAbierta] = useState<string | null>(null)
   const [seleccion, setSeleccion] = useState<number | null>(null)
 
+  const activas = useMemo(() => snap.teachers.filter((x) => x.activo), [snap.teachers])
+  const teacherSel = activas.find((t) => t.maestro_id === seleccion) ?? null
+
   useEffect(() => {
     if (sincronizado.has(snap.nivel)) return
     sincronizado.add(snap.nivel)
-    teSincronizarCoMaestras(snap.nivel)
-      .then((r) => {
-        if (r.agregadas) avisar(`Acceso listo en ${r.agregadas === 1 ? '1 clase nueva' : `${r.agregadas} clases nuevas`} de Classroom.`, 'ok')
-        if (r.errores.length) console.warn('Co-maestras Classroom:', r.errores)
-      })
-      .catch((e: unknown) => console.warn('Co-maestras Classroom:', e))
-  }, [snap.nivel, avisar])
-  const activas = useMemo(() => snap.teachers.filter((x) => x.activo), [snap.teachers])
-  const teacherSel = activas.find((t) => t.maestro_id === seleccion) ?? null
+    const ids = activas.map((t) => t.maestro_id)
+    void (async () => {
+      let agregadas = 0
+      let fallos = 0
+      const cola = [...ids]
+      const trabajador = async () => {
+        for (let id = cola.shift(); id != null; id = cola.shift()) {
+          try {
+            const r = await teSincronizarCoMaestras(snap.nivel, id)
+            agregadas += r.agregadas
+            if (r.errores.length) {
+              fallos++
+              console.warn('Co-maestras Classroom:', id, r.errores)
+            }
+          } catch (e) {
+            fallos++
+            console.warn('Co-maestras Classroom:', id, e)
+          }
+        }
+      }
+      await Promise.all([trabajador(), trabajador(), trabajador()])
+      if (fallos) sincronizado.delete(snap.nivel)
+      if (agregadas) avisar(`Acceso listo en ${agregadas === 1 ? '1 clase nueva' : `${agregadas} clases nuevas`} de Classroom.`, 'ok')
+    })()
+  }, [snap.nivel, activas, avisar])
 
   const filas = useMemo(() => {
     const out: Fila[] = []

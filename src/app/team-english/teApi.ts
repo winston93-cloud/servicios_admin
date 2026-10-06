@@ -32,11 +32,11 @@ export async function teClassroomDetalle(nivel: TeNivel, maestroId: number, curs
   return (await leerJson(res)) as unknown as TeClassroomDetalle
 }
 
-export async function teSincronizarCoMaestras(nivel: TeNivel): Promise<TeCoMaestrasSync> {
+export async function teSincronizarCoMaestras(nivel: TeNivel, maestroId: number): Promise<TeCoMaestrasSync> {
   const res = await fetch('/api/team-english/classroom/comaestras', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...portalSessionFetchHeaders() },
-    body: JSON.stringify({ nivel }),
+    body: JSON.stringify({ nivel, maestro_id: maestroId }),
   })
   return (await leerJson(res)) as unknown as TeCoMaestrasSync
 }

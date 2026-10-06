@@ -215,31 +215,25 @@ async function sincronizarCurso(
   }
 }
 
-/** Deja a las cuentas de CO_MAESTRAS como co-maestras en todas las clases activas de las teachers. */
-export async function sincronizarCoMaestras(emails: string[]): Promise<TeCoMaestrasSync> {
+/** Deja a las cuentas de CO_MAESTRAS como co-maestras en las clases activas de una teacher. */
+export async function sincronizarCoMaestras(rawEmail: string): Promise<TeCoMaestrasSync> {
   const r: TeCoMaestrasSync = { clases: 0, agregadas: 0, quitadas: 0, errores: [] }
-  const admin = clienteClassroom(ADMIN_WORKSPACE, SCOPES_ADMIN)
-  const vistos = new Set<string>()
-  for (const raw of emails) {
-    let email = raw
-    try {
-      email = normalizarCorreoTeacher(raw)
-      const cr = clienteClassroom(email)
-      const cursos = await cr.courses.list({ teacherId: 'me', courseStates: ['ACTIVE'], pageSize: 50 })
-      for (const c of cursos.data.courses ?? []) {
-        if (!c.id || vistos.has(c.id)) continue
-        vistos.add(c.id)
-        r.clases++
-        await sincronizarCurso(admin, cr, c.id, r)
-      }
-    } catch (e) {
-      const err = e as { response?: { data?: { error?: string } }; message?: string }
-      if (err.response?.data?.error === 'unauthorized_client') {
-        r.errores.push('Google aún no autoriza el permiso classroom.rosters.')
-        break
-      }
-      r.errores.push(`${email}: ${err.message ?? 'error'}`)
+  const email = normalizarCorreoTeacher(rawEmail)
+  try {
+    const admin = clienteClassroom(ADMIN_WORKSPACE, SCOPES_ADMIN)
+    const cr = clienteClassroom(email)
+    const cursos = await cr.courses.list({ teacherId: 'me', courseStates: ['ACTIVE'], pageSize: 50 })
+    const ids = (cursos.data.courses ?? []).map((c) => c.id).filter((id): id is string => !!id)
+    r.clases = ids.length
+    const resultados = await Promise.allSettled(ids.map((id) => sincronizarCurso(admin, cr, id, r)))
+    for (const x of resultados) {
+      if (x.status === 'rejected') r.errores.push((x.reason as { message?: string })?.message ?? 'error')
     }
+  } catch (e) {
+    const err = e as { response?: { data?: { error?: string } }; message?: string }
+    r.errores.push(
+      err.response?.data?.error === 'unauthorized_client' ? 'Google aún no autoriza el permiso classroom.rosters.' : `${email}: ${err.message ?? 'error'}`,
+    )
   }
   return r
 }
