@@ -205,6 +205,30 @@ export type TeClassroomTarea = {
   devueltas: number
 }
 
+export type TeClassroomPlanItem = {
+  id: string
+  curso: string
+  tipo: 'tarea' | 'material' | 'aviso'
+  titulo: string
+  tema: string | null
+  fecha: string | null
+  borrador: boolean
+  enlace: string | null
+  adjuntos: { titulo: string; enlace: string }[]
+  es_planeacion: boolean
+}
+
+export type TeClassroomPlanTeacher = {
+  maestro_id: number
+  error: string | null
+  items: TeClassroomPlanItem[]
+}
+
+export type TeClassroomPlaneaciones = {
+  semana: string
+  teachers: TeClassroomPlanTeacher[]
+}
+
 export type TeClassroomPublicacion = {
   id: string
   texto: string

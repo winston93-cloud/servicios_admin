@@ -673,6 +673,21 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
   transform: rotate(3deg);
 }
 .te-plan-titulo { margin: 0; font-family: var(--te-display); font-weight: 600; font-size: 1.02rem; }
+.te-gplan-estado { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.4rem 0.8rem; margin: 0 0 0.6rem; }
+.te-gplan { display: grid; gap: 0.45rem; padding-top: 0.55rem; border-top: 2px dashed var(--te-borde); }
+.te-gplan-lista { display: grid; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.te-gplan-lista li { padding: 0.5rem 0.65rem; border-radius: 0.8rem; background: var(--te-hoja-2); font-size: 0.85rem; }
+.te-gplan-lista li[data-plan] { background: color-mix(in oklch, var(--te-matcha) 30%, var(--te-hoja)); }
+.te-gplan-lista a { color: inherit; text-decoration: none; overflow-wrap: anywhere; }
+.te-gplan-lista a:hover, .te-gplan-lista a:focus-visible { text-decoration: underline; }
+.te-gplan-lista small { display: block; margin-top: 0.15rem; color: var(--te-tinta-suave); font-size: 0.75rem; font-weight: 600; overflow-wrap: anywhere; }
+.te-gplan-adjuntos { display: flex; flex-wrap: wrap; gap: 0.3rem 0.7rem; margin-top: 0.3rem; font-size: 0.78rem; font-weight: 700; }
+.te-gplan-adjuntos a { display: inline-flex; align-items: center; min-height: 32px; }
+.te-gplan-vacio { display: flex; align-items: center; gap: 0.35rem; margin: 0; padding-top: 0.5rem; border-top: 2px dashed var(--te-borde); color: var(--te-muted); font-size: 0.8rem; font-weight: 600; }
+@media (max-width: 640px) {
+  .te-gplan-adjuntos a { min-height: 44px; }
+  .te-gplan-estado .te-btn { min-height: var(--touch-min, 44px); }
+}
 .te-plan-notas, .te-plan-meta { margin: 0; font-size: 0.85rem; color: var(--te-tinta-suave); }
 .te-plan-meta { font-size: 0.78rem; color: var(--te-muted); font-weight: 600; }
 .te-plan-comentario { margin: 0; padding: 0.55rem 0.75rem; border-radius: 0.8rem; background: color-mix(in oklch, var(--te-durazno) 60%, var(--te-hoja)); font-size: 0.86rem; font-weight: 600; white-space: pre-wrap; }

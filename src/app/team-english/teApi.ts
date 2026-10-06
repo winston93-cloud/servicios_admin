@@ -1,5 +1,5 @@
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
-import type { TeClassroomDetalle, TeClassroomResumen, TeCoMaestrasSync, TeNivel } from '@/lib/teamEnglish/teTypes'
+import type { TeClassroomDetalle, TeClassroomPlaneaciones, TeClassroomResumen, TeCoMaestrasSync, TeNivel } from '@/lib/teamEnglish/teTypes'
 
 async function leerJson(res: Response): Promise<Record<string, unknown>> {
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>
@@ -30,6 +30,14 @@ export async function teClassroomDetalle(nivel: TeNivel, maestroId: number, curs
     { headers: portalSessionFetchHeaders(), cache: 'no-store' },
   )
   return (await leerJson(res)) as unknown as TeClassroomDetalle
+}
+
+export async function teClassroomPlaneaciones(nivel: TeNivel, semana: string, refrescar = false): Promise<TeClassroomPlaneaciones> {
+  const res = await fetch(
+    `/api/team-english/classroom/planeaciones?nivel=${nivel}&semana=${semana}${refrescar ? '&refrescar=1' : ''}`,
+    { headers: portalSessionFetchHeaders(), cache: 'no-store' },
+  )
+  return (await leerJson(res)) as unknown as TeClassroomPlaneaciones
 }
 
 export async function teSincronizarCoMaestras(nivel: TeNivel, maestroId: number): Promise<TeCoMaestrasSync> {

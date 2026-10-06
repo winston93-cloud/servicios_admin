@@ -3,6 +3,7 @@ import { TeError } from './teService'
 import type {
   TeClassroomCurso,
   TeClassroomDetalle,
+  TeClassroomPlanItem,
   TeClassroomPublicacion,
   TeClassroomResumen,
   TeClassroomTarea,
@@ -185,6 +186,95 @@ export async function detalleClassroomCurso(rawEmail: unknown, courseId: string)
         publicacion(m.id, m.title || m.description, m.creationTime, m.alternateLink),
       ),
     }
+  } catch (e) {
+    errorGoogle(e, email)
+  }
+}
+
+const RE_PLANEACION = /planea|planning|lesson\s*plan|weekly\s*plan|plan\s*semanal|planificaci/i
+
+type Material = classroom_v1.Schema$Material
+
+function adjuntos(materiales: Material[] | undefined): { titulo: string; enlace: string }[] {
+  const out: { titulo: string; enlace: string }[] = []
+  for (const m of materiales ?? []) {
+    const d = m.driveFile?.driveFile
+    if (d?.alternateLink) out.push({ titulo: d.title || 'Archivo de Drive', enlace: d.alternateLink })
+    else if (m.link?.url) out.push({ titulo: m.link.title || m.link.url, enlace: m.link.url })
+    else if (m.form?.formUrl) out.push({ titulo: m.form.title || 'Formulario', enlace: m.form.formUrl })
+    else if (m.youtubeVideo?.alternateLink) out.push({ titulo: m.youtubeVideo.title || 'Video', enlace: m.youtubeVideo.alternateLink })
+  }
+  return out
+}
+
+/**
+ * Solo lectura: lo que la teacher publicó (o dejó en borrador) en sus clases entre `desde` y `hasta` (ISO).
+ * Marca como planeación lo que lo menciona en título, descripción, tema o nombre de archivo.
+ */
+export async function publicacionesClassroomTeacher(rawEmail: unknown, desde: string, hasta: string): Promise<TeClassroomPlanItem[]> {
+  const email = normalizarCorreoTeacher(rawEmail)
+  const cr = clienteClassroom(email)
+  try {
+    const [yo, cursos] = await Promise.all([
+      cr.userProfiles.get({ userId: 'me' }),
+      cr.courses.list({ teacherId: 'me', courseStates: ['ACTIVE'], pageSize: 50 }),
+    ])
+    const miId = yo.data.id
+    const enRango = (f: string | null | undefined) => !!f && f >= desde && f < hasta
+    const porCurso = await Promise.all(
+      (cursos.data.courses ?? []).map(async (c) => {
+        const courseId = c.id!
+        const curso = [c.name, c.section].filter(Boolean).join(' · ') || '(sin nombre)'
+        const [temas, tareas, materiales, avisos] = await Promise.all([
+          /** Requiere classroom.topics.readonly en la delegación; sin ese alcance solo se omite el tema. */
+          cr.courses.topics.list({ courseId, pageSize: 100 }).catch(() => ({ data: { topic: [] as classroom_v1.Schema$Topic[] } })),
+          cr.courses.courseWork.list({ courseId, pageSize: 40, orderBy: 'updateTime desc', courseWorkStates: ['PUBLISHED', 'DRAFT'] }),
+          cr.courses.courseWorkMaterials.list({ courseId, pageSize: 40, orderBy: 'updateTime desc', courseWorkMaterialStates: ['PUBLISHED', 'DRAFT'] }),
+          cr.courses.announcements.list({ courseId, pageSize: 40, orderBy: 'updateTime desc', announcementStates: ['PUBLISHED', 'DRAFT'] }),
+        ])
+        const tema = new Map((temas.data.topic ?? []).map((t) => [t.topicId, t.name ?? null]))
+        const crudos: {
+          id?: string | null
+          tipo: TeClassroomPlanItem['tipo']
+          titulo?: string | null
+          texto?: string | null
+          topicId?: string | null
+          creationTime?: string | null
+          updateTime?: string | null
+          state?: string | null
+          alternateLink?: string | null
+          creatorUserId?: string | null
+          materials?: Material[]
+        }[] = [
+          ...(tareas.data.courseWork ?? []).map((t) => ({ ...t, tipo: 'tarea' as const, titulo: t.title, texto: t.description })),
+          ...(materiales.data.courseWorkMaterial ?? []).map((m) => ({ ...m, tipo: 'material' as const, titulo: m.title, texto: m.description })),
+          ...(avisos.data.announcements ?? []).map((a) => ({ ...a, tipo: 'aviso' as const, titulo: null, texto: a.text })),
+        ]
+        return crudos
+          .filter((x) => (!miId || !x.creatorUserId || x.creatorUserId === miId) && (enRango(x.creationTime) || enRango(x.updateTime)))
+          .map((x): TeClassroomPlanItem => {
+            const arch = adjuntos(x.materials)
+            const nombreTema = (x.topicId && tema.get(x.topicId)) || null
+            const texto = String(x.texto ?? '').replace(/\s+/g, ' ').trim()
+            const titulo = x.titulo?.trim() || (texto.length > 120 ? `${texto.slice(0, 120)}…` : texto) || '(sin título)'
+            return {
+              id: x.id ?? '',
+              curso,
+              tipo: x.tipo,
+              titulo,
+              tema: nombreTema,
+              fecha: x.creationTime ?? x.updateTime ?? null,
+              borrador: x.state === 'DRAFT',
+              enlace: x.alternateLink ?? null,
+              adjuntos: arch,
+              es_planeacion: RE_PLANEACION.test([titulo, texto, nombreTema, ...arch.map((a) => a.titulo)].join(' ')),
+            }
+          })
+      }),
+    )
+    return porCurso
+      .flat()
+      .sort((a, b) => Number(b.es_planeacion) - Number(a.es_planeacion) || (b.fecha ?? '').localeCompare(a.fecha ?? ''))
   } catch (e) {
     errorGoogle(e, email)
   }
