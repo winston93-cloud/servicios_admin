@@ -250,6 +250,65 @@ html[data-theme='dark'] .fw-pasos-guia li::before {
   font-size: 13px;
 }
 
+/* 2026-10-06 — Subir comprobante (PDF): input oculto + resumen de lo leído. */
+.fw-pdf-input {
+  display: none;
+}
+
+.fw-pdf-leido {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--fw-ok-borde);
+  background: var(--fw-ok-bg);
+}
+
+.fw-pdf-leido-titulo {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fw-ok);
+  word-break: break-word;
+}
+
+.fw-pdf-leido-titulo .fw-btn-link {
+  margin-left: auto;
+}
+
+.fw-pdf-datos {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px 14px;
+}
+
+.fw-pdf-datos dt {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fw-suave);
+}
+
+.fw-pdf-datos dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fw-texto);
+  word-break: break-word;
+}
+
+.fw-pdf-datos small {
+  font-weight: 500;
+  color: var(--fw-suave);
+}
+
 .fw-input {
   width: 100%;
   padding: 10px 12px;

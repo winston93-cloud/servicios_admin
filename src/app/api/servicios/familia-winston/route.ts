@@ -4,12 +4,15 @@ import { cookieUsuariosValida } from '@/lib/usuariosCatalogoAuth'
 import {
   aplicarFamiliaWinston,
   buscarComprobantesPorQr,
+  comprobanteDesdePdf,
   guardarInicioClases,
   listarCiclosInicioClases,
   listarHistorialFamiliaWinston,
   revisarFamiliaWinston,
   textoCorreoFamiliaWinston,
+  type PdfComprobanteFamiliaWinston,
 } from '@/lib/familiaWinstonService'
+import { leerComprobantePdf, PDF_MAX_BYTES } from '@/lib/familiaWinstonPdf'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -35,6 +38,47 @@ function entero(v: unknown): number | null {
   return Number.isFinite(n) && n > 0 ? n : null
 }
 
+/** 2026-10-06 — Datos del PDF subido que el módulo reenvía al revisar/aplicar (se vuelven a cruzar). */
+function pdfDelBody(v: unknown): PdfComprobanteFamiliaWinston | null {
+  if (!v || typeof v !== 'object') return null
+  const p = v as Record<string, unknown>
+  const folio = String(p.folio ?? '').trim().toUpperCase()
+  // 2026-10-06: resultado de la revisión de «PDF modificado»
+  const integ = (p.integridad ?? null) as Record<string, unknown> | null
+  const nivel = integ && ['ok', 'aviso', 'error'].includes(String(integ.nivel)) ? (String(integ.nivel) as 'ok' | 'aviso' | 'error') : null
+  return {
+    qr: entero(p.qr),
+    ctrl: entero(p.ctrl),
+    interesado: String(p.interesado ?? '').trim().slice(0, 200) || null,
+    folio: /^WSP-\d{5,}$/.test(folio) ? folio : null,
+    integridad: nivel ? { nivel, texto: String(integ?.texto ?? '').trim().slice(0, 400) || null } : null,
+  }
+}
+
+/** 2026-10-06 — Subir comprobante (PDF): lee QR, control e interesado y busca el comprobante. */
+async function leerPdf(request: Request): Promise<NextResponse> {
+  const form = await request.formData().catch(() => null)
+  const archivo = form?.get('pdf')
+  if (!archivo || typeof archivo === 'string') {
+    return NextResponse.json({ error: 'Sube el comprobante en PDF.' }, { status: 400 })
+  }
+  if (archivo.size > PDF_MAX_BYTES) {
+    return NextResponse.json({ error: 'El PDF pesa más de 4 MB.' }, { status: 413 })
+  }
+  let pdf: Awaited<ReturnType<typeof leerComprobantePdf>>
+  try {
+    pdf = await leerComprobantePdf(new Uint8Array(await archivo.arrayBuffer()))
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : 'No se pudo leer el PDF.' },
+      { status: 422 }
+    )
+  }
+  const { item, error } = await comprobanteDesdePdf(pdf)
+  if (error || !item) return NextResponse.json({ error, pdf }, { status: 422 })
+  return NextResponse.json({ ok: true, pdf, comprobante: item })
+}
+
 export async function GET(request: Request) {
   const a = autorizar(request)
   if (!a.ok) return a.response
@@ -57,6 +101,10 @@ export async function POST(request: Request) {
   const a = autorizar(request)
   if (!a.ok) return a.response
   try {
+    // 2026-10-06 — El PDF llega como multipart; el resto de acciones, JSON.
+    if ((request.headers.get('content-type') ?? '').includes('multipart/form-data')) {
+      return await leerPdf(request)
+    }
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
     const accion = String(body.accion ?? '')
 
@@ -84,6 +132,7 @@ export async function POST(request: Request) {
       : null
     // 2026-10-06 — Nombre del interesado escrito del PDF (comprobantes viejos sin interesado guardado).
     const interesadoPdf = String(body.interesadoPdf ?? '').trim().slice(0, 200) || null
+    const pdf = pdfDelBody(body.pdf)
     if (!ctrl || !qr) {
       return NextResponse.json(
         { error: 'Escanea el código QR y elige al alumno que recomienda.' },
@@ -92,7 +141,7 @@ export async function POST(request: Request) {
     }
 
     if (accion === 'revisar') {
-      const revision = await revisarFamiliaWinston({ ctrl, qr, referidoRef, conceptoNo, interesadoPdf })
+      const revision = await revisarFamiliaWinston({ ctrl, qr, referidoRef, conceptoNo, interesadoPdf, pdf })
       const correoPreview =
         revision.beneficiado && revision.mesPropuesto && revision.destinatarios.length > 0
           ? textoCorreoFamiliaWinston({
@@ -117,6 +166,7 @@ export async function POST(request: Request) {
         referidoRef,
         conceptoNo,
         interesadoPdf,
+        pdf,
         validadoPor: a.usuario,
       })
       if (!r.ok) return NextResponse.json({ error: r.mensaje, revision: r.revision }, { status: 409 })

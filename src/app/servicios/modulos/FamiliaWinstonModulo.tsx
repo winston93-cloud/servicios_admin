@@ -8,8 +8,10 @@
  * búsqueda por nombre o número de control y «quién recomendó» se llena solo al leer el QR.
  * 2026-10-06 — «A quién recomendó» también se llena solo con el interesado/cita que AgendaW
  * guarda en el comprobante; en comprobantes viejos se sugieren alumnos por apellido.
+ * 2026-10-06 — «Subir comprobante (PDF)»: el servidor lee QR, control e interesado del PDF y se
+ * llena todo solo; escribir el nombre a mano sigue disponible.
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertTriangle,
   CalendarDays,
@@ -17,6 +19,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ClipboardCheck,
+  FileUp,
   GraduationCap,
   HeartHandshake,
   Loader2,
@@ -41,6 +44,7 @@ import type {
   RecomendadoQrFamiliaWinston,
   RevisionFamiliaWinston,
 } from '@/lib/familiaWinstonService'
+import type { DatosPdfFamiliaWinston } from '@/lib/familiaWinstonPdf'
 import './familia-winston.css'
 
 type CicloInicio = { valor: number; nombre: string; inicioClases: string | null; esActual: boolean }
@@ -55,10 +59,12 @@ type ResultadoAplicado = {
 type ComprobanteQr = ComprobanteQrFamiliaWinston
 
 /* 2026-10-06 — Por qué «¿A quién recomendó?» se llenó solo. */
-const TEXTO_FUENTE: Record<'guardado' | 'cita' | 'nombre', string> = {
+const TEXTO_FUENTE: Record<'guardado' | 'cita' | 'nombre' | 'pdf', string> = {
   guardado: 'ya estaba registrado en este comprobante.',
   cita: 'es el interesado de la cita de AgendaW con la que se generó el comprobante.',
   nombre: 'su nombre es el del interesado que trae el comprobante.',
+  // 2026-10-06: comprobante viejo resuelto con el PDF subido
+  pdf: 'su nombre es el del interesado que viene en el PDF que subiste.',
 }
 
 function nombreAlumnoQr(a: AlumnoQrFamiliaWinston): string {
@@ -131,6 +137,12 @@ export default function FamiliaWinstonModulo() {
   const [recomendadoQr, setRecomendadoQr] = useState<RecomendadoQrFamiliaWinston | null>(null)
   /** 2026-10-06 — Comprobante viejo: nombre del interesado escrito del PDF (el servidor lo cruza). */
   const [interesadoPdf, setInteresadoPdf] = useState('')
+  /** 2026-10-06 — Comprobante subido en PDF: datos leídos por el servidor (se reenvían al revisar). */
+  const [pdfLeido, setPdfLeido] = useState<DatosPdfFamiliaWinston | null>(null)
+  const [pdfArchivo, setPdfArchivo] = useState('')
+  const [leyendoPdf, setLeyendoPdf] = useState(false)
+  const [pdfError, setPdfError] = useState<string | null>(null)
+  const pdfInputRef = useRef<HTMLInputElement | null>(null)
 
   const [revision, setRevision] = useState<RevisionFamiliaWinston | null>(null)
   const [correoPreview, setCorreoPreview] = useState<string | null>(null)
@@ -156,7 +168,25 @@ export default function FamiliaWinstonModulo() {
   const ctrl = beneficiado ? soloDigitos(String(beneficiado.alumno_ref)) : ''
   const referidoRef = referido ? soloDigitos(String(referido.alumno_ref)) : ''
   const pdfLimpio = interesadoPdf.trim().replace(/\s+/g, ' ')
-  const claveActual = `${qr}|${ctrl}|${referidoRef}|${pdfLimpio}|${mesElegido}`
+  // 2026-10-06: el PDF subido también forma parte de lo revisado
+  const pdfEnvio = useMemo(
+    () =>
+      pdfLeido
+        ? {
+            qr: pdfLeido.qr,
+            ctrl: pdfLeido.ctrl,
+            interesado: pdfLeido.interesado,
+            folio: pdfLeido.folio,
+            // 2026-10-06: el aviso de «PDF re-impreso» también sale en los requisitos
+            integridad: { nivel: pdfLeido.integridad.nivel, texto: pdfLeido.integridad.texto },
+          }
+        : null,
+    [pdfLeido]
+  )
+  const pdfClave = pdfEnvio
+    ? `${pdfEnvio.qr}-${pdfEnvio.ctrl}-${pdfEnvio.interesado}-${pdfEnvio.integridad.nivel}`
+    : ''
+  const claveActual = `${qr}|${ctrl}|${referidoRef}|${pdfLimpio}|${mesElegido}|${pdfClave}`
   const completo = qr.length >= DIGITOS_QR && !!ctrl && !!referidoRef
 
   const cargarHistorial = useCallback(async () => {
@@ -261,6 +291,67 @@ export default function FamiliaWinstonModulo() {
     setReferido(item.recomendado.alumno ? alumnoParaBuscador(item.recomendado.alumno) : null)
   }, [])
 
+  /* 2026-10-06 — Subir comprobante (PDF): el servidor lee QR, control e interesado, valida que
+     sean del mismo comprobante y devuelve todo para llenar los 3 pasos sin capturar nada. */
+  const subirPdf = useCallback(
+    async (archivo: File) => {
+      setPdfError(null)
+      setError(null)
+      setLeyendoPdf(true)
+      setCamara(false)
+      try {
+        const form = new FormData()
+        form.append('pdf', archivo)
+        const res = await fetch(API, { method: 'POST', body: form })
+        const data = (await res.json().catch(() => ({}))) as {
+          pdf?: DatosPdfFamiliaWinston
+          comprobante?: ComprobanteQr
+          error?: string
+        }
+        if (!res.ok || !data.pdf || !data.comprobante || data.pdf.qr == null) {
+          // PDF que no cuadra: no se deja nada de un comprobante anterior en pantalla.
+          setPdfLeido(null)
+          setPdfArchivo('')
+          setQr('')
+          setQrBuscado('')
+          setComprobantesQr([])
+          setRecomendadoQr(null)
+          setInteresadoPdf('')
+          setBeneficiado(null)
+          setReferido(null)
+          setRevision(null)
+          setClaveRevisada('')
+          setFormKey((k) => k + 1)
+          setPdfError(data.error ?? 'No se pudo leer el PDF.')
+          return
+        }
+        const codigo = String(data.pdf.qr)
+        setQr(codigo)
+        setQrBuscado(codigo)
+        setComprobantesQr([data.comprobante])
+        setRevision(null)
+        setClaveRevisada('')
+        elegirComprobante(data.comprobante)
+        setInteresadoPdf(data.pdf.interesado ?? '')
+        setPdfLeido(data.pdf)
+        setPdfArchivo(archivo.name)
+        setFormKey((k) => k + 1)
+      } catch {
+        setPdfError('Error de conexión al subir el PDF.')
+      } finally {
+        setLeyendoPdf(false)
+        if (pdfInputRef.current) pdfInputRef.current.value = ''
+      }
+    },
+    [elegirComprobante]
+  )
+
+  const quitarPdf = () => {
+    setPdfLeido(null)
+    setPdfArchivo('')
+    setPdfError(null)
+  }
+
   /* Al tener el código completo: buscar el comprobante y llenar los dos alumnos. */
   useEffect(() => {
     if (qr.length < DIGITOS_QR || qr === qrBuscado) return
@@ -294,13 +385,21 @@ export default function FamiliaWinstonModulo() {
     setRevisando(true)
     const base = `${qr}|${ctrl}|${referidoRef}`
     if (!claveRevisada.startsWith(`${base}|`)) setRevision(null)
-    setClaveRevisada(`${base}|${pdfLimpio}|${mesElegido}`)
+    setClaveRevisada(`${base}|${pdfLimpio}|${mesElegido}|${pdfClave}`)
     try {
       const { ok, data } = await postApi<{
         revision?: RevisionFamiliaWinston
         correoPreview?: string | null
         error?: string
-      }>({ accion: 'revisar', qr, ctrl, referidoRef, conceptoNo: mesElegido, interesadoPdf: pdfLimpio })
+      }>({
+        accion: 'revisar',
+        qr,
+        ctrl,
+        referidoRef,
+        conceptoNo: mesElegido,
+        interesadoPdf: pdfLimpio,
+        pdf: pdfEnvio,
+      })
       if (!ok || !data.revision) {
         setRevision(null)
         setError(data.error ?? 'No se pudo revisar el comprobante.')
@@ -313,7 +412,7 @@ export default function FamiliaWinstonModulo() {
     } finally {
       setRevisando(false)
     }
-  }, [qr, ctrl, referidoRef, mesElegido, pdfLimpio, claveRevisada])
+  }, [qr, ctrl, referidoRef, mesElegido, pdfLimpio, claveRevisada, pdfClave, pdfEnvio])
 
   /* Otro beneficiado = otras colegiaturas pendientes: volver a proponer la próxima. */
   useEffect(() => {
@@ -341,6 +440,7 @@ export default function FamiliaWinstonModulo() {
     setComprobantesQr([])
     setRecomendadoQr(null)
     setInteresadoPdf('')
+    quitarPdf()
     setBeneficiado(null)
     setReferido(null)
     setRevision(null)
@@ -372,6 +472,7 @@ export default function FamiliaWinstonModulo() {
         referidoRef,
         conceptoNo: revision.mesPropuesto.conceptoNo,
         interesadoPdf: pdfLimpio,
+        pdf: pdfEnvio,
       })
       if (!okRes) {
         setError(data.error ?? 'No se pudo aplicar el beneficio.')
@@ -438,7 +539,8 @@ export default function FamiliaWinstonModulo() {
 
         <ol className="fw-pasos-guia" aria-label="Cómo funciona">
           <li>
-            <QrCode size={18} aria-hidden /> Escanea el QR del comprobante
+            {/* 2026-10-06: o sube el PDF */}
+            <QrCode size={18} aria-hidden /> Sube el PDF o escanea el QR del comprobante
           </li>
           <li>
             <UserPlus size={18} aria-hidden /> Elige al alumno que se inscribió
@@ -469,8 +571,10 @@ export default function FamiliaWinstonModulo() {
               </div>
               <div className="fw-paso-cuerpo">
                 <p className="fw-paso-titulo">Código QR del comprobante</p>
+                {/* 2026-10-06: + subir el PDF del comprobante */}
                 <p className="fw-paso-ayuda">
-                  Escanéalo con la cámara o escribe el número que viene debajo del QR.
+                  Sube el PDF del comprobante y se llena todo solo, o escanea el QR con la cámara o escribe
+                  el número que viene debajo del QR.
                 </p>
 
                 {camara ? (
@@ -489,9 +593,30 @@ export default function FamiliaWinstonModulo() {
                   </div>
                 ) : (
                   <div className="fw-qr-captura">
+                    {/* 2026-10-06 — Subir comprobante (PDF): lo lee el servidor. */}
+                    <input
+                      ref={pdfInputRef}
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      className="fw-pdf-input"
+                      aria-label="Comprobante en PDF"
+                      onChange={(e) => {
+                        const archivo = e.target.files?.[0]
+                        if (archivo) void subirPdf(archivo)
+                      }}
+                    />
                     <button
                       type="button"
                       className="usr-btn usr-btn--primary fw-btn-camara"
+                      disabled={leyendoPdf}
+                      onClick={() => pdfInputRef.current?.click()}
+                    >
+                      {leyendoPdf ? <Loader2 className="usr-spin" size={18} /> : <FileUp size={18} />}
+                      {leyendoPdf ? 'Leyendo PDF…' : 'Subir comprobante (PDF)'}
+                    </button>
+                    <button
+                      type="button"
+                      className="usr-btn fw-btn-camara"
                       onClick={() => {
                         setCamaraError(null)
                         setCamara(true)
@@ -513,6 +638,52 @@ export default function FamiliaWinstonModulo() {
                 )}
 
                 {camaraError ? <p className="fw-alert fw-alert--warn">{camaraError}</p> : null}
+                {/* 2026-10-06 — Lo que se leyó del PDF (o por qué no procede). */}
+                {pdfError ? (
+                  <p className="fw-alert fw-alert--err" role="alert">
+                    {pdfError}
+                  </p>
+                ) : null}
+                {pdfLeido ? (
+                  <div className="fw-pdf-leido">
+                    <p className="fw-pdf-leido-titulo">
+                      <FileUp size={15} aria-hidden /> Leído del PDF{pdfArchivo ? ` «${pdfArchivo}»` : ''}
+                      <button type="button" className="fw-btn-link" onClick={quitarPdf}>
+                        <X size={13} aria-hidden /> Quitar PDF
+                      </button>
+                    </p>
+                    <dl className="fw-pdf-datos">
+                      <div>
+                        <dt>QR</dt>
+                        <dd>
+                          {pdfLeido.qr ?? '—'}
+                          <small>{pdfLeido.qrFuente === 'imagen' ? ' (imagen)' : ' (número impreso)'}</small>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Recomienda</dt>
+                        <dd>No. control {pdfLeido.ctrl ?? '—'}</dd>
+                      </div>
+                      <div>
+                        <dt>Interesado</dt>
+                        <dd>
+                          {pdfLeido.interesado ?? '—'}
+                          {pdfLeido.nivel ? <small> · {pdfLeido.nivel}</small> : null}
+                        </dd>
+                      </div>
+                      {pdfLeido.folio ? (
+                        <div>
+                          <dt>Folio</dt>
+                          <dd>{pdfLeido.folio}</dd>
+                        </div>
+                      ) : null}
+                    </dl>
+                    {/* 2026-10-06 — PDF re-impreso o de generador desconocido: aviso, no bloquea. */}
+                    {pdfLeido.integridad.nivel === 'aviso' && pdfLeido.integridad.texto ? (
+                      <p className="fw-alert fw-alert--warn">{pdfLeido.integridad.texto}</p>
+                    ) : null}
+                  </div>
+                ) : null}
                 {buscandoQr ? (
                   <p className="fw-nota">
                     <Loader2 className="usr-spin" size={14} /> Buscando comprobante…
@@ -615,7 +786,9 @@ export default function FamiliaWinstonModulo() {
                       <p className="fw-nota">
                         {recomendadoQr.fuente === 'apellido'
                           ? 'Este comprobante es anterior y no trae el nombre del interesado. Alumnos de nuevo ingreso que comparten apellido con quien recomendó; elige el que aparece en el PDF:'
-                          : `Hay varios alumnos llamados ${recomendadoQr.interesadoNombre ?? 'como el interesado'}; elige uno:`}
+                          : recomendadoQr.fuente === 'pdf'
+                            ? `Varios alumnos coinciden con el interesado del PDF (${pdfLeido?.interesado ?? interesadoPdf}); elige uno:`
+                            : `Hay varios alumnos llamados ${recomendadoQr.interesadoNombre ?? 'como el interesado'}; elige uno:`}
                       </p>
                       <div className="fw-comprobantes">
                         {recomendadoQr.candidatos.map((a) => (
@@ -636,6 +809,11 @@ export default function FamiliaWinstonModulo() {
                     <p className="fw-alert fw-alert--warn">
                       Interesado del comprobante: {recomendadoQr.interesadoNombre}. Todavía no aparece como
                       alumno inscrito; búscalo por su nombre.
+                    </p>
+                  ) : recomendadoQr.fuente === 'pdf' ? (
+                    <p className="fw-alert fw-alert--warn">
+                      Interesado del PDF: {pdfLeido?.interesado ?? interesadoPdf}. No aparece como alumno
+                      inscrito con ese nombre; búscalo por su nombre o número de control.
                     </p>
                   ) : (
                     <p className="fw-alert fw-alert--warn">
@@ -667,8 +845,9 @@ export default function FamiliaWinstonModulo() {
                       onChange={(e) => setInteresadoPdf(e.target.value)}
                     />
                     <span className="fw-sub">
-                      Cópialo del comprobante («Este documento certifica que el interesado…»). Si no coincide
-                      con el alumno elegido, no procede.
+                      {pdfLeido?.interesado
+                        ? 'Se llenó con el nombre que viene en el PDF subido. Si no coincide con el alumno elegido, no procede.'
+                        : 'Cópialo del comprobante («Este documento certifica que el interesado…») o sube el PDF. Si no coincide con el alumno elegido, no procede.'}
                     </span>
                   </label>
                 ) : null}

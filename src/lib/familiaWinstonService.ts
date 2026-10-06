@@ -122,6 +122,31 @@ export interface RevisionFamiliaWinston {
   requiereNombrePdf: boolean
 }
 
+/**
+ * 2026-10-06 — Datos leídos del PDF que subió el usuario (familiaWinstonPdf.ts). Si vienen,
+ * revisarFamiliaWinston exige que QR, control, folio e interesado coincidan con el comprobante.
+ */
+export interface PdfComprobanteFamiliaWinston {
+  qr: number | null
+  ctrl: number | null
+  interesado: string | null
+  folio?: string | null
+  /** 2026-10-06 — Resultado de la revisión de «PDF modificado» (familiaWinstonPdf.ts). */
+  integridad?: { nivel: 'ok' | 'aviso' | 'error'; texto: string | null } | null
+}
+
+/* 2026-10-06 — Opciones de «¿Cómo se enteró?» de AgendaW (admission_appointments.how_did_you_hear). */
+const HOW_FAMILIA_WINSTON = 'programa_familia_winston'
+const ETIQUETA_HOW: Record<string, string> = {
+  medios_impresos: 'Medios Impresos',
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  familiar_conocido: 'Familiar o Conocido',
+  programa_familia_winston: 'Programa Familia Winston',
+  otra: 'Otra',
+}
+
 type FilaWsp = {
   id: number
   ctrl: number
@@ -433,10 +458,11 @@ export interface AlumnoQrFamiliaWinston {
  * fuente: «guardado» (ya se validó antes), «cita» (cita de AgendaW ligada al comprobante y ya
  * inscrito), «nombre» (nombre del interesado = un solo alumno), «apellido» (comprobante viejo
  * sin interesado: solo sugerencias de nuevo ingreso que comparten apellido, no se elige solo).
+ * 2026-10-06 — «pdf»: comprobante viejo resuelto con el nombre del interesado leído del PDF subido.
  */
 export interface RecomendadoQrFamiliaWinston {
   alumno: AlumnoQrFamiliaWinston | null
-  fuente: 'guardado' | 'cita' | 'nombre' | 'apellido' | null
+  fuente: 'guardado' | 'cita' | 'nombre' | 'apellido' | 'pdf' | null
   interesadoNombre: string | null
   candidatos: AlumnoQrFamiliaWinston[]
 }
@@ -504,11 +530,16 @@ async function cargarAlumnoQr(db: AppDatabaseClient, ref: number): Promise<Alumn
   return data ? mapAlumnoQr(data as Record<string, unknown>) : null
 }
 
-/** Alumnos cuyo nombre completo es el del interesado (mismas palabras, sin importar acentos/orden). */
+/**
+ * Alumnos cuyo nombre completo es el del interesado (mismas palabras, sin importar acentos/orden).
+ * 2026-10-06 — flexible: basta con nombreCoincide (p. ej. el PDF trae un solo apellido); es la
+ * misma regla que aplica el candado de revisarFamiliaWinston.
+ */
 async function alumnosPorNombre(
   db: AppDatabaseClient,
   nombre: string,
-  excluirRef: number
+  excluirRef: number,
+  flexible = false
 ): Promise<AlumnoQrFamiliaWinston[]> {
   const palabras = normalizarNombre(nombre).split(' ').filter((p) => p.length >= 3)
   if (palabras.length < 2) return []
@@ -532,9 +563,11 @@ async function alumnosPorNombre(
     .limit(300)
   if (error) throw new Error(error.message)
   const clave = clavePalabras(nombre)
+  const completo = (r: Record<string, unknown>) =>
+    [r.alumno_nombre, r.alumno_app, r.alumno_apm].map((x) => String(x ?? '')).join(' ')
   return unicosPorRef((data ?? []) as Record<string, unknown>[])
     .filter((r) => Number(r.alumno_ref) !== excluirRef)
-    .filter((r) => clavePalabras([r.alumno_nombre, r.alumno_app, r.alumno_apm].map((x) => String(x ?? '')).join(' ')) === clave)
+    .filter((r) => (flexible ? nombreCoincide(nombre, completo(r)) : clavePalabras(completo(r)) === clave))
     .map(mapAlumnoQr)
 }
 
@@ -626,6 +659,34 @@ async function interesadoDelComprobante(
   return { ref, nombre }
 }
 
+/**
+ * 2026-10-06 — «¿Cómo se enteró?» de la cita de admisión del alumno recomendado (la más reciente
+ * con su alumno_ref; si no hay, la cita ligada al comprobante). null = sin cita o sin dato.
+ */
+async function comoSeEnteroReferido(
+  db: AppDatabaseClient,
+  alumnoRef: number,
+  appointmentId: string | null
+): Promise<string | null> {
+  const { data } = await db
+    .from('admission_appointments')
+    .select('how_did_you_hear')
+    .eq('alumno_ref', alumnoRef)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  let how = String((data as { how_did_you_hear?: string | null } | null)?.how_did_you_hear ?? '').trim()
+  if (!how && !data && appointmentId) {
+    const { data: cita } = await db
+      .from('admission_appointments')
+      .select('how_did_you_hear')
+      .eq('id', appointmentId)
+      .maybeSingle()
+    how = String((cita as { how_did_you_hear?: string | null } | null)?.how_did_you_hear ?? '').trim()
+  }
+  return how || null
+}
+
 async function resolverRecomendado(
   db: AppDatabaseClient,
   f: FilaWsp,
@@ -690,6 +751,69 @@ export async function buscarComprobantesPorQr(qr: number): Promise<ComprobanteQr
   return out
 }
 
+/** 2026-10-06 — Diferencias entre lo que dice el PDF y el comprobante elegido (vacío = coinciden). */
+function diferenciasPdf(pdf: PdfComprobanteFamiliaWinston, c: ComprobanteFamiliaWinston): string[] {
+  const out: string[] = []
+  if (pdf.qr == null) out.push('No se pudo leer el QR del PDF.')
+  else if (pdf.qr !== c.qr) out.push(`El QR del PDF (${pdf.qr}) no es el del comprobante ${c.folio} (${c.qr}).`)
+  if (pdf.ctrl == null) out.push('No se encontró en el PDF el número de control de quien recomienda.')
+  else if (pdf.ctrl !== c.ctrl) {
+    out.push(`El PDF dice que recomienda el No. control ${pdf.ctrl}, pero el comprobante ${c.folio} es del ${c.ctrl}.`)
+  }
+  if (pdf.folio && pdf.folio !== c.folio) out.push(`El PDF es del folio ${pdf.folio}, no del ${c.folio}.`)
+  return out
+}
+
+/**
+ * 2026-10-06 — Al subir el PDF: busca el comprobante por el QR leído, exige que el control (y el
+ * folio, si viene) coincidan y resuelve al recomendado con el nombre del interesado del PDF cuando
+ * el comprobante es viejo y no lo trae. Si algo no cuadra devuelve error y no llena nada.
+ */
+export async function comprobanteDesdePdf(pdf: PdfComprobanteFamiliaWinston & {
+  qrFuente?: 'imagen' | 'texto' | null
+  qrImpreso?: number | null
+}): Promise<{ item: ComprobanteQrFamiliaWinston | null; error: string | null }> {
+  const fallo = (error: string) => ({ item: null, error })
+  // 2026-10-06: PDF editado después de generarse → no se llena nada
+  if (pdf.integridad?.nivel === 'error') return fallo(pdf.integridad.texto ?? 'Este PDF fue modificado después de generarse. No procede.')
+  if (pdf.qr == null) {
+    return fallo('No se pudo leer el QR del PDF. Escanéalo con la cámara o escribe el número a mano.')
+  }
+  if (pdf.qrFuente === 'imagen' && pdf.qrImpreso != null && pdf.qrImpreso !== pdf.qr) {
+    return fallo(`El QR del PDF (${pdf.qr}) no coincide con el número impreso debajo (${pdf.qrImpreso}). No procede.`)
+  }
+  if (pdf.ctrl == null) {
+    return fallo('No se encontró en el PDF el texto «…otorga al alumno con número de control…». ¿Es un comprobante Familia Winston?')
+  }
+  const lista = await buscarComprobantesPorQr(pdf.qr)
+  if (!lista.length) return fallo(`No hay ningún comprobante con el QR ${pdf.qr}. El PDF no es válido.`)
+  const item = lista.find((i) => i.comprobante.ctrl === pdf.ctrl)
+  if (!item) {
+    const ctrls = [...new Set(lista.map((i) => i.comprobante.ctrl))].join(', ')
+    return fallo(`El QR ${pdf.qr} es del comprobante del No. control ${ctrls}, pero el PDF dice ${pdf.ctrl}. No procede.`)
+  }
+  const diferencias = diferenciasPdf(pdf, item.comprobante)
+  if (diferencias.length) return fallo(`${diferencias.join(' ')} No procede.`)
+
+  const guardado = item.recomendado.interesadoNombre
+  if (pdf.interesado && guardado && !nombreCoincide(pdf.interesado, guardado)) {
+    return fallo(`En el PDF el interesado es ${pdf.interesado}, pero el comprobante ${item.comprobante.folio} es para ${guardado}. No procede.`)
+  }
+  // Comprobante viejo (sin interesado ni cita): el nombre del PDF elige al recomendado.
+  if (pdf.interesado && !guardado && !item.recomendado.alumno) {
+    const db = createDbAdmin()
+    let porNombre = await alumnosPorNombre(db, pdf.interesado, item.comprobante.ctrl)
+    if (!porNombre.length) porNombre = await alumnosPorNombre(db, pdf.interesado, item.comprobante.ctrl, true)
+    item.recomendado = {
+      alumno: porNombre.length === 1 ? porNombre[0] : null,
+      fuente: 'pdf',
+      interesadoNombre: null,
+      candidatos: porNombre.length === 1 ? [] : porNombre.slice(0, MAX_SUGERENCIAS_APELLIDO),
+    }
+  }
+  return { item, error: null }
+}
+
 export async function revisarFamiliaWinston(opts: {
   ctrl: number
   qr: number
@@ -698,6 +822,8 @@ export async function revisarFamiliaWinston(opts: {
   conceptoNo?: string | null
   /** 2026-10-06 — Nombre del interesado escrito tal como viene en el PDF (comprobantes viejos). */
   interesadoPdf?: string | null
+  /** 2026-10-06 — Datos del PDF subido; si vienen, todo tiene que coincidir con el comprobante. */
+  pdf?: PdfComprobanteFamiliaWinston | null
   db?: AppDatabaseClient
 }): Promise<RevisionFamiliaWinston> {
   const db = opts.db ?? createDbAdmin()
@@ -755,6 +881,21 @@ export async function revisarFamiliaWinston(opts: {
     return res
   }
   checks.push({ id: 'comprobante', nivel: 'ok', texto: `Comprobante ${res.comprobante.folio} auténtico y sin usar.` })
+
+  // 2026-10-06 — Candado del PDF subido: QR, control y folio tienen que ser los del comprobante.
+  if (opts.pdf) {
+    const diferencias = diferenciasPdf(opts.pdf, res.comprobante)
+    checks.push(
+      diferencias.length
+        ? { id: 'pdf', nivel: 'error', texto: `${diferencias.join(' ')} Revisa que el PDF sea el de este comprobante.` }
+        : { id: 'pdf', nivel: 'ok', texto: 'El PDF subido es de este comprobante (QR y número de control coinciden).' }
+    )
+    // 2026-10-06 — PDF modificado: error bloquea; aviso (re-impreso / generador desconocido) no.
+    const integ = opts.pdf.integridad
+    if (integ && integ.nivel !== 'ok' && integ.texto) {
+      checks.push({ id: 'pdf-integridad', nivel: integ.nivel, texto: integ.texto })
+    }
+  }
 
   const beneficiado = await cargarAlumno(db, opts.ctrl)
   res.beneficiado = beneficiado
@@ -832,7 +973,8 @@ export async function revisarFamiliaWinston(opts: {
         )
       } else {
         res.requiereNombrePdf = true
-        const escrito = (opts.interesadoPdf ?? '').trim()
+        // 2026-10-06: si no se escribió, vale el nombre leído del PDF subido
+        const escrito = (opts.interesadoPdf ?? '').trim() || (opts.pdf?.interesado ?? '').trim()
         if (!escrito) {
           checks.push({
             id: 'interesado',
@@ -856,6 +998,29 @@ export async function revisarFamiliaWinston(opts: {
         }
       }
 
+      // 2026-10-06 — Candado del PDF subido: su interesado tiene que ser el guardado/de la cita
+      // (si existe) y el alumno elegido. Aplica aunque el comprobante ya traiga interesado.
+      if (opts.pdf) {
+        const nombrePdf = (opts.pdf.interesado ?? '').trim()
+        checks.push(
+          !nombrePdf
+            ? { id: 'interesado-pdf', nivel: 'error', texto: 'No se pudo leer el nombre del interesado en el PDF.' }
+            : interesado.nombre && !nombreCoincide(nombrePdf, interesado.nombre)
+              ? {
+                  id: 'interesado-pdf',
+                  nivel: 'error',
+                  texto: `En el PDF el interesado es ${nombrePdf}, pero el comprobante es para ${interesado.nombre}.`,
+                }
+              : !nombreCoincide(nombrePdf, referido.nombre)
+                ? {
+                    id: 'interesado-pdf',
+                    nivel: 'error',
+                    texto: `En el PDF el interesado es ${nombrePdf}, pero elegiste a ${referido.nombre}. Elige al alumno del PDF.`,
+                  }
+                : { id: 'interesado-pdf', nivel: 'ok', texto: `El interesado del PDF (${nombrePdf}) es el alumno elegido.` }
+        )
+      }
+
       const { data: usados, error: usadosError } = await db
         .from('wsp')
         .select('id')
@@ -870,6 +1035,16 @@ export async function revisarFamiliaWinston(opts: {
           id: 'referido-unico',
           nivel: 'error',
           texto: `${referido.nombre} ya generó un beneficio con el comprobante ${folioWsp(Number(usado.id))}.`,
+        })
+      }
+
+      // 2026-10-06 — Aviso (no bloquea): en su cita de admisión dijeron que se enteraron por otro medio.
+      const how = await comoSeEnteroReferido(db, referido.alumno_ref, fila.appointment_id ?? null)
+      if (how && how !== HOW_FAMILIA_WINSTON) {
+        checks.push({
+          id: 'cita-origen',
+          nivel: 'aviso',
+          texto: `En su cita de admisión, la familia dijo que se enteró por «${ETIQUETA_HOW[how] ?? how}», no por Familia Winston. Verifica antes de aplicar.`,
         })
       }
 
@@ -1067,6 +1242,8 @@ export async function aplicarFamiliaWinston(opts: {
   validadoPor: string
   conceptoNo?: string | null
   interesadoPdf?: string | null
+  /** 2026-10-06 — Datos del PDF subido (se vuelven a revisar antes de aplicar). */
+  pdf?: PdfComprobanteFamiliaWinston | null
 }): Promise<ResultadoAplicarFamiliaWinston> {
   const db = createDbAdmin()
   const revision = await revisarFamiliaWinston({ ...opts, db })
@@ -1074,6 +1251,8 @@ export async function aplicarFamiliaWinston(opts: {
     return { ok: false, mensaje: 'El comprobante no cumple las reglas; revisa los puntos en rojo.', revision }
   }
   const { comprobante, beneficiado, mesPropuesto } = revision
+  // 2026-10-06: interesado confirmado = el escrito o, si no, el leído del PDF subido
+  const interesadoConfirmado = (opts.interesadoPdf ?? '').trim() || (opts.pdf?.interesado ?? '').trim()
 
   // Apartar el comprobante: solo uno gana si dos personas validan al mismo tiempo.
   const apartado = await db
@@ -1154,8 +1333,8 @@ export async function aplicarFamiliaWinston(opts: {
       ciclo_condonado: mesPropuesto.ciclo,
       updated_at: new Date().toISOString(),
       // 2026-10-06: en comprobantes viejos queda guardado el interesado confirmado del PDF
-      ...(revision.requiereNombrePdf && opts.interesadoPdf?.trim()
-        ? { interesado_nombre: opts.interesadoPdf.trim().toUpperCase().slice(0, 200) }
+      ...(revision.requiereNombrePdf && interesadoConfirmado
+        ? { interesado_nombre: interesadoConfirmado.toUpperCase().slice(0, 200) }
         : {}),
     })
     .eq('id', comprobante.id)
