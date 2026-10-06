@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Bricolage_Grotesque } from 'next/font/google'
+import localFont from 'next/font/local'
 import {
   ArrowDownWideNarrow,
   ArrowUp,
@@ -30,7 +30,8 @@ import Panel from './Panel'
 import PostEmbebido from './PostEmbebido'
 import './tecnologias.css'
 
-const display = Bricolage_Grotesque({ subsets: ['latin'], weight: ['500', '700', '800'], variable: '--tp-display' })
+// Local: Google a veces sirve Bricolage por /l/font?kit=…&skey=… y Turbopack no puede resolverlo en el build.
+const display = localFont({ src: './fonts/BricolageGrotesque-latin.woff2', weight: '500 800', variable: '--tp-display' })
 
 const ZONA = 'America/Mexico_City'
 const DIAS_NUEVO = 7
