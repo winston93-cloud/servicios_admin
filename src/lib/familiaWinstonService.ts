@@ -19,6 +19,7 @@ import {
   parsearReferenciaPago,
 } from './pagoReferenciaColegiatura'
 import { slotsColegiaturaPortal } from './portalPagosCandados'
+import { getCicloInscripcion } from './ciclosEscolares'
 
 export const DIAS_CLASES_REQUERIDOS = 30
 export const NOMBRE_PAGO_FAMILIA_WINSTON = 'Condonación FAMILIA WINSTON (importe 0)'
@@ -571,6 +572,28 @@ async function alumnosPorNombre(
     .map(mapAlumnoQr)
 }
 
+/**
+ * 2026-10-06 — Regla común de sugerencias por apellido (validador y seguimiento en lote):
+ * de los candidatos (nuevo ingreso del ciclo de quien recomendó) los que comparten apellido;
+ * si son más de MAX_SUGERENCIAS_APELLIDO no se sugiere nada (apellido demasiado común).
+ */
+function sugerenciasApellidoDe(
+  candidatos: Record<string, unknown>[],
+  beneficiado: Pick<AlumnoQrFamiliaWinston, 'alumno_ref' | 'alumno_app' | 'alumno_apm'>,
+  yaUsados: Set<number>
+): AlumnoQrFamiliaWinston[] {
+  const apellidos = [beneficiado.alumno_app, beneficiado.alumno_apm].map((s) => s.trim()).filter(Boolean)
+  if (!apellidos.length) return []
+  const filas = unicosPorRef(
+    candidatos.filter(
+      (r) =>
+        apellidos.includes(String(r.alumno_app ?? '').trim()) || apellidos.includes(String(r.alumno_apm ?? '').trim())
+    )
+  ).filter((r) => String(r.alumno_ref) !== beneficiado.alumno_ref)
+  if (!filas.length || filas.length > MAX_SUGERENCIAS_APELLIDO) return []
+  return filas.filter((r) => !yaUsados.has(Number(r.alumno_ref))).map(mapAlumnoQr)
+}
+
 /** Comprobantes viejos: nuevo ingreso del mismo ciclo que comparten apellido con quien recomendó. */
 async function sugerenciasPorApellido(
   db: AppDatabaseClient,
@@ -587,13 +610,15 @@ async function sugerenciasPorApellido(
       .in(campo, apellidos)
       .limit(50)
   const [porApp, porApm] = await Promise.all([consulta('alumno_app'), consulta('alumno_apm')])
-  const filas = unicosPorRef([
-    ...((porApp.data ?? []) as Record<string, unknown>[]),
-    ...((porApm.data ?? []) as Record<string, unknown>[]),
-  ]).filter((r) => String(r.alumno_ref) !== beneficiado.alumno_ref)
-  if (!filas.length || filas.length > MAX_SUGERENCIAS_APELLIDO) return []
+  // 2026-10-06: misma regla que el seguimiento en lote (sugerenciasApellidoDe)
+  const previas = sugerenciasApellidoDe(
+    [...((porApp.data ?? []) as Record<string, unknown>[]), ...((porApm.data ?? []) as Record<string, unknown>[])],
+    beneficiado,
+    new Set()
+  )
+  if (!previas.length) return []
   // Fuera los que ya generaron un beneficio con otro comprobante.
-  const refs = filas.map((r) => Number(r.alumno_ref))
+  const refs = previas.map((a) => Number(a.alumno_ref))
   const { data: usados } = await db
     .from('wsp')
     .select('referido_alumno_ref')
@@ -602,7 +627,7 @@ async function sugerenciasPorApellido(
   const yaUsados = new Set(
     ((usados ?? []) as { referido_alumno_ref: number | null }[]).map((u) => Number(u.referido_alumno_ref))
   )
-  return filas.filter((r) => !yaUsados.has(Number(r.alumno_ref))).map(mapAlumnoQr)
+  return previas.filter((a) => !yaUsados.has(Number(a.alumno_ref)))
 }
 
 /** Distancia de edición (para tolerar una letra de diferencia al escribir el nombre). */
@@ -1449,4 +1474,400 @@ export async function guardarInicioClases(valor: number, fecha: string): Promise
   const db = createDbAdmin()
   const { error } = await db.from('ciclos_escolares').update({ inicio_clases: fecha }).eq('valor', valor)
   if (error) throw new Error(error.message)
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════
+ * 2026-10-06 — Seguimiento: cuántos comprobantes faltan, quiénes son y en qué van, más los
+ * beneficios aplicados, para filtrar por ciclo en el módulo. Solo lectura.
+ * ══════════════════════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * 2026-10-06 — Estado de preparación de un comprobante pendiente (por qué todavía no se aplica).
+ * Sale de revisarFamiliaWinston cuando el recomendado ya está identificado; si no, de los datos
+ * del comprobante (recomendador de baja, falta identificar al recomendado, etc.).
+ */
+export type EstadoPendienteFamiliaWinston =
+  | 'listo'
+  | 'falta-pago'
+  | 'faltan-dias'
+  | 'falta-inicio-clases'
+  | 'falta-identificar'
+  | 'interesado-no-inscrito'
+  | 'varios-candidatos'
+  | 'recomendador-baja'
+  | 'recomendador-no-existe'
+  | 'recomendado-inactivo'
+  | 'recomendado-ya-uso'
+  | 'recomendado-no-nuevo'
+  | 'no-coincide'
+  | 'sin-colegiaturas'
+  | 'en-proceso'
+  | 'no-procede'
+
+/**
+ * 2026-10-06 — De dónde salió el ciclo del comprobante (ver cicloDelComprobante):
+ * condonado → ciclo_condonado (aplicados) · recomendador → ciclo más reciente de quien recomienda,
+ * que es donde se condonaría (pendientes) · interesado → interesado_ciclo de AgendaW ·
+ * cita → school_cycle de la cita ligada · fecha → ciclo de inscripción a la fecha real del
+ * comprobante. null → sin dato (solo aparece en «Todos los ciclos»).
+ */
+export type FuenteCicloFamiliaWinston = 'condonado' | 'interesado' | 'cita' | 'fecha' | 'recomendador'
+
+export interface AlumnoSeguimientoFamiliaWinston {
+  ref: number
+  nombre: string
+  nivel: number
+  grado: string | null
+  grupo: string | null
+  activo: boolean
+  ciclo: number | null
+}
+
+export interface FilaSeguimientoFamiliaWinston {
+  id: number
+  folio: string
+  qr: number
+  ctrl: number
+  status: 'pendiente' | 'aplicando' | 'autorizado'
+  /** Fecha del comprobante; null en los migrados (su fecha es la de la migración, no la real). */
+  fechaReal: string | null
+  /** Ciclo con el que se filtra (ver cicloDelComprobante). */
+  ciclo: number | null
+  fuenteCiclo: FuenteCicloFamiliaWinston | null
+  /** Ciclo en que se generó la recomendación (interesado, cita o fecha real); null en los migrados. */
+  cicloOrigen: number | null
+  fuenteCicloOrigen: Exclude<FuenteCicloFamiliaWinston, 'condonado' | 'recomendador'> | null
+  recomendador: AlumnoSeguimientoFamiliaWinston | null
+  interesadoNombre: string | null
+  interesadoNivelGrado: string | null
+  recomendado: AlumnoSeguimientoFamiliaWinston | null
+  fuenteRecomendado: RecomendadoQrFamiliaWinston['fuente']
+  /** Posibles recomendados (comparten apellido o se llaman como el interesado); no se eligen solos. */
+  sugerencias: { ref: number; nombre: string }[]
+  /** Solo pendientes/aplicando; null en aplicados. */
+  estado: EstadoPendienteFamiliaWinston | null
+  detalle: string | null
+  fechaDisponible: string | null
+  /** null = no se sabe (recomendado sin identificar). */
+  primeraColegiaturaPagada: boolean | null
+  // Aplicados
+  conceptoCondonado: string | null
+  mes: string | null
+  pagoReferencia: string | null
+  validadoEn: string | null
+  validadoPor: string | null
+  correoEnviadoEn: string | null
+  correoResultado: string | null
+  /** Autorizado en el sistema anterior: sin colegiatura, referencia ni validación guardadas. */
+  sistemaAnterior: boolean
+}
+
+export interface SeguimientoFamiliaWinston {
+  filas: FilaSeguimientoFamiliaWinston[]
+  ciclos: { valor: number; nombre: string }[]
+  generadoEn: string
+}
+
+/** 2026-10-06 — Fecha en que se migraron los comprobantes viejos: su fecha/created_at no es real. */
+const FECHA_MIGRACION_WSP = '2026-06-19'
+/** 2026-10-06 — Revisiones completas en paralelo (cada una hace ~12 consultas). */
+const REVISIONES_EN_PARALELO = 3
+const LOTE_REFS = 40
+
+/** 2026-10-06 — «2026-2027» → 23 (ciclo Winston = año de inicio − 2003). */
+function cicloDeEtiqueta(texto: string | null | undefined): number | null {
+  const m = String(texto ?? '').match(/(\d{4})\s*[-/]\s*(\d{4})/)
+  if (!m) return null
+  const ciclo = Number(m[1]) - 2003
+  return ciclo > 0 ? ciclo : null
+}
+
+/**
+ * 2026-10-06 — Regla de ciclo del comprobante (con los datos reales: 84 de 86 son migrados con
+ * fecha 2026-06-19 y casi ninguno trae interesado/ciclo):
+ * - Aplicados → ciclo_condonado (el ciclo de la colegiatura que se condonó).
+ * - Pendientes → ciclo más reciente de quien recomienda: es donde se condonaría (revisarFamiliaWinston
+ *   condona en el ciclo del beneficiado). Así un comprobante de 2025-2026 que sigue vigente cuenta
+ *   en el ciclo actual y no se pierde.
+ * - Si no hay lo anterior → ciclo de origen: interesado_ciclo de AgendaW, school_cycle de la cita
+ *   ligada o ciclo de inscripción a la fecha real (antes del corte de admisiones cuenta para el
+ *   ciclo siguiente). Sin nada → null (solo en «Todos los ciclos»).
+ * El ciclo de origen se devuelve aparte para mostrarlo.
+ */
+function cicloDelComprobante(
+  f: FilaWsp & { fecha?: string | null; interesado_ciclo?: string | null },
+  cicloCita: number | null,
+  recomendador: AlumnoSeguimientoFamiliaWinston | null
+): Pick<FilaSeguimientoFamiliaWinston, 'ciclo' | 'fuenteCiclo' | 'cicloOrigen' | 'fuenteCicloOrigen' | 'fechaReal'> {
+  const fecha = f.fecha ? String(f.fecha).slice(0, 10) : null
+  const fechaReal = fecha && fecha !== FECHA_MIGRACION_WSP ? fecha : null
+  const porInteresado = cicloDeEtiqueta(f.interesado_ciclo)
+  const origen: Pick<FilaSeguimientoFamiliaWinston, 'cicloOrigen' | 'fuenteCicloOrigen'> = porInteresado
+    ? { cicloOrigen: porInteresado, fuenteCicloOrigen: 'interesado' }
+    : cicloCita
+      ? { cicloOrigen: cicloCita, fuenteCicloOrigen: 'cita' }
+      : fechaReal
+        ? { cicloOrigen: getCicloInscripcion(new Date(`${fechaReal}T12:00:00`)), fuenteCicloOrigen: 'fecha' }
+        : { cicloOrigen: null, fuenteCicloOrigen: null }
+  const base = { ...origen, fechaReal }
+  if (f.ciclo_condonado != null) return { ...base, ciclo: Number(f.ciclo_condonado), fuenteCiclo: 'condonado' }
+  const pendiente = f.status !== 'autorizado'
+  if (pendiente && recomendador?.ciclo) return { ...base, ciclo: recomendador.ciclo, fuenteCiclo: 'recomendador' }
+  if (origen.cicloOrigen) return { ...base, ciclo: origen.cicloOrigen, fuenteCiclo: origen.fuenteCicloOrigen }
+  if (recomendador?.ciclo) return { ...base, ciclo: recomendador.ciclo, fuenteCiclo: 'recomendador' }
+  return { ...base, ciclo: null, fuenteCiclo: null }
+}
+
+function alumnoSeguimiento(a: AlumnoQrFamiliaWinston): AlumnoSeguimientoFamiliaWinston {
+  return {
+    ref: Number(a.alumno_ref),
+    nombre: nombreTitulo([a.alumno_nombre, a.alumno_app, a.alumno_apm].filter(Boolean).join(' ')),
+    nivel: a.alumno_nivel,
+    grado: a.alumno_grado,
+    grupo: a.alumno_grupo,
+    activo: a.alumno_status === 1,
+    ciclo: a.alumno_ciclo_escolar,
+  }
+}
+
+/** 2026-10-06 — Ejecuta fn sobre items con a lo más n promesas a la vez. */
+async function enParalelo<T, R>(items: T[], n: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length)
+  let i = 0
+  const trabajador = async () => {
+    while (i < items.length) {
+      const k = i++
+      out[k] = await fn(items[k])
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, trabajador))
+  return out
+}
+
+/** 2026-10-06 — Orden en que se elige el «motivo principal» cuando la revisión trae varios errores. */
+const ORDEN_ERRORES: { id: string; estado: EstadoPendienteFamiliaWinston }[] = [
+  { id: 'comprobante', estado: 'en-proceso' },
+  { id: 'beneficiado', estado: 'recomendador-baja' },
+  { id: 'referido', estado: 'recomendado-inactivo' },
+  { id: 'referido-unico', estado: 'recomendado-ya-uso' },
+  { id: 'interesado', estado: 'no-coincide' },
+  { id: 'nuevo-ingreso', estado: 'recomendado-no-nuevo' },
+  { id: 'pago-referido', estado: 'falta-pago' },
+  { id: 'dias-clases', estado: 'faltan-dias' },
+  { id: 'mes', estado: 'sin-colegiaturas' },
+]
+
+function estadoDesdeRevision(r: RevisionFamiliaWinston): {
+  estado: EstadoPendienteFamiliaWinston
+  detalle: string | null
+} {
+  if (r.puedeAplicar) {
+    return {
+      estado: 'listo',
+      detalle: r.mesPropuesto ? `Se condonaría ${r.mesPropuesto.mes} ${r.mesPropuesto.cicloEtiqueta}.` : null,
+    }
+  }
+  const errores = r.checks.filter((c) => c.nivel === 'error')
+  for (const { id, estado } of ORDEN_ERRORES) {
+    const c = errores.find((e) => e.id === id)
+    if (!c) continue
+    if (id === 'dias-clases' && r.fechaDisponible == null) return { estado: 'falta-inicio-clases', detalle: c.texto }
+    return { estado, detalle: c.texto }
+  }
+  return { estado: 'no-procede', detalle: errores[0]?.texto ?? null }
+}
+
+/** 2026-10-06 — Alumnos por matrícula (fila del ciclo más reciente), en lotes. */
+async function alumnosPorRefs(db: AppDatabaseClient, refs: number[]): Promise<Map<number, AlumnoQrFamiliaWinston>> {
+  const out = new Map<number, AlumnoQrFamiliaWinston>()
+  const unicos = [...new Set(refs.filter((r) => r > 0))]
+  for (let i = 0; i < unicos.length; i += LOTE_REFS) {
+    const { data, error } = await db
+      .from('alumno')
+      .select(SELECT_ALUMNO_QR)
+      .in('alumno_ref', unicos.slice(i, i + LOTE_REFS))
+      .order('alumno_ciclo_escolar', { ascending: false })
+      .limit(1000)
+    if (error) throw new Error(error.message)
+    for (const r of unicosPorRef((data ?? []) as Record<string, unknown>[])) {
+      out.set(Number(r.alumno_ref), mapAlumnoQr(r))
+    }
+  }
+  return out
+}
+
+/**
+ * 2026-10-06 — Seguimiento de comprobantes Familia Winston (todos; el módulo filtra por ciclo).
+ * Para no correr la revisión completa en cada comprobante: los datos base salen en lote y
+ * revisarFamiliaWinston solo corre en los pendientes cuyo recomendado ya está identificado
+ * (los demás no pueden proceder todavía). Solo lectura.
+ */
+export async function listarSeguimientoFamiliaWinston(): Promise<SeguimientoFamiliaWinston> {
+  const db = createDbAdmin()
+  const [wspRes, ciclosRes] = await Promise.all([
+    db.from('wsp').select(`${SELECT_WSP}, fecha, interesado_ciclo`).order('id', { ascending: true }).limit(5000),
+    db.from('ciclos_escolares').select('valor, nombre').order('valor', { ascending: false }),
+  ])
+  if (wspRes.error) throw new Error(wspRes.error.message)
+  const filasWsp = (wspRes.data ?? []) as (FilaWsp & { fecha?: string | null; interesado_ciclo?: string | null })[]
+  const ciclos = ((ciclosRes.data ?? []) as { valor: number; nombre: string | null }[]).map((c) => ({
+    valor: Number(c.valor),
+    nombre: c.nombre?.trim() || `${Number(c.valor) + 2003}-${Number(c.valor) + 2004}`,
+  }))
+
+  const alumnos = await alumnosPorRefs(
+    db,
+    filasWsp.flatMap((f) => [Number(f.ctrl), Number(f.referido_alumno_ref) || 0])
+  )
+
+  // Ciclo escolar de las citas ligadas (AgendaW).
+  const idsCita = filasWsp.map((f) => f.appointment_id).filter((x): x is string => !!x)
+  const cicloCita = new Map<string, number | null>()
+  if (idsCita.length) {
+    const { data } = await db.from('admission_appointments').select('id, school_cycle').in('id', idsCita)
+    for (const c of (data ?? []) as { id: string; school_cycle: string | null }[]) {
+      cicloCita.set(c.id, cicloDeEtiqueta(c.school_cycle))
+    }
+  }
+
+  // Recomendados que ya generaron beneficio (para las sugerencias por apellido).
+  const yaUsados = new Set(
+    filasWsp
+      .filter((f) => f.status === 'aplicando' || f.status === 'autorizado')
+      .map((f) => Number(f.referido_alumno_ref))
+      .filter((n) => n > 0)
+  )
+
+  // Comprobantes viejos sin interesado: candidatos de nuevo ingreso del ciclo de quien recomienda.
+  const sinDatos = (f: FilaWsp) =>
+    f.referido_alumno_ref == null && !f.appointment_id && !f.interesado_nombre?.trim()
+  const ciclosCandidatos = [
+    ...new Set(
+      filasWsp
+        .filter((f) => f.status === 'pendiente' && sinDatos(f))
+        .map((f) => alumnos.get(Number(f.ctrl))?.alumno_ciclo_escolar)
+        .filter((c): c is number => c != null)
+    ),
+  ]
+  const candidatosPorCiclo = new Map<number, Record<string, unknown>[]>()
+  if (ciclosCandidatos.length) {
+    const { data, error } = await db
+      .from('alumno')
+      .select(SELECT_ALUMNO_QR)
+      .in('alumno_ciclo_escolar', ciclosCandidatos)
+      .eq('alumno_nuevo_ingreso', 1)
+      .limit(3000)
+    if (error) throw new Error(error.message)
+    for (const r of (data ?? []) as Record<string, unknown>[]) {
+      const c = Number(r.alumno_ciclo_escolar)
+      candidatosPorCiclo.set(c, [...(candidatosPorCiclo.get(c) ?? []), r])
+    }
+  }
+
+  const filas = await enParalelo(filasWsp, REVISIONES_EN_PARALELO, async (f) => {
+    const status = (['pendiente', 'aplicando', 'autorizado'].includes(String(f.status)) ? f.status : 'pendiente') as
+      FilaSeguimientoFamiliaWinston['status']
+    const recomendadorQr = alumnos.get(Number(f.ctrl)) ?? null
+    const recomendador = recomendadorQr ? alumnoSeguimiento(recomendadorQr) : null
+    const ciclo = cicloDelComprobante(f, f.appointment_id ? cicloCita.get(f.appointment_id) ?? null : null, recomendador)
+    const concepto = f.concepto_condonado ? normalizarConceptoNo(f.concepto_condonado) : null
+    const fila: FilaSeguimientoFamiliaWinston = {
+      id: Number(f.id),
+      folio: folioWsp(Number(f.id)),
+      qr: Number(f.qr),
+      ctrl: Number(f.ctrl),
+      status,
+      ...ciclo,
+      recomendador,
+      interesadoNombre: f.interesado_nombre?.trim() || null,
+      interesadoNivelGrado: f.interesado_nivel_grado?.trim() || null,
+      recomendado: null,
+      fuenteRecomendado: null,
+      sugerencias: [],
+      estado: null,
+      detalle: null,
+      fechaDisponible: null,
+      primeraColegiaturaPagada: null,
+      conceptoCondonado: concepto,
+      mes: concepto ? MES_POR_CONCEPTO[concepto] ?? null : null,
+      pagoReferencia: f.pago_referencia,
+      validadoEn: f.validado_en,
+      validadoPor: f.validado_por,
+      correoEnviadoEn: f.correo_enviado_en,
+      correoResultado: f.correo_resultado,
+      sistemaAnterior: status === 'autorizado' && !f.pago_referencia && !f.validado_en,
+    }
+
+    if (status === 'autorizado') {
+      const ref = Number(f.referido_alumno_ref) || 0
+      const a = ref ? alumnos.get(ref) : undefined
+      if (a) {
+        fila.recomendado = alumnoSeguimiento(a)
+        fila.fuenteRecomendado = 'guardado'
+      }
+      if (fila.sistemaAnterior) fila.detalle = 'Autorizado en el sistema anterior (sin colegiatura ni validación registradas).'
+      return fila
+    }
+
+    if (status === 'aplicando') {
+      fila.estado = 'en-proceso'
+      fila.detalle = `Se quedó «aplicando»${f.validado_por ? ` (lo empezó ${f.validado_por})` : ''}: puede ser un error a medio aplicar. Revisa sus pagos antes de volver a validar.`
+      return fila
+    }
+
+    if (!recomendadorQr) {
+      fila.estado = 'recomendador-no-existe'
+      fila.detalle = `No existe el alumno ${f.ctrl} que recomienda.`
+      return fila
+    }
+
+    // Recomendado: solo se resuelve cuando el comprobante trae datos (guardado, cita o interesado).
+    if (!sinDatos(f)) {
+      const rec = await resolverRecomendado(db, f, recomendadorQr)
+      fila.fuenteRecomendado = rec.fuente
+      if (rec.alumno) fila.recomendado = alumnoSeguimiento(rec.alumno)
+      fila.sugerencias = rec.candidatos.map((c) => ({ ref: Number(c.alumno_ref), nombre: alumnoSeguimiento(c).nombre }))
+    } else {
+      const candidatos = candidatosPorCiclo.get(Number(recomendadorQr.alumno_ciclo_escolar)) ?? []
+      fila.sugerencias = sugerenciasApellidoDe(candidatos, recomendadorQr, yaUsados).map((c) => ({
+        ref: Number(c.alumno_ref),
+        nombre: alumnoSeguimiento(c).nombre,
+      }))
+      if (fila.sugerencias.length) fila.fuenteRecomendado = 'apellido'
+    }
+
+    if (recomendadorQr.alumno_status !== 1) {
+      fila.estado = 'recomendador-baja'
+      fila.detalle = `${recomendador?.nombre ?? f.ctrl} ya no está activo; el beneficio no se puede aplicar.`
+      return fila
+    }
+
+    if (!fila.recomendado) {
+      if (fila.interesadoNombre) {
+        fila.estado = fila.sugerencias.length > 1 ? 'varios-candidatos' : 'interesado-no-inscrito'
+        fila.detalle =
+          fila.estado === 'varios-candidatos'
+            ? `Hay ${fila.sugerencias.length} alumnos que se llaman como el interesado; hay que elegir uno.`
+            : `El interesado ${fila.interesadoNombre} todavía no aparece como alumno inscrito.`
+      } else {
+        fila.estado = 'falta-identificar'
+        fila.detalle = 'Comprobante anterior sin interesado guardado: se necesita el PDF para saber a quién recomendó.'
+      }
+      return fila
+    }
+
+    const revision = await revisarFamiliaWinston({
+      ctrl: Number(f.ctrl),
+      qr: Number(f.qr),
+      referidoRef: fila.recomendado.ref,
+      db,
+    })
+    const pago = revision.checks.find((c) => c.id === 'pago-referido')
+    fila.primeraColegiaturaPagada = pago ? pago.nivel === 'ok' : null
+    fila.fechaDisponible = revision.fechaDisponible
+    Object.assign(fila, estadoDesdeRevision(revision))
+    return fila
+  })
+
+  return { filas, ciclos, generadoEn: new Date().toISOString() }
 }

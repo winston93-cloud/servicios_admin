@@ -8,6 +8,7 @@ import {
   guardarInicioClases,
   listarCiclosInicioClases,
   listarHistorialFamiliaWinston,
+  listarSeguimientoFamiliaWinston,
   revisarFamiliaWinston,
   textoCorreoFamiliaWinston,
   type PdfComprobanteFamiliaWinston,
@@ -83,6 +84,10 @@ export async function GET(request: Request) {
   const a = autorizar(request)
   if (!a.ok) return a.response
   try {
+    // 2026-10-06 — Seguimiento (pendientes y aplicados con ciclo y estado); solo lectura.
+    if (new URL(request.url).searchParams.get('vista') === 'seguimiento') {
+      return NextResponse.json({ ok: true, ...(await listarSeguimientoFamiliaWinston()) })
+    }
     const [historial, ciclos] = await Promise.all([
       listarHistorialFamiliaWinston(),
       listarCiclosInicioClases(),

@@ -10,6 +10,9 @@
  * guarda en el comprobante; en comprobantes viejos se sugieren alumnos por apellido.
  * 2026-10-06 — «Subir comprobante (PDF)»: el servidor lee QR, control e interesado del PDF y se
  * llena todo solo; escribir el nombre a mano sigue disponible.
+ * 2026-10-06 — Pestañas «Validar | Pendientes | Aplicados»: seguimiento por ciclo (por defecto el
+ * «Ciclo activo» del panel) de los comprobantes que faltan y los beneficios aplicados
+ * (FamiliaWinstonSeguimiento). «Validar» desde la lista abre el validador con ese comprobante.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -22,6 +25,7 @@ import {
   FileUp,
   GraduationCap,
   HeartHandshake,
+  Hourglass,
   Loader2,
   Mail,
   QrCode,
@@ -36,16 +40,21 @@ import {
 } from 'lucide-react'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
 import UsuariosPinGate from '../components/UsuariosPinGate'
+import FamiliaWinstonSeguimiento, { type CicloFiltro, type VistaSeguimiento } from './FamiliaWinstonSeguimiento'
+import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import type { AlumnoBusquedaResultado } from '@/lib/alumnoBusquedaServicios'
 import type {
   AlumnoQrFamiliaWinston,
   ComprobanteQrFamiliaWinston,
-  FilaHistorialFamiliaWinston,
   RecomendadoQrFamiliaWinston,
   RevisionFamiliaWinston,
+  SeguimientoFamiliaWinston,
 } from '@/lib/familiaWinstonService'
 import type { DatosPdfFamiliaWinston } from '@/lib/familiaWinstonPdf'
 import './familia-winston.css'
+
+/* 2026-10-06 — Pestañas del módulo. */
+type Pestana = 'validar' | VistaSeguimiento
 
 type CicloInicio = { valor: number; nombre: string; inicioClases: string | null; esActual: boolean }
 
@@ -84,13 +93,6 @@ function fechaCorta(iso: string | null): string {
   return `${d}/${m}/${y}`
 }
 
-function fmtFechaHora(iso: string | null): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })
-}
-
 function dinero(n: number): string {
   return n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 }
@@ -125,7 +127,7 @@ async function postApi<T>(body: Record<string, unknown>): Promise<{ ok: boolean;
   return { ok: res.ok, data }
 }
 
-export default function FamiliaWinstonModulo() {
+function FamiliaWinstonContenido() {
   const [formKey, setFormKey] = useState(0)
   const [qr, setQr] = useState('')
   const [beneficiado, setBeneficiado] = useState<AlumnoBusquedaResultado | null>(null)
@@ -154,16 +156,25 @@ export default function FamiliaWinstonModulo() {
   const [error, setError] = useState<string | null>(null)
   const [aplicado, setAplicado] = useState<ResultadoAplicado | null>(null)
 
-  const [historial, setHistorial] = useState<FilaHistorialFamiliaWinston[]>([])
-  const [pendientes, setPendientes] = useState(0)
+  /* 2026-10-06: la tabla «Beneficios aplicados» pasó a la pestaña «Aplicados» (seguimiento). */
   const [ciclos, setCiclos] = useState<CicloInicio[]>([])
   const [fechasInicio, setFechasInicio] = useState<Record<number, string>>({})
-  const [cargandoHist, setCargandoHist] = useState(false)
   const [guardandoInicio, setGuardandoInicio] = useState<number | null>(null)
 
   const [camara, setCamara] = useState(false)
   const [camaraError, setCamaraError] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
+
+  /* 2026-10-06 — Pestañas y seguimiento por ciclo (por defecto el «Ciclo activo» del panel). */
+  const { cicloSeleccionado, opcionesSelector } = useCicloEscolar()
+  const [pestana, setPestana] = useState<Pestana>('validar')
+  const [seguimiento, setSeguimiento] = useState<SeguimientoFamiliaWinston | null>(null)
+  const [cargandoSeg, setCargandoSeg] = useState(false)
+  const [errorSeg, setErrorSeg] = useState<string | null>(null)
+  const [cicloFiltro, setCicloFiltro] = useState<CicloFiltro>(cicloSeleccionado)
+  /** Al abrir «Validar» desde la lista: control de quien recomienda para elegir su comprobante. */
+  const ctrlPreferidoRef = useRef<number | null>(null)
+  const tabsRef = useRef<HTMLDivElement | null>(null)
 
   const ctrl = beneficiado ? soloDigitos(String(beneficiado.alumno_ref)) : ''
   const referidoRef = referido ? soloDigitos(String(referido.alumno_ref)) : ''
@@ -189,36 +200,81 @@ export default function FamiliaWinstonModulo() {
   const claveActual = `${qr}|${ctrl}|${referidoRef}|${pdfLimpio}|${mesElegido}|${pdfClave}`
   const completo = qr.length >= DIGITOS_QR && !!ctrl && !!referidoRef
 
+  /* 2026-10-06: ya solo trae los ciclos (inicio de clases); el historial está en «Aplicados». */
   const cargarHistorial = useCallback(async () => {
-    setCargandoHist(true)
     try {
       const res = await fetch(API, { cache: 'no-store' })
       const data = (await res.json().catch(() => ({}))) as {
-        aplicados?: FilaHistorialFamiliaWinston[]
-        pendientes?: number
         ciclos?: CicloInicio[]
         error?: string
       }
       if (!res.ok) {
-        setError(data.error ?? 'No se pudo cargar el historial.')
+        setError(data.error ?? 'No se pudo cargar el inicio de clases.')
         return
       }
-      setHistorial(data.aplicados ?? [])
-      setPendientes(data.pendientes ?? 0)
       setCiclos(data.ciclos ?? [])
       setFechasInicio(
         Object.fromEntries((data.ciclos ?? []).map((c) => [c.valor, c.inicioClases ?? '']))
       )
     } catch {
-      setError('Error de conexión al cargar el historial.')
-    } finally {
-      setCargandoHist(false)
+      setError('Error de conexión al cargar el inicio de clases.')
     }
   }, [])
 
   useEffect(() => {
     void cargarHistorial()
   }, [cargarHistorial])
+
+  /* 2026-10-06 — Seguimiento (pendientes y aplicados de todos los ciclos; se filtra en pantalla). */
+  const cargarSeguimiento = useCallback(async () => {
+    setCargandoSeg(true)
+    setErrorSeg(null)
+    try {
+      const res = await fetch(`${API}?vista=seguimiento`, { cache: 'no-store' })
+      const data = (await res.json().catch(() => ({}))) as SeguimientoFamiliaWinston & { error?: string }
+      if (!res.ok) {
+        setErrorSeg(data.error ?? 'No se pudo cargar el seguimiento.')
+        return
+      }
+      setSeguimiento({ filas: data.filas ?? [], ciclos: data.ciclos ?? [], generadoEn: data.generadoEn })
+    } catch {
+      setErrorSeg('Error de conexión al cargar el seguimiento.')
+    } finally {
+      setCargandoSeg(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void cargarSeguimiento()
+  }, [cargarSeguimiento])
+
+  /* El filtro sigue al «Ciclo activo» del panel cuando este cambia. */
+  useEffect(() => {
+    setCicloFiltro(cicloSeleccionado)
+  }, [cicloSeleccionado])
+
+  const opcionesCiclo = useMemo(() => {
+    const m = new Map<number, string>()
+    for (const o of opcionesSelector) m.set(o.valor, o.etiqueta)
+    for (const f of seguimiento?.filas ?? []) {
+      if (f.ciclo == null || m.has(f.ciclo)) continue
+      m.set(f.ciclo, seguimiento?.ciclos.find((c) => c.valor === f.ciclo)?.nombre ?? `${f.ciclo + 2003}-${f.ciclo + 2004}`)
+    }
+    return [...m.entries()].sort((a, b) => b[0] - a[0]).map(([valor, etiqueta]) => ({ valor, etiqueta }))
+  }, [opcionesSelector, seguimiento])
+
+  const conteoPestanas = useMemo(() => {
+    const filas = (seguimiento?.filas ?? []).filter((f) => cicloFiltro === 'todos' || f.ciclo === cicloFiltro)
+    return {
+      pendientes: filas.filter((f) => f.status !== 'autorizado').length,
+      aplicados: filas.filter((f) => f.status === 'autorizado').length,
+    }
+  }, [seguimiento, cicloFiltro])
+
+  const cambiarPestana = useCallback((p: Pestana) => {
+    setPestana(p)
+    if (p !== 'validar') setCamara(false)
+  }, [])
 
   /* Cámara: getUserMedia + jsQR sobre cuadros reducidos (Chrome, Safari, Firefox, celular). */
   useEffect(() => {
@@ -370,7 +426,13 @@ export default function FamiliaWinstonModulo() {
         setComprobantesQr(lista)
         setQrBuscado(qr)
         setRecomendadoQr(null)
-        if (lista.length === 1) elegirComprobante(lista[0])
+        // 2026-10-06: desde «Pendientes» se elige el comprobante de ese recomendador
+        const preferido = ctrlPreferidoRef.current
+        ctrlPreferidoRef.current = null
+        const elegido =
+          (preferido != null ? lista.find((i) => i.comprobante.ctrl === preferido) : undefined) ??
+          (lista.length === 1 ? lista[0] : undefined)
+        if (elegido) elegirComprobante(elegido)
       } catch {
         setError('Error de conexión al buscar el comprobante.')
       } finally {
@@ -454,6 +516,15 @@ export default function FamiliaWinstonModulo() {
     setFormKey((k) => k + 1)
   }
 
+  /* 2026-10-06 — «Validar» desde la lista: abre el validador con ese QR y su recomendador. */
+  const validarDesdeSeguimiento = (qrComprobante: number, ctrlComprobante: number) => {
+    limpiar()
+    ctrlPreferidoRef.current = ctrlComprobante
+    setQr(String(qrComprobante))
+    setPestana('validar')
+    tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   const aplicar = async () => {
     if (!revision?.puedeAplicar || !revision.mesPropuesto || !revision.beneficiado) return
     const ok = window.confirm(
@@ -480,7 +551,7 @@ export default function FamiliaWinstonModulo() {
         return
       }
       setAplicado(data)
-      void cargarHistorial()
+      void cargarSeguimiento()
     } catch {
       setError('Error de conexión al aplicar.')
     } finally {
@@ -518,25 +589,63 @@ export default function FamiliaWinstonModulo() {
   const qrSinComprobante = qrBuscado === qr && qr.length >= DIGITOS_QR && comprobantesQr.length === 0
 
   return (
-    <UsuariosPinGate
-      eyebrow="Servicios · Familia Winston"
-      titulo="Acceso a Familia Winston"
-      lead="Ingresa el PIN para validar comprobantes y condonar colegiaturas."
-    >
-      <div className="servicios-panel-inner fw">
-        <header className="fw-hero">
-          <span className="fw-hero-icono" aria-hidden>
-            <HeartHandshake size={26} />
-          </span>
-          <div>
-            <h1 className="fw-hero-titulo">Familia Winston</h1>
-            <p className="fw-hero-lead">
-              Cuando una familia recomienda a otra y el alumno nuevo ya cumplió su primer mes, su hijo
-              recibe gratis su próxima colegiatura.
-            </p>
-          </div>
-        </header>
+    <div className="servicios-panel-inner fw">
+      <header className="fw-hero">
+        <span className="fw-hero-icono" aria-hidden>
+          <HeartHandshake size={26} />
+        </span>
+        <div>
+          <h1 className="fw-hero-titulo">Familia Winston</h1>
+          <p className="fw-hero-lead">
+            Cuando una familia recomienda a otra y el alumno nuevo ya cumplió su primer mes, su hijo
+            recibe gratis su próxima colegiatura.
+          </p>
+        </div>
+      </header>
 
+      {/* 2026-10-06 — Pestañas: validar, comprobantes que faltan y beneficios aplicados. */}
+      <div ref={tabsRef} className="fw-tabs" role="tablist" aria-label="Secciones de Familia Winston">
+        {(
+          [
+            { id: 'validar', texto: 'Validar', icono: <QrCode size={16} aria-hidden />, n: null },
+            {
+              id: 'pendientes',
+              texto: 'Pendientes',
+              icono: <Hourglass size={16} aria-hidden />,
+              n: seguimiento ? conteoPestanas.pendientes : null,
+            },
+            {
+              id: 'aplicados',
+              texto: 'Aplicados',
+              icono: <CheckCircle2 size={16} aria-hidden />,
+              n: seguimiento ? conteoPestanas.aplicados : null,
+            },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            id={`fw-tab-${t.id}`}
+            aria-selected={pestana === t.id}
+            aria-controls={`fw-panel-${t.id === 'validar' ? 'validar' : 'seguimiento'}`}
+            className={`fw-tab ${pestana === t.id ? 'fw-tab--activa' : ''}`}
+            onClick={() => cambiarPestana(t.id)}
+          >
+            {t.icono}
+            {t.texto}
+            {t.n != null ? <span className="fw-tab-n">{t.n}</span> : null}
+          </button>
+        ))}
+      </div>
+
+      <div
+        id="fw-panel-validar"
+        role="tabpanel"
+        aria-labelledby="fw-tab-validar"
+        className="fw-panel"
+        hidden={pestana !== 'validar'}
+      >
         <ol className="fw-pasos-guia" aria-label="Cómo funciona">
           <li>
             {/* 2026-10-06: o sube el PDF */}
@@ -1111,81 +1220,6 @@ export default function FamiliaWinstonModulo() {
           </section>
         </div>
 
-        {/* ── Historial ─────────────────────────────────────────── */}
-        <section className="servicios-panel-card fw-card" aria-labelledby="fw-historial">
-          <div className="fw-card-cabeza">
-            <h2 id="fw-historial" className="fw-h2">
-              Beneficios aplicados
-            </h2>
-            <div className="fw-cabeza-der">
-              <span className="fw-chip">Comprobantes sin usar: {pendientes}</span>
-              <button
-                type="button"
-                className="usr-btn"
-                disabled={cargandoHist}
-                onClick={() => void cargarHistorial()}
-              >
-                {cargandoHist ? <Loader2 className="usr-spin" size={16} /> : <RefreshCw size={16} />}
-                Actualizar
-              </button>
-            </div>
-          </div>
-          {historial.length === 0 ? (
-            <p className="fw-hint">Todavía no hay beneficios validados desde este módulo.</p>
-          ) : (
-            <div className="fw-tabla-wrap">
-              <table className="fw-tabla">
-                <thead>
-                  <tr>
-                    <th scope="col">Comprobante</th>
-                    <th scope="col">Recibió el beneficio</th>
-                    <th scope="col">Recomendó a</th>
-                    <th scope="col">Mes condonado</th>
-                    <th scope="col">Validó</th>
-                    <th scope="col">Correo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {historial.map((h) => (
-                    <tr key={h.id}>
-                      <td>
-                        <strong>{h.folio}</strong>
-                      </td>
-                      <td>
-                        {h.beneficiadoNombre ?? '—'}
-                        <span className="fw-sub">No. control {h.ctrl}</span>
-                      </td>
-                      <td>
-                        {h.referidoNombre ?? '—'}
-                        {h.referidoRef ? (
-                          <span className="fw-sub">No. control {h.referidoRef}</span>
-                        ) : null}
-                      </td>
-                      <td>
-                        {h.mes ?? '—'}
-                        {h.pagoReferencia ? <span className="fw-sub">{h.pagoReferencia}</span> : null}
-                      </td>
-                      <td>
-                        {h.validadoPor ?? '—'}
-                        <span className="fw-sub">{fmtFechaHora(h.validadoEn)}</span>
-                      </td>
-                      <td>
-                        {h.correoEnviadoEn ? (
-                          <span className="fw-chip fw-chip--ok">Enviado</span>
-                        ) : h.correoResultado ? (
-                          <span className="fw-chip fw-chip--err">No enviado</span>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
         {/* ── Configuración ─────────────────────────────────────── */}
         <details className="servicios-panel-card fw-card fw-plegable fw-config">
           <summary>
@@ -1231,6 +1265,45 @@ export default function FamiliaWinstonModulo() {
           </div>
         </details>
       </div>
+
+      {/* 2026-10-06 — Seguimiento: comprobantes que faltan y beneficios aplicados por ciclo. */}
+      {pestana !== 'validar' ? (
+        <div
+          id="fw-panel-seguimiento"
+          role="tabpanel"
+          aria-labelledby={`fw-tab-${pestana}`}
+          className="fw-panel"
+        >
+          <FamiliaWinstonSeguimiento
+            vista={pestana}
+            datos={seguimiento}
+            cargando={cargandoSeg}
+            error={errorSeg}
+            cicloFiltro={cicloFiltro}
+            onCambiarCiclo={setCicloFiltro}
+            opcionesCiclo={opcionesCiclo}
+            onCambiarVista={cambiarPestana}
+            onRecargar={() => void cargarSeguimiento()}
+            onValidar={validarDesdeSeguimiento}
+          />
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/**
+ * 2026-10-06 — El contenido se monta hasta que el PIN es válido: antes sus cargas iniciales
+ * (inicio de clases, seguimiento) salían sin la cookie del PIN y recibían 401.
+ */
+export default function FamiliaWinstonModulo() {
+  return (
+    <UsuariosPinGate
+      eyebrow="Servicios · Familia Winston"
+      titulo="Acceso a Familia Winston"
+      lead="Ingresa el PIN para validar comprobantes y condonar colegiaturas."
+    >
+      <FamiliaWinstonContenido />
     </UsuariosPinGate>
   )
 }
