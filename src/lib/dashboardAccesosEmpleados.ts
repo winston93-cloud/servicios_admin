@@ -6,9 +6,10 @@ export const DASHBOARD_ESPEJO_USUARIO_ID = 17
 /**
  * Cuentas con layout personalizado del dashboard:
  * grid de 5 columnas + botón «Cambiar orden».
- * laura (2), coordprim / dirección primaria español (7), mario (17), santiago / DG (59).
+ * laura (2), coordprim / dirección primaria español (7), coording / dirección primaria inglés (10),
+ * mario (17), santiago / DG (59).
  */
-export const DASHBOARD_LAYOUT_PERSONALIZADO_IDS = new Set<number>([2, 7, 17, 59])
+export const DASHBOARD_LAYOUT_PERSONALIZADO_IDS = new Set<number>([2, 7, 10, 17, 59])
 
 export function dashboardLayoutPersonalizado(usuarioId: number | null | undefined): boolean {
   const uid = Number(usuarioId) || 0
