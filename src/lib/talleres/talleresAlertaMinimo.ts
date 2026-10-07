@@ -14,11 +14,32 @@ import {
 
 const DOMINIO_INSTITUCIONAL = '@winston93.edu.mx'
 
+/**
+ * Directoras y control escolar solo ven los grupos de su nivel (2 kinder · 3 primaria · 4 secundaria).
+ * Quien no está aquí (dirección general, Laura, sistemas) ve todos.
+ */
+const NIVELES_ALERTA_POR_USUARIO: Record<number, number[]> = {
+  7: [3], // coordprim — dirección primaria
+  10: [3], // coording — dirección inglés primaria
+  8: [2], // coordkin — dirección kinder
+  54: [2], // kinder_ing — dirección inglés kinder
+  39: [2], // fatima — control escolar kinder
+  13: [4], // josefina — dirección secundaria
+}
+
+/** Grupos que le tocan al usuario según su nivel; un grupo mixto aparece en cada nivel que incluye. */
+export function gruposDelUsuario(usuarioId: number, grupos: GrupoEnMinimo[]): GrupoEnMinimo[] {
+  const niveles = NIVELES_ALERTA_POR_USUARIO[usuarioId]
+  if (!niveles) return grupos
+  return grupos.filter((g) => g.nivelesNum.some((n) => niveles.includes(n)))
+}
+
 export type GrupoEnMinimo = {
   id: number
   taller: string
   maestro: string
   niveles: string
+  nivelesNum: number[]
   horario: string
   inscritos: number
   cupo_min: number
@@ -41,6 +62,7 @@ export async function gruposEnMinimo(): Promise<{ ciclo: number; grupos: GrupoEn
         taller: t ? nombreTallerCompleto(t) : 'Taller',
         maestro: m ? nombreMaestroTaller(m) : '',
         niveles: a.niveles.map(etiquetaNivel).join(' y '),
+        nivelesNum: a.niveles,
         horario: resumenHorarios(a.horarios),
         inscritos: a.inscritos,
         cupo_min: a.cupo_min ?? 0,
@@ -71,6 +93,20 @@ function lineaGrupo(g: GrupoEnMinimo): string {
   const faltan = g.cupo_min - g.inscritos
   const estado = faltan > 0 ? `faltan ${faltan} para el mínimo` : 'en el mínimo'
   return `${g.taller}${g.maestro ? ` — ${g.maestro}` : ''} (${g.niveles}): ${g.inscritos} inscritos, mínimo ${g.cupo_min} · ${estado}`
+}
+
+function asuntoAviso(grupos: GrupoEnMinimo[]): string {
+  return grupos.length === 1
+    ? `⚠ Taller en mínimo: ${grupos[0].taller}`
+    : `⚠ ${grupos.length} talleres en el mínimo de inscritos`
+}
+
+function mensajeAviso(grupos: GrupoEnMinimo[]): string {
+  return [
+    grupos.length === 1 ? 'Este grupo llegó a su cupo mínimo:' : 'Estos grupos llegaron a su cupo mínimo:',
+    ...grupos.map((g) => `• ${lineaGrupo(g)}`),
+    'Revíselos en Talleres y Clases Especiales.',
+  ].join('\n')
 }
 
 function escapeHtml(text: string): string {
@@ -146,25 +182,34 @@ export async function revisarAlertasMinimo(): Promise<{ nuevos: number }> {
   if (!nuevos.length) return { nuevos: 0 }
 
   const destinatarios = await destinatariosTalleres()
-  const asunto =
-    nuevos.length === 1 ? `⚠ Taller en mínimo: ${nuevos[0].taller}` : `⚠ ${nuevos.length} talleres en el mínimo de inscritos`
-  const mensaje = [
-    nuevos.length === 1 ? 'Este grupo llegó a su cupo mínimo:' : 'Estos grupos llegaron a su cupo mínimo:',
-    ...nuevos.map((g) => `• ${lineaGrupo(g)}`),
-    'Revíselos en Talleres y Clases Especiales.',
-  ].join('\n')
+  // Mismo conjunto de grupos → un solo correo con todos esos destinatarios.
+  const correosPorConjunto = new Map<string, { grupos: GrupoEnMinimo[]; correos: Set<string> }>()
 
   await Promise.all(
-    destinatarios.map((d) =>
-      crearNotificacionEmpleado({ usuarioId: d.usuarioId, asunto, mensaje }).then((r) => {
-        if (!r.ok) console.error('Alerta mínimo (notificación):', d.usuarioId, r.message)
+    destinatarios.map(async (d) => {
+      const suyos = gruposDelUsuario(d.usuarioId, nuevos)
+      if (!suyos.length) return
+      const r = await crearNotificacionEmpleado({
+        usuarioId: d.usuarioId,
+        asunto: asuntoAviso(suyos),
+        mensaje: mensajeAviso(suyos),
       })
-    )
+      if (!r.ok) console.error('Alerta mínimo (notificación):', d.usuarioId, r.message)
+      if (!d.email.endsWith(DOMINIO_INSTITUCIONAL)) return
+      const clave = suyos.map((g) => g.id).join(',')
+      const conjunto = correosPorConjunto.get(clave) ?? { grupos: suyos, correos: new Set<string>() }
+      conjunto.correos.add(d.email)
+      correosPorConjunto.set(clave, conjunto)
+    })
   )
 
-  const correos = [...new Set(destinatarios.map((d) => d.email).filter((e) => e.endsWith(DOMINIO_INSTITUCIONAL)))]
-  if (correos.length) {
-    const envio = await enviarCorreoMasivo({ to: correos, subject: asunto, html: htmlCorreoMinimo(nuevos), nivel: 3 })
+  for (const { grupos: suyos, correos } of correosPorConjunto.values()) {
+    const envio = await enviarCorreoMasivo({
+      to: [...correos],
+      subject: asuntoAviso(suyos),
+      html: htmlCorreoMinimo(suyos),
+      nivel: 3,
+    })
     if (!envio.ok) console.error('Alerta mínimo (correo):', envio.error)
   }
   return { nuevos: nuevos.length }
