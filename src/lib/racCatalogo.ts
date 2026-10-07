@@ -5,14 +5,18 @@ export const RAC_TIPOS = {
   conducta: 2,
   uniforme: 3,
   vialidad: 4,
-  /** Informe de desempeño (académico y conducta); sin escalón ni filtro de Psicología. */
+  /** Sin escalón ni filtro de Psicología. En primaria se nombra «Informe de Desempeño» (académico y conducta). */
   informeAcademico: 5,
   retardo: 6,
   seguimiento: 7,
   avisoPsicologia: 8,
 } as const
 
-export function etiquetaTipoReporte(tipo: number): string {
+/** Solo primaria renombra el informe (tipo 5); los demás niveles siguen con «Informe Académico» hasta que lo pidan. */
+export type OpcionesEtiquetaRac = { primaria?: boolean }
+
+export function etiquetaTipoReporte(tipo: number, opts?: OpcionesEtiquetaRac): string {
+  if (tipo === 5 && opts?.primaria) return 'Informe de Desempeño'
   switch (tipo) {
     case 1:
       return 'Académico'
@@ -23,7 +27,7 @@ export function etiquetaTipoReporte(tipo: number): string {
     case 4:
       return 'Reporte de Vialidad'
     case 5:
-      return 'Informe de Desempeño'
+      return 'Informe Académico'
     case 6:
       return 'Reporte por Retardo'
     case 7:
@@ -87,10 +91,10 @@ export function maxReporteNoEscalon(
 
 /**
  * Frase para el cuerpo del correo a papás (sin duplicar «Reporte informe»).
- * Ej. «Informe de desempeño», «Aviso de conducta», «Reporte I académico».
+ * Ej. «Informe académico», «Aviso de conducta», «Reporte I académico».
  */
-export function fraseRegistroAvisoRac(tipo: number, no: number): string {
-  if (tipo === 5) return 'Informe de desempeño'
+export function fraseRegistroAvisoRac(tipo: number, no: number, opts?: OpcionesEtiquetaRac): string {
+  if (tipo === 5) return opts?.primaria ? 'Informe de desempeño' : 'Informe académico'
   if (tipo === 8) return 'Aviso de atención en Psicología'
   if (tipo === 3) return 'Reporte de uniforme'
   if (tipo === 4) return 'Reporte de vialidad'

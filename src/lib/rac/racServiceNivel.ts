@@ -881,8 +881,9 @@ export function createRacNivelService(cfg: RacNivelConfig) {
         : ''
     }
     const enlace = urlPublicaRac(String(r.reporte_mdv), alt)
-    const subject = asuntoReporte(tipo, no)
-    const frase = fraseRegistroAvisoRac(tipo, no)
+    const etiquetaOpts = { primaria: cfg.slug === 'primaria' }
+    const subject = asuntoReporte(tipo, no, etiquetaOpts)
+    const frase = fraseRegistroAvisoRac(tipo, no, etiquetaOpts)
     const motivoTxt = motivoReporte(tipo, n(r.reporte_motivo))
     const mostrarMotivo = tipo !== 5
     const emisores = await resolverEmisoresRac([
@@ -1137,7 +1138,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     alumnoId: number
     materiaId: number
     mensaje: string
-    /** Motivo del aviso de Psicología (tipo 8). Informe de desempeño usa 0. */
+    /** Motivo del aviso de Psicología (tipo 8). Informe académico usa 0. */
     motivo?: number
   }) {
     const ciclo = await cicloRac()
@@ -1259,7 +1260,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
           materia_id: materia ? n(r.materia_id) : 0,
           expedido_por: expedidoPor,
           tipo: n(r.reporte_tipo),
-          tipoEtiqueta: etiquetaTipoReporte(n(r.reporte_tipo)),
+          tipoEtiqueta: etiquetaTipoReporte(n(r.reporte_tipo), { primaria: cfg.slug === 'primaria' }),
           escalon: etiquetaEscalon(n(r.reporte_tipo), n(r.reporte_no)),
           motivo: motivoReporte(n(r.reporte_tipo), n(r.reporte_motivo)),
           mensaje: String(r.reporte_mensaje ?? ''),

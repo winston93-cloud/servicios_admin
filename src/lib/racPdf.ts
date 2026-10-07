@@ -10,6 +10,7 @@ import {
   etiquetaGradoStaffSecundaria,
   etiquetaTipoReporte,
   motivoReporte,
+  type OpcionesEtiquetaRac,
 } from '@/lib/racCatalogo'
 
 export type FilaPdfReporte = {
@@ -191,8 +192,8 @@ export function pdfHistorialAlumno(opts: {
 }
 
 /** Etiqueta de columna «Reporte» alineada a secundaria_2.0. */
-export function etiquetaReportePdf(tipo: number, no: number): string {
-  if (tipo === 5 || tipo === 8) return etiquetaTipoReporte(tipo)
+export function etiquetaReportePdf(tipo: number, no: number, opts?: OpcionesEtiquetaRac): string {
+  if (tipo === 5 || tipo === 8) return etiquetaTipoReporte(tipo, opts)
   if (no <= 0) return `Aviso ${etiquetaTipoReporte(tipo)}`
   return `Reporte ${no} ${etiquetaTipoReporte(tipo)}`
 }
@@ -219,7 +220,7 @@ export function filaPdfDesdeReporte(r: {
     nombre: r.nombre,
     materia: r.materia ?? '',
     departamento: r.departamento ?? '',
-    reporteLabel: etiquetaReportePdf(r.tipo, r.no),
+    reporteLabel: etiquetaReportePdf(r.tipo, r.no, { primaria: r.nivel === 3 }),
     motivo: r.motivo,
     fecha: r.fecha,
     enviado: r.enviado,

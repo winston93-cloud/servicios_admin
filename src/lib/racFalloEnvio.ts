@@ -122,7 +122,7 @@ export async function avisarStaffFalloEnvioRac(opts: {
     if (!to.length) {
       return { ok: false, error: 'Sin correo institucional para avisar el fallo' }
     }
-    const tipoLabel = etiquetaTipoReporte(opts.tipoReporte)
+    const tipoLabel = etiquetaTipoReporte(opts.tipoReporte, { primaria: opts.panel === 'primaria' })
     const guia = instruccionesReenvioPanel(opts.panel, opts.tipoReporte)
     const subject = `RAC: no se envió «${tipoLabel}» — ${opts.alumnoNombre}`
     const html = htmlCorreoRac({
