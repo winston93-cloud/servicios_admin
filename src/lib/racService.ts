@@ -482,7 +482,7 @@ export async function enviarCorreoReporte(reporteId: number, opts?: { pruebaA?: 
   const subject = asuntoReporte(tipo, no)
   const frase = fraseRegistroAvisoRac(tipo, no)
   const motivoTxt = motivoReporte(tipo, n(r.reporte_motivo))
-  // Informe académico (5): sin catálogo de motivo. Aviso Psicología (8): sí muestra motivo.
+  // Informe de desempeño (5): sin catálogo de motivo. Aviso Psicología (8): sí muestra motivo.
   const mostrarMotivo = tipo !== 5
   const html = htmlCorreoRac({
     titulo: subject,
@@ -722,7 +722,7 @@ export async function capturarInforme(opts: {
   alumnoId: number
   materiaId: number
   mensaje: string
-  /** Motivo del aviso de Psicología (tipo 8). Informe académico usa 0. */
+  /** Motivo del aviso de Psicología (tipo 8). Informe de desempeño usa 0. */
   motivo?: number
 }) {
   const ciclo = await cicloRac()
@@ -1632,7 +1632,7 @@ export async function detallePublico(token: string, alt: number) {
     grado: n(alumno.alumno_grado),
     grupo: letraDesdeGrupoNum(n(alumno.alumno_grupo)),
     motivo: motivoReporte(tipo, n(r.reporte_motivo)),
-    /** Vacío en informe académico (tipo 5) sin catálogo útil; UI puede ocultarlo. */
+    /** Vacío en informe de desempeño (tipo 5) sin catálogo útil; UI puede ocultarlo. */
     mostrarMotivo: tipo !== 5,
     asignatura,
     departamento,

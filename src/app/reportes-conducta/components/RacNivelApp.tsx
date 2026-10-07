@@ -1224,7 +1224,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                                 title={
                                   me.role === 'psicologia'
                                     ? 'Aviso de atención (sin escalones)'
-                                    : 'Informe de aprendizaje (sin afectar el No de reportes)'
+                                    : 'Informe de desempeño: académico o conducta (sin afectar el No de reportes)'
                                 }
                                 onClick={() => {
                                   setModal(a)
@@ -1919,7 +1919,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                 {modo === 'informe'
                   ? me.role === 'psicologia'
                     ? `Aviso de atención — ${modal.nombre}`
-                    : `Informe sobre actitud de aprendizaje — ${modal.nombre}`
+                    : `Informe de desempeño — ${modal.nombre}`
                   : modo === 'cita'
                     ? `Citatorio — ${modal.nombre}`
                     : `Reporte / aviso — ${modal.nombre}`}
@@ -1928,7 +1928,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                 <p className="racn-mini">
                   {me.role === 'psicologia'
                     ? 'Elige el Motivo que verá la familia. El detalle de la situación va en Observaciones. No afecta el escalón de reportes.'
-                    : 'Envía un informe sin afectar el número de reportes del alumno.'}
+                    : 'Informe de desempeño (académico o conducta). Se envía directo a la familia sin afectar el número de reportes del alumno.'}
                 </p>
               ) : null}
               <div className="racn-filters">

@@ -5,6 +5,7 @@ export const RAC_TIPOS = {
   conducta: 2,
   uniforme: 3,
   vialidad: 4,
+  /** Informe de desempeño (académico y conducta); sin escalón ni filtro de Psicología. */
   informeAcademico: 5,
   retardo: 6,
   seguimiento: 7,
@@ -22,7 +23,7 @@ export function etiquetaTipoReporte(tipo: number): string {
     case 4:
       return 'Reporte de Vialidad'
     case 5:
-      return 'Informe Académico'
+      return 'Informe de Desempeño'
     case 6:
       return 'Reporte por Retardo'
     case 7:
@@ -86,10 +87,10 @@ export function maxReporteNoEscalon(
 
 /**
  * Frase para el cuerpo del correo a papás (sin duplicar «Reporte informe»).
- * Ej. «Informe académico», «Aviso de conducta», «Reporte I académico».
+ * Ej. «Informe de desempeño», «Aviso de conducta», «Reporte I académico».
  */
 export function fraseRegistroAvisoRac(tipo: number, no: number): string {
-  if (tipo === 5) return 'Informe académico'
+  if (tipo === 5) return 'Informe de desempeño'
   if (tipo === 8) return 'Aviso de atención en Psicología'
   if (tipo === 3) return 'Reporte de uniforme'
   if (tipo === 4) return 'Reporte de vialidad'

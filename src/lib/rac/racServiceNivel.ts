@@ -1137,7 +1137,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     alumnoId: number
     materiaId: number
     mensaje: string
-    /** Motivo del aviso de Psicología (tipo 8). Informe académico usa 0. */
+    /** Motivo del aviso de Psicología (tipo 8). Informe de desempeño usa 0. */
     motivo?: number
   }) {
     const ciclo = await cicloRac()
