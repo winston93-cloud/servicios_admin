@@ -1,58 +1,116 @@
 /* 2026-10-05 — Familia Winston: validar comprobante QR y condonar colegiatura.
    2026-10-05 — Rediseño: guía en 3 pasos, escáner con cámara y panel de resultado.
-   Claro navy/slate; oscuro Totality. Responsivo. */
+   Claro navy/slate; oscuro Totality. Responsivo.
+   2026-10-06 — Rediseño de presentación (sin tocar lógica): encabezado con reglas, pestañas con
+   descripción, avance de 4 pasos con estado, resultado Procede / No procede, cierre al aplicar,
+   seguimiento escaneable (resumen por pestaña, filtros, tabla → tarjetas en pantallas medianas y
+   móviles), foco visible, objetivos táctiles de 44px y prefers-reduced-motion.
+   Todo vive bajo el prefijo .fw (variables --fw-*); no toca CSS global ni otros módulos. */
 
 .fw {
   --fw-borde: #e2e8f0;
   --fw-borde-fuerte: #cbd5e1;
   --fw-texto: #0f172a;
-  --fw-suave: #64748b;
+  /* 2026-10-06: un poco más oscuro para llegar a 4.5:1 también sobre fondos tintados */
+  --fw-suave: #55657a;
   --fw-fondo-alt: #f8fafc;
+  --fw-superficie: #ffffff;
+  --fw-input-bg: #ffffff;
   --fw-acento: #1e3a8a;
   --fw-acento-suave: #e0e7ff;
+  --fw-sobre-acento: #ffffff;
+  --fw-foco: #2563eb;
   --fw-ok: #047857;
   --fw-ok-bg: #ecfdf5;
   --fw-ok-borde: #a7f3d0;
   --fw-warn: #92400e;
   --fw-warn-bg: #fffbeb;
+  --fw-warn-borde: #fde68a;
   --fw-err: #b91c1c;
   --fw-err-bg: #fef2f2;
   --fw-err-borde: #fecaca;
+  --fw-sombra: 0 1px 2px rgba(30, 58, 138, 0.06), 0 10px 24px -18px rgba(30, 58, 138, 0.35);
+  --fw-ease: cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
   color: var(--fw-texto);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 2026-10-06 — Ancho cómodo en pantallas grandes (el contenedor del panel limita a 1200px). */
+.servicios-panel-inner.fw {
+  max-width: 1320px;
 }
 
 html[data-theme='dark'] .fw {
   --fw-borde: rgba(148, 163, 184, 0.18);
   --fw-borde-fuerte: rgba(148, 163, 184, 0.3);
   --fw-texto: #e2e8f0;
-  --fw-suave: #94a3b8;
+  --fw-suave: #9fb0c6;
   --fw-fondo-alt: rgba(15, 23, 42, 0.45);
+  --fw-superficie: rgba(15, 23, 42, 0.55);
+  --fw-input-bg: rgba(2, 6, 23, 0.4);
   --fw-acento: #00e3fd;
   --fw-acento-suave: rgba(0, 227, 253, 0.12);
+  --fw-sobre-acento: #001018;
+  --fw-foco: #38e8ff;
   --fw-ok: #6ee7b7;
   --fw-ok-bg: rgba(16, 185, 129, 0.12);
   --fw-ok-borde: rgba(16, 185, 129, 0.35);
   --fw-warn: #fcd34d;
   --fw-warn-bg: rgba(245, 158, 11, 0.12);
+  --fw-warn-borde: rgba(245, 158, 11, 0.35);
   --fw-err: #fca5a5;
   --fw-err-bg: rgba(239, 68, 68, 0.12);
   --fw-err-borde: rgba(239, 68, 68, 0.35);
+  --fw-sombra: none;
 }
+
+/* 2026-10-06 — Foco visible en todo control del módulo (teclado), en claro y oscuro. */
+.fw :is(button, a, input, select, summary, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--fw-foco);
+  outline-offset: 2px;
+}
+
+/* 2026-10-06 — Botones del módulo: 44px mínimo de alto, neutros por defecto; el primario conserva el azul del panel. */
+.fw .usr-btn {
+  min-height: 44px;
+  height: auto;
+  padding: 10px 16px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.fw .usr-btn:not(.usr-btn--primary) {
+  background: var(--fw-superficie);
+  border-color: var(--fw-borde-fuerte);
+  color: var(--fw-texto);
+  box-shadow: none;
+}
+
+.fw .usr-btn:not(.usr-btn--primary):hover:not(:disabled) {
+  border-color: var(--fw-acento);
+  filter: none;
+}
+
+.fw .usr-btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.99);
+}
+
+/* 2026-10-06: el botón primario (.usr-btn--primary) conserva el estilo del tema del panel (servicios-original-theme.css). */
 
 /* ── Encabezado ─────────────────────────────────────────── */
 .fw-hero {
   display: flex;
-  gap: 14px;
-  align-items: center;
+  gap: 16px;
+  align-items: flex-start;
 }
 
 .fw-hero-icono {
   flex-shrink: 0;
-  width: 52px;
-  height: 52px;
+  width: 56px;
+  height: 56px;
   border-radius: 16px;
   display: grid;
   place-items: center;
@@ -66,130 +124,223 @@ html[data-theme='dark'] .fw-hero-icono {
   background: linear-gradient(135deg, #00e3fd, #38bdf8);
 }
 
+.fw-hero-texto {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
 .fw-hero-titulo {
   margin: 0;
-  font-size: 24px;
+  font-size: clamp(22px, 1.4vw + 16px, 28px);
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
-.fw-hero-lead {
-  margin: 2px 0 0;
+.fw-hero-intro {
+  margin: 0;
   color: var(--fw-suave);
-  font-size: 14px;
-  line-height: 1.5;
-  max-width: 70ch;
+  font-size: 14.5px;
+  line-height: 1.55;
+  max-width: 68ch;
+  text-wrap: pretty;
 }
 
-.fw-pasos-guia {
+/* 2026-10-06 — «¿Cuándo procede el beneficio?»: reglas del programa a un clic, sin ocupar espacio. */
+.fw-reglas {
+  align-self: stretch;
+  max-width: 760px;
+}
+
+.fw-reglas summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 10px 4px 0;
+  border-radius: 8px;
+  color: var(--fw-acento);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.fw-reglas summary::-webkit-details-marker {
+  display: none;
+}
+
+.fw-reglas summary:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.fw-reglas[open] > summary .fw-plegable-flecha {
+  transform: rotate(180deg);
+}
+
+.fw-reglas-lista {
+  margin: 6px 0 0;
+  padding: 14px 18px 14px 34px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: var(--fw-radio, 14px);
+  border: 1px solid var(--fw-borde);
+  background: var(--fw-superficie);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.fw-reglas-lista li::marker {
+  color: var(--fw-ok);
+}
+
+.fw-reglas-cierre {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--fw-suave);
+  line-height: 1.5;
+}
+
+/* ── Pestañas ───────────────────────────────────────────── */
+.fw-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
+  border-radius: 18px;
+  border: 1px solid var(--fw-borde);
+  background: var(--fw-fondo-alt);
+  scroll-margin-top: 16px;
+}
+
+.fw-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 13px;
+  background: transparent;
+  color: var(--fw-suave);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s var(--fw-ease), color 0.2s var(--fw-ease);
+}
+
+.fw-tab:hover:not(.fw-tab--activa) {
+  background: var(--fw-superficie);
+  color: var(--fw-texto);
+}
+
+.fw-tab--activa {
+  color: var(--fw-sobre-acento);
+  background: var(--fw-acento);
+  box-shadow: 0 8px 18px -12px var(--fw-acento);
+}
+
+.fw-tab-icono {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  color: var(--fw-acento);
+  background: var(--fw-acento-suave);
+}
+
+.fw-tab--activa .fw-tab-icono {
+  color: inherit;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+html[data-theme='dark'] .fw-tab--activa .fw-tab-icono {
+  background: rgba(0, 16, 24, 0.14);
+}
+
+.fw-tab-texto {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.fw-tab-nombre {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.fw-tab-ayuda {
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.25;
+  opacity: 0.85;
+}
+
+.fw-tab-n {
+  margin-left: auto;
+  min-width: 28px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  background: var(--fw-acento-suave);
+  color: var(--fw-acento);
+}
+
+.fw-tab--activa .fw-tab-n {
+  background: rgba(255, 255, 255, 0.24);
+  color: inherit;
+}
+
+html[data-theme='dark'] .fw-tab--activa .fw-tab-n {
+  background: rgba(0, 16, 24, 0.16);
+}
+
+.fw-panel,
+.fw-seg {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.fw-panel[hidden] {
+  display: none;
+}
+
+/* ── Avance de la validación (4 pasos con estado) ────────── */
+.fw-stepper {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  counter-reset: guia;
 }
 
-.fw-pasos-guia li {
-  counter-increment: guia;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: var(--fw-acento-suave);
-  color: var(--fw-acento);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.fw-pasos-guia li::before {
-  content: counter(guia);
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  font-weight: 800;
-  color: #fff;
-  background: var(--fw-acento);
-  flex-shrink: 0;
-}
-
-html[data-theme='dark'] .fw-pasos-guia li::before {
-  color: #001018;
-}
-
-/* ── Layout ─────────────────────────────────────────────── */
-.fw-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: 18px;
-  align-items: start;
-}
-
-.fw-card {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.fw-card-cabeza {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.fw-cabeza-der {
+.fw-stepper-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
-}
-
-.fw-h2 {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 700;
-}
-
-.fw-btn-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 0;
-  background: none;
-  color: var(--fw-acento);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 8px;
-}
-
-.fw-btn-link:hover {
-  background: var(--fw-acento-suave);
-}
-
-/* ── Pasos ──────────────────────────────────────────────── */
-.fw-paso {
-  display: flex;
-  gap: 14px;
-  padding: 14px;
-  border-radius: 14px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 13px;
   border: 1px solid var(--fw-borde);
-  background: var(--fw-fondo-alt);
-  transition: border-color 0.2s ease, background 0.2s ease;
+  background: var(--fw-superficie);
+  transition: border-color 0.25s var(--fw-ease), background 0.25s var(--fw-ease);
 }
 
-.fw-paso--hecho {
-  border-color: var(--fw-ok-borde);
-}
-
+.fw-stepper-num,
 .fw-paso-num {
   flex-shrink: 0;
   width: 30px;
@@ -197,15 +348,217 @@ html[data-theme='dark'] .fw-pasos-guia li::before {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-weight: 800;
   font-size: 14px;
-  color: var(--fw-acento);
+  font-weight: 800;
+  color: var(--fw-suave);
+  background: var(--fw-fondo-alt);
+  border: 2px solid var(--fw-borde-fuerte);
+  transition: background 0.25s var(--fw-ease), color 0.25s var(--fw-ease), border-color 0.25s var(--fw-ease);
+}
+
+.fw-punto {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.fw-stepper-texto {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fw-stepper-nombre {
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.fw-stepper-estado {
+  font-size: 12.5px;
+  color: var(--fw-suave);
+  line-height: 1.25;
+}
+
+.fw-stepper-item--actual {
+  border-color: var(--fw-acento);
   background: var(--fw-acento-suave);
 }
 
+.fw-stepper-item--actual .fw-stepper-num,
+.fw-paso--actual .fw-paso-num {
+  color: var(--fw-sobre-acento);
+  background: var(--fw-acento);
+  border-color: var(--fw-acento);
+}
+
+.fw-stepper-item--hecho {
+  border-color: var(--fw-ok-borde);
+}
+
+.fw-stepper-item--hecho .fw-stepper-num,
 .fw-paso--hecho .fw-paso-num {
+  color: #fff;
+  background: var(--fw-ok);
+  border-color: var(--fw-ok);
+}
+
+html[data-theme='dark'] .fw-stepper-item--hecho .fw-stepper-num,
+html[data-theme='dark'] .fw-paso--hecho .fw-paso-num {
+  color: #022c22;
+}
+
+.fw-stepper-item--hecho .fw-stepper-estado {
   color: var(--fw-ok);
-  background: var(--fw-ok-bg);
+  font-weight: 600;
+}
+
+.fw-stepper-item--error {
+  border-color: var(--fw-err-borde);
+  background: var(--fw-err-bg);
+}
+
+.fw-stepper-item--error .fw-stepper-num,
+.fw-paso--error .fw-paso-num {
+  color: #fff;
+  background: var(--fw-err);
+  border-color: var(--fw-err);
+}
+
+html[data-theme='dark'] .fw-stepper-item--error .fw-stepper-num,
+html[data-theme='dark'] .fw-paso--error .fw-paso-num {
+  color: #450a0a;
+}
+
+.fw-stepper-item--error .fw-stepper-estado {
+  color: var(--fw-err);
+  font-weight: 600;
+}
+
+/* ── Estructura de las tarjetas ─────────────────────────── */
+.fw-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.fw-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 24px;
+  border-radius: 18px;
+  box-shadow: var(--fw-sombra);
+}
+
+.fw-card-cabeza {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 16px;
+  flex-wrap: wrap;
+}
+
+.fw-card-enc {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fw-card-cabeza > .fw-card-enc {
+  flex: 1 1 260px;
+}
+
+.fw-card-sub {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--fw-suave);
+  text-wrap: pretty;
+}
+
+.fw-cabeza-der {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fw-h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.fw-h2-n {
+  font-weight: 600;
+  color: var(--fw-suave);
+}
+
+.fw-h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fw-texto);
+}
+
+.fw-btn-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  border: 0;
+  background: none;
+  color: var(--fw-acento);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 10px;
+  transition: background 0.2s var(--fw-ease);
+}
+
+.fw-btn-link:hover {
+  background: var(--fw-acento-suave);
+}
+
+/* ── Pasos del formulario (línea de tiempo) ─────────────── */
+.fw-pasos {
+  display: flex;
+  flex-direction: column;
+}
+
+.fw-paso {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding-bottom: 26px;
+}
+
+.fw-paso:last-child {
+  padding-bottom: 0;
+}
+
+/* riel que une los pasos; se pinta de verde cuando el paso ya está completo */
+.fw-paso:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 14px;
+  top: 36px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--fw-borde-fuerte);
+}
+
+.fw-paso--hecho:not(:last-child)::before {
+  background: var(--fw-ok-borde);
 }
 
 .fw-paso-cuerpo {
@@ -213,41 +566,135 @@ html[data-theme='dark'] .fw-pasos-guia li::before {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
-.fw-paso-titulo {
+.fw-paso-cab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 30px;
+}
+
+.fw-paso-nombre {
   margin: 0;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
 }
 
-.fw-paso-ayuda {
-  margin: -4px 0 2px;
-  font-size: 13px;
+.fw-paso-estado {
+  flex-shrink: 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--fw-suave);
-  line-height: 1.45;
+  background: var(--fw-fondo-alt);
+  border: 1px solid var(--fw-borde);
 }
 
-/* ── Captura del QR ─────────────────────────────────────── */
-.fw-qr-captura {
+.fw-paso--actual .fw-paso-estado {
+  color: var(--fw-acento);
+  background: var(--fw-acento-suave);
+  border-color: transparent;
+}
+
+.fw-paso--hecho .fw-paso-estado {
+  color: var(--fw-ok);
+  background: var(--fw-ok-bg);
+  border-color: transparent;
+}
+
+.fw-paso--error .fw-paso-estado {
+  color: var(--fw-err);
+  background: var(--fw-err-bg);
+  border-color: transparent;
+}
+
+.fw-paso-ayuda {
+  margin: -4px 0 0;
+  font-size: 13.5px;
+  color: var(--fw-suave);
+  line-height: 1.5;
+  max-width: 62ch;
+  text-wrap: pretty;
+}
+
+.fw-paso-ayuda--nota {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: -6px;
+  font-size: 13px;
+}
+
+.fw-paso-ayuda--nota svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* 2026-10-06 — Ya aplicado: el formulario queda atenuado y de solo lectura (atributo inert). */
+.fw-captura--cerrada .fw-pasos {
+  opacity: 0.55;
+  filter: saturate(0.7);
+}
+
+/* ── Captura del comprobante ────────────────────────────── */
+.fw-metodos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--fw-borde);
+  background: var(--fw-fondo-alt);
 }
 
 .fw-btn-camara {
-  padding: 12px 18px;
   font-size: 15px;
 }
 
-.fw-o {
+.fw-btn-pdf {
+  width: 100%;
+  min-height: 52px;
+}
+
+.fw-metodos-o {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12.5px;
   color: var(--fw-suave);
-  font-size: 13px;
+}
+
+.fw-metodos-o::before,
+.fw-metodos-o::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--fw-borde-fuerte);
+}
+
+.fw-qr-captura {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: 12px;
+}
+
+.fw-qr-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fw-suave);
+  min-width: 0;
 }
 
 /* 2026-10-06 — Subir comprobante (PDF): input oculto + resumen de lo leído. */
@@ -258,41 +705,40 @@ html[data-theme='dark'] .fw-pasos-guia li::before {
 .fw-pdf-leido {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 12px;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
   border: 1px solid var(--fw-ok-borde);
   background: var(--fw-ok-bg);
 }
 
-.fw-pdf-leido-titulo {
+.fw-pdf-leido-cab {
   margin: 0;
   display: flex;
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--fw-ok);
-  word-break: break-word;
 }
 
-.fw-pdf-leido-titulo .fw-btn-link {
-  margin-left: auto;
+.fw-pdf-leido-nombre {
+  flex: 1 1 160px;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .fw-pdf-datos {
   margin: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 8px 14px;
+  gap: 10px 16px;
 }
 
 .fw-pdf-datos dt {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--fw-suave);
 }
 
@@ -301,7 +747,7 @@ html[data-theme='dark'] .fw-pasos-guia li::before {
   font-size: 14px;
   font-weight: 700;
   color: var(--fw-texto);
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .fw-pdf-datos small {
@@ -311,34 +757,42 @@ html[data-theme='dark'] .fw-pasos-guia li::before {
 
 .fw-input {
   width: 100%;
+  min-height: 46px;
   padding: 10px 12px;
   border: 1px solid var(--fw-borde-fuerte);
-  border-radius: 10px;
-  background: transparent;
+  border-radius: 12px;
+  background: var(--fw-input-bg);
   color: var(--fw-texto);
+  font: inherit;
   font-size: 15px;
+  transition: border-color 0.2s var(--fw-ease);
+}
+
+.fw-input:hover {
+  border-color: var(--fw-suave);
 }
 
 .fw-input:focus {
-  outline: 2px solid var(--fw-acento);
-  outline-offset: 1px;
+  border-color: var(--fw-acento);
+}
+
+.fw-input::placeholder {
+  color: var(--fw-suave);
+  opacity: 0.8;
 }
 
 .fw-input-qr {
-  flex: 1;
-  min-width: 150px;
-  max-width: 220px;
   font-family: 'Courier New', ui-monospace, monospace;
   font-size: 22px;
   font-weight: 800;
-  letter-spacing: 0.3em;
+  letter-spacing: 0.28em;
   text-align: center;
 }
 
 .fw-scanner {
   position: relative;
   width: 100%;
-  max-width: 420px;
+  max-width: 460px;
   aspect-ratio: 4 / 3;
   border-radius: 16px;
   overflow: hidden;
@@ -383,14 +837,14 @@ html[data-theme='dark'] .fw-pasos-guia li::before {
   position: absolute;
   top: 10px;
   right: 10px;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 0;
   display: grid;
   place-items: center;
   color: #fff;
-  background: rgba(15, 23, 42, 0.7);
+  background: rgba(15, 23, 42, 0.75);
   cursor: pointer;
 }
 
@@ -399,43 +853,50 @@ html[data-theme='dark'] .fw-pasos-guia li::before {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--fw-suave);
+  line-height: 1.45;
 }
 
 .fw-comprobantes {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 /* 2026-10-06 — Sugerencias de alumno recomendado (paso 3). */
 .fw-sugerencias {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 8px;
 }
 
 .fw-comprobante {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 10px;
+  gap: 4px 10px;
   width: 100%;
+  min-height: 48px;
   text-align: left;
-  padding: 10px 12px;
-  border-radius: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
   border: 1px solid var(--fw-borde-fuerte);
-  background: transparent;
+  background: var(--fw-superficie);
   color: var(--fw-texto);
   font: inherit;
   cursor: pointer;
+  transition: border-color 0.2s var(--fw-ease), background 0.2s var(--fw-ease);
+}
+
+.fw-comprobante:hover:not(:disabled) {
+  border-color: var(--fw-acento);
 }
 
 .fw-comprobante--activo {
   border-color: var(--fw-acento);
   background: var(--fw-acento-suave);
+  box-shadow: inset 3px 0 0 var(--fw-acento);
 }
 
 .fw-comprobante:disabled {
@@ -445,25 +906,44 @@ html[data-theme='dark'] .fw-pasos-guia li::before {
 
 .fw-comprobante-folio {
   font-weight: 800;
-  font-size: 14px;
+  font-size: 14.5px;
 }
 
 .fw-comprobante-alumno {
   flex-basis: 100%;
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--fw-suave);
+  overflow-wrap: anywhere;
 }
 
+.fw-comprobante-alumno--fuerte {
+  color: var(--fw-texto);
+  font-weight: 600;
+}
+
+/* ── Chips de estado ────────────────────────────────────── */
 .fw-chip {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   padding: 3px 10px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
+  line-height: 1.3;
   color: var(--fw-acento);
   background: var(--fw-acento-suave);
   white-space: nowrap;
+}
+
+/* 2026-10-06 — Punto de color: el estado no depende solo del color del texto. */
+.fw-chip--punto::before {
+  content: '';
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .fw-chip--ok {
@@ -474,6 +954,17 @@ html[data-theme='dark'] .fw-pasos-guia li::before {
 .fw-chip--err {
   color: var(--fw-err);
   background: var(--fw-err-bg);
+}
+
+.fw-chip--warn {
+  color: var(--fw-warn);
+  background: var(--fw-warn-bg);
+}
+
+.fw-chip--neutro {
+  color: var(--fw-suave);
+  background: var(--fw-fondo-alt);
+  border: 1px solid var(--fw-borde-fuerte);
 }
 
 /* ── Resultado ──────────────────────────────────────────── */
@@ -487,31 +978,113 @@ html[data-theme='dark'] .fw-pasos-guia li::before {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 34px 16px;
+  padding: 32px 18px;
   text-align: center;
   color: var(--fw-suave);
   border: 2px dashed var(--fw-borde-fuerte);
-  border-radius: 14px;
+  border-radius: 16px;
 }
 
 .fw-vacio p {
   margin: 0;
   font-size: 14px;
   line-height: 1.5;
-  max-width: 36ch;
+  max-width: 42ch;
+  text-wrap: pretty;
+}
+
+.fw-vacio .fw-vacio-encab {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fw-texto);
+}
+
+.fw-vacio .fw-vacio-nota {
+  font-size: 13px;
+}
+
+.fw-vacio--err {
+  border-style: solid;
+  border-color: var(--fw-err-borde);
+  background: var(--fw-err-bg);
+  color: var(--fw-err);
+}
+
+.fw-vacio--err p {
+  color: var(--fw-texto);
+}
+
+/* 2026-10-06 — Vacío con guía: lista de lo que falta para poder revisar. */
+.fw-faltan {
+  list-style: none;
+  margin: 2px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.fw-faltan-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--fw-texto);
+}
+
+.fw-faltan-punto {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--fw-suave);
+  background: var(--fw-fondo-alt);
+  border: 2px solid var(--fw-borde-fuerte);
+}
+
+.fw-faltan-item--hecho .fw-faltan-punto {
+  color: #fff;
+  background: var(--fw-ok);
+  border-color: var(--fw-ok);
+}
+
+.fw-faltan-item--error .fw-faltan-punto {
+  color: #fff;
+  background: var(--fw-err);
+  border-color: var(--fw-err);
+}
+
+html[data-theme='dark'] .fw-faltan-item--hecho .fw-faltan-punto {
+  color: #022c22;
+}
+
+html[data-theme='dark'] .fw-faltan-item--error .fw-faltan-punto {
+  color: #450a0a;
 }
 
 .fw-veredicto {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   align-items: flex-start;
-  padding: 16px;
-  border-radius: 14px;
+  padding: 18px;
+  border-radius: 16px;
   border: 1px solid transparent;
 }
 
-.fw-veredicto svg {
+.fw-veredicto > svg {
   flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.fw-veredicto-cuerpo {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .fw-veredicto--ok {
@@ -526,85 +1099,198 @@ html[data-theme='dark'] .fw-pasos-guia li::before {
   border-color: var(--fw-err-borde);
 }
 
-.fw-veredicto-titulo {
+.fw-veredicto-etiqueta {
   margin: 0;
-  font-size: 18px;
+  align-self: flex-start;
+  padding: 2px 12px;
+  border-radius: 999px;
+  font-size: 13px;
   font-weight: 800;
+  color: #fff;
+  background: var(--fw-ok);
+}
+
+.fw-veredicto--err .fw-veredicto-etiqueta {
+  background: var(--fw-err);
+}
+
+html[data-theme='dark'] .fw-veredicto--ok .fw-veredicto-etiqueta {
+  color: #022c22;
+}
+
+html[data-theme='dark'] .fw-veredicto--err .fw-veredicto-etiqueta {
+  color: #450a0a;
+}
+
+.fw-veredicto-encab {
+  margin: 4px 0 0;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 .fw-veredicto-sub {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--fw-texto);
+  text-wrap: pretty;
+}
+
+.fw-motivos {
   margin: 4px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   font-size: 14px;
   line-height: 1.45;
   color: var(--fw-texto);
 }
 
-.fw-resumen {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.fw-motivos li::marker {
+  color: var(--fw-err);
 }
 
-.fw-dato {
-  padding: 12px 14px;
+.fw-sigue {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
   border-radius: 12px;
   background: var(--fw-fondo-alt);
   border: 1px solid var(--fw-borde);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--fw-texto);
 }
 
-.fw-dato--acento {
-  border-color: var(--fw-acento);
+.fw-sigue svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--fw-acento);
+}
+
+.fw-avisos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fw-avisos li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.fw-avisos svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* 2026-10-06 — Fichas (etiqueta + valor) para alumno recomendado y «qué se aplicará». */
+.fw-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fw-ficha {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  border: 1px solid var(--fw-borde);
+  background: var(--fw-fondo-alt);
+  overflow: hidden;
+}
+
+.fw-ficha-fila {
+  display: grid;
+  grid-template-columns: minmax(130px, 38%) minmax(0, 1fr);
+  gap: 4px 14px;
+  padding: 12px 14px;
+}
+
+.fw-ficha-fila + .fw-ficha-fila {
+  border-top: 1px solid var(--fw-borde);
+}
+
+.fw-ficha-fila dt {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fw-suave);
+  line-height: 1.4;
+}
+
+.fw-ficha-fila dt svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.fw-ficha-fila dd {
+  margin: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-wrap: anywhere;
+}
+
+.fw-ficha-fila dd strong {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.fw-ficha-fila--acento {
   background: var(--fw-acento-suave);
 }
 
-.fw-dato > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--fw-suave);
-}
-
-.fw-dato strong {
-  font-size: 16px;
+.fw-ficha-fila--acento dt {
+  color: var(--fw-acento);
 }
 
 /* 2026-10-05 — Selector del mes a condonar. */
 .fw-meses {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 6px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .fw-mes {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  min-width: 82px;
-  padding: 6px 10px;
-  border-radius: 10px;
+  justify-content: center;
+  min-width: 92px;
+  min-height: 46px;
+  padding: 6px 12px;
+  border-radius: 12px;
   border: 1px solid var(--fw-borde-fuerte);
-  background: var(--fw-fondo-alt);
+  background: var(--fw-superficie);
   color: var(--fw-texto);
   font: inherit;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   line-height: 1.2;
+  transition: border-color 0.2s var(--fw-ease), background 0.2s var(--fw-ease);
 }
 
 .fw-mes small {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: 11.5px;
+  font-weight: 600;
   color: var(--fw-suave);
 }
 
@@ -615,16 +1301,12 @@ html[data-theme='dark'] .fw-pasos-guia li::before {
 .fw-mes--activo {
   border-color: var(--fw-acento);
   background: var(--fw-acento);
-  color: #fff;
+  color: var(--fw-sobre-acento);
 }
 
 .fw-mes--activo small {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-html[data-theme='dark'] .fw-mes--activo,
-html[data-theme='dark'] .fw-mes--activo small {
-  color: #001018;
+  color: inherit;
+  opacity: 0.85;
 }
 
 .fw-mes:disabled {
@@ -636,21 +1318,23 @@ html[data-theme='dark'] .fw-mes--activo small {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 14px !important;
+  font-size: 14px;
   font-weight: 600;
-  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .fw-plegable summary {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 44px;
   cursor: pointer;
   list-style: none;
   font-size: 14px;
   font-weight: 700;
   color: var(--fw-texto);
   padding: 4px 0;
+  border-radius: 10px;
 }
 
 .fw-plegable summary::-webkit-details-marker {
@@ -659,16 +1343,17 @@ html[data-theme='dark'] .fw-mes--activo small {
 
 .fw-plegable-flecha {
   margin-left: auto;
+  flex-shrink: 0;
   color: var(--fw-suave);
-  transition: transform 0.2s ease;
+  transition: transform 0.2s var(--fw-ease);
 }
 
-.fw-plegable[open] .fw-plegable-flecha {
+.fw-plegable[open] > summary .fw-plegable-flecha {
   transform: rotate(180deg);
 }
 
 .fw-plegable[open] > summary {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .fw-checks {
@@ -684,10 +1369,10 @@ html[data-theme='dark'] .fw-mes--activo small {
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  padding: 9px 12px;
-  border-radius: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
   font-size: 13.5px;
-  line-height: 1.4;
+  line-height: 1.45;
   border: 1px solid var(--fw-borde);
 }
 
@@ -724,7 +1409,7 @@ html[data-theme='dark'] .fw-mes--activo small {
   border-radius: 12px;
   background: var(--fw-fondo-alt);
   border: 1px dashed var(--fw-borde-fuerte);
-  font-size: 13px;
+  font-size: 13.5px;
   line-height: 1.6;
   white-space: pre-wrap;
 }
@@ -736,83 +1421,117 @@ html[data-theme='dark'] .fw-mes--activo small {
 }
 
 .fw-btn-aplicar {
-  flex: 1;
+  flex: 1 1 220px;
   justify-content: center;
-  padding: 12px 18px;
+  min-height: 52px;
   font-size: 15px;
 }
 
+/* 2026-10-06 — Cierre al aplicar: qué se hizo y siguiente paso. */
 .fw-exito {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 22px 16px;
-  text-align: center;
-  border-radius: 14px;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 16px;
   color: var(--fw-ok);
   background: var(--fw-ok-bg);
   border: 1px solid var(--fw-ok-borde);
 }
 
-.fw-exito-titulo {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 800;
-}
-
-.fw-exito-datos {
-  margin: 0;
-  width: 100%;
+.fw-exito-icono {
   display: grid;
-  gap: 8px;
-  text-align: left;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--fw-ok);
+  color: #fff;
+  animation: fw-aparece 0.45s var(--fw-ease) both;
 }
 
-.fw-exito-datos div {
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.6);
+html[data-theme='dark'] .fw-exito-icono {
+  color: #022c22;
 }
 
-html[data-theme='dark'] .fw-exito-datos div {
-  background: rgba(15, 23, 42, 0.45);
+.fw-exito-encab {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
 
-.fw-exito-datos dt {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--fw-suave);
-}
-
-.fw-exito-datos dd {
-  margin: 2px 0 0;
-  font-size: 14px;
-  font-weight: 700;
+.fw-exito-sub {
+  margin: 4px 0 0;
+  font-size: 14.5px;
+  line-height: 1.5;
   color: var(--fw-texto);
-  word-break: break-word;
+  text-wrap: pretty;
+}
+
+.fw-hecho-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fw-hecho-lista li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--fw-texto);
+  background: var(--fw-superficie);
+  overflow-wrap: anywhere;
+}
+
+.fw-hecho-lista li svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--fw-ok);
+}
+
+.fw-hecho-lista li.fw-hecho--aviso svg {
+  color: var(--fw-warn);
+}
+
+.fw-acciones--cierre .usr-btn {
+  flex: 1 1 200px;
+}
+
+@keyframes fw-aparece {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
 }
 
 /* ── Avisos, tabla, configuración ───────────────────────── */
-.fw-alert {
+.fw-aviso {
   margin: 0;
-  padding: 10px 12px;
-  border-radius: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
   font-size: 13.5px;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
-.fw-alert--ok {
+.fw-aviso--ok {
   color: var(--fw-ok);
   background: var(--fw-ok-bg);
 }
 
-.fw-alert--err {
+.fw-aviso--err {
   color: var(--fw-err);
   background: var(--fw-err-bg);
 }
 
-.fw-alert--warn {
+.fw-aviso--warn {
   color: var(--fw-warn);
   background: var(--fw-warn-bg);
 }
@@ -824,24 +1543,27 @@ html[data-theme='dark'] .fw-exito-datos div {
 .fw-tabla {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 13.5px;
 }
 
 .fw-tabla th,
 .fw-tabla td {
   text-align: left;
-  padding: 10px;
+  padding: 14px 12px;
   border-bottom: 1px solid var(--fw-borde);
   vertical-align: top;
 }
 
 .fw-tabla th {
-  font-size: 12px;
+  padding-block: 10px;
+  font-size: 12.5px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--fw-suave);
   white-space: nowrap;
+}
+
+.fw-tabla tbody tr {
+  transition: background 0.15s var(--fw-ease);
 }
 
 .fw-tabla tbody tr:hover {
@@ -851,14 +1573,21 @@ html[data-theme='dark'] .fw-exito-datos div {
 .fw-sub {
   display: block;
   color: var(--fw-suave);
-  font-size: 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.fw-nombre {
+  display: block;
+  font-weight: 600;
+  color: var(--fw-texto);
 }
 
 .fw-campo {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--fw-suave);
 }
 
@@ -869,11 +1598,21 @@ html[data-theme='dark'] .fw-exito-datos div {
 
 /* 2026-10-06 — Nombre del interesado del PDF (comprobantes viejos), debajo del buscador. */
 .fw-campo-pdf {
-  margin-top: 12px;
+  margin-top: 6px;
 }
 
 .fw-config {
   gap: 10px;
+}
+
+.fw-config > summary {
+  flex-wrap: wrap;
+}
+
+.fw-config-ayuda {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fw-suave);
 }
 
 .fw-inicio {
@@ -894,94 +1633,34 @@ html[data-theme='dark'] .fw-exito-datos div {
 
 .fw-hint {
   margin: 0;
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--fw-suave);
   line-height: 1.5;
 }
 
-/* ── 2026-10-06 — Pestañas y seguimiento (pendientes / aplicados por ciclo) ── */
-.fw-tabs {
-  display: flex;
-  gap: 6px;
-  padding: 5px;
-  border-radius: 14px;
-  border: 1px solid var(--fw-borde);
-  background: var(--fw-fondo-alt);
-  overflow-x: auto;
-  scroll-margin-top: 16px;
-}
-
-.fw-tab {
-  flex: 1 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--fw-suave);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-.fw-tab:hover:not(.fw-tab--activa) {
-  color: var(--fw-acento);
-}
-
-.fw-tab--activa {
-  color: #fff;
-  background: var(--fw-acento);
-}
-
-html[data-theme='dark'] .fw-tab--activa {
-  color: #001018;
-}
-
-.fw-tab-n {
-  min-width: 22px;
-  padding: 1px 7px;
-  border-radius: 999px;
-  font-size: 12px;
-  background: var(--fw-acento-suave);
-  color: var(--fw-acento);
-}
-
-.fw-tab--activa .fw-tab-n {
-  background: rgba(255, 255, 255, 0.22);
-  color: inherit;
-}
-
-.fw-panel,
-.fw-seg {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.fw-panel[hidden] {
-  display: none;
-}
-
+/* ── 2026-10-06 — Seguimiento (pendientes / aplicados por ciclo) ── */
 .fw-seg-ciclo {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--fw-suave);
 }
 
 .fw-seg-ciclo .fw-input {
   width: auto;
-  min-width: 170px;
-  padding: 8px 10px;
-  font-size: 14px;
+  min-width: 190px;
+}
+
+.fw-actualizar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fw-actualizar .fw-sub {
+  white-space: nowrap;
 }
 
 /* 2026-10-06 — Opciones legibles en ambos temas: en oscuro el navegador pinta la lista oscura y el texto quedaba ilegible. */
@@ -1006,16 +1685,16 @@ html[data-theme='dark'] .fw-input option {
 
 .fw-kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
 }
 
 .fw-kpi {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 12px 14px;
-  border-radius: 12px;
+  padding: 14px 16px;
+  border-radius: 14px;
   border: 1px solid var(--fw-borde);
   background: var(--fw-fondo-alt);
   color: var(--fw-texto);
@@ -1025,7 +1704,7 @@ html[data-theme='dark'] .fw-input option {
 
 .fw-kpi--accion {
   cursor: pointer;
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  transition: border-color 0.2s var(--fw-ease), background 0.2s var(--fw-ease), transform 0.2s var(--fw-ease);
 }
 
 .fw-kpi--accion:hover {
@@ -1033,27 +1712,44 @@ html[data-theme='dark'] .fw-input option {
   transform: translateY(-1px);
 }
 
+.fw-kpi--accion:active {
+  transform: translateY(0) scale(0.99);
+}
+
+/* filtro activo: borde y aro del color del panel */
+.fw-kpi[aria-pressed='true'] {
+  border-color: var(--fw-acento);
+  box-shadow: 0 0 0 2px var(--fw-acento-suave), 0 0 0 3px var(--fw-acento);
+}
+
 .fw-kpi > span {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 13.5px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--fw-suave);
 }
 
 .fw-kpi strong {
-  font-size: 26px;
+  font-size: 30px;
   font-weight: 800;
   line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
 .fw-kpi small {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--fw-suave);
-  line-height: 1.35;
+  line-height: 1.4;
+}
+
+.fw-kpi-ir {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: var(--fw-acento) !important;
 }
 
 .fw-kpi--ok {
@@ -1061,15 +1757,18 @@ html[data-theme='dark'] .fw-input option {
   background: var(--fw-ok-bg);
 }
 
-.fw-kpi--ok strong {
+.fw-kpi--ok strong,
+.fw-kpi--ok > span {
   color: var(--fw-ok);
 }
 
 .fw-kpi--warn {
   background: var(--fw-warn-bg);
+  border-color: var(--fw-warn-borde);
 }
 
-.fw-kpi--warn strong {
+.fw-kpi--warn strong,
+.fw-kpi--warn > span {
   color: var(--fw-warn);
 }
 
@@ -1082,13 +1781,31 @@ html[data-theme='dark'] .fw-input option {
   background: var(--fw-acento-suave);
 }
 
-.fw-kpi--acento strong {
+.fw-kpi--acento strong,
+.fw-kpi--acento > span {
   color: var(--fw-acento);
 }
 
 .fw-btn-inline {
+  display: inline;
+  min-height: 0;
   padding: 0 2px;
   font-size: inherit;
+}
+
+.fw-ayuda summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  color: var(--fw-acento);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.fw-ayuda[open] > summary {
+  margin-bottom: 4px;
 }
 
 .fw-seg-filtros {
@@ -1099,7 +1816,7 @@ html[data-theme='dark'] .fw-input option {
 }
 
 .fw-seg-buscar {
-  flex: 1 1 280px;
+  flex: 1 1 300px;
   position: relative;
   display: flex;
   align-items: center;
@@ -1107,46 +1824,61 @@ html[data-theme='dark'] .fw-input option {
 
 .fw-seg-buscar svg {
   position: absolute;
-  left: 12px;
+  left: 13px;
   color: var(--fw-suave);
   pointer-events: none;
 }
 
 .fw-seg-buscar .fw-input {
-  padding-left: 36px;
+  padding-left: 38px;
+}
+
+.fw-seg-estado-campo {
+  flex: 0 1 320px;
+  min-width: 0;
+  display: flex;
 }
 
 .fw-seg-estado {
-  flex: 0 1 300px;
+  flex: 1;
   width: auto;
+  /* 2026-10-06: sin esto la opción más larga ensanchaba el select y desbordaba en 360px */
+  min-width: 0;
+  max-width: 100%;
 }
 
 .fw-seg-meses {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
 }
 
-.fw-chip--warn {
-  color: var(--fw-warn);
-  background: var(--fw-warn-bg);
-}
-
-.fw-chip--neutro {
-  color: var(--fw-suave);
-  background: var(--fw-fondo-alt);
-  border: 1px solid var(--fw-borde-fuerte);
+.fw-seg-meses .fw-sub {
+  display: inline;
 }
 
 .fw-tabla--seg .fw-chip {
-  margin-top: 4px;
+  margin-top: 6px;
   white-space: normal;
 }
 
+.fw-tabla--seg td > .fw-chip:first-child {
+  margin-top: 0;
+}
+
 .fw-seg-detalle {
-  margin-top: 4px;
-  max-width: 42ch;
-  line-height: 1.4;
+  margin-top: 6px;
+  max-width: 44ch;
+}
+
+/* «Qué sigue»: renglón corto con filete del color del panel */
+.fw-seg-siguiente {
+  margin-top: 6px;
+  max-width: 44ch;
+  padding-left: 8px;
+  border-left: 2px solid var(--fw-acento);
+  color: var(--fw-texto);
 }
 
 .fw-seg-recomendado {
@@ -1159,6 +1891,47 @@ html[data-theme='dark'] .fw-input option {
   white-space: nowrap;
 }
 
+/* los comprobantes listos para aplicar se distinguen con un filete verde */
+.fw-fila--lista td:first-child {
+  box-shadow: inset 3px 0 0 var(--fw-ok);
+}
+
+/* anchos de columna: lo importante respira y las columnas cortas no se estiran */
+.fw-tabla--seg th:nth-child(1) {
+  width: 150px;
+}
+
+.fw-tabla--seg th:nth-child(4) {
+  width: 130px;
+}
+
+/* ── 2026-10-06 — Esqueletos de carga ───────────────────── */
+.fw-skel {
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--fw-borde) 25%, var(--fw-fondo-alt) 50%, var(--fw-borde) 75%);
+  background-size: 200% 100%;
+  animation: fw-brillo 1.4s linear infinite;
+}
+
+.fw-skel--kpi {
+  height: 112px;
+}
+
+.fw-skel--cab {
+  height: 24px;
+  width: 38%;
+}
+
+.fw-skel--fila {
+  height: 68px;
+}
+
+@keyframes fw-brillo {
+  to {
+    background-position: -200% 0;
+  }
+}
+
 .fw-sr {
   position: absolute;
   width: 1px;
@@ -1168,6 +1941,7 @@ html[data-theme='dark'] .fw-input option {
   white-space: nowrap;
 }
 
+/* ── Responsivo ─────────────────────────────────────────── */
 @media (max-width: 1100px) {
   .fw-layout {
     grid-template-columns: 1fr;
@@ -1176,26 +1950,123 @@ html[data-theme='dark'] .fw-input option {
   .fw-resultado {
     position: static;
   }
+
+  /* 2026-10-06 — Tablas → tarjetas en pantallas medianas y móviles (cada fila es una tarjeta de 2 columnas). */
+  .fw-tabla--seg,
+  .fw-tabla--seg tbody {
+    display: grid;
+    gap: 12px;
+  }
+
+  .fw-tabla--seg thead {
+    display: none;
+  }
+
+  .fw-tabla--seg tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 20px;
+    padding: 16px;
+    border: 1px solid var(--fw-borde);
+    border-radius: 16px;
+    background: var(--fw-fondo-alt);
+  }
+
+  .fw-tabla--seg td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    order: 3;
+    overflow-wrap: anywhere;
+  }
+
+  .fw-tabla--seg td::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--fw-suave);
+  }
+
+  .fw-tabla--seg td:first-child {
+    grid-column: 1 / -1;
+    order: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--fw-borde);
+  }
+
+  .fw-tabla--seg td:first-child::before {
+    display: none;
+  }
+
+  .fw-tabla--seg td:first-child strong {
+    font-size: 16px;
+  }
+
+  .fw-tabla--seg .fw-seg-celda-estado {
+    grid-column: 1 / -1;
+    order: 2;
+  }
+
+  .fw-tabla--seg .fw-seg-accion {
+    grid-column: 1 / -1;
+    order: 9;
+    text-align: right;
+  }
+
+  .fw-tabla--seg .fw-seg-accion::before {
+    display: none;
+  }
+
+  .fw-fila--lista td:first-child {
+    box-shadow: none;
+  }
+
+  .fw-tabla--seg tr.fw-fila--lista {
+    border-color: var(--fw-ok-borde);
+    box-shadow: inset 4px 0 0 var(--fw-ok);
+  }
+
+  .fw-tabla--seg tbody tr:hover {
+    background: var(--fw-fondo-alt);
+  }
+}
+
+@media (max-width: 900px) {
+  .fw-card {
+    padding: 18px;
+    border-radius: 16px;
+  }
 }
 
 @media (max-width: 760px) {
-  .fw-pasos-guia {
+  .fw {
+    gap: 16px;
+  }
+
+  .fw-panel,
+  .fw-seg {
+    gap: 16px;
+  }
+
+  .fw-hero {
+    gap: 12px;
+  }
+
+  .fw-hero-icono {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+  }
+
+  .fw-qr-captura {
     grid-template-columns: 1fr;
-  }
-
-  .fw-paso {
-    padding: 12px;
-    gap: 10px;
-  }
-
-  .fw-btn-camara,
-  .fw-input-qr {
-    flex: 1 1 100%;
-    max-width: none;
-  }
-
-  .fw-o {
-    display: none;
   }
 
   .fw-acciones .usr-btn {
@@ -1203,72 +2074,146 @@ html[data-theme='dark'] .fw-input option {
     justify-content: center;
   }
 
-  /* 2026-10-06 — Seguimiento en celular: cada fila de la tabla se vuelve una tarjeta. */
-  .fw-tab {
-    padding: 9px 12px;
-  }
-
   .fw-seg-ciclo,
   .fw-seg-ciclo .fw-input,
-  .fw-seg-estado {
+  .fw-seg-estado-campo,
+  .fw-actualizar,
+  .fw-cabeza-der {
     flex: 1 1 100%;
     width: 100%;
   }
 
+  .fw-seg-ciclo {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .fw-actualizar {
+    justify-content: space-between;
+  }
+
   .fw-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .fw-kpi {
+    padding: 12px;
+  }
+
+  .fw-kpi strong {
+    font-size: 26px;
+  }
+
+  .fw-ficha-fila {
+    grid-template-columns: 1fr;
+  }
+
+  .fw-inicio-item {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+  }
+
+  .fw-inicio-item .fw-campo {
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  /* 2026-10-06 — Avance en móvil: 2 columnas (en tablet caben los 4 pasos en una fila). */
+  .fw-stepper {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .fw-tabla--seg thead {
+  /* 2026-10-06 — Pestañas en móvil: ícono, nombre y contador apilados; sin textos de ayuda. */
+  .fw-tab {
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-height: 64px;
+    padding: 8px 6px;
+    text-align: center;
+  }
+
+  .fw-tab-icono {
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+  }
+
+  .fw-tab-icono svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .fw-tab-nombre {
+    font-size: 13.5px;
+  }
+
+  .fw-tab-ayuda {
     display: none;
   }
 
-  .fw-tabla--seg,
-  .fw-tabla--seg tbody,
-  .fw-tabla--seg tr,
-  .fw-tabla--seg td {
-    display: block;
-    width: 100%;
+  .fw-tab-n {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    min-width: 22px;
+    margin: 0;
+    padding: 1px 6px;
+    font-size: 12px;
   }
 
   .fw-tabla--seg tr {
-    margin-bottom: 10px;
-    padding: 8px 12px;
-    border: 1px solid var(--fw-borde);
-    border-radius: 12px;
-    background: var(--fw-fondo-alt);
+    grid-template-columns: 1fr;
   }
 
-  .fw-tabla--seg td {
-    padding: 6px 0;
-    border-bottom: 1px dashed var(--fw-borde);
-  }
-
-  .fw-tabla--seg td:last-child {
-    border-bottom: 0;
-  }
-
-  .fw-tabla--seg td::before {
-    content: attr(data-label);
-    display: block;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--fw-suave);
-    margin-bottom: 2px;
-  }
-
-  .fw-tabla--seg .fw-seg-accion {
-    text-align: left;
-  }
-
-  .fw-tabla--seg .fw-seg-accion::before {
-    display: none;
+  .fw-tabla--seg .fw-seg-accion,
+  .fw-tabla--seg .fw-seg-accion .usr-btn {
+    width: 100%;
   }
 
   .fw-tabla--seg .fw-seg-accion .usr-btn {
-    width: 100%;
     justify-content: center;
+  }
+
+  .fw-paso {
+    gap: 10px;
+  }
+
+  .fw-paso:not(:last-child)::before {
+    left: 14px;
+  }
+
+  .fw-metodos {
+    padding: 12px;
+  }
+
+  .fw-veredicto {
+    padding: 14px;
+    gap: 10px;
+  }
+
+  .fw-veredicto-encab {
+    font-size: 17px;
+  }
+}
+
+/* 2026-10-06 — Respeta «reducir movimiento»: sin animaciones ni transiciones ni desplazamientos. */
+@media (prefers-reduced-motion: reduce) {
+  .fw *,
+  .fw *::before,
+  .fw *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+
+  .fw .usr-btn:hover:not(:disabled),
+  .fw .usr-btn:active:not(:disabled),
+  .fw-kpi--accion:hover,
+  .fw-kpi--accion:active {
+    transform: none;
   }
 }
