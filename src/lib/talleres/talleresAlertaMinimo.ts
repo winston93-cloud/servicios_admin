@@ -95,25 +95,45 @@ function lineaGrupo(g: GrupoEnMinimo): string {
   return `${g.taller}${g.maestro ? ` — ${g.maestro}` : ''} (${g.niveles}): ${g.inscritos} inscritos, mínimo ${g.cupo_min} · ${estado}`
 }
 
-function asuntoAviso(grupos: GrupoEnMinimo[]): string {
-  return grupos.length === 1
-    ? `⚠ Taller en mínimo: ${grupos[0].taller}`
-    : `⚠ ${grupos.length} talleres en el mínimo de inscritos`
+/** Grupos que entraron al mínimo (`nuevos`) y los que siguen en él tras 24 h (`recordatorio`). */
+type Aviso = { nuevos: GrupoEnMinimo[]; recordatorio: GrupoEnMinimo[] }
+
+function totalAviso(a: Aviso): number {
+  return a.nuevos.length + a.recordatorio.length
 }
 
-function mensajeAviso(grupos: GrupoEnMinimo[]): string {
-  return [
-    grupos.length === 1 ? 'Este grupo llegó a su cupo mínimo:' : 'Estos grupos llegaron a su cupo mínimo:',
-    ...grupos.map((g) => `• ${lineaGrupo(g)}`),
-    'Revíselos en Talleres y Clases Especiales.',
-  ].join('\n')
+function asuntoAviso(a: Aviso): string {
+  const total = totalAviso(a)
+  if (!a.nuevos.length) {
+    return total === 1
+      ? `🔔 Recordatorio: ${a.recordatorio[0].taller} sigue en el mínimo`
+      : `🔔 Recordatorio: ${total} talleres siguen en el mínimo de inscritos`
+  }
+  const todos = [...a.nuevos, ...a.recordatorio]
+  return total === 1 ? `⚠ Taller en mínimo: ${todos[0].taller}` : `⚠ ${total} talleres en el mínimo de inscritos`
+}
+
+function mensajeAviso(a: Aviso): string {
+  const lineas: string[] = []
+  if (a.nuevos.length) {
+    lineas.push(a.nuevos.length === 1 ? 'Este grupo llegó a su cupo mínimo:' : 'Estos grupos llegaron a su cupo mínimo:')
+    lineas.push(...a.nuevos.map((g) => `• ${lineaGrupo(g)}`))
+  }
+  if (a.recordatorio.length) {
+    lineas.push(a.recordatorio.length === 1 ? 'Sigue en su cupo mínimo:' : 'Siguen en su cupo mínimo:')
+    lineas.push(...a.recordatorio.map((g) => `• ${lineaGrupo(g)}`))
+  }
+  lineas.push('Revíselos en Talleres y Clases Especiales.')
+  return lineas.join('\n')
 }
 
 function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
-function htmlCorreoMinimo(grupos: GrupoEnMinimo[]): string {
+function htmlCorreoMinimo(a: Aviso): string {
+  const grupos = [...a.nuevos, ...a.recordatorio]
+  const soloRecordatorio = !a.nuevos.length
   const filas = grupos
     .map((g) => {
       const faltan = g.cupo_min - g.inscritos
@@ -136,8 +156,12 @@ function htmlCorreoMinimo(grupos: GrupoEnMinimo[]): string {
 <body style="margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f1f5f9;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;margin:0 auto;padding:24px 16px;">
     <tr><td style="background:linear-gradient(135deg,#991b1b 0%,#dc2626 100%);border-radius:16px 16px 0 0;padding:22px 20px;text-align:center;">
-      <p style="margin:0;color:#fff;font-size:1.25rem;font-weight:800;">⚠ Talleres en el mínimo de inscritos</p>
-      <p style="margin:6px 0 0;color:#fee2e2;font-size:0.9rem;">${grupos.length} ${grupos.length === 1 ? 'grupo llegó' : 'grupos llegaron'} a su cupo mínimo</p>
+      <p style="margin:0;color:#fff;font-size:1.25rem;font-weight:800;">${soloRecordatorio ? '🔔 Recordatorio: talleres en el mínimo' : '⚠ Talleres en el mínimo de inscritos'}</p>
+      <p style="margin:6px 0 0;color:#fee2e2;font-size:0.9rem;">${
+        soloRecordatorio
+          ? `${grupos.length} ${grupos.length === 1 ? 'grupo sigue' : 'grupos siguen'} en su cupo mínimo`
+          : `${grupos.length} ${grupos.length === 1 ? 'grupo está' : 'grupos están'} en su cupo mínimo`
+      }</p>
     </td></tr>
     <tr><td style="background:#fff;padding:20px 16px;border:1px solid #e2e8f0;border-top:none;">
       <p style="margin:0 0 14px;color:#334155;line-height:1.6;">Estos grupos tienen igual o menos alumnos inscritos que su mínimo para abrir. Revise si se mantienen, se fusionan o se cierran.</p>
@@ -145,74 +169,96 @@ function htmlCorreoMinimo(grupos: GrupoEnMinimo[]): string {
       <p style="margin:20px 0 0;text-align:center;">
         <a href="${url}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:10px;">Ver en Talleres</a>
       </p>
-      <p style="margin:18px 0 0;color:#94a3b8;font-size:0.78rem;text-align:center;">Aviso automático de Servicios Administrativos. Se envía una vez cuando cada grupo llega a su mínimo.</p>
+      <p style="margin:18px 0 0;color:#94a3b8;font-size:0.78rem;text-align:center;">Aviso automático de Servicios Administrativos. Se repite cada 24 horas mientras el grupo siga en su mínimo.</p>
     </td></tr>
   </table>
 </body></html>`
 }
 
+/** Margen para que el cron diario (8:00) alcance avisos de ~24 h y no los brinque al día siguiente. */
+const INTERVALO_RECORDATORIO_MS = 23.5 * 60 * 60 * 1000
+
 /**
  * Compara los grupos en mínimo contra los ya avisados (taller_alerta_minimo):
- * los que salieron del mínimo se borran; los que entraron se registran y se avisa por
- * notificación del dashboard y correo institucional a quienes ven Talleres.
+ * los que salieron del mínimo se borran; los que entraron se registran y se avisa; los que siguen
+ * en mínimo reciben recordatorio cada 24 h. Aviso = notificación del dashboard + correo institucional
+ * a quienes ven Talleres (directoras y control escolar, solo su nivel).
  */
-export async function revisarAlertasMinimo(): Promise<{ nuevos: number }> {
+export async function revisarAlertasMinimo(): Promise<{ nuevos: number; recordatorios: number }> {
   const { ciclo, grupos } = await gruposEnMinimo()
   const actuales = new Set(grupos.map((g) => g.id))
 
-  const { data: abiertas, error } = await db().from('taller_alerta_minimo').select('asignacion_id')
+  const { data: abiertas, error } = await db().from('taller_alerta_minimo').select('asignacion_id, alertado_at')
   if (error) throw new Error(`Alertas de mínimo: ${error.message}`)
-  const avisadas = new Set(((abiertas ?? []) as Record<string, unknown>[]).map((r) => Number(r.asignacion_id)))
+  const avisadas = new Map(
+    ((abiertas ?? []) as Record<string, unknown>[]).map((r) => [Number(r.asignacion_id), String(r.alertado_at ?? '')])
+  )
 
-  const salieron = [...avisadas].filter((id) => !actuales.has(id))
+  const salieron = [...avisadas.keys()].filter((id) => !actuales.has(id))
   if (salieron.length) {
     const { error: dErr } = await db().from('taller_alerta_minimo').delete().in('asignacion_id', salieron)
     if (dErr) console.error('Alertas de mínimo (limpiar):', dErr.message)
   }
 
+  const limite = new Date(Date.now() - INTERVALO_RECORDATORIO_MS).toISOString()
   const nuevos: GrupoEnMinimo[] = []
+  const recordatorio: GrupoEnMinimo[] = []
   for (const g of grupos) {
-    if (avisadas.has(g.id)) continue
-    const { error: iErr } = await db()
-      .from('taller_alerta_minimo')
-      .insert([{ asignacion_id: g.id, ciclo_escolar: ciclo, inscritos: g.inscritos, cupo_min: g.cupo_min }])
-    // Si otra petición ya lo registró (PK), ella manda el aviso.
-    if (!iErr) nuevos.push(g)
+    const previo = avisadas.get(g.id)
+    if (previo == null) {
+      const { error: iErr } = await db()
+        .from('taller_alerta_minimo')
+        .insert([{ asignacion_id: g.id, ciclo_escolar: ciclo, inscritos: g.inscritos, cupo_min: g.cupo_min }])
+      // Si otra petición ya lo registró (PK), ella manda el aviso.
+      if (!iErr) nuevos.push(g)
+    } else if (previo && new Date(previo).getTime() <= Date.parse(limite)) {
+      // Solo la petición que logra mover alertado_at manda el recordatorio.
+      const { data: tomado, error: uErr } = await db()
+        .from('taller_alerta_minimo')
+        .update({ alertado_at: new Date().toISOString(), inscritos: g.inscritos, cupo_min: g.cupo_min })
+        .eq('asignacion_id', g.id)
+        .lte('alertado_at', limite)
+        .select('asignacion_id')
+      if (!uErr && tomado?.length) recordatorio.push(g)
+    }
   }
-  if (!nuevos.length) return { nuevos: 0 }
+  if (!nuevos.length && !recordatorio.length) return { nuevos: 0, recordatorios: 0 }
 
   const destinatarios = await destinatariosTalleres()
-  // Mismo conjunto de grupos → un solo correo con todos esos destinatarios.
-  const correosPorConjunto = new Map<string, { grupos: GrupoEnMinimo[]; correos: Set<string> }>()
+  // Mismo aviso → un solo correo con todos esos destinatarios.
+  const correosPorAviso = new Map<string, { aviso: Aviso; correos: Set<string> }>()
 
   await Promise.all(
     destinatarios.map(async (d) => {
-      const suyos = gruposDelUsuario(d.usuarioId, nuevos)
-      if (!suyos.length) return
+      const aviso: Aviso = {
+        nuevos: gruposDelUsuario(d.usuarioId, nuevos),
+        recordatorio: gruposDelUsuario(d.usuarioId, recordatorio),
+      }
+      if (!totalAviso(aviso)) return
       const r = await crearNotificacionEmpleado({
         usuarioId: d.usuarioId,
-        asunto: asuntoAviso(suyos),
-        mensaje: mensajeAviso(suyos),
+        asunto: asuntoAviso(aviso),
+        mensaje: mensajeAviso(aviso),
       })
       if (!r.ok) console.error('Alerta mínimo (notificación):', d.usuarioId, r.message)
       if (!d.email.endsWith(DOMINIO_INSTITUCIONAL)) return
-      const clave = suyos.map((g) => g.id).join(',')
-      const conjunto = correosPorConjunto.get(clave) ?? { grupos: suyos, correos: new Set<string>() }
-      conjunto.correos.add(d.email)
-      correosPorConjunto.set(clave, conjunto)
+      const clave = `${aviso.nuevos.map((g) => g.id).join(',')}|${aviso.recordatorio.map((g) => g.id).join(',')}`
+      const entrada = correosPorAviso.get(clave) ?? { aviso, correos: new Set<string>() }
+      entrada.correos.add(d.email)
+      correosPorAviso.set(clave, entrada)
     })
   )
 
-  for (const { grupos: suyos, correos } of correosPorConjunto.values()) {
+  for (const { aviso, correos } of correosPorAviso.values()) {
     const envio = await enviarCorreoMasivo({
       to: [...correos],
-      subject: asuntoAviso(suyos),
-      html: htmlCorreoMinimo(suyos),
+      subject: asuntoAviso(aviso),
+      html: htmlCorreoMinimo(aviso),
       nivel: 3,
     })
     if (!envio.ok) console.error('Alerta mínimo (correo):', envio.error)
   }
-  return { nuevos: nuevos.length }
+  return { nuevos: nuevos.length, recordatorios: recordatorio.length }
 }
 
 /** Para `after()`: nunca lanza. */

@@ -7,17 +7,7 @@ import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import type { GrupoEnMinimo } from '@/lib/talleres/talleresAlertaMinimo'
 import './talleres-minimo-popup.css'
 
-const CLAVE_CERRADO = 'servicios-admin-talleres-minimo-cerrado'
-
-/** Cambia si entra/sale un grupo o cambian sus inscritos: entonces el popup vuelve a salir. */
-function firma(grupos: GrupoEnMinimo[]): string {
-  return grupos
-    .map((g) => `${g.id}:${g.inscritos}/${g.cupo_min}`)
-    .sort()
-    .join(',')
-}
-
-/** Popup al entrar al dashboard si hay talleres en su cupo mínimo (solo quien ve Talleres). */
+/** Popup cada vez que se entra al dashboard mientras haya talleres en su cupo mínimo (solo quien ve Talleres). */
 export default function TalleresMinimoPopup({ activo }: { activo: boolean }) {
   const router = useRouter()
   const tituloId = useId()
@@ -32,12 +22,8 @@ export default function TalleresMinimoPopup({ activo }: { activo: boolean }) {
       .then((r) => (r.ok ? r.json() : null))
       .then((json: { grupos?: GrupoEnMinimo[] } | null) => {
         if (cancelado || !json?.grupos?.length) return
-        let cerrado: string | null = null
-        try {
-          cerrado = sessionStorage.getItem(CLAVE_CERRADO)
-        } catch {}
         setGrupos(json.grupos)
-        if (cerrado !== firma(json.grupos)) setAbierto(true)
+        setAbierto(true)
       })
       .catch(() => {})
     return () => {
@@ -45,12 +31,7 @@ export default function TalleresMinimoPopup({ activo }: { activo: boolean }) {
     }
   }, [activo])
 
-  const cerrar = useCallback(() => {
-    setAbierto(false)
-    try {
-      sessionStorage.setItem(CLAVE_CERRADO, firma(grupos))
-    } catch {}
-  }, [grupos])
+  const cerrar = useCallback(() => setAbierto(false), [])
 
   useEffect(() => {
     if (!abierto) return
