@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { CalendarPlus, Check, MapPin, Pencil, Search, Trash2, Users, X } from 'lucide-react'
+import { AlertTriangle, CalendarPlus, Check, MapPin, Pencil, Search, Trash2, Users, X } from 'lucide-react'
 import {
   CATEGORIAS_TALLER,
   COLORES_TALLER,
   NIVELES_TALLER,
+  enMinimo,
   estadoCupo,
   etiquetaCupo,
   textoCupo,
@@ -38,6 +39,18 @@ type Fila = {
 }
 
 const MAX_SUGERENCIAS = 8
+
+function AlertaMinimo({ inscritos, minimo }: { inscritos: number; minimo: number }) {
+  const faltan = minimo - inscritos
+  return (
+    <p className="tl-alerta-minimo" role="status">
+      <AlertTriangle size={16} aria-hidden />
+      <span>
+        <strong>Taller en mínimo</strong> · {inscritos} de {minimo} inscritos{faltan > 0 ? ` (faltan ${faltan})` : ''}
+      </span>
+    </p>
+  )
+}
 
 function CupoGrupo({
   asignacion: a,
@@ -389,9 +402,12 @@ export default function ProgramadosView({
                 {deNivel.map((f) => {
                   const cupo = etiquetaCupo(f.a)
                   const otros = f.a.niveles.filter((x) => x !== n)
+                  const minimo = enMinimo(f.a)
                   return (
-                    <li key={f.a.id} className="tl-asig-card" style={{ ['--tl-color' as string]: f.t?.color ?? COLORES_TALLER[0] }}>
+                    <li key={f.a.id} className="tl-asig-card" data-minimo={minimo || undefined}
+                      style={{ ['--tl-color' as string]: f.t?.color ?? COLORES_TALLER[0] }}>
                       <div className="tl-min0">
+                        {minimo ? <AlertaMinimo inscritos={f.a.inscritos} minimo={f.a.cupo_min ?? 0} /> : null}
                         <p className="tl-asig-titulo">
                           <Resaltar texto={f.taller} q={resaltado} />
                           <span className="tl-cat">{f.categoria}</span>

@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { leerCuerpo, requireAdminTalleres, responderErrorTalleres } from '@/lib/talleres/talleresApi'
+import { revisarAlertasMinimoSeguro } from '@/lib/talleres/talleresAlertaMinimo'
 import { idEntero } from '@/lib/talleres/talleresService'
 import {
   actualizarNotasInscripcion,
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
       case 'notas': await actualizarNotasInscripcion(body); break
       default: return NextResponse.json({ error: 'Acción inválida.' }, { status: 400 })
     }
+    after(revisarAlertasMinimoSeguro)
     return NextResponse.json({ ok: true, conteos: await conteoInscritos() })
   } catch (e) {
     return responderErrorTalleres(e, 'POST /api/talleres/inscripciones:')
@@ -76,6 +78,7 @@ export async function DELETE(request: Request) {
     }
     if (modo === 'baja') await bajaInscripcion(id, url.searchParams.get('motivo'))
     else await eliminarInscripcion(id)
+    after(revisarAlertasMinimoSeguro)
     return NextResponse.json({ ok: true, conteos: await conteoInscritos() })
   } catch (e) {
     return responderErrorTalleres(e, 'DELETE /api/talleres/inscripciones:')

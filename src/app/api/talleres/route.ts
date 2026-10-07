@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { leerCuerpo, requireAdminTalleres, responderErrorTalleres } from '@/lib/talleres/talleresApi'
+import { revisarAlertasMinimoSeguro } from '@/lib/talleres/talleresAlertaMinimo'
 import {
   actualizarCupoAsignacion,
   eliminarAsignacion,
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
     const body = await leerCuerpo(request)
     if (body.recurso === 'cupo') {
       await actualizarCupoAsignacion(body)
+      after(revisarAlertasMinimoSeguro)
       return NextResponse.json(await snapshotTalleres())
     }
     const recurso = parseRecurso(body.recurso)
@@ -45,6 +47,7 @@ export async function POST(request: Request) {
     if (recurso === 'taller') await guardarTaller(body)
     else if (recurso === 'maestro') await guardarMaestro(body)
     else await guardarAsignacion(body)
+    after(revisarAlertasMinimoSeguro)
     return NextResponse.json(await snapshotTalleres())
   } catch (e) {
     return responderErrorTalleres(e, 'POST /api/talleres:')
@@ -61,6 +64,7 @@ export async function DELETE(request: Request) {
     if (!recurso || !id) {
       return NextResponse.json({ error: 'Parámetros inválidos.' }, { status: 400 })
     }
+    after(revisarAlertasMinimoSeguro)
     const { modo } = recurso === 'asignacion' ? await eliminarAsignacion(id) : await eliminarCatalogo(recurso, id)
     return NextResponse.json({ modo, ...(await snapshotTalleres()) })
   } catch (e) {

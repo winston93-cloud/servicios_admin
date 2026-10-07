@@ -166,10 +166,15 @@ export function gradosPermitidos(texto: string | null): Set<number> | null {
 
 export type EstadoCupo = 'lleno' | 'casi' | 'bajo' | 'ok' | 'libre'
 
-/** lleno ≥ máx · casi ≥ 85 % del máx · bajo < mínimo · ok · libre (sin cupo definido). */
+/** En el mínimo: tiene cupo mínimo y sus inscritos son iguales o menores. Dispara las alertas de Talleres. */
+export function enMinimo(a: Pick<TallerAsignacion, 'cupo_min' | 'inscritos'>): boolean {
+  return Boolean(a.cupo_min) && a.inscritos <= (a.cupo_min ?? 0)
+}
+
+/** lleno ≥ máx · bajo ≤ mínimo (en el mínimo) · casi ≥ 85 % del máx · ok · libre (sin cupo definido). */
 export function estadoCupo(a: Pick<TallerAsignacion, 'cupo' | 'cupo_min' | 'inscritos'>): EstadoCupo {
   if (a.cupo && a.inscritos >= a.cupo) return 'lleno'
-  if (a.cupo_min && a.inscritos < a.cupo_min) return 'bajo'
+  if (enMinimo(a)) return 'bajo'
   if (a.cupo && a.inscritos >= Math.ceil(a.cupo * 0.85)) return 'casi'
   return a.cupo || a.cupo_min ? 'ok' : 'libre'
 }
@@ -177,7 +182,10 @@ export function estadoCupo(a: Pick<TallerAsignacion, 'cupo' | 'cupo_min' | 'insc
 export function textoCupo(a: Pick<TallerAsignacion, 'cupo' | 'cupo_min' | 'inscritos'>): string {
   const e = estadoCupo(a)
   if (e === 'lleno') return 'Cupo lleno'
-  if (e === 'bajo') return `Faltan ${(a.cupo_min ?? 0) - a.inscritos} para el mínimo`
+  if (e === 'bajo') {
+    const faltan = (a.cupo_min ?? 0) - a.inscritos
+    return faltan > 0 ? `Taller en mínimo: faltan ${faltan} para el mínimo` : 'Taller en mínimo de inscritos'
+  }
   if (a.cupo) return `${a.cupo - a.inscritos} lugares libres`
   return 'Sin cupo definido'
 }

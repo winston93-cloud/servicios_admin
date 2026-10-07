@@ -7,7 +7,7 @@ import { obtenerModulosDashboardUsuario } from '@/lib/usuarioCatalogoService'
 import { TalleresError } from '@/lib/talleres/talleresService'
 
 /** Mismo id que la tarjeta del dashboard: quien la ve (catálogo de usuarios o lista legada) administra Talleres. */
-const MODULO_TALLERES = 'talleres-clases-especiales'
+export const MODULO_TALLERES = 'talleres-clases-especiales'
 
 async function tieneModuloTalleres(session: AuthSession): Promise<boolean> {
   const uid = Number(session.usuario_id) || 0

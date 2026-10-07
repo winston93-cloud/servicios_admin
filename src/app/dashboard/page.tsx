@@ -24,6 +24,7 @@ import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import DashboardAyudaModal from '@/components/dashboard/DashboardAyudaModal'
 import DashboardOrdenModal from '@/components/dashboard/DashboardOrdenModal'
 import DashboardNotificacionesBell from '@/components/dashboard/DashboardNotificacionesBell'
+import TalleresMinimoPopup from '@/components/dashboard/TalleresMinimoPopup'
 import DashboardBuscador from '@/components/dashboard/DashboardBuscador'
 import { buscarModulos } from '@/lib/dashboardBusqueda'
 import { CircleHelp, ListOrdered, SearchX } from 'lucide-react'
@@ -343,6 +344,9 @@ export default function DashboardPage() {
         className={`dashboard-container dashboard-home${layoutPersonalizado ? ' dashboard-home--layout-5' : ''}`}
       >
         <div className="dashboard-home-bg" aria-hidden="true" />
+        <TalleresMinimoPopup
+          activo={mostrarPanelAdmin && navItemsAdmin.some((i) => i.id === 'talleres-clases-especiales')}
+        />
 
         {/* Header */}
         <div className="dashboard-header">

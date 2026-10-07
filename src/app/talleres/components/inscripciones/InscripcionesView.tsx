@@ -307,6 +307,7 @@ function PorTaller({ ctx }: { ctx: Ctx }) {
                   type="button"
                   className="tl-ins-grupo"
                   data-activo={grupoId === a.id || undefined}
+                  data-minimo={estado === 'bajo' || undefined}
                   aria-pressed={grupoId === a.id}
                   style={{ ['--tl-color' as string]: t?.color ?? COLORES_TALLER[0] }}
                   onClick={() => setGrupoId(a.id)}
@@ -318,6 +319,9 @@ function PorTaller({ ctx }: { ctx: Ctx }) {
                     </span>
                     <span className="tl-ins-grupo-meta"><Resaltar texto={m ? nombreMaestroTaller(m) : ''} q={filtro} /></span>
                     <span className="tl-ins-grupo-meta">{horarioCorto(a.horarios)}</span>
+                    {estado === 'bajo' ? (
+                      <span className="tl-ins-grupo-alerta"><AlertTriangle size={13} aria-hidden /> Taller en mínimo</span>
+                    ) : null}
                   </span>
                   <span className="tl-cupo-pill" data-estado={estado} title={textoCupo(a)}>
                     {a.inscritos}{a.cupo ? `/${a.cupo}` : ''}
@@ -354,7 +358,7 @@ function CupoMedidor({ grupo }: { grupo: TallerAsignacion }) {
       <div className="tl-cupo-nums">
         <strong>{grupo.inscritos}</strong>
         <span>{grupo.cupo ? `de ${grupo.cupo} lugares` : grupo.inscritos === 1 ? 'inscrito' : 'inscritos'}</span>
-        <em>{textoCupo(grupo)}</em>
+        <em>{estado === 'bajo' ? <AlertTriangle size={15} aria-hidden /> : null}{textoCupo(grupo)}</em>
       </div>
       {grupo.cupo || grupo.cupo_min ? (
         <div className="tl-cupo-barra" role="progressbar" aria-valuemin={0} aria-valuemax={max} aria-valuenow={grupo.inscritos} aria-label="Ocupación del grupo">
