@@ -10,6 +10,9 @@ interface WinstonUsaAvisoModalProps {
   concepto: string
   onContinuar: () => void
   onCancelar: () => void
+  textoContinuar?: string
+  /** Sin pago abierto todavía: solo informa (botón «Entendido»). */
+  notaSinPago?: string
 }
 
 export default function WinstonUsaAvisoModal({
@@ -18,6 +21,8 @@ export default function WinstonUsaAvisoModal({
   concepto,
   onContinuar,
   onCancelar,
+  textoContinuar = 'Continuar con el pago',
+  notaSinPago,
 }: WinstonUsaAvisoModalProps) {
   const continuarRef = useRef<HTMLButtonElement>(null)
 
@@ -90,19 +95,28 @@ export default function WinstonUsaAvisoModal({
               <p>La participación sigue siendo voluntaria.</p>
             </>
           )}
+          {notaSinPago ? <p className="portal-usa-aviso-nota">{notaSinPago}</p> : null}
         </div>
         <footer className="portal-doc-modal-foot portal-usa-aviso-foot">
-          <button type="button" className="portal-pagos-btn-sec" onClick={onCancelar}>
-            Cancelar
-          </button>
-          <button
-            ref={continuarRef}
-            type="button"
-            className="portal-pagos-btn-prim"
-            onClick={onContinuar}
-          >
-            Continuar con el pago
-          </button>
+          {notaSinPago ? (
+            <button ref={continuarRef} type="button" className="portal-pagos-btn-prim" onClick={onCancelar}>
+              Entendido
+            </button>
+          ) : (
+            <>
+              <button type="button" className="portal-pagos-btn-sec" onClick={onCancelar}>
+                Cancelar
+              </button>
+              <button
+                ref={continuarRef}
+                type="button"
+                className="portal-pagos-btn-prim"
+                onClick={onContinuar}
+              >
+                {textoContinuar}
+              </button>
+            </>
+          )}
         </footer>
       </div>
     </div>

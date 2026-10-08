@@ -33,14 +33,16 @@ export default function WinstonUsaCostos({ ciclo }: { ciclo: number | null }) {
   const [form, setForm] = useState(formVacio)
   const [filas, setFilas] = useState<PagoUsaFila[]>([])
   const [tipoCambio, setTipoCambio] = useState<TipoCambio>(null)
+  const [videoUrl, setVideoUrl] = useState('')
   const [cargando, setCargando] = useState(false)
   const [cargado, setCargado] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [mensaje, setMensaje] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const aplicar = (data: { pagos?: PagoUsaFila[]; tipoCambio?: TipoCambio }) => {
+  const aplicar = (data: { pagos?: PagoUsaFila[]; tipoCambio?: TipoCambio; video_url?: string | null }) => {
     const pagos = data.pagos ?? []
+    setVideoUrl(data.video_url ?? '')
     setFilas(pagos)
     setTipoCambio(data.tipoCambio ?? null)
     const nuevo = formVacio()
@@ -99,6 +101,7 @@ export default function WinstonUsaCostos({ ciclo }: { ciclo: number | null }) {
             monto_usd: Number(form[p].monto_usd),
             fecha_apertura: form[p].fecha_apertura,
           })),
+          video_url: videoUrl.trim() || null,
         }),
       })
       const data = await res.json()
@@ -172,6 +175,21 @@ export default function WinstonUsaCostos({ ciclo }: { ciclo: number | null }) {
                 </p>
               </fieldset>
             ))}
+          </div>
+
+          <div className="ciclos-crud-field">
+            <label htmlFor="usa-video-url">Video explicativo (opcional)</label>
+            <p className="costos-field-hint">
+              Enlace de YouTube, Google Drive o Vimeo. Si se deja vacío, el botón del portal no muestra video.
+            </p>
+            <input
+              id="usa-video-url"
+              type="url"
+              inputMode="url"
+              placeholder="https://www.youtube.com/watch?v=…"
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+            />
           </div>
 
           <p className="costos-field-hint" aria-live="polite">

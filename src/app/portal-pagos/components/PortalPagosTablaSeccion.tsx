@@ -5,9 +5,10 @@ import type { FilaMatrizPortal, SeccionMatrizPortal } from '@/lib/portalPagosMat
 import { formatearMontoPortal } from '@/lib/portalPagosService'
 import { normalizarConceptoNo } from '@/lib/pagoReferenciaColegiatura'
 import { FileText, Printer, CreditCard, Code2 } from 'lucide-react'
+import { avisoUsaAceptado, marcarAvisoUsaAceptado } from '@/lib/winstonUsaAvisoAceptado'
 import WinstonUsaAvisoModal from './WinstonUsaAvisoModal'
 
-const PAGO_USA: Record<string, 1 | 2 | 3> = { '23': 1, '24': 2, '25': 3 }
+export const PAGO_USA: Record<string, 1 | 2 | 3> = { '23': 1, '24': 2, '25': 3 }
 
 interface PortalPagosTablaSeccionProps {
   seccion: SeccionMatrizPortal
@@ -16,6 +17,8 @@ interface PortalPagosTablaSeccionProps {
   onPagoEnLinea: (fila: FilaMatrizPortal) => void
   onVerPdf: (url: string, concepto: string) => void
   onVerXml: (url: string, concepto: string) => void
+  /** Para no repetir el aviso Winston USA Program si ya lo aceptó desde el botón del programa. */
+  alumnoId?: number
 }
 
 export default function PortalPagosTablaSeccion({
@@ -25,6 +28,7 @@ export default function PortalPagosTablaSeccion({
   onPagoEnLinea: pagoEnLineaDirecto,
   onVerPdf,
   onVerXml,
+  alumnoId,
 }: PortalPagosTablaSeccionProps) {
   const [avisoUsa, setAvisoUsa] = useState<{ fila: FilaMatrizPortal; continuar: () => void } | null>(
     null
@@ -32,8 +36,15 @@ export default function PortalPagosTablaSeccion({
 
   // Winston USA Program: el papá confirma el aviso antes de imprimir o pagar.
   const conAvisoUsa = (accion: (fila: FilaMatrizPortal) => void) => (fila: FilaMatrizPortal) => {
-    if (PAGO_USA[normalizarConceptoNo(fila.conceptoNo)]) {
-      setAvisoUsa({ fila, continuar: () => accion(fila) })
+    const c = normalizarConceptoNo(fila.conceptoNo)
+    if (PAGO_USA[c] && !(alumnoId && avisoUsaAceptado(alumnoId, c))) {
+      setAvisoUsa({
+        fila,
+        continuar: () => {
+          if (alumnoId) marcarAvisoUsaAceptado(alumnoId, c)
+          accion(fila)
+        },
+      })
     } else {
       accion(fila)
     }

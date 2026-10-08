@@ -4,7 +4,11 @@ import { useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import type { AlumnoRegistro } from '@/lib/alumnoDatosService'
 import type { CicloEscolarRegistro } from '@/lib/ciclosEscolaresService'
-import type { FilaMatrizPortal, SeccionMatrizPortal } from '@/lib/portalPagosMatrizService'
+import type {
+  FilaMatrizPortal,
+  SeccionMatrizPortal,
+  WinstonUsaPortalInfo,
+} from '@/lib/portalPagosMatrizService'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { nivelCobroElectronico } from '@/lib/nivelCobroElectronico'
 import { vigenciaBoucherHoy, vigenciaBoucherParaConcepto } from '@/lib/boucherCore'
@@ -13,6 +17,7 @@ import PortalBoucherModal from './PortalBoucherModal'
 import PortalTransferenciaModal, { type DatosTransferenciaPortal } from './PortalTransferenciaModal'
 import PortalSpeiReciboModal from './PortalSpeiReciboModal'
 import PortalPagosTablaSeccion from './PortalPagosTablaSeccion'
+import WinstonUsaBanner from './WinstonUsaBanner'
 
 interface PortalColegiaturasSeccionesProps {
   alumnoId: number
@@ -24,6 +29,7 @@ interface PortalColegiaturasSeccionesProps {
   displayName?: string
   cargando?: boolean
   onActualizar?: () => void
+  winstonUsa?: WinstonUsaPortalInfo
 }
 
 function nombreCompletoAlumno(alumno: AlumnoRegistro, fallback?: string): string {
@@ -46,6 +52,7 @@ export default function PortalColegiaturasSecciones({
   displayName,
   cargando = false,
   onActualizar,
+  winstonUsa,
 }: PortalColegiaturasSeccionesProps) {
   const [error, setError] = useState<string | null>(null)
   const [generandoBoucher, setGenerandoBoucher] = useState<string | null>(null)
@@ -213,9 +220,17 @@ export default function PortalColegiaturasSecciones({
         </p>
       ) : (
         <div className="portal-matriz-contenedor">
+          {winstonUsa ? (
+            <WinstonUsaBanner
+              alumnoId={alumnoId}
+              info={winstonUsa}
+              seccion={secciones.find((s) => s.id === 'winston-usa')}
+            />
+          ) : null}
           {secciones.map((seccion) => (
             <PortalPagosTablaSeccion
               key={seccion.id}
+              alumnoId={alumnoId}
               seccion={seccion}
               generandoBoucher={generandoBoucher}
               onImprimirBoucher={(f) => void imprimirBoucher(f)}

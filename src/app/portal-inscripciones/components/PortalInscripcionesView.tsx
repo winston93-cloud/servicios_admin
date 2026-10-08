@@ -1163,6 +1163,7 @@ export default function PortalInscripcionesView() {
                     displayName={session?.displayName}
                     cargando={cargandoMatriz}
                     onActualizar={() => void cargarMatriz()}
+                    winstonUsa={matriz.winstonUsa}
                   />
                 ) : null}
               </section>

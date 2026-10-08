@@ -3,9 +3,11 @@ import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { requireEmpleadoPortal } from '@/lib/portalApiEmpleadoAuth'
 import {
   guardarConfigUsaCiclo,
+  guardarVideoUsaCiclo,
   montoMxnDesdeUsd,
   obtenerConfigUsaCiclo,
   obtenerTipoCambioUsdHoy,
+  obtenerVideoUsaCiclo,
   type PagoUsa,
   type UsaPagoConfig,
 } from '@/lib/winstonUsaProgramPagos'
@@ -23,6 +25,7 @@ async function respuesta(ciclo: number, config: UsaPagoConfig[]) {
       monto_mxn_hoy: tipoCambio && c.monto_usd > 0 ? montoMxnDesdeUsd(c.monto_usd, tipoCambio.usd_mxn) : null,
     })),
     tipoCambio,
+    video_url: await obtenerVideoUsaCiclo(db, ciclo),
   })
 }
 
@@ -48,6 +51,7 @@ export async function PUT(request: Request) {
     const body = (await request.json()) as {
       ciclo?: number
       pagos?: { pago?: number; monto_usd?: number; fecha_apertura?: string }[]
+      video_url?: string | null
     }
     const ciclo = Number(body.ciclo)
     if (!Number.isFinite(ciclo) || ciclo <= 0) {
@@ -72,7 +76,9 @@ export async function PUT(request: Request) {
     if (pagos.length !== 3 || new Set(pagos.map((p) => p.pago)).size !== 3) {
       return NextResponse.json({ error: 'Se requieren los 3 pagos' }, { status: 400 })
     }
-    const config = await guardarConfigUsaCiclo(createDbAdmin(), ciclo, pagos)
+    const db = createDbAdmin()
+    await guardarVideoUsaCiclo(db, ciclo, body.video_url ?? null)
+    const config = await guardarConfigUsaCiclo(db, ciclo, pagos)
     return respuesta(ciclo, config)
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al guardar Winston USA Program'

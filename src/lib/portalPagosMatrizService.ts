@@ -61,6 +61,7 @@ import {
   hoyMonterreyIso,
   notaConversionUsa,
   obtenerConfigUsaCiclo,
+  obtenerVideoUsaCiclo,
   pagoUsaAbierto,
   pagoUsaDeConcepto,
 } from './winstonUsaProgramPagos'
@@ -100,6 +101,14 @@ export interface MatrizPortalPagos {
   planMeses: number
   planEtiqueta: string
   secciones: SeccionMatrizPortal[]
+  /** Winston USA Program abierto en el portal (botón de acceso en colegiaturas). */
+  winstonUsa?: WinstonUsaPortalInfo
+}
+
+export interface WinstonUsaPortalInfo {
+  /** Próximo pago pendiente que aún no abre (YYYY-MM-DD) y su número. */
+  proximaApertura: { pago: 1 | 2 | 3; fecha: string } | null
+  videoUrl: string | null
 }
 
 const SECCION_COLEGIATURA = {
@@ -593,6 +602,7 @@ export async function construirMatrizPortalPagos(
     },
   ]
 
+  let winstonUsa: WinstonUsaPortalInfo | undefined
   if (!soloColegiatura) {
     const apertura = await obtenerAperturaConceptosPortal(supabase)
     const pruebaUsa = esAlumnoPruebaUsa(alumno.alumno_ref)
@@ -660,12 +670,28 @@ export async function construirMatrizPortalPagos(
         })
       }
 
-      if (usaAbierto && seccionTieneCobroReal(filasUsa)) {
+      const hayTablaUsa = usaAbierto && seccionTieneCobroReal(filasUsa)
+      if (hayTablaUsa) {
         secciones.push({
           id: SECCION_USA.id,
           titulo: SECCION_USA.titulo,
           filas: filasUsa,
         })
+      }
+
+      if (usaAbierto && cicloCobraUsaEnUsd(configUsa)) {
+        const pagados = new Set(
+          filasUsaRaw.filter((f) => f.pagado).map((f) => pagoUsaDeConcepto(f.conceptoNo))
+        )
+        const proxima = configUsa
+          .filter((c) => c.monto_usd > 0 && !pagados.has(c.pago) && c.fecha_apertura > hoy)
+          .sort((a, b) => a.fecha_apertura.localeCompare(b.fecha_apertura))[0]
+        if (hayTablaUsa || proxima) {
+          winstonUsa = {
+            proximaApertura: proxima ? { pago: proxima.pago, fecha: proxima.fecha_apertura } : null,
+            videoUrl: await obtenerVideoUsaCiclo(supabase, ciclo.valor),
+          }
+        }
       }
     }
   }
@@ -676,6 +702,7 @@ export async function construirMatrizPortalPagos(
     planMeses,
     planEtiqueta,
     secciones,
+    ...(winstonUsa ? { winstonUsa } : {}),
   }
 }
 

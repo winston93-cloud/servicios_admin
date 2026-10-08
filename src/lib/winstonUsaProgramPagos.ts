@@ -267,3 +267,30 @@ export function formatearUsd(n: number): string {
 export function notaConversionUsa(usd: number, tc: TipoCambioDia): string {
   return `${formatearUsd(usd)} × ${tc.usd_mxn.toFixed(4)} (tipo de cambio de hoy) · válido solo hoy`
 }
+
+export async function obtenerVideoUsaCiclo(db: AppDatabaseClient, cicloEscolar: number): Promise<string | null> {
+  const { data, error } = await db
+    .from('usa_programa_config')
+    .select('video_url')
+    .eq('precio_ciclo_escolar', cicloEscolar)
+    .maybeSingle()
+  if (error) return null
+  const url = String(data?.video_url ?? '').trim()
+  return url || null
+}
+
+export async function guardarVideoUsaCiclo(
+  db: AppDatabaseClient,
+  cicloEscolar: number,
+  videoUrl: string | null
+): Promise<void> {
+  const url = videoUrl?.trim() || null
+  if (url && !/^https:\/\//i.test(url)) throw new Error('El video debe ser un enlace https://')
+  const { error } = await db
+    .from('usa_programa_config')
+    .upsert(
+      [{ precio_ciclo_escolar: cicloEscolar, video_url: url, actualizado_en: new Date().toISOString() }],
+      { onConflict: 'precio_ciclo_escolar' }
+    )
+  if (error) throw new Error(error.message)
+}
