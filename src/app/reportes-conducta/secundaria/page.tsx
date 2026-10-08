@@ -582,13 +582,14 @@ export default function RacSecundariaPage() {
     }
   }
 
-  async function enviarCaptura() {
+  async function enviarCaptura(confirmarEmpalme = false) {
     if (!modal || !asig) return
     setBusy(true)
     try {
       const data = await api<{
         pendienteValidacion?: boolean
         envio?: { ok?: boolean; error?: string }
+        empalme?: { resumen: string; inicio: string; fin: string }[]
       }>('/api/rac/captura', {
         method: 'POST',
         body: JSON.stringify({
@@ -600,8 +601,21 @@ export default function RacSecundariaPage() {
           mensaje,
           fecha: fechaCita,
           hora: horaCita,
+          confirmarEmpalme,
         }),
       })
+      if (data.empalme?.length) {
+        const lista = data.empalme.map((e) => `• ${e.inicio}–${e.fin} ${e.resumen}`).join('\n')
+        setBusy(false)
+        if (
+          window.confirm(
+            `Dirección ya tiene algo agendado a esa hora:\n${lista}\n\n¿Guardar la cita de todos modos?`
+          )
+        ) {
+          await enviarCaptura(true)
+        }
+        return
+      }
       if (data.pendienteValidacion) {
         setMsg(
           'Guardado. La conducta queda pendiente de Psicología; el correo a papás se envía al validarla.'

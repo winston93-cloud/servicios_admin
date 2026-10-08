@@ -759,9 +759,17 @@ export async function capturarCita(opts: {
   mensaje: string
   fecha: string
   hora: string
+  /** El maestro ya vio el aviso de empalme con la agenda de Dirección y decidió guardar. */
+  confirmarEmpalme?: boolean
 }) {
   const ciclo = await cicloRac()
   await assertAlumnoSecundaria(opts.alumnoId)
+  const agendaDireccion = opts.session.role === 'maestro' && Boolean(opts.fecha && opts.hora)
+  if (agendaDireccion && !opts.confirmarEmpalme) {
+    const { empalmesDireccionSec } = await import('@/lib/racGoogleCalendar')
+    const empalmes = await empalmesDireccionSec(opts.fecha, opts.hora.slice(0, 5))
+    if (empalmes?.length) return { empalme: empalmes }
+  }
   const { data, error } = await db()
     .from('reporte_cita')
     .insert({
@@ -789,7 +797,62 @@ export async function capturarCita(opts: {
     hora: opts.hora,
     actorRole: opts.session.role,
   })
+  if (agendaDireccion) {
+    await agendarCitaDireccion({
+      citaId,
+      alumnoId: opts.alumnoId,
+      tipo: opts.tipo,
+      mensaje: opts.mensaje,
+      fecha: opts.fecha,
+      hora: opts.hora,
+      maestro: opts.session.nombre || opts.session.usuario,
+    })
+  }
   return { citaId, envio: await enviarCorreoCita(citaId) }
+}
+
+/** Citas de maestros → agenda de Dirección secundaria (con la asistente invitada). */
+async function agendarCitaDireccion(opts: {
+  citaId: number
+  alumnoId: number
+  tipo: number
+  mensaje: string
+  fecha: string
+  hora: string
+  maestro: string
+}) {
+  const alumno = await cargarAlumno(opts.alumnoId)
+  const nombre = alumno ? nombreAlumno(alumno) : `Alumno ${opts.alumnoId}`
+  const ref = alumno?.alumno_ref ?? ''
+  const grupo = alumno
+    ? `${n(alumno.alumno_grado)}° ${letraDesdeGrupoNum(n(alumno.alumno_grupo))}`.trim()
+    : ''
+  const { crearCitaDireccionSec } = await import('@/lib/racGoogleCalendar')
+  const cal = await crearCitaDireccionSec({
+    summary: `Cita papás — ${nombre}${grupo ? ` (${grupo})` : ''} · ${opts.maestro}`,
+    description: [
+      `Citatorio ${etiquetaTipoCitatorio(opts.tipo)} agendado por maestro (RAC secundaria)`,
+      `Maestro: ${opts.maestro}`,
+      `Alumno: ${nombre}`,
+      ref ? `No. control: ${ref}` : '',
+      grupo ? `Grupo: ${grupo}` : '',
+      opts.mensaje ? `Mensaje: ${opts.mensaje}` : '',
+      `cita_id: ${opts.citaId}`,
+    ]
+      .filter(Boolean)
+      .join('\n'),
+    date: opts.fecha,
+    time: opts.hora.slice(0, 5),
+    durationMinutes: 45,
+  })
+  if (cal.ok && cal.eventId) {
+    await db()
+      .from('reporte_cita')
+      .update({ cita_google_event_id: cal.eventId })
+      .eq('cita_id', opts.citaId)
+  } else if (!cal.skipped) {
+    console.warn('[rac] Agenda Dirección cita falló:', cal.error)
+  }
 }
 
 async function hidratar(rows: Record<string, unknown>[]) {
@@ -1212,8 +1275,17 @@ export async function accionCita(
     return { ok: true }
   }
   if (accion === 'detener') {
-    const { error } = await client.from('reporte_cita').update({ cita_status: 0 }).eq('cita_id', id)
+    const { data: detenida, error } = await client
+      .from('reporte_cita')
+      .update({ cita_status: 0 })
+      .eq('cita_id', id)
+      .select('perfil_id, cita_google_event_id')
+      .maybeSingle()
     if (error) throw new Error(error.message)
+    if (detenida && n(detenida.perfil_id) === PERFIL_MAESTRO && detenida.cita_google_event_id) {
+      const { cancelarCitaDireccionSec } = await import('@/lib/racGoogleCalendar')
+      await cancelarCitaDireccionSec(String(detenida.cita_google_event_id))
+    }
     return { ok: true }
   }
   const update: Record<string, unknown> = { cita_status: 1 }
@@ -1223,9 +1295,19 @@ export async function accionCita(
     .from('reporte_cita')
     .update(update)
     .eq('cita_id', id)
-    .select('cita_id, alumno_id, cita_tipo, cita_mensaje, cita_fecha, perfil_id')
+    .select('cita_id, alumno_id, cita_tipo, cita_mensaje, cita_fecha, perfil_id, cita_google_event_id')
     .maybeSingle()
   if (error) throw new Error(error.message)
+  if (
+    citaRow &&
+    opts?.fecha &&
+    opts?.hora &&
+    n(citaRow.perfil_id) === PERFIL_MAESTRO &&
+    citaRow.cita_google_event_id
+  ) {
+    const { moverCitaDireccionSec } = await import('@/lib/racGoogleCalendar')
+    await moverCitaDireccionSec(String(citaRow.cita_google_event_id), opts.fecha, opts.hora.slice(0, 5))
+  }
   if (citaRow && opts?.fecha && opts?.hora && n(citaRow.perfil_id) === 4) {
     await sincronizarCitaGoogleCalendar({
       citaId: id,
@@ -1403,6 +1485,8 @@ async function sincronizarCitaGoogleCalendar(opts: {
     console.warn('[rac] Google Calendar cita falló:', cal.error)
   }
 }
+
+const PERFIL_MAESTRO = 1
 
 const PERFIL_ETIQUETA: Record<number, string> = {
   1: 'MAESTRO',

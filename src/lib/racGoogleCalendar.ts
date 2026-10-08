@@ -111,3 +111,121 @@ export async function createRacCitaCalendarEvent(
     return { ok: false, error: msg }
   }
 }
+
+/** Agenda de Dirección secundaria: citas que agendan los maestros. La asistente va como invitada. */
+export const RAC_DIRECCION_SEC_CALENDAR = 'direccion.secundaria@winston93.edu.mx'
+export const RAC_DIRECCION_SEC_INVITADOS = ['asistente.secundaria@winston93.edu.mx']
+
+function rangoCita(date: string, time: string, durationMinutes: number) {
+  const [hour, minute] = time.split(':').map(Number)
+  const start = new Date(`${date}T00:00:00`)
+  start.setHours(hour, minute || 0, 0, 0)
+  const end = new Date(start.getTime() + durationMinutes * 60 * 1000)
+  return { start, end }
+}
+
+function calendarDireccion() {
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY) return null
+  return google.calendar({ version: 'v3', auth: getAuthClient(RAC_DIRECCION_SEC_CALENDAR) })
+}
+
+/** Eventos de Dirección que se cruzan con el horario (para avisar empalme). null = no se pudo revisar. */
+export async function empalmesDireccionSec(
+  date: string,
+  time: string,
+  durationMinutes = 45
+): Promise<{ resumen: string; inicio: string; fin: string }[] | null> {
+  const calendar = calendarDireccion()
+  if (!calendar) return null
+  const { start, end } = rangoCita(date, time, durationMinutes)
+  const tz = '-06:00'
+  try {
+    const res = await calendar.events.list({
+      calendarId: RAC_DIRECCION_SEC_CALENDAR,
+      timeMin: `${formatLocal(start)}${tz}`,
+      timeMax: `${formatLocal(end)}${tz}`,
+      singleEvents: true,
+      orderBy: 'startTime',
+      timeZone: 'America/Monterrey',
+      maxResults: 20,
+    })
+    return (res.data.items ?? [])
+      .filter((ev) => ev.status !== 'cancelled' && ev.transparency !== 'transparent' && ev.start?.dateTime)
+      .map((ev) => ({
+        resumen: ev.summary || 'Ocupado',
+        inicio: String(ev.start?.dateTime ?? '').slice(11, 16),
+        fin: String(ev.end?.dateTime ?? '').slice(11, 16),
+      }))
+  } catch (e) {
+    console.warn('[racGoogleCalendar] empalmes Dirección:', e instanceof Error ? e.message : e)
+    return null
+  }
+}
+
+export async function crearCitaDireccionSec(eventData: {
+  summary: string
+  description?: string
+  date: string
+  time: string
+  durationMinutes?: number
+}): Promise<{ ok: boolean; eventId?: string; error?: string; skipped?: boolean }> {
+  const calendar = calendarDireccion()
+  if (!calendar) return { ok: false, skipped: true, error: 'Sin credenciales Google Service Account' }
+  const { start, end } = rangoCita(eventData.date, eventData.time, eventData.durationMinutes ?? 45)
+  try {
+    const response = await calendar.events.insert({
+      calendarId: RAC_DIRECCION_SEC_CALENDAR,
+      sendUpdates: 'all',
+      requestBody: {
+        summary: eventData.summary,
+        description: eventData.description,
+        start: { dateTime: formatLocal(start), timeZone: 'America/Monterrey' },
+        end: { dateTime: formatLocal(end), timeZone: 'America/Monterrey' },
+        attendees: RAC_DIRECCION_SEC_INVITADOS.map((email) => ({ email })),
+      },
+    })
+    return { ok: true, eventId: response.data.id ?? undefined }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.warn('[racGoogleCalendar] crear cita Dirección:', msg)
+    return { ok: false, error: msg }
+  }
+}
+
+export async function moverCitaDireccionSec(
+  eventId: string,
+  date: string,
+  time: string,
+  durationMinutes = 45
+): Promise<boolean> {
+  const calendar = calendarDireccion()
+  if (!calendar) return false
+  const { start, end } = rangoCita(date, time, durationMinutes)
+  try {
+    await calendar.events.patch({
+      calendarId: RAC_DIRECCION_SEC_CALENDAR,
+      eventId,
+      sendUpdates: 'all',
+      requestBody: {
+        start: { dateTime: formatLocal(start), timeZone: 'America/Monterrey' },
+        end: { dateTime: formatLocal(end), timeZone: 'America/Monterrey' },
+      },
+    })
+    return true
+  } catch (e) {
+    console.warn('[racGoogleCalendar] mover cita Dirección:', e instanceof Error ? e.message : e)
+    return false
+  }
+}
+
+export async function cancelarCitaDireccionSec(eventId: string): Promise<boolean> {
+  const calendar = calendarDireccion()
+  if (!calendar) return false
+  try {
+    await calendar.events.delete({ calendarId: RAC_DIRECCION_SEC_CALENDAR, eventId, sendUpdates: 'all' })
+    return true
+  } catch (e) {
+    console.warn('[racGoogleCalendar] cancelar cita Dirección:', e instanceof Error ? e.message : e)
+    return false
+  }
+}
