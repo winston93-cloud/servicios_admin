@@ -34,6 +34,7 @@ export default function WinstonUsaCostos({ ciclo }: { ciclo: number | null }) {
   const [filas, setFilas] = useState<PagoUsaFila[]>([])
   const [tipoCambio, setTipoCambio] = useState<TipoCambio>(null)
   const [cargando, setCargando] = useState(false)
+  const [cargado, setCargado] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [mensaje, setMensaje] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -51,16 +52,23 @@ export default function WinstonUsaCostos({ ciclo }: { ciclo: number | null }) {
 
   const cargar = useCallback(async (cicloValor: number) => {
     setCargando(true)
+    setCargado(false)
     setError(null)
     setMensaje(null)
     try {
       const res = await fetch(`/api/costos/winston-usa?ciclo=${cicloValor}`)
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`)
+      if (!res.ok) {
+        throw new Error(
+          res.status === 401 || res.status === 403
+            ? 'Tu sesión no es de personal (¿entraste al portal como papá en este navegador?). Cierra sesión y vuelve a entrar con tu usuario.'
+            : (data.error ?? `Error ${res.status}`)
+        )
+      }
       aplicar(data)
+      setCargado(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error de red')
-      aplicar({})
     } finally {
       setCargando(false)
     }
@@ -114,8 +122,8 @@ export default function WinstonUsaCostos({ ciclo }: { ciclo: number | null }) {
         {ciclo != null ? ` · ciclo ${ciclo}` : ''}
       </h2>
       <p className="costos-field-hint">
-        Igual para todos los niveles. Al papá se le cobra en pesos con el tipo de cambio de Banxico del
-        día en que paga (al peso hacia arriba). Cada pago aparece en el portal desde su fecha de
+        Igual para todos los niveles. Al papá se le cobra en pesos con el tipo de cambio oficial del DOF
+        del día en que paga (al peso hacia arriba). Cada pago aparece en el portal desde su fecha de
         apertura. Se muestra solo si «Winston USA Program» está abierto en Apertura de conceptos.
       </p>
 
@@ -123,6 +131,10 @@ export default function WinstonUsaCostos({ ciclo }: { ciclo: number | null }) {
         <p className="ciclos-crud-loading">
           <Loader2 size={18} className="ciclos-crud-spin" aria-hidden />
           Cargando…
+        </p>
+      ) : !cargado ? (
+        <p className="ciclos-crud-msg ciclos-crud-msg--error" role="alert">
+          {error ?? 'No se pudieron cargar los pagos de Winston USA Program.'}
         </p>
       ) : (
         <form className="ciclos-crud-form" onSubmit={onGuardar}>
