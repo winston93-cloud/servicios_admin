@@ -55,6 +55,14 @@ import {
   aplicarCargoExtraImporte,
   obtenerCargoExtraActivo,
 } from './alumnoCargoExtraService'
+import {
+  cicloCobraUsaEnUsd,
+  hoyMonterreyIso,
+  notaConversionUsa,
+  obtenerConfigUsaCiclo,
+  pagoUsaAbierto,
+  pagoUsaDeConcepto,
+} from './winstonUsaProgramPagos'
 
 export interface FilaMatrizPortal {
   conceptoNo: string
@@ -72,6 +80,10 @@ export interface FilaMatrizPortal {
   referenciaLinea?: string | null
   facturaPdf: string | null
   facturaXml: string | null
+  /** Texto bajo el monto (p. ej. conversión USD → MXN). */
+  notaMonto?: string
+  /** El importe cambia cada día: el baucher solo vale hoy. */
+  vigenciaSoloHoy?: boolean
 }
 
 export interface SeccionMatrizPortal {
@@ -337,6 +349,14 @@ async function construirFilas(
     const referenciaLinea =
       recargo > 0 ? getDigVerif(importeLinea, semibase) : referencia
 
+    const pagoUsa = pagoUsaDeConcepto(conceptoNo)
+    const usd =
+      pagoUsa != null && precio.usaUsd
+        ? (precio.usaUsd.config.find((c) => c.pago === pagoUsa)?.monto_usd ?? 0)
+        : 0
+    const tcUsa = precio.usaUsd?.tipoCambio ?? null
+    const conversionUsa = usd > 0 && tcUsa != null && correccion == null
+
     filas.push({
       conceptoNo,
       conceptoClase: etiquetaConceptoPortal(conceptoNo, row.concepto_clase),
@@ -350,6 +370,9 @@ async function construirFilas(
       referenciaLinea,
       facturaPdf: null,
       facturaXml: null,
+      ...(conversionUsa
+        ? { notaMonto: notaConversionUsa(usd, tcUsa), vigenciaSoloHoy: true }
+        : {}),
     })
   }
 
@@ -613,10 +636,16 @@ export async function construirMatrizPortalPagos(
         filasCamRaw,
         slotsLineales(SECCION_CAMBRIDGE.conceptos)
       )
-      const filasUsa = filtrarFilasPorCandado(
-        filasUsaRaw,
-        slotsLineales(SECCION_USA.conceptos)
-      )
+      // Ciclo con montos USD: cada pago aparece desde su fecha de apertura (todos los abiertos a la vez).
+      const configUsa = conceptosUsa.length > 0 ? await obtenerConfigUsaCiclo(supabase, ciclo.valor) : []
+      const hoy = hoyMonterreyIso()
+      const filasUsa = cicloCobraUsaEnUsd(configUsa)
+        ? filasUsaRaw.filter((f) => {
+            if (f.pagado) return true
+            const pago = pagoUsaDeConcepto(f.conceptoNo)
+            return pago != null && pagoUsaAbierto(configUsa.find((c) => c.pago === pago), hoy)
+          })
+        : filtrarFilasPorCandado(filasUsaRaw, slotsLineales(SECCION_USA.conceptos))
 
       // No mostrar Cambridge/USA si el ciclo aún no tiene precio (antes inventaba $975)
       // ni renglones a $0 sin pago registrado.

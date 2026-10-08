@@ -11,6 +11,12 @@ import { normalizarConceptoNo } from '@/lib/pagoReferenciaColegiatura'
 import { esConceptoInscripcionReinscripcion } from '@/lib/nivelCobroElectronico'
 import { calcularReinscripcionDiferido } from '@/lib/portalReinscripcionService'
 import { omitirRecargosAdeudoEgresado } from '@/lib/adeudosEgresadosService'
+import {
+  cicloCobraUsaEnUsd,
+  obtenerConfigUsaCiclo,
+  pagoUsaAbierto,
+  pagoUsaDeConcepto,
+} from '@/lib/winstonUsaProgramPagos'
 
 export type ImporteElectronico = {
   importe: number
@@ -31,6 +37,18 @@ export async function resolverImportePagoElectronico(opts: {
   importeCliente?: number | string | null
 }): Promise<ImporteElectronico> {
   const conceptoNo = normalizarConceptoNo(opts.conceptoNo)
+
+  const pagoUsa = pagoUsaDeConcepto(conceptoNo)
+  if (pagoUsa != null) {
+    const configUsa = await obtenerConfigUsaCiclo(opts.db, opts.cicloEscolar)
+    if (
+      cicloCobraUsaEnUsd(configUsa) &&
+      !pagoUsaAbierto(configUsa.find((c) => c.pago === pagoUsa))
+    ) {
+      throw new Error('Este pago de Winston USA Program aún no está disponible.')
+    }
+  }
+
   const omitirRecargos = await omitirRecargosAdeudoEgresado(
     opts.db,
     opts.alumno.alumno_id,

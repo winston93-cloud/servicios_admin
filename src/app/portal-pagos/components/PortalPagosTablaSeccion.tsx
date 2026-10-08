@@ -67,6 +67,9 @@ export default function PortalPagosTablaSeccion({
                       <span className="portal-matriz-monto">
                         {fila.importe != null ? formatearMontoPortal(fila.importe) : '—'}
                       </span>
+                      {fila.notaMonto && (
+                        <span className="portal-matriz-recargo-nota">{fila.notaMonto}</span>
+                      )}
                       <button
                         type="button"
                         className="portal-pagos-btn-boucher"
@@ -165,6 +168,7 @@ export default function PortalPagosTablaSeccion({
                     recargo {formatearMontoPortal(fila.recargo ?? 0)}
                   </p>
                 )}
+                {fila.notaMonto && <p className="portal-matriz-recargo-nota">{fila.notaMonto}</p>}
               </>
             )}
             <div className="portal-matriz-card-acciones">

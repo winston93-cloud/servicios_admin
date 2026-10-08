@@ -7279,6 +7279,42 @@ html[data-theme='dark'] .servicios-sidebar-logout {
   gap: 14px 16px;
 }
 
+.costos-usa-card {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.costos-usa-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.costos-usa-pago {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  margin: 0;
+}
+
+.costos-usa-pago legend .costos-field-hint {
+  display: inline;
+  font-weight: 400;
+}
+
+@media (max-width: 1024px) {
+  .costos-usa-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .costos-usa-pago input {
+    font-size: 16px;
+    min-height: var(--touch-min, 44px);
+  }
+}
+
 .fd-fieldset {
   margin: 0 0 18px;
   padding: 14px 16px 16px;

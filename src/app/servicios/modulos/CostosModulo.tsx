@@ -8,6 +8,7 @@ import {
   etiquetaNivelPrecioBoucher,
 } from '@/lib/boucherCore'
 import ConceptosPagoCatalogo from './ConceptosPagoCatalogo'
+import WinstonUsaCostos from './WinstonUsaCostos'
 import UsuariosPinGate from '../components/UsuariosPinGate'
 
 type TabCostos = 'precios' | 'conceptos'
@@ -42,9 +43,6 @@ type FormCostos = {
   evaluacion_herramientas: string
   precio_cuota_padres: string
   precio_cambridge: string
-  precio_usa1: string
-  precio_usa2: string
-  precio_usa3: string
   descuento_cambio_nivel: string
   descuento_cambio_grado: string
 }
@@ -57,20 +55,12 @@ const FORM_VACIO: FormCostos = {
   evaluacion_herramientas: '0',
   precio_cuota_padres: '0',
   precio_cambridge: '0',
-  precio_usa1: '0',
-  precio_usa2: '0',
-  precio_usa3: '0',
   descuento_cambio_nivel: '0',
   descuento_cambio_grado: '0',
 }
 
 function filaAForm(fila: CostoFila | null | undefined): FormCostos {
   if (!fila) return { ...FORM_VACIO }
-  const porPago = [fila.precio_usa1, fila.precio_usa2, fila.precio_usa3].map((v) => Number(v) || 0)
-  // Ciclos con solo el total: se muestran sus tercios (lo que ya se cobraba).
-  const usa = porPago.some((v) => v > 0)
-    ? porPago
-    : [1, 2, 3].map(() => Math.round(((Number(fila.precio_dtitulacion) || 0) / 3) * 100) / 100)
   return {
     precio_inscripcion: String(fila.precio_inscripcion),
     precio_agosto: String(fila.precio_agosto),
@@ -79,9 +69,6 @@ function filaAForm(fila: CostoFila | null | undefined): FormCostos {
     evaluacion_herramientas: String(fila.evaluacion_herramientas),
     precio_cuota_padres: String(fila.precio_cuota_padres),
     precio_cambridge: String(fila.precio_cambridge),
-    precio_usa1: String(usa[0]),
-    precio_usa2: String(usa[1]),
-    precio_usa3: String(usa[2]),
     descuento_cambio_nivel: String(fila.descuento_cambio_nivel),
     descuento_cambio_grado: String(fila.descuento_cambio_grado),
   }
@@ -169,9 +156,11 @@ export default function CostosModulo() {
           evaluacion_herramientas: Number(form.evaluacion_herramientas),
           precio_cuota_padres: Number(form.precio_cuota_padres),
           precio_cambridge: Number(form.precio_cambridge),
-          precio_usa1: Number(form.precio_usa1),
-          precio_usa2: Number(form.precio_usa2),
-          precio_usa3: Number(form.precio_usa3),
+          // Pesos de ciclos anteriores al cobro en USD (tarjeta Winston USA Program).
+          precio_usa1: porNivel.get(nivel)?.precio_usa1 ?? 0,
+          precio_usa2: porNivel.get(nivel)?.precio_usa2 ?? 0,
+          precio_usa3: porNivel.get(nivel)?.precio_usa3 ?? 0,
+          precio_dtitulacion: porNivel.get(nivel)?.precio_dtitulacion ?? 0,
           descuento_cambio_nivel: Number(form.descuento_cambio_nivel),
           descuento_cambio_grado: Number(form.descuento_cambio_grado),
         }),
@@ -257,9 +246,6 @@ export default function CostosModulo() {
       label: 'Cambridge (total anual)',
       hint: '18/19 = mitad · 20 = total',
     },
-    { key: 'precio_usa1', label: 'Winston USA Program · Pago 1', hint: 'Concepto 23' },
-    { key: 'precio_usa2', label: 'Winston USA Program · Pago 2', hint: 'Concepto 24' },
-    { key: 'precio_usa3', label: 'Winston USA Program · Pago 3', hint: 'Concepto 25' },
     { key: 'precio_cuota_padres', label: 'Cuota de padres', hint: 'Concepto 21' },
   ]
 
@@ -366,16 +352,6 @@ export default function CostosModulo() {
                 </div>
               ))}
             </div>
-            <p className="costos-field-hint" aria-live="polite">
-              Total Winston USA Program:{' '}
-              <strong>
-                {money(
-                  (Number(form.precio_usa1) || 0) + (Number(form.precio_usa2) || 0) + (Number(form.precio_usa3) || 0)
-                )}
-              </strong>{' '}
-              (pagos 23 + 24 + 25)
-            </p>
-
             <div className="ciclos-crud-field-row">
               <div className="ciclos-crud-field">
                 <label htmlFor="costo-desc-nivel">Descuento cambio de nivel (%)</label>
@@ -555,6 +531,7 @@ export default function CostosModulo() {
             </ul>
           )}
         </section>
+        <WinstonUsaCostos ciclo={cicloEfectivo} />
       </div>
       )}
     </div>

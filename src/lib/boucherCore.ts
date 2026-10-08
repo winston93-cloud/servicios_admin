@@ -44,6 +44,11 @@ function isoFechaLocal(d: Date): string {
   return `${yyyy}-${mm}-${dd}`
 }
 
+/** Importe que cambia a diario (tipo de cambio): el baucher vence hoy. */
+export function vigenciaBoucherHoy(fecha = new Date()): string {
+  return isoFechaLocal(fecha)
+}
+
 /** Vigencia de cortesía: hoy + 7 días (tras el día 10 del concepto). */
 export function vigenciaBoucherMasUnaSemana(fecha = new Date()): string {
   const d = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + 7)

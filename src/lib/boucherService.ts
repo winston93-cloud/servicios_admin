@@ -26,6 +26,7 @@ import {
   importeInscripcionNuevoIngreso,
 } from './inscripcionNuevoIngresoDescuento'
 import { aplicarCargoExtraImporte, obtenerCargoExtraActivo } from './alumnoCargoExtraService'
+import { montoMxnDesdeUsd, resolverCobroUsaUsd, type UsaCobroUsd } from './winstonUsaProgramPagos'
 
 export interface PrecioBoucherRow {
   precio_id: number
@@ -46,6 +47,8 @@ export interface PrecioBoucherRow {
   descuento_cambio_nivel: number
   descuento_cambio_grado: number
   precio_ciclo_escolar: number
+  /** Ciclo con montos USD en usa_programa_pago: 23/24/25 se convierten a MXN con el tipo de cambio del día. */
+  usaUsd?: UsaCobroUsd | null
 }
 
 export interface ConceptoBoucherOpcion {
@@ -147,6 +150,7 @@ export async function obtenerPrecioFila(
     descuento_cambio_nivel: Number(data.descuento_cambio_nivel),
     descuento_cambio_grado: Number(data.descuento_cambio_grado),
     precio_ciclo_escolar: Number(data.precio_ciclo_escolar),
+    usaUsd: await resolverCobroUsaUsd(supabase, cicloEscolar),
   }
 }
 
@@ -170,11 +174,23 @@ export async function obtenerPorcentajeBeca(
   return data?.beca_porcentaje != null ? Number(data.beca_porcentaje) : 0
 }
 
-/** Pago 1/2/3 del Winston USA Program: monto propio, o tercio del total si el ciclo no tiene montos por pago. */
+/**
+ * Pago 1/2/3 del Winston USA Program en MXN.
+ * Ciclo con montos USD: USD × tipo de cambio del día, al peso hacia arriba (0 si no hay tipo de cambio).
+ * Si no: monto propio en pesos, o tercio del total.
+ */
 export function montoPagoWinstonUsa(
-  precio: Pick<PrecioBoucherRow, 'precio_dtitulacion' | 'precio_usa1' | 'precio_usa2' | 'precio_usa3'>,
+  precio: Pick<
+    PrecioBoucherRow,
+    'precio_dtitulacion' | 'precio_usa1' | 'precio_usa2' | 'precio_usa3' | 'usaUsd'
+  >,
   pago: 1 | 2 | 3
 ): number {
+  if (precio.usaUsd) {
+    const usd = precio.usaUsd.config.find((c) => c.pago === pago)?.monto_usd ?? 0
+    const tc = precio.usaUsd.tipoCambio
+    return usd > 0 && tc ? montoMxnDesdeUsd(usd, tc.usd_mxn) : 0
+  }
   const porPago = [precio.precio_usa1, precio.precio_usa2, precio.precio_usa3].map((v) => Number(v) || 0)
   if (porPago.some((v) => v > 0)) return porPago[pago - 1]
   return precio.precio_dtitulacion > 0 ? precio.precio_dtitulacion / 3 : 0
