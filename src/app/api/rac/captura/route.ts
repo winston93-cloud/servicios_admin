@@ -15,7 +15,8 @@ export async function GET(req: Request) {
     const url = new URL(req.url)
     const historialAlumnoId = Number(url.searchParams.get('historialAlumnoId') ?? 0)
     if (historialAlumnoId > 0) {
-      const data = await historialDetalleAlumno(historialAlumnoId, session)
+      const historialTipo = Number(url.searchParams.get('historialTipo') ?? 0)
+      const data = await historialDetalleAlumno(historialAlumnoId, session, historialTipo > 0 ? historialTipo : 0)
       return NextResponse.json(data)
     }
     const materiasGrado = Number(url.searchParams.get('materiasGrado') ?? 0)

@@ -214,6 +214,7 @@ export default function RacSecundariaPage() {
   const [historialKardex, setHistorialKardex] = useState<{
     alumno: { alumno_id: number; alumno_ref: string | number | null; nombre: string; grado: number; grupo: string }
     reportes: Record<string, unknown>[]
+    tipoEtiqueta: string
   } | null>(null)
   const [historialAlumnos, setHistorialAlumnos] = useState<AlumnoBusqueda[]>([])
   const [historialAlumnoId, setHistorialAlumnoId] = useState(0)
@@ -572,8 +573,8 @@ export default function RacSecundariaPage() {
           grupo: string
         }
         reportes: Record<string, unknown>[]
-      }>(`/api/rac/captura?historialAlumnoId=${alumnoId}`)
-      setHistorialKardex(data)
+      }>(`/api/rac/captura?historialAlumnoId=${alumnoId}&historialTipo=${tipo}`)
+      setHistorialKardex({ ...data, tipoEtiqueta: tiposSelect.find((t) => t.valor === tipo)?.etiqueta ?? '' })
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'No se pudo cargar el historial')
     } finally {
@@ -1644,7 +1645,9 @@ export default function RacSecundariaPage() {
       {historialKardex ? (
         <div className="rac-modal" role="dialog" aria-modal="true" aria-labelledby="rac-historial-title">
           <div className="rac-modal-card rac-detalle-card">
-            <h3 id="rac-historial-title">Historial de reportes</h3>
+            <h3 id="rac-historial-title">
+              Historial de reportes{historialKardex.tipoEtiqueta ? ` · ${historialKardex.tipoEtiqueta}` : ''}
+            </h3>
             <p className="rac-mini">
               {historialKardex.alumno.nombre} · {String(historialKardex.alumno.alumno_ref ?? '—')} ·{' '}
               {historialKardex.alumno.grado != null
@@ -1653,7 +1656,11 @@ export default function RacSecundariaPage() {
               {historialKardex.alumno.grupo}
             </p>
             {historialKardex.reportes.length === 0 ? (
-              <p>Sin historial en el ciclo actual.</p>
+              <p>
+                {historialKardex.tipoEtiqueta
+                  ? `Sin reportes de tipo ${historialKardex.tipoEtiqueta.toLowerCase()} en el ciclo actual.`
+                  : 'Sin historial en el ciclo actual.'}
+              </p>
             ) : (
               <div className="rac-historial-lista">
                 {historialKardex.reportes.map((r) => (

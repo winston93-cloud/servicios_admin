@@ -1312,7 +1312,8 @@ async function materiaIdsPermitidasHistorialMaestro(session: RacSesion): Promise
 }
 
 /** Historial de un alumno (kardex legacy): materia, motivo, observaciones, vuelta. */
-export async function historialDetalleAlumno(alumnoId: number, session?: RacSesion) {
+/** `tipo` > 0: solo reportes de ese tipo (historial desde Reportar); sin tipo, todo el ciclo. */
+export async function historialDetalleAlumno(alumnoId: number, session?: RacSesion, tipo = 0) {
   const ciclo = await cicloRac()
   const alumno = await cargarAlumno(alumnoId)
   if (!alumno || n(alumno.alumno_nivel) !== RAC_NIVEL_SECUNDARIA) {
@@ -1327,6 +1328,7 @@ export async function historialDetalleAlumno(alumnoId: number, session?: RacSesi
     .order('reporte_ciclo', { ascending: true })
     .order('reporte_registro', { ascending: false })
     .limit(300)
+  if (tipo > 0) q = q.eq('reporte_tipo', tipo)
   const materiaIds = session ? await materiaIdsPermitidasHistorialMaestro(session) : null
   if (materiaIds) {
     if (!materiaIds.length) {
