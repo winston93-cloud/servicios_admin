@@ -29,8 +29,8 @@ const SERIE_BANXICO = 'SF60653'
 /** SIDOF (Diario Oficial), indicador 158 = dólar; mismo dato que la serie de Banxico y sin token. */
 const DOF_INDICADOR_DOLAR = 158
 
-/** Piloto (un alumno por nivel): ven Winston USA Program aunque esté cerrado y antes de la fecha de apertura. */
-const REFS_PRUEBA_USA = new Set([21802, 21682, 20683, 20824])
+/** Piloto: refs que ven Winston USA Program aunque esté cerrado y antes de la fecha de apertura. */
+const REFS_PRUEBA_USA = new Set<number>([])
 
 export function esAlumnoPruebaUsa(alumnoRef: string | number | null | undefined): boolean {
   return REFS_PRUEBA_USA.has(Number(alumnoRef))
