@@ -27,6 +27,6 @@ export function videoEmbed(url: string): { tipo: 'iframe' | 'video'; src: string
     const id = u.pathname.match(/^\/(\d+)/)?.[1]
     return id ? { tipo: 'iframe', src: `https://player.vimeo.com/video/${id}` } : null
   }
-  if (/\.(mp4|webm)$/i.test(u.pathname)) return { tipo: 'video', src: u.toString() }
+  if (/\.(mp4|webm|mov|m4v)$/i.test(u.pathname)) return { tipo: 'video', src: u.toString() }
   return null
 }

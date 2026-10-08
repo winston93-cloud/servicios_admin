@@ -77,7 +77,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Se requieren los 3 pagos' }, { status: 400 })
     }
     const db = createDbAdmin()
-    await guardarVideoUsaCiclo(db, ciclo, body.video_url ?? null)
+    if (body.video_url !== undefined) await guardarVideoUsaCiclo(db, ciclo, body.video_url)
     const config = await guardarConfigUsaCiclo(db, ciclo, pagos)
     return respuesta(ciclo, config)
   } catch (e) {

@@ -107,7 +107,7 @@ export default function WinstonUsaBanner({ alumnoId, info, seccion }: WinstonUsa
               loading="lazy"
             />
           ) : (
-            <video src={video.src} controls preload="metadata" />
+            <video src={video.src} controls playsInline preload="metadata" />
           )}
         </div>
       ) : null}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Loader2, Save } from 'lucide-react'
+import WinstonUsaVideoCampo from './WinstonUsaVideoCampo'
 
 type PagoUsaFila = {
   pago: 1 | 2 | 3
@@ -101,7 +102,6 @@ export default function WinstonUsaCostos({ ciclo }: { ciclo: number | null }) {
             monto_usd: Number(form[p].monto_usd),
             fecha_apertura: form[p].fecha_apertura,
           })),
-          video_url: videoUrl.trim() || null,
         }),
       })
       const data = await res.json()
@@ -177,20 +177,7 @@ export default function WinstonUsaCostos({ ciclo }: { ciclo: number | null }) {
             ))}
           </div>
 
-          <div className="ciclos-crud-field">
-            <label htmlFor="usa-video-url">Video explicativo (opcional)</label>
-            <p className="costos-field-hint">
-              Enlace de YouTube, Google Drive o Vimeo. Si se deja vacío, el botón del portal no muestra video.
-            </p>
-            <input
-              id="usa-video-url"
-              type="url"
-              inputMode="url"
-              placeholder="https://www.youtube.com/watch?v=…"
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-            />
-          </div>
+          <WinstonUsaVideoCampo ciclo={ciclo} videoUrl={videoUrl} onCambio={setVideoUrl} />
 
           <p className="costos-field-hint" aria-live="polite">
             Total: <strong>USD ${totalUsd.toLocaleString('en-US', { maximumFractionDigits: 2 })}</strong>
