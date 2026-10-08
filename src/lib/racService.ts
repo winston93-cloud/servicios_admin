@@ -759,17 +759,10 @@ export async function capturarCita(opts: {
   mensaje: string
   fecha: string
   hora: string
-  /** El maestro ya vio el aviso de empalme con la agenda de Dirección y decidió guardar. */
-  confirmarEmpalme?: boolean
 }) {
   const ciclo = await cicloRac()
   await assertAlumnoSecundaria(opts.alumnoId)
   const agendaDireccion = opts.session.role === 'maestro' && Boolean(opts.fecha && opts.hora)
-  if (agendaDireccion && !opts.confirmarEmpalme) {
-    const { empalmesDireccionSec } = await import('@/lib/racGoogleCalendar')
-    const empalmes = await empalmesDireccionSec(opts.fecha, opts.hora.slice(0, 5))
-    if (empalmes?.length) return { empalme: empalmes }
-  }
   const { data, error } = await db()
     .from('reporte_cita')
     .insert({

@@ -56,7 +56,6 @@ export async function POST(req: Request) {
       mensaje?: string
       fecha?: string
       hora?: string
-      confirmarEmpalme?: boolean
     }
     const accion = body.accion ?? 'reporte'
     if (accion === 'informe') {
@@ -78,7 +77,6 @@ export async function POST(req: Request) {
         mensaje: String(body.mensaje ?? ''),
         fecha: String(body.fecha ?? ''),
         hora: String(body.hora ?? '09:00'),
-        confirmarEmpalme: body.confirmarEmpalme === true,
       })
       return NextResponse.json({ ok: true, ...data })
     }

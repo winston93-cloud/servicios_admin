@@ -129,39 +129,6 @@ function calendarDireccion() {
   return google.calendar({ version: 'v3', auth: getAuthClient(RAC_DIRECCION_SEC_CALENDAR) })
 }
 
-/** Eventos de Dirección que se cruzan con el horario (para avisar empalme). null = no se pudo revisar. */
-export async function empalmesDireccionSec(
-  date: string,
-  time: string,
-  durationMinutes = 45
-): Promise<{ resumen: string; inicio: string; fin: string }[] | null> {
-  const calendar = calendarDireccion()
-  if (!calendar) return null
-  const { start, end } = rangoCita(date, time, durationMinutes)
-  const tz = '-06:00'
-  try {
-    const res = await calendar.events.list({
-      calendarId: RAC_DIRECCION_SEC_CALENDAR,
-      timeMin: `${formatLocal(start)}${tz}`,
-      timeMax: `${formatLocal(end)}${tz}`,
-      singleEvents: true,
-      orderBy: 'startTime',
-      timeZone: 'America/Monterrey',
-      maxResults: 20,
-    })
-    return (res.data.items ?? [])
-      .filter((ev) => ev.status !== 'cancelled' && ev.transparency !== 'transparent' && ev.start?.dateTime)
-      .map((ev) => ({
-        resumen: ev.summary || 'Ocupado',
-        inicio: String(ev.start?.dateTime ?? '').slice(11, 16),
-        fin: String(ev.end?.dateTime ?? '').slice(11, 16),
-      }))
-  } catch (e) {
-    console.warn('[racGoogleCalendar] empalmes Dirección:', e instanceof Error ? e.message : e)
-    return null
-  }
-}
-
 export async function crearCitaDireccionSec(eventData: {
   summary: string
   description?: string
