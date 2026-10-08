@@ -85,7 +85,7 @@ export const REPORTE_CATEGORIAS: ReporteCategoria[] = [
   {
     id: 'reportes-especiales',
     titulo: 'Reportes especiales',
-    subtitulo: 'Doble titulación y reportes de ciclo histórico',
+    subtitulo: 'Winston USA Program y reportes de ciclo histórico',
     orden: 7,
   },
   {
@@ -364,12 +364,12 @@ export const REPORTE_ENTRADAS: ReporteCatalogEntry[] = [
   {
     id: 'doble-titulacion',
     categoriaId: 'reportes-especiales',
-    titulo: 'Doble titulación',
+    titulo: 'Winston USA Program',
     descripcion: 'Alumnos con pagos 23/24/25 del ciclo seleccionado (Winston USA).',
     accent: 'emerald',
     motor: 'api-next',
     usaCiclo: 'libre',
-    keywords: ['doble', 'titulacion', 'especiales', 'usa'],
+    keywords: ['winston', 'usa', 'program', 'doble', 'titulacion', 'especiales'],
   },
   {
     id: 'cuota-inicio-curso',

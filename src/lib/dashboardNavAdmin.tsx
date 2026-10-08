@@ -211,7 +211,7 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     desc: 'Alumnos, pagos en USD, cartas de bienvenida y expediente documental de Winston–Hökku Academy.',
     href: urlUsaProgramApp(),
     accent: 'sky',
-    kicker: 'Doble titulación',
+    kicker: 'Winston USA Program',
     tags: ['Pagos USD', 'Expediente', 'Control Escolar'],
     badge: 'Nuevo',
     icon: (

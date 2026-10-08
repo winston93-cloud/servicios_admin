@@ -149,11 +149,11 @@ export function getPaymentConcept(conceptoNo: string): string {
     case '22':
       return 'Certificación Cambridge 3'
     case '23':
-      return 'Doble Titulación 1'
+      return 'Winston USA Program 1'
     case '24':
-      return 'Doble Titulación 2'
+      return 'Winston USA Program 2'
     case '25':
-      return 'Doble Titulación 3'
+      return 'Winston USA Program 3'
     case '26':
       return 'Colegiatura Julio'
     case '30':

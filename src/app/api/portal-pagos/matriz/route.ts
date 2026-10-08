@@ -115,7 +115,7 @@ export async function POST(request: Request) {
     }
 
     // Becados al 100%: colegiaturas del ciclo quedan cubiertas (importe 0).
-    // No aplica al adeudo opcional de doble titulación.
+    // No aplica al adeudo opcional de Winston USA Program.
     let becaCero: Awaited<ReturnType<typeof asegurarColegiaturasBecaCompletaCero>> = {
       insertados: [],
       becaCompleta: false,

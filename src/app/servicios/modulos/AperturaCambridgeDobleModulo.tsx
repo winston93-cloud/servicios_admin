@@ -77,7 +77,7 @@ export default function AperturaCambridgeDobleModulo() {
   return (
     <div className="servicios-panel-inner">
       <header className="servicios-panel-header servicios-panel-header--compact">
-        <h1 className="servicios-panel-title">Apertura Cambridge / Doble titulación</h1>
+        <h1 className="servicios-panel-title">Apertura Cambridge / Winston USA Program</h1>
         <p className="servicios-panel-lead">
           Controla si esos conceptos aparecen en el portal de pagos de papás. Por ahora solo
           interruptores globales; más adelante se afinan las reglas por grado.
@@ -116,7 +116,7 @@ export default function AperturaCambridgeDobleModulo() {
                 onChange={(e) => setDoble(e.target.checked)}
               />
               <span>
-                <strong>Doble titulación (Winston USA)</strong>
+                <strong>Winston USA Program</strong>
                 <span className="costos-field-hint">
                   Conceptos 23 / 24 / 25. Regla prevista: 1.º de primaria a 9.º de secundaria,
                   opcional si el papá lo desea.

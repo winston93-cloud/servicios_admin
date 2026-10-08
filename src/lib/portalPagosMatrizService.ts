@@ -100,7 +100,7 @@ const SECCION_CAMBRIDGE = {
   conceptos: ['19', '20', '22'],
 } as const
 
-/** En UI: Doble titulación (conceptos 23/24/25). */
+/** En UI: Winston USA Program (conceptos 23/24/25). */
 const SECCION_USA = {
   id: 'winston-usa',
   titulo: 'Winston USA Program',
@@ -402,7 +402,7 @@ export async function construirMatrizPortalPagos(
     ciclo.valor
   )
 
-  // Adeudo opcional de doble titulación de un ciclo anterior (no bloquea inscripción).
+  // Adeudo opcional de Winston USA Program de un ciclo anterior (no bloquea inscripción).
   if (soloDobleAdeudoPrevio) {
     const planMeses = await resolverPlanMesesParaCiclo(supabase, alumno, ciclo.valor, pagos)
     const conceptosUsa = await listarConceptosPorNumeros(supabase, [...SECCION_USA.conceptos])
@@ -431,7 +431,7 @@ export async function construirMatrizPortalPagos(
           ? [
               {
                 id: 'doble-adeudo-previo',
-                titulo: `Doble titulación · ciclo ${ciclo.nombre}`,
+                titulo: `Winston USA Program · ciclo ${ciclo.nombre}`,
                 filas: filasUsa,
               },
             ]

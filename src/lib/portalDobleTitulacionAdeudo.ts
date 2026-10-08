@@ -1,11 +1,11 @@
 import type { PagoDetalleRegistro } from './pagoColegiaturaService'
 import { alumnoTienePagoSemiref } from './portalAdmisionesColegiatura'
 
-/** Conceptos Winston USA / Doble titulación (tercios). */
+/** Conceptos Winston USA Program (tercios). */
 export const CONCEPTOS_DOBLE_TITULACION = ['23', '24', '25'] as const
 
 /**
- * Adeudo parcial de doble titulación en un ciclo:
+ * Adeudo parcial de Winston USA Program en un ciclo:
  * ya empezó el programa (al menos un pago) y aún le faltan tercios.
  * Así solo aparece a quienes deben (p. ej. los 2 del reporte ciclo 22),
  * no a todo el alumnado ni a quienes ya liquidaron los 3.

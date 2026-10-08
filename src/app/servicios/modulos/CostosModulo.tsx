@@ -243,7 +243,7 @@ export default function CostosModulo() {
     },
     {
       key: 'precio_dtitulacion',
-      label: 'Doble titulación (total)',
+      label: 'Winston USA Program (total)',
       hint: '23 / 24 / 25 = tercio cada uno',
     },
     { key: 'precio_cuota_padres', label: 'Cuota de padres', hint: 'Concepto 21' },

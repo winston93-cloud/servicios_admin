@@ -102,7 +102,7 @@ export interface EstadoPortalInscripciones {
   /** Reinscritos: liquidar ciclo anterior antes de la admisión. NI = null. */
   cierreCiclo?: CierreCicloPortal | null
   /**
-   * Adeudo opcional de doble titulación (23/24/25) de un ciclo anterior.
+   * Adeudo opcional de Winston USA Program (23/24/25) de un ciclo anterior.
    * No bloquea inscripción ni colegiaturas del ciclo nuevo.
    */
   dobleAdeudoPrevio?: {

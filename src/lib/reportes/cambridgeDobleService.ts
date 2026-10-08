@@ -166,7 +166,7 @@ export async function cargarReporteDoble(cicloEscolar: number) {
   const ids = [...pagosPorAlumno.keys()]
   if (!ids.length) {
     return {
-      titulo: 'Doble titulación',
+      titulo: 'Winston USA Program',
       cicloLabel: etiquetaCicloReporte(cicloEscolar),
       filas: [] as {
         no: number
@@ -250,7 +250,7 @@ export async function cargarReporteDoble(cicloEscolar: number) {
   }
 
   return {
-    titulo: 'Doble titulación',
+    titulo: 'Winston USA Program',
     cicloLabel: etiquetaCicloReporte(cicloEscolar),
     filas,
   }

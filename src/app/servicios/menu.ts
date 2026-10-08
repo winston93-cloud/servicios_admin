@@ -116,7 +116,7 @@ export const SERVICIOS_MENU: ServiciosMenuEntry[] = [
   {
     type: 'leaf',
     id: 'apertura-cambridge-doble',
-    label: 'Apertura Cambridge / Doble titulación',
+    label: 'Apertura Cambridge / Winston USA Program',
     icon: BookOpenCheck,
   },
   {

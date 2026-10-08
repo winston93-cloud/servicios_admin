@@ -379,7 +379,7 @@ export default function PortalInscripcionesView() {
         const data = await res.json()
         if (!res.ok) {
           setMatrizDoble(null)
-          setErrorMatrizDoble(data.error ?? 'No se pudo cargar doble titulación.')
+          setErrorMatrizDoble(data.error ?? 'No se pudo cargar Winston USA Program.')
         } else {
           const m = data.matriz as MatrizPortalPagos
           // Si ya liquidó los 3, la sección viene vacía → ocultar.
@@ -387,7 +387,7 @@ export default function PortalInscripcionesView() {
         }
       } catch {
         setMatrizDoble(null)
-        setErrorMatrizDoble('Error de conexión al cargar doble titulación.')
+        setErrorMatrizDoble('Error de conexión al cargar Winston USA Program.')
       }
       setCargandoMatrizDoble(false)
     },
@@ -781,15 +781,15 @@ export default function PortalInscripcionesView() {
           <section
             id="doble-adeudo-previo"
             className="portal-inscripciones-colegiaturas-seccion"
-            aria-label={`Doble titulación ciclo ${dobleAdeudo.ciclo.nombre}`}
+            aria-label={`Winston USA Program ciclo ${dobleAdeudo.ciclo.nombre}`}
           >
             <div className="portal-inscripciones-colegiaturas-head">
               <div>
                 <h2 className="portal-inscripciones-colegiaturas-titulo">
-                  Doble titulación · ciclo {dobleAdeudo.ciclo.nombre}
+                  Winston USA Program · ciclo {dobleAdeudo.ciclo.nombre}
                 </h2>
                 <p className="portal-inscripciones-colegiaturas-sub">
-                  Tienes pagos pendientes de Doble titulación (Winston USA) de ese ciclo. Es
+                  Tienes pagos pendientes de Winston USA Program de ese ciclo. Es
                   opcional: no bloquea tu inscripción ni las colegiaturas del ciclo actual.
                   Cuando liquides los 3 pagos, esta sección desaparece.
                 </p>
@@ -800,7 +800,7 @@ export default function PortalInscripcionesView() {
             {cargandoMatrizDoble && !matrizDoble ? (
               <div className="portal-inscripciones-estado" role="status">
                 <RefreshCw size={20} className="portal-inscripciones-spin" aria-hidden />
-                Cargando pagos de doble titulación…
+                Cargando pagos de Winston USA Program…
               </div>
             ) : errorMatrizDoble ? (
               <div
