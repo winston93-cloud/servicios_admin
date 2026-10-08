@@ -19409,6 +19409,66 @@ html[data-theme='light'] .portal-doc-modal-xml {
   justify-content: flex-end;
 }
 
+.portal-usa-aviso {
+  width: min(560px, 100%);
+  max-height: min(92vh, 720px);
+  border-color: rgba(var(--winston-cyan-rgb), 0.25);
+}
+
+.portal-usa-aviso-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1.1rem 1.25rem;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.portal-usa-aviso-body p {
+  margin: 0 0 0.75rem;
+}
+
+.portal-usa-aviso-body p:last-child {
+  margin-bottom: 0;
+}
+
+.portal-usa-aviso-foot {
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.portal-usa-aviso-foot .portal-pagos-btn-sec,
+.portal-usa-aviso-foot .portal-pagos-btn-prim {
+  min-height: 40px;
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 640px) {
+  .portal-doc-modal-overlay:has(.portal-usa-aviso) {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .portal-usa-aviso {
+    border-radius: 16px 16px 0 0;
+    max-height: 88vh;
+  }
+
+  .portal-usa-aviso-foot {
+    flex-direction: column-reverse;
+  }
+
+  .portal-usa-aviso-foot .portal-pagos-btn-sec,
+  .portal-usa-aviso-foot .portal-pagos-btn-prim {
+    width: 100%;
+    justify-content: center;
+    min-height: var(--touch-min, 44px);
+  }
+}
+
 .portal-doc-modal-link-ext {
   font-size: 0.8125rem;
   color: var(--accent-gold, #d4af37);

@@ -1,8 +1,13 @@
 'use client'
 
+import { useCallback, useState } from 'react'
 import type { FilaMatrizPortal, SeccionMatrizPortal } from '@/lib/portalPagosMatrizService'
 import { formatearMontoPortal } from '@/lib/portalPagosService'
+import { normalizarConceptoNo } from '@/lib/pagoReferenciaColegiatura'
 import { FileText, Printer, CreditCard, Code2 } from 'lucide-react'
+import WinstonUsaAvisoModal from './WinstonUsaAvisoModal'
+
+const PAGO_USA: Record<string, 1 | 2 | 3> = { '23': 1, '24': 2, '25': 3 }
 
 interface PortalPagosTablaSeccionProps {
   seccion: SeccionMatrizPortal
@@ -16,11 +21,27 @@ interface PortalPagosTablaSeccionProps {
 export default function PortalPagosTablaSeccion({
   seccion,
   generandoBoucher,
-  onImprimirBoucher,
-  onPagoEnLinea,
+  onImprimirBoucher: imprimirDirecto,
+  onPagoEnLinea: pagoEnLineaDirecto,
   onVerPdf,
   onVerXml,
 }: PortalPagosTablaSeccionProps) {
+  const [avisoUsa, setAvisoUsa] = useState<{ fila: FilaMatrizPortal; continuar: () => void } | null>(
+    null
+  )
+
+  // Winston USA Program: el papá confirma el aviso antes de imprimir o pagar.
+  const conAvisoUsa = (accion: (fila: FilaMatrizPortal) => void) => (fila: FilaMatrizPortal) => {
+    if (PAGO_USA[normalizarConceptoNo(fila.conceptoNo)]) {
+      setAvisoUsa({ fila, continuar: () => accion(fila) })
+    } else {
+      accion(fila)
+    }
+  }
+  const cerrarAvisoUsa = useCallback(() => setAvisoUsa(null), [])
+  const onImprimirBoucher = conAvisoUsa(imprimirDirecto)
+  const onPagoEnLinea = conAvisoUsa(pagoEnLineaDirecto)
+
   if (seccion.filas.length === 0) return null
 
   const mostrarEncabezadoSeccion = seccion.id !== 'colegiatura'
@@ -217,6 +238,18 @@ export default function PortalPagosTablaSeccion({
           </li>
         ))}
       </ul>
+
+      <WinstonUsaAvisoModal
+        abierto={avisoUsa != null}
+        pago={avisoUsa ? PAGO_USA[normalizarConceptoNo(avisoUsa.fila.conceptoNo)] : 1}
+        concepto={avisoUsa?.fila.conceptoClase ?? ''}
+        onCancelar={cerrarAvisoUsa}
+        onContinuar={() => {
+          const continuar = avisoUsa?.continuar
+          setAvisoUsa(null)
+          continuar?.()
+        }}
+      />
     </section>
   )
 }
