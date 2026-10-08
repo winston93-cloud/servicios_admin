@@ -13,6 +13,7 @@ import { calcularReinscripcionDiferido } from '@/lib/portalReinscripcionService'
 import { omitirRecargosAdeudoEgresado } from '@/lib/adeudosEgresadosService'
 import {
   cicloCobraUsaEnUsd,
+  esAlumnoPruebaUsa,
   obtenerConfigUsaCiclo,
   pagoUsaAbierto,
   pagoUsaDeConcepto,
@@ -39,7 +40,7 @@ export async function resolverImportePagoElectronico(opts: {
   const conceptoNo = normalizarConceptoNo(opts.conceptoNo)
 
   const pagoUsa = pagoUsaDeConcepto(conceptoNo)
-  if (pagoUsa != null) {
+  if (pagoUsa != null && !esAlumnoPruebaUsa(opts.alumno.alumno_ref)) {
     const configUsa = await obtenerConfigUsaCiclo(opts.db, opts.cicloEscolar)
     if (
       cicloCobraUsaEnUsd(configUsa) &&

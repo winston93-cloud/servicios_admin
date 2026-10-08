@@ -26,6 +26,15 @@ export interface TipoCambioDia {
 
 /** Banxico SIE: tipo de cambio para solventar obligaciones en moneda extranjera (publicado en el DOF). */
 const SERIE_BANXICO = 'SF60653'
+/** SIDOF (Diario Oficial), indicador 158 = dólar; mismo dato que la serie de Banxico y sin token. */
+const DOF_INDICADOR_DOLAR = 158
+
+/** Piloto (un alumno por nivel): ven Winston USA Program aunque esté cerrado y antes de la fecha de apertura. */
+const REFS_PRUEBA_USA = new Set([21802, 21682, 20683, 20824])
+
+export function esAlumnoPruebaUsa(alumnoRef: string | number | null | undefined): boolean {
+  return REFS_PRUEBA_USA.has(Number(alumnoRef))
+}
 /** Si Banxico no responde, usar el último guardado si no es más viejo que esto. */
 const DIAS_MAX_RESPALDO = 5
 
@@ -107,6 +116,39 @@ function restarDiasIso(iso: string, dias: number): string {
   return d.toISOString().slice(0, 10)
 }
 
+function isoADof(iso: string): string {
+  const [y, m, d] = iso.split('-')
+  return `${d}-${m}-${y}`
+}
+
+async function consultarDof(hoy: string): Promise<{ usd_mxn: number; fecha_dato: string } | null> {
+  const desde = restarDiasIso(hoy, 10)
+  const url = `https://sidof.segob.gob.mx/dof/sidof/indicadores/${DOF_INDICADOR_DOLAR}/${isoADof(desde)}/${isoADof(hoy)}`
+  try {
+    const res = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) return null
+    const json = (await res.json()) as {
+      ListaIndicadores?: { fecha: string; valor: string; codTipoIndicador?: number }[]
+    }
+    let mejor: { usd_mxn: number; fecha_dato: string } | null = null
+    for (const d of json.ListaIndicadores ?? []) {
+      if (d.codTipoIndicador != null && Number(d.codTipoIndicador) !== DOF_INDICADOR_DOLAR) continue
+      const m = String(d.fecha).match(/^(\d{2})-(\d{2})-(\d{4})$/)
+      const fecha = m ? `${m[3]}-${m[2]}-${m[1]}` : null
+      const valor = Number(String(d.valor).replace(/,/g, ''))
+      if (!fecha || fecha > hoy || !(valor > 0)) continue
+      if (!mejor || fecha > mejor.fecha_dato) mejor = { usd_mxn: valor, fecha_dato: fecha }
+    }
+    return mejor
+  } catch {
+    return null
+  }
+}
+
 async function consultarBanxico(hoy: string): Promise<{ usd_mxn: number; fecha_dato: string } | null> {
   const token = process.env.BANXICO_SIE_TOKEN?.trim()
   if (!token) return null
@@ -169,8 +211,11 @@ export async function obtenerTipoCambioUsdHoy(
   if (existente) return guardar(filaATipoCambio(existente), 60 * 60 * 1000)
 
   let nuevo: TipoCambioDia | null = null
-  const banxico = await consultarBanxico(hoy)
-  if (banxico) {
+  const dof = await consultarDof(hoy)
+  const banxico = dof ? null : await consultarBanxico(hoy)
+  if (dof) {
+    nuevo = { fecha: hoy, ...dof, fuente: `dof:${DOF_INDICADOR_DOLAR}` }
+  } else if (banxico) {
     nuevo = { fecha: hoy, ...banxico, fuente: `banxico:${SERIE_BANXICO}` }
   } else {
     const { data: ultimo } = await db

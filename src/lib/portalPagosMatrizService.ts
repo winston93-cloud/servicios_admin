@@ -57,6 +57,7 @@ import {
 } from './alumnoCargoExtraService'
 import {
   cicloCobraUsaEnUsd,
+  esAlumnoPruebaUsa,
   hoyMonterreyIso,
   notaConversionUsa,
   obtenerConfigUsaCiclo,
@@ -594,13 +595,15 @@ export async function construirMatrizPortalPagos(
 
   if (!soloColegiatura) {
     const apertura = await obtenerAperturaConceptosPortal(supabase)
+    const pruebaUsa = esAlumnoPruebaUsa(alumno.alumno_ref)
+    const usaAbierto = apertura.doble_titulacion_abierto || pruebaUsa
 
-    if (apertura.cambridge_abierto || apertura.doble_titulacion_abierto) {
+    if (apertura.cambridge_abierto || usaAbierto) {
       const [conceptosCam, conceptosUsa] = await Promise.all([
         apertura.cambridge_abierto
           ? listarConceptosPorNumeros(supabase, [...SECCION_CAMBRIDGE.conceptos])
           : Promise.resolve([]),
-        apertura.doble_titulacion_abierto
+        usaAbierto
           ? listarConceptosPorNumeros(supabase, [...SECCION_USA.conceptos])
           : Promise.resolve([]),
       ])
@@ -641,7 +644,7 @@ export async function construirMatrizPortalPagos(
       const hoy = hoyMonterreyIso()
       const filasUsa = cicloCobraUsaEnUsd(configUsa)
         ? filasUsaRaw.filter((f) => {
-            if (f.pagado) return true
+            if (f.pagado || pruebaUsa) return true
             const pago = pagoUsaDeConcepto(f.conceptoNo)
             return pago != null && pagoUsaAbierto(configUsa.find((c) => c.pago === pago), hoy)
           })
@@ -657,7 +660,7 @@ export async function construirMatrizPortalPagos(
         })
       }
 
-      if (apertura.doble_titulacion_abierto && seccionTieneCobroReal(filasUsa)) {
+      if (usaAbierto && seccionTieneCobroReal(filasUsa)) {
         secciones.push({
           id: SECCION_USA.id,
           titulo: SECCION_USA.titulo,

@@ -168,10 +168,14 @@ export default function WinstonUsaCostos({ ciclo }: { ciclo: number | null }) {
             {tipoCambio ? (
               <>
                 Tipo de cambio de hoy: <strong>{tipoCambio.usd_mxn.toFixed(4)}</strong>
-                {tipoCambio.fuente.startsWith('respaldo') ? ' (respaldo: Banxico no respondió)' : ' (Banxico)'}
+                {tipoCambio.fuente.startsWith('respaldo')
+                  ? ' (respaldo: el DOF no respondió, se usa el último guardado)'
+                  : tipoCambio.fuente.startsWith('dof')
+                    ? ' (DOF)'
+                    : ' (Banxico)'}
               </>
             ) : (
-              <>Sin tipo de cambio disponible: los pagos no se muestran a papás hasta que Banxico responda.</>
+              <>Sin tipo de cambio disponible: los pagos no se muestran a papás hasta que el DOF responda.</>
             )}
           </p>
 
