@@ -11,7 +11,11 @@ export type CostoBoucherInput = {
   precio_material: number
   precio_cuota_padres: number
   precio_cambridge: number
+  /** Total del Winston USA Program; si vienen montos por pago, se guarda su suma. */
   precio_dtitulacion: number
+  precio_usa1: number
+  precio_usa2: number
+  precio_usa3: number
   descuento_cambio_nivel: number
   descuento_cambio_grado: number
 }
@@ -29,6 +33,9 @@ function mapRow(data: Record<string, unknown>): PrecioBoucherRow {
     precio_colegiatura2: Number(data.precio_colegiatura2),
     precio_cambridge: Number(data.precio_cambridge),
     precio_dtitulacion: Number(data.precio_dtitulacion),
+    precio_usa1: Number(data.precio_usa1 ?? 0),
+    precio_usa2: Number(data.precio_usa2 ?? 0),
+    precio_usa3: Number(data.precio_usa3 ?? 0),
     descuento_cambio_nivel: Number(data.descuento_cambio_nivel),
     descuento_cambio_grado: Number(data.descuento_cambio_grado),
     precio_ciclo_escolar: Number(data.precio_ciclo_escolar),
@@ -94,6 +101,9 @@ function normalizarMontos(input: CostoBoucherInput): CostoBoucherInput {
     precio_cuota_padres: n(input.precio_cuota_padres),
     precio_cambridge: n(input.precio_cambridge),
     precio_dtitulacion: n(input.precio_dtitulacion),
+    precio_usa1: n(input.precio_usa1 ?? 0),
+    precio_usa2: n(input.precio_usa2 ?? 0),
+    precio_usa3: n(input.precio_usa3 ?? 0),
     descuento_cambio_nivel: pct(input.descuento_cambio_nivel),
     descuento_cambio_grado: pct(input.descuento_cambio_grado),
   }
@@ -113,6 +123,7 @@ export async function upsertPrecioBoucher(
   }
 
   const montos = normalizarMontos(input)
+  const sumaUsa = Math.round((montos.precio_usa1 + montos.precio_usa2 + montos.precio_usa3) * 100) / 100
   const existente = await obtenerPrecioFila(db, nivel, cicloEscolar)
 
   const payload = {
@@ -127,7 +138,10 @@ export async function upsertPrecioBoucher(
     precio_seguro: 0,
     precio_cuota_padres: montos.precio_cuota_padres,
     precio_cambridge: montos.precio_cambridge,
-    precio_dtitulacion: montos.precio_dtitulacion,
+    precio_dtitulacion: sumaUsa > 0 ? sumaUsa : montos.precio_dtitulacion,
+    precio_usa1: montos.precio_usa1,
+    precio_usa2: montos.precio_usa2,
+    precio_usa3: montos.precio_usa3,
     descuento_cambio_nivel: montos.descuento_cambio_nivel,
     descuento_cambio_grado: montos.descuento_cambio_grado,
   }
@@ -187,6 +201,9 @@ export async function copiarPreciosCiclo(
       precio_cuota_padres: fila.precio_cuota_padres,
       precio_cambridge: fila.precio_cambridge,
       precio_dtitulacion: fila.precio_dtitulacion,
+      precio_usa1: fila.precio_usa1,
+      precio_usa2: fila.precio_usa2,
+      precio_usa3: fila.precio_usa3,
       descuento_cambio_nivel: fila.descuento_cambio_nivel,
       descuento_cambio_grado: fila.descuento_cambio_grado,
     })

@@ -66,6 +66,9 @@ export async function PUT(request: Request) {
       precio_cuota_padres: Number(body.precio_cuota_padres ?? 0),
       precio_cambridge: Number(body.precio_cambridge ?? 0),
       precio_dtitulacion: Number(body.precio_dtitulacion ?? 0),
+      precio_usa1: Number(body.precio_usa1 ?? 0),
+      precio_usa2: Number(body.precio_usa2 ?? 0),
+      precio_usa3: Number(body.precio_usa3 ?? 0),
       descuento_cambio_nivel: Number(body.descuento_cambio_nivel ?? 0),
       descuento_cambio_grado: Number(body.descuento_cambio_grado ?? 0),
     }

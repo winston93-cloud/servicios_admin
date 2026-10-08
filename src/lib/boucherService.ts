@@ -39,6 +39,10 @@ export interface PrecioBoucherRow {
   precio_colegiatura2: number
   precio_cambridge: number
   precio_dtitulacion: number
+  /** Winston USA Program por pago (23/24/25). En 0 los tres → tercio de precio_dtitulacion. */
+  precio_usa1: number
+  precio_usa2: number
+  precio_usa3: number
   descuento_cambio_nivel: number
   descuento_cambio_grado: number
   precio_ciclo_escolar: number
@@ -137,6 +141,9 @@ export async function obtenerPrecioFila(
     precio_colegiatura2: Number(data.precio_colegiatura2),
     precio_cambridge: Number(data.precio_cambridge),
     precio_dtitulacion: Number(data.precio_dtitulacion),
+    precio_usa1: Number(data.precio_usa1 ?? 0),
+    precio_usa2: Number(data.precio_usa2 ?? 0),
+    precio_usa3: Number(data.precio_usa3 ?? 0),
     descuento_cambio_nivel: Number(data.descuento_cambio_nivel),
     descuento_cambio_grado: Number(data.descuento_cambio_grado),
     precio_ciclo_escolar: Number(data.precio_ciclo_escolar),
@@ -161,6 +168,16 @@ export async function obtenerPorcentajeBeca(
     .maybeSingle()
 
   return data?.beca_porcentaje != null ? Number(data.beca_porcentaje) : 0
+}
+
+/** Pago 1/2/3 del Winston USA Program: monto propio, o tercio del total si el ciclo no tiene montos por pago. */
+export function montoPagoWinstonUsa(
+  precio: Pick<PrecioBoucherRow, 'precio_dtitulacion' | 'precio_usa1' | 'precio_usa2' | 'precio_usa3'>,
+  pago: 1 | 2 | 3
+): number {
+  const porPago = [precio.precio_usa1, precio.precio_usa2, precio.precio_usa3].map((v) => Number(v) || 0)
+  if (porPago.some((v) => v > 0)) return porPago[pago - 1]
+  return precio.precio_dtitulacion > 0 ? precio.precio_dtitulacion / 3 : 0
 }
 
 /** Monto de lista (sin beca) y si el concepto admite descuento Winston. */
@@ -203,8 +220,7 @@ export function montoBaseConcepto(
     montoNormal = 0
     admiteBecaWinston = false
   } else if (c === '23' || c === '24' || c === '25') {
-    const tercio = precio.precio_dtitulacion > 0 ? precio.precio_dtitulacion / 3 : 0
-    montoNormal = tercio
+    montoNormal = montoPagoWinstonUsa(precio, c === '23' ? 1 : c === '24' ? 2 : 3)
     admiteBecaWinston = false
   } else {
     montoNormal =
