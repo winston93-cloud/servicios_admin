@@ -1,4 +1,5 @@
 import type { AppDatabaseClient } from '@/lib/dbTypes'
+import { insertarPagoDetalleConReintento } from './pagoDetalleInsert'
 import type { DetalleErrorPayw2 } from './banortePaywErrors'
 import type { RespuestaPayw2 } from './banortePayw2'
 import { formatearAlumnoRefParaReferencia, normalizarConceptoNo } from './pagoReferenciaColegiatura'
@@ -49,18 +50,6 @@ export async function obtenerMontoPendienteBanorte(
 
   if (data?.monto == null) return null
   return Number(data.monto)
-}
-
-async function obtenerMaxPagoId(supabase: AppDatabaseClient): Promise<number> {
-  const { data, error } = await supabase
-    .from('pago_detalle')
-    .select('pago_id')
-    .order('pago_id', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (error || data?.pago_id == null) return 0
-  return Number(data.pago_id)
 }
 
 /**
@@ -211,12 +200,10 @@ export async function registrarPagoBanorteExitoso(
     return { ok: false, mensaje: 'No se encontró el alumno para esta referencia.' }
   }
 
-  const pagoId = (await obtenerMaxPagoId(supabase)) + 1
   const ahora = new Date().toISOString()
   const hoy = ahora.slice(0, 10)
 
-  const { error } = await supabase.from('pago_detalle').insert({
-    pago_id: pagoId,
+  const { error } = await insertarPagoDetalleConReintento(supabase, {
     alumno_id: alumno.alumno_id,
     pago_nombre: alumno.pago_nombre,
     pago_referencia: ref,

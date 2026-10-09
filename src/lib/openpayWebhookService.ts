@@ -1,4 +1,5 @@
 import type { AppDatabaseClient } from '@/lib/dbTypes'
+import { insertarPagoDetalleConReintento } from './pagoDetalleInsert'
 import { formatearAlumnoRefParaReferencia, normalizarConceptoNo } from './pagoReferenciaColegiatura'
 import type { OpenpayCuenta } from './portalPagosSpei'
 import {
@@ -74,18 +75,6 @@ async function existePagoPorReferencia(
   return (count ?? 0) > 0
 }
 
-async function obtenerMaxPagoId(supabase: AppDatabaseClient): Promise<number> {
-  const { data, error } = await supabase
-    .from('pago_detalle')
-    .select('pago_id')
-    .order('pago_id', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (error || data?.pago_id == null) return 0
-  return Number(data.pago_id)
-}
-
 async function buscarAlumnoPorReferencia(
   supabase: AppDatabaseClient,
   referencia: string
@@ -129,12 +118,10 @@ async function insertarPagoOpenpay(
   referencia: string,
   importe: number
 ): Promise<void> {
-  const pagoId = (await obtenerMaxPagoId(supabase)) + 1
   const ahora = new Date().toISOString()
   const hoy = ahora.slice(0, 10)
 
-  const { error } = await supabase.from('pago_detalle').insert({
-    pago_id: pagoId,
+  const { error } = await insertarPagoDetalleConReintento(supabase, {
     alumno_id: alumnoId,
     pago_nombre: pagoNombre,
     pago_referencia: referencia.replace(/\D/g, '').slice(0, 12),
