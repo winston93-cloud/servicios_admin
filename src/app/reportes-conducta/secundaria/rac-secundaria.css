@@ -585,6 +585,7 @@ html[data-theme='light'] .rac-page select optgroup {
 .rac-page--psicologia { --rac-role: #be123c; }
 .rac-page--prefectura { --rac-role: #c2410c; }
 .rac-page--maestro { --rac-role: #0e7490; }
+.rac-page--estancia { --rac-role: #047857; }
 
 /* Atmósfera de fondo (no flat) */
 .rac-page::before {

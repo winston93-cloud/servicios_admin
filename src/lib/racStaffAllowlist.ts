@@ -8,8 +8,8 @@ export type RacStaffPanel = 'maternal-kinder' | 'primaria' | 'secundaria'
 export type RacStaffAllowEntry = {
   email: string
   /** Rol de sesión RAC (secundaria o nivel). */
-  role: 'direccion' | 'psicologia' | 'prefectura'
-  perfil: 4 | 5 | 6
+  role: 'direccion' | 'psicologia' | 'prefectura' | 'estancia'
+  perfil: 4 | 5 | 6 | 7
   etiqueta: string
 }
 
@@ -90,6 +90,12 @@ export const RAC_STAFF_ALLOWLIST: Record<RacStaffPanel, readonly RacStaffAllowEn
       perfil: 4,
       etiqueta: 'Psicología',
     },
+    {
+      email: e('estancia.primaria'),
+      role: 'estancia',
+      perfil: 7,
+      etiqueta: 'Estancia',
+    },
     ...rolesTesterQa('primaria'),
   ],
   secundaria: [
@@ -116,6 +122,12 @@ export const RAC_STAFF_ALLOWLIST: Record<RacStaffPanel, readonly RacStaffAllowEn
       role: 'prefectura',
       perfil: 5,
       etiqueta: 'Asistente de dirección',
+    },
+    {
+      email: e('estancia.primaria'),
+      role: 'estancia',
+      perfil: 7,
+      etiqueta: 'Estancia',
     },
     ...rolesTesterQa('secundaria'),
   ],

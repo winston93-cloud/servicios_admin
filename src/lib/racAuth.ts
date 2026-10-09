@@ -6,7 +6,7 @@ import { staffAllowEntryParaPanel } from '@/lib/racStaffAllowlist'
 
 export const RAC_AUTH_COOKIE = 'rac_secundaria_auth'
 
-export type RacRol = 'maestro' | 'coordinacion' | 'psicologia' | 'prefectura' | 'direccion'
+export type RacRol = 'maestro' | 'coordinacion' | 'psicologia' | 'prefectura' | 'direccion' | 'estancia'
 
 export type RacSesion = {
   role: RacRol
@@ -115,6 +115,7 @@ export function rolDesdePerfil(perfil: number): RacRol {
   if (perfil === 4) return 'psicologia'
   if (perfil === 5) return 'prefectura'
   if (perfil === 6) return 'direccion'
+  if (perfil === 7) return 'estancia'
   if (perfil === 1) return 'maestro'
   return 'coordinacion'
 }

@@ -121,6 +121,7 @@ export function rolDesdePerfilNivel(perfil: number, cfg: RacNivelConfig): RacRol
   if (perfil === 4) return 'psicologia'
   if (perfil === 5) return 'control_escolar'
   if (perfil === 6) return 'direccion'
+  if (perfil === 7) return 'estancia'
   if (perfil === 1) return 'maestro'
   return 'coordinacion'
 }

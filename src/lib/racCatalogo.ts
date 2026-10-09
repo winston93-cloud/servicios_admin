@@ -256,5 +256,6 @@ export function etiquetaDepartamentoRac(perfilId: number): string {
   if (perfilId === 4) return 'Psicología'
   if (perfilId === 5) return 'Prefectura'
   if (perfilId === 6) return 'Dirección'
+  if (perfilId === 7) return 'Estancia'
   return 'Coordinación'
 }

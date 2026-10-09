@@ -904,6 +904,9 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
         ? 'Captura de reportes de tu grado y grupo — sin elegir materia.'
         : 'Captura de reportes y seguimiento de citas.'
     }
+    if (me.role === 'estancia') {
+      return 'Estancia: elige grado y grupo (4° a 6°) para reportar conducta. Psicología valida antes de avisar a la familia.'
+    }
     return `Panel de ${config.etiquetaOperaciones.toLowerCase()}/dirección/coordinación: listado, suspensión, citatorios, informes, captura e impresión.`
   }, [me, config])
 
@@ -1120,10 +1123,10 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                         title={
                           capturaConInformeYCita
                             ? 'Reporte: afecta el escalón. Informe: sin afectar el No de reportes. Citar: citatorio.'
-                            : 'Reporte: afecta el escalón. Informe: sin afectar el No de reportes.'
+                            : 'Reporte: afecta el escalón.'
                         }
                       >
-                        {capturaConInformeYCita ? 'Reporte | Informe | Cita' : 'Reporte | Informe'}
+                        {capturaConInformeYCita ? 'Reporte | Informe | Cita' : 'Reporte'}
                       </th>
                     </tr>
                   </thead>

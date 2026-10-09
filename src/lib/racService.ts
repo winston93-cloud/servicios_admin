@@ -4,7 +4,7 @@ import { fechaMxDeTimestamp } from '@/lib/rac/racFecha'
 import { grupoCoincide, letraDesdeGrupoNum } from '@/lib/boletasCiclo'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 import { RacAuthError, type RacSesion } from '@/lib/racAuth'
-import { puedeCapturarTipo, puedeInforme } from '@/lib/racPermisos'
+import { historialSoloPropioRac, puedeCapturarTipo, puedeCitar, puedeInforme } from '@/lib/racPermisos'
 import {
   RAC_NIVEL_SECUNDARIA,
   RAC_TIPOS,
@@ -830,6 +830,9 @@ export async function capturarCita(opts: {
   fecha: string
   hora: string
 }) {
+  if (!puedeCitar(opts.session.role)) {
+    throw new RacAuthError('Tu cuenta no genera citatorios', 403)
+  }
   const ciclo = await cicloRac()
   await assertAlumnoSecundaria(opts.alumnoId)
   const agendaDireccion = opts.session.role === 'maestro' && Boolean(opts.fecha && opts.hora)
@@ -1436,6 +1439,9 @@ export async function historialAlumno(query: string, session?: RacSesion) {
     .eq('reporte_status', 1)
     .order('reporte_registro', { ascending: false })
     .limit(200)
+  if (session && historialSoloPropioRac(session.role)) {
+    qRep = qRep.eq('perfil_id', session.perfil).eq('usuario_id', session.id)
+  }
   const materiaIds = session ? await materiaIdsPermitidasHistorialMaestro(session) : null
   if (materiaIds) {
     if (!materiaIds.length) return { alumnos, reportes: [] }
@@ -1473,6 +1479,9 @@ export async function historialDetalleAlumno(alumnoId: number, session?: RacSesi
     .order('reporte_registro', { ascending: false })
     .limit(300)
   if (tipo > 0) q = q.eq('reporte_tipo', tipo)
+  if (session && historialSoloPropioRac(session.role)) {
+    q = q.eq('perfil_id', session.perfil).eq('usuario_id', session.id)
+  }
   const materiaIds = session ? await materiaIdsPermitidasHistorialMaestro(session) : null
   if (materiaIds) {
     if (!materiaIds.length) {
@@ -1556,6 +1565,7 @@ const PERFIL_ETIQUETA: Record<number, string> = {
   4: 'PSICOLOGÍA',
   5: 'PREFECTURA',
   6: 'DIRECCIÓN',
+  7: 'ESTANCIA',
 }
 
 async function filasPdfDesdeQuery(rows: Record<string, unknown>[]): Promise<FilaPdfReporte[]> {

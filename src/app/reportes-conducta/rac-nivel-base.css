@@ -13,6 +13,7 @@
 .racn-page--psicologia { --racn-role: #be123c; }
 .racn-page--control_escolar { --racn-role: #c2410c; }
 .racn-page--maestro { --racn-role: #0e7490; }
+.racn-page--estancia { --racn-role: #047857; }
 
 .racn-bg {
   position: fixed;

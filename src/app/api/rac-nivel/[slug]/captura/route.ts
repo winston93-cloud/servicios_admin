@@ -30,6 +30,7 @@ export async function GET(req: Request, { params }: Params) {
       grado: grado || undefined,
       grupoLetra: grupo,
       tipo,
+      session,
     })
     return NextResponse.json(data)
   } catch (e) {

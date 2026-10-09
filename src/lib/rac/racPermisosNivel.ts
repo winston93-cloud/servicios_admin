@@ -21,7 +21,24 @@ export function etiquetaRolNivel(role: RacRolNivel, cfg: RacNivelConfig): string
   if (role === 'psicologia') return 'Psicología'
   if (role === 'control_escolar') return cfg.etiquetaOperaciones
   if (role === 'direccion') return 'Dirección'
+  if (role === 'estancia') return 'Estancia'
   return 'Coordinación'
+}
+
+/** Estancia: solo ve en el historial lo que ella misma capturó. */
+export function historialSoloPropioNivel(role: RacRolNivel): boolean {
+  return role === 'estancia'
+}
+
+/** Estancia atiende de 4° de primaria en adelante; no opera en maternal/kinder. */
+export function puedeCapturarGradoNivel(
+  role: RacRolNivel,
+  cfg: Pick<RacNivelConfig, 'slug'>,
+  nivelEscolar: number,
+  grado: number
+): boolean {
+  if (role !== 'estancia') return true
+  return cfg.slug === 'primaria' && nivelEscolar === 3 && grado >= 4
 }
 
 /** En maternal/kinder no opera la cuenta de prefecta; admin = dirección/coordinación. */
@@ -57,6 +74,7 @@ export function tabsDeRolNivel(
       { id: 'historial', label: 'Historial' },
     ]
   }
+  if (role === 'estancia') return [{ id: 'captura', label: 'Reportar' }]
   // Maternal/Kinder: sin prefecta — control escolar no tiene panel operativo aquí.
   if (role === 'control_escolar' && cfg?.slug === 'maternal-kinder') {
     return [
@@ -79,7 +97,9 @@ export function tiposCapturaDeRolNivel(
   fisica: boolean,
   cfg?: Pick<RacNivelConfig, 'slug'>
 ) {
-  if (role === 'psicologia') return [{ valor: RAC_TIPOS.conducta, etiqueta: 'Conducta' }]
+  if (role === 'psicologia' || role === 'estancia') {
+    return [{ valor: RAC_TIPOS.conducta, etiqueta: 'Conducta' }]
+  }
   if (role === 'maestro') {
     // Primaria y maternal/kinder: maestras/teachers también capturan uniforme.
     const conUniforme =
@@ -105,11 +125,15 @@ export function puedeCapturarTipoNivel(
 }
 
 export function puedeInformeNivel(role: RacRolNivel): boolean {
-  void role
-  return true
+  return role !== 'estancia'
+}
+
+export function puedeCitarNivel(role: RacRolNivel): boolean {
+  return role !== 'estancia'
 }
 
 export function tiposCitaDeRolNivel(role: RacRolNivel) {
+  if (role === 'estancia') return []
   if (role === 'psicologia') return RAC_TIPOS_CITA_PSICOLOGIA
   return [...RAC_TIPOS_CAPTURA_MAESTRO, ...RAC_TIPOS_PREFECTURA]
 }
@@ -137,6 +161,7 @@ export function puedeVerVistaCoordNivel(
 }
 
 export function puedeAccionCoordNivel(role: RacRolNivel, entidad: string, accion: string): boolean {
+  if (role === 'estancia') return false
   if (role === 'maestro') {
     return entidad === 'cita' && (accion === 'reenviar' || accion === 'confirmar')
   }

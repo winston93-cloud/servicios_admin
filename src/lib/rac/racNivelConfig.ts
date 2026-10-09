@@ -8,6 +8,7 @@ export type RacRolNivel =
   | 'psicologia'
   | 'control_escolar'
   | 'direccion'
+  | 'estancia'
 
 export type RacGradoRac = {
   nivelEscolar: NivelEscolarValor

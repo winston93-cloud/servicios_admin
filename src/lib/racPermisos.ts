@@ -13,7 +13,18 @@ export function etiquetaRol(role: RacRol): string {
   if (role === 'psicologia') return 'Psicología'
   if (role === 'prefectura') return 'Prefectura'
   if (role === 'direccion') return 'Dirección'
+  if (role === 'estancia') return 'Estancia'
   return 'Coordinación'
+}
+
+/** Estancia: solo captura conducta y solo ve en el historial lo que ella misma capturó. */
+export function historialSoloPropioRac(role: RacRol): boolean {
+  return role === 'estancia'
+}
+
+/** Filtro «Asignatura» del panel staff (no aplica a quien solo captura conducta). */
+export function puedeFiltrarAsignaturaRac(role: RacRol): boolean {
+  return role !== 'maestro' && role !== 'estancia'
 }
 
 function esPanelAdmin(role: RacRol): boolean {
@@ -43,6 +54,7 @@ export function tabsDeRol(role: RacRol): { id: RacTab; label: string }[] {
       { id: 'historial', label: 'Historial' },
     ]
   }
+  if (role === 'estancia') return [{ id: 'captura', label: 'Reportar' }]
   return [
     { id: 'inbox', label: 'Listado sin confirmar' },
     { id: 'suspensiones', label: 'Suspensión' },
@@ -54,7 +66,9 @@ export function tabsDeRol(role: RacRol): { id: RacTab; label: string }[] {
 }
 
 export function tiposCapturaDeRol(role: RacRol, fisica: boolean) {
-  if (role === 'psicologia') return [{ valor: RAC_TIPOS.conducta, etiqueta: 'Conducta' }]
+  if (role === 'psicologia' || role === 'estancia') {
+    return [{ valor: RAC_TIPOS.conducta, etiqueta: 'Conducta' }]
+  }
   if (role === 'maestro') {
     return fisica
       ? [...RAC_TIPOS_CAPTURA_MAESTRO, { valor: RAC_TIPOS.uniforme, etiqueta: 'Uniforme' }]
@@ -68,11 +82,15 @@ export function puedeCapturarTipo(role: RacRol, tipo: number, fisica = false): b
 }
 
 export function puedeInforme(role: RacRol): boolean {
-  void role
-  return true
+  return role !== 'estancia'
+}
+
+export function puedeCitar(role: RacRol): boolean {
+  return role !== 'estancia'
 }
 
 export function tiposCitaDeRol(role: RacRol) {
+  if (role === 'estancia') return []
   if (role === 'psicologia') return RAC_TIPOS_CITA_PSICOLOGIA
   return [...RAC_TIPOS_CAPTURA_MAESTRO, ...RAC_TIPOS_PREFECTURA]
 }
@@ -92,6 +110,7 @@ export function puedeVerVistaCoord(role: RacRol, vista: string): boolean {
 }
 
 export function puedeAccionCoord(role: RacRol, entidad: string, accion: string): boolean {
+  if (role === 'estancia') return false
   if (role === 'maestro') {
     // Maestros pueden gestionar sus citatorios (reenviar aviso / marcar enterado).
     return entidad === 'cita' && (accion === 'reenviar' || accion === 'confirmar')

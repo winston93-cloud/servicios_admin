@@ -27,7 +27,13 @@ import { filaPdfDesdeReporte, filtrarFilasPdf, ordenarFilasPdf, type FilaPdfRepo
 import { RacNivelAuthError, type RacSesionNivel } from './racAuthNivel'
 import type { RacNivelConfig } from './racNivelConfig'
 import { RAC_MATERNAL_KINDER, RAC_PRIMARIA } from './racNivelConfig'
-import { puedeCapturarTipoNivel, puedeInformeNivel } from './racPermisosNivel'
+import {
+  historialSoloPropioNivel,
+  puedeCapturarGradoNivel,
+  puedeCapturarTipoNivel,
+  puedeCitarNivel,
+  puedeInformeNivel,
+} from './racPermisosNivel'
 
 const PERFIL_ETIQUETA: Record<number, string> = {
   1: 'MAESTRO',
@@ -35,6 +41,7 @@ const PERFIL_ETIQUETA: Record<number, string> = {
   4: 'PSICOLOGÍA',
   5: 'PREFECTURA',
   6: 'DIRECCIÓN',
+  7: 'ESTANCIA',
 }
 
 type AlumnoRow = {
@@ -490,7 +497,9 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     }
 
     // Staff: grados/grupos reales desde alumnos (1=A, 2=B, 3=C…), no solo cfg.gruposCaptura.
-    const gradosGrupos = await gradosYGruposDesdeAlumnos()
+    const gradosGrupos = (await gradosYGruposDesdeAlumnos()).filter((g) =>
+      puedeCapturarGradoNivel(session.role, cfg, g.nivelEscolar, g.grado)
+    )
     const asignaciones = await asignacionesDesdeGrados(gradosGrupos)
     return { asignaciones, fisica: true, ingles: true }
   }
@@ -660,6 +669,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     tipo: number
     nivelEscolar?: number
     grado?: number
+    session?: RacSesionNivel
   }) {
     const ciclo = await cicloRac()
     let materiaId = n(opts.materiaId)
@@ -683,6 +693,9 @@ export function createRacNivelService(cfg: RacNivelConfig) {
 
     if (!cfg.nivelesEscolares.includes(nivelMat as (typeof cfg.nivelesEscolares)[number])) {
       throw new Error('Grupo no corresponde a este nivel')
+    }
+    if (opts.session && !puedeCapturarGradoNivel(opts.session.role, cfg, nivelMat, grado)) {
+      throw new RacNivelAuthError('Este grado no corresponde a tu cuenta', 403)
     }
 
     const alumnos = await alumnosDeGrupo(grado, opts.grupoLetra, ciclo, nivelMat)
@@ -796,6 +809,14 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       throw new Error('Alumno no pertenece a este nivel')
     }
     return data as AlumnoRow
+  }
+
+  async function cargarAlumnoDeSesion(id: number, session: RacSesionNivel): Promise<AlumnoRow> {
+    const alumno = await cargarAlumno(id)
+    if (!puedeCapturarGradoNivel(session.role, cfg, n(alumno.alumno_nivel), n(alumno.alumno_grado))) {
+      throw new RacNivelAuthError('Este alumno no corresponde a tu cuenta', 403)
+    }
+    return alumno
   }
 
   async function sincronizarCitaGoogleCalendar(opts: {
@@ -1035,7 +1056,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     }
     const ciclo = await cicloRac()
     const client = db()
-    await cargarAlumno(opts.alumnoId)
+    await cargarAlumnoDeSesion(opts.alumnoId, opts.session)
     // Staff (psico/dirección) también guarda la materia «Maestro(a)» del grupo: así el titular ve esos reportes.
     const materiaId = opts.materiaId
     const token = mdv('rep')
@@ -1176,6 +1197,9 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     fecha: string
     hora: string
   }) {
+    if (!puedeCitarNivel(opts.session.role)) {
+      throw new RacNivelAuthError('Tu cuenta no genera citatorios', 403)
+    }
     const ciclo = await cicloRac()
     await cargarAlumno(opts.alumnoId)
     const { data, error } = await db()
@@ -1749,6 +1773,9 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .eq('reporte_status', 1)
       .order('reporte_registro', { ascending: false })
       .limit(200)
+    if (session && historialSoloPropioNivel(session.role)) {
+      qRep = qRep.eq('perfil_id', session.perfil).eq('usuario_id', session.id)
+    }
     const materiaIds = session ? await materiaIdsPermitidasHistorialMaestro(session) : null
     if (materiaIds) {
       if (!materiaIds.length) return { alumnos, reportes: [] }
@@ -1761,7 +1788,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
   /** Historial de un alumno (kardex): materia, motivo, observaciones, vuelta. */
   async function historialDetalleAlumno(alumnoId: number, session?: RacSesionNivel) {
     const ciclo = await cicloRac()
-    const alumno = await cargarAlumno(alumnoId)
+    const alumno = session ? await cargarAlumnoDeSesion(alumnoId, session) : await cargarAlumno(alumnoId)
     let q = db()
       .from('reporte_escolar')
       .select('*')
@@ -1771,6 +1798,9 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .order('reporte_ciclo', { ascending: true })
       .order('reporte_registro', { ascending: false })
       .limit(300)
+    if (session && historialSoloPropioNivel(session.role)) {
+      q = q.eq('perfil_id', session.perfil).eq('usuario_id', session.id)
+    }
     const materiaIds = session ? await materiaIdsPermitidasHistorialMaestro(session) : null
     if (materiaIds) {
       if (!materiaIds.length) {

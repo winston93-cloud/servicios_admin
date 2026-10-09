@@ -3,7 +3,15 @@
 import ThemeToggle from '@/components/ThemeToggle'
 import { etiquetaGradoStaffSecundaria } from '@/lib/racCatalogo'
 import { etiquetaTabConteo, opcionesMotivo, origenReporteRac } from '@/lib/racUi'
-import { etiquetaRol, esPanelAdminRac, tabsDeRol, tiposCapturaDeRol, tiposCitaDeRol, type RacTab } from '@/lib/racPermisos'
+import {
+  etiquetaRol,
+  esPanelAdminRac,
+  puedeFiltrarAsignaturaRac,
+  tabsDeRol,
+  tiposCapturaDeRol,
+  tiposCitaDeRol,
+  type RacTab,
+} from '@/lib/racPermisos'
 import { ArrowLeft, Download, Eye, EyeOff, FolderOpen, LogOut, Mail, Search, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
@@ -15,7 +23,7 @@ import { limpiarSesionGoogleCliente } from '@/lib/racLogoutClient'
 import RacGoogleSignIn from '../components/RacGoogleSignIn'
 import RacDetalleModal from '../components/RacDetalleModal'
 
-type Rol = 'maestro' | 'coordinacion' | 'psicologia' | 'prefectura' | 'direccion'
+type Rol = 'maestro' | 'coordinacion' | 'psicologia' | 'prefectura' | 'direccion' | 'estancia'
 
 type Me = {
   role: Rol
@@ -257,6 +265,7 @@ export default function RacSecundariaPage() {
   }, [asigKey, asignaciones, me])
 
   const esStaff = Boolean(me && me.role !== 'maestro')
+  const filtraAsignatura = Boolean(me && puedeFiltrarAsignaturaRac(me.role))
   const [materiasGrado, setMateriasGrado] = useState<{ materia_id: number; materia_nombre: string }[]>([])
   const [materiaFiltro, setMateriaFiltro] = useState(0)
   const materiaCaptura = esStaff && tipo === 1 && materiaFiltro > 0 ? materiaFiltro : (asig?.materia_id ?? 0)
@@ -264,7 +273,7 @@ export default function RacSecundariaPage() {
 
   useEffect(() => {
     setMateriaFiltro(0)
-    if (!esStaff || !gradoStaff) {
+    if (!filtraAsignatura || !gradoStaff) {
       setMateriasGrado([])
       return
     }
@@ -281,7 +290,7 @@ export default function RacSecundariaPage() {
     return () => {
       cancelado = true
     }
-  }, [esStaff, gradoStaff])
+  }, [filtraAsignatura, gradoStaff])
   const gradosStaff = useMemo(
     () => [...new Set(asignaciones.map((a) => a.materia_grado).filter(Boolean))].sort((a, b) => a - b),
     [asignaciones]
@@ -930,7 +939,9 @@ export default function RacSecundariaPage() {
             ? 'Módulo de conducta: elige grado (7mo/8vo/9no) y grupo, reporta, aprueba pendientes, citatorios y avisos de atención.'
             : me.role === 'maestro'
               ? 'Al entrar ves solo tus materias y grupos. Elige materia · grado · grupo (ej. 3° B) para capturar reportes de tus alumnos.'
-              : 'Panel de coordinación/dirección/prefectura: listado, suspensión, citatorios, informes, captura e impresión.'}
+              : me.role === 'estancia'
+                ? 'Estancia: elige grado (7mo/8vo/9no) y grupo para reportar conducta. Psicología valida antes de avisar a la familia.'
+                : 'Panel de coordinación/dirección/prefectura: listado, suspensión, citatorios, informes, captura e impresión.'}
         </p>
       </div>
 
@@ -1013,7 +1024,7 @@ export default function RacSecundariaPage() {
                 ))}
               </select>
             </label>
-            {esStaff && materiasGrado.length ? (
+            {filtraAsignatura && materiasGrado.length ? (
               <label>
                 Asignatura
                 <select value={materiaFiltro} onChange={(e) => setMateriaFiltro(Number(e.target.value))}>
@@ -1043,10 +1054,10 @@ export default function RacSecundariaPage() {
                     title={
                       capturaConInformeYCita
                         ? 'Reporte: afecta el escalón. Informe: sin afectar el No de reportes. Citar: citatorio.'
-                        : 'Reporte: afecta el escalón. Informe: sin afectar el No de reportes.'
+                        : 'Reporte: afecta el escalón.'
                     }
                   >
-                    {capturaConInformeYCita ? 'Reporte | Informe | Cita' : 'Reporte | Informe'}
+                    {capturaConInformeYCita ? 'Reporte | Informe | Cita' : 'Reporte'}
                   </th>
                 </tr>
               </thead>
