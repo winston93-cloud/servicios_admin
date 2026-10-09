@@ -20,6 +20,15 @@ type Detalle = {
   grado?: number
   grupo?: string
   retirado?: boolean
+  reportes?: {
+    reporte_id: number
+    titulo: string
+    fecha: string
+    motivo: string
+    asignatura: string
+    expedidoPor: string
+    mensaje: string
+  }[]
 }
 
 function EstatusInner() {
@@ -104,8 +113,29 @@ function EstatusInner() {
                 : ''}
             </p>
           ) : null}
-          {detalle.fecha ? <p>Fecha: {detalle.fecha}</p> : null}
+          {detalle.fecha ? (
+            <p>
+              {detalle.kind === 'suspension' ? 'Fecha de suspensión' : 'Fecha'}:{' '}
+              {detalle.kind === 'suspension' ? <strong>{detalle.fecha}</strong> : detalle.fecha}
+            </p>
+          ) : null}
           {detalle.mensaje ? <p className="rac-estatus-mensaje">{detalle.mensaje}</p> : null}
+          {detalle.reportes?.length ? (
+            <section className="rac-estatus-acumulados" aria-labelledby="rac-acumulados-titulo">
+              <h3 id="rac-acumulados-titulo">Reportes acumulados</h3>
+              <ol>
+                {detalle.reportes.map((r) => (
+                  <li key={r.reporte_id}>
+                    <strong>{r.titulo}</strong> · {r.fecha}
+                    {r.asignatura ? <p>Asignatura: <strong>{r.asignatura}</strong></p> : null}
+                    {r.motivo ? <p>Motivo: <strong>{r.motivo}</strong></p> : null}
+                    {r.expedidoPor ? <p>Expedido por: {r.expedidoPor}</p> : null}
+                    {r.mensaje ? <p className="rac-estatus-mensaje">{r.mensaje}</p> : null}
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
           {ok || detalle.confirmado ? (
             <p className="ok">Enterado. Gracias por confirmar.</p>
           ) : (

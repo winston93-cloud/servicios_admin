@@ -574,6 +574,59 @@ export async function enviarCorreoCita(citaId: number) {
   return envio
 }
 
+function etiquetaReportesPlural(tipo: number): string {
+  if (tipo === RAC_TIPOS.academico) return 'reportes académicos'
+  if (tipo === RAC_TIPOS.conducta) return 'reportes de conducta'
+  return `reportes ${etiquetaTipoCitatorio(tipo).toLowerCase()}`
+}
+
+type ReporteAcumulado = {
+  reporte_id: number
+  titulo: string
+  fecha: string
+  motivo: string
+  asignatura: string
+  expedidoPor: string
+  mensaje: string
+}
+
+/** Reportes 1, 2 y 3 del escalón que detonó la suspensión (académico: misma asignatura). */
+async function reportesDeSuspension(r: Record<string, unknown>): Promise<ReporteAcumulado[]> {
+  const client = db()
+  const tipo = n(r.reporte_tipo)
+  let q = client
+    .from('reporte_escolar')
+    .select('reporte_id, reporte_no, reporte_tipo, reporte_motivo, reporte_mensaje, reporte_registro, materia_id, perfil_id, usuario_id')
+    .eq('alumno_id', n(r.alumno_id))
+    .eq('reporte_tipo', tipo)
+    .eq('reporte_status', 1)
+    .eq('reporte_ciclo_escolar', n(r.reporte_ciclo_escolar))
+    .eq('reporte_ciclo', n(r.reporte_ciclo))
+    .gte('reporte_no', 1)
+    .lte('reporte_no', n(r.reporte_no))
+  if (tipo === RAC_TIPOS.academico && r.materia_id) q = q.eq('materia_id', n(r.materia_id))
+  const { data, error } = await q.order('reporte_no', { ascending: true })
+  if (error) throw new Error(error.message)
+  const filas = data ?? []
+  const materiaIds = [...new Set(filas.map((f) => n(f.materia_id)).filter(Boolean))]
+  const { data: materias } = materiaIds.length
+    ? await client.from('boleta_materia').select('materia_id, materia_nombre').in('materia_id', materiaIds)
+    : { data: [] }
+  const mMap = new Map((materias ?? []).map((m) => [n(m.materia_id), String(m.materia_nombre ?? '').trim()]))
+  const emisores = await resolverEmisoresRac(
+    filas.map((f) => ({ perfil_id: n(f.perfil_id), usuario_id: n(f.usuario_id) }))
+  )
+  return filas.map((f) => ({
+    reporte_id: n(f.reporte_id),
+    titulo: asuntoReporte(tipo, n(f.reporte_no)),
+    fecha: fechaMxDeTimestamp(f.reporte_registro),
+    motivo: motivoReporte(tipo, n(f.reporte_motivo)),
+    asignatura: mMap.get(n(f.materia_id)) ?? '',
+    expedidoPor: emisorDeMapa(emisores, f.perfil_id, f.usuario_id)?.nombre?.trim() ?? '',
+    mensaje: String(f.reporte_mensaje ?? ''),
+  }))
+}
+
 export async function enviarCorreoSuspension(suspensionId: number) {
   const client = db()
   const { data: s } = await client
@@ -588,13 +641,30 @@ export async function enviarCorreoSuspension(suspensionId: number) {
   if (!to.length) return { ok: false, error: 'La familia no tiene correo registrado' }
   const enlace = urlPublicaRac(String(r?.reporte_mdv ?? ''), 5)
   const subject = 'Aviso de suspensión'
+  const acumulados = r ? await reportesDeSuspension(r) : []
+  const asignaturas = [...new Set(acumulados.map((a) => a.asignatura).filter(Boolean))]
+  const lista = acumulados.length
+    ? `<ul>${acumulados
+        .map(
+          (a) =>
+            `<li><b>${escapeHtml(a.titulo)}</b> · ${escapeHtml(a.fecha)}${
+              a.asignatura ? ` · ${escapeHtml(a.asignatura)}` : ''
+            }${a.motivo ? ` · Motivo: ${escapeHtml(a.motivo)}` : ''}</li>`
+        )
+        .join('')}</ul>`
+    : ''
   const html = htmlCorreoRac({
     titulo: subject,
     enlace,
     cuerpoHtml: `<p>Estimada familia:</p>
       <p>El alumno <b>${escapeHtml(nombreAlumno(alumno))}</b> queda suspendido el día
-      <b>${escapeHtml(String(s.suspension_fecha ?? ''))}</b> por acumular tres reportes
-      ${escapeHtml(etiquetaTipoCitatorio(n(r?.reporte_tipo ?? 2)).toLowerCase())}.</p>`,
+      <b>${escapeHtml(String(s.suspension_fecha ?? '').slice(0, 10))}</b> por acumular tres
+      ${escapeHtml(etiquetaReportesPlural(n(r?.reporte_tipo ?? 2)))}${
+        asignaturas.length
+          ? ` en la asignatura <b>${escapeHtml(asignaturas.join(', '))}</b>`
+          : ''
+      }:</p>
+      ${lista}`,
   })
   const envio = await enviarAvisoRac({ to, subject, html, panel: 'secundaria' })
   if (envio.ok) {
@@ -1684,6 +1754,34 @@ export async function detallePublico(token: string, alt: number) {
   const alumno = await cargarAlumno(n(r.alumno_id))
   const tipo = n(r.reporte_tipo)
 
+  if (alt === 5) {
+    const { data: s } = await client
+      .from('reporte_suspension')
+      .select('suspension_id, suspension_fecha, suspension_confirmada')
+      .eq('reporte_id', n(r.reporte_id))
+      .maybeSingle()
+    if (s) {
+      const acumulados = await reportesDeSuspension(r)
+      const asignaturas = [...new Set(acumulados.map((a) => a.asignatura).filter(Boolean))]
+      return {
+        kind: 'suspension' as const,
+        id: n(s.suspension_id),
+        titulo: 'Aviso de suspensión',
+        alumno: nombreAlumno(alumno),
+        ref: alumno.alumno_ref,
+        grado: n(alumno.alumno_grado),
+        grupo: letraDesdeGrupoNum(n(alumno.alumno_grupo)),
+        motivo: `Acumulación de tres ${etiquetaReportesPlural(tipo)}`,
+        mostrarMotivo: true,
+        asignatura: asignaturas.join(', '),
+        fecha: s.suspension_fecha ? String(s.suspension_fecha).slice(0, 10) : '',
+        reportes: acumulados,
+        confirmado: n(s.suspension_confirmada) === 1,
+        status: n(r.reporte_status),
+      }
+    }
+  }
+
   let asignatura = ''
   if (r.materia_id) {
     const { data: m } = await client
@@ -1733,6 +1831,22 @@ export async function confirmarPublico(token: string, alt: number) {
     if (error) throw new Error(error.message)
     if (!data?.length) throw new Error('Este aviso ya no está disponible.')
     return { ok: true }
+  }
+  if (alt === 5) {
+    const { data: r } = await db()
+      .from('reporte_escolar')
+      .select('reporte_id')
+      .eq('reporte_mdv', token)
+      .eq('reporte_status', 1)
+      .maybeSingle()
+    if (!r) throw new Error('Este aviso ya no está disponible.')
+    const { data, error } = await db()
+      .from('reporte_suspension')
+      .update({ suspension_confirmada: 1 })
+      .eq('reporte_id', n(r.reporte_id))
+      .select('suspension_id')
+    if (error) throw new Error(error.message)
+    if (data?.length) return { ok: true }
   }
   const { data, error } = await db()
     .from('reporte_escolar')

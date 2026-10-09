@@ -45,6 +45,42 @@
   color: #b91c1c;
 }
 
+.rac-estatus-acumulados {
+  margin: 1rem 0 1.1rem;
+}
+
+.rac-estatus-acumulados h3 {
+  margin: 0 0 0.6rem;
+  font-size: 0.95rem;
+}
+
+.rac-estatus-acumulados ol {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rac-estatus-acumulados li {
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.rac-estatus-acumulados li p {
+  margin: 0.2rem 0 0;
+}
+
+.rac-estatus-acumulados .rac-estatus-mensaje {
+  margin: 0.4rem 0 0;
+  color: #334155;
+}
+
 .rac-estatus-mensaje {
   margin: 0.85rem 0 1.1rem;
   white-space: pre-wrap;
