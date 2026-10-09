@@ -22,6 +22,7 @@ import './rac-secundaria.css'
 import { limpiarSesionGoogleCliente } from '@/lib/racLogoutClient'
 import RacGoogleSignIn from '../components/RacGoogleSignIn'
 import RacDetalleModal from '../components/RacDetalleModal'
+import RacSuspensionDirectaModal from '../components/RacSuspensionDirectaModal'
 
 type Rol = 'maestro' | 'coordinacion' | 'psicologia' | 'prefectura' | 'direccion' | 'estancia'
 
@@ -230,6 +231,7 @@ export default function RacSecundariaPage() {
   const [historialMateriaId, setHistorialMateriaId] = useState(0)
   const [historialSuggestOpen, setHistorialSuggestOpen] = useState(false)
   const [historialBuscando, setHistorialBuscando] = useState(false)
+  const [suspDirectaAbierta, setSuspDirectaAbierta] = useState(false)
   const [printGrado, setPrintGrado] = useState(0)
   const [printGrupo, setPrintGrupo] = useState('')
   const [seleccionados, setSeleccionados] = useState<number[]>([])
@@ -1220,6 +1222,21 @@ export default function RacSecundariaPage() {
               </button>
             </div>
           ) : null}
+          {tab === 'suspensiones' && esAdmin ? (
+            <div className="boletas-filters">
+              <button
+                type="button"
+                className="boletas-btn danger"
+                disabled={busy}
+                onClick={() => setSuspDirectaAbierta(true)}
+              >
+                Nueva suspensión directa
+              </button>
+              <p className="rac-print-legend">
+                Por conducta, sin esperar al Reporte III. No suma al conteo de reportes del alumno.
+              </p>
+            </div>
+          ) : null}
           {tab === 'citas' ? (
             <div className="boletas-filters">
               <label>
@@ -1375,6 +1392,7 @@ export default function RacSecundariaPage() {
                       <option value={4}>Vialidad</option>
                       <option value={5}>Informe</option>
                       <option value={6}>Retardo</option>
+                      <option value={9}>Suspensión directa</option>
                     </select>
                   </label>
                   {historialTipo === 1 ? (
@@ -1442,7 +1460,7 @@ export default function RacSecundariaPage() {
                   <th>Detalle</th>
                   {tab === 'citas' ? <th>Expedido por</th> : null}
                   <th>Fecha</th>
-                  {tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' ? (
+                  {tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' || tab === 'suspensiones' ? (
                     <>
                       <th>Enviado</th>
                       <th>Confirmado</th>
@@ -1495,8 +1513,13 @@ export default function RacSecundariaPage() {
                         ) : null}
                       </td>
                     ) : null}
-                    <td>{String(row.fecha ?? '—')}</td>
-                    {tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' ? (
+                    <td>
+                      {String(row.fecha || '—')}
+                      {tab === 'suspensiones' && row.fecha && Number(row.dias) > 1 ? (
+                        <span className="rac-mini">{Number(row.dias)} días</span>
+                      ) : null}
+                    </td>
+                    {tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' || tab === 'suspensiones' ? (
                       <>
                         <td>
                           <ChipSiNo valor={Boolean(row.enviado ?? row.enviada)} />
@@ -1707,6 +1730,21 @@ export default function RacSecundariaPage() {
       ) : null}
 
       {detalleVista ? <RacDetalleModal row={detalleVista} onClose={() => setDetalleVista(null)} /> : null}
+      {suspDirectaAbierta ? (
+        <RacSuspensionDirectaModal
+          onClose={() => setSuspDirectaAbierta(false)}
+          onGuardado={(r) => {
+            setSuspDirectaAbierta(false)
+            setMsg(
+              r.envio && r.envio.ok === false
+                ? `Suspensión guardada, pero el correo a la familia no salió: ${r.envio.error || 'error de envío'}. Puedes reenviarlo con «Aplicar fecha».`
+                : 'Suspensión guardada y aviso enviado a la familia.'
+            )
+            void cargarVista('suspensiones')
+            void cargarConteosTabs()
+          }}
+        />
+      ) : null}
         {edicionReporte ? (
           <RacDetalleModal
             row={edicionReporte}

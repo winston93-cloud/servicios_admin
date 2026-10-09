@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { jsonRacError, requireRacSession } from '@/lib/racAuth'
-import { puedeAccionCoord, puedeVerVistaCoord } from '@/lib/racPermisos'
+import { esPanelAdminRac, puedeAccionCoord, puedeVerVistaCoord } from '@/lib/racPermisos'
 import {
   accionCita,
   accionReporte,
   aplicarSuspension,
+  aplicarSuspensionDirecta,
   editarReportePendiente,
   historialAlumno,
   inboxCitas,
@@ -52,6 +53,9 @@ export async function POST(req: Request) {
       fecha?: string
       hora?: string
       mensaje?: string
+      alumnoId?: number
+      motivo?: number
+      dias?: number
     }
     const entidad = body.entidad === 'cita' ? 'cita' : body.entidad === 'suspension' ? 'suspension' : 'reporte'
     const accion = String(body.accion ?? '')
@@ -65,6 +69,21 @@ export async function POST(req: Request) {
           fecha: body.fecha,
           hora: body.hora,
           mensaje: body.mensaje,
+        })
+      )
+    }
+    if (body.entidad === 'suspension' && accion === 'directa') {
+      if (!esPanelAdminRac(session.role)) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+      }
+      return NextResponse.json(
+        await aplicarSuspensionDirecta({
+          session,
+          alumnoId: Number(body.alumnoId),
+          motivo: Number(body.motivo),
+          mensaje: String(body.mensaje ?? ''),
+          fecha: String(body.fecha ?? ''),
+          dias: Number(body.dias),
         })
       )
     }

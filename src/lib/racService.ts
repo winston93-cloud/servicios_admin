@@ -627,6 +627,13 @@ async function reportesDeSuspension(r: Record<string, unknown>): Promise<Reporte
   }))
 }
 
+function textoDiasSuspension(s: Record<string, unknown>): string {
+  const fecha = String(s.suspension_fecha ?? '').slice(0, 10)
+  const dias = Math.max(1, n(s.suspension_dias, 1))
+  if (dias === 1) return `el día ${fecha}`
+  return `${dias} días a partir del ${fecha}`
+}
+
 export async function enviarCorreoSuspension(suspensionId: number) {
   const client = db()
   const { data: s } = await client
@@ -641,6 +648,22 @@ export async function enviarCorreoSuspension(suspensionId: number) {
   if (!to.length) return { ok: false, error: 'La familia no tiene correo registrado' }
   const enlace = urlPublicaRac(String(r?.reporte_mdv ?? ''), 5)
   const subject = 'Aviso de suspensión'
+  if (n(r?.reporte_tipo) === RAC_TIPOS.suspensionDirecta) {
+    const html = htmlCorreoRac({
+      titulo: subject,
+      enlace,
+      cuerpoHtml: `<p>Estimada familia:</p>
+      <p>El alumno <b>${escapeHtml(nombreAlumno(alumno))}</b> queda suspendido
+      <b>${escapeHtml(textoDiasSuspension(s))}</b> por motivo de conducta
+      (<b>${escapeHtml(motivoReporte(RAC_TIPOS.suspensionDirecta, n(r?.reporte_motivo)))}</b>):</p>
+      <p>${escapeHtml(String(r?.reporte_mensaje ?? ''))}</p>`,
+    })
+    const envio = await enviarAvisoRac({ to, subject, html, panel: 'secundaria' })
+    if (envio.ok) {
+      await client.from('reporte_suspension').update({ suspension_enviada: 1 }).eq('suspension_id', suspensionId)
+    }
+    return envio
+  }
   const acumulados = r ? await reportesDeSuspension(r) : []
   const asignaturas = [...new Set(acumulados.map((a) => a.asignatura).filter(Boolean))]
   const lista = acumulados.length
@@ -1127,7 +1150,7 @@ export async function inboxSuspensiones() {
     .in('alumno_id', alumnoIds.length ? alumnoIds : [0])
   const { data: reps } = await db()
     .from('reporte_escolar')
-    .select('reporte_id, reporte_tipo')
+    .select('reporte_id, reporte_tipo, reporte_motivo, reporte_mensaje, reporte_status')
     .in('reporte_id', reporteIds.length ? reporteIds : [0])
   const aMap = new Map((alumnos ?? []).map((a) => [n(a.alumno_id), a]))
   const rMap = new Map((reps ?? []).map((r) => [n(r.reporte_id), r]))
@@ -1136,6 +1159,7 @@ export async function inboxSuspensiones() {
       const a = aMap.get(n(s.alumno_id))
       if (!a || n(a.alumno_nivel) !== RAC_NIVEL_SECUNDARIA) return null
       const r = rMap.get(n(s.reporte_id))
+      if (n(r?.reporte_tipo) === RAC_TIPOS.suspensionDirecta && n(r?.reporte_status) !== 1) return null
       return {
         suspension_id: n(s.suspension_id),
         alumno_ref: a.alumno_ref ?? null,
@@ -1143,9 +1167,19 @@ export async function inboxSuspensiones() {
         grado: n(a.alumno_grado),
         grupo: letraDesdeGrupoNum(n(a.alumno_grupo)),
         nivel: n(a.alumno_nivel),
-        tipoEtiqueta: etiquetaTipoCitatorio(n(r?.reporte_tipo ?? 0)),
+        tipoEtiqueta:
+          n(r?.reporte_tipo) === RAC_TIPOS.suspensionDirecta
+            ? 'Suspensión directa por conducta'
+            : etiquetaTipoCitatorio(n(r?.reporte_tipo ?? 0)),
+        directa: n(r?.reporte_tipo) === RAC_TIPOS.suspensionDirecta,
+        motivo:
+          n(r?.reporte_tipo) === RAC_TIPOS.suspensionDirecta
+            ? `${motivoReporte(RAC_TIPOS.suspensionDirecta, n(r?.reporte_motivo))} · ${String(r?.reporte_mensaje ?? '')}`
+            : '',
+        dias: Math.max(1, n(s.suspension_dias, 1)),
         fecha: s.suspension_fecha ? String(s.suspension_fecha).slice(0, 10) : '',
         enviada: n(s.suspension_enviada) === 1,
+        confirmada: n(s.suspension_confirmada) === 1,
       }
     })
     .filter(Boolean)
@@ -1392,6 +1426,65 @@ export async function aplicarSuspension(id: number, fecha: string) {
   const { error } = await db().from('reporte_suspension').update({ suspension_fecha: fecha }).eq('suspension_id', id)
   if (error) throw new Error(error.message)
   return enviarCorreoSuspension(id)
+}
+
+/** Prefectura / dirección: suspensión por conducta sin pasar por el escalón I–II–III. */
+export async function aplicarSuspensionDirecta(opts: {
+  session: RacSesion
+  alumnoId: number
+  motivo: number
+  mensaje: string
+  fecha: string
+  dias: number
+}) {
+  const mensaje = opts.mensaje.trim()
+  if (!mensaje) throw new Error('Describe el motivo de la suspensión.')
+  if (mensaje.length > 5000) throw new Error('El mensaje es demasiado largo.')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(opts.fecha)) throw new Error('Fecha de suspensión no válida.')
+  const dias = Math.trunc(opts.dias)
+  if (!Number.isFinite(dias) || dias < 1 || dias > 30) throw new Error('Días de suspensión: de 1 a 30.')
+  const motivo = [1, 2, 3].includes(opts.motivo) ? opts.motivo : 1
+  await assertAlumnoSecundaria(opts.alumnoId)
+  const ciclo = await cicloRac()
+  const client = db()
+
+  const { data: rep, error: errRep } = await client
+    .from('reporte_escolar')
+    .insert({
+      alumno_id: opts.alumnoId,
+      perfil_id: opts.session.perfil,
+      usuario_id: opts.session.id,
+      reporte_tipo: RAC_TIPOS.suspensionDirecta,
+      reporte_motivo: motivo,
+      reporte_no: 0,
+      reporte_mensaje: mensaje,
+      reporte_status: 1,
+      reporte_ciclo: 0,
+      reporte_ciclo_escolar: ciclo,
+      reporte_mdv: mdv('sus'),
+    })
+    .select('reporte_id')
+    .maybeSingle()
+  if (errRep || !rep) throw new Error(errRep?.message || 'No se pudo guardar la suspensión')
+  const reporteId = n(rep.reporte_id)
+
+  const { data: susp, error: errSusp } = await client
+    .from('reporte_suspension')
+    .insert({
+      alumno_id: opts.alumnoId,
+      reporte_id: reporteId,
+      suspension_ciclo_escolar: ciclo,
+      suspension_fecha: opts.fecha,
+      suspension_dias: dias,
+    })
+    .select('suspension_id')
+    .maybeSingle()
+  if (errSusp || !susp) {
+    await client.from('reporte_escolar').delete().eq('reporte_id', reporteId)
+    throw new Error(errSusp?.message || 'No se pudo guardar la suspensión')
+  }
+  const envio = await enviarCorreoSuspension(n(susp.suspension_id))
+  return { suspensionId: n(susp.suspension_id), envio }
 }
 
 export async function historialAlumno(query: string, session?: RacSesion) {
@@ -1767,9 +1860,34 @@ export async function detallePublico(token: string, alt: number) {
   if (alt === 5) {
     const { data: s } = await client
       .from('reporte_suspension')
-      .select('suspension_id, suspension_fecha, suspension_confirmada')
+      .select('suspension_id, suspension_fecha, suspension_dias, suspension_confirmada')
       .eq('reporte_id', n(r.reporte_id))
       .maybeSingle()
+    if (s && tipo === RAC_TIPOS.suspensionDirecta) {
+      const emisores = await resolverEmisoresRac([
+        { perfil_id: n(r.perfil_id), usuario_id: n(r.usuario_id) },
+      ])
+      const emisor = emisorDeMapa(emisores, r.perfil_id, r.usuario_id)
+      const dias = Math.max(1, n(s.suspension_dias, 1))
+      return {
+        kind: 'suspension' as const,
+        id: n(s.suspension_id),
+        titulo: 'Aviso de suspensión',
+        alumno: nombreAlumno(alumno),
+        ref: alumno.alumno_ref,
+        grado: n(alumno.alumno_grado),
+        grupo: letraDesdeGrupoNum(n(alumno.alumno_grupo)),
+        motivo: `Suspensión directa por conducta · ${motivoReporte(tipo, n(r.reporte_motivo))}`,
+        mostrarMotivo: true,
+        asignatura: '',
+        departamento: emisor?.departamento || etiquetaDepartamentoRac(n(r.perfil_id)),
+        expedidoPor: emisor?.nombre?.trim() || '',
+        mensaje: `${String(r.reporte_mensaje ?? '')}\n\nDuración: ${dias === 1 ? '1 día' : `${dias} días`}.`,
+        fecha: s.suspension_fecha ? String(s.suspension_fecha).slice(0, 10) : '',
+        confirmado: n(s.suspension_confirmada) === 1,
+        status: n(r.reporte_status),
+      }
+    }
     if (s) {
       const acumulados = await reportesDeSuspension(r)
       const asignaturas = [...new Set(acumulados.map((a) => a.asignatura).filter(Boolean))]
@@ -1845,7 +1963,7 @@ export async function confirmarPublico(token: string, alt: number) {
   if (alt === 5) {
     const { data: r } = await db()
       .from('reporte_escolar')
-      .select('reporte_id')
+      .select('reporte_id, reporte_tipo')
       .eq('reporte_mdv', token)
       .eq('reporte_status', 1)
       .maybeSingle()
@@ -1856,6 +1974,9 @@ export async function confirmarPublico(token: string, alt: number) {
       .eq('reporte_id', n(r.reporte_id))
       .select('suspension_id')
     if (error) throw new Error(error.message)
+    if (data?.length && n(r.reporte_tipo) === RAC_TIPOS.suspensionDirecta) {
+      await db().from('reporte_escolar').update({ reporte_confirmado: 1 }).eq('reporte_id', n(r.reporte_id))
+    }
     if (data?.length) return { ok: true }
   }
   const { data, error } = await db()

@@ -96,7 +96,7 @@ export async function enviarAvisoRac(opts: {
 }
 
 export function asuntoReporte(tipo: number, no: number, opts?: OpcionesEtiquetaRac): string {
-  if (tipo === 5 || tipo === 8) return etiquetaTipoReporte(tipo, opts)
+  if (tipo === 5 || tipo === 8 || tipo === 9) return etiquetaTipoReporte(tipo, opts)
   if (tipo > 2) return `${etiquetaTipoReporte(tipo)} ${no || ''}`.trim()
   if (no === 0) return `Aviso ${etiquetaTipoReporte(tipo)}`
   return `Reporte ${etiquetaTipoReporte(tipo)} ${no}`

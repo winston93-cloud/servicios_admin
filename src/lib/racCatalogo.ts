@@ -10,6 +10,8 @@ export const RAC_TIPOS = {
   retardo: 6,
   seguimiento: 7,
   avisoPsicologia: 8,
+  /** Suspensión aplicada por prefectura/dirección sin escalón (no suma al conteo de conducta). */
+  suspensionDirecta: 9,
 } as const
 
 /** Solo primaria renombra el informe (tipo 5); los demás niveles siguen con «Informe Académico» hasta que lo pidan. */
@@ -34,6 +36,8 @@ export function etiquetaTipoReporte(tipo: number, opts?: OpcionesEtiquetaRac): s
       return 'por Seguimiento'
     case 8:
       return 'Aviso de atención en Psicología'
+    case 9:
+      return 'Suspensión directa por conducta'
     default:
       return 'Desconocido'
   }
@@ -53,6 +57,8 @@ export function etiquetaTipoCitatorio(tipo: number): string {
       return 'por Retardo'
     case 7:
       return 'por Seguimiento'
+    case 9:
+      return 'Directa por conducta'
     default:
       return 'Desconocido'
   }
@@ -61,6 +67,7 @@ export function etiquetaTipoCitatorio(tipo: number): string {
 export function etiquetaEscalon(tipo: number, no: number): string {
   if (tipo === 5) return 'Informe'
   if (tipo === 8) return 'Aviso'
+  if (tipo === 9) return 'Suspensión directa'
   if (tipo > 2) {
     if (no === 1) return 'Reporte I'
     if (no === 2) return 'Reporte II'
@@ -96,6 +103,7 @@ export function maxReporteNoEscalon(
 export function fraseRegistroAvisoRac(tipo: number, no: number, opts?: OpcionesEtiquetaRac): string {
   if (tipo === 5) return opts?.primaria ? 'Informe de desempeño' : 'Informe académico'
   if (tipo === 8) return 'Aviso de atención en Psicología'
+  if (tipo === 9) return 'Suspensión directa por conducta'
   if (tipo === 3) return 'Reporte de uniforme'
   if (tipo === 4) return 'Reporte de vialidad'
   if (tipo === 6) {
@@ -130,7 +138,7 @@ export function motivoReporte(tipo: number, motivo: number): string {
     if (motivo === 3) return 'Libro y cuaderno'
     if (motivo === 4) return 'Incumplimiento de tablet'
   }
-  if (tipo === 2) {
+  if (tipo === 2 || tipo === 9) {
     if (motivo === 1) return 'Conducta inapropiada'
     if (motivo === 2) return 'Lenguaje inapropiado'
     if (motivo === 3) return 'Faltas al reglamento'
