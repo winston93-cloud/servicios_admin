@@ -92,6 +92,43 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms))
 }
 
+const CLAVE_SOLICITUD_PENDIENTE = 'sat-descarga-solicitud-pendiente'
+/** El SAT conserva la solicitud ~72 h; se retoma solo dentro de esta ventana. */
+const VIGENCIA_SOLICITUD_MS = 48 * 60 * 60 * 1000
+const ESPERA_MAX_MS = 15 * 60 * 1000
+
+type SolicitudPendiente = {
+  paqueteId: string
+  fechaInicio: string
+  fechaFin: string
+  idSolicitud: string
+  creado: number
+}
+
+function leerSolicitudPendiente(): SolicitudPendiente | null {
+  try {
+    const raw = localStorage.getItem(CLAVE_SOLICITUD_PENDIENTE)
+    if (!raw) return null
+    const p = JSON.parse(raw) as SolicitudPendiente
+    if (!p?.idSolicitud || Date.now() - Number(p.creado) > VIGENCIA_SOLICITUD_MS) {
+      localStorage.removeItem(CLAVE_SOLICITUD_PENDIENTE)
+      return null
+    }
+    return p
+  } catch {
+    return null
+  }
+}
+
+function guardarSolicitudPendiente(p: SolicitudPendiente | null) {
+  try {
+    if (p) localStorage.setItem(CLAVE_SOLICITUD_PENDIENTE, JSON.stringify(p))
+    else localStorage.removeItem(CLAVE_SOLICITUD_PENDIENTE)
+  } catch {
+    /* almacenamiento no disponible */
+  }
+}
+
 function truncarNombre(nombre: string, max = 28) {
   if (nombre.length <= max) return nombre
   return `${nombre.slice(0, max - 3)}…`
@@ -173,7 +210,12 @@ export default function FacturacionDescargaSatView() {
   const [guardandoPaquete, setGuardandoPaquete] = useState(false)
   const [cargandoPaquetes, setCargandoPaquetes] = useState(true)
   const [mostrarArchivosFiel, setMostrarArchivosFiel] = useState(true)
+  const [pendiente, setPendiente] = useState<SolicitudPendiente | null>(null)
   const cancelRef = useRef(false)
+
+  useEffect(() => {
+    setPendiente(leerSolicitudPendiente())
+  }, [])
 
   const modoNuevo = paqueteActivoId === '__nuevo__'
   const paqueteActivo =
@@ -383,30 +425,57 @@ export default function FacturacionDescargaSatView() {
       return fd
     }
 
+    const previa = leerSolicitudPendiente()
+    const retomar =
+      previa &&
+      previa.paqueteId === paqueteIdEjecucion &&
+      previa.fechaInicio === fechaInicio &&
+      previa.fechaFin === fechaFin
+        ? previa
+        : null
+
     try {
-      setEtapa('autenticando')
-      const resSol = await fetch('/api/sat/descarga-masiva', {
-        method: 'POST',
-        credentials: 'include',
-        headers: portalSessionFetchHeaders(),
-        body: armarFormEjecucion('solicitar'),
-      })
-      const dataSol = await resSol.json().catch(() => ({}))
-      if (!resSol.ok || !dataSol.ok) {
-        throw new Error(mensajeErrorApi(dataSol))
+      let id: string
+      if (retomar) {
+        id = retomar.idSolicitud
+        setIdSolicitud(id)
+        setEtapa('solicitud_enviada')
+        setMensaje('Retomando la solicitud pendiente (no se envía una nueva al SAT)…')
+      } else {
+        setEtapa('autenticando')
+        const resSol = await fetch('/api/sat/descarga-masiva', {
+          method: 'POST',
+          credentials: 'include',
+          headers: portalSessionFetchHeaders(),
+          body: armarFormEjecucion('solicitar'),
+        })
+        const dataSol = await resSol.json().catch(() => ({}))
+        if (!resSol.ok || !dataSol.ok) {
+          throw new Error(mensajeErrorApi(dataSol))
+        }
+
+        id = String(dataSol.idSolicitud ?? '')
+        setIdSolicitud(id)
+        setEtapa('solicitud_enviada')
+        setMensaje(`IdSolicitud: ${id}`)
+        const nueva: SolicitudPendiente = {
+          paqueteId: paqueteIdEjecucion,
+          fechaInicio,
+          fechaFin,
+          idSolicitud: id,
+          creado: Date.now(),
+        }
+        guardarSolicitudPendiente(nueva)
+        setPendiente(nueva)
       }
 
-      const id = String(dataSol.idSolicitud ?? '')
-      setIdSolicitud(id)
-      setEtapa('solicitud_enviada')
-      setMensaje(`IdSolicitud: ${id}`)
-
       let paquetes: string[] = []
-      const maxIntentos = 36
-      for (let i = 0; i < maxIntentos; i++) {
+      let lista = false
+      const limite = Date.now() + ESPERA_MAX_MS
+      for (let i = 0; Date.now() < limite; i++) {
         if (cancelRef.current) return
         setEtapa('verificando')
-        await sleep(i === 0 ? 4000 : 5000)
+        await sleep(i === 0 ? 4000 : i < 24 ? 5000 : 15000)
 
         const resVer = await fetch('/api/sat/descarga-masiva', {
           method: 'POST',
@@ -420,22 +489,30 @@ export default function FacturacionDescargaSatView() {
         }
 
         if (dataVer.estado === 'fallida') {
+          guardarSolicitudPendiente(null)
+          setPendiente(null)
           throw new Error(dataVer.mensaje || 'El SAT rechazó o expiró la solicitud.')
         }
         if (dataVer.estado === 'lista') {
           paquetes = Array.isArray(dataVer.paquetes) ? dataVer.paquetes : []
+          lista = true
           break
         }
         setMensaje(
           dataVer.mensaje ||
-            `Verificación ${i + 1}/${maxIntentos} — el SAT sigue procesando…`
+            `Verificación ${i + 1} — el SAT sigue procesando…`
         )
       }
 
-      if (!paquetes.length) {
+      if (!lista) {
         throw new Error(
-          'El SAT no terminó a tiempo. Intente de nuevo con un rango de fechas más corto.'
+          'El SAT sigue preparando los paquetes. La solicitud quedó guardada: presione «Continuar solicitud pendiente» en unos minutos y se retomará la misma, sin pedir otra al SAT.'
         )
+      }
+      if (!paquetes.length) {
+        guardarSolicitudPendiente(null)
+        setPendiente(null)
+        throw new Error('El SAT no devolvió paquetes para ese periodo (sin CFDI recibidos).')
       }
 
       setEtapa('procesando_xml')
@@ -466,6 +543,8 @@ export default function FacturacionDescargaSatView() {
       a.download = `cfdi-recibidos_${fechaInicio}_${fechaFin}.xlsx`
       a.click()
       URL.revokeObjectURL(url)
+      guardarSolicitudPendiente(null)
+      setPendiente(null)
 
       setEtapa('listo')
       setMensaje(
@@ -490,6 +569,14 @@ export default function FacturacionDescargaSatView() {
 
   const ocupado =
     etapa !== 'idle' && etapa !== 'listo' && etapa !== 'error'
+
+  const pendienteCoincide =
+    !!pendiente &&
+    !modoNuevo &&
+    !mostrarArchivosFiel &&
+    pendiente.paqueteId === paqueteActivoId &&
+    pendiente.fechaInicio === fechaInicio &&
+    pendiente.fechaFin === fechaFin
 
   const formularioFielVisible = modoNuevo || mostrarArchivosFiel
   const uiBloqueada = ocupado || cargandoPaquetes || guardandoPaquete
@@ -860,7 +947,7 @@ export default function FacturacionDescargaSatView() {
                 ) : (
                   <>
                     <FileSpreadsheet size={16} aria-hidden />
-                    Solicitar y generar Excel
+                    {pendienteCoincide ? 'Continuar solicitud pendiente' : 'Solicitar y generar Excel'}
                   </>
                 )}
               </button>
@@ -876,13 +963,28 @@ export default function FacturacionDescargaSatView() {
                 >
                   Cancelar
                 </button>
+              ) : pendienteCoincide ? (
+                <button
+                  type="button"
+                  className="facturacion-cfdi-sat-btn-secondary"
+                  onClick={() => {
+                    guardarSolicitudPendiente(null)
+                    setPendiente(null)
+                    setIdSolicitud(null)
+                    setError(null)
+                    setEtapa('idle')
+                    setMensaje('Solicitud pendiente descartada. El siguiente intento pedirá una nueva al SAT.')
+                  }}
+                >
+                  Descartar y pedir una nueva
+                </button>
               ) : null}
             </div>
 
             <p className="facturacion-cfdi-sat-footnote">
-              El SAT puede tardar varios minutos en preparar los paquetes. No cierre esta pestaña
-              hasta que termine la descarga. Si ya envió una consulta hace pocos minutos, espere
-              15–30 min antes de volver a solicitar el mismo periodo.
+              El SAT puede tardar desde minutos hasta horas en preparar los paquetes. Si se agota la
+              espera, la solicitud queda guardada en este navegador: vuelva más tarde con el mismo
+              paquete y fechas y presione «Continuar solicitud pendiente».
             </p>
           </aside>
         </div>
