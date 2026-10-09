@@ -67,7 +67,7 @@ function EstatusInner() {
     <main className="rac-estatus">
       <header>
         <p>Instituto Winston Churchill</p>
-        <h1>Reportes académicos y de conducta</h1>
+        <h1>{alt === 2 ? 'Citas' : 'Reportes académicos y de conducta'}</h1>
       </header>
       {error ? <p className="err">{error}</p> : null}
       {detalle?.retirado ? (

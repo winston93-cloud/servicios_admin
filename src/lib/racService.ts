@@ -984,10 +984,9 @@ export async function inboxCitas(
       .eq('usuario_id', session.id)
       .in('cita_tipo', [RAC_TIPOS.conducta, RAC_TIPOS.seguimiento])
   } else if (session.role === 'maestro') {
-    const { asignaciones } = await listarAsignaciones(session)
-    const ids = asignaciones.map((a) => a.materia_id)
-    if (!ids.length) return []
-    q = q.in('materia_id', ids)
+    // Solo sus propias citas: con materia compartida (p. ej. Matemáticas III) se veían las de otros.
+    const cuentas = [session.id, ...(await maestrosMismaPersona(db(), session.id))]
+    q = q.eq('perfil_id', PERFIL_MAESTRO).in('usuario_id', cuentas)
   }
   const { data, error } = await q
     .order('cita_confirmada', { ascending: true })
