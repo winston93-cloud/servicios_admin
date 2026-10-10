@@ -7,7 +7,8 @@
  *   node scripts/enviar-aviso-cuota-inicio-beca100.mjs <lista.json> --enviar
  *
  * lista.json: { "ciclo": "2026-2027", "destinatarios": [
- *   { "control", "alumno", "grado", "nivel", "mama", "email", "monto" } ] }
+ *   { "control", "alumno", "grado", "nivel", "emails": [], "monto" } ] }
+ * `emails`: familiares con «recibir correos» activo (mamá, papá o ambos).
  * `--prueba` manda solo el primer destinatario al correo indicado.
  */
 import nodemailer from 'nodemailer'
@@ -64,7 +65,7 @@ function htmlAviso(d, ciclo) {
     </tr>
     <tr>
       <td style="background:#fff;padding:28px 24px;border:1px solid #e2e8f0;border-top:none;">
-        ${p(`Estimada Sra. <strong>${esc(d.mama)}</strong>:`)}
+        ${p('Estimados padres de familia:')}
         ${p(`Le informamos que ya puede realizar el pago de la <strong>Cuota de Inicio de Curso</strong> del ciclo escolar ${esc(ciclo)} de su hijo(a) <strong>${esc(d.alumno)}</strong> (${esc(d.grado)}, control ${esc(d.control)}).`)}
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:6px 0 20px;">
           <tr>
@@ -119,7 +120,14 @@ async function main() {
   })
 
   for (const d of lista) {
-    const to = modo === '--prueba' ? emailPrueba || COPIA_SISTEMAS : d.email
+    const emails = [...new Set((d.emails ?? []).map((e) => String(e).trim().toLowerCase()))].filter((e) =>
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)
+    )
+    if (modo === '--enviar' && !emails.length) {
+      console.error('SIN CORREO', d.control)
+      continue
+    }
+    const to = modo === '--prueba' ? emailPrueba || COPIA_SISTEMAS : emails.join(', ')
     const asunto = `Cuota de Inicio de Curso ${ciclo} — ${d.alumno}`
     try {
       const info = await transporter.sendMail({
