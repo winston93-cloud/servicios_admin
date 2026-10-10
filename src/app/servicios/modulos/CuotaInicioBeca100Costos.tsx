@@ -135,8 +135,8 @@ export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | nu
       </h2>
       <p className="costos-field-hint">
         Solo a alumnos activos con beca autorizada del 100% en el ciclo se les cobra este monto en la Cuota
-        de Inicio de Curso (concepto 00). Al resto se le cobra la cuota normal. Escribe el % de descuento sobre la
-        cuota normal y se calcula el monto (o escribe el monto y se calcula el %). En 0 se cobra la cuota normal.
+        de Inicio de Curso (concepto 00). Al resto se le cobra la cuota total. Escribe cuánto % le baja al total y
+        se calcula lo que se les cobra (o escribe el monto y se calcula el %). En 0 se cobra la cuota total.
       </p>
 
       {cargando ? (
@@ -158,16 +158,16 @@ export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | nu
                   <span>{ciclo != null ? etiquetaCiclo(ciclo - 1) : 'Ciclo anterior'}</span>
                   <strong>
                     {n.anterior > 0
-                      ? `${money(n.anterior)} · ${descuentoDesde(n.normalAnterior, n.anterior) || '—'}% desc.`
+                      ? `${money(n.anterior)} · bajó ${descuentoDesde(n.normalAnterior, n.anterior) || '—'}%`
                       : '—'}
                   </strong>
                 </div>
                 <div className="costos-beca100-anterior">
-                  <span>Cuota normal {ciclo != null ? etiquetaCiclo(ciclo) : ''}</span>
+                  <span>Cuota total {ciclo != null ? etiquetaCiclo(ciclo) : ''}</span>
                   <strong>{n.tieneFila ? money(n.normal) : '—'}</strong>
                 </div>
                 <div className="ciclos-crud-field">
-                  <label htmlFor={`beca100-pct-${n.nivel}`}>Descuento sobre cuota normal (%)</label>
+                  <label htmlFor={`beca100-pct-${n.nivel}`}>Le baja del total (%)</label>
                   <input
                     id={`beca100-pct-${n.nivel}`}
                     type="number"
@@ -182,7 +182,7 @@ export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | nu
                 </div>
                 <div className="ciclos-crud-field">
                   <label htmlFor={`beca100-monto-${n.nivel}`}>
-                    {ciclo != null ? etiquetaCiclo(ciclo) : 'Ciclo'} (MXN)
+                    Se les cobra {ciclo != null ? etiquetaCiclo(ciclo) : ''} (MXN)
                   </label>
                   <input
                     id={`beca100-monto-${n.nivel}`}
@@ -199,6 +199,11 @@ export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | nu
                 <p className="costos-field-hint">
                   {n.tieneFila ? (
                     <>
+                      {Number(form[n.nivel]?.monto) > 0 && n.normal > 0 ? (
+                        <>
+                          Le baja <strong>{money(n.normal - Number(form[n.nivel]?.monto))}</strong> del total ·{' '}
+                        </>
+                      ) : null}
                       Aplica a <strong>{becadosPorNivel(n.nivel)}</strong> alumno(s)
                     </>
                   ) : (
