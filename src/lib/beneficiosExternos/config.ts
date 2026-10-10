@@ -33,6 +33,17 @@ export const OPCIONES_BENEFICIO_EXTERNO: readonly OpcionBeneficioExterno[] = [
   },
 ]
 
+/**
+ * 2026-10-10 — Textos y límites de la vista previa de subida (copiados del portal de becas /sep).
+ * La vista previa no lee ni envía el archivo: solo muestra el flujo.
+ */
+export const MAX_MB_DOCUMENTO_EXTERNO = 5
+export const MAX_BYTES_DOCUMENTO_EXTERNO = MAX_MB_DOCUMENTO_EXTERNO * 1024 * 1024
+export const TIPOS_DOCUMENTO_EXTERNO = ['application/pdf', 'image/jpeg', 'image/png'] as const
+export const MENSAJE_LIMITE_DOCUMENTO_EXTERNO = `El archivo pesa más de ${MAX_MB_DOCUMENTO_EXTERNO} MB y no se puede recibir. Si es foto, tómela con menor calidad; si es PDF, escanéelo en blanco y negro o a menor resolución.`
+export const AVISO_OTRAS_BECAS_SEP =
+  'Entiendo que al agregar la beca SEP mi hijo(a) pierde el beneficio de cualquier otra beca que tenga en el colegio, que esa beca no se renovará el próximo ciclo escolar (tendría que solicitarla de nuevo), y deseo continuar.'
+
 /** Portal donde la familia sube la autorización de la Beca SEP (login con No. de control). */
 export function urlSubirDocumentoBecaSep(): string {
   const explicit = process.env.NEXT_PUBLIC_BECAS_SEP_URL?.trim()

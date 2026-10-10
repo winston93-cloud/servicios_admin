@@ -8,15 +8,13 @@
  */
 
 import { useState } from 'react'
-import { Check, ChevronRight, ExternalLink, Gift, RotateCcw, Upload, X } from 'lucide-react'
-import {
-  OPCIONES_BENEFICIO_EXTERNO,
-  urlSubirDocumentoBecaSep,
-  type BeneficioExternoId,
-} from '@/lib/beneficiosExternos/config'
+import { Check, ChevronRight, Gift, RotateCcw, Upload, X } from 'lucide-react'
+import { OPCIONES_BENEFICIO_EXTERNO, type BeneficioExternoId } from '@/lib/beneficiosExternos/config'
+import SubirDocumentoDemo from './SubirDocumentoDemo'
 import './beneficios-externos.css'
 
-type Paso = 'aplico' | 'cual' | 'recibio' | 'subir' | 'sin-beca' | 'en-espera'
+// 2026-10-10 — 'documento': vista previa de la página de subida dentro del mismo popup.
+type Paso = 'aplico' | 'cual' | 'recibio' | 'subir' | 'documento' | 'sin-beca' | 'en-espera'
 
 const PASOS_NUMERADOS: Paso[] = ['aplico', 'cual', 'recibio', 'subir']
 
@@ -54,6 +52,7 @@ const PASO_ETIQUETA: Record<Paso, string> = {
   cual: 'Paso 2 de 4',
   recibio: 'Paso 3 de 4',
   subir: 'Paso 4 de 4',
+  documento: 'Paso 4 de 4',
   'sin-beca': 'Listo',
   'en-espera': 'Pendiente',
 }
@@ -73,7 +72,7 @@ export default function Cuestionario({
   const opcion = OPCIONES_BENEFICIO_EXTERNO.find((o) => o.id === beneficio) ?? null
   const nombreBeneficio = beneficio === 'otra' ? otraNombre.trim() || 'beca externa' : opcion?.label ?? ''
   const cualListo = beneficio === 'sep' || (beneficio === 'otra' && otraNombre.trim().length >= 3)
-  const indicePaso = PASOS_NUMERADOS.indexOf(paso)
+  const indicePaso = PASOS_NUMERADOS.indexOf(paso === 'documento' ? 'subir' : paso)
 
   const reiniciar = () => {
     setPaso('aplico')
@@ -199,30 +198,35 @@ export default function Cuestionario({
       {paso === 'subir' ? (
         <div className="bx-paso">
           <h2>Suba el documento</h2>
-          {beneficio === 'sep' ? (
-            <>
-              <p className="bx-ayuda">
-                Suba la autorización de la Beca SEP en el portal de becas. Entre con el número de control del
-                alumno y su contraseña del portal.
-              </p>
-              <a className="bx-btn bx-btn--grande" href={urlSubirDocumentoBecaSep()} target="_blank" rel="noopener noreferrer">
-                <Upload size={18} aria-hidden />
-                Ir a subir el documento
-                <ExternalLink size={15} aria-hidden />
-              </a>
-            </>
-          ) : (
-            <p className="bx-ayuda">
-              Por ahora, entregue una copia del documento de la <strong>{nombreBeneficio}</strong> en Control
-              Escolar de su sección para que lo revisen.
-            </p>
-          )}
+          <p className="bx-ayuda">
+            {beneficio === 'sep' ? (
+              'Suba la autorización de la Beca SEP que le entregó la SEP. Control Escolar la revisará y aplicará la beca.'
+            ) : (
+              <>
+                Suba la carta o autorización de la <strong>{nombreBeneficio}</strong> para que Control Escolar la
+                revise.
+              </>
+            )}
+          </p>
+          {/* 2026-10-10 — Abre la vista previa de subida en el mismo popup (ya no lleva a otra página). */}
+          <button type="button" className="bx-btn bx-btn--grande" onClick={() => setPaso('documento')}>
+            <Upload size={18} aria-hidden />
+            Ir a subir mi documento
+          </button>
           <div className="bx-acciones">
             <button type="button" className="bx-btn bx-btn--ghost" onClick={() => setPaso('recibio')}>
               Atrás
             </button>
           </div>
         </div>
+      ) : null}
+
+      {paso === 'documento' && beneficio ? (
+        <SubirDocumentoDemo
+          beneficio={beneficio}
+          nombreBeneficio={nombreBeneficio}
+          onAtras={() => setPaso('subir')}
+        />
       ) : null}
 
       {paso === 'sin-beca' ? (

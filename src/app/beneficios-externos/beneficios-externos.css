@@ -361,6 +361,204 @@ html[data-theme='light'] .bx-modal {
   line-height: 1.6;
 }
 
+/* 2026-10-10 — Vista previa de la subida de documentos (igual al portal de becas /sep). */
+.bx-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.bx-subida-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.bx-subida-head h2 {
+  margin-bottom: 0.15rem;
+}
+
+.bx-subida-icono {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid rgba(var(--bx-accent), 0.3);
+  border-radius: 0.75rem;
+  color: rgb(var(--bx-accent));
+  background: rgba(var(--bx-accent), 0.1);
+}
+
+.bx-subida-nota {
+  margin: 0;
+  color: rgba(var(--bx-accent), 0.85);
+  font-size: 0.78rem;
+}
+
+.bx-dropzone {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  padding: 1.6rem 1rem;
+  border: 1.5px dashed rgba(var(--bx-accent), 0.4);
+  border-radius: 0.9rem;
+  color: rgb(var(--bx-accent));
+  background: rgba(var(--bx-accent), 0.05);
+  text-align: center;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.bx-dropzone.is-arrastrando {
+  border-color: rgb(var(--bx-accent));
+  background: rgba(var(--bx-accent), 0.14);
+}
+
+.bx-dropzone p {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  color: var(--bx-texto);
+  font-size: 0.92rem;
+}
+
+.bx-dropzone p span {
+  color: var(--bx-suave);
+  font-size: 0.83rem;
+}
+
+.bx-subida-tip {
+  margin: 0.7rem 0 0;
+  color: var(--bx-suave);
+  font-size: 0.8rem;
+}
+
+.bx-alerta {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0.9rem 0 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid;
+  border-radius: 0.85rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.bx-alerta > svg {
+  flex: none;
+  margin-top: 0.15rem;
+}
+
+.bx-alerta p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0.25rem 0 0;
+  color: var(--bx-suave);
+}
+
+.bx-alerta--ok {
+  border-color: rgba(var(--bx-accent), 0.45);
+  color: rgb(var(--bx-accent));
+  background: rgba(var(--bx-accent), 0.1);
+}
+
+.bx-alerta--ok strong {
+  color: var(--bx-texto);
+}
+
+.bx-alerta--aviso {
+  border-color: rgba(251, 191, 36, 0.45);
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.bx-aviso {
+  padding: 1.1rem 1.15rem;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 0.9rem;
+  background: rgba(251, 191, 36, 0.07);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.bx-aviso-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.35rem;
+  color: #fbbf24;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.bx-aviso h3 {
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.bx-aviso p {
+  margin: 0 0 0.6rem;
+  color: var(--bx-suave);
+}
+
+.bx-aviso p strong {
+  color: var(--bx-texto);
+}
+
+.bx-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0.8rem 0 0.4rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.bx-check input {
+  flex: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-top: 0.15rem;
+  accent-color: rgb(var(--bx-accent));
+}
+
+.bx-subiendo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.1rem 1rem;
+  border: 1px solid rgba(var(--bx-accent), 0.3);
+  border-radius: 0.85rem;
+  color: rgb(var(--bx-accent));
+  background: rgba(var(--bx-accent), 0.06);
+  font-size: 0.9rem;
+}
+
+.bx-girando {
+  animation: bx-girar 0.9s linear infinite;
+}
+
+@keyframes bx-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+html[data-theme='light'] .bx-alerta--aviso,
+html[data-theme='light'] .bx-aviso-eyebrow {
+  color: #b45309;
+}
+
 /* 2026-10-10 — Popup sobre el dashboard. */
 .bx-modal {
   position: fixed;
@@ -435,15 +633,16 @@ html[data-theme='light'] .bx-modal {
   content: '';
   position: absolute;
   z-index: -1;
-  top: -30%;
-  right: -8%;
-  width: 48%;
-  height: 90%;
+  top: -25%;
+  right: -12%;
+  width: 55%;
+  height: 70%;
+  /* closest-side: el brillo se desvanece antes del borde (sin rectángulo visible). */
   background: radial-gradient(
-    circle at 70% 30%,
+    closest-side,
     rgba(var(--bx-accent), 0.2) 0%,
-    rgba(var(--bx-accent), 0.05) 42%,
-    transparent 72%
+    rgba(var(--bx-accent), 0.06) 55%,
+    transparent 100%
   );
   pointer-events: none;
 }
