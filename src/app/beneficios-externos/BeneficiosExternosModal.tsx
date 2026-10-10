@@ -6,7 +6,6 @@
  */
 
 import { useEffect, useId, useRef } from 'react'
-import { Eye, X } from 'lucide-react'
 import Cuestionario from './Cuestionario'
 import './beneficios-externos.css'
 
@@ -28,7 +27,8 @@ export default function BeneficiosExternosModal({ abierto, onCerrar }: Props) {
     }
     window.addEventListener('keydown', onKey)
     const t = window.setTimeout(() => {
-      panelRef.current?.querySelector<HTMLElement>('.bx-opcion, button')?.focus()
+      const panel = panelRef.current
+      ;(panel?.querySelector<HTMLElement>('.bx-opcion') ?? panel?.querySelector<HTMLElement>('button'))?.focus()
     }, 40)
     return () => {
       document.body.style.overflow = prev
@@ -43,16 +43,7 @@ export default function BeneficiosExternosModal({ abierto, onCerrar }: Props) {
     <div className="bx-modal" role="presentation">
       <button type="button" className="bx-modal-fondo" aria-label="Cerrar" onClick={onCerrar} />
       <div ref={panelRef} className="bx-modal-panel" role="dialog" aria-modal="true" aria-labelledby={tituloId}>
-        <div className="bx-modal-barra">
-          <p className="bx-preview" role="note">
-            <Eye size={15} aria-hidden />
-            Vista previa del alumno · las respuestas no se guardan.
-          </p>
-          <button type="button" className="bx-modal-cerrar" onClick={onCerrar} aria-label="Cerrar">
-            <X size={20} aria-hidden />
-          </button>
-        </div>
-        <Cuestionario tituloId={tituloId} />
+        <Cuestionario tituloId={tituloId} onCerrar={onCerrar} />
       </div>
     </div>
   )

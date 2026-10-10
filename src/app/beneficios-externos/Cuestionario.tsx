@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react'
-import { Check, ExternalLink, Gift, RotateCcw, Upload } from 'lucide-react'
+import { Check, ChevronRight, ExternalLink, Gift, RotateCcw, Upload, X } from 'lucide-react'
 import {
   OPCIONES_BENEFICIO_EXTERNO,
   urlSubirDocumentoBecaSep,
@@ -49,7 +49,23 @@ function Opcion({
   )
 }
 
-export default function Cuestionario({ tituloId = 'bx-titulo' }: { tituloId?: string }) {
+const PASO_ETIQUETA: Record<Paso, string> = {
+  aplico: 'Paso 1 de 4',
+  cual: 'Paso 2 de 4',
+  recibio: 'Paso 3 de 4',
+  subir: 'Paso 4 de 4',
+  'sin-beca': 'Listo',
+  'en-espera': 'Pendiente',
+}
+
+/** 2026-10-10 — En el popup el encabezado imita las tarjetas del dashboard (kicker, badge, chips, cerrar). */
+export default function Cuestionario({
+  tituloId = 'bx-titulo',
+  onCerrar,
+}: {
+  tituloId?: string
+  onCerrar?: () => void
+}) {
   const [paso, setPaso] = useState<Paso>('aplico')
   const [beneficio, setBeneficio] = useState<BeneficioExternoId | null>(null)
   const [otraNombre, setOtraNombre] = useState('')
@@ -66,16 +82,40 @@ export default function Cuestionario({ tituloId = 'bx-titulo' }: { tituloId?: st
   }
 
   return (
-    <section className="bx-card" aria-labelledby={tituloId}>
-      <div className="bx-card-head">
-        <span className="bx-icono" aria-hidden>
-          <Gift size={22} strokeWidth={1.75} />
-        </span>
-        <div>
-          <p className="bx-kicker">Servicios escolares</p>
-          <h1 id={tituloId}>Beneficios externos</h1>
+    <section className={`bx-card${onCerrar ? ' bx-card--modulo' : ''}`} aria-labelledby={tituloId}>
+      {onCerrar ? (
+        <div className="bx-modulo-head">
+          <span className="bx-modulo-icono" aria-hidden>
+            <Gift size={24} strokeWidth={1.6} />
+          </span>
+          <div className="bx-modulo-cuerpo">
+            <div className="bx-modulo-meta">
+              <span className="bx-modulo-kicker">Vista del alumno</span>
+              <span className="bx-modulo-badge">Prueba</span>
+            </div>
+            <h1 id={tituloId} className="bx-modulo-titulo">
+              Beneficios externos
+            </h1>
+            <ul className="bx-modulo-tags" aria-label="Estado">
+              <li>{PASO_ETIQUETA[paso]}</li>
+              <li>Las respuestas no se guardan</li>
+            </ul>
+          </div>
+          <button type="button" className="bx-modulo-cerrar" onClick={onCerrar} aria-label="Cerrar">
+            <X size={18} aria-hidden />
+          </button>
         </div>
-      </div>
+      ) : (
+        <div className="bx-card-head">
+          <span className="bx-icono" aria-hidden>
+            <Gift size={22} strokeWidth={1.75} />
+          </span>
+          <div>
+            <p className="bx-kicker">Servicios escolares</p>
+            <h1 id={tituloId}>Beneficios externos</h1>
+          </div>
+        </div>
+      )}
 
       {indicePaso >= 0 ? (
         <ol className="bx-progreso" aria-label="Avance">
@@ -132,6 +172,7 @@ export default function Cuestionario({ tituloId = 'bx-titulo' }: { tituloId?: st
             </button>
             <button type="button" className="bx-btn" disabled={!cualListo} onClick={() => setPaso('recibio')}>
               Continuar
+              <ChevronRight size={16} aria-hidden />
             </button>
           </div>
         </div>
