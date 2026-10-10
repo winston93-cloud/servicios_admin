@@ -7308,6 +7308,59 @@ html[data-theme='dark'] .servicios-sidebar-logout {
   }
 }
 
+.costos-beca100-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.costos-beca100-anterior {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 8px;
+  font-size: 0.875rem;
+}
+
+.costos-beca100-lista summary {
+  cursor: pointer;
+  font-weight: 600;
+  min-height: var(--touch-min, 44px);
+  display: flex;
+  align-items: center;
+}
+
+.costos-beca100-tabla-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.costos-beca100-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.costos-beca100-tabla th,
+.costos-beca100-tabla td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  white-space: nowrap;
+}
+
+@media (max-width: 1024px) {
+  .costos-beca100-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .costos-beca100-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .costos-usa-video {
   position: relative;
   display: grid;

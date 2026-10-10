@@ -9,6 +9,7 @@ import {
 } from '@/lib/boucherCore'
 import ConceptosPagoCatalogo from './ConceptosPagoCatalogo'
 import WinstonUsaCostos from './WinstonUsaCostos'
+import CuotaInicioBeca100Costos from './CuotaInicioBeca100Costos'
 import UsuariosPinGate from '../components/UsuariosPinGate'
 
 type TabCostos = 'precios' | 'conceptos'
@@ -531,6 +532,7 @@ export default function CostosModulo() {
             </ul>
           )}
         </section>
+        <CuotaInicioBeca100Costos ciclo={cicloEfectivo} />
         <WinstonUsaCostos ciclo={cicloEfectivo} />
       </div>
       )}
