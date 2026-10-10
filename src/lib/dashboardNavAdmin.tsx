@@ -4,6 +4,7 @@ import { urlProrrogasAjustesApp } from '@/lib/prorrogasAjustesConfig'
 import { urlCchicApp } from '@/lib/cchicConfig'
 import { urlChequesApp, urlContratosApp, urlSsiwEntregaLogin, urlUsaProgramApp } from '@/lib/dashboardModulosConfig'
 import { ACCESOS_USUARIOS_PERMITIDOS } from '@/lib/accesos/accesosTypes'
+import { BENEFICIOS_EXTERNOS_USUARIOS } from '@/lib/beneficiosExternos/config'
 
 export type DashboardAdminNavItem = {
   /** Clave estable para ACL de visualización en dashboard. */
@@ -27,6 +28,11 @@ export type DashboardAdminNavItem = {
   soloUsuariosLegacy?: readonly number[]
   /** Solo estos usuario_id la ven, aunque se asigne desde el catálogo de usuarios. */
   soloUsuarios?: readonly number[]
+  /**
+   * 2026-10-10 — Tarjeta fija para estos usuario_id: sale siempre en su dashboard,
+   * sin depender de usuario.dashboard_modulos ni del catálogo (no es asignable).
+   */
+  fijoParaUsuarios?: readonly number[]
 }
 
 const ICON_DESAYUNOS = (
@@ -564,6 +570,47 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
         <path d="M17 9h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-1v3l-3-3h-3a2 2 0 0 1-1.6-.8" />
         <path d="M6 12V8h3" />
         <path d="M6 10h2.5" />
+      </svg>
+    ),
+  },
+  // 2026-10-10 — Beneficios externos: dos tarjetas (vista del alumno + módulo del personal),
+  // fijas y exclusivas de ruben, mario y alan. No tocan el módulo de Becas.
+  {
+    id: 'beneficios-externos-alumno',
+    label: 'Beneficios externos',
+    desc: 'Así la verá el alumno: ¿aplicó a una beca externa?, ¿cuál?, ¿ya la recibió? y subir documento.',
+    path: '/beneficios-externos',
+    accent: 'emerald',
+    kicker: 'Vista del alumno',
+    tags: ['Vista previa', 'Familias'],
+    badge: 'Prueba',
+    soloUsuarios: BENEFICIOS_EXTERNOS_USUARIOS,
+    fijoParaUsuarios: BENEFICIOS_EXTERNOS_USUARIOS,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 12v9H4v-9" />
+        <path d="M2 7h20v5H2z" />
+        <path d="M12 21V7" />
+        <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+        <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'beneficios-externos',
+    label: 'Beneficios externos · Personal',
+    desc: 'Módulo del personal: respuestas de las familias y revisión de documentos de becas externas.',
+    path: '/beneficios-externos/personal',
+    accent: 'emerald',
+    kicker: 'Nuevo módulo',
+    tags: ['Beca SEP', 'Revisión'],
+    badge: 'Prueba',
+    soloUsuarios: BENEFICIOS_EXTERNOS_USUARIOS,
+    fijoParaUsuarios: BENEFICIOS_EXTERNOS_USUARIOS,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 11l3 3L22 4" />
+        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
       </svg>
     ),
   },

@@ -430,11 +430,15 @@ export function modulosOcultosDeUsuario(usuarioId: number): Set<string> {
   return new Set(list)
 }
 
-/** Tarjetas que se pueden asignar a un usuario (las que sí salen en dashboard). */
+/**
+ * Tarjetas que se pueden asignar a un usuario (las que sí salen en dashboard).
+ * 2026-10-10 — Las tarjetas `fijoParaUsuarios` no son asignables: así no se guardan
+ * en usuario.dashboard_modulos ni aparecen en el catálogo de usuarios.
+ */
 export const DASHBOARD_MODULOS_ASIGNABLES = NAV_ITEMS_ADMIN.map((item, idx) => ({
   n: idx + 1,
   item,
-})).filter(({ item }) => !item.dashboardHidden)
+})).filter(({ item }) => !item.dashboardHidden && !item.fijoParaUsuarios)
 
 const IDS_ASIGNABLES = new Set(DASHBOARD_MODULOS_ASIGNABLES.map(({ item }) => item.id))
 
@@ -468,13 +472,21 @@ export function modulosVisiblesDeUsuario(
   ).map(({ item }) => item.id)
 }
 
-export function filtrarNavItemsAdminPorUsuario<T extends { id: string; dashboardHidden?: boolean }>(
+export function filtrarNavItemsAdminPorUsuario<
+  T extends { id: string; dashboardHidden?: boolean; fijoParaUsuarios?: readonly number[] },
+>(
   items: T[],
   usuarioId: number | null | undefined,
   modulosDb?: readonly string[] | null
 ): T[] {
+  const uid = Number(usuarioId) || 0
   const visibles = new Set(modulosVisiblesDeUsuario(usuarioId, modulosDb))
-  return items.filter((item) => !item.dashboardHidden && visibles.has(item.id))
+  // 2026-10-10 — Tarjetas fijas: solo se suman en el dashboard de sus usuario_id (sin tocar BD).
+  return items.filter(
+    (item) =>
+      !item.dashboardHidden &&
+      (visibles.has(item.id) || (uid > 0 && Boolean(item.fijoParaUsuarios?.includes(uid))))
+  )
 }
 
 /** Resuelve números 1..25 → ids de módulo. */
