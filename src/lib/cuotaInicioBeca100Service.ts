@@ -12,8 +12,10 @@ export type CuotaInicioBeca100Nivel = {
   anterior: number
   /** Cuota especial del ciclo (0 = se cobra la cuota normal). */
   actual: number
-  /** Cuota de inicio normal del ciclo, como referencia. */
+  /** Cuota de inicio normal del ciclo (base del % de descuento). */
   normal: number
+  /** Cuota de inicio normal del ciclo anterior. */
+  normalAnterior: number
   tieneFila: boolean
 }
 
@@ -49,6 +51,7 @@ export async function listarCuotaInicioBeca100(
     anterior: anterior.get(o.valor)?.beca100 ?? 0,
     actual: actual.get(o.valor)?.beca100 ?? 0,
     normal: actual.get(o.valor)?.normal ?? 0,
+    normalAnterior: anterior.get(o.valor)?.normal ?? 0,
     tieneFila: actual.has(o.valor),
   }))
 }

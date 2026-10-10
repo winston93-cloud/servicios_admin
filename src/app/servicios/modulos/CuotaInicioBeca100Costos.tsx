@@ -10,6 +10,7 @@ type NivelFila = {
   anterior: number
   actual: number
   normal: number
+  normalAnterior: number
   tieneFila: boolean
 }
 
@@ -21,9 +22,10 @@ function money(n: number): string {
   return n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 }
 
-function pctDesde(anterior: number, actual: number): string {
-  if (!(anterior > 0) || !(actual > 0)) return ''
-  return String(Math.round(((actual - anterior) / anterior) * 10000) / 100)
+/** % de descuento de la cuota especial respecto a la cuota normal. */
+function descuentoDesde(normal: number, especial: number): string {
+  if (!(normal > 0) || !(especial > 0)) return ''
+  return String(Math.round((1 - especial / normal) * 10000) / 100)
 }
 
 export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | null }) {
@@ -46,7 +48,7 @@ export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | nu
     setBecados(data.becados ?? [])
     setForm(
       Object.fromEntries(
-        filas.map((f) => [f.nivel, { monto: String(f.actual), pct: pctDesde(f.anterior, f.actual) }])
+        filas.map((f) => [f.nivel, { monto: String(f.actual), pct: descuentoDesde(f.normal, f.actual) }])
       )
     )
   }
@@ -80,7 +82,7 @@ export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | nu
   }, [ciclo, cargar])
 
   const onMonto = (fila: NivelFila, monto: string) => {
-    setForm((f) => ({ ...f, [fila.nivel]: { monto, pct: pctDesde(fila.anterior, Number(monto)) } }))
+    setForm((f) => ({ ...f, [fila.nivel]: { monto, pct: descuentoDesde(fila.normal, Number(monto)) } }))
   }
 
   const onPct = (fila: NivelFila, pct: string) => {
@@ -90,8 +92,8 @@ export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | nu
       [fila.nivel]: {
         pct,
         monto:
-          pct !== '' && Number.isFinite(p) && fila.anterior > 0
-            ? String(Math.round(fila.anterior * (1 + p / 100)))
+          pct !== '' && Number.isFinite(p) && p >= 0 && p <= 100 && fila.normal > 0
+            ? String(Math.round(fila.normal * (1 - p / 100)))
             : f[fila.nivel]?.monto ?? '0',
       },
     }))
@@ -133,7 +135,8 @@ export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | nu
       </h2>
       <p className="costos-field-hint">
         Solo a alumnos activos con beca autorizada del 100% en el ciclo se les cobra este monto en la Cuota
-        de Inicio de Curso (concepto 00). Al resto se le cobra la cuota normal. En 0 se cobra la cuota normal.
+        de Inicio de Curso (concepto 00). Al resto se le cobra la cuota normal. Escribe el % de descuento sobre la
+        cuota normal y se calcula el monto (o escribe el monto y se calcula el %). En 0 se cobra la cuota normal.
       </p>
 
       {cargando ? (
@@ -153,19 +156,28 @@ export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | nu
                 <legend>{n.etiqueta}</legend>
                 <div className="costos-beca100-anterior">
                   <span>{ciclo != null ? etiquetaCiclo(ciclo - 1) : 'Ciclo anterior'}</span>
-                  <strong>{n.anterior > 0 ? money(n.anterior) : '—'}</strong>
+                  <strong>
+                    {n.anterior > 0
+                      ? `${money(n.anterior)} · ${descuentoDesde(n.normalAnterior, n.anterior) || '—'}% desc.`
+                      : '—'}
+                  </strong>
+                </div>
+                <div className="costos-beca100-anterior">
+                  <span>Cuota normal {ciclo != null ? etiquetaCiclo(ciclo) : ''}</span>
+                  <strong>{n.tieneFila ? money(n.normal) : '—'}</strong>
                 </div>
                 <div className="ciclos-crud-field">
-                  <label htmlFor={`beca100-pct-${n.nivel}`}>Aumento (%)</label>
+                  <label htmlFor={`beca100-pct-${n.nivel}`}>Descuento sobre cuota normal (%)</label>
                   <input
                     id={`beca100-pct-${n.nivel}`}
                     type="number"
+                    min={0}
+                    max={100}
                     step="0.01"
                     inputMode="decimal"
                     value={form[n.nivel]?.pct ?? ''}
                     onChange={(e) => onPct(n, e.target.value)}
-                    disabled={!(n.anterior > 0) || !n.tieneFila}
-                    placeholder={n.anterior > 0 ? '' : 'Sin ciclo anterior'}
+                    disabled={!(n.normal > 0) || !n.tieneFila}
                   />
                 </div>
                 <div className="ciclos-crud-field">
@@ -187,8 +199,7 @@ export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | nu
                 <p className="costos-field-hint">
                   {n.tieneFila ? (
                     <>
-                      Cuota normal: <strong>{money(n.normal)}</strong> · Aplica a{' '}
-                      <strong>{becadosPorNivel(n.nivel)}</strong> alumno(s)
+                      Aplica a <strong>{becadosPorNivel(n.nivel)}</strong> alumno(s)
                     </>
                   ) : (
                     'Este nivel aún no tiene precios en el ciclo.'
