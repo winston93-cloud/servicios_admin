@@ -19551,7 +19551,7 @@ html[data-theme='light'] .portal-doc-modal-xml {
 .portal-usa-banner {
   position: relative;
   overflow: hidden;
-  margin: 0 0 1.25rem;
+  margin: 0;
   border-radius: 18px;
   border: 1px solid rgba(212, 175, 55, 0.55);
   background: linear-gradient(125deg, #061226 0%, #0c2a52 45%, #13306a 70%, #0a1d3d 100%);
