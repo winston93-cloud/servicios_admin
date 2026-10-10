@@ -4,6 +4,7 @@ import { normalizarConceptoNo, compararConceptoNoAsc } from './pagoReferenciaCol
 import {
   getDigVerif,
   cuotaInicioBeca100,
+  cuotaInicioSinRecargoBeca100,
   getDiscount,
   parseImporteBoucher,
   referenciaSemibase,
@@ -338,6 +339,8 @@ export type ResultadoCalculoBoucher = {
   creditoRecargoCuotaInicio?: number
   referencia: string
   referenciaLinea: string
+  /** Cuota de inicio de becado al 100%: sin recargo (leyenda para el cajero en el baucher). */
+  sinRecargoBeca100: boolean
 }
 
 export async function calcularBoucher(
@@ -479,8 +482,10 @@ export async function calcularBoucher(
     }
   }
 
+  const sinRecargoBeca100 = cuotaInicioSinRecargoBeca100(params.conceptoNo, becaPct)
   const recargo =
     params.omitirRecargos ||
+    sinRecargoBeca100 ||
     (manual != null && manual > 0) ||
     importeCorreccion != null
       ? 0
@@ -504,5 +509,6 @@ export async function calcularBoucher(
       creditoRecargoCuotaInicio > 0 ? creditoRecargoCuotaInicio : undefined,
     referencia,
     referenciaLinea,
+    sinRecargoBeca100,
   }
 }

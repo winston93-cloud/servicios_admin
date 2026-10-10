@@ -25,6 +25,8 @@ export interface DatosPdfBoucher {
   cicloEscolar: number
   aplicarRecargos: boolean
   ignorarMesPago: boolean
+  /** Cuota de inicio de becado al 100%: leyenda al cajero de no cobrar recargo. */
+  sinRecargoBeca100?: boolean
 }
 
 const PAGE_W = 215.9
@@ -225,7 +227,9 @@ function dibujarAvisoLegal(
   let avisoH = 18
   const avisos: string[] = []
 
-  if (normalizarConceptoNo(datos.conceptoNo) === '00') {
+  if (normalizarConceptoNo(datos.conceptoNo) === '00' && datos.sinRecargoBeca100) {
+    avisos.push('Cuota de Inicio de Curso sin recargo (alumno con beca al 100%).')
+  } else if (normalizarConceptoNo(datos.conceptoNo) === '00') {
     avisos.push(
       `Cuota de Inicio de Curso: la fecha límite de pago es el ${formatearFechaBoucher(datos.vigencia)}. A partir del día 25 se aplicará recargo de $75.00 por mes, incluyendo la cuota de inicio de curso.`
     )
@@ -265,6 +269,26 @@ function dibujarAvisoLegal(
   return y + avisoH + 4
 }
 
+function dibujarLeyendaSinRecargo(pdf: jsPDF, y: number): number {
+  const h = 16
+  setFill(pdf, C.navy)
+  pdf.roundedRect(MARGIN, y, CONTENT_W, h, 2.5, 2.5, 'F')
+  setText(pdf, C.gold)
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(13)
+  pdf.text('CAJERO: NO COBRAR RECARGO', PAGE_W / 2, y + 7, { align: 'center' })
+  setText(pdf, C.white)
+  pdf.setFont('helvetica', 'normal')
+  pdf.setFontSize(8.5)
+  pdf.text(
+    'Alumno con beca al 100%: la Cuota de Inicio de Curso se paga sin recargo, por el importe exacto.',
+    PAGE_W / 2,
+    y + 12.5,
+    { align: 'center' }
+  )
+  return y + h + 6
+}
+
 function dibujarPie(pdf: jsPDF, y: number) {
   setDraw(pdf, C.slate200)
   pdf.setLineWidth(0.3)
@@ -298,6 +322,9 @@ export function generarPdfBoucher(datos: DatosPdfBoucher): Buffer {
   let y = dibujarEncabezado(pdf, datos, grado, logo)
 
   y = dibujarTarjetaReferencia(pdf, datos.referencia, datos.importe, conceptoTexto, y)
+  if (datos.sinRecargoBeca100 && normalizarConceptoNo(datos.conceptoNo) === '00') {
+    y = dibujarLeyendaSinRecargo(pdf, y)
+  }
 
   y = dibujarSeccionAlumno(
     pdf,

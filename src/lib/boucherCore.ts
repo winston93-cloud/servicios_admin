@@ -223,6 +223,11 @@ export function cuotaInicioBeca100(cuotaTotal: number, pctBaja: number): number 
   return Math.round(total * (1 - pct / 100))
 }
 
+/** Becados al 100%: la cuota de inicio (00) no lleva recargo, ni en línea ni en ventanilla. */
+export function cuotaInicioSinRecargoBeca100(conceptoNo: string, porcentajeBeca: number): boolean {
+  return normalizarConceptoNo(conceptoNo) === '00' && Number(porcentajeBeca) >= 100
+}
+
 export function gradoPdfBoucher(nivel: number, grado: number): number {
   if (nivel === 4 && grado === 4) return 3
   return grado

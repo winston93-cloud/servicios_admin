@@ -7,7 +7,13 @@ import {
   obtenerPrecioFila,
   obtenerPorcentajeBeca,
 } from './boucherService'
-import { getDigVerif, getPaymentConcept, referenciaSemibase, nivelPrecioBoucher } from './boucherCore'
+import {
+  cuotaInicioSinRecargoBeca100,
+  getDigVerif,
+  getPaymentConcept,
+  referenciaSemibase,
+  nivelPrecioBoucher,
+} from './boucherCore'
 import { calcularRecargoPesos } from './colegiaturaPrecioReglas'
 import {
   conceptoFacturaCambridge,
@@ -350,7 +356,7 @@ async function construirFilas(
 
     // Importe de corrección es el monto pactado; no sumar recargo de atraso.
     const recargo =
-      correccion != null || omitirRecargos
+      correccion != null || omitirRecargos || cuotaInicioSinRecargoBeca100(conceptoNo, becaPct)
         ? 0
         : calcularRecargoPesos(conceptoNo, new Date(), ciclo.valor)
     const importeLinea = Math.round((importe + recargo) * 100) / 100

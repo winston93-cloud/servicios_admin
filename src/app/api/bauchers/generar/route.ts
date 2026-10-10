@@ -85,6 +85,7 @@ export async function POST(request: Request) {
       cicloEscolar,
       aplicarRecargos,
       ignorarMesPago,
+      sinRecargoBeca100: verificado.sinRecargoBeca100,
     })
 
     return NextResponse.json({
