@@ -1077,11 +1077,6 @@ export default function PortalInscripcionesView() {
                           ? ` ${estadoVista.cicloColegiaturas.nombre}`
                           : ''}
                     </h2>
-                    <p className="portal-inscripciones-colegiaturas-sub">
-                      {esReinscrito
-                        ? 'Tras la reinscripción: cuota de inicio de curso (concepto 00) y mensualidades del ciclo nuevo.'
-                        : 'Cuota de inicio de curso (concepto 00) y mensualidades del ciclo.'}
-                    </p>
                   </div>
                   {colegiaturasDesbloqueadas &&
                     planConfirmado &&

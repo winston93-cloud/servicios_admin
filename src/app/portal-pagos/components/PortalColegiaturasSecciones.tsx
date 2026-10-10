@@ -220,6 +220,13 @@ export default function PortalColegiaturasSecciones({
         </p>
       ) : (
         <div className="portal-matriz-contenedor">
+          {winstonUsa ? (
+            <WinstonUsaBanner
+              alumnoId={alumnoId}
+              info={winstonUsa}
+              seccion={secciones.find((s) => s.id === 'winston-usa')}
+            />
+          ) : null}
           {secciones.map((seccion) => (
             <PortalPagosTablaSeccion
               key={seccion.id}
@@ -232,13 +239,6 @@ export default function PortalColegiaturasSecciones({
               onVerXml={(url, c) => abrirDoc('xml', url, c)}
             />
           ))}
-          {winstonUsa ? (
-            <WinstonUsaBanner
-              alumnoId={alumnoId}
-              info={winstonUsa}
-              seccion={secciones.find((s) => s.id === 'winston-usa')}
-            />
-          ) : null}
         </div>
       )}
 
