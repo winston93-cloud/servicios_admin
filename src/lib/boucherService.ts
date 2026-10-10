@@ -3,6 +3,7 @@ import { sincronizarAlumnoBecaCobroTrasFirma } from '@/lib/firmaElectronica/acti
 import { normalizarConceptoNo, compararConceptoNoAsc } from './pagoReferenciaColegiatura'
 import {
   getDigVerif,
+  cuotaInicioBeca100,
   getDiscount,
   parseImporteBoucher,
   referenciaSemibase,
@@ -36,8 +37,8 @@ export interface PrecioBoucherRow {
   precio_seguro: number
   precio_cuota_padres: number
   precio_agosto: number
-  /** Cuota de inicio (00) para beca 100% activa del ciclo («hijos de maestros»). 0 = usa precio_agosto. */
-  precio_agosto_beca100?: number
+  /** % que se baja de precio_agosto a beca 100% activa del ciclo («hijos de maestros»). 0 = cuota total. */
+  pct_agosto_beca100?: number
   precio_colegiatura: number
   precio_colegiatura2: number
   precio_cambridge: number
@@ -142,7 +143,7 @@ export async function obtenerPrecioFila(
     precio_seguro: Number(data.precio_seguro),
     precio_cuota_padres: Number(data.precio_cuota_padres),
     precio_agosto: Number(data.precio_agosto),
-    precio_agosto_beca100: Number(data.precio_agosto_beca100 ?? 0),
+    pct_agosto_beca100: Number(data.pct_agosto_beca100 ?? 0),
     precio_colegiatura: Number(data.precio_colegiatura),
     precio_colegiatura2: Number(data.precio_colegiatura2),
     precio_cambridge: Number(data.precio_cambridge),
@@ -255,7 +256,7 @@ export function montoBaseConcepto(
  * - SEP: monto fijo solo en ciclo de datos 22 (no en 23+).
  * - Winston: % de alumno_beca activa del ciclo (autorizada en becas_renovacion).
  * - Faltante SEP mal cobrado en sept. 23 → se suma a octubre (02) ya.
- * - Cuota de inicio (00) con beca 100%: precio_agosto_beca100 del ciclo, si está capturado.
+ * - Cuota de inicio (00) con beca 100%: cuota total menos pct_agosto_beca100 del ciclo.
  */
 export function calcularImporteConcepto(
   conceptoNo: string,
@@ -277,9 +278,10 @@ export function calcularImporteConcepto(
 
   const base = montoBaseConcepto(c, precio, planMeses)
   const { admiteBecaWinston } = base
-  const cuotaBeca100 = Number(precio.precio_agosto_beca100 ?? 0)
   const montoNormal =
-    c === '00' && porcentajeBeca >= 100 && cuotaBeca100 > 0 ? cuotaBeca100 : base.montoNormal
+    c === '00' && porcentajeBeca >= 100
+      ? cuotaInicioBeca100(base.montoNormal, Number(precio.pct_agosto_beca100 ?? 0))
+      : base.montoNormal
 
   let importe = montoNormal
 

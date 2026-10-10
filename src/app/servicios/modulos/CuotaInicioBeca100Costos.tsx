@@ -3,36 +3,33 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Loader2, Save } from 'lucide-react'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
+import { cuotaInicioBeca100 } from '@/lib/boucherCore'
 
 type NivelFila = {
   nivel: number
   etiqueta: string
-  anterior: number
-  actual: number
-  normal: number
-  normalAnterior: number
+  total: number
+  pct: number
   tieneFila: boolean
 }
 
 type Becado = { alumno_ref: number; nombre: string; nivel: number; beca: string }
 
-type FormNivel = { monto: string; pct: string }
-
 function money(n: number): string {
   return n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 }
 
-/** % de descuento de la cuota especial respecto a la cuota normal. */
-function descuentoDesde(normal: number, especial: number): string {
-  if (!(normal > 0) || !(especial > 0)) return ''
-  return String(Math.round((1 - especial / normal) * 10000) / 100)
+function pctValido(valor: string): number | null {
+  if (valor.trim() === '') return 0
+  const p = Number(valor)
+  return Number.isFinite(p) && p >= 0 && p <= 100 ? p : null
 }
 
 export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | null }) {
   const { opcionesCatalogo } = useCicloEscolar()
   const [niveles, setNiveles] = useState<NivelFila[]>([])
   const [becados, setBecados] = useState<Becado[]>([])
-  const [form, setForm] = useState<Record<number, FormNivel>>({})
+  const [pcts, setPcts] = useState<Record<number, string>>({})
   const [cargando, setCargando] = useState(false)
   const [cargado, setCargado] = useState(false)
   const [guardando, setGuardando] = useState(false)
@@ -46,11 +43,7 @@ export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | nu
     const filas = data.niveles ?? []
     setNiveles(filas)
     setBecados(data.becados ?? [])
-    setForm(
-      Object.fromEntries(
-        filas.map((f) => [f.nivel, { monto: String(f.actual), pct: descuentoDesde(f.normal, f.actual) }])
-      )
-    )
+    setPcts(Object.fromEntries(filas.map((f) => [f.nivel, f.pct > 0 ? String(f.pct) : ''])))
   }
 
   const cargar = useCallback(async (cicloValor: number) => {
@@ -81,27 +74,18 @@ export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | nu
     if (ciclo != null) void cargar(ciclo)
   }, [ciclo, cargar])
 
-  const onMonto = (fila: NivelFila, monto: string) => {
-    setForm((f) => ({ ...f, [fila.nivel]: { monto, pct: descuentoDesde(fila.normal, Number(monto)) } }))
-  }
-
-  const onPct = (fila: NivelFila, pct: string) => {
-    const p = Number(pct)
-    setForm((f) => ({
-      ...f,
-      [fila.nivel]: {
-        pct,
-        monto:
-          pct !== '' && Number.isFinite(p) && p >= 0 && p <= 100 && fila.normal > 0
-            ? String(Math.round(fila.normal * (1 - p / 100)))
-            : f[fila.nivel]?.monto ?? '0',
-      },
-    }))
-  }
-
   const onGuardar = async (e: React.FormEvent) => {
     e.preventDefault()
     if (ciclo == null) return
+    const porcentajes: { nivel: number; pct: number }[] = []
+    for (const n of niveles.filter((f) => f.tieneFila)) {
+      const p = pctValido(pcts[n.nivel] ?? '')
+      if (p == null) {
+        setError(`El porcentaje de ${n.etiqueta} debe estar entre 0 y 100.`)
+        return
+      }
+      porcentajes.push({ nivel: n.nivel, pct: p })
+    }
     setGuardando(true)
     setError(null)
     setMensaje(null)
@@ -109,15 +93,12 @@ export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | nu
       const res = await fetch('/api/costos/cuota-inicio-beca100', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ciclo,
-          montos: niveles.map((n) => ({ nivel: n.nivel, monto: Number(form[n.nivel]?.monto ?? 0) })),
-        }),
+        body: JSON.stringify({ ciclo, porcentajes }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'No se pudo guardar')
       aplicar(data)
-      setMensaje(`Cuota de inicio para becados al 100% guardada para ${etiquetaCiclo(ciclo)}.`)
+      setMensaje(`Porcentajes para becados al 100% guardados para ${etiquetaCiclo(ciclo)}.`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error de red')
     } finally {
@@ -134,9 +115,9 @@ export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | nu
         {ciclo != null ? ` · ${etiquetaCiclo(ciclo)}` : ''}
       </h2>
       <p className="costos-field-hint">
-        Solo a alumnos activos con beca autorizada del 100% en el ciclo se les cobra este monto en la Cuota
-        de Inicio de Curso (concepto 00). Al resto se le cobra la cuota total. Escribe cuánto % le baja al total y
-        se calcula lo que se les cobra (o escribe el monto y se calcula el %). En 0 se cobra la cuota total.
+        Solo a alumnos activos con beca autorizada del 100% en el ciclo se les cobra la Cuota de Inicio de Curso
+        (concepto 00) con este porcentaje menos. Se calcula sobre la cuota total del ciclo, redondeado al peso. Al
+        resto se le cobra la cuota total.
       </p>
 
       {cargando ? (
@@ -151,67 +132,53 @@ export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | nu
       ) : (
         <form className="ciclos-crud-form" onSubmit={onGuardar}>
           <div className="costos-beca100-grid">
-            {niveles.map((n) => (
-              <fieldset key={n.nivel} className="fd-fieldset costos-usa-pago">
-                <legend>{n.etiqueta}</legend>
-                <div className="costos-beca100-anterior">
-                  <span>{ciclo != null ? etiquetaCiclo(ciclo - 1) : 'Ciclo anterior'}</span>
-                  <strong>
-                    {n.anterior > 0
-                      ? `${money(n.anterior)} · bajó ${descuentoDesde(n.normalAnterior, n.anterior) || '—'}%`
-                      : '—'}
-                  </strong>
-                </div>
-                <div className="costos-beca100-anterior">
-                  <span>Cuota total {ciclo != null ? etiquetaCiclo(ciclo) : ''}</span>
-                  <strong>{n.tieneFila ? money(n.normal) : '—'}</strong>
-                </div>
-                <div className="ciclos-crud-field">
-                  <label htmlFor={`beca100-pct-${n.nivel}`}>Le baja del total (%)</label>
-                  <input
-                    id={`beca100-pct-${n.nivel}`}
-                    type="number"
-                    min={0}
-                    max={100}
-                    step="0.01"
-                    inputMode="decimal"
-                    value={form[n.nivel]?.pct ?? ''}
-                    onChange={(e) => onPct(n, e.target.value)}
-                    disabled={!(n.normal > 0) || !n.tieneFila}
-                  />
-                </div>
-                <div className="ciclos-crud-field">
-                  <label htmlFor={`beca100-monto-${n.nivel}`}>
-                    Se les cobra {ciclo != null ? etiquetaCiclo(ciclo) : ''} (MXN)
-                  </label>
-                  <input
-                    id={`beca100-monto-${n.nivel}`}
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    inputMode="decimal"
-                    value={form[n.nivel]?.monto ?? '0'}
-                    onChange={(e) => onMonto(n, e.target.value)}
-                    disabled={!n.tieneFila}
-                    required
-                  />
-                </div>
-                <p className="costos-field-hint">
+            {niveles.map((n) => {
+              const p = pctValido(pcts[n.nivel] ?? '')
+              const cobro = p != null ? cuotaInicioBeca100(n.total, p) : null
+              return (
+                <fieldset key={n.nivel} className="fd-fieldset costos-usa-pago">
+                  <legend>{n.etiqueta}</legend>
                   {n.tieneFila ? (
                     <>
-                      {Number(form[n.nivel]?.monto) > 0 && n.normal > 0 ? (
-                        <>
-                          Le baja <strong>{money(n.normal - Number(form[n.nivel]?.monto))}</strong> del total ·{' '}
-                        </>
-                      ) : null}
-                      Aplica a <strong>{becadosPorNivel(n.nivel)}</strong> alumno(s)
+                      <div className="costos-beca100-fila">
+                        <span>Cuota de inicio total</span>
+                        <strong>{money(n.total)}</strong>
+                      </div>
+                      <div className="ciclos-crud-field">
+                        <label htmlFor={`beca100-pct-${n.nivel}`}>Porcentaje que se baja (%)</label>
+                        <input
+                          id={`beca100-pct-${n.nivel}`}
+                          type="number"
+                          min={0}
+                          max={100}
+                          step="0.01"
+                          inputMode="decimal"
+                          value={pcts[n.nivel] ?? ''}
+                          onChange={(e) => setPcts((f) => ({ ...f, [n.nivel]: e.target.value }))}
+                          placeholder="0"
+                        />
+                      </div>
+                      <div className="costos-beca100-fila costos-beca100-cobro">
+                        <span>Se cobra a becados 100%</span>
+                        <strong>{cobro != null ? money(cobro) : '—'}</strong>
+                      </div>
+                      <p className="costos-field-hint">
+                        {cobro != null && p ? (
+                          <>
+                            Baja <strong>{money(n.total - cobro)}</strong> ·{' '}
+                          </>
+                        ) : null}
+                        Aplica a <strong>{becadosPorNivel(n.nivel)}</strong> alumno(s)
+                      </p>
                     </>
                   ) : (
-                    'Este nivel aún no tiene precios en el ciclo.'
+                    <p className="costos-field-hint">
+                      Este nivel aún no tiene precios en el ciclo. Captúralos primero en «Editar costos».
+                    </p>
                   )}
-                </p>
-              </fieldset>
-            ))}
+                </fieldset>
+              )
+            })}
           </div>
 
           {mensaje ? (
@@ -239,7 +206,7 @@ export default function CuotaInicioBeca100Costos({ ciclo }: { ciclo: number | nu
               ) : (
                 <>
                   <Save size={18} aria-hidden />
-                  Guardar cuota para becados
+                  Guardar porcentajes
                 </>
               )}
             </button>

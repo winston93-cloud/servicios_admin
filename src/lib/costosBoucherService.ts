@@ -29,7 +29,7 @@ function mapRow(data: Record<string, unknown>): PrecioBoucherRow {
     precio_seguro: Number(data.precio_seguro),
     precio_cuota_padres: Number(data.precio_cuota_padres),
     precio_agosto: Number(data.precio_agosto),
-    precio_agosto_beca100: Number(data.precio_agosto_beca100 ?? 0),
+    pct_agosto_beca100: Number(data.pct_agosto_beca100 ?? 0),
     precio_colegiatura: Number(data.precio_colegiatura),
     precio_colegiatura2: Number(data.precio_colegiatura2),
     precio_cambridge: Number(data.precio_cambridge),
@@ -210,7 +210,7 @@ export async function copiarPreciosCiclo(
     })
     const { error } = await db
       .from('pago_boucher_precio')
-      .update({ precio_agosto_beca100: fila.precio_agosto_beca100 ?? 0 })
+      .update({ pct_agosto_beca100: fila.pct_agosto_beca100 ?? 0 })
       .eq('precio_ciclo_escolar', cicloDestino)
       .eq('alumno_nivel', fila.alumno_nivel)
     if (error) throw new Error(error.message)

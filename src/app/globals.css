@@ -7314,12 +7314,17 @@ html[data-theme='dark'] .servicios-sidebar-logout {
   gap: 14px 16px;
 }
 
-.costos-beca100-anterior {
+.costos-beca100-fila {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
+  align-items: baseline;
   gap: 4px 8px;
   font-size: 0.875rem;
+}
+
+.costos-beca100-cobro strong {
+  font-size: 1.125rem;
 }
 
 .costos-beca100-lista summary {

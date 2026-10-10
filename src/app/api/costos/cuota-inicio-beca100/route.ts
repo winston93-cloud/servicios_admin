@@ -42,13 +42,13 @@ export async function PUT(request: Request) {
   try {
     const body = (await request.json()) as {
       ciclo?: number
-      montos?: { nivel?: number; monto?: number }[]
+      porcentajes?: { nivel?: number; pct?: number }[]
     }
     const ciclo = cicloDe(body.ciclo)
     if (ciclo == null) return NextResponse.json({ error: 'ciclo requerido' }, { status: 400 })
-    const montos = (body.montos ?? []).map((m) => ({ nivel: Number(m.nivel), monto: Number(m.monto) }))
-    if (!montos.length) return NextResponse.json({ error: 'montos requeridos' }, { status: 400 })
-    await guardarCuotaInicioBeca100(createDbAdmin(), ciclo, montos)
+    const porcentajes = (body.porcentajes ?? []).map((p) => ({ nivel: Number(p.nivel), pct: Number(p.pct) }))
+    if (!porcentajes.length) return NextResponse.json({ error: 'porcentajes requeridos' }, { status: 400 })
+    await guardarCuotaInicioBeca100(createDbAdmin(), ciclo, porcentajes)
     return await respuesta(ciclo)
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Error al guardar la cuota de inicio para becados 100%'

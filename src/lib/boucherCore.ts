@@ -215,6 +215,14 @@ export function etiquetaNivelPrecioBoucher(
   return hit?.etiqueta ?? (Number.isFinite(n) ? `Nivel precio ${n}` : '')
 }
 
+/** Cuota de inicio (00) con beca 100%: cuota total menos el % capturado, al peso. */
+export function cuotaInicioBeca100(cuotaTotal: number, pctBaja: number): number {
+  const total = Number(cuotaTotal)
+  const pct = Number(pctBaja)
+  if (!(total > 0) || !(pct > 0) || pct > 100) return total > 0 ? total : 0
+  return Math.round(total * (1 - pct / 100))
+}
+
 export function gradoPdfBoucher(nivel: number, grado: number): number {
   if (nivel === 4 && grado === 4) return 3
   return grado
