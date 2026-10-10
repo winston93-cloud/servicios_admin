@@ -78,8 +78,8 @@ function htmlAviso(d, ciclo) {
         </table>
         ${p('Puede pagarla de cualquiera de estas formas:')}
         <ul style="margin:0 0 18px;padding-left:20px;color:#334155;font-size:15px;line-height:1.65;">
-          <li><strong>En línea</strong>, con tarjeta, desde el portal de pagos.</li>
-          <li><strong>En efectivo en ventanilla Banorte</strong>, imprimiendo su boucher desde el mismo portal.</li>
+          <li><strong>En línea o por pago SPEI</strong>, desde la app de su banco.</li>
+          <li><strong>En efectivo en ventanilla Banorte</strong>, imprimiendo su boucher desde el portal de pagos.</li>
         </ul>
         <p style="margin:0 0 22px;text-align:center;">
           <a href="${PORTAL}" style="display:inline-block;background:#1e40af;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 28px;border-radius:999px;">Ir al portal de pagos</a>
