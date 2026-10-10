@@ -78,7 +78,12 @@ function htmlAviso(d, ciclo) {
         </table>
         ${p('Puede pagarla de cualquiera de estas formas:')}
         <ul style="margin:0 0 18px;padding-left:20px;color:#334155;font-size:15px;line-height:1.65;">
-          <li><strong>En línea o por pago SPEI</strong>, desde la app de su banco.</li>
+          <li><strong>En línea</strong>, de dos formas:
+            <ul style="margin:4px 0 0;padding-left:18px;">
+              <li>Pago con tarjeta de crédito o débito.</li>
+              <li>Pago SPEI, desde la app de su banco.</li>
+            </ul>
+          </li>
           <li><strong>En efectivo en ventanilla Banorte</strong>, imprimiendo su boucher desde el portal de pagos.</li>
         </ul>
         <p style="margin:0 0 22px;text-align:center;">
