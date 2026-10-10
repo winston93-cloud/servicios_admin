@@ -1571,7 +1571,10 @@ export async function historialDetalleAlumno(alumnoId: number, session?: RacSesi
     .order('reporte_ciclo', { ascending: true })
     .order('reporte_registro', { ascending: false })
     .limit(300)
-  if (tipo > 0) q = q.eq('reporte_tipo', tipo)
+  // Los informes no están en el selector de tipo de Reportar: se muestran junto al tipo elegido.
+  if (tipo > 0) {
+    q = q.in('reporte_tipo', tipo === RAC_TIPOS.informeAcademico ? [tipo] : [tipo, RAC_TIPOS.informeAcademico])
+  }
   if (session && historialSoloPropioRac(session.role)) {
     q = q.eq('perfil_id', session.perfil).eq('usuario_id', session.id)
   }

@@ -1680,7 +1680,8 @@ export default function RacSecundariaPage() {
         <div className="rac-modal" role="dialog" aria-modal="true" aria-labelledby="rac-historial-title">
           <div className="rac-modal-card rac-detalle-card">
             <h3 id="rac-historial-title">
-              Historial de reportes{historialKardex.tipoEtiqueta ? ` · ${historialKardex.tipoEtiqueta}` : ''}
+              Historial de reportes
+              {historialKardex.tipoEtiqueta ? ` · ${historialKardex.tipoEtiqueta} e informes` : ''}
             </h3>
             <p className="rac-mini">
               {historialKardex.alumno.nombre} · {String(historialKardex.alumno.alumno_ref ?? '—')} ·{' '}
@@ -1692,7 +1693,7 @@ export default function RacSecundariaPage() {
             {historialKardex.reportes.length === 0 ? (
               <p>
                 {historialKardex.tipoEtiqueta
-                  ? `Sin reportes de tipo ${historialKardex.tipoEtiqueta.toLowerCase()} en el ciclo actual.`
+                  ? `Sin reportes de tipo ${historialKardex.tipoEtiqueta.toLowerCase()} ni informes en el ciclo actual.`
                   : 'Sin historial en el ciclo actual.'}
               </p>
             ) : (
