@@ -33,6 +33,8 @@ export type DashboardAdminNavItem = {
    * sin depender de usuario.dashboard_modulos ni del catálogo (no es asignable).
    */
   fijoParaUsuarios?: readonly number[]
+  /** 2026-10-10 — Si existe, la tarjeta abre este popup en el dashboard en lugar de navegar. */
+  popup?: 'beneficios-externos-alumno'
 }
 
 const ICON_DESAYUNOS = (
@@ -580,6 +582,8 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     label: 'Beneficios externos',
     desc: 'Así la verá el alumno: ¿aplicó a una beca externa?, ¿cuál?, ¿ya la recibió? y subir documento.',
     path: '/beneficios-externos',
+    // 2026-10-10 — Se abre como popup sobre el dashboard (la ruta queda como respaldo).
+    popup: 'beneficios-externos-alumno',
     accent: 'emerald',
     kicker: 'Vista del alumno',
     tags: ['Vista previa', 'Familias'],

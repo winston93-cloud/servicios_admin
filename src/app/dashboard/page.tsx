@@ -19,7 +19,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
 import DashboardModuleCard from '@/components/dashboard/DashboardModuleCard'
 import Image from 'next/image'
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import DashboardAyudaModal from '@/components/dashboard/DashboardAyudaModal'
 import DashboardOrdenModal from '@/components/dashboard/DashboardOrdenModal'
@@ -28,8 +28,14 @@ import TalleresMinimoPopup from '@/components/dashboard/TalleresMinimoPopup'
 import DashboardBuscador from '@/components/dashboard/DashboardBuscador'
 import { buscarModulos } from '@/lib/dashboardBusqueda'
 import { CircleHelp, ListOrdered, SearchX } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import './dashboard-module-card.css'
 import '@/components/dashboard/dashboard-ayuda.css'
+
+// 2026-10-10 — Popup de Beneficios externos: se carga solo cuando se abre (no pesa para el resto).
+const BeneficiosExternosModal = dynamic(() => import('@/app/beneficios-externos/BeneficiosExternosModal'), {
+  ssr: false,
+})
 
 const ChevronRight = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -155,6 +161,7 @@ export default function DashboardPage() {
   const [becaFirmaAutorizada, setBecaFirmaAutorizada] = useState(false)
   const [accesosDb, setAccesosDb] = useState<{ uid: number; modulos: string[] | null } | null>(null)
   const [busqueda, setBusqueda] = useState('')
+  const [popupAbierto, setPopupAbierto] = useState<DashboardAdminNavItem['popup'] | null>(null)
 
   // Solo un panel: alumno XOR personal (nunca mezclar módulos).
   const mostrarPanelAlumno = isAlumno && !isUsuario
@@ -185,6 +192,12 @@ export default function DashboardPage() {
   }
 
   const handleNavItemAdmin = (item: DashboardAdminNavItem) => {
+    // 2026-10-10 — Tarjetas con popup: se abren encima del dashboard, sin navegar.
+    if (item.popup) {
+      setPopupAbierto(item.popup)
+      setIsMenuOpen(false)
+      return
+    }
     abrirNavItem(item, router.push, {
       usuario: user?.usuario_username ?? session?.usuario_username ?? null,
     })
@@ -195,6 +208,8 @@ export default function DashboardPage() {
     abrirNavItemAlumno(item, router.push)
     setIsMenuOpen(false)
   }
+
+  const cerrarPopup = useCallback(() => setPopupAbierto(null), [])
 
   const toggleMenu = () => setIsMenuOpen((open) => !open)
   const closeMenu = () => setIsMenuOpen(false)
@@ -715,6 +730,10 @@ export default function DashboardPage() {
               setOrdenIds([])
             }}
           />
+        ) : null}
+
+        {mostrarPanelAdmin && popupAbierto === 'beneficios-externos-alumno' ? (
+          <BeneficiosExternosModal abierto onCerrar={cerrarPopup} />
         ) : null}
 
       </div>
