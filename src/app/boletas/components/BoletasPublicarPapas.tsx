@@ -63,8 +63,8 @@ export default function BoletasPublicarPapas({
   async function cambiar(trimestre: number, accion: 'publicar' | 'retirar') {
     const texto =
       accion === 'publicar'
-        ? `¿Publicar las boletas del trimestre ${trimestre} a los papás? Las verán en su portal de inmediato.`
-        : `¿Retirar las boletas del trimestre ${trimestre} del portal de papás?`
+        ? `¿Publicar las boletas del trimestre ${trimestre} a los papás de TODOS los grados y grupos de este módulo? Las verán en su portal de inmediato.`
+        : `¿Retirar las boletas del trimestre ${trimestre} del portal de papás (todos los grados y grupos de este módulo)?`
     if (!window.confirm(texto)) return
     setOcupado(trimestre)
     setError('')
@@ -97,7 +97,9 @@ export default function BoletasPublicarPapas({
             Portal de papás · Ciclo {etiquetaCicloBoletas(ciclo)}
           </h2>
           <p className="bpp-sub">
-            Publica cada trimestre cuando esté completo. Hasta entonces los papás no lo ven.
+            Se publica para <strong>todos los grados y grupos</strong> de este módulo, no solo el
+            que tienes en pantalla. Publica cada trimestre cuando todos los grupos estén capturados;
+            hasta entonces los papás no lo ven.
           </p>
         </div>
       </header>
