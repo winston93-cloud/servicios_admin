@@ -23886,9 +23886,9 @@ html[data-theme='light'] .portal-inscripciones-facturas-destacadas-item {
   }
 }
 
-/* Facturas de inscripción con el proceso terminado: enlace discreto al final. */
+/* Facturas de inscripción con el proceso terminado: enlace discreto antes de colegiaturas. */
 .portal-inscripciones-facturas-discretas {
-  margin: 4px 0 0;
+  margin: 0 0 8px;
   min-width: 0;
 }
 

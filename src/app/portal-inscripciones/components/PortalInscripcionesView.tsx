@@ -433,7 +433,7 @@ export default function PortalInscripcionesView() {
   }, [estadoVista?.pasos])
 
   /** Con el proceso terminado se oculta todo el trámite; sus facturas quedan en un
-   * enlace discreto al final (los papás las piden después). */
+   * enlace discreto antes de las colegiaturas (los papás las piden después). */
   const mostrarFacturasDestacadas = facturasInscripcionVisibles.length > 0 && !procesoCompleto
   const mostrarFacturasDiscretas = facturasInscripcionVisibles.length > 0 && procesoCompleto
 
@@ -999,6 +999,42 @@ export default function PortalInscripcionesView() {
               </ol>
             )}
 
+            {mostrarFacturasDiscretas && (
+              <details className="portal-inscripciones-facturas-discretas">
+                <summary>
+                  <FileText size={14} aria-hidden />
+                  {esReinscrito ? 'Facturas de reinscripción' : 'Facturas de inscripción'}
+                </summary>
+                <ul className="portal-inscripciones-facturas-destacadas-lista">
+                  {facturasInscripcionVisibles.map((f) => (
+                    <li key={f.conceptoNo} className="portal-inscripciones-facturas-destacadas-item">
+                      <span className="portal-inscripciones-facturas-destacadas-etiq">{f.etiqueta}</span>
+                      <div className="portal-matriz-facturas">
+                        <button
+                          type="button"
+                          className="portal-pagos-btn-pdf"
+                          onClick={() => abrirFacturaPaso('pdf', f)}
+                        >
+                          <FileText size={16} aria-hidden />
+                          PDF
+                        </button>
+                        {f.xml ? (
+                          <button
+                            type="button"
+                            className="portal-pagos-btn-xml"
+                            onClick={() => abrirFacturaPaso('xml', f)}
+                          >
+                            <Code2 size={16} aria-hidden />
+                            XML
+                          </button>
+                        ) : null}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+
             {!estadoVista.bloqueo && (esReinscrito || reciboPaso != null) && (
               <section
                 ref={colegiaturasRef}
@@ -1101,42 +1137,6 @@ export default function PortalInscripcionesView() {
                   />
                 ) : null}
               </section>
-            )}
-
-            {mostrarFacturasDiscretas && (
-              <details className="portal-inscripciones-facturas-discretas">
-                <summary>
-                  <FileText size={14} aria-hidden />
-                  {esReinscrito ? 'Facturas de reinscripción' : 'Facturas de inscripción'}
-                </summary>
-                <ul className="portal-inscripciones-facturas-destacadas-lista">
-                  {facturasInscripcionVisibles.map((f) => (
-                    <li key={f.conceptoNo} className="portal-inscripciones-facturas-destacadas-item">
-                      <span className="portal-inscripciones-facturas-destacadas-etiq">{f.etiqueta}</span>
-                      <div className="portal-matriz-facturas">
-                        <button
-                          type="button"
-                          className="portal-pagos-btn-pdf"
-                          onClick={() => abrirFacturaPaso('pdf', f)}
-                        >
-                          <FileText size={16} aria-hidden />
-                          PDF
-                        </button>
-                        {f.xml ? (
-                          <button
-                            type="button"
-                            className="portal-pagos-btn-xml"
-                            onClick={() => abrirFacturaPaso('xml', f)}
-                          >
-                            <Code2 size={16} aria-hidden />
-                            XML
-                          </button>
-                        ) : null}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </details>
             )}
           </>
         )}
