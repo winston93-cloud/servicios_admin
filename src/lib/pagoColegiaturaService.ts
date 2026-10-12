@@ -6,6 +6,7 @@ import {
   referenciaCoincideCiclo,
   compararConceptoNoAsc,
 } from './pagoReferenciaColegiatura'
+import { pagosSimuladosPrueba } from './simulacionPagosPrueba'
 
 export interface ConceptoBoucher {
   concepto_id: number
@@ -112,13 +113,15 @@ export async function listarPagosColegiaturaAlumno(
     return []
   }
 
-  return ((data ?? []) as PagoDetalleRegistro[])
+  const reales = ((data ?? []) as PagoDetalleRegistro[])
     .map((r) => ({
       ...r,
       pago_importe: Number(r.pago_importe),
       pago_recargo: Number(r.pago_recargo),
     }))
     .filter((r) => referenciaCoincideCiclo(r.pago_referencia, cicloEscolar))
+  // 2026-10-12 — Alumna ficticia de prueba: suma pagos en memoria (no existen en pago_detalle).
+  return [...reales, ...pagosSimuladosPrueba(alumnoId, cicloEscolar)]
 }
 
 export function conceptoClasePorReferencia(

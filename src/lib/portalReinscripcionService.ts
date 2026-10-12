@@ -10,6 +10,7 @@ import {
   referenciaSemibase,
 } from './boucherCore'
 import { hoyIso } from './portalAdmisionesCiclo'
+import { pagosSimuladosPrueba } from './simulacionPagosPrueba'
 import {
   obtenerVentanasInscripcion,
   type VentanasInscripcion,
@@ -134,7 +135,9 @@ async function pagosInscripcionCiclo(
   if (error || !data) return []
 
   const out: PagoInscripcionCiclo[] = []
-  for (const p of data as Array<Record<string, unknown>>) {
+  // 2026-10-12 — Alumna ficticia de prueba: incluye su inscripción simulada (no existe en pago_detalle).
+  const filas = [...(data as Array<Record<string, unknown>>), ...pagosSimuladosPrueba(alumnoId, cen).map((p) => ({ ...p }))]
+  for (const p of filas) {
     const cancelado = Number(p.pago_cancelado)
     if (cancelado === 1 || cancelado === 2) continue
     const parsed = parsearReferenciaPago(String(p.pago_referencia ?? ''))
