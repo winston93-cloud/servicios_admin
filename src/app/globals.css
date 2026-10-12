@@ -20691,6 +20691,10 @@ html[data-theme='light'] .portal-usa-aviso-callout--fuerte > svg {
   width: 100%;
 }
 
+.portal-inscripciones-hero--solo {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .portal-inscripciones-alumno-card {
   display: flex;
   flex-wrap: wrap;

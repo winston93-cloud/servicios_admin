@@ -8,8 +8,6 @@ import {
   ArrowRight,
   CalendarRange,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   Circle,
   Clock,
   AlertTriangle,
@@ -25,7 +23,7 @@ import type {
   PasoEstadoInscripcion,
   PasoInscripcion,
 } from '@/lib/portalInscripcionesTypes'
-import type { MatrizPortalPagos } from '@/lib/portalPagosMatrizService'
+import type { MatrizPortalPagos, SeccionMatrizPortal } from '@/lib/portalPagosMatrizService'
 import {
   aplicarReglamentoVistoEnEstado,
   leerReglamentoVisto,
@@ -212,7 +210,6 @@ export default function PortalInscripcionesView() {
   const [estado, setEstado] = useState<EstadoPortalInscripciones | null>(null)
   const [reglamentoVisto, setReglamentoVisto] = useState(false)
   const [reciboFinalVisto, setReciboFinalVisto] = useState(false)
-  const [pasosExpandidos, setPasosExpandidos] = useState(false)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -429,12 +426,44 @@ export default function PortalInscripcionesView() {
     estadoVista && !estadoVista.bloqueo && (procesoCompleto || adeudoAutorizado)
   )
 
-  /** Facturas 11/12/13: si el proceso ya está completo quedan dentro del acordeón
-   * colapsado y el papá no las ve. Se listan también fuera, siempre visibles. */
+  /** Facturas 11/12/13 del pago de inscripción o reinscripción ya timbradas. */
   const facturasInscripcionVisibles = useMemo(() => {
     const paso = estadoVista?.pasos.find((p) => p.id === 'pago-inscripcion')
     return (paso?.facturas ?? []).filter((f) => Boolean(f.pdf))
   }, [estadoVista?.pasos])
+
+  /** Con el proceso terminado se oculta todo el trámite; sus facturas quedan como
+   * una sección más de la tabla de pagos del ciclo (los papás las piden después). */
+  const facturasEnMatriz = Boolean(
+    procesoCompleto &&
+      colegiaturasDesbloqueadas &&
+      matriz &&
+      !estadoVista?.bloqueo &&
+      facturasInscripcionVisibles.length > 0
+  )
+  const seccionesMatriz = useMemo((): SeccionMatrizPortal[] => {
+    const base = matriz?.secciones ?? []
+    if (!facturasEnMatriz) return base
+    return [
+      ...base,
+      {
+        id: 'inscripcion',
+        titulo: esReinscrito ? 'Reinscripción' : 'Inscripción',
+        filas: facturasInscripcionVisibles.map((f) => ({
+          conceptoNo: f.conceptoNo,
+          conceptoClase: f.etiqueta,
+          pagado: true,
+          importe: null,
+          referencia: null,
+          facturaPdf: f.pdf,
+          facturaXml: f.xml || null,
+        })),
+      },
+    ]
+  }, [matriz?.secciones, facturasEnMatriz, facturasInscripcionVisibles, esReinscrito])
+  const mostrarFacturasDestacadas =
+    facturasInscripcionVisibles.length > 0 &&
+    (!procesoCompleto || (!facturasEnMatriz && !cargandoMatriz))
 
   // Antes de armar la matriz del ciclo nuevo: confirmar / elegir plan 10 u 11
   // (reinscritos y nuevo ingreso). Abrir modal en sync; no saltar en silencio.
@@ -718,7 +747,11 @@ export default function PortalInscripcionesView() {
           </div>
 
           {estadoVista && (
-            <div className="portal-inscripciones-hero">
+            <div
+              className={`portal-inscripciones-hero${
+                estadoVista.modoAdeudoEgresado || procesoCompleto ? ' portal-inscripciones-hero--solo' : ''
+              }`}
+            >
               <div className="portal-inscripciones-alumno-card">
                 <div className="portal-inscripciones-alumno-info">
                   <span className="portal-inscripciones-alumno-nombre">
@@ -739,7 +772,7 @@ export default function PortalInscripcionesView() {
                   Actualizar
                 </button>
               </div>
-              {!estadoVista.modoAdeudoEgresado ? (
+              {!estadoVista.modoAdeudoEgresado && !procesoCompleto ? (
                 <ProgresoInscripcion
                   pct={estadoVista.progresoPct}
                   completados={estadoVista.pasosCompletados}
@@ -902,7 +935,7 @@ export default function PortalInscripcionesView() {
         {estadoVista &&
           !cierrePendiente &&
           !estadoVista.modoAdeudoEgresado &&
-          facturasInscripcionVisibles.length > 0 && (
+          mostrarFacturasDestacadas && (
             <section
               className="portal-inscripciones-facturas-destacadas"
               aria-label="Facturas de inscripción o reinscripción"
@@ -954,73 +987,7 @@ export default function PortalInscripcionesView() {
 
         {estadoVista && !cierrePendiente && !estadoVista.modoAdeudoEgresado && (
           <>
-            {procesoCompleto ? (
-              <div className="portal-inscripciones-proceso-wrap">
-                <button
-                  type="button"
-                  className={`portal-inscripciones-proceso-toggle${
-                    pasosExpandidos ? ' is-open' : ''
-                  }`}
-                  aria-expanded={pasosExpandidos}
-                  onClick={() => setPasosExpandidos((v) => !v)}
-                >
-                  <span className="portal-inscripciones-proceso-toggle-icon" aria-hidden>
-                    <CheckCircle2 size={20} />
-                  </span>
-                  <span className="portal-inscripciones-proceso-toggle-text">
-                    {esReinscrito
-                      ? 'Proceso de reinscripción completado'
-                      : 'Proceso de admisión completado'}
-                  </span>
-                  <span className="portal-inscripciones-proceso-toggle-chevron">
-                    <span className="portal-inscripciones-proceso-toggle-hint">
-                      {pasosExpandidos ? 'Collapsar' : 'Expandir'}
-                    </span>
-                    {pasosExpandidos ? <ChevronUp size={20} aria-hidden /> : <ChevronDown size={20} aria-hidden />}
-                  </span>
-                </button>
-
-                {pasosExpandidos && (
-                  <ol className="portal-inscripciones-pasos portal-inscripciones-pasos--acordeon">
-                    {estadoVista.pasos.map((paso) => (
-                      <li
-                        key={paso.id}
-                        className={`portal-inscripciones-paso portal-inscripciones-paso--${paso.estado}`}
-                      >
-                        <div className="portal-inscripciones-paso-indice" aria-hidden>
-                          <span className="portal-inscripciones-paso-numero">
-                            {String(paso.orden).padStart(2, '0')}
-                          </span>
-                          <span className="portal-inscripciones-paso-indice-icono">
-                            {iconoPaso(paso.estado)}
-                          </span>
-                        </div>
-                        <div className="portal-inscripciones-paso-cuerpo">
-                          <div className="portal-inscripciones-paso-cabecera">
-                            <h2 className="portal-inscripciones-paso-titulo">{paso.titulo}</h2>
-                            <span
-                              className={`portal-inscripciones-paso-badge portal-inscripciones-paso-badge--${paso.estado}`}
-                            >
-                              {etiquetaEstado(paso.estado)}
-                            </span>
-                          </div>
-                          <p className="portal-inscripciones-paso-desc">{paso.descripcion}</p>
-                          {paso.detalle && (
-                            <p className="portal-inscripciones-paso-detalle">{paso.detalle}</p>
-                          )}
-                          <AccionesPasoInscripcion
-                            paso={paso}
-                            onReglamento={marcarReglamentoConsultado}
-                            onRecibo={marcarReciboConsultado}
-                            onVerFactura={abrirFacturaPaso}
-                          />
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </div>
-            ) : (
+            {procesoCompleto ? null : (
               <ol className="portal-inscripciones-pasos">
                 {estadoVista.pasos.map((paso) => (
                   <li
@@ -1154,7 +1121,7 @@ export default function PortalInscripcionesView() {
                     ciclo={matriz.ciclo}
                     cicloTemporada={estadoVista?.ciclo.valor}
                     alumno={matriz.alumno}
-                    secciones={matriz.secciones}
+                    secciones={seccionesMatriz}
                     displayName={session?.displayName}
                     cargando={cargandoMatriz}
                     onActualizar={() => void cargarMatriz()}
