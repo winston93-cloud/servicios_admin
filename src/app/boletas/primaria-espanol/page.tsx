@@ -14,6 +14,7 @@ import { ArrowLeft, LogOut, Printer, Save, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import '../boletas-login-google.css'
+import BoletasPublicarPapas from '../components/BoletasPublicarPapas'
 import '../boletas-modulos-ui.css'
 import './primaria-espanol.css'
 
@@ -542,6 +543,8 @@ async function logout() {
             </div>
           </div>
         </section>
+
+        {me.role === 'admin' && <BoletasPublicarPapas modulo="primaria-es" ciclo={ciclo} />}
       </main>
     </div>
   )

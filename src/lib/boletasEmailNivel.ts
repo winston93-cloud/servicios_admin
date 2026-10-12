@@ -56,7 +56,7 @@ async function nombreAlumno(alumnoId: number): Promise<string> {
     .join(' ')
 }
 
-async function pdfModulo(input: {
+export async function pdfModulo(input: {
   modulo: BoletasModuloEmail
   alumnoId: number
   bimestre: number

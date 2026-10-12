@@ -106,7 +106,7 @@ const NAV_ITEMS_ALUMNO: DashboardNavItem[] = [
   {
     label: 'Boletas',
     desc: 'Consulta de boletas y calificaciones escolares',
-    path: '/proximamente?m=boletas',
+    path: '/portal-boletas',
     accent: 'indigo',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">

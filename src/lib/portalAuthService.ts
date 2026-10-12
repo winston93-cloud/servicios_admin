@@ -22,6 +22,7 @@ export const PORTALES_ALUMNO = [
   '/portal-pagos',
   '/portal-inscripciones',
   '/portal-facturacion',
+  '/portal-boletas',
   '/proximamente',
   '/ssiw',
 ] as const

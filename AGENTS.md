@@ -101,4 +101,5 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 - **Kinder / Primaria:** `/boletas/kinder-espanol`, `kinder-ingles`, `primaria-espanol`, `primaria-ingles` — captura + PDF + email.
 - **Backend:** tablas `boleta_*` en **Winston Servicios** (`g4ta4bfg`). Env `BOLETAS_INSFORGE_URL` / `BOLETAS_INSFORGE_API_KEY` / `BOLETAS_SESSION_SECRET` (local + Vercel). Migración: `docs/MIGRACION-BOLETAS-WINSTON.md`. NANO InsForge **Boletas** eliminado (2026-09-17).
 - **Arranque:** noviembre 2026, 1er trimestre del ciclo 2026-2027 (decisión de Mario, 12 oct 2026). Antes de eso no hay captura del ciclo nuevo en el sistema nuevo.
+- **Portal de papás:** `/portal-boletas` (tarjeta Boletas del dashboard). Solo ciclo actual (`es_actual`); el papá ve un trimestre cuando la coordinación lo publica con «Publicar a papás» en su módulo (tabla `boleta_publicacion`; solo rol admin de boletas). El adeudo no bloquea la boleta (decisión de Mario). Maternal no tiene boleta en portal. Video opcional por ciclo en `boleta_portal_config.video_url`.
 - Legacy PHP `winston93.edu.mx/boletas` (y boletasek/ik/español/ingles) convive; no apagar hasta OK de Mario.

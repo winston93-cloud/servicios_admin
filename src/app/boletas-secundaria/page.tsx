@@ -7,6 +7,7 @@ import { ArrowLeft, LogOut, Printer, Save, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import '../boletas/boletas-login-google.css'
+import BoletasPublicarPapas from '../boletas/components/BoletasPublicarPapas'
 import '../boletas/boletas-modulos-ui.css'
 import './boletas-secundaria.css'
 
@@ -507,6 +508,8 @@ function BoletasApp() {
               Aplicar periodo
             </button>
           </div>
+
+          {ciclo > 0 && <BoletasPublicarPapas modulo="secundaria" ciclo={ciclo} />}
 
           <h3>Nueva materia</h3>
           <div className="boletas-filters bm-filters">

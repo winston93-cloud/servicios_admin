@@ -1,0 +1,178 @@
+/* Publicación de boletas al portal de papás (módulos /boletas, solo admin). */
+
+.bpp {
+  margin-top: clamp(1rem, 2.5vw, 1.5rem);
+  padding: 1rem 1.15rem 1.15rem;
+  border-radius: 16px;
+  border: 1px solid rgba(201, 162, 39, 0.28);
+  background: rgba(201, 162, 39, 0.05);
+  min-width: 0;
+}
+
+.bpp-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+  color: #e8d48a;
+}
+
+.bpp-head > svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.bpp-titulo {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff8ea;
+}
+
+.bpp-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: rgba(255, 248, 234, 0.72);
+}
+
+.bpp-error {
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  color: #fecaca;
+  background: rgba(220, 38, 38, 0.14);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.bpp-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.bpp-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(232, 226, 214, 0.12);
+  background: rgba(0, 0, 0, 0.18);
+  min-width: 0;
+}
+
+.bpp-item.is-publicada {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(22, 163, 74, 0.1);
+}
+
+.bpp-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1 1 180px;
+}
+
+.bpp-item-titulo {
+  font-weight: 700;
+  color: #fff8ea;
+}
+
+.bpp-item-estado {
+  font-size: 0.8rem;
+  color: rgba(255, 248, 234, 0.7);
+}
+
+.bpp-item.is-publicada .bpp-item-estado {
+  color: #86efac;
+}
+
+.bpp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: var(--touch-min, 44px);
+  padding: 0 1rem;
+  border-radius: 11px;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: #14110c;
+  background: linear-gradient(180deg, #ffe6a0, #c9a227);
+  border: 1px solid #e8d48a;
+}
+
+.bpp-btn.is-retirar {
+  color: #fff8ea;
+  background: transparent;
+  border-color: rgba(232, 226, 214, 0.35);
+}
+
+.bpp-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+html[data-theme='light'] .bpp {
+  border-color: rgba(168, 132, 26, 0.32);
+  background: #fffbf0;
+}
+
+html[data-theme='light'] .bpp-head {
+  color: #8a7018;
+}
+
+html[data-theme='light'] .bpp-titulo,
+html[data-theme='light'] .bpp-item-titulo {
+  color: #1c160c;
+}
+
+html[data-theme='light'] .bpp-sub,
+html[data-theme='light'] .bpp-item-estado {
+  color: #5c5240;
+}
+
+html[data-theme='light'] .bpp-item {
+  background: #fff;
+  border-color: rgba(42, 36, 28, 0.12);
+}
+
+html[data-theme='light'] .bpp-item.is-publicada {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+html[data-theme='light'] .bpp-item.is-publicada .bpp-item-estado {
+  color: #15803d;
+}
+
+html[data-theme='light'] .bpp-error {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+html[data-theme='light'] .bpp-btn.is-retirar {
+  color: #1c160c;
+  border-color: rgba(42, 36, 28, 0.3);
+}
+
+@media (max-width: 640px) {
+  .bpp {
+    padding: 0.9rem;
+  }
+
+  .bpp-btn {
+    width: 100%;
+  }
+}
