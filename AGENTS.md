@@ -35,7 +35,7 @@ Key patterns:
 
 ## Revisión diaria («Sonny, pendientes»)
 
-Cuando Mario diga «Sonny, pendientes», leer `revisiones-diarias-servicios-admin.md` en su almacén personal de agente (junto a `pendientes-servicios-admin.md`), correr el check diario descrito ahí y darle el resumen. Ese archivo no va al repo (trae datos de familias).
+La revisión diaria se hace todos los días, haya o no pendientes: está en `revisiones-diarias-servicios-admin.md` (almacén personal de agente de Mario) con el check y la bitácora por día. Los pendientes van aparte en `pendientes-servicios-admin.md` (mismo almacén). Cuando Mario diga «Sonny, pendientes»: correr la revisión del día, anotarla en la bitácora y darle el resumen, y después los pendientes. Esos archivos no van al repo (traen datos de familias).
 
 ## Facturación CFDI — estado y pendientes
 
