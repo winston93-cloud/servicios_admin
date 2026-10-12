@@ -8,6 +8,7 @@ import {
   obtenerPrecioFila,
 } from '@/lib/boucherService'
 import { mesDeConcepto } from '@/lib/colegiaturaPrecioReglas'
+import { cargarCobroSep } from '@/lib/becasSep/cobroSep'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
 import { normalizarConceptoNo } from '@/lib/pagoReferenciaColegiatura'
 import { slotsColegiaturaPortal } from '@/lib/portalPagosCandados'
@@ -152,6 +153,8 @@ async function construirVistaPrevia(
   if (!precio) return []
 
   const becaPct = await obtenerPorcentajeBeca(db, alumno.alumno_id, cicloValor)
+  // 2026-10-12 — Beca SEP del ciclo 23+ (alumno_beca_sep), igual que el baucher mensual.
+  const cobroSep = await cargarCobroSep(db, alumno.alumno_ref, cicloValor)
   const conceptos = conceptosColegiaturaCargoExtra(planMeses)
   const regPreview: AlumnoCargoExtraRegistro = {
     alumno_id: alumno.alumno_id,
@@ -168,6 +171,7 @@ async function construirVistaPrevia(
     const importeBase = calcularImporteConcepto(conceptoNo, precio, becaPct, planMeses, {
       alumnoRef: alumno.alumno_ref,
       cicloEscolar: cicloValor,
+      cobroSep,
     })
     const importeTotal = aplicarCargoExtraImporte(importeBase, conceptoNo, regPreview)
     const etiqueta = getPaymentConcept(conceptoNo)

@@ -14,6 +14,7 @@ import {
   obtenerPrecioFila,
 } from '@/lib/boucherService'
 import { anioCalendarioConcepto } from '@/lib/colegiaturaPrecioReglas'
+import { cargarCobroSep } from '@/lib/becasSep/cobroSep'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
 import {
   normalizarConceptoNo,
@@ -196,6 +197,8 @@ export async function calcularMontoPagoAnual(
 
   const becaPct = await obtenerPorcentajeBeca(db, alumno.alumno_id, cicloValor)
   const cargoExtraReg = await obtenerCargoExtraActivo(db, alumno.alumno_id, cicloValor)
+  // 2026-10-12 — Beca SEP del ciclo 23+ (alumno_beca_sep), igual que el baucher mensual.
+  const cobroSep = await cargarCobroSep(db, alumno.alumno_ref, cicloValor)
   const conceptos = conceptosColegiaturaPagoAnual(planMeses)
   let montoLista = 0
   for (const c of conceptos) {
@@ -204,6 +207,7 @@ export async function calcularMontoPagoAnual(
       alumnoRef: alumno.alumno_ref,
       cicloEscolar: cicloValor,
       fecha: new Date(`${vencimientoPagoAnual(cicloValor)}T12:00:00`),
+      cobroSep,
     })
     importe = aplicarCargoExtraImporte(importe, c, cargoExtraReg)
     montoLista += importe

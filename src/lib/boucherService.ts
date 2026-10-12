@@ -17,6 +17,7 @@ import {
 } from './colegiaturaPrecioReglas'
 import { montoBecaSep } from './integracionSep'
 import { sepAplicaEnCicloCobro } from './becasCobroPolitica'
+import { cargarCobroSep, type CobroSepPorConcepto } from './becasSep/cobroSep'
 import { faltanteColegiaturaPendiente } from './faltantesColegiaturaCiclo23'
 import {
   aplicarCreditoRecargoAImporte,
@@ -271,6 +272,11 @@ export function calcularImporteConcepto(
     /** Nuevo ingreso: 35% los primeros 15 días desde alta, 20% después. */
     alumnoNuevoIngreso?: number | string | null
     alumnoAlta?: string | null
+    /**
+     * 2026-10-12 — Beca SEP del ciclo 23+ (alumno_beca_sep, ver becasSep/cobroSep.ts): monto por concepto.
+     * Si trae el concepto, se cobra ese monto y no se aplica la beca Winston (la SEP la sustituye).
+     */
+    cobroSep?: CobroSepPorConcepto | null
   }
 ): number {
   const fecha = opts?.fecha ?? new Date()
@@ -286,7 +292,10 @@ export function calcularImporteConcepto(
 
   let importe = montoNormal
 
-  if (
+  const montoSepTabla = conceptoAplicaSepYRecargo(c) ? opts?.cobroSep?.[c] : undefined
+  if (montoSepTabla != null) {
+    importe = montoSepTabla
+  } else if (
     sepAplicaEnCicloCobro(ciclo) &&
     opts?.alumnoRef != null &&
     conceptoAplicaSepYRecargo(c)
@@ -378,6 +387,8 @@ export async function calcularBoucher(
     params.cicloEscolar
   )
   const planMeses = params.planMeses ?? 1
+  // 2026-10-12 — Beca SEP del ciclo 23+ registrada desde el módulo de becas.
+  const cobroSep = await cargarCobroSep(supabase, params.alumnoRef, params.cicloEscolar)
 
   const manual =
     params.importeManual != null ? parseImporteBoucher(params.importeManual) : null
@@ -446,6 +457,7 @@ export async function calcularBoucher(
               cicloEscolar: params.cicloEscolar,
               alumnoNuevoIngreso,
               alumnoAlta,
+              cobroSep,
             })
 
   const cargoExtraReg = await obtenerCargoExtraActivo(

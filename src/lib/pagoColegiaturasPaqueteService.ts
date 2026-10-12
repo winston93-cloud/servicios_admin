@@ -13,6 +13,7 @@ import {
   obtenerPrecioFila,
 } from '@/lib/boucherService'
 import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
+import { cargarCobroSep } from '@/lib/becasSep/cobroSep'
 import {
   normalizarConceptoNo,
   parsearReferenciaPago,
@@ -185,12 +186,15 @@ async function montosPorConcepto(
   }
   const becaPct = await obtenerPorcentajeBeca(db, alumno.alumno_id, cicloValor)
   const cargoExtraReg = await obtenerCargoExtraActivo(db, alumno.alumno_id, cicloValor)
+  // 2026-10-12 — Beca SEP del ciclo 23+ (alumno_beca_sep), igual que el baucher mensual.
+  const cobroSep = await cargarCobroSep(db, alumno.alumno_ref, cicloValor)
   const map = new Map<string, number>()
   for (const c of conceptos) {
     let monto = calcularImporteConcepto(c, precio, becaPct, planMeses, {
       alumnoRef: alumno.alumno_ref,
       cicloEscolar: cicloValor,
       fecha: new Date(),
+      cobroSep,
     })
     monto = aplicarCargoExtraImporte(monto, c, cargoExtraReg)
     map.set(c, Math.round(monto * 100) / 100)

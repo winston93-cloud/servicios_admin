@@ -15,6 +15,7 @@ import {
   nivelPrecioBoucher,
 } from './boucherCore'
 import { calcularRecargoPesos } from './colegiaturaPrecioReglas'
+import { cargarCobroSep } from './becasSep/cobroSep'
 import {
   conceptoFacturaCambridge,
   rutasFacturaDesdeReferencia,
@@ -297,6 +298,8 @@ async function construirFilas(
     alumno.alumno_id,
     ciclo.valor
   )
+  // 2026-10-12 — Beca SEP del ciclo 23+ (alumno_beca_sep), igual que el baucher.
+  const cobroSep = await cargarCobroSep(supabase, alumno.alumno_ref, ciclo.valor)
   const control = formatearAlumnoRefParaReferencia(alumno.alumno_ref)
   const filas: FilaMatrizPortal[] = []
 
@@ -339,6 +342,7 @@ async function construirFilas(
             cicloEscolar: ciclo.valor,
             alumnoNuevoIngreso: alumno.alumno_nuevo_ingreso,
             alumnoAlta: alumno.alumno_alta ?? null,
+            cobroSep,
           })
     importe = aplicarCargoExtraImporte(importe, conceptoNo, cargoExtraReg)
 
