@@ -9,7 +9,11 @@
 
 import { useState } from 'react'
 import { Check, ChevronRight, Gift, RotateCcw, Upload, X } from 'lucide-react'
-import { OPCIONES_BENEFICIO_EXTERNO, type BeneficioExternoId } from '@/lib/beneficiosExternos/config'
+import {
+  OPCIONES_BENEFICIO_EXTERNO,
+  urlSubirDocumentoBecaSep,
+  type BeneficioExternoId,
+} from '@/lib/beneficiosExternos/config'
 import SubirDocumentoDemo from './SubirDocumentoDemo'
 import './beneficios-externos.css'
 
@@ -208,11 +212,24 @@ export default function Cuestionario({
               </>
             )}
           </p>
-          {/* 2026-10-10 — Abre la vista previa de subida en el mismo popup (ya no lleva a otra página). */}
-          <button type="button" className="bx-btn bx-btn--grande" onClick={() => setPaso('documento')}>
-            <Upload size={18} aria-hidden />
-            Ir a subir mi documento
-          </button>
+          {/* 2026-10-12 — Beca SEP abre la página real del portal de becas en otra pestaña;
+              otra beca sigue con la vista previa en el popup (aún no hay página real). */}
+          {beneficio === 'sep' ? (
+            <a
+              className="bx-btn bx-btn--grande"
+              href={urlSubirDocumentoBecaSep()}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Upload size={18} aria-hidden />
+              Ir a subir mi documento
+            </a>
+          ) : (
+            <button type="button" className="bx-btn bx-btn--grande" onClick={() => setPaso('documento')}>
+              <Upload size={18} aria-hidden />
+              Ir a subir mi documento
+            </button>
+          )}
           <div className="bx-acciones">
             <button type="button" className="bx-btn bx-btn--ghost" onClick={() => setPaso('recibio')}>
               Atrás
