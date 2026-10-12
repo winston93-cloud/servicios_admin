@@ -24,7 +24,7 @@ Key patterns:
 ## Consolidación NANOs InsForge → Winston Servicios
 
 - **SSIW / entrega a pie:** repo externo `~/Proyectos/ssiw` (`ssiw.vercel.app`). Handoff desde este admin en `/ssiw/entrar`. Tablas `registro_salida_pie` y `entregas_alumnos` viven en **Winston Servicios** (`g4ta4bfg`). Cutover Vercel hecho; NANO `winston-ssiw` borrable tras smoke.
-- **Boletas:** tablas `boleta_*` + captura en Winston Servicios. Migración: `docs/MIGRACION-BOLETAS-WINSTON.md`. NANO InsForge **Boletas** (`5u3i4tmc`) **eliminado** (2026-09-17); el módulo aún no está en producción operativa.
+- **Boletas:** tablas `boleta_*` + captura en Winston Servicios. Migración: `docs/MIGRACION-BOLETAS-WINSTON.md`. NANO InsForge **Boletas** (`5u3i4tmc`) **eliminado** (2026-09-17); arranca en producción en **noviembre 2026 con el 1er trimestre del ciclo 2026-2027**.
 - **Entersote / gym:** tabla `gym_estado` también en Winston Servicios; app local en PCs (sin repo).
 - **Desayunos POS:** tablas `concepto_desayunos`, `pago_desayunos`, `desayunos_saldo`, `notificaciones` en Winston. Migración: `docs/MIGRACION-DESAYUNOS-WINSTON.md`. Apps: `/pos` + repo `~/Proyectos/services`. NANO **Desayunos** (`5g4kw6fw`) borrable **solo tras smoke** OK (Mario).
 - **Caja Chica / Monitoreo y Control:** tablas `categories`, `persons`, `executors`, `expenses`, `funds`, etc. en Winston. Migración: `docs/MIGRACION-CAJA-CHICA-WINSTON.md`. App: `~/Proyectos/Cchic` (`cchic.vercel.app`). NANO **Caja Chica** (`fvddcfy5`) borrable cuando Mario lo indique.
@@ -99,5 +99,6 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 - **Sistema integral boletas:** `/boletas` — 5 módulos activos (Kinder ES/EN, Primaria ES/EN, Secundaria). Auth cookie compartida; envío `POST /api/boletas-envio`.
 - **Secundaria:** `/boletas-secundaria` — login maestro/admin, captura, admin, PDF, reportes, email.
 - **Kinder / Primaria:** `/boletas/kinder-espanol`, `kinder-ingles`, `primaria-espanol`, `primaria-ingles` — captura + PDF + email.
-- **Backend:** tablas `boleta_*` en **Winston Servicios** (`g4ta4bfg`). Env `BOLETAS_INSFORGE_URL` / `BOLETAS_INSFORGE_API_KEY` / `BOLETAS_SESSION_SECRET` (local + Vercel). Migración: `docs/MIGRACION-BOLETAS-WINSTON.md`. NANO InsForge **Boletas** eliminado (2026-09-17); módulo aún no en producción operativa.
+- **Backend:** tablas `boleta_*` en **Winston Servicios** (`g4ta4bfg`). Env `BOLETAS_INSFORGE_URL` / `BOLETAS_INSFORGE_API_KEY` / `BOLETAS_SESSION_SECRET` (local + Vercel). Migración: `docs/MIGRACION-BOLETAS-WINSTON.md`. NANO InsForge **Boletas** eliminado (2026-09-17).
+- **Arranque:** noviembre 2026, 1er trimestre del ciclo 2026-2027 (decisión de Mario, 12 oct 2026). Antes de eso no hay captura del ciclo nuevo en el sistema nuevo.
 - Legacy PHP `winston93.edu.mx/boletas` (y boletasek/ik/español/ingles) convive; no apagar hasta OK de Mario.
