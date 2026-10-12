@@ -12,7 +12,8 @@ import type { AppDatabaseClient } from '../dbTypes'
 /** Primer ciclo que cobra desde alumno_beca_sep (el 22 es la lista fija heredada). */
 export const CICLO_INICIO_COBRO_SEP = 23
 const ORIGEN = 'becas_renovacion'
-const REFS_PRUEBA_POR_DEFECTO = [29905]
+// 2026-10-12 — Se agrega ALAN PRUEBA (29904), segundo alumno de prueba (sin beca previa).
+const REFS_PRUEBA_POR_DEFECTO = [29905, 29904]
 
 export type CobroSepPorConcepto = Record<string, number>
 

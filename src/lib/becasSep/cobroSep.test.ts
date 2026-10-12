@@ -32,6 +32,7 @@ test('interruptor apagado: solo el alumno de prueba', () => {
   const antes = process.env.BECAS_SEP_COBRO
   delete process.env.BECAS_SEP_COBRO
   assert.equal(cobroSepActivo(29905), true)
+  assert.equal(cobroSepActivo(29904), true)
   assert.equal(cobroSepActivo(21592), false)
   process.env.BECAS_SEP_COBRO = '1'
   assert.equal(cobroSepActivo(21592), true)
