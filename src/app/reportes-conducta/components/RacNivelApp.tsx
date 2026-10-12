@@ -314,6 +314,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   const [informesConfirmado, setInformesConfirmado] = useState<'all' | '0' | '1'>('all')
   /** Citatorios: Confirmados / No confirmados / Todos. */
   const [citasConfirmado, setCitasConfirmado] = useState<'all' | '0' | '1'>('all')
+  const [suspConfirmado, setSuspConfirmado] = useState<'all' | '0' | '1'>('all')
   /** Citatorios: filtro por emisor (maestro / departamento). Vacío = todos. */
   const [citasMaestroKey, setCitasMaestroKey] = useState('')
   /** Listado: sin confirmar (legacy) / confirmados / todos los emitidos. */
@@ -402,6 +403,8 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
         conf = confirmado ?? informesConfirmado
       } else if (vista === 'citas') {
         conf = confirmado ?? citasConfirmado
+      } else if (vista === 'suspensiones') {
+        conf = confirmado ?? suspConfirmado
       }
       const confQs =
         conf === '0' || conf === '1' || conf === 'all' ? `&confirmado=${conf}` : ''
@@ -482,7 +485,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
     }
     if (ids.has('suspensiones')) {
       jobs.push(
-        api<{ filas?: unknown[] }>(`${base}?vista=suspensiones`)
+        api<{ filas?: unknown[] }>(`${base}?vista=suspensiones&confirmado=${suspConfirmado}`)
           .then((d) => {
             patch.suspensiones = d.filas?.length ?? 0
           })
@@ -492,7 +495,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
     if (!jobs.length) return
     await Promise.all(jobs)
     setConteos((c) => ({ ...c, ...patch }))
-  }, [me, config, listadoConfirmado, informesConfirmado, citasConfirmado])
+  }, [me, config, listadoConfirmado, informesConfirmado, citasConfirmado, suspConfirmado])
 
   useEffect(() => {
     if (!me) return
@@ -516,7 +519,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
       setQ('')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me, tab, asigKey, tipo, informesConfirmado, listadoConfirmado, citasConfirmado])
+  }, [me, tab, asigKey, tipo, informesConfirmado, listadoConfirmado, citasConfirmado, suspConfirmado])
 
   useEffect(() => {
     if (tab !== 'historial' || !me) return
@@ -1374,6 +1377,21 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                         {o.label}
                       </option>
                     ))}
+                  </select>
+                </label>
+              </div>
+            ) : null}
+            {tab === 'suspensiones' ? (
+              <div className="racn-filters">
+                <label>
+                  Estado
+                  <select
+                    value={suspConfirmado}
+                    onChange={(e) => setSuspConfirmado(e.target.value as 'all' | '0' | '1')}
+                  >
+                    <option value="all">Todas</option>
+                    <option value="0">Pendientes (sin confirmar)</option>
+                    <option value="1">Confirmadas</option>
                   </select>
                 </label>
               </div>

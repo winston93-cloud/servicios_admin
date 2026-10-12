@@ -1421,14 +1421,14 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .filter(Boolean)
   }
 
-  async function inboxSuspensiones() {
+  async function inboxSuspensiones(confirmado: 'all' | '0' | '1' = 'all') {
     const ciclo = await cicloRac()
-    const { data, error } = await db()
+    let query = db()
       .from('reporte_suspension')
       .select('*')
       .eq('suspension_ciclo_escolar', ciclo)
-      .order('suspension_id', { ascending: false })
-      .limit(300)
+    if (confirmado !== 'all') query = query.eq('suspension_confirmada', Number(confirmado))
+    const { data, error } = await query.order('suspension_id', { ascending: false }).limit(300)
     if (error) throw new Error(error.message)
     const rows = data ?? []
     const alumnoIds = [...new Set(rows.map((r) => n(r.alumno_id)).filter(Boolean))]

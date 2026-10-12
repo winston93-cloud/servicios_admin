@@ -242,6 +242,7 @@ export default function RacSecundariaPage() {
   const [informesConfirmado, setInformesConfirmado] = useState<'all' | '0' | '1'>('all')
   /** Citatorios: Confirmados / No confirmados / Todos. */
   const [citasConfirmado, setCitasConfirmado] = useState<'all' | '0' | '1'>('all')
+  const [suspConfirmado, setSuspConfirmado] = useState<'all' | '0' | '1'>('all')
   /** Citatorios: filtro por emisor (maestro / departamento). Vacío = todos. */
   const [citasMaestroKey, setCitasMaestroKey] = useState('')
   /** Listado: sin confirmar (legacy) / confirmados / todos los emitidos. */
@@ -386,6 +387,8 @@ export default function RacSecundariaPage() {
         conf = confirmado ?? informesConfirmado
       } else if (vista === 'citas') {
         conf = confirmado ?? citasConfirmado
+      } else if (vista === 'suspensiones') {
+        conf = confirmado ?? suspConfirmado
       }
       const confQs =
         conf === '0' || conf === '1' || conf === 'all' ? `&confirmado=${conf}` : ''
@@ -469,7 +472,7 @@ export default function RacSecundariaPage() {
     }
     if (ids.has('suspensiones')) {
       jobs.push(
-        api<{ filas?: unknown[] }>('/api/rac/coordinacion?vista=suspensiones')
+        api<{ filas?: unknown[] }>(`/api/rac/coordinacion?vista=suspensiones&confirmado=${suspConfirmado}`)
           .then((d) => {
             patch.suspensiones = d.filas?.length ?? 0
           })
@@ -479,7 +482,7 @@ export default function RacSecundariaPage() {
     if (!jobs.length) return
     await Promise.all(jobs)
     setConteos((c) => ({ ...c, ...patch }))
-  }, [me, listadoConfirmado, informesConfirmado, citasConfirmado])
+  }, [me, listadoConfirmado, informesConfirmado, citasConfirmado, suspConfirmado])
 
   useEffect(() => {
     if (!me) return
@@ -504,7 +507,17 @@ export default function RacSecundariaPage() {
       setQ('')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me, tab, asigKey, tipo, materiaFiltro, informesConfirmado, listadoConfirmado, citasConfirmado])
+  }, [
+    me,
+    tab,
+    asigKey,
+    tipo,
+    materiaFiltro,
+    informesConfirmado,
+    listadoConfirmado,
+    citasConfirmado,
+    suspConfirmado,
+  ])
 
   useEffect(() => {
     if (tab !== 'historial' || !me) return
@@ -1226,19 +1239,34 @@ export default function RacSecundariaPage() {
               </button>
             </div>
           ) : null}
-          {tab === 'suspensiones' && esAdmin ? (
+          {tab === 'suspensiones' ? (
             <div className="boletas-filters">
-              <button
-                type="button"
-                className="boletas-btn danger"
-                disabled={busy}
-                onClick={() => setSuspDirectaAbierta(true)}
-              >
-                Nueva suspensión directa
-              </button>
-              <p className="rac-print-legend">
-                Por conducta, sin esperar al Reporte III. No suma al conteo de reportes del alumno.
-              </p>
+              <label>
+                Estado
+                <select
+                  value={suspConfirmado}
+                  onChange={(e) => setSuspConfirmado(e.target.value as 'all' | '0' | '1')}
+                >
+                  <option value="all">Todas</option>
+                  <option value="0">Pendientes (sin confirmar)</option>
+                  <option value="1">Confirmadas</option>
+                </select>
+              </label>
+              {esAdmin ? (
+                <>
+                  <button
+                    type="button"
+                    className="boletas-btn danger"
+                    disabled={busy}
+                    onClick={() => setSuspDirectaAbierta(true)}
+                  >
+                    Nueva suspensión directa
+                  </button>
+                  <p className="rac-print-legend">
+                    Por conducta, sin esperar al Reporte III. No suma al conteo de reportes del alumno.
+                  </p>
+                </>
+              ) : null}
             </div>
           ) : null}
           {tab === 'citas' ? (

@@ -1133,13 +1133,14 @@ export async function inboxCitas(
     .filter(Boolean)
 }
 
-export async function inboxSuspensiones() {
+export async function inboxSuspensiones(confirmado: 'all' | '0' | '1' = 'all') {
   const ciclo = await cicloRac()
-  const { data, error } = await db()
+  let query = db()
     .from('reporte_suspension')
     .select('*')
     .eq('suspension_ciclo_escolar', ciclo)
-    .order('suspension_id', { ascending: false })
+  if (confirmado !== 'all') query = query.eq('suspension_confirmada', Number(confirmado))
+  const { data, error } = await query.order('suspension_id', { ascending: false })
   if (error) throw new Error(error.message)
   const rows = data ?? []
   const alumnoIds = [...new Set(rows.map((r) => n(r.alumno_id)))]

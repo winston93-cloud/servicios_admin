@@ -22,7 +22,11 @@ export async function GET(req: Request, { params }: Params) {
         confRaw === '0' || confRaw === '1' ? confRaw : confRaw === 'all' ? 'all' : 'all'
       return NextResponse.json({ filas: await svc.inboxCitas(session, confirmado) })
     }
-    if (vista === 'suspensiones') return NextResponse.json({ filas: await svc.inboxSuspensiones() })
+    if (vista === 'suspensiones') {
+      const confRaw = url.searchParams.get('confirmado')
+      const confirmado = confRaw === '0' || confRaw === '1' ? confRaw : 'all'
+      return NextResponse.json({ filas: await svc.inboxSuspensiones(confirmado) })
+    }
     if (vista === 'historial') {
       const h = await svc.historialAlumno(String(url.searchParams.get('q') ?? ''), session)
       return NextResponse.json({ filas: h.reportes, alumnos: h.alumnos })
