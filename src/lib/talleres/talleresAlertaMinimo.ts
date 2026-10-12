@@ -3,6 +3,7 @@ import { modulosVisiblesDeUsuario } from '@/lib/dashboardAccesosEmpleados'
 import { enviarCorreoMasivo, urlBaseCorreos } from '@/lib/emailServicios'
 import { crearNotificacionEmpleado } from '@/lib/notificacionEmpleadoService'
 import { MODULO_TALLERES } from '@/lib/talleres/talleresApi'
+import { hoyMexico } from '@/lib/talleres/talleresAsistenciaService'
 import { snapshotTalleres } from '@/lib/talleres/talleresService'
 import {
   enMinimo,
@@ -175,6 +176,29 @@ function htmlCorreoMinimo(a: Aviso): string {
 </body></html>`
 }
 
+/** Niveles de AgendaW: un día bloqueado completo en los tres es inhábil para toda la escuela. */
+const NIVELES_AGENDAW = ['maternal_kinder', 'primaria', 'secundaria']
+
+/**
+ * Sábado, domingo o día inhábil del calendario de AgendaW (`blocked_dates` sin horario en los tres
+ * niveles). Si la consulta falla se asume laboral para no perder avisos entre semana.
+ */
+async function esDiaInhabil(fecha: string): Promise<boolean> {
+  const dia = new Date(`${fecha}T12:00:00Z`).getUTCDay()
+  if (dia === 0 || dia === 6) return true
+  const { data, error } = await db()
+    .from('blocked_dates')
+    .select('level')
+    .eq('block_date', fecha)
+    .is('block_time', null)
+  if (error) {
+    console.error('Alertas de mínimo (días inhábiles):', error.message)
+    return false
+  }
+  const bloqueados = new Set(((data ?? []) as Record<string, unknown>[]).map((r) => String(r.level ?? '')))
+  return NIVELES_AGENDAW.every((n) => bloqueados.has(n))
+}
+
 /** Margen para que el cron diario (8:00) alcance avisos de ~24 h y no los brinque al día siguiente. */
 const INTERVALO_RECORDATORIO_MS = 23.5 * 60 * 60 * 1000
 
@@ -183,8 +207,10 @@ const INTERVALO_RECORDATORIO_MS = 23.5 * 60 * 60 * 1000
  * los que salieron del mínimo se borran; los que entraron se registran y se avisa; los que siguen
  * en mínimo reciben recordatorio cada 24 h. Aviso = notificación del dashboard + correo institucional
  * a quienes ven Talleres (directoras y control escolar, solo su nivel).
+ * Solo en días laborales: en inhábiles no se toca nada y el siguiente día hábil sale el aviso pendiente.
  */
 export async function revisarAlertasMinimo(): Promise<{ nuevos: number; recordatorios: number }> {
+  if (await esDiaInhabil(hoyMexico())) return { nuevos: 0, recordatorios: 0 }
   const { ciclo, grupos } = await gruposEnMinimo()
   const actuales = new Set(grupos.map((g) => g.id))
 
