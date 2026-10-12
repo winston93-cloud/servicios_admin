@@ -3,6 +3,7 @@ import type { AlumnoRegistro } from './alumnoDatosService'
 import type { PagoDetalleRegistro } from './pagoColegiaturaService'
 import { alumnoTienePagoSemiref } from './portalAdmisionesColegiatura'
 import { cargarSolicitudInscripcion } from './portalInscripcionesSolicitudService'
+import { esAlumnoPruebaPagos } from './simulacionPagosPrueba'
 import {
   resumenSeccionesFaltantes,
   solicitudFormularioCompleta,
@@ -22,6 +23,8 @@ export async function evaluarSolicitudCapturada(
   supabase: AppDatabaseClient,
   alumno: AlumnoRegistro
 ): Promise<EstadoSolicitudCaptura> {
+  // 2026-10-12 — Alumna ficticia de prueba (Beca SEP): solicitud dada por capturada, sin datos de familia falsos en la base.
+  if (esAlumnoPruebaPagos(alumno.alumno_id)) return { completa: true, faltantesResumen: null }
   try {
     const form = await cargarSolicitudInscripcion(supabase, alumno.alumno_id)
     const completa = solicitudFormularioCompleta(form)
