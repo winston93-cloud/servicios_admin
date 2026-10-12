@@ -4,7 +4,7 @@ import { urlProrrogasAjustesApp } from '@/lib/prorrogasAjustesConfig'
 import { urlCchicApp } from '@/lib/cchicConfig'
 import { urlChequesApp, urlContratosApp, urlSsiwEntregaLogin, urlUsaProgramApp } from '@/lib/dashboardModulosConfig'
 import { ACCESOS_USUARIOS_PERMITIDOS } from '@/lib/accesos/accesosTypes'
-import { BENEFICIOS_EXTERNOS_USUARIOS } from '@/lib/beneficiosExternos/config'
+import { BENEFICIOS_EXTERNOS_USUARIOS, urlRevisionBecaSep } from '@/lib/beneficiosExternos/config'
 
 export type DashboardAdminNavItem = {
   /** Clave estable para ACL de visualización en dashboard. */
@@ -604,7 +604,8 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     id: 'beneficios-externos',
     label: 'Beneficios externos · Personal',
     desc: 'Módulo del personal: respuestas de las familias y revisión de documentos de becas externas.',
-    path: '/beneficios-externos/personal',
+    // 2026-10-12 — Abre directo el panel de Beca SEP del portal de becas (sin pantalla intermedia).
+    href: urlRevisionBecaSep(),
     accent: 'emerald',
     kicker: 'Nuevo módulo',
     tags: ['Beca SEP', 'Revisión'],
