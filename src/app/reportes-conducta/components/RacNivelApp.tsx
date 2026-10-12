@@ -35,6 +35,7 @@ import '../reportes-conducta.css'
 import { limpiarSesionGoogleCliente } from '@/lib/racLogoutClient'
 import RacGoogleSignIn from './RacGoogleSignIn'
 import RacDetalleModal from './RacDetalleModal'
+import { fechaLargaEs, siguienteDiaHabil } from '../fechaSuspension'
 
 type Me = {
   role: RacRolNivel
@@ -281,6 +282,10 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   const [modo, setModo] = useState<'reporte' | 'informe' | 'cita'>('reporte')
   const [tipoCita, setTipoCita] = useState(2)
   const [citaValidar, setCitaValidar] = useState<CitaFila | null>(null)
+  const [suspAplicar, setSuspAplicar] = useState<{ id: number; nombre: string; seccion: string } | null>(
+    null
+  )
+  const [fechaSusp, setFechaSusp] = useState('')
   const [detalleVista, setDetalleVista] = useState<Record<string, unknown> | null>(null)
   const [edicionReporte, setEdicionReporte] = useState<Record<string, unknown> | null>(null)
   const [guardandoEdicion, setGuardandoEdicion] = useState(false)
@@ -705,6 +710,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
         )
       }
       setCitaValidar(null)
+      setSuspAplicar(null)
       if (tab === 'inbox') await cargarVista('inbox-listado')
       if (tab === 'informes') await cargarVista('informes')
       if (tab === 'citas') await cargarVista('citas')
@@ -1820,20 +1826,12 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                               className="racn-btn primary"
                               disabled={busy}
                               onClick={() => {
-                                const seccionLbl = String(row.seccionEtiqueta ?? '').trim()
-                                const hint = seccionLbl
-                                  ? `Fecha de suspensión académica — ${seccionLbl} (AAAA-MM-DD)`
-                                  : 'Fecha de suspensión (AAAA-MM-DD)'
-                                const fecha = window.prompt(hint)?.trim()
-                                if (fecha && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-                                  setMsg('Fecha no válida: usa el formato AAAA-MM-DD (ej. 2026-10-15).')
-                                  return
-                                }
-                                if (fecha) {
-                                  void accionCoord('suspension', Number(row.suspension_id), 'aplicar', {
-                                    fecha,
-                                  })
-                                }
+                                setFechaSusp(siguienteDiaHabil())
+                                setSuspAplicar({
+                                  id: Number(row.suspension_id),
+                                  nombre: String(row.nombre ?? ''),
+                                  seccion: String(row.seccionEtiqueta ?? '').trim(),
+                                })
                               }}
                             >
                               {row.seccionEtiqueta
@@ -1998,6 +1996,47 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                 <button type="button" className="racn-btn primary" disabled={busy} onClick={() => void enviarCaptura()}>
                   <Send size={16} aria-hidden />
                   Guardar y avisar
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {suspAplicar ? (
+          <div className="racn-modal" role="dialog" aria-modal="true" aria-labelledby="racn-susp-fecha-title">
+            <div className="racn-modal-card">
+              <h3 id="racn-susp-fecha-title">
+                {suspAplicar.seccion
+                  ? `Fecha de suspensión académica — ${suspAplicar.seccion}`
+                  : 'Fecha de suspensión'}
+              </h3>
+              {suspAplicar.nombre ? <p className="racn-mini">{suspAplicar.nombre}</p> : null}
+              <div className="racn-filters">
+                <label>
+                  Fecha
+                  <input
+                    type="date"
+                    value={fechaSusp}
+                    onChange={(e) => setFechaSusp(e.target.value)}
+                    required
+                    autoFocus
+                  />
+                </label>
+              </div>
+              {fechaSusp ? <p className="racn-mini">{fechaLargaEs(fechaSusp)}</p> : null}
+              <div className="racn-actions">
+                <button type="button" className="racn-btn ghost" onClick={() => setSuspAplicar(null)}>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="racn-btn primary"
+                  disabled={busy || !fechaSusp}
+                  onClick={() =>
+                    void accionCoord('suspension', suspAplicar.id, 'aplicar', { fecha: fechaSusp })
+                  }
+                >
+                  Aplicar fecha
                 </button>
               </div>
             </div>

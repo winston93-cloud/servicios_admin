@@ -23,6 +23,7 @@ import { limpiarSesionGoogleCliente } from '@/lib/racLogoutClient'
 import RacGoogleSignIn from '../components/RacGoogleSignIn'
 import RacDetalleModal from '../components/RacDetalleModal'
 import RacSuspensionDirectaModal from '../components/RacSuspensionDirectaModal'
+import { fechaLargaEs, siguienteDiaHabil } from '../fechaSuspension'
 
 type Rol = 'maestro' | 'coordinacion' | 'psicologia' | 'prefectura' | 'direccion' | 'estancia'
 
@@ -217,6 +218,8 @@ export default function RacSecundariaPage() {
   const [modo, setModo] = useState<'reporte' | 'informe' | 'cita'>('reporte')
   const [tipoCita, setTipoCita] = useState(2)
   const [citaValidar, setCitaValidar] = useState<CitaFila | null>(null)
+  const [suspAplicar, setSuspAplicar] = useState<{ id: number; nombre: string } | null>(null)
+  const [fechaSusp, setFechaSusp] = useState('')
   const [detalleVista, setDetalleVista] = useState<Record<string, unknown> | null>(null)
   const [edicionReporte, setEdicionReporte] = useState<Record<string, unknown> | null>(null)
   const [guardandoEdicion, setGuardandoEdicion] = useState(false)
@@ -698,6 +701,7 @@ export default function RacSecundariaPage() {
         )
       }
       setCitaValidar(null)
+      setSuspAplicar(null)
       if (tab === 'historial' && entidad === 'reporte' && accion === 'detener') {
         setLista((prev) => prev.filter((r) => Number(r.reporte_id) !== id))
       }
@@ -1646,13 +1650,11 @@ export default function RacSecundariaPage() {
                           className="boletas-btn primary"
                           disabled={busy}
                           onClick={() => {
-                            const fecha = window.prompt('Fecha de suspensión (AAAA-MM-DD)')?.trim()
-                            if (!fecha) return
-                            if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-                              setMsg('Fecha no válida: usa el formato AAAA-MM-DD (ej. 2026-10-15).')
-                              return
-                            }
-                            void accionCoord('suspension', Number(row.suspension_id), 'aplicar', { fecha })
+                            setFechaSusp(siguienteDiaHabil())
+                            setSuspAplicar({
+                              id: Number(row.suspension_id),
+                              nombre: String(row.nombre ?? ''),
+                            })
                           }}
                         >
                           Aplicar fecha
@@ -1832,6 +1834,43 @@ export default function RacSecundariaPage() {
               <button type="button" className="boletas-btn primary" disabled={busy} onClick={() => void enviarCaptura()}>
                 <Send size={16} aria-hidden />
                 Guardar y avisar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {suspAplicar ? (
+        <div className="rac-modal" role="dialog" aria-modal="true" aria-labelledby="rac-susp-fecha-title">
+          <div className="rac-modal-card">
+            <h3 id="rac-susp-fecha-title">Fecha de suspensión</h3>
+            {suspAplicar.nombre ? <p className="rac-mini">{suspAplicar.nombre}</p> : null}
+            <div className="boletas-filters">
+              <label>
+                Fecha
+                <input
+                  type="date"
+                  value={fechaSusp}
+                  onChange={(e) => setFechaSusp(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </label>
+            </div>
+            {fechaSusp ? <p className="rac-mini">{fechaLargaEs(fechaSusp)}</p> : null}
+            <div className="rac-actions">
+              <button type="button" className="boletas-btn ghost" onClick={() => setSuspAplicar(null)}>
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="boletas-btn primary"
+                disabled={busy || !fechaSusp}
+                onClick={() =>
+                  void accionCoord('suspension', suspAplicar.id, 'aplicar', { fecha: fechaSusp })
+                }
+              >
+                Aplicar fecha
               </button>
             </div>
           </div>
