@@ -19,6 +19,8 @@ import {
 } from '@/lib/alumnoBecaService'
 import { obtenerAlumnoPorRef } from '@/lib/alumnoDatosService'
 import AlumnoAutocomplete from '../components/AlumnoAutocomplete'
+import BecaSepResumen from '../components/BecaSepResumen'
+import type { ResumenBecaSep } from '@/lib/becasSep/resumenBecaSep'
 
 interface SnapshotBeca {
   becaId: number
@@ -103,6 +105,8 @@ export default function BecasModulo() {
   const [mensaje, setMensaje] = useState<string | null>(null)
   const [mensajeInfo, setMensajeInfo] = useState<string | null>(null)
   const [errorGuardar, setErrorGuardar] = useState(false)
+  // 2026-10-12 — Beca SEP del ciclo del formulario (tarjeta de arriba); avisa si sustituye a la beca del colegio.
+  const [becaSep, setBecaSep] = useState<ResumenBecaSep | null>(null)
 
   const snapshotActual = useMemo<SnapshotBeca>(
     () => ({ becaId, porcentaje, estatus, cicloEscolar: cicloEscolarBeca }),
@@ -409,8 +413,19 @@ export default function BecasModulo() {
       )}
 
       {alumnoSeleccionado && !cargandoBeca && !resolviendoCiclo && (
+        <BecaSepResumen
+          alumnoRef={alumnoSeleccionado.alumno_ref}
+          ciclo={cicloEscolarBeca}
+          etiquetaCiclo={
+            opcionesCatalogo.find((o) => o.valor === cicloEscolarBeca)?.etiqueta ?? String(cicloEscolarBeca)
+          }
+          onCargado={setBecaSep}
+        />
+      )}
+
+      {alumnoSeleccionado && !cargandoBeca && !resolviendoCiclo && (
         <section className="becas-formulario" aria-label="Asignar beca">
-          <h2 className="becas-formulario-titulo">Asignar beca</h2>
+          <h2 className="becas-formulario-titulo">Asignar beca del colegio</h2>
 
           {mostrarResumenBeca && (
             <p className={`becas-estatus-badge ${claseBecaEstatus(estatusResumen)}`}>
@@ -420,6 +435,13 @@ export default function BecasModulo() {
               {etiquetaBecaEstatus(estatusResumen)} ·{' '}
               {conceptos.find((c) => c.beca_id === becaIdResumen)?.beca_clase ?? '—'} ·{' '}
               {porcentajeResumen}%
+            </p>
+          )}
+
+          {becaSep && becaSep.ciclo === cicloEscolarBeca && (becaSep.estado === 'activa' || becaSep.estado === 'reversion_pendiente') && (
+            <p className="becas-sep-sustituye" role="status">
+              Sustituida por la Beca SEP del {becaSep.porcentajeSep} %: en este ciclo el baucher no aplica la beca del
+              colegio mientras la SEP esté activa.
             </p>
           )}
 

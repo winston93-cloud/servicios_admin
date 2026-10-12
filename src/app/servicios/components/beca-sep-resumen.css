@@ -1,0 +1,184 @@
+/* 2026-10-12 — Tarjeta «Beca SEP» del módulo Becas (claro y oscuro). */
+.bsep-card {
+  --bsep-bg: #ffffff;
+  --bsep-borde: #cbd5e1;
+  --bsep-texto: #0f172a;
+  --bsep-suave: #64748b;
+  --bsep-acento: #1e3a5f;
+  --bsep-caja: #f8fafc;
+  max-width: 52rem;
+  margin: 8px 0 14px;
+  padding: 18px 20px;
+  background: var(--bsep-bg);
+  border: 1px solid var(--bsep-borde);
+  border-left: 4px solid var(--bsep-acento);
+  border-radius: 12px;
+  color: var(--bsep-texto);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.bsep-card--ok { --bsep-acento: #16a34a; }
+.bsep-card--aviso { --bsep-acento: #d97706; }
+.bsep-card--neutro { --bsep-acento: #64748b; }
+
+.bsep-card--cargando {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--bsep-suave);
+  font-size: 0.875rem;
+}
+
+.bsep-spin { animation: alumno-ac-spin 0.7s linear infinite; }
+
+.bsep-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bsep-titulo {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: var(--bsep-acento);
+}
+
+.bsep-titulo h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--bsep-texto);
+}
+
+.bsep-titulo p {
+  margin: 2px 0 0;
+  font-size: 0.8rem;
+  color: var(--bsep-suave);
+}
+
+.bsep-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.bsep-pill {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+.bsep-pill--ok { background: #dcfce7; color: #166534; border-color: #86efac; }
+.bsep-pill--aviso { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+.bsep-pill--neutro { background: #f1f5f9; color: #334155; border-color: #cbd5e1; }
+.bsep-pill--prueba { background: #ede9fe; color: #5b21b6; border-color: #c4b5fd; }
+
+.bsep-datos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0 0;
+}
+
+.bsep-datos > div {
+  padding: 10px 12px;
+  background: var(--bsep-caja);
+  border: 1px solid var(--bsep-borde);
+  border-radius: 8px;
+}
+
+.bsep-datos dt {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bsep-suave);
+}
+
+.bsep-datos dd {
+  margin: 4px 0 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.bsep-datos small { font-weight: 500; color: var(--bsep-suave); }
+.bsep-grande { font-size: 1.2rem !important; color: var(--bsep-acento); }
+.bsep-tachado { text-decoration: line-through; color: var(--bsep-suave); }
+
+.bsep-nota {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+  color: var(--bsep-suave);
+}
+
+.bsep-renuncia {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  color: #9a3412;
+}
+
+.bsep-renuncia div { display: flex; flex-direction: column; gap: 2px; }
+.bsep-renuncia strong { font-size: 0.92rem; }
+.bsep-renuncia span { font-size: 0.82rem; opacity: 0.9; }
+
+.bsep-renuncia--sin { background: #f0f9ff; border-color: #7dd3fc; color: #075985; }
+.bsep-renuncia--revertida { background: #f1f5f9; border-color: #cbd5e1; color: #334155; }
+
+.bsep-vacio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 12px;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.bsep-vacio--error { color: #b91c1c; }
+
+.becas-sep-sustituye {
+  margin: -8px 0 16px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  color: #9a3412;
+}
+
+@media (max-width: 760px) {
+  .bsep-datos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+html[data-theme='dark'] .bsep-card {
+  --bsep-bg: #1b1f27;
+  --bsep-borde: #2f3644;
+  --bsep-texto: #e5e7eb;
+  --bsep-suave: #94a3b8;
+  --bsep-caja: #232935;
+  box-shadow: none;
+}
+
+html[data-theme='dark'] .bsep-card--ok { --bsep-acento: #4ade80; }
+html[data-theme='dark'] .bsep-card--aviso { --bsep-acento: #fbbf24; }
+html[data-theme='dark'] .bsep-card--neutro { --bsep-acento: #94a3b8; }
+html[data-theme='dark'] .bsep-pill--ok { background: rgba(34, 197, 94, 0.15); color: #86efac; border-color: rgba(134, 239, 172, 0.35); }
+html[data-theme='dark'] .bsep-pill--aviso { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border-color: rgba(252, 211, 77, 0.35); }
+html[data-theme='dark'] .bsep-pill--neutro { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; border-color: rgba(203, 213, 225, 0.3); }
+html[data-theme='dark'] .bsep-pill--prueba { background: rgba(139, 92, 246, 0.18); color: #c4b5fd; border-color: rgba(196, 181, 253, 0.35); }
+
+html[data-theme='dark'] .bsep-renuncia,
+html[data-theme='dark'] .becas-sep-sustituye { background: rgba(249, 115, 22, 0.12); border-color: rgba(253, 186, 116, 0.35); color: #fdba74; }
+html[data-theme='dark'] .bsep-renuncia--sin { background: rgba(14, 165, 233, 0.12); border-color: rgba(125, 211, 252, 0.35); color: #7dd3fc; }
+html[data-theme='dark'] .bsep-renuncia--revertida { background: rgba(148, 163, 184, 0.12); border-color: rgba(203, 213, 225, 0.3); color: #cbd5e1; }
+html[data-theme='dark'] .bsep-vacio { color: #94a3b8; }
