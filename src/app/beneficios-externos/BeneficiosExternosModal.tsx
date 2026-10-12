@@ -3,6 +3,7 @@
 /**
  * 2026-10-10 — Popup de Beneficios externos (vista del alumno) sobre el dashboard,
  * para no salir de la página al abrir la tarjeta.
+ * 2026-10-12 — `guardar`: abierto por un alumno, la respuesta se guarda.
  */
 
 import { useEffect, useId, useRef } from 'react'
@@ -12,9 +13,10 @@ import './beneficios-externos.css'
 type Props = {
   abierto: boolean
   onCerrar: () => void
+  guardar?: boolean
 }
 
-export default function BeneficiosExternosModal({ abierto, onCerrar }: Props) {
+export default function BeneficiosExternosModal({ abierto, onCerrar, guardar = false }: Props) {
   const tituloId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -43,7 +45,7 @@ export default function BeneficiosExternosModal({ abierto, onCerrar }: Props) {
     <div className="bx-modal" role="presentation">
       <button type="button" className="bx-modal-fondo" aria-label="Cerrar" onClick={onCerrar} />
       <div ref={panelRef} className="bx-modal-panel" role="dialog" aria-modal="true" aria-labelledby={tituloId}>
-        <Cuestionario tituloId={tituloId} onCerrar={onCerrar} />
+        <Cuestionario tituloId={tituloId} onCerrar={onCerrar} guardar={guardar} />
       </div>
     </div>
   )

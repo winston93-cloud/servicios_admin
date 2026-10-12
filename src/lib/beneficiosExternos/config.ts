@@ -12,6 +12,39 @@ export function puedeVerBeneficiosExternos(usuarioId: unknown): boolean {
   return uid > 0 && BENEFICIOS_EXTERNOS_USUARIOS.includes(uid)
 }
 
+/**
+ * 2026-10-12 — Interruptor para las familias: con NEXT_PUBLIC_BENEFICIOS_EXTERNOS_FAMILIAS=1 la tarjeta
+ * aparece en el dashboard de todos los alumnos. Apagado, solo la ven los números de control de prueba
+ * (NEXT_PUBLIC_BENEFICIOS_EXTERNOS_REFS_PRUEBA, por defecto 29905). Cambiarlo requiere redeploy.
+ */
+export function beneficiosExternosAbiertoAFamilias(): boolean {
+  return process.env.NEXT_PUBLIC_BENEFICIOS_EXTERNOS_FAMILIAS === '1'
+}
+
+export function refsPruebaBeneficiosExternos(): number[] {
+  const crudo = process.env.NEXT_PUBLIC_BENEFICIOS_EXTERNOS_REFS_PRUEBA?.trim()
+  if (!crudo) return [29905]
+  return crudo
+    .split(',')
+    .map((r) => Number(r.trim()))
+    .filter((n) => Number.isInteger(n) && n > 0)
+}
+
+export function esRefPruebaBeneficiosExternos(alumnoRef: unknown): boolean {
+  return refsPruebaBeneficiosExternos().includes(Number(alumnoRef) || 0)
+}
+
+export function familiaVeBeneficiosExternos(alumnoRef: unknown): boolean {
+  return beneficiosExternosAbiertoAFamilias() || esRefPruebaBeneficiosExternos(alumnoRef)
+}
+
+/** Ciclo escolar vigente (misma regla que el portal de becas: cambia el 10 de julio). */
+export function cicloBeneficiosExternos(ahora = new Date()): number {
+  const mes = ahora.getMonth() + 1
+  const inicio = mes > 7 || (mes === 7 && ahora.getDate() >= 10) ? ahora.getFullYear() : ahora.getFullYear() - 1
+  return inicio - 2003
+}
+
 export type BeneficioExternoId = 'sep' | 'otra'
 
 export type OpcionBeneficioExterno = {

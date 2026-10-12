@@ -28,6 +28,7 @@ import TalleresMinimoPopup from '@/components/dashboard/TalleresMinimoPopup'
 import DashboardBuscador from '@/components/dashboard/DashboardBuscador'
 import { buscarModulos } from '@/lib/dashboardBusqueda'
 import { CircleHelp, ListOrdered, SearchX } from 'lucide-react'
+import { familiaVeBeneficiosExternos } from '@/lib/beneficiosExternos/config'
 import dynamic from 'next/dynamic'
 import './dashboard-module-card.css'
 import '@/components/dashboard/dashboard-ayuda.css'
@@ -50,6 +51,7 @@ type DashboardNavItem = {
   icon: ReactNode
   path?: string
   href?: string
+  popup?: DashboardAdminNavItem['popup']
 }
 
 function abrirNavItemAlumno(item: DashboardNavItem, push: (path: string) => void) {
@@ -135,6 +137,23 @@ const NAV_ITEMS_ALUMNO: DashboardNavItem[] = [
   },
 ]
 
+// 2026-10-12 — Cuestionario de Beneficios externos para familias (detrás de un interruptor).
+const NAV_ITEM_BENEFICIOS_EXTERNOS: DashboardNavItem = {
+  label: 'Beneficios externos',
+  desc: '¿El alumno aplicó a la Beca SEP u otra beca externa?',
+  popup: 'beneficios-externos-alumno',
+  accent: 'emerald',
+  icon: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 12v9H4v-9" />
+      <path d="M2 7h20v5H2z" />
+      <path d="M12 21V7" />
+      <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+      <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+    </svg>
+  ),
+}
+
 const NAV_ITEM_BECAS_FIRMA: DashboardNavItem = {
   label: 'Becas',
   desc: 'Firma electrónica · Activación de beca',
@@ -205,6 +224,11 @@ export default function DashboardPage() {
   }
 
   const handleNavItemAlumno = (item: DashboardNavItem) => {
+    if (item.popup) {
+      setPopupAbierto(item.popup)
+      setIsMenuOpen(false)
+      return
+    }
     abrirNavItemAlumno(item, router.push)
     setIsMenuOpen(false)
   }
@@ -346,8 +370,9 @@ export default function DashboardPage() {
   const navItemsAlumno = useMemo(() => {
     const items = [...NAV_ITEMS_ALUMNO]
     if (becaFirmaAutorizada) items.push(NAV_ITEM_BECAS_FIRMA)
+    if (familiaVeBeneficiosExternos(session?.alumno_ref)) items.push(NAV_ITEM_BENEFICIOS_EXTERNOS)
     return items
-  }, [becaFirmaAutorizada])
+  }, [becaFirmaAutorizada, session?.alumno_ref])
 
   const subtituloDashboard = mostrarPanelAlumno
     ? 'Accede a tus portales en línea'
@@ -732,8 +757,8 @@ export default function DashboardPage() {
           />
         ) : null}
 
-        {mostrarPanelAdmin && popupAbierto === 'beneficios-externos-alumno' ? (
-          <BeneficiosExternosModal abierto onCerrar={cerrarPopup} />
+        {(mostrarPanelAdmin || mostrarPanelAlumno) && popupAbierto === 'beneficios-externos-alumno' ? (
+          <BeneficiosExternosModal abierto onCerrar={cerrarPopup} guardar={mostrarPanelAlumno} />
         ) : null}
 
       </div>

@@ -61,17 +61,56 @@ const PASO_ETIQUETA: Record<Paso, string> = {
   'en-espera': 'Pendiente',
 }
 
-/** 2026-10-10 — En el popup el encabezado imita las tarjetas del dashboard (kicker, badge, chips, cerrar). */
+type Respuesta = { aplico: boolean; beneficio?: BeneficioExternoId | null; beneficioNombre?: string; recibio?: boolean }
+
+/**
+ * 2026-10-10 — En el popup el encabezado imita las tarjetas del dashboard (kicker, badge, chips, cerrar).
+ * 2026-10-12 — `guardar`: cuando lo contesta un alumno, la respuesta final se guarda para contar cuántas
+ *              familias aplicaron a una beca externa. La vista previa del personal no guarda nada.
+ */
 export default function Cuestionario({
   tituloId = 'bx-titulo',
   onCerrar,
+  guardar = false,
 }: {
   tituloId?: string
   onCerrar?: () => void
+  guardar?: boolean
 }) {
   const [paso, setPaso] = useState<Paso>('aplico')
   const [beneficio, setBeneficio] = useState<BeneficioExternoId | null>(null)
   const [otraNombre, setOtraNombre] = useState('')
+  const [guardado, setGuardado] = useState<'no' | 'guardando' | 'listo' | 'error'>('no')
+  const [ultima, setUltima] = useState<Respuesta | null>(null)
+
+  const enviarRespuesta = async (r: Respuesta) => {
+    if (!guardar) return
+    setUltima(r)
+    setGuardado('guardando')
+    try {
+      const res = await fetch('/api/beneficios-externos/respuesta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(r),
+      })
+      setGuardado(res.ok ? 'listo' : 'error')
+    } catch {
+      setGuardado('error')
+    }
+  }
+
+  const responder = (siguiente: Paso, r: Respuesta) => {
+    setPaso(siguiente)
+    void enviarRespuesta(r)
+  }
+
+  const respuestaBeneficio = (recibio: boolean): Respuesta => ({
+    aplico: true,
+    beneficio,
+    beneficioNombre: beneficio === 'otra' ? otraNombre.trim() : undefined,
+    recibio,
+  })
 
   const opcion = OPCIONES_BENEFICIO_EXTERNO.find((o) => o.id === beneficio) ?? null
   const nombreBeneficio = beneficio === 'otra' ? otraNombre.trim() || 'beca externa' : opcion?.label ?? ''
@@ -82,7 +121,16 @@ export default function Cuestionario({
     setPaso('aplico')
     setBeneficio(null)
     setOtraNombre('')
+    setGuardado('no')
   }
+
+  const etiquetaGuardado = !guardar
+    ? 'Las respuestas no se guardan'
+    : guardado === 'guardando'
+      ? 'Guardando…'
+      : guardado === 'listo'
+        ? 'Respuesta guardada'
+        : null
 
   return (
     <section className={`bx-card${onCerrar ? ' bx-card--modulo' : ''}`} aria-labelledby={tituloId}>
@@ -93,15 +141,15 @@ export default function Cuestionario({
           </span>
           <div className="bx-modulo-cuerpo">
             <div className="bx-modulo-meta">
-              <span className="bx-modulo-kicker">Vista del alumno</span>
-              <span className="bx-modulo-badge">Prueba</span>
+              <span className="bx-modulo-kicker">{guardar ? 'Servicios escolares' : 'Vista del alumno'}</span>
+              {guardar ? null : <span className="bx-modulo-badge">Prueba</span>}
             </div>
             <h1 id={tituloId} className="bx-modulo-titulo">
               Beneficios externos
             </h1>
             <ul className="bx-modulo-tags" aria-label="Estado">
               <li>{PASO_ETIQUETA[paso]}</li>
-              <li>Las respuestas no se guardan</li>
+              {etiquetaGuardado ? <li>{etiquetaGuardado}</li> : null}
             </ul>
           </div>
           <button type="button" className="bx-modulo-cerrar" onClick={onCerrar} aria-label="Cerrar">
@@ -128,6 +176,17 @@ export default function Cuestionario({
         </ol>
       ) : null}
 
+      {guardado === 'error' && ultima ? (
+        <div className="bx-alerta bx-alerta--aviso" role="alert">
+          <p>
+            No se pudo guardar su respuesta.
+            <button type="button" className="bx-btn bx-btn--ghost" onClick={() => void enviarRespuesta(ultima)}>
+              Intentar de nuevo
+            </button>
+          </p>
+        </div>
+      ) : null}
+
       {paso === 'aplico' ? (
         <div className="bx-paso">
           <h2>¿El alumno ha aplicado a alguna beca externa?</h2>
@@ -137,7 +196,7 @@ export default function Cuestionario({
           </p>
           <div className="bx-opciones bx-opciones--fila">
             <Opcion activo={false} titulo="Sí" onClick={() => setPaso('cual')} />
-            <Opcion activo={false} titulo="No" onClick={() => setPaso('sin-beca')} />
+            <Opcion activo={false} titulo="No" onClick={() => responder('sin-beca', { aplico: false })} />
           </div>
         </div>
       ) : null}
@@ -188,8 +247,8 @@ export default function Cuestionario({
             Por ejemplo, la carta o autorización donde aparece el porcentaje o el monto otorgado.
           </p>
           <div className="bx-opciones bx-opciones--fila">
-            <Opcion activo={false} titulo="Sí, ya lo recibí" onClick={() => setPaso('subir')} />
-            <Opcion activo={false} titulo="Todavía no" onClick={() => setPaso('en-espera')} />
+            <Opcion activo={false} titulo="Sí, ya lo recibí" onClick={() => responder('subir', respuestaBeneficio(true))} />
+            <Opcion activo={false} titulo="Todavía no" onClick={() => responder('en-espera', respuestaBeneficio(false))} />
           </div>
           <div className="bx-acciones">
             <button type="button" className="bx-btn bx-btn--ghost" onClick={() => setPaso('cual')}>
