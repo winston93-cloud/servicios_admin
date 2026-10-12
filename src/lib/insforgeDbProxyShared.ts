@@ -38,6 +38,25 @@ export function requireInsforgeAdminEnv() {
 /** Tablas que solo se tocan desde sus APIs dedicadas (con su propia autorización). */
 const TABLAS_SOLO_SERVIDOR = ['acceso_autorizado']
 
+/**
+ * 2026-10-12 - Seguridad: el proxy usa la API key de administrador (se salta RLS), así que solo el personal
+ * (`role: usuario`) puede consultar la base libremente. Una sesión de familia solo puede LEER estas tablas,
+ * que son las únicas que piden sus pantallas desde el navegador (el resto va por APIs del servidor).
+ */
+const TABLAS_LECTURA_FAMILIA = new Set(['ciclos_escolares'])
+
+/** Tabla de `/api/database/records/<tabla>`; null en RPC u otras rutas. */
+export function tablaDeRuta(upstreamPath: string): string | null {
+  const m = upstreamPath.match(/^\/api\/database\/records\/([^/?]+)/)
+  return m ? decodeURIComponent(m[1]).toLowerCase() : null
+}
+
+export function familiaPuedeUsarProxy(upstreamPath: string, method: string): boolean {
+  if (method !== 'GET' && method !== 'HEAD') return false
+  const tabla = tablaDeRuta(upstreamPath)
+  return tabla != null && TABLAS_LECTURA_FAMILIA.has(tabla)
+}
+
 /** `session` debe venir de la cookie firmada (`sesionPortalDeRequest`), nunca del header. */
 export async function proxyInsforgeDatabaseRequest(
   request: Request,
@@ -49,6 +68,19 @@ export async function proxyInsforgeDatabaseRequest(
     return Response.json(
       { message: 'Sesión requerida. Inicia sesión de nuevo.' },
       { status: 401 }
+    )
+  }
+
+  if (session.role !== 'usuario' && !familiaPuedeUsarProxy(upstreamPath, request.method)) {
+    console.warn('[proxy-db] bloqueado para sesión no personal', {
+      role: session.role,
+      alumno_ref: session.alumno_ref ?? null,
+      method: request.method,
+      path: upstreamPath,
+    })
+    return Response.json(
+      { message: 'Esta información es solo para personal del colegio.' },
+      { status: 403 }
     )
   }
 
