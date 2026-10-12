@@ -23,7 +23,7 @@ import type {
   PasoEstadoInscripcion,
   PasoInscripcion,
 } from '@/lib/portalInscripcionesTypes'
-import type { MatrizPortalPagos, SeccionMatrizPortal } from '@/lib/portalPagosMatrizService'
+import type { MatrizPortalPagos } from '@/lib/portalPagosMatrizService'
 import {
   aplicarReglamentoVistoEnEstado,
   leerReglamentoVisto,
@@ -432,38 +432,10 @@ export default function PortalInscripcionesView() {
     return (paso?.facturas ?? []).filter((f) => Boolean(f.pdf))
   }, [estadoVista?.pasos])
 
-  /** Con el proceso terminado se oculta todo el trámite; sus facturas quedan como
-   * una sección más de la tabla de pagos del ciclo (los papás las piden después). */
-  const facturasEnMatriz = Boolean(
-    procesoCompleto &&
-      colegiaturasDesbloqueadas &&
-      matriz &&
-      !estadoVista?.bloqueo &&
-      facturasInscripcionVisibles.length > 0
-  )
-  const seccionesMatriz = useMemo((): SeccionMatrizPortal[] => {
-    const base = matriz?.secciones ?? []
-    if (!facturasEnMatriz) return base
-    return [
-      ...base,
-      {
-        id: 'inscripcion',
-        titulo: esReinscrito ? 'Reinscripción' : 'Inscripción',
-        filas: facturasInscripcionVisibles.map((f) => ({
-          conceptoNo: f.conceptoNo,
-          conceptoClase: f.etiqueta,
-          pagado: true,
-          importe: null,
-          referencia: null,
-          facturaPdf: f.pdf,
-          facturaXml: f.xml || null,
-        })),
-      },
-    ]
-  }, [matriz?.secciones, facturasEnMatriz, facturasInscripcionVisibles, esReinscrito])
-  const mostrarFacturasDestacadas =
-    facturasInscripcionVisibles.length > 0 &&
-    (!procesoCompleto || (!facturasEnMatriz && !cargandoMatriz))
+  /** Con el proceso terminado se oculta todo el trámite; sus facturas quedan en un
+   * enlace discreto al final (los papás las piden después). */
+  const mostrarFacturasDestacadas = facturasInscripcionVisibles.length > 0 && !procesoCompleto
+  const mostrarFacturasDiscretas = facturasInscripcionVisibles.length > 0 && procesoCompleto
 
   // Antes de armar la matriz del ciclo nuevo: confirmar / elegir plan 10 u 11
   // (reinscritos y nuevo ingreso). Abrir modal en sync; no saltar en silencio.
@@ -1121,7 +1093,7 @@ export default function PortalInscripcionesView() {
                     ciclo={matriz.ciclo}
                     cicloTemporada={estadoVista?.ciclo.valor}
                     alumno={matriz.alumno}
-                    secciones={seccionesMatriz}
+                    secciones={matriz.secciones}
                     displayName={session?.displayName}
                     cargando={cargandoMatriz}
                     onActualizar={() => void cargarMatriz()}
@@ -1129,6 +1101,42 @@ export default function PortalInscripcionesView() {
                   />
                 ) : null}
               </section>
+            )}
+
+            {mostrarFacturasDiscretas && (
+              <details className="portal-inscripciones-facturas-discretas">
+                <summary>
+                  <FileText size={14} aria-hidden />
+                  {esReinscrito ? 'Facturas de reinscripción' : 'Facturas de inscripción'}
+                </summary>
+                <ul className="portal-inscripciones-facturas-destacadas-lista">
+                  {facturasInscripcionVisibles.map((f) => (
+                    <li key={f.conceptoNo} className="portal-inscripciones-facturas-destacadas-item">
+                      <span className="portal-inscripciones-facturas-destacadas-etiq">{f.etiqueta}</span>
+                      <div className="portal-matriz-facturas">
+                        <button
+                          type="button"
+                          className="portal-pagos-btn-pdf"
+                          onClick={() => abrirFacturaPaso('pdf', f)}
+                        >
+                          <FileText size={16} aria-hidden />
+                          PDF
+                        </button>
+                        {f.xml ? (
+                          <button
+                            type="button"
+                            className="portal-pagos-btn-xml"
+                            onClick={() => abrirFacturaPaso('xml', f)}
+                          >
+                            <Code2 size={16} aria-hidden />
+                            XML
+                          </button>
+                        ) : null}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </details>
             )}
           </>
         )}

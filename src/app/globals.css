@@ -23886,6 +23886,67 @@ html[data-theme='light'] .portal-inscripciones-facturas-destacadas-item {
   }
 }
 
+/* Facturas de inscripción con el proceso terminado: enlace discreto al final. */
+.portal-inscripciones-facturas-discretas {
+  margin: 4px 0 0;
+  min-width: 0;
+}
+
+.portal-inscripciones-facturas-discretas > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--touch-min, 44px);
+  padding: 0 4px;
+  font-size: 0.8rem;
+  color: rgba(255, 246, 223, 0.45);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.portal-inscripciones-facturas-discretas > summary::-webkit-details-marker {
+  display: none;
+}
+
+.portal-inscripciones-facturas-discretas > summary:hover,
+.portal-inscripciones-facturas-discretas > summary:focus-visible,
+.portal-inscripciones-facturas-discretas[open] > summary {
+  color: rgba(255, 246, 223, 0.85);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.portal-inscripciones-facturas-discretas > .portal-inscripciones-facturas-destacadas-lista {
+  margin-top: 4px;
+}
+
+html[data-theme='light'] .portal-inscripciones-facturas-discretas > summary {
+  color: #94a3b8;
+}
+
+html[data-theme='light'] .portal-inscripciones-facturas-discretas > summary:hover,
+html[data-theme='light'] .portal-inscripciones-facturas-discretas > summary:focus-visible,
+html[data-theme='light'] .portal-inscripciones-facturas-discretas[open] > summary {
+  color: #334155;
+}
+
+@media (max-width: 640px) {
+  .portal-inscripciones-facturas-discretas .portal-inscripciones-facturas-destacadas-item {
+    align-items: stretch;
+  }
+
+  .portal-inscripciones-facturas-discretas .portal-matriz-facturas {
+    width: 100%;
+  }
+
+  .portal-inscripciones-facturas-discretas .portal-pagos-btn-pdf,
+  .portal-inscripciones-facturas-discretas .portal-pagos-btn-xml {
+    flex: 1 1 auto;
+    min-height: var(--touch-min, 44px);
+  }
+}
+
 /* ── Acordeón proceso completado (portal inscripciones) ───────────────── */
 .portal-inscripciones-proceso-wrap {
   display: flex;
