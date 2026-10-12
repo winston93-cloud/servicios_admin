@@ -33,6 +33,10 @@ Key patterns:
 - **AgendaW (admisiones):** tablas `admission_*`, `blocked_dates`, `expediente_inicial`, `tour_recorridos`, `agendaw_wsp` en Winston (2026-10-05). Doc: `docs/AGENDAW_INSFORGE.md`. App: `~/Proyectos/agendaw` (`agendaw.vercel.app`). NANO **AgendaW** (`sr6a9iza`) **eliminado** (2026-10-05); respaldo `~/Respaldos/agendaw-insforge-20261005.sql.gz`.
 - **Prórrogas y Ajustes:** app usa Winston (`pago_prorroga` + `alumno` / precios / becas). NANO **Prórrogas y Ajustes** (`nr8dsq6r`) ya eliminable (solo 1 tabla residual).
 
+## Revisión diaria («Sonny, pendientes»)
+
+Cuando Mario diga «Sonny, pendientes», leer `revisiones-diarias-servicios-admin.md` en su almacén personal de agente (junto a `pendientes-servicios-admin.md`), correr el check diario descrito ahí y darle el resumen. Ese archivo no va al repo (trae datos de familias).
+
 ## Facturación CFDI — estado y pendientes
 
 Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACION-CFDI-ROADMAP.md`.
