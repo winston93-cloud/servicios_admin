@@ -21,6 +21,8 @@ import {
   hoyMx,
   inicioCicloEscolar,
   lunesDe,
+  normalizarPlan,
+  bloquesDePlan,
   normalizarPonderadores,
   sumarDias,
   type TeAntecedente,
@@ -231,6 +233,7 @@ function mapPlaneacion(r: Record<string, unknown>): TePlaneacion {
     notas: String(r.notas ?? ''),
     archivo_key: (r.archivo_key as string) ?? null,
     archivo_nombre: (r.archivo_nombre as string) ?? null,
+    contenido: r.contenido && typeof r.contenido === 'object' ? (r.contenido as TePlaneacion['contenido']) : null,
     estado: r.estado as TePlaneacion['estado'],
     comentario: String(r.comentario ?? ''),
     version: Number(r.version ?? 1),
@@ -470,6 +473,10 @@ export async function guardarPlaneacion(opts: {
   file: File | null
   quien: string
   rol: 'teacher' | 'directora'
+  /** JSON del lienzo; undefined = no se toca el que ya había. */
+  contenido?: unknown
+  /** false = guardar «En construcción» sin mandarla a revisión. */
+  enviar?: boolean
 }): Promise<void> {
   const t = await asegurarEnEquipo(opts.nivel, opts.maestroId)
   const grado = Number(opts.grado)
@@ -480,7 +487,7 @@ export async function guardarPlaneacion(opts: {
 
   const { data: previa, error } = await db()
     .from('te_planeacion')
-    .select('id, archivo_key, archivo_nombre, version, estado')
+    .select('id, archivo_key, archivo_nombre, version, estado, contenido')
     .eq('maestro_id', opts.maestroId)
     .eq('grado', grado)
     .eq('semana', semana)
@@ -489,7 +496,20 @@ export async function guardarPlaneacion(opts: {
   if (previa && previa.estado === 'aprobada' && opts.rol === 'teacher') {
     throw new TeError('Esta planeación ya fue aprobada; pide a tu directora que la regrese si necesitas cambiarla.')
   }
-  if (!previa && !opts.file) throw new TeError('Adjunta el archivo de la planeación.')
+  let contenido = (previa?.contenido as TePlaneacion['contenido']) ?? null
+  if (opts.contenido !== undefined && opts.contenido !== null && opts.contenido !== '') {
+    try {
+      contenido = normalizarPlan(typeof opts.contenido === 'string' ? JSON.parse(opts.contenido) : opts.contenido)
+    } catch (e) {
+      throw new TeError(e instanceof SyntaxError ? 'La planeación no se pudo leer; recarga e intenta de nuevo.' : (e as Error).message)
+    }
+  }
+  const enviar = opts.enviar !== false
+  const tieneArchivo = !!opts.file || !!previa?.archivo_key
+  if (enviar && !tieneArchivo && !bloquesDePlan(contenido)) {
+    throw new TeError('Agrega al menos una actividad en algún día (o adjunta un archivo) antes de enviarla.')
+  }
+  if (!previa && !opts.file && !contenido) throw new TeError('Construye la planeación o adjunta un archivo.')
 
   let archivo = { key: (previa?.archivo_key as string) ?? null, nombre: (previa?.archivo_nombre as string) ?? null }
   if (opts.file) {
@@ -507,8 +527,9 @@ export async function guardarPlaneacion(opts: {
     notas,
     archivo_key: archivo.key,
     archivo_nombre: archivo.nombre,
-    estado: 'pendiente',
-    version: previa ? Number(previa.version ?? 1) + (opts.file ? 1 : 0) : 1,
+    contenido,
+    estado: enviar ? 'pendiente' : 'borrador',
+    version: previa ? Number(previa.version ?? 1) + (enviar && previa.estado !== 'borrador' && previa.estado !== 'pendiente' ? 1 : 0) : 1,
     subido_por: opts.quien,
     subido_rol: opts.rol,
     updated_at: ahora,
@@ -769,8 +790,10 @@ export async function accion(nivel: TeNivel, body: Record<string, unknown>, quie
     case 'revisar_planeacion': {
       const id = entero(body.id, 'La planeación')
       const estado = String(body.estado ?? '')
-      if (!(estado in ESTADOS_PLANEACION)) throw new TeError('Estado no válido.')
+      if (!(estado in ESTADOS_PLANEACION) || estado === 'borrador') throw new TeError('Estado no válido.')
       const comentario = texto(body.comentario, 3000, 'El comentario') ?? ''
+      const { data: actual } = await db().from('te_planeacion').select('estado').eq('id', id).eq('nivel', nivel).maybeSingle()
+      if (actual?.estado === 'borrador') throw new TeError('La teacher aún no envía esta planeación; sigue en construcción.')
       if (estado === 'cambios' && !comentario) throw new TeError('Escribe qué cambios necesita la planeación.')
       const { error } = await db()
         .from('te_planeacion')

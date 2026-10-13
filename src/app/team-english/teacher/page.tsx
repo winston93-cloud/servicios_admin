@@ -1,17 +1,26 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { Loader2, LogOut, Upload } from 'lucide-react'
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, Loader2, LogOut } from 'lucide-react'
+import { readPortalSessionForFetch } from '@/lib/insforgeDbProxyShared'
 import ThemeToggle from '@/components/ThemeToggle'
 import type { PortalTeacherData } from '@/lib/teamEnglish/teService'
-import { ESTADOS_PLANEACION, TE_MAX_ARCHIVO_MB, etiquetaGrado, lunesDe, textoSemana } from '@/lib/teamEnglish/teTypes'
-import { leerJson, teAbrirArchivo, validarTamano } from '../teApi'
-import { ACEPTAR_DOCS, Campo, Semana, SelectorArchivo, Vacio } from '../components/ui'
+import { ESTADOS_PLANEACION, bloquesDePlan, etiquetaGrado, lunesDe, textoSemana } from '@/lib/teamEnglish/teTypes'
+import { teAbrirArchivo } from '../teApi'
+import { Campo, Semana, Vacio } from '../components/ui'
+import { PlanMiniSemana } from '../components/PlanLienzo'
 import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
 import MisCursos from './MisCursos'
+import PlanSemana from './PlanSemana'
 import '../team-english.css'
 
+const sinSuscripcion = () => () => {}
+
 export default function PortalTeacherPage() {
+  const router = useRouter()
+  /** Personal (coording, laura, mario) que llegó desde el dashboard en esta pestaña. */
+  const hayPersonal = useSyncExternalStore(sinSuscripcion, () => !!readPortalSessionForFetch(), () => false)
   const [data, setData] = useState<PortalTeacherData | null>(null)
   const [estado, setEstado] = useState<'cargando' | 'login' | 'listo'>('cargando')
   const [error, setError] = useState<string | null>(null)
@@ -55,9 +64,16 @@ export default function PortalTeacherPage() {
       <div className="te-doodles" aria-hidden>
         {['⭐', '🌸', '☁️', '💖', '✨', '🌈', '🍓', '⭐'].map((e, i) => <span key={i} style={{ ['--i' as string]: i }}>{e}</span>)}
       </div>
-      <div className="te-shell te-shell-angosto">
+      <div className={data ? 'te-shell' : 'te-shell te-shell-angosto'}>
         <header className="te-topbar">
-          <span className="te-marca"><span aria-hidden>🌈</span> Team English</span>
+          <span className="te-topbar-izq">
+            {hayPersonal || data?.simulado_por ? (
+              <button type="button" className="te-back" onClick={() => router.push('/dashboard')}>
+                <ArrowLeft size={16} aria-hidden /> Dashboard
+              </button>
+            ) : null}
+            <span className="te-marca"><span aria-hidden>🌈</span> Team English</span>
+          </span>
           <div className="te-topbar-der">
             {data ? (
               <button type="button" className="te-btn te-btn-ghost te-btn-sm" onClick={() => void salir()}>
@@ -186,12 +202,15 @@ function Planeaciones({ data, setData, onOk, onError, lunes, setLunes, hoyLunes 
         <Semana lunes={lunes} onCambiar={setLunes} hoyLunes={hoyLunes} />
       </div>
 
-      <ul className="te-planes">
-        {data.teacher.grados.map((g, i) => (
-          <li key={g} style={{ ['--i' as string]: i }}>
-            <PlanGrado grado={g} lunes={lunes} data={data} setData={setData} onOk={onOk} onError={onError} />
-          </li>
-        ))}
+      <ul className="te-planes te-planes-lienzo">
+        {data.teacher.grados.map((g, i) => {
+          const plan = data.planeaciones.find((p) => p.grado === g && p.semana === lunes)
+          return (
+            <li key={`${g}-${lunes}-${plan?.updated_at ?? 'nueva'}`} style={{ ['--i' as string]: i }}>
+              <PlanSemana grado={g} lunes={lunes} data={data} setData={setData} onOk={onOk} onError={onError} />
+            </li>
+          )
+        })}
       </ul>
 
       <h2 className="te-subtitulo">📜 Mis planeaciones recientes</h2>
@@ -205,6 +224,7 @@ function Planeaciones({ data, setData, onOk, onError, lunes, setLunes, hoyLunes 
               <span className="te-min0">
                 <b>{etiquetaGrado(data.nivel, p.grado)} · {textoSemana(p.semana)}</b>
                 {p.titulo ? <small>{p.titulo}</small> : null}
+                {bloquesDePlan(p.contenido) ? <PlanMiniSemana contenido={p.contenido!} /> : null}
                 {p.comentario ? <small className="te-plan-comentario">✏️ {p.comentario}</small> : null}
               </span>
               {p.archivo_key ? (
@@ -215,95 +235,5 @@ function Planeaciones({ data, setData, onOk, onError, lunes, setLunes, hoyLunes 
         </ul>
       )}
     </>
-  )
-}
-
-function PlanGrado({ grado, lunes, data, setData, onOk, onError }: {
-  grado: number
-  lunes: string
-  data: PortalTeacherData
-  setData: (d: PortalTeacherData) => void
-  onOk: (t: string) => void
-  onError: (t: string) => void
-}) {
-  const plan = data.planeaciones.find((p) => p.grado === grado && p.semana === lunes) ?? null
-  const [titulo, setTitulo] = useState('')
-  const [notas, setNotas] = useState('')
-  const [archivo, setArchivo] = useState<File | null>(null)
-  const [enviando, setEnviando] = useState(false)
-  const [editando, setEditando] = useState(false)
-  const bloqueada = plan?.estado === 'aprobada'
-  const mostrarForm = !plan || editando
-
-  useEffect(() => {
-    setEditando(false)
-    setArchivo(null)
-    setTitulo('')
-    setNotas('')
-  }, [lunes])
-
-  const enviar = async () => {
-    setEnviando(true)
-    try {
-      validarTamano(archivo)
-      const form = new FormData()
-      form.set('grado', String(grado))
-      form.set('semana', lunes)
-      form.set('titulo', titulo || plan?.titulo || '')
-      form.set('notas', notas || plan?.notas || '')
-      if (archivo) form.set('archivo', archivo)
-      const res = await fetch('/api/team-english/teacher', { method: 'POST', body: form })
-      setData((await leerJson(res)) as unknown as PortalTeacherData)
-      setEditando(false)
-      setArchivo(null)
-      onOk('¡Planeación enviada! Tu directora la revisará. 💌')
-    } catch (e) {
-      onError(e instanceof Error ? e.message : 'Error')
-    } finally {
-      setEnviando(false)
-    }
-  }
-
-  const estado = plan ? ESTADOS_PLANEACION[plan.estado] : null
-  return (
-    <article className="te-plan" data-estado={plan?.estado ?? 'falta'}>
-      <header className="te-plan-head">
-        <span className="te-grado-sticker" aria-hidden>{etiquetaGrado(data.nivel, grado)}</span>
-        <div className="te-min0">
-          <strong>Grado {etiquetaGrado(data.nivel, grado)}</strong>
-          <small>{textoSemana(lunes)}</small>
-        </div>
-        <span className="te-sello">{estado ? `${estado.emoji} ${estado.etiqueta}` : '📭 Sin enviar'}</span>
-      </header>
-      {plan?.comentario ? <p className="te-plan-comentario">✏️ Tu directora: {plan.comentario}</p> : null}
-      {plan && !editando ? (
-        <div className="te-fila-botones">
-          {plan.archivo_key ? (
-            <button type="button" className="te-btn te-btn-sm" onClick={() => teAbrirArchivo(plan.archivo_key!, false).catch((e) => onError(e.message))}>📎 {plan.archivo_nombre ?? 'Ver archivo'}</button>
-          ) : null}
-          {!bloqueada ? (
-            <button type="button" className="te-btn te-btn-ghost te-btn-sm" onClick={() => setEditando(true)}>🔁 Subir nueva versión</button>
-          ) : (
-            <span className="te-quien">Aprobada ✨ ¡a aplicarla!</span>
-          )}
-        </div>
-      ) : null}
-      {mostrarForm && !bloqueada ? (
-        <div className="te-form">
-          <Campo etiqueta="Título (opcional)" completo><input className="te-input" value={titulo} maxLength={200} placeholder={plan?.titulo || 'Unit 3 · Animals'} onChange={(e) => setTitulo(e.target.value)} /></Campo>
-          <Campo etiqueta="Notas para tu directora (opcional)" completo><textarea className="te-input" rows={2} value={notas} placeholder={plan?.notas || ''} onChange={(e) => setNotas(e.target.value)} /></Campo>
-          <div className="te-campo" data-completo>
-            <SelectorArchivo etiqueta="Elige el archivo de tu planeación" archivo={archivo} onArchivo={setArchivo} aceptar={ACEPTAR_DOCS} />
-            <span className="te-campo-ayuda">PDF, Word, PowerPoint, Excel o imagen · máximo {TE_MAX_ARCHIVO_MB} MB.</span>
-          </div>
-          <div className="te-fila-botones te-fila-fin" data-completo>
-            {editando ? <button type="button" className="te-btn te-btn-ghost" onClick={() => setEditando(false)}>Cancelar</button> : null}
-            <button type="button" className="te-btn te-btn-primary" disabled={enviando || !archivo} onClick={() => void enviar()}>
-              {enviando ? <Loader2 size={16} className="te-spin" aria-hidden /> : <Upload size={16} aria-hidden />} Enviar planeación
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </article>
   )
 }

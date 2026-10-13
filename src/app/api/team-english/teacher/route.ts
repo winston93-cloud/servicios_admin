@@ -34,6 +34,8 @@ export async function POST(request: Request) {
       semana: form.get('semana'),
       titulo: form.get('titulo'),
       notas: form.get('notas'),
+      contenido: form.get('contenido') ?? undefined,
+      enviar: form.get('enviar') !== '0',
       file,
       quien: quienSube(s),
       rol: 'teacher',

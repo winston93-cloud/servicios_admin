@@ -5,6 +5,7 @@ import { Loader2, Upload } from 'lucide-react'
 import {
   ESTADOS_PLANEACION,
   TE_MAX_ARCHIVO_MB,
+  bloquesDePlan,
   etiquetaGrado,
   lunesDe,
   textoSemana,
@@ -18,6 +19,7 @@ import {
 import type { SeccionProps } from '../seccionTipos'
 import { teAbrirArchivo, teAccion, teClassroomPlaneaciones, teSubir } from '../teApi'
 import { ACEPTAR_DOCS, Avatar, Campo, Hoja, Semana, SelectorArchivo, Vacio } from './ui'
+import { PlanLienzoVista, PlanMiniSemana } from './PlanLienzo'
 
 type Filtro = 'todas' | EstadoPlaneacion | 'faltan'
 
@@ -82,15 +84,17 @@ export default function PlaneacionSeccion({ snap, recargar, avisar }: SeccionPro
     return out
   }, [activas, snap.planeaciones, lunes])
 
+  const enviada = (p: TePlaneacion | null) => !!p && p.estado !== 'borrador'
   const conteo = {
     total: filas.length,
-    entregadas: filas.filter((f) => f.plan).length,
+    entregadas: filas.filter((f) => enviada(f.plan)).length,
+    borrador: filas.filter((f) => f.plan?.estado === 'borrador').length,
     pendiente: filas.filter((f) => f.plan?.estado === 'pendiente').length,
     cambios: filas.filter((f) => f.plan?.estado === 'cambios').length,
     aprobada: filas.filter((f) => f.plan?.estado === 'aprobada').length,
   }
   const visibles = filas.filter((f) =>
-    filtro === 'todas' ? true : filtro === 'faltan' ? !f.plan : f.plan?.estado === filtro
+    filtro === 'todas' ? true : filtro === 'faltan' ? !enviada(f.plan) : f.plan?.estado === filtro
   )
   const otrasPendientes = snap.planeaciones.filter((p) => p.estado === 'pendiente' && p.semana !== lunes)
   const semanasPendientes = [...new Set(otrasPendientes.map((p) => p.semana))].sort()
@@ -100,7 +104,8 @@ export default function PlaneacionSeccion({ snap, recargar, avisar }: SeccionPro
     ['pendiente', '⏳ Por revisar', conteo.pendiente],
     ['cambios', '✏️ Con cambios', conteo.cambios],
     ['aprobada', '✅ Aprobadas', conteo.aprobada],
-    ['faltan', '😴 Faltan', conteo.total - conteo.entregadas],
+    ['borrador', '🛠️ En construcción', conteo.borrador],
+    ['faltan', '😴 Sin enviar', conteo.total - conteo.entregadas],
   ]
 
   return (
@@ -170,6 +175,7 @@ function TarjetaPlan({ teacher, grado, plan, snap, recargar, avisar, onSubir, gc
   gclassError: string | null
   gclassCargando: boolean
 }) {
+  const [viendo, setViendo] = useState(false)
   const [comentando, setComentando] = useState(false)
   const [comentario, setComentario] = useState(plan?.comentario ?? '')
   const [guardando, setGuardando] = useState(false)
@@ -215,9 +221,10 @@ function TarjetaPlan({ teacher, grado, plan, snap, recargar, avisar, onSubir, gc
       {plan ? (
         <>
           {plan.titulo ? <p className="te-plan-titulo">{plan.titulo}</p> : null}
+          {bloquesDePlan(plan.contenido) ? <PlanMiniSemana contenido={plan.contenido!} /> : null}
           {plan.notas ? <p className="te-plan-notas">💬 {plan.notas}</p> : null}
           <p className="te-plan-meta">
-            {plan.subido_rol === 'directora' ? '📥 Subida por dirección' : '📤 Subida por la teacher'} · {fechaHora(plan.updated_at)}
+            {plan.estado === 'borrador' ? '🛠️ La teacher la está construyendo' : plan.subido_rol === 'directora' ? '📥 Subida por dirección' : '📤 Enviada por la teacher'} · {fechaHora(plan.updated_at)}
             {plan.version > 1 ? ` · versión ${plan.version}` : ''}
           </p>
           {plan.comentario && !comentando ? <p className="te-plan-comentario">✏️ {plan.comentario}</p> : null}
@@ -235,17 +242,20 @@ function TarjetaPlan({ teacher, grado, plan, snap, recargar, avisar, onSubir, gc
             </div>
           ) : (
             <div className="te-fila-botones">
+              {bloquesDePlan(plan.contenido) ? (
+                <button type="button" className="te-btn te-btn-sm" onClick={() => setViendo(true)}>👀 Ver planeación</button>
+              ) : null}
               {plan.archivo_key ? (
                 <button type="button" className="te-btn te-btn-sm" onClick={() => teAbrirArchivo(plan.archivo_key!).catch((e) => avisar(e.message, 'error'))}>
-                  📎 Ver plan
+                  📎 {bloquesDePlan(plan.contenido) ? 'Archivo' : 'Ver plan'}
                 </button>
               ) : null}
-              {plan.estado !== 'aprobada' ? (
+              {plan.estado === 'borrador' ? null : plan.estado !== 'aprobada' ? (
                 <button type="button" className="te-btn te-btn-ok te-btn-sm" disabled={guardando} onClick={() => void revisar('aprobada', plan.comentario)}>✅ Aprobar</button>
               ) : (
                 <button type="button" className="te-btn te-btn-ghost te-btn-sm" disabled={guardando} onClick={() => void revisar('pendiente', plan.comentario)}>↩️ Regresar a revisión</button>
               )}
-              {plan.estado !== 'aprobada' ? (
+              {plan.estado !== 'aprobada' && plan.estado !== 'borrador' ? (
                 <button type="button" className="te-btn te-btn-ghost te-btn-sm" onClick={() => { setComentario(plan.comentario); setComentando(true) }}>✏️ Pedir cambios</button>
               ) : null}
               <button type="button" className="te-btn te-btn-ghost te-btn-sm" onClick={onSubir}>🔁 Reemplazar</button>
@@ -261,6 +271,13 @@ function TarjetaPlan({ teacher, grado, plan, snap, recargar, avisar, onSubir, gc
         </div>
       )}
       <BloqueClassroom items={gclass} error={gclassError} cargando={gclassCargando} />
+      {plan && viendo ? (
+        <Hoja abierta ancho titulo={`${teacher.nombre} · Grado ${etiquetaGrado(snap.nivel, grado)}`} emoji="📚" onCerrar={() => setViendo(false)}>
+          <p className="te-nota">Semana del {textoSemana(plan.semana)} · {ESTADOS_PLANEACION[plan.estado].emoji} {ESTADOS_PLANEACION[plan.estado].etiqueta}</p>
+          {plan.notas ? <p className="te-plan-notas">💬 {plan.notas}</p> : null}
+          <PlanLienzoVista contenido={plan.contenido!} lunes={plan.semana} />
+        </Hoja>
+      ) : null}
     </article>
   )
 }

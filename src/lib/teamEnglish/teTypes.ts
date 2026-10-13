@@ -71,9 +71,10 @@ export type TeAntecedente = {
   created_at: string
 }
 
-export type EstadoPlaneacion = 'pendiente' | 'aprobada' | 'cambios'
+export type EstadoPlaneacion = 'borrador' | 'pendiente' | 'aprobada' | 'cambios'
 
 export const ESTADOS_PLANEACION: Record<EstadoPlaneacion, { etiqueta: string; emoji: string }> = {
+  borrador: { etiqueta: 'En construcción', emoji: '🛠️' },
   pendiente: { etiqueta: 'Por revisar', emoji: '⏳' },
   aprobada: { etiqueta: 'Aprobada', emoji: '✅' },
   cambios: { etiqueta: 'Con cambios', emoji: '✏️' },
@@ -88,6 +89,7 @@ export type TePlaneacion = {
   notas: string
   archivo_key: string | null
   archivo_nombre: string | null
+  contenido: PlanContenido | null
   estado: EstadoPlaneacion
   comentario: string
   version: number
@@ -96,6 +98,91 @@ export type TePlaneacion = {
   revisado_por: string | null
   revisado_at: string | null
   updated_at: string
+}
+
+/* ── Lienzo de planeación semanal ── */
+
+export const SKILLS = [
+  { clave: 'grammar', etiqueta: 'Grammar', emoji: '🧩' },
+  { clave: 'reading', etiqueta: 'Reading', emoji: '📖' },
+  { clave: 'writing', etiqueta: 'Writing', emoji: '✍️' },
+  { clave: 'listening', etiqueta: 'Listening', emoji: '🎧' },
+  { clave: 'speaking', etiqueta: 'Speaking', emoji: '🗣️' },
+  { clave: 'vocabulary', etiqueta: 'Vocabulary', emoji: '🔤' },
+  { clave: 'phonics', etiqueta: 'Phonics', emoji: '🔊' },
+  { clave: 'spelling', etiqueta: 'Spelling', emoji: '🐝' },
+  { clave: 'science', etiqueta: 'Science', emoji: '🔬' },
+  { clave: 'project', etiqueta: 'Project / Arts', emoji: '🎨' },
+  { clave: 'review', etiqueta: 'Review', emoji: '🔁' },
+  { clave: 'assessment', etiqueta: 'Quiz / Assessment', emoji: '📝' },
+  { clave: 'game', etiqueta: 'Games', emoji: '🎲' },
+  { clave: 'otro', etiqueta: 'Other', emoji: '✨' },
+] as const
+
+export type SkillClave = (typeof SKILLS)[number]['clave']
+
+export function skillDe(clave: string): (typeof SKILLS)[number] {
+  return SKILLS.find((s) => s.clave === clave) ?? SKILLS[SKILLS.length - 1]
+}
+
+export const DIAS_PLAN = [
+  { clave: 'lun', en: 'Monday', es: 'Lunes', offset: 0 },
+  { clave: 'mar', en: 'Tuesday', es: 'Martes', offset: 1 },
+  { clave: 'mie', en: 'Wednesday', es: 'Miércoles', offset: 2 },
+  { clave: 'jue', en: 'Thursday', es: 'Jueves', offset: 3 },
+  { clave: 'vie', en: 'Friday', es: 'Viernes', offset: 4 },
+] as const
+
+export type DiaClave = (typeof DIAS_PLAN)[number]['clave']
+
+export type PlanBloque = { skill: SkillClave; tema: string; actividades: string; recursos: string; tarea: string }
+
+export type PlanContenido = {
+  unidad: string
+  objetivo: string
+  dias: Record<DiaClave, PlanBloque[]>
+}
+
+export const PLAN_MAX_BLOQUES_DIA = 6
+
+const PLAN_LIMITES = { unidad: 200, objetivo: 1500, tema: 200, actividades: 3000, recursos: 1000, tarea: 1000 }
+
+export function planVacio(): PlanContenido {
+  return { unidad: '', objetivo: '', dias: { lun: [], mar: [], mie: [], jue: [], vie: [] } }
+}
+
+export function bloqueVacio(skill: SkillClave): PlanBloque {
+  return { skill, tema: '', actividades: '', recursos: '', tarea: '' }
+}
+
+export function bloquesDePlan(c: PlanContenido | null | undefined): number {
+  return c ? DIAS_PLAN.reduce((s, d) => s + c.dias[d.clave].length, 0) : 0
+}
+
+/** Valida y limpia el lienzo (servidor y cliente). Lanza Error con mensaje para la teacher. */
+export function normalizarPlan(raw: unknown): PlanContenido {
+  const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
+  const txt = (v: unknown, max: number, campo: string) => {
+    const s = String(v ?? '').trim()
+    if (s.length > max) throw new Error(`${campo}: máximo ${max} caracteres.`)
+    return s
+  }
+  const diasRaw = (o.dias && typeof o.dias === 'object' ? o.dias : {}) as Record<string, unknown>
+  const out = planVacio()
+  out.unidad = txt(o.unidad, PLAN_LIMITES.unidad, 'La unidad o tema de la semana')
+  out.objetivo = txt(o.objetivo, PLAN_LIMITES.objetivo, 'El objetivo de la semana')
+  for (const d of DIAS_PLAN) {
+    const lista = Array.isArray(diasRaw[d.clave]) ? (diasRaw[d.clave] as Record<string, unknown>[]) : []
+    if (lista.length > PLAN_MAX_BLOQUES_DIA) throw new Error(`${d.es}: máximo ${PLAN_MAX_BLOQUES_DIA} skills por día.`)
+    out.dias[d.clave] = lista.map((b) => ({
+      skill: skillDe(String(b?.skill ?? '')).clave,
+      tema: txt(b?.tema, PLAN_LIMITES.tema, `${d.es} · tema`),
+      actividades: txt(b?.actividades, PLAN_LIMITES.actividades, `${d.es} · actividades`),
+      recursos: txt(b?.recursos, PLAN_LIMITES.recursos, `${d.es} · recursos`),
+      tarea: txt(b?.tarea, PLAN_LIMITES.tarea, `${d.es} · tarea`),
+    }))
+  }
+  return out
 }
 
 export type TeCapacitacion = {

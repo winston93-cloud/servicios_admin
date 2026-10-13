@@ -1131,6 +1131,110 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
 .te-historial-acciones { flex: 0 0 auto; }
 
 /* ── Portal de la teacher (pestañas y cursos) ── */
+.te-topbar-izq { display: inline-flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; min-width: 0; }
+
+/* ── Lienzo de planeación semanal ── */
+.te-planes-lienzo { grid-template-columns: minmax(0, 1fr); }
+.te-plan-lienzo { gap: 0.9rem; }
+.te-plan[data-estado='borrador'] { background: color-mix(in oklch, var(--te-lavanda) 30%, var(--te-hoja)); border-style: dashed; }
+.te-alerta-suave { margin: 0; background: color-mix(in oklch, var(--te-limon) 55%, var(--te-hoja)); font-weight: 600; }
+.te-lienzo { display: grid; gap: 1rem; min-width: 0; }
+.te-lienzo-cabeza { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 0.8rem; }
+.te-lienzo-resumen { display: grid; gap: 0.3rem; padding: 0.8rem 1rem; border: 2px solid var(--te-borde); border-radius: 1rem; background: var(--te-hoja); }
+.te-lienzo-unidad { margin: 0; font-family: var(--te-display); font-size: 1.15rem; font-weight: 700; overflow-wrap: anywhere; }
+.te-lienzo-objetivo { margin: 0; color: var(--te-tinta-suave); white-space: pre-wrap; overflow-wrap: anywhere; }
+.te-lienzo-dias { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.75rem; margin: 0; padding: 0; list-style: none; align-items: start; }
+.te-dia {
+  --dia: var(--te-fresa);
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.7rem;
+  border: 2px solid var(--te-borde);
+  border-radius: 1.1rem;
+  background: color-mix(in oklch, var(--dia) 22%, var(--te-hoja));
+  box-shadow: 3px 3px 0 var(--te-sombra);
+  animation: te-entrar 0.45s var(--te-ease) both;
+  animation-delay: calc(var(--i, 0) * 50ms);
+}
+.te-dia:nth-child(2) { --dia: var(--te-durazno); }
+.te-dia:nth-child(3) { --dia: var(--te-limon); }
+.te-dia:nth-child(4) { --dia: var(--te-matcha); }
+.te-dia:nth-child(5) { --dia: var(--te-cielo); }
+.te-dia-head { display: grid; padding: 0.35rem 0.6rem; border: 2px solid var(--te-borde); border-radius: 0.8rem; background: var(--dia); transform: rotate(-1deg); }
+.te-dia-nombre { font-family: var(--te-display); font-weight: 700; font-size: 1.05rem; line-height: 1.15; }
+.te-dia-head small { font-size: 0.76rem; font-weight: 700; color: var(--te-tinta-suave); }
+.te-dia-vacio { margin: 0; padding: 0.8rem 0.4rem; border: 2px dashed var(--te-linea); border-radius: 0.8rem; color: var(--te-muted); font-size: 0.82rem; font-weight: 600; text-align: center; }
+.te-dia-agregar { width: 100%; }
+.te-bloques { display: grid; gap: 0.55rem; margin: 0; padding: 0; list-style: none; }
+.te-bloque {
+  --skill: var(--te-lavanda);
+  display: grid;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.55rem;
+  border: 2px solid var(--te-borde);
+  border-left-width: 6px;
+  border-left-color: color-mix(in oklch, var(--skill) 80%, var(--te-borde));
+  border-radius: 0.85rem;
+  background: var(--te-hoja);
+}
+.te-bloque[data-skill='reading'], .te-bloque[data-skill='science'] { --skill: var(--te-cielo); }
+.te-bloque[data-skill='writing'], .te-bloque[data-skill='project'] { --skill: var(--te-durazno); }
+.te-bloque[data-skill='listening'], .te-bloque[data-skill='review'] { --skill: var(--te-matcha); }
+.te-bloque[data-skill='speaking'], .te-bloque[data-skill='game'] { --skill: var(--te-fresa); }
+.te-bloque[data-skill='vocabulary'], .te-bloque[data-skill='spelling'], .te-bloque[data-skill='assessment'] { --skill: var(--te-limon); }
+.te-bloque .te-input { padding: 0.45rem 0.6rem; font-size: 0.85rem; min-height: 40px; }
+.te-bloque textarea.te-input { min-height: 72px; resize: vertical; }
+.te-bloque-head { display: flex; align-items: center; gap: 0.35rem; min-width: 0; }
+.te-bloque-emoji { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 auto; border-radius: 0.6rem; background: var(--skill); font-size: 1.05rem; }
+.te-bloque-skill { flex: 1; min-width: 0; min-height: 36px; padding: 0 0.3rem; border: 0; border-radius: 0.5rem; background: transparent; color: var(--te-tinta); font-family: var(--te-display); font-weight: 700; font-size: 0.9rem; cursor: pointer; }
+.te-bloque-skill:focus-visible { outline: 3px solid var(--te-lavanda-f); }
+.te-bloque-skill option { color: #222; }
+.te-bloque-acciones { display: inline-flex; gap: 0.15rem; flex: 0 0 auto; }
+.te-mini-btn { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 0.5rem; background: transparent; color: var(--te-tinta-suave); cursor: pointer; }
+.te-mini-btn:not(:disabled):hover { background: var(--te-hoja-2); color: var(--te-tinta); }
+.te-mini-btn:disabled { opacity: 0.3; cursor: default; }
+.te-bloque-tema { font-weight: 700; }
+.te-bloque-titulo { margin: 0; display: flex; align-items: center; gap: 0.35rem; font-family: var(--te-display); font-weight: 700; font-size: 0.92rem; }
+.te-bloque-titulo span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 0.55rem; background: var(--skill); }
+.te-bloque-tema-v { margin: 0; font-weight: 800; overflow-wrap: anywhere; }
+.te-bloque-texto { margin: 0; font-size: 0.86rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.te-bloque-extra { margin: 0; font-size: 0.8rem; color: var(--te-tinta-suave); white-space: pre-wrap; overflow-wrap: anywhere; }
+.te-skills { display: flex; flex-wrap: wrap; gap: 0.3rem; padding: 0.5rem; border: 2px solid var(--te-borde); border-radius: 0.9rem; background: var(--te-hoja); animation: te-pop 0.3s var(--te-ease) both; }
+.te-skill { display: inline-flex; align-items: center; gap: 0.25rem; min-height: 36px; padding: 0 0.6rem; border: 2px solid color-mix(in oklch, var(--te-borde) 30%, transparent); border-radius: 999px; background: var(--te-hoja-2); color: var(--te-tinta); font: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
+.te-skill:hover, .te-skill:focus-visible { border-color: var(--te-borde); background: var(--te-lavanda); outline: none; }
+.te-skill-cerrar { background: transparent; color: var(--te-tinta-suave); }
+.te-mini-semana { display: flex; flex-wrap: wrap; gap: 0.3rem 0.7rem; margin: 0; font-size: 0.85rem; }
+.te-mini-semana b { font-family: var(--te-display); font-size: 0.72rem; color: var(--te-muted); text-transform: uppercase; }
+.te-plan-extra { border: 2px dashed var(--te-linea); border-radius: 1rem; padding: 0.2rem 0.9rem; }
+.te-plan-extra[open] { padding-bottom: 0.9rem; }
+.te-plan-extra summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-family: var(--te-display); font-weight: 600; font-size: 0.9rem; color: var(--te-tinta-suave); }
+.te-plan-barra {
+  position: sticky;
+  bottom: calc(0.6rem + env(safe-area-inset-bottom));
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid var(--te-borde);
+  border-radius: 1.1rem;
+  background: var(--te-hoja);
+  box-shadow: 4px 4px 0 var(--te-sombra);
+}
+.te-plan-barra-info { margin-right: auto; color: var(--te-tinta-suave); font-weight: 700; font-size: 0.82rem; }
+.te-hoja[data-ancho] .te-lienzo-dias { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 1024px) {
+  .te-lienzo-dias, .te-hoja[data-ancho] .te-lienzo-dias { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 768px) {
+  .te-lienzo-dias, .te-hoja[data-ancho] .te-lienzo-dias { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .te-lienzo-cabeza { grid-template-columns: minmax(0, 1fr); }
+}
+
 .te-tabs { margin-bottom: 1.2rem; }
 .te-tabs button { min-height: 44px; font-size: 0.95rem; }
 .te-tabs button b { background: var(--te-fresa); color: var(--te-tinta); }
@@ -1184,6 +1288,13 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
   .te-mini-stats-3 > div { padding: 0.6rem 0.7rem; }
   .te-mini-stats-3 dd { font-size: 1.4rem; }
   .te-sim .te-btn { width: 100%; min-height: 44px; }
+  .te-lienzo-dias, .te-hoja[data-ancho] .te-lienzo-dias { grid-template-columns: minmax(0, 1fr); }
+  .te-bloque .te-input { font-size: 16px; min-height: 44px; }
+  .te-mini-btn { width: 40px; height: 40px; }
+  .te-skill { min-height: 44px; }
+  .te-plan-barra { bottom: calc(0.4rem + env(safe-area-inset-bottom)); }
+  .te-plan-barra-info { flex: 1 1 100%; }
+  .te-plan-barra .te-btn { flex: 1 1 auto; }
   .te-historial li { flex-wrap: wrap; }
   .te-historial-acciones { width: 100%; justify-content: flex-end; }
   .te-historial-acciones .te-btn, .te-historial-acciones .te-icon-btn { min-height: 44px; min-width: 44px; }
