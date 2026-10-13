@@ -102,22 +102,38 @@ export type TePlaneacion = {
 
 /* ── Lienzo de planeación semanal ── */
 
+/** Las 7 materias de cada grupo en Classroom, más los bloques especiales que publican las teachers. */
 export const SKILLS = [
   { clave: 'grammar', etiqueta: 'Grammar', emoji: '🧩' },
   { clave: 'reading', etiqueta: 'Reading', emoji: '📖' },
   { clave: 'writing', etiqueta: 'Writing', emoji: '✍️' },
   { clave: 'listening', etiqueta: 'Listening', emoji: '🎧' },
-  { clave: 'speaking', etiqueta: 'Speaking', emoji: '🗣️' },
-  { clave: 'vocabulary', etiqueta: 'Vocabulary', emoji: '🔤' },
-  { clave: 'phonics', etiqueta: 'Phonics', emoji: '🔊' },
-  { clave: 'spelling', etiqueta: 'Spelling', emoji: '🐝' },
-  { clave: 'science', etiqueta: 'Science', emoji: '🔬' },
-  { clave: 'project', etiqueta: 'Project / Arts', emoji: '🎨' },
+  { clave: 'speaking', etiqueta: 'Speaking', emoji: '🎤' },
+  { clave: 'vocabulary', etiqueta: 'Vocabulary, Spelling & Phonics', emoji: '🔤' },
+  { clave: 'math', etiqueta: 'Math', emoji: '➗' },
+  { clave: 'centers', etiqueta: 'Centers', emoji: '🟡' },
+  { clave: 'evaluation', etiqueta: 'Evaluation', emoji: '📋' },
   { clave: 'review', etiqueta: 'Review', emoji: '🔁' },
-  { clave: 'assessment', etiqueta: 'Quiz / Assessment', emoji: '📝' },
-  { clave: 'game', etiqueta: 'Games', emoji: '🎲' },
   { clave: 'otro', etiqueta: 'Other', emoji: '✨' },
 ] as const
+
+/** Lo que piden traer en «Class Materials». */
+export const MATERIALES_CLASE = [
+  { clave: 'classwork', etiqueta: 'Classwork', emoji: '📓' },
+  { clave: 'activity_book', etiqueta: 'Activity Book', emoji: '📘' },
+  { clave: 'student_book', etiqueta: 'Student Book', emoji: '📗' },
+  { clave: 'journal', etiqueta: 'Journal', emoji: '📔' },
+  { clave: 'pencil_case', etiqueta: 'Pencil case', emoji: '✏️' },
+  { clave: 'colors', etiqueta: 'Colors', emoji: '🖍️' },
+  { clave: 'tablet', etiqueta: 'Tablet', emoji: '🖥️' },
+  { clave: 'scissors_glue', etiqueta: 'Scissors & glue', emoji: '✂️' },
+] as const
+
+export type MaterialClave = (typeof MATERIALES_CLASE)[number]['clave']
+
+export function materialDe(clave: string) {
+  return MATERIALES_CLASE.find((m) => m.clave === clave) ?? null
+}
 
 export type SkillClave = (typeof SKILLS)[number]['clave']
 
@@ -135,7 +151,20 @@ export const DIAS_PLAN = [
 
 export type DiaClave = (typeof DIAS_PLAN)[number]['clave']
 
-export type PlanBloque = { skill: SkillClave; tema: string; actividades: string; recursos: string; tarea: string }
+/** Un bloque = una materia del día, con lo mismo que publican en Classroom. */
+export type PlanBloque = {
+  skill: SkillClave
+  tema: string
+  /** CLASSWORK */
+  actividades: string
+  /** PARTICIPATION */
+  participacion: string
+  /** HOMEWORK */
+  tarea: string
+  /** Class Materials */
+  materiales: MaterialClave[]
+  recursos: string
+}
 
 export type PlanContenido = {
   unidad: string
@@ -143,16 +172,20 @@ export type PlanContenido = {
   dias: Record<DiaClave, PlanBloque[]>
 }
 
-export const PLAN_MAX_BLOQUES_DIA = 6
+export const PLAN_MAX_BLOQUES_DIA = 8
 
-const PLAN_LIMITES = { unidad: 200, objetivo: 1500, tema: 200, actividades: 3000, recursos: 1000, tarea: 1000 }
+const PLAN_LIMITES = { unidad: 200, objetivo: 1500, tema: 200, actividades: 3000, participacion: 1000, recursos: 1000, tarea: 1000 }
 
 export function planVacio(): PlanContenido {
   return { unidad: '', objetivo: '', dias: { lun: [], mar: [], mie: [], jue: [], vie: [] } }
 }
 
-export function bloqueVacio(skill: SkillClave): PlanBloque {
-  return { skill, tema: '', actividades: '', recursos: '', tarea: '' }
+export function bloqueVacio(skill: SkillClave, materiales: MaterialClave[] = []): PlanBloque {
+  return { skill, tema: '', actividades: '', participacion: '', tarea: '', materiales: [...materiales], recursos: '' }
+}
+
+export function bloqueTieneTexto(b: PlanBloque): boolean {
+  return !!(b.tema || b.actividades || b.participacion || b.tarea || b.recursos)
 }
 
 export function bloquesDePlan(c: PlanContenido | null | undefined): number {
@@ -173,13 +206,17 @@ export function normalizarPlan(raw: unknown): PlanContenido {
   out.objetivo = txt(o.objetivo, PLAN_LIMITES.objetivo, 'El objetivo de la semana')
   for (const d of DIAS_PLAN) {
     const lista = Array.isArray(diasRaw[d.clave]) ? (diasRaw[d.clave] as Record<string, unknown>[]) : []
-    if (lista.length > PLAN_MAX_BLOQUES_DIA) throw new Error(`${d.es}: máximo ${PLAN_MAX_BLOQUES_DIA} skills por día.`)
+    if (lista.length > PLAN_MAX_BLOQUES_DIA) throw new Error(`${d.es}: máximo ${PLAN_MAX_BLOQUES_DIA} materias por día.`)
     out.dias[d.clave] = lista.map((b) => ({
       skill: skillDe(String(b?.skill ?? '')).clave,
-      tema: txt(b?.tema, PLAN_LIMITES.tema, `${d.es} · tema`),
-      actividades: txt(b?.actividades, PLAN_LIMITES.actividades, `${d.es} · actividades`),
+      tema: txt(b?.tema, PLAN_LIMITES.tema, `${d.es} · topic`),
+      actividades: txt(b?.actividades, PLAN_LIMITES.actividades, `${d.es} · classwork`),
+      participacion: txt(b?.participacion, PLAN_LIMITES.participacion, `${d.es} · participation`),
+      tarea: txt(b?.tarea, PLAN_LIMITES.tarea, `${d.es} · homework`),
+      materiales: Array.isArray(b?.materiales)
+        ? [...new Set((b.materiales as unknown[]).map((m) => materialDe(String(m))?.clave).filter((m): m is MaterialClave => !!m))]
+        : [],
       recursos: txt(b?.recursos, PLAN_LIMITES.recursos, `${d.es} · recursos`),
-      tarea: txt(b?.tarea, PLAN_LIMITES.tarea, `${d.es} · tarea`),
     }))
   }
   return out

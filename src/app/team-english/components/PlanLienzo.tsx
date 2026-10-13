@@ -4,10 +4,13 @@ import { useState } from 'react'
 import { ArrowDown, ArrowUp, Plus, Trash2, X } from 'lucide-react'
 import {
   DIAS_PLAN,
+  MATERIALES_CLASE,
   PLAN_MAX_BLOQUES_DIA,
   SKILLS,
+  bloqueTieneTexto,
   bloqueVacio,
   fechaCorta,
+  materialDe,
   skillDe,
   sumarDias,
   type DiaClave,
@@ -16,20 +19,21 @@ import {
   type SkillClave,
 } from '@/lib/teamEnglish/teTypes'
 
-/** Lienzo editable de la semana: tema, objetivo y por día los bloques de skill. */
+/** Lienzo editable de la semana: tema, objetivo y por día un bloque por materia (como en Classroom). */
 export function PlanLienzoEditor({ valor, onCambiar, lunes }: { valor: PlanContenido; onCambiar: (v: PlanContenido) => void; lunes: string }) {
   const [eligiendo, setEligiendo] = useState<DiaClave | null>(null)
 
   const setDia = (dia: DiaClave, bloques: PlanBloque[]) => onCambiar({ ...valor, dias: { ...valor.dias, [dia]: bloques } })
   const agregar = (dia: DiaClave, skill: SkillClave) => {
-    setDia(dia, [...valor.dias[dia], bloqueVacio(skill)])
+    const previo = valor.dias[dia].at(-1)
+    setDia(dia, [...valor.dias[dia], bloqueVacio(skill, previo ? previo.materiales : ['classwork', 'pencil_case'])])
     setEligiendo(null)
   }
   const cambiarBloque = (dia: DiaClave, i: number, cambios: Partial<PlanBloque>) =>
     setDia(dia, valor.dias[dia].map((b, j) => (j === i ? { ...b, ...cambios } : b)))
   const quitar = (dia: DiaClave, i: number) => {
     const b = valor.dias[dia][i]
-    if ((b.tema || b.actividades || b.recursos || b.tarea) && !window.confirm(`¿Quitar ${skillDe(b.skill).etiqueta} del ${DIAS_PLAN.find((d) => d.clave === dia)?.es.toLowerCase()}?`)) return
+    if (bloqueTieneTexto(b) && !window.confirm(`¿Quitar ${skillDe(b.skill).etiqueta} del ${DIAS_PLAN.find((d) => d.clave === dia)?.es.toLowerCase()}?`)) return
     setDia(dia, valor.dias[dia].filter((_, j) => j !== i))
   }
   const mover = (dia: DiaClave, i: number, delta: -1 | 1) => {
@@ -87,20 +91,45 @@ export function PlanLienzoEditor({ valor, onCambiar, lunes }: { valor: PlanConte
                             <button type="button" className="te-mini-btn" aria-label={`Quitar ${sk.etiqueta}`} onClick={() => quitar(d.clave, i)}><Trash2 size={14} aria-hidden /></button>
                           </span>
                         </div>
-                        <input className="te-input te-bloque-tema" value={b.tema} maxLength={200} placeholder="Tema · ej. Present simple"
-                          aria-label={`Tema de ${sk.etiqueta}`} onChange={(e) => cambiarBloque(d.clave, i, { tema: e.target.value })} />
-                        <textarea className="te-input" rows={3} value={b.actividades} maxLength={3000} placeholder="Actividades: warm-up, práctica, cierre…"
-                          aria-label={`Actividades de ${sk.etiqueta}`} onChange={(e) => cambiarBloque(d.clave, i, { actividades: e.target.value })} />
-                        <input className="te-input" value={b.recursos} maxLength={1000} placeholder="📚 Recursos · Book p. 24, video…"
+                        <input className="te-input te-bloque-tema" value={b.tema} maxLength={200} placeholder="Topic · ej. Reflexive pronouns"
+                          aria-label={`Topic de ${sk.etiqueta}`} onChange={(e) => cambiarBloque(d.clave, i, { tema: e.target.value })} />
+                        <label className="te-bloque-campo">
+                          <span>📝 Classwork</span>
+                          <textarea className="te-input" rows={3} value={b.actividades} maxLength={3000} placeholder="Activity Book p. 26-27 · Watch video explanation"
+                            onChange={(e) => cambiarBloque(d.clave, i, { actividades: e.target.value })} />
+                        </label>
+                        <label className="te-bloque-campo">
+                          <span>✋ Participation</span>
+                          <input className="te-input" value={b.participacion} maxLength={1000} placeholder="Kahoot · Turn and talk (opcional)"
+                            onChange={(e) => cambiarBloque(d.clave, i, { participacion: e.target.value })} />
+                        </label>
+                        <label className="te-bloque-campo">
+                          <span>📒 Homework</span>
+                          <input className="te-input" value={b.tarea} maxLength={1000} placeholder="HW #4 · Print the worksheet… (opcional)"
+                            onChange={(e) => cambiarBloque(d.clave, i, { tarea: e.target.value })} />
+                        </label>
+                        <div className="te-bloque-campo" role="group" aria-label={`Class materials de ${sk.etiqueta}`}>
+                          <span>🎒 Class materials</span>
+                          <div className="te-materiales">
+                            {MATERIALES_CLASE.map((m) => {
+                              const on = b.materiales.includes(m.clave)
+                              return (
+                                <button key={m.clave} type="button" className="te-material" aria-pressed={on}
+                                  onClick={() => cambiarBloque(d.clave, i, { materiales: on ? b.materiales.filter((x) => x !== m.clave) : [...b.materiales, m.clave] })}>
+                                  <span aria-hidden>{m.emoji}</span> {m.etiqueta}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                        <input className="te-input" value={b.recursos} maxLength={1000} placeholder="🔗 Recursos · video, worksheet, link (opcional)"
                           aria-label={`Recursos de ${sk.etiqueta}`} onChange={(e) => cambiarBloque(d.clave, i, { recursos: e.target.value })} />
-                        <input className="te-input" value={b.tarea} maxLength={1000} placeholder="🏠 Tarea (opcional)"
-                          aria-label={`Tarea de ${sk.etiqueta}`} onChange={(e) => cambiarBloque(d.clave, i, { tarea: e.target.value })} />
                       </li>
                     )
                   })}
                 </ul>
               ) : (
-                <p className="te-dia-vacio">Elige qué skill trabajan este día ✨</p>
+                <p className="te-dia-vacio">Elige qué materias das este día ✨</p>
               )}
 
               {eligiendo === d.clave ? (
@@ -114,7 +143,7 @@ export function PlanLienzoEditor({ valor, onCambiar, lunes }: { valor: PlanConte
                 </div>
               ) : bloques.length < PLAN_MAX_BLOQUES_DIA ? (
                 <button type="button" className="te-btn te-btn-ghost te-btn-sm te-dia-agregar" onClick={() => setEligiendo(d.clave)}>
-                  <Plus size={14} aria-hidden /> {bloques.length ? 'Otra skill' : 'Agregar skill'}
+                  <Plus size={14} aria-hidden /> {bloques.length ? 'Otra materia' : 'Agregar materia'}
                 </button>
               ) : null}
             </li>
@@ -152,9 +181,13 @@ export function PlanLienzoVista({ contenido, lunes }: { contenido: PlanContenido
                       <li key={i} className="te-bloque" data-skill={b.skill}>
                         <p className="te-bloque-titulo"><span aria-hidden>{sk.emoji}</span> {sk.etiqueta}</p>
                         {b.tema ? <p className="te-bloque-tema-v">{b.tema}</p> : null}
-                        {b.actividades ? <p className="te-bloque-texto">{b.actividades}</p> : null}
-                        {b.recursos ? <p className="te-bloque-extra">📚 {b.recursos}</p> : null}
-                        {b.tarea ? <p className="te-bloque-extra">🏠 {b.tarea}</p> : null}
+                        {b.actividades ? <p className="te-bloque-texto">📝 {b.actividades}</p> : null}
+                        {b.participacion ? <p className="te-bloque-extra">✋ {b.participacion}</p> : null}
+                        {b.tarea ? <p className="te-bloque-extra">📒 {b.tarea}</p> : null}
+                        {b.materiales?.length ? (
+                          <p className="te-bloque-extra">🎒 {b.materiales.map((m) => { const x = materialDe(m); return x ? `${x.emoji} ${x.etiqueta}` : null }).filter(Boolean).join(' · ')}</p>
+                        ) : null}
+                        {b.recursos ? <p className="te-bloque-extra">🔗 {b.recursos}</p> : null}
                       </li>
                     )
                   })}

@@ -1179,11 +1179,18 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
   border-radius: 0.85rem;
   background: var(--te-hoja);
 }
-.te-bloque[data-skill='reading'], .te-bloque[data-skill='science'] { --skill: var(--te-cielo); }
-.te-bloque[data-skill='writing'], .te-bloque[data-skill='project'] { --skill: var(--te-durazno); }
+.te-bloque[data-skill='reading'] { --skill: var(--te-cielo); }
+.te-bloque[data-skill='writing'] { --skill: var(--te-durazno); }
 .te-bloque[data-skill='listening'], .te-bloque[data-skill='review'] { --skill: var(--te-matcha); }
-.te-bloque[data-skill='speaking'], .te-bloque[data-skill='game'] { --skill: var(--te-fresa); }
-.te-bloque[data-skill='vocabulary'], .te-bloque[data-skill='spelling'], .te-bloque[data-skill='assessment'] { --skill: var(--te-limon); }
+.te-bloque[data-skill='speaking'], .te-bloque[data-skill='evaluation'] { --skill: var(--te-fresa); }
+.te-bloque[data-skill='vocabulary'], .te-bloque[data-skill='centers'] { --skill: var(--te-limon); }
+.te-bloque[data-skill='math'] { --skill: color-mix(in oklch, var(--te-cielo) 50%, var(--te-matcha)); }
+.te-bloque-campo { display: grid; gap: 0.2rem; min-width: 0; }
+.te-bloque-campo > span { font-family: var(--te-display); font-size: 0.72rem; font-weight: 700; color: var(--te-tinta-suave); text-transform: uppercase; letter-spacing: 0.03em; }
+.te-materiales { display: flex; flex-wrap: wrap; gap: 0.25rem; }
+.te-material { display: inline-flex; align-items: center; gap: 0.2rem; min-height: 30px; padding: 0 0.5rem; border: 2px solid color-mix(in oklch, var(--te-borde) 25%, transparent); border-radius: 999px; background: transparent; color: var(--te-tinta-suave); font: inherit; font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+.te-material[aria-pressed='true'] { border-color: var(--te-borde); background: var(--skill, var(--te-lavanda)); color: var(--te-tinta); font-weight: 700; }
+.te-material:focus-visible { outline: 3px solid var(--te-lavanda-f); outline-offset: 1px; }
 .te-bloque .te-input { padding: 0.45rem 0.6rem; font-size: 0.85rem; min-height: 40px; }
 .te-bloque textarea.te-input { min-height: 72px; resize: vertical; }
 .te-bloque-head { display: flex; align-items: center; gap: 0.35rem; min-width: 0; }
@@ -1292,6 +1299,7 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
   .te-bloque .te-input { font-size: 16px; min-height: 44px; }
   .te-mini-btn { width: 40px; height: 40px; }
   .te-skill { min-height: 44px; }
+  .te-material { min-height: 44px; padding: 0 0.7rem; font-size: 0.82rem; }
   .te-plan-barra { bottom: calc(0.4rem + env(safe-area-inset-bottom)); }
   .te-plan-barra-info { flex: 1 1 100%; }
   .te-plan-barra .te-btn { flex: 1 1 auto; }

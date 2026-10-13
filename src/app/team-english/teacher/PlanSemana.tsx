@@ -67,7 +67,7 @@ export default function PlanSemana({ grado, lunes, data, setData, onOk, onError 
     if (!anterior?.contenido) return
     const base = planSeguro(anterior.contenido)
     const nuevo = planVacio()
-    for (const d of DIAS_PLAN) nuevo.dias[d.clave] = base.dias[d.clave].map((b) => bloqueVacio(b.skill))
+    for (const d of DIAS_PLAN) nuevo.dias[d.clave] = base.dias[d.clave].map((b) => bloqueVacio(b.skill, b.materiales))
     cambiar({ ...nuevo, unidad: lienzo.unidad, objetivo: lienzo.objetivo })
   }
 
@@ -128,7 +128,7 @@ export default function PlanSemana({ grado, lunes, data, setData, onOk, onError 
           {!bloques && anterior ? (
             <p className="te-alerta te-alerta-suave">
               <span aria-hidden>📋</span> ¿Repites el esquema de la semana del {textoSemana(anterior.semana)}?
-              <button type="button" className="te-btn te-btn-sm" onClick={usarAnterior}>Usar sus skills</button>
+              <button type="button" className="te-btn te-btn-sm" onClick={usarAnterior}>Usar sus materias</button>
             </p>
           ) : null}
 
@@ -150,7 +150,7 @@ export default function PlanSemana({ grado, lunes, data, setData, onOk, onError 
 
           <div className="te-plan-barra">
             <small className="te-plan-barra-info">
-              {sucio ? '● Cambios sin guardar' : bloques ? `${bloques} actividad${bloques === 1 ? '' : 'es'} en la semana` : 'Empieza eligiendo la skill de cada día'}
+              {sucio ? '● Cambios sin guardar' : bloques ? `${bloques} clase${bloques === 1 ? '' : 's'} en la semana` : 'Empieza eligiendo las materias de cada día'}
             </small>
             {plan && plan.estado !== 'borrador' && plan.estado !== 'cambios' ? (
               <button type="button" className="te-btn te-btn-ghost" onClick={() => { setEditando(false); setLienzo(planSeguro(plan.contenido)); setSucio(false) }}>Cancelar</button>
