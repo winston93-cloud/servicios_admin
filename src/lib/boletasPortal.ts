@@ -1,5 +1,6 @@
 import { createBoletasDb } from './boletasInsforge'
 import type { BoletasModuloEmail } from './boletasEmailNivel'
+import { letraDesdeGrupoNum } from './boletasCiclo'
 
 export type BoletaModulo = BoletasModuloEmail
 
@@ -49,18 +50,38 @@ export type BoletaPublicacion = {
   ciclo: number
   modulo: BoletaModulo
   trimestre: number
+  /** 0 + grupo '' = todo el módulo; si no, solo ese grado y grupo. */
+  grado: number
+  grupo: string
   publicadaPor: string
   publicadaEn: string
 }
+
+/** Grado y grupo del alumno en la clave de publicación (`alumno_grado`, letra de `alumno_grupo`). */
+export type AlcancePublicacion = { grado: number; grupo: string }
 
 function mapPublicacion(r: Record<string, unknown>): BoletaPublicacion {
   return {
     ciclo: Number(r.ciclo),
     modulo: String(r.modulo) as BoletaModulo,
     trimestre: Number(r.trimestre),
+    grado: Number(r.grado ?? 0),
+    grupo: String(r.grupo ?? ''),
     publicadaPor: String(r.publicada_por ?? ''),
     publicadaEn: String(r.publicada_en ?? ''),
   }
+}
+
+export function alcanceDeAlumno(alumno: { alumno_grado?: unknown; alumno_grupo?: unknown }): AlcancePublicacion {
+  return {
+    grado: Number(alumno.alumno_grado) || 0,
+    grupo: letraDesdeGrupoNum(Number(alumno.alumno_grupo) || 0),
+  }
+}
+
+export function publicacionAplica(p: BoletaPublicacion, alcance?: AlcancePublicacion | null): boolean {
+  if (p.grado === 0 && p.grupo === '') return true
+  return Boolean(alcance && p.grado === alcance.grado && p.grupo === alcance.grupo)
 }
 
 export async function listarPublicaciones(
@@ -69,7 +90,7 @@ export async function listarPublicaciones(
 ): Promise<BoletaPublicacion[]> {
   let q = createBoletasDb()
     .from('boleta_publicacion')
-    .select('ciclo, modulo, trimestre, publicada_por, publicada_en')
+    .select('ciclo, modulo, trimestre, grado, grupo, publicada_por, publicada_en')
     .eq('ciclo', ciclo)
   if (modulos) {
     if (!modulos.length) return []
@@ -80,16 +101,21 @@ export async function listarPublicaciones(
   return ((data ?? []) as Record<string, unknown>[]).map(mapPublicacion)
 }
 
-export async function estaPublicada(ciclo: number, modulo: BoletaModulo, trimestre: number): Promise<boolean> {
+/** Sin `alcance` solo cuenta la publicación de todo el módulo. */
+export async function estaPublicada(
+  ciclo: number,
+  modulo: BoletaModulo,
+  trimestre: number,
+  alcance?: AlcancePublicacion | null
+): Promise<boolean> {
   const { data, error } = await createBoletasDb()
     .from('boleta_publicacion')
-    .select('trimestre')
+    .select('ciclo, modulo, trimestre, grado, grupo, publicada_por, publicada_en')
     .eq('ciclo', ciclo)
     .eq('modulo', modulo)
     .eq('trimestre', trimestre)
-    .limit(1)
   if (error) throw new Error(`Publicación de boleta: ${error.message}`)
-  return Boolean(data?.length)
+  return ((data ?? []) as Record<string, unknown>[]).some((r) => publicacionAplica(mapPublicacion(r), alcance))
 }
 
 export async function publicarTrimestre(input: {
@@ -97,8 +123,9 @@ export async function publicarTrimestre(input: {
   modulo: BoletaModulo
   trimestre: number
   por: string
+  grado?: number
+  grupo?: string
 }): Promise<void> {
-  if (await estaPublicada(input.ciclo, input.modulo, input.trimestre)) return
   const { error } = await createBoletasDb()
     .from('boleta_publicacion')
     .insert([
@@ -106,6 +133,8 @@ export async function publicarTrimestre(input: {
         ciclo: input.ciclo,
         modulo: input.modulo,
         trimestre: input.trimestre,
+        grado: input.grado ?? 0,
+        grupo: input.grupo ?? '',
         publicada_por: input.por,
       },
     ])
@@ -118,6 +147,8 @@ export async function retirarTrimestre(input: {
   ciclo: number
   modulo: BoletaModulo
   trimestre: number
+  grado?: number
+  grupo?: string
 }): Promise<void> {
   const { error } = await createBoletasDb()
     .from('boleta_publicacion')
@@ -125,6 +156,8 @@ export async function retirarTrimestre(input: {
     .eq('ciclo', input.ciclo)
     .eq('modulo', input.modulo)
     .eq('trimestre', input.trimestre)
+    .eq('grado', input.grado ?? 0)
+    .eq('grupo', input.grupo ?? '')
   if (error) throw new Error(`Retirar boletas: ${error.message}`)
 }
 

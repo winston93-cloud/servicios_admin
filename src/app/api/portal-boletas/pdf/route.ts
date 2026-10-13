@@ -2,7 +2,13 @@ import { NextResponse } from 'next/server'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 import { sesionDeAlumnoOPersonal, validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import { pdfModulo } from '@/lib/boletasEmailNivel'
-import { esModuloBoleta, estaPublicada, modulosDeNivel, trimestreValido } from '@/lib/boletasPortal'
+import {
+  alcanceDeAlumno,
+  esModuloBoleta,
+  estaPublicada,
+  modulosDeNivel,
+  trimestreValido,
+} from '@/lib/boletasPortal'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -31,7 +37,7 @@ export async function GET(request: Request) {
 
   try {
     const ciclo = await resolverCicloEscolarSistemaValor()
-    if (!(await estaPublicada(ciclo, modulo, trimestre))) {
+    if (!(await estaPublicada(ciclo, modulo, trimestre, alcanceDeAlumno(auth.alumno)))) {
       return NextResponse.json(
         { error: 'Esta boleta todavía no está disponible.' },
         { status: 404, headers: SIN_CACHE }

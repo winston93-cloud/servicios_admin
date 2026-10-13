@@ -3,19 +3,21 @@ import { createBoletasDb } from './boletasInsforge'
 import {
   BOLETAS_NIVEL_KINDER,
   BOLETAS_NIVEL_MATERNAL,
-  KINDER_EN_GRADOS,
-  KINDER_EN_SUBJECT_IDS_EXCLUIDOS_PROMEDIO,
-  behavioralPorGrado,
+  KINDER_EN_DIAS_MAX,
   calificacionLetraANumero,
+  esGradoKinderEn,
   esMaternal,
+  etiquetaGradoKinderEn,
   grupoNumeroDesdeLetra,
   letraDesdeGrupoNumero,
-  maternalIndicadores,
+  normalizarCalificacionEscala,
+  normalizarDias,
   promedioNumeroALetra,
-  subjectsPorGrado,
   type KinderEnGrado,
   type KinderEnIndicador,
+  type KinderEnTipo,
 } from './boletasKinderEnCatalog'
+import { indicadoresActivosKinderEn, tablaCalificacionesKinderEn } from './boletasKinderEnIndicadores'
 import { etiquetaCicloBoletas } from './boletasCiclo'
 
 const STATUS_ACTIVOS = [1, 4, 5] as const
@@ -53,6 +55,8 @@ export type KinderEnCaptura = {
   promedioSugerido: string
 }
 
+export type KinderEnProgreso = { capturadas: number; total: number }
+
 function nombreAlumno(a: {
   alumno_app?: unknown
   alumno_apm?: unknown
@@ -65,8 +69,13 @@ function nombreAlumno(a: {
 }
 
 function asGradoUi(n: number): KinderEnGrado {
-  if (n === 0 || n === 1 || n === 2 || n === 3) return n
+  if (esGradoKinderEn(n)) return n
   throw new Error('Grado inválido (use 0 Maternal / 1–3 K1–K3)')
+}
+
+function validarPeriodo(bimestre: number, ciclo: number) {
+  if (!(bimestre >= 1 && bimestre <= 3)) throw new Error('Trimestre inválido (1–3)')
+  if (!ciclo) throw new Error('Ciclo requerido')
 }
 
 function mapAlumnoRow(
@@ -132,7 +141,44 @@ export async function listarAlumnos(input: {
   return (data ?? []).map((a) => mapAlumnoRow(a, gradoUi))
 }
 
-async function cargarAlumno(alumnoId: number): Promise<KinderEnAlumnoLista> {
+/** Grupos con alumnos en el ciclo (Maternal A/B y K1–K3 por grupo), con su número de alumnos. */
+export async function gruposConAlumnos(
+  ciclo: number
+): Promise<{ grado: KinderEnGrado; grupo: string; alumnos: number }[]> {
+  const { data, error } = await createBoletasDb()
+    .from('alumno')
+    .select('alumno_nivel, alumno_grado, alumno_grupo')
+    .eq('alumno_ciclo_escolar', ciclo)
+    .in('alumno_status', [...STATUS_ACTIVOS])
+    .in('alumno_nivel', [BOLETAS_NIVEL_MATERNAL, BOLETAS_NIVEL_KINDER])
+    .limit(2000)
+  if (error) throw new Error(error.message)
+  const conteo = new Map<string, { grado: KinderEnGrado; grupo: string; alumnos: number }>()
+  for (const a of data ?? []) {
+    const nivel = Number(a.alumno_nivel)
+    const g = Number(a.alumno_grado)
+    let grado: KinderEnGrado
+    let grupo: string
+    if (nivel === BOLETAS_NIVEL_MATERNAL) {
+      if (g !== 1 && g !== 2) continue
+      grado = 0
+      grupo = letraDesdeGrupoNumero(g)
+    } else {
+      if (!esGradoKinderEn(g) || g === 0) continue
+      const gp = Number(a.alumno_grupo)
+      if (!(gp >= 1 && gp <= 4)) continue
+      grado = g
+      grupo = letraDesdeGrupoNumero(gp)
+    }
+    const k = `${grado}-${grupo}`
+    const prev = conteo.get(k)
+    if (prev) prev.alumnos++
+    else conteo.set(k, { grado, grupo, alumnos: 1 })
+  }
+  return [...conteo.values()].sort((a, b) => a.grado - b.grado || a.grupo.localeCompare(b.grupo))
+}
+
+export async function cargarAlumno(alumnoId: number): Promise<KinderEnAlumnoLista> {
   const db = createBoletasDb()
   const { data, error } = await db
     .from('alumno')
@@ -163,7 +209,7 @@ function calcularPromedioSugerido(subjects: KinderEnCapturaIndicador[]): string 
   let suma = 0
   let cant = 0
   for (const s of subjects) {
-    if (KINDER_EN_SUBJECT_IDS_EXCLUIDOS_PROMEDIO.has(s.id)) continue
+    if (!s.enPromedio) continue
     const raw = s.calificacion.trim()
     if (!raw) continue
     const n = calificacionLetraANumero(raw)
@@ -195,6 +241,13 @@ async function mapaCalifs(
   return new Map((data ?? []).map((r) => [Number(r.indicador_id), String(r.calificacion ?? '')]))
 }
 
+function conCalificacion(
+  indicadores: KinderEnIndicador[],
+  mapa: Map<number, string>
+): KinderEnCapturaIndicador[] {
+  return indicadores.map((ind) => ({ ...ind, calificacion: mapa.get(ind.id) ?? '' }))
+}
+
 export async function obtenerCaptura(input: {
   alumnoId: number
   bimestre: number
@@ -204,16 +257,15 @@ export async function obtenerCaptura(input: {
   const bimestre = Number(input.bimestre)
   const ciclo = Number(input.ciclo)
   if (!alumnoId) throw new Error('alumnoId requerido')
-  if (bimestre < 1 || bimestre > 3) throw new Error('Bimestre inválido (1–3)')
-  if (!ciclo) throw new Error('Ciclo requerido')
+  validarPeriodo(bimestre, ciclo)
 
   const alumno = await cargarAlumno(alumnoId)
   const grado = alumno.grado_ui
 
   if (esMaternal(grado)) {
-    const indicadores = maternalIndicadores()
+    const indicadores = await indicadoresActivosKinderEn('maternal', 0)
     const mapa = await mapaCalifs(
-      'boleta_calificacion_maternal_en',
+      tablaCalificacionesKinderEn('maternal'),
       alumnoId,
       bimestre,
       ciclo,
@@ -227,48 +279,31 @@ export async function obtenerCaptura(input: {
       subjects: [],
       behavioral: [],
       attendance: { school_days: '', days_absent: '' },
-      maternal: indicadores.map((ind) => ({
-        ...ind,
-        calificacion: mapa.get(ind.id) ?? '',
-      })),
+      maternal: conCalificacion(indicadores, mapa),
       promedioSugerido: '',
     }
   }
 
-  const subjectsCat = subjectsPorGrado(grado)
-  const behCat = behavioralPorGrado(grado)
-  const [mapaSub, mapaBeh] = await Promise.all([
-    mapaCalifs(
-      'boleta_calificacion_kinder_en',
-      alumnoId,
-      bimestre,
-      ciclo,
-      subjectsCat.map((i) => i.id)
-    ),
-    mapaCalifs(
-      'boleta_behavioral_kinder_en',
-      alumnoId,
-      bimestre,
-      ciclo,
-      behCat.map((i) => i.id)
-    ),
+  const [subjectsCat, behCat] = await Promise.all([
+    indicadoresActivosKinderEn('subject', grado),
+    indicadoresActivosKinderEn('behavioral', grado),
   ])
-
   const db = createBoletasDb()
-  const { data: attRows, error: attErr } = await db
-    .from('boleta_attendance_kinder_en')
-    .select('school_days, days_absent')
-    .eq('alumno_id', alumnoId)
-    .eq('bimestre', bimestre)
-    .eq('ciclo', ciclo)
-    .limit(1)
-  if (attErr) throw new Error(attErr.message)
-  const att = attRows?.[0]
+  const [mapaSub, mapaBeh, attRes] = await Promise.all([
+    mapaCalifs(tablaCalificacionesKinderEn('subject'), alumnoId, bimestre, ciclo, subjectsCat.map((i) => i.id)),
+    mapaCalifs(tablaCalificacionesKinderEn('behavioral'), alumnoId, bimestre, ciclo, behCat.map((i) => i.id)),
+    db
+      .from('boleta_attendance_kinder_en')
+      .select('school_days, days_absent')
+      .eq('alumno_id', alumnoId)
+      .eq('bimestre', bimestre)
+      .eq('ciclo', ciclo)
+      .limit(1),
+  ])
+  if (attRes.error) throw new Error(attRes.error.message)
+  const att = attRes.data?.[0]
 
-  const subjects = subjectsCat.map((ind) => ({
-    ...ind,
-    calificacion: mapaSub.get(ind.id) ?? '',
-  }))
+  const subjects = conCalificacion(subjectsCat, mapaSub)
 
   return {
     alumno,
@@ -276,10 +311,7 @@ export async function obtenerCaptura(input: {
     ciclo,
     modo: 'kinder',
     subjects,
-    behavioral: behCat.map((ind) => ({
-      ...ind,
-      calificacion: mapaBeh.get(ind.id) ?? '',
-    })),
+    behavioral: conCalificacion(behCat, mapaBeh),
     attendance: {
       school_days: String(att?.school_days ?? ''),
       days_absent: String(att?.days_absent ?? ''),
@@ -289,14 +321,27 @@ export async function obtenerCaptura(input: {
   }
 }
 
+/** Valida contra el catálogo: escala E/VG/G/R/S/NI o días (0..120). Lanza con el nombre del campo. */
+function valorValidado(ind: KinderEnIndicador, raw: unknown): string {
+  if (ind.formato === 'numero') {
+    const v = normalizarDias(raw)
+    if (v == null) throw new Error(`«${ind.nombre}»: escribe un número de 0 a ${KINDER_EN_DIAS_MAX}.`)
+    return v
+  }
+  const v = normalizarCalificacionEscala(raw)
+  if (v == null) throw new Error(`«${ind.nombre}»: usa solo E, VG, G, R, S o NI.`)
+  return v
+}
+
 async function upsertIndicadores(
-  table: string,
+  tipo: KinderEnTipo,
   alumnoId: number,
   bimestre: number,
   ciclo: number,
-  permitidos: Set<number>,
+  catalogo: KinderEnIndicador[],
   valores: Record<number, string> | undefined
 ): Promise<number> {
+  const porId = new Map(catalogo.map((i) => [i.id, i]))
   const ahora = new Date().toISOString()
   const filas: {
     alumno_id: number
@@ -308,21 +353,20 @@ async function upsertIndicadores(
   }[] = []
 
   for (const [rawId, rawVal] of Object.entries(valores ?? {})) {
-    const indicadorId = Number(rawId)
-    if (!permitidos.has(indicadorId)) continue
+    const ind = porId.get(Number(rawId))
+    if (!ind) continue
     filas.push({
       alumno_id: alumnoId,
-      indicador_id: indicadorId,
+      indicador_id: ind.id,
       bimestre,
       ciclo,
-      calificacion: String(rawVal ?? '').trim().slice(0, 40),
+      calificacion: valorValidado(ind, rawVal),
       updated_at: ahora,
     })
   }
   if (!filas.length) return 0
 
-  const db = createBoletasDb()
-  const { error } = await db.from(table).upsert(filas, {
+  const { error } = await createBoletasDb().from(tablaCalificacionesKinderEn(tipo)).upsert(filas, {
     onConflict: 'alumno_id,indicador_id,bimestre,ciclo',
   })
   if (error) throw new Error(error.message)
@@ -342,52 +386,56 @@ export async function guardarCaptura(input: {
   const bimestre = Number(input.bimestre)
   const ciclo = Number(input.ciclo)
   if (!alumnoId) throw new Error('alumnoId requerido')
-  if (bimestre < 1 || bimestre > 3) throw new Error('Bimestre inválido (1–3)')
-  if (!ciclo) throw new Error('Ciclo requerido')
+  validarPeriodo(bimestre, ciclo)
 
   const alumno = await cargarAlumno(alumnoId)
   const grado = alumno.grado_ui
-  let saved = 0
 
   if (esMaternal(grado)) {
-    saved += await upsertIndicadores(
-      'boleta_calificacion_maternal_en',
-      alumnoId,
-      bimestre,
-      ciclo,
-      new Set(maternalIndicadores().map((i) => i.id)),
-      input.maternal
-    )
-    return { saved }
+    const cat = await indicadoresActivosKinderEn('maternal', 0)
+    return { saved: await upsertIndicadores('maternal', alumnoId, bimestre, ciclo, cat, input.maternal) }
   }
 
-  saved += await upsertIndicadores(
-    'boleta_calificacion_kinder_en',
-    alumnoId,
-    bimestre,
-    ciclo,
-    new Set(subjectsPorGrado(grado).map((i) => i.id)),
-    input.subjects
-  )
-  saved += await upsertIndicadores(
-    'boleta_behavioral_kinder_en',
-    alumnoId,
-    bimestre,
-    ciclo,
-    new Set(behavioralPorGrado(grado).map((i) => i.id)),
-    input.behavioral
-  )
-
+  let attendance: KinderEnAttendance | null = null
   if (input.attendance) {
-    const db = createBoletasDb()
-    const { error } = await db.from('boleta_attendance_kinder_en').upsert(
+    const school = normalizarDias(input.attendance.school_days)
+    const absent = normalizarDias(input.attendance.days_absent)
+    if (school == null) throw new Error(`«School days»: escribe un número de 0 a ${KINDER_EN_DIAS_MAX}.`)
+    if (absent == null) throw new Error(`«Days absent»: escribe un número de 0 a ${KINDER_EN_DIAS_MAX}.`)
+    if (school && absent && Number(absent) > Number(school)) {
+      throw new Error('«Days absent» no puede ser mayor que «School days».')
+    }
+    attendance = { school_days: school, days_absent: absent }
+  }
+
+  const [subjectsCat, behCat] = await Promise.all([
+    indicadoresActivosKinderEn('subject', grado),
+    indicadoresActivosKinderEn('behavioral', grado),
+  ])
+  // Valida todo antes de escribir para no dejar la boleta a medias.
+  for (const [cat, vals] of [
+    [subjectsCat, input.subjects],
+    [behCat, input.behavioral],
+  ] as const) {
+    const porId = new Map(cat.map((i) => [i.id, i]))
+    for (const [id, v] of Object.entries(vals ?? {})) {
+      const ind = porId.get(Number(id))
+      if (ind) valorValidado(ind, v)
+    }
+  }
+
+  let saved = 0
+  saved += await upsertIndicadores('subject', alumnoId, bimestre, ciclo, subjectsCat, input.subjects)
+  saved += await upsertIndicadores('behavioral', alumnoId, bimestre, ciclo, behCat, input.behavioral)
+
+  if (attendance) {
+    const { error } = await createBoletasDb().from('boleta_attendance_kinder_en').upsert(
       [
         {
           alumno_id: alumnoId,
           bimestre,
           ciclo,
-          school_days: String(input.attendance.school_days ?? '').trim().slice(0, 20),
-          days_absent: String(input.attendance.days_absent ?? '').trim().slice(0, 20),
+          ...attendance,
           updated_at: new Date().toISOString(),
         },
       ],
@@ -398,6 +446,79 @@ export async function guardarCaptura(input: {
   }
 
   return { saved }
+}
+
+async function contarCapturadas(
+  table: string,
+  alumnoIds: number[],
+  ids: Set<number>,
+  bimestre: number,
+  ciclo: number,
+  out: Map<number, number>
+) {
+  if (!alumnoIds.length || !ids.size) return
+  const { data, error } = await createBoletasDb()
+    .from(table)
+    .select('alumno_id, indicador_id, calificacion')
+    .in('alumno_id', alumnoIds)
+    .eq('bimestre', bimestre)
+    .eq('ciclo', ciclo)
+    .neq('calificacion', '')
+    .limit(5000)
+  if (error) throw new Error(error.message)
+  for (const r of data ?? []) {
+    if (!ids.has(Number(r.indicador_id))) continue
+    const id = Number(r.alumno_id)
+    out.set(id, (out.get(id) ?? 0) + 1)
+  }
+}
+
+/** Cuántos campos lleva cada alumno de un mismo grado (indicadores activos + asistencia en kinder). */
+export async function progresoAlumnos(
+  alumnoIds: number[],
+  grado: KinderEnGrado,
+  bimestre: number,
+  ciclo: number
+): Promise<Map<number, KinderEnProgreso>> {
+  const capturadas = new Map<number, number>()
+  let total: number
+  if (esMaternal(grado)) {
+    const cat = await indicadoresActivosKinderEn('maternal', 0)
+    total = cat.length
+    await contarCapturadas(
+      tablaCalificacionesKinderEn('maternal'),
+      alumnoIds,
+      new Set(cat.map((i) => i.id)),
+      bimestre,
+      ciclo,
+      capturadas
+    )
+  } else {
+    const [sub, beh] = await Promise.all([
+      indicadoresActivosKinderEn('subject', grado),
+      indicadoresActivosKinderEn('behavioral', grado),
+    ])
+    total = sub.length + beh.length + 2
+    await Promise.all([
+      contarCapturadas(tablaCalificacionesKinderEn('subject'), alumnoIds, new Set(sub.map((i) => i.id)), bimestre, ciclo, capturadas),
+      contarCapturadas(tablaCalificacionesKinderEn('behavioral'), alumnoIds, new Set(beh.map((i) => i.id)), bimestre, ciclo, capturadas),
+    ])
+    if (alumnoIds.length) {
+      const { data, error } = await createBoletasDb()
+        .from('boleta_attendance_kinder_en')
+        .select('alumno_id, school_days, days_absent')
+        .in('alumno_id', alumnoIds)
+        .eq('bimestre', bimestre)
+        .eq('ciclo', ciclo)
+      if (error) throw new Error(error.message)
+      for (const r of data ?? []) {
+        const id = Number(r.alumno_id)
+        const n = (String(r.school_days ?? '').trim() ? 1 : 0) + (String(r.days_absent ?? '').trim() ? 1 : 0)
+        if (n) capturadas.set(id, (capturadas.get(id) ?? 0) + n)
+      }
+    }
+  }
+  return new Map(alumnoIds.map((id) => [id, { capturadas: Math.min(capturadas.get(id) ?? 0, total), total }]))
 }
 
 function pdfSeccion(
@@ -440,9 +561,7 @@ export async function generarPdfKinderEn(input: {
 }): Promise<Buffer> {
   const captura = await obtenerCaptura(input)
   const { alumno, bimestre, ciclo, modo } = captura
-  const gradoEtiqueta =
-    KINDER_EN_GRADOS.find((g) => g.valor === alumno.grado_ui)?.etiqueta ??
-    `K${alumno.grado_ui}`
+  const gradoEtiqueta = etiquetaGradoKinderEn(alumno.grado_ui)
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
   const pageW = doc.internal.pageSize.getWidth()
@@ -490,7 +609,7 @@ export async function generarPdfKinderEn(input: {
       }
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(9)
-      doc.text(`AVERAGE (excl. Music/Mindfulness): ${captura.promedioSugerido}`, 14, y)
+      doc.text(`AVERAGE: ${captura.promedioSugerido}`, 14, y)
       y += 8
     }
     y = pdfSeccion(

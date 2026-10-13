@@ -1,11 +1,11 @@
-import { requireBoletasSession } from '@/lib/boletasAuth'
+import { requireAdmin, requireBoletasSession } from '@/lib/boletasAuth'
 import { jsonError } from '@/lib/boletasApi'
 import { cicloEscolarActualBoletas } from '@/lib/boletasCiclo'
 import { generarPdfKinderEn } from '@/lib/boletasKinderEnService'
 
 export async function GET(req: Request) {
   try {
-    await requireBoletasSession(req)
+    requireAdmin(await requireBoletasSession(req))
     const url = new URL(req.url)
     const alumnoId = Number(url.searchParams.get('alumnoId'))
     const bimestre = Number(url.searchParams.get('bimestre') ?? 1)

@@ -3,8 +3,10 @@ import { obtenerCicloEscolarActual, resolverCicloEscolarSistemaValor } from '@/l
 import { sesionDeAlumnoOPersonal, validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
 import {
   ETIQUETA_MODULO_PAPA,
+  alcanceDeAlumno,
   listarPublicaciones,
   modulosDeNivel,
+  publicacionAplica,
   videoPortalBoletas,
 } from '@/lib/boletasPortal'
 
@@ -31,10 +33,13 @@ export async function GET(request: Request) {
       videoPortalBoletas(valor),
     ])
 
+    const alcance = alcanceDeAlumno(auth.alumno)
     const trimestres = [1, 2, 3].map((t) => ({
       trimestre: t,
       boletas: modulos
-        .filter((m) => publicaciones.some((p) => p.modulo === m && p.trimestre === t))
+        .filter((m) =>
+          publicaciones.some((p) => p.modulo === m && p.trimestre === t && publicacionAplica(p, alcance))
+        )
         .map((m) => ({ modulo: m, etiqueta: ETIQUETA_MODULO_PAPA[m] })),
     }))
 

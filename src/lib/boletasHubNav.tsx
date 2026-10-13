@@ -7,6 +7,7 @@ export type BoletasHubId =
   | 'primaria-espanol'
   | 'primaria-ingles'
   | 'secundaria'
+  | 'portal-captura'
 
 export type BoletasHubItem = {
   id: BoletasHubId
@@ -38,6 +39,14 @@ const ICON_BOOK_EN = (
     <path d="M9 8h6" />
     <path d="M9 12h6" />
     <path d="M9 16h3" />
+  </svg>
+)
+
+const ICON_PORTAL = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M19 8v6M22 11h-6" />
   </svg>
 )
 
@@ -104,6 +113,17 @@ export function boletasHubItems(): BoletasHubItem[] {
       path: '/boletas-secundaria',
       activo: true,
       icon: ICON_SEC,
+    },
+    {
+      id: 'portal-captura',
+      label: 'Portal de captura · Maestros y teachers',
+      desc: 'Enlace público: cada maestro o teacher entra a sus grupos, captura y envía a dirección.',
+      accent: 'amber',
+      kicker: 'Captura docente',
+      tags: ['Teachers', 'Grado y grupo'],
+      path: '/boletas-captura',
+      activo: true,
+      icon: ICON_PORTAL,
     },
   ]
 }

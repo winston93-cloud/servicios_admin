@@ -1,13 +1,22 @@
-/** Catálogo English Preschool / Kinder Inglés (legacy boletasik). */
+/** Catálogo English Preschool / Kinder Inglés (legacy boletasik). Indicadores en `boleta_kinder_en_indicador`. */
 
 export type KinderEnGrado = 0 | 1 | 2 | 3
 
+export type KinderEnTipo = 'subject' | 'behavioral' | 'maternal'
+
+export type KinderEnFormato = 'escala' | 'numero'
+
 export type KinderEnIndicador = {
-  /** Coincide con fk_materia legacy (subjects / behavioral / maternal en su tabla). */
+  /** Coincide con `indicador_id` en su tabla de calificaciones (fk_materia legacy). */
   id: number
+  tipo: KinderEnTipo
   grado: KinderEnGrado
   nombre: string
   orden: number
+  formato: KinderEnFormato
+  /** Solo subjects: cuenta para el Average (Music / Mindfulness no). */
+  enPromedio: boolean
+  activo: boolean
 }
 
 /** Nivel alumno Winston: 1 = Maternal, 2 = Kinder */
@@ -23,146 +32,61 @@ export const KINDER_EN_GRADOS: { valor: KinderEnGrado; etiqueta: string }[] = [
 
 export const KINDER_EN_GRUPOS = ['A', 'B', 'C', 'D'] as const
 
-/** Escala EN: E=10, VG=9, G=8, R=7, S=6, NI=5 (sigue permitiendo texto libre). */
-export const KINDER_EN_ESCALA_NOTA: { letra: string; valor: number }[] = [
-  { letra: 'E', valor: 10 },
-  { letra: 'VG', valor: 9 },
-  { letra: 'G', valor: 8 },
-  { letra: 'R', valor: 7 },
-  { letra: 'S', valor: 6 },
-  { letra: 'NI', valor: 5 },
+/** Maternal: el grupo es `alumno_grado` (Maternal A = 1, Maternal B = 2). */
+export const KINDER_EN_GRUPOS_MATERNAL = ['A', 'B'] as const
+
+export const KINDER_EN_ESCALA_NOTA: { letra: string; valor: number; etiqueta: string }[] = [
+  { letra: 'E', valor: 10, etiqueta: 'Excellent' },
+  { letra: 'VG', valor: 9, etiqueta: 'Very good' },
+  { letra: 'G', valor: 8, etiqueta: 'Good' },
+  { letra: 'R', valor: 7, etiqueta: 'Regular' },
+  { letra: 'S', valor: 6, etiqueta: 'Sufficient' },
+  { letra: 'NI', valor: 5, etiqueta: 'Needs improvement' },
 ]
+
+export const KINDER_EN_ESCALA_LETRAS = KINDER_EN_ESCALA_NOTA.map((e) => e.letra)
 
 export const KINDER_EN_ESCALA_HINT = 'E=10 · VG=9 · G=8 · R=7 · S=6 · NI=5'
 
-/** Subjects K1: fk_materia 1–7 */
-const SUBJECTS_K1: Omit<KinderEnIndicador, 'grado' | 'orden'>[] = [
-  { id: 1, nombre: 'VOCABULARY' },
-  { id: 2, nombre: 'PHONICS' },
-  { id: 3, nombre: 'PRE MATH' },
-  { id: 4, nombre: 'PRE-WRITING' },
-  { id: 5, nombre: 'SHOW AND TELL PROJECT' },
-  { id: 6, nombre: 'MUSIC' },
-  { id: 7, nombre: 'MINDFULNESS' },
-]
+/** Máximo de días para School days / Days absent. */
+export const KINDER_EN_DIAS_MAX = 120
 
-/** Subjects K2: fk_materia 8–14 */
-const SUBJECTS_K2: Omit<KinderEnIndicador, 'grado' | 'orden'>[] = [
-  { id: 8, nombre: 'VOCABULARY' },
-  { id: 9, nombre: 'PHONICS' },
-  { id: 10, nombre: 'PRE MATH' },
-  { id: 11, nombre: 'PRE-WRITING' },
-  { id: 12, nombre: 'SHOW AND TELL PROJECT' },
-  { id: 13, nombre: 'MUSIC' },
-  { id: 14, nombre: 'MINDFULNESS' },
-]
-
-/** Subjects K3: fk_materia 15–21 */
-const SUBJECTS_K3: Omit<KinderEnIndicador, 'grado' | 'orden'>[] = [
-  { id: 15, nombre: 'VOCABULARY' },
-  { id: 16, nombre: 'PHONICS' },
-  { id: 17, nombre: 'MATH' },
-  { id: 18, nombre: 'WRITING' },
-  { id: 19, nombre: 'SHOW AND TELL PROJECT' },
-  { id: 20, nombre: 'MUSIC' },
-  { id: 21, nombre: 'MINDFULNESS' },
-]
-
-/** Music / Mindfulness: fuera del promedio (legacy boleta_funciones). */
-export const KINDER_EN_SUBJECT_IDS_EXCLUIDOS_PROMEDIO = new Set([6, 7, 13, 14, 20, 21])
-
-/**
- * Behavioral: IDs estables propios del catálogo app (100+),
- * distintos del rango de subjects 1–21. Legacy pck usaba 1–13 por grado.
- */
-const BEH_K12: Omit<KinderEnIndicador, 'grado' | 'orden'>[] = [
-  { id: 101, nombre: 'MAKES REAL WORLD CONNECTIONS' },
-  { id: 102, nombre: 'DEVELOPS COORDINATION AND BALANCE' },
-  { id: 103, nombre: 'COMMUNICATES CLEARLY' },
-  { id: 104, nombre: 'UNDERSTANDING OF RULES DIRECTIONS AND ROUTINES' },
-  { id: 105, nombre: 'SHOWS RESPECT TO TEACHERS AND CLASSMATES' },
-  { id: 106, nombre: 'INVESTS TIME IN ACTIVITIES DESPITE DISTRACTIONS' },
-  { id: 107, nombre: 'SHOWS AN INTEREST IN LEARNING BY PARTICIPATING' },
-  { id: 108, nombre: 'WORK IS NEAT AND ORGANIZED' },
-  { id: 109, nombre: 'USES MATERIALS SAFELY AND APPROPRIATELY' },
-  { id: 110, nombre: 'TAKES TURNS DURING ACTIVITIES' },
-  { id: 111, nombre: 'COMPLETES DAILY WORK' },
-  { id: 112, nombre: 'DOES HOMEWORK' },
-  { id: 113, nombre: 'PUNCTUALITY' },
-]
-
-const BEH_K3: Omit<KinderEnIndicador, 'grado' | 'orden'>[] = [
-  { id: 101, nombre: 'SELF CONTROL' },
-  { id: 102, nombre: 'UNDERSTANDING OF RULES DIRECTIONS AND ROUTINES' },
-  { id: 103, nombre: 'SHOWS RESPECT TO TEACHERS AND CLASSMATES' },
-  { id: 104, nombre: 'INVESTS TIME IN ACTIVITIES DESPITE DISTRACTIONS' },
-  { id: 105, nombre: 'SHOWS AN INTEREST IN LEARNING BY PARTICIPATING' },
-  { id: 106, nombre: 'WORK IS NEAT AND ORGANIZED' },
-  { id: 107, nombre: 'USES MATERIALS SAFELY AND APPROPRIATELY' },
-  { id: 108, nombre: 'TAKES TURNS DURING ACTIVITIES' },
-  { id: 109, nombre: 'COMPLETES DAILY WORK' },
-  { id: 110, nombre: 'DOES HOMEWORK' },
-  { id: 111, nombre: 'PUNCTUALITY' },
-]
-
-/** Maternal: hasta 17 ítems (legacy pcm fk_materia 1–17; 16=SCHOOL DAYS, 17=DAYS ABSENT). */
-const MATERNAL: Omit<KinderEnIndicador, 'grado' | 'orden'>[] = [
-  { id: 1, nombre: 'IDENTIFIES AND NAMES NUMBERS FROM 1 TO 10' },
-  { id: 2, nombre: 'IDENTIFIES AND NAMES COLORS' },
-  { id: 3, nombre: 'IDENTIFIES AND NAMES BASIC SHAPES' },
-  { id: 4, nombre: 'KNOWS THE DAYS OF THE WEEK' },
-  { id: 5, nombre: 'IDENTIFIES VOWELS AND THEIR VOCABULARY' },
-  { id: 6, nombre: 'UNDERSTANDING OF RULES AND ROUTINES' },
-  { id: 7, nombre: 'DOES CLASSWORK INDEPENDENTLY' },
-  { id: 8, nombre: 'DEVELOPS COORDINATION AND BALANCE' },
-  { id: 9, nombre: 'USES MATERIALS SAFELY AND APPROPRIATELY' },
-  { id: 10, nombre: 'SHOWS AN INTEREST IN LEARNING BY PARTICIPATING' },
-  { id: 11, nombre: 'TAKES TURNS DURING ACTIVITIES' },
-  { id: 12, nombre: 'COMMUNICATES CLEARLY' },
-  { id: 13, nombre: 'SHOWS RESPECT TO TEACHERS AND CLASSMATES' },
-  { id: 14, nombre: 'DOES HOMEWORK' },
-  { id: 15, nombre: 'PUNCTUALITY' },
-  { id: 16, nombre: 'SCHOOL DAYS' },
-  { id: 17, nombre: 'DAYS ABSENT' },
-]
-
-function conMeta(
-  grado: KinderEnGrado,
-  rows: Omit<KinderEnIndicador, 'grado' | 'orden'>[]
-): KinderEnIndicador[] {
-  return rows.map((r, i) => ({ ...r, grado, orden: i + 1 }))
+export const ETIQUETA_TIPO_KINDER_EN: Record<KinderEnTipo, string> = {
+  subject: 'Subjects',
+  behavioral: 'Behavioral skills',
+  maternal: 'Maternal',
 }
 
-export const KINDER_EN_SUBJECTS: KinderEnIndicador[] = [
-  ...conMeta(1, SUBJECTS_K1),
-  ...conMeta(2, SUBJECTS_K2),
-  ...conMeta(3, SUBJECTS_K3),
-]
-
-export const KINDER_EN_BEHAVIORAL: KinderEnIndicador[] = [
-  ...conMeta(1, BEH_K12),
-  ...conMeta(2, BEH_K12),
-  ...conMeta(3, BEH_K3),
-]
-
-export const KINDER_EN_MATERNAL: KinderEnIndicador[] = conMeta(0, MATERNAL)
-
-export function subjectsPorGrado(grado: KinderEnGrado): KinderEnIndicador[] {
-  if (grado === 0) return []
-  return KINDER_EN_SUBJECTS.filter((i) => i.grado === grado)
+export function etiquetaGradoKinderEn(grado: number): string {
+  return KINDER_EN_GRADOS.find((g) => g.valor === grado)?.etiqueta ?? `K${grado}`
 }
 
-export function behavioralPorGrado(grado: KinderEnGrado): KinderEnIndicador[] {
-  if (grado === 0) return []
-  return KINDER_EN_BEHAVIORAL.filter((i) => i.grado === grado)
+export function etiquetaGrupoKinderEn(grado: number, grupo: string): string {
+  return `${etiquetaGradoKinderEn(grado)} ${grupo}`
 }
 
-export function maternalIndicadores(): KinderEnIndicador[] {
-  return KINDER_EN_MATERNAL
+export function esGradoKinderEn(n: unknown): n is KinderEnGrado {
+  return n === 0 || n === 1 || n === 2 || n === 3
 }
 
 export function esMaternal(grado: KinderEnGrado): boolean {
   return grado === 0
+}
+
+/** '' si está vacía, la letra normalizada si es válida, null si no es de la escala. */
+export function normalizarCalificacionEscala(raw: unknown): string | null {
+  const v = String(raw ?? '').trim().toUpperCase()
+  if (!v) return ''
+  return KINDER_EN_ESCALA_LETRAS.includes(v) ? v : null
+}
+
+/** '' si está vacío, el número como texto si es entero 0..max, null si no. */
+export function normalizarDias(raw: unknown, max = KINDER_EN_DIAS_MAX): string | null {
+  const v = String(raw ?? '').trim()
+  if (!v) return ''
+  if (!/^\d{1,3}$/.test(v)) return null
+  const n = Number(v)
+  return n <= max ? String(n) : null
 }
 
 export function grupoNumeroDesdeLetra(letra: string): number {

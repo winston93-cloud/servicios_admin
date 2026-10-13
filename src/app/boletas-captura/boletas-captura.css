@@ -1,0 +1,145 @@
+/* Portal de captura de boletas (teachers): complementa kinder-ingles.css */
+
+.bc-grupo-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 1.05rem 1.15rem 0.85rem;
+  border-bottom: 1px solid var(--ki-line);
+}
+
+.bc-grupo-head h2 {
+  margin: 0;
+  font-family: var(--ki-serif);
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  font-weight: 400;
+}
+
+.bc-grupo-head .bm-kicker {
+  margin-bottom: 0.15rem;
+}
+
+.bc-trimestres {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+.bc-trimestres .ki-tab {
+  white-space: nowrap;
+}
+
+.bc-grupo-estado {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.85rem 1.15rem 0;
+}
+
+.bc-grupo-estado:empty {
+  display: none;
+}
+
+.bc-grupo-estado .ki-msg {
+  margin: 0;
+}
+
+.bc-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  border: 1px solid var(--ki-line);
+}
+
+.bc-banner svg {
+  flex: none;
+  margin-top: 0.1rem;
+}
+
+.bc-banner.is-enviada {
+  border-color: color-mix(in srgb, #3b82f6 50%, transparent);
+  background: color-mix(in srgb, #3b82f6 10%, transparent);
+}
+
+.bc-banner.is-devuelta {
+  border-color: color-mix(in srgb, #f59e0b 55%, transparent);
+  background: color-mix(in srgb, #f59e0b 12%, transparent);
+}
+
+.bc-banner.is-publicada {
+  border-color: color-mix(in srgb, #22c55e 50%, transparent);
+  background: color-mix(in srgb, #22c55e 10%, transparent);
+}
+
+.bc-enviar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  border: 1px dashed var(--ki-border);
+}
+
+.bc-enviar .ki-hint {
+  margin: 0;
+  flex: 1 1 240px;
+}
+
+.bc-grupos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+  gap: 0.85rem;
+}
+
+.bc-grupos .ki-menu-item {
+  min-height: 0;
+  align-items: center;
+}
+
+.bc-grupo-badge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  font-family: var(--ki-serif);
+  font-size: 1.6rem;
+  color: var(--ki-gold);
+  background: color-mix(in srgb, var(--ki-gold) 14%, transparent);
+}
+
+.bc-vacio h2 {
+  margin: 0 0 0.4rem;
+  font-family: var(--ki-serif);
+  font-size: 1.45rem;
+  font-weight: 400;
+}
+
+.bc-vacio .ki-hint {
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .bc-grupo-head,
+  .bc-grupo-estado {
+    padding-inline: 0.85rem;
+  }
+
+  .bc-enviar .ki-btn {
+    width: 100%;
+  }
+}

@@ -112,7 +112,7 @@ export default function BoletasPublicarPapas({
 
       <ul className="bpp-lista">
         {TRIMESTRES.map((t) => {
-          const pub = publicaciones.find((p) => p.trimestre === t)
+          const pub = publicaciones.find((p) => p.trimestre === t && p.grado === 0 && p.grupo === '')
           return (
             <li key={t} className={`bpp-item${pub ? ' is-publicada' : ''}`}>
               <div className="bpp-item-info">
