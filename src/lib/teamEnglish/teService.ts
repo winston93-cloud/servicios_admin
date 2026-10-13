@@ -1,9 +1,12 @@
 import { createDbAdmin, createInsforgeAdmin } from '@/lib/insforgeAdmin'
 import { incidenciasReloj } from './teReloj'
 import {
+  COSTOS_SUGERIDO,
   ESTADOS_CURSO,
   ESTADOS_PLANEACION,
   MODALIDADES,
+  SKILLS,
+  type TeCursoSugerido,
   mensajeArchivoGrande,
   RUBROS,
   TE_EMOJIS,
@@ -311,14 +314,51 @@ async function cursosDe(filtro: { nivel: TeNivel } | { maestroId: number }): Pro
   return ((data ?? []) as Record<string, unknown>[]).map(mapCurso)
 }
 
+function mapSugerido(r: Record<string, unknown>): TeCursoSugerido {
+  return {
+    id: Number(r.id),
+    titulo: String(r.titulo),
+    institucion: (r.institucion as string) ?? null,
+    modalidad: r.modalidad as TeCursoSugerido['modalidad'],
+    enlace: String(r.enlace),
+    skill: (r.skill as string) ?? null,
+    costo: r.costo as TeCursoSugerido['costo'],
+    horas: r.horas == null ? null : Number(r.horas),
+    descripcion: String(r.descripcion ?? ''),
+    activo: Boolean(r.activo),
+    creado_por: (r.creado_por as string) ?? null,
+  }
+}
+
+async function sugeridosDe(nivel: TeNivel, soloActivos: boolean): Promise<TeCursoSugerido[]> {
+  let q = db().from('te_curso_sugerido').select('*').eq('nivel', nivel)
+  if (soloActivos) q = q.eq('activo', true)
+  const { data, error } = await q.order('id', { ascending: true })
+  fail(error, 'Cursos sugeridos')
+  return ((data ?? []) as Record<string, unknown>[]).map(mapSugerido)
+}
+
+function enlaceHttps(raw: unknown): string {
+  const s = String(raw ?? '').trim()
+  let url: URL
+  try {
+    url = new URL(s)
+  } catch {
+    throw new TeError('Pega el enlace completo del curso (https://…).')
+  }
+  if (url.protocol !== 'https:' || s.length > 500) throw new TeError('El enlace debe empezar con https:// y medir máximo 500 caracteres.')
+  return url.toString()
+}
+
 export async function snapshot(nivel: TeNivel, niveles: TeNivel[]): Promise<TeSnapshot> {
   const hoy = hoyMx()
   const inicio = inicioCicloEscolar(hoy)
-  const [teachers, planRes, capacitaciones, cursos, incRes, clsRes, cfgRes] = await Promise.all([
+  const [teachers, planRes, capacitaciones, cursos, sugeridos, incRes, clsRes, cfgRes] = await Promise.all([
     equipo(nivel),
     db().from('te_planeacion').select('*').eq('nivel', nivel).gte('semana', inicio).order('semana', { ascending: false }),
     capacitacionesNivel(nivel),
     cursosDe({ nivel }),
+    sugeridosDe(nivel, false),
     db().from('te_incidencia').select('*').eq('nivel', nivel).gte('fecha', inicio).order('fecha', { ascending: false }),
     db().from('te_classroom').select('*').eq('nivel', nivel).gte('semana', inicio),
     db().from('te_config').select('ponderadores').eq('nivel', nivel).maybeSingle(),
@@ -349,6 +389,7 @@ export async function snapshot(nivel: TeNivel, niveles: TeNivel[]): Promise<TeSn
     planeaciones: ((planRes.data ?? []) as Record<string, unknown>[]).map(mapPlaneacion),
     capacitaciones,
     cursos,
+    sugeridos,
     incidencias: [...manuales, ...reloj.incidencias.filter((i) => !capturadas.has(`${i.maestro_id}|${i.fecha}|${i.tipo}`))].sort(
       (a, b) => b.fecha.localeCompare(a.fecha),
     ),
@@ -836,6 +877,43 @@ export async function accion(nivel: TeNivel, body: Record<string, unknown>, quie
       await borrarArchivo(data.archivo_key as string)
       return { ok: true }
     }
+    case 'curso_sugerido': {
+      const modalidad = String(body.modalidad ?? 'en_linea')
+      if (!(modalidad in MODALIDADES)) throw new TeError('Modalidad no válida.')
+      const costo = String(body.costo ?? 'gratis')
+      if (!(costo in COSTOS_SUGERIDO)) throw new TeError('Costo no válido.')
+      const skill = body.skill ? String(body.skill) : null
+      if (skill && !SKILLS.some((s) => s.clave === skill)) throw new TeError('Materia no válida.')
+      const horas = body.horas === '' || body.horas == null ? null : Number(body.horas)
+      if (horas != null && (!Number.isFinite(horas) || horas < 0 || horas > 2000)) throw new TeError('Horas no válidas.')
+      const fila = {
+        nivel,
+        titulo: texto(body.titulo, 200, 'El nombre del curso', true),
+        institucion: texto(body.institucion, 200, 'La institución'),
+        modalidad,
+        enlace: enlaceHttps(body.enlace),
+        skill,
+        costo,
+        horas,
+        descripcion: texto(body.descripcion, 600, 'La descripción') ?? '',
+        activo: body.activo !== false,
+        updated_at: ahora,
+      }
+      if (body.id) {
+        const { data, error } = await db().from('te_curso_sugerido').update(fila).eq('id', entero(body.id, 'El curso')).eq('nivel', nivel).select('id')
+        fail(error, 'Curso sugerido')
+        if (!data?.length) throw new TeError('Curso no encontrado.', 404)
+        return { ok: true }
+      }
+      const { error } = await db().from('te_curso_sugerido').insert([{ ...fila, creado_por: quien }])
+      fail(error, 'Curso sugerido')
+      return { ok: true }
+    }
+    case 'eliminar_curso_sugerido': {
+      const { error } = await db().from('te_curso_sugerido').delete().eq('id', entero(body.id, 'El curso')).eq('nivel', nivel)
+      fail(error, 'Curso sugerido')
+      return { ok: true }
+    }
     case 'capacitacion': {
       const tipo = body.tipo === 'externa' ? 'externa' : 'interna'
       const modalidad = String(body.modalidad ?? 'presencial')
@@ -1052,10 +1130,11 @@ export async function portalTeacher(maestroId: number) {
   if (!r) throw new TeError('Tu usuario no está en un equipo de inglés.', 403)
   const hoy = hoyMx()
   const desde = sumarDias(lunesDe(hoy), -7 * 12)
-  const [planRes, capacitaciones, cursos] = await Promise.all([
+  const [planRes, capacitaciones, cursos, sugeridos] = await Promise.all([
     db().from('te_planeacion').select('*').eq('maestro_id', maestroId).gte('semana', desde).order('semana', { ascending: false }),
     capacitacionesNivel(r.nivel, maestroId),
     cursosDe({ maestroId }),
+    sugeridosDe(r.nivel, true),
   ])
   fail(planRes.error, 'Planeaciones')
   return {
@@ -1065,6 +1144,7 @@ export async function portalTeacher(maestroId: number) {
     planeaciones: ((planRes.data ?? []) as Record<string, unknown>[]).map(mapPlaneacion),
     capacitaciones: capacitaciones.map((c) => ({ ...c, participantes: c.participantes.filter((p) => p.maestro_id === maestroId) })),
     cursos,
+    sugeridos,
   }
 }
 

@@ -7,8 +7,9 @@ import type { SeccionProps } from '../seccionTipos'
 import { teAbrirArchivo, teAccion, teSubir } from '../teApi'
 import { ACEPTAR_DOCS, Avatar, Campo, Hoja, Vacio } from './ui'
 import CursosSeccion from './CursosSeccion'
+import SugeridosSeccion from './SugeridosSeccion'
 
-type Vista = 'proximas' | 'historial' | 'cursos'
+type Vista = 'proximas' | 'historial' | 'cursos' | 'sugeridos'
 type Borrador = {
   id?: number
   titulo: string
@@ -97,7 +98,7 @@ export default function CapacitacionesSeccion({ snap, recargar, avisar }: Seccio
   const porValidar = snap.cursos.filter((c) => c.estado === 'pendiente').length
   const pestanas = (
     <div className="te-filtros" role="tablist">
-      {([['proximas', '🗓️ Próximas'], ['historial', '📜 Historial'], ['cursos', '🏅 Cursos de teachers']] as [Vista, string][]).map(([id, txt]) => (
+      {([['proximas', '🗓️ Próximas'], ['historial', '📜 Historial'], ['cursos', '🏅 Cursos de teachers'], ['sugeridos', '📌 Curso del día']] as [Vista, string][]).map(([id, txt]) => (
         <button key={id} type="button" role="tab" aria-selected={vista === id} data-activo={vista === id || undefined} onClick={() => setVista(id)}>
           {txt}{id === 'cursos' && porValidar ? <b title="Por validar">{porValidar}</b> : null}
         </button>
@@ -105,11 +106,12 @@ export default function CapacitacionesSeccion({ snap, recargar, avisar }: Seccio
     </div>
   )
 
-  if (vista === 'cursos') {
+  if (vista === 'cursos' || vista === 'sugeridos') {
+    const Seccion = vista === 'cursos' ? CursosSeccion : SugeridosSeccion
     return (
       <>
         <div className="te-toolbar">{pestanas}</div>
-        <CursosSeccion snap={snap} recargar={recargar} avisar={avisar} />
+        <Seccion snap={snap} recargar={recargar} avisar={avisar} />
       </>
     )
   }

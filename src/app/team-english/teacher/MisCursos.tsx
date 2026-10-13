@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Loader2, Pencil, Plus, Trash2, Upload } from 'lucide-react'
 import type { PortalTeacherData } from '@/lib/teamEnglish/teService'
-import { ESTADOS_CURSO, MODALIDADES, TE_MAX_ARCHIVO_MB, fechaCorta, type TeCurso } from '@/lib/teamEnglish/teTypes'
+import { ESTADOS_CURSO, MODALIDADES, TE_MAX_ARCHIVO_MB, fechaCorta, type TeCurso, type TeCursoSugerido } from '@/lib/teamEnglish/teTypes'
 import { leerJson, teAbrirArchivo, validarTamano } from '../teApi'
 import { ACEPTAR_DOCS, Campo, Hoja, SelectorArchivo, Vacio } from '../components/ui'
 
@@ -14,7 +14,7 @@ type Props = {
   onError: (t: string) => void
 }
 
-type Borrador = {
+export type BorradorCurso = {
   id?: number
   titulo: string
   institucion: string
@@ -24,9 +24,25 @@ type Borrador = {
   notas: string
   archivoPrevio: string | null
 }
+type Borrador = BorradorCurso
 
-export default function MisCursos({ data, setData, onOk, onError }: Props) {
-  const [borrador, setBorrador] = useState<Borrador | null>(null)
+/** «¡Lo tomé!» del curso del día: la teacher solo adjunta su constancia. */
+export function borradorDeSugerido(s: TeCursoSugerido, hoy: string): BorradorCurso {
+  return {
+    titulo: s.titulo,
+    institucion: s.institucion ?? '',
+    modalidad: s.modalidad,
+    fecha: hoy,
+    horas: s.horas == null ? '' : String(s.horas),
+    notas: `📌 Curso del día · ${s.enlace}`,
+    archivoPrevio: null,
+  }
+}
+
+export default function MisCursos({ data, setData, onOk, onError, borrador, setBorrador }: Props & {
+  borrador: BorradorCurso | null
+  setBorrador: (b: BorradorCurso | null) => void
+}) {
   const [borrando, setBorrando] = useState<number | null>(null)
 
   const validados = data.cursos.filter((c) => c.estado === 'validado')

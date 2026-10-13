@@ -6,12 +6,13 @@ import { ArrowLeft, Loader2, LogOut } from 'lucide-react'
 import { readPortalSessionForFetch } from '@/lib/insforgeDbProxyShared'
 import ThemeToggle from '@/components/ThemeToggle'
 import type { PortalTeacherData } from '@/lib/teamEnglish/teService'
-import { ESTADOS_PLANEACION, bloquesDePlan, etiquetaGrado, lunesDe, textoSemana } from '@/lib/teamEnglish/teTypes'
+import { ESTADOS_PLANEACION, bloquesDePlan, etiquetaGrado, lunesDe, textoSemana, type TeCursoSugerido } from '@/lib/teamEnglish/teTypes'
 import { teAbrirArchivo } from '../teApi'
 import { Campo, Semana, Vacio } from '../components/ui'
 import { PlanMiniSemana } from '../components/PlanLienzo'
 import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
-import MisCursos from './MisCursos'
+import CursoDelDia from './CursoDelDia'
+import MisCursos, { borradorDeSugerido, type BorradorCurso } from './MisCursos'
 import PlanSemana from './PlanSemana'
 import '../team-english.css'
 
@@ -150,7 +151,12 @@ function Portal({ data, setData, onOk, onError, onSalir }: {
   const hoyLunes = lunesDe(data.hoy)
   const [lunes, setLunes] = useState(hoyLunes)
   const [tab, setTab] = useState<'planeaciones' | 'cursos'>('planeaciones')
+  const [borradorCurso, setBorradorCurso] = useState<BorradorCurso | null>(null)
   const nombreCorto = data.teacher.nombre.split(' ')[0]
+  const loTome = (s: TeCursoSugerido) => {
+    setTab('cursos')
+    setBorradorCurso(borradorDeSugerido(s, data.hoy))
+  }
 
   return (
     <>
@@ -163,11 +169,14 @@ function Portal({ data, setData, onOk, onError, onSalir }: {
           <button type="button" className="te-btn te-btn-sm" onClick={onSalir}>🔁 Cambiar de teacher</button>
         </div>
       ) : null}
-      <section className="te-hero">
-        <p className="te-kicker">Primaria · {data.teacher.grupos.join(', ') || 'Teacher'}</p>
-        <h1 className="te-title">Hi, {nombreCorto}! <span className="te-title-emoji" aria-hidden>{data.teacher.emoji}</span></h1>
-        <p className="te-lead">Sube tu planeación de la semana y los cursos que tomes; tu directora los revisa.</p>
-      </section>
+      <div className="te-portal-top">
+        <section className="te-hero">
+          <p className="te-kicker">Primaria · {data.teacher.grupos.join(', ') || 'Teacher'}</p>
+          <h1 className="te-title">Hi, {nombreCorto}! <span className="te-title-emoji" aria-hidden>{data.teacher.emoji}</span></h1>
+          <p className="te-lead">Sube tu planeación de la semana y los cursos que tomes; tu directora los revisa.</p>
+        </section>
+        <CursoDelDia sugeridos={data.sugeridos} hoy={data.hoy} onLoTome={loTome} />
+      </div>
 
       <div className="te-filtros te-tabs" role="tablist" aria-label="Secciones del portal">
         <button type="button" role="tab" aria-selected={tab === 'planeaciones'} data-activo={tab === 'planeaciones' || undefined} onClick={() => setTab('planeaciones')}>
@@ -178,11 +187,13 @@ function Portal({ data, setData, onOk, onError, onSalir }: {
         </button>
       </div>
 
-      {tab === 'cursos' ? (
-        <MisCursos data={data} setData={setData} onOk={onOk} onError={onError} />
-      ) : (
+      {/* Ambas pestañas quedan montadas para no perder un lienzo sin guardar al cambiar. */}
+      <div role="tabpanel" hidden={tab !== 'cursos'}>
+        <MisCursos data={data} setData={setData} onOk={onOk} onError={onError} borrador={borradorCurso} setBorrador={setBorradorCurso} />
+      </div>
+      <div role="tabpanel" hidden={tab !== 'planeaciones'}>
         <Planeaciones data={data} setData={setData} onOk={onOk} onError={onError} lunes={lunes} setLunes={setLunes} hoyLunes={hoyLunes} />
-      )}
+      </div>
     </>
   )
 }

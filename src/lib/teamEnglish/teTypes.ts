@@ -415,6 +415,37 @@ export type TeClassroomDetalle = {
   materiales: TeClassroomPublicacion[]
 }
 
+export type CostoSugerido = 'gratis' | 'certificado_costo' | 'pago'
+
+export const COSTOS_SUGERIDO: Record<CostoSugerido, { emoji: string; etiqueta: string }> = {
+  gratis: { emoji: '🆓', etiqueta: 'Gratis' },
+  certificado_costo: { emoji: '🎟️', etiqueta: 'Gratis · certificado con costo' },
+  pago: { emoji: '💳', etiqueta: 'De paga' },
+}
+
+/** Curso externo que la coordinación recomienda; el portal de teachers muestra uno por día. */
+export type TeCursoSugerido = {
+  id: number
+  titulo: string
+  institucion: string | null
+  modalidad: 'presencial' | 'en_linea' | 'hibrida'
+  enlace: string
+  skill: string | null
+  costo: CostoSugerido
+  horas: number | null
+  descripcion: string
+  activo: boolean
+  creado_por: string | null
+}
+
+/** Mismo curso para todas las teachers durante el día; rota por fecha (YYYY-MM-DD). */
+export function cursoDelDia(lista: TeCursoSugerido[], hoy: string): TeCursoSugerido | null {
+  const activos = lista.filter((s) => s.activo).sort((a, b) => a.id - b.id)
+  if (!activos.length) return null
+  const dia = Math.floor(Date.parse(`${hoy}T12:00:00Z`) / 86_400_000)
+  return activos[((dia % activos.length) + activos.length) % activos.length]
+}
+
 export type TeSnapshot = {
   nivel: TeNivel
   niveles: TeNivel[]
@@ -424,6 +455,7 @@ export type TeSnapshot = {
   planeaciones: TePlaneacion[]
   capacitaciones: TeCapacitacion[]
   cursos: TeCurso[]
+  sugeridos: TeCursoSugerido[]
   incidencias: TeIncidencia[]
   classroom: TeClassroom[]
   ponderadores: Ponderadores
