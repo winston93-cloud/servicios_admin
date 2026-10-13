@@ -1828,3 +1828,14 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
 @media (max-width: 480px) {
   .te-plan-modo { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ── Diagnóstico de publicación en Classroom ── */
+.te-diag { display: grid; gap: 0.9rem; margin: 0; padding: 0; list-style: none; }
+.te-diag > li { display: grid; gap: 0.35rem; padding: 0.8rem 0.9rem; border: 2px solid var(--te-borde); border-radius: 16px; background: var(--te-hoja); min-width: 0; }
+.te-diag > li[data-ok] { border-color: color-mix(in oklch, var(--te-matcha-f) 55%, var(--te-borde)); }
+.te-diag small { color: var(--te-tinta-suave); overflow-wrap: anywhere; }
+.te-diag-error { margin: 0; color: var(--te-fresa-f); font-weight: 600; }
+.te-diag .te-tabla-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.te-diag-tabla { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.te-diag-tabla :is(th, td) { padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--te-borde); text-align: left; white-space: nowrap; }
+.te-diag-tabla td[data-falta] { color: var(--te-muted); }

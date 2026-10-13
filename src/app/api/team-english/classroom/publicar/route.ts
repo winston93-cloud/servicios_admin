@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireEmpleadoPortal } from '@/lib/portalApiEmpleadoAuth'
-import { TeError, resolverNivel } from '@/lib/teamEnglish/teService'
+import { TeError, equipo, resolverNivel } from '@/lib/teamEnglish/teService'
+import { diagnosticoPublicar } from '@/lib/teamEnglish/teClassroom'
 import { planeacionAClassroom } from '@/lib/teamEnglish/tePlanClassroom'
 
 export const runtime = 'nodejs'
@@ -15,6 +16,20 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>
     const nivel = resolverNivel(auth.session.usuario_id, body.nivel)
+    if (body.accion === 'probar') {
+      const teachers = (await equipo(nivel)).filter((t) => t.activo)
+      const resultados = await Promise.all(
+        teachers.map(async (t) => ({
+          maestro_id: t.maestro_id,
+          nombre: t.nombre,
+          email: t.email,
+          ...(t.email
+            ? await diagnosticoPublicar(t.email, t.grupos)
+            : { ok: false, error: 'Sin correo institucional en su perfil.', clases: [], temas_ejemplo: [], mapa: [] }),
+        })),
+      )
+      return NextResponse.json({ teachers: resultados })
+    }
     const id = Number(body.id)
     if (!Number.isInteger(id) || id <= 0) throw new TeError('Planeación no válida.')
     const accion = body.accion === 'retirar' ? 'retirar' : 'publicar'

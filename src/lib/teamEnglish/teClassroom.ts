@@ -627,3 +627,40 @@ export async function publicarPlanClassroom(
   r.clases = clases.size
   return r
 }
+
+export type DiagnosticoGclass = {
+  ok: boolean
+  error: string | null
+  clases: string[]
+  temas_ejemplo: string[]
+  mapa: { grupo: string; skill: SkillClave; clase: string | null }[]
+}
+
+/** Solo lectura: confirma que la delegación ya permite publicar y qué clase tocaría a cada grupo y materia. */
+export async function diagnosticoPublicar(rawEmail: unknown, grupos: string[]): Promise<DiagnosticoGclass> {
+  const out: DiagnosticoGclass = { ok: false, error: null, clases: [], temas_ejemplo: [], mapa: [] }
+  try {
+    const email = normalizarCorreoTeacher(rawEmail)
+    const cr = clienteClassroom(email, SCOPES_PUBLICAR)
+    const cursos = (await cr.courses.list({ teacherId: 'me', courseStates: ['ACTIVE'], pageSize: 100 })).data.courses ?? []
+    out.clases = cursos.map((c) => [c.name, c.section].filter(Boolean).join(' · ')).sort()
+    const conTemas = cursos.find((c) => c.id)
+    if (conTemas?.id) {
+      const temas = (await cr.courses.topics.list({ courseId: conTemas.id, pageSize: 20 })).data.topic ?? []
+      out.temas_ejemplo = temas.slice(0, 5).map((t) => `${conTemas.name}: ${t.name}`)
+    }
+    for (const g of grupos) {
+      for (const s of Object.keys(CLASE_DE_SKILL) as SkillClave[]) {
+        out.mapa.push({ grupo: g, skill: s, clase: buscarClase(cursos, g, s)?.name ?? null })
+      }
+    }
+    out.ok = true
+  } catch (e) {
+    const err = e as { response?: { data?: { error?: string } }; message?: string }
+    out.error =
+      err.response?.data?.error === 'unauthorized_client'
+        ? 'Google aún no autoriza classroom.topics / classroom.courseworkmaterials (puede tardar unos minutos).'
+        : (err.message ?? 'error')
+  }
+  return out
+}

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Loader2, Upload } from 'lucide-react'
 import {
   ESTADOS_PLANEACION,
+  SKILLS,
   TE_MAX_ARCHIVO_MB,
   bloquesDePlan,
   etiquetaGrado,
@@ -17,7 +18,7 @@ import {
   type TeTeacher,
 } from '@/lib/teamEnglish/teTypes'
 import type { SeccionProps } from '../seccionTipos'
-import { teAbrirArchivo, teAccion, teClassroomPlaneaciones, tePlanClassroom, teSubir } from '../teApi'
+import { teAbrirArchivo, teAccion, teClassroomPlaneaciones, tePlanClassroom, teProbarPublicacion, teSubir, type TeDiagnosticoPublicar } from '../teApi'
 import { ACEPTAR_DOCS, Avatar, Campo, Hoja, Semana, SelectorArchivo, Vacio } from './ui'
 import { PlanLienzoVista, PlanMiniSemana } from './PlanLienzo'
 
@@ -26,6 +27,9 @@ type Filtro = 'todas' | EstadoPlaneacion | 'faltan'
 type EstadoGclass = { datos: TeClassroomPlaneaciones | null; cargando: boolean; error: string | null }
 
 const cacheGclass = new Map<string, TeClassroomPlaneaciones>()
+
+/** Materias con clase propia en Classroom (las que se publican). */
+const SKILLS_CLASE = SKILLS.filter((s) => ['grammar', 'reading', 'writing', 'listening', 'speaking', 'vocabulary', 'math'].includes(s.clave))
 
 const TIPO_GCLASS: Record<TeClassroomPlanItem['tipo'], string> = { tarea: '📝 Tarea', material: '📄 Material', aviso: '📣 Aviso' }
 
@@ -49,6 +53,18 @@ export default function PlaneacionSeccion({ snap, recargar, avisar }: SeccionPro
   const [subir, setSubir] = useState<{ teacher: TeTeacher; grado: number } | null>(null)
 
   const [gclass, setGclass] = useState<EstadoGclass>({ datos: null, cargando: false, error: null })
+  const [probando, setProbando] = useState(false)
+  const [diag, setDiag] = useState<TeDiagnosticoPublicar | null>(null)
+  const probar = async () => {
+    setProbando(true)
+    try {
+      setDiag(await teProbarPublicacion(snap.nivel))
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : 'No se pudo probar la conexión.', 'error')
+    } finally {
+      setProbando(false)
+    }
+  }
   const claveG = `${snap.nivel}|${lunes}`
 
   const cargarGclass = async (refrescar = false) => {
@@ -123,7 +139,43 @@ export default function PlaneacionSeccion({ snap, recargar, avisar }: SeccionPro
         <button type="button" className="te-btn te-btn-ghost te-btn-sm" disabled={gclass.cargando} onClick={() => void cargarGclass(true)}>
           {gclass.cargando ? <Loader2 size={14} className="te-spin" aria-hidden /> : '🔄'} Actualizar
         </button>
+        <button type="button" className="te-btn te-btn-ghost te-btn-sm" disabled={probando} onClick={() => void probar()}>
+          {probando ? <Loader2 size={14} className="te-spin" aria-hidden /> : '🔌'} Probar publicación
+        </button>
       </p>
+      {diag ? (
+        <Hoja abierta ancho titulo="Conexión para publicar en Classroom" emoji="🔌" onCerrar={() => setDiag(null)}>
+          <p className="te-nota">Solo lectura: no se publicó nada. Para cada grupo y materia, la clase donde se programaría la planeación.</p>
+          <ul className="te-diag">
+            {diag.teachers.map((t) => (
+              <li key={t.maestro_id} data-ok={t.ok || undefined}>
+                <strong>{t.ok ? '✅' : '❌'} {t.nombre}</strong>
+                <small>{t.email ?? 'sin correo'}{t.ok ? ` · ${t.clases.length} clases activas` : ''}</small>
+                {t.error ? <p className="te-diag-error">{t.error}</p> : null}
+                {t.ok ? (
+                  <div className="te-tabla-scroll">
+                    <table className="te-diag-tabla">
+                      <thead><tr><th>Grupo</th>{SKILLS_CLASE.map((s) => <th key={s.clave}>{s.emoji} {s.etiqueta.split(',')[0]}</th>)}</tr></thead>
+                      <tbody>
+                        {[...new Set(t.mapa.map((m) => m.grupo))].map((g) => (
+                          <tr key={g}>
+                            <th>{g}</th>
+                            {SKILLS_CLASE.map((s) => {
+                              const c = t.mapa.find((m) => m.grupo === g && m.skill === s.clave)?.clase
+                              return <td key={s.clave} data-falta={!c || undefined}>{c ?? '—'}</td>
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+                {t.temas_ejemplo.length ? <small>🏷️ Temas: {t.temas_ejemplo.join(' · ')}</small> : null}
+              </li>
+            ))}
+          </ul>
+        </Hoja>
+      ) : null}
 
       {semanasPendientes.length ? (
         <p className="te-alerta">
