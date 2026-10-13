@@ -24,7 +24,7 @@ type Seccion = 'teachers' | 'planeacion' | 'capacitaciones' | 'desempeno' | 'cla
 const SECCIONES: { id: Seccion; titulo: string; emoji: string; sub: string; color: string }[] = [
   { id: 'teachers', titulo: 'Teachers', emoji: '👩‍🏫', sub: 'Perfiles, C.V. e historial', color: 'fresa' },
   { id: 'planeacion', titulo: 'Planeación', emoji: '📚', sub: 'Planes semanales por grado', color: 'lavanda' },
-  { id: 'capacitaciones', titulo: 'Capacitaciones', emoji: '🎓', sub: 'Internas y externas', color: 'matcha' },
+  { id: 'capacitaciones', titulo: 'Capacitaciones', emoji: '🎓', sub: 'Internas, externas y cursos de teachers', color: 'matcha' },
   { id: 'desempeno', titulo: 'Desempeño', emoji: '⭐', sub: 'Ponderadores y % del equipo', color: 'durazno' },
   { id: 'classroom', titulo: 'Classrooms', emoji: '💻', sub: 'Actualización y revisión', color: 'cielo' },
 ]
@@ -109,6 +109,8 @@ function TeamEnglish() {
         return p ? `${p} por revisar ⏳` : 'Todo revisado ✨'
       })(),
       capacitaciones: (() => {
+        const cursos = snap.cursos.filter((c) => c.estado === 'pendiente').length
+        if (cursos) return `${cursos} curso${cursos === 1 ? '' : 's'} por validar ⏳`
         const n = snap.capacitaciones.filter((c) => c.estado === 'programada' && (c.fecha_fin ?? c.fecha_inicio) >= snap.hoy).length
         return n ? `${n} programada${n === 1 ? '' : 's'}` : 'Sin próximas'
       })(),

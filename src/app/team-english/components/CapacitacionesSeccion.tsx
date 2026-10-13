@@ -6,8 +6,9 @@ import { MODALIDADES, fechaCorta, type TeCapacitacion } from '@/lib/teamEnglish/
 import type { SeccionProps } from '../seccionTipos'
 import { teAbrirArchivo, teAccion, teSubir } from '../teApi'
 import { ACEPTAR_DOCS, Avatar, Campo, Hoja, Vacio } from './ui'
+import CursosSeccion from './CursosSeccion'
 
-type Vista = 'proximas' | 'historial'
+type Vista = 'proximas' | 'historial' | 'cursos'
 type Borrador = {
   id?: number
   titulo: string
@@ -38,7 +39,7 @@ function mesDia(iso: string) {
 }
 
 export default function CapacitacionesSeccion({ snap, recargar, avisar }: SeccionProps) {
-  const [vista, setVista] = useState<Vista>('proximas')
+  const [vista, setVista] = useState<Vista>(() => (snap.cursos.some((c) => c.estado === 'pendiente') ? 'cursos' : 'proximas'))
   const [tipo, setTipo] = useState<'todas' | TeCapacitacion['tipo']>('todas')
   const [borrador, setBorrador] = useState<Borrador | null>(null)
 
@@ -93,6 +94,26 @@ export default function CapacitacionesSeccion({ snap, recargar, avisar }: Seccio
     }
   }
 
+  const porValidar = snap.cursos.filter((c) => c.estado === 'pendiente').length
+  const pestanas = (
+    <div className="te-filtros" role="tablist">
+      {([['proximas', '🗓️ Próximas'], ['historial', '📜 Historial'], ['cursos', '🏅 Cursos de teachers']] as [Vista, string][]).map(([id, txt]) => (
+        <button key={id} type="button" role="tab" aria-selected={vista === id} data-activo={vista === id || undefined} onClick={() => setVista(id)}>
+          {txt}{id === 'cursos' && porValidar ? <b title="Por validar">{porValidar}</b> : null}
+        </button>
+      ))}
+    </div>
+  )
+
+  if (vista === 'cursos') {
+    return (
+      <>
+        <div className="te-toolbar">{pestanas}</div>
+        <CursosSeccion snap={snap} recargar={recargar} avisar={avisar} />
+      </>
+    )
+  }
+
   return (
     <>
       <dl className="te-mini-stats">
@@ -103,11 +124,7 @@ export default function CapacitacionesSeccion({ snap, recargar, avisar }: Seccio
       </dl>
 
       <div className="te-toolbar">
-        <div className="te-filtros" role="tablist">
-          {([['proximas', '🗓️ Próximas'], ['historial', '📜 Historial']] as [Vista, string][]).map(([id, txt]) => (
-            <button key={id} type="button" role="tab" aria-selected={vista === id} data-activo={vista === id || undefined} onClick={() => setVista(id)}>{txt}</button>
-          ))}
-        </div>
+        {pestanas}
         <select className="te-input te-select-sm" value={tipo} onChange={(e) => setTipo(e.target.value as typeof tipo)} aria-label="Tipo">
           <option value="todas">Internas y externas</option>
           <option value="interna">Solo internas</option>

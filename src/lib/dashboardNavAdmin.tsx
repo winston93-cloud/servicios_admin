@@ -578,13 +578,13 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   {
     id: 'portal-teachers',
     label: 'Portal Teachers',
-    desc: 'Lo que suben las teachers de inglés primaria: planeaciones semanales y constancias de cursos, para revisar y validar.',
-    path: '/team-english/portal-teachers',
+    desc: 'Portal para las teachers de inglés primaria: entran con su usuario de boletas y suben sus planeaciones y cursos.',
+    path: '/team-english/teacher',
     accent: 'rose',
     kicker: 'English Department',
     tags: ['Planeaciones', 'Cursos', 'Teachers'],
     badge: 'Nuevo',
-    // Mismo acceso que Team English: coording, laura y mario.
+    // Abre el portal de las teachers (login con usuario de boletas); la revisión está en Team English.
     soloUsuarios: [2, 10, 17],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
