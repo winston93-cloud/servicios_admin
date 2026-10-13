@@ -428,25 +428,30 @@ export default function BoletasCapturaMaternalKinderPage() {
             )}
 
             {info && !grupo && delIdioma.length > 0 && (
-              <ul className="bc-grupos">
-                {delIdioma.map((g) => (
-                  <li key={claveGrupo(g)}>
-                    <button type="button" className="ki-menu-item" onClick={() => setElegido(claveGrupo(g))}>
-                      <span className="bc-grupo-badge" aria-hidden>
-                        {g.grupo}
-                      </span>
-                      <span className="ki-menu-text">
-                        <strong>{g.etiqueta}</strong>
-                        <span>
-                          {sesion.supervisor
-                            ? `${info.docente}: ${g.teacher || 'sin asignar'}`
-                            : `${info.titulo} · capturar boletas`}
+              <>
+                <h2 className="ki-seccion">
+                  {sesion.supervisor ? 'Grupos' : 'Mis grupos'} de {info.titulo.toLowerCase()}
+                </h2>
+                <ul className="bc-grupos">
+                  {delIdioma.map((g) => (
+                    <li key={claveGrupo(g)}>
+                      <button type="button" className="ki-menu-item" onClick={() => setElegido(claveGrupo(g))}>
+                        <span className="bc-grupo-badge" aria-hidden>
+                          {g.grupo}
                         </span>
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+                        <span className="ki-menu-text">
+                          <strong>{g.etiqueta}</strong>
+                          <span>
+                            {sesion.supervisor
+                              ? `${info.docente}: ${g.teacher || 'sin asignar'}`
+                              : `${info.titulo} · capturar boletas`}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
 
             {grupo && <GrupoTeacher key={elegido} grupo={grupo} sesion={sesion} />}

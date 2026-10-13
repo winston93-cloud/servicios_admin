@@ -11,7 +11,7 @@
   --ki-line: rgba(232, 226, 214, 0.12);
   --ki-border: rgba(201, 162, 39, 0.22);
   --ki-accent: #7c5cbf;
-  --ki-max: 960px;
+  --ki-max: 1120px;
   --ki-serif: var(--font-boletas-serif), 'Instrument Serif', Georgia, serif;
   --ki-sans: var(--font-boletas-sans), var(--font-inter), Inter, system-ui, sans-serif;
 
@@ -714,6 +714,36 @@ html[data-theme='light'] .ki-sucio {
 }
 
 /* —— Menú de la directora —— */
+.ki-seccion {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: clamp(1.4rem, 3vw, 2rem) 0 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ki-mute);
+}
+
+.ki-seccion + .ki-portal-card {
+  margin-top: 0;
+}
+
+/* Con 4 opciones (Kinder Español) va en 2×2 para no dejar una tarjeta sola. */
+@media (min-width: 641px) {
+  .ki-menu:has(> li:nth-child(4):last-child) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.ki-seccion::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--ki-line);
+}
+
 .ki-menu {
   list-style: none;
   margin: 0;
@@ -1296,7 +1326,7 @@ html[data-theme='light'] .ki-grupo-avance.is-ok {
 
 /* —— Modo claro: navy + slate (mismo lenguaje que Servicios) —— */
 html[data-theme='light'] .ki-page {
-  --ki-bg: #f1f5f9;
+  --ki-bg: #e6ebf2;
   --ki-ink: #0f172a;
   --ki-mute: #475569;
   --ki-dim: #64748b;
@@ -1306,12 +1336,12 @@ html[data-theme='light'] .ki-page {
   --ki-line: #e2e8f0;
   --ki-border: #cbd5e1;
   --ki-accent: #1d4ed8;
+  --ki-sombra: 0 1px 2px rgba(15, 23, 42, 0.08), 0 6px 18px rgba(15, 23, 42, 0.08);
+  --ki-sombra-alta: 0 2px 4px rgba(15, 23, 42, 0.08), 0 18px 36px rgba(30, 58, 138, 0.16);
 }
 
 html[data-theme='light'] .ki-page.bm-page::before {
-  background:
-    radial-gradient(ellipse 80% 50% at 8% -12%, rgba(37, 99, 235, 0.09), transparent 60%),
-    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(14, 165, 233, 0.06), transparent 55%);
+  background: none;
 }
 
 /* Barra superior blanca de lado a lado (el contenido sigue centrado). */
@@ -1320,21 +1350,97 @@ html[data-theme='light'] .ki-page .ki-top {
   border-bottom: none !important;
   box-shadow:
     0 0 0 100vmax #ffffff,
-    0 1px 0 100vmax #e2e8f0;
-  clip-path: inset(0 -100vmax -1px);
+    0 1px 0 100vmax #cbd5e1,
+    0 4px 0 100vmax rgba(15, 23, 42, 0.03);
+  clip-path: inset(0 -100vmax -4px);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+html[data-theme='light'] .ki-page .ki-school {
+  color: #0f172a;
+  font-weight: 650;
+}
+
+html[data-theme='light'] .ki-page .ki-user {
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 600;
+}
+
+/* Encabezado como banner navy: separa claramente el título del contenido. */
+html[data-theme='light'] .ki-page .bm-hero {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(1.25rem, 3vw, 1.85rem) clamp(1.15rem, 3vw, 2rem);
+  border-radius: 20px;
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.28), transparent 45%),
+    linear-gradient(135deg, #172554 0%, #1e3a8a 55%, #1d4ed8 100%);
+  box-shadow: var(--ki-sombra-alta);
+}
+
+html[data-theme='light'] .ki-page .bm-hero::after {
+  content: '';
+  position: absolute;
+  right: -48px;
+  bottom: -64px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  border: 28px solid rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+}
+
+html[data-theme='light'] .ki-page .bm-hero .bm-kicker {
+  max-width: none;
+  color: #bae6fd;
+  opacity: 1;
+}
+
+html[data-theme='light'] .ki-page .bm-hero .ki-title {
+  color: #ffffff;
+  font-family: var(--ki-sans);
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  font-size: clamp(1.9rem, 4.5vw, 2.6rem);
+}
+
+html[data-theme='light'] .ki-page .bm-hero .ki-lead {
+  display: inline-block;
+  margin-top: 0.7rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #e0f2fe;
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 1;
 }
 
 html[data-theme='light'] .ki-page .bm-kicker {
   color: #1e40af;
 }
 
+html[data-theme='light'] .ki-page .ki-paper,
 html[data-theme='light'] .ki-page .bm-panel {
-  border-color: #e2e8f0 !important;
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.05),
-    0 10px 28px rgba(15, 23, 42, 0.06);
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 16px !important;
+  box-shadow: var(--ki-sombra);
+}
+
+html[data-theme='light'] .ki-page .ki-title,
+html[data-theme='light'] .ki-page .ki-cat-head h2,
+html[data-theme='light'] .ki-page .ki-form-head h2,
+html[data-theme='light'] .ki-page .ki-grupo-top h3,
+html[data-theme='light'] .ki-page .bc-grupo-head h2,
+html[data-theme='light'] .ki-page .ki-login h2 {
+  font-family: var(--ki-sans);
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 html[data-theme='light'] .ki-page .bm-filters {
@@ -1376,35 +1482,62 @@ html[data-theme='light'] .ki-page .bm-filters select option {
 }
 
 html[data-theme='light'] .ki-page .ki-menu-item {
-  border-color: #e2e8f0;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  padding: 1.2rem 1.25rem;
+  border: 1px solid #cbd5e1;
+  box-shadow: var(--ki-sombra);
 }
 
 html[data-theme='light'] .ki-page .ki-menu-item:hover {
-  border-color: #93c5fd;
-  box-shadow: 0 12px 26px rgba(30, 64, 175, 0.1);
+  border-color: #3b82f6;
+  box-shadow: var(--ki-sombra-alta);
+  transform: translateY(-3px);
 }
 
-html[data-theme='light'] .ki-page .ki-menu-icon {
-  color: #1d4ed8;
-  background: #dbeafe;
+html[data-theme='light'] .ki-page .ki-menu-icon,
+html[data-theme='light'] .ki-page .bc-grupo-badge {
+  color: #ffffff;
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
+  box-shadow: 0 6px 14px rgba(37, 99, 235, 0.3);
+}
+
+html[data-theme='light'] .ki-page .ki-menu-item:hover .ki-menu-icon {
+  background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
 }
 
 html[data-theme='light'] .ki-page .ki-menu-text strong {
   color: #0f172a;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+html[data-theme='light'] .ki-page .ki-menu-text span {
+  color: #475569;
 }
 
 html[data-theme='light'] .ki-page .ki-portal-card {
-  border: 1px solid #bfdbfe;
-  background: #eff6ff;
+  margin-top: 0;
+  padding: 1.15rem 1.25rem;
+  border: 1px solid #93c5fd;
+  background: linear-gradient(135deg, #eff6ff, #ffffff 70%);
+  box-shadow: var(--ki-sombra);
 }
 
 html[data-theme='light'] .ki-page .ki-portal-card strong {
   color: #1e3a8a;
+  font-size: 1.02rem;
 }
 
 html[data-theme='light'] .ki-page .ki-portal-card .ki-hint {
   color: #334155;
+  font-size: 0.82rem;
+}
+
+html[data-theme='light'] .ki-page .ki-seccion {
+  color: #334155;
+}
+
+html[data-theme='light'] .ki-page .ki-seccion::after {
+  background: #cbd5e1;
 }
 
 html[data-theme='light'] .ki-page .ki-btn {
@@ -1528,11 +1661,34 @@ html[data-theme='light'] .ki-page .ki-tag {
   border-color: #bfdbfe;
 }
 
-html[data-theme='light'] .ki-page .ki-grupo,
+html[data-theme='light'] .ki-page .ki-grupo {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
 html[data-theme='light'] .ki-page .ki-teacher,
 html[data-theme='light'] .ki-page .ki-indicador {
   background: #ffffff;
   border-color: #e2e8f0;
+}
+
+html[data-theme='light'] .ki-page .ki-teacher:hover,
+html[data-theme='light'] .ki-page .ki-indicador:hover {
+  border-color: #93c5fd;
+  background: #f8fafc;
+}
+
+@media (max-width: 640px) {
+  html[data-theme='light'] .ki-page .bm-hero {
+    border-radius: 16px;
+  }
+
+  html[data-theme='light'] .ki-page .bm-hero::after {
+    width: 150px;
+    height: 150px;
+    border-width: 20px;
+  }
 }
 
 html[data-theme='light'] .ki-page .ki-grupo.is-publicada {

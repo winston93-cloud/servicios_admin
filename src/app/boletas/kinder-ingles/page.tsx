@@ -370,6 +370,7 @@ function KinderEnApp() {
 
         {vista === 'menu' && (
           <>
+            <h2 className="ki-seccion">Menú de dirección</h2>
             <ul className="ki-menu">
               {MENU.map((m) => {
                 const Icon = m.icon
@@ -388,6 +389,7 @@ function KinderEnApp() {
                 )
               })}
             </ul>
+            <h2 className="ki-seccion">Portal de captura</h2>
             <PortalTeachersCard />
           </>
         )}
