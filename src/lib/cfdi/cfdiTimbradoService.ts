@@ -53,7 +53,7 @@ export async function listarPagosPendientesMes(
 ): Promise<PagoDetalle[]> {
   const year = new Date().getFullYear()
   const inicio = `${year}-${String(mes).padStart(2, '0')}-01`
-  const fin = `${year}-${String(mes).padStart(2, '0')}-31`
+  const siguiente = mes === 12 ? `${year + 1}-01-01` : `${year}-${String(mes + 1).padStart(2, '0')}-01`
 
   let query = db
     .from('pago_detalle')
@@ -61,7 +61,7 @@ export async function listarPagosPendientesMes(
       'pago_id, alumno_id, pago_referencia, pago_importe, pago_recargo, pago_forma, pago_fecha, pago_cancelado, facturo'
     )
     .gte('pago_fecha', inicio)
-    .lte('pago_fecha', fin)
+    .lt('pago_fecha', siguiente)
 
   if (metodoPago) {
     query = query.eq('pago_forma', metodoPago)
