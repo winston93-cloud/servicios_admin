@@ -17,9 +17,10 @@ import PlaneacionSeccion from './components/PlaneacionSeccion'
 import CapacitacionesSeccion from './components/CapacitacionesSeccion'
 import DesempenoSeccion from './components/DesempenoSeccion'
 import ClassroomSeccion from './components/ClassroomSeccion'
+import ReconocimientosSeccion from './components/ReconocimientosSeccion'
 import './team-english.css'
 
-type Seccion = 'teachers' | 'planeacion' | 'capacitaciones' | 'desempeno' | 'classroom'
+type Seccion = 'teachers' | 'planeacion' | 'capacitaciones' | 'desempeno' | 'classroom' | 'reconocimientos'
 
 const SECCIONES: { id: Seccion; titulo: string; emoji: string; sub: string; color: string }[] = [
   { id: 'teachers', titulo: 'Teachers', emoji: '👩‍🏫', sub: 'Perfiles, C.V. e historial', color: 'fresa' },
@@ -27,6 +28,7 @@ const SECCIONES: { id: Seccion; titulo: string; emoji: string; sub: string; colo
   { id: 'capacitaciones', titulo: 'Capacitaciones', emoji: '🎓', sub: 'Internas, externas y cursos de teachers', color: 'matcha' },
   { id: 'desempeno', titulo: 'Desempeño', emoji: '⭐', sub: 'Ponderadores y % del equipo', color: 'durazno' },
   { id: 'classroom', titulo: 'Classrooms', emoji: '💻', sub: 'Actualización y revisión', color: 'cielo' },
+  { id: 'reconocimientos', titulo: 'Reconocimientos', emoji: '🎉', sub: 'Eventos y felicitaciones de la semana', color: 'limon' },
 ]
 
 export default function TeamEnglishPage() {
@@ -116,6 +118,10 @@ function TeamEnglish() {
       })(),
       desempeno: `Promedio del mes: ${prom.toFixed(1)}%`,
       classroom: `${revisados}/${gruposSemana} grupos al 100% esta semana`,
+      reconocimientos: (() => {
+        const n = snap.reconocimientos.filter((r) => r.semana === lunes).length
+        return n ? `${n} esta semana 🎊` : '¡Felicita a tu team! ✨'
+      })(),
     } as Record<Seccion, string>
   }, [snap])
 
@@ -200,6 +206,7 @@ function TeamEnglish() {
               {seccion === 'capacitaciones' ? <CapacitacionesSeccion snap={snap} recargar={recargar} avisar={avisar} /> : null}
               {seccion === 'desempeno' ? <DesempenoSeccion snap={snap} recargar={recargar} avisar={avisar} /> : null}
               {seccion === 'classroom' ? <ClassroomSeccion snap={snap} recargar={recargar} avisar={avisar} /> : null}
+              {seccion === 'reconocimientos' ? <ReconocimientosSeccion snap={snap} recargar={recargar} avisar={avisar} /> : null}
             </div>
           )
         ) : null}

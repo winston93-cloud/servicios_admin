@@ -6,6 +6,13 @@ import {
   ESTADOS_PLANEACION,
   MODALIDADES,
   SKILLS,
+  EFECTOS_RECONOCIMIENTO,
+  REACCIONES,
+  TEMAS_RECONOCIMIENTO,
+  type EfectoReconocimiento,
+  type Reaccion,
+  type TemaReconocimiento,
+  type TeReconocimiento,
   type TeCursoSugerido,
   mensajeArchivoGrande,
   RUBROS,
@@ -350,6 +357,126 @@ function enlaceHttps(raw: unknown): string {
   return url.toString()
 }
 
+async function reconocimientosDe(nivel: TeNivel, desde: string, teachers: TeTeacher[]): Promise<TeReconocimiento[]> {
+  const { data, error } = await db()
+    .from('te_reconocimiento')
+    .select('*')
+    .eq('nivel', nivel)
+    .gte('semana', desde)
+    .order('semana', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(200)
+  fail(error, 'Reconocimientos')
+  const filas = (data ?? []) as Record<string, unknown>[]
+  const ids = filas.map((r) => Number(r.id))
+  const porRec = new Map<number, TeReconocimiento['vistos']>()
+  if (ids.length) {
+    const { data: vistos, error: vErr } = await db().from('te_reconocimiento_visto').select('reconocimiento_id, maestro_id, reaccion').in('reconocimiento_id', ids)
+    fail(vErr, 'Reconocimientos')
+    for (const v of (vistos ?? []) as Record<string, unknown>[]) {
+      const lista = porRec.get(Number(v.reconocimiento_id)) ?? []
+      lista.push({ maestro_id: Number(v.maestro_id), reaccion: (v.reaccion as Reaccion) ?? null })
+      porRec.set(Number(v.reconocimiento_id), lista)
+    }
+  }
+  const teacherDe = new Map(teachers.map((t) => [t.maestro_id, t]))
+  return filas.map((r) => ({
+    id: Number(r.id),
+    semana: String(r.semana).slice(0, 10),
+    titulo: String(r.titulo),
+    mensaje: String(r.mensaje ?? ''),
+    emoji: String(r.emoji ?? '🏆'),
+    efectos: (r.efectos as EfectoReconocimiento[]) ?? ['confeti'],
+    tema: r.tema as TemaReconocimiento,
+    sonido: Boolean(r.sonido),
+    temblor: Boolean(r.temblor),
+    foto_key: (r.foto_key as string) ?? null,
+    creado_por: (r.creado_por as string) ?? null,
+    created_at: String(r.created_at ?? ''),
+    homenajeadas: ((r.maestro_ids as number[]) ?? []).flatMap((id) => {
+      const t = teacherDe.get(Number(id))
+      return t ? [{ maestro_id: t.maestro_id, nombre: t.nombre, emoji: t.emoji }] : []
+    }),
+    vistos: porRec.get(Number(r.id)) ?? [],
+  }))
+}
+
+/** La directora publica o edita un reconocimiento (multipart: foto opcional). */
+export async function guardarReconocimiento(nivel: TeNivel, form: FormData, quien: string): Promise<void> {
+  const leerJson = (k: string): unknown[] => {
+    try {
+      const v = JSON.parse(String(form.get(k) ?? '[]'))
+      return Array.isArray(v) ? v : []
+    } catch {
+      return []
+    }
+  }
+  const efectos = [...new Set(leerJson('efectos').map(String))].filter((e) => EFECTOS_RECONOCIMIENTO.some((x) => x.clave === e))
+  if (!efectos.length) throw new TeError('Elige al menos un efecto.')
+  const tema = String(form.get('tema') ?? 'arcoiris')
+  if (!TEMAS_RECONOCIMIENTO.some((t) => t.clave === tema)) throw new TeError('Tema no válido.')
+  const equipoIds = new Set((await equipo(nivel)).map((t) => t.maestro_id))
+  const maestroIds = [...new Set(leerJson('maestro_ids').map(Number))].filter((id) => equipoIds.has(id))
+  const emoji = texto(form.get('emoji'), 16, 'El emoji') ?? '🏆'
+  const fila = {
+    nivel,
+    semana: lunesDe(fecha(form.get('semana'), 'La semana')!),
+    titulo: texto(form.get('titulo'), 120, 'El título', true),
+    mensaje: texto(form.get('mensaje'), 600, 'El mensaje') ?? '',
+    emoji,
+    maestro_ids: maestroIds,
+    efectos,
+    tema,
+    sonido: form.get('sonido') !== '0',
+    temblor: form.get('temblor') !== '0',
+    updated_at: new Date().toISOString(),
+  }
+  const file = form.get('foto') instanceof File && (form.get('foto') as File).size ? (form.get('foto') as File) : null
+  const subida = file ? await subir('evento', nivel, 0, file) : null
+  const idRaw = form.get('id')
+  try {
+    if (idRaw) {
+      const id = entero(idRaw, 'El reconocimiento')
+      const { data: previo, error } = await db().from('te_reconocimiento').select('foto_key').eq('id', id).eq('nivel', nivel).maybeSingle()
+      fail(error, 'Reconocimiento')
+      if (!previo) throw new TeError('Reconocimiento no encontrado.', 404)
+      const quitar = subida || form.get('quitar_foto') === '1'
+      const { error: upErr } = await db()
+        .from('te_reconocimiento')
+        .update({ ...fila, ...(quitar ? { foto_key: subida?.key ?? null } : {}) })
+        .eq('id', id)
+        .eq('nivel', nivel)
+      fail(upErr, 'Reconocimiento')
+      if (quitar) await borrarArchivo(previo.foto_key as string)
+      return
+    }
+    const { error } = await db().from('te_reconocimiento').insert([{ ...fila, foto_key: subida?.key ?? null, creado_por: quien }])
+    fail(error, 'Reconocimiento')
+  } catch (e) {
+    if (subida) await borrarArchivo(subida.key)
+    throw e
+  }
+}
+
+/** La teacher vio el reconocimiento (y opcionalmente reacciona). `reaccion: null` la quita. */
+export async function marcarReconocimiento(nivel: TeNivel, maestroId: number, id: number, reaccion?: string | null): Promise<void> {
+  const { data, error } = await db().from('te_reconocimiento').select('id').eq('id', id).eq('nivel', nivel).maybeSingle()
+  fail(error, 'Reconocimiento')
+  if (!data) throw new TeError('Reconocimiento no encontrado.', 404)
+  if (reaccion === undefined) {
+    const { error: e } = await db()
+      .from('te_reconocimiento_visto')
+      .upsert([{ reconocimiento_id: id, maestro_id: maestroId }], { onConflict: 'reconocimiento_id,maestro_id', ignoreDuplicates: true })
+    fail(e, 'Reconocimiento')
+    return
+  }
+  if (reaccion !== null && !REACCIONES.some((r) => r.clave === reaccion)) throw new TeError('Reacción no válida.')
+  const { error: e } = await db()
+    .from('te_reconocimiento_visto')
+    .upsert([{ reconocimiento_id: id, maestro_id: maestroId, reaccion }], { onConflict: 'reconocimiento_id,maestro_id' })
+  fail(e, 'Reconocimiento')
+}
+
 export async function snapshot(nivel: TeNivel, niveles: TeNivel[]): Promise<TeSnapshot> {
   const hoy = hoyMx()
   const inicio = inicioCicloEscolar(hoy)
@@ -378,7 +505,10 @@ export async function snapshot(nivel: TeNivel, niveles: TeNivel[]): Promise<TeSn
     registrado_por: (r.registrado_por as string) ?? null,
     origen: 'manual',
   }))
-  const reloj = await incidenciasReloj(teachers.filter((t) => t.activo), inicio, hoy)
+  const [reloj, reconocimientos] = await Promise.all([
+    incidenciasReloj(teachers.filter((t) => t.activo), inicio, hoy),
+    reconocimientosDe(nivel, lunesDe(inicio), teachers),
+  ])
   const capturadas = new Set(manuales.map((i) => `${i.maestro_id}|${i.fecha}|${i.tipo}`))
   return {
     nivel,
@@ -390,6 +520,7 @@ export async function snapshot(nivel: TeNivel, niveles: TeNivel[]): Promise<TeSn
     capacitaciones,
     cursos,
     sugeridos,
+    reconocimientos,
     incidencias: [...manuales, ...reloj.incidencias.filter((i) => !capturadas.has(`${i.maestro_id}|${i.fecha}|${i.tipo}`))].sort(
       (a, b) => b.fecha.localeCompare(a.fecha),
     ),
@@ -446,12 +577,12 @@ const MIME_PERMITIDOS = [
   'image/webp',
 ]
 
-export type TipoArchivo = 'cv' | 'foto' | 'antecedente' | 'planeacion' | 'constancia' | 'expediente' | 'curso'
+export type TipoArchivo = 'cv' | 'foto' | 'antecedente' | 'planeacion' | 'constancia' | 'expediente' | 'curso' | 'evento'
 
 async function subir(tipo: TipoArchivo, nivel: TeNivel, maestroId: number, file: File): Promise<{ key: string; nombre: string }> {
   if (!file || typeof file.arrayBuffer !== 'function' || !file.size) throw new TeError('Selecciona un archivo.')
   if (file.size > TE_MAX_ARCHIVO_MB * 1024 * 1024) throw new TeError(mensajeArchivoGrande(file.size))
-  const soloImagen = tipo === 'foto'
+  const soloImagen = tipo === 'foto' || tipo === 'evento'
   if (soloImagen ? !file.type.startsWith('image/') : !MIME_PERMITIDOS.includes(file.type)) {
     throw new TeError(soloImagen ? 'La foto debe ser JPG, PNG o WebP.' : 'Formato no permitido. Usa PDF, Word, PowerPoint, Excel o imagen.')
   }
@@ -477,7 +608,7 @@ export async function descargar(key: string): Promise<{ bytes: Uint8Array; tipo:
 
 /** El nivel va en la ruta del archivo: `{tipo}/{nivel}/{maestro}/…`. */
 export function nivelDeKey(key: string): { nivel: number; maestroId: number; tipo: string } | null {
-  const m = /^(cv|foto|antecedente|planeacion|constancia|expediente|curso)\/(\d)\/(\d+)\//.exec(key)
+  const m = /^(cv|foto|antecedente|planeacion|constancia|expediente|curso|evento)\/(\d)\/(\d+)\//.exec(key)
   return m ? { tipo: m[1], nivel: Number(m[2]), maestroId: Number(m[3]) } : null
 }
 
@@ -909,6 +1040,15 @@ export async function accion(nivel: TeNivel, body: Record<string, unknown>, quie
       fail(error, 'Curso sugerido')
       return { ok: true }
     }
+    case 'eliminar_reconocimiento': {
+      const id = entero(body.id, 'El reconocimiento')
+      const { data } = await db().from('te_reconocimiento').select('foto_key').eq('id', id).eq('nivel', nivel).maybeSingle()
+      if (!data) throw new TeError('Reconocimiento no encontrado.', 404)
+      const { error } = await db().from('te_reconocimiento').delete().eq('id', id).eq('nivel', nivel)
+      fail(error, 'Reconocimiento')
+      await borrarArchivo(data.foto_key as string)
+      return { ok: true }
+    }
     case 'eliminar_curso_sugerido': {
       const { error } = await db().from('te_curso_sugerido').delete().eq('id', entero(body.id, 'El curso')).eq('nivel', nivel)
       fail(error, 'Curso sugerido')
@@ -1130,11 +1270,12 @@ export async function portalTeacher(maestroId: number) {
   if (!r) throw new TeError('Tu usuario no está en un equipo de inglés.', 403)
   const hoy = hoyMx()
   const desde = sumarDias(lunesDe(hoy), -7 * 12)
-  const [planRes, capacitaciones, cursos, sugeridos] = await Promise.all([
+  const [planRes, capacitaciones, cursos, sugeridos, reconocimientos] = await Promise.all([
     db().from('te_planeacion').select('*').eq('maestro_id', maestroId).gte('semana', desde).order('semana', { ascending: false }),
     capacitacionesNivel(r.nivel, maestroId),
     cursosDe({ maestroId }),
     sugeridosDe(r.nivel, true),
+    equipo(r.nivel).then((t) => reconocimientosDe(r.nivel, sumarDias(lunesDe(hoy), -7 * 8), t)),
   ])
   fail(planRes.error, 'Planeaciones')
   return {
@@ -1145,6 +1286,7 @@ export async function portalTeacher(maestroId: number) {
     capacitaciones: capacitaciones.map((c) => ({ ...c, participantes: c.participantes.filter((p) => p.maestro_id === maestroId) })),
     cursos,
     sugeridos,
+    reconocimientos,
   }
 }
 

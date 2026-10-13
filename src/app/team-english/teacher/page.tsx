@@ -13,6 +13,7 @@ import { PlanMiniSemana } from '../components/PlanLienzo'
 import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
 import CursoDelDia from './CursoDelDia'
 import MisCursos, { borradorDeSugerido, type BorradorCurso } from './MisCursos'
+import MuroReconocimientos from './MuroReconocimientos'
 import PlanSemana from './PlanSemana'
 import '../team-english.css'
 
@@ -177,6 +178,7 @@ function Portal({ data, setData, onOk, onError, onSalir }: {
         </section>
         <CursoDelDia sugeridos={data.sugeridos} hoy={data.hoy} onLoTome={loTome} />
       </div>
+      <MuroReconocimientos data={data} setData={setData} onError={onError} />
 
       <div className="te-filtros te-tabs" role="tablist" aria-label="Secciones del portal">
         <button type="button" role="tab" aria-selected={tab === 'planeaciones'} data-activo={tab === 'planeaciones' || undefined} onClick={() => setTab('planeaciones')}>

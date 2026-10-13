@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { sesionPortalDeRequest } from '@/lib/portalSesionFirmada'
 import { requireEmpleadoPortal } from '@/lib/portalApiEmpleadoAuth'
-import { TeError, descargar, nivelDeKey, nivelesPermitidos, resolverNivel, subirArchivoDirectora } from '@/lib/teamEnglish/teService'
+import { TeError, descargar, equipoDeTeacher, nivelDeKey, nivelesPermitidos, resolverNivel, subirArchivoDirectora } from '@/lib/teamEnglish/teService'
 import type { TeNivel } from '@/lib/teamEnglish/teTypes'
 import { sesionTeacherDeRequest } from '@/lib/teamEnglish/teTeacherAuth'
 
@@ -41,8 +41,11 @@ export async function GET(request: Request) {
       permitido = nivelesPermitidos(session.usuario_id).includes(info.nivel as TeNivel)
     } else {
       const teacher = sesionTeacherDeRequest(request)
-      permitido =
-        !!teacher && teacher.id === info.maestroId && ['planeacion', 'constancia', 'curso'].includes(info.tipo)
+      if (teacher && info.tipo === 'evento') {
+        permitido = (await equipoDeTeacher(teacher.id))?.nivel === info.nivel
+      } else {
+        permitido = !!teacher && teacher.id === info.maestroId && ['planeacion', 'constancia', 'curso'].includes(info.tipo)
+      }
     }
     if (!permitido) throw new TeError('No autorizado.', 403)
 

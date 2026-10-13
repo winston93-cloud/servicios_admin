@@ -415,6 +415,70 @@ export type TeClassroomDetalle = {
   materiales: TeClassroomPublicacion[]
 }
 
+/* ── Reconocimientos de la semana ── */
+
+export const EFECTOS_RECONOCIMIENTO = [
+  { clave: 'confeti', emoji: '🎊', etiqueta: 'Confeti' },
+  { clave: 'fuegos', emoji: '🎆', etiqueta: 'Fuegos artificiales' },
+  { clave: 'serpentinas', emoji: '🎀', etiqueta: 'Serpentinas y garigoles' },
+  { clave: 'pinata', emoji: '🪅', etiqueta: 'Piñata' },
+  { clave: 'globos', emoji: '🎈', etiqueta: 'Globos' },
+  { clave: 'estrellas', emoji: '🌟', etiqueta: 'Lluvia de estrellas' },
+] as const
+export type EfectoReconocimiento = (typeof EFECTOS_RECONOCIMIENTO)[number]['clave']
+
+export const TEMAS_RECONOCIMIENTO = [
+  { clave: 'arcoiris', emoji: '🌈', etiqueta: 'Arcoíris' },
+  { clave: 'neon', emoji: '💜', etiqueta: 'Neón' },
+  { clave: 'oro', emoji: '🏆', etiqueta: 'Oro brillante' },
+  { clave: 'galaxia', emoji: '🌌', etiqueta: 'Galaxia' },
+] as const
+export type TemaReconocimiento = (typeof TEMAS_RECONOCIMIENTO)[number]['clave']
+
+export const REACCIONES = [
+  { clave: 'aplauso', emoji: '👏' },
+  { clave: 'corazon', emoji: '💖' },
+  { clave: 'fiesta', emoji: '🥳' },
+  { clave: 'estrella', emoji: '🌟' },
+] as const
+export type Reaccion = (typeof REACCIONES)[number]['clave']
+
+export const EMOJIS_RECONOCIMIENTO = ['🏆', '🎤', '🌟', '💯', '🥇', '🎂', '📚', '🎭', '💖', '🚀', '👑', '🎉'] as const
+
+/** Atajos para que la directora publique en segundos. */
+export const PLANTILLAS_RECONOCIMIENTO: {
+  nombre: string
+  emoji: string
+  titulo: string
+  mensaje: string
+  efectos: EfectoReconocimiento[]
+  tema: TemaReconocimiento
+}[] = [
+  { nombre: 'Asamblea', emoji: '🎤', titulo: '¡Asamblea padrísima!', mensaje: 'Esta semana su asamblea estuvo increíble. ¡Felicidades por tanto trabajo y creatividad!', efectos: ['confeti', 'fuegos'], tema: 'arcoiris' },
+  { nombre: 'Teacher of the week', emoji: '👑', titulo: 'Teacher of the Week', mensaje: 'Gracias por tu entrega, tu energía y por inspirar a tus alumnos todos los días.', efectos: ['estrellas', 'fuegos'], tema: 'oro' },
+  { nombre: 'Cumpleaños', emoji: '🎂', titulo: '¡Feliz cumpleaños!', mensaje: 'Todo el Team English te desea un día lleno de alegría. ¡Que se rompa la piñata!', efectos: ['pinata', 'globos', 'confeti'], tema: 'arcoiris' },
+  { nombre: 'Planeación 10', emoji: '📚', titulo: 'Planeación de 10', mensaje: 'Tu planeación de esta semana fue clara, creativa y a tiempo. ¡Así se hace!', efectos: ['estrellas', 'serpentinas'], tema: 'galaxia' },
+  { nombre: 'Classroom al día', emoji: '💯', titulo: 'Classroom al 100', mensaje: 'Tus classrooms están al día, calificados y revisados. ¡Gracias por tu constancia!', efectos: ['confeti', 'serpentinas'], tema: 'neon' },
+  { nombre: 'Evento', emoji: '🎭', titulo: '¡Gran evento esta semana!', mensaje: 'Gracias a todo el team por hacerlo posible. ¡Brillaron!', efectos: ['fuegos', 'serpentinas', 'confeti'], tema: 'neon' },
+]
+
+export type TeReconocimiento = {
+  id: number
+  semana: string
+  titulo: string
+  mensaje: string
+  emoji: string
+  efectos: EfectoReconocimiento[]
+  tema: TemaReconocimiento
+  sonido: boolean
+  temblor: boolean
+  foto_key: string | null
+  creado_por: string | null
+  created_at: string
+  homenajeadas: { maestro_id: number; nombre: string; emoji: string }[]
+  vistos: { maestro_id: number; reaccion: Reaccion | null }[]
+}
+
 export type CostoSugerido = 'gratis' | 'certificado_costo' | 'pago'
 
 export const COSTOS_SUGERIDO: Record<CostoSugerido, { emoji: string; etiqueta: string }> = {
@@ -456,6 +520,7 @@ export type TeSnapshot = {
   capacitaciones: TeCapacitacion[]
   cursos: TeCurso[]
   sugeridos: TeCursoSugerido[]
+  reconocimientos: TeReconocimiento[]
   incidencias: TeIncidencia[]
   classroom: TeClassroom[]
   ponderadores: Ponderadores
