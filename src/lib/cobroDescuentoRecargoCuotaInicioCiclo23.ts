@@ -12,6 +12,8 @@ export type CobroDescuentoRecargo00 = {
   nombre: string
   monto: number
   activo: boolean
+  /** 2026-10-13 — Concepto donde se suma si la familia pidió otro mes (por defecto noviembre '03'). */
+  conceptoNo?: string
 }
 
 export const COBRO_DESCUENTO_RECARGO_00_CICLO = 23
@@ -26,7 +28,8 @@ export const COBROS_DESCUENTO_RECARGO_00_CICLO23: readonly CobroDescuentoRecargo
   { alumnoRef: 20596, nombre: 'ANDRADE MORALES HELENA', monto: 75.0, activo: true },
   { alumnoRef: 20680, nombre: 'PEREZ GALVEZ FATIMA ISABELLA', monto: 75.0, activo: true },
   { alumnoRef: 20846, nombre: 'RAMIREZ ENRIQUEZ LUIS HUGO', monto: 150.0, activo: true },
-  { alumnoRef: 20971, nombre: 'ALVARADO PEREZ CARLOS SEBASTIAN', monto: 150.0, activo: true },
+  // 2026-10-13 — La mamá pidió que el cargo vaya en octubre.
+  { alumnoRef: 20971, nombre: 'ALVARADO PEREZ CARLOS SEBASTIAN', monto: 150.0, activo: true, conceptoNo: '02' },
   { alumnoRef: 21078, nombre: 'MOLINA ARZOLA EMMA ARLETH', monto: 75.0, activo: true },
   { alumnoRef: 21258, nombre: 'RANGEL ARRIAGA MARIA GERALDINE', monto: 75.0, activo: true },
   { alumnoRef: 21276, nombre: 'LOPEZ PADRON ANDREA NATALY', monto: 75.0, activo: true },
@@ -62,9 +65,10 @@ export function cobroDescuentoRecargo00Pendiente(
   lista: readonly CobroDescuentoRecargo00[] = COBROS_DESCUENTO_RECARGO_00_CICLO23
 ): number {
   if (Number(opts.cicloEscolar) !== COBRO_DESCUENTO_RECARGO_00_CICLO) return 0
-  if (normalizarConceptoNo(opts.conceptoNo) !== COBRO_DESCUENTO_RECARGO_00_CONCEPTO) return 0
   const ref = Number(opts.alumnoRef)
   if (!Number.isFinite(ref)) return 0
   const row = lista.find((c) => c.alumnoRef === ref)
-  return row?.activo ? row.monto : 0
+  if (!row?.activo) return 0
+  const destino = row.conceptoNo ?? COBRO_DESCUENTO_RECARGO_00_CONCEPTO
+  return normalizarConceptoNo(opts.conceptoNo) === normalizarConceptoNo(destino) ? row.monto : 0
 }
