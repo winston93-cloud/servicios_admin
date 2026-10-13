@@ -16,6 +16,12 @@
  *   `calcularImporteConcepto` baja la base y este descuento sigue encima.
  * - Al pagar ese concepto destino, el descuento queda consumido (ya no hay
  *   “siguiente pendiente” con el mismo saldo).
+ *
+ * 2026-10-13 - Corrección: el descuento se repetía cada mes (al pagar el destino
+ * pasaba a la siguiente colegiatura) y también se daba a quien pagó la 00 tarde
+ * (después del 24-ago, recargo legítimo). Ahora solo cuenta la 00 del ciclo 23
+ * pagada con recargo hasta el 24-ago, y se consume con la primera colegiatura
+ * pagada desde que existe la regla (21-ago).
  */
 import type { AppDatabaseClient } from '@/lib/dbTypes'
 import { CONCEPTO_CUOTA_INICIO } from '@/lib/colegiaturaPrecioReglas'
@@ -41,6 +47,17 @@ export const CONCEPTOS_DESTINO_CREDITO_RECARGO_00 = [
   '30',
 ] as const
 
+/** Único ciclo con la ampliación del límite de la cuota 00 al 24-ago. */
+export const CICLO_CREDITO_RECARGO_00 = 23
+/** Cuotas 00 pagadas con recargo después de esta fecha no generan saldo a favor. */
+export const FECHA_LIMITE_PAGO_00_CON_CREDITO = '2026-08-24'
+/** Colegiaturas pagadas desde esta fecha ya recibieron el descuento (regla en producción). */
+export const FECHA_INICIO_CREDITO_RECARGO_00 = '2026-08-21'
+
+function fechaIsoPago(fecha: string | null | undefined): string {
+  return String(fecha ?? '').slice(0, 10)
+}
+
 export type PagoParaCredito = {
   pago_referencia: string | null
   pago_cancelado?: number | null
@@ -65,7 +82,7 @@ export function montoCreditoRecargoCuotaInicioDesdePagos(
   pagos: PagoParaCredito[],
   cicloEscolar: number
 ): number {
-  if (!(cicloEscolar > 0)) return 0
+  if (cicloEscolar !== CICLO_CREDITO_RECARGO_00) return 0
   let mejor = 0
   for (const p of pagos) {
     if (!pagoVigente(p.pago_cancelado ?? null)) continue
@@ -75,6 +92,8 @@ export function montoCreditoRecargoCuotaInicioDesdePagos(
     if (normalizarConceptoNo(parsed.conceptoNo) !== CONCEPTO_CUOTA_INICIO) {
       continue
     }
+    const fecha = fechaIsoPago(p.pago_fecha)
+    if (!fecha || fecha > FECHA_LIMITE_PAGO_00_CON_CREDITO) continue
     const recargo = Number(p.pago_recargo ?? 0)
     if (!Number.isFinite(recargo) || recargo <= 0) continue
     if (recargo > mejor) mejor = recargo
@@ -99,6 +118,23 @@ export function conceptoPagadoEnCiclo(
   return false
 }
 
+/** ¿Ya se pagó alguna colegiatura / pago anual con el descuento vigente? */
+export function creditoRecargoCuotaInicioConsumido(
+  pagos: PagoParaCredito[],
+  cicloEscolar: number
+): boolean {
+  const destinos = new Set<string>(CONCEPTOS_DESTINO_CREDITO_RECARGO_00)
+  for (const p of pagos) {
+    if (!pagoVigente(p.pago_cancelado ?? null)) continue
+    const parsed = parsearReferenciaPago(p.pago_referencia)
+    if (!parsed) continue
+    if (parsed.cicloEscolar !== cicloEscolar) continue
+    if (!destinos.has(normalizarConceptoNo(parsed.conceptoNo))) continue
+    if (fechaIsoPago(p.pago_fecha) >= FECHA_INICIO_CREDITO_RECARGO_00) return true
+  }
+  return false
+}
+
 /**
  * Primera colegiatura / pago anual pendiente donde aplicar el crédito.
  * Null si no hay destino (todo liquidado o sin crédito aplicable).
@@ -111,6 +147,7 @@ export function conceptoDestinoCreditoRecargoCuotaInicio(
   if (montoCreditoRecargoCuotaInicioDesdePagos(pagos, cicloEscolar) <= 0) {
     return null
   }
+  if (creditoRecargoCuotaInicioConsumido(pagos, cicloEscolar)) return null
   for (const c of conceptosDestinoOrdenados(planMeses)) {
     if (!conceptoPagadoEnCiclo(pagos, c, cicloEscolar)) return c
   }
