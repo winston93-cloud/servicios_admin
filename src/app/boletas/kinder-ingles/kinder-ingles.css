@@ -1293,3 +1293,254 @@ html[data-theme='light'] .ki-grupo-avance.is-ok {
     transition: none;
   }
 }
+
+/* —— Modo claro: navy + slate (mismo lenguaje que Servicios) —— */
+html[data-theme='light'] .ki-page {
+  --ki-bg: #f1f5f9;
+  --ki-ink: #0f172a;
+  --ki-mute: #475569;
+  --ki-dim: #64748b;
+  --ki-gold: #1e40af;
+  --ki-paper: #ffffff;
+  --ki-paper-ink: #0f172a;
+  --ki-line: #e2e8f0;
+  --ki-border: #cbd5e1;
+  --ki-accent: #1d4ed8;
+}
+
+html[data-theme='light'] .ki-page.bm-page::before {
+  background:
+    radial-gradient(ellipse 80% 50% at 8% -12%, rgba(37, 99, 235, 0.09), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(14, 165, 233, 0.06), transparent 55%);
+}
+
+/* Barra superior blanca de lado a lado (el contenido sigue centrado). */
+html[data-theme='light'] .ki-page .ki-top {
+  background: #ffffff;
+  border-bottom: none !important;
+  box-shadow:
+    0 0 0 100vmax #ffffff,
+    0 1px 0 100vmax #e2e8f0;
+  clip-path: inset(0 -100vmax -1px);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+html[data-theme='light'] .ki-page .bm-kicker {
+  color: #1e40af;
+}
+
+html[data-theme='light'] .ki-page .bm-panel {
+  border-color: #e2e8f0 !important;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 10px 28px rgba(15, 23, 42, 0.06);
+}
+
+html[data-theme='light'] .ki-page .bm-filters {
+  background: #f8fafc !important;
+  border-bottom-color: #e2e8f0 !important;
+  box-shadow: none;
+}
+
+html[data-theme='light'] .ki-page .bm-filters label {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] .ki-page .bm-filters select,
+html[data-theme='light'] .ki-page .bm-filters input {
+  color: #0f172a !important;
+  background-color: #ffffff !important;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #475569 50%),
+    linear-gradient(135deg, #475569 50%, transparent 50%),
+    linear-gradient(180deg, #ffffff, #ffffff) !important;
+  border: 1px solid #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05) !important;
+}
+
+html[data-theme='light'] .ki-page .bm-filters select:hover,
+html[data-theme='light'] .ki-page .bm-filters input:hover {
+  border-color: #94a3b8 !important;
+}
+
+html[data-theme='light'] .ki-page .bm-filters select:focus,
+html[data-theme='light'] .ki-page .bm-filters input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22) !important;
+}
+
+html[data-theme='light'] .ki-page .bm-filters select option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+html[data-theme='light'] .ki-page .ki-menu-item {
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+html[data-theme='light'] .ki-page .ki-menu-item:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 12px 26px rgba(30, 64, 175, 0.1);
+}
+
+html[data-theme='light'] .ki-page .ki-menu-icon {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+html[data-theme='light'] .ki-page .ki-menu-text strong {
+  color: #0f172a;
+}
+
+html[data-theme='light'] .ki-page .ki-portal-card {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+}
+
+html[data-theme='light'] .ki-page .ki-portal-card strong {
+  color: #1e3a8a;
+}
+
+html[data-theme='light'] .ki-page .ki-portal-card .ki-hint {
+  color: #334155;
+}
+
+html[data-theme='light'] .ki-page .ki-btn {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #1e293b;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+html[data-theme='light'] .ki-page .ki-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+html[data-theme='light'] .ki-page .ki-btn.primary {
+  background: #1e40af;
+  border-color: #1e40af;
+  color: #ffffff;
+}
+
+html[data-theme='light'] .ki-page .ki-btn.primary:hover:not(:disabled) {
+  background: #1e3a8a;
+  border-color: #1e3a8a;
+}
+
+html[data-theme='light'] .ki-page .ki-btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: #475569;
+}
+
+html[data-theme='light'] .ki-page .ki-btn.ghost:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+html[data-theme='light'] .ki-page .ki-btn.is-danger {
+  color: #b91c1c;
+}
+
+html[data-theme='light'] .ki-page .ki-form input,
+html[data-theme='light'] .ki-page .ki-login input,
+html[data-theme='light'] .ki-page .ki-cat-form input:not([type='checkbox']),
+html[data-theme='light'] .ki-page .ki-cat-form select,
+html[data-theme='light'] .ki-page .ki-asig-celda select {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+html[data-theme='light'] .ki-page .ki-form input:focus,
+html[data-theme='light'] .ki-page .ki-login input:focus,
+html[data-theme='light'] .ki-page .ki-cat-form input:focus,
+html[data-theme='light'] .ki-page .ki-cat-form select:focus,
+html[data-theme='light'] .ki-page .ki-asig-celda select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
+}
+
+html[data-theme='light'] .ki-page .bm-list button {
+  border-color: #e2e8f0;
+  background: #ffffff;
+}
+
+html[data-theme='light'] .ki-page .bm-list button:hover {
+  border-color: #93c5fd;
+  background: #f8fafc;
+}
+
+html[data-theme='light'] .ki-page .bm-list button.is-active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 1px #2563eb;
+  color: #1e3a8a;
+}
+
+html[data-theme='light'] .ki-page .bm-empty {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  opacity: 1;
+}
+
+html[data-theme='light'] .ki-page .bm-form-head {
+  border-bottom-color: #e2e8f0;
+}
+
+html[data-theme='light'] .ki-page .ki-msg:not(.is-error) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+html[data-theme='light'] .ki-page .ki-chip:not(.is-on) {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+html[data-theme='light'] .ki-page .ki-chip:not(.is-on):hover:not(:disabled) {
+  border-color: #64748b;
+  color: #0f172a;
+}
+
+html[data-theme='light'] .ki-page .ki-tab {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+html[data-theme='light'] .ki-page .ki-tab.is-on {
+  background: #1e40af;
+  border-color: #1e40af;
+  color: #ffffff;
+}
+
+html[data-theme='light'] .ki-page .ki-tag {
+  color: #1e40af;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+html[data-theme='light'] .ki-page .ki-grupo,
+html[data-theme='light'] .ki-page .ki-teacher,
+html[data-theme='light'] .ki-page .ki-indicador {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+html[data-theme='light'] .ki-page .ki-grupo.is-publicada {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+html[data-theme='light'] .ki-page .ki-cat-form {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
