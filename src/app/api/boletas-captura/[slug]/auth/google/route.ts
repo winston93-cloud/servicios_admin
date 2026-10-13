@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { jsonError } from '@/lib/boletasApi'
 import { candidatosCapturaPorEmail, capturaConfigDeSlug, cookieSesionCaptura } from '@/lib/boletasCapturaAuth'
+import { boletasDirectoraPorEmail } from '@/lib/boletasStaffAllowlist'
 import { resolverCandidatoUnico, type RacGoogleAccountRef } from '@/lib/racAuthGoogle'
 import { RacGoogleAuthError, verificarCredencialGoogle } from '@/lib/racGoogleIdToken'
 
@@ -15,6 +16,19 @@ export async function POST(req: Request, { params }: Params) {
       account?: RacGoogleAccountRef
     }
     const { email } = await verificarCredencialGoogle({ idToken: body.idToken, accessToken: body.accessToken })
+    const supervisor = boletasDirectoraPorEmail(email)
+    if (supervisor) {
+      const res = NextResponse.json({ ok: true, nombre: supervisor.nombre })
+      res.cookies.set(
+        cookieSesionCaptura(cfg, {
+          maestroId: supervisor.id,
+          nombre: supervisor.nombre,
+          usuario: supervisor.usuario,
+          supervisor: true,
+        })
+      )
+      return res
+    }
     const candidatos = await candidatosCapturaPorEmail(cfg, email)
     const resuelto = resolverCandidatoUnico(candidatos, body.account ?? null)
     if (!resuelto.ok) {

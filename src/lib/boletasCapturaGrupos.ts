@@ -7,12 +7,27 @@ import {
   type KinderEnGrado,
 } from './boletasKinderEnCatalog'
 import type { BoletaModulo } from './boletasPortal'
+import { gruposConAlumnos } from './boletasKinderEnService'
 
 export type GrupoCaptura = {
   modulo: Extract<BoletaModulo, 'kinder-en' | 'kinder-es'>
   grado: KinderEnGrado
   grupo: string
   etiqueta: string
+  /** Solo en supervisión: teacher asignada al grupo. */
+  teacher?: string | null
+}
+
+/** Supervisión: todos los grupos de inglés del nivel con alumnos en el ciclo, con su teacher asignada. */
+export async function gruposSupervisionKinderEn(ciclo: number): Promise<GrupoCaptura[]> {
+  const [grupos, teachers] = await Promise.all([gruposConAlumnos(ciclo), teachersPorGrupoKinderEn()])
+  return grupos.map((g) => ({
+    modulo: 'kinder-en' as const,
+    grado: g.grado,
+    grupo: g.grupo,
+    etiqueta: etiquetaGrupoKinderEn(g.grado, g.grupo),
+    teacher: teachers.get(`${g.grado}-${g.grupo}`)?.nombre ?? null,
+  }))
 }
 
 /**

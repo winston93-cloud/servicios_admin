@@ -1,6 +1,6 @@
 import { jsonError, jsonOk } from '@/lib/boletasApi'
 import { capturaConfigDeSlug, requireSesionCaptura } from '@/lib/boletasCapturaAuth'
-import { gruposDeMaestro } from '@/lib/boletasCapturaGrupos'
+import { gruposDeMaestro, gruposSupervisionKinderEn } from '@/lib/boletasCapturaGrupos'
 import { etiquetaCicloBoletas } from '@/lib/boletasCiclo'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 
@@ -12,12 +12,13 @@ export async function GET(req: Request, { params }: Params) {
   try {
     const cfg = capturaConfigDeSlug((await params).slug)
     const s = requireSesionCaptura(cfg, req)
-    const [grupos, ciclo] = await Promise.all([
-      gruposDeMaestro(s.maestroId, cfg.niveles),
-      resolverCicloEscolarSistemaValor(),
-    ])
+    const ciclo = await resolverCicloEscolarSistemaValor()
+    const grupos = s.supervisor
+      ? await gruposSupervisionKinderEn(ciclo)
+      : await gruposDeMaestro(s.maestroId, cfg.niveles)
     return jsonOk({
       maestro: { id: s.maestroId, nombre: s.nombre, usuario: s.usuario },
+      supervisor: Boolean(s.supervisor),
       nivel: { slug: cfg.slug, titulo: cfg.titulo },
       ciclo: { valor: ciclo, etiqueta: etiquetaCicloBoletas(ciclo) },
       grupos,

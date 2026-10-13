@@ -38,6 +38,8 @@ export type BoletasCapturaSesion = {
   maestroId: number
   nombre: string
   usuario: string
+  /** Cuenta de acceso total (dg@, sistemas.desarrollo@): ve y captura todos los grupos del nivel. */
+  supervisor?: boolean
   slug: BoletasCapturaSlug
   exp: number
 }

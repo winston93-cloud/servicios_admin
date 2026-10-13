@@ -22,6 +22,7 @@ const BASE = '/api/boletas-captura/maternal-kinder'
 
 type Sesion = {
   maestro: { id: number; nombre: string; usuario: string }
+  supervisor: boolean
   nivel: { slug: string; titulo: string }
   ciclo: { valor: number; etiqueta: string }
   grupos: GrupoCaptura[]
@@ -307,7 +308,7 @@ export default function BoletasCapturaMaternalKinderPage() {
           onClick={() => (grupo && ingles.length > 1 ? setElegido(null) : router.push('/boletas-captura'))}
         >
           <ArrowLeft size={15} aria-hidden />
-          {grupo && ingles.length > 1 ? 'Mis grupos' : 'Niveles'}
+          {grupo && ingles.length > 1 ? (sesion?.supervisor ? 'Grupos' : 'Mis grupos') : 'Niveles'}
         </button>
         <p className="ki-school">Winston Churchill</p>
         <div className="ki-spacer" />
@@ -340,6 +341,13 @@ export default function BoletasCapturaMaternalKinderPage() {
               <p className="ki-lead">Ciclo {sesion.ciclo.etiqueta}</p>
             </header>
 
+            {sesion.supervisor && !grupo && (
+              <p className="ki-msg bc-supervision" role="note">
+                Modo supervisión: ves todos los grupos de inglés del nivel tal como los ve cada teacher. Lo que guardes
+                o envíes a dirección cuenta como captura real.
+              </p>
+            )}
+
             {ingles.length === 0 && (
               <div className="ki-paper bm-panel bc-vacio">
                 <h2>{espanol.length ? 'La boleta de español llega pronto a este portal' : 'Aún no tienes grupos asignados'}</h2>
@@ -361,7 +369,11 @@ export default function BoletasCapturaMaternalKinderPage() {
                       </span>
                       <span className="ki-menu-text">
                         <strong>{g.etiqueta}</strong>
-                        <span>Inglés · capturar boletas</span>
+                        <span>
+                          {sesion.supervisor
+                            ? `Teacher: ${g.teacher || 'sin asignar'}`
+                            : 'Inglés · capturar boletas'}
+                        </span>
                       </span>
                     </button>
                   </li>

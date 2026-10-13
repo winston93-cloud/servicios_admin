@@ -38,7 +38,7 @@ export async function contextoTeacherKinderEn(
   const trimestre = trimestreValido(raw.trimestre)
   if (!esGradoKinderEn(grado) || !grupoNumeroDesdeLetra(grupo)) throw new Error('Grupo inválido.')
   if (trimestre == null) throw new Error('Trimestre inválido (1 a 3).')
-  if (!(await maestroTieneGrupo(sesion.maestroId, cfg.niveles, 'kinder-en', grado, grupo))) {
+  if (!sesion.supervisor && !(await maestroTieneGrupo(sesion.maestroId, cfg.niveles, 'kinder-en', grado, grupo))) {
     throw prohibido('Ese grupo no está asignado a tu usuario. Pide a tu directora que te lo asigne.')
   }
   const ciclo = await resolverCicloEscolarSistemaValor()
