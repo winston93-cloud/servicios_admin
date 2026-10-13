@@ -1076,6 +1076,34 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
 .te-historial li > .te-min0 { flex: 1; display: grid; }
 .te-historial small { color: var(--te-tinta-suave); font-size: 0.82rem; }
 .te-historial .te-sello { transform: none; }
+.te-historial-acciones { flex: 0 0 auto; }
+
+/* ── Portal Teachers (pestañas, enlace, cursos, resumen) ── */
+.te-tabs { margin-bottom: 1.2rem; }
+.te-tabs button { min-height: 44px; font-size: 0.95rem; }
+.te-tabs button b { background: var(--te-fresa); color: var(--te-tinta); }
+.te-acceso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.9rem;
+  margin: 0 0 1.4rem;
+  padding: 0.9rem 1.1rem;
+  border: 2px dashed var(--te-borde);
+  border-radius: var(--te-radio);
+  background: color-mix(in oklch, var(--te-cielo) 45%, var(--te-hoja));
+}
+.te-acceso > .te-min0 { flex: 1 1 260px; display: grid; gap: 0.1rem; }
+.te-acceso small { color: var(--te-tinta-suave); font-size: 0.8rem; }
+.te-acceso-emoji { display: grid; place-items: center; width: 48px; height: 48px; border: 2px solid var(--te-borde); border-radius: 0.9rem; background: var(--te-hoja); font-size: 1.4rem; transform: rotate(-4deg); flex: 0 0 auto; }
+.te-acceso-titulo { margin: 0; font-family: var(--te-display); font-weight: 700; }
+.te-acceso-url { margin: 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; overflow-wrap: anywhere; user-select: all; }
+.te-acceso-botones a { text-decoration: none; }
+.te-mini-stats.te-mini-stats-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.te-resumen-nota { margin-bottom: 0.8rem; }
+.te-tabla-resumen { min-width: 720px; }
+.te-tabla-resumen tbody tr { cursor: default; }
+.te-tabla-resumen td:not(:first-child), .te-tabla-resumen th:not(:first-child) { text-align: center; }
 
 /* ── Responsive ── */
 @media (max-width: 1024px) {
@@ -1119,6 +1147,16 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
   .te-gclass-botones { flex: 1 1 100%; }
   .te-gclass-curso footer .te-btn { flex: 1 1 auto; min-height: 44px; justify-content: center; }
   .te-hero-emoji { width: 58px; height: 58px; font-size: 1.8rem; }
+  .te-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 2px 6px; }
+  .te-tabs button { flex: 0 0 auto; }
+  .te-acceso-botones { flex: 1 1 100%; }
+  .te-acceso-botones .te-btn { flex: 1 1 auto; min-height: 44px; justify-content: center; }
+  .te-mini-stats.te-mini-stats-3 { gap: 0.5rem; }
+  .te-mini-stats-3 > div { padding: 0.6rem 0.7rem; }
+  .te-mini-stats-3 dd { font-size: 1.4rem; }
+  .te-historial li { flex-wrap: wrap; }
+  .te-historial-acciones { width: 100%; justify-content: flex-end; }
+  .te-historial-acciones .te-btn, .te-historial-acciones .te-icon-btn { min-height: 44px; min-width: 44px; }
 }
 
 @media (max-width: 480px) {

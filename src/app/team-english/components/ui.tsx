@@ -41,11 +41,16 @@ export function Hoja({ abierta, titulo, emoji, onCerrar, children, pie, ancho }:
 }) {
   const id = useId()
   const ref = useRef<HTMLDivElement>(null)
+  /** onCerrar cambia en cada render del padre; si fuera dependencia del efecto, cada tecla le quitaría el foco al input. */
+  const cerrarRef = useRef(onCerrar)
+  useEffect(() => {
+    cerrarRef.current = onCerrar
+  })
   useEffect(() => {
     if (!abierta) return
     const previo = document.activeElement as HTMLElement | null
     ref.current?.focus()
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onCerrar()
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && cerrarRef.current()
     document.addEventListener('keydown', onKey)
     const overflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -54,7 +59,7 @@ export function Hoja({ abierta, titulo, emoji, onCerrar, children, pie, ancho }:
       document.body.style.overflow = overflow
       previo?.focus?.()
     }
-  }, [abierta, onCerrar])
+  }, [abierta])
   if (!abierta) return null
   /** Fuera de las secciones animadas: un ancestro con transform encierra al position: fixed. */
   const destino = typeof document !== 'undefined' ? document.querySelector('.te-page') : null

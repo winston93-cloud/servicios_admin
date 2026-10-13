@@ -1,7 +1,14 @@
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
+import { TE_MAX_ARCHIVO_MB, mensajeArchivoGrande } from '@/lib/teamEnglish/teTypes'
 import type { TeClassroomDetalle, TeClassroomPlaneaciones, TeClassroomResumen, TeCoMaestrasSync, TeNivel } from '@/lib/teamEnglish/teTypes'
 
-async function leerJson(res: Response): Promise<Record<string, unknown>> {
+/** Lanza el mensaje de tamaño antes de subir; Vercel respondería 413 sin JSON. */
+export function validarTamano(file: Blob | null | undefined): void {
+  if (file && file.size > TE_MAX_ARCHIVO_MB * 1024 * 1024) throw new Error(mensajeArchivoGrande(file.size))
+}
+
+export async function leerJson(res: Response): Promise<Record<string, unknown>> {
+  if (res.status === 413) throw new Error(`El archivo pesa más de ${TE_MAX_ARCHIVO_MB} MB. Redúcelo y vuelve a subirlo.`)
   const json = (await res.json().catch(() => ({}))) as Record<string, unknown>
   if (!res.ok) throw new Error(String(json.error || 'Algo salió mal, intenta de nuevo.'))
   return json
@@ -54,6 +61,7 @@ export async function teSubir(nivel: TeNivel, campos: Record<string, string | nu
   form.set('nivel', String(nivel))
   for (const [k, v] of Object.entries(campos)) {
     if (v == null) continue
+    if (v instanceof Blob) validarTamano(v)
     form.set(k, v instanceof Blob ? v : String(v))
   }
   const res = await fetch('/api/team-english/archivo', { method: 'POST', headers: portalSessionFetchHeaders(), body: form })

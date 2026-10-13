@@ -4,9 +4,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { Loader2, LogOut, Upload } from 'lucide-react'
 import ThemeToggle from '@/components/ThemeToggle'
 import type { PortalTeacherData } from '@/lib/teamEnglish/teService'
-import { ESTADOS_PLANEACION, MODALIDADES, etiquetaGrado, fechaCorta, lunesDe, textoSemana } from '@/lib/teamEnglish/teTypes'
-import { teAbrirArchivo } from '../teApi'
+import { ESTADOS_PLANEACION, TE_MAX_ARCHIVO_MB, etiquetaGrado, lunesDe, textoSemana } from '@/lib/teamEnglish/teTypes'
+import { leerJson, teAbrirArchivo, validarTamano } from '../teApi'
 import { ACEPTAR_DOCS, Campo, Semana, SelectorArchivo, Vacio } from '../components/ui'
+import MisCursos from './MisCursos'
 import '../team-english.css'
 
 export default function PortalTeacherPage() {
@@ -111,7 +112,7 @@ function Login({ onEntrar, onError }: { onEntrar: () => void; onError: (e: strin
     <form className="te-login" onSubmit={(e) => void entrar(e)}>
       <span className="te-login-emoji" aria-hidden>👩‍🏫</span>
       <h1 className="te-title">Hi, teacher!</h1>
-      <p className="te-lead">Entra con tu mismo usuario y contraseña de boletas para subir tus planeaciones.</p>
+      <p className="te-lead">Entra con tu mismo usuario y contraseña de boletas para subir tus planeaciones y cursos.</p>
       <Campo etiqueta="Usuario"><input className="te-input" autoComplete="username" value={usuario} onChange={(e) => setUsuario(e.target.value)} required /></Campo>
       <Campo etiqueta="Contraseña"><input className="te-input" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></Campo>
       <button type="submit" className="te-btn te-btn-primary te-btn-ancho" disabled={enviando || !usuario || !password}>
@@ -129,7 +130,7 @@ function Portal({ data, setData, onOk, onError }: {
 }) {
   const hoyLunes = lunesDe(data.hoy)
   const [lunes, setLunes] = useState(hoyLunes)
-  const proximas = data.capacitaciones.filter((c) => c.estado === 'programada' && (c.fecha_fin ?? c.fecha_inicio) >= data.hoy)
+  const [tab, setTab] = useState<'planeaciones' | 'cursos'>('planeaciones')
   const nombreCorto = data.teacher.nombre.split(' ')[0]
 
   return (
@@ -137,9 +138,38 @@ function Portal({ data, setData, onOk, onError }: {
       <section className="te-hero">
         <p className="te-kicker">Primaria · {data.teacher.grupos.join(', ') || 'Teacher'}</p>
         <h1 className="te-title">Hi, {nombreCorto}! <span className="te-title-emoji" aria-hidden>{data.teacher.emoji}</span></h1>
-        <p className="te-lead">Sube tu planeación de la semana; tu directora la revisa antes de aplicarla.</p>
+        <p className="te-lead">Sube tu planeación de la semana y los cursos que tomes; tu directora los revisa.</p>
       </section>
 
+      <div className="te-filtros te-tabs" role="tablist" aria-label="Secciones del portal">
+        <button type="button" role="tab" aria-selected={tab === 'planeaciones'} data-activo={tab === 'planeaciones' || undefined} onClick={() => setTab('planeaciones')}>
+          📚 Planeaciones
+        </button>
+        <button type="button" role="tab" aria-selected={tab === 'cursos'} data-activo={tab === 'cursos' || undefined} onClick={() => setTab('cursos')}>
+          🏅 Mis cursos <b>{data.cursos.length}</b>
+        </button>
+      </div>
+
+      {tab === 'cursos' ? (
+        <MisCursos data={data} setData={setData} onOk={onOk} onError={onError} />
+      ) : (
+        <Planeaciones data={data} setData={setData} onOk={onOk} onError={onError} lunes={lunes} setLunes={setLunes} hoyLunes={hoyLunes} />
+      )}
+    </>
+  )
+}
+
+function Planeaciones({ data, setData, onOk, onError, lunes, setLunes, hoyLunes }: {
+  data: PortalTeacherData
+  setData: (d: PortalTeacherData) => void
+  onOk: (t: string) => void
+  onError: (t: string) => void
+  lunes: string
+  setLunes: (l: string) => void
+  hoyLunes: string
+}) {
+  return (
+    <>
       <div className="te-toolbar">
         <Semana lunes={lunes} onCambiar={setLunes} hoyLunes={hoyLunes} />
       </div>
@@ -170,29 +200,6 @@ function Portal({ data, setData, onOk, onError }: {
               ) : null}
             </li>
           ))}
-        </ul>
-      )}
-
-      <h2 className="te-subtitulo">🎓 Mis capacitaciones</h2>
-      {!data.capacitaciones.length ? (
-        <Vacio emoji="🎓" titulo="Sin capacitaciones registradas" />
-      ) : (
-        <ul className="te-historial">
-          {data.capacitaciones.map((c) => {
-            const p = c.participantes[0]
-            return (
-              <li key={c.id}>
-                <span className="te-sello">{proximas.includes(c) ? '🗓️ Próxima' : c.estado === 'realizada' ? '🎉 Realizada' : c.estado === 'cancelada' ? '🚫 Cancelada' : '🗓️ Programada'}</span>
-                <span className="te-min0">
-                  <b>{c.titulo}</b>
-                  <small>{fechaCorta(c.fecha_inicio)} · {c.tipo === 'interna' ? 'Interna' : 'Externa'} · {MODALIDADES[c.modalidad]}{c.horas ? ` · ${c.horas} h` : ''}{c.lugar ? ` · 📍 ${c.lugar}` : ''}</small>
-                </span>
-                {p?.constancia_key ? (
-                  <button type="button" className="te-btn te-btn-ghost te-btn-sm" onClick={() => teAbrirArchivo(p.constancia_key!, false).catch((e) => onError(e.message))}>🏅</button>
-                ) : null}
-              </li>
-            )
-          })}
         </ul>
       )}
     </>
@@ -226,6 +233,7 @@ function PlanGrado({ grado, lunes, data, setData, onOk, onError }: {
   const enviar = async () => {
     setEnviando(true)
     try {
+      validarTamano(archivo)
       const form = new FormData()
       form.set('grado', String(grado))
       form.set('semana', lunes)
@@ -233,9 +241,7 @@ function PlanGrado({ grado, lunes, data, setData, onOk, onError }: {
       form.set('notas', notas || plan?.notas || '')
       if (archivo) form.set('archivo', archivo)
       const res = await fetch('/api/team-english/teacher', { method: 'POST', body: form })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || 'No se pudo subir.')
-      setData(json as PortalTeacherData)
+      setData((await leerJson(res)) as unknown as PortalTeacherData)
       setEditando(false)
       setArchivo(null)
       onOk('¡Planeación enviada! Tu directora la revisará. 💌')
@@ -276,7 +282,7 @@ function PlanGrado({ grado, lunes, data, setData, onOk, onError }: {
           <Campo etiqueta="Notas para tu directora (opcional)" completo><textarea className="te-input" rows={2} value={notas} placeholder={plan?.notas || ''} onChange={(e) => setNotas(e.target.value)} /></Campo>
           <div className="te-campo" data-completo>
             <SelectorArchivo etiqueta="Elige el archivo de tu planeación" archivo={archivo} onArchivo={setArchivo} aceptar={ACEPTAR_DOCS} />
-            <span className="te-campo-ayuda">PDF, Word, PowerPoint, Excel o imagen · máximo 15 MB.</span>
+            <span className="te-campo-ayuda">PDF, Word, PowerPoint, Excel o imagen · máximo {TE_MAX_ARCHIVO_MB} MB.</span>
           </div>
           <div className="te-fila-botones te-fila-fin" data-completo>
             {editando ? <button type="button" className="te-btn te-btn-ghost" onClick={() => setEditando(false)}>Cancelar</button> : null}

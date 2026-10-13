@@ -575,6 +575,28 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
       </svg>
     ),
   },
+  {
+    id: 'portal-teachers',
+    label: 'Portal Teachers',
+    desc: 'Lo que suben las teachers de inglés primaria: planeaciones semanales y constancias de cursos, para revisar y validar.',
+    path: '/team-english/portal-teachers',
+    accent: 'rose',
+    kicker: 'English Department',
+    tags: ['Planeaciones', 'Cursos', 'Teachers'],
+    badge: 'Nuevo',
+    // Mismo acceso que Team English: coording, laura y mario.
+    soloUsuarios: [2, 10, 17],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5V5a2 2 0 0 1 2-2h11v14H6a2 2 0 0 0-2 2.5z" />
+        <path d="M6 21h13v-4" />
+        <path d="M9 7h5" />
+        <path d="M9 10.5h3" />
+        <circle cx="18" cy="6" r="2.5" />
+        <path d="m17 8.2-.8 2.3 1.8-.9 1.8.9-.8-2.3" />
+      </svg>
+    ),
+  },
   // 2026-10-10 — Beneficios externos: dos tarjetas (vista del alumno + módulo del personal),
   // fijas y exclusivas de ruben, mario y alan. No tocan el módulo de Becas.
   {

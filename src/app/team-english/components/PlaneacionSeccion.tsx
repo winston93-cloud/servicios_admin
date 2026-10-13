@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Loader2, Upload } from 'lucide-react'
 import {
   ESTADOS_PLANEACION,
+  TE_MAX_ARCHIVO_MB,
   etiquetaGrado,
   lunesDe,
   textoSemana,
@@ -376,7 +377,7 @@ function SubirPlaneacion({ destino, lunes, snap, onCerrar, recargar, avisar }: S
           </Campo>
           <div className="te-campo" data-completo>
             <SelectorArchivo etiqueta={previo ? 'Reemplazar archivo (opcional)' : 'Archivo de la planeación'} archivo={archivo} onArchivo={setArchivo} aceptar={ACEPTAR_DOCS} />
-            <span className="te-campo-ayuda">PDF, Word, PowerPoint, Excel o imagen · máximo 15 MB. Queda «Por revisar».</span>
+            <span className="te-campo-ayuda">PDF, Word, PowerPoint, Excel o imagen · máximo {TE_MAX_ARCHIVO_MB} MB. Queda «Por revisar».</span>
           </div>
         </div>
       ) : null}

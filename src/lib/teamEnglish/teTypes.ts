@@ -119,6 +119,33 @@ export const MODALIDADES: Record<TeCapacitacion['modalidad'], string> = {
   hibrida: 'Híbrida',
 }
 
+export type EstadoCurso = 'pendiente' | 'validado' | 'rechazado'
+
+export const ESTADOS_CURSO: Record<EstadoCurso, { etiqueta: string; emoji: string }> = {
+  pendiente: { etiqueta: 'Por validar', emoji: '⏳' },
+  validado: { etiqueta: 'Validado', emoji: '🏅' },
+  rechazado: { etiqueta: 'Rechazado', emoji: '✏️' },
+}
+
+/** Curso que la teacher toma por su cuenta y sube desde su portal. */
+export type TeCurso = {
+  id: number
+  maestro_id: number
+  titulo: string
+  institucion: string | null
+  modalidad: TeCapacitacion['modalidad']
+  fecha: string
+  horas: number | null
+  notas: string
+  archivo_key: string
+  archivo_nombre: string | null
+  estado: EstadoCurso
+  comentario: string
+  revisado_por: string | null
+  revisado_at: string | null
+  created_at: string
+}
+
 export const TIPOS_INCIDENCIA = [
   { valor: 'falta', etiqueta: 'Falta', emoji: '🚫', rubro: 'asistencia' },
   { valor: 'retardo', etiqueta: 'Retardo', emoji: '⏰', rubro: 'retardos' },
@@ -272,6 +299,7 @@ export type TeSnapshot = {
   teachers: TeTeacher[]
   planeaciones: TePlaneacion[]
   capacitaciones: TeCapacitacion[]
+  cursos: TeCurso[]
   incidencias: TeIncidencia[]
   classroom: TeClassroom[]
   ponderadores: Ponderadores
@@ -395,7 +423,12 @@ export function normalizarPonderadores(raw: unknown): Ponderadores {
   return out
 }
 
-export const TE_MAX_ARCHIVO_MB = 15
+/** Vercel corta el cuerpo de la petición en 4.5 MB (413) antes de llegar al servidor. */
+export const TE_MAX_ARCHIVO_MB = 4
+
+export function mensajeArchivoGrande(bytes: number): string {
+  return `El archivo pesa ${(bytes / (1024 * 1024)).toFixed(1)} MB; el máximo es ${TE_MAX_ARCHIVO_MB} MB. Redúcelo (por ejemplo en ilovepdf.com, «Comprimir PDF») y vuelve a subirlo.`
+}
 
 /* ── Expediente personal ── */
 

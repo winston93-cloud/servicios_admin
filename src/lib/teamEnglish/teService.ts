@@ -1,8 +1,10 @@
 import { createDbAdmin, createInsforgeAdmin } from '@/lib/insforgeAdmin'
 import { incidenciasReloj } from './teReloj'
 import {
+  ESTADOS_CURSO,
   ESTADOS_PLANEACION,
   MODALIDADES,
+  mensajeArchivoGrande,
   RUBROS,
   TE_EMOJIS,
   TE_MAX_ARCHIVO_MB,
@@ -24,6 +26,7 @@ import {
   type TeAntecedente,
   type TeCapacitacion,
   type TeClassroom,
+  type TeCurso,
   type TeIncidencia,
   type TeNivel,
   type TePlaneacion,
@@ -277,13 +280,42 @@ async function capacitacionesNivel(nivel: TeNivel, maestroId?: number): Promise<
   return maestroId == null ? out : out.filter((c) => c.participantes.some((p) => p.maestro_id === maestroId))
 }
 
+function mapCurso(r: Record<string, unknown>): TeCurso {
+  return {
+    id: Number(r.id),
+    maestro_id: Number(r.maestro_id),
+    titulo: String(r.titulo),
+    institucion: (r.institucion as string) ?? null,
+    modalidad: r.modalidad as TeCurso['modalidad'],
+    fecha: String(r.fecha).slice(0, 10),
+    horas: r.horas == null ? null : Number(r.horas),
+    notas: String(r.notas ?? ''),
+    archivo_key: String(r.archivo_key),
+    archivo_nombre: (r.archivo_nombre as string) ?? null,
+    estado: r.estado as TeCurso['estado'],
+    comentario: String(r.comentario ?? ''),
+    revisado_por: (r.revisado_por as string) ?? null,
+    revisado_at: (r.revisado_at as string) ?? null,
+    created_at: String(r.created_at ?? ''),
+  }
+}
+
+async function cursosDe(filtro: { nivel: TeNivel } | { maestroId: number }): Promise<TeCurso[]> {
+  let q = db().from('te_curso').select('*')
+  q = 'nivel' in filtro ? q.eq('nivel', filtro.nivel) : q.eq('maestro_id', filtro.maestroId)
+  const { data, error } = await q.order('fecha', { ascending: false }).order('id', { ascending: false })
+  fail(error, 'Cursos')
+  return ((data ?? []) as Record<string, unknown>[]).map(mapCurso)
+}
+
 export async function snapshot(nivel: TeNivel, niveles: TeNivel[]): Promise<TeSnapshot> {
   const hoy = hoyMx()
   const inicio = inicioCicloEscolar(hoy)
-  const [teachers, planRes, capacitaciones, incRes, clsRes, cfgRes] = await Promise.all([
+  const [teachers, planRes, capacitaciones, cursos, incRes, clsRes, cfgRes] = await Promise.all([
     equipo(nivel),
     db().from('te_planeacion').select('*').eq('nivel', nivel).gte('semana', inicio).order('semana', { ascending: false }),
     capacitacionesNivel(nivel),
+    cursosDe({ nivel }),
     db().from('te_incidencia').select('*').eq('nivel', nivel).gte('fecha', inicio).order('fecha', { ascending: false }),
     db().from('te_classroom').select('*').eq('nivel', nivel).gte('semana', inicio),
     db().from('te_config').select('ponderadores').eq('nivel', nivel).maybeSingle(),
@@ -313,6 +345,7 @@ export async function snapshot(nivel: TeNivel, niveles: TeNivel[]): Promise<TeSn
     teachers,
     planeaciones: ((planRes.data ?? []) as Record<string, unknown>[]).map(mapPlaneacion),
     capacitaciones,
+    cursos,
     incidencias: [...manuales, ...reloj.incidencias.filter((i) => !capturadas.has(`${i.maestro_id}|${i.fecha}|${i.tipo}`))].sort(
       (a, b) => b.fecha.localeCompare(a.fecha),
     ),
@@ -369,11 +402,11 @@ const MIME_PERMITIDOS = [
   'image/webp',
 ]
 
-export type TipoArchivo = 'cv' | 'foto' | 'antecedente' | 'planeacion' | 'constancia' | 'expediente'
+export type TipoArchivo = 'cv' | 'foto' | 'antecedente' | 'planeacion' | 'constancia' | 'expediente' | 'curso'
 
 async function subir(tipo: TipoArchivo, nivel: TeNivel, maestroId: number, file: File): Promise<{ key: string; nombre: string }> {
   if (!file || typeof file.arrayBuffer !== 'function' || !file.size) throw new TeError('Selecciona un archivo.')
-  if (file.size > TE_MAX_ARCHIVO_MB * 1024 * 1024) throw new TeError(`El archivo pesa más de ${TE_MAX_ARCHIVO_MB} MB.`)
+  if (file.size > TE_MAX_ARCHIVO_MB * 1024 * 1024) throw new TeError(mensajeArchivoGrande(file.size))
   const soloImagen = tipo === 'foto'
   if (soloImagen ? !file.type.startsWith('image/') : !MIME_PERMITIDOS.includes(file.type)) {
     throw new TeError(soloImagen ? 'La foto debe ser JPG, PNG o WebP.' : 'Formato no permitido. Usa PDF, Word, PowerPoint, Excel o imagen.')
@@ -400,7 +433,7 @@ export async function descargar(key: string): Promise<{ bytes: Uint8Array; tipo:
 
 /** El nivel va en la ruta del archivo: `{tipo}/{nivel}/{maestro}/…`. */
 export function nivelDeKey(key: string): { nivel: number; maestroId: number; tipo: string } | null {
-  const m = /^(cv|foto|antecedente|planeacion|constancia|expediente)\/(\d)\/(\d+)\//.exec(key)
+  const m = /^(cv|foto|antecedente|planeacion|constancia|expediente|curso)\/(\d)\/(\d+)\//.exec(key)
   return m ? { tipo: m[1], nivel: Number(m[2]), maestroId: Number(m[3]) } : null
 }
 
@@ -755,6 +788,31 @@ export async function accion(nivel: TeNivel, body: Record<string, unknown>, quie
       await borrarArchivo(data?.archivo_key as string)
       return { ok: true }
     }
+    case 'revisar_curso': {
+      const id = entero(body.id, 'El curso')
+      const estado = String(body.estado ?? '')
+      if (!(estado in ESTADOS_CURSO)) throw new TeError('Estado no válido.')
+      const comentario = texto(body.comentario, 2000, 'El comentario') ?? ''
+      if (estado === 'rechazado' && !comentario) throw new TeError('Escribe por qué se rechaza para que la teacher lo corrija.')
+      const { data, error } = await db()
+        .from('te_curso')
+        .update({ estado, comentario, revisado_por: estado === 'pendiente' ? null : quien, revisado_at: estado === 'pendiente' ? null : ahora, updated_at: ahora })
+        .eq('id', id)
+        .eq('nivel', nivel)
+        .select('id')
+      fail(error, 'Curso')
+      if (!data?.length) throw new TeError('Curso no encontrado.', 404)
+      return { ok: true }
+    }
+    case 'eliminar_curso': {
+      const id = entero(body.id, 'El curso')
+      const { data } = await db().from('te_curso').select('archivo_key').eq('id', id).eq('nivel', nivel).maybeSingle()
+      if (!data) throw new TeError('Curso no encontrado.', 404)
+      const { error } = await db().from('te_curso').delete().eq('id', id).eq('nivel', nivel)
+      fail(error, 'Curso')
+      await borrarArchivo(data.archivo_key as string)
+      return { ok: true }
+    }
     case 'capacitacion': {
       const tipo = body.tipo === 'externa' ? 'externa' : 'interna'
       const modalidad = String(body.modalidad ?? 'presencial')
@@ -971,9 +1029,10 @@ export async function portalTeacher(maestroId: number) {
   if (!r) throw new TeError('Tu usuario no está en un equipo de inglés.', 403)
   const hoy = hoyMx()
   const desde = sumarDias(lunesDe(hoy), -7 * 12)
-  const [planRes, capacitaciones] = await Promise.all([
+  const [planRes, capacitaciones, cursos] = await Promise.all([
     db().from('te_planeacion').select('*').eq('maestro_id', maestroId).gte('semana', desde).order('semana', { ascending: false }),
     capacitacionesNivel(r.nivel, maestroId),
+    cursosDe({ maestroId }),
   ])
   fail(planRes.error, 'Planeaciones')
   return {
@@ -982,7 +1041,72 @@ export async function portalTeacher(maestroId: number) {
     teacher: { maestro_id: r.teacher.maestro_id, nombre: r.teacher.nombre, emoji: r.teacher.emoji, grupos: r.teacher.grupos, grados: r.teacher.grados },
     planeaciones: ((planRes.data ?? []) as Record<string, unknown>[]).map(mapPlaneacion),
     capacitaciones: capacitaciones.map((c) => ({ ...c, participantes: c.participantes.filter((p) => p.maestro_id === maestroId) })),
+    cursos,
   }
+}
+
+/** La teacher sube un curso nuevo o corrige uno rechazado (vuelve a «Por validar»). */
+export async function guardarCursoTeacher(nivel: TeNivel, maestroId: number, form: FormData): Promise<void> {
+  const file = form.get('archivo') instanceof File ? (form.get('archivo') as File) : null
+  const modalidad = String(form.get('modalidad') ?? 'en_linea')
+  if (!(modalidad in MODALIDADES)) throw new TeError('Modalidad no válida.')
+  const fechaCurso = fecha(form.get('fecha'), 'La fecha')!
+  if (fechaCurso > hoyMx()) throw new TeError('La fecha del curso no puede ser futura; súbelo cuando lo termines.')
+  const horasRaw = form.get('horas')
+  const horas = horasRaw == null || horasRaw === '' ? null : Number(horasRaw)
+  if (horas != null && (!Number.isFinite(horas) || horas < 0 || horas > 2000)) throw new TeError('Horas no válidas.')
+  const campos = {
+    titulo: texto(form.get('titulo'), 200, 'El nombre del curso', true),
+    institucion: texto(form.get('institucion'), 200, 'La institución'),
+    modalidad,
+    fecha: fechaCurso,
+    horas,
+    notas: texto(form.get('notas'), 2000, 'Las notas') ?? '',
+  }
+  const ahora = new Date().toISOString()
+  const idRaw = form.get('id')
+
+  if (idRaw) {
+    const id = entero(idRaw, 'El curso')
+    const { data: previo, error } = await db().from('te_curso').select('estado, archivo_key').eq('id', id).eq('maestro_id', maestroId).maybeSingle()
+    fail(error, 'Curso')
+    if (!previo) throw new TeError('Curso no encontrado.', 404)
+    if (previo.estado === 'validado') throw new TeError('Este curso ya fue validado; pide a tu directora que lo regrese si necesitas cambiarlo.')
+    const subido = file ? await subir('curso', nivel, maestroId, file) : null
+    const { error: upErr } = await db()
+      .from('te_curso')
+      .update({
+        ...campos,
+        ...(subido ? { archivo_key: subido.key, archivo_nombre: subido.nombre } : {}),
+        estado: 'pendiente',
+        revisado_por: null,
+        revisado_at: null,
+        updated_at: ahora,
+      })
+      .eq('id', id)
+      .eq('maestro_id', maestroId)
+    fail(upErr, 'Curso')
+    if (subido) await borrarArchivo(previo.archivo_key as string)
+    return
+  }
+
+  if (!file) throw new TeError('Adjunta la constancia o diploma del curso.')
+  const subido = await subir('curso', nivel, maestroId, file)
+  const { error } = await db()
+    .from('te_curso')
+    .insert([{ maestro_id: maestroId, nivel, ...campos, archivo_key: subido.key, archivo_nombre: subido.nombre }])
+  if (error) await borrarArchivo(subido.key)
+  fail(error, 'Curso')
+}
+
+export async function eliminarCursoTeacher(maestroId: number, id: number): Promise<void> {
+  const { data, error } = await db().from('te_curso').select('estado, archivo_key').eq('id', id).eq('maestro_id', maestroId).maybeSingle()
+  fail(error, 'Curso')
+  if (!data) throw new TeError('Curso no encontrado.', 404)
+  if (data.estado === 'validado') throw new TeError('Un curso validado ya no se puede borrar; pídeselo a tu directora.')
+  const { error: delErr } = await db().from('te_curso').delete().eq('id', id).eq('maestro_id', maestroId)
+  fail(delErr, 'Curso')
+  await borrarArchivo(data.archivo_key as string)
 }
 
 export type PortalTeacherData = Awaited<ReturnType<typeof portalTeacher>>

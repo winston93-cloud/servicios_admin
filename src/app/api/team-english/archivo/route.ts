@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   }
 }
 
-/** Directora (header de sesión) ve archivos de sus niveles; la teacher (cookie) solo sus planeaciones y constancias. */
+/** Directora (header de sesión) ve archivos de sus niveles; la teacher (cookie) solo sus planeaciones, constancias y cursos. */
 export async function GET(request: Request) {
   try {
     const key = new URL(request.url).searchParams.get('key') ?? ''
@@ -42,7 +42,7 @@ export async function GET(request: Request) {
     } else {
       const teacher = cookieBoletasDesdeHeader(request.headers.get('cookie'))
       permitido =
-        teacher?.role === 'maestro' && teacher.id === info.maestroId && (info.tipo === 'planeacion' || info.tipo === 'constancia')
+        teacher?.role === 'maestro' && teacher.id === info.maestroId && ['planeacion', 'constancia', 'curso'].includes(info.tipo)
     }
     if (!permitido) throw new TeError('No autorizado.', 403)
 
