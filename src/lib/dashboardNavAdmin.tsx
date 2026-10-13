@@ -641,6 +641,25 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
       </svg>
     ),
   },
+  {
+    id: 'boletas-captura',
+    label: 'Boletas · Captura integral',
+    desc: 'Enlace público para maestras y teachers: cada quien entra por nivel a sus grupos, captura y envía a dirección.',
+    path: '/boletas-captura',
+    accent: 'indigo',
+    kicker: 'Captura docente',
+    tags: ['Maternal/Kinder', 'Primaria', 'Secundaria'],
+    badge: 'Nuevo',
+    soloUsuarios: [17],
+    fijoParaUsuarios: [17],
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        <path d="M9 10.5l2 2 4-4" />
+      </svg>
+    ),
+  },
 ]
 
 export function navItemKey(item: {
