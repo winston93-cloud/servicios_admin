@@ -1,5 +1,6 @@
 import { createDbAdmin, createInsforgeAdmin } from '@/lib/insforgeAdmin'
 import { incidenciasReloj } from './teReloj'
+import { procesarPlanPdf } from './tePlanPdf'
 import {
   COSTOS_SUGERIDO,
   ESTADOS_CURSO,
@@ -252,6 +253,10 @@ function mapPlaneacion(r: Record<string, unknown>): TePlaneacion {
     revisado_por: (r.revisado_por as string) ?? null,
     revisado_at: (r.revisado_at as string) ?? null,
     updated_at: String(r.updated_at ?? ''),
+    origen: r.origen === 'pdf' ? 'pdf' : 'lienzo',
+    procesado_at: (r.procesado_at as string) ?? null,
+    proceso_error: (r.proceso_error as string) ?? null,
+    classroom: r.classroom && typeof r.classroom === 'object' ? (r.classroom as TePlaneacion['classroom']) : null,
   }
 }
 
@@ -649,6 +654,8 @@ export async function guardarPlaneacion(opts: {
   contenido?: unknown
   /** false = guardar «En construcción» sin mandarla a revisión. */
   enviar?: boolean
+  /** pdf = la planeación es el PDF; se lee y se acomoda por días al enviarla. */
+  modo?: unknown
 }): Promise<void> {
   const t = await asegurarEnEquipo(opts.nivel, opts.maestroId)
   const grado = Number(opts.grado)
@@ -659,7 +666,7 @@ export async function guardarPlaneacion(opts: {
 
   const { data: previa, error } = await db()
     .from('te_planeacion')
-    .select('id, archivo_key, archivo_nombre, version, estado, contenido')
+    .select('id, archivo_key, archivo_nombre, version, estado, contenido, origen, procesado_at, proceso_error')
     .eq('maestro_id', opts.maestroId)
     .eq('grado', grado)
     .eq('semana', semana)
@@ -677,6 +684,21 @@ export async function guardarPlaneacion(opts: {
     }
   }
   const enviar = opts.enviar !== false
+  const esPdf = (nombre: string | null | undefined, tipo?: string) => tipo === 'application/pdf' || /\.pdf$/i.test(nombre ?? '')
+  const modo: 'lienzo' | 'pdf' =
+    opts.modo === 'pdf' || opts.modo === 'lienzo'
+      ? opts.modo
+      : opts.file
+        ? esPdf(opts.file.name, opts.file.type) && opts.contenido === undefined
+          ? 'pdf'
+          : 'lienzo'
+        : previa?.origen === 'pdf'
+          ? 'pdf'
+          : 'lienzo'
+  if (modo === 'pdf') {
+    if (opts.file && !esPdf(opts.file.name, opts.file.type)) throw new TeError('Para «Subir mi PDF» el archivo debe ser PDF.')
+    if (!opts.file && !esPdf(previa?.archivo_nombre as string)) throw new TeError('Selecciona el PDF de tu planeación.')
+  }
   const tieneArchivo = !!opts.file || !!previa?.archivo_key
   if (enviar && !tieneArchivo && !bloquesDePlan(contenido)) {
     throw new TeError('Agrega al menos una actividad en algún día (o adjunta un archivo) antes de enviarla.')
@@ -690,6 +712,30 @@ export async function guardarPlaneacion(opts: {
     archivo = subido
   }
   const ahora = new Date().toISOString()
+  let proceso: { procesado_at: string | null; proceso_error: string | null } = {
+    procesado_at: (previa?.procesado_at as string) ?? null,
+    proceso_error: (previa?.proceso_error as string) ?? null,
+  }
+  if (modo === 'pdf') {
+    const yaLeido = previa?.origen === 'pdf' && !!previa?.procesado_at && !opts.file
+    contenido = yaLeido ? ((previa?.contenido as TePlaneacion['contenido']) ?? null) : null
+    if ((enviar || opts.rol === 'directora') && !yaLeido) {
+      try {
+        const bytes = opts.file ? new Uint8Array(await opts.file.arrayBuffer()) : (await descargar(archivo.key!)).bytes
+        contenido = await procesarPlanPdf(bytes, {
+          lunes: semana,
+          grupos: t.grupos.filter((g) => Number(g[0]) === grado),
+          nombre: archivo.nombre ?? 'planeacion.pdf',
+        })
+        proceso = { procesado_at: ahora, proceso_error: null }
+      } catch (e) {
+        console.error('Planeación PDF:', e)
+        proceso = { procesado_at: null, proceso_error: (e instanceof Error ? e.message : 'No se pudo leer el PDF.').slice(0, 500) }
+      }
+    }
+  } else {
+    proceso = { procesado_at: null, proceso_error: null }
+  }
   const fila = {
     maestro_id: opts.maestroId,
     nivel: opts.nivel,
@@ -700,6 +746,8 @@ export async function guardarPlaneacion(opts: {
     archivo_key: archivo.key,
     archivo_nombre: archivo.nombre,
     contenido,
+    origen: modo,
+    ...proceso,
     estado: enviar ? 'pendiente' : 'borrador',
     version: previa ? Number(previa.version ?? 1) + (enviar && previa.estado !== 'borrador' && previa.estado !== 'pendiente' ? 1 : 0) : 1,
     subido_por: opts.quien,
@@ -708,6 +756,20 @@ export async function guardarPlaneacion(opts: {
   }
   const { error: upErr } = await db().from('te_planeacion').upsert([fila], { onConflict: 'maestro_id,grado,semana' })
   fail(upErr, 'Planeación')
+  if (previa?.estado === 'aprobada') await retirarDeClassroom(opts.nivel, Number(previa.id), opts.quien)
+}
+
+/** Lo programado en Classroom de una planeación que deja de estar aprobada no debe publicarse. */
+async function retirarDeClassroom(nivel: TeNivel, id: number, quien: string): Promise<void> {
+  const { count } = await db().from('te_planeacion_gclass').select('id', { count: 'exact', head: true }).eq('planeacion_id', id)
+  if (!count) return
+  try {
+    // Import dinámico: tePlanClassroom importa este módulo.
+    const { planeacionAClassroom } = await import('./tePlanClassroom')
+    await planeacionAClassroom(nivel, id, 'retirar', quien)
+  } catch (e) {
+    console.error('Retirar planeación de Classroom:', e)
+  }
 }
 
 /* ── Subidas de la directora ── */
@@ -975,9 +1037,37 @@ export async function accion(nivel: TeNivel, body: Record<string, unknown>, quie
       fail(error, 'Planeación')
       return { ok: true }
     }
+    case 'procesar_planeacion_pdf': {
+      const id = entero(body.id, 'La planeación')
+      const { data: p, error: pErr } = await db()
+        .from('te_planeacion')
+        .select('maestro_id, grado, semana, archivo_key, archivo_nombre')
+        .eq('id', id)
+        .eq('nivel', nivel)
+        .maybeSingle()
+      fail(pErr, 'Planeación')
+      if (!p) throw new TeError('Planeación no encontrada.', 404)
+      if (!p.archivo_key || !/\.pdf$/i.test(String(p.archivo_nombre ?? ''))) throw new TeError('Esta planeación no tiene un PDF que leer.')
+      const t = await asegurarEnEquipo(nivel, Number(p.maestro_id))
+      let cambios: Record<string, unknown>
+      try {
+        const contenido = await procesarPlanPdf((await descargar(String(p.archivo_key))).bytes, {
+          lunes: String(p.semana).slice(0, 10),
+          grupos: t.grupos.filter((g) => Number(g[0]) === Number(p.grado)),
+          nombre: String(p.archivo_nombre),
+        })
+        cambios = { contenido, origen: 'pdf', procesado_at: ahora, proceso_error: null }
+      } catch (e) {
+        throw new TeError(e instanceof Error ? e.message : 'No se pudo leer el PDF.', 502)
+      }
+      const { error } = await db().from('te_planeacion').update({ ...cambios, updated_at: ahora }).eq('id', id).eq('nivel', nivel)
+      fail(error, 'Planeación')
+      return { ok: true }
+    }
     case 'eliminar_planeacion': {
       const id = entero(body.id, 'La planeación')
       const { data } = await db().from('te_planeacion').select('archivo_key').eq('id', id).eq('nivel', nivel).maybeSingle()
+      await retirarDeClassroom(nivel, id, quien)
       const { error } = await db().from('te_planeacion').delete().eq('id', id).eq('nivel', nivel)
       fail(error, 'Planeación')
       await borrarArchivo(data?.archivo_key as string)

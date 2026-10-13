@@ -1768,3 +1768,63 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
   .te-cel-reacciones button { min-width: 48px; min-height: 48px; font-size: 1.4rem; }
   .te-plantillas-titulo { flex-basis: 100%; }
 }
+
+/* ── Planeación: lienzo o PDF, y su paso a Classroom ── */
+.te-plan-modo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+  padding: 0.3rem;
+  border: 2px solid var(--te-borde);
+  border-radius: 16px;
+  background: var(--te-hoja-2);
+}
+.te-plan-modo button {
+  min-height: 44px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--te-tinta-suave);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s var(--te-ease);
+}
+.te-plan-modo button[aria-checked='true'] { border-color: var(--te-tinta); color: var(--te-tinta); background: var(--te-hoja); box-shadow: 2px 2px 0 var(--te-sombra); }
+.te-plan-modo button:focus-visible { outline: 3px solid var(--te-lavanda-f); outline-offset: 2px; }
+.te-plan-subir-pdf { display: grid; gap: 0.6rem; margin-bottom: 1rem; padding: 1rem; border: 2px dashed var(--te-borde); border-radius: 18px; background: color-mix(in oklch, var(--te-cielo) 25%, var(--te-hoja)); }
+.te-plan-subir-pdf .te-campo-ayuda { margin: 0; }
+
+.te-plan-pdf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  margin: 0 0 0.6rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  background: color-mix(in oklch, var(--te-cielo) 45%, var(--te-hoja));
+}
+.te-plan-pdf[data-error] { background: color-mix(in oklch, var(--te-durazno) 55%, var(--te-hoja)); }
+
+.te-plan-gclass {
+  margin-top: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  border: 2px solid var(--te-borde);
+  border-radius: 14px;
+  font-size: 0.88rem;
+  background: var(--te-hoja-2);
+}
+.te-plan-gclass[data-estado='ok'] { border-color: color-mix(in oklch, var(--te-matcha-f) 60%, var(--te-borde)); background: color-mix(in oklch, var(--te-matcha) 35%, var(--te-hoja)); }
+.te-plan-gclass[data-estado='error'] { border-color: color-mix(in oklch, var(--te-fresa-f) 60%, var(--te-borde)); background: color-mix(in oklch, var(--te-fresa) 30%, var(--te-hoja)); }
+.te-plan-gclass p { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; margin: 0; font-weight: 600; }
+.te-plan-gclass details { margin-top: 0.4rem; }
+.te-plan-gclass summary { min-height: 32px; cursor: pointer; font-weight: 700; color: var(--te-tinta-suave); }
+.te-plan-gclass ul { margin: 0.3rem 0 0; padding-left: 1.1rem; display: grid; gap: 0.2rem; overflow-wrap: anywhere; }
+
+@media (max-width: 480px) {
+  .te-plan-modo { grid-template-columns: minmax(0, 1fr); }
+}

@@ -7,6 +7,8 @@ import { sesionTeacherDeRequest } from '@/lib/teamEnglish/teTeacherAuth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
+/** Leer una planeación en PDF con IA puede tardar ~20-40 s. */
+export const maxDuration = 60
 
 function responderError(e: unknown, ctx: string) {
   if (e instanceof TeError) return NextResponse.json({ error: e.message }, { status: e.status })

@@ -45,6 +45,8 @@ export default function PlanSemana({ grado, lunes, data, setData, onOk, onError 
   const [lienzo, setLienzo] = useState<PlanContenido>(() => planSeguro(plan?.contenido))
   const [notas, setNotas] = useState(plan?.notas ?? '')
   const [archivo, setArchivo] = useState<File | null>(null)
+  const [modo, setModo] = useState<'lienzo' | 'pdf'>(plan?.origen === 'pdf' ? 'pdf' : 'lienzo')
+  const pdfActual = plan?.origen === 'pdf' && /\.pdf$/i.test(plan.archivo_nombre ?? '') ? plan.archivo_nombre : null
   const [editando, setEditando] = useState(() => !plan || plan.estado === 'borrador' || plan.estado === 'cambios')
   const [enviando, setEnviando] = useState<'borrador' | 'enviar' | null>(null)
   const [sucio, setSucio] = useState(false)
@@ -80,14 +82,22 @@ export default function PlanSemana({ grado, lunes, data, setData, onOk, onError 
       form.set('semana', lunes)
       form.set('titulo', lienzo.unidad || plan?.titulo || '')
       form.set('notas', notas)
-      form.set('contenido', JSON.stringify(lienzo))
+      form.set('modo', modo)
+      if (modo === 'lienzo') form.set('contenido', JSON.stringify(lienzo))
       form.set('enviar', enviar ? '1' : '0')
       if (archivo) form.set('archivo', archivo)
       const res = await fetch('/api/team-english/teacher', { method: 'POST', body: form })
       const nuevo = (await leerJson(res)) as unknown as PortalTeacherData
       setSucio(false)
+      setArchivo(null)
       setData(nuevo)
-      onOk(enviar ? '¡Planeación enviada! Tu directora la revisará. 💌' : 'Guardada ✨ Puedes seguir construyéndola cuando quieras.')
+      const guardada = nuevo.planeaciones.find((p) => p.grado === grado && p.semana === lunes)
+      if (enviar && modo === 'pdf') {
+        setEditando(false)
+        onOk(guardada?.proceso_error
+          ? '¡Enviada! No pudimos acomodar tu PDF por días, pero tu directora lo verá completo. 💌'
+          : '¡Enviada! Acomodamos tu PDF por días y materias para tu directora. 📄💌')
+      } else onOk(enviar ? '¡Planeación enviada! Tu directora la revisará. 💌' : 'Guardada ✨ Puedes seguir construyéndola cuando quieras.')
     } catch (e) {
       onError(e instanceof Error ? e.message : 'Error')
     } finally {
@@ -111,6 +121,11 @@ export default function PlanSemana({ grado, lunes, data, setData, onOk, onError 
 
       {!editando || bloqueada ? (
         <>
+          {plan?.origen === 'pdf' ? (
+            <p className="te-plan-pdf" data-error={plan.proceso_error ? '' : undefined}>
+              {plan.proceso_error ? '📄 Tu PDF se envió completo; no pudimos acomodarlo por días.' : plan.procesado_at ? '📄 Así quedó tu PDF acomodado por días y materias' : '📄 Tu PDF está guardado'}
+            </p>
+          ) : null}
           {bloquesDePlan(plan?.contenido) ? <PlanLienzoVista contenido={planSeguro(plan?.contenido)} lunes={lunes} /> : null}
           <div className="te-fila-botones">
             {plan?.archivo_key ? (
@@ -125,16 +140,39 @@ export default function PlanSemana({ grado, lunes, data, setData, onOk, onError 
         </>
       ) : (
         <>
-          {!bloques && anterior ? (
+          <div className="te-plan-modo" role="radiogroup" aria-label="¿Cómo haces tu planeación?">
+            <button type="button" role="radio" aria-checked={modo === 'lienzo'} onClick={() => { setModo('lienzo'); setSucio(true) }}>
+              <span aria-hidden>🎨</span> Armar en el lienzo
+            </button>
+            <button type="button" role="radio" aria-checked={modo === 'pdf'} onClick={() => { setModo('pdf'); setSucio(true) }}>
+              <span aria-hidden>📄</span> Subir mi PDF
+            </button>
+          </div>
+
+          {modo === 'pdf' ? (
+            <div className="te-plan-subir-pdf">
+              <SelectorArchivo
+                etiqueta={pdfActual ? `Reemplazar PDF · actual: ${pdfActual}` : 'Elige el PDF de tu planeación de la semana'}
+                archivo={archivo} onArchivo={(f) => { setArchivo(f); setSucio(true) }} aceptar="application/pdf,.pdf" />
+              <p className="te-campo-ayuda">
+                Al enviarla, la leemos y la acomodamos por días y materias (topic, classwork, homework…) para tu directora. Máximo {TE_MAX_ARCHIVO_MB} MB.
+              </p>
+              <Campo etiqueta="Notas para tu directora (opcional)" completo>
+                <textarea className="te-input" rows={2} value={notas} maxLength={3000} onChange={(e) => { setNotas(e.target.value); setSucio(true) }} />
+              </Campo>
+            </div>
+          ) : null}
+
+          {modo === 'lienzo' && !bloques && anterior ? (
             <p className="te-alerta te-alerta-suave">
               <span aria-hidden>📋</span> ¿Repites el esquema de la semana del {textoSemana(anterior.semana)}?
               <button type="button" className="te-btn te-btn-sm" onClick={usarAnterior}>Usar sus materias</button>
             </p>
           ) : null}
 
-          <PlanLienzoEditor valor={lienzo} onCambiar={cambiar} lunes={lunes} />
+          {modo === 'lienzo' ? <PlanLienzoEditor valor={lienzo} onCambiar={cambiar} lunes={lunes} /> : null}
 
-          <details className="te-plan-extra">
+          {modo === 'lienzo' ? <details className="te-plan-extra">
             <summary>💬 Notas para tu directora o adjuntar archivo (opcional)</summary>
             <div className="te-form">
               <Campo etiqueta="Notas (opcional)" completo>
@@ -146,19 +184,25 @@ export default function PlanSemana({ grado, lunes, data, setData, onOk, onError 
                 <span className="te-campo-ayuda">PDF, Word, PowerPoint, Excel o imagen · máximo {TE_MAX_ARCHIVO_MB} MB.</span>
               </div>
             </div>
-          </details>
+          </details> : null}
 
           <div className="te-plan-barra">
             <small className="te-plan-barra-info">
-              {sucio ? '● Cambios sin guardar' : bloques ? `${bloques} clase${bloques === 1 ? '' : 's'} en la semana` : 'Empieza eligiendo las materias de cada día'}
+              {enviando === 'enviar' && modo === 'pdf'
+                ? '📄 Leyendo tu PDF… puede tardar unos segundos'
+                : sucio ? '● Cambios sin guardar'
+                  : modo === 'pdf' ? (pdfActual ? `📄 ${pdfActual}` : 'Elige tu PDF')
+                    : bloques ? `${bloques} clase${bloques === 1 ? '' : 's'} en la semana` : 'Empieza eligiendo las materias de cada día'}
             </small>
             {plan && plan.estado !== 'borrador' && plan.estado !== 'cambios' ? (
-              <button type="button" className="te-btn te-btn-ghost" onClick={() => { setEditando(false); setLienzo(planSeguro(plan.contenido)); setSucio(false) }}>Cancelar</button>
+              <button type="button" className="te-btn te-btn-ghost"
+                onClick={() => { setEditando(false); setLienzo(planSeguro(plan.contenido)); setModo(plan.origen === 'pdf' ? 'pdf' : 'lienzo'); setArchivo(null); setSucio(false) }}>Cancelar</button>
             ) : null}
             <button type="button" className="te-btn" disabled={!!enviando} onClick={() => void guardar(false)}>
               {enviando === 'borrador' ? <Loader2 size={16} className="te-spin" aria-hidden /> : '💾'} Guardar
             </button>
-            <button type="button" className="te-btn te-btn-primary" disabled={!!enviando || (!bloques && !archivo && !plan?.archivo_key)} onClick={() => void guardar(true)}>
+            <button type="button" className="te-btn te-btn-primary"
+              disabled={!!enviando || (modo === 'pdf' ? !archivo && !pdfActual : !bloques && !archivo && !plan?.archivo_key)} onClick={() => void guardar(true)}>
               {enviando === 'enviar' ? <Loader2 size={16} className="te-spin" aria-hidden /> : <Send size={16} aria-hidden />} Enviar a revisión
             </button>
           </div>

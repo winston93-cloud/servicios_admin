@@ -98,6 +98,28 @@ export type TePlaneacion = {
   revisado_por: string | null
   revisado_at: string | null
   updated_at: string
+  /** pdf = la teacher subió su PDF y se acomodó solo por días y materias. */
+  origen: 'lienzo' | 'pdf'
+  procesado_at: string | null
+  proceso_error: string | null
+  classroom: TePlanClassroom | null
+}
+
+/** Resultado de la última publicación (o retiro) de la planeación en Google Classroom. */
+export type TePlanClassroom = {
+  at: string
+  por: string
+  accion: 'publicar' | 'retirar'
+  clases: number
+  /** Quedan en borrador y Classroom las publica solas a las 7:00 de su día. */
+  programadas: number
+  /** De hoy, ya pasadas las 7:00: se publicaron al momento. */
+  inmediatas: number
+  /** Ya estaban visibles de un envío anterior; no se tocan ni se duplican. */
+  publicadas_ya: number
+  retiradas: number
+  omitidas: string[]
+  errores: string[]
 }
 
 /* ── Lienzo de planeación semanal ── */

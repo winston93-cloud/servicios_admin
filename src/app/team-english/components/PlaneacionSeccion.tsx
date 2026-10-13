@@ -17,7 +17,7 @@ import {
   type TeTeacher,
 } from '@/lib/teamEnglish/teTypes'
 import type { SeccionProps } from '../seccionTipos'
-import { teAbrirArchivo, teAccion, teClassroomPlaneaciones, teSubir } from '../teApi'
+import { teAbrirArchivo, teAccion, teClassroomPlaneaciones, tePlanClassroom, teSubir } from '../teApi'
 import { ACEPTAR_DOCS, Avatar, Campo, Hoja, Semana, SelectorArchivo, Vacio } from './ui'
 import { PlanLienzoVista, PlanMiniSemana } from './PlanLienzo'
 
@@ -179,6 +179,27 @@ function TarjetaPlan({ teacher, grado, plan, snap, recargar, avisar, onSubir, gc
   const [comentando, setComentando] = useState(false)
   const [comentario, setComentario] = useState(plan?.comentario ?? '')
   const [guardando, setGuardando] = useState(false)
+  const [gclassPub, setGclassPub] = useState<'publicar' | 'retirar' | null>(null)
+  const [leyendo, setLeyendo] = useState(false)
+  const puedeClassroom = !!teacher.email && bloquesDePlan(plan?.contenido) > 0
+  const programada = plan?.classroom?.accion === 'publicar' && (plan.classroom.programadas > 0 || plan.classroom.inmediatas > 0 || plan.classroom.publicadas_ya > 0)
+
+  const aClassroom = async (accion: 'publicar' | 'retirar') => {
+    if (!plan) return
+    setGclassPub(accion)
+    try {
+      const r = await tePlanClassroom(snap.nivel, plan.id, accion)
+      await recargar()
+      if (accion === 'retirar') avisar(r.retiradas ? `Se retiraron ${r.retiradas} publicaciones programadas de Classroom.` : 'No había nada programado en Classroom.')
+      else if (r.errores.length) avisar(`Classroom: ${r.errores[0]}`, 'error')
+      else avisar(`🏫 Programada en Classroom: ${r.programadas + r.inmediatas} publicaciones en ${r.clases} clase${r.clases === 1 ? '' : 's'}${r.omitidas.length ? ` · ${r.omitidas.length} omitida${r.omitidas.length === 1 ? '' : 's'}` : ''}.`)
+    } catch (e) {
+      await recargar()
+      avisar(e instanceof Error ? e.message : 'No se pudo publicar en Classroom.', 'error')
+    } finally {
+      setGclassPub(null)
+    }
+  }
 
   const revisar = async (estado: EstadoPlaneacion, texto = '') => {
     if (!plan) return
@@ -190,8 +211,25 @@ function TarjetaPlan({ teacher, grado, plan, snap, recargar, avisar, onSubir, gc
       avisar(estado === 'aprobada' ? '¡Planeación aprobada! ✅' : estado === 'cambios' ? 'Se pidieron cambios a la teacher.' : 'Regresó a revisión.')
     } catch (e) {
       avisar(e instanceof Error ? e.message : 'Error', 'error')
+      return
     } finally {
       setGuardando(false)
+    }
+    if (estado === 'aprobada' && puedeClassroom) await aClassroom('publicar')
+    else if (estado !== 'aprobada' && programada) await aClassroom('retirar')
+  }
+
+  const leerPdf = async () => {
+    if (!plan) return
+    setLeyendo(true)
+    try {
+      await teAccion(snap.nivel, 'procesar_planeacion_pdf', { id: plan.id })
+      await recargar()
+      avisar('PDF leído: ya está acomodado por días y materias 📄✨')
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : 'No se pudo leer el PDF.', 'error')
+    } finally {
+      setLeyendo(false)
     }
   }
 
@@ -221,6 +259,20 @@ function TarjetaPlan({ teacher, grado, plan, snap, recargar, avisar, onSubir, gc
       {plan ? (
         <>
           {plan.titulo ? <p className="te-plan-titulo">{plan.titulo}</p> : null}
+          {plan.origen === 'pdf' ? (
+            <p className="te-plan-pdf" data-error={plan.proceso_error ? '' : undefined}>
+              {plan.proceso_error
+                ? `⚠️ No se pudo leer el PDF: ${plan.proceso_error}`
+                : plan.procesado_at
+                  ? '📄 Subida en PDF · acomodada automáticamente por días y materias'
+                  : plan.estado === 'borrador' ? '📄 PDF guardado; se lee cuando la teacher lo envíe' : '📄 PDF sin leer'}
+              {plan.archivo_key && plan.estado !== 'borrador' && (plan.proceso_error || !plan.procesado_at || plan.estado !== 'aprobada') ? (
+                <button type="button" className="te-btn te-btn-ghost te-btn-sm" disabled={leyendo} onClick={() => void leerPdf()}>
+                  {leyendo ? <Loader2 size={14} className="te-spin" aria-hidden /> : '🔄'} {leyendo ? 'Leyendo…' : plan.procesado_at ? 'Leer otra vez' : 'Leer PDF'}
+                </button>
+              ) : null}
+            </p>
+          ) : null}
           {bloquesDePlan(plan.contenido) ? <PlanMiniSemana contenido={plan.contenido!} /> : null}
           {plan.notas ? <p className="te-plan-notas">💬 {plan.notas}</p> : null}
           <p className="te-plan-meta">
@@ -251,9 +303,15 @@ function TarjetaPlan({ teacher, grado, plan, snap, recargar, avisar, onSubir, gc
                 </button>
               ) : null}
               {plan.estado === 'borrador' ? null : plan.estado !== 'aprobada' ? (
-                <button type="button" className="te-btn te-btn-ok te-btn-sm" disabled={guardando} onClick={() => void revisar('aprobada', plan.comentario)}>✅ Aprobar</button>
+                <button type="button" className="te-btn te-btn-ok te-btn-sm" disabled={guardando || !!gclassPub || leyendo}
+                  title={puedeClassroom ? 'Aprueba y programa cada día en su Classroom (7:00 am)' : undefined}
+                  onClick={() => void revisar('aprobada', plan.comentario)}>
+                  {guardando || gclassPub ? <Loader2 size={14} className="te-spin" aria-hidden /> : '✅'} {puedeClassroom ? 'Aprobar y programar en Classroom' : 'Aprobar'}
+                </button>
               ) : (
-                <button type="button" className="te-btn te-btn-ghost te-btn-sm" disabled={guardando} onClick={() => void revisar('pendiente', plan.comentario)}>↩️ Regresar a revisión</button>
+                <button type="button" className="te-btn te-btn-ghost te-btn-sm" disabled={guardando || !!gclassPub}
+                  title={programada ? 'También retira de Classroom lo que aún no se publica' : undefined}
+                  onClick={() => void revisar('pendiente', plan.comentario)}>↩️ Regresar a revisión</button>
               )}
               {plan.estado !== 'aprobada' && plan.estado !== 'borrador' ? (
                 <button type="button" className="te-btn te-btn-ghost te-btn-sm" onClick={() => { setComentario(plan.comentario); setComentando(true) }}>✏️ Pedir cambios</button>
@@ -270,6 +328,10 @@ function TarjetaPlan({ teacher, grado, plan, snap, recargar, avisar, onSubir, gc
           </button>
         </div>
       )}
+      {plan && (plan.estado === 'aprobada' || plan.classroom || gclassPub) ? (
+        <EstadoPlanClassroom plan={plan} trabajando={gclassPub} puede={puedeClassroom} sinCorreo={!teacher.email}
+          onPublicar={() => void aClassroom('publicar')} />
+      ) : null}
       <BloqueClassroom items={gclass} error={gclassError} cargando={gclassCargando} />
       {plan && viendo ? (
         <Hoja abierta ancho titulo={`${teacher.nombre} · Grado ${etiquetaGrado(snap.nivel, grado)}`} emoji="📚" onCerrar={() => setViendo(false)}>
@@ -279,6 +341,42 @@ function TarjetaPlan({ teacher, grado, plan, snap, recargar, avisar, onSubir, gc
         </Hoja>
       ) : null}
     </article>
+  )
+}
+
+function EstadoPlanClassroom({ plan, trabajando, puede, sinCorreo, onPublicar }: {
+  plan: TePlaneacion
+  trabajando: 'publicar' | 'retirar' | null
+  puede: boolean
+  sinCorreo: boolean
+  onPublicar: () => void
+}) {
+  const c = plan.classroom
+  const total = c ? c.programadas + c.inmediatas : 0
+  const avisos = c ? [...c.errores.map((x) => `❌ ${x}`), ...c.omitidas.map((x) => `↪️ ${x}`)] : []
+  return (
+    <div className="te-plan-gclass" data-estado={trabajando ? 'trabajando' : c?.errores.length ? 'error' : c ? 'ok' : 'nada'}>
+      <p>
+        {trabajando === 'publicar'
+          ? <><Loader2 size={14} className="te-spin" aria-hidden /> Programando cada día en su Classroom…</>
+          : trabajando === 'retirar'
+            ? <><Loader2 size={14} className="te-spin" aria-hidden /> Retirando lo programado en Classroom…</>
+            : !c
+              ? sinCorreo ? '🏫 Falta el correo institucional de la teacher para publicar en Classroom.' : '🏫 Aún no se envía a Classroom.'
+              : c.accion === 'retirar'
+                ? `🏫 Retirada de Classroom (${c.retiradas} publicación${c.retiradas === 1 ? '' : 'es'})${c.publicadas_ya ? ` · ${c.publicadas_ya} ya visibles se quedaron` : ''}.`
+                : `🏫 ${c.programadas ? `${c.programadas} programada${c.programadas === 1 ? '' : 's'} (7:00 am de su día)` : ''}${c.programadas && c.inmediatas ? ' · ' : ''}${c.inmediatas ? `${c.inmediatas} publicada${c.inmediatas === 1 ? '' : 's'} hoy` : ''}${!total ? 'Nada nuevo que programar' : ''} en ${c.clases} clase${c.clases === 1 ? '' : 's'}${c.publicadas_ya ? ` · ${c.publicadas_ya} ya estaban visibles` : ''}.`}
+        {!trabajando && plan.estado === 'aprobada' && puede ? (
+          <button type="button" className="te-btn te-btn-ghost te-btn-sm" onClick={onPublicar}>{c?.accion === 'publicar' ? '🔄 Volver a enviar' : '📤 Enviar a Classroom'}</button>
+        ) : null}
+      </p>
+      {avisos.length && !trabajando ? (
+        <details>
+          <summary>{c!.errores.length ? `${c!.errores.length} con error` : ''}{c!.errores.length && c!.omitidas.length ? ' · ' : ''}{c!.omitidas.length ? `${c!.omitidas.length} omitida${c!.omitidas.length === 1 ? '' : 's'}` : ''}</summary>
+          <ul>{avisos.map((x, i) => <li key={i}>{x}</li>)}</ul>
+        </details>
+      ) : null}
+    </div>
   )
 }
 

@@ -8,7 +8,11 @@ import type {
   TeClassroomResumen,
   TeClassroomTarea,
   TeCoMaestrasSync,
+  PlanBloque,
+  PlanContenido,
+  SkillClave,
 } from './teTypes'
+import { DIAS_PLAN, hoyMx, lunesDe, materialDe, skillDe, sumarDias } from './teTypes'
 
 /** Deben coincidir con los alcances de la delegación de dominio del service account en admin.google.com. */
 const SCOPES = [
@@ -325,5 +329,301 @@ export async function sincronizarCoMaestras(rawEmail: string): Promise<TeCoMaest
       err.response?.data?.error === 'unauthorized_client' ? 'Google aún no autoriza el permiso classroom.rosters.' : `${email}: ${err.message ?? 'error'}`,
     )
   }
+  return r
+}
+
+/* ── Publicar la planeación aprobada en Classroom ── */
+
+/** Además de los de lectura, requiere classroom.topics y classroom.courseworkmaterials en la delegación. */
+const SCOPES_PUBLICAR = [
+  'https://www.googleapis.com/auth/classroom.courses.readonly',
+  'https://www.googleapis.com/auth/classroom.topics',
+  'https://www.googleapis.com/auth/classroom.courseworkmaterials',
+  'https://www.googleapis.com/auth/classroom.coursework.students.readonly',
+]
+
+/** Hora a la que Classroom publica cada día: 7:00 en Monterrey (UTC-6, sin horario de verano). */
+const HORA_PUBLICAR_UTC = '13:00:00Z'
+
+const MESES_EN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+const CLASE_DE_SKILL: Partial<Record<SkillClave, RegExp>> = {
+  grammar: /GRAMMAR/,
+  reading: /READING/,
+  writing: /WRITING/,
+  listening: /LISTENING/,
+  speaking: /SPEAKING/,
+  vocabulary: /VOCAB|SPELLING|PHONIC/,
+  math: /MATH/,
+}
+
+export type GclassPrevia = { course_id: string; item_id: string; fecha: string }
+export type GclassCreada = { course_id: string; item_id: string; fecha: string; topic_id: string | null; titulo: string; programado_at: string | null }
+export type ResultadoGclass = {
+  clases: number
+  programadas: number
+  inmediatas: number
+  publicadas_ya: number
+  retiradas: number
+  omitidas: string[]
+  errores: string[]
+  creadas: GclassCreada[]
+  /** Previas que siguen existiendo en Classroom (publicadas) y deben conservarse en la bitácora. */
+  conservadas: GclassPrevia[]
+}
+
+function ordinal(n: number): string {
+  if (n % 100 >= 11 && n % 100 <= 13) return `${n}th`
+  return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`
+}
+
+/** Como nombran el tema del día: «Tuesday October 13th 2026». */
+export function nombreTemaDia(fecha: string): string {
+  const [y, m, d] = fecha.split('-').map(Number)
+  const dia = DIAS_PLAN.find((x) => sumarDias(lunesDe(fecha), x.offset) === fecha)
+  return `${dia?.en ?? ''} ${MESES_EN[m - 1]} ${ordinal(d)} ${y}`.trim()
+}
+
+function esTemaDelDia(nombre: string | null | undefined, fecha: string): boolean {
+  const [y, m, d] = fecha.split('-').map(Number)
+  const t = String(nombre ?? '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ')
+  if (!new RegExp(`\\b${MESES_EN[m - 1].toLowerCase()} ${d}(st|nd|rd|th)?\\b`).test(t)) return false
+  const anio = /\b(20\d\d)\b/.exec(t)
+  return !anio || Number(anio[1]) === y
+}
+
+function normalizarNombre(c: classroom_v1.Schema$Course): string {
+  return `${c.name ?? ''} ${c.section ?? ''}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+}
+
+/** Clase del grupo (ej. «5A») para la materia; si el grupo tiene una sola clase, esa. */
+function buscarClase(cursos: classroom_v1.Schema$Course[], grupo: string, skill: SkillClave): classroom_v1.Schema$Course | null {
+  const m = /^(\d)\s*([A-Z])$/i.exec(grupo.trim())
+  if (!m) return null
+  const reGrupo = new RegExp(`(^|[^0-9])${m[1]}\\s*[°ºO]?\\s*-?\\s*${m[2].toUpperCase()}(?![A-Z])`)
+  const delGrupo = cursos.filter((c) => reGrupo.test(normalizarNombre(c)))
+  const re = CLASE_DE_SKILL[skill]
+  const propia = re ? delGrupo.find((c) => re.test(normalizarNombre(c))) : undefined
+  if (propia) return propia
+  const sinMateria = delGrupo.filter((c) => !Object.values(CLASE_DE_SKILL).some((r) => r!.test(normalizarNombre(c))))
+  return delGrupo.length === 1 ? delGrupo[0] : sinMateria.length === 1 ? sinMateria[0] : null
+}
+
+function enlaces(...textos: string[]): classroom_v1.Schema$Material[] {
+  const urls = new Set<string>()
+  for (const t of textos) {
+    for (const u of t.match(/https?:\/\/[^\s<>"')\]]+/g) ?? []) {
+      try {
+        urls.add(new URL(u.replace(/[.,;:]+$/, '')).toString())
+      } catch {
+        /* enlace mal escrito: se queda solo en el texto */
+      }
+    }
+  }
+  return [...urls].slice(0, 20).map((url) => ({ link: { url } }))
+}
+
+/** Lo que publican por materia dentro del tema del día, en el orden en que se ven. */
+function publicacionesBloque(b: PlanBloque, repetida: boolean): { title: string; description: string; materials?: classroom_v1.Schema$Material[] }[] {
+  const s = skillDe(b.skill)
+  const sufijo = repetida && b.tema ? ` · ${b.tema.slice(0, 60)}` : ''
+  const encabezado = `${s.emoji} ${s.etiqueta}${b.tema ? ` · ${b.tema}` : ''}`
+  const out: { title: string; description: string; materials?: classroom_v1.Schema$Material[] }[] = []
+  if (b.materiales.length) {
+    out.push({ title: `Class Materials${sufijo}`, description: b.materiales.map((k) => { const x = materialDe(k); return x ? `${x.emoji} ${x.etiqueta}` : k }).join('\n') })
+  }
+  if (b.tema || b.actividades || b.recursos) {
+    const links = enlaces(b.actividades, b.recursos)
+    out.push({
+      title: `CLASSWORK${sufijo}`,
+      description: [encabezado, b.actividades, b.recursos ? `🔗 ${b.recursos}` : ''].filter(Boolean).join('\n\n'),
+      ...(links.length ? { materials: links } : {}),
+    })
+  }
+  if (b.participacion) out.push({ title: `PARTICIPATION${sufijo}`, description: `${encabezado}\n\n${b.participacion}` })
+  if (b.tarea) out.push({ title: `HOMEWORK${sufijo}`, description: `${encabezado}\n\n${b.tarea}` })
+  return out
+}
+
+async function enParalelo<T>(tareas: (() => Promise<T>)[], limite: number): Promise<void> {
+  let i = 0
+  await Promise.all(
+    Array.from({ length: Math.min(limite, tareas.length) }, async () => {
+      while (i < tareas.length) await tareas[i++]()
+    }),
+  )
+}
+
+function errorPublicar(e: unknown): never {
+  const err = e as { response?: { data?: { error?: string } } }
+  if (err.response?.data?.error === 'unauthorized_client') {
+    throw new TeError(
+      'Google aún no autoriza publicar en Classroom. Falta agregar classroom.topics y classroom.courseworkmaterials a la delegación de dominio del service account (admin.google.com).',
+      502,
+    )
+  }
+  throw e
+}
+
+/** Retira lo programado (borradores) de envíos anteriores; lo ya publicado se conserva. */
+async function retirarPrevias(cr: classroom_v1.Classroom, previas: GclassPrevia[], r: ResultadoGclass): Promise<Set<string>> {
+  const visibles = new Set<string>()
+  await enParalelo(
+    previas.map((p) => async () => {
+      try {
+        const m = await cr.courses.courseWorkMaterials.get({ courseId: p.course_id, id: p.item_id })
+        if (m.data.state === 'PUBLISHED') {
+          visibles.add(`${p.course_id}|${p.fecha}`)
+          r.publicadas_ya++
+          r.conservadas.push(p)
+          return
+        }
+        await cr.courses.courseWorkMaterials.delete({ courseId: p.course_id, id: p.item_id })
+        r.retiradas++
+      } catch (e) {
+        if ((e as { code?: number }).code === 404) return
+        if ((e as { response?: { data?: { error?: string } } }).response?.data?.error === 'unauthorized_client') errorPublicar(e)
+        r.errores.push(`No se pudo retirar una publicación anterior: ${(e as Error).message ?? 'error'}`)
+        r.conservadas.push(p)
+      }
+    }),
+    4,
+  )
+  return visibles
+}
+
+function resultadoVacio(): ResultadoGclass {
+  return { clases: 0, programadas: 0, inmediatas: 0, publicadas_ya: 0, retiradas: 0, omitidas: [], errores: [], creadas: [], conservadas: [] }
+}
+
+export async function retirarPlanClassroom(rawEmail: unknown, previas: GclassPrevia[]): Promise<ResultadoGclass> {
+  const email = normalizarCorreoTeacher(rawEmail)
+  const r = resultadoVacio()
+  await retirarPrevias(clienteClassroom(email, SCOPES_PUBLICAR), previas, r)
+  return r
+}
+
+/**
+ * Crea, en la clase de cada materia y grupo, el tema del día con Class Materials / CLASSWORK / PARTICIPATION / HOMEWORK,
+ * en borrador programado a las 7:00 de ese día. Días pasados se omiten; si la teacher ya publicó algo en ese tema, no se duplica.
+ */
+export async function publicarPlanClassroom(
+  rawEmail: unknown,
+  opts: { lunes: string; grupos: string[]; contenido: PlanContenido; previas: GclassPrevia[] },
+): Promise<ResultadoGclass> {
+  const email = normalizarCorreoTeacher(rawEmail)
+  const cr = clienteClassroom(email, SCOPES_PUBLICAR)
+  const r = resultadoVacio()
+  const omitir = (txt: string) => {
+    if (!r.omitidas.includes(txt)) r.omitidas.push(txt)
+  }
+  if (!opts.grupos.length) throw new TeError('La teacher no tiene grupos asignados para ese grado.')
+
+  let cursos: classroom_v1.Schema$Course[]
+  let visibles: Set<string>
+  try {
+    visibles = await retirarPrevias(cr, opts.previas, r)
+    cursos = (await cr.courses.list({ teacherId: 'me', courseStates: ['ACTIVE'], pageSize: 100 })).data.courses ?? []
+  } catch (e) {
+    if (e instanceof TeError) throw e
+    errorPublicar(e)
+  }
+
+  const ahora = new Date().toISOString()
+  const hoy = hoyMx()
+  const tareas = new Map<string, { curso: classroom_v1.Schema$Course; fecha: string; dia: string; bloques: PlanBloque[] }>()
+  for (const d of DIAS_PLAN) {
+    const bloques = opts.contenido.dias[d.clave]
+    if (!bloques.length) continue
+    const fecha = sumarDias(opts.lunes, d.offset)
+    if (fecha < hoy) {
+      omitir(`${d.es} ${fecha.slice(8)}: ese día ya pasó.`)
+      continue
+    }
+    for (const b of bloques) {
+      for (const g of opts.grupos) {
+        const curso = buscarClase(cursos, g, b.skill)
+        if (!curso?.id) {
+          omitir(`${d.es} · ${g} ${skillDe(b.skill).etiqueta}: no encontré esa clase en su Classroom.`)
+          continue
+        }
+        const clave = `${curso.id}|${fecha}`
+        const t = tareas.get(clave) ?? { curso, fecha, dia: d.es, bloques: [] }
+        t.bloques.push(b)
+        tareas.set(clave, t)
+      }
+    }
+  }
+
+  const temasDe = new Map<string, Promise<classroom_v1.Schema$Topic[]>>()
+  const itemsDe = new Map<string, Promise<{ topicId?: string | null; id?: string | null }[]>>()
+  const previasIds = new Set(opts.previas.map((p) => p.item_id))
+  const temas = (courseId: string) => {
+    if (!temasDe.has(courseId)) temasDe.set(courseId, cr.courses.topics.list({ courseId, pageSize: 200 }).then((x) => x.data.topic ?? []))
+    return temasDe.get(courseId)!
+  }
+  const items = (courseId: string) => {
+    if (!itemsDe.has(courseId)) {
+      itemsDe.set(
+        courseId,
+        Promise.all([
+          cr.courses.courseWorkMaterials.list({ courseId, pageSize: 200, courseWorkMaterialStates: ['PUBLISHED', 'DRAFT'] }).then((x) => x.data.courseWorkMaterial ?? []),
+          cr.courses.courseWork.list({ courseId, pageSize: 200, courseWorkStates: ['PUBLISHED', 'DRAFT'] }).then((x) => x.data.courseWork ?? []),
+        ]).then(([a, b]) => [...a, ...b]),
+      )
+    }
+    return itemsDe.get(courseId)!
+  }
+  const clases = new Set<string>()
+
+  await enParalelo(
+    [...tareas.entries()].map(([clave, t]) => async () => {
+      const courseId = t.curso.id!
+      const nombreClase = t.curso.name ?? courseId
+      if (visibles.has(clave)) {
+        omitir(`${t.dia} · ${nombreClase}: ya estaba publicada de un envío anterior (no se duplicó).`)
+        return
+      }
+      try {
+        const lista = await temas(courseId)
+        let tema = lista.find((x) => esTemaDelDia(x.name, t.fecha))
+        if (tema?.topicId) {
+          const ajenas = (await items(courseId)).filter((x) => x.topicId === tema!.topicId && !previasIds.has(x.id ?? ''))
+          if (ajenas.length) {
+            omitir(`${t.dia} · ${nombreClase}: la teacher ya publicó en «${tema.name}» (no se duplicó).`)
+            return
+          }
+        } else {
+          tema = (await cr.courses.topics.create({ courseId, requestBody: { name: nombreTemaDia(t.fecha) } })).data
+          lista.push(tema)
+        }
+        const programar = `${t.fecha}T${HORA_PUBLICAR_UTC}`
+        const yaHora = programar <= ahora
+        const skillsDelDia = t.bloques.map((b) => b.skill)
+        const posts = t.bloques.flatMap((b) => publicacionesBloque(b, skillsDelDia.filter((s) => s === b.skill).length > 1))
+        // Classroom muestra arriba lo más reciente: se crean al revés para que «Class Materials» quede primero.
+        for (const p of [...posts].reverse()) {
+          const creada = await cr.courses.courseWorkMaterials.create({
+            courseId,
+            requestBody: {
+              ...p,
+              topicId: tema!.topicId,
+              state: yaHora ? 'PUBLISHED' : 'DRAFT',
+              ...(yaHora ? {} : { scheduledTime: programar }),
+            },
+          })
+          r.creadas.push({ course_id: courseId, item_id: creada.data.id!, fecha: t.fecha, topic_id: tema!.topicId ?? null, titulo: p.title, programado_at: yaHora ? null : programar })
+          if (yaHora) r.inmediatas++
+          else r.programadas++
+        }
+        clases.add(courseId)
+      } catch (e) {
+        if ((e as { response?: { data?: { error?: string } } }).response?.data?.error === 'unauthorized_client') errorPublicar(e)
+        r.errores.push(`${t.dia} · ${nombreClase}: ${(e as Error).message ?? 'error'}`)
+      }
+    }),
+    3,
+  )
+  r.clases = clases.size
   return r
 }

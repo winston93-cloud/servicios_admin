@@ -1,6 +1,6 @@
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import { TE_MAX_ARCHIVO_MB, mensajeArchivoGrande } from '@/lib/teamEnglish/teTypes'
-import type { TeClassroomDetalle, TeClassroomPlaneaciones, TeClassroomResumen, TeCoMaestrasSync, TeNivel } from '@/lib/teamEnglish/teTypes'
+import type { TeClassroomDetalle, TeClassroomPlaneaciones, TeClassroomResumen, TeCoMaestrasSync, TeNivel, TePlanClassroom } from '@/lib/teamEnglish/teTypes'
 
 /** Lanza el mensaje de tamaño antes de subir; Vercel respondería 413 sin JSON. */
 export function validarTamano(file: Blob | null | undefined): void {
@@ -45,6 +45,15 @@ export async function teClassroomPlaneaciones(nivel: TeNivel, semana: string, re
     { headers: portalSessionFetchHeaders(), cache: 'no-store' },
   )
   return (await leerJson(res)) as unknown as TeClassroomPlaneaciones
+}
+
+export async function tePlanClassroom(nivel: TeNivel, id: number, accion: 'publicar' | 'retirar'): Promise<TePlanClassroom> {
+  const res = await fetch('/api/team-english/classroom/publicar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...portalSessionFetchHeaders() },
+    body: JSON.stringify({ nivel, id, accion }),
+  })
+  return (await leerJson(res)) as unknown as TePlanClassroom
 }
 
 export async function teSincronizarCoMaestras(nivel: TeNivel, maestroId: number): Promise<TeCoMaestrasSync> {
