@@ -19,6 +19,7 @@ import { montoBecaSep } from './integracionSep'
 import { sepAplicaEnCicloCobro } from './becasCobroPolitica'
 import { cargarCobroSep, type CobroSepPorConcepto } from './becasSep/cobroSep'
 import { faltanteColegiaturaPendiente } from './faltantesColegiaturaCiclo23'
+import { cobroDescuentoRecargo00Pendiente } from './cobroDescuentoRecargoCuotaInicioCiclo23'
 import {
   aplicarCreditoRecargoAImporte,
   resolverCreditoRecargoCuotaInicio,
@@ -320,6 +321,12 @@ export function calcularImporteConcepto(
 
   if (opts?.alumnoRef != null && ciclo != null) {
     importe += faltanteColegiaturaPendiente({
+      alumnoRef: opts.alumnoRef,
+      conceptoNo: c,
+      cicloEscolar: ciclo,
+    })
+    // 2026-10-13 — Cobro del descuento de recargo 00 aplicado de más (solo filas activas).
+    importe += cobroDescuentoRecargo00Pendiente({
       alumnoRef: opts.alumnoRef,
       conceptoNo: c,
       cicloEscolar: ciclo,
