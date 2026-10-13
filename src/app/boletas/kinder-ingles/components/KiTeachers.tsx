@@ -27,8 +27,24 @@ const FILAS: { grado: number; etiqueta: string; nivel: number; grupos: readonly 
   { grado: 3, etiqueta: 'K3', nivel: 2, grupos: GRUPOS_ASIGNACION },
 ]
 
-/** Catálogo de teachers de inglés (Maternal/Kinder): alta, edición, baja y grupos asignados. */
-export default function KiTeachers() {
+/**
+ * Catálogo de docentes y grupos asignados: alta, edición y baja.
+ * Inglés (default): teachers de Maternal y Kinder. Español: `soloKinder` (Maternal no lleva boleta de español).
+ */
+export default function KiTeachers({
+  apiUrl = '/api/boletas-kinder-ingles/teachers',
+  docente = 'teacher',
+  titulo = 'Teachers de inglés',
+  soloKinder = false,
+}: {
+  apiUrl?: string
+  docente?: 'teacher' | 'maestra'
+  titulo?: string
+  soloKinder?: boolean
+} = {}) {
+  const Docente = docente === 'teacher' ? 'Teacher' : 'Maestra'
+  const plural = docente === 'teacher' ? 'teachers' : 'maestras'
+  const filas = soloKinder ? FILAS.filter((f) => f.nivel === 2) : FILAS
   const [teachers, setTeachers] = useState<TeacherKinderEn[]>([])
   const [cargando, setCargando] = useState(true)
   const [form, setForm] = useState<Form | null>(null)
@@ -39,13 +55,13 @@ export default function KiTeachers() {
   const cargar = useCallback(async () => {
     setCargando(true)
     try {
-      setTeachers((await kiApi<{ teachers: TeacherKinderEn[] }>('/api/boletas-kinder-ingles/teachers')).teachers)
+      setTeachers((await kiApi<{ teachers: TeacherKinderEn[] }>(apiUrl)).teachers)
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'No se pudo cargar el catálogo.')
     } finally {
       setCargando(false)
     }
-  }, [])
+  }, [apiUrl])
 
   useEffect(() => {
     void cargar()
@@ -56,7 +72,7 @@ export default function KiTeachers() {
     setErr('')
     setMsg('')
     try {
-      const data = await kiApi<{ teachers: TeacherKinderEn[] }>(url || '/api/boletas-kinder-ingles/teachers', {
+      const data = await kiApi<{ teachers: TeacherKinderEn[] }>(url || apiUrl, {
         method: metodo,
         body: metodo === 'POST' ? JSON.stringify(body) : undefined,
       })
@@ -74,7 +90,7 @@ export default function KiTeachers() {
     e.preventDefault()
     if (!form) return
     if (await enviar({ accion: 'guardar', ...form })) {
-      setMsg(form.id ? 'Teacher actualizada.' : 'Teacher dada de alta. Ya puedes asignarle grupos abajo.')
+      setMsg(form.id ? `${Docente} actualizada.` : `${Docente} dada de alta. Ya puedes asignarle grupos abajo.`)
       setForm(null)
     }
   }
@@ -82,12 +98,12 @@ export default function KiTeachers() {
   async function borrar(t: TeacherKinderEn) {
     const grupos = t.grupos.length ? `\n\nSe le quitarán sus grupos: ${t.grupos.map((g) => etiquetaGrupoKinderEn(g.grado, g.grupo)).join(', ')}.` : ''
     if (!window.confirm(`¿Borrar a ${t.nombreCompleto} del catálogo?${grupos}`)) return
-    if (await enviar({}, 'DELETE', `/api/boletas-kinder-ingles/teachers?id=${t.id}`)) setMsg('Teacher borrada.')
+    if (await enviar({}, 'DELETE', `${apiUrl}?id=${t.id}`)) setMsg(`${Docente} borrada.`)
   }
 
   async function asignar(grado: number, grupo: string, maestroId: number) {
     if (await enviar({ accion: 'asignar', grado, grupo, maestroId })) {
-      setMsg(maestroId ? `Asignada a ${etiquetaGrupoKinderEn(grado, grupo)}.` : `${etiquetaGrupoKinderEn(grado, grupo)} sin teacher.`)
+      setMsg(maestroId ? `Asignada a ${etiquetaGrupoKinderEn(grado, grupo)}.` : `${etiquetaGrupoKinderEn(grado, grupo)} sin ${docente}.`)
     }
   }
 
@@ -112,7 +128,7 @@ export default function KiTeachers() {
       <section className="ki-paper bm-panel ki-cat-panel">
         <header className="ki-cat-head">
           <div>
-            <h2>Teachers de inglés</h2>
+            <h2>{titulo}</h2>
             <p className="ki-hint">
               Entran al portal de captura con su usuario y contraseña o con su correo institucional (Google).
             </p>
@@ -120,7 +136,7 @@ export default function KiTeachers() {
           {!form && (
             <button type="button" className="ki-btn primary" onClick={() => setForm({ ...VACIO })}>
               <Plus size={16} aria-hidden />
-              Nueva teacher
+              Nueva {docente}
             </button>
           )}
         </header>
@@ -140,13 +156,15 @@ export default function KiTeachers() {
                 Apellido materno
                 <input {...campo('apm')} maxLength={60} autoComplete="off" />
               </label>
-              <label>
-                Nivel
-                <select {...campo('nivel')}>
-                  <option value={1}>Maternal</option>
-                  <option value={2}>Kinder</option>
-                </select>
-              </label>
+              {!soloKinder && (
+                <label>
+                  Nivel
+                  <select {...campo('nivel')}>
+                    <option value={1}>Maternal</option>
+                    <option value={2}>Kinder</option>
+                  </select>
+                </label>
+              )}
               <label>
                 Usuario
                 <input {...campo('usuario')} required maxLength={40} autoComplete="off" autoCapitalize="none" />
@@ -178,11 +196,11 @@ export default function KiTeachers() {
         )}
 
         {cargando ? (
-          <p className="ki-empty bm-empty">Cargando teachers…</p>
+          <p className="ki-empty bm-empty">Cargando {plural}…</p>
         ) : teachers.length === 0 ? (
           <p className="ki-empty bm-empty">
-            <strong>Sin teachers</strong>
-            Da de alta a la primera con «Nueva teacher».
+            <strong>Sin {plural}</strong>
+            Da de alta a la primera con «Nueva {docente}».
           </p>
         ) : (
           <ul className="ki-teachers">
@@ -191,7 +209,8 @@ export default function KiTeachers() {
                 <div className="ki-teacher-info">
                   <strong>{t.nombreCompleto}</strong>
                   <span>
-                    @{t.usuario} · {t.nivel === 1 ? 'Maternal' : 'Kinder'}
+                    @{t.usuario}
+                    {soloKinder ? '' : ` · ${t.nivel === 1 ? 'Maternal' : 'Kinder'}`}
                     {t.email ? ` · ${t.email}` : ''}
                     {!t.tieneClave && !t.email ? ' · sin forma de entrar' : ''}
                   </span>
@@ -245,11 +264,11 @@ export default function KiTeachers() {
         <header className="ki-cat-head">
           <div>
             <h2>Grados y grupos</h2>
-            <p className="ki-hint">Cada teacher solo ve y captura los grupos que le asignes aquí.</p>
+            <p className="ki-hint">Cada {docente} solo ve y captura los grupos que le asignes aquí.</p>
           </div>
         </header>
         <div className="ki-asig">
-          {FILAS.map((f) => {
+          {filas.map((f) => {
             const opciones = teachers.filter((t) => t.nivel === f.nivel)
             return (
               <div key={f.grado} className="ki-asig-fila">
@@ -263,7 +282,7 @@ export default function KiTeachers() {
                         disabled={ocupado || cargando}
                         onChange={(e) => void asignar(f.grado, grupo, Number(e.target.value))}
                       >
-                        <option value={0}>Sin teacher</option>
+                        <option value={0}>Sin {docente}</option>
                         {opciones.map((t) => (
                           <option key={t.id} value={t.id}>
                             {t.nombreCompleto}
@@ -274,7 +293,9 @@ export default function KiTeachers() {
                   ))}
                 </div>
                 {opciones.length === 0 && (
-                  <p className="ki-hint">No hay teachers de {f.nivel === 1 ? 'Maternal' : 'Kinder'} en el catálogo.</p>
+                  <p className="ki-hint">
+                    No hay {plural} de {f.nivel === 1 ? 'Maternal' : 'Kinder'} en el catálogo.
+                  </p>
                 )}
               </div>
             )

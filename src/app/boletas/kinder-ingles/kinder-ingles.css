@@ -631,6 +631,35 @@ html[data-theme='light'] .ki-chip.is-on[data-letra='NI'] {
   font-variant-numeric: tabular-nums;
 }
 
+.ki-decimal {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ki-form input.ki-decimal-input {
+  width: 5.5rem;
+  font-weight: 700;
+}
+
+.ki-form input.ki-decimal-input.is-invalid {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #dc2626 25%, transparent);
+}
+
+.ki-form input.ki-decimal-input:disabled::placeholder {
+  color: var(--ki-mute);
+  opacity: 1;
+}
+
+.ki-chip.ki-chip-na.is-on {
+  --chip: #64748b;
+}
+
+html[data-theme='light'] .ki-chip.ki-chip-na.is-on {
+  --chip: #475569;
+}
+
 .ki-escala {
   display: flex;
   flex-wrap: wrap;

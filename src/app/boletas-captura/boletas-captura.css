@@ -132,6 +132,20 @@
   background: color-mix(in srgb, var(--ki-gold) 14%, transparent);
 }
 
+.bc-pregunta {
+  margin: 0 0 0.75rem;
+  font-family: var(--ki-serif);
+  font-size: clamp(1.3rem, 3.5vw, 1.6rem);
+  font-weight: 400;
+}
+
+.bc-idiomas .bc-grupo-badge {
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
 .bc-vacio h2 {
   margin: 0 0 0.4rem;
   font-family: var(--ki-serif);

@@ -31,7 +31,7 @@ function fecha(iso: string | null): string {
   })
 }
 
-function EstadoEntrega({ g }: { g: GrupoTablero }) {
+function EstadoEntrega({ g, docente }: { g: GrupoTablero; docente: string }) {
   if (g.publicacion) {
     return <span className="ki-estado is-publicada">Publicada a papás</span>
   }
@@ -39,20 +39,25 @@ function EstadoEntrega({ g }: { g: GrupoTablero }) {
     return <span className="ki-estado is-enviada">Enviada · {fecha(g.entrega.enviadaAt)}</span>
   }
   if (g.entrega.estado === 'devuelta') {
-    return <span className="ki-estado is-devuelta">Regresada a la teacher</span>
+    return <span className="ki-estado is-devuelta">Regresada a la {docente}</span>
   }
   return <span className="ki-estado">En captura</span>
 }
 
-/** Tablero por grupo: avance, entrega de la teacher, regresar con comentario y publicar a papás. */
+/** Tablero por grupo: avance, entrega de la docente, regresar con comentario y publicar a papás. */
 export default function KiEntregas({
   ciclo,
   trimestre,
   onRevisar,
+  apiUrl = '/api/boletas-kinder-ingles/entregas',
+  docente = 'teacher',
 }: {
   ciclo: number
   trimestre: number
   onRevisar: (grado: number, grupo: string) => void
+  apiUrl?: string
+  /** «teacher» (inglés) o «maestra» (español). */
+  docente?: string
 }) {
   const [grupos, setGrupos] = useState<GrupoTablero[]>([])
   const [cargando, setCargando] = useState(true)
@@ -64,7 +69,7 @@ export default function KiEntregas({
     setErr('')
     try {
       const data = await kiApi<{ grupos: GrupoTablero[] }>(
-        `/api/boletas-kinder-ingles/entregas?ciclo=${ciclo}&trimestre=${trimestre}`
+        `${apiUrl}?ciclo=${ciclo}&trimestre=${trimestre}`
       )
       setGrupos(data.grupos)
     } catch (e) {
@@ -72,7 +77,7 @@ export default function KiEntregas({
     } finally {
       setCargando(false)
     }
-  }, [ciclo, trimestre])
+  }, [apiUrl, ciclo, trimestre])
 
   useEffect(() => {
     void cargar()
@@ -82,7 +87,7 @@ export default function KiEntregas({
     let comentario = ''
     if (tipo === 'devolver') {
       const r = window.prompt(
-        `¿Qué debe corregir la teacher de ${g.etiqueta}? (se le mostrará al entrar; puedes dejarlo vacío)`,
+        `¿Qué debe corregir la ${docente} de ${g.etiqueta}? (se le mostrará al entrar; puedes dejarlo vacío)`,
         ''
       )
       if (r == null) return
@@ -90,7 +95,7 @@ export default function KiEntregas({
     } else if (tipo === 'publicar') {
       const aviso =
         g.entrega.estado !== 'enviada'
-          ? `\n\nOjo: la teacher todavía no la envía a dirección (${g.completos} de ${g.alumnos} completas).`
+          ? `\n\nOjo: la ${docente} todavía no la envía a dirección (${g.completos} de ${g.alumnos} completas).`
           : ''
       if (!window.confirm(`¿Publicar las boletas del trimestre ${trimestre} de ${g.etiqueta} a los papás?${aviso}`)) return
     } else if (!window.confirm(`¿Retirar del portal de papás las boletas del trimestre ${trimestre} de ${g.etiqueta}?`)) {
@@ -99,7 +104,7 @@ export default function KiEntregas({
     setOcupado(`${g.grado}-${g.grupo}`)
     setErr('')
     try {
-      const data = await kiApi<{ grupos: GrupoTablero[] }>('/api/boletas-kinder-ingles/entregas', {
+      const data = await kiApi<{ grupos: GrupoTablero[] }>(apiUrl, {
         method: 'POST',
         body: JSON.stringify({ accion: tipo, ciclo, trimestre, grado: g.grado, grupo: g.grupo, comentario }),
       })
@@ -140,9 +145,9 @@ export default function KiEntregas({
             <li key={clave} className={`ki-grupo${g.publicacion ? ' is-publicada' : ''}`}>
               <div className="ki-grupo-top">
                 <h3>{g.etiqueta}</h3>
-                <EstadoEntrega g={g} />
+                <EstadoEntrega g={g} docente={docente} />
               </div>
-              <p className="ki-grupo-teacher">{g.teacher ?? 'Sin teacher asignada'}</p>
+              <p className="ki-grupo-teacher">{g.teacher ?? `Sin ${docente} asignada`}</p>
               <div className="ki-barra" aria-label={`${g.completos} de ${g.alumnos} boletas completas`}>
                 <span style={{ width: `${g.alumnos ? Math.round((g.completos / g.alumnos) * 100) : 0}%` }} />
               </div>

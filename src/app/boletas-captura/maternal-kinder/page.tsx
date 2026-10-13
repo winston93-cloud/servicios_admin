@@ -9,7 +9,7 @@ import KiCaptura, {
 } from '@/app/boletas/kinder-ingles/components/KiCaptura'
 import { kiApi } from '@/app/boletas/kinder-ingles/components/kiApi'
 import type { BoletaEntrega } from '@/lib/boletasEntrega'
-import type { GrupoCaptura } from '@/lib/boletasCapturaGrupos'
+import type { GrupoCaptura, ModuloCapturaKinder } from '@/lib/boletasCapturaGrupos'
 import { ArrowLeft, CheckCircle2, LogOut, Send } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
@@ -32,6 +32,20 @@ type EstadoGrupo = {
   entrega: BoletaEntrega
   publicada: boolean
   editable: boolean
+}
+
+const IDIOMAS: Record<ModuloCapturaKinder, { titulo: string; sigla: string; desc: string; docente: string }> = {
+  'kinder-es': { titulo: 'Español', sigla: 'ES', desc: 'Maestras · K1 a K3', docente: 'Maestra' },
+  'kinder-en': { titulo: 'Inglés', sigla: 'EN', desc: 'Teachers · Maternal y Kinder', docente: 'Teacher' },
+}
+
+/** Maternal no lleva boleta de español. */
+function capturables(grupos: GrupoCaptura[]): GrupoCaptura[] {
+  return grupos.filter((g) => !(g.modulo === 'kinder-es' && g.grado === 0))
+}
+
+function claveGrupo(g: GrupoCaptura): string {
+  return `${g.modulo}-${g.grado}-${g.grupo}`
 }
 
 function fecha(iso: string | null): string {
@@ -66,7 +80,7 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
     <div className="ki-login ki-paper">
       <form onSubmit={submit}>
         <h2>Boletas · Maternal / Kinder</h2>
-        <p>Teachers de inglés: entra con tu usuario y contraseña o con tu correo institucional.</p>
+        <p>Maestras de español y teachers de inglés: entra con tu usuario y contraseña o con tu correo institucional.</p>
         <label>
           Usuario
           <input
@@ -142,28 +156,29 @@ function GrupoTeacher({ grupo, sesion }: { grupo: GrupoCaptura; sesion: Sesion }
   const [err, setErr] = useState('')
 
   const qs = `grado=${grupo.grado}&grupo=${grupo.grupo}&trimestre=${trimestre}`
+  const url = `${BASE}/${grupo.modulo}`
 
   const api = useMemo<KiCapturaApi>(
     () => ({
       listar: async () => {
-        const data = await kiApi<EstadoGrupo & { alumnos: KiAlumno[] }>(`${BASE}/kinder-en?${qs}`)
+        const data = await kiApi<EstadoGrupo & { alumnos: KiAlumno[] }>(`${url}?${qs}`)
         setEstado({ entrega: data.entrega, publicada: data.publicada, editable: data.editable })
         return data.alumnos
       },
       abrir: async (alumnoId) => {
-        const data = await kiApi<EstadoGrupo & { captura: KiCapturaData }>(`${BASE}/kinder-en?${qs}&alumnoId=${alumnoId}`)
+        const data = await kiApi<EstadoGrupo & { captura: KiCapturaData }>(`${url}?${qs}&alumnoId=${alumnoId}`)
         setEstado({ entrega: data.entrega, publicada: data.publicada, editable: data.editable })
         return data.captura
       },
       guardar: async (alumnoId, payload) => {
-        await kiApi(`${BASE}/kinder-en`, {
+        await kiApi(url, {
           method: 'PUT',
           body: JSON.stringify({ grado: grupo.grado, grupo: grupo.grupo, trimestre, alumnoId, ...payload }),
         })
       },
-      pdfUrl: (alumnoId) => `${BASE}/kinder-en/pdf?${qs}&alumnoId=${alumnoId}`,
+      pdfUrl: (alumnoId) => `${url}/pdf?${qs}&alumnoId=${alumnoId}`,
     }),
-    [qs, grupo.grado, grupo.grupo, trimestre]
+    [url, qs, grupo.grado, grupo.grupo, trimestre]
   )
 
   async function enviar(forzar = false) {
@@ -174,7 +189,7 @@ function GrupoTeacher({ grupo, sesion }: { grupo: GrupoCaptura; sesion: Sesion }
     setErr('')
     setMsg('')
     try {
-      await kiApi(`${BASE}/kinder-en`, {
+      await kiApi(url, {
         method: 'POST',
         body: JSON.stringify({ accion: 'enviar', grado: grupo.grado, grupo: grupo.grupo, trimestre, forzar }),
       })
@@ -207,7 +222,9 @@ function GrupoTeacher({ grupo, sesion }: { grupo: GrupoCaptura; sesion: Sesion }
     <section className="ki-paper bm-panel">
       <div className="bc-grupo-head">
         <div>
-          <p className="bm-kicker">Inglés · Ciclo {sesion.ciclo.etiqueta}</p>
+          <p className="bm-kicker">
+            {IDIOMAS[grupo.modulo].titulo} · Ciclo {sesion.ciclo.etiqueta}
+          </p>
           <h2>{grupo.etiqueta}</h2>
         </div>
         <div className="bc-trimestres" role="tablist" aria-label="Trimestre">
@@ -266,6 +283,7 @@ export default function BoletasCapturaMaternalKinderPage() {
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [boot, setBoot] = useState(true)
   const [errBoot, setErrBoot] = useState('')
+  const [idioma, setIdioma] = useState<ModuloCapturaKinder | null>(null)
   const [elegido, setElegido] = useState<string | null>(null)
 
   const cargar = useCallback(async () => {
@@ -273,8 +291,12 @@ export default function BoletasCapturaMaternalKinderPage() {
     try {
       const s = await kiApi<Sesion>(`${BASE}/sesion`)
       setSesion(s)
-      const ingles = s.grupos.filter((g) => g.modulo === 'kinder-en')
-      setElegido((prev) => prev ?? (ingles.length === 1 ? `${ingles[0].grado}-${ingles[0].grupo}` : null))
+      const modulos = [...new Set(capturables(s.grupos).map((g) => g.modulo))]
+      if (modulos.length === 1 && !s.supervisor) {
+        setIdioma((prev) => prev ?? modulos[0])
+        const propios = capturables(s.grupos)
+        setElegido((prev) => prev ?? (propios.length === 1 ? claveGrupo(propios[0]) : null))
+      }
     } catch (e) {
       setSesion(null)
       if ((e as { status?: number }).status !== 401) {
@@ -292,23 +314,43 @@ export default function BoletasCapturaMaternalKinderPage() {
   async function salir() {
     await kiApi(`${BASE}/auth/logout`, { method: 'POST' }).catch(() => null)
     setSesion(null)
+    setIdioma(null)
     setElegido(null)
   }
 
-  const ingles = sesion?.grupos.filter((g) => g.modulo === 'kinder-en') ?? []
-  const espanol = sesion?.grupos.filter((g) => g.modulo === 'kinder-es') ?? []
-  const grupo = ingles.find((g) => `${g.grado}-${g.grupo}` === elegido) ?? null
+  const todos = sesion ? capturables(sesion.grupos) : []
+  const maternalEs = sesion?.grupos.filter((g) => g.modulo === 'kinder-es' && g.grado === 0) ?? []
+  const modulos = (['kinder-es', 'kinder-en'] as const).filter((m) => todos.some((g) => g.modulo === m))
+  const eligeIdioma = Boolean(sesion?.supervisor) || modulos.length > 1
+  const delIdioma = idioma ? todos.filter((g) => g.modulo === idioma) : []
+  const grupo = delIdioma.find((g) => claveGrupo(g) === elegido) ?? null
+  const info = idioma ? IDIOMAS[idioma] : null
+
+  function elegirIdioma(m: ModuloCapturaKinder) {
+    setIdioma(m)
+    const lista = todos.filter((g) => g.modulo === m)
+    setElegido(lista.length === 1 && !sesion?.supervisor ? claveGrupo(lista[0]) : null)
+  }
+
+  const atras: { label: string; fn: () => void } =
+    grupo && delIdioma.length > 1
+      ? { label: sesion?.supervisor ? 'Grupos' : 'Mis grupos', fn: () => setElegido(null) }
+      : idioma && eligeIdioma
+        ? {
+            label: 'Español / Inglés',
+            fn: () => {
+              setIdioma(null)
+              setElegido(null)
+            },
+          }
+        : { label: 'Niveles', fn: () => router.push('/boletas-captura') }
 
   return (
     <div className="ki-page bm-page">
       <header className="ki-top bm-top">
-        <button
-          type="button"
-          className="ki-back"
-          onClick={() => (grupo && ingles.length > 1 ? setElegido(null) : router.push('/boletas-captura'))}
-        >
+        <button type="button" className="ki-back" onClick={atras.fn}>
           <ArrowLeft size={15} aria-hidden />
-          {grupo && ingles.length > 1 ? (sesion?.supervisor ? 'Grupos' : 'Mis grupos') : 'Niveles'}
+          {atras.label}
         </button>
         <p className="ki-school">Winston Churchill</p>
         <div className="ki-spacer" />
@@ -343,27 +385,53 @@ export default function BoletasCapturaMaternalKinderPage() {
 
             {sesion.supervisor && !grupo && (
               <p className="ki-msg bc-supervision" role="note">
-                Modo supervisión: ves todos los grupos de inglés del nivel tal como los ve cada teacher. Lo que guardes
+                Modo supervisión: ves todos los grupos del nivel tal como los ve cada maestra o teacher. Lo que guardes
                 o envíes a dirección cuenta como captura real.
               </p>
             )}
 
-            {ingles.length === 0 && (
+            {todos.length === 0 && (
               <div className="ki-paper bm-panel bc-vacio">
-                <h2>{espanol.length ? 'La boleta de español llega pronto a este portal' : 'Aún no tienes grupos asignados'}</h2>
+                <h2>{maternalEs.length ? 'Maternal no lleva boleta de español' : 'Aún no tienes grupos asignados'}</h2>
                 <p className="ki-hint">
-                  {espanol.length
-                    ? `Tus grupos de español (${espanol.map((g) => g.etiqueta).join(', ')}) se habilitan aquí pronto.`
-                    : 'Pide a tu directora que te asigne tu grado y grupo en el catálogo de teachers.'}
+                  {maternalEs.length
+                    ? `Tus grupos (${maternalEs.map((g) => g.etiqueta).join(', ')}) no tienen boleta de español en este portal. Si crees que es un error, avísale a tu directora.`
+                    : 'Pide a tu directora que te asigne tu grado y grupo en el catálogo de maestras o de teachers.'}
                 </p>
               </div>
             )}
 
-            {ingles.length > 1 && !grupo && (
+            {eligeIdioma && !idioma && modulos.length > 0 && (
+              <>
+                <h2 className="bc-pregunta">¿Qué boleta vas a revisar?</h2>
+                <ul className="bc-grupos bc-idiomas">
+                  {modulos.map((m) => {
+                    const n = todos.filter((g) => g.modulo === m).length
+                    return (
+                      <li key={m}>
+                        <button type="button" className="ki-menu-item" onClick={() => elegirIdioma(m)}>
+                          <span className="bc-grupo-badge" aria-hidden>
+                            {IDIOMAS[m].sigla}
+                          </span>
+                          <span className="ki-menu-text">
+                            <strong>{IDIOMAS[m].titulo}</strong>
+                            <span>
+                              {IDIOMAS[m].desc} · {n} grupo{n === 1 ? '' : 's'}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </>
+            )}
+
+            {info && !grupo && delIdioma.length > 0 && (
               <ul className="bc-grupos">
-                {ingles.map((g) => (
-                  <li key={`${g.grado}-${g.grupo}`}>
-                    <button type="button" className="ki-menu-item" onClick={() => setElegido(`${g.grado}-${g.grupo}`)}>
+                {delIdioma.map((g) => (
+                  <li key={claveGrupo(g)}>
+                    <button type="button" className="ki-menu-item" onClick={() => setElegido(claveGrupo(g))}>
                       <span className="bc-grupo-badge" aria-hidden>
                         {g.grupo}
                       </span>
@@ -371,8 +439,8 @@ export default function BoletasCapturaMaternalKinderPage() {
                         <strong>{g.etiqueta}</strong>
                         <span>
                           {sesion.supervisor
-                            ? `Teacher: ${g.teacher || 'sin asignar'}`
-                            : 'Inglés · capturar boletas'}
+                            ? `${info.docente}: ${g.teacher || 'sin asignar'}`
+                            : `${info.titulo} · capturar boletas`}
                         </span>
                       </span>
                     </button>

@@ -27,9 +27,23 @@ const AYUDA: Record<KinderEnTipo, string> = {
   maternal: 'Indicadores de la boleta de Maternal. «Días» es para School days / Days absent.',
 }
 
-/** CRUD de Subjects / Behavioral skills / Maternal. Desactivar oculta el indicador sin perder calificaciones. */
-export default function KiCatalogo({ tipo }: { tipo: KinderEnTipo }) {
+/**
+ * CRUD de Subjects / Behavioral skills / Maternal (inglés) o de campos académicos (español, sin `tipo`).
+ * Desactivar oculta el indicador sin perder calificaciones.
+ */
+export default function KiCatalogo({
+  tipo,
+  apiUrl = '/api/boletas-kinder-ingles/catalogo',
+  titulo,
+  ayuda,
+}: {
+  tipo?: KinderEnTipo
+  apiUrl?: string
+  titulo?: string
+  ayuda?: string
+}) {
   const grados = tipo === 'maternal' ? [0] : [1, 2, 3]
+  const qsTipo = tipo ? `tipo=${tipo}&` : ''
   const [grado, setGrado] = useState(grados[0])
   const [todos, setTodos] = useState<KinderEnIndicador[]>([])
   const [cargando, setCargando] = useState(true)
@@ -41,14 +55,14 @@ export default function KiCatalogo({ tipo }: { tipo: KinderEnTipo }) {
   const cargar = useCallback(async () => {
     setCargando(true)
     try {
-      const data = await kiApi<{ indicadores: KinderEnIndicador[] }>(`/api/boletas-kinder-ingles/catalogo?tipo=${tipo}`)
+      const data = await kiApi<{ indicadores: KinderEnIndicador[] }>(`${apiUrl}?${qsTipo}`)
       setTodos(data.indicadores)
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'No se pudo cargar el catálogo.')
     } finally {
       setCargando(false)
     }
-  }, [tipo])
+  }, [apiUrl, qsTipo])
 
   useEffect(() => {
     void cargar()
@@ -60,7 +74,7 @@ export default function KiCatalogo({ tipo }: { tipo: KinderEnTipo }) {
   )
 
   async function guardarIndicador(datos: Partial<Form> & { id?: number; nombre: string }) {
-    await kiApi('/api/boletas-kinder-ingles/catalogo', {
+    await kiApi(apiUrl, {
       method: 'POST',
       body: JSON.stringify({ tipo, grado, ...datos }),
     })
@@ -123,7 +137,7 @@ export default function KiCatalogo({ tipo }: { tipo: KinderEnTipo }) {
   async function borrar(i: KinderEnIndicador) {
     if (!window.confirm(`¿Borrar «${i.nombre}» de ${etiquetaGradoKinderEn(grado)}?`)) return
     await correr(
-      () => kiApi(`/api/boletas-kinder-ingles/catalogo?tipo=${tipo}&grado=${grado}&id=${i.id}`, { method: 'DELETE' }),
+      () => kiApi(`${apiUrl}?${qsTipo}grado=${grado}&id=${i.id}`, { method: 'DELETE' }),
       'Indicador borrado.'
     )
   }
@@ -132,8 +146,8 @@ export default function KiCatalogo({ tipo }: { tipo: KinderEnTipo }) {
     <section className="ki-paper bm-panel ki-cat-panel">
       <header className="ki-cat-head">
         <div>
-          <h2>{ETIQUETA_TIPO_KINDER_EN[tipo]}</h2>
-          <p className="ki-hint">{AYUDA[tipo]}</p>
+          <h2>{titulo ?? (tipo ? ETIQUETA_TIPO_KINDER_EN[tipo] : '')}</h2>
+          <p className="ki-hint">{ayuda ?? (tipo ? AYUDA[tipo] : '')}</p>
         </div>
         {!form && (
           <button
@@ -237,7 +251,7 @@ export default function KiCatalogo({ tipo }: { tipo: KinderEnTipo }) {
               <div className="ki-indicador-info">
                 <strong>{i.nombre}</strong>
                 <span>
-                  {i.formato === 'numero' ? 'Días' : 'Escala'}
+                  {!tipo ? 'Calificación 0 a 10' : i.formato === 'numero' ? 'Días' : 'Escala'}
                   {tipo === 'subject' ? (i.enPromedio ? ' · cuenta para Average' : ' · fuera del Average') : ''}
                   {i.activo ? '' : ' · no sale en la boleta'}
                 </span>

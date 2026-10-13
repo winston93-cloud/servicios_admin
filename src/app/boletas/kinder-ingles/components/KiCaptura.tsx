@@ -7,6 +7,11 @@ import {
   KINDER_EN_ESCALA_NOTA,
   type KinderEnIndicador,
 } from '@/lib/boletasKinderEnCatalog'
+import {
+  KINDER_ES_ESCALA_HINT,
+  KINDER_ES_NO_APLICA,
+  normalizarCalificacionKinderEs,
+} from '@/lib/boletasKinderEsCatalog'
 
 export type KiProgreso = { capturadas: number; total: number } | null
 
@@ -18,11 +23,18 @@ export type KiAlumno = {
   progreso?: KiProgreso
 }
 
-export type KiFila = KinderEnIndicador & { calificacion: string }
+export type KiFila = Pick<KinderEnIndicador, 'id' | 'nombre'> & {
+  /** decimal = Kinder Español (0 a 10 con un decimal o N/A). */
+  formato: KinderEnIndicador['formato'] | 'decimal'
+  enPromedio?: boolean
+  calificacion: string
+}
 
 export type KiCapturaData = {
   alumno: KiAlumno
-  modo: 'kinder' | 'maternal'
+  /** academico = Kinder Español (solo campos académicos con calificación numérica). */
+  modo: 'kinder' | 'maternal' | 'academico'
+  academicos?: KiFila[]
   subjects: KiFila[]
   behavioral: KiFila[]
   maternal: KiFila[]
@@ -34,6 +46,7 @@ export type KiGuardarPayload = {
   subjects: Record<number, string>
   behavioral: Record<number, string>
   maternal: Record<number, string>
+  academicos?: Record<number, string>
   attendance?: { school_days: string; days_absent: string }
 }
 
@@ -121,6 +134,58 @@ function CampoDias({
   )
 }
 
+function CampoDecimal({
+  id,
+  labelId,
+  valor,
+  disabled,
+  onChange,
+}: {
+  id: string
+  labelId: string
+  valor: string
+  disabled: boolean
+  onChange: (v: string) => void
+}) {
+  const [foco, setFoco] = useState(false)
+  const noAplica = valor === KINDER_ES_NO_APLICA
+  const invalido = !foco && !noAplica && normalizarCalificacionKinderEs(valor) === null
+  return (
+    <div className="ki-decimal">
+      <input
+        id={id}
+        className={`ki-dias ki-decimal-input${invalido ? ' is-invalid' : ''}`}
+        type="text"
+        inputMode="decimal"
+        maxLength={4}
+        aria-labelledby={labelId}
+        aria-invalid={invalido || undefined}
+        value={noAplica ? '' : valor}
+        disabled={disabled || noAplica}
+        placeholder={noAplica ? 'N/A' : '0–10'}
+        onChange={(e) => onChange(e.target.value.replace(/[^\d.,]/g, '').slice(0, 4))}
+        onFocus={() => setFoco(true)}
+        onBlur={() => {
+          setFoco(false)
+          const n = normalizarCalificacionKinderEs(valor)
+          if (n !== null && n !== valor) onChange(n)
+        }}
+        autoComplete="off"
+      />
+      <button
+        type="button"
+        className={`ki-chip ki-chip-na${noAplica ? ' is-on' : ''}`}
+        aria-pressed={noAplica}
+        title="No se evaluó este trimestre"
+        disabled={disabled}
+        onClick={() => onChange(noAplica ? '' : KINDER_ES_NO_APLICA)}
+      >
+        N/A
+      </button>
+    </div>
+  )
+}
+
 function Bloque({
   titulo,
   prefijo,
@@ -156,7 +221,15 @@ function Bloque({
                 <span className="ki-field-label" id={id}>
                   {f.nombre}
                 </span>
-                {f.formato === 'numero' ? (
+                {f.formato === 'decimal' ? (
+                  <CampoDecimal
+                    id={`${id}-input`}
+                    labelId={id}
+                    valor={f.calificacion}
+                    disabled={disabled}
+                    onChange={(v) => onChange(f.id, v)}
+                  />
+                ) : f.formato === 'numero' ? (
                   <CampoDias
                     id={`${id}-input`}
                     valor={f.calificacion}
@@ -268,14 +341,22 @@ export default function KiCaptura({
     }
   }
 
-  function cambiar(campo: 'subjects' | 'behavioral' | 'maternal', id: number, v: string) {
-    setData((d) => (d ? { ...d, [campo]: d[campo].map((f) => (f.id === id ? { ...f, calificacion: v } : f)) } : d))
+  function cambiar(campo: 'subjects' | 'behavioral' | 'maternal' | 'academicos', id: number, v: string) {
+    setData((d) =>
+      d ? { ...d, [campo]: (d[campo] ?? []).map((f) => (f.id === id ? { ...f, calificacion: v } : f)) } : d
+    )
     setSucio(true)
     setMsg('')
   }
 
   async function guardar(siguiente: boolean) {
     if (!data || alumnoId == null) return
+    const malo = data.academicos?.find((f) => normalizarCalificacionKinderEs(f.calificacion) === null)
+    if (malo) {
+      setErr(`«${malo.nombre}»: escribe una calificación de 0 a 10 (un decimal, ej. 9.5) o marca N/A.`)
+      setMsg('')
+      return
+    }
     setGuardando(true)
     setErr('')
     setMsg('')
@@ -285,6 +366,7 @@ export default function KiCaptura({
         subjects: mapa(data.subjects),
         behavioral: mapa(data.behavioral),
         maternal: mapa(data.maternal),
+        academicos: data.academicos ? mapa(data.academicos) : undefined,
         attendance: data.modo === 'kinder' ? data.attendance : undefined,
       })
       setSucio(false)
@@ -406,15 +488,27 @@ export default function KiCaptura({
             {!editable && avisoNoEditable ? <div className="ki-aviso">{avisoNoEditable}</div> : null}
             {sucio && <p className="ki-sucio">Cambios sin guardar</p>}
 
-            <p className="ki-hint ki-escala">
-              {KINDER_EN_ESCALA_NOTA.map((e) => (
-                <span key={e.letra}>
-                  <strong>{e.letra}</strong> {e.etiqueta}
-                </span>
-              ))}
-            </p>
+            {data.modo === 'academico' ? (
+              <p className="ki-hint ki-escala">{KINDER_ES_ESCALA_HINT}</p>
+            ) : (
+              <p className="ki-hint ki-escala">
+                {KINDER_EN_ESCALA_NOTA.map((e) => (
+                  <span key={e.letra}>
+                    <strong>{e.letra}</strong> {e.etiqueta}
+                  </span>
+                ))}
+              </p>
+            )}
 
-            {data.modo === 'maternal' ? (
+            {data.modo === 'academico' ? (
+              <Bloque
+                titulo="Campos académicos"
+                prefijo="aca"
+                filas={data.academicos ?? []}
+                disabled={bloqueado}
+                onChange={(id, v) => cambiar('academicos', id, v)}
+              />
+            ) : data.modo === 'maternal' ? (
               <Bloque
                 titulo="Maternal"
                 prefijo="mat"

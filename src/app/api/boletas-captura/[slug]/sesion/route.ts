@@ -1,6 +1,6 @@
 import { jsonError, jsonOk } from '@/lib/boletasApi'
 import { capturaConfigDeSlug, requireSesionCaptura } from '@/lib/boletasCapturaAuth'
-import { gruposDeMaestro, gruposSupervisionKinderEn } from '@/lib/boletasCapturaGrupos'
+import { gruposDeMaestro, gruposSupervisionKinder } from '@/lib/boletasCapturaGrupos'
 import { etiquetaCicloBoletas } from '@/lib/boletasCiclo'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 
@@ -14,7 +14,7 @@ export async function GET(req: Request, { params }: Params) {
     const s = requireSesionCaptura(cfg, req)
     const ciclo = await resolverCicloEscolarSistemaValor()
     const grupos = s.supervisor
-      ? await gruposSupervisionKinderEn(ciclo)
+      ? await gruposSupervisionKinder(ciclo)
       : await gruposDeMaestro(s.maestroId, cfg.niveles)
     return jsonOk({
       maestro: { id: s.maestroId, nombre: s.nombre, usuario: s.usuario },

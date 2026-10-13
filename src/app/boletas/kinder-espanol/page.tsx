@@ -6,16 +6,31 @@ import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
 import {
   KINDER_ES_GRADOS,
   KINDER_ES_GRUPOS,
+  etiquetaGrupoKinderEs,
   type KinderEsGrado,
 } from '@/lib/boletasKinderEsCatalog'
 import { cicloEscolarActualBoletas, etiquetaCicloBoletas, opcionesCicloBoletas } from '@/lib/boletasCiclo'
-import { ArrowLeft, LogOut, Printer, Save, Send } from 'lucide-react'
+import {
+  ArrowLeft,
+  BookOpen,
+  ClipboardCheck,
+  Copy,
+  ExternalLink,
+  Inbox,
+  LogOut,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import KiCaptura, { type KiAlumno, type KiCapturaApi, type KiCapturaData } from '../kinder-ingles/components/KiCaptura'
+import KiCatalogo from '../kinder-ingles/components/KiCatalogo'
+import KiEntregas from '../kinder-ingles/components/KiEntregas'
+import KiTeachers from '../kinder-ingles/components/KiTeachers'
+import { kiApi } from '../kinder-ingles/components/kiApi'
 import '../boletas-login-google.css'
-import BoletasPublicarPapas from '../components/BoletasPublicarPapas'
 import '../boletas-modulos-ui.css'
-import './kinder-espanol.css'
+import '../kinder-ingles/kinder-ingles.css'
 
 type Me = {
   role: 'maestro' | 'admin'
@@ -24,34 +39,54 @@ type Me = {
   usuario: string
   cicloActual?: number
   ciclos?: { valor: number; etiqueta: string }[]
-  envOk?: boolean
 }
 
-type Alumno = {
-  alumno_id: number
-  alumno_ref: number | null
-  nombre: string
-  grupo_letra: string
+type Vista = 'menu' | 'captura' | 'entregas' | 'maestras' | 'campos'
+
+const VISTAS: Vista[] = ['menu', 'captura', 'entregas', 'maestras', 'campos']
+
+const API = '/api/boletas-kinder-espanol'
+const PORTAL_MAESTRAS = '/boletas-captura/maternal-kinder'
+
+const MENU: { vista: Exclude<Vista, 'menu'>; titulo: string; desc: string; icon: LucideIcon }[] = [
+  {
+    vista: 'entregas',
+    titulo: 'Entregas y publicación',
+    desc: 'Avance por grupo, lo que enviaron las maestras, regresar con comentario y publicar a papás.',
+    icon: Inbox,
+  },
+  {
+    vista: 'captura',
+    titulo: 'Revisar y corregir',
+    desc: 'Abre la boleta de cualquier alumno, corrige y genera el PDF.',
+    icon: ClipboardCheck,
+  },
+  {
+    vista: 'maestras',
+    titulo: 'Maestras y grupos',
+    desc: 'Catálogo de maestras de español: alta, edición, baja y grados/grupos asignados.',
+    icon: Users,
+  },
+  {
+    vista: 'campos',
+    titulo: 'Campos académicos',
+    desc: 'Lo que se califica en la boleta por grado (K1, K2, K3).',
+    icon: BookOpen,
+  },
+]
+
+const TITULO_VISTA: Record<Vista, string> = {
+  menu: 'Kinder · Español',
+  captura: 'Revisar y corregir',
+  entregas: 'Entregas y publicación',
+  maestras: 'Maestras y grupos',
+  campos: 'Campos académicos',
 }
 
-type IndicadorFila = {
-  id: number
-  nombre: string
-  calificacion: string
-}
-
-async function api<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers || {}),
-    },
-    credentials: 'include',
-  })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw new Error((data as { error?: string }).error || `Error ${res.status}`)
-  return data as T
+function vistaDeUrl(): Vista {
+  if (typeof window === 'undefined') return 'menu'
+  const v = new URLSearchParams(window.location.search).get('vista') as Vista | null
+  return v && VISTAS.includes(v) ? v : 'menu'
 }
 
 function LoginPanel({ onOk }: { onOk: () => void }) {
@@ -65,7 +100,7 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
     setLoading(true)
     setError('')
     try {
-      await api('/api/boletas-secundaria/auth/login', {
+      await kiApi('/api/boletas-secundaria/auth/login', {
         method: 'POST',
         body: JSON.stringify({ usuario, password }),
       })
@@ -78,18 +113,13 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
   }
 
   return (
-    <div className="ke-login ke-paper">
+    <div className="ki-login ki-paper">
       <form onSubmit={submit}>
         <h2>Kinder · Español</h2>
-        <p>Usa las mismas credenciales del sistema de boletas (admin o maestro).</p>
+        <p>Dirección de Kinder. Las maestras capturan en su propio portal.</p>
         <label>
           Usuario
-          <input
-            value={usuario}
-            onChange={(e) => setUsuario(e.target.value)}
-            autoComplete="username"
-            required
-          />
+          <input value={usuario} onChange={(e) => setUsuario(e.target.value)} autoComplete="username" required />
         </label>
         <label>
           Contraseña
@@ -101,19 +131,82 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
             required
           />
         </label>
-        {error && <p className="ke-msg is-error">{error}</p>}
-        <button type="submit" className="ke-btn primary" disabled={loading}>
+        {error && <p className="ki-msg is-error">{error}</p>}
+        <button type="submit" className="ki-btn primary" disabled={loading}>
           {loading ? 'Entrando…' : 'Entrar'}
         </button>
       </form>
-      <RacGoogleSignIn
-        authUrl="/api/boletas-secundaria/auth/google"
-        onOk={onOk}
-        classPrefix="boletas"
-      />
+      <RacGoogleSignIn authUrl="/api/boletas-secundaria/auth/google" onOk={onOk} classPrefix="boletas" />
       <p className="boletas-login-google-hint">
         Google: <strong>dg@</strong> y <strong>sistemas.desarrollo@</strong> (dirección ES/EN).
       </p>
+    </div>
+  )
+}
+
+function CapturaDirectora({
+  ciclo,
+  trimestre,
+  grado,
+  grupo,
+}: {
+  ciclo: number
+  trimestre: number
+  grado: KinderEsGrado
+  grupo: string
+}) {
+  const api = useMemo<KiCapturaApi>(
+    () => ({
+      listar: async () =>
+        (
+          await kiApi<{ alumnos: KiAlumno[] }>(
+            `${API}/alumnos?grado=${grado}&grupo=${grupo}&ciclo=${ciclo}&bimestre=${trimestre}`
+          )
+        ).alumnos,
+      abrir: (alumnoId) => kiApi<KiCapturaData>(`${API}/captura?alumnoId=${alumnoId}&bimestre=${trimestre}&ciclo=${ciclo}`),
+      guardar: async (alumnoId, payload) => {
+        await kiApi(`${API}/captura`, {
+          method: 'PUT',
+          body: JSON.stringify({ alumnoId, bimestre: trimestre, ciclo, academicos: payload.academicos }),
+        })
+      },
+      pdfUrl: (alumnoId) => `${API}/pdf?alumnoId=${alumnoId}&bimestre=${trimestre}&ciclo=${ciclo}`,
+    }),
+    [ciclo, trimestre, grado, grupo]
+  )
+  return <KiCaptura api={api} claveRecarga={`${ciclo}-${trimestre}-${grado}-${grupo}`} editable />
+}
+
+function PortalMaestrasCard() {
+  const [copiado, setCopiado] = useState(false)
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${PORTAL_MAESTRAS}`)
+      setCopiado(true)
+      window.setTimeout(() => setCopiado(false), 2500)
+    } catch {
+      window.prompt('Copia el enlace del portal de maestras:', `${window.location.origin}${PORTAL_MAESTRAS}`)
+    }
+  }
+  return (
+    <div className="ki-portal-card">
+      <div>
+        <strong>Portal de captura para maestras</strong>
+        <p className="ki-hint">
+          Cada maestra entra con su usuario o su correo institucional, captura sus grupos y te los envía. Tú revisas y
+          publicas. Es el mismo portal que usan las teachers de inglés.
+        </p>
+      </div>
+      <div className="ki-actions">
+        <button type="button" className="ki-btn" onClick={() => void copiar()}>
+          <Copy size={15} aria-hidden />
+          {copiado ? 'Enlace copiado' : 'Copiar enlace'}
+        </button>
+        <a className="ki-btn ghost" href={PORTAL_MAESTRAS} target="_blank" rel="noopener noreferrer">
+          <ExternalLink size={15} aria-hidden />
+          Abrir
+        </a>
+      </div>
     </div>
   )
 }
@@ -122,27 +215,15 @@ function KinderEsApp() {
   const router = useRouter()
   const [me, setMe] = useState<Me | null>(null)
   const [boot, setBoot] = useState(true)
-  const [msg, setMsg] = useState('')
-  const [err, setErr] = useState('')
-
-  const cicloDefault = cicloEscolarActualBoletas()
+  const [vista, setVista] = useState<Vista>('menu')
+  const [ciclo, setCiclo] = useState(cicloEscolarActualBoletas())
+  const [trimestre, setTrimestre] = useState(1)
   const [grado, setGrado] = useState<KinderEsGrado>(1)
-  const [grupo, setGrupo] = useState<(typeof KINDER_ES_GRUPOS)[number]>('A')
-  const [bimestre, setBimestre] = useState(1)
-  const [ciclo, setCiclo] = useState(cicloDefault)
-  const [alumnos, setAlumnos] = useState<Alumno[]>([])
-  const [didList, setDidList] = useState(false)
-  const [alumnoId, setAlumnoId] = useState<number | null>(null)
-  const [indicadores, setIndicadores] = useState<IndicadorFila[]>([])
-  const [alumnoNombre, setAlumnoNombre] = useState('')
-  const [loadingList, setLoadingList] = useState(false)
-  const [loadingCap, setLoadingCap] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [sending, setSending] = useState(false)
+  const [grupo, setGrupo] = useState('A')
 
   const refreshMe = useCallback(async () => {
     try {
-      const data = await api<Me>('/api/boletas-secundaria/auth/me')
+      const data = await kiApi<Me>('/api/boletas-secundaria/auth/me')
       setMe(data)
       if (data.cicloActual) setCiclo(data.cicloActual)
     } catch {
@@ -154,359 +235,212 @@ function KinderEsApp() {
 
   useEffect(() => {
     void refreshMe()
+    setVista(vistaDeUrl())
+    const onPop = () => setVista(vistaDeUrl())
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
   }, [refreshMe])
 
-  const cargarAlumnos = useCallback(async () => {
-    setLoadingList(true)
-    setErr('')
-    setMsg('')
-    try {
-      const data = await api<{ alumnos: Alumno[] }>(
-        `/api/boletas-kinder-espanol/alumnos?grado=${grado}&grupo=${grupo}&ciclo=${ciclo}`
-      )
-      setAlumnos(data.alumnos ?? [])
-      setDidList(true)
-      setAlumnoId(null)
-      setIndicadores([])
-      setAlumnoNombre('')
-      if (!(data.alumnos ?? []).length) {
-        setMsg('No hay alumnos para ese grado/grupo/ciclo.')
-      }
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Error al listar')
-      setAlumnos([])
-      setDidList(true)
-    } finally {
-      setLoadingList(false)
-    }
-  }, [grado, grupo, ciclo])
-
-  useEffect(() => {
-    if (!me) return
-    void cargarAlumnos()
-  }, [me, cargarAlumnos])
-
-  const abrirCaptura = useCallback(
-    async (id: number) => {
-      setLoadingCap(true)
-      setErr('')
-      setMsg('')
-      setAlumnoId(id)
-      try {
-        const data = await api<{
-          alumno: Alumno
-          indicadores: IndicadorFila[]
-        }>(
-          `/api/boletas-kinder-espanol/captura?alumnoId=${id}&bimestre=${bimestre}&ciclo=${ciclo}`
-        )
-        setAlumnoNombre(data.alumno.nombre)
-        setIndicadores(
-          (data.indicadores ?? []).map((i) => ({
-            id: i.id,
-            nombre: i.nombre,
-            calificacion: i.calificacion ?? '',
-          }))
-        )
-      } catch (e) {
-        setErr(e instanceof Error ? e.message : 'Error al cargar captura')
-        setIndicadores([])
-      } finally {
-        setLoadingCap(false)
-      }
-    },
-    [bimestre, ciclo]
-  )
-
-  useEffect(() => {
-    if (alumnoId == null) return
-    void abrirCaptura(alumnoId)
-  }, [bimestre, ciclo, alumnoId, abrirCaptura])
-
-  async function guardar() {
-    if (alumnoId == null) return
-    setSaving(true)
-    setErr('')
-    setMsg('')
-    try {
-      const valores: Record<number, string> = {}
-      for (const ind of indicadores) valores[ind.id] = ind.calificacion
-      await api('/api/boletas-kinder-espanol/captura', {
-        method: 'PUT',
-        body: JSON.stringify({ alumnoId, bimestre, ciclo, valores }),
-      })
-      setMsg('Calificaciones guardadas.')
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Error al guardar')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  function abrirPdf() {
-    if (alumnoId == null) return
-    window.open(
-      `/api/boletas-kinder-espanol/pdf?alumnoId=${alumnoId}&bimestre=${bimestre}&ciclo=${ciclo}`,
-      '_blank',
-      'noopener,noreferrer'
-    )
-  }
-
-  async function enviar() {
-    if (alumnoId == null) return
-    setSending(true)
-    setErr('')
-    setMsg('')
-    try {
-      const data = await api<{ emails: string[] }>('/api/boletas-envio', {
-        method: 'POST',
-        body: JSON.stringify({
-          modulo: 'kinder-es',
-          alumnoId,
-          bimestre,
-          ciclo,
-        }),
-      })
-      setMsg(`Boleta enviada a: ${data.emails.join(', ')}`)
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Error al enviar')
-    } finally {
-      setSending(false)
-    }
+  function ir(v: Vista) {
+    setVista(v)
+    const url = v === 'menu' ? window.location.pathname : `${window.location.pathname}?vista=${v}`
+    window.history.pushState(null, '', url)
+    window.scrollTo({ top: 0 })
   }
 
   async function logout() {
-    await api('/api/boletas-secundaria/auth/logout', { method: 'POST' }).catch(() => null)
+    await kiApi('/api/boletas-secundaria/auth/logout', { method: 'POST' }).catch(() => null)
     setMe(null)
   }
 
-  const ciclosOpts = me?.ciclos?.length
-    ? me.ciclos
-    : opcionesCicloBoletas(ciclo)
+  const ciclosOpts = me?.ciclos?.length ? me.ciclos : opcionesCicloBoletas(ciclo)
+
+  const header = (
+    <header className="ki-top bm-top">
+      <button
+        type="button"
+        className="ki-back"
+        onClick={() => (me && vista !== 'menu' ? ir('menu') : router.push('/boletas'))}
+      >
+        <ArrowLeft size={15} aria-hidden />
+        {me && vista !== 'menu' ? 'Menú' : 'Boletas'}
+      </button>
+      <p className="ki-school">Winston Churchill</p>
+      <div className="ki-spacer" />
+      {me && (
+        <>
+          <span className="ki-user" title={me.usuario}>
+            {me.nombre}
+          </span>
+          <button type="button" className="ki-btn ghost" onClick={() => void logout()} aria-label="Salir">
+            <LogOut size={16} aria-hidden />
+          </button>
+        </>
+      )}
+      <ThemeToggle />
+    </header>
+  )
 
   if (boot) {
     return (
-      <div className="ke-page">
-        <p className="ke-boot">Cargando…</p>
+      <div className="ki-page">
+        <p className="ki-boot">Cargando…</p>
       </div>
     )
   }
 
   if (!me) {
     return (
-      <div className="ke-page">
-        <header className="ke-top">
-          <button type="button" className="ke-back" onClick={() => router.push('/boletas')}>
-            <ArrowLeft size={15} aria-hidden />
-            Boletas
-          </button>
-          <div className="ke-spacer" />
-          <ThemeToggle />
-        </header>
-        <main className="ke-main">
+      <div className="ki-page">
+        {header}
+        <main className="ki-main">
           <LoginPanel onOk={() => void refreshMe()} />
         </main>
       </div>
     )
   }
 
-  return (
-    <div className="ke-page bm-page">
-      <header className="ke-top bm-top">
-        <button type="button" className="ke-back" onClick={() => router.push('/boletas')}>
-          <ArrowLeft size={15} aria-hidden />
-          Boletas
-        </button>
-        <p className="ke-school">Winston Churchill</p>
-        <div className="ke-spacer" />
-        <span className="ke-user" title={me.usuario}>
-          {me.nombre}
-        </span>
-        <button type="button" className="ke-btn ghost" onClick={() => void logout()} aria-label="Salir">
-          <LogOut size={16} aria-hidden />
-        </button>
-        <ThemeToggle />
-      </header>
+  if (me.role !== 'admin') {
+    return (
+      <div className="ki-page bm-page">
+        {header}
+        <main className="ki-main">
+          <div className="ki-paper bm-panel ki-solo-dir">
+            <h2>Este módulo es de la dirección de Kinder</h2>
+            <p className="ki-hint">Las maestras capturan sus grupos en el portal de captura.</p>
+            <a className="ki-btn primary" href={PORTAL_MAESTRAS}>
+              Ir al portal de maestras
+            </a>
+          </div>
+        </main>
+      </div>
+    )
+  }
 
-      <main className="ke-main">
+  const filtrosPeriodo = (
+    <>
+      <label>
+        Trimestre
+        <select value={trimestre} onChange={(e) => setTrimestre(Number(e.target.value))}>
+          <option value={1}>1</option>
+          <option value={2}>2</option>
+          <option value={3}>3</option>
+        </select>
+      </label>
+      <label>
+        Ciclo
+        <select value={ciclo} onChange={(e) => setCiclo(Number(e.target.value))}>
+          {ciclosOpts.map((c) => (
+            <option key={c.valor} value={c.valor}>
+              {c.etiqueta}
+            </option>
+          ))}
+        </select>
+      </label>
+    </>
+  )
+
+  return (
+    <div className="ki-page bm-page">
+      {header}
+      <main className="ki-main">
         <header className="bm-hero">
-          <p className="bm-kicker">Sistema integral de boletas</p>
-          <h1 className="ke-title">Kinder · Español</h1>
-          <p className="ke-lead">
-            Captura por indicador · Ciclo {etiquetaCicloBoletas(ciclo)}
-          </p>
+          <p className="bm-kicker">Sistema integral de boletas · Dirección de Kinder</p>
+          <h1 className="ki-title">{TITULO_VISTA[vista]}</h1>
+          <p className="ki-lead">Kinder Español · Ciclo {etiquetaCicloBoletas(ciclo)}</p>
         </header>
 
-        {(msg || err) && (
-          <p className={`ke-msg${err ? ' is-error' : ''}`} role="status">
-            {err || msg}
-          </p>
+        {vista === 'menu' && (
+          <>
+            <ul className="ki-menu">
+              {MENU.map((m) => {
+                const Icon = m.icon
+                return (
+                  <li key={m.vista}>
+                    <button type="button" className="ki-menu-item" onClick={() => ir(m.vista)}>
+                      <span className="ki-menu-icon" aria-hidden>
+                        <Icon size={22} />
+                      </span>
+                      <span className="ki-menu-text">
+                        <strong>{m.titulo}</strong>
+                        <span>{m.desc}</span>
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+            <PortalMaestrasCard />
+          </>
         )}
 
-        <section className="ke-paper bm-panel">
-          <div className="ke-filters bm-filters">
-            <label>
-              Grado
-              <select
-                value={grado}
-                onChange={(e) => setGrado(Number(e.target.value) as KinderEsGrado)}
-              >
-                {KINDER_ES_GRADOS.map((g) => (
-                  <option key={g.valor} value={g.valor}>
-                    {g.etiqueta}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Grupo
-              <select
-                value={grupo}
-                onChange={(e) => setGrupo(e.target.value as (typeof KINDER_ES_GRUPOS)[number])}
-              >
-                {KINDER_ES_GRUPOS.map((g) => (
-                  <option key={g} value={g}>
-                    {g}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Trimestre
-              <select value={bimestre} onChange={(e) => setBimestre(Number(e.target.value))}>
-                <option value={1}>1</option>
-                <option value={2}>2</option>
-                <option value={3}>3</option>
-              </select>
-            </label>
-            <label>
-              Ciclo
-              <select value={ciclo} onChange={(e) => setCiclo(Number(e.target.value))}>
-                {ciclosOpts.map((c) => (
-                  <option key={c.valor} value={c.valor}>
-                    {c.etiqueta}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
-              className="ke-btn primary"
-              onClick={() => void cargarAlumnos()}
-              disabled={loadingList}
-            >
-              {loadingList ? 'Buscando…' : 'Listar'}
-            </button>
-          </div>
+        {vista === 'entregas' && (
+          <>
+            <div className="ki-paper bm-panel ki-filtros-solos">
+              <div className="ki-filters bm-filters">{filtrosPeriodo}</div>
+            </div>
+            <KiEntregas
+              ciclo={ciclo}
+              trimestre={trimestre}
+              apiUrl={`${API}/entregas`}
+              docente="maestra"
+              onRevisar={(g, gp) => {
+                setGrado(g as KinderEsGrado)
+                setGrupo(gp)
+                ir('captura')
+              }}
+            />
+          </>
+        )}
 
-          <div className="ke-layout bm-layout">
-            <div>
-              {alumnos.length > 0 ? (
-                <p className="bm-count">{alumnos.length} alumno{alumnos.length === 1 ? '' : 's'}</p>
-              ) : null}
-              {alumnos.length === 0 ? (
-                <p className="ke-empty bm-empty">
-                  {loadingList ? (
-                    'Cargando alumnos…'
-                  ) : didList ? (
-                    <>
-                      <strong>Sin alumnos en este filtro</strong>
-                      Prueba otro grado, grupo o ciclo.
-                    </>
-                  ) : (
-                    <>
-                      <strong>Listado</strong>
-                      Elige filtros y pulsa Listar.
-                    </>
-                  )}
-                </p>
-              ) : (
-                <ul className="ke-list bm-list">
-                  {alumnos.map((a) => (
-                    <li key={a.alumno_id}>
-                      <button
-                        type="button"
-                        className={alumnoId === a.alumno_id ? 'is-active' : undefined}
-                        onClick={() => void abrirCaptura(a.alumno_id)}
-                      >
-                        {a.nombre}
-                        <span className="ke-list-meta bm-list-meta">
-                          Ref {String(a.alumno_ref ?? '').padStart(5, '0')} · {a.grupo_letra}
-                        </span>
-                      </button>
-                    </li>
+        {vista === 'captura' && (
+          <section className="ki-paper bm-panel">
+            <div className="ki-filters bm-filters">
+              <label>
+                Grado
+                <select value={grado} onChange={(e) => setGrado(Number(e.target.value) as KinderEsGrado)}>
+                  {KINDER_ES_GRADOS.map((g) => (
+                    <option key={g.valor} value={g.valor}>
+                      {g.etiqueta}
+                    </option>
                   ))}
-                </ul>
-              )}
+                </select>
+              </label>
+              <label>
+                Grupo
+                <select value={grupo} onChange={(e) => setGrupo(e.target.value)}>
+                  {KINDER_ES_GRUPOS.map((g) => (
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {filtrosPeriodo}
             </div>
+            <p className="ki-hint ki-captura-nota">
+              {etiquetaGrupoKinderEs(grado, grupo)} · Trimestre {trimestre}. Como dirección puedes corregir aunque la
+              maestra ya lo haya enviado.
+            </p>
+            <CapturaDirectora ciclo={ciclo} trimestre={trimestre} grado={grado} grupo={grupo} />
+          </section>
+        )}
 
-            <div>
-              {alumnoId == null ? (
-                <p className="ke-empty bm-empty">
-                  <strong>Captura</strong>
-                  Selecciona un alumno de la lista.
-                </p>
-              ) : loadingCap ? (
-                <p className="ke-empty bm-empty">Cargando captura…</p>
-              ) : (
-                <div className="ke-form">
-                  <div className="ke-form-head bm-form-head">
-                    <div>
-                      <span className="bm-badge">Trimestre {bimestre}</span>
-                      <h2 style={{ margin: '0.45rem 0 0', fontSize: '1.15rem' }}>{alumnoNombre}</h2>
-                    </div>
-                    <div className="ke-actions">
-                      <button
-                        type="button"
-                        className="ke-btn primary"
-                        onClick={() => void guardar()}
-                        disabled={saving}
-                      >
-                        <Save size={16} aria-hidden />
-                        {saving ? 'Guardando…' : 'Guardar'}
-                      </button>
-                      <button type="button" className="ke-btn" onClick={abrirPdf}>
-                        <Printer size={16} aria-hidden />
-                        PDF
-                      </button>
-                      <button
-                        type="button"
-                        className="ke-btn"
-                        onClick={() => void enviar()}
-                        disabled={sending}
-                      >
-                        <Send size={16} aria-hidden />
-                        {sending ? 'Enviando…' : 'Enviar'}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="ke-fields">
-                    {indicadores.map((ind) => (
-                      <div key={ind.id} className="ke-field">
-                        <label htmlFor={`ind-${ind.id}`}>{ind.nombre}</label>
-                        <input
-                          id={`ind-${ind.id}`}
-                          value={ind.calificacion}
-                          onChange={(e) => {
-                            const v = e.target.value
-                            setIndicadores((prev) =>
-                              prev.map((x) =>
-                                x.id === ind.id ? { ...x, calificacion: v } : x
-                              )
-                            )
-                          }}
-                          maxLength={40}
-                          autoComplete="off"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {me.role === 'admin' && <BoletasPublicarPapas modulo="kinder-es" ciclo={ciclo} />}
+        {vista === 'maestras' && (
+          <KiTeachers
+            apiUrl={`${API}/maestras`}
+            docente="maestra"
+            titulo="Maestras de español"
+            soloKinder
+          />
+        )}
+        {vista === 'campos' && (
+          <KiCatalogo
+            apiUrl={`${API}/catalogo`}
+            titulo="Campos académicos"
+            ayuda="Lo que se califica en la boleta de cada grado, de 0 a 10 con un decimal (o N/A). Desactivar lo quita de la boleta sin perder calificaciones."
+          />
+        )}
       </main>
     </div>
   )

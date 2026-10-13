@@ -35,10 +35,10 @@ const NIVELES = [
   {
     id: 'kinder',
     label: 'Maternal / Kinder',
-    desc: 'Teachers de inglés: capturan las boletas de sus grupos y las envían a dirección.',
+    desc: 'Maestras de español y teachers de inglés: capturan las boletas de sus grupos y las envían a dirección.',
     accent: 'sky' as const,
     kicker: 'Preescolar',
-    tags: ['Inglés', 'Grado y grupo'],
+    tags: ['Español', 'Inglés', 'Grado y grupo'],
     icon: ICON_KINDER,
     ruta: '/boletas-captura/maternal-kinder',
   },

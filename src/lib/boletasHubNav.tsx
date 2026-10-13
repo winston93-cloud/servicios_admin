@@ -62,7 +62,7 @@ export function boletasHubItems(): BoletasHubItem[] {
     {
       id: 'kinder-espanol',
       label: 'Kinder · Español',
-      desc: 'Boleta en español del nivel Maternal / Kinder: captura, consulta y PDF.',
+      desc: 'Dirección de Kinder (K1–K3): entregas de maestras, revisión, publicación y PDF.',
       accent: 'sky',
       kicker: 'Preescolar',
       tags: ['Español', 'Kinder'],
