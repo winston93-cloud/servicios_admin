@@ -8,12 +8,19 @@ import {
 
 const activa = [{ alumnoRef: 21297, nombre: 'PRUEBA', monto: 300, activo: true }]
 
-test('lista oficial: 30 alumnos, $2,750, todos inactivos', () => {
+// 2026-10-13 — Activadas tras la llamada: 20971 (Alvarado Pérez).
+const ACTIVADOS = [20971]
+
+test('lista oficial: 30 alumnos, $2,750, solo activos los ya contactados', () => {
   assert.equal(COBROS_DESCUENTO_RECARGO_00_CICLO23.length, 30)
   const total = COBROS_DESCUENTO_RECARGO_00_CICLO23.reduce((s, c) => s + c.monto, 0)
   assert.equal(total, 2750)
-  assert.ok(COBROS_DESCUENTO_RECARGO_00_CICLO23.every((c) => !c.activo))
+  assert.deepEqual(
+    COBROS_DESCUENTO_RECARGO_00_CICLO23.filter((c) => c.activo).map((c) => c.alumnoRef).sort(),
+    [...ACTIVADOS].sort()
+  )
   assert.equal(cobroDescuentoRecargo00Pendiente({ alumnoRef: 21297, conceptoNo: '03', cicloEscolar: 23 }), 0)
+  assert.equal(cobroDescuentoRecargo00Pendiente({ alumnoRef: 20971, conceptoNo: '03', cicloEscolar: 23 }), 150)
 })
 
 test('fila activa: se suma solo en noviembre (03) del ciclo 23', () => {

@@ -24,7 +24,8 @@ export const COBROS_DESCUENTO_RECARGO_00_CICLO23: readonly CobroDescuentoRecargo
   { alumnoRef: 20596, nombre: 'ANDRADE MORALES HELENA', monto: 75.0, activo: false },
   { alumnoRef: 20680, nombre: 'PEREZ GALVEZ FATIMA ISABELLA', monto: 75.0, activo: false },
   { alumnoRef: 20846, nombre: 'RAMIREZ ENRIQUEZ LUIS HUGO', monto: 150.0, activo: false },
-  { alumnoRef: 20971, nombre: 'ALVARADO PEREZ CARLOS SEBASTIAN', monto: 150.0, activo: false },
+  // 2026-10-13 — Activado: familia Alvarado Pérez ya contactada.
+  { alumnoRef: 20971, nombre: 'ALVARADO PEREZ CARLOS SEBASTIAN', monto: 150.0, activo: true },
   { alumnoRef: 21078, nombre: 'MOLINA ARZOLA EMMA ARLETH', monto: 75.0, activo: false },
   { alumnoRef: 21258, nombre: 'RANGEL ARRIAGA MARIA GERALDINE', monto: 75.0, activo: false },
   { alumnoRef: 21276, nombre: 'LOPEZ PADRON ANDREA NATALY', monto: 75.0, activo: false },
