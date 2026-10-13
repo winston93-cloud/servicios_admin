@@ -3,266 +3,244 @@
 import ThemeToggle from '@/components/ThemeToggle'
 import { boletasHubItems, type BoletasHubId, type BoletasHubItem } from '@/lib/boletasHubNav'
 import { cicloEscolarEtiqueta, getCicloEscolarActual } from '@/lib/ciclosEscolares'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Copy, GraduationCap } from 'lucide-react'
 import Image from 'next/image'
-import { useEffect, useMemo, useRef, useState, type TouchEvent } from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import './boletas-hub.css'
 
-const HUB_SLIDES = [
-  {
-    src: '/boletas/hub/comunidad-winston.jpg',
-    alt: 'Comunidad Winston Churchill',
-  },
-  {
-    src: '/boletas/hub/pinlanes.jpg',
-    alt: 'Proyecto Pinlanes — feria escolar',
-  },
-  {
-    src: '/boletas/hub/egipto.jpg',
-    alt: 'Proyecto Egipto — secundaria',
-  },
-  {
-    src: '/boletas/hub/galeria-literatura.jpg',
-    alt: 'Galería de Literatura — primaria',
-  },
-] as const
+type Acceso = {
+  id: BoletasHubId
+  etiqueta: string
+  tag: string
+  detalle: string
+}
 
-const SLIDE_MS = 5500
+type Nivel = {
+  id: 'preescolar' | 'primaria' | 'secundaria'
+  titulo: string
+  grados: string
+  foto: string
+  alt: string
+  accesos: Acceso[]
+}
 
-function cicloCorto(etiqueta: string): string {
-  const parts = etiqueta.split('-')
-  if (parts.length !== 2) return etiqueta
-  return `${parts[0].slice(-2)}-${parts[1].slice(-2)}`
+const NIVELES: Nivel[] = [
+  {
+    id: 'preescolar',
+    titulo: 'Preescolar',
+    grados: 'K1, K2 y K3',
+    foto: '/boletas/hub/galeria-literatura.jpg',
+    alt: 'Alumnos en la Galería de Literatura',
+    accesos: [
+      {
+        id: 'kinder-espanol',
+        etiqueta: 'Español',
+        tag: 'ES',
+        detalle: 'Entregas de maestras, revisión, publicación y PDF',
+      },
+      {
+        id: 'kinder-ingles',
+        etiqueta: 'Inglés',
+        tag: 'EN',
+        detalle: 'English Preschool: entregas de teachers y PDF',
+      },
+    ],
+  },
+  {
+    id: 'primaria',
+    titulo: 'Primaria',
+    grados: '1° a 6°',
+    foto: '/boletas/hub/pinlanes.jpg',
+    alt: 'Alumnos presentando el proyecto Pinlanes',
+    accesos: [
+      {
+        id: 'primaria-espanol',
+        etiqueta: 'Español',
+        tag: 'ES',
+        detalle: 'Grados, grupos, PDF y reportes',
+      },
+      {
+        id: 'primaria-ingles',
+        etiqueta: 'Inglés',
+        tag: 'EN',
+        detalle: 'Captura docente y emisión de PDF',
+      },
+    ],
+  },
+  {
+    id: 'secundaria',
+    titulo: 'Secundaria',
+    grados: '1° a 3°',
+    foto: '/boletas/hub/egipto.jpg',
+    alt: 'Alumnos de secundaria en el proyecto Egipto',
+    accesos: [
+      {
+        id: 'secundaria',
+        etiqueta: 'Boleta única',
+        tag: '',
+        detalle: 'Captura por materia, PDF, envío y ciclos históricos',
+      },
+    ],
+  },
+]
+
+const PORTAL_PATH = '/boletas-captura'
+
+function AccesoFila({ acceso, item }: { acceso: Acceso; item: BoletasHubItem | undefined }) {
+  const contenido = (
+    <>
+      <span className="bh-acceso__tag" aria-hidden>
+        {acceso.tag || <GraduationCap size={18} strokeWidth={1.75} />}
+      </span>
+      <span className="bh-acceso__text">
+        <span className="bh-acceso__label">{acceso.etiqueta}</span>
+        <span className="bh-acceso__desc">{acceso.detalle}</span>
+      </span>
+      {item?.activo ? (
+        <ArrowRight className="bh-acceso__arrow" size={18} strokeWidth={2} aria-hidden />
+      ) : (
+        <span className="bh-acceso__soon">Pronto</span>
+      )}
+    </>
+  )
+
+  if (!item?.activo) {
+    return <div className="bh-acceso is-soon">{contenido}</div>
+  }
+  return (
+    <Link href={item.path} className="bh-acceso">
+      {contenido}
+    </Link>
+  )
 }
 
 export default function BoletasHubPage() {
-  const router = useRouter()
   const items = boletasHubItems()
-  const cicloEtiqueta = cicloEscolarEtiqueta(getCicloEscolarActual())
-  const cicloShort = cicloCorto(cicloEtiqueta)
+  const porId = new Map(items.map((i) => [i.id, i]))
+  const ciclo = cicloEscolarEtiqueta(getCicloEscolarActual())
+  const portal = porId.get('portal-captura')
 
-  const iniciales = useMemo(() => {
-    const sec = items.find((i) => i.id === 'secundaria' && i.activo)
-    const live = sec ?? items.find((i) => i.activo)
-    return live?.id ?? items[0]?.id ?? 'secundaria'
-  }, [items])
+  const [copiado, setCopiado] = useState(false)
+  const timer = useRef<number | null>(null)
 
-  const [selectedId, setSelectedId] = useState<BoletasHubId>(iniciales)
-  const [slide, setSlide] = useState(0)
-  const [paused, setPaused] = useState(false)
-  const touchStartX = useRef<number | null>(null)
+  useEffect(
+    () => () => {
+      if (timer.current) window.clearTimeout(timer.current)
+    },
+    []
+  )
 
-  const selected: BoletasHubItem =
-    items.find((i) => i.id === selectedId) ?? items[0]
-
-  const live = selected.activo
-
-  useEffect(() => {
-    if (paused) return
-    const reduce =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduce) return
-
-    const id = window.setInterval(() => {
-      setSlide((s) => (s + 1) % HUB_SLIDES.length)
-    }, SLIDE_MS)
-    return () => window.clearInterval(id)
-  }, [paused])
-
-  function onTouchStart(e: TouchEvent) {
-    touchStartX.current = e.changedTouches[0]?.clientX ?? null
-  }
-
-  function onTouchEnd(e: TouchEvent) {
-    const start = touchStartX.current
-    touchStartX.current = null
-    if (start == null) return
-    const end = e.changedTouches[0]?.clientX
-    if (end == null) return
-    const delta = end - start
-    if (Math.abs(delta) < 48) return
-    setSlide((s) =>
-      delta < 0
-        ? (s + 1) % HUB_SLIDES.length
-        : (s - 1 + HUB_SLIDES.length) % HUB_SLIDES.length
-    )
+  async function copiarEnlace() {
+    const url = `${window.location.origin}${PORTAL_PATH}`
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      window.prompt('Copia el enlace del portal:', url)
+      return
+    }
+    setCopiado(true)
+    if (timer.current) window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => setCopiado(false), 2200)
   }
 
   return (
     <div className="boletas-hub">
-      <header className="boletas-hub__top">
-        <button
-          type="button"
-          className="boletas-hub__back"
-          onClick={() => router.push('/dashboard')}
-        >
-          <ArrowLeft size={15} aria-hidden />
-          Volver
-        </button>
-        <p className="boletas-hub__school">Instituto Winston Churchill</p>
-        <div className="boletas-hub__top-spacer" />
-        <span className="boletas-hub__ciclo-pill">Ciclo {cicloShort}</span>
+      <header className="bh-top">
+        <Link href="/dashboard" className="bh-top__back">
+          <ArrowLeft size={16} aria-hidden />
+          <span>Dashboard</span>
+        </Link>
+        <div className="bh-top__brand">
+          <Image
+            src="/logos/logo-winston-w.png"
+            alt=""
+            width={36}
+            height={27}
+            className="bh-top__logo"
+            priority
+          />
+          <span className="bh-top__school">Instituto Winston Churchill</span>
+        </div>
+        <span className="bh-top__ciclo">Ciclo {ciclo}</span>
         <ThemeToggle />
       </header>
 
-      <main className="boletas-hub__main">
-        <div className="boletas-hub__stage">
-          <nav className="boletas-hub__index" aria-label="Sistemas de boletas">
-            <ul className="boletas-hub__list">
-              {items.map((item) => {
-                const isActive = item.id === selected.id
-                return (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      className={`boletas-hub__row${isActive ? ' is-active' : ''}${
-                        item.activo ? '' : ' is-soon'
-                      }`}
-                      aria-current={isActive ? 'true' : undefined}
-                      onClick={() => setSelectedId(item.id)}
-                    >
-                      <span className="boletas-hub__row-dot" aria-hidden />
-                      <span className="boletas-hub__row-text">
-                        <span className="boletas-hub__row-label">{item.label}</span>
-                        {!item.activo && (
-                          <span className="boletas-hub__row-soon">Pronto</span>
-                        )}
-                      </span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          </nav>
+      <main className="bh-main">
+        <section className="bh-intro">
+          <h1 className="bh-intro__title">Sistema Integral de Boletas</h1>
+          <p className="bh-intro__lead">
+            Elige nivel e idioma para capturar, revisar, publicar a papás y generar el PDF.
+          </p>
+        </section>
 
-          <section
-            className="boletas-hub__stage-right"
-            aria-label={`Vista de ${selected.label}`}
-          >
-            <div className="boletas-hub__logo-flank">
-              <Image
-                src="/logos/logo-winston-w.png"
-                alt="Instituto Winston Churchill"
-                width={72}
-                height={54}
-                className="boletas-hub__flank-logo boletas-hub__flank-logo--w"
-                priority
-              />
-              <div className="boletas-hub__brand">
-                <h1 className="boletas-hub__title">
-                  Sistema Integral de Boletas Escolares
-                </h1>
-                <p className="boletas-hub__lead">Ciclo {cicloEtiqueta}</p>
-              </div>
-              <Image
-                src="/logos/logo-winston-educativo.png"
-                alt="Winston Educativo"
-                width={72}
-                height={54}
-                className="boletas-hub__flank-logo boletas-hub__flank-logo--edu"
-                priority
-              />
-            </div>
-
-            <div
-              className="boletas-hub__portrait"
-              onMouseEnter={() => setPaused(true)}
-              onMouseLeave={() => setPaused(false)}
-              onFocusCapture={() => setPaused(true)}
-              onBlurCapture={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
-                  setPaused(false)
-                }
-              }}
-              onTouchStart={onTouchStart}
-              onTouchEnd={onTouchEnd}
+        <div className="bh-grid">
+          {NIVELES.map((nivel, i) => (
+            <article
+              key={nivel.id}
+              className={`bh-nivel bh-nivel--${nivel.id}`}
+              style={{ '--i': i } as CSSProperties}
             >
-              <div className="boletas-hub__carousel" aria-roledescription="carrusel">
-                {HUB_SLIDES.map((item, i) => (
-                  <div
-                    key={item.src}
-                    className={`boletas-hub__slide${i === slide ? ' is-active' : ''}`}
-                    aria-hidden={i !== slide}
-                  >
-                    <Image
-                      src={item.src}
-                      alt={item.alt}
-                      fill
-                      sizes="(max-width: 860px) 100vw, 640px"
-                      className="boletas-hub__portrait-img"
-                      priority={i === 0}
-                    />
-                  </div>
-                ))}
+              <div className="bh-nivel__media">
+                <Image
+                  src={nivel.foto}
+                  alt={nivel.alt}
+                  fill
+                  sizes="(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 520px"
+                  className="bh-nivel__img"
+                  priority={i === 0}
+                />
               </div>
-
-              <div className="boletas-hub__portrait-veil" aria-hidden />
-              <div className="boletas-hub__portrait-fade" aria-hidden />
-              <div className="boletas-hub__portrait-grain" aria-hidden />
-
-              <div
-                className="boletas-hub__dots"
-                role="tablist"
-                aria-label="Fotos de la comunidad"
-              >
-                {HUB_SLIDES.map((item, i) => (
-                  <button
-                    key={item.src}
-                    type="button"
-                    role="tab"
-                    aria-selected={i === slide}
-                    aria-label={`Foto ${i + 1}: ${item.alt}`}
-                    className={`boletas-hub__dot${i === slide ? ' is-active' : ''}`}
-                    onClick={() => setSlide(i)}
-                  />
-                ))}
+              <div className="bh-nivel__body">
+                <header className="bh-nivel__head">
+                  <h2 className="bh-nivel__title">{nivel.titulo}</h2>
+                  <span className="bh-nivel__grados">{nivel.grados}</span>
+                </header>
+                <ul className="bh-nivel__accesos">
+                  {nivel.accesos.map((a) => (
+                    <li key={a.id}>
+                      <AccesoFila acceso={a} item={porId.get(a.id)} />
+                    </li>
+                  ))}
+                </ul>
               </div>
+            </article>
+          ))}
 
-              <div className="boletas-hub__sheet">
-                <div className="boletas-hub__sheet-inner">
-                  <header className="boletas-hub__sheet-head">
-                    <Image
-                      src="/logos/logo-winston-w.png"
-                      alt=""
-                      width={40}
-                      height={30}
-                      className="boletas-hub__sheet-crest"
-                    />
-                    <div className="boletas-hub__sheet-meta">
-                      <p className="boletas-hub__sheet-school">
-                        Instituto Winston Churchill
-                      </p>
-                      <p className="boletas-hub__sheet-doc">{selected.label}</p>
-                    </div>
-                  </header>
-
-                  <p className="boletas-hub__sheet-body">
-                    {live
-                      ? 'Captura, consulta y emisión de PDF para el ciclo en curso.'
-                      : 'Se habilita al cerrar el ciclo de Secundaria.'}
-                  </p>
-
-                  <footer className="boletas-hub__sheet-foot">
-                    <span>Ciclo {cicloEtiqueta}</span>
-                    {live ? (
-                      <button
-                        type="button"
-                        className="boletas-hub__open"
-                        onClick={() => router.push(selected.path)}
-                      >
-                        Abrir
-                        <ArrowRight size={15} aria-hidden />
-                      </button>
-                    ) : (
-                      <span className="boletas-hub__open-disabled">Pronto</span>
-                    )}
-                  </footer>
-                </div>
+          <article className="bh-portal" style={{ '--i': NIVELES.length } as CSSProperties}>
+            <div className="bh-portal__media" aria-hidden>
+              <Image
+                src="/boletas/hub/comunidad-winston.jpg"
+                alt=""
+                fill
+                sizes="(max-width: 767px) 100vw, 360px"
+                className="bh-portal__img"
+              />
+            </div>
+            <div className="bh-portal__body">
+              <p className="bh-portal__kicker">Maestras y teachers</p>
+              <h2 className="bh-portal__title">Portal de captura</h2>
+              <p className="bh-portal__desc">
+                Cada docente entra con su cuenta a sus grupos, captura y envía a dirección.
+              </p>
+              <div className="bh-portal__actions">
+                {portal?.activo !== false && (
+                  <Link href={PORTAL_PATH} className="bh-btn bh-btn--primary">
+                    Abrir portal
+                    <ArrowUpRight size={17} strokeWidth={2} aria-hidden />
+                  </Link>
+                )}
+                <button type="button" className="bh-btn bh-btn--ghost" onClick={copiarEnlace}>
+                  {copiado ? (
+                    <Check size={16} strokeWidth={2} aria-hidden />
+                  ) : (
+                    <Copy size={16} strokeWidth={2} aria-hidden />
+                  )}
+                  <span aria-live="polite">{copiado ? 'Enlace copiado' : 'Copiar enlace'}</span>
+                </button>
               </div>
             </div>
-          </section>
+          </article>
         </div>
       </main>
     </div>

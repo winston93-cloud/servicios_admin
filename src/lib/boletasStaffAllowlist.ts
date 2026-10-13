@@ -35,6 +35,13 @@ export const BOLETAS_DIRECTORAS_GOOGLE: BoletasDirectoraGoogle[] = [
     id: 900003,
     supervisa: ['kinder-es'],
   },
+  {
+    email: 'englishcoord.educativo@winston93.edu.mx',
+    nombre: 'English Coordination',
+    usuario: 'englishcoord.educativo',
+    id: 900004,
+    supervisa: ['kinder-en'],
+  },
 ]
 
 export function boletasDirectoraPorEmail(emailRaw: string): BoletasDirectoraGoogle | null {
