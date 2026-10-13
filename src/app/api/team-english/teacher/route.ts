@@ -1,15 +1,9 @@
 import { NextResponse } from 'next/server'
-import { cookieBoletasDesdeHeader } from '@/lib/boletasAuth'
 import { TeError, equipoDeTeacher, guardarPlaneacion, portalTeacher } from '@/lib/teamEnglish/teService'
+import { quienSube, requireSesionTeacher } from '@/lib/teamEnglish/teTeacherAuth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-function sesionTeacher(request: Request) {
-  const s = cookieBoletasDesdeHeader(request.headers.get('cookie'))
-  if (!s || s.role !== 'maestro') throw new TeError('Inicia sesión con tu usuario de teacher.', 401)
-  return s
-}
 
 function responderError(e: unknown, ctx: string) {
   if (e instanceof TeError) return NextResponse.json({ error: e.message }, { status: e.status })
@@ -19,8 +13,8 @@ function responderError(e: unknown, ctx: string) {
 
 export async function GET(request: Request) {
   try {
-    const s = sesionTeacher(request)
-    return NextResponse.json(await portalTeacher(s.id))
+    const s = requireSesionTeacher(request)
+    return NextResponse.json({ ...(await portalTeacher(s.id)), simulado_por: s.simuladoPor })
   } catch (e) {
     return responderError(e, 'GET /api/team-english/teacher:')
   }
@@ -28,7 +22,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const s = sesionTeacher(request)
+    const s = requireSesionTeacher(request)
     const r = await equipoDeTeacher(s.id)
     if (!r) throw new TeError('Tu usuario no está en un equipo de inglés.', 403)
     const form = await request.formData()
@@ -41,10 +35,10 @@ export async function POST(request: Request) {
       titulo: form.get('titulo'),
       notas: form.get('notas'),
       file,
-      quien: s.nombre,
+      quien: quienSube(s),
       rol: 'teacher',
     })
-    return NextResponse.json(await portalTeacher(s.id))
+    return NextResponse.json({ ...(await portalTeacher(s.id)), simulado_por: s.simuladoPor })
   } catch (e) {
     return responderError(e, 'POST /api/team-english/teacher:')
   }

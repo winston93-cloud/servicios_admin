@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { cookieBoletasDesdeHeader } from '@/lib/boletasAuth'
 import { sesionPortalDeRequest } from '@/lib/portalSesionFirmada'
 import { requireEmpleadoPortal } from '@/lib/portalApiEmpleadoAuth'
 import { TeError, descargar, nivelDeKey, nivelesPermitidos, resolverNivel, subirArchivoDirectora } from '@/lib/teamEnglish/teService'
 import type { TeNivel } from '@/lib/teamEnglish/teTypes'
+import { sesionTeacherDeRequest } from '@/lib/teamEnglish/teTeacherAuth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -40,9 +40,9 @@ export async function GET(request: Request) {
     if (session?.role === 'usuario') {
       permitido = nivelesPermitidos(session.usuario_id).includes(info.nivel as TeNivel)
     } else {
-      const teacher = cookieBoletasDesdeHeader(request.headers.get('cookie'))
+      const teacher = sesionTeacherDeRequest(request)
       permitido =
-        teacher?.role === 'maestro' && teacher.id === info.maestroId && ['planeacion', 'constancia', 'curso'].includes(info.tipo)
+        !!teacher && teacher.id === info.maestroId && ['planeacion', 'constancia', 'curso'].includes(info.tipo)
     }
     if (!permitido) throw new TeError('No autorizado.', 403)
 

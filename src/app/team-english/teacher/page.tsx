@@ -7,6 +7,7 @@ import type { PortalTeacherData } from '@/lib/teamEnglish/teService'
 import { ESTADOS_PLANEACION, TE_MAX_ARCHIVO_MB, etiquetaGrado, lunesDe, textoSemana } from '@/lib/teamEnglish/teTypes'
 import { leerJson, teAbrirArchivo, validarTamano } from '../teApi'
 import { ACEPTAR_DOCS, Campo, Semana, SelectorArchivo, Vacio } from '../components/ui'
+import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
 import MisCursos from './MisCursos'
 import '../team-english.css'
 
@@ -77,7 +78,7 @@ export default function PortalTeacherPage() {
         ) : estado === 'login' || !data ? (
           <Login onEntrar={() => { setError(null); void cargar() }} onError={setError} />
         ) : (
-          <Portal data={data} setData={setData} onOk={setOk} onError={setError} />
+          <Portal data={data} setData={setData} onOk={setOk} onError={setError} onSalir={() => void salir()} />
         )}
       </div>
     </div>
@@ -118,11 +119,13 @@ function Login({ onEntrar, onError }: { onEntrar: () => void; onError: (e: strin
       <button type="submit" className="te-btn te-btn-primary te-btn-ancho" disabled={enviando || !usuario || !password}>
         {enviando ? <Loader2 size={16} className="te-spin" aria-hidden /> : '✨'} Entrar
       </button>
+      <RacGoogleSignIn authUrl="/api/team-english/teacher/google" onOk={onEntrar} classPrefix="te" notice="Con tu cuenta institucional @winston93.edu.mx." />
     </form>
   )
 }
 
-function Portal({ data, setData, onOk, onError }: {
+function Portal({ data, setData, onOk, onError, onSalir }: {
+  onSalir: () => void
   data: PortalTeacherData
   setData: (d: PortalTeacherData) => void
   onOk: (t: string) => void
@@ -135,6 +138,15 @@ function Portal({ data, setData, onOk, onError }: {
 
   return (
     <>
+      {data.simulado_por ? (
+        <div className="te-alerta te-sim" role="status">
+          <span aria-hidden>👀</span>
+          <span className="te-min0">
+            Vista previa de <b>{data.simulado_por}</b>: ves el portal como <b>{data.teacher.nombre}</b>. Lo que subas se guarda de verdad a su nombre.
+          </span>
+          <button type="button" className="te-btn te-btn-sm" onClick={onSalir}>🔁 Cambiar de teacher</button>
+        </div>
+      ) : null}
       <section className="te-hero">
         <p className="te-kicker">Primaria · {data.teacher.grupos.join(', ') || 'Teacher'}</p>
         <h1 className="te-title">Hi, {nombreCorto}! <span className="te-title-emoji" aria-hidden>{data.teacher.emoji}</span></h1>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import { BOLETAS_AUTH_COOKIE, autenticarBoletas, encodeBoletasSession, opcionesCookieBoletas } from '@/lib/boletasAuth'
+import { autenticarBoletas, encodeBoletasSession, opcionesCookieBoletas } from '@/lib/boletasAuth'
 import { equipoDeTeacher } from '@/lib/teamEnglish/teService'
+import { TE_SIM_COOKIE, cookiesSalida, sesionTeacherDeRequest } from '@/lib/teamEnglish/teTeacherAuth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -18,6 +19,7 @@ export async function POST(request: Request) {
     }
     const res = NextResponse.json({ ok: true })
     res.cookies.set(opcionesCookieBoletas(encodeBoletasSession(session)))
+    res.cookies.set({ name: TE_SIM_COOKIE, value: '', path: '/', maxAge: 0 })
     return res
   } catch (e) {
     console.error('POST /api/team-english/teacher/login:', e)
@@ -25,8 +27,8 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
   const res = NextResponse.json({ ok: true })
-  res.cookies.set({ name: BOLETAS_AUTH_COOKIE, value: '', path: '/', maxAge: 0 })
+  for (const c of cookiesSalida(sesionTeacherDeRequest(request))) res.cookies.set(c)
   return res
 }

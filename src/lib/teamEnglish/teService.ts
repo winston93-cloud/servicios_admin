@@ -1109,4 +1109,5 @@ export async function eliminarCursoTeacher(maestroId: number, id: number): Promi
   await borrarArchivo(data.archivo_key as string)
 }
 
-export type PortalTeacherData = Awaited<ReturnType<typeof portalTeacher>>
+/** `simulado_por`: nombre de quien está en vista previa (coording, laura, mario), o null si es la teacher. */
+export type PortalTeacherData = Awaited<ReturnType<typeof portalTeacher>> & { simulado_por?: string | null }
