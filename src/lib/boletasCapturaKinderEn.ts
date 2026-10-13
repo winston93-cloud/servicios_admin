@@ -1,6 +1,6 @@
 import { BoletasAuthError } from './boletasAuth'
 import type { BoletasCapturaConfig, BoletasCapturaSesion } from './boletasCapturaAuth'
-import { requireSesionCaptura } from './boletasCapturaAuth'
+import { requireSesionCaptura, supervisaModulo } from './boletasCapturaAuth'
 import { maestroTieneGrupo, type ModuloCapturaKinder } from './boletasCapturaGrupos'
 import { obtenerEntrega, type BoletaEntrega } from './boletasEntrega'
 import { estaPublicada, trimestreValido } from './boletasPortal'
@@ -42,6 +42,9 @@ export async function contextoTeacherKinderEn(
   if (!esGradoKinderEn(grado) || !grupoNumeroDesdeLetra(grupo)) throw new Error('Grupo inválido.')
   if (modulo === 'kinder-es' && grado === 0) throw new Error('Maternal no tiene boleta de español.')
   if (trimestre == null) throw new Error('Trimestre inválido (1 a 3).')
+  if (sesion.supervisor && !supervisaModulo(sesion, modulo)) {
+    throw prohibido('Tu cuenta no supervisa esa boleta.')
+  }
   if (!sesion.supervisor && !(await maestroTieneGrupo(sesion.maestroId, cfg.niveles, modulo, grado, grupo))) {
     throw prohibido('Ese grupo no está asignado a tu usuario. Pide a tu directora que te lo asigne.')
   }

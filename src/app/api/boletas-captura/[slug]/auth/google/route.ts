@@ -25,6 +25,7 @@ export async function POST(req: Request, { params }: Params) {
           nombre: supervisor.nombre,
           usuario: supervisor.usuario,
           supervisor: true,
+          ...(supervisor.supervisa ? { supervisa: supervisor.supervisa } : {}),
         })
       )
       return res

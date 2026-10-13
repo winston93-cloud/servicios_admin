@@ -38,8 +38,10 @@ export type BoletasCapturaSesion = {
   maestroId: number
   nombre: string
   usuario: string
-  /** Cuenta de acceso total (dg@, sistemas.desarrollo@): ve y captura todos los grupos del nivel. */
+  /** Dirección (dg@, sistemas.desarrollo@, directoras): ve y captura todos los grupos del nivel. */
   supervisor?: boolean
+  /** Solo supervisión: módulos que puede ver. Sin lista = todos. */
+  supervisa?: string[]
   slug: BoletasCapturaSlug
   exp: number
 }
@@ -90,6 +92,10 @@ export function cookieSesionCaptura(cfg: BoletasCapturaConfig, s: Omit<BoletasCa
     path: '/',
     maxAge: DURACION_MS / 1000,
   }
+}
+
+export function supervisaModulo(s: BoletasCapturaSesion, modulo: string): boolean {
+  return Boolean(s.supervisor) && (!s.supervisa || s.supervisa.includes(modulo))
 }
 
 export function cookieSesionCapturaBorrar(cfg: BoletasCapturaConfig) {

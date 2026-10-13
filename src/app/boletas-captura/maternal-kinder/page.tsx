@@ -292,10 +292,10 @@ export default function BoletasCapturaMaternalKinderPage() {
       const s = await kiApi<Sesion>(`${BASE}/sesion`)
       setSesion(s)
       const modulos = [...new Set(capturables(s.grupos).map((g) => g.modulo))]
-      if (modulos.length === 1 && !s.supervisor) {
+      if (modulos.length === 1) {
         setIdioma((prev) => prev ?? modulos[0])
         const propios = capturables(s.grupos)
-        setElegido((prev) => prev ?? (propios.length === 1 ? claveGrupo(propios[0]) : null))
+        if (!s.supervisor) setElegido((prev) => prev ?? (propios.length === 1 ? claveGrupo(propios[0]) : null))
       }
     } catch (e) {
       setSesion(null)
@@ -321,7 +321,7 @@ export default function BoletasCapturaMaternalKinderPage() {
   const todos = sesion ? capturables(sesion.grupos) : []
   const maternalEs = sesion?.grupos.filter((g) => g.modulo === 'kinder-es' && g.grado === 0) ?? []
   const modulos = (['kinder-es', 'kinder-en'] as const).filter((m) => todos.some((g) => g.modulo === m))
-  const eligeIdioma = Boolean(sesion?.supervisor) || modulos.length > 1
+  const eligeIdioma = modulos.length > 1
   const delIdioma = idioma ? todos.filter((g) => g.modulo === idioma) : []
   const grupo = delIdioma.find((g) => claveGrupo(g) === elegido) ?? null
   const info = idioma ? IDIOMAS[idioma] : null
@@ -385,8 +385,8 @@ export default function BoletasCapturaMaternalKinderPage() {
 
             {sesion.supervisor && !grupo && (
               <p className="ki-msg bc-supervision" role="note">
-                Modo supervisión: ves todos los grupos del nivel tal como los ve cada maestra o teacher. Lo que guardes
-                o envíes a dirección cuenta como captura real.
+                Modo supervisión: ves los grupos tal como los ve cada {modulos.length > 1 ? 'maestra o teacher' : info?.docente.toLowerCase() ?? 'docente'}.
+                Lo que guardes o envíes a dirección cuenta como captura real.
               </p>
             )}
 
