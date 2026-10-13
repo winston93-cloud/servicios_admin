@@ -8,6 +8,7 @@ import Celebracion from '../components/Celebracion'
 /** Máximo de celebraciones automáticas seguidas al entrar (el resto queda en el muro). */
 const MAX_AUTO = 3
 const claveSim = (maestro: number, id: number) => `te-rec-sim-${maestro}-${id}`
+const claveVisto = (maestro: number, id: number) => `te-rec-visto-${maestro}-${id}`
 
 async function avisarServidor(id: number, reaccion?: Reaccion | null) {
   const res = await fetch('/api/team-english/teacher/reconocimiento', {
@@ -29,17 +30,19 @@ export default function MuroReconocimientos({ data, setData, onError }: {
 }) {
   const yo = data.teacher.maestro_id
   const simulado = !!data.simulado_por
-  /** Cola al entrar: de esta semana y la anterior, que aún no haya visto. */
-  const [cola, setCola] = useState<number[]>(() => {
+  /** Pendientes al entrar: de esta semana y la anterior, que nunca le hayan salido. */
+  const [pendientes] = useState<number[]>(() => {
     if (typeof window === 'undefined') return []
     const desde = sumarDias(lunesDe(data.hoy), -7)
     return data.reconocimientos
       .filter((r) => r.semana >= desde)
-      .filter((r) => (simulado ? !sessionStorage.getItem(claveSim(yo, r.id)) : !r.vistos.some((v) => v.maestro_id === yo)))
+      .filter((r) => (simulado
+        ? !sessionStorage.getItem(claveSim(yo, r.id))
+        : !r.vistos.some((v) => v.maestro_id === yo) && !localStorage.getItem(claveVisto(yo, r.id))))
       .sort((a, b) => a.created_at.localeCompare(b.created_at))
-      .slice(-MAX_AUTO)
       .map((r) => r.id)
   })
+  const [cola, setCola] = useState<number[]>(() => pendientes.slice(-MAX_AUTO))
   const [repetir, setRepetir] = useState<number | null>(null)
   const dataRef = useRef(data)
   useEffect(() => {
@@ -48,7 +51,9 @@ export default function MuroReconocimientos({ data, setData, onError }: {
 
   const actualizar = (id: number, cambio: (vistos: TeReconocimiento['vistos']) => TeReconocimiento['vistos']) => {
     const d = dataRef.current
-    setData({ ...d, reconocimientos: d.reconocimientos.map((r) => (r.id === id ? { ...r, vistos: cambio(r.vistos) } : r)) })
+    const nuevo = { ...d, reconocimientos: d.reconocimientos.map((r) => (r.id === id ? { ...r, vistos: cambio(r.vistos) } : r)) }
+    dataRef.current = nuevo
+    setData(nuevo)
   }
 
   const marcarVisto = (id: number) => {
@@ -56,9 +61,24 @@ export default function MuroReconocimientos({ data, setData, onError }: {
       sessionStorage.setItem(claveSim(yo, id), '1')
       return
     }
+    localStorage.setItem(claveVisto(yo, id), '1')
     actualizar(id, (v) => (v.some((x) => x.maestro_id === yo) ? v : [...v, { maestro_id: yo, reaccion: null }]))
     avisarServidor(id).catch(() => undefined)
   }
+  const marcarRef = useRef(marcarVisto)
+  useEffect(() => {
+    marcarRef.current = marcarVisto
+  })
+
+  const enCola = cola[0]
+  /** Cuenta como visto en cuanto aparece: aunque recargue o cierre a la mitad, no vuelve a salir solo. */
+  useEffect(() => {
+    if (enCola != null) marcarRef.current(enCola)
+  }, [enCola])
+  /** Si había más pendientes que MAX_AUTO, los anteriores quedan solo en el muro. */
+  useEffect(() => {
+    pendientes.slice(0, -MAX_AUTO).forEach((id) => marcarRef.current(id))
+  }, [pendientes])
 
   const reaccionar = (id: number, reaccion: Reaccion | null) => {
     actualizar(id, (v) => [...v.filter((x) => x.maestro_id !== yo), { maestro_id: yo, reaccion }])
@@ -66,15 +86,11 @@ export default function MuroReconocimientos({ data, setData, onError }: {
     avisarServidor(id, reaccion).catch((e: Error) => onError(e.message))
   }
 
-  const enCola = cola[0]
   const mostrando = repetir ?? enCola ?? null
   const rec = mostrando != null ? data.reconocimientos.find((r) => r.id === mostrando) : undefined
   const cerrar = () => {
     if (repetir != null) setRepetir(null)
-    else if (enCola != null) {
-      marcarVisto(enCola)
-      setCola((c) => c.slice(1))
-    }
+    else if (enCola != null) setCola((c) => c.slice(1))
   }
 
   if (!data.reconocimientos.length) return null
