@@ -1,8 +1,8 @@
 import { createBoletasDb } from './boletasInsforge'
-import type { BoletasModuloEmail } from './boletasEmailNivel'
+import type { BoletaModulo } from './boletasPdfModulo'
 import { letraDesdeGrupoNum } from './boletasCiclo'
 
-export type BoletaModulo = BoletasModuloEmail
+export type { BoletaModulo }
 
 export const BOLETA_MODULOS: BoletaModulo[] = [
   'kinder-es',

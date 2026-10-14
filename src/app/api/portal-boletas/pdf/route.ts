@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 import { sesionDeAlumnoOPersonal, validarAlumnoPortal } from '@/lib/portalApiAlumnoAuth'
-import { pdfModulo } from '@/lib/boletasEmailNivel'
+import { pdfModulo } from '@/lib/boletasPdfModulo'
 import {
   alcanceDeAlumno,
   esModuloBoleta,
