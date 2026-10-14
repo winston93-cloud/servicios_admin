@@ -1,5 +1,6 @@
 'use client'
 
+import { ItemAnimado, ListaAnimada } from '@/components/boletas-motion'
 import { useAuth } from '@/contexts/AuthContext'
 import PortalDocumentoModal from '@/app/portal-pagos/components/PortalDocumentoModal'
 import { videoEmbed } from '@/lib/videoEmbed'
@@ -152,11 +153,11 @@ export default function PortalBoletasView() {
                   publique al cierre de cada trimestre.
                 </p>
               )}
-              <ol className="portal-boletas-trimestres">
+              <ListaAnimada ordenada className="portal-boletas-trimestres">
                 {estado.trimestres.map((t) => {
                   const lista = t.boletas
                   return (
-                    <li
+                    <ItemAnimado
                       key={t.trimestre}
                       className={`portal-boletas-trimestre${lista.length ? ' is-publicada' : ''}`}
                     >
@@ -188,10 +189,10 @@ export default function PortalBoletasView() {
                           ))}
                         </div>
                       ) : null}
-                    </li>
+                    </ItemAnimado>
                   )
                 })}
-              </ol>
+              </ListaAnimada>
             </>
           )}
         </>

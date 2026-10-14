@@ -1,5 +1,6 @@
 'use client'
 
+import { ItemAnimado, ListaAnimada } from '@/components/boletas-motion'
 import ThemeToggle from '@/components/ThemeToggle'
 import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
 import KiCaptura, {
@@ -435,11 +436,11 @@ export default function PortalCapturaNivel({ slug, titulo, modulos: config, capt
             {eligeIdioma && !idioma && modulos.length > 0 && (
               <>
                 <h2 className="bc-pregunta">¿Qué boleta vas a revisar?</h2>
-                <ul className="bc-grupos bc-idiomas">
+                <ListaAnimada className="bc-grupos bc-idiomas">
                   {modulos.map((m) => {
                     const n = todos.filter((g) => g.modulo === m.id).length
                     return (
-                      <li key={m.id}>
+                      <ItemAnimado key={m.id}>
                         <button type="button" className="ki-menu-item" onClick={() => elegirIdioma(m.id)}>
                           <span className="bc-grupo-badge" aria-hidden>
                             {m.sigla}
@@ -451,10 +452,10 @@ export default function PortalCapturaNivel({ slug, titulo, modulos: config, capt
                             </span>
                           </span>
                         </button>
-                      </li>
+                      </ItemAnimado>
                     )
                   })}
-                </ul>
+                </ListaAnimada>
               </>
             )}
 
@@ -463,9 +464,9 @@ export default function PortalCapturaNivel({ slug, titulo, modulos: config, capt
                 <h2 className="ki-seccion">
                   {sesion.supervisor ? 'Grupos' : 'Mis grupos'} de {info.titulo.toLowerCase()}
                 </h2>
-                <ul className="bc-grupos">
+                <ListaAnimada className="bc-grupos">
                   {delIdioma.map((g) => (
-                    <li key={claveGrupo(g)}>
+                    <ItemAnimado key={claveGrupo(g)}>
                       <button type="button" className="ki-menu-item" onClick={() => setElegido(claveGrupo(g))}>
                         <span className="bc-grupo-badge" aria-hidden>
                           {g.grupo}
@@ -479,9 +480,9 @@ export default function PortalCapturaNivel({ slug, titulo, modulos: config, capt
                           </span>
                         </span>
                       </button>
-                    </li>
+                    </ItemAnimado>
                   ))}
-                </ul>
+                </ListaAnimada>
               </>
             )}
 

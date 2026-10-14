@@ -1,5 +1,6 @@
 'use client'
 
+import { ItemAnimado, ListaAnimada } from '@/components/boletas-motion'
 import ThemeToggle from '@/components/ThemeToggle'
 import { kiApi } from '@/app/boletas/kinder-ingles/components/kiApi'
 import SecClase, { type SecClaseControl } from '@/app/boletas/secundaria-comun/SecClase'
@@ -312,9 +313,9 @@ export default function PortalSecundariaPage() {
             {lista && !supervisor && clases.length > 0 && (
               <>
                 <h2 className="ki-seccion">Mis materias</h2>
-                <ul className="sp-materias">
+                <ListaAnimada className="sp-materias">
                   {materias.map((lst) => (
-                    <li key={lst[0].materiaId} className="sp-materia">
+                    <ItemAnimado key={lst[0].materiaId} className="sp-materia">
                       <div>
                         <h3>{lst[0].materia}</h3>
                         <p className="sp-sub">
@@ -331,9 +332,9 @@ export default function PortalSecundariaPage() {
                           />
                         ))}
                       </div>
-                    </li>
+                    </ItemAnimado>
                   ))}
-                </ul>
+                </ListaAnimada>
               </>
             )}
 
@@ -375,18 +376,18 @@ export default function PortalSecundariaPage() {
                   ))}
                 </div>
                 <h2 className="ki-seccion">Materias de {etiquetaGradoSec(gradoSup ?? 1)} {grupoElegido}</h2>
-                <ul className="sp-lista">
+                <ListaAnimada key={`${gradoSup}-${grupoElegido}`} className="sp-lista">
                   {delGrupo.map((c) => (
-                    <li key={c.materiaId}>
+                    <ItemAnimado key={c.materiaId}>
                       <BotonGrupo
                         c={c}
                         titulo={c.materia}
                         sub={c.maestros.length ? c.maestros.join(', ') : 'Sin maestro asignado'}
                         onClick={() => setSel({ materiaId: c.materiaId, grupo: c.grupo })}
                       />
-                    </li>
+                    </ItemAnimado>
                   ))}
-                </ul>
+                </ListaAnimada>
               </>
             )}
           </>

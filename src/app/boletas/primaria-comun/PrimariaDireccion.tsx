@@ -1,5 +1,6 @@
 'use client'
 
+import { ItemAnimado, ListaAnimada, VistaAnimada } from '@/components/boletas-motion'
 import ThemeToggle from '@/components/ThemeToggle'
 import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
 import {
@@ -400,14 +401,15 @@ export default function PrimariaDireccion({ idioma }: { idioma: IdiomaPrimaria }
           </p>
         </header>
 
+        <VistaAnimada vista={vista}>
         {vista === 'menu' && (
           <>
             <h2 className="ki-seccion">Menú de dirección</h2>
-            <ul className="ki-menu">
+            <ListaAnimada className="ki-menu">
               {menu.map((m) => {
                 const Icon = m.icon
                 return (
-                  <li key={m.vista}>
+                  <ItemAnimado key={m.vista}>
                     <button type="button" className="ki-menu-item" onClick={() => ir(m.vista)}>
                       <span className="ki-menu-icon" aria-hidden>
                         <Icon size={22} />
@@ -417,10 +419,10 @@ export default function PrimariaDireccion({ idioma }: { idioma: IdiomaPrimaria }
                         <span>{m.desc}</span>
                       </span>
                     </button>
-                  </li>
+                  </ItemAnimado>
                 )
               })}
-            </ul>
+            </ListaAnimada>
             <h2 className="ki-seccion">Portal de captura</h2>
             <PortalDocentesCard t={t} />
           </>
@@ -487,6 +489,7 @@ export default function PrimariaDireccion({ idioma }: { idioma: IdiomaPrimaria }
           />
         )}
         {vista === 'materias' && <PrimariaCatalogo idioma={idioma} apiUrl={`${t.api}/catalogo`} />}
+        </VistaAnimada>
       </main>
     </div>
   )

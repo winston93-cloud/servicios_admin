@@ -77,3 +77,6 @@ tmp/
 
 # reportes/exports locales (pueden tener datos personales)
 exports/
+
+# Superdesign (análisis local y temporales)
+.superdesign/

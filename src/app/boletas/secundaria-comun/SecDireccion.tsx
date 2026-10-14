@@ -1,5 +1,6 @@
 'use client'
 
+import { ItemAnimado, ListaAnimada, VistaAnimada } from '@/components/boletas-motion'
 import ThemeToggle from '@/components/ThemeToggle'
 import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
 import { kiApi } from '@/app/boletas/kinder-ingles/components/kiApi'
@@ -420,15 +421,16 @@ export default function SecDireccion() {
           <p className="ki-lead">Secundaria · Ciclo {etiquetaCicloBoletas(ciclo)}</p>
         </header>
 
+        <VistaAnimada vista={vista}>
         {vista === 'menu' && (
           <>
             {periodo}
             <h2 className="ki-seccion">Menú de dirección</h2>
-            <ul className="ki-menu">
+            <ListaAnimada className="ki-menu">
               {MENU.map((m) => {
                 const Icon = m.icon
                 return (
-                  <li key={m.vista}>
+                  <ItemAnimado key={m.vista}>
                     <button type="button" className="ki-menu-item" onClick={() => void ir(m.vista)}>
                       <span className="ki-menu-icon" aria-hidden>
                         <Icon size={22} />
@@ -438,10 +440,10 @@ export default function SecDireccion() {
                         <span>{m.desc}</span>
                       </span>
                     </button>
-                  </li>
+                  </ItemAnimado>
                 )
               })}
-            </ul>
+            </ListaAnimada>
             <h2 className="ki-seccion">Portal de captura</h2>
             <PortalCard />
           </>
@@ -478,6 +480,7 @@ export default function SecDireccion() {
 
         {vista === 'maestros' && <SecMaestros />}
         {vista === 'materias' && <SecMaterias />}
+        </VistaAnimada>
       </main>
     </div>
   )

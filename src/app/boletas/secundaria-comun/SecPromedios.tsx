@@ -1,6 +1,7 @@
 'use client'
 
 import { kiApi } from '@/app/boletas/kinder-ingles/components/kiApi'
+import { NumeroAnimado } from '@/components/boletas-motion'
 import { SECUNDARIA_GRADOS, SECUNDARIA_GRUPOS, etiquetaGradoSec, fmtTrunc } from '@/lib/boletasSecundariaCatalog'
 import type { SecDivisores, SecPromedioAlumno, SecPromedioGrupo } from '@/lib/boletasSecundariaService'
 import { Download, Printer } from 'lucide-react'
@@ -28,11 +29,17 @@ function Lugar({ n }: { n: number | null }) {
   return <span className="sd-lugar">{n}</span>
 }
 
-function Prom({ v }: { v: number | null }) {
+/** En el podio el promedio oficial sube hasta su valor; al terminar muestra el truncado exacto. */
+function Prom({ v, podio = false }: { v: number | null; podio?: boolean }) {
   if (v == null) return <span className="sd-lugar">—</span>
+  const oficial = fmtTrunc(v, 1)
   return (
     <>
-      <span className="sd-prom-oficial">{fmtTrunc(v, 1)}</span>
+      {podio ? (
+        <NumeroAnimado className="sd-prom-oficial" valor={Number(oficial)} texto={oficial} decimales={1} />
+      ) : (
+        <span className="sd-prom-oficial">{oficial}</span>
+      )}
       <span className="sd-prom-fino">{fmtTrunc(v, 3)}</span>
     </>
   )
@@ -214,7 +221,7 @@ export default function SecPromedios({ ciclo, etiquetaCiclo }: { ciclo: number; 
                       <span className="sd-chip">{a.grupo || '—'}</span>
                     </td>
                     <td className="num">
-                      <Prom v={a.winston} />
+                      <Prom v={a.winston} podio={l != null && l <= 3} />
                     </td>
                     <td className="num">
                       <Prom v={a.set} />

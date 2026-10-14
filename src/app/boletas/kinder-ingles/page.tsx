@@ -1,5 +1,6 @@
 'use client'
 
+import { ItemAnimado, ListaAnimada, VistaAnimada } from '@/components/boletas-motion'
 import ThemeToggle from '@/components/ThemeToggle'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
@@ -368,14 +369,15 @@ function KinderEnApp() {
           <p className="ki-lead">English Preschool · Ciclo {etiquetaCicloBoletas(ciclo)}</p>
         </header>
 
+        <VistaAnimada vista={vista}>
         {vista === 'menu' && (
           <>
             <h2 className="ki-seccion">Menú de dirección</h2>
-            <ul className="ki-menu">
+            <ListaAnimada className="ki-menu">
               {MENU.map((m) => {
                 const Icon = m.icon
                 return (
-                  <li key={m.vista}>
+                  <ItemAnimado key={m.vista}>
                     <button type="button" className="ki-menu-item" onClick={() => ir(m.vista)}>
                       <span className="ki-menu-icon" aria-hidden>
                         <Icon size={22} />
@@ -385,10 +387,10 @@ function KinderEnApp() {
                         <span>{m.desc}</span>
                       </span>
                     </button>
-                  </li>
+                  </ItemAnimado>
                 )
               })}
-            </ul>
+            </ListaAnimada>
             <h2 className="ki-seccion">Portal de captura</h2>
             <PortalTeachersCard />
           </>
@@ -455,6 +457,7 @@ function KinderEnApp() {
         {(vista === 'subject' || vista === 'behavioral' || vista === 'maternal') && (
           <KiCatalogo key={vista} tipo={vista} />
         )}
+        </VistaAnimada>
       </main>
     </div>
   )
