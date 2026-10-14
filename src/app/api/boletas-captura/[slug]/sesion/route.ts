@@ -13,9 +13,12 @@ export async function GET(req: Request, { params }: Params) {
     const cfg = capturaConfigDeSlug((await params).slug)
     const s = requireSesionCaptura(cfg, req)
     const ciclo = await resolverCicloEscolarSistemaValor()
-    const grupos = s.supervisor
-      ? (await gruposSupervision(cfg.slug, ciclo)).filter((g) => supervisaModulo(s, g.modulo))
-      : await gruposDeMaestro(s.maestroId, cfg.niveles)
+    const grupos =
+      cfg.slug === 'secundaria'
+        ? []
+        : s.supervisor
+          ? (await gruposSupervision(cfg.slug, ciclo)).filter((g) => supervisaModulo(s, g.modulo))
+          : await gruposDeMaestro(s.maestroId, cfg.niveles)
     return jsonOk({
       maestro: { id: s.maestroId, nombre: s.nombre, usuario: s.usuario },
       supervisor: Boolean(s.supervisor),

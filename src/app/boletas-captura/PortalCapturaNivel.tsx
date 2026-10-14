@@ -59,7 +59,17 @@ function fecha(iso: string | null): string {
     : d.toLocaleString('es-MX', { day: 'numeric', month: 'long', hour: 'numeric', minute: '2-digit', timeZone: 'America/Monterrey' })
 }
 
-function LoginPanel({ base, titulo, onOk }: { base: string; titulo: string; onOk: () => void }) {
+export function LoginPanel({
+  base,
+  titulo,
+  onOk,
+  texto = 'Maestras de español y teachers de inglés: entra con tu usuario y contraseña o con tu correo institucional.',
+}: {
+  base: string
+  titulo: string
+  onOk: () => void
+  texto?: string
+}) {
   const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -83,7 +93,7 @@ function LoginPanel({ base, titulo, onOk }: { base: string; titulo: string; onOk
     <div className="ki-login ki-paper">
       <form onSubmit={submit}>
         <h2>Boletas · {titulo}</h2>
-        <p>Maestras de español y teachers de inglés: entra con tu usuario y contraseña o con tu correo institucional.</p>
+        <p>{texto}</p>
         <label>
           Usuario
           <input

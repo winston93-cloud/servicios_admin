@@ -54,12 +54,12 @@ const NIVELES = [
   {
     id: 'secundaria',
     label: 'Secundaria',
-    desc: 'Maestros: captura de calificaciones de sus materias y grupos.',
+    desc: 'Maestros de 7° a 9°: capturan calificaciones, faltas y conducta de sus materias y grupos y las envían a dirección.',
     accent: 'rose' as const,
     kicker: 'Secundaria',
-    tags: ['Materias', 'Grupos'],
+    tags: ['Materias', 'Grupos', '7° a 9°'],
     icon: ICON_SECUNDARIA,
-    ruta: '/boletas-secundaria',
+    ruta: '/boletas-captura/secundaria',
   },
 ]
 

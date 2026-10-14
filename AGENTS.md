@@ -97,7 +97,7 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 
 - **Hub:** `/becas` (5 cards: Renovaciones, Solicitudes, Permisos, Bitácora, Boletas secundaria). La tarjeta **Becas** del dashboard apunta aquí.
 - **Sistema integral boletas:** `/boletas` — 5 módulos activos (Kinder ES/EN, Primaria ES/EN, Secundaria). Auth cookie compartida; envío `POST /api/boletas-envio`.
-- **Secundaria:** `/boletas-secundaria` — login maestro/admin, captura, admin, PDF, reportes, email.
+- **Secundaria:** maestros capturan en `/boletas-captura/secundaria` (cada uno ve solo sus materias × grupos asignados; hoja tipo Excel con autoguardado; envían por materia + grupo). Dirección en `/boletas-secundaria` (Google `direccion.secundaria@`): entregas y publicación, revisar/corregir, promedios y medallas (Winston/SET truncados como el legacy, lugares por grado y grupo), maestros y asignaciones, materias. Entrega por materia: `boleta_entrega.materia_id` (kinder/primaria = 0). Lógica en `boletasSecundariaService.ts` / `boletasSecundariaRutas.ts`.
 - **Kinder / Primaria:** `/boletas/kinder-espanol`, `kinder-ingles`, `primaria-espanol`, `primaria-ingles` — captura + PDF + email.
 - **Backend:** tablas `boleta_*` en **Winston Servicios** (`g4ta4bfg`). Env `BOLETAS_INSFORGE_URL` / `BOLETAS_INSFORGE_API_KEY` / `BOLETAS_SESSION_SECRET` (local + Vercel). Migración: `docs/MIGRACION-BOLETAS-WINSTON.md`. NANO InsForge **Boletas** eliminado (2026-09-17).
 - **Arranque:** noviembre 2026, 1er trimestre del ciclo 2026-2027 (decisión de Mario, 12 oct 2026). Antes de eso no hay captura del ciclo nuevo en el sistema nuevo.
