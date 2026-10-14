@@ -256,6 +256,7 @@ export default function SolicitudInscripcionForm() {
     const incompletas = SECCIONES_SOLICITUD_ORDEN.filter((id) => !seccionSolicitudCompleta(form, id))
     if (incompletas.length > 0) {
       setErroresValidacion([])
+      setError(null)
       setAvisoFaltantes(
         `No se puede guardar todavía: faltan datos en ${incompletas
           .map((id) => ETIQUETA_SECCION_SOLICITUD[id])
@@ -363,6 +364,7 @@ export default function SolicitudInscripcionForm() {
   const editar = () => {
     setSoloLectura(false)
     setExito(false)
+    setError(null)
   }
 
   const cancelarEdicion = () => {
