@@ -23,96 +23,138 @@ export const ETIQUETA_SECCION_SOLICITUD: Record<SeccionSolicitudId, string> = {
   contactos: 'Contactos',
 }
 
+/** Texto que la familia puede escribir en un campo obligatorio cuando no aplica. */
+export const VALOR_NO_APLICA = '*'
+
 function vacio(val: string | null | undefined): boolean {
   return (val ?? '').trim() === ''
 }
 
-function validarFamiliar(rol: string, f: SolicitudFamiliarCampos): string[] {
-  const errs: string[] = []
-  if (vacio(f.apellidoPaterno)) errs.push(`${rol}: apellido paterno obligatorio.`)
-  if (vacio(f.apellidoMaterno)) errs.push(`${rol}: apellido materno obligatorio.`)
-  if (vacio(f.nombre)) errs.push(`${rol}: nombre obligatorio.`)
-  if (vacio(f.celular)) errs.push(`${rol}: celular obligatorio.`)
-  if (vacio(f.email)) errs.push(`${rol}: correo obligatorio.`)
-  if (!vacio(f.curp)) {
-    const v = validarFormatoCurp(f.curp)
-    if (!v.valido) errs.push(`${rol}: ${v.mensaje}`)
-  }
-  // RFC de mamá/papá: opcional (en blanco o «*»); no se valida ni exige.
-  return errs
+function esNoAplica(val: string | null | undefined): boolean {
+  return (val ?? '').trim() === VALOR_NO_APLICA
 }
 
-function validarContacto(rol: string, c: SolicitudContactoCampos): string[] {
-  const errs: string[] = []
-  if (vacio(c.nombre)) errs.push(`${rol}: nombre obligatorio.`)
-  if (vacio(c.telefono) && vacio(c.celular)) {
-    errs.push(`${rol}: indica teléfono o celular.`)
+/**
+ * Falta en un campo concreto del formulario. `campo` identifica el input en la UI
+ * (p. ej. `papa.nombre`, `autorizados.0.telefono`); una falta de «teléfono o celular»
+ * lleva ambos campos.
+ */
+export type FaltaSolicitud = { campos: string[]; mensaje: string }
+
+function validarFamiliar(
+  prefijo: 'mama' | 'papa',
+  rol: string,
+  f: SolicitudFamiliarCampos
+): FaltaSolicitud[] {
+  const faltas: FaltaSolicitud[] = []
+  const req = (campo: keyof SolicitudFamiliarCampos, mensaje: string) => {
+    if (vacio(f[campo])) faltas.push({ campos: [`${prefijo}.${campo}`], mensaje: `${rol}: ${mensaje}` })
   }
-  return errs
+  req('apellidoPaterno', 'apellido paterno obligatorio.')
+  req('apellidoMaterno', 'apellido materno obligatorio.')
+  req('nombre', 'nombre obligatorio.')
+  req('celular', 'celular obligatorio.')
+  req('email', 'correo obligatorio.')
+  if (!vacio(f.curp) && !esNoAplica(f.curp)) {
+    const v = validarFormatoCurp(f.curp)
+    if (!v.valido) faltas.push({ campos: [`${prefijo}.curp`], mensaje: `${rol}: ${v.mensaje}` })
+  }
+  // RFC de mamá/papá: opcional (en blanco o «*»); no se valida ni exige.
+  return faltas
+}
+
+function validarContacto(prefijo: string, rol: string, c: SolicitudContactoCampos): FaltaSolicitud[] {
+  const faltas: FaltaSolicitud[] = []
+  if (vacio(c.nombre)) faltas.push({ campos: [`${prefijo}.nombre`], mensaje: `${rol}: nombre obligatorio.` })
+  if (vacio(c.telefono) && vacio(c.celular)) {
+    faltas.push({
+      campos: [`${prefijo}.telefono`, `${prefijo}.celular`],
+      mensaje: `${rol}: indica teléfono o celular.`,
+    })
+  }
+  return faltas
+}
+
+export function faltasSeccionSolicitud(
+  form: SolicitudInscripcionFormulario,
+  seccion: SeccionSolicitudId
+): FaltaSolicitud[] {
+  const a = form.alumno
+  const m = form.medico
+
+  switch (seccion) {
+    case 'alumno': {
+      const faltas: FaltaSolicitud[] = []
+      const req = (campo: keyof SolicitudInscripcionFormulario['alumno'], mensaje: string) => {
+        if (vacio(a[campo])) faltas.push({ campos: [`alumno.${campo}`], mensaje: `Alumno: ${mensaje}` })
+      }
+      req('fechaNacimiento', 'fecha de nacimiento obligatoria.')
+      req('lugarNacimiento', 'lugar de nacimiento obligatorio.')
+      req('sexo', 'selecciona el sexo.')
+      req('calle', 'calle obligatoria.')
+      req('numeroExt', 'número exterior obligatorio.')
+      req('colonia', 'colonia obligatoria.')
+      req('cp', 'código postal obligatorio.')
+      req('ciudad', 'ciudad obligatoria.')
+      req('estado', 'estado obligatorio.')
+      req('escuelaProcedente', 'escuela de procedencia obligatoria.')
+      const curpVal = validarFormatoCurp(a.curp)
+      if (!curpVal.valido) faltas.push({ campos: ['alumno.curp'], mensaje: `Alumno: ${curpVal.mensaje}` })
+      return faltas
+    }
+    case 'salud': {
+      const faltas: FaltaSolicitud[] = []
+      const req = (campo: keyof SolicitudInscripcionFormulario['medico'], mensaje: string) => {
+        if (vacio(m[campo])) faltas.push({ campos: [`medico.${campo}`], mensaje: `Salud: ${mensaje}` })
+      }
+      req('peso', 'peso obligatorio.')
+      req('estatura', 'estatura obligatoria.')
+      req('tipoSangre', 'tipo de sangre obligatorio.')
+      req('alergias', 'indica si es alérgico.')
+      req('tienePadecimiento', 'indica si padece alguna enfermedad.')
+      req('requiereMedicina', 'indica si requiere medicina en horario escolar.')
+      if (m.tienePadecimiento === '1') req('padecimiento', 'describe el padecimiento.')
+      if (m.requiereMedicina === '1') req('medicina', 'indica la medicina requerida.')
+      return faltas
+    }
+    case 'mama':
+      return validarFamiliar('mama', 'Mamá', form.mama)
+    case 'papa':
+      return validarFamiliar('papa', 'Papá', form.papa)
+    case 'contactos': {
+      const faltas: FaltaSolicitud[] = []
+      faltas.push(...validarContacto('emergencia', 'Contacto de emergencia', form.emergencia))
+      const autorizadosConDatos = form.autorizados
+        .map((c, idx) => ({ c, idx }))
+        .filter(({ c }) => !vacio(c.nombre) || !vacio(c.telefono) || !vacio(c.celular))
+      if (autorizadosConDatos.length === 0) {
+        faltas.push({
+          campos: ['autorizados.0.nombre', 'autorizados.0.telefono', 'autorizados.0.celular'],
+          mensaje: 'Agrega al menos una persona autorizada para recoger al alumno.',
+        })
+      } else {
+        autorizadosConDatos.forEach(({ c, idx }, i) => {
+          faltas.push(...validarContacto(`autorizados.${idx}`, `Persona autorizada ${i + 1}`, c))
+        })
+      }
+      return faltas
+    }
+  }
 }
 
 export function erroresSeccionSolicitud(
   form: SolicitudInscripcionFormulario,
   seccion: SeccionSolicitudId
 ): string[] {
-  const a = form.alumno
-  const m = form.medico
+  return faltasSeccionSolicitud(form, seccion).map((f) => f.mensaje)
+}
 
-  switch (seccion) {
-    case 'alumno': {
-      const errs: string[] = []
-      if (vacio(a.fechaNacimiento)) errs.push('Alumno: fecha de nacimiento obligatoria.')
-      if (vacio(a.lugarNacimiento)) errs.push('Alumno: lugar de nacimiento obligatorio.')
-      if (vacio(a.sexo)) errs.push('Alumno: selecciona el sexo.')
-      if (vacio(a.calle)) errs.push('Alumno: calle obligatoria.')
-      if (vacio(a.numeroExt)) errs.push('Alumno: número exterior obligatorio.')
-      if (vacio(a.colonia)) errs.push('Alumno: colonia obligatoria.')
-      if (vacio(a.cp)) errs.push('Alumno: código postal obligatorio.')
-      if (vacio(a.ciudad)) errs.push('Alumno: ciudad obligatoria.')
-      if (vacio(a.estado)) errs.push('Alumno: estado obligatorio.')
-      if (vacio(a.escuelaProcedente)) errs.push('Alumno: escuela de procedencia obligatoria.')
-      const curpVal = validarFormatoCurp(a.curp)
-      if (!curpVal.valido) errs.push(`Alumno: ${curpVal.mensaje}`)
-      return errs
-    }
-    case 'salud': {
-      const errs: string[] = []
-      if (vacio(m.peso)) errs.push('Salud: peso obligatorio.')
-      if (vacio(m.estatura)) errs.push('Salud: estatura obligatoria.')
-      if (vacio(m.tipoSangre)) errs.push('Salud: tipo de sangre obligatorio.')
-      if (vacio(m.alergias)) errs.push('Salud: indica si es alérgico.')
-      if (vacio(m.tienePadecimiento)) errs.push('Salud: indica si padece alguna enfermedad.')
-      if (vacio(m.requiereMedicina)) {
-        errs.push('Salud: indica si requiere medicina en horario escolar.')
-      }
-      if (m.tienePadecimiento === '1' && vacio(m.padecimiento)) {
-        errs.push('Salud: describe el padecimiento.')
-      }
-      if (m.requiereMedicina === '1' && vacio(m.medicina)) {
-        errs.push('Salud: indica la medicina requerida.')
-      }
-      return errs
-    }
-    case 'mama':
-      return validarFamiliar('Mamá', form.mama)
-    case 'papa':
-      return validarFamiliar('Papá', form.papa)
-    case 'contactos': {
-      const errs: string[] = []
-      errs.push(...validarContacto('Contacto de emergencia', form.emergencia))
-      const autorizadosValidos = form.autorizados.filter(
-        (c) => !vacio(c.nombre) || !vacio(c.telefono) || !vacio(c.celular)
-      )
-      if (autorizadosValidos.length === 0) {
-        errs.push('Agrega al menos una persona autorizada para recoger al alumno.')
-      } else {
-        for (let i = 0; i < autorizadosValidos.length; i++) {
-          errs.push(...validarContacto(`Persona autorizada ${i + 1}`, autorizadosValidos[i]))
-        }
-      }
-      return errs
-    }
-  }
+/** Campos (ids de UI) con falta en la sección, en el orden en que aparecen. */
+export function camposFaltantesSeccion(
+  form: SolicitudInscripcionFormulario,
+  seccion: SeccionSolicitudId
+): string[] {
+  return [...new Set(faltasSeccionSolicitud(form, seccion).flatMap((f) => f.campos))]
 }
 
 export function mapaErroresPorSeccion(

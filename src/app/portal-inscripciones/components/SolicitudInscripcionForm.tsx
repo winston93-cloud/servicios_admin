@@ -1,6 +1,13 @@
 'use client'
 
-import { useCallback, useEffect, useState, type CSSProperties } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type CSSProperties,
+} from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -11,10 +18,12 @@ import {
   ChevronRight,
   HeartPulse,
   Loader2,
+  Pencil,
   Phone,
   Save,
   User,
   Users,
+  X,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
@@ -24,8 +33,10 @@ import { SOLICITUD_CONTACTO_VACIO } from '@/lib/portalInscripcionesSolicitudType
 import {
   ETIQUETA_SECCION_SOLICITUD,
   SECCIONES_SOLICITUD_ORDEN,
+  camposFaltantesSeccion,
   mapaErroresPorSeccion,
   seccionSolicitudCompleta,
+  solicitudFormularioCompleta,
   type SeccionSolicitudId,
 } from '@/lib/portalInscripcionesValidacion'
 import { CURP_LONGITUD, normalizarCurp, validarFormatoCurp } from '@/lib/curp'
@@ -119,28 +130,46 @@ const SOLICITUD_INSCRIPCION_VACIO: SolicitudInscripcionFormulario = {
   autorizados: [{ ...SOLICITUD_CONTACTO_VACIO }],
 }
 
+const CamposMarcadosContext = createContext<ReadonlySet<string>>(new Set())
+
+const MSG_FALTA_TEXTO = 'Falta este dato. Si no aplica, escribe *'
+const MSG_FALTA_OPCION = 'Falta este dato.'
+const PLACEHOLDER_NO_APLICA = 'Si no aplica, escribe *'
+const MSG_FALTA_TELEFONO = 'Indica teléfono o celular (al menos uno).'
+
 function Campo({
   label,
   children,
   required,
   hint,
   error,
+  campo,
+  faltaMsg = MSG_FALTA_TEXTO,
 }: {
   label: string
   children: React.ReactNode
   required?: boolean
   hint?: string
   error?: string | null
+  /** Id del dato en la validación (p. ej. `papa.nombre`) para marcarlo en rojo si falta. */
+  campo?: string
+  faltaMsg?: string
 }) {
+  const marcados = useContext(CamposMarcadosContext)
+  const falta = campo != null && marcados.has(campo)
+  const mensaje = error || (falta ? faltaMsg : null)
+  const clases = ['pi-form-field']
+  if (mensaje) clases.push('pi-form-field--error')
+  if (falta) clases.push('pi-form-field--falta')
   return (
-    <label className={`pi-form-field${error ? ' pi-form-field--error' : ''}`}>
+    <label className={clases.join(' ')} data-campo={campo}>
       <span className="pi-form-label">
         {label}
         {required ? <span className="pi-form-req"> *</span> : null}
       </span>
       {children}
-      {error ? <span className="pi-form-field-error">{error}</span> : null}
-      {!error && hint ? <span className="pi-form-hint">{hint}</span> : null}
+      {mensaje ? <span className="pi-form-field-error">{mensaje}</span> : null}
+      {!mensaje && hint ? <span className="pi-form-hint">{hint}</span> : null}
     </label>
   )
 }
@@ -168,6 +197,20 @@ export default function SolicitudInscripcionForm() {
   const [error, setError] = useState<string | null>(null)
   const [erroresValidacion, setErroresValidacion] = useState<string[]>([])
   const [exito, setExito] = useState(false)
+  const [formGuardado, setFormGuardado] = useState<SolicitudInscripcionFormulario | null>(null)
+  const [soloLectura, setSoloLectura] = useState(false)
+  const [seccionesMarcadas, setSeccionesMarcadas] = useState<ReadonlySet<SeccionId>>(new Set())
+  const [avisoFaltantes, setAvisoFaltantes] = useState<string | null>(null)
+  const [enfocar, setEnfocar] = useState<{ campo: string; n: number } | null>(null)
+
+  useEffect(() => {
+    if (!enfocar) return
+    const nodo = document.querySelector<HTMLElement>(`[data-campo="${enfocar.campo}"]`)
+    if (!nodo) return
+    const reducir = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    nodo.scrollIntoView({ behavior: reducir ? 'auto' : 'smooth', block: 'center' })
+    nodo.querySelector<HTMLElement>('input, select, textarea')?.focus({ preventScroll: true })
+  }, [enfocar])
 
   const cargar = useCallback(async () => {
     if (alumnoId == null) {
@@ -184,6 +227,10 @@ export default function SolicitudInscripcionForm() {
         setError(data.error ?? 'No se pudo cargar la solicitud.')
       } else {
         setForm(data.formulario)
+        if (solicitudFormularioCompleta(data.formulario)) {
+          setFormGuardado(data.formulario)
+          setSoloLectura(true)
+        }
       }
     } catch {
       setError('Error de conexión.')
@@ -195,8 +242,29 @@ export default function SolicitudInscripcionForm() {
     void cargar()
   }, [cargar])
 
+  const marcarFaltantes = (secciones: SeccionId[]) => {
+    setSeccionesMarcadas((prev) => new Set([...prev, ...secciones]))
+    const primera = secciones[0]
+    if (!primera) return
+    setSeccion(primera)
+    const campo = camposFaltantesSeccion(form, primera)[0]
+    if (campo) setEnfocar({ campo, n: Date.now() })
+  }
+
   const guardar = async () => {
-    if (alumnoId == null) return
+    if (alumnoId == null || soloLectura) return
+    const incompletas = SECCIONES_SOLICITUD_ORDEN.filter((id) => !seccionSolicitudCompleta(form, id))
+    if (incompletas.length > 0) {
+      setErroresValidacion([])
+      setAvisoFaltantes(
+        `No se puede guardar todavía: faltan datos en ${incompletas
+          .map((id) => ETIQUETA_SECCION_SOLICITUD[id])
+          .join(', ')}. Los campos pendientes están en rojo.`
+      )
+      marcarFaltantes(incompletas)
+      return
+    }
+    setAvisoFaltantes(null)
     setGuardando(true)
     setErroresValidacion([])
     setExito(false)
@@ -211,10 +279,9 @@ export default function SolicitudInscripcionForm() {
       if (!res.ok) {
         if (data.errores?.length) {
           setErroresValidacion(data.errores)
-          const primeraFalta = SECCIONES_SOLICITUD_ORDEN.find(
-            (id) => !seccionSolicitudCompleta(form, id)
+          marcarFaltantes(
+            SECCIONES_SOLICITUD_ORDEN.filter((id) => !seccionSolicitudCompleta(form, id))
           )
-          if (primeraFalta) setSeccion(primeraFalta)
         } else setError(data.error ?? 'No se pudo guardar.')
       } else {
         setExito(true)
@@ -268,12 +335,44 @@ export default function SolicitudInscripcionForm() {
     (id) => ETIQUETA_SECCION_SOLICITUD[id]
   )
   const IconoSeccion = iconoSeccion(seccion)
+  const camposMarcados = new Set(
+    [...seccionesMarcadas].flatMap((id) => camposFaltantesSeccion(form, id))
+  )
+
+  const cambiarSeccion = (destino: SeccionId) => {
+    if (!soloLectura && destino !== seccion && !seccionesCompletas[seccion]) {
+      setSeccionesMarcadas((prev) => new Set([...prev, seccion]))
+    }
+    setAvisoFaltantes(null)
+    setSeccion(destino)
+  }
 
   const irSeccion = (dir: -1 | 1) => {
     const next = indiceSeccion + dir
-    if (next >= 0 && next < SECCIONES.length) {
-      setSeccion(SECCIONES[next].id)
+    if (next < 0 || next >= SECCIONES.length) return
+    if (dir === 1 && !soloLectura && !seccionesCompletas[seccion]) {
+      setAvisoFaltantes(
+        `Antes de continuar completa los campos en rojo de ${ETIQUETA_SECCION_SOLICITUD[seccion]}.`
+      )
+      marcarFaltantes([seccion])
+      return
     }
+    cambiarSeccion(SECCIONES[next].id)
+  }
+
+  const editar = () => {
+    setSoloLectura(false)
+    setExito(false)
+  }
+
+  const cancelarEdicion = () => {
+    if (!formGuardado) return
+    setForm(formGuardado)
+    setSeccionesMarcadas(new Set())
+    setAvisoFaltantes(null)
+    setErroresValidacion([])
+    setError(null)
+    setSoloLectura(true)
   }
 
   if (cargando) {
@@ -298,7 +397,7 @@ export default function SolicitudInscripcionForm() {
             <h1 className="dashboard-title portal-inscripciones-titulo">Solicitud de inscripción</h1>
             <p className="dashboard-subtitle portal-inscripciones-lead">
               Completa las 5 secciones (deben quedar en amarillo). Al guardar se habilitan los
-              pagos del ciclo.
+              pagos del ciclo. Si algún dato obligatorio no aplica, escribe *.
             </p>
           </div>
           <div
@@ -329,7 +428,7 @@ export default function SolicitudInscripcionForm() {
               type="button"
               className={`pi-form-step${activa ? ' pi-form-step--activa' : ''}${completa ? ' pi-form-step--completa' : ''}`}
               data-accent={completa ? 'amber' : s.accent}
-              onClick={() => setSeccion(s.id)}
+              onClick={() => cambiarSeccion(s.id)}
               aria-current={activa ? 'step' : undefined}
               title={
                 completa
@@ -348,6 +447,22 @@ export default function SolicitudInscripcionForm() {
       </nav>
 
       <div className="pi-form-shell">
+      {soloLectura && (
+        <div className="portal-inscripciones-alerta portal-inscripciones-alerta--aviso pi-form-solo-lectura" role="status">
+          <CheckCircle2 size={18} aria-hidden />
+          <span>
+            Tu solicitud ya está guardada. Puedes revisarla por secciones; si necesitas cambiar algún
+            dato, pulsa <strong>Editar solicitud</strong>.
+          </span>
+        </div>
+      )}
+
+      {avisoFaltantes && !seccionesCompletas[seccion] && (
+        <div className="portal-inscripciones-alerta portal-inscripciones-alerta--error" role="alert">
+          {avisoFaltantes}
+        </div>
+      )}
+
       {faltanEtiquetas.length > 0 && !exito && (
         <div className="portal-inscripciones-alerta portal-inscripciones-alerta--aviso" role="status">
           {faltanEtiquetas.length === 1
@@ -379,7 +494,13 @@ export default function SolicitudInscripcionForm() {
         </div>
       )}
 
-      <div key={seccion} className="pi-form-panel" data-accent={seccionActual.accent}>
+      <CamposMarcadosContext.Provider value={camposMarcados}>
+      <fieldset
+        key={seccion}
+        className="pi-form-panel pi-form-fieldset"
+        data-accent={seccionActual.accent}
+        disabled={soloLectura}
+      >
         <div className="pi-form-section-head" data-accent={seccionActual.accent}>
           <div className="pi-form-section-icon" aria-hidden>
             <IconoSeccion size={22} />
@@ -392,7 +513,7 @@ export default function SolicitudInscripcionForm() {
 
         {seccion === 'alumno' && (
           <div className="pi-form-grid">
-            <Campo label="Fecha de nacimiento" required>
+            <Campo label="Fecha de nacimiento" required campo="alumno.fechaNacimiento" faltaMsg={MSG_FALTA_OPCION}>
               <input
                 type="date"
                 className="pi-form-input"
@@ -400,7 +521,7 @@ export default function SolicitudInscripcionForm() {
                 onChange={(e) => setAlumno({ fechaNacimiento: e.target.value })}
               />
             </Campo>
-            <Campo label="Lugar de nacimiento" required>
+            <Campo label="Lugar de nacimiento" required campo="alumno.lugarNacimiento">
               <input
                 className="pi-form-input"
                 value={form.alumno.lugarNacimiento}
@@ -410,6 +531,8 @@ export default function SolicitudInscripcionForm() {
             <Campo
               label="CURP"
               required
+              campo="alumno.curp"
+              faltaMsg="Falta el CURP del alumno (18 caracteres)."
               hint={hintCurp(form.alumno.curp)}
               error={(() => {
                 if (!form.alumno.curp.trim()) return null
@@ -430,7 +553,7 @@ export default function SolicitudInscripcionForm() {
                 spellCheck={false}
               />
             </Campo>
-            <Campo label="Sexo" required>
+            <Campo label="Sexo" required campo="alumno.sexo" faltaMsg={MSG_FALTA_OPCION}>
               <select
                 className="pi-form-input"
                 value={form.alumno.sexo}
@@ -444,31 +567,31 @@ export default function SolicitudInscripcionForm() {
                 ))}
               </select>
             </Campo>
-            <Campo label="Calle" required>
+            <Campo label="Calle" required campo="alumno.calle">
               <input className="pi-form-input" value={form.alumno.calle} onChange={(e) => setAlumno({ calle: e.target.value })} />
             </Campo>
             <Campo label="Entre calles">
               <input className="pi-form-input" value={form.alumno.entreCalles} onChange={(e) => setAlumno({ entreCalles: e.target.value })} />
             </Campo>
-            <Campo label="No. exterior" required>
+            <Campo label="No. exterior" required campo="alumno.numeroExt">
               <input className="pi-form-input" value={form.alumno.numeroExt} onChange={(e) => setAlumno({ numeroExt: e.target.value })} />
             </Campo>
             <Campo label="No. interior">
               <input className="pi-form-input" value={form.alumno.numeroInt} onChange={(e) => setAlumno({ numeroInt: e.target.value })} />
             </Campo>
-            <Campo label="Colonia" required>
+            <Campo label="Colonia" required campo="alumno.colonia">
               <input className="pi-form-input" value={form.alumno.colonia} onChange={(e) => setAlumno({ colonia: e.target.value })} />
             </Campo>
-            <Campo label="C.P." required>
+            <Campo label="C.P." required campo="alumno.cp">
               <input className="pi-form-input" value={form.alumno.cp} onChange={(e) => setAlumno({ cp: e.target.value })} />
             </Campo>
-            <Campo label="Ciudad" required>
+            <Campo label="Ciudad" required campo="alumno.ciudad">
               <input className="pi-form-input" value={form.alumno.ciudad} onChange={(e) => setAlumno({ ciudad: e.target.value })} />
             </Campo>
-            <Campo label="Estado" required>
+            <Campo label="Estado" required campo="alumno.estado">
               <input className="pi-form-input" value={form.alumno.estado} onChange={(e) => setAlumno({ estado: e.target.value })} />
             </Campo>
-            <Campo label="Escuela de procedencia" required>
+            <Campo label="Escuela de procedencia" required campo="alumno.escuelaProcedente">
               <input
                 className="pi-form-input pi-form-input--wide"
                 value={form.alumno.escuelaProcedente}
@@ -480,13 +603,13 @@ export default function SolicitudInscripcionForm() {
 
         {seccion === 'salud' && (
           <div className="pi-form-grid">
-            <Campo label="Peso (kg)" required>
+            <Campo label="Peso (kg)" required campo="medico.peso">
               <input className="pi-form-input" value={form.medico.peso} onChange={(e) => setMedico({ peso: e.target.value })} />
             </Campo>
-            <Campo label="Estatura (m)" required>
+            <Campo label="Estatura (m)" required campo="medico.estatura">
               <input className="pi-form-input" value={form.medico.estatura} onChange={(e) => setMedico({ estatura: e.target.value })} />
             </Campo>
-            <Campo label="Tipo de sangre" required>
+            <Campo label="Tipo de sangre" required campo="medico.tipoSangre">
               <input
                 className="pi-form-input"
                 value={form.medico.tipoSangre}
@@ -495,10 +618,10 @@ export default function SolicitudInscripcionForm() {
                 maxLength={30}
               />
             </Campo>
-            <Campo label="¿Alérgico a algún medicamento?" required>
+            <Campo label="¿Alérgico a algún medicamento?" required campo="medico.alergias">
               <input className="pi-form-input" value={form.medico.alergias} onChange={(e) => setMedico({ alergias: e.target.value })} />
             </Campo>
-            <Campo label="¿Padece alguna enfermedad?" required>
+            <Campo label="¿Padece alguna enfermedad?" required campo="medico.tienePadecimiento" faltaMsg={MSG_FALTA_OPCION}>
               <select
                 className="pi-form-input"
                 value={form.medico.tienePadecimiento}
@@ -510,11 +633,11 @@ export default function SolicitudInscripcionForm() {
               </select>
             </Campo>
             {form.medico.tienePadecimiento === '1' && (
-              <Campo label="¿Cuál padecimiento?" required>
+              <Campo label="¿Cuál padecimiento?" required campo="medico.padecimiento">
                 <input className="pi-form-input" value={form.medico.padecimiento} onChange={(e) => setMedico({ padecimiento: e.target.value })} />
               </Campo>
             )}
-            <Campo label="¿Requiere tomar medicina en horario escolar?" required>
+            <Campo label="¿Requiere tomar medicina en horario escolar?" required campo="medico.requiereMedicina" faltaMsg={MSG_FALTA_OPCION}>
               <select
                 className="pi-form-input"
                 value={form.medico.requiereMedicina}
@@ -526,7 +649,7 @@ export default function SolicitudInscripcionForm() {
               </select>
             </Campo>
             {form.medico.requiereMedicina === '1' && (
-              <Campo label="Medicina" required>
+              <Campo label="Medicina" required campo="medico.medicina">
                 <input className="pi-form-input" value={form.medico.medicina} onChange={(e) => setMedico({ medicina: e.target.value })} />
               </Campo>
             )}
@@ -551,23 +674,24 @@ export default function SolicitudInscripcionForm() {
           const setF = esMama ? setMama : setPapa
           return (
             <div className="pi-form-grid">
-              <Campo label="Apellido paterno" required>
-                <input className="pi-form-input" value={f.apellidoPaterno} onChange={(e) => setF({ apellidoPaterno: e.target.value })} />
+              <Campo label="Apellido paterno" required campo={`${seccion}.apellidoPaterno`}>
+                <input className="pi-form-input" value={f.apellidoPaterno} onChange={(e) => setF({ apellidoPaterno: e.target.value })} placeholder={PLACEHOLDER_NO_APLICA} />
               </Campo>
-              <Campo label="Apellido materno" required>
-                <input className="pi-form-input" value={f.apellidoMaterno} onChange={(e) => setF({ apellidoMaterno: e.target.value })} />
+              <Campo label="Apellido materno" required campo={`${seccion}.apellidoMaterno`}>
+                <input className="pi-form-input" value={f.apellidoMaterno} onChange={(e) => setF({ apellidoMaterno: e.target.value })} placeholder={PLACEHOLDER_NO_APLICA} />
               </Campo>
-              <Campo label="Nombre(s)" required>
-                <input className="pi-form-input" value={f.nombre} onChange={(e) => setF({ nombre: e.target.value })} />
+              <Campo label="Nombre(s)" required campo={`${seccion}.nombre`}>
+                <input className="pi-form-input" value={f.nombre} onChange={(e) => setF({ nombre: e.target.value })} placeholder={PLACEHOLDER_NO_APLICA} />
               </Campo>
-              <Campo label="Celular" required>
-                <input className="pi-form-input" value={f.celular} onChange={(e) => setF({ celular: e.target.value })} />
+              <Campo label="Celular" required campo={`${seccion}.celular`}>
+                <input className="pi-form-input" value={f.celular} onChange={(e) => setF({ celular: e.target.value })} placeholder={PLACEHOLDER_NO_APLICA} />
               </Campo>
-              <Campo label="Correo electrónico" required>
-                <input type="email" className="pi-form-input" value={f.email} onChange={(e) => setF({ email: e.target.value })} />
+              <Campo label="Correo electrónico" required campo={`${seccion}.email`}>
+                <input type="email" className="pi-form-input" value={f.email} onChange={(e) => setF({ email: e.target.value })} placeholder={PLACEHOLDER_NO_APLICA} />
               </Campo>
               <Campo
                 label="CURP"
+                campo={`${seccion}.curp`}
                 hint={hintCurp(f.curp, true)}
                 error={(() => {
                   if (!f.curp.trim()) return null
@@ -625,16 +749,16 @@ export default function SolicitudInscripcionForm() {
           <div className="pi-form-contactos">
             <h2 className="pi-form-subtitulo">Contacto de emergencia</h2>
             <div className="pi-form-grid">
-              <Campo label="Nombre" required>
+              <Campo label="Nombre" required campo="emergencia.nombre">
                 <input className="pi-form-input" value={form.emergencia.nombre} onChange={(e) => setEmergencia({ nombre: e.target.value })} />
               </Campo>
               <Campo label="Parentesco">
                 <input className="pi-form-input" value={form.emergencia.parentesco} onChange={(e) => setEmergencia({ parentesco: e.target.value })} />
               </Campo>
-              <Campo label="Teléfono">
+              <Campo label="Teléfono" campo="emergencia.telefono" faltaMsg={MSG_FALTA_TELEFONO}>
                 <input className="pi-form-input" value={form.emergencia.telefono} onChange={(e) => setEmergencia({ telefono: e.target.value })} />
               </Campo>
-              <Campo label="Celular">
+              <Campo label="Celular" campo="emergencia.celular" faltaMsg={MSG_FALTA_TELEFONO}>
                 <input className="pi-form-input" value={form.emergencia.celular} onChange={(e) => setEmergencia({ celular: e.target.value })} />
               </Campo>
             </div>
@@ -644,27 +768,30 @@ export default function SolicitudInscripcionForm() {
               <div key={idx} className="pi-form-autorizado">
                 <span className="pi-form-autorizado-label">Persona {idx + 1}</span>
                 <div className="pi-form-grid">
-                  <Campo label="Nombre" required>
+                  <Campo label="Nombre" required campo={`autorizados.${idx}.nombre`}>
                     <input className="pi-form-input" value={aut.nombre} onChange={(e) => setAutorizado(idx, { nombre: e.target.value })} />
                   </Campo>
                   <Campo label="Parentesco">
                     <input className="pi-form-input" value={aut.parentesco} onChange={(e) => setAutorizado(idx, { parentesco: e.target.value })} />
                   </Campo>
-                  <Campo label="Teléfono">
+                  <Campo label="Teléfono" campo={`autorizados.${idx}.telefono`} faltaMsg={MSG_FALTA_TELEFONO}>
                     <input className="pi-form-input" value={aut.telefono} onChange={(e) => setAutorizado(idx, { telefono: e.target.value })} />
                   </Campo>
-                  <Campo label="Celular">
+                  <Campo label="Celular" campo={`autorizados.${idx}.celular`} faltaMsg={MSG_FALTA_TELEFONO}>
                     <input className="pi-form-input" value={aut.celular} onChange={(e) => setAutorizado(idx, { celular: e.target.value })} />
                   </Campo>
                 </div>
               </div>
             ))}
-            <button type="button" className="pi-form-btn-sec" onClick={agregarAutorizado}>
-              + Agregar otra persona
-            </button>
+            {!soloLectura && (
+              <button type="button" className="pi-form-btn-sec" onClick={agregarAutorizado}>
+                + Agregar otra persona
+              </button>
+            )}
           </div>
         )}
-      </div>
+      </fieldset>
+      </CamposMarcadosContext.Provider>
 
       <footer className="pi-form-footer">
         <div className="pi-form-footer-nav">
@@ -684,20 +811,40 @@ export default function SolicitudInscripcionForm() {
             </button>
           )}
         </div>
-        <button
-          type="button"
-          className="pi-form-btn-guardar"
-          onClick={() => void guardar()}
-          disabled={guardando || exito}
-        >
-          {guardando ? (
-            <Loader2 size={18} className="portal-inscripciones-spin" aria-hidden />
-          ) : (
-            <Save size={18} aria-hidden />
-          )}
-          Guardar solicitud
-          <ArrowRight size={16} aria-hidden />
-        </button>
+        {soloLectura ? (
+          <button type="button" className="pi-form-btn-guardar" onClick={editar}>
+            <Pencil size={18} aria-hidden />
+            Editar solicitud
+          </button>
+        ) : (
+          <div className="pi-form-footer-acciones">
+            {formGuardado && !exito && (
+              <button
+                type="button"
+                className="pi-form-btn-nav"
+                onClick={cancelarEdicion}
+                disabled={guardando}
+              >
+                <X size={18} aria-hidden />
+                Cancelar cambios
+              </button>
+            )}
+            <button
+              type="button"
+              className="pi-form-btn-guardar"
+              onClick={() => void guardar()}
+              disabled={guardando || exito}
+            >
+              {guardando ? (
+                <Loader2 size={18} className="portal-inscripciones-spin" aria-hidden />
+              ) : (
+                <Save size={18} aria-hidden />
+              )}
+              Guardar solicitud
+              <ArrowRight size={16} aria-hidden />
+            </button>
+          </div>
+        )}
       </footer>
       </div>
     </div>

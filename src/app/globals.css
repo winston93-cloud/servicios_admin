@@ -22093,6 +22093,84 @@ html[data-theme='light'] .pi-form-step--completa:not(.pi-form-step--activa) .pi-
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
 }
 
+.pi-form-field--falta .pi-form-label {
+  color: #ff5c7a;
+}
+
+.pi-form-field--falta .pi-form-input,
+.pi-form-panel .pi-form-field--falta .pi-form-input:focus {
+  border-color: #ff2d55;
+  background: rgba(255, 45, 85, 0.1);
+  box-shadow: 0 0 0 3px rgba(255, 45, 85, 0.35);
+  animation: pi-falta-pulso 0.9s ease-out 2;
+}
+
+.pi-form-field--falta .pi-form-field-error {
+  color: #ff5c7a;
+  font-weight: 700;
+}
+
+@keyframes pi-falta-pulso {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 45, 85, 0.6);
+  }
+
+  100% {
+    box-shadow: 0 0 0 8px rgba(255, 45, 85, 0);
+  }
+}
+
+html[data-theme='light'] .pi-form-field--falta .pi-form-label,
+html[data-theme='light'] .pi-form-field--falta .pi-form-field-error {
+  color: #be123c;
+}
+
+html[data-theme='light'] .pi-form-field--falta .pi-form-input,
+html[data-theme='light'] .pi-form-panel .pi-form-field--falta .pi-form-input:focus {
+  border-color: #e11d48;
+  background: #fff1f2;
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pi-form-field--falta .pi-form-input {
+    animation: none;
+  }
+}
+
+.pi-form-fieldset {
+  margin: 0;
+  min-width: 0;
+}
+
+.pi-form-fieldset:disabled .pi-form-input {
+  cursor: default;
+  opacity: 1;
+  -webkit-text-fill-color: var(--portal-form-input-color);
+  border-style: dashed;
+}
+
+.pi-form-fieldset:disabled .pi-form-input:hover {
+  border-color: var(--portal-form-input-border);
+}
+
+.pi-form-solo-lectura {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.pi-form-solo-lectura svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.pi-form-footer-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .pi-form-input {
   width: 100%;
   padding: 12px 14px;
@@ -22372,6 +22450,25 @@ html[data-theme='light'] .pi-form-progreso-track-fill {
   .pi-form-btn-guardar {
     width: 100%;
     justify-content: center;
+  }
+
+  .pi-form-footer-acciones {
+    flex-direction: column-reverse;
+    width: 100%;
+  }
+
+  .pi-form-footer-acciones .pi-form-btn-nav {
+    justify-content: center;
+  }
+
+  .pi-form-input {
+    font-size: 16px;
+  }
+
+  .pi-form-btn-nav,
+  .pi-form-btn-guardar,
+  .pi-form-btn-sec {
+    min-height: var(--touch-min, 44px);
   }
 }
 
