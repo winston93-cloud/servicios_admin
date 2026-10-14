@@ -9,6 +9,8 @@ export type BoletaEntregaClave = {
   trimestre: number
   grado: number
   grupo: string
+  /** Secundaria: cada maestro entrega su materia. Kinder/primaria: 0 (todo el grupo). */
+  materiaId?: number
 }
 
 export type BoletaEntrega = BoletaEntregaClave & {
@@ -23,7 +25,7 @@ export type BoletaEntrega = BoletaEntregaClave & {
 
 const TABLA = 'boleta_entrega'
 const COLS =
-  'ciclo, modulo, trimestre, grado, grupo, estado, maestro_id, enviada_por, enviada_at, devuelta_por, devuelta_at, comentario'
+  'ciclo, modulo, trimestre, grado, grupo, materia_id, estado, maestro_id, enviada_por, enviada_at, devuelta_por, devuelta_at, comentario'
 
 function mapEntrega(r: Record<string, unknown>): BoletaEntrega {
   return {
@@ -32,6 +34,7 @@ function mapEntrega(r: Record<string, unknown>): BoletaEntrega {
     trimestre: Number(r.trimestre),
     grado: Number(r.grado),
     grupo: String(r.grupo ?? ''),
+    materiaId: Number(r.materia_id ?? 0),
     estado: r.estado === 'enviada' ? 'enviada' : 'devuelta',
     maestroId: r.maestro_id != null ? Number(r.maestro_id) : null,
     enviadaPor: String(r.enviada_por ?? ''),
@@ -45,6 +48,7 @@ function mapEntrega(r: Record<string, unknown>): BoletaEntrega {
 export function entregaVacia(clave: BoletaEntregaClave): BoletaEntrega {
   return {
     ...clave,
+    materiaId: clave.materiaId ?? 0,
     estado: 'captura',
     maestroId: null,
     enviadaPor: '',
@@ -64,6 +68,7 @@ export async function obtenerEntrega(clave: BoletaEntregaClave): Promise<BoletaE
     .eq('trimestre', clave.trimestre)
     .eq('grado', clave.grado)
     .eq('grupo', clave.grupo)
+    .eq('materia_id', clave.materiaId ?? 0)
     .limit(1)
   if (error) throw new Error(`Entrega de boletas: ${error.message}`)
   const row = data?.[0] as Record<string, unknown> | undefined
@@ -89,8 +94,10 @@ export async function enviarEntrega(
   clave: BoletaEntregaClave,
   quien: { maestroId: number; nombre: string }
 ): Promise<BoletaEntrega> {
+  const { materiaId, ...resto } = clave
   const fila = {
-    ...clave,
+    ...resto,
+    materia_id: materiaId ?? 0,
     estado: 'enviada',
     maestro_id: quien.maestroId,
     enviada_por: quien.nombre.slice(0, 120),
@@ -99,7 +106,7 @@ export async function enviarEntrega(
   }
   const { error } = await createBoletasDb()
     .from(TABLA)
-    .upsert([fila], { onConflict: 'ciclo,modulo,trimestre,grado,grupo' })
+    .upsert([fila], { onConflict: 'ciclo,modulo,trimestre,grado,grupo,materia_id' })
   if (error) throw new Error(`Enviar a dirección: ${error.message}`)
   return obtenerEntrega(clave)
 }
@@ -124,6 +131,7 @@ export async function devolverEntrega(
     .eq('trimestre', clave.trimestre)
     .eq('grado', clave.grado)
     .eq('grupo', clave.grupo)
+    .eq('materia_id', clave.materiaId ?? 0)
   if (error) throw new Error(`Regresar a la teacher: ${error.message}`)
   return obtenerEntrega(clave)
 }
