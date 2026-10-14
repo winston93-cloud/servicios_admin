@@ -38,6 +38,10 @@ const MESES_CONCEPTO: Record<string, string> = {
  */
 const CONCEPTO_JULIO = '26'
 
+/** Pago Anual: cubre sep–jun (+ julio en plan 11) aunque falten las filas $0 de cobertura. */
+const CONCEPTO_PAGO_ANUAL = '30'
+const COLEGIATURAS_PAGO_ANUAL = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', CONCEPTO_JULIO]
+
 /**
  * Secuencia de adeudo para suspendidos / deudores colegiatura.
  * Empieza en cuota de inicio (00) y llega a junio (10).
@@ -180,6 +184,9 @@ export function calcularAdeudosAlumno(
   fechaRef = new Date()
 ): string | null {
   const pagos = [...new Set(pagosConcepto.map((p) => p.padStart(2, '0').slice(-2)))]
+  if (pagos.includes(CONCEPTO_PAGO_ANUAL)) {
+    for (const c of COLEGIATURAS_PAGO_ANUAL) if (!pagos.includes(c)) pagos.push(c)
+  }
 
   if (tipo === 1) {
     const lista = adeudosInscripcionMaterial(pagos)
