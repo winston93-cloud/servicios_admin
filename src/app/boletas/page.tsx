@@ -95,7 +95,7 @@ const NIVELES: Nivel[] = [
 
 const PORTAL_PATH = '/boletas-captura'
 
-function AccesoFila({
+function AccesoPuerta({
   acceso,
   item,
   estado,
@@ -106,29 +106,29 @@ function AccesoFila({
 }) {
   const contenido = (
     <>
-      <span className="bh-acceso__tag" aria-hidden>
-        {acceso.tag || <GraduationCap size={18} strokeWidth={1.75} />}
+      <span className="bh-pase__top">
+        <span className="bh-pase__tag" aria-hidden>
+          {acceso.tag || <GraduationCap size={18} strokeWidth={2} />}
+        </span>
+        <span className="bh-pase__label">{acceso.etiqueta}</span>
+        {item?.activo && estado?.estado === 'publicada' ? (
+          <span className="bh-pase__sello">Publicada</span>
+        ) : null}
+        {item?.activo ? (
+          <ArrowRight className="bh-pase__arrow" size={17} strokeWidth={2} aria-hidden />
+        ) : (
+          <span className="bh-pase__soon">Pronto</span>
+        )}
       </span>
-      <span className="bh-acceso__text">
-        <span className="bh-acceso__label">{acceso.etiqueta}</span>
-        <span className="bh-acceso__desc">{acceso.detalle}</span>
-      </span>
-      {item?.activo && estado?.estado === 'publicada' ? (
-        <span className="bh-acceso__sello">Publicada</span>
-      ) : null}
-      {item?.activo ? (
-        <ArrowRight className="bh-acceso__arrow" size={18} strokeWidth={2} aria-hidden />
-      ) : (
-        <span className="bh-acceso__soon">Pronto</span>
-      )}
+      <span className="bh-pase__desc">{acceso.detalle}</span>
     </>
   )
 
   if (!item?.activo) {
-    return <div className="bh-acceso is-soon">{contenido}</div>
+    return <div className="bh-pase is-soon">{contenido}</div>
   }
   return (
-    <Link href={item.path} className="bh-acceso">
+    <Link href={item.path} className="bh-pase">
       {contenido}
     </Link>
   )
@@ -207,88 +207,68 @@ export default function BoletasHubPage() {
 
       <main className="bh-main">
         <section className="bh-intro">
+          <span className="bh-intro__ciclo" aria-hidden>
+            {ciclo.replace(/^(\d{4})-\d{2}(\d{2})$/, '$1—$2')}
+          </span>
           <h1 className="bh-intro__title">Sistema Integral de Boletas</h1>
           <p className="bh-intro__lead">
             Elige nivel e idioma para capturar, revisar, publicar a papás y generar el PDF.
           </p>
-          <div className="bh-sello" role="img" aria-label={`Ciclo escolar ${ciclo}`}>
-            <span className="bh-sello__oficial" aria-hidden>
-              ✦ Oficial ✦
-            </span>
-            <strong aria-hidden>{ciclo.replace(/^(\d{4})-\d{2}(\d{2})$/, '$1—$2')}</strong>
-            <span aria-hidden>Ciclo escolar</span>
-          </div>
         </section>
 
-        <div className="bh-grid">
+        <div className="bh-puertas">
           {NIVELES.map((nivel, i) => (
             <article
               key={nivel.id}
-              className={`bh-nivel bh-nivel--${nivel.id}`}
+              className={`bh-puerta bh-puerta--${nivel.id}`}
               style={{ '--i': i } as CSSProperties}
             >
-              <div className="bh-nivel__media">
-                <Image
-                  src={nivel.foto}
-                  alt={nivel.alt}
-                  fill
-                  sizes="(max-width: 767px) 100vw, (max-width: 1023px) 50vw, 520px"
-                  className="bh-nivel__img"
-                  priority={i === 0}
-                />
-              </div>
-              <div className="bh-nivel__body">
-                <header className="bh-nivel__head">
-                  <h2 className="bh-nivel__title">{nivel.titulo}</h2>
-                  <span className="bh-nivel__grados">{nivel.grados}</span>
+              <Image
+                src={nivel.foto}
+                alt={nivel.alt}
+                fill
+                sizes="(max-width: 1023px) 100vw, 60vw"
+                className="bh-puerta__img"
+                priority={i === 0}
+              />
+              <div className="bh-puerta__content">
+                <header className="bh-puerta__head">
+                  <span className="bh-puerta__grados">{nivel.grados}</span>
+                  <h2 className="bh-puerta__title">{nivel.titulo}</h2>
                 </header>
-
-                <ul className="bh-nivel__accesos">
+                <ul className="bh-puerta__accesos">
                   {nivel.accesos.map((a) => (
                     <li key={a.id}>
-                      <AccesoFila acceso={a} item={porId.get(a.id)} estado={estadoModulo(a.modulo)} />
+                      <AccesoPuerta acceso={a} item={porId.get(a.id)} estado={estadoModulo(a.modulo)} />
                     </li>
                   ))}
                 </ul>
               </div>
             </article>
           ))}
-
-          <article className="bh-portal" style={{ '--i': NIVELES.length } as CSSProperties}>
-            <div className="bh-portal__media" aria-hidden>
-              <Image
-                src="/boletas/hub/comunidad-winston.jpg"
-                alt=""
-                fill
-                sizes="(max-width: 767px) 100vw, 360px"
-                className="bh-portal__img"
-              />
-            </div>
-            <div className="bh-portal__body">
-              <p className="bh-portal__kicker">Maestras y teachers</p>
-              <h2 className="bh-portal__title">Portal de captura</h2>
-              <p className="bh-portal__desc">
-                Cada docente entra con su cuenta a sus grupos, captura y envía a dirección.
-              </p>
-              <div className="bh-portal__actions">
-                {portal?.activo !== false && (
-                  <Link href={PORTAL_PATH} className="bh-btn bh-btn--primary">
-                    Abrir portal
-                    <ArrowUpRight size={17} strokeWidth={2} aria-hidden />
-                  </Link>
-                )}
-                <button type="button" className="bh-btn bh-btn--ghost" onClick={copiarEnlace}>
-                  {copiado ? (
-                    <Check size={16} strokeWidth={2} aria-hidden />
-                  ) : (
-                    <Copy size={16} strokeWidth={2} aria-hidden />
-                  )}
-                  <span aria-live="polite">{copiado ? 'Enlace copiado' : 'Copiar enlace'}</span>
-                </button>
-              </div>
-            </div>
-          </article>
         </div>
+
+        <article className="bh-portal">
+          <div className="bh-portal__body">
+            <p className="bh-portal__kicker">Maestras y teachers</p>
+            <h2 className="bh-portal__title">Portal de captura</h2>
+            <p className="bh-portal__desc">
+              Cada docente entra con su cuenta a sus grupos, captura y envía a dirección.
+            </p>
+          </div>
+          <div className="bh-portal__actions">
+            {portal?.activo !== false && (
+              <Link href={PORTAL_PATH} className="bh-btn bh-btn--primary">
+                Abrir portal
+                <ArrowUpRight size={17} strokeWidth={2} aria-hidden />
+              </Link>
+            )}
+            <button type="button" className="bh-btn bh-btn--ghost" onClick={copiarEnlace}>
+              {copiado ? <Check size={16} strokeWidth={2} aria-hidden /> : <Copy size={16} strokeWidth={2} aria-hidden />}
+              <span aria-live="polite">{copiado ? 'Enlace copiado' : 'Copiar enlace'}</span>
+            </button>
+          </div>
+        </article>
       </main>
     </div>
   )
