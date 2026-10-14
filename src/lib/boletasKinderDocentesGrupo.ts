@@ -5,17 +5,19 @@ import { letraDesdeGrupoNumero } from './boletasKinderEnCatalog'
 export type IdiomaKinder = 'en' | 'es'
 
 /**
- * Docente de cada grupo de Maternal/Kinder por idioma (slot Teacher = inglés, Maestro(a) = español).
+ * Docente de cada grupo por idioma (slot Teacher = inglés, Maestro(a) = español).
  * Clave `${grado}-${grupo}`; Maternal es grado 0 con grupo A/B (guardado en materia_grado 1/2).
+ * `niveles`: [1, 2] Maternal/Kinder (default) o [3] Primaria.
  */
 export async function docentesPorGrupoKinder(
-  idioma: IdiomaKinder
+  idioma: IdiomaKinder,
+  niveles: number[] = [1, 2]
 ): Promise<Map<string, { maestroId: number; nombre: string }>> {
   const db = createBoletasDb()
   const { data: materias, error } = await db
     .from('boleta_materia')
     .select('materia_id, materia_nivel, materia_grado')
-    .in('materia_nivel', [1, 2])
+    .in('materia_nivel', niveles)
     .eq('materia_nombre', idioma === 'en' ? MATERIA_SLOT_EN.nombre : MATERIA_SLOT_ES.nombre)
   if (error) throw new Error(error.message)
   const matPorId = new Map((materias ?? []).map((m) => [Number(m.materia_id), m]))

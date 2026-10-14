@@ -3,7 +3,8 @@
 import { Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { GRUPOS_ASIGNACION } from '@/lib/catalogoMaestrosConstants'
-import { KINDER_EN_GRUPOS_MATERNAL, etiquetaGrupoKinderEn } from '@/lib/boletasKinderEnCatalog'
+import { KINDER_EN_GRUPOS_MATERNAL, etiquetaGrupoKinderEn as etiquetaGrupoKinder } from '@/lib/boletasKinderEnCatalog'
+import { PRIMARIA_GRADOS, PRIMARIA_GRUPOS, etiquetaGrupoPrimaria } from '@/lib/boletasPrimariaCatalog'
 import type { TeacherKinderEn } from '@/lib/boletasKinderEnTeachers'
 import { kiApi } from './kiApi'
 
@@ -18,7 +19,7 @@ type Form = {
   nivel: number
 }
 
-const VACIO: Form = { id: 0, nombre: '', app: '', apm: '', usuario: '', clave: '', email: '', nivel: 2 }
+const FORM_VACIO: Form = { id: 0, nombre: '', app: '', apm: '', usuario: '', clave: '', email: '', nivel: 2 }
 
 const FILAS: { grado: number; etiqueta: string; nivel: number; grupos: readonly string[] }[] = [
   { grado: 0, etiqueta: 'Maternal', nivel: 1, grupos: KINDER_EN_GRUPOS_MATERNAL },
@@ -27,24 +28,40 @@ const FILAS: { grado: number; etiqueta: string; nivel: number; grupos: readonly 
   { grado: 3, etiqueta: 'K3', nivel: 2, grupos: GRUPOS_ASIGNACION },
 ]
 
+const FILAS_PRIMARIA = PRIMARIA_GRADOS.map((g) => ({
+  grado: g.valor as number,
+  etiqueta: `${g.etiqueta} de primaria`,
+  nivel: 3,
+  grupos: PRIMARIA_GRUPOS,
+}))
+
+const NIVEL_TEXTO: Record<number, string> = { 1: 'Maternal', 2: 'Kinder', 3: 'Primaria' }
+
 /**
  * Catálogo de docentes y grupos asignados: alta, edición y baja.
  * Inglés (default): teachers de Maternal y Kinder. Español: `soloKinder` (Maternal no lleva boleta de español).
+ * `ambito="primaria"`: docentes de 1° a 6° (grupos A–C).
  */
 export default function KiTeachers({
   apiUrl = '/api/boletas-kinder-ingles/teachers',
   docente = 'teacher',
   titulo = 'Teachers de inglés',
   soloKinder = false,
+  ambito = 'kinder',
 }: {
   apiUrl?: string
   docente?: 'teacher' | 'maestra'
   titulo?: string
   soloKinder?: boolean
+  ambito?: 'kinder' | 'primaria'
 } = {}) {
   const Docente = docente === 'teacher' ? 'Teacher' : 'Maestra'
   const plural = docente === 'teacher' ? 'teachers' : 'maestras'
-  const filas = soloKinder ? FILAS.filter((f) => f.nivel === 2) : FILAS
+  const primaria = ambito === 'primaria'
+  const unNivel = primaria || soloKinder
+  const filas = primaria ? FILAS_PRIMARIA : soloKinder ? FILAS.filter((f) => f.nivel === 2) : FILAS
+  const etiquetaGrupo = primaria ? etiquetaGrupoPrimaria : etiquetaGrupoKinder
+  const VACIO: Form = { ...FORM_VACIO, nivel: primaria ? 3 : 2 }
   const [teachers, setTeachers] = useState<TeacherKinderEn[]>([])
   const [cargando, setCargando] = useState(true)
   const [form, setForm] = useState<Form | null>(null)
@@ -96,14 +113,14 @@ export default function KiTeachers({
   }
 
   async function borrar(t: TeacherKinderEn) {
-    const grupos = t.grupos.length ? `\n\nSe le quitarán sus grupos: ${t.grupos.map((g) => etiquetaGrupoKinderEn(g.grado, g.grupo)).join(', ')}.` : ''
+    const grupos = t.grupos.length ? `\n\nSe le quitarán sus grupos: ${t.grupos.map((g) => etiquetaGrupo(g.grado, g.grupo)).join(', ')}.` : ''
     if (!window.confirm(`¿Borrar a ${t.nombreCompleto} del catálogo?${grupos}`)) return
     if (await enviar({}, 'DELETE', `${apiUrl}?id=${t.id}`)) setMsg(`${Docente} borrada.`)
   }
 
   async function asignar(grado: number, grupo: string, maestroId: number) {
     if (await enviar({ accion: 'asignar', grado, grupo, maestroId })) {
-      setMsg(maestroId ? `Asignada a ${etiquetaGrupoKinderEn(grado, grupo)}.` : `${etiquetaGrupoKinderEn(grado, grupo)} sin ${docente}.`)
+      setMsg(maestroId ? `Asignada a ${etiquetaGrupo(grado, grupo)}.` : `${etiquetaGrupo(grado, grupo)} sin ${docente}.`)
     }
   }
 
@@ -156,7 +173,7 @@ export default function KiTeachers({
                 Apellido materno
                 <input {...campo('apm')} maxLength={60} autoComplete="off" />
               </label>
-              {!soloKinder && (
+              {!unNivel && (
                 <label>
                   Nivel
                   <select {...campo('nivel')}>
@@ -210,7 +227,7 @@ export default function KiTeachers({
                   <strong>{t.nombreCompleto}</strong>
                   <span>
                     @{t.usuario}
-                    {soloKinder ? '' : ` · ${t.nivel === 1 ? 'Maternal' : 'Kinder'}`}
+                    {unNivel ? '' : ` · ${NIVEL_TEXTO[t.nivel] ?? ''}`}
                     {t.email ? ` · ${t.email}` : ''}
                     {!t.tieneClave && !t.email ? ' · sin forma de entrar' : ''}
                   </span>
@@ -218,7 +235,7 @@ export default function KiTeachers({
                     {t.grupos.length
                       ? t.grupos.map((g) => (
                           <span key={`${g.grado}-${g.grupo}`} className="ki-tag">
-                            {etiquetaGrupoKinderEn(g.grado, g.grupo)}
+                            {etiquetaGrupo(g.grado, g.grupo)}
                           </span>
                         ))
                       : <span className="ki-hint">Sin grupos</span>}
@@ -294,7 +311,7 @@ export default function KiTeachers({
                 </div>
                 {opciones.length === 0 && (
                   <p className="ki-hint">
-                    No hay {plural} de {f.nivel === 1 ? 'Maternal' : 'Kinder'} en el catálogo.
+                    No hay {plural} de {NIVEL_TEXTO[f.nivel]} en el catálogo.
                   </p>
                 )}
               </div>

@@ -5,7 +5,7 @@ import { normRacEmail } from './racStaffAllowlist'
 import type { RacGoogleCandidate } from './racAuthGoogle'
 
 /** Portal público de captura de boletas: maestros y teachers entran a sus grupos por nivel. */
-export type BoletasCapturaSlug = 'maternal-kinder'
+export type BoletasCapturaSlug = 'maternal-kinder' | 'primaria'
 
 export type BoletasCapturaConfig = {
   slug: BoletasCapturaSlug
@@ -22,6 +22,23 @@ export const BOLETAS_CAPTURA_NIVELES: Record<BoletasCapturaSlug, BoletasCapturaC
     niveles: [1, 2],
     cookie: 'boletas_captura_mk',
   },
+  primaria: {
+    slug: 'primaria',
+    titulo: 'Primaria',
+    niveles: [3],
+    cookie: 'boletas_captura_pr',
+  },
+}
+
+/** Módulos de boleta (`boleta_entrega.modulo`) que se capturan en cada portal. */
+export const MODULOS_CAPTURA_NIVEL: Record<BoletasCapturaSlug, string[]> = {
+  'maternal-kinder': ['kinder-en', 'kinder-es'],
+  primaria: ['primaria-es', 'primaria-en'],
+}
+
+/** Supervisión con lista: solo entra al portal si supervisa algún módulo de ese nivel. */
+export function supervisaNivel(supervisa: string[] | undefined, slug: BoletasCapturaSlug): boolean {
+  return !supervisa || supervisa.some((m) => MODULOS_CAPTURA_NIVEL[slug].includes(m))
 }
 
 export function capturaConfigDeSlug(slug: string): BoletasCapturaConfig {

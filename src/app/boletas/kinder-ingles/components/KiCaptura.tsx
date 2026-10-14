@@ -12,8 +12,16 @@ import {
   KINDER_ES_NO_APLICA,
   normalizarCalificacionKinderEs,
 } from '@/lib/boletasKinderEsCatalog'
+import { normalizarCalificacionPrimaria, promedioPrimaria } from '@/lib/boletasPrimariaCatalog'
 
 export type KiProgreso = { capturadas: number; total: number } | null
+
+export type KiEscala = { letra: string; etiqueta: string; valor?: number }[]
+
+/** Mínimo 5 = primaria (5 a 10); si no, 0 a 10 como Kinder Español. */
+function normalizarDecimal(v: string, minimo: number): string | null {
+  return minimo > 0 ? normalizarCalificacionPrimaria(v) : normalizarCalificacionKinderEs(v)
+}
 
 export type KiAlumno = {
   alumno_id: number
@@ -27,14 +35,33 @@ export type KiFila = Pick<KinderEnIndicador, 'id' | 'nombre'> & {
   /** decimal = Kinder Español (0 a 10 con un decimal o N/A). */
   formato: KinderEnIndicador['formato'] | 'decimal'
   enPromedio?: boolean
+  /** Segundo nombre de la fila (p. ej. traducción al español en Primaria Inglés). */
+  detalle?: string
   calificacion: string
+}
+
+export type KiSeccion = {
+  id: string
+  titulo: string
+  filas: KiFila[]
+  /** Filas con formato escala usan estas letras. */
+  escala?: KiEscala
+  promedio?: boolean
 }
 
 export type KiCapturaData = {
   alumno: KiAlumno
-  /** academico = Kinder Español (solo campos académicos con calificación numérica). */
-  modo: 'kinder' | 'maternal' | 'academico'
+  /**
+   * academico = Kinder Español (solo campos académicos con calificación numérica).
+   * secciones = Primaria (materias por sección, decimales 5–10 y escalas).
+   */
+  modo: 'kinder' | 'maternal' | 'academico' | 'secciones'
   academicos?: KiFila[]
+  secciones?: KiSeccion[]
+  califMin?: number
+  hint?: string
+  /** En modo secciones: captura días de clase y faltas. */
+  asistencia?: boolean
   subjects: KiFila[]
   behavioral: KiFila[]
   maternal: KiFila[]
@@ -47,6 +74,8 @@ export type KiGuardarPayload = {
   behavioral: Record<number, string>
   maternal: Record<number, string>
   academicos?: Record<number, string>
+  /** Modo secciones: todas las materias por id. */
+  valores?: Record<number, string>
   attendance?: { school_days: string; days_absent: string }
 }
 
@@ -76,15 +105,17 @@ function EscalaChips({
   valor,
   disabled,
   onChange,
+  escala = KINDER_EN_ESCALA_NOTA,
 }: {
   id: string
   valor: string
   disabled: boolean
   onChange: (v: string) => void
+  escala?: KiEscala
 }) {
   return (
     <div className="ki-chips" role="radiogroup" aria-labelledby={id}>
-      {KINDER_EN_ESCALA_NOTA.map((e) => {
+      {escala.map((e, idx) => {
         const activo = valor === e.letra
         return (
           <button
@@ -92,9 +123,9 @@ function EscalaChips({
             type="button"
             role="radio"
             aria-checked={activo}
-            title={`${e.letra} · ${e.etiqueta} (${e.valor})`}
+            title={`${e.letra} · ${e.etiqueta}${e.valor != null ? ` (${e.valor})` : ''}`}
             className={`ki-chip${activo ? ' is-on' : ''}`}
-            data-letra={e.letra}
+            data-nivel={idx + 1}
             disabled={disabled}
             onClick={() => onChange(activo ? '' : e.letra)}
           >
@@ -140,16 +171,18 @@ function CampoDecimal({
   valor,
   disabled,
   onChange,
+  minimo,
 }: {
   id: string
   labelId: string
   valor: string
   disabled: boolean
   onChange: (v: string) => void
+  minimo: number
 }) {
   const [foco, setFoco] = useState(false)
   const noAplica = valor === KINDER_ES_NO_APLICA
-  const invalido = !foco && !noAplica && normalizarCalificacionKinderEs(valor) === null
+  const invalido = !foco && !noAplica && normalizarDecimal(valor, minimo) === null
   return (
     <div className="ki-decimal">
       <input
@@ -162,12 +195,12 @@ function CampoDecimal({
         aria-invalid={invalido || undefined}
         value={noAplica ? '' : valor}
         disabled={disabled || noAplica}
-        placeholder={noAplica ? 'N/A' : '0–10'}
+        placeholder={noAplica ? 'N/A' : `${minimo}–10`}
         onChange={(e) => onChange(e.target.value.replace(/[^\d.,]/g, '').slice(0, 4))}
         onFocus={() => setFoco(true)}
         onBlur={() => {
           setFoco(false)
-          const n = normalizarCalificacionKinderEs(valor)
+          const n = normalizarDecimal(valor, minimo)
           if (n !== null && n !== valor) onChange(n)
         }}
         autoComplete="off"
@@ -193,6 +226,8 @@ function Bloque({
   disabled,
   onChange,
   pie,
+  escala,
+  minimo = 0,
 }: {
   titulo: string
   prefijo: string
@@ -200,6 +235,8 @@ function Bloque({
   disabled: boolean
   onChange: (id: number, v: string) => void
   pie?: ReactNode
+  escala?: KiEscala
+  minimo?: number
 }) {
   const hechas = filas.filter((f) => f.calificacion).length
   return (
@@ -220,6 +257,7 @@ function Bloque({
               <div key={id} className={`ki-field${f.calificacion ? ' is-filled' : ''}`}>
                 <span className="ki-field-label" id={id}>
                   {f.nombre}
+                  {f.detalle ? <small className="ki-field-detalle">{f.detalle}</small> : null}
                 </span>
                 {f.formato === 'decimal' ? (
                   <CampoDecimal
@@ -227,6 +265,7 @@ function Bloque({
                     labelId={id}
                     valor={f.calificacion}
                     disabled={disabled}
+                    minimo={minimo}
                     onChange={(v) => onChange(f.id, v)}
                   />
                 ) : f.formato === 'numero' ? (
@@ -237,7 +276,13 @@ function Bloque({
                     onChange={(v) => onChange(f.id, v)}
                   />
                 ) : (
-                  <EscalaChips id={id} valor={f.calificacion} disabled={disabled} onChange={(v) => onChange(f.id, v)} />
+                  <EscalaChips
+                    id={id}
+                    valor={f.calificacion}
+                    disabled={disabled}
+                    escala={escala}
+                    onChange={(v) => onChange(f.id, v)}
+                  />
                 )}
               </div>
             )
@@ -349,11 +394,45 @@ export default function KiCaptura({
     setMsg('')
   }
 
+  function cambiarEnSeccion(seccionId: string, id: number, v: string) {
+    setData((d) =>
+      d
+        ? {
+            ...d,
+            secciones: (d.secciones ?? []).map((s) =>
+              s.id === seccionId
+                ? { ...s, filas: s.filas.map((f) => (f.id === id ? { ...f, calificacion: v } : f)) }
+                : s
+            ),
+          }
+        : d
+    )
+    setSucio(true)
+    setMsg('')
+  }
+
+  function cambiarAsistencia(campo: 'school_days' | 'days_absent', v: string) {
+    setData((d) => (d ? { ...d, attendance: { ...d.attendance, [campo]: v } } : d))
+    setSucio(true)
+  }
+
   async function guardar(siguiente: boolean) {
     if (!data || alumnoId == null) return
-    const malo = data.academicos?.find((f) => normalizarCalificacionKinderEs(f.calificacion) === null)
+    const minimo = data.califMin ?? 0
+    const decimales = [
+      ...(data.academicos ?? []),
+      ...(data.secciones ?? []).flatMap((s) => s.filas.filter((f) => f.formato === 'decimal')),
+    ]
+    const malo = decimales.find((f) => normalizarDecimal(f.calificacion, minimo) === null)
     if (malo) {
-      setErr(`«${malo.nombre}»: escribe una calificación de 0 a 10 (un decimal, ej. 9.5) o marca N/A.`)
+      setErr(`«${malo.nombre}»: escribe una calificación de ${minimo} a 10 (un decimal, ej. 9.5) o marca N/A.`)
+      setMsg('')
+      return
+    }
+    const conAsistencia = data.modo === 'kinder' || Boolean(data.asistencia)
+    const { school_days, days_absent } = data.attendance
+    if (conAsistencia && school_days && days_absent && Number(days_absent) > Number(school_days)) {
+      setErr('Las faltas (days absent) no pueden ser más que los días de clase (school days).')
       setMsg('')
       return
     }
@@ -367,7 +446,8 @@ export default function KiCaptura({
         behavioral: mapa(data.behavioral),
         maternal: mapa(data.maternal),
         academicos: data.academicos ? mapa(data.academicos) : undefined,
-        attendance: data.modo === 'kinder' ? data.attendance : undefined,
+        valores: data.secciones ? mapa(data.secciones.flatMap((s) => s.filas)) : undefined,
+        attendance: conAsistencia ? data.attendance : undefined,
       })
       setSucio(false)
       const lista = await recargarLista().catch(() => alumnos)
@@ -390,6 +470,37 @@ export default function KiCaptura({
 
   const bloqueado = !editable || guardando
   const listos = alumnos.filter((a) => completo(a.progreso)).length
+  const escalaSecciones = data?.secciones?.find((s) => s.escala)?.escala
+
+  const bloqueAsistencia = data ? (
+    <section className="ki-section">
+      <h3>Attendance</h3>
+      <div className="ki-fields">
+        <div className={`ki-field${data.attendance.school_days ? ' is-filled' : ''}`}>
+          <label className="ki-field-label" htmlFor="att-school">
+            SCHOOL DAYS
+          </label>
+          <CampoDias
+            id="att-school"
+            valor={data.attendance.school_days}
+            disabled={bloqueado}
+            onChange={(v) => cambiarAsistencia('school_days', v)}
+          />
+        </div>
+        <div className={`ki-field${data.attendance.days_absent ? ' is-filled' : ''}`}>
+          <label className="ki-field-label" htmlFor="att-absent">
+            DAYS ABSENT
+          </label>
+          <CampoDias
+            id="att-absent"
+            valor={data.attendance.days_absent}
+            disabled={bloqueado}
+            onChange={(v) => cambiarAsistencia('days_absent', v)}
+          />
+        </div>
+      </div>
+    </section>
+  ) : null
 
   return (
     <div className="ki-layout bm-layout">
@@ -488,7 +599,20 @@ export default function KiCaptura({
             {!editable && avisoNoEditable ? <div className="ki-aviso">{avisoNoEditable}</div> : null}
             {sucio && <p className="ki-sucio">Cambios sin guardar</p>}
 
-            {data.modo === 'academico' ? (
+            {data.modo === 'secciones' ? (
+              <>
+                {data.hint ? <p className="ki-hint">{data.hint}</p> : null}
+                {escalaSecciones ? (
+                  <p className="ki-hint ki-escala">
+                    {escalaSecciones.map((e) => (
+                      <span key={e.letra}>
+                        <strong>{e.letra}</strong> {e.etiqueta}
+                      </span>
+                    ))}
+                  </p>
+                ) : null}
+              </>
+            ) : data.modo === 'academico' ? (
               <p className="ki-hint ki-escala">{KINDER_ES_ESCALA_HINT}</p>
             ) : (
               <p className="ki-hint ki-escala">
@@ -500,7 +624,35 @@ export default function KiCaptura({
               </p>
             )}
 
-            {data.modo === 'academico' ? (
+            {data.modo === 'secciones' ? (
+              <>
+                {(data.secciones ?? []).map((s) => {
+                  const prom = s.promedio
+                    ? promedioPrimaria(s.filas.filter((f) => f.enPromedio).map((f) => f.calificacion))
+                    : ''
+                  return (
+                    <Bloque
+                      key={s.id}
+                      titulo={s.titulo}
+                      prefijo={`sec-${s.id}`}
+                      filas={s.filas}
+                      escala={s.escala}
+                      minimo={data.califMin ?? 0}
+                      disabled={bloqueado}
+                      onChange={(id, v) => cambiarEnSeccion(s.id, id, v)}
+                      pie={
+                        prom ? (
+                          <p className="ki-promedio">
+                            Promedio: <strong>{prom}</strong>
+                          </p>
+                        ) : null
+                      }
+                    />
+                  )
+                })}
+                {data.asistencia ? bloqueAsistencia : null}
+              </>
+            ) : data.modo === 'academico' ? (
               <Bloque
                 titulo="Campos académicos"
                 prefijo="aca"
@@ -539,39 +691,7 @@ export default function KiCaptura({
                   disabled={bloqueado}
                   onChange={(id, v) => cambiar('behavioral', id, v)}
                 />
-                <section className="ki-section">
-                  <h3>Attendance</h3>
-                  <div className="ki-fields">
-                    <div className={`ki-field${data.attendance.school_days ? ' is-filled' : ''}`}>
-                      <label className="ki-field-label" htmlFor="att-school">
-                        SCHOOL DAYS
-                      </label>
-                      <CampoDias
-                        id="att-school"
-                        valor={data.attendance.school_days}
-                        disabled={bloqueado}
-                        onChange={(v) => {
-                          setData((d) => (d ? { ...d, attendance: { ...d.attendance, school_days: v } } : d))
-                          setSucio(true)
-                        }}
-                      />
-                    </div>
-                    <div className={`ki-field${data.attendance.days_absent ? ' is-filled' : ''}`}>
-                      <label className="ki-field-label" htmlFor="att-absent">
-                        DAYS ABSENT
-                      </label>
-                      <CampoDias
-                        id="att-absent"
-                        valor={data.attendance.days_absent}
-                        disabled={bloqueado}
-                        onChange={(v) => {
-                          setData((d) => (d ? { ...d, attendance: { ...d.attendance, days_absent: v } } : d))
-                          setSucio(true)
-                        }}
-                      />
-                    </div>
-                  </div>
-                </section>
+                {bloqueAsistencia}
               </>
             )}
 

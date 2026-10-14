@@ -4,7 +4,6 @@ import ThemeToggle from '@/components/ThemeToggle'
 import DashboardModuleCard from '@/components/dashboard/DashboardModuleCard'
 import { ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
 import '../dashboard/dashboard-module-card.css'
 import '../reportes-conducta/reportes-conducta.css'
 
@@ -45,12 +44,12 @@ const NIVELES = [
   {
     id: 'primaria',
     label: 'Primaria',
-    desc: 'Próximamente: captura de boletas por maestro y teacher.',
+    desc: 'Maestras de español y teachers de inglés de 1° a 6°: capturan las boletas de sus grupos y las envían a dirección.',
     accent: 'indigo' as const,
     kicker: 'Primaria',
-    tags: ['Pronto'],
+    tags: ['Español', 'Inglés', '1° a 6°'],
     icon: ICON_PRIMARIA,
-    ruta: null,
+    ruta: '/boletas-captura/primaria',
   },
   {
     id: 'secundaria',
@@ -67,7 +66,6 @@ const NIVELES = [
 /** Enlace público para maestros y teachers: eligen su nivel y entran con su usuario o correo institucional. */
 export default function BoletasCapturaHubPage() {
   const router = useRouter()
-  const [aviso, setAviso] = useState('')
 
   return (
     <div className="dashboard-container dashboard-home reportes-conducta-page">
@@ -85,11 +83,6 @@ export default function BoletasCapturaHubPage() {
           <div className="facturacion-cfdi-theme-row">
             <ThemeToggle />
           </div>
-          {aviso && (
-            <p className="dashboard-subtitle" role="status">
-              {aviso}
-            </p>
-          )}
         </div>
 
         <div className="dashboard-nav-grid reportes-conducta-grid" role="list">
@@ -103,11 +96,7 @@ export default function BoletasCapturaHubPage() {
                 icon={n.icon}
                 kicker={n.kicker}
                 tags={n.tags}
-                badge={n.ruta ? undefined : 'Pronto'}
-                onActivate={() => {
-                  if (n.ruta) router.push(n.ruta)
-                  else setAviso('La captura de primaria en este portal se habilita pronto.')
-                }}
+                onActivate={() => router.push(n.ruta)}
               />
             </div>
           ))}

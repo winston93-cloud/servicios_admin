@@ -650,9 +650,9 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
     kicker: 'Captura docente',
     tags: ['Maternal/Kinder', 'Primaria', 'Secundaria'],
     badge: 'Nuevo',
-    // 8 = coordkin (supervisa Kinder Español); 54 = kinder_ing (supervisa Kinder Inglés).
-    soloUsuarios: [8, 17, 54],
-    fijoParaUsuarios: [8, 17, 54],
+    // 8 = coordkin (Kinder Español); 54 = kinder_ing (Kinder Inglés); 7 = coordprim (Primaria Español); 10 = coording (Primaria Inglés).
+    soloUsuarios: [7, 8, 10, 17, 54],
+    fijoParaUsuarios: [7, 8, 10, 17, 54],
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />

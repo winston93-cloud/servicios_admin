@@ -1,489 +1,231 @@
-import { readFile } from 'fs/promises'
-import path from 'path'
 import { jsPDF } from 'jspdf'
-import { createBoletasDb } from './boletasInsforge'
+import { etiquetaCicloBoletas } from './boletasCiclo'
+import { docentesPorGrupoKinder } from './boletasKinderDocentesGrupo'
 import {
   BOLETAS_NIVEL_PRIMARIA,
-  PRIMARIA_EN_GRADOS,
-  colorMindfulnessPrimaria,
-  grupoNumeroDesdeLetra,
-  letraDesdeGrupoNumero,
-  materiasPorGrado,
-  promedioSubjectsNumerico,
-  skillsCatalogo,
-  teacherInglesPrimaria,
-  type PrimariaEnGrado,
-  type PrimariaEnMateria,
-  type PrimariaEnSkill,
-} from './boletasPrimariaEnCatalog'
-import { etiquetaCicloBoletas } from './boletasCiclo'
+  PRIMARIA_NO_APLICA,
+  cargarAlumnoPrimaria,
+  mapaCalifsPrimaria,
+  materiasActivasPrimaria,
+  promedioPrimaria,
+  validarPeriodoPrimaria,
+  type PrimariaAlumno,
+  type PrimariaMateria,
+} from './boletasPrimariaComun'
+import { asistenciaPrimariaEn, type PrimariaAsistencia } from './boletasPrimariaService'
+import { fondo, lineaPx, plantillaPrimaria, px, rectPx, textoPx, type Rgb } from './boletasPrimariaPdf'
 
-const STATUS_ACTIVOS = [1, 4, 5] as const
-const TABLE_CAL = 'boleta_calificacion_primaria_en'
-const TABLE_SKILL = 'boleta_skill_primaria_en'
-const TABLE_ATT = 'boleta_attendance_primaria_en'
+const AZUL: Rgb = [9, 103, 162]
+const GRIS: Rgb = [210, 211, 213]
+const BLANCO: Rgb = [255, 255, 255]
+const TINTA: Rgb = [35, 31, 32]
+const NARANJA: Rgb = [245, 134, 52]
+const LINEA: Rgb = [32, 30, 30]
 
-export type PrimariaEnAlumnoLista = {
-  alumno_id: number
-  alumno_ref: number | null
-  nombre: string
-  alumno_grado: number
-  alumno_grupo: number
-  grupo_letra: string
+/** Columnas de la plantilla (px): materia, periodos 1–3 y final. */
+const T_X0 = 136
+const T_X1 = 2414
+const COL_LINEAS = [1151, 1467, 1782, 2098]
+const COL_VAL = [1309, 1625, 1941, 2256]
+const T_Y0 = 823
+const T_Y1 = 2517
+
+/** Semáforo de Mindfulness como el legacy: verde ≥ 8, amarillo ≥ 6, rojo abajo. */
+function colorSemaforo(v: string): Rgb | null {
+  const n = Number(v)
+  if (!v || !Number.isFinite(n) || n <= 0) return null
+  if (n >= 8) return [0, 176, 80]
+  if (n >= 6) return [255, 192, 0]
+  return [255, 0, 0]
 }
 
-export type PrimariaEnCapturaMateria = PrimariaEnMateria & {
-  calificacion: string
-}
-
-export type PrimariaEnCapturaSkill = PrimariaEnSkill & {
-  calificacion: string
-}
-
-export type PrimariaEnAttendance = {
-  school_days: string
-  days_absent: string
-}
-
-export type PrimariaEnCaptura = {
-  alumno: PrimariaEnAlumnoLista
-  bimestre: number
-  ciclo: number
-  subjects: PrimariaEnCapturaMateria[]
-  skills: PrimariaEnCapturaSkill[]
-  attendance: PrimariaEnAttendance
-  promedioSugerido: string
-}
-
-function nombreAlumno(a: {
-  alumno_app?: unknown
-  alumno_apm?: unknown
-  alumno_nombre?: unknown
-}): string {
-  return [a.alumno_app, a.alumno_apm, a.alumno_nombre]
-    .map((x) => String(x ?? '').trim())
-    .filter(Boolean)
-    .join(' ')
-}
-
-function asGrado(n: number): PrimariaEnGrado {
-  if (n >= 1 && n <= 6) return n as PrimariaEnGrado
-  throw new Error('Grado inválido (use 1–6)')
-}
-
-export async function listarAlumnos(input: {
-  grado: number
-  grupoLetra: string
-  ciclo: number
-}): Promise<PrimariaEnAlumnoLista[]> {
-  const grado = asGrado(Number(input.grado))
-  const grupoNum = grupoNumeroDesdeLetra(input.grupoLetra)
-  if (!grupoNum || grupoNum > 3) throw new Error('Grupo inválido (A–C)')
-  const ciclo = Number(input.ciclo)
-  if (!ciclo) throw new Error('Ciclo requerido')
-
-  const db = createBoletasDb()
-  const { data, error } = await db
-    .from('alumno')
-    .select(
-      'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_nivel, alumno_status, alumno_ciclo_escolar'
-    )
-    .eq('alumno_nivel', BOLETAS_NIVEL_PRIMARIA)
-    .eq('alumno_grado', grado)
-    .eq('alumno_grupo', grupoNum)
-    .eq('alumno_ciclo_escolar', ciclo)
-    .in('alumno_status', [...STATUS_ACTIVOS])
-    .order('alumno_app')
-
-  if (error) throw new Error(error.message)
-
-  return (data ?? []).map((a) => {
-    const g = Number(a.alumno_grupo)
-    return {
-      alumno_id: Number(a.alumno_id),
-      alumno_ref: a.alumno_ref != null ? Number(a.alumno_ref) : null,
-      nombre: nombreAlumno(a),
-      alumno_grado: Number(a.alumno_grado),
-      alumno_grupo: g,
-      grupo_letra: letraDesdeGrupoNumero(g),
-    }
-  })
-}
-
-async function cargarAlumnoPrimaria(alumnoId: number): Promise<PrimariaEnAlumnoLista> {
-  const db = createBoletasDb()
-  const { data, error } = await db
-    .from('alumno')
-    .select(
-      'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_nivel, alumno_status'
-    )
-    .eq('alumno_id', alumnoId)
-    .limit(1)
-
-  if (error) throw new Error(error.message)
-  const a = data?.[0]
-  if (!a) throw new Error('Alumno no encontrado')
-  if (Number(a.alumno_nivel) !== BOLETAS_NIVEL_PRIMARIA) {
-    throw new Error('El alumno no es de primaria')
-  }
-  const g = Number(a.alumno_grupo)
-  return {
-    alumno_id: Number(a.alumno_id),
-    alumno_ref: a.alumno_ref != null ? Number(a.alumno_ref) : null,
-    nombre: nombreAlumno(a),
-    alumno_grado: Number(a.alumno_grado),
-    alumno_grupo: g,
-    grupo_letra: letraDesdeGrupoNumero(g),
-  }
-}
-
-async function mapaMaterias(
-  alumnoId: number,
-  bimestre: number,
-  ciclo: number,
-  ids: number[]
-): Promise<Map<number, string>> {
-  if (!ids.length) return new Map()
-  const db = createBoletasDb()
-  const { data, error } = await db
-    .from(TABLE_CAL)
-    .select('materia_id, calificacion')
-    .eq('alumno_id', alumnoId)
-    .eq('bimestre', bimestre)
-    .eq('ciclo', ciclo)
-    .in('materia_id', ids)
-  if (error) throw new Error(error.message)
-  return new Map((data ?? []).map((r) => [Number(r.materia_id), String(r.calificacion ?? '')]))
-}
-
-async function mapaSkills(
-  alumnoId: number,
-  bimestre: number,
-  ciclo: number,
-  ids: number[]
-): Promise<Map<number, string>> {
-  if (!ids.length) return new Map()
-  const db = createBoletasDb()
-  const { data, error } = await db
-    .from(TABLE_SKILL)
-    .select('skill_id, calificacion')
-    .eq('alumno_id', alumnoId)
-    .eq('bimestre', bimestre)
-    .eq('ciclo', ciclo)
-    .in('skill_id', ids)
-  if (error) throw new Error(error.message)
-  return new Map((data ?? []).map((r) => [Number(r.skill_id), String(r.calificacion ?? '')]))
-}
-
-export async function obtenerCaptura(input: {
-  alumnoId: number
-  bimestre: number
-  ciclo: number
-}): Promise<PrimariaEnCaptura> {
-  const alumnoId = Number(input.alumnoId)
-  const bimestre = Number(input.bimestre)
-  const ciclo = Number(input.ciclo)
-  if (!alumnoId) throw new Error('alumnoId requerido')
-  if (bimestre < 1 || bimestre > 3) throw new Error('Bimestre inválido (1–3)')
-  if (!ciclo) throw new Error('Ciclo requerido')
-
-  const alumno = await cargarAlumnoPrimaria(alumnoId)
-  const grado = asGrado(alumno.alumno_grado)
-  const subjectsCat = materiasPorGrado(grado)
-  const skillsCat = skillsCatalogo()
-
-  const [mapaSub, mapaSkill] = await Promise.all([
-    mapaMaterias(alumnoId, bimestre, ciclo, subjectsCat.map((m) => m.id)),
-    mapaSkills(alumnoId, bimestre, ciclo, skillsCat.map((s) => s.id)),
-  ])
-
-  const db = createBoletasDb()
-  const { data: attRows, error: attErr } = await db
-    .from(TABLE_ATT)
-    .select('school_days, days_absent')
-    .eq('alumno_id', alumnoId)
-    .eq('bimestre', bimestre)
-    .eq('ciclo', ciclo)
-    .limit(1)
-  if (attErr) throw new Error(attErr.message)
-  const att = attRows?.[0]
-
-  const subjects = subjectsCat.map((m) => ({
-    ...m,
-    calificacion: mapaSub.get(m.id) ?? '',
-  }))
-
-  return {
-    alumno,
-    bimestre,
-    ciclo,
-    subjects,
-    skills: skillsCat.map((s) => ({
-      ...s,
-      calificacion: mapaSkill.get(s.id) ?? '',
-    })),
-    attendance: {
-      school_days: String(att?.school_days ?? ''),
-      days_absent: String(att?.days_absent ?? ''),
-    },
-    promedioSugerido: promedioSubjectsNumerico(subjects, subjectsCat),
-  }
-}
-
-async function upsertPorId(
-  table: string,
-  idCol: 'materia_id' | 'skill_id',
-  alumnoId: number,
-  bimestre: number,
-  ciclo: number,
-  permitidos: Set<number>,
-  valores: Record<number, string> | undefined
-): Promise<number> {
-  const ahora = new Date().toISOString()
-  const filas: Record<string, unknown>[] = []
-
-  for (const [rawId, rawVal] of Object.entries(valores ?? {})) {
-    const id = Number(rawId)
-    if (!permitidos.has(id)) continue
-    filas.push({
-      alumno_id: alumnoId,
-      [idCol]: id,
-      bimestre,
-      ciclo,
-      calificacion: String(rawVal ?? '').trim().slice(0, 40),
-      updated_at: ahora,
-    })
-  }
-  if (!filas.length) return 0
-
-  const db = createBoletasDb()
-  const { error } = await db.from(table).upsert(filas, {
-    onConflict: `alumno_id,${idCol},bimestre,ciclo`,
-  })
-  if (error) throw new Error(error.message)
-  return filas.length
-}
-
-export async function guardarCaptura(input: {
-  alumnoId: number
-  bimestre: number
-  ciclo: number
-  subjects?: Record<number, string>
-  skills?: Record<number, string>
-  attendance?: Partial<PrimariaEnAttendance>
-}): Promise<{ saved: number }> {
-  const alumnoId = Number(input.alumnoId)
-  const bimestre = Number(input.bimestre)
-  const ciclo = Number(input.ciclo)
-  if (!alumnoId) throw new Error('alumnoId requerido')
-  if (bimestre < 1 || bimestre > 3) throw new Error('Bimestre inválido (1–3)')
-  if (!ciclo) throw new Error('Ciclo requerido')
-
-  const alumno = await cargarAlumnoPrimaria(alumnoId)
-  const grado = asGrado(alumno.alumno_grado)
-  let saved = 0
-
-  saved += await upsertPorId(
-    TABLE_CAL,
-    'materia_id',
-    alumnoId,
-    bimestre,
-    ciclo,
-    new Set(materiasPorGrado(grado).map((m) => m.id)),
-    input.subjects
-  )
-  saved += await upsertPorId(
-    TABLE_SKILL,
-    'skill_id',
-    alumnoId,
-    bimestre,
-    ciclo,
-    new Set(skillsCatalogo().map((s) => s.id)),
-    input.skills
-  )
-
-  if (input.attendance) {
-    const db = createBoletasDb()
-    const { error } = await db.from(TABLE_ATT).upsert(
-      [
-        {
-          alumno_id: alumnoId,
-          bimestre,
-          ciclo,
-          school_days: String(input.attendance.school_days ?? '').trim().slice(0, 20),
-          days_absent: String(input.attendance.days_absent ?? '').trim().slice(0, 20),
-          updated_at: new Date().toISOString(),
-        },
-      ],
-      { onConflict: 'alumno_id,bimestre,ciclo' }
-    )
-    if (error) throw new Error(error.message)
-    saved += 1
-  }
-
-  return { saved }
-}
-
-function pdfSeccion(
-  doc: jsPDF,
-  title: string,
-  filas: { nombre: string; calificacion: string; mindfulnessColor?: boolean }[],
-  pageW: number,
-  yStart: number
-): number {
-  let y = yStart
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10)
-  doc.setTextColor(0)
-  doc.text(title, 14, y)
-  y += 5
-  doc.setFontSize(8)
-  doc.text('Indicator', 14, y)
-  doc.text('Grade', 160, y)
-  y += 3
-  doc.setDrawColor(180)
-  doc.line(14, y, pageW - 14, y)
-  y += 5
-  doc.setFont('helvetica', 'normal')
-  for (const f of filas) {
-    if (y > 265) {
-      doc.addPage()
-      y = 18
-    }
-    doc.setTextColor(0)
-    doc.text(f.nombre.slice(0, 72), 14, y)
-    const cal = f.calificacion.trim() || '—'
-    if (f.mindfulnessColor && cal !== '—') {
-      const rgb = colorMindfulnessPrimaria(cal)
-      if (rgb) {
-        doc.setFillColor(rgb[0], rgb[1], rgb[2])
-        doc.rect(158, y - 3.2, 14, 4, 'F')
-        y += 5
-        continue
-      }
-    }
-    doc.text(cal.slice(0, 20), 160, y)
-    y += 5
-  }
-  return y + 4
-}
-
-async function loadPlantillaBase64(): Promise<string | null> {
-  try {
-    const abs = path.join(process.cwd(), 'public', 'boletas', 'primaria-en', 'bol1.png')
-    const buf = await readFile(abs)
-    return `data:image/png;base64,${buf.toString('base64')}`
-  } catch {
-    return null
-  }
-}
-
+/**
+ * Boleta de inglés sobre la plantilla legacy (`bol1.jpg`), con la tabla redibujada según el catálogo.
+ * Solo se llenan los periodos hasta `bimestre`; la columna final aparece con el 3er periodo.
+ */
 export async function generarPdfPrimariaEn(input: {
   alumnoId: number
   bimestre: number
   ciclo: number
 }): Promise<Buffer> {
-  const captura = await obtenerCaptura(input)
-  const { alumno, bimestre, ciclo } = captura
-  const grado = asGrado(alumno.alumno_grado)
-  const gradoEtiqueta =
-    PRIMARIA_EN_GRADOS.find((g) => g.valor === grado)?.etiqueta ?? `${grado}°`
-  const teacher = teacherInglesPrimaria(grado, alumno.alumno_grupo)
-  const plantilla = await loadPlantillaBase64()
+  const alumnoId = Number(input.alumnoId)
+  const bimestre = Number(input.bimestre)
+  const ciclo = Number(input.ciclo)
+  validarPeriodoPrimaria(bimestre, ciclo)
+  const alumno = await cargarAlumnoPrimaria(alumnoId)
+  const bimestres = [1, 2, 3].filter((b) => b <= bimestre)
+  const [materias, docentes, plantilla, asistencia] = await Promise.all([
+    materiasActivasPrimaria('en', alumno.grado_ui),
+    docentesPorGrupoKinder('en', [BOLETAS_NIVEL_PRIMARIA]).catch(
+      () => new Map<string, { maestroId: number; nombre: string }>()
+    ),
+    plantillaPrimaria('primaria-en/bol1.jpg'),
+    asistenciaPrimariaEn(alumnoId, ciclo, bimestres),
+  ])
+  const mapa = await mapaCalifsPrimaria('en', alumnoId, ciclo, bimestres, materias.map((m) => m.id))
+  return dibujarPdfPrimariaEn({
+    alumno,
+    bimestre,
+    ciclo,
+    materias,
+    mapa,
+    asistencia,
+    teacher: docentes.get(`${alumno.grado_ui}-${alumno.grupo_letra}`)?.nombre ?? '',
+    plantilla,
+  })
+}
+
+export function dibujarPdfPrimariaEn(d: {
+  alumno: Pick<PrimariaAlumno, 'nombre' | 'grado_ui' | 'grupo_letra'>
+  bimestre: number
+  ciclo: number
+  materias: PrimariaMateria[]
+  mapa: Map<string, string>
+  asistencia: Map<number, PrimariaAsistencia>
+  teacher: string
+  plantilla: string
+}): Buffer {
+  const { alumno, bimestre, ciclo, materias, mapa, asistencia } = d
+  const bimestres = [1, 2, 3].filter((b) => b <= bimestre)
+  const valor = (b: number, id: number) => (b <= bimestre ? (mapa.get(`${b}-${id}`) ?? '') : '')
+  const conFinal = bimestre === 3
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
-  const pageW = doc.internal.pageSize.getWidth()
-  const pageH = doc.internal.pageSize.getHeight()
+  fondo(doc, d.plantilla)
 
-  if (plantilla) {
-    doc.addImage(plantilla, 'PNG', 10, 8, 170, 265)
-    doc.addPage()
+  rectPx(doc, 525, 332, 1025, 376, BLANCO)
+  textoPx(doc, `SCHOOL YEAR ${etiquetaCicloBoletas(ciclo)}`, 532, 354, { size: 9.5, estilo: 'bold', color: NARANJA })
+  const dato = { size: 10.5, estilo: 'bold' as const, color: TINTA }
+  textoPx(doc, alumno.nombre, 505, 559, { ...dato, maxW: 1880 })
+  textoPx(doc, `${alumno.grado_ui}° ${alumno.grupo_letra}`, 545, 653, { ...dato, maxW: 240 })
+  textoPx(doc, d.teacher, 1160, 653, { ...dato, maxW: 1250 })
+
+  const subjects = materias.filter((m) => m.seccion === 'subject')
+  const extra = materias.filter((m) => m.seccion === 'extra')
+  const skills = materias.filter((m) => m.seccion === 'skill')
+
+  const BAR = 66
+  const filasFijas = subjects.length + extra.length + 2
+  const disponible = T_Y1 - T_Y0 - BAR * 3
+  let ROW = 58
+  if (filasFijas * ROW + skills.length * 70 > disponible) {
+    ROW = Math.max(40, (disponible - skills.length * 70) / filasFijas)
   }
+  const skillH = skills.length ? Math.min(140, (disponible - filasFijas * ROW) / skills.length) : 0
 
-  let y = 18
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(14)
-  doc.text('INSTITUTO WINSTON CHURCHILL', pageW / 2, y, { align: 'center' })
-  y += 7
-  doc.setFontSize(11)
-  doc.text('Report Card · Primaria Inglés', pageW / 2, y, { align: 'center' })
-  y += 8
+  rectPx(doc, T_X0, T_Y0, T_X1, T_Y1, BLANCO)
+  let y = T_Y0
 
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(10)
-  doc.text(`Student: ${alumno.nombre}`, 14, y)
-  y += 5
-  doc.text(
-    `Ref: ${String(alumno.alumno_ref ?? '').padStart(5, '0')}   Grade: ${gradoEtiqueta} ${alumno.grupo_letra}   Term: ${bimestre}   School Year: ${etiquetaCicloBoletas(ciclo)}`,
-    14,
-    y
-  )
-  y += 5
-  if (teacher) {
-    doc.text(`Teacher: ${teacher}`, 14, y)
-    y += 5
-  }
-  y += 4
-
-  y = pdfSeccion(
-    doc,
-    'SUBJECTS',
-    captura.subjects.map((i) => ({
-      nombre: i.nombre,
-      calificacion: i.calificacion,
-      mindfulnessColor: i.mindfulnessColor,
-    })),
-    pageW,
-    y
-  )
-
-  if (captura.promedioSugerido) {
-    if (y > 265) {
-      doc.addPage()
-      y = 18
-    }
+  const filaEtiqueta = (en: string, es: string, alto: number, idx: number, multilinea: boolean) => {
+    if (idx % 2 === 1) rectPx(doc, T_X0, y, T_X1, y + alto, GRIS)
+    const anchoCol = COL_LINEAS[0] - T_X0 - 50
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(9)
-    doc.setTextColor(0)
-    doc.text(
-      `AVERAGE (excl. Mindfulness / Computer / Faith): ${captura.promedioSugerido}`,
-      14,
-      y
-    )
-    y += 8
+    const anchoEn = doc.getTextWidth(en) / px(1)
+    const libre = anchoCol - anchoEn - 40
+    if (multilinea && es) {
+      doc.setFont('helvetica', 'italic')
+      doc.setFontSize(9)
+      const lineas = doc.splitTextToSize(es, px(Math.max(300, libre))) as string[]
+      textoPx(doc, en, 160, y + alto / 2, { size: 9, estilo: 'bold', color: TINTA, maxW: anchoCol - 320 })
+      const salto = 40
+      lineas.slice(0, 3).forEach((l, i) =>
+        textoPx(doc, l, COL_LINEAS[0] - 26, y + alto / 2 + (i - (Math.min(lineas.length, 3) - 1) / 2) * salto, {
+          size: 9,
+          estilo: 'italic',
+          color: TINTA,
+          align: 'right',
+        })
+      )
+    } else {
+      textoPx(doc, en, 160, y + alto / 2, { size: 9, estilo: 'bold', color: TINTA, maxW: es ? anchoCol * 0.45 : anchoCol })
+      if (es) {
+        textoPx(doc, es, COL_LINEAS[0] - 26, y + alto / 2, {
+          size: 9,
+          estilo: 'italic',
+          color: TINTA,
+          align: 'right',
+          maxW: Math.max(300, libre),
+        })
+      }
+    }
   }
 
-  y = pdfSeccion(
-    doc,
-    'BEHAVIORAL SKILLS',
-    captura.skills.map((i) => ({ nombre: i.nombre, calificacion: i.calificacion })),
-    pageW,
-    y
-  )
-
-  if (y > 255) {
-    doc.addPage()
-    y = 18
+  const celda = (texto: string, col: number, alto: number, semaforo = false) => {
+    if (!texto) return
+    const color = semaforo && texto !== PRIMARIA_NO_APLICA ? colorSemaforo(texto) : null
+    if (color) {
+      const x0 = COL_LINEAS[col] + 40
+      const x1 = (COL_LINEAS[col + 1] ?? T_X1) - 40
+      rectPx(doc, x0, y + alto * 0.18, x1, y + alto * 0.82, color)
+      return
+    }
+    textoPx(doc, texto, COL_VAL[col], y + alto / 2, { size: 10, color: TINTA, align: 'center' })
   }
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10)
-  doc.text('ATTENDANCE', 14, y)
-  y += 6
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(9)
-  doc.text(`School days: ${captura.attendance.school_days.trim() || '—'}`, 14, y)
-  y += 5
-  doc.text(`Days absent: ${captura.attendance.days_absent.trim() || '—'}`, 14, y)
-  y += 8
 
-  doc.setFontSize(8)
-  doc.setTextColor(100)
-  doc.text(
-    'Generated by servicios_admin / boletas primaria-ingles (InsForge).',
-    14,
-    Math.min(y, pageH - 12)
-  )
-  doc.setTextColor(0)
+  const lineasColumnas = (yA: number, yB: number) => {
+    for (const x of COL_LINEAS) lineaPx(doc, x, yA, x, yB, LINEA, 3)
+  }
+
+  const barra = (texto: string, centrado: boolean, valores?: string[]) => {
+    rectPx(doc, T_X0, y, T_X1, y + BAR, AZUL)
+    textoPx(doc, texto, centrado ? (T_X0 + COL_LINEAS[0]) / 2 : 160, y + BAR / 2, {
+      size: 9,
+      estilo: 'bold',
+      color: BLANCO,
+      align: centrado ? 'center' : 'left',
+    })
+    valores?.forEach((v, i) => textoPx(doc, v, COL_VAL[i], y + BAR / 2, { size: 10, estilo: 'bold', color: BLANCO, align: 'center' }))
+    y += BAR
+  }
+
+  const finalMateria = (m: PrimariaMateria) => (conFinal ? promedioPrimaria([1, 2, 3].map((b) => valor(b, m.id))) : '')
+
+  const filasMaterias = (lista: PrimariaMateria[], alto: number, conPromedioFinal: boolean, multilinea: boolean) => {
+    const yA = y
+    lista.forEach((m, i) => {
+      filaEtiqueta(m.nombre, m.nombreAlt, alto, i, multilinea)
+      ;[1, 2, 3].forEach((b) => celda(valor(b, m.id), b - 1, alto, m.semaforo))
+      if (conPromedioFinal) celda(finalMateria(m), 3, alto, m.semaforo)
+      y += alto
+    })
+    lineasColumnas(yA, y)
+  }
+
+  // Subjects + promedio por periodo.
+  filasMaterias(subjects, ROW, true, false)
+  const enProm = subjects.filter((m) => m.enPromedio)
+  const promTri = [1, 2, 3].map((b) => promedioPrimaria(enProm.map((m) => valor(b, m.id))))
+  const promFinal = conFinal ? promedioPrimaria(enProm.map(finalMateria)) : ''
+  barra('AVERAGE (PROMEDIO)', true, [...promTri, promFinal])
+
+  if (extra.length) filasMaterias(extra, ROW, true, false)
+
+  barra('SCHOOL ATTENDANCE (ASISTENCIA)', true)
+  const yAtt = y
+  const sumar = (campo: 'school_days' | 'days_absent') => {
+    const nums = bimestres.map((b) => Number(asistencia.get(b)?.[campo] || NaN)).filter(Number.isFinite)
+    return conFinal && nums.length ? String(nums.reduce((a, b) => a + b, 0)) : ''
+  }
+  ;(
+    [
+      ['School days', 'Días de clase', 'school_days'],
+      ['Absences', 'Inasistencias', 'days_absent'],
+    ] as const
+  ).forEach(([en, es, campo], i) => {
+    filaEtiqueta(en, es, ROW, i, false)
+    bimestres.forEach((b) => celda(asistencia.get(b)?.[campo] ?? '', b - 1, ROW))
+    celda(sumar(campo), 3, ROW)
+    y += ROW
+  })
+  lineasColumnas(yAtt, y)
+
+  barra('BEHAVIORAL SKILLS (HABILIDADES CONDUCTUALES)', false)
+  filasMaterias(skills, skillH, false, true)
+
+  lineaPx(doc, T_X0, T_Y0, T_X0, Math.max(y, T_Y1), LINEA, 3)
+  lineaPx(doc, T_X1, T_Y0, T_X1, Math.max(y, T_Y1), LINEA, 3)
+  lineaPx(doc, T_X0, Math.max(y, T_Y1), T_X1, Math.max(y, T_Y1), LINEA, 3)
 
   return Buffer.from(doc.output('arraybuffer'))
 }

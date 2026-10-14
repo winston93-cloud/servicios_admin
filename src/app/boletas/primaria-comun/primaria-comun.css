@@ -1,0 +1,22 @@
+.pr-cat-seccion {
+  margin-top: 1.1rem;
+  min-width: 0;
+}
+
+.pr-cat-seccion-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--ki-line);
+}
+
+.pr-cat-seccion-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

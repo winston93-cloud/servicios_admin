@@ -4,43 +4,70 @@ import {
   esGradoKinderEn,
   etiquetaGrupoKinderEn,
   letraDesdeGrupoNumero,
-  type KinderEnGrado,
 } from './boletasKinderEnCatalog'
 import type { BoletaModulo } from './boletasPortal'
+import type { BoletasCapturaSlug } from './boletasCapturaAuth'
 import { gruposConAlumnos } from './boletasKinderEnService'
 import { gruposConAlumnosKinderEs } from './boletasKinderEsService'
 import { docentesPorGrupoKinder } from './boletasKinderDocentesGrupo'
+import {
+  BOLETAS_NIVEL_PRIMARIA,
+  esGradoPrimaria,
+  etiquetaGrupoPrimaria,
+  gruposConAlumnosPrimaria,
+} from './boletasPrimariaComun'
 
 export type ModuloCapturaKinder = Extract<BoletaModulo, 'kinder-en' | 'kinder-es'>
+export type ModuloCapturaPrimaria = Extract<BoletaModulo, 'primaria-es' | 'primaria-en'>
+export type ModuloCaptura = ModuloCapturaKinder | ModuloCapturaPrimaria
 
 export type GrupoCaptura = {
-  modulo: ModuloCapturaKinder
-  grado: KinderEnGrado
+  modulo: ModuloCaptura
+  grado: number
   grupo: string
   etiqueta: string
   /** Solo en supervisión: docente asignada al grupo. */
   teacher?: string | null
 }
 
-/** Supervisión: todos los grupos con alumnos en el ciclo (inglés y español), con su docente asignada. */
-export async function gruposSupervisionKinder(ciclo: number): Promise<GrupoCaptura[]> {
+function etiquetaGrupo(modulo: ModuloCaptura, grado: number, grupo: string): string {
+  return modulo.startsWith('primaria') ? etiquetaGrupoPrimaria(grado, grupo) : etiquetaGrupoKinderEn(grado, grupo)
+}
+
+/** Supervisión: todos los grupos con alumnos en el ciclo (inglés y español) del nivel, con su docente asignada. */
+export async function gruposSupervision(slug: BoletasCapturaSlug, ciclo: number): Promise<GrupoCaptura[]> {
+  const armar = (
+    modulo: ModuloCaptura,
+    g: { grado: number; grupo: string },
+    doc: Map<string, { nombre: string }>
+  ): GrupoCaptura => ({
+    modulo,
+    grado: g.grado,
+    grupo: g.grupo,
+    etiqueta: etiquetaGrupo(modulo, g.grado, g.grupo),
+    teacher: doc.get(`${g.grado}-${g.grupo}`)?.nombre ?? null,
+  })
+
+  if (slug === 'primaria') {
+    const niveles = [BOLETAS_NIVEL_PRIMARIA]
+    const [grupos, docEs, docEn] = await Promise.all([
+      gruposConAlumnosPrimaria(ciclo),
+      docentesPorGrupoKinder('es', niveles),
+      docentesPorGrupoKinder('en', niveles),
+    ])
+    return [
+      ...grupos.map((g) => armar('primaria-es', g, docEs)),
+      ...grupos.map((g) => armar('primaria-en', g, docEn)),
+    ]
+  }
+
   const [gruposEn, gruposEs, docEn, docEs] = await Promise.all([
     gruposConAlumnos(ciclo),
     gruposConAlumnosKinderEs(ciclo),
     docentesPorGrupoKinder('en'),
     docentesPorGrupoKinder('es'),
   ])
-  const armar = (modulo: ModuloCapturaKinder, grado: KinderEnGrado, grupo: string, doc: typeof docEn) => ({
-    modulo,
-    grado,
-    grupo,
-    etiqueta: etiquetaGrupoKinderEn(grado, grupo),
-    teacher: doc.get(`${grado}-${grupo}`)?.nombre ?? null,
-  })
-  return [
-    ...gruposEn.map((g) => armar('kinder-en', g.grado, g.grupo, docEn)),
-    ...gruposEs.map((g) => armar('kinder-es', g.grado, g.grupo, docEs)),
-  ]
+  return [...gruposEn.map((g) => armar('kinder-en', g, docEn)), ...gruposEs.map((g) => armar('kinder-es', g, docEs))]
 }
 
 /**
@@ -69,25 +96,23 @@ export async function gruposDeMaestro(maestroId: number, niveles: number[]): Pro
     const m = porId.get(Number(a.materia_id))
     if (!m) continue
     const nombre = String(m.materia_nombre ?? '')
-    const modulo =
-      nombre === MATERIA_SLOT_EN.nombre ? 'kinder-en' : nombre === MATERIA_SLOT_ES.nombre ? 'kinder-es' : null
-    if (!modulo) continue
+    const idioma = nombre === MATERIA_SLOT_EN.nombre ? 'en' : nombre === MATERIA_SLOT_ES.nombre ? 'es' : null
+    if (!idioma) continue
     const nivel = Number(m.materia_nivel)
     const gradoMat = Number(m.materia_grado)
-    const pares: { grado: KinderEnGrado; grupo: string }[] = []
+    const modulo: ModuloCaptura =
+      nivel === BOLETAS_NIVEL_PRIMARIA ? (`primaria-${idioma}` as const) : (`kinder-${idioma}` as const)
+    const letras = [...String(a.grupo_letra ?? '').toUpperCase()]
+    const pares: { grado: number; grupo: string }[] = []
     if (nivel === 1) {
       if (gradoMat === 1 || gradoMat === 2) pares.push({ grado: 0, grupo: letraDesdeGrupoNumero(gradoMat) })
     } else if (nivel === 2 && esGradoKinderEn(gradoMat) && gradoMat > 0) {
-      for (const letra of String(a.grupo_letra ?? '').toUpperCase()) {
-        if ('ABCD'.includes(letra)) pares.push({ grado: gradoMat, grupo: letra })
-      }
+      for (const letra of letras) if ('ABCD'.includes(letra)) pares.push({ grado: gradoMat, grupo: letra })
+    } else if (nivel === BOLETAS_NIVEL_PRIMARIA && esGradoPrimaria(gradoMat)) {
+      for (const letra of letras) if ('ABC'.includes(letra)) pares.push({ grado: gradoMat, grupo: letra })
     }
     for (const p of pares) {
-      out.set(`${modulo}-${p.grado}-${p.grupo}`, {
-        modulo,
-        ...p,
-        etiqueta: etiquetaGrupoKinderEn(p.grado, p.grupo),
-      })
+      out.set(`${modulo}-${p.grado}-${p.grupo}`, { modulo, ...p, etiqueta: etiquetaGrupo(modulo, p.grado, p.grupo) })
     }
   }
   return [...out.values()].sort(
@@ -98,7 +123,7 @@ export async function gruposDeMaestro(maestroId: number, niveles: number[]): Pro
 export async function maestroTieneGrupo(
   maestroId: number,
   niveles: number[],
-  modulo: ModuloCapturaKinder,
+  modulo: ModuloCaptura,
   grado: number,
   grupo: string
 ): Promise<boolean> {

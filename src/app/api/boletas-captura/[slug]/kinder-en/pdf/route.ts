@@ -1,6 +1,6 @@
 import { jsonError } from '@/lib/boletasApi'
 import { capturaConfigDeSlug } from '@/lib/boletasCapturaAuth'
-import { assertAlumnoDelGrupo, contextoTeacherKinderEn } from '@/lib/boletasCapturaKinderEn'
+import { assertAlumnoDelGrupo, contextoCaptura } from '@/lib/boletasCapturaContexto'
 import { generarPdfKinderEn } from '@/lib/boletasKinderEnService'
 
 export const dynamic = 'force-dynamic'
@@ -13,7 +13,7 @@ export async function GET(req: Request, { params }: Params) {
   try {
     const cfg = capturaConfigDeSlug((await params).slug)
     const url = new URL(req.url)
-    const ctx = await contextoTeacherKinderEn(cfg, req, {
+    const ctx = await contextoCaptura(cfg, req, {
       grado: url.searchParams.get('grado'),
       grupo: url.searchParams.get('grupo'),
       trimestre: url.searchParams.get('trimestre'),

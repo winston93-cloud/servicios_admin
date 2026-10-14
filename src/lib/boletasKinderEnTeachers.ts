@@ -8,6 +8,7 @@ import {
 import { MATERIA_SLOT_EN } from './catalogoMaestrosConstants'
 import { esGradoKinderEn, grupoNumeroDesdeLetra } from './boletasKinderEnCatalog'
 import { docentesPorGrupoKinder, type IdiomaKinder } from './boletasKinderDocentesGrupo'
+import { BOLETAS_NIVEL_PRIMARIA, esGradoPrimaria, grupoNumeroDesdeLetra as grupoPrimaria } from './boletasPrimariaComun'
 
 export type TeacherKinderEn = {
   id: number
@@ -23,8 +24,15 @@ export type TeacherKinderEn = {
   grupos: { grado: number; grupo: string }[]
 }
 
-/** Inglés: Maternal y Kinder. Español: solo Kinder (K1–K3 llevan boleta de español). */
-const NIVELES: Record<IdiomaKinder, number[]> = { en: [1, 2], es: [2] }
+/** Catálogo de Maternal/Kinder o de Primaria. */
+export type AmbitoDocentes = 'kinder' | 'primaria'
+
+/** Kinder inglés: Maternal y Kinder. Kinder español: solo Kinder (K1–K3). Primaria: nivel 3. */
+function nivelesDe(idioma: IdiomaKinder, ambito: AmbitoDocentes): number[] {
+  if (ambito === 'primaria') return [BOLETAS_NIVEL_PRIMARIA]
+  return idioma === 'en' ? [1, 2] : [2]
+}
+
 const QUIEN: Record<IdiomaKinder, string> = { en: 'teacher', es: 'maestra' }
 
 const COLS =
@@ -34,15 +42,19 @@ function txt(v: unknown): string {
   return String(v ?? '').trim()
 }
 
-export async function listarDocentesKinder(idioma: IdiomaKinder): Promise<TeacherKinderEn[]> {
+export async function listarDocentesKinder(
+  idioma: IdiomaKinder,
+  ambito: AmbitoDocentes = 'kinder'
+): Promise<TeacherKinderEn[]> {
+  const niveles = nivelesDe(idioma, ambito)
   const [{ data, error }, porGrupo] = await Promise.all([
     createBoletasDb()
       .from('boleta_maestro')
       .select(COLS)
-      .in('maestro_nivel', NIVELES[idioma])
+      .in('maestro_nivel', niveles)
       .eq('maestro_idioma', idioma)
       .order('maestro_nombre'),
-    docentesPorGrupoKinder(idioma),
+    docentesPorGrupoKinder(idioma, ambito === 'primaria' ? niveles : undefined),
   ])
   if (error) throw new Error(error.message)
   const grupos = new Map<number, { grado: number; grupo: string }[]>()
@@ -83,15 +95,17 @@ export async function guardarDocenteKinder(
     clave?: unknown
     email?: unknown
     nivel?: unknown
-  }
+  },
+  ambito: AmbitoDocentes = 'kinder'
 ): Promise<{ id: number }> {
+  const niveles = nivelesDe(idioma, ambito)
   const nombre = txt(input.nombre).toUpperCase()
   const app = txt(input.app).toUpperCase()
   const apm = txt(input.apm).toUpperCase()
   const usuario = txt(input.usuario).toLowerCase()
   const clave = String(input.clave ?? '')
   const email = txt(input.email).toLowerCase()
-  const nivel = idioma === 'es' ? 2 : Number(input.nivel)
+  const nivel = niveles.length === 1 ? niveles[0] : Number(input.nivel)
   const idPrevio = Number(input.id)
   const esNuevo = !(Number.isInteger(idPrevio) && idPrevio > 0)
 
@@ -99,7 +113,7 @@ export async function guardarDocenteKinder(
   if (!/^[a-z0-9._-]{3,40}$/.test(usuario)) {
     throw new Error('Usuario: de 3 a 40 letras, números, punto, guion o guion bajo (sin espacios).')
   }
-  if (!NIVELES[idioma].includes(nivel)) throw new Error('Elige Maternal o Kinder.')
+  if (!niveles.includes(nivel)) throw new Error('Elige Maternal o Kinder.')
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('El correo no es válido.')
   if (clave && clave.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres.')
   if (esNuevo && !clave && !email) {
@@ -133,9 +147,11 @@ export async function guardarDocenteKinder(
       .limit(1)
     if (errP) throw new Error(errP.message)
     const p = previo?.[0] as Record<string, unknown> | undefined
-    if (!p || p.maestro_idioma !== idioma) throw new Error(`Esa ${QUIEN[idioma]} ya no está en el catálogo; recarga.`)
+    if (!p || p.maestro_idioma !== idioma || !niveles.includes(Number(p.maestro_nivel))) {
+      throw new Error(`Esa ${QUIEN[idioma]} ya no está en el catálogo; recarga.`)
+    }
     if (Number(p.maestro_nivel) !== nivel) {
-      const actuales = (await listarDocentesKinder(idioma)).find((t) => t.id === id)
+      const actuales = (await listarDocentesKinder(idioma, ambito)).find((t) => t.id === id)
       if (actuales?.grupos.length) throw new Error('Para cambiarla de nivel primero quítale sus grupos.')
     }
   }
@@ -160,12 +176,21 @@ export async function guardarDocenteKinder(
 }
 
 /** Quita sus grupos y la borra del catálogo. */
-export async function eliminarDocenteKinder(idioma: IdiomaKinder, idRaw: unknown): Promise<void> {
+export async function eliminarDocenteKinder(
+  idioma: IdiomaKinder,
+  idRaw: unknown,
+  ambito: AmbitoDocentes = 'kinder'
+): Promise<void> {
   const id = Number(idRaw)
   if (!Number.isInteger(id) || id <= 0) throw new Error('Registro inválido.')
   const db = createBoletasDb()
-  const { data: previo } = await db.from('boleta_maestro').select('maestro_idioma').eq('maestro_id', id).limit(1)
-  if ((previo?.[0] as Record<string, unknown> | undefined)?.maestro_idioma !== idioma) {
+  const { data: previo } = await db
+    .from('boleta_maestro')
+    .select('maestro_idioma, maestro_nivel')
+    .eq('maestro_id', id)
+    .limit(1)
+  const p = previo?.[0] as Record<string, unknown> | undefined
+  if (p?.maestro_idioma !== idioma || !nivelesDe(idioma, ambito).includes(Number(p?.maestro_nivel))) {
     throw new Error(idioma === 'en' ? 'Solo se pueden borrar teachers de inglés desde aquí.' : 'Solo se pueden borrar maestras de español desde aquí.')
   }
   const { data: asig, error: errA } = await db.from('boleta_maestro_grupo').select('grupo_id').eq('maestro_id', id)
@@ -184,13 +209,19 @@ export async function eliminarDocenteKinder(idioma: IdiomaKinder, idRaw: unknown
 /** Asigna (o quita con maestroId 0) la docente de un grupo. Maternal (solo inglés): grupo A/B = materia_grado 1/2. */
 export async function asignarGrupoDocenteKinder(
   idioma: IdiomaKinder,
-  input: { grado: unknown; grupo: unknown; maestroId: unknown }
+  input: { grado: unknown; grupo: unknown; maestroId: unknown },
+  ambito: AmbitoDocentes = 'kinder'
 ): Promise<void> {
   const grado = Number(input.grado)
   const grupo = txt(input.grupo).toUpperCase()
   const maestroId = Number(input.maestroId) || 0
-  if (!esGradoKinderEn(grado) || (idioma === 'es' && grado === 0)) throw new Error('Grado inválido.')
-  if (!grupoNumeroDesdeLetra(grupo)) throw new Error('Grupo inválido.')
+  if (ambito === 'primaria') {
+    if (!esGradoPrimaria(grado)) throw new Error('Grado inválido (1° a 6°).')
+    if (!grupoPrimaria(grupo)) throw new Error('Grupo inválido (A–C).')
+  } else {
+    if (!esGradoKinderEn(grado) || (idioma === 'es' && grado === 0)) throw new Error('Grado inválido.')
+    if (!grupoNumeroDesdeLetra(grupo)) throw new Error('Grupo inválido.')
+  }
 
   if (maestroId > 0) {
     const { data } = await createBoletasDb()
@@ -208,7 +239,13 @@ export async function asignarGrupoDocenteKinder(
   }
 
   if (grado > 0) {
-    await asignarMaestroGradoGrupo({ nivel: 2, grado, grupo_letra: grupo, idioma, maestro_id: maestroId })
+    await asignarMaestroGradoGrupo({
+      nivel: ambito === 'primaria' ? BOLETAS_NIVEL_PRIMARIA : 2,
+      grado,
+      grupo_letra: grupo,
+      idioma,
+      maestro_id: maestroId,
+    })
     return
   }
 

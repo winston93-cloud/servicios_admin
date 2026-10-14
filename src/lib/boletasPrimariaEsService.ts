@@ -1,358 +1,202 @@
-import { readFile } from 'fs/promises'
-import path from 'path'
 import { jsPDF } from 'jspdf'
-import { createBoletasDb } from './boletasInsforge'
+import { etiquetaCicloBoletas } from './boletasCiclo'
+import { docentesPorGrupoKinder } from './boletasKinderDocentesGrupo'
 import {
   BOLETAS_NIVEL_PRIMARIA,
-  PRIMARIA_ES_BLOQUES,
-  PRIMARIA_ES_GRADOS,
-  claveMateria,
-  grupoNumeroDesdeLetra,
-  letraDesdeGrupoNumero,
-  maestraEspanolPrimaria,
-  materiasPorGrado,
-  parseClaveMateria,
-  plantillaPdfPorGrado,
-  type PrimariaEsBloque,
-  type PrimariaEsGrado,
-  type PrimariaEsMateria,
-} from './boletasPrimariaEsCatalog'
-import { etiquetaCicloBoletas } from './boletasCiclo'
+  PRIMARIA_SECCIONES,
+  cargarAlumnoPrimaria,
+  mapaCalifsPrimaria,
+  materiasActivasPrimaria,
+  promedioPrimaria,
+  validarPeriodoPrimaria,
+  type PrimariaAlumno,
+  type PrimariaMateria,
+} from './boletasPrimariaComun'
+import { fondo, lineaPx, plantillaPrimaria, rectPx, textoPx, type Rgb } from './boletasPrimariaPdf'
 
-const STATUS_ACTIVOS = [1, 4, 5] as const
-const TABLE = 'boleta_calificacion_primaria_es'
+const NAVY: Rgb = [62, 64, 149]
+const GRIS: Rgb = [210, 211, 213]
+const BLANCO: Rgb = [255, 255, 255]
+const TINTA: Rgb = [35, 31, 32]
+const NARANJA: Rgb = [247, 134, 50]
+const AZUL_HAB: Rgb = [0, 0, 254]
+const GRIS_HAB: Rgb = [234, 240, 238]
+const LINEA: Rgb = [90, 90, 90]
 
-export type PrimariaEsAlumnoLista = {
-  alumno_id: number
-  alumno_ref: number | null
-  nombre: string
-  alumno_grado: number
-  alumno_grupo: number
-  grupo_letra: string
-}
+/** Columnas de la plantilla (px): asignatura, trimestres I–III y promedio anual. */
+const T_X0 = 294
+const T_X1 = 2253
+const COL_NOMBRE_FIN = 1086
+const COL_TRI = [1212, 1464, 1716]
+const COL_LINEAS = [1086, 1338, 1590, 1842]
+const CAJA_ANUAL: [number, number] = [2035, 2245]
 
-export type PrimariaEsCapturaMateria = PrimariaEsMateria & {
-  calificacion: string
-  clave: string
-}
+/** Secciones que entran al promedio final (las extracurriculares llevan su propio promedio). */
+const NO_EN_FINAL = new Set(['extra'])
 
-export type PrimariaEsCapturaBloque = {
-  id: PrimariaEsBloque
-  etiqueta: string
-  materias: PrimariaEsCapturaMateria[]
-}
-
-export type PrimariaEsCaptura = {
-  alumno: PrimariaEsAlumnoLista
-  bimestre: number
-  ciclo: number
-  bloques: PrimariaEsCapturaBloque[]
-}
-
-function nombreAlumno(a: {
-  alumno_app?: unknown
-  alumno_apm?: unknown
-  alumno_nombre?: unknown
-}): string {
-  return [a.alumno_app, a.alumno_apm, a.alumno_nombre]
-    .map((x) => String(x ?? '').trim())
-    .filter(Boolean)
-    .join(' ')
-}
-
-function asGrado(n: number): PrimariaEsGrado {
-  if (n >= 1 && n <= 6) return n as PrimariaEsGrado
-  throw new Error('Grado inválido (use 1–6)')
-}
-
-export async function listarAlumnos(input: {
-  grado: number
-  grupoLetra: string
-  ciclo: number
-}): Promise<PrimariaEsAlumnoLista[]> {
-  const grado = asGrado(Number(input.grado))
-  const grupoNum = grupoNumeroDesdeLetra(input.grupoLetra)
-  if (!grupoNum || grupoNum > 3) throw new Error('Grupo inválido (A–C)')
-  const ciclo = Number(input.ciclo)
-  if (!ciclo) throw new Error('Ciclo requerido')
-
-  const db = createBoletasDb()
-  const { data, error } = await db
-    .from('alumno')
-    .select(
-      'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_nivel, alumno_status, alumno_ciclo_escolar'
-    )
-    .eq('alumno_nivel', BOLETAS_NIVEL_PRIMARIA)
-    .eq('alumno_grado', grado)
-    .eq('alumno_grupo', grupoNum)
-    .eq('alumno_ciclo_escolar', ciclo)
-    .in('alumno_status', [...STATUS_ACTIVOS])
-    .order('alumno_app')
-
-  if (error) throw new Error(error.message)
-
-  return (data ?? []).map((a) => {
-    const g = Number(a.alumno_grupo)
-    return {
-      alumno_id: Number(a.alumno_id),
-      alumno_ref: a.alumno_ref != null ? Number(a.alumno_ref) : null,
-      nombre: nombreAlumno(a),
-      alumno_grado: Number(a.alumno_grado),
-      alumno_grupo: g,
-      grupo_letra: letraDesdeGrupoNumero(g),
-    }
-  })
-}
-
-async function cargarAlumnoPrimaria(alumnoId: number): Promise<PrimariaEsAlumnoLista> {
-  const db = createBoletasDb()
-  const { data, error } = await db
-    .from('alumno')
-    .select(
-      'alumno_id, alumno_ref, alumno_app, alumno_apm, alumno_nombre, alumno_grado, alumno_grupo, alumno_nivel, alumno_status'
-    )
-    .eq('alumno_id', alumnoId)
-    .limit(1)
-
-  if (error) throw new Error(error.message)
-  const a = data?.[0]
-  if (!a) throw new Error('Alumno no encontrado')
-  if (Number(a.alumno_nivel) !== BOLETAS_NIVEL_PRIMARIA) {
-    throw new Error('El alumno no es de primaria')
-  }
-  const g = Number(a.alumno_grupo)
-  return {
-    alumno_id: Number(a.alumno_id),
-    alumno_ref: a.alumno_ref != null ? Number(a.alumno_ref) : null,
-    nombre: nombreAlumno(a),
-    alumno_grado: Number(a.alumno_grado),
-    alumno_grupo: g,
-    grupo_letra: letraDesdeGrupoNumero(g),
-  }
-}
-
-function armarBloques(
-  grado: PrimariaEsGrado,
-  mapa: Map<string, string>
-): PrimariaEsCapturaBloque[] {
-  const materias = materiasPorGrado(grado)
-  return PRIMARIA_ES_BLOQUES.map((b) => {
-    const mats = materias.filter((m) => m.bloque === b.id)
-    return {
-      id: b.id,
-      etiqueta: b.etiqueta,
-      materias: mats.map((m) => {
-        const clave = claveMateria(m.bloque, m.id)
-        return {
-          ...m,
-          clave,
-          calificacion: mapa.get(clave) ?? '',
-        }
-      }),
-    }
-  }).filter((b) => b.materias.length > 0)
-}
-
-export async function obtenerCaptura(input: {
-  alumnoId: number
-  bimestre: number
-  ciclo: number
-}): Promise<PrimariaEsCaptura> {
-  const alumnoId = Number(input.alumnoId)
-  const bimestre = Number(input.bimestre)
-  const ciclo = Number(input.ciclo)
-  if (!alumnoId) throw new Error('alumnoId requerido')
-  if (bimestre < 1 || bimestre > 3) throw new Error('Bimestre inválido (1–3)')
-  if (!ciclo) throw new Error('Ciclo requerido')
-
-  const alumno = await cargarAlumnoPrimaria(alumnoId)
-  const grado = asGrado(alumno.alumno_grado)
-
-  const db = createBoletasDb()
-  const { data: rows, error } = await db
-    .from(TABLE)
-    .select('bloque, materia_id, calificacion')
-    .eq('alumno_id', alumnoId)
-    .eq('bimestre', bimestre)
-    .eq('ciclo', ciclo)
-
-  if (error) throw new Error(error.message)
-
-  const mapa = new Map(
-    (rows ?? []).map((r) => [
-      claveMateria(String(r.bloque) as PrimariaEsBloque, Number(r.materia_id)),
-      String(r.calificacion ?? ''),
-    ])
-  )
-
-  return {
-    alumno,
-    bimestre,
-    ciclo,
-    bloques: armarBloques(grado, mapa),
-  }
-}
-
-export async function guardarCaptura(input: {
-  alumnoId: number
-  bimestre: number
-  ciclo: number
-  valores: Record<string, string>
-}): Promise<{ saved: number }> {
-  const alumnoId = Number(input.alumnoId)
-  const bimestre = Number(input.bimestre)
-  const ciclo = Number(input.ciclo)
-  if (!alumnoId) throw new Error('alumnoId requerido')
-  if (bimestre < 1 || bimestre > 3) throw new Error('Bimestre inválido (1–3)')
-  if (!ciclo) throw new Error('Ciclo requerido')
-
-  const alumno = await cargarAlumnoPrimaria(alumnoId)
-  const grado = asGrado(alumno.alumno_grado)
-  const permitidos = new Set(
-    materiasPorGrado(grado).map((m) => claveMateria(m.bloque, m.id))
-  )
-
-  const db = createBoletasDb()
-  const ahora = new Date().toISOString()
-  const filas: {
-    alumno_id: number
-    bloque: string
-    materia_id: number
-    bimestre: number
-    ciclo: number
-    calificacion: string
-    updated_at: string
-  }[] = []
-
-  for (const [rawKey, rawVal] of Object.entries(input.valores ?? {})) {
-    if (!permitidos.has(rawKey)) continue
-    const parsed = parseClaveMateria(rawKey)
-    if (!parsed) continue
-    const calificacion = String(rawVal ?? '').trim().slice(0, 40)
-    filas.push({
-      alumno_id: alumnoId,
-      bloque: parsed.bloque,
-      materia_id: parsed.id,
-      bimestre,
-      ciclo,
-      calificacion,
-      updated_at: ahora,
-    })
-  }
-
-  if (!filas.length) return { saved: 0 }
-
-  const { error } = await db.from(TABLE).upsert(filas, {
-    onConflict: 'alumno_id,bloque,materia_id,bimestre,ciclo',
-  })
-  if (error) throw new Error(error.message)
-
-  return { saved: filas.length }
-}
-
-async function loadPlantillaBase64(grado: PrimariaEsGrado): Promise<string | null> {
-  try {
-    const file = plantillaPdfPorGrado(grado)
-    const abs = path.join(process.cwd(), 'public', 'boletas', 'primaria-es', file)
-    const buf = await readFile(abs)
-    return `data:image/jpeg;base64,${buf.toString('base64')}`
-  } catch {
-    return null
-  }
-}
-
+/**
+ * Boleta de español sobre la plantilla legacy (`boleta1.jpg` + `atras.jpg`).
+ * La tabla se redibuja con el catálogo vigente; solo se llenan los trimestres hasta `bimestre`.
+ */
 export async function generarPdfPrimariaEs(input: {
   alumnoId: number
   bimestre: number
   ciclo: number
 }): Promise<Buffer> {
-  const captura = await obtenerCaptura(input)
-  const { alumno, bimestre, ciclo, bloques } = captura
-  const grado = asGrado(alumno.alumno_grado)
-  const gradoEtiqueta =
-    PRIMARIA_ES_GRADOS.find((g) => g.valor === grado)?.etiqueta ?? `${grado}°`
-  const maestra = maestraEspanolPrimaria(grado, alumno.alumno_grupo)
-  const plantilla = await loadPlantillaBase64(grado)
+  const alumnoId = Number(input.alumnoId)
+  const bimestre = Number(input.bimestre)
+  const ciclo = Number(input.ciclo)
+  validarPeriodoPrimaria(bimestre, ciclo)
+  const alumno = await cargarAlumnoPrimaria(alumnoId)
+  const bimestres = [1, 2, 3].filter((b) => b <= bimestre)
+  const [materias, docentes, frente, reverso] = await Promise.all([
+    materiasActivasPrimaria('es', alumno.grado_ui),
+    docentesPorGrupoKinder('es', [BOLETAS_NIVEL_PRIMARIA]).catch(
+      () => new Map<string, { maestroId: number; nombre: string }>()
+    ),
+    plantillaPrimaria('primaria-es/boleta1.jpg'),
+    plantillaPrimaria('primaria-es/atras.jpg'),
+  ])
+  const mapa = await mapaCalifsPrimaria('es', alumnoId, ciclo, bimestres, materias.map((m) => m.id))
+  return dibujarPdfPrimariaEs({
+    alumno,
+    bimestre,
+    ciclo,
+    materias,
+    mapa,
+    profesora: docentes.get(`${alumno.grado_ui}-${alumno.grupo_letra}`)?.nombre ?? '',
+    frente,
+    reverso,
+  })
+}
+
+export function dibujarPdfPrimariaEs(d: {
+  alumno: Pick<PrimariaAlumno, 'app' | 'apm' | 'nombres' | 'grado_ui' | 'grupo_letra'>
+  bimestre: number
+  ciclo: number
+  materias: PrimariaMateria[]
+  mapa: Map<string, string>
+  profesora: string
+  frente: string
+  reverso: string
+}): Buffer {
+  const { alumno, bimestre, ciclo, materias, mapa, frente, reverso } = d
+  const valor = (b: number, id: number) => (b <= bimestre ? (mapa.get(`${b}-${id}`) ?? '') : '')
+  const anualVisible = bimestre === 3
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
-  const pageW = doc.internal.pageSize.getWidth()
-  const pageH = doc.internal.pageSize.getHeight()
 
-  if (plantilla) {
-    // Fondo legacy (boleta1/3/4) + hoja de captura legible debajo
-    doc.addImage(plantilla, 'JPEG', 10, 8, 170, 265)
-    doc.addPage()
+  // ── Hoja 1: datos y asignaturas ──
+  fondo(doc, frente)
+  rectPx(doc, 880, 430, 1670, 478, BLANCO)
+  textoPx(doc, `PRIMARIA CICLO ESCOLAR ${etiquetaCicloBoletas(ciclo)}`, 1274, 453, {
+    size: 10,
+    estilo: 'bold',
+    color: NARANJA,
+    align: 'center',
+  })
+  const dato = { size: 11, estilo: 'bold' as const, color: TINTA, align: 'center' as const }
+  textoPx(doc, alumno.app, 683, 669, { ...dato, maxW: 560 })
+  textoPx(doc, alumno.apm, 1273, 669, { ...dato, maxW: 560 })
+  textoPx(doc, alumno.nombres, 1941, 669, { ...dato, maxW: 600 })
+  textoPx(doc, `${alumno.grado_ui}°`, 766, 860, dato)
+  textoPx(doc, alumno.grupo_letra, 1782, 860, dato)
+  textoPx(doc, d.profesora, 1275, 1014, {
+    ...dato,
+    maxW: 1800,
+  })
+
+  const bloques = PRIMARIA_SECCIONES.es
+    .filter((s) => s.formato === 'decimal')
+    .map((s) => ({ seccion: s, mats: materias.filter((m) => m.seccion === s.id) }))
+    .filter((b) => b.mats.length > 0)
+  const nucleo = bloques.filter((b) => !NO_EN_FINAL.has(b.seccion.id))
+  const extra = bloques.filter((b) => NO_EN_FINAL.has(b.seccion.id))
+
+  const promedioBloque = (mats: PrimariaMateria[], b: number) =>
+    promedioPrimaria(mats.filter((m) => m.enPromedio).map((m) => valor(b, m.id)))
+  const anual = (porTri: string[]) => (anualVisible ? promedioPrimaria(porTri) : '')
+  const finalTri = [1, 2, 3].map((b) => promedioPrimaria(nucleo.map((k) => promedioBloque(k.mats, b))))
+
+  const Y0 = 1262
+  const Y_MAX = 2990
+  const barras = bloques.length * 2 + (nucleo.length ? 1 : 0)
+  const filas = bloques.reduce((n, b) => n + b.mats.length, 0)
+  const k = Math.min(1, (Y_MAX - Y0) / (barras * 72 + filas * 75))
+  const BAR = 72 * k
+  const ROW = 75 * k
+  rectPx(doc, T_X0 - 6, 1258, T_X1 + 8, 3000, BLANCO)
+
+  let y = Y0
+  const etiquetaBarra = { size: 9, estilo: 'bold' as const, color: BLANCO }
+  const cajaAnual = (yy: number, alto: number, texto: string) => {
+    textoPx(doc, 'PROMEDIO', 1855, yy + alto / 2, { size: 7.5, estilo: 'bold', color: BLANCO })
+    rectPx(doc, CAJA_ANUAL[0], yy + 8 * k, CAJA_ANUAL[1], yy + alto - 8 * k, BLANCO)
+    textoPx(doc, texto, (CAJA_ANUAL[0] + CAJA_ANUAL[1]) / 2, yy + alto / 2, {
+      size: 10,
+      estilo: 'bold',
+      color: TINTA,
+      align: 'center',
+    })
   }
 
-  let y = 18
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(14)
-  doc.text('INSTITUTO WINSTON CHURCHILL', pageW / 2, y, { align: 'center' })
-  y += 7
-  doc.setFontSize(11)
-  doc.text('Boleta Primaria · Español', pageW / 2, y, { align: 'center' })
-  y += 8
-
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(10)
-  doc.text(`Alumno: ${alumno.nombre}`, 14, y)
-  y += 5
-  doc.text(
-    `Ref: ${String(alumno.alumno_ref ?? '').padStart(5, '0')}   Grado: ${gradoEtiqueta} ${alumno.grupo_letra}   Trimestre: ${bimestre}   Ciclo: ${etiquetaCicloBoletas(ciclo)}`,
-    14,
-    y
-  )
-  y += 5
-  if (maestra) {
-    doc.text(`Maestra: ${maestra}`, 14, y)
-    y += 5
-  }
-  y += 3
-
-  for (const bloque of bloques) {
-    if (y > 250) {
-      doc.addPage()
-      y = 18
+  const dibujarBloque = (b: (typeof bloques)[number]) => {
+    const porTri = [1, 2, 3].map((t) => promedioBloque(b.mats, t))
+    rectPx(doc, T_X0, y, T_X1, y + BAR - 2, NAVY)
+    textoPx(doc, b.seccion.titulo.toUpperCase(), 330, y + BAR / 2, { ...etiquetaBarra, maxW: 1500 })
+    cajaAnual(y, BAR - 2, anual(porTri))
+    y += BAR
+    const yMat = y
+    for (const m of b.mats) {
+      textoPx(doc, m.nombre, 345, y + ROW / 2, { size: 10.5, estilo: 'bold', color: TINTA, maxW: COL_NOMBRE_FIN - 370 })
+      COL_TRI.forEach((x, i) => textoPx(doc, valor(i + 1, m.id), x, y + ROW / 2, { size: 10.5, color: TINTA, align: 'center' }))
+      y += ROW
     }
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(9)
-    doc.setTextColor(30, 70, 130)
-    doc.text(bloque.etiqueta.toUpperCase(), 14, y)
-    doc.setTextColor(0)
-    y += 5
-    doc.setDrawColor(180)
-    doc.line(14, y, pageW - 14, y)
-    y += 5
-
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(9)
-    for (const mat of bloque.materias) {
-      if (y > 265) {
-        doc.addPage()
-        y = 18
-      }
-      const nombre = mat.nombre.slice(0, 70)
-      const cal = mat.calificacion.trim() || '—'
-      doc.text(nombre, 14, y)
-      doc.text(cal.slice(0, 28), 150, y)
-      y += 5
+    for (const x of [T_X0, ...COL_LINEAS, T_X1]) lineaPx(doc, x, yMat, x, y, LINEA, x === T_X0 || x === T_X1 ? 2 : 3)
+    lineaPx(doc, T_X0, y, T_X1, y, LINEA, 2)
+    rectPx(doc, T_X0, y, COL_NOMBRE_FIN - 1, y + BAR - 2, NAVY)
+    textoPx(doc, 'PROMEDIO', 330, y + BAR / 2, etiquetaBarra)
+    for (let i = 0; i < 4; i++) {
+      rectPx(doc, COL_LINEAS[i] + 2, y, (COL_LINEAS[i + 1] ?? T_X1) - 2, y + BAR - 2, GRIS)
     }
-    y += 4
+    COL_TRI.forEach((x, i) =>
+      textoPx(doc, porTri[i], x, y + BAR / 2, { size: 10, estilo: 'bold', color: TINTA, align: 'center' })
+    )
+    y += BAR
   }
 
-  y += 6
-  if (y > 270) {
-    doc.addPage()
-    y = 18
+  nucleo.forEach(dibujarBloque)
+  if (nucleo.length) {
+    rectPx(doc, T_X0, y, T_X1, y + BAR - 2, NAVY)
+    textoPx(doc, 'PROMEDIO FINAL', 330, y + BAR / 2, etiquetaBarra)
+    COL_TRI.forEach((x, i) =>
+      textoPx(doc, finalTri[i], x, y + BAR / 2, { size: 10, estilo: 'bold', color: BLANCO, align: 'center' })
+    )
+    cajaAnual(y, BAR - 2, anual(finalTri))
+    y += BAR
   }
-  doc.setFontSize(8)
-  doc.setTextColor(100)
-  doc.text(
-    `Plantilla referencia: ${plantillaPdfPorGrado(grado)} · servicios_admin / primaria-español (InsForge).`,
-    14,
-    Math.min(y, pageH - 12)
-  )
-  doc.setTextColor(0)
+  extra.forEach(dibujarBloque)
+
+  // ── Hoja 2: habilidades conductuales ──
+  doc.addPage()
+  fondo(doc, reverso)
+  const hab = materias.filter((m) => m.seccion === 'habilidades')
+  const H_X0 = 308
+  const H_X1 = 2266
+  const H_Y0 = 950
+  const rowH = hab.length ? Math.min(58, 578 / hab.length) : 58
+  rectPx(doc, H_X0 - 8, H_Y0, H_X1 + 8, 1376, BLANCO)
+  hab.forEach((m, i) => {
+    const yy = H_Y0 + i * rowH
+    if (i % 2 === 1) rectPx(doc, H_X0, yy, H_X1, yy + rowH, GRIS_HAB)
+    textoPx(doc, m.nombre, 340, yy + rowH / 2, { size: 10, color: TINTA, maxW: 1258 - 360 })
+    ;[1384, 1636, 1888].forEach((x, t) =>
+      textoPx(doc, valor(t + 1, m.id), x, yy + rowH / 2, { size: 10, estilo: 'bold', color: TINTA, align: 'center' })
+    )
+  })
+  const yFin = H_Y0 + hab.length * rowH
+  for (const x of [1258, 1510, 1762, 2014]) lineaPx(doc, x, H_Y0, x, yFin, [0, 0, 0], 3)
+  rectPx(doc, H_X0, yFin, H_X1, yFin + 72, AZUL_HAB)
 
   return Buffer.from(doc.output('arraybuffer'))
 }

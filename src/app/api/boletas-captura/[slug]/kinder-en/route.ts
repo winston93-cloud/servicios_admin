@@ -4,17 +4,18 @@ import { capturaConfigDeSlug } from '@/lib/boletasCapturaAuth'
 import {
   assertAlumnoDelGrupo,
   assertEditable,
-  contextoTeacherKinderEn,
-  type ContextoTeacherKinderEn,
-} from '@/lib/boletasCapturaKinderEn'
+  contextoCaptura,
+  type ContextoCaptura,
+} from '@/lib/boletasCapturaContexto'
 import { enviarEntrega } from '@/lib/boletasEntrega'
 import { guardarCaptura, listarAlumnos, obtenerCaptura, progresoAlumnos } from '@/lib/boletasKinderEnService'
+import type { KinderEnGrado } from '@/lib/boletasKinderEnCatalog'
 
 export const dynamic = 'force-dynamic'
 
 type Params = { params: Promise<{ slug: string }> }
 
-function estado(ctx: ContextoTeacherKinderEn) {
+function estado(ctx: ContextoCaptura) {
   return {
     ciclo: ctx.ciclo,
     trimestre: ctx.trimestre,
@@ -26,11 +27,11 @@ function estado(ctx: ContextoTeacherKinderEn) {
   }
 }
 
-async function alumnosConProgreso(ctx: ContextoTeacherKinderEn) {
+async function alumnosConProgreso(ctx: ContextoCaptura) {
   const lista = await listarAlumnos({ grado: ctx.grado, grupoLetra: ctx.grupo, ciclo: ctx.ciclo })
   const progreso = await progresoAlumnos(
     lista.map((a) => a.alumno_id),
-    ctx.grado,
+    ctx.grado as KinderEnGrado,
     ctx.trimestre,
     ctx.ciclo
   )
@@ -49,7 +50,7 @@ export async function GET(req: Request, { params }: Params) {
   try {
     const cfg = capturaConfigDeSlug((await params).slug)
     const url = new URL(req.url)
-    const ctx = await contextoTeacherKinderEn(cfg, req, {
+    const ctx = await contextoCaptura(cfg, req, {
       grado: url.searchParams.get('grado'),
       grupo: url.searchParams.get('grupo'),
       trimestre: url.searchParams.get('trimestre'),
@@ -70,7 +71,7 @@ export async function PUT(req: Request, { params }: Params) {
   try {
     const cfg = capturaConfigDeSlug((await params).slug)
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>
-    const ctx = await contextoTeacherKinderEn(cfg, req, body as { grado: unknown; grupo: unknown; trimestre: unknown })
+    const ctx = await contextoCaptura(cfg, req, body as { grado: unknown; grupo: unknown; trimestre: unknown })
     assertEditable(ctx)
     const alumnoId = Number(body.alumnoId)
     await assertAlumnoDelGrupo(ctx, alumnoId)
@@ -98,7 +99,7 @@ export async function POST(req: Request, { params }: Params) {
     if (body.accion !== 'enviar') {
       return NextResponse.json({ error: 'accion inválida' }, { status: 400 })
     }
-    const ctx = await contextoTeacherKinderEn(cfg, req, body as { grado: unknown; grupo: unknown; trimestre: unknown })
+    const ctx = await contextoCaptura(cfg, req, body as { grado: unknown; grupo: unknown; trimestre: unknown })
     assertEditable(ctx)
     const alumnos = await alumnosConProgreso(ctx)
     if (!alumnos.length) {

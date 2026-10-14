@@ -4,9 +4,9 @@ import { capturaConfigDeSlug } from '@/lib/boletasCapturaAuth'
 import {
   assertAlumnoDelGrupo,
   assertEditable,
-  contextoTeacherKinderEn,
-  type ContextoTeacherKinderEn,
-} from '@/lib/boletasCapturaKinderEn'
+  contextoCaptura,
+  type ContextoCaptura,
+} from '@/lib/boletasCapturaContexto'
 import { enviarEntrega } from '@/lib/boletasEntrega'
 import {
   capturaParaUi,
@@ -23,9 +23,9 @@ type Params = { params: Promise<{ slug: string }> }
 type Raw = { grado: unknown; grupo: unknown; trimestre: unknown }
 
 const contexto = (slug: string, req: Request, raw: Raw) =>
-  contextoTeacherKinderEn(capturaConfigDeSlug(slug), req, raw, 'kinder-es')
+  contextoCaptura(capturaConfigDeSlug(slug), req, raw, 'kinder-es')
 
-function estado(ctx: ContextoTeacherKinderEn) {
+function estado(ctx: ContextoCaptura) {
   return {
     ciclo: ctx.ciclo,
     trimestre: ctx.trimestre,
@@ -37,7 +37,7 @@ function estado(ctx: ContextoTeacherKinderEn) {
   }
 }
 
-async function alumnosConProgreso(ctx: ContextoTeacherKinderEn) {
+async function alumnosConProgreso(ctx: ContextoCaptura) {
   const lista = await listarAlumnos({ grado: ctx.grado, grupoLetra: ctx.grupo, ciclo: ctx.ciclo })
   const progreso = await progresoAlumnos(
     lista.map((a) => a.alumno_id),
