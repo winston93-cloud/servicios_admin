@@ -1,9 +1,8 @@
 'use client'
 
-import { NumeroAnimado } from '@/components/boletas-motion'
 import ThemeToggle from '@/components/ThemeToggle'
 import { boletasHubItems, type BoletasHubId, type BoletasHubItem } from '@/lib/boletasHubNav'
-import type { HubEstado, HubEstadoModulo, HubModulo, HubNivel } from '@/lib/boletasHubEstado'
+import type { HubEstado, HubModulo, HubNivel } from '@/lib/boletasHubEstado'
 import type { BoletaModulo } from '@/lib/boletasPdfModulo'
 import { cicloEscolarEtiqueta, getCicloEscolarActual } from '@/lib/ciclosEscolares'
 import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Copy, GraduationCap } from 'lucide-react'
@@ -96,71 +95,6 @@ const NIVELES: Nivel[] = [
 
 const PORTAL_PATH = '/boletas-captura'
 
-const ESTADO_MODULO: Record<HubEstadoModulo, string> = {
-  'sin-entregas': 'Sin entregas',
-  'en-captura': 'En captura',
-  devuelta: 'Con devoluciones',
-  enviada: 'Todo enviado',
-  publicada: 'Publicada',
-}
-
-function Cifra({ n }: { n: number }) {
-  return <NumeroAnimado valor={n} texto={String(n)} />
-}
-
-function NivelEstado({ trimestre, modulos }: { trimestre: number; modulos: HubModulo[] }) {
-  const enviadas = modulos.reduce((s, m) => s + m.enviadas, 0)
-  const total = modulos.reduce((s, m) => s + m.total, 0)
-  const publicados = modulos.reduce((s, m) => s + m.publicados, 0)
-  const publicables = modulos.reduce((s, m) => s + m.publicables, 0)
-  const sec = modulos.find((m) => m.capturaAbierta != null)
-  const avance = total ? Math.round((enviadas / total) * 100) : 0
-
-  let pill = `Trimestre ${trimestre}`
-  let tono = 'neutro'
-  if (publicables > 0 && publicados === publicables) {
-    pill = `Trimestre ${trimestre} publicado`
-    tono = 'publicada'
-  } else if (sec) {
-    pill = sec.capturaAbierta ? `Captura abierta · Trimestre ${sec.capturaAbierta}` : `Captura cerrada · Trimestre ${trimestre}`
-    tono = sec.capturaAbierta ? 'abierta' : 'cerrada'
-  }
-
-  return (
-    <div className="bh-estado">
-      <div className="bh-estado__top">
-        <span className={`bh-pill is-${tono}`}>{pill}</span>
-        <span className="bh-estado__pub">
-          Publicado a papás{' '}
-          <b>
-            <Cifra n={publicados} />
-          </b>
-          /{publicables}
-        </span>
-      </div>
-      <div className="bh-estado__barra">
-        <span
-          className="bh-estado__track"
-          role="progressbar"
-          aria-label={sec ? 'Materias entregadas a dirección' : 'Grupos entregados a dirección'}
-          aria-valuemin={0}
-          aria-valuemax={total}
-          aria-valuenow={enviadas}
-        >
-          <i style={{ width: `${avance}%` }} />
-        </span>
-        <span className="bh-estado__label">
-          {sec ? 'Materias' : 'Entregas'}{' '}
-          <b>
-            <Cifra n={enviadas} />
-          </b>{' '}
-          de {total}
-        </span>
-      </div>
-    </div>
-  )
-}
-
 function AccesoFila({
   acceso,
   item,
@@ -176,14 +110,12 @@ function AccesoFila({
         {acceso.tag || <GraduationCap size={18} strokeWidth={1.75} />}
       </span>
       <span className="bh-acceso__text">
-        <span className="bh-acceso__label">
-          {acceso.etiqueta}
-          {estado && item?.activo ? (
-            <span className={`bh-acceso__estado is-${estado.estado}`}>{ESTADO_MODULO[estado.estado]}</span>
-          ) : null}
-        </span>
+        <span className="bh-acceso__label">{acceso.etiqueta}</span>
         <span className="bh-acceso__desc">{acceso.detalle}</span>
       </span>
+      {item?.activo && estado?.estado === 'publicada' ? (
+        <span className="bh-acceso__sello">Publicada</span>
+      ) : null}
       {item?.activo ? (
         <ArrowRight className="bh-acceso__arrow" size={18} strokeWidth={2} aria-hidden />
       ) : (
@@ -211,15 +143,12 @@ export default function BoletasHubPage() {
   const [copiado, setCopiado] = useState(false)
   const timer = useRef<number | null>(null)
   const [estado, setEstado] = useState<HubEstado | null>(null)
-  const [sinSesion, setSinSesion] = useState(false)
 
   useEffect(() => {
     let vivo = true
     fetch('/api/boletas-hub', { cache: 'no-store' })
       .then(async (r) => {
-        if (!vivo) return
-        if (r.status === 401) setSinSesion(true)
-        else if (r.ok) setEstado((await r.json()) as HubEstado)
+        if (vivo && r.ok) setEstado((await r.json()) as HubEstado)
       })
       .catch(() => {})
     return () => {
@@ -280,12 +209,15 @@ export default function BoletasHubPage() {
         <section className="bh-intro">
           <h1 className="bh-intro__title">Sistema Integral de Boletas</h1>
           <p className="bh-intro__lead">
-            Avance del trimestre por nivel: entregas a dirección y boletas publicadas a papás. Entra al
-            módulo para revisar, publicar y generar el PDF.
+            Elige nivel e idioma para capturar, revisar, publicar a papás y generar el PDF.
           </p>
-          {sinSesion && (
-            <p className="bh-intro__nota">Inicia sesión en cualquier módulo para ver aquí el avance del trimestre.</p>
-          )}
+          <div className="bh-sello" role="img" aria-label={`Ciclo escolar ${ciclo}`}>
+            <span className="bh-sello__oficial" aria-hidden>
+              ✦ Oficial ✦
+            </span>
+            <strong aria-hidden>{ciclo.replace(/^(\d{4})-\d{2}(\d{2})$/, '$1—$2')}</strong>
+            <span aria-hidden>Ciclo escolar</span>
+          </div>
         </section>
 
         <div className="bh-grid">
@@ -310,12 +242,7 @@ export default function BoletasHubPage() {
                   <h2 className="bh-nivel__title">{nivel.titulo}</h2>
                   <span className="bh-nivel__grados">{nivel.grados}</span>
                 </header>
-                {estado && (
-                  <NivelEstado
-                    trimestre={estado.niveles[nivel.id].trimestre}
-                    modulos={estado.niveles[nivel.id].modulos}
-                  />
-                )}
+
                 <ul className="bh-nivel__accesos">
                   {nivel.accesos.map((a) => (
                     <li key={a.id}>
