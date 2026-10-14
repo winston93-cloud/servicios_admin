@@ -6,7 +6,7 @@ import SecClase, { type SecClaseControl } from '@/app/boletas/secundaria-comun/S
 import { LoginPanel } from '@/app/boletas-captura/PortalCapturaNivel'
 import { SECCION_ETIQUETA, SECUNDARIA_GRADOS, etiquetaGradoSec } from '@/lib/boletasSecundariaCatalog'
 import type { SecClase as SecClaseTipo } from '@/lib/boletasSecundariaService'
-import { ArrowLeft, CheckCircle2, LogOut, Send, Undo2 } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Lock, LockOpen, LogOut, Send, Undo2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import '@/app/boletas/boletas-login-google.css'
@@ -27,17 +27,17 @@ type Sesion = {
   ciclo: { valor: number; etiqueta: string }
 }
 
-type Lista = { trimestre: number; supervisor: boolean; clases: Clase[] }
+type Lista = { trimestre: number; abierto: number; supervisor: boolean; clases: Clase[] }
 
 type Sel = { materiaId: number; grupo: string }
 
-function leerUrl(): { sel: Sel | null; trimestre: number } {
+function leerUrl(): { sel: Sel | null; trimestre: number | null } {
   const q = new URLSearchParams(window.location.search)
   const t = Number(q.get('t'))
   const m = Number(q.get('m'))
   const g = q.get('g')
   return {
-    trimestre: t >= 1 && t <= 3 ? t : 1,
+    trimestre: t >= 1 && t <= 3 ? t : null,
     sel: m > 0 && g ? { materiaId: m, grupo: g } : null,
   }
 }
@@ -99,7 +99,8 @@ export default function PortalSecundariaPage() {
   const [sesion, setSesion] = useState<Sesion | null>(null)
   const [boot, setBoot] = useState(true)
   const [errBoot, setErrBoot] = useState('')
-  const [trimestre, setTrimestre] = useState(1)
+  /** null hasta saber cuál abrió la dirección (sin `?t=` en la URL). */
+  const [trimestre, setTrimestre] = useState<number | null>(null)
   const [sel, setSel] = useState<Sel | null>(null)
   const [lista, setLista] = useState<Lista | null>(null)
   const [errLista, setErrLista] = useState('')
@@ -129,7 +130,9 @@ export default function PortalSecundariaPage() {
   const cargarLista = useCallback(async () => {
     setErrLista('')
     try {
-      setLista(await kiApi<Lista>(`${URL_HOJA}?trimestre=${trimestre}`))
+      const l = await kiApi<Lista>(trimestre ? `${URL_HOJA}?trimestre=${trimestre}` : URL_HOJA)
+      setLista(l)
+      if (!trimestre) setTrimestre(l.trimestre)
     } catch (e) {
       setErrLista(e instanceof Error ? e.message : 'No se pudieron cargar tus materias.')
     }
@@ -140,7 +143,7 @@ export default function PortalSecundariaPage() {
   }, [sesion, cargarLista])
 
   useEffect(() => {
-    if (sesion) escribirUrl(sel, trimestre)
+    if (sesion && trimestre) escribirUrl(sel, trimestre)
   }, [sesion, sel, trimestre])
 
   const clases = useMemo(() => lista?.clases ?? [], [lista])
@@ -224,7 +227,7 @@ export default function PortalSecundariaPage() {
               grupo={actual.grupo}
               etiqueta={actual.etiqueta}
               comprension={actual.comprension}
-              trimestre={trimestre}
+              trimestre={trimestre ?? 1}
               onTrimestre={setTrimestre}
               hermanas={clases.filter((c) => c.materiaId === actual.materiaId).map((c) => ({ grupo: c.grupo, etiqueta: c.etiqueta }))}
               onGrupo={(g) => setSel({ materiaId: actual.materiaId, grupo: g })}
@@ -256,6 +259,27 @@ export default function PortalSecundariaPage() {
               </p>
             )}
 
+            {lista && (
+              <div className={`bc-banner sp-captura ${lista.abierto ? 'is-abierta' : 'is-cerrada'}`} role="status">
+                {lista.abierto ? <LockOpen size={18} aria-hidden /> : <Lock size={18} aria-hidden />}
+                <span>
+                  {lista.abierto ? (
+                    <>
+                      <strong>Captura abierta: trimestre {lista.abierto}.</strong>{' '}
+                      {supervisor ? 'Los maestros solo pueden capturar ese trimestre.' : 'Los demás trimestres son solo de consulta.'}
+                    </>
+                  ) : (
+                    <>
+                      <strong>La captura está cerrada.</strong>{' '}
+                      {supervisor
+                        ? 'Los maestros solo pueden consultar hasta que la dirección abra un trimestre.'
+                        : 'Tu directora abre el trimestre cuando empieza la captura; mientras, puedes consultar tus hojas.'}
+                    </>
+                  )}
+                </span>
+              </div>
+            )}
+
             <div className="sp-trimestre">
               <span>Avance del</span>
               <div className="bc-trimestres" role="tablist" aria-label="Trimestre">
@@ -269,6 +293,7 @@ export default function PortalSecundariaPage() {
                     onClick={() => setTrimestre(t)}
                   >
                     Trimestre {t}
+                    {lista?.abierto === t && <span className="sc-abierto">abierto</span>}
                   </button>
                 ))}
               </div>

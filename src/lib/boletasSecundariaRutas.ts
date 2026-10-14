@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { BoletasAuthError, requireAdmin, requireBoletasSession } from './boletasAuth'
 import { jsonError, jsonOk } from './boletasApi'
 import { capturaConfigDeSlug, requireSesionCaptura, supervisaModulo, type BoletasCapturaSesion } from './boletasCapturaAuth'
+import { fijarCapturaPeriodo, obtenerCapturaPeriodo } from './boletasCapturaPeriodo'
 import { etiquetaCicloBoletas } from './boletasCiclo'
 import { devolverEntrega, enviarEntrega, obtenerEntrega, type BoletaEntrega } from './boletasEntrega'
 import { estaPublicada, publicarTrimestre, retirarTrimestre, trimestreValido } from './boletasPortal'
@@ -84,8 +85,9 @@ function assertEditable(e: Estado): void {
   }
 }
 
-function respuestaHoja(hoja: Awaited<ReturnType<typeof hojaSec>>, estado: Estado | null) {
+function respuestaHoja(hoja: Awaited<ReturnType<typeof hojaSec>>, estado: Estado | null, abierto?: number) {
   return {
+    abierto,
     materia: hoja.materia,
     grado: hoja.grado,
     grupo: hoja.grupo,
@@ -108,6 +110,19 @@ async function sesionPortal(p: Params, req: Request): Promise<BoletasCapturaSesi
   const s = requireSesionCaptura(cfg, req)
   if (s.supervisor && !supervisaModulo(s, MODULO_SECUNDARIA)) throw prohibido('Tu cuenta no supervisa secundaria.')
   return s
+}
+
+/** Trimestre abierto por la dirección. La supervisión captura en cualquiera. */
+async function trimestreAbierto(ciclo: number): Promise<number> {
+  return (await obtenerCapturaPeriodo(ciclo, MODULO_SECUNDARIA)).trimestre
+}
+
+function assertAbierto(s: BoletasCapturaSesion, abierto: number, trimestre?: number): void {
+  if (s.supervisor) return
+  if (!abierto) throw prohibido('La captura está cerrada. Tu directora abre el trimestre cuando empieza la captura.')
+  if (trimestre != null && trimestre !== abierto) {
+    throw prohibido(`Solo está abierto el ${abierto}er trimestre para captura.`)
+  }
 }
 
 async function assertClaseDelMaestro(s: BoletasCapturaSesion, c: Clase): Promise<void> {
@@ -145,12 +160,14 @@ export function rutasPortalSecundaria() {
       const url = new URL(req.url)
       const q = (k: string) => url.searchParams.get(k)
       const ciclo = await resolverCicloEscolarSistemaValor()
+      const abierto = await trimestreAbierto(ciclo)
       if (!q('materiaId')) {
-        const trimestre = trimestreValido(q('trimestre') ?? 1) ?? 1
+        const trimestre = trimestreValido(q('trimestre') ?? (abierto || 1)) ?? 1
         const clases = s.supervisor ? await clasesSupervisionSec(ciclo) : await clasesDeMaestroSec(s.maestroId)
         return jsonOk({
           ciclo: { valor: ciclo, etiqueta: etiquetaCicloBoletas(ciclo) },
           trimestre,
+          abierto,
           supervisor: Boolean(s.supervisor),
           clases: await clasesConAvance(clases, ciclo, trimestre),
         })
@@ -160,7 +177,12 @@ export function rutasPortalSecundaria() {
         await assertClaseDelMaestro(s, c)
         if (!c.materia.comprension) throw new Error('Esa materia no lleva comprensión lectora.')
         const mes = Number(q('mes'))
-        return jsonOk({ mes, filas: await comprensionSec({ ciclo, grado: c.materia.grado, grupo: c.grupo, mes }) })
+        return jsonOk({
+          mes,
+          abierto,
+          editable: Boolean(s.supervisor || abierto),
+          filas: await comprensionSec({ ciclo, grado: c.materia.grado, grupo: c.grupo, mes }),
+        })
       }
       const c = await claseDe({ materiaId: q('materiaId'), grupo: q('grupo'), trimestre: q('trimestre') })
       await assertClaseDelMaestro(s, c)
@@ -168,7 +190,8 @@ export function rutasPortalSecundaria() {
         hojaSec({ ciclo, materiaId: c.materia.id, grado: c.materia.grado, grupo: c.grupo, trimestre: c.trimestre }),
         estadoClase(ciclo, c),
       ])
-      return jsonOk(respuestaHoja(hoja, estado))
+      const enPeriodo = Boolean(s.supervisor) || c.trimestre === abierto
+      return jsonOk(respuestaHoja(hoja, { ...estado, editable: estado.editable && enPeriodo }, abierto))
     } catch (e) {
       return jsonError(e, 400)
     }
@@ -179,9 +202,11 @@ export function rutasPortalSecundaria() {
       const s = await sesionPortal(p, req)
       const body = await cuerpo(req)
       const ciclo = await resolverCicloEscolarSistemaValor()
+      const abierto = await trimestreAbierto(ciclo)
       if (body.tipo === 'comprension') {
         const c = await claseDe({ materiaId: body.materiaId, grupo: body.grupo }, false)
         await assertClaseDelMaestro(s, c)
+        assertAbierto(s, abierto)
         if (!c.materia.comprension) throw new Error('Esa materia no lleva comprensión lectora.')
         const mes = Number(body.mes)
         if (!esMesComprension(mes)) throw new Error('Mes inválido.')
@@ -191,6 +216,7 @@ export function rutasPortalSecundaria() {
       }
       const c = await claseDe(body)
       await assertClaseDelMaestro(s, c)
+      assertAbierto(s, abierto, c.trimestre)
       assertEditable(await estadoClase(ciclo, c))
       const alumnos = await alumnosGrupoSec(ciclo, c.materia.grado, c.grupo)
       const r = await guardarHojaSec({
@@ -213,8 +239,10 @@ export function rutasPortalSecundaria() {
       const body = await cuerpo(req)
       if (body.accion !== 'enviar') return NextResponse.json({ error: 'accion inválida' }, { status: 400 })
       const ciclo = await resolverCicloEscolarSistemaValor()
+      const abierto = await trimestreAbierto(ciclo)
       const c = await claseDe(body)
       await assertClaseDelMaestro(s, c)
+      assertAbierto(s, abierto, c.trimestre)
       assertEditable(await estadoClase(ciclo, c))
       const hoja = await hojaSec({ ciclo, materiaId: c.materia.id, grado: c.materia.grado, grupo: c.grupo, trimestre: c.trimestre })
       if (!hoja.filas.length) return NextResponse.json({ error: 'Este grupo no tiene alumnos.' }, { status: 400 })
@@ -226,7 +254,7 @@ export function rutasPortalSecundaria() {
         { ciclo, modulo: MODULO_SECUNDARIA, trimestre: c.trimestre, grado: c.materia.grado, grupo: c.grupo, materiaId: c.materia.id },
         { maestroId: s.maestroId, nombre: s.nombre }
       )
-      return jsonOk(respuestaHoja(hoja, await estadoClase(ciclo, c)))
+      return jsonOk(respuestaHoja(hoja, await estadoClase(ciclo, c), abierto))
     } catch (e) {
       return jsonError(e, 400)
     }
@@ -450,5 +478,34 @@ export function rutasDireccionSecundaria() {
     },
   }
 
-  return { clases, hoja, entregas, promedios, catalogo, maestros }
+  /** Trimestre abierto a captura de maestros (0 = cerrada). */
+  const periodo = {
+    GET: async (req: Request) => {
+      try {
+        await admin(req)
+        const ciclo = cicloDe(new URL(req.url).searchParams.get('ciclo'))
+        return jsonOk(await obtenerCapturaPeriodo(ciclo, MODULO_SECUNDARIA))
+      } catch (e) {
+        return jsonError(e, 400)
+      }
+    },
+    POST: async (req: Request) => {
+      try {
+        const session = await admin(req)
+        const body = await cuerpo(req)
+        return jsonOk(
+          await fijarCapturaPeriodo({
+            ciclo: cicloDe(body.ciclo),
+            modulo: MODULO_SECUNDARIA,
+            trimestre: Number(body.trimestre),
+            por: session.nombre || session.usuario,
+          })
+        )
+      } catch (e) {
+        return jsonError(e, 400)
+      }
+    },
+  }
+
+  return { clases, hoja, entregas, promedios, catalogo, maestros, periodo }
 }

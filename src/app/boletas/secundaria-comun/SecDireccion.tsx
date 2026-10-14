@@ -11,12 +11,14 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import SecClase, { type SecClaseControl } from './SecClase'
 import SecEntregas from './SecEntregas'
+import SecPeriodo from './SecPeriodo'
 import SecMaestros from './SecMaestros'
 import SecMaterias from './SecMaterias'
 import SecPromedios from './SecPromedios'
 import '../boletas-login-google.css'
 import '../boletas-modulos-ui.css'
 import '../kinder-ingles/kinder-ingles.css'
+import '@/app/boletas-captura/boletas-captura.css'
 import './secundaria.css'
 
 type Me = {
@@ -274,6 +276,12 @@ export default function SecDireccion() {
   const [trimestre, setTrimestre] = useState(1)
   const [sel, setSel] = useState({ materiaId: 0, grado: 1, grupo: 'A' })
   const clase = useRef<SecClaseControl | null>(null)
+  const trimestreElegido = useRef(false)
+  const preseleccionar = useCallback((t: number) => {
+    if (trimestreElegido.current) return
+    trimestreElegido.current = true
+    setTrimestre(t)
+  }, [])
 
   const refreshMe = useCallback(async () => {
     try {
@@ -373,7 +381,13 @@ export default function SecDireccion() {
         {vista === 'entregas' && (
           <label>
             Trimestre
-            <select value={trimestre} onChange={(e) => setTrimestre(Number(e.target.value))}>
+            <select
+              value={trimestre}
+              onChange={(e) => {
+                trimestreElegido.current = true
+                setTrimestre(Number(e.target.value))
+              }}
+            >
               <option value={1}>1</option>
               <option value={2}>2</option>
               <option value={3}>3</option>
@@ -394,6 +408,8 @@ export default function SecDireccion() {
     </div>
   )
 
+  const periodo = <SecPeriodo ciclo={ciclo} esActual={ciclo === (me.cicloActual ?? ciclo)} onAbierto={preseleccionar} />
+
   return (
     <div className="ki-page bm-page">
       {header}
@@ -406,6 +422,7 @@ export default function SecDireccion() {
 
         {vista === 'menu' && (
           <>
+            {periodo}
             <h2 className="ki-seccion">Menú de dirección</h2>
             <ul className="ki-menu">
               {MENU.map((m) => {
@@ -433,6 +450,7 @@ export default function SecDireccion() {
         {vista === 'entregas' && (
           <>
             {filtros}
+            {periodo}
             <SecEntregas
               ciclo={ciclo}
               trimestre={trimestre}

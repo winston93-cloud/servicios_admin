@@ -16,7 +16,7 @@ import {
   promedioMateriaBoleta,
 } from '@/lib/boletasSecundariaCatalog'
 import type { SecFilaComprension, SecFilaHoja, SecMateria } from '@/lib/boletasSecundariaService'
-import { CheckCircle2, Send, Undo2 } from 'lucide-react'
+import { CheckCircle2, Lock, Send, Undo2 } from 'lucide-react'
 import { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react'
 import SecGrid, { type SecGridCambio, type SecGridCol, type SecGridControl, type SecGridFila } from './SecGrid'
 
@@ -30,6 +30,8 @@ type HojaResp = {
   entrega: BoletaEntrega | null
   publicada: boolean
   editable: boolean
+  /** Trimestre abierto a captura de maestros (0 = cerrada); solo viene en el portal. */
+  abierto?: number
 }
 
 export type SecClaseControl = {
@@ -147,6 +149,18 @@ function Estado({ hoja, modo }: { hoja: HojaResp; modo: Props['modo'] }) {
       </div>
     )
   }
+  if (modo === 'maestro' && hoja.abierto != null && hoja.abierto !== trimestre) {
+    return (
+      <div className="bc-banner is-cerrada" role="status">
+        <Lock size={18} aria-hidden />
+        <span>
+          {hoja.abierto
+            ? `Este trimestre no está abierto para captura (está abierto el trimestre ${hoja.abierto}). Puedes consultarlo, pero no editarlo.`
+            : 'La captura está cerrada. Tu directora abre el trimestre cuando empieza la captura; mientras, solo puedes consultar.'}
+        </span>
+      </div>
+    )
+  }
   return null
 }
 
@@ -157,6 +171,7 @@ export default function SecClase(props: Props) {
   const [mes, setMes] = useState(1)
   const [hoja, setHoja] = useState<HojaResp | null>(null)
   const [comp, setComp] = useState<SecFilaComprension[] | null>(null)
+  const [compEditable, setCompEditable] = useState(true)
   const [carga, setCarga] = useState(0)
   const [cargando, setCargando] = useState(true)
   const [err, setErr] = useState('')
@@ -179,7 +194,10 @@ export default function SecClase(props: Props) {
       .then((d) => {
         if (!vivo) return
         if (tab === 'calif') setHoja(d as HojaResp)
-        else setComp(d.filas)
+        else {
+          setComp(d.filas)
+          setCompEditable(d.editable !== false)
+        }
       })
       .catch((e) => vivo && setErr(e instanceof Error ? e.message : 'No se pudo cargar la hoja.'))
       .finally(() => vivo && setCargando(false))
@@ -340,6 +358,7 @@ export default function SecClase(props: Props) {
               })}
             >
               Trimestre {t}
+              {modo === 'maestro' && hoja?.abierto === t && <span className="sc-abierto">abierto</span>}
             </button>
           ))}
           {comprension && (
@@ -467,11 +486,17 @@ export default function SecClase(props: Props) {
             <p className="ki-hint">Este grupo no tiene alumnos activos en el ciclo.</p>
           ) : (
             <>
+              {!compEditable && (
+                <div className="bc-banner is-cerrada" role="status">
+                  <Lock size={18} aria-hidden />
+                  <span>La captura está cerrada; solo puedes consultar la comprensión lectora.</span>
+                </div>
+              )}
               <SecGrid
                 key={`r-${materiaId}-${grupo}-${mes}-${carga}`}
                 filas={filasComp}
                 columnas={COLS_COMPRENSION}
-                editable
+                editable={compEditable}
                 guardar={guardarComp}
                 controlRef={grid}
                 tituloEdicion={`Comprensión lectora · ${COMPRENSION_MESES.find((m) => m.mes === mes)?.etiqueta ?? ''}`}
