@@ -286,7 +286,31 @@ async function actualizarPagoManual(
     .is('pago_folio', null)
 
   if (error) return { ok: false, error: error.message }
+  await aplicarCoberturasPorConcepto(supabase, fila)
   return { ok: true }
+}
+
+/** Pago Anual (30) y paquetes de meses (31): cubre las colegiaturas en $0, igual que Banorte/Openpay. */
+async function aplicarCoberturasPorConcepto(
+  supabase: AppDatabaseClient,
+  fila: FilaPagoEfectivoParseada
+): Promise<void> {
+  try {
+    const { talvezAplicarCoberturaPagoAnual } = await import('./pagoAnualCoberturaHook')
+    await talvezAplicarCoberturaPagoAnual(supabase, fila.referencia, {
+      importe: fila.importe,
+      fechaPago: fila.fecha,
+    })
+    const { talvezAplicarCoberturaPagoColegiaturas } = await import(
+      './pagoColegiaturasPaqueteCoberturaHook'
+    )
+    await talvezAplicarCoberturaPagoColegiaturas(supabase, fila.referencia, {
+      importe: fila.importe,
+      fechaPago: fila.fecha,
+    })
+  } catch (e) {
+    console.error('cobertura pago anual/paquete (efectivo):', e)
+  }
 }
 
 /** pago_id no es SERIAL en Supabase (legacy); hay que asignarlo como en MySQL AUTO_INCREMENT. */
@@ -332,6 +356,7 @@ async function insertarPago(
   })
 
   if (error) return { ok: false, error: error.message }
+  await aplicarCoberturasPorConcepto(supabase, fila)
   return { ok: true }
 }
 

@@ -8,6 +8,7 @@ import {
   SUSPENSIONES_ENVIO_MODO_PRUEBA,
 } from '@/lib/suspensionesEnvioConfig'
 import { correosDireccionPorNivelEscolar } from '@/lib/racStaffAllowlist'
+import { createSupabaseAdmin } from '@/lib/supabaseAdmin'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
     const plantel = Number(body.plantel) === 1 ? 1 : 2
     const tipo = Number(body.tipo) as TipoReporteSuspension
     const fechaCartas = String(body.fechaCartas ?? '').trim()
+    const enviadoPor = body.enviadoPor ? String(body.enviadoPor).slice(0, 120) : null
     const filas = (body.alumnos ?? []) as EnvioFila[]
 
     if (!filas.length) {
@@ -144,6 +146,28 @@ export async function POST(request: Request) {
         })
       }
     }
+
+    const db = createSupabaseAdmin()
+    const { error: logError } = await db.from('suspension_envio_log').insert(
+      filas.map((fila, i) => ({
+        enviado_por: enviadoPor,
+        plantel,
+        tipo,
+        fecha_cartas: /^\d{4}-\d{2}-\d{2}$/.test(fechaCartas) ? fechaCartas : null,
+        alumno_id: Number(fila.alumnoId) || null,
+        alumno_ref: fila.alumnoRef,
+        alumno_nombre: fila.nombre,
+        nivel: Number(fila.nivel) || null,
+        adeudos: fila.adeudos,
+        destinatarios: SUSPENSIONES_ENVIO_MODO_PRUEBA
+          ? [SUSPENSIONES_CORREO_PRUEBA]
+          : (fila.emails ?? []).filter((e) => e.includes('@')),
+        ok: Boolean(detalle[i]?.ok),
+        mensaje: detalle[i]?.mensaje ?? null,
+        modo_prueba: SUSPENSIONES_ENVIO_MODO_PRUEBA,
+      }))
+    )
+    if (logError) console.error('suspension_envio_log:', logError.message)
 
     return NextResponse.json({
       ok: errores === 0,

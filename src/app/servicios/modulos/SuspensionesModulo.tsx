@@ -11,6 +11,7 @@ import {
   RotateCcw,
   XCircle,
 } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
 import { useCicloEscolar } from '@/contexts/CicloEscolarContext'
 import {
   ETIQUETAS_TIPO_SUSPENSION,
@@ -63,6 +64,8 @@ function sleep(ms: number): Promise<void> {
 
 export default function SuspensionesModulo() {
   const { cicloSeleccionado, cicloActualSistema, opcionesCatalogo } = useCicloEscolar()
+  const { session, user } = useAuth()
+  const enviadoPor = user?.usuario_username ?? session?.displayName ?? null
   const [plantel, setPlantel] = useState<1 | 2>(2)
   const [tipo, setTipo] = useState<TipoReporte>(3)
   const [fechaCartas, setFechaCartas] = useState(hoyIso())
@@ -194,6 +197,7 @@ export default function SuspensionesModulo() {
             plantel: resultado.plantel,
             tipo: resultado.tipo,
             fechaCartas: resultado.fechaCartas,
+            enviadoPor,
             alumnos: [
               {
                 alumnoId: d.alumnoId,
@@ -245,7 +249,7 @@ export default function SuspensionesModulo() {
       total: elegidos.length,
     })
     setEnviando(false)
-  }, [resultado, elegidos, actualizarEstadoFila])
+  }, [resultado, elegidos, actualizarEstadoFila, enviadoPor])
 
   const reenviarErrores = useCallback(async () => {
     if (!resultado) return

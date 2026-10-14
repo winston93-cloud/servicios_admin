@@ -405,9 +405,11 @@ export async function aplicarCoberturaTrasPagoAnual(
   cicloValor: number,
   opts?: { fechaPago?: string; importePagado?: number }
 ): Promise<{ ok: true; insertados: string[] } | { ok: false; error: string }> {
+  // El pago del concepto 30 puede conciliarse días después del vencimiento, cuando el plan
+  // ya se desactivó: si hay registro, el pago lo reactiva y se cubre igual.
   const reg = await obtenerRegistroPagoAnual(db, alumno.alumno_id, cicloValor)
-  if (!reg?.activo) {
-    return { ok: false, error: 'No hay pago anual activo para aplicar cobertura.' }
+  if (!reg) {
+    return { ok: false, error: 'No hay pago anual registrado para aplicar cobertura.' }
   }
 
   const planMeses = planMesesNormalizado(reg.plan_meses)
@@ -474,6 +476,8 @@ export async function aplicarCoberturaTrasPagoAnual(
       pagado: true,
       pagado_en: ahora,
       activo: true,
+      desactivado_en: null,
+      desactivado_motivo: null,
       monto: opts?.importePagado != null ? opts.importePagado : reg.monto,
       actualizado_en: ahora,
     })
