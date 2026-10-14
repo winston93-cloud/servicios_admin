@@ -23,12 +23,12 @@
   width: 100%;
   min-height: var(--touch-min, 44px);
   padding: 0 14px;
-  border: 2px solid var(--ki-campo-borde);
-  border-radius: 0;
+  border: 1.5px solid var(--ki-campo-borde);
+  border-radius: var(--ki-radio);
   background: #ffffff;
   color: #1f1f1f;
   font: inherit;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: border-color 160ms ease, transform 160ms var(--ki-ease);
 }
@@ -38,7 +38,7 @@
 }
 
 .boletas-login-google-custom:active:not(:disabled) {
-  transform: translateY(1px) scale(0.98);
+  transform: scale(0.97);
 }
 
 .boletas-login-google-custom:disabled {
@@ -78,6 +78,7 @@
 .boletas-login-google-pick {
   margin-top: 4px;
   padding: 12px;
+  border-radius: var(--ki-radio);
   background: var(--ki-tono);
 }
 
@@ -92,10 +93,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-}
-
-.boletas-login-google-pick-list li:nth-child(even) button {
-  background: var(--ki-renglon);
+  gap: 0.2rem;
 }
 
 .boletas-login-google-pick-list button {
@@ -103,6 +101,7 @@
   min-height: var(--touch-min, 44px);
   padding: 0.55rem 0.75rem;
   border: none;
+  border-radius: 10px;
   background: var(--ki-hoja);
   color: var(--ki-ink);
   text-align: left;
@@ -111,5 +110,5 @@
 }
 
 .boletas-login-google-pick-list button:hover {
-  background: var(--ki-accent-tono);
+  background: var(--ki-hover);
 }

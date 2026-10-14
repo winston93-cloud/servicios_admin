@@ -6,19 +6,17 @@
   isolation: isolate;
 }
 
-/* Membrete: escudo + título, como el encabezado de la boleta impresa; cierra con la banda azul. */
+/* Membrete: escudo + título, como el encabezado de la boleta impresa. */
 .bm-hero {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: clamp(0.9rem, 2.5vw, 1.5rem);
-  padding-bottom: clamp(1.1rem, 3vw, 1.75rem);
-  margin-bottom: clamp(1.25rem, 3vw, 2rem);
-  border-bottom: 8px solid var(--ki-banda);
+  gap: clamp(0.9rem, 2.5vw, 1.4rem);
+  margin-bottom: clamp(1.5rem, 3.5vw, 2.5rem);
 }
 
 .bm-escudo {
-  width: clamp(48px, 6vw, 72px);
+  width: clamp(52px, 6vw, 68px);
   height: auto;
   animation: bm-escudo 620ms var(--ki-ease) 120ms both;
 }
@@ -64,9 +62,9 @@
   display: block;
   margin-bottom: 0.2rem;
   color: var(--ki-ink);
+  font-family: var(--ki-titulos);
   font-size: var(--ki-step-lead);
-  font-weight: 800;
-  letter-spacing: -0.025em;
+  font-weight: 650;
 }
 
 .bm-form-head {
@@ -77,11 +75,12 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.2rem 0.55rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 8px;
   background: var(--ki-info-tono);
   color: var(--ki-info);
   font-size: var(--ki-step-small);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .bm-count {
@@ -197,6 +196,6 @@
   }
 
   .bm-layout {
-    padding: 0.55rem;
+    padding: 0;
   }
 }

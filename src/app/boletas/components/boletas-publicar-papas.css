@@ -2,7 +2,9 @@
 
 .bpp {
   margin-top: clamp(1rem, 2.5vw, 1.5rem);
-  padding: clamp(1rem, 2.5vw, 1.5rem);
+  padding: clamp(1rem, 2.5vw, 1.6rem);
+  border: 1.5px solid var(--ki-line);
+  border-radius: var(--ki-radio);
   background: var(--ki-tono);
   min-width: 0;
 }
@@ -22,9 +24,9 @@
 
 .bpp-titulo {
   margin: 0;
+  font-family: var(--ki-titulos);
   font-size: var(--ki-step-lead);
-  font-weight: 800;
-  letter-spacing: -0.025em;
+  font-weight: 650;
   color: var(--ki-ink);
 }
 
@@ -37,8 +39,9 @@
 
 .bpp-error {
   margin: 0 0 0.75rem;
-  padding: 0.6rem 0.8rem;
-  border-left: 6px solid var(--ki-error);
+  padding: 0.7rem 0.9rem;
+  border: 1.5px dashed var(--ki-error);
+  border-radius: var(--ki-radio);
   background: var(--ki-error-tono);
   color: var(--ki-error);
   font-weight: 600;
@@ -50,6 +53,9 @@
   padding: 0;
   display: flex;
   flex-direction: column;
+  border: 1.5px solid var(--ki-line);
+  border-radius: var(--ki-radio);
+  overflow: hidden;
 }
 
 .bpp-item {
@@ -98,12 +104,12 @@
   min-height: var(--touch-min, 44px);
   padding: 0 1.1rem;
   border: none;
-  border-radius: 0;
+  border-radius: var(--ki-radio);
   background: var(--ki-accent);
   color: var(--ki-accent-ink);
   font: inherit;
   font-size: 0.9375rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: background-color 160ms ease, transform 160ms var(--ki-ease);
 }
@@ -113,11 +119,12 @@
 }
 
 .bpp-btn:active:not(:disabled) {
-  transform: translateY(1px) scale(0.98);
+  transform: scale(0.97);
 }
 
 .bpp-btn.is-retirar {
-  background: var(--ki-renglon);
+  border: 1.5px solid var(--ki-campo-borde);
+  background: transparent;
   color: var(--ki-ink);
 }
 

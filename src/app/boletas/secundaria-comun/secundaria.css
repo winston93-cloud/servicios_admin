@@ -1,6 +1,6 @@
 /* Boletas Secundaria: hoja tipo Excel (sg-*), vista de clase (sc-*), portal (sp-*) y dirección (sd-*).
    Complementa kinder-ingles.css; colores en tokens --ki-*. La hoja de captura se ve como la tabla de la
-   boleta impresa: marco y encabezado azul, renglones alternados. */
+   boleta impresa: marco suave, encabezado cálido y renglones alternados. */
 
 /* Color por grupo: evita capturar en el grupo equivocado */
 .sc-g-A {
@@ -26,9 +26,12 @@ html:not([data-theme='light']) .sc-g-C {
 .sc-clase {
   --sc-g-suave: color-mix(in srgb, var(--sc-g, var(--ki-accent)) 12%, var(--ki-hoja));
   min-width: 0;
-  border-top: 8px solid var(--sc-g, var(--ki-accent));
+  border: 1.5px solid var(--ki-line);
+  border-top: 6px solid var(--sc-g, var(--ki-accent));
+  border-radius: var(--ki-radio);
   background: var(--ki-hoja);
   color: var(--ki-ink);
+  overflow: hidden;
   animation: ki-hoja 480ms var(--ki-ease) both;
 }
 
@@ -52,10 +55,9 @@ html:not([data-theme='light']) .sc-g-C {
   align-items: center;
   gap: 0.35rem 0.75rem;
   margin: 0;
-  font-size: clamp(1.6rem, 1.1rem + 2.2vw, 2.5rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1;
+  font-size: clamp(1.6rem, 1.1rem + 2.2vw, 2.4rem);
+  font-weight: 650;
+  line-height: 1.02;
 }
 
 .sc-detalle {
@@ -73,11 +75,12 @@ html:not([data-theme='light']) .sc-g-C {
   display: inline-flex;
   align-items: center;
   padding: 0.15rem 0.7rem;
+  border-radius: 8px;
   background: var(--sc-g, var(--ki-accent));
   color: #ffffff;
-  font-size: clamp(1rem, 2.6vw, 1.25rem);
+  font-family: var(--ki-font);
+  font-size: clamp(1rem, 2.6vw, 1.2rem);
   font-weight: 800;
-  letter-spacing: -0.01em;
   white-space: nowrap;
 }
 
@@ -92,7 +95,7 @@ html:not([data-theme='light']) .sc-g-C {
   min-width: 64px;
   padding: 0 0.9rem;
   border: 2px solid var(--sc-g);
-  border-radius: 0;
+  border-radius: 10px;
   background: var(--ki-hoja);
   color: var(--sc-g-texto, var(--sc-g));
   font: inherit;
@@ -157,7 +160,9 @@ html:not([data-theme='light']) .sc-g-C {
 
 .sc-ayuda kbd {
   padding: 0.05rem 0.4rem;
-  background: var(--ki-renglon);
+  border: 1px solid var(--ki-campo-borde);
+  border-radius: 5px;
+  background: var(--ki-hoja);
   color: var(--ki-ink);
   font-family: inherit;
   font-size: 0.85em;
@@ -185,7 +190,8 @@ html:not([data-theme='light']) .sc-g-C {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  border: 2px solid var(--ki-banda);
+  border: 1.5px solid var(--ki-line);
+  border-radius: var(--ki-radio);
 }
 
 .sg-tabla {
@@ -207,11 +213,11 @@ html:not([data-theme='light']) .sc-g-C {
   top: 0;
   z-index: 2;
   padding: 0.5rem;
-  border-color: color-mix(in srgb, var(--ki-banda-ink) 25%, var(--ki-banda));
+  border-color: var(--ki-line);
   background: var(--ki-banda);
   color: var(--ki-banda-ink);
   font-size: var(--ki-step-small);
-  font-weight: 600;
+  font-weight: 800;
   text-align: center;
   white-space: nowrap;
 }
@@ -232,7 +238,8 @@ html:not([data-theme='light']) .sc-g-C {
 
 .sg-tabla thead .sg-supra-extra,
 .sg-tabla thead .sg-th-ro {
-  background: color-mix(in srgb, var(--ki-banda) 70%, #0b2540);
+  background: var(--ki-hover);
+  color: var(--ki-mute);
 }
 
 .sg-tabla thead .sg-th-edit.is-col {
@@ -366,7 +373,8 @@ html:not([data-theme='light']) .sc-g-C {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.3rem 0.7rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 8px;
   background: var(--ki-tono);
   font-size: 0.9375rem;
   line-height: 1.35;
@@ -395,7 +403,7 @@ html:not([data-theme='light']) .sc-g-C {
   min-height: 32px;
   padding: 0 0.65rem;
   border: 2px solid currentColor;
-  border-radius: 0;
+  border-radius: 8px;
   background: transparent;
   color: inherit;
   font: inherit;
@@ -440,8 +448,9 @@ html:not([data-theme='light']) .sc-g-C {
   flex-direction: column;
   gap: 0.75rem;
   min-width: 0;
-  padding: 1.1rem;
-  border-top: 6px solid var(--ki-banda);
+  padding: clamp(1.1rem, 2.5vw, 1.5rem);
+  border: 1.5px solid var(--ki-line);
+  border-radius: var(--ki-radio);
   background: var(--ki-tono);
   color: var(--ki-ink);
 }
@@ -449,9 +458,8 @@ html:not([data-theme='light']) .sc-g-C {
 .sp-materia h3 {
   margin: 0;
   font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: -0.035em;
-  line-height: 1.05;
+  font-weight: 650;
+  line-height: 1.08;
   overflow-wrap: anywhere;
 }
 
@@ -474,9 +482,9 @@ html:not([data-theme='light']) .sc-g-C {
   gap: 0.25rem;
   min-height: 64px;
   padding: 0.6rem 0.75rem;
-  border: none;
-  border-left: 8px solid var(--sc-g);
-  border-radius: 0;
+  border: 1.5px solid var(--ki-line);
+  border-left: 6px solid var(--sc-g);
+  border-radius: 10px;
   background: var(--ki-hoja);
   color: var(--ki-ink);
   text-align: left;
@@ -508,13 +516,15 @@ html:not([data-theme='light']) .sc-g-C {
 .sp-grupo .sp-barra {
   width: 100%;
   height: 6px;
-  background: var(--ki-renglon);
+  border-radius: 99px;
+  background: var(--ki-line);
   overflow: hidden;
 }
 
 .sp-grupo .sp-barra i {
   display: block;
   height: 100%;
+  border-radius: inherit;
   background: var(--sc-g);
 }
 
@@ -534,9 +544,12 @@ html:not([data-theme='light']) .sc-g-C {
 }
 
 .sp-estado.is-publicada {
+  padding: 0 0.5rem;
+  border: 2px dashed var(--ki-sello);
+  border-radius: 6px;
   color: var(--ki-sello);
-  font-weight: 800;
-  text-transform: uppercase;
+  font-family: var(--ki-titulos);
+  font-weight: 700;
   transform: rotate(-4deg);
 }
 
@@ -589,9 +602,12 @@ html:not([data-theme='light']) .sc-g-C {
 
 .sd-grupo {
   min-width: 0;
-  border-top: 8px solid var(--sc-g, var(--ki-accent));
+  border: 1.5px solid var(--ki-line);
+  border-top: 6px solid var(--sc-g, var(--ki-accent));
+  border-radius: var(--ki-radio);
   background: var(--ki-hoja);
   color: var(--ki-ink);
+  overflow: hidden;
 }
 
 .sd-grupo-head {
@@ -607,8 +623,7 @@ html:not([data-theme='light']) .sc-g-C {
 .sd-grupo-head h3 {
   margin: 0;
   font-size: 1.75rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  font-weight: 650;
   line-height: 1;
 }
 
@@ -641,7 +656,7 @@ html:not([data-theme='light']) .sc-g-C {
   background: var(--ki-banda);
   color: var(--ki-banda-ink);
   font-size: var(--ki-step-small);
-  font-weight: 600;
+  font-weight: 800;
   white-space: nowrap;
 }
 
@@ -675,22 +690,24 @@ html:not([data-theme='light']) .sc-g-C {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.15rem 0.55rem;
-  background: var(--ki-tono);
+  padding: 0.15rem 0.6rem;
+  border: 2px dashed currentColor;
+  border-radius: 8px;
   color: var(--ki-mute);
+  font-family: var(--ki-titulos);
   font-size: var(--ki-step-small);
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
+  transform: rotate(-2deg);
 }
 
 .sd-chip.is-enviada {
-  background: var(--ki-info-tono);
   color: var(--ki-info);
 }
 
 .sd-chip.is-devuelta {
-  background: var(--ki-aviso-tono);
   color: var(--ki-aviso);
+  transform: rotate(2deg);
 }
 
 .sd-avance {
@@ -703,13 +720,15 @@ html:not([data-theme='light']) .sc-g-C {
 .sd-avance i {
   flex: 1;
   height: 8px;
-  background: var(--ki-renglon);
+  border-radius: 99px;
+  background: var(--ki-line);
   overflow: hidden;
 }
 
 .sd-avance i b {
   display: block;
   height: 100%;
+  border-radius: inherit;
   background: var(--sc-g, var(--ki-accent));
 }
 
@@ -721,8 +740,9 @@ html:not([data-theme='light']) .sc-g-C {
 
 .sd-aviso {
   margin: 0 0 1rem;
-  padding: 0.75rem 0.9rem;
-  border-left: 6px solid var(--ki-aviso);
+  padding: 0.8rem 1rem;
+  border: 1.5px dashed var(--ki-aviso);
+  border-radius: var(--ki-radio);
   background: var(--ki-aviso-tono);
   line-height: 1.45;
 }
@@ -796,8 +816,10 @@ html:not([data-theme='light']) .sc-g-C {
 }
 
 .sd-resumen-card {
-  padding: 0.75rem 0.9rem;
-  border-left: 8px solid var(--sc-g);
+  padding: 0.8rem 1rem;
+  border: 1.5px solid var(--ki-line);
+  border-left: 6px solid var(--sc-g);
+  border-radius: 10px;
   background: var(--ki-hoja);
   color: var(--ki-ink);
 }
@@ -806,7 +828,6 @@ html:not([data-theme='light']) .sc-g-C {
   display: block;
   font-size: 1.25rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
 }
 
 .sd-resumen-card span {
@@ -842,6 +863,7 @@ html:not([data-theme='light']) .sc-g-C {
   max-height: 260px;
   overflow: auto;
   padding: 0.25rem;
+  border-radius: 10px;
   background: var(--ki-hoja);
 }
 
@@ -902,12 +924,12 @@ html:not([data-theme='light']) .sc-g-C {
 
 /* Trimestre abierto a captura (dirección abre/cierra) */
 .bc-banner.is-cerrada {
-  border-left-color: var(--ki-mute);
+  border-color: var(--ki-mute);
   background: var(--ki-tono);
 }
 
 .bc-banner.is-abierta {
-  border-left-color: var(--ki-ok);
+  border-color: var(--ki-ok);
   background: var(--ki-ok-tono);
 }
 
@@ -917,7 +939,8 @@ html:not([data-theme='light']) .sc-g-C {
 
 .sc-abierto {
   margin-left: 0.4rem;
-  padding: 0 0.4rem;
+  padding: 0 0.45rem;
+  border-radius: 6px;
   background: var(--ki-ok);
   color: var(--ki-hoja);
   font-size: var(--ki-step-small);
@@ -932,13 +955,14 @@ html:not([data-theme='light']) .sc-g-C {
   justify-content: space-between;
   gap: 0.75rem 1rem;
   margin: 0 0 1rem;
-  padding: 0.9rem 1rem;
-  border-left: 6px solid var(--ki-mute);
+  padding: 0.9rem 1.1rem;
+  border: 1.5px dashed var(--ki-campo-borde);
+  border-radius: var(--ki-radio);
   background: var(--ki-tono);
 }
 
 .sd-periodo.is-abierta {
-  border-left-color: var(--ki-ok);
+  border-color: var(--ki-ok);
   background: var(--ki-ok-tono);
 }
 

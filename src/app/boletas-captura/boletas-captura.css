@@ -5,34 +5,20 @@
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 0.85rem;
-  padding: 1.1rem 1.15rem 0.9rem;
-  background: var(--ki-banda);
-  color: var(--ki-banda-ink);
+  gap: 0.85rem 1.5rem;
+  border-bottom: 2px solid var(--ki-line);
 }
 
 .bc-grupo-head h2 {
   margin: 0;
-  font-size: clamp(1.75rem, 1.2rem + 2.4vw, 2.75rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1;
+  font-size: clamp(1.75rem, 1.2rem + 2.2vw, 2.6rem);
+  font-weight: 650;
+  line-height: 1.02;
 }
 
 .bc-grupo-head .ki-hint {
-  margin: 0.4rem 0 0;
-  color: var(--ki-banda-ink);
+  margin: 0.4rem 0 0.9rem;
   font-weight: 600;
-}
-
-.bc-grupo-head .ki-tab {
-  background: color-mix(in srgb, var(--ki-banda-ink) 18%, transparent);
-  color: var(--ki-banda-ink);
-}
-
-.bc-grupo-head .ki-tab.is-on {
-  background: var(--ki-hoja);
-  color: var(--ki-ink);
 }
 
 .bc-trimestres {
@@ -51,7 +37,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  padding: 0.9rem 1.15rem 0;
+  padding-top: 1rem;
 }
 
 .bc-grupo-estado:empty {
@@ -66,8 +52,9 @@
   display: flex;
   align-items: flex-start;
   gap: 0.6rem;
-  padding: 0.75rem 0.9rem;
-  border-left: 6px solid var(--ki-mute);
+  padding: 0.8rem 1rem;
+  border: 1.5px dashed var(--ki-campo-borde);
+  border-radius: var(--ki-radio);
   background: var(--ki-hoja);
   line-height: 1.45;
 }
@@ -78,23 +65,23 @@
 }
 
 .bc-banner.is-enviada {
-  border-left-color: var(--ki-info);
+  border-color: var(--ki-info);
   background: var(--ki-info-tono);
 }
 
 .bc-banner.is-devuelta {
-  border-left-color: var(--ki-aviso);
+  border-color: var(--ki-aviso);
   background: var(--ki-aviso-tono);
 }
 
 .bc-banner.is-publicada {
-  border-left-color: var(--ki-sello);
-  background: var(--ki-hoja);
+  border-color: var(--ki-sello);
+  background: color-mix(in srgb, var(--ki-sello) 8%, var(--ki-hoja));
 }
 
 .bc-supervision {
   margin: 0 0 1rem;
-  border-left-color: var(--ki-accent);
+  border-color: var(--ki-accent);
   background: var(--ki-accent-tono);
 }
 
@@ -104,8 +91,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 1rem;
-  border-top: 6px dotted var(--ki-tono);
+  padding: 1rem 1.15rem;
+  border: 1.5px dashed var(--ki-accent);
+  border-radius: var(--ki-radio);
   background: var(--ki-accent-tono);
 }
 
@@ -134,30 +122,31 @@
   place-items: center;
   width: 52px;
   height: 52px;
-  background: var(--ki-banda);
-  color: var(--ki-banda-ink);
-  font-size: 1.75rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  border-radius: 10px;
+  background: var(--ki-accent);
+  color: var(--ki-accent-ink);
+  font-family: var(--ki-titulos);
+  font-size: 1.6rem;
+  font-weight: 650;
 }
 
 .bc-pregunta {
   margin: 0 0 0.85rem;
+  font-family: var(--ki-titulos);
   font-size: var(--ki-step-lead);
-  font-weight: 800;
-  letter-spacing: -0.025em;
+  font-weight: 650;
 }
 
 .bc-idiomas .bc-grupo-badge {
+  font-family: var(--ki-font);
   font-size: 1.0625rem;
-  letter-spacing: 0;
+  font-weight: 800;
 }
 
 .bc-vacio h2 {
   margin: 0 0 0.4rem;
   font-size: var(--ki-step-lead);
-  font-weight: 800;
-  letter-spacing: -0.025em;
+  font-weight: 650;
 }
 
 .bc-vacio .ki-hint {
@@ -165,11 +154,6 @@
 }
 
 @media (max-width: 640px) {
-  .bc-grupo-head,
-  .bc-grupo-estado {
-    padding-inline: 0.85rem;
-  }
-
   .bc-trimestres {
     flex-wrap: wrap;
   }
