@@ -3,7 +3,7 @@
 import { kiApi } from '@/app/boletas/kinder-ingles/components/kiApi'
 import { SECUNDARIA_GRADOS } from '@/lib/boletasSecundariaCatalog'
 import type { SecAlumno, SecTableroGrupo, SecTableroMateria } from '@/lib/boletasSecundariaService'
-import { CheckCircle2, Eye, Send, Undo2, Upload, XCircle } from 'lucide-react'
+import { CheckCircle2, Eye, FileText, Send, Undo2, Upload, XCircle } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 
 const API = '/api/boletas-secundaria'
@@ -150,15 +150,25 @@ export default function SecEntregas({
                 {g.publicada ? ' · publicado a papás' : ''}
               </p>
             </div>
-            {g.publicada ? (
-              <button type="button" className="ki-btn" disabled={Boolean(ocupado)} onClick={() => retirar(g)}>
-                <XCircle size={16} aria-hidden /> Retirar publicación
-              </button>
-            ) : (
-              <button type="button" className="ki-btn primary" disabled={Boolean(ocupado)} onClick={() => publicar(g)}>
-                <Upload size={16} aria-hidden /> Publicar a papás
-              </button>
-            )}
+            <div className="sd-acciones">
+              <a
+                className="ki-btn ghost"
+                href={`${API}/pdf?ciclo=${ciclo}&grado=${g.grado}&grupo=${g.grupo}&periodo=${trimestre}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <FileText size={16} aria-hidden /> PDF del grupo
+              </a>
+              {g.publicada ? (
+                <button type="button" className="ki-btn" disabled={Boolean(ocupado)} onClick={() => retirar(g)}>
+                  <XCircle size={16} aria-hidden /> Retirar publicación
+                </button>
+              ) : (
+                <button type="button" className="ki-btn primary" disabled={Boolean(ocupado)} onClick={() => publicar(g)}>
+                  <Upload size={16} aria-hidden /> Publicar a papás
+                </button>
+              )}
+            </div>
           </header>
           <div className="sd-tabla-wrap">
             <table className="sd-tabla">

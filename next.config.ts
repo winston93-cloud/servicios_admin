@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
       "./public/boletas/primaria-es/boleta1.jpg",
       "./public/boletas/primaria-es/atras.jpg",
       "./public/boletas/primaria-en/bol1.jpg",
+      "./public/boletas/secundaria/*.jpg",
     ],
   },
   serverExternalPackages: [

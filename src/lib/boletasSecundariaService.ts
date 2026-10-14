@@ -48,7 +48,7 @@ const PAGINA = 1000
 const TROZO_IDS = 150
 
 /** PostgREST corta en 1000 filas: trozos de ids y páginas hasta agotar (la consulta debe ir ordenada). */
-async function filasPorIds(
+export async function filasPorIds(
   ids: number[],
   consulta: (trozo: number[], desde: number, hasta: number) => PromiseLike<{ data: unknown; error: { message?: string } | null }>,
   contexto: string

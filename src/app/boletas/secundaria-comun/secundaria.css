@@ -948,6 +948,16 @@ html:not([data-theme='light']) .sd-faltan {
   .sg-scroll {
     max-height: 65vh;
   }
+
+  .sd-acciones .ki-btn,
+  .sg-reintentar {
+    min-height: var(--touch-min, 44px);
+  }
+}
+
+.sd-grupo-head .sd-acciones .ki-btn {
+  min-height: var(--touch-min, 44px);
+  font-size: 0.9rem;
 }
 
 @media (max-width: 640px) {
