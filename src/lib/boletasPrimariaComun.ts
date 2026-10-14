@@ -1,11 +1,13 @@
 import { createBoletasDb } from './boletasInsforge'
 import {
   BOLETAS_NIVEL_PRIMARIA,
+  PRIMARIA_DECIMALES,
   PRIMARIA_ESCALA,
   PRIMARIA_SECCIONES,
   esGradoPrimaria,
   grupoNumeroDesdeLetra,
   letraDesdeGrupoNumero,
+  mensajeCalificacionPrimaria,
   normalizarCalificacionPrimaria,
   normalizarEscalaPrimaria,
   type IdiomaPrimaria,
@@ -344,12 +346,14 @@ export async function guardarCalifsPrimaria(input: {
     const m = porId.get(Number(rawId))
     if (!m) continue
     const escala = seccionPrimaria(idioma, m.seccion)?.formato === 'escala'
-    const calificacion = escala ? normalizarEscalaPrimaria(idioma, rawVal) : normalizarCalificacionPrimaria(rawVal)
+    const calificacion = escala
+      ? normalizarEscalaPrimaria(idioma, rawVal)
+      : normalizarCalificacionPrimaria(rawVal, PRIMARIA_DECIMALES[idioma])
     if (calificacion == null) {
       throw new Error(
         escala
           ? `«${m.nombre}»: elige ${PRIMARIA_ESCALA[idioma].map((e) => e.letra).join(', ')}.`
-          : `«${m.nombre}»: escribe una calificación de 5 a 10 (un decimal, ej. 9.5) o N/A.`
+          : `«${m.nombre}»: ${mensajeCalificacionPrimaria(PRIMARIA_DECIMALES[idioma])}.`
       )
     }
     filas.push({ alumno_id: alumnoId, materia_id: m.id, bimestre, ciclo, calificacion, updated_at: ahora })

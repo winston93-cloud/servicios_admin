@@ -6,6 +6,7 @@ import {
   BOLETAS_NIVEL_PRIMARIA,
   PRIMARIA_CALIF_HINT,
   PRIMARIA_CALIF_MIN,
+  PRIMARIA_DECIMALES,
   PRIMARIA_DIAS_MAX,
   PRIMARIA_ESCALA,
   PRIMARIA_SECCIONES,
@@ -102,7 +103,8 @@ export function capturaParaUiPrimaria(c: PrimariaCaptura) {
     alumno: c.alumno,
     modo: 'secciones' as const,
     califMin: PRIMARIA_CALIF_MIN,
-    hint: PRIMARIA_CALIF_HINT,
+    decimales: PRIMARIA_DECIMALES[c.idioma],
+    hint: PRIMARIA_CALIF_HINT[c.idioma],
     secciones: PRIMARIA_SECCIONES[c.idioma]
       .map((s) => ({
         id: s.id,

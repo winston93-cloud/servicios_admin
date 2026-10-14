@@ -19,8 +19,8 @@ export type KiProgreso = { capturadas: number; total: number } | null
 export type KiEscala = { letra: string; etiqueta: string; valor?: number }[]
 
 /** Mínimo 5 = primaria (5 a 10); si no, 0 a 10 como Kinder Español. */
-function normalizarDecimal(v: string, minimo: number): string | null {
-  return minimo > 0 ? normalizarCalificacionPrimaria(v) : normalizarCalificacionKinderEs(v)
+function normalizarDecimal(v: string, minimo: number, decimales = 1): string | null {
+  return minimo > 0 ? normalizarCalificacionPrimaria(v, decimales) : normalizarCalificacionKinderEs(v)
 }
 
 export type KiAlumno = {
@@ -59,6 +59,8 @@ export type KiCapturaData = {
   academicos?: KiFila[]
   secciones?: KiSeccion[]
   califMin?: number
+  /** Decimales permitidos en calificaciones (Primaria Inglés: 2). */
+  decimales?: number
   hint?: string
   /** En modo secciones: captura días de clase y faltas. */
   asistencia?: boolean
@@ -172,6 +174,7 @@ function CampoDecimal({
   disabled,
   onChange,
   minimo,
+  decimales,
 }: {
   id: string
   labelId: string
@@ -179,10 +182,11 @@ function CampoDecimal({
   disabled: boolean
   onChange: (v: string) => void
   minimo: number
+  decimales: number
 }) {
   const [foco, setFoco] = useState(false)
   const noAplica = valor === KINDER_ES_NO_APLICA
-  const invalido = !foco && !noAplica && normalizarDecimal(valor, minimo) === null
+  const invalido = !foco && !noAplica && normalizarDecimal(valor, minimo, decimales) === null
   return (
     <div className="ki-decimal">
       <input
@@ -200,7 +204,7 @@ function CampoDecimal({
         onFocus={() => setFoco(true)}
         onBlur={() => {
           setFoco(false)
-          const n = normalizarDecimal(valor, minimo)
+          const n = normalizarDecimal(valor, minimo, decimales)
           if (n !== null && n !== valor) onChange(n)
         }}
         autoComplete="off"
@@ -228,6 +232,7 @@ function Bloque({
   pie,
   escala,
   minimo = 0,
+  decimales = 1,
 }: {
   titulo: string
   prefijo: string
@@ -237,6 +242,7 @@ function Bloque({
   pie?: ReactNode
   escala?: KiEscala
   minimo?: number
+  decimales?: number
 }) {
   const hechas = filas.filter((f) => f.calificacion).length
   return (
@@ -266,6 +272,7 @@ function Bloque({
                     valor={f.calificacion}
                     disabled={disabled}
                     minimo={minimo}
+                    decimales={decimales}
                     onChange={(v) => onChange(f.id, v)}
                   />
                 ) : f.formato === 'numero' ? (
@@ -423,9 +430,11 @@ export default function KiCaptura({
       ...(data.academicos ?? []),
       ...(data.secciones ?? []).flatMap((s) => s.filas.filter((f) => f.formato === 'decimal')),
     ]
-    const malo = decimales.find((f) => normalizarDecimal(f.calificacion, minimo) === null)
+    const dec = data.decimales ?? 1
+    const malo = decimales.find((f) => normalizarDecimal(f.calificacion, minimo, dec) === null)
     if (malo) {
-      setErr(`«${malo.nombre}»: escribe una calificación de ${minimo} a 10 (un decimal, ej. 9.5) o marca N/A.`)
+      const formato = dec === 2 ? 'hasta dos decimales, ej. 9.75' : 'un decimal, ej. 9.5'
+      setErr(`«${malo.nombre}»: escribe una calificación de ${minimo} a 10 (${formato}) o marca N/A.`)
       setMsg('')
       return
     }
@@ -628,7 +637,10 @@ export default function KiCaptura({
               <>
                 {(data.secciones ?? []).map((s) => {
                   const prom = s.promedio
-                    ? promedioPrimaria(s.filas.filter((f) => f.enPromedio).map((f) => f.calificacion))
+                    ? promedioPrimaria(
+                        s.filas.filter((f) => f.enPromedio).map((f) => f.calificacion),
+                        data.decimales ?? 1
+                      )
                     : ''
                   return (
                     <Bloque
@@ -638,6 +650,7 @@ export default function KiCaptura({
                       filas={s.filas}
                       escala={s.escala}
                       minimo={data.califMin ?? 0}
+                      decimales={data.decimales ?? 1}
                       disabled={bloqueado}
                       onChange={(id, v) => cambiarEnSeccion(s.id, id, v)}
                       pie={

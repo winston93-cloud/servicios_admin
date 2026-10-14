@@ -15,15 +15,26 @@ export const PRIMARIA_NO_APLICA = 'N/A'
 export const PRIMARIA_CALIF_MIN = 5
 export const PRIMARIA_DIAS_MAX = 120
 
-export const PRIMARIA_CALIF_HINT =
-  'Calificación de 5 a 10 con un decimal (ej. 9.5). N/A si esa materia no se evaluó en el trimestre.'
+/** Decimales de captura y promedios: Español 1 (bcdiv 1), Inglés 2 (decimal(4,2) del legacy). */
+export const PRIMARIA_DECIMALES: Record<IdiomaPrimaria, 1 | 2> = { es: 1, en: 2 }
+
+export const PRIMARIA_CALIF_HINT: Record<IdiomaPrimaria, string> = {
+  es: 'Calificación de 5 a 10 con un decimal (ej. 9.5). N/A si esa materia no se evaluó en el trimestre.',
+  en: 'Calificación de 5 a 10 con hasta dos decimales (ej. 9.75). N/A si esa materia no se evaluó en el trimestre.',
+}
+
+export function mensajeCalificacionPrimaria(decimales: number): string {
+  return decimales === 2
+    ? 'escribe una calificación de 5 a 10 (hasta dos decimales, ej. 9.75) o N/A'
+    : 'escribe una calificación de 5 a 10 (un decimal, ej. 9.5) o N/A'
+}
 
 export type PrimariaEscala = { letra: string; etiqueta: string }[]
 
 export type PrimariaSeccion = {
   id: string
   titulo: string
-  /** decimal = 5 a 10 con un decimal o N/A; escala = botones con letras. */
+  /** decimal = 5 a 10 (decimales según PRIMARIA_DECIMALES) o N/A; escala = botones con letras. */
   formato: 'decimal' | 'escala'
   /** Promedio de la sección por trimestre (en la boleta y en la captura). */
   promedio: boolean
@@ -43,8 +54,8 @@ export const PRIMARIA_ESCALA: Record<IdiomaPrimaria, PrimariaEscala> = {
     { letra: 'VG', etiqueta: 'Very good' },
     { letra: 'G', etiqueta: 'Good' },
     { letra: 'R', etiqueta: 'Regular' },
-    { letra: 'S', etiqueta: 'Sufficient' },
-    { letra: 'NI', etiqueta: 'Needs improvement' },
+    { letra: 'S', etiqueta: 'Satisfactory' },
+    { letra: 'U', etiqueta: 'Unsatisfactory' },
   ],
 }
 
@@ -80,15 +91,18 @@ export function letraDesdeGrupoNumero(n: number): string {
   return ({ 1: 'A', 2: 'B', 3: 'C' } as Record<number, string>)[n] ?? String(n)
 }
 
-/** '' = sin capturar; 'N/A'; o número de 5 a 10 con un decimal ("9" → "9.0", "9,5" → "9.5"). null = inválido. */
-export function normalizarCalificacionPrimaria(raw: unknown): string | null {
+/**
+ * '' = sin capturar; 'N/A'; o número de 5 a 10 con hasta `decimales` decimales
+ * (1: "9" → "9.0", "9,5" → "9.5"; 2: "9.5" → "9.50"). null = inválido.
+ */
+export function normalizarCalificacionPrimaria(raw: unknown, decimales = 1): string | null {
   const s = String(raw ?? '').trim().toUpperCase().replace(',', '.')
   if (!s) return ''
   if (s === 'N/A' || s === 'NA' || /^-+$/.test(s)) return PRIMARIA_NO_APLICA
-  if (!/^\d{1,2}(\.\d)?$/.test(s)) return null
+  if (!new RegExp(`^\\d{1,2}(\\.\\d{1,${decimales}})?$`).test(s)) return null
   const n = Number(s)
   if (!(n >= PRIMARIA_CALIF_MIN && n <= 10)) return null
-  return n.toFixed(1)
+  return n.toFixed(decimales)
 }
 
 /** '' o letra de la escala del idioma (acepta minúsculas). null = inválida. */
@@ -107,15 +121,16 @@ export function normalizarDiasPrimaria(raw: unknown): string | null {
   return n <= PRIMARIA_DIAS_MAX ? String(n) : null
 }
 
-/** Promedio truncado a un decimal como el legacy (bcdiv); 10 se escribe sin decimales. */
-export function promedioPrimaria(valores: string[]): string {
+/** Promedio truncado a `decimales` como el legacy (bcdiv); 10 se escribe sin decimales. */
+export function promedioPrimaria(valores: string[], decimales = 1): string {
   const nums = valores.map((v) => Number(v)).filter((n) => Number.isFinite(n) && n > 0)
   if (!nums.length) return ''
-  return formatoCalificacion(Math.floor((nums.reduce((a, b) => a + b, 0) / nums.length) * 10 + 1e-9) / 10)
+  const f = 10 ** decimales
+  return formatoCalificacion(Math.floor((nums.reduce((a, b) => a + b, 0) / nums.length) * f + 1e-9) / f, decimales)
 }
 
-export function formatoCalificacion(n: number | string): string {
+export function formatoCalificacion(n: number | string, decimales = 1): string {
   const v = typeof n === 'number' ? n : Number(n)
   if (!Number.isFinite(v)) return String(n)
-  return v === 10 ? '10' : v.toFixed(1)
+  return v === 10 ? '10' : v.toFixed(decimales)
 }

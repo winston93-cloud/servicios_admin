@@ -3,6 +3,7 @@ import { etiquetaCicloBoletas } from './boletasCiclo'
 import { docentesPorGrupoKinder } from './boletasKinderDocentesGrupo'
 import {
   BOLETAS_NIVEL_PRIMARIA,
+  PRIMARIA_DECIMALES,
   PRIMARIA_NO_APLICA,
   cargarAlumnoPrimaria,
   mapaCalifsPrimaria,
@@ -27,6 +28,7 @@ const T_X0 = 136
 const T_X1 = 2414
 const COL_LINEAS = [1151, 1467, 1782, 2098]
 const COL_VAL = [1309, 1625, 1941, 2256]
+const DEC = PRIMARIA_DECIMALES.en
 const T_Y0 = 823
 const T_Y1 = 2517
 
@@ -179,7 +181,7 @@ export function dibujarPdfPrimariaEn(d: {
     y += BAR
   }
 
-  const finalMateria = (m: PrimariaMateria) => (conFinal ? promedioPrimaria([1, 2, 3].map((b) => valor(b, m.id))) : '')
+  const finalMateria = (m: PrimariaMateria) => (conFinal ? promedioPrimaria([1, 2, 3].map((b) => valor(b, m.id)), DEC) : '')
 
   const filasMaterias = (lista: PrimariaMateria[], alto: number, conPromedioFinal: boolean, multilinea: boolean) => {
     const yA = y
@@ -195,8 +197,8 @@ export function dibujarPdfPrimariaEn(d: {
   // Subjects + promedio por periodo.
   filasMaterias(subjects, ROW, true, false)
   const enProm = subjects.filter((m) => m.enPromedio)
-  const promTri = [1, 2, 3].map((b) => promedioPrimaria(enProm.map((m) => valor(b, m.id))))
-  const promFinal = conFinal ? promedioPrimaria(enProm.map(finalMateria)) : ''
+  const promTri = [1, 2, 3].map((b) => promedioPrimaria(enProm.map((m) => valor(b, m.id)), DEC))
+  const promFinal = conFinal ? promedioPrimaria(enProm.map(finalMateria), DEC) : ''
   barra('AVERAGE (PROMEDIO)', true, [...promTri, promFinal])
 
   if (extra.length) filasMaterias(extra, ROW, true, false)
