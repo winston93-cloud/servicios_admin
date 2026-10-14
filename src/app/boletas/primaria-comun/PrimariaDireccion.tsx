@@ -1,6 +1,7 @@
 'use client'
 
 import { ItemAnimado, ListaAnimada, VistaAnimada } from '@/components/boletas-motion'
+import MembreteBoleta from '@/app/boletas/components/MembreteBoleta'
 import ThemeToggle from '@/components/ThemeToggle'
 import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
 import {
@@ -393,13 +394,11 @@ export default function PrimariaDireccion({ idioma }: { idioma: IdiomaPrimaria }
     <div className="ki-page bm-page">
       {header}
       <main className="ki-main">
-        <header className="bm-hero" data-fondo="PRIMARIA">
-          <p className="bm-kicker">Sistema integral de boletas · {t.direccion}</p>
-          <h1 className="ki-title">{tituloVista[vista]}</h1>
-          <p className="ki-lead">
-            {t.modulo} · Ciclo {etiquetaCicloBoletas(ciclo)}
-          </p>
-        </header>
+        <MembreteBoleta
+          escuela="wci"
+          titulo={tituloVista[vista]}
+          detalle={`${t.direccion} · ${t.modulo} · Ciclo ${etiquetaCicloBoletas(ciclo)}`}
+        />
 
         <VistaAnimada vista={vista}>
         {vista === 'menu' && (

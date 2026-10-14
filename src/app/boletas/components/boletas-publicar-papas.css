@@ -1,11 +1,9 @@
-/* Publicación de boletas al portal de papás (módulos /boletas, solo admin). */
+/* Publicación de boletas al portal de papás (módulos /boletas, solo admin). Tokens --ki-* de kinder-ingles.css. */
 
 .bpp {
   margin-top: clamp(1rem, 2.5vw, 1.5rem);
-  padding: 1rem 1.15rem 1.15rem;
-  border-radius: 16px;
-  border: 1px solid rgba(0, 227, 253, 0.28);
-  background: rgba(0, 227, 253, 0.05);
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+  background: var(--ki-tono);
   min-width: 0;
 }
 
@@ -13,37 +11,37 @@
   display: flex;
   align-items: flex-start;
   gap: 0.65rem;
-  margin-bottom: 0.85rem;
-  color: #7deeff;
+  margin-bottom: 1rem;
+  color: var(--ki-accent);
 }
 
 .bpp-head > svg {
   flex-shrink: 0;
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .bpp-titulo {
   margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #f4efe3;
+  font-size: var(--ki-step-lead);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--ki-ink);
 }
 
 .bpp-sub {
-  margin: 0.2rem 0 0;
-  font-size: 0.85rem;
-  line-height: 1.4;
-  color: rgba(255, 248, 234, 0.72);
+  margin: 0.25rem 0 0;
+  max-width: 62ch;
+  line-height: 1.45;
+  color: var(--ki-mute);
 }
 
 .bpp-error {
   margin: 0 0 0.75rem;
-  padding: 0.55rem 0.75rem;
-  border-radius: 10px;
-  font-size: 0.88rem;
-  color: #fecaca;
-  background: rgba(220, 38, 38, 0.14);
-  border: 1px solid rgba(248, 113, 113, 0.35);
+  padding: 0.6rem 0.8rem;
+  border-left: 6px solid var(--ki-error);
+  background: var(--ki-error-tono);
+  color: var(--ki-error);
+  font-weight: 600;
 }
 
 .bpp-lista {
@@ -52,7 +50,6 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
 }
 
 .bpp-item {
@@ -61,16 +58,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.6rem 1rem;
-  padding: 0.7rem 0.85rem;
-  border-radius: 12px;
-  border: 1px solid rgba(232, 226, 214, 0.12);
-  background: rgba(0, 0, 0, 0.18);
   min-width: 0;
+  padding: 0.75rem 0.9rem;
+  background: var(--ki-hoja);
 }
 
-.bpp-item.is-publicada {
-  border-color: rgba(34, 197, 94, 0.4);
-  background: rgba(22, 163, 74, 0.1);
+.bpp-item:nth-child(even) {
+  background: var(--ki-renglon);
 }
 
 .bpp-item-info {
@@ -82,17 +76,18 @@
 }
 
 .bpp-item-titulo {
-  font-weight: 700;
-  color: #f4efe3;
+  font-weight: 800;
+  color: var(--ki-ink);
 }
 
 .bpp-item-estado {
-  font-size: 0.8rem;
-  color: rgba(255, 248, 234, 0.7);
+  font-size: var(--ki-step-small);
+  color: var(--ki-mute);
 }
 
 .bpp-item.is-publicada .bpp-item-estado {
-  color: #86efac;
+  color: var(--ki-sello);
+  font-weight: 600;
 }
 
 .bpp-btn {
@@ -101,21 +96,34 @@
   justify-content: center;
   gap: 0.4rem;
   min-height: var(--touch-min, 44px);
-  padding: 0 1rem;
-  border-radius: 11px;
+  padding: 0 1.1rem;
+  border: none;
+  border-radius: 0;
+  background: var(--ki-accent);
+  color: var(--ki-accent-ink);
   font: inherit;
-  font-size: 0.88rem;
-  font-weight: 700;
+  font-size: 0.9375rem;
+  font-weight: 600;
   cursor: pointer;
-  color: #04161b;
-  background: linear-gradient(180deg, #a5f3fc, #00e3fd);
-  border: 1px solid #7deeff;
+  transition: background-color 160ms ease, transform 160ms var(--ki-ease);
+}
+
+.bpp-btn:hover:not(:disabled) {
+  background: var(--ki-accent-hover);
+}
+
+.bpp-btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
 }
 
 .bpp-btn.is-retirar {
-  color: #f4efe3;
-  background: transparent;
-  border-color: rgba(232, 226, 214, 0.35);
+  background: var(--ki-renglon);
+  color: var(--ki-ink);
+}
+
+.bpp-btn.is-retirar:hover:not(:disabled) {
+  background: var(--ki-error-tono);
+  color: var(--ki-error);
 }
 
 .bpp-btn:disabled {
@@ -123,55 +131,7 @@
   cursor: not-allowed;
 }
 
-html[data-theme='light'] .bpp {
-  border-color: rgba(29, 78, 216, 0.32);
-  background: #fffbf0;
-}
-
-html[data-theme='light'] .bpp-head {
-  color: #1d4ed8;
-}
-
-html[data-theme='light'] .bpp-titulo,
-html[data-theme='light'] .bpp-item-titulo {
-  color: #0f172a;
-}
-
-html[data-theme='light'] .bpp-sub,
-html[data-theme='light'] .bpp-item-estado {
-  color: #5c5240;
-}
-
-html[data-theme='light'] .bpp-item {
-  background: #fff;
-  border-color: rgba(15, 23, 42, 0.12);
-}
-
-html[data-theme='light'] .bpp-item.is-publicada {
-  background: #f0fdf4;
-  border-color: #86efac;
-}
-
-html[data-theme='light'] .bpp-item.is-publicada .bpp-item-estado {
-  color: #15803d;
-}
-
-html[data-theme='light'] .bpp-error {
-  color: #991b1b;
-  background: #fef2f2;
-  border-color: #fecaca;
-}
-
-html[data-theme='light'] .bpp-btn.is-retirar {
-  color: #0f172a;
-  border-color: rgba(15, 23, 42, 0.3);
-}
-
 @media (max-width: 640px) {
-  .bpp {
-    padding: 0.9rem;
-  }
-
   .bpp-btn {
     width: 100%;
   }

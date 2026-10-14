@@ -314,16 +314,16 @@ export default function SecClase(props: Props) {
     <section className={`sc-clase sc-g-${grupo}`}>
       <header className="sc-banda">
         <div className="sc-banda-texto">
-          <p className="sc-kicker">
-            {hoja ? `Ciclo ${hoja.ciclo.etiqueta} · ` : ''}
-            {modo === 'direccion' ? 'Revisión de dirección' : 'Captura'}
-          </p>
           <h2>
             <span className="sc-materia">{materia}</span>
             <span className="sc-grupo-tag" aria-label={`Grupo ${etiqueta}`}>
               {etiqueta}
             </span>
           </h2>
+          <p className="sc-detalle">
+            {modo === 'direccion' ? 'Revisión de dirección' : 'Captura'}
+            {hoja ? ` · Ciclo ${hoja.ciclo.etiqueta}` : ''}
+          </p>
         </div>
         {hermanas.length > 1 && (
           <div className="sc-hermanas" role="tablist" aria-label="Cambiar de grupo en esta materia">

@@ -419,7 +419,7 @@ export default function SecGrid({ filas, columnas, editable, guardar, controlRef
             <span className="sg-chip is-error">
               <AlertTriangle size={14} aria-hidden />
               {invalidas} celda{invalidas === 1 ? '' : 's'} en rojo no se guarda{invalidas === 1 ? '' : 'n'}. Ej.:{' '}
-              {primeraInvalida.f.nombre} — {primeraInvalida.col.ayuda}
+              {primeraInvalida.f.nombre}: {primeraInvalida.col.ayuda}
             </span>
           )}
           {aviso && <span className="sg-chip">{aviso}</span>}

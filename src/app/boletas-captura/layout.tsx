@@ -1,16 +1,10 @@
 import type { Metadata } from 'next'
-import { Instrument_Serif, Inter } from 'next/font/google'
+import { Schibsted_Grotesk } from 'next/font/google'
 
-const instrumentSerif = Instrument_Serif({
-  weight: '400',
+const boletasFont = Schibsted_Grotesk({
+  weight: ['400', '600', '800'],
   subsets: ['latin'],
-  variable: '--font-boletas-serif',
-  display: 'swap',
-})
-
-const boletasSans = Inter({
-  subsets: ['latin'],
-  variable: '--font-boletas-sans',
+  variable: '--font-boletas',
   display: 'swap',
 })
 
@@ -19,5 +13,5 @@ export const metadata: Metadata = {
 }
 
 export default function BoletasCapturaLayout({ children }: { children: React.ReactNode }) {
-  return <div className={`${instrumentSerif.variable} ${boletasSans.variable}`}>{children}</div>
+  return <div className={boletasFont.variable}>{children}</div>
 }

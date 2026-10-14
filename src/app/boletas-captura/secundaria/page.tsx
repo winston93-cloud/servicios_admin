@@ -1,6 +1,7 @@
 'use client'
 
 import { ItemAnimado, ListaAnimada } from '@/components/boletas-motion'
+import MembreteBoleta from '@/app/boletas/components/MembreteBoleta'
 import ThemeToggle from '@/components/ThemeToggle'
 import { kiApi } from '@/app/boletas/kinder-ingles/components/kiApi'
 import SecClase, { type SecClaseControl } from '@/app/boletas/secundaria-comun/SecClase'
@@ -248,11 +249,11 @@ export default function PortalSecundariaPage() {
           )
         ) : (
           <>
-            <header className="bm-hero" data-fondo="CAPTURA">
-              <p className="bm-kicker">Captura de boletas · Secundaria</p>
-              <h1 className="ki-title">Hola, {sesion.maestro.nombre.split(' ')[0]}</h1>
-              <p className="ki-lead">Ciclo {sesion.ciclo.etiqueta}</p>
-            </header>
+            <MembreteBoleta
+              escuela="wci"
+              titulo={`Hola, ${sesion.maestro.nombre.split(' ')[0]}`}
+              detalle={`Captura de boletas · Secundaria · Ciclo ${sesion.ciclo.etiqueta}`}
+            />
 
             {supervisor && (
               <p className="ki-msg bc-supervision" role="note">

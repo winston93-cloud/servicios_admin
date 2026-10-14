@@ -1,6 +1,7 @@
 'use client'
 
 import { ItemAnimado, ListaAnimada, VistaAnimada } from '@/components/boletas-motion'
+import MembreteBoleta from '@/app/boletas/components/MembreteBoleta'
 import ThemeToggle from '@/components/ThemeToggle'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
@@ -345,11 +346,11 @@ function KinderEsApp() {
     <div className="ki-page bm-page">
       {header}
       <main className="ki-main">
-        <header className="bm-hero" data-fondo="KINDER">
-          <p className="bm-kicker">Sistema integral de boletas · Dirección de Kinder</p>
-          <h1 className="ki-title">{TITULO_VISTA[vista]}</h1>
-          <p className="ki-lead">Kinder Español · Ciclo {etiquetaCicloBoletas(ciclo)}</p>
-        </header>
+        <MembreteBoleta
+          escuela="iew"
+          titulo={TITULO_VISTA[vista]}
+          detalle={`Dirección de Kinder · Kinder Español · Ciclo ${etiquetaCicloBoletas(ciclo)}`}
+        />
 
         <VistaAnimada vista={vista}>
         {vista === 'menu' && (

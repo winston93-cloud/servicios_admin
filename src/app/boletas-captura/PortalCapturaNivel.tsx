@@ -1,6 +1,7 @@
 'use client'
 
 import { ItemAnimado, ListaAnimada } from '@/components/boletas-motion'
+import MembreteBoleta from '@/app/boletas/components/MembreteBoleta'
 import ThemeToggle from '@/components/ThemeToggle'
 import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
 import KiCaptura, {
@@ -246,10 +247,10 @@ function GrupoTeacher({
     <section className="ki-paper bm-panel">
       <div className="bc-grupo-head">
         <div>
-          <p className="bm-kicker">
+          <h2>{grupo.etiqueta}</h2>
+          <p className="ki-hint">
             {titulo} · Ciclo {sesion.ciclo.etiqueta}
           </p>
-          <h2>{grupo.etiqueta}</h2>
         </div>
         <div className="bc-trimestres" role="tablist" aria-label="Trimestre">
           {[1, 2, 3].map((t) => (
@@ -409,11 +410,11 @@ export default function PortalCapturaNivel({ slug, titulo, modulos: config, capt
           </>
         ) : (
           <>
-            <header className="bm-hero" data-fondo="CAPTURA">
-              <p className="bm-kicker">Captura de boletas · {sesion.nivel.titulo}</p>
-              <h1 className="ki-title">Hola, {sesion.maestro.nombre.split(' ')[0]}</h1>
-              <p className="ki-lead">Ciclo {sesion.ciclo.etiqueta}</p>
-            </header>
+            <MembreteBoleta
+              escuela={slug === 'primaria' ? 'wci' : 'iew'}
+              titulo={`Hola, ${sesion.maestro.nombre.split(' ')[0]}`}
+              detalle={`Captura de boletas · ${sesion.nivel.titulo} · Ciclo ${sesion.ciclo.etiqueta}`}
+            />
 
             {sesion.supervisor && !grupo && (
               <p className="ki-msg bc-supervision" role="note">

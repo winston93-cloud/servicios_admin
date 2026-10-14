@@ -80,3 +80,4 @@ exports/
 
 # Superdesign (análisis local y temporales)
 .superdesign/
+.taste-skill/
