@@ -5,6 +5,7 @@ import {
   BOLETAS_NIVEL_PRIMARIA,
   PRIMARIA_SECCIONES,
   cargarAlumnoPrimaria,
+  formatoCalificacion,
   mapaCalifsPrimaria,
   materiasActivasPrimaria,
   promedioPrimaria,
@@ -115,7 +116,12 @@ export function dibujarPdfPrimariaEs(d: {
 
   const promedioBloque = (mats: PrimariaMateria[], b: number) =>
     promedioPrimaria(mats.filter((m) => m.enPromedio).map((m) => valor(b, m.id)))
-  const anual = (porTri: string[]) => (anualVisible ? promedioPrimaria(porTri) : '')
+  /** El anual se redondea (number_format del legacy); los promedios por trimestre se truncan. */
+  const anual = (porTri: string[]) => {
+    const nums = porTri.map(Number).filter((n) => Number.isFinite(n) && n > 0)
+    if (!anualVisible || !nums.length) return ''
+    return formatoCalificacion(Math.round((nums.reduce((a, b) => a + b, 0) / nums.length) * 10) / 10)
+  }
   const finalTri = [1, 2, 3].map((b) => promedioPrimaria(nucleo.map((k) => promedioBloque(k.mats, b))))
 
   const Y0 = 1262
