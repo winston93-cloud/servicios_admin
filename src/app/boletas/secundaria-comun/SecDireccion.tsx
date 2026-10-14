@@ -415,7 +415,7 @@ export default function SecDireccion() {
     <div className="ki-page bm-page">
       {header}
       <main className="ki-main">
-        <header className="bm-hero">
+        <header className="bm-hero" data-fondo="SECUNDARIA">
           <p className="bm-kicker">Sistema integral de boletas · Dirección de Secundaria</p>
           <h1 className="ki-title">{TITULO[vista]}</h1>
           <p className="ki-lead">Secundaria · Ciclo {etiquetaCicloBoletas(ciclo)}</p>

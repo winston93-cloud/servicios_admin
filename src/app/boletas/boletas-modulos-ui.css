@@ -12,28 +12,26 @@
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 90% 55% at 12% -10%, rgba(201, 162, 39, 0.14), transparent 55%),
-    radial-gradient(ellipse 70% 45% at 100% 0%, rgba(59, 130, 196, 0.12), transparent 50%),
-    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(0, 227, 253, 0.05), transparent 45%);
+    radial-gradient(55% 45% at 8% -8%, rgba(0, 227, 253, 0.09), transparent 70%),
+    radial-gradient(45% 40% at 100% 0%, rgba(255, 246, 223, 0.05), transparent 70%);
 }
 
 html[data-theme='light'] .bm-page::before {
   background:
-    radial-gradient(ellipse 90% 55% at 10% -8%, rgba(168, 132, 26, 0.12), transparent 55%),
-    radial-gradient(ellipse 70% 45% at 100% 0%, rgba(30, 90, 138, 0.08), transparent 50%),
-    linear-gradient(180deg, rgba(255, 252, 245, 0.4), transparent 40%);
+    radial-gradient(55% 45% at 8% -8%, rgba(37, 99, 235, 0.1), transparent 70%),
+    radial-gradient(45% 40% at 100% 0%, rgba(14, 165, 233, 0.08), transparent 70%);
 }
 
 .bm-top {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  background: color-mix(in srgb, #09090b 72%, transparent);
-  border-bottom-color: rgba(201, 162, 39, 0.18) !important;
+  background: color-mix(in srgb, #0a0c10 72%, transparent);
+  border-bottom-color: rgba(0, 227, 253, 0.18) !important;
 }
 
 html[data-theme='light'] .bm-top {
-  background: color-mix(in srgb, #fffcf5 82%, transparent);
-  border-bottom-color: rgba(168, 132, 26, 0.22) !important;
+  background: color-mix(in srgb, #ffffff 82%, transparent);
+  border-bottom-color: rgba(29, 78, 216, 0.22) !important;
 }
 
 .bm-hero {
@@ -47,11 +45,11 @@ html[data-theme='light'] .bm-top {
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #c9a227;
+  color: #00e3fd;
 }
 
 html[data-theme='light'] .bm-kicker {
-  color: #a8841a;
+  color: #1d4ed8;
 }
 
 .bm-hero h1,
@@ -73,7 +71,7 @@ html[data-theme='light'] .bm-kicker {
 
 .bm-panel {
   border-radius: 16px !important;
-  border: 1px solid rgba(201, 162, 39, 0.28) !important;
+  border: 1px solid rgba(0, 227, 253, 0.28) !important;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.04) inset,
     0 18px 40px rgba(0, 0, 0, 0.28);
@@ -82,10 +80,10 @@ html[data-theme='light'] .bm-kicker {
 }
 
 html[data-theme='light'] .bm-panel {
-  border-color: rgba(168, 132, 26, 0.32) !important;
+  border-color: rgba(29, 78, 216, 0.32) !important;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.8) inset,
-    0 14px 32px rgba(42, 36, 28, 0.08);
+    0 14px 32px rgba(15, 23, 42, 0.08);
 }
 
 .bm-filters {
@@ -97,16 +95,16 @@ html[data-theme='light'] .bm-panel {
   background:
     linear-gradient(180deg, rgba(255, 246, 223, 0.08), rgba(255, 246, 223, 0.02) 55%, transparent),
     linear-gradient(90deg, rgba(0, 227, 253, 0.04), transparent 40%),
-    #1a1610 !important;
+    #12151b !important;
   box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.35);
 }
 
 html[data-theme='light'] .bm-filters {
   background:
-    linear-gradient(180deg, rgba(168, 132, 26, 0.1), rgba(255, 252, 245, 0.95)),
-    #fff9ef !important;
-  border-bottom-color: rgba(42, 36, 28, 0.12) !important;
-  box-shadow: inset 0 -1px 0 rgba(42, 36, 28, 0.06);
+    linear-gradient(180deg, rgba(29, 78, 216, 0.1), rgba(248, 250, 252, 0.95)),
+    #f8fafc !important;
+  border-bottom-color: rgba(15, 23, 42, 0.12) !important;
+  box-shadow: inset 0 -1px 0 rgba(15, 23, 42, 0.06);
 }
 
 .bm-filters label {
@@ -117,14 +115,14 @@ html[data-theme='light'] .bm-filters {
   letter-spacing: 0.1em !important;
   text-transform: uppercase !important;
   font-weight: 700 !important;
-  color: #f0e2b8 !important;
+  color: #cfe3ea !important;
   opacity: 1 !important;
   min-width: min(100%, 132px);
   flex: 1 1 132px;
 }
 
 html[data-theme='light'] .bm-filters label {
-  color: #5c4a12 !important;
+  color: #1e3a8a !important;
 }
 
 .bm-filters select,
@@ -136,19 +134,19 @@ html[data-theme='light'] .bm-filters label {
   font-size: 16px !important;
   font-weight: 600 !important;
   letter-spacing: 0.01em;
-  color: #fff8ea !important;
-  background-color: #2a2418 !important;
+  color: #f4efe3 !important;
+  background-color: #181c24 !important;
   background-image:
-    linear-gradient(45deg, transparent 50%, #e8d48a 50%),
-    linear-gradient(135deg, #e8d48a 50%, transparent 50%),
-    linear-gradient(180deg, #322b1c, #221c12) !important;
+    linear-gradient(45deg, transparent 50%, #7deeff 50%),
+    linear-gradient(135deg, #7deeff 50%, transparent 50%),
+    linear-gradient(180deg, #1c212b, #141820) !important;
   background-position:
     calc(100% - 16px) calc(50% - 2px),
     calc(100% - 11px) calc(50% - 2px),
     0 0 !important;
   background-size: 5px 5px, 5px 5px, 100% 100% !important;
   background-repeat: no-repeat !important;
-  border: 1.5px solid rgba(232, 212, 138, 0.55) !important;
+  border: 1.5px solid rgba(125, 238, 255, 0.55) !important;
   box-shadow:
     0 1px 0 rgba(255, 246, 223, 0.08) inset,
     0 8px 18px rgba(0, 0, 0, 0.35) !important;
@@ -162,32 +160,32 @@ html[data-theme='light'] .bm-filters label {
 
 .bm-filters select:hover,
 .bm-filters input:hover {
-  border-color: rgba(255, 230, 160, 0.85) !important;
-  background-color: #342c1d !important;
+  border-color: rgba(165, 243, 252, 0.85) !important;
+  background-color: #1f2530 !important;
 }
 
 .bm-filters select:focus,
 .bm-filters input:focus {
   outline: none;
-  border-color: #ffe6a0 !important;
+  border-color: #a5f3fc !important;
   box-shadow:
-    0 0 0 3px rgba(201, 162, 39, 0.35),
+    0 0 0 3px rgba(0, 227, 253, 0.35),
     0 1px 0 rgba(255, 246, 223, 0.1) inset,
     0 10px 22px rgba(0, 0, 0, 0.4) !important;
 }
 
 html[data-theme='light'] .bm-filters select,
 html[data-theme='light'] .bm-filters input {
-  color: #1c160c !important;
-  background-color: #fffdf8 !important;
+  color: #0f172a !important;
+  background-color: #ffffff !important;
   background-image:
-    linear-gradient(45deg, transparent 50%, #8a7018 50%),
-    linear-gradient(135deg, #8a7018 50%, transparent 50%),
-    linear-gradient(180deg, #ffffff, #f7f0df) !important;
+    linear-gradient(45deg, transparent 50%, #1d4ed8 50%),
+    linear-gradient(135deg, #1d4ed8 50%, transparent 50%),
+    linear-gradient(180deg, #ffffff, #f1f5f9) !important;
   border-color: rgba(138, 112, 24, 0.45) !important;
   box-shadow:
     0 1px 0 #fff inset,
-    0 6px 14px rgba(42, 36, 28, 0.08) !important;
+    0 6px 14px rgba(15, 23, 42, 0.08) !important;
 }
 
 html[data-theme='light'] .bm-filters select:hover,
@@ -198,22 +196,22 @@ html[data-theme='light'] .bm-filters input:hover {
 
 html[data-theme='light'] .bm-filters select:focus,
 html[data-theme='light'] .bm-filters input:focus {
-  border-color: #a8841a !important;
+  border-color: #1d4ed8 !important;
   box-shadow:
-    0 0 0 3px rgba(168, 132, 26, 0.25),
+    0 0 0 3px rgba(29, 78, 216, 0.25),
     0 1px 0 #fff inset,
-    0 8px 16px rgba(42, 36, 28, 0.1) !important;
+    0 8px 16px rgba(15, 23, 42, 0.1) !important;
 }
 
 /* option list: evita azul del SO y mejora lectura */
 .bm-filters select option {
-  background: #1f1a12;
-  color: #fff8ea;
+  background: #12151b;
+  color: #f4efe3;
 }
 
 html[data-theme='light'] .bm-filters select option {
-  background: #fffdf8;
-  color: #1c160c;
+  background: #ffffff;
+  color: #0f172a;
 }
 
 .bm-btn-primary,
@@ -223,12 +221,12 @@ html[data-theme='light'] .bm-filters select option {
   border-radius: 11px !important;
   font-weight: 700 !important;
   letter-spacing: 0.03em;
-  color: #14110c !important;
-  background: linear-gradient(180deg, #ffe6a0, #c9a227) !important;
-  border: 1px solid #e8d48a !important;
+  color: #04161b !important;
+  background: linear-gradient(180deg, #a5f3fc, #00e3fd) !important;
+  border: 1px solid #7deeff !important;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.35) inset,
-    0 8px 18px rgba(201, 162, 39, 0.35) !important;
+    0 8px 18px rgba(0, 227, 253, 0.35) !important;
 }
 
 .bm-filters .primary:hover:not(:disabled),
@@ -278,14 +276,14 @@ html[data-theme='light'] .bm-filters select option {
 }
 
 .bm-list button:hover {
-  border-color: rgba(201, 162, 39, 0.35);
-  background: rgba(201, 162, 39, 0.06);
+  border-color: rgba(0, 227, 253, 0.35);
+  background: rgba(0, 227, 253, 0.06);
 }
 
 .bm-list button.is-active {
-  border-color: rgba(201, 162, 39, 0.55);
-  background: linear-gradient(135deg, rgba(201, 162, 39, 0.16), rgba(59, 130, 196, 0.1));
-  box-shadow: 0 0 0 1px rgba(201, 162, 39, 0.2);
+  border-color: rgba(0, 227, 253, 0.55);
+  background: linear-gradient(135deg, rgba(0, 227, 253, 0.16), rgba(59, 130, 196, 0.1));
+  box-shadow: 0 0 0 1px rgba(0, 227, 253, 0.2);
 }
 
 .bm-list-meta {
@@ -297,8 +295,8 @@ html[data-theme='light'] .bm-filters select option {
   margin: 0;
   padding: 1.4rem 1rem;
   border-radius: 14px;
-  border: 1px dashed rgba(201, 162, 39, 0.28);
-  background: rgba(201, 162, 39, 0.04);
+  border: 1px dashed rgba(0, 227, 253, 0.28);
+  background: rgba(0, 227, 253, 0.04);
   color: inherit;
   opacity: 0.85;
   text-align: center;
@@ -333,14 +331,14 @@ html[data-theme='light'] .bm-filters select option {
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.04em;
-  background: rgba(201, 162, 39, 0.14);
-  color: #e8d48a;
-  border: 1px solid rgba(201, 162, 39, 0.3);
+  background: rgba(0, 227, 253, 0.14);
+  color: #7deeff;
+  border: 1px solid rgba(0, 227, 253, 0.3);
 }
 
 html[data-theme='light'] .bm-badge {
-  color: #7a6214;
-  background: rgba(168, 132, 26, 0.12);
+  color: #1e40af;
+  background: rgba(29, 78, 216, 0.12);
 }
 
 .bm-count {
@@ -383,14 +381,14 @@ html[data-theme='light'] .bm-badge {
 @keyframes bm-sello {
   from {
     opacity: 0;
-    transform: scale(1.6) rotate(-8deg);
+    transform: scale(1.6) rotate(-10deg);
   }
   60% {
     opacity: 1;
   }
   to {
     opacity: 1;
-    transform: none;
+    transform: rotate(-4deg);
   }
 }
 

@@ -393,7 +393,7 @@ export default function PrimariaDireccion({ idioma }: { idioma: IdiomaPrimaria }
     <div className="ki-page bm-page">
       {header}
       <main className="ki-main">
-        <header className="bm-hero">
+        <header className="bm-hero" data-fondo="PRIMARIA">
           <p className="bm-kicker">Sistema integral de boletas · {t.direccion}</p>
           <h1 className="ki-title">{tituloVista[vista]}</h1>
           <p className="ki-lead">

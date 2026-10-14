@@ -4,8 +4,8 @@
   margin-top: clamp(1rem, 2.5vw, 1.5rem);
   padding: 1rem 1.15rem 1.15rem;
   border-radius: 16px;
-  border: 1px solid rgba(201, 162, 39, 0.28);
-  background: rgba(201, 162, 39, 0.05);
+  border: 1px solid rgba(0, 227, 253, 0.28);
+  background: rgba(0, 227, 253, 0.05);
   min-width: 0;
 }
 
@@ -14,7 +14,7 @@
   align-items: flex-start;
   gap: 0.65rem;
   margin-bottom: 0.85rem;
-  color: #e8d48a;
+  color: #7deeff;
 }
 
 .bpp-head > svg {
@@ -26,7 +26,7 @@
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
-  color: #fff8ea;
+  color: #f4efe3;
 }
 
 .bpp-sub {
@@ -83,7 +83,7 @@
 
 .bpp-item-titulo {
   font-weight: 700;
-  color: #fff8ea;
+  color: #f4efe3;
 }
 
 .bpp-item-estado {
@@ -107,13 +107,13 @@
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
-  color: #14110c;
-  background: linear-gradient(180deg, #ffe6a0, #c9a227);
-  border: 1px solid #e8d48a;
+  color: #04161b;
+  background: linear-gradient(180deg, #a5f3fc, #00e3fd);
+  border: 1px solid #7deeff;
 }
 
 .bpp-btn.is-retirar {
-  color: #fff8ea;
+  color: #f4efe3;
   background: transparent;
   border-color: rgba(232, 226, 214, 0.35);
 }
@@ -124,17 +124,17 @@
 }
 
 html[data-theme='light'] .bpp {
-  border-color: rgba(168, 132, 26, 0.32);
+  border-color: rgba(29, 78, 216, 0.32);
   background: #fffbf0;
 }
 
 html[data-theme='light'] .bpp-head {
-  color: #8a7018;
+  color: #1d4ed8;
 }
 
 html[data-theme='light'] .bpp-titulo,
 html[data-theme='light'] .bpp-item-titulo {
-  color: #1c160c;
+  color: #0f172a;
 }
 
 html[data-theme='light'] .bpp-sub,
@@ -144,7 +144,7 @@ html[data-theme='light'] .bpp-item-estado {
 
 html[data-theme='light'] .bpp-item {
   background: #fff;
-  border-color: rgba(42, 36, 28, 0.12);
+  border-color: rgba(15, 23, 42, 0.12);
 }
 
 html[data-theme='light'] .bpp-item.is-publicada {
@@ -163,8 +163,8 @@ html[data-theme='light'] .bpp-error {
 }
 
 html[data-theme='light'] .bpp-btn.is-retirar {
-  color: #1c160c;
-  border-color: rgba(42, 36, 28, 0.3);
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.3);
 }
 
 @media (max-width: 640px) {

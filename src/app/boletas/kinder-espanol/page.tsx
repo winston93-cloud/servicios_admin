@@ -345,7 +345,7 @@ function KinderEsApp() {
     <div className="ki-page bm-page">
       {header}
       <main className="ki-main">
-        <header className="bm-hero">
+        <header className="bm-hero" data-fondo="KINDER">
           <p className="bm-kicker">Sistema integral de boletas · Dirección de Kinder</p>
           <h1 className="ki-title">{TITULO_VISTA[vista]}</h1>
           <p className="ki-lead">Kinder Español · Ciclo {etiquetaCicloBoletas(ciclo)}</p>

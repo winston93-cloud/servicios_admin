@@ -248,7 +248,7 @@ export default function PortalSecundariaPage() {
           )
         ) : (
           <>
-            <header className="bm-hero">
+            <header className="bm-hero" data-fondo="CAPTURA">
               <p className="bm-kicker">Captura de boletas · Secundaria</p>
               <h1 className="ki-title">Hola, {sesion.maestro.nombre.split(' ')[0]}</h1>
               <p className="ki-lead">Ciclo {sesion.ciclo.etiqueta}</p>

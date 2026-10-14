@@ -1,107 +1,115 @@
 'use client'
 
 import ThemeToggle from '@/components/ThemeToggle'
-import DashboardModuleCard from '@/components/dashboard/DashboardModuleCard'
-import { ArrowLeft } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import '../dashboard/dashboard-module-card.css'
-import '../reportes-conducta/reportes-conducta.css'
-
-const ICON_KINDER = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="8" r="3.2" />
-    <path d="M5.5 19.5c.6-3.2 3.3-5.5 6.5-5.5s5.9 2.3 6.5 5.5" />
-    <path d="M16.5 7.2c.9-.4 1.8-.4 2.6.1" />
-  </svg>
-)
-
-const ICON_PRIMARIA = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 19V7l8-4 8 4v12" />
-    <path d="M9 19v-6h6v6" />
-    <path d="M4 19h16" />
-  </svg>
-)
-
-const ICON_SECUNDARIA = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-    <path d="M6 12v5c3 3 9 3 12 0v-5" />
-  </svg>
-)
+import { cicloEscolarEtiqueta, getCicloEscolarActual } from '@/lib/ciclosEscolares'
+import { ArrowLeft, ArrowRight, LogIn } from 'lucide-react'
+import Image from 'next/image'
+import Link from 'next/link'
+import type { CSSProperties } from 'react'
+import '../boletas/boletas-hub.css'
 
 const NIVELES = [
   {
-    id: 'kinder',
-    label: 'Maternal / Kinder',
+    id: 'preescolar',
+    titulo: 'Preescolar',
+    grados: 'Maternal y Kinder',
     desc: 'Maestras de español y teachers de inglés: capturan las boletas de sus grupos y las envían a dirección.',
-    accent: 'sky' as const,
-    kicker: 'Preescolar',
-    tags: ['Español', 'Inglés', 'Grado y grupo'],
-    icon: ICON_KINDER,
+    foto: '/boletas/hub/galeria-literatura.jpg',
+    alt: 'Alumnos en la Galería de Literatura',
     ruta: '/boletas-captura/maternal-kinder',
   },
   {
     id: 'primaria',
-    label: 'Primaria',
+    titulo: 'Primaria',
+    grados: '1° a 6°',
     desc: 'Maestras de español y teachers de inglés de 1° a 6°: capturan las boletas de sus grupos y las envían a dirección.',
-    accent: 'indigo' as const,
-    kicker: 'Primaria',
-    tags: ['Español', 'Inglés', '1° a 6°'],
-    icon: ICON_PRIMARIA,
+    foto: '/boletas/hub/pinlanes.jpg',
+    alt: 'Alumnos presentando el proyecto Pinlanes',
     ruta: '/boletas-captura/primaria',
   },
   {
     id: 'secundaria',
-    label: 'Secundaria',
+    titulo: 'Secundaria',
+    grados: '7° a 9°',
     desc: 'Maestros de 7° a 9°: capturan calificaciones, faltas y conducta de sus materias y grupos y las envían a dirección.',
-    accent: 'rose' as const,
-    kicker: 'Secundaria',
-    tags: ['Materias', 'Grupos', '7° a 9°'],
-    icon: ICON_SECUNDARIA,
+    foto: '/boletas/hub/egipto.jpg',
+    alt: 'Alumnos de secundaria en el proyecto Egipto',
     ruta: '/boletas-captura/secundaria',
   },
 ]
 
 /** Enlace público para maestros y teachers: eligen su nivel y entran con su usuario o correo institucional. */
 export default function BoletasCapturaHubPage() {
-  const router = useRouter()
+  const ciclo = cicloEscolarEtiqueta(getCicloEscolarActual())
 
   return (
-    <div className="dashboard-container dashboard-home reportes-conducta-page">
-      <div className="dashboard-home-bg" aria-hidden="true" />
-      <div className="dashboard-main">
-        <div className="dashboard-heading reportes-heading facturacion-cfdi-heading">
-          <button type="button" className="servicios-back-btn" onClick={() => router.push('/')}>
-            <ArrowLeft size={16} aria-hidden />
-            Inicio
-          </button>
-          <h1 className="dashboard-title">Captura de boletas</h1>
-          <p className="dashboard-subtitle">
+    <div className="boletas-hub">
+      <header className="bh-top">
+        <Link href="/" className="bh-top__back">
+          <ArrowLeft size={16} aria-hidden />
+          <span>Inicio</span>
+        </Link>
+        <div className="bh-top__brand">
+          <Image
+            src="/logos/logo-winston-w.png"
+            alt=""
+            width={36}
+            height={27}
+            className="bh-top__logo"
+            priority
+          />
+          <span className="bh-top__school">Instituto Winston Churchill</span>
+        </div>
+        <span className="bh-top__ciclo">Ciclo {ciclo}</span>
+        <ThemeToggle />
+      </header>
+
+      <main className="bh-main">
+        <section className="bh-intro">
+          <span className="bh-intro__ciclo" aria-hidden>
+            {ciclo.replace(/^(\d{4})-\d{2}(\d{2})$/, '$1—$2')}
+          </span>
+          <h1 className="bh-intro__title">Captura de boletas</h1>
+          <p className="bh-intro__lead">
             Elige tu nivel. Después entra con tu usuario y contraseña o con tu correo institucional.
           </p>
-          <div className="facturacion-cfdi-theme-row">
-            <ThemeToggle />
-          </div>
-        </div>
+        </section>
 
-        <div className="dashboard-nav-grid reportes-conducta-grid" role="list">
-          {NIVELES.map((n, index) => (
-            <div key={n.id} role="listitem">
-              <DashboardModuleCard
-                order={index + 1}
-                label={n.label}
-                desc={n.desc}
-                accent={n.accent}
-                icon={n.icon}
-                kicker={n.kicker}
-                tags={n.tags}
-                onActivate={() => router.push(n.ruta)}
+        <div className="bh-puertas">
+          {NIVELES.map((n, i) => (
+            <article key={n.id} className="bh-puerta" style={{ '--i': i } as CSSProperties}>
+              <Image
+                src={n.foto}
+                alt={n.alt}
+                fill
+                sizes="(max-width: 1023px) 100vw, 60vw"
+                className="bh-puerta__img"
+                priority={i === 0}
               />
-            </div>
+              <div className="bh-puerta__content">
+                <header className="bh-puerta__head">
+                  <span className="bh-puerta__grados">{n.grados}</span>
+                  <h2 className="bh-puerta__title">{n.titulo}</h2>
+                </header>
+                <ul className="bh-puerta__accesos">
+                  <li>
+                    <Link href={n.ruta} className="bh-pase">
+                      <span className="bh-pase__top">
+                        <span className="bh-pase__tag" aria-hidden>
+                          <LogIn size={17} strokeWidth={2} />
+                        </span>
+                        <span className="bh-pase__label">Entrar a capturar</span>
+                        <ArrowRight className="bh-pase__arrow" size={17} strokeWidth={2} aria-hidden />
+                      </span>
+                      <span className="bh-pase__desc">{n.desc}</span>
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+            </article>
           ))}
         </div>
-      </div>
+      </main>
     </div>
   )
 }
