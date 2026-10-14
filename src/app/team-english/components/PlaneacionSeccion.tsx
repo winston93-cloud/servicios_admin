@@ -300,9 +300,10 @@ function TarjetaPlan({ teacher, grado, plan, snap, recargar, avisar, onSubir, gc
   return (
     <article className="te-plan" data-estado={plan?.estado ?? 'falta'}>
       <header className="te-plan-head">
-        <Avatar emoji={teacher.emoji} fotoKey={teacher.foto_key} nombre={teacher.nombre} tam="sm" />
+        <Avatar emoji={teacher.emoji} fotoKey={teacher.foto_key} stickerKey={teacher.sticker_key} nombre={teacher.nombre} tam="sm" />
         <div className="te-min0">
           <strong>{teacher.nombre}</strong>
+          {teacher.apodo ? <small className="te-apodo">«{teacher.apodo}»</small> : null}
           <small>Grado {etiquetaGrado(snap.nivel, grado)}{teacher.grupos.length ? ` · ${teacher.grupos.filter((g) => Number(g[0]) === grado).join(', ')}` : ''}</small>
         </div>
         <span className="te-sello">{estado ? `${estado.emoji} ${estado.etiqueta}` : enClassroom ? '🏫 En Classroom' : '😴 Falta'}</span>

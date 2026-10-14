@@ -111,7 +111,7 @@ export default function MuroReconocimientos({ data, setData, onError }: {
                   <span className="te-min0">
                     <small className="te-muro-semana">{r.semana === hoyLunes ? '✨ Esta semana' : textoSemana(r.semana)}{paraMi ? ' · 💖 Para ti' : ''}</small>
                     <strong>{r.titulo}</strong>
-                    <small>{r.homenajeadas.length ? r.homenajeadas.map((h) => `${h.emoji} ${h.nombre.split(' ')[0]}`).join(' · ') : '🌈 Todo el team'}</small>
+                    <small>{r.homenajeadas.length ? r.homenajeadas.map((h) => `${h.emoji} ${h.apodo || h.nombre.split(' ')[0]}`).join(' · ') : '🌈 Todo el team'}</small>
                   </span>
                   <span className="te-muro-play" aria-hidden>▶</span>
                 </button>

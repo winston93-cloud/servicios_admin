@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import confetti from 'canvas-confetti'
 import { X } from 'lucide-react'
-import { REACCIONES, type Reaccion, type TemaReconocimiento, type TeReconocimiento } from '@/lib/teamEnglish/teTypes'
+import { REACCIONES, nombreCorto, type Reaccion, type TemaReconocimiento, type TeReconocimiento } from '@/lib/teamEnglish/teTypes'
 import { teArchivoUrl } from '../teApi'
 import { activarAudio, sonidos } from './teSonidos'
 
@@ -248,7 +248,7 @@ export default function Celebracion({ rec, homenajeada, onCerrar, miReaccion, on
         {rec.homenajeadas.length ? (
           <p className="te-cel-para">
             {rec.homenajeadas.map((h) => (
-              <span key={h.maestro_id} className="te-cel-nombre">{h.emoji} Teacher {h.nombre.split(' ')[0]}</span>
+              <span key={h.maestro_id} className="te-cel-nombre">{h.emoji} {nombreCorto(h)}</span>
             ))}
           </p>
         ) : (

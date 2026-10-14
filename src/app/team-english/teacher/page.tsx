@@ -8,7 +8,8 @@ import ThemeToggle from '@/components/ThemeToggle'
 import type { PortalTeacherData } from '@/lib/teamEnglish/teService'
 import { ESTADOS_PLANEACION, bloquesDePlan, etiquetaGrado, lunesDe, textoSemana, type TeCursoSugerido } from '@/lib/teamEnglish/teTypes'
 import { teAbrirArchivo } from '../teApi'
-import { Campo, Semana, Vacio } from '../components/ui'
+import { Campo, Semana, StickerImg, Vacio } from '../components/ui'
+import { Doodles, SkinSwitch, skinDe, useTeSkin } from '../components/Skins'
 import { PlanMiniSemana } from '../components/PlanLienzo'
 import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
 import CursoDelDia from './CursoDelDia'
@@ -27,6 +28,7 @@ export default function PortalTeacherPage() {
   const [estado, setEstado] = useState<'cargando' | 'login' | 'listo'>('cargando')
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState<string | null>(null)
+  const [skin, setSkin] = useTeSkin()
 
   const cargar = useCallback(async () => {
     try {
@@ -62,10 +64,8 @@ export default function PortalTeacherPage() {
   }
 
   return (
-    <div className="te-page">
-      <div className="te-doodles" aria-hidden>
-        {['⭐', '🌸', '☁️', '💖', '✨', '🌈', '🍓', '⭐'].map((e, i) => <span key={i} style={{ ['--i' as string]: i }}>{e}</span>)}
-      </div>
+    <div className="te-page" data-skin={skin}>
+      <Doodles skin={skin} cuantos={8} />
       <div className={data ? 'te-shell' : 'te-shell te-shell-angosto'}>
         <header className="te-topbar">
           <span className="te-topbar-izq">
@@ -74,7 +74,7 @@ export default function PortalTeacherPage() {
                 <ArrowLeft size={16} aria-hidden /> Dashboard
               </button>
             ) : null}
-            <span className="te-marca"><span aria-hidden>🌈</span> Team English</span>
+            <span className="te-marca"><span aria-hidden>{skinDe(skin).emoji}</span> Team English</span>
           </span>
           <div className="te-topbar-der">
             {data ? (
@@ -82,6 +82,7 @@ export default function PortalTeacherPage() {
                 <LogOut size={14} aria-hidden /> Salir
               </button>
             ) : null}
+            <SkinSwitch skin={skin} onCambiar={setSkin} />
             <ThemeToggle />
           </div>
         </header>
@@ -153,7 +154,7 @@ function Portal({ data, setData, onOk, onError, onSalir }: {
   const [lunes, setLunes] = useState(hoyLunes)
   const [tab, setTab] = useState<'planeaciones' | 'cursos'>('planeaciones')
   const [borradorCurso, setBorradorCurso] = useState<BorradorCurso | null>(null)
-  const nombreCorto = data.teacher.nombre.split(' ')[0]
+  const nombreCorto = data.teacher.apodo || data.teacher.nombre.split(' ')[0]
   const loTome = (s: TeCursoSugerido) => {
     setTab('cursos')
     setBorradorCurso(borradorDeSugerido(s, data.hoy))
@@ -173,7 +174,12 @@ function Portal({ data, setData, onOk, onError, onSalir }: {
       <div className="te-portal-top">
         <section className="te-hero">
           <p className="te-kicker">Primaria · {data.teacher.grupos.join(', ') || 'Teacher'}</p>
-          <h1 className="te-title">Hi, {nombreCorto}! <span className="te-title-emoji" aria-hidden>{data.teacher.emoji}</span></h1>
+          <h1 className="te-title">
+            Hi, {nombreCorto}!{' '}
+            <span className="te-title-emoji" aria-hidden>
+              {data.teacher.sticker_key ? <StickerImg stickerKey={data.teacher.sticker_key} alt="" conSesion={false} /> : data.teacher.emoji}
+            </span>
+          </h1>
           <p className="te-lead">Sube tu planeación de la semana y los cursos que tomes; tu directora los revisa.</p>
         </section>
         <CursoDelDia sugeridos={data.sugeridos} hoy={data.hoy} onLoTome={loTome} />

@@ -18,7 +18,7 @@ import {
 } from '@/lib/teamEnglish/teTypes'
 import type { SeccionProps } from '../seccionTipos'
 import { teAbrirArchivo, teAccion, teSubir } from '../teApi'
-import { ACEPTAR_DOCS, Avatar, Campo, SelectorArchivo, Vacio } from './ui'
+import { ACEPTAR_DOCS, Avatar, Campo, NombreTeacher, SelectorArchivo, Vacio } from './ui'
 
 type Base = { teacher: TeTeacher; snap: SeccionProps['snap']; avisar: SeccionProps['avisar']; exp: TeExpediente; recargarExp: () => Promise<void> }
 
@@ -374,8 +374,8 @@ export function TablaGeneral({ snap, lista, avisar, onAbrir }: { snap: SeccionPr
               <tr key={t.maestro_id} onClick={() => onAbrir(t.maestro_id)}>
                 <td>
                   <button type="button" className="te-tabla-nombre" onClick={(e) => { e.stopPropagation(); onAbrir(t.maestro_id) }}>
-                    <Avatar emoji={t.emoji} fotoKey={t.foto_key} nombre={t.nombre} tam="sm" />
-                    <span>{t.nombre}</span>
+                    <Avatar emoji={t.emoji} fotoKey={t.foto_key} stickerKey={t.sticker_key} nombre={t.nombre} tam="sm" />
+                    <NombreTeacher t={t} como="span" />
                   </button>
                 </td>
                 <td>{t.grupos.map((x) => `${etiquetaGrado(snap.nivel, Number(x[0]))}${x.slice(1)}`).join(', ') || '—'}</td>

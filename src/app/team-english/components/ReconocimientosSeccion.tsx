@@ -74,7 +74,7 @@ export default function ReconocimientosSeccion({ snap, recargar, avisar }: Secci
     created_at: '',
     homenajeadas: b.maestro_ids.flatMap((id) => {
       const t = teacherDe.get(id)
-      return t ? [{ maestro_id: id, nombre: t.nombre, emoji: t.emoji }] : []
+      return t ? [{ maestro_id: id, nombre: t.nombre, apodo: t.apodo, emoji: t.emoji }] : []
     }),
     vistos: [],
   })
@@ -163,7 +163,7 @@ export default function ReconocimientosSeccion({ snap, recargar, avisar }: Secci
                     <div className="te-min0">
                       <strong className="te-rec-titulo">{r.titulo}</strong>
                       <small>
-                        {r.homenajeadas.length ? r.homenajeadas.map((h) => `${h.emoji} ${h.nombre.split(' ')[0]}`).join(' · ') : '🌈 Todo el team'}
+                        {r.homenajeadas.length ? r.homenajeadas.map((h) => `${h.emoji} ${h.apodo || h.nombre.split(' ')[0]}`).join(' · ') : '🌈 Todo el team'}
                       </small>
                       <small className="te-rec-efectos">
                         {r.efectos.map((e) => EFECTOS_RECONOCIMIENTO.find((x) => x.clave === e)?.emoji).join(' ')}
@@ -230,7 +230,7 @@ function FormReconocimiento({ b, set, hoyLunes, activas, foto, setFoto }: {
           {activas.map((t) => (
             <button key={t.maestro_id} type="button" className="te-rec-chip" aria-pressed={b.maestro_ids.includes(t.maestro_id)}
               onClick={() => set({ ...b, maestro_ids: alternar(b.maestro_ids, t.maestro_id) })}>
-              {t.emoji} {t.nombre.split(' ').slice(0, 2).join(' ')}{t.grupos.length ? ` · ${t.grupos.join(', ')}` : ''}
+              {t.emoji} {t.apodo || t.nombre.split(' ').slice(0, 2).join(' ')}{t.grupos.length ? ` · ${t.grupos.join(', ')}` : ''}
             </button>
           ))}
         </div>

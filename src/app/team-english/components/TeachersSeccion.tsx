@@ -6,6 +6,8 @@ import {
   ESTADOS_PLANEACION,
   RUBROS,
   TE_EMOJIS,
+  TE_STICKER_MAX_MB,
+  TE_STICKER_MIME,
   TIPOS_ANTECEDENTE,
   TIPOS_INCIDENCIA,
   calcularDesempeno,
@@ -17,13 +19,14 @@ import {
   completitudExpediente,
   type TeAntecedente,
   type TeExpediente,
+  type TeSticker,
   type TipoItemExpediente,
   type TeTeacher,
   type TipoAntecedente,
 } from '@/lib/teamEnglish/teTypes'
 import type { SeccionProps } from '../seccionTipos'
 import { teAbrirArchivo, teAccion, teSubir } from '../teApi'
-import { ACEPTAR_DOCS, Avatar, Campo, Hoja, SelectorArchivo, Vacio } from './ui'
+import { ACEPTAR_DOCS, Avatar, Campo, Hoja, SelectorArchivo, StickerImg, Vacio } from './ui'
 import { FormGeneral, GeneralesLectura, ItemsLectura, ListaItems, TablaGeneral } from './ExpedienteForms'
 
 type Pestana = 'expediente' | 'general' | 'individual' | 'perfil' | 'antecedentes'
@@ -40,7 +43,7 @@ export default function TeachersSeccion({ snap, recargar, avisar }: SeccionProps
     return snap.teachers.filter((t) => {
       if (!verInactivas && !t.activo) return false
       if (!q) return true
-      const h = `${t.nombre} ${t.grupos.join(' ')} ${t.email ?? ''}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      const h = `${t.nombre} ${t.apodo ?? ''} ${t.grupos.join(' ')} ${t.email ?? ''}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       return h.includes(q)
     })
   }, [snap.teachers, busqueda, verInactivas])
@@ -83,8 +86,9 @@ export default function TeachersSeccion({ snap, recargar, avisar }: SeccionProps
           {lista.map((t, i) => (
             <li key={t.maestro_id} style={{ ['--i' as string]: i }}>
               <button type="button" className="te-teacher" data-inactiva={!t.activo || undefined} onClick={() => setAbiertaId(t.maestro_id)}>
-                <Avatar emoji={t.emoji} fotoKey={t.foto_key} nombre={t.nombre} tam="lg" />
+                <Avatar emoji={t.emoji} fotoKey={t.foto_key} stickerKey={t.sticker_key} nombre={t.nombre} tam="lg" />
                 <span className="te-teacher-nombre">{t.nombre}</span>
+                {t.apodo ? <span className="te-apodo">«{t.apodo}»</span> : null}
                 <span className="te-teacher-grupos">
                   {t.grupos.length
                     ? t.grupos.map((g) => <span key={g} className="te-chip">{etiquetaGrado(snap.nivel, Number(g[0]))}{g.slice(1)}</span>)
@@ -278,9 +282,10 @@ function CabezaExpediente({ teacher, snap, recargar, avisar, exp }: SeccionProps
   return (
     <section className="te-exp-hero" data-inactiva={!teacher.activo || undefined}>
       <div className="te-exp-id">
-        <div className="te-exp-foto"><Avatar emoji={teacher.emoji} fotoKey={teacher.foto_key} nombre={teacher.nombre} tam="lg" /></div>
+        <div className="te-exp-foto"><Avatar emoji={teacher.emoji} fotoKey={teacher.foto_key} stickerKey={teacher.sticker_key} nombre={teacher.nombre} tam="lg" /></div>
         <div className="te-min0">
           <h3>{teacher.nombre}</h3>
+          {teacher.apodo ? <p className="te-apodo">«{teacher.apodo}»</p> : null}
           <p className="te-exp-puesto">
             {teacher.puesto || 'Teacher'} · {etiquetaNivelTe(snap.nivel)}
             {!teacher.activo ? ' · 💤 Inactiva' : ''}
@@ -402,6 +407,7 @@ function Expediente({ teacher, snap, avisar, exp, onEditar }: { teacher: TeTeach
         <header><h4>🏫 Datos en la escuela</h4><button type="button" className="te-btn te-btn-ghost te-btn-sm" onClick={() => onEditar('perfil')}>✏️ Editar</button></header>
         <dl className="te-exp-datos">
           <Dato k="Nombre completo" v={teacher.nombre} />
+          <Dato k="Apodo" v={teacher.apodo} />
           <Dato k="Correo institucional" v={teacher.email} />
           <Dato k="Celular" v={teacher.celular} />
           <Dato k="Teléfono" v={teacher.telefono} />
@@ -553,6 +559,10 @@ function Expediente({ teacher, snap, avisar, exp, onEditar }: { teacher: TeTeach
 
 function FormPerfil({ teacher, snap, recargar, avisar }: SeccionProps & { teacher: TeTeacher }) {
   const [f, setF] = useState(() => ({
+    nombre: teacher.nombre_partes.nombre,
+    app: teacher.nombre_partes.app,
+    apm: teacher.nombre_partes.apm,
+    apodo: teacher.apodo ?? '',
     emoji: teacher.emoji,
     puesto: teacher.puesto ?? '',
     fecha_ingreso: teacher.fecha_ingreso ?? '',
@@ -562,16 +572,29 @@ function FormPerfil({ teacher, snap, recargar, avisar }: SeccionProps & { teache
     certificaciones: teacher.certificaciones ?? '',
     notas: teacher.notas ?? '',
   }))
+  const [stickerId, setStickerId] = useState<number | null>(teacher.sticker_id)
   const [guardando, setGuardando] = useState(false)
-  const [subiendo, setSubiendo] = useState<'cv' | 'foto' | null>(null)
+  const [subiendo, setSubiendo] = useState<'cv' | 'foto' | 'sticker' | null>(null)
   const set = (k: keyof typeof f, v: string) => setF((p) => ({ ...p, [k]: v }))
+  const stickerSel = snap.stickers.find((s) => s.id === stickerId) ?? null
+  const p0 = teacher.nombre_partes
+  const nombreCambio = f.nombre.trim() !== p0.nombre || f.app.trim() !== p0.app || f.apm.trim() !== p0.apm
 
   const guardar = async () => {
+    if (nombreCambio && !window.confirm(
+      `Vas a corregir el nombre en el catálogo de maestros:\n\n«${teacher.nombre}»\n→ «${[f.nombre, f.app, f.apm].map((x) => x.trim()).filter(Boolean).join(' ')}»\n\nSe actualiza en boletas, Reloj y todo el sistema. ¿Continuar?`,
+    )) return
     setGuardando(true)
     try {
-      await teAccion(snap.nivel, 'perfil', { maestro_id: teacher.maestro_id, ...f })
+      const { nombre, app, apm, ...resto } = f
+      await teAccion(snap.nivel, 'perfil', {
+        maestro_id: teacher.maestro_id,
+        ...resto,
+        sticker_id: stickerSel ? stickerSel.id : null,
+        ...(nombreCambio ? { nombre, app, apm } : {}),
+      })
       await recargar()
-      avisar('Perfil guardado.')
+      avisar(nombreCambio ? 'Perfil guardado y nombre corregido en el catálogo.' : 'Perfil guardado.')
     } catch (e) {
       avisar(e instanceof Error ? e.message : 'Error', 'error')
     } finally {
@@ -590,6 +613,35 @@ function FormPerfil({ teacher, snap, recargar, avisar }: SeccionProps & { teache
       avisar(e instanceof Error ? e.message : 'Error', 'error')
     } finally {
       setSubiendo(null)
+    }
+  }
+
+  const subirSticker = async (file: File | null) => {
+    if (!file) return
+    setSubiendo('sticker')
+    try {
+      if (file.size > TE_STICKER_MAX_MB * 1024 * 1024) throw new Error(`El sticker pesa más de ${TE_STICKER_MAX_MB} MB; usa una imagen más ligera.`)
+      const r = await teSubir(snap.nivel, { tipo: 'sticker', archivo: file })
+      await recargar()
+      const nuevo = (r.sticker as TeSticker | undefined)?.id
+      if (nuevo) setStickerId(nuevo)
+      avisar('Sticker agregado a la colección. Guarda el perfil para dejárselo.')
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : 'Error', 'error')
+    } finally {
+      setSubiendo(null)
+    }
+  }
+
+  const borrarSticker = async (id: number) => {
+    if (!window.confirm('¿Borrar este sticker de la colección? Las teachers que lo usen vuelven a su emoji.')) return
+    try {
+      await teAccion(snap.nivel, 'eliminar_sticker', { id })
+      if (stickerId === id) setStickerId(null)
+      await recargar()
+      avisar('Sticker borrado.')
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : 'Error', 'error')
     }
   }
 
@@ -617,7 +669,7 @@ function FormPerfil({ teacher, snap, recargar, avisar }: SeccionProps & { teache
   return (
     <div className="te-perfil">
       <div className="te-perfil-cabeza">
-        <Avatar emoji={f.emoji} fotoKey={teacher.foto_key} nombre={teacher.nombre} tam="lg" />
+        <Avatar emoji={f.emoji} fotoKey={teacher.foto_key} stickerKey={stickerSel?.key} nombre={teacher.nombre} tam="lg" />
         <div className="te-min0">
           <p className="te-perfil-contacto">
             {teacher.email ? <a href={`mailto:${teacher.email}`}>✉️ {teacher.email}</a> : null}
@@ -635,14 +687,54 @@ function FormPerfil({ teacher, snap, recargar, avisar }: SeccionProps & { teache
 
       <fieldset className="te-emojis">
         <legend>Su sticker</legend>
-        {TE_EMOJIS.map((e) => (
-          <button key={e} type="button" aria-pressed={f.emoji === e} data-activo={f.emoji === e || undefined} onClick={() => set('emoji', e)}>
-            {e}
+        {TE_EMOJIS.map((e) => {
+          const activo = !stickerSel && f.emoji === e
+          return (
+            <button key={e} type="button" aria-pressed={activo} data-activo={activo || undefined} onClick={() => { set('emoji', e); setStickerId(null) }}>
+              {e}
+            </button>
+          )
+        })}
+        {snap.stickers.map((s) => (
+          <button key={s.id} type="button" className="te-emoji-propio" aria-pressed={stickerId === s.id} data-activo={stickerId === s.id || undefined}
+            aria-label={`Sticker ${s.nombre || s.id}`} title={s.nombre} onClick={() => setStickerId(s.id)}>
+            <StickerImg stickerKey={s.key} alt="" />
           </button>
         ))}
+        <label className="te-emoji-subir" title="Subir sticker propio (PNG, JPG, WebP o GIF, máx. 2 MB)">
+          <input type="file" accept={TE_STICKER_MIME.join(',')} className="te-oculto" disabled={subiendo === 'sticker'}
+            onChange={(e) => { void subirSticker(e.target.files?.[0] ?? null); e.target.value = '' }} />
+          {subiendo === 'sticker' ? <Loader2 size={18} className="te-spin" aria-hidden /> : <Plus size={18} aria-hidden />}
+          <span>Subir</span>
+        </label>
       </fieldset>
+      <p className="te-emojis-ayuda">
+        {stickerSel ? (
+          <>
+            <span>Sticker propio elegido. En chips y mensajes se sigue usando su emoji {f.emoji}.</span>
+            <button type="button" className="te-btn te-btn-ghost te-btn-sm te-peligro" onClick={() => void borrarSticker(stickerSel.id)}>
+              <Trash2 size={14} aria-hidden /> Borrar de la colección
+            </button>
+          </>
+        ) : (
+          <span>Con «Subir» agregas tus propios stickers; quedan en la colección para todo el team.</span>
+        )}
+      </p>
 
       <div className="te-form">
+        <p className="te-form-seccion" data-completo>🪪 Nombre en el catálogo de maestros</p>
+        <Campo etiqueta="Nombre(s)"><input className="te-input" value={f.nombre} maxLength={80} autoComplete="off" onChange={(e) => set('nombre', e.target.value)} /></Campo>
+        <Campo etiqueta="Apellido paterno"><input className="te-input" value={f.app} maxLength={80} autoComplete="off" onChange={(e) => set('app', e.target.value)} /></Campo>
+        <Campo etiqueta="Apellido materno"><input className="te-input" value={f.apm} maxLength={80} autoComplete="off" onChange={(e) => set('apm', e.target.value)} /></Campo>
+        <Campo etiqueta="Apodo" ayuda="Aparece debajo de su nombre y en saludos y reconocimientos.">
+          <input className="te-input" value={f.apodo} maxLength={60} placeholder="Miss Maru" autoComplete="off" onChange={(e) => set('apodo', e.target.value)} />
+        </Campo>
+        {nombreCambio ? (
+          <p className="te-aviso-catalogo" data-completo role="status">
+            ✏️ Al guardar se corrige su nombre de origen en el catálogo de maestros (boletas, Reloj y todo el sistema).
+          </p>
+        ) : null}
+
         <Campo etiqueta="Puesto"><input className="te-input" value={f.puesto} onChange={(e) => set('puesto', e.target.value)} placeholder="Homeroom teacher 3°" /></Campo>
         <Campo etiqueta="Fecha de ingreso"><input className="te-input" type="date" value={f.fecha_ingreso} onChange={(e) => set('fecha_ingreso', e.target.value)} /></Campo>
         <Campo etiqueta="Teléfono"><input className="te-input" value={f.telefono} onChange={(e) => set('telefono', e.target.value)} inputMode="tel" /></Campo>

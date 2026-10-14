@@ -59,7 +59,7 @@ function PanelGoogle({ nivel, teacher }: { nivel: TeNivel; teacher: TeTeacher })
   return (
     <section className="te-gclass" aria-busy={cargando}>
       <header>
-        <Avatar emoji={teacher.emoji} fotoKey={teacher.foto_key} nombre={teacher.nombre} tam="sm" />
+        <Avatar emoji={teacher.emoji} fotoKey={teacher.foto_key} stickerKey={teacher.sticker_key} nombre={teacher.nombre} tam="sm" />
         <div className="te-min0">
           <strong>Google Classroom de {teacher.nombre}</strong>
           <small>{teacher.email ?? 'Sin correo registrado'}</small>
@@ -389,9 +389,10 @@ export default function ClassroomSeccion({ snap, recargar, avisar }: SeccionProp
               <li key={k} style={{ ['--i' as string]: i }}>
                 <article className="te-classroom" data-tono={s.tono}>
                   <header>
-                    <Avatar emoji={f.teacher.emoji} fotoKey={f.teacher.foto_key} nombre={f.teacher.nombre} tam="sm" />
+                    <Avatar emoji={f.teacher.emoji} fotoKey={f.teacher.foto_key} stickerKey={f.teacher.sticker_key} nombre={f.teacher.nombre} tam="sm" />
                     <div className="te-min0">
                       <strong>{f.teacher.nombre}</strong>
+                      {f.teacher.apodo ? <small className="te-apodo">«{f.teacher.apodo}»</small> : null}
                       <small>Grupo {etiquetaGrupo(f.grupo)}</small>
                     </div>
                     <span className="te-semaforo" title={s.texto}><span aria-hidden>{s.emoji}</span> {s.texto}</span>

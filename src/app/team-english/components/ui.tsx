@@ -2,29 +2,61 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react'
 import { sumarDias, textoSemana } from '@/lib/teamEnglish/teTypes'
 import { teArchivoUrl } from '../teApi'
 
-export function Avatar({ emoji, fotoKey, nombre, tam = 'md' }: { emoji: string; fotoKey?: string | null; nombre: string; tam?: 'sm' | 'md' | 'lg' }) {
+/** URL local de un archivo privado del bucket; null mientras carga o si falla. */
+export function useArchivoUrl(key: string | null | undefined, conSesion = true): string | null {
   const [url, setUrl] = useState<string | null>(null)
   useEffect(() => {
     let vivo = true
-    if (!fotoKey) {
+    if (!key) {
       setUrl(null)
       return
     }
-    teArchivoUrl(fotoKey)
+    teArchivoUrl(key, conSesion)
       .then((u) => vivo && setUrl(u))
       .catch(() => vivo && setUrl(null))
     return () => {
       vivo = false
     }
-  }, [fotoKey])
+  }, [key, conSesion])
+  return url
+}
+
+/** Foto si la hay; si no, el sticker propio; si no, el emoji. */
+export function Avatar({ emoji, fotoKey, stickerKey, nombre, tam = 'md', conSesion = true }: {
+  emoji: string
+  fotoKey?: string | null
+  stickerKey?: string | null
+  nombre: string
+  tam?: 'sm' | 'md' | 'lg'
+  conSesion?: boolean
+}) {
+  const foto = useArchivoUrl(fotoKey, conSesion)
+  const sticker = useArchivoUrl(fotoKey ? null : stickerKey, conSesion)
+  const url = foto ?? sticker
   return (
-    <span className="te-avatar" data-tam={tam} aria-hidden={!url}>
+    <span className="te-avatar" data-tam={tam} data-sticker={(!foto && !!sticker) || undefined} aria-hidden={!url}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      {url ? <img src={url} alt={`Foto de ${nombre}`} /> : <span>{emoji}</span>}
+      {url ? <img src={url} alt={foto ? `Foto de ${nombre}` : `Sticker de ${nombre}`} /> : <span>{emoji}</span>}
+    </span>
+  )
+}
+
+export function StickerImg({ stickerKey, alt, conSesion = true }: { stickerKey: string; alt: string; conSesion?: boolean }) {
+  const url = useArchivoUrl(stickerKey, conSesion)
+  /* eslint-disable-next-line @next/next/no-img-element */
+  return url ? <img className="te-sticker-img" src={url} alt={alt} /> : <Loader2 size={16} className="te-spin" aria-hidden />
+}
+
+/** Nombre completo con el apodo debajo («Miss Maru»). */
+export function NombreTeacher({ t, como: Tag = 'strong', className }: { t: { nombre: string; apodo?: string | null }; como?: 'strong' | 'span' | 'h3'; className?: string }) {
+  return (
+    <span className="te-nombre-teacher te-min0">
+      <Tag className={className}>{t.nombre}</Tag>
+      {t.apodo ? <small className="te-apodo">«{t.apodo}»</small> : null}
     </span>
   )
 }

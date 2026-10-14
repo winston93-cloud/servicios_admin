@@ -19,11 +19,28 @@ export function etiquetaGrado(_nivel: number, grado: number): string {
   return `${grado}°`
 }
 
+/** Para saludos y chips: el apodo si lo tiene; si no, «Teacher» + primer nombre. */
+export function nombreCorto(t: { nombre: string; apodo?: string | null }): string {
+  return t.apodo?.trim() || `Teacher ${t.nombre.split(' ')[0]}`
+}
+
 export const TE_EMOJIS = ['🌷', '🌸', '🌻', '🌈', '🦄', '🐰', '🐻', '🐼', '🐱', '🦊', '🐨', '🐥', '🍓', '🍒', '🧁', '⭐', '🌙', '☁️', '🎀', '💖'] as const
+
+/** Sticker propio que sube la directora (imagen en el bucket). */
+export type TeSticker = { id: number; key: string; nombre: string }
+
+export const TE_STICKER_MIME = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const
+export const TE_STICKER_MAX_MB = 2
 
 export type TeTeacher = {
   maestro_id: number
   nombre: string
+  /** Partes tal como viven en el catálogo de maestros (boleta_maestro), en formato título. */
+  nombre_partes: { nombre: string; app: string; apm: string }
+  /** Como le dicen en el día a día, ej. «Miss Maru». */
+  apodo: string | null
+  sticker_id: number | null
+  sticker_key: string | null
   email: string | null
   celular: string | null
   usuario: string | null
@@ -497,7 +514,7 @@ export type TeReconocimiento = {
   foto_key: string | null
   creado_por: string | null
   created_at: string
-  homenajeadas: { maestro_id: number; nombre: string; emoji: string }[]
+  homenajeadas: { maestro_id: number; nombre: string; apodo: string | null; emoji: string }[]
   vistos: { maestro_id: number; reaccion: Reaccion | null }[]
 }
 
@@ -538,6 +555,7 @@ export type TeSnapshot = {
   hoy: string
   inicio_ciclo: string
   teachers: TeTeacher[]
+  stickers: TeSticker[]
   planeaciones: TePlaneacion[]
   capacitaciones: TeCapacitacion[]
   cursos: TeCurso[]

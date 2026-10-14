@@ -18,6 +18,7 @@ import CapacitacionesSeccion from './components/CapacitacionesSeccion'
 import DesempenoSeccion from './components/DesempenoSeccion'
 import ClassroomSeccion from './components/ClassroomSeccion'
 import ReconocimientosSeccion from './components/ReconocimientosSeccion'
+import { Doodles, SkinSwitch, skinDe, useTeSkin } from './components/Skins'
 import './team-english.css'
 
 type Seccion = 'teachers' | 'planeacion' | 'capacitaciones' | 'desempeno' | 'classroom' | 'reconocimientos'
@@ -52,6 +53,7 @@ function TeamEnglish() {
   const [error, setError] = useState<string | null>(null)
   const [seccion, setSeccion] = useState<Seccion | null>(null)
   const [aviso, setAviso] = useState<{ texto: string; tipo: 'ok' | 'error' } | null>(null)
+  const [skin, setSkin] = useTeSkin()
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -128,12 +130,8 @@ function TeamEnglish() {
   const actual = SECCIONES.find((s) => s.id === seccion)
 
   return (
-    <div className="te-page">
-      <div className="te-doodles" aria-hidden>
-        {['⭐', '🌸', '☁️', '💖', '✨', '🌈', '🍓', '⭐', '☁️', '✨'].map((e, i) => (
-          <span key={i} style={{ ['--i' as string]: i }}>{e}</span>
-        ))}
-      </div>
+    <div className="te-page" data-skin={skin}>
+      <Doodles skin={skin} />
       <div className="te-shell">
         <header className="te-topbar">
           <button type="button" className="te-back" onClick={() => (seccion ? abrir(null) : router.push('/dashboard'))}>
@@ -143,6 +141,7 @@ function TeamEnglish() {
             <button type="button" className="te-icon-btn" onClick={() => void recargar()} aria-label="Recargar" disabled={cargando}>
               <RefreshCw size={16} aria-hidden className={cargando ? 'te-spin' : undefined} />
             </button>
+            <SkinSwitch skin={skin} onCambiar={setSkin} />
             <ThemeToggle />
           </div>
         </header>
@@ -153,7 +152,7 @@ function TeamEnglish() {
               <span aria-hidden>🇬🇧</span> English Department{snap ? ` · ${etiquetaNivelTe(snap.nivel)}` : ''}
             </p>
             <h1 className="te-title">
-              Team English <span className="te-title-emoji" aria-hidden>🌈</span>
+              Team English <span className="te-title-emoji" aria-hidden>{skinDe(skin).emoji}</span>
             </h1>
             <p className="te-lead">Todo lo de tus teachers en un solo lugar: perfiles, planeaciones, capacitaciones, desempeño y classrooms.</p>
           </section>

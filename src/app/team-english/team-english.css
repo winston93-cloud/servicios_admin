@@ -32,6 +32,8 @@
   --te-radio: 1.25rem;
   --te-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --te-display: var(--te-font-display), 'Fredoka', 'Nunito', system-ui, sans-serif;
+  --te-patron: radial-gradient(var(--te-punto) 1.2px, transparent 1.3px);
+  --te-patron-tam: 22px 22px;
 
   position: relative;
   min-height: 100vh;
@@ -39,8 +41,9 @@
   overflow-x: clip;
   color: var(--te-tinta);
   background-color: var(--te-papel);
-  background-image: radial-gradient(var(--te-punto) 1.2px, transparent 1.3px);
-  background-size: 22px 22px;
+  background-image: var(--te-patron);
+  background-size: var(--te-patron-tam);
+  transition: background-color 0.35s var(--te-ease), color 0.35s var(--te-ease);
   font-family: var(--te-font-body), 'Nunito', system-ui, sans-serif;
   font-size: 15px;
   line-height: 1.5;
@@ -74,6 +77,216 @@
   --te-ok: oklch(80% 0.14 150);
   --te-warn: oklch(84% 0.13 80);
   --te-bad: oklch(76% 0.15 15);
+}
+
+/* ── Skins (switch «Estilo»): kawaii es la base de arriba; cada skin reescribe las mismas variables en claro y oscuro. ── */
+
+/* Océano: turquesa, coral y burbujas */
+.te-page[data-skin='oceano'] {
+  --te-papel: oklch(97% 0.02 210);
+  --te-punto: oklch(80% 0.06 215 / 0.5);
+  --te-hoja: oklch(99.3% 0.006 210);
+  --te-hoja-2: oklch(95% 0.025 200);
+  --te-tinta: oklch(30% 0.07 240);
+  --te-tinta-suave: oklch(43% 0.06 235);
+  --te-muted: oklch(54% 0.045 230);
+  --te-borde: oklch(30% 0.07 240);
+  --te-sombra: oklch(30% 0.07 240);
+  --te-linea: oklch(88% 0.03 215);
+  --te-fresa: oklch(86% 0.08 30);
+  --te-fresa-f: oklch(60% 0.16 30);
+  --te-lavanda: oklch(88% 0.05 265);
+  --te-lavanda-f: oklch(52% 0.14 265);
+  --te-matcha: oklch(89% 0.07 170);
+  --te-matcha-f: oklch(50% 0.11 170);
+  --te-durazno: oklch(91% 0.06 75);
+  --te-durazno-f: oklch(60% 0.13 60);
+  --te-cielo: oklch(88% 0.07 205);
+  --te-cielo-f: oklch(52% 0.11 215);
+  --te-limon: oklch(94% 0.08 95);
+  --te-limon-f: oklch(58% 0.12 85);
+  --te-patron: radial-gradient(circle, var(--te-punto) 2.2px, transparent 2.6px), radial-gradient(circle, var(--te-punto) 1px, transparent 1.4px);
+  --te-patron-tam: 46px 46px, 19px 19px;
+}
+[data-theme='dark'] .te-page[data-skin='oceano'] {
+  --te-papel: oklch(21% 0.04 235);
+  --te-punto: oklch(40% 0.06 220 / 0.5);
+  --te-hoja: oklch(27% 0.045 232);
+  --te-hoja-2: oklch(32% 0.05 228);
+  --te-tinta: oklch(95% 0.02 210);
+  --te-tinta-suave: oklch(84% 0.03 210);
+  --te-muted: oklch(72% 0.035 215);
+  --te-borde: oklch(12% 0.03 240);
+  --te-sombra: oklch(12% 0.03 240);
+  --te-linea: oklch(38% 0.05 225);
+  --te-fresa: oklch(45% 0.11 30);
+  --te-fresa-f: oklch(80% 0.12 30);
+  --te-lavanda: oklch(42% 0.09 265);
+  --te-lavanda-f: oklch(80% 0.1 265);
+  --te-matcha: oklch(42% 0.08 170);
+  --te-matcha-f: oklch(82% 0.11 170);
+  --te-durazno: oklch(46% 0.08 70);
+  --te-durazno-f: oklch(85% 0.11 75);
+  --te-cielo: oklch(43% 0.08 210);
+  --te-cielo-f: oklch(83% 0.1 205);
+  --te-limon: oklch(48% 0.08 95);
+  --te-limon-f: oklch(88% 0.12 95);
+}
+
+/* Galaxia: violeta, magenta y estrellas */
+.te-page[data-skin='galaxia'] {
+  --te-papel: oklch(96.5% 0.025 290);
+  --te-punto: oklch(76% 0.09 290 / 0.45);
+  --te-hoja: oklch(99% 0.01 290);
+  --te-hoja-2: oklch(94% 0.035 285);
+  --te-tinta: oklch(27% 0.1 285);
+  --te-tinta-suave: oklch(40% 0.09 285);
+  --te-muted: oklch(52% 0.06 285);
+  --te-borde: oklch(27% 0.1 285);
+  --te-sombra: oklch(27% 0.1 285);
+  --te-linea: oklch(86% 0.04 290);
+  --te-fresa: oklch(85% 0.09 340);
+  --te-fresa-f: oklch(58% 0.2 340);
+  --te-lavanda: oklch(85% 0.08 290);
+  --te-lavanda-f: oklch(52% 0.19 290);
+  --te-matcha: oklch(89% 0.08 165);
+  --te-matcha-f: oklch(52% 0.12 165);
+  --te-durazno: oklch(88% 0.08 50);
+  --te-durazno-f: oklch(62% 0.15 45);
+  --te-cielo: oklch(88% 0.07 220);
+  --te-cielo-f: oklch(55% 0.13 225);
+  --te-limon: oklch(93% 0.1 100);
+  --te-limon-f: oklch(60% 0.13 90);
+  --te-patron: radial-gradient(var(--te-punto) 1px, transparent 1.4px), radial-gradient(var(--te-punto) 1.8px, transparent 2.2px);
+  --te-patron-tam: 23px 23px, 67px 67px;
+}
+[data-theme='dark'] .te-page[data-skin='galaxia'] {
+  --te-papel: oklch(17% 0.05 285);
+  --te-punto: oklch(78% 0.06 280 / 0.4);
+  --te-hoja: oklch(23.5% 0.06 285);
+  --te-hoja-2: oklch(29% 0.07 288);
+  --te-tinta: oklch(96% 0.02 290);
+  --te-tinta-suave: oklch(85% 0.04 290);
+  --te-muted: oklch(73% 0.05 290);
+  --te-borde: oklch(9% 0.04 285);
+  --te-sombra: oklch(9% 0.04 285);
+  --te-linea: oklch(35% 0.07 288);
+  --te-fresa: oklch(42% 0.15 340);
+  --te-fresa-f: oklch(80% 0.15 340);
+  --te-lavanda: oklch(40% 0.15 290);
+  --te-lavanda-f: oklch(80% 0.13 290);
+  --te-matcha: oklch(42% 0.09 165);
+  --te-matcha-f: oklch(84% 0.12 165);
+  --te-durazno: oklch(45% 0.1 50);
+  --te-durazno-f: oklch(84% 0.12 55);
+  --te-cielo: oklch(42% 0.1 225);
+  --te-cielo-f: oklch(84% 0.11 215);
+  --te-limon: oklch(48% 0.09 100);
+  --te-limon-f: oklch(90% 0.13 100);
+}
+
+/* Bosque encantado: musgo, hongo rojo y hojitas */
+.te-page[data-skin='bosque'] {
+  --te-papel: oklch(96.8% 0.022 110);
+  --te-punto: oklch(80% 0.05 140 / 0.45);
+  --te-hoja: oklch(99% 0.01 100);
+  --te-hoja-2: oklch(94.5% 0.03 130);
+  --te-tinta: oklch(30% 0.06 155);
+  --te-tinta-suave: oklch(42% 0.055 150);
+  --te-muted: oklch(53% 0.04 145);
+  --te-borde: oklch(30% 0.06 155);
+  --te-sombra: oklch(30% 0.06 155);
+  --te-linea: oklch(87% 0.035 135);
+  --te-fresa: oklch(86% 0.08 25);
+  --te-fresa-f: oklch(56% 0.17 25);
+  --te-lavanda: oklch(87% 0.06 310);
+  --te-lavanda-f: oklch(53% 0.14 310);
+  --te-matcha: oklch(88% 0.09 135);
+  --te-matcha-f: oklch(48% 0.12 140);
+  --te-durazno: oklch(89% 0.08 75);
+  --te-durazno-f: oklch(60% 0.13 65);
+  --te-cielo: oklch(88% 0.05 200);
+  --te-cielo-f: oklch(50% 0.09 205);
+  --te-limon: oklch(93% 0.1 105);
+  --te-limon-f: oklch(56% 0.12 100);
+  --te-patron: repeating-linear-gradient(45deg, var(--te-punto) 0 1px, transparent 1px 20px), repeating-linear-gradient(-45deg, var(--te-punto) 0 1px, transparent 1px 20px);
+  --te-patron-tam: auto, auto;
+}
+[data-theme='dark'] .te-page[data-skin='bosque'] {
+  --te-papel: oklch(21% 0.035 150);
+  --te-punto: oklch(36% 0.05 145 / 0.45);
+  --te-hoja: oklch(27% 0.04 152);
+  --te-hoja-2: oklch(32% 0.045 148);
+  --te-tinta: oklch(95% 0.02 110);
+  --te-tinta-suave: oklch(85% 0.03 120);
+  --te-muted: oklch(72% 0.035 130);
+  --te-borde: oklch(12% 0.03 155);
+  --te-sombra: oklch(12% 0.03 155);
+  --te-linea: oklch(37% 0.045 150);
+  --te-fresa: oklch(44% 0.11 25);
+  --te-fresa-f: oklch(78% 0.13 25);
+  --te-lavanda: oklch(42% 0.09 310);
+  --te-lavanda-f: oklch(80% 0.1 310);
+  --te-matcha: oklch(42% 0.09 140);
+  --te-matcha-f: oklch(83% 0.13 135);
+  --te-durazno: oklch(46% 0.08 70);
+  --te-durazno-f: oklch(85% 0.12 75);
+  --te-cielo: oklch(42% 0.07 205);
+  --te-cielo-f: oklch(82% 0.09 200);
+  --te-limon: oklch(48% 0.09 105);
+  --te-limon-f: oklch(89% 0.13 105);
+}
+
+/* Arcade: neón retro con cuadrícula; en oscuro, sombras neón */
+.te-page[data-skin='arcade'] {
+  --te-papel: oklch(97% 0.012 260);
+  --te-punto: oklch(86% 0.04 260 / 0.7);
+  --te-hoja: oklch(99.5% 0 0);
+  --te-hoja-2: oklch(95% 0.02 300);
+  --te-tinta: oklch(22% 0.03 280);
+  --te-tinta-suave: oklch(36% 0.04 280);
+  --te-muted: oklch(50% 0.03 280);
+  --te-borde: oklch(22% 0.03 280);
+  --te-sombra: oklch(22% 0.03 280);
+  --te-linea: oklch(88% 0.02 270);
+  --te-fresa: oklch(82% 0.13 350);
+  --te-fresa-f: oklch(56% 0.24 350);
+  --te-lavanda: oklch(82% 0.11 300);
+  --te-lavanda-f: oklch(50% 0.24 300);
+  --te-matcha: oklch(88% 0.16 145);
+  --te-matcha-f: oklch(52% 0.17 145);
+  --te-durazno: oklch(85% 0.12 55);
+  --te-durazno-f: oklch(60% 0.19 45);
+  --te-cielo: oklch(85% 0.1 230);
+  --te-cielo-f: oklch(52% 0.2 255);
+  --te-limon: oklch(93% 0.15 105);
+  --te-limon-f: oklch(60% 0.15 95);
+  --te-patron: linear-gradient(var(--te-punto) 1px, transparent 1px), linear-gradient(90deg, var(--te-punto) 1px, transparent 1px);
+  --te-patron-tam: 28px 28px, 28px 28px;
+}
+[data-theme='dark'] .te-page[data-skin='arcade'] {
+  --te-papel: oklch(16% 0.04 290);
+  --te-punto: oklch(45% 0.14 330 / 0.3);
+  --te-hoja: oklch(22% 0.05 290);
+  --te-hoja-2: oklch(27% 0.06 295);
+  --te-tinta: oklch(96% 0.02 300);
+  --te-tinta-suave: oklch(86% 0.04 300);
+  --te-muted: oklch(74% 0.05 300);
+  --te-borde: oklch(8% 0.03 290);
+  --te-sombra: oklch(64% 0.24 350);
+  --te-linea: oklch(36% 0.08 300);
+  --te-fresa: oklch(46% 0.19 350);
+  --te-fresa-f: oklch(80% 0.17 350);
+  --te-lavanda: oklch(42% 0.19 300);
+  --te-lavanda-f: oklch(80% 0.15 300);
+  --te-matcha: oklch(46% 0.13 145);
+  --te-matcha-f: oklch(86% 0.19 145);
+  --te-durazno: oklch(48% 0.14 50);
+  --te-durazno-f: oklch(84% 0.15 55);
+  --te-cielo: oklch(44% 0.15 250);
+  --te-cielo-f: oklch(82% 0.13 225);
+  --te-limon: oklch(48% 0.11 195);
+  --te-limon-f: oklch(92% 0.17 105);
 }
 
 .te-page *, .te-page *::before, .te-page *::after { box-sizing: border-box; }
@@ -794,11 +1007,6 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
 .te-timeline-titulo { margin: 0.1rem 0 0; font-family: var(--te-display); font-weight: 600; font-size: 1rem; }
 .te-timeline-desc { margin: 0.3rem 0 0.4rem; white-space: pre-wrap; font-size: 0.9rem; color: var(--te-tinta-suave); }
 
-.te-resumen { display: grid; gap: 0.6rem; margin: 0; padding: 0; list-style: none; }
-.te-resumen li { display: flex; align-items: center; gap: 0.8rem; padding: 0.8rem 1rem; border: 2px solid var(--te-borde); border-radius: 1rem; background: var(--te-hoja); }
-.te-resumen li > span { font-size: 1.5rem; }
-.te-resumen small { display: block; color: var(--te-muted); font-weight: 700; font-size: 0.75rem; }
-
 /* ── Planeación ── */
 .te-planes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr)); gap: 1rem; margin: 0 0 1.5rem; padding: 0; list-style: none; }
 .te-plan {
@@ -1214,7 +1422,6 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
 .te-dia-nombre { font-family: var(--te-display); font-weight: 700; font-size: 1.05rem; line-height: 1.15; }
 .te-dia-head small { font-size: 0.76rem; font-weight: 700; color: var(--te-tinta-suave); }
 .te-dia-vacio { margin: 0; padding: 0.8rem 0.4rem; border: 2px dashed var(--te-linea); border-radius: 0.8rem; color: var(--te-muted); font-size: 0.82rem; font-weight: 600; text-align: center; }
-.te-dia-agregar { width: 100%; }
 .te-bloques { display: grid; gap: 0.55rem; margin: 0; padding: 0; list-style: none; }
 .te-bloque {
   --skill: var(--te-lavanda);
@@ -1292,10 +1499,8 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
 .te-bloque-tema-v { margin: 0; font-weight: 800; overflow-wrap: anywhere; }
 .te-bloque-texto { margin: 0; font-size: 0.86rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 .te-bloque-extra { margin: 0; font-size: 0.8rem; color: var(--te-tinta-suave); white-space: pre-wrap; overflow-wrap: anywhere; }
-.te-skills { display: flex; flex-wrap: wrap; gap: 0.3rem; padding: 0.5rem; border: 2px solid var(--te-borde); border-radius: 0.9rem; background: var(--te-hoja); animation: te-pop 0.3s var(--te-ease) both; }
 .te-skill { display: inline-flex; align-items: center; gap: 0.25rem; min-height: 36px; padding: 0 0.6rem; border: 2px solid color-mix(in oklch, var(--te-borde) 30%, transparent); border-radius: 999px; background: var(--te-hoja-2); color: var(--te-tinta); font: inherit; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
 .te-skill:hover, .te-skill:focus-visible { border-color: var(--te-borde); background: var(--te-lavanda); outline: none; }
-.te-skill-cerrar { background: transparent; color: var(--te-tinta-suave); }
 .te-mini-semana { display: flex; flex-wrap: wrap; gap: 0.3rem 0.7rem; margin: 0; font-size: 0.85rem; }
 .te-mini-semana b { font-family: var(--te-display); font-size: 0.72rem; color: var(--te-muted); text-transform: uppercase; }
 .te-plan-extra { border: 2px dashed var(--te-linea); border-radius: 1rem; padding: 0.2rem 0.9rem; }
@@ -1839,3 +2044,114 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
 .te-diag-tabla { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
 .te-diag-tabla :is(th, td) { padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--te-borde); text-align: left; white-space: nowrap; }
 .te-diag-tabla td[data-falta] { color: var(--te-muted); }
+
+/* ── Switch de estilo (skins) junto a claro/oscuro ── */
+.te-skin { position: relative; }
+.te-skin-btn { padding: 0 0.85rem; }
+.te-skin-btn-emoji { font-size: 1.15rem; line-height: 1; }
+.te-skin-btn[aria-expanded='true'] { background: var(--te-limon); }
+.te-skin-pop {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  right: 0;
+  z-index: 40;
+  width: min(300px, calc(100vw - 1.5rem));
+  padding: 0.75rem;
+  border: 2px solid var(--te-borde);
+  border-radius: 1.1rem;
+  background: var(--te-hoja);
+  color: var(--te-tinta);
+  box-shadow: 5px 5px 0 var(--te-sombra);
+  animation: te-pop 0.28s var(--te-ease) both;
+}
+.te-skin-pop-titulo { margin: 0 0 0.55rem; font-family: var(--te-display); font-weight: 700; font-size: 0.95rem; }
+.te-skin-pop-nota { margin: 0.55rem 0 0; font-size: 0.75rem; color: var(--te-muted); }
+.te-skin-lista { display: grid; gap: 0.35rem; }
+.te-skin-op {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  min-height: var(--touch-min, 44px);
+  padding: 0.35rem 0.55rem;
+  border: 2px solid transparent;
+  border-radius: 0.9rem;
+  background: transparent;
+  color: var(--te-tinta);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.18s, transform 0.18s var(--te-ease);
+}
+.te-skin-op:hover { background: var(--te-hoja-2); transform: translateX(2px); }
+.te-skin-op:focus-visible { outline: 3px solid var(--te-lavanda-f); outline-offset: 1px; }
+.te-skin-op[aria-checked='true'] { border-color: var(--te-borde); background: var(--te-hoja-2); box-shadow: 2px 2px 0 var(--te-sombra); }
+.te-skin-op b { display: block; font-family: var(--te-display); font-weight: 600; font-size: 0.92rem; line-height: 1.2; }
+.te-skin-op small { display: block; font-size: 0.75rem; color: var(--te-muted); }
+.te-skin-check { margin-left: auto; flex: 0 0 auto; color: var(--te-matcha-f); }
+.te-skin-muestra {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--te-borde);
+  border-radius: 0.75rem;
+  font-size: 1.15rem;
+}
+/* Muestras fijas: enseñan la paleta del skin aunque no sea el activo. */
+.te-skin-muestra[data-muestra='kawaii'] { background: linear-gradient(135deg, oklch(87% 0.075 5) 0 33%, oklch(87% 0.06 295) 33% 66%, oklch(93% 0.09 100) 66%); }
+.te-skin-muestra[data-muestra='oceano'] { background: linear-gradient(135deg, oklch(88% 0.07 205) 0 33%, oklch(86% 0.08 30) 33% 66%, oklch(89% 0.07 170) 66%); }
+.te-skin-muestra[data-muestra='galaxia'] { background: linear-gradient(135deg, oklch(30% 0.12 285) 0 33%, oklch(58% 0.2 340) 33% 66%, oklch(70% 0.13 220) 66%); }
+.te-skin-muestra[data-muestra='bosque'] { background: linear-gradient(135deg, oklch(70% 0.12 140) 0 33%, oklch(62% 0.17 25) 33% 66%, oklch(91% 0.08 95) 66%); }
+.te-skin-muestra[data-muestra='arcade'] { background: linear-gradient(135deg, oklch(65% 0.24 350) 0 33%, oklch(60% 0.2 255) 33% 66%, oklch(90% 0.16 105) 66%); }
+
+/* ── Apodo debajo del nombre ── */
+.te-apodo { display: block; margin: 0; font-family: var(--te-display); font-weight: 600; font-size: 0.85rem; font-style: italic; color: var(--te-fresa-f); overflow-wrap: anywhere; }
+.te-teacher .te-apodo { margin-top: -0.35rem; }
+.te-exp-id .te-apodo { margin-top: 0.15rem; font-size: 1rem; }
+.te-nombre-teacher { display: grid; text-align: left; }
+
+/* ── Stickers propios en «Su sticker» ── */
+.te-oculto { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.te-emojis .te-emoji-propio { display: grid; place-items: center; padding: 3px; overflow: hidden; }
+.te-sticker-img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.te-emoji-subir {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 44px;
+  padding: 0 0.8rem;
+  border: 2px dashed color-mix(in oklch, var(--te-borde) 55%, transparent);
+  border-radius: 999px;
+  background: var(--te-hoja);
+  color: var(--te-tinta-suave);
+  font-family: var(--te-display);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: transform 0.2s var(--te-ease), background-color 0.2s;
+}
+.te-emoji-subir:hover { transform: rotate(-3deg) scale(1.05); background: var(--te-limon); color: var(--te-tinta); border-style: solid; }
+.te-emoji-subir:focus-within { outline: 3px solid var(--te-lavanda-f); outline-offset: 2px; }
+.te-emojis-ayuda { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.75rem; margin: -0.35rem 0 0; font-size: 0.8rem; color: var(--te-muted); }
+.te-avatar[data-sticker] { background: var(--te-hoja); }
+.te-avatar[data-sticker] img { object-fit: contain; padding: 12%; }
+.te-title-emoji .te-sticker-img { display: inline-block; width: 1em; height: 1em; vertical-align: -0.12em; }
+
+/* ── Nombre en el catálogo (perfil) ── */
+.te-form-seccion { grid-column: 1 / -1; margin: 0; font-family: var(--te-display); font-weight: 700; font-size: 0.95rem; }
+.te-aviso-catalogo { grid-column: 1 / -1; margin: 0; padding: 0.55rem 0.8rem; border: 2px dashed var(--te-durazno-f); border-radius: 0.9rem; background: color-mix(in oklch, var(--te-durazno) 40%, var(--te-hoja)); font-size: 0.85rem; font-weight: 600; }
+
+@media (max-width: 640px) {
+  .te-skin-pop { position: fixed; top: auto; bottom: max(0.75rem, env(safe-area-inset-bottom)); left: 50%; right: auto; translate: -50% 0; width: min(360px, calc(100vw - 1.5rem)); }
+}
+@media (max-width: 480px) {
+  .te-skin-btn-txt { display: none; }
+  .te-skin-btn { width: var(--touch-min, 44px); padding: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .te-skin-pop { animation: none; }
+  .te-page { transition: none; }
+}

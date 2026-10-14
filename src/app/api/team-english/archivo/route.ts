@@ -23,14 +23,14 @@ export async function POST(request: Request) {
     const form = await request.formData()
     const nivel = resolverNivel(auth.session.usuario_id, form.get('nivel'))
     const quien = auth.session.displayName?.trim() || auth.session.usuario_username || 'Dirección'
-    await subirArchivoDirectora(nivel, form, quien)
-    return NextResponse.json({ ok: true })
+    const r = await subirArchivoDirectora(nivel, form, quien)
+    return NextResponse.json({ ok: true, ...(r ?? {}) })
   } catch (e) {
     return responderError(e, 'POST /api/team-english/archivo:')
   }
 }
 
-/** Directora (header de sesión) ve archivos de sus niveles; la teacher (cookie) solo sus planeaciones, constancias y cursos. */
+/** Directora (header de sesión) ve archivos de sus niveles; la teacher (cookie) solo sus planeaciones, constancias y cursos, más eventos y stickers de su nivel. */
 export async function GET(request: Request) {
   try {
     const key = new URL(request.url).searchParams.get('key') ?? ''
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
       permitido = nivelesPermitidos(session.usuario_id).includes(info.nivel as TeNivel)
     } else {
       const teacher = sesionTeacherDeRequest(request)
-      if (teacher && info.tipo === 'evento') {
+      if (teacher && (info.tipo === 'evento' || info.tipo === 'sticker')) {
         permitido = (await equipoDeTeacher(teacher.id))?.nivel === info.nivel
       } else {
         permitido = !!teacher && teacher.id === info.maestroId && ['planeacion', 'constancia', 'curso'].includes(info.tipo)

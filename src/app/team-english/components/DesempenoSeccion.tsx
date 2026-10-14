@@ -114,9 +114,10 @@ export default function DesempenoSeccion({ snap, recargar, avisar }: SeccionProp
             return (
               <li key={t.maestro_id} style={{ ['--i' as string]: i }} data-tono={n.tono}>
                 <button type="button" className="te-rank-fila" aria-expanded={abiertaEsta} onClick={() => setAbierta(abiertaEsta ? null : t.maestro_id)}>
-                  <Avatar emoji={t.emoji} fotoKey={t.foto_key} nombre={t.nombre} tam="sm" />
+                  <Avatar emoji={t.emoji} fotoKey={t.foto_key} stickerKey={t.sticker_key} nombre={t.nombre} tam="sm" />
                   <span className="te-min0 te-rank-nombre">
                     <strong>{t.nombre}</strong>
+                    {t.apodo ? <small className="te-apodo">«{t.apodo}»</small> : null}
                     <small>🚫 {d.conteos.falta} · ⏰ {d.conteos.retardo} · 🚪 {d.conteos.permiso_llegada + d.conteos.permiso_salida} · 🤒 {d.conteos.enfermedad}</small>
                   </span>
                   <span className="te-rank-barras" aria-hidden>

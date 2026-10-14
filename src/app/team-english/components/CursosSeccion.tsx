@@ -104,7 +104,7 @@ function TarjetaCurso({ curso, teacher, snap, recargar, avisar }: SeccionProps &
   return (
     <article className="te-plan" data-estado={DATA_ESTADO[curso.estado]}>
       <header className="te-plan-head">
-        <Avatar emoji={teacher?.emoji ?? '🌷'} fotoKey={teacher?.foto_key} nombre={nombre} tam="sm" />
+        <Avatar emoji={teacher?.emoji ?? '🌷'} fotoKey={teacher?.foto_key} stickerKey={teacher?.sticker_key} nombre={nombre} tam="sm" />
         <div className="te-min0">
           <strong>{nombre}</strong>
           <small>{fechaCorta(curso.fecha)} · {MODALIDADES[curso.modalidad]}{curso.horas ? ` · ${curso.horas} h` : ''}</small>

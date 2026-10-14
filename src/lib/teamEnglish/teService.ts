@@ -44,7 +44,10 @@ import {
   type TeNivel,
   type TePlaneacion,
   type TeSnapshot,
+  type TeSticker,
   type TeTeacher,
+  TE_STICKER_MAX_MB,
+  TE_STICKER_MIME,
 } from './teTypes'
 
 export const TE_BUCKET = 'team-english'
@@ -124,14 +127,16 @@ type FilaMaestro = {
   maestro_usuario: string | null
 }
 
-function nombreMaestro(m: Pick<FilaMaestro, 'maestro_nombre' | 'maestro_app' | 'maestro_apm'>): string {
-  const t = [m.maestro_nombre, m.maestro_app, m.maestro_apm]
-    .map((x) => String(x ?? '').trim())
-    .filter(Boolean)
-    .join(' ')
-  return t
+function formatoTitulo(s: string | null | undefined): string {
+  return String(s ?? '')
+    .trim()
+    .replace(/\s+/g, ' ')
     .toLowerCase()
     .replace(/(^|\s)(\p{L})/gu, (_, sp: string, l: string) => sp + l.toUpperCase())
+}
+
+function nombreMaestro(m: Pick<FilaMaestro, 'maestro_nombre' | 'maestro_app' | 'maestro_apm'>): string {
+  return [m.maestro_nombre, m.maestro_app, m.maestro_apm].map(formatoTitulo).filter(Boolean).join(' ')
 }
 
 async function asignacionesTeacher(nivel: TeNivel): Promise<Map<number, { grupos: Set<string>; grados: Set<number> }>> {
@@ -162,13 +167,15 @@ async function asignacionesTeacher(nivel: TeNivel): Promise<Map<number, { grupos
 }
 
 export async function equipo(nivel: TeNivel, incluirInactivas = true): Promise<TeTeacher[]> {
-  const [asig, perfilesRes, antRes] = await Promise.all([
+  const [asig, perfilesRes, antRes, stickers] = await Promise.all([
     asignacionesTeacher(nivel),
     db().from('te_teacher').select('*').eq('nivel', nivel),
     db().from('te_antecedente').select('maestro_id').eq('nivel', nivel),
+    stickersDe(nivel),
   ])
   fail(perfilesRes.error, 'Perfiles')
   fail(antRes.error, 'Antecedentes')
+  const stickerKey = new Map(stickers.map((s) => [s.id, s.key]))
   const perfiles = new Map<number, Record<string, unknown>>()
   for (const p of (perfilesRes.data ?? []) as Record<string, unknown>[]) perfiles.set(Number(p.maestro_id), p)
   const ids = new Set<number>(asig.keys())
@@ -191,9 +198,14 @@ export async function equipo(nivel: TeNivel, incluirInactivas = true): Promise<T
     const a = asig.get(id)
     const activo = p.activo === undefined ? true : Boolean(p.activo)
     if (!incluirInactivas && !activo) continue
+    const stickerId = p.sticker_id == null ? null : Number(p.sticker_id)
     out.push({
       maestro_id: id,
       nombre: nombreMaestro(m),
+      nombre_partes: { nombre: formatoTitulo(m.maestro_nombre), app: formatoTitulo(m.maestro_app), apm: formatoTitulo(m.maestro_apm) },
+      apodo: (p.apodo as string) || null,
+      sticker_id: stickerId != null && stickerKey.has(stickerId) ? stickerId : null,
+      sticker_key: stickerId != null ? (stickerKey.get(stickerId) ?? null) : null,
       email: m.maestro_email || null,
       celular: m.maestro_celular || null,
       usuario: m.maestro_usuario || null,
@@ -216,6 +228,12 @@ export async function equipo(nivel: TeNivel, incluirInactivas = true): Promise<T
     })
   }
   return out.sort((x, y) => (x.grados[0] ?? 9) - (y.grados[0] ?? 9) || x.nombre.localeCompare(y.nombre, 'es'))
+}
+
+async function stickersDe(nivel: TeNivel): Promise<TeSticker[]> {
+  const { data, error } = await db().from('te_sticker').select('id, key, nombre').eq('nivel', nivel).order('id')
+  fail(error, 'Stickers')
+  return ((data ?? []) as Record<string, unknown>[]).map((r) => ({ id: Number(r.id), key: String(r.key), nombre: String(r.nombre ?? '') }))
 }
 
 /** Maestros del nivel que aún no están en el equipo (para alta manual). */
@@ -400,7 +418,7 @@ async function reconocimientosDe(nivel: TeNivel, desde: string, teachers: TeTeac
     created_at: String(r.created_at ?? ''),
     homenajeadas: ((r.maestro_ids as number[]) ?? []).flatMap((id) => {
       const t = teacherDe.get(Number(id))
-      return t ? [{ maestro_id: t.maestro_id, nombre: t.nombre, emoji: t.emoji }] : []
+      return t ? [{ maestro_id: t.maestro_id, nombre: t.nombre, apodo: t.apodo, emoji: t.emoji }] : []
     }),
     vistos: porRec.get(Number(r.id)) ?? [],
   }))
@@ -485,8 +503,9 @@ export async function marcarReconocimiento(nivel: TeNivel, maestroId: number, id
 export async function snapshot(nivel: TeNivel, niveles: TeNivel[]): Promise<TeSnapshot> {
   const hoy = hoyMx()
   const inicio = inicioCicloEscolar(hoy)
-  const [teachers, planRes, capacitaciones, cursos, sugeridos, incRes, clsRes, cfgRes] = await Promise.all([
+  const [teachers, stickers, planRes, capacitaciones, cursos, sugeridos, incRes, clsRes, cfgRes] = await Promise.all([
     equipo(nivel),
+    stickersDe(nivel),
     db().from('te_planeacion').select('*').eq('nivel', nivel).gte('semana', inicio).order('semana', { ascending: false }),
     capacitacionesNivel(nivel),
     cursosDe({ nivel }),
@@ -521,6 +540,7 @@ export async function snapshot(nivel: TeNivel, niveles: TeNivel[]): Promise<TeSn
     hoy,
     inicio_ciclo: inicio,
     teachers,
+    stickers,
     planeaciones: ((planRes.data ?? []) as Record<string, unknown>[]).map(mapPlaneacion),
     capacitaciones,
     cursos,
@@ -582,13 +602,16 @@ const MIME_PERMITIDOS = [
   'image/webp',
 ]
 
-export type TipoArchivo = 'cv' | 'foto' | 'antecedente' | 'planeacion' | 'constancia' | 'expediente' | 'curso' | 'evento'
+export type TipoArchivo = 'cv' | 'foto' | 'antecedente' | 'planeacion' | 'constancia' | 'expediente' | 'curso' | 'evento' | 'sticker'
 
 async function subir(tipo: TipoArchivo, nivel: TeNivel, maestroId: number, file: File): Promise<{ key: string; nombre: string }> {
   if (!file || typeof file.arrayBuffer !== 'function' || !file.size) throw new TeError('Selecciona un archivo.')
   if (file.size > TE_MAX_ARCHIVO_MB * 1024 * 1024) throw new TeError(mensajeArchivoGrande(file.size))
   const soloImagen = tipo === 'foto' || tipo === 'evento'
-  if (soloImagen ? !file.type.startsWith('image/') : !MIME_PERMITIDOS.includes(file.type)) {
+  if (tipo === 'sticker') {
+    if (!(TE_STICKER_MIME as readonly string[]).includes(file.type)) throw new TeError('El sticker debe ser PNG, JPG, WebP o GIF.')
+    if (file.size > TE_STICKER_MAX_MB * 1024 * 1024) throw new TeError(`El sticker pesa más de ${TE_STICKER_MAX_MB} MB; usa una imagen más ligera.`)
+  } else if (soloImagen ? !file.type.startsWith('image/') : !MIME_PERMITIDOS.includes(file.type)) {
     throw new TeError(soloImagen ? 'La foto debe ser JPG, PNG o WebP.' : 'Formato no permitido. Usa PDF, Word, PowerPoint, Excel o imagen.')
   }
   const nombre = file.name.slice(0, 180) || 'archivo'
@@ -613,7 +636,7 @@ export async function descargar(key: string): Promise<{ bytes: Uint8Array; tipo:
 
 /** El nivel va en la ruta del archivo: `{tipo}/{nivel}/{maestro}/…`. */
 export function nivelDeKey(key: string): { nivel: number; maestroId: number; tipo: string } | null {
-  const m = /^(cv|foto|antecedente|planeacion|constancia|expediente|curso|evento)\/(\d)\/(\d+)\//.exec(key)
+  const m = /^(cv|foto|antecedente|planeacion|constancia|expediente|curso|evento|sticker)\/(\d)\/(\d+)\//.exec(key)
   return m ? { tipo: m[1], nivel: Number(m[2]), maestroId: Number(m[3]) } : null
 }
 
@@ -621,6 +644,34 @@ async function asegurarEnEquipo(nivel: TeNivel, maestroId: number): Promise<TeTe
   const t = (await equipo(nivel)).find((x) => x.maestro_id === maestroId)
   if (!t) throw new TeError('La teacher no pertenece a este equipo.', 404)
   return t
+}
+
+function parteNombre(raw: unknown, campo: string, requerido: boolean): string | null {
+  const s = String(raw ?? '').trim().replace(/\s+/g, ' ')
+  if (!s) {
+    if (requerido) throw new TeError(`${campo} es obligatorio.`)
+    return null
+  }
+  if (s.length > 80) throw new TeError(`${campo}: máximo 80 caracteres.`)
+  if (!/^[\p{L}][\p{L}' .-]*$/u.test(s)) throw new TeError(`${campo} solo admite letras, espacios, guion y apóstrofo.`)
+  return s.toUpperCase()
+}
+
+/** Corrige el nombre en el catálogo de maestros (boleta_maestro): se refleja en boletas, Reloj y todo el sistema. */
+async function corregirNombreCatalogo(maestroId: number, body: Record<string, unknown>, quien: string): Promise<void> {
+  const nuevo = {
+    maestro_nombre: parteNombre(body.nombre, 'El nombre', true),
+    maestro_app: parteNombre(body.app, 'El apellido paterno', true),
+    maestro_apm: parteNombre(body.apm, 'El apellido materno', false),
+  }
+  const { data: actual, error } = await db().from('boleta_maestro').select('maestro_nombre, maestro_app, maestro_apm').eq('maestro_id', maestroId).maybeSingle()
+  fail(error, 'Maestro')
+  if (!actual) throw new TeError('La maestra no existe en el catálogo.', 404)
+  const igual = (a: unknown, b: string | null) => String(a ?? '').trim().replace(/\s+/g, ' ').toUpperCase() === (b ?? '')
+  if (igual(actual.maestro_nombre, nuevo.maestro_nombre) && igual(actual.maestro_app, nuevo.maestro_app) && igual(actual.maestro_apm, nuevo.maestro_apm)) return
+  const { error: upErr } = await db().from('boleta_maestro').update(nuevo).eq('maestro_id', maestroId)
+  fail(upErr, 'Maestro')
+  console.info(`Team English: ${quien} corrigió el nombre de la maestra ${maestroId}: «${nombreMaestro(actual)}» → «${nombreMaestro(nuevo)}»`)
 }
 
 async function upsertPerfil(nivel: TeNivel, maestroId: number, cambios: Record<string, unknown>, quien: string): Promise<void> {
@@ -774,10 +825,21 @@ async function retirarDeClassroom(nivel: TeNivel, id: number, quien: string): Pr
 
 /* ── Subidas de la directora ── */
 
-export async function subirArchivoDirectora(nivel: TeNivel, form: FormData, quien: string): Promise<void> {
+export async function subirArchivoDirectora(nivel: TeNivel, form: FormData, quien: string): Promise<{ sticker?: TeSticker } | void> {
   const tipo = String(form.get('tipo') ?? '') as TipoArchivo
-  const maestroId = entero(form.get('maestro_id'), 'La teacher')
   const file = form.get('archivo') instanceof File ? (form.get('archivo') as File) : null
+
+  if (tipo === 'sticker') {
+    if (!file) throw new TeError('Selecciona una imagen.')
+    const subido = await subir('sticker', nivel, 0, file)
+    const nombre = subido.nombre.replace(/\.[a-z0-9]+$/i, '').slice(0, 180)
+    const { data, error } = await db().from('te_sticker').insert([{ nivel, key: subido.key, nombre, creado_por: quien }]).select('id, key, nombre').single()
+    if (error || !data) await borrarArchivo(subido.key)
+    fail(error, 'Sticker')
+    return { sticker: { id: Number(data!.id), key: String(data!.key), nombre: String(data!.nombre ?? '') } }
+  }
+
+  const maestroId = entero(form.get('maestro_id'), 'La teacher')
 
   if (tipo === 'planeacion') {
     await guardarPlaneacion({
@@ -946,11 +1008,22 @@ export async function accion(nivel: TeNivel, body: Record<string, unknown>, quie
       const id = entero(body.maestro_id, 'La teacher')
       await asegurarEnEquipo(nivel, id)
       const emoji = texto(body.emoji, 16, 'El emoji') ?? '🌷'
+      const apodo = texto(body.apodo, 60, 'El apodo')
+      let stickerId: number | null = null
+      if (body.sticker_id != null && body.sticker_id !== '') {
+        stickerId = entero(body.sticker_id, 'El sticker')
+        const { data: st, error: stErr } = await db().from('te_sticker').select('id').eq('id', stickerId).eq('nivel', nivel).maybeSingle()
+        fail(stErr, 'Sticker')
+        if (!st) throw new TeError('Ese sticker ya no existe; elige otro.')
+      }
+      if (body.nombre !== undefined) await corregirNombreCatalogo(id, body, quien)
       await upsertPerfil(
         nivel,
         id,
         {
           emoji,
+          apodo,
+          sticker_id: stickerId,
           puesto: texto(body.puesto, 120, 'El puesto'),
           fecha_ingreso: fecha(body.fecha_ingreso, 'La fecha de ingreso', false),
           telefono: texto(body.telefono, 40, 'El teléfono'),
@@ -961,6 +1034,16 @@ export async function accion(nivel: TeNivel, body: Record<string, unknown>, quie
         },
         quien
       )
+      return { ok: true }
+    }
+    case 'eliminar_sticker': {
+      const sid = entero(body.id, 'El sticker')
+      const { data, error } = await db().from('te_sticker').select('key').eq('id', sid).eq('nivel', nivel).maybeSingle()
+      fail(error, 'Sticker')
+      if (!data) throw new TeError('Sticker no encontrado.', 404)
+      const { error: delErr } = await db().from('te_sticker').delete().eq('id', sid).eq('nivel', nivel)
+      fail(delErr, 'Sticker')
+      await borrarArchivo(data.key as string)
       return { ok: true }
     }
     case 'agregar_teacher': {
@@ -1371,7 +1454,15 @@ export async function portalTeacher(maestroId: number) {
   return {
     nivel: r.nivel,
     hoy,
-    teacher: { maestro_id: r.teacher.maestro_id, nombre: r.teacher.nombre, emoji: r.teacher.emoji, grupos: r.teacher.grupos, grados: r.teacher.grados },
+    teacher: {
+      maestro_id: r.teacher.maestro_id,
+      nombre: r.teacher.nombre,
+      apodo: r.teacher.apodo,
+      emoji: r.teacher.emoji,
+      sticker_key: r.teacher.sticker_key,
+      grupos: r.teacher.grupos,
+      grados: r.teacher.grados,
+    },
     planeaciones: ((planRes.data ?? []) as Record<string, unknown>[]).map(mapPlaneacion),
     capacitaciones: capacitaciones.map((c) => ({ ...c, participantes: c.participantes.filter((p) => p.maestro_id === maestroId) })),
     cursos,

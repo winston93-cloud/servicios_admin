@@ -79,7 +79,7 @@ export async function teSincronizarCoMaestras(nivel: TeNivel, maestroId: number)
   return (await leerJson(res)) as unknown as TeCoMaestrasSync
 }
 
-export async function teSubir(nivel: TeNivel, campos: Record<string, string | number | Blob | null | undefined>): Promise<void> {
+export async function teSubir(nivel: TeNivel, campos: Record<string, string | number | Blob | null | undefined>): Promise<Record<string, unknown>> {
   const form = new FormData()
   form.set('nivel', String(nivel))
   for (const [k, v] of Object.entries(campos)) {
@@ -88,7 +88,7 @@ export async function teSubir(nivel: TeNivel, campos: Record<string, string | nu
     form.set(k, v instanceof Blob ? v : String(v))
   }
   const res = await fetch('/api/team-english/archivo', { method: 'POST', headers: portalSessionFetchHeaders(), body: form })
-  await leerJson(res)
+  return leerJson(res)
 }
 
 const cacheBlobs = new Map<string, string>()

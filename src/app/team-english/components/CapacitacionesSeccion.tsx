@@ -166,7 +166,7 @@ export default function CapacitacionesSeccion({ snap, recargar, avisar }: Seccio
                       <span className="te-avatares">
                         {c.participantes.slice(0, 8).map((p) => {
                           const t = teacherDe.get(p.maestro_id)
-                          return t ? <span key={p.maestro_id} title={t.nombre} data-asistio={p.asistio ?? undefined}><Avatar emoji={t.emoji} fotoKey={t.foto_key} nombre={t.nombre} tam="sm" /></span> : null
+                          return t ? <span key={p.maestro_id} title={t.nombre} data-asistio={p.asistio ?? undefined}><Avatar emoji={t.emoji} fotoKey={t.foto_key} stickerKey={t.sticker_key} nombre={t.nombre} tam="sm" /></span> : null
                         })}
                         {c.participantes.length > 8 ? <span className="te-avatares-mas">+{c.participantes.length - 8}</span> : null}
                       </span>
