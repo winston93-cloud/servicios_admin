@@ -1,7 +1,10 @@
 'use client'
 
+import { NumeroAnimado } from '@/components/boletas-motion'
 import ThemeToggle from '@/components/ThemeToggle'
 import { boletasHubItems, type BoletasHubId, type BoletasHubItem } from '@/lib/boletasHubNav'
+import type { HubEstado, HubEstadoModulo, HubModulo, HubNivel } from '@/lib/boletasHubEstado'
+import type { BoletaModulo } from '@/lib/boletasPdfModulo'
 import { cicloEscolarEtiqueta, getCicloEscolarActual } from '@/lib/ciclosEscolares'
 import { ArrowLeft, ArrowRight, ArrowUpRight, Check, Copy, GraduationCap } from 'lucide-react'
 import Image from 'next/image'
@@ -11,13 +14,14 @@ import './boletas-hub.css'
 
 type Acceso = {
   id: BoletasHubId
+  modulo: BoletaModulo
   etiqueta: string
   tag: string
   detalle: string
 }
 
 type Nivel = {
-  id: 'preescolar' | 'primaria' | 'secundaria'
+  id: HubNivel
   titulo: string
   grados: string
   foto: string
@@ -35,12 +39,14 @@ const NIVELES: Nivel[] = [
     accesos: [
       {
         id: 'kinder-espanol',
+        modulo: 'kinder-es',
         etiqueta: 'Español',
         tag: 'ES',
         detalle: 'Entregas de maestras, revisión, publicación y PDF',
       },
       {
         id: 'kinder-ingles',
+        modulo: 'kinder-en',
         etiqueta: 'Inglés',
         tag: 'EN',
         detalle: 'English Preschool: entregas de teachers y PDF',
@@ -56,12 +62,14 @@ const NIVELES: Nivel[] = [
     accesos: [
       {
         id: 'primaria-espanol',
+        modulo: 'primaria-es',
         etiqueta: 'Español',
         tag: 'ES',
         detalle: 'Grados, grupos, PDF y reportes',
       },
       {
         id: 'primaria-ingles',
+        modulo: 'primaria-en',
         etiqueta: 'Inglés',
         tag: 'EN',
         detalle: 'Captura docente y emisión de PDF',
@@ -77,9 +85,10 @@ const NIVELES: Nivel[] = [
     accesos: [
       {
         id: 'secundaria',
+        modulo: 'secundaria',
         etiqueta: 'Boleta única',
         tag: '',
-        detalle: 'Captura por materia, PDF, envío y ciclos históricos',
+        detalle: 'Captura por materia, medallas, PDF y ciclos históricos',
       },
     ],
   },
@@ -87,14 +96,92 @@ const NIVELES: Nivel[] = [
 
 const PORTAL_PATH = '/boletas-captura'
 
-function AccesoFila({ acceso, item }: { acceso: Acceso; item: BoletasHubItem | undefined }) {
+const ESTADO_MODULO: Record<HubEstadoModulo, string> = {
+  'sin-entregas': 'Sin entregas',
+  'en-captura': 'En captura',
+  devuelta: 'Con devoluciones',
+  enviada: 'Todo enviado',
+  publicada: 'Publicada',
+}
+
+function Cifra({ n }: { n: number }) {
+  return <NumeroAnimado valor={n} texto={String(n)} />
+}
+
+function NivelEstado({ trimestre, modulos }: { trimestre: number; modulos: HubModulo[] }) {
+  const enviadas = modulos.reduce((s, m) => s + m.enviadas, 0)
+  const total = modulos.reduce((s, m) => s + m.total, 0)
+  const publicados = modulos.reduce((s, m) => s + m.publicados, 0)
+  const publicables = modulos.reduce((s, m) => s + m.publicables, 0)
+  const sec = modulos.find((m) => m.capturaAbierta != null)
+  const avance = total ? Math.round((enviadas / total) * 100) : 0
+
+  let pill = `Trimestre ${trimestre}`
+  let tono = 'neutro'
+  if (publicables > 0 && publicados === publicables) {
+    pill = `Trimestre ${trimestre} publicado`
+    tono = 'publicada'
+  } else if (sec) {
+    pill = sec.capturaAbierta ? `Captura abierta · Trimestre ${sec.capturaAbierta}` : `Captura cerrada · Trimestre ${trimestre}`
+    tono = sec.capturaAbierta ? 'abierta' : 'cerrada'
+  }
+
+  return (
+    <div className="bh-estado">
+      <div className="bh-estado__top">
+        <span className={`bh-pill is-${tono}`}>{pill}</span>
+        <span className="bh-estado__pub">
+          Publicado a papás{' '}
+          <b>
+            <Cifra n={publicados} />
+          </b>
+          /{publicables}
+        </span>
+      </div>
+      <div className="bh-estado__barra">
+        <span
+          className="bh-estado__track"
+          role="progressbar"
+          aria-label={sec ? 'Materias entregadas a dirección' : 'Grupos entregados a dirección'}
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-valuenow={enviadas}
+        >
+          <i style={{ width: `${avance}%` }} />
+        </span>
+        <span className="bh-estado__label">
+          {sec ? 'Materias' : 'Entregas'}{' '}
+          <b>
+            <Cifra n={enviadas} />
+          </b>{' '}
+          de {total}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function AccesoFila({
+  acceso,
+  item,
+  estado,
+}: {
+  acceso: Acceso
+  item: BoletasHubItem | undefined
+  estado: HubModulo | undefined
+}) {
   const contenido = (
     <>
       <span className="bh-acceso__tag" aria-hidden>
         {acceso.tag || <GraduationCap size={18} strokeWidth={1.75} />}
       </span>
       <span className="bh-acceso__text">
-        <span className="bh-acceso__label">{acceso.etiqueta}</span>
+        <span className="bh-acceso__label">
+          {acceso.etiqueta}
+          {estado && item?.activo ? (
+            <span className={`bh-acceso__estado is-${estado.estado}`}>{ESTADO_MODULO[estado.estado]}</span>
+          ) : null}
+        </span>
         <span className="bh-acceso__desc">{acceso.detalle}</span>
       </span>
       {item?.activo ? (
@@ -123,6 +210,29 @@ export default function BoletasHubPage() {
 
   const [copiado, setCopiado] = useState(false)
   const timer = useRef<number | null>(null)
+  const [estado, setEstado] = useState<HubEstado | null>(null)
+  const [sinSesion, setSinSesion] = useState(false)
+
+  useEffect(() => {
+    let vivo = true
+    fetch('/api/boletas-hub', { cache: 'no-store' })
+      .then(async (r) => {
+        if (!vivo) return
+        if (r.status === 401) setSinSesion(true)
+        else if (r.ok) setEstado((await r.json()) as HubEstado)
+      })
+      .catch(() => {})
+    return () => {
+      vivo = false
+    }
+  }, [])
+
+  const estadoModulo = (modulo: BoletaModulo) =>
+    estado
+      ? Object.values(estado.niveles)
+          .flatMap((n) => n.modulos)
+          .find((m) => m.modulo === modulo)
+      : undefined
 
   useEffect(
     () => () => {
@@ -170,8 +280,12 @@ export default function BoletasHubPage() {
         <section className="bh-intro">
           <h1 className="bh-intro__title">Sistema Integral de Boletas</h1>
           <p className="bh-intro__lead">
-            Elige nivel e idioma para capturar, revisar, publicar a papás y generar el PDF.
+            Avance del trimestre por nivel: entregas a dirección y boletas publicadas a papás. Entra al
+            módulo para revisar, publicar y generar el PDF.
           </p>
+          {sinSesion && (
+            <p className="bh-intro__nota">Inicia sesión en cualquier módulo para ver aquí el avance del trimestre.</p>
+          )}
         </section>
 
         <div className="bh-grid">
@@ -196,10 +310,16 @@ export default function BoletasHubPage() {
                   <h2 className="bh-nivel__title">{nivel.titulo}</h2>
                   <span className="bh-nivel__grados">{nivel.grados}</span>
                 </header>
+                {estado && (
+                  <NivelEstado
+                    trimestre={estado.niveles[nivel.id].trimestre}
+                    modulos={estado.niveles[nivel.id].modulos}
+                  />
+                )}
                 <ul className="bh-nivel__accesos">
                   {nivel.accesos.map((a) => (
                     <li key={a.id}>
-                      <AccesoFila acceso={a} item={porId.get(a.id)} />
+                      <AccesoFila acceso={a} item={porId.get(a.id)} estado={estadoModulo(a.modulo)} />
                     </li>
                   ))}
                 </ul>
