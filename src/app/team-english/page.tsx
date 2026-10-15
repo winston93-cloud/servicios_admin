@@ -18,8 +18,10 @@ import CapacitacionesSeccion from './components/CapacitacionesSeccion'
 import DesempenoSeccion from './components/DesempenoSeccion'
 import ClassroomSeccion from './components/ClassroomSeccion'
 import ReconocimientosSeccion from './components/ReconocimientosSeccion'
-import { Doodles, SkinSwitch, skinDe, useTeSkin } from './components/Skins'
+import { Doodles, LevelUp, SkinSwitch, TemaNav, skinDe, useTeSkin } from './components/Skins'
+import { activarAudio, sonidos } from './components/teSonidos'
 import './team-english.css'
+import './team-english-temas.css'
 
 type Seccion = 'teachers' | 'planeacion' | 'capacitaciones' | 'desempeno' | 'classroom' | 'reconocimientos'
 
@@ -46,6 +48,13 @@ function leerHash(): Seccion | null {
   return SECCIONES.some((s) => s.id === h) ? (h as Seccion) : null
 }
 
+function semanaIso(fecha: string): number {
+  const d = new Date(`${fecha}T12:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7))
+  const inicio = Date.UTC(d.getUTCFullYear(), 0, 1)
+  return Math.ceil(((d.getTime() - inicio) / 86400000 + 1) / 7)
+}
+
 function TeamEnglish() {
   const router = useRouter()
   const [snap, setSnap] = useState<TeSnapshot | null>(null)
@@ -54,6 +63,7 @@ function TeamEnglish() {
   const [seccion, setSeccion] = useState<Seccion | null>(null)
   const [aviso, setAviso] = useState<{ texto: string; tipo: 'ok' | 'error' } | null>(null)
   const [skin, setSkin] = useTeSkin()
+  const [nivelArriba, setNivelArriba] = useState(0)
 
   const cargar = useCallback(async () => {
     setCargando(true)
@@ -92,7 +102,13 @@ function TeamEnglish() {
   }
 
   const recargar = cargar
-  const avisar = useCallback((texto: string, tipo: 'ok' | 'error' = 'ok') => setAviso({ texto, tipo }), [])
+  const avisar = useCallback((texto: string, tipo: 'ok' | 'error' = 'ok') => {
+    setAviso({ texto, tipo })
+    if (tipo === 'ok' && skin === 'arcade') {
+      setNivelArriba((n) => n + 1)
+      sonidos.levelUp()
+    }
+  }, [skin])
 
   const resumen = useMemo(() => {
     if (!snap) return null
@@ -107,6 +123,8 @@ function TeamEnglish() {
       (c) => c.semana === lunes && c.actualizado && c.actividades_calificadas && c.trabajos_revisados
     ).length
     return {
+      equipo: activas.length,
+      promedio: prom,
       teachers: `${activas.length} teachers · ${activas.filter((t) => t.cv_key).length} con C.V.`,
       planeacion: (() => {
         const p = snap.planeaciones.filter((x) => x.estado === 'pendiente').length
@@ -124,14 +142,17 @@ function TeamEnglish() {
         const n = snap.reconocimientos.filter((r) => r.semana === lunes).length
         return n ? `${n} esta semana 🎊` : '¡Felicita a tu team! ✨'
       })(),
-    } as Record<Seccion, string>
+    } as Record<Seccion, string> & { equipo: number; promedio: number }
   }, [snap])
 
   const actual = SECCIONES.find((s) => s.id === seccion)
+  const tituloHub = skinDe(skin).hub
 
   return (
-    <div className="te-page" data-skin={skin}>
+    <div className="te-page" data-skin={skin} onPointerDown={skin === 'arcade' ? () => void activarAudio() : undefined}>
       <Doodles skin={skin} />
+      <TemaNav items={SECCIONES} actual={seccion} onIr={abrir} />
+      <LevelUp n={nivelArriba} />
       <div className="te-shell">
         <header className="te-topbar">
           <button type="button" className="te-back" onClick={() => (seccion ? abrir(null) : router.push('/dashboard'))}>
@@ -155,6 +176,7 @@ function TeamEnglish() {
               Team English <span className="te-title-emoji" aria-hidden>{skinDe(skin).emoji}</span>
             </h1>
             <p className="te-lead">Todo lo de tus teachers en un solo lugar: perfiles, planeaciones, capacitaciones, desempeño y classrooms.</p>
+            <p className="te-press" aria-hidden>PRESS START</p>
           </section>
         ) : actual ? (
           <section className="te-hero te-hero-seccion" data-color={actual.color}>
@@ -185,6 +207,16 @@ function TeamEnglish() {
           <p className="te-cargando"><Loader2 size={20} className="te-spin" aria-hidden /> Cargando tu equipo…</p>
         ) : snap ? (
           !seccion ? (
+            <>
+            {resumen ? (
+              <p className="te-hud" aria-hidden>
+                <span>◉ Sistemas en línea</span>
+                <span>Tripulación {resumen.equipo}</span>
+                <span>Desempeño {resumen.promedio.toFixed(1)}%</span>
+                <span>Semana {semanaIso(snap.hoy)}</span>
+              </p>
+            ) : null}
+            {tituloHub ? <h2 className="te-hub-head">{tituloHub}</h2> : null}
             <nav className="te-hub" aria-label="Módulos de Team English">
               {SECCIONES.map((s, i) => (
                 <button key={s.id} type="button" className="te-hub-card" data-color={s.color}
@@ -198,6 +230,7 @@ function TeamEnglish() {
                 </button>
               ))}
             </nav>
+            </>
           ) : (
             <div className="te-seccion" key={`${seccion}-${snap.nivel}`}>
               {seccion === 'teachers' ? <TeachersSeccion snap={snap} recargar={recargar} avisar={avisar} /> : null}

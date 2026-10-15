@@ -5,12 +5,13 @@ import { Check } from 'lucide-react'
 
 export type TeSkin = 'kawaii' | 'oceano' | 'galaxia' | 'bosque' | 'arcade'
 
-export const TE_SKINS: { id: TeSkin; nombre: string; emoji: string; sub: string; doodles: string[] }[] = [
-  { id: 'kawaii', nombre: 'Kawaii', emoji: '🌈', sub: 'Pastel y stickers', doodles: ['⭐', '🌸', '☁️', '💖', '✨', '🌈', '🍓', '⭐', '☁️', '✨'] },
-  { id: 'oceano', nombre: 'Océano', emoji: '🐬', sub: 'Turquesa y coral', doodles: ['🐚', '🫧', '🐠', '🌊', '🐬', '⭐', '🫧', '🐙', '🌊', '🐳'] },
-  { id: 'galaxia', nombre: 'Galaxia', emoji: '🚀', sub: 'Morado espacial', doodles: ['🪐', '✨', '🚀', '🌙', '⭐', '☄️', '👽', '✨', '🌟', '🛸'] },
-  { id: 'bosque', nombre: 'Bosque encantado', emoji: '🍄', sub: 'Verde y hongos', doodles: ['🍄', '🌿', '🦋', '🌼', '🍃', '🐞', '🌳', '🦊', '🌻', '🐌'] },
-  { id: 'arcade', nombre: 'Arcade', emoji: '🕹️', sub: 'Neón retro', doodles: ['👾', '🕹️', '⚡', '💥', '⭐', '🎮', '🍒', '👾', '💎', '⚡'] },
+/** Cada skin además de colores cambia la estructura (menú, tarjetas, tipografía); `hub` titula el inicio. */
+export const TE_SKINS: { id: TeSkin; nombre: string; emoji: string; sub: string; hub?: string; doodles: string[] }[] = [
+  { id: 'kawaii', nombre: 'Kawaii', emoji: '🌈', sub: 'Cuaderno de stickers pastel', doodles: ['⭐', '🌸', '☁️', '💖', '✨', '🌈', '🍓', '⭐', '☁️', '✨'] },
+  { id: 'oceano', nombre: 'Acuario', emoji: '🐬', sub: 'Burbujas y menú abajo, como el celular', doodles: ['🐚', '🫧', '🐠', '🫧', '🐬', '🫧', '🐙', '🫧', '🐳', '🫧'] },
+  { id: 'galaxia', nombre: 'Nave espacial', emoji: '🚀', sub: 'Cabina con menú lateral y órbita', hub: 'Panel de control', doodles: ['🪐', '✨', '🛰️', '🌙', '⭐', '☄️', '👽', '✨', '🌟', '🛸'] },
+  { id: 'bosque', nombre: 'Diario de campo', emoji: '🍄', sub: 'Libreta con fotos y cinta', hub: 'Mi diario', doodles: ['🍄', '🌿', '🦋', '🌼', '🍃', '🐞', '🌳', '🦊', '🌻', '🐌'] },
+  { id: 'arcade', nombre: 'Arcade', emoji: '🕹️', sub: 'Videojuego retro con XP', hub: 'SELECT STAGE', doodles: ['👾', '🕹️', '⚡', '💥', '⭐', '🎮', '🍒', '👾', '💎', '⚡'] },
 ]
 
 const CLAVE = 'team-english-skin'
@@ -60,6 +61,29 @@ export function Doodles({ skin, cuantos = 10 }: { skin: TeSkin; cuantos?: number
       ))}
     </div>
   )
+}
+
+export type TeNavItem<T extends string> = { id: T; titulo: string; emoji: string }
+
+/** Menú de secciones que cada skin acomoda a su manera (dock, cabina, pestañas, barra pixel); en kawaii no se ve. */
+export function TemaNav<T extends string>({ items, actual, onIr }: { items: TeNavItem<T>[]; actual: T | null; onIr: (id: T | null) => void }) {
+  return (
+    <nav className="te-tema-nav" aria-label="Secciones de Team English">
+      <button type="button" className="te-tema-nav-i" aria-current={actual === null ? 'page' : undefined} onClick={() => onIr(null)}>
+        <span aria-hidden>🏠</span><small>Inicio</small>
+      </button>
+      {items.map((s) => (
+        <button key={s.id} type="button" className="te-tema-nav-i" aria-current={actual === s.id ? 'page' : undefined} onClick={() => onIr(s.id)}>
+          <span aria-hidden>{s.emoji}</span><small>{s.titulo}</small>
+        </button>
+      ))}
+    </nav>
+  )
+}
+
+/** «LEVEL UP!» del skin Arcade al guardar; `n` cambia en cada aviso para repetir la animación. */
+export function LevelUp({ n }: { n: number }) {
+  return n ? <span key={n} className="te-levelup" aria-hidden>LEVEL UP!</span> : null
 }
 
 export function SkinSwitch({ skin, onCambiar }: { skin: TeSkin; onCambiar: (s: TeSkin) => void }) {

@@ -128,6 +128,12 @@ export const sonidos = {
     if (!c) return
     ;[1318.5, 1568, 1975.5, 2637].forEach((f, i) => tono(c, { tipo: 'sine', f0: f, t: en(c, i * 0.07), dur: 0.6, vol: 0.1 }))
   },
+  /** Subida de nivel de videojuego de 8 bits (skin Arcade). */
+  levelUp() {
+    const c = listo()
+    if (!c) return
+    ;[523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => tono(c, { tipo: 'square', f0: f, t: en(c, i * 0.07), dur: i === 4 ? 0.32 : 0.08, vol: 0.09 }))
+  },
   /** Globo que se infla. */
   globo() {
     const c = listo()

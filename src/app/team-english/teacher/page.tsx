@@ -9,7 +9,8 @@ import type { PortalTeacherData } from '@/lib/teamEnglish/teService'
 import { ESTADOS_PLANEACION, bloquesDePlan, etiquetaGrado, lunesDe, textoSemana, type TeCursoSugerido } from '@/lib/teamEnglish/teTypes'
 import { teAbrirArchivo } from '../teApi'
 import { Campo, Semana, StickerImg, Vacio } from '../components/ui'
-import { Doodles, SkinSwitch, skinDe, useTeSkin } from '../components/Skins'
+import { Doodles, LevelUp, SkinSwitch, skinDe, useTeSkin } from '../components/Skins'
+import { activarAudio, sonidos } from '../components/teSonidos'
 import { PlanMiniSemana } from '../components/PlanLienzo'
 import RacGoogleSignIn from '@/app/reportes-conducta/components/RacGoogleSignIn'
 import CursoDelDia from './CursoDelDia'
@@ -17,6 +18,7 @@ import MisCursos, { borradorDeSugerido, type BorradorCurso } from './MisCursos'
 import MuroReconocimientos from './MuroReconocimientos'
 import PlanSemana from './PlanSemana'
 import '../team-english.css'
+import '../team-english-temas.css'
 
 const sinSuscripcion = () => () => {}
 
@@ -29,6 +31,14 @@ export default function PortalTeacherPage() {
   const [error, setError] = useState<string | null>(null)
   const [ok, setOk] = useState<string | null>(null)
   const [skin, setSkin] = useTeSkin()
+  const [nivelArriba, setNivelArriba] = useState(0)
+  const avisarOk = useCallback((texto: string) => {
+    setOk(texto)
+    if (skin === 'arcade') {
+      setNivelArriba((n) => n + 1)
+      sonidos.levelUp()
+    }
+  }, [skin])
 
   const cargar = useCallback(async () => {
     try {
@@ -64,8 +74,9 @@ export default function PortalTeacherPage() {
   }
 
   return (
-    <div className="te-page" data-skin={skin}>
+    <div className="te-page te-page-teacher" data-skin={skin} onPointerDown={skin === 'arcade' ? () => void activarAudio() : undefined}>
       <Doodles skin={skin} cuantos={8} />
+      <LevelUp n={nivelArriba} />
       <div className={data ? 'te-shell' : 'te-shell te-shell-angosto'}>
         <header className="te-topbar">
           <span className="te-topbar-izq">
@@ -97,7 +108,7 @@ export default function PortalTeacherPage() {
         ) : estado === 'login' || !data ? (
           <Login onEntrar={() => { setError(null); void cargar() }} onError={setError} />
         ) : (
-          <Portal data={data} setData={setData} onOk={setOk} onError={setError} onSalir={() => void salir()} />
+          <Portal data={data} setData={setData} onOk={avisarOk} onError={setError} onSalir={() => void salir()} />
         )}
       </div>
     </div>

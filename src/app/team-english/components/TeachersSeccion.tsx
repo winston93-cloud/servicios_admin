@@ -28,6 +28,7 @@ import type { SeccionProps } from '../seccionTipos'
 import { teAbrirArchivo, teAccion, teSubir } from '../teApi'
 import { ACEPTAR_DOCS, Avatar, Campo, Hoja, SelectorArchivo, StickerImg, Vacio } from './ui'
 import { FormGeneral, GeneralesLectura, ItemsLectura, ListaItems, TablaGeneral } from './ExpedienteForms'
+import { useTeSkin } from './Skins'
 
 type Pestana = 'expediente' | 'general' | 'individual' | 'perfil' | 'antecedentes'
 
@@ -51,6 +52,13 @@ export default function TeachersSeccion({ snap, recargar, avisar }: SeccionProps
 
   const abierta = snap.teachers.find((t) => t.maestro_id === abiertaId) ?? null
   const inactivas = snap.teachers.filter((t) => !t.activo).length
+  const [skin] = useTeSkin()
+
+  const xp = useMemo(() => {
+    if (skin !== 'arcade') return null
+    const mesInicio = `${snap.hoy.slice(0, 8)}01`
+    return new Map(snap.teachers.map((t) => [t.maestro_id, calcularDesempeno(t.maestro_id, snap.incidencias, mesInicio, snap.hoy, snap.ponderadores).total]))
+  }, [skin, snap])
 
   return (
     <>
@@ -86,10 +94,13 @@ export default function TeachersSeccion({ snap, recargar, avisar }: SeccionProps
           Prueba con otro nombre o grupo. Las teachers con asignación «Teacher» en el catálogo de maestros aparecen solas.
         </Vacio>
       ) : (
+        <>
+        {skin === 'galaxia' && lista.length <= 16 ? <Orbita lista={lista} onAbrir={setAbiertaId} /> : null}
         <ul className="te-teachers">
           {lista.map((t, i) => (
             <li key={t.maestro_id} style={{ ['--i' as string]: i }}>
               <button type="button" className="te-teacher" data-inactiva={!t.activo || undefined} onClick={() => setAbiertaId(t.maestro_id)}>
+                {xp ? <XpJugador pct={xp.get(t.maestro_id) ?? 100} /> : null}
                 <Avatar emoji={t.emoji} fotoKey={t.foto_key} stickerKey={t.sticker_key} nombre={t.nombre} tam="lg" />
                 <span className="te-teacher-nombre">{t.nombre}</span>
                 {t.apodo ? <span className="te-apodo">«{t.apodo}»</span> : null}
@@ -107,12 +118,45 @@ export default function TeachersSeccion({ snap, recargar, avisar }: SeccionProps
             </li>
           ))}
         </ul>
+        </>
       )}
 
       <PerfilTeacher teacher={abierta} snap={snap} onCerrar={() => setAbiertaId(null)} recargar={recargar} avisar={avisar} />
       <AgregarTeacher abierta={agregando} snap={snap} onCerrar={() => setAgregando(false)} recargar={recargar} avisar={avisar} />
       <ColeccionStickers abierta={verStickers} snap={snap} onCerrar={() => setVerStickers(false)} recargar={recargar} avisar={avisar} />
     </>
+  )
+}
+
+/** Skin «Nave espacial»: la tripulación gira alrededor del núcleo; cada planeta abre su perfil. */
+function Orbita({ lista, onAbrir }: { lista: TeTeacher[]; onAbrir: (id: number) => void }) {
+  return (
+    <div className="te-orbita">
+      <span className="te-orbita-nucleo" aria-hidden>🛰️<b>Team</b></span>
+      <ul className="te-orbita-anillo" aria-label="Tripulación">
+        {lista.map((t, i) => (
+          <li key={t.maestro_id} style={{ ['--a' as string]: `${(360 / lista.length) * i}deg` }}>
+            <button type="button" className="te-planeta" onClick={() => onAbrir(t.maestro_id)}>
+              <Avatar emoji={t.emoji} fotoKey={t.foto_key} stickerKey={t.sticker_key} nombre={t.nombre} tam="sm" />
+              <b>{t.apodo || t.nombre.split(' ')[0]}</b>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/** Skin «Arcade»: el desempeño del mes como nivel y barra de experiencia. */
+function XpJugador({ pct }: { pct: number }) {
+  return (
+    <span className="te-xp">
+      <span className="te-xp-lv">LV {Math.max(1, Math.floor(pct / 10))}</span>
+      <span className="te-xp-barra" title={`Desempeño del mes: ${pct.toFixed(1)}%`}>
+        <small>XP</small>
+        <i style={{ ['--p' as string]: Math.min(1, pct / 100) }} />
+      </span>
+    </span>
   )
 }
 
