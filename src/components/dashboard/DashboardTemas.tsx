@@ -100,7 +100,10 @@ export function DashTemaSwitch({ tema, onCambiar }: { tema: DashTema; onCambiar:
         onClick={() => setAbierto((v) => !v)}
       >
         <Palette size={18} strokeWidth={2.25} aria-hidden />
-        <span>Estilo</span>
+        <span className="dash-tema-btn-txt">
+          <span>Estilo</span>
+          <small>Cambia el diseño de tu inicio</small>
+        </span>
         <span className="dash-tema-nuevo">Nuevo</span>
       </button>
       {abierto ? (
