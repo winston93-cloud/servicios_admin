@@ -26,12 +26,14 @@ import DashboardOrdenModal from '@/components/dashboard/DashboardOrdenModal'
 import DashboardNotificacionesBell from '@/components/dashboard/DashboardNotificacionesBell'
 import TalleresMinimoPopup from '@/components/dashboard/TalleresMinimoPopup'
 import DashboardBuscador from '@/components/dashboard/DashboardBuscador'
+import { DashTemaSwitch, useDashTema } from '@/components/dashboard/DashboardTemas'
 import { buscarModulos } from '@/lib/dashboardBusqueda'
 import { CircleHelp, ListOrdered, SearchX } from 'lucide-react'
 import { familiaVeBeneficiosExternos } from '@/lib/beneficiosExternos/config'
 import dynamic from 'next/dynamic'
 import './dashboard-module-card.css'
 import '@/components/dashboard/dashboard-ayuda.css'
+import './dashboard-temas.css'
 
 // 2026-10-10 — Popup de Beneficios externos: se carga solo cuando se abre (no pesa para el resto).
 const BeneficiosExternosModal = dynamic(() => import('@/app/beneficios-externos/BeneficiosExternosModal'), {
@@ -181,6 +183,7 @@ export default function DashboardPage() {
   const [accesosDb, setAccesosDb] = useState<{ uid: number; modulos: string[] | null } | null>(null)
   const [busqueda, setBusqueda] = useState('')
   const [popupAbierto, setPopupAbierto] = useState<DashboardAdminNavItem['popup'] | null>(null)
+  const [tema, setTema] = useDashTema()
 
   // Solo un panel: alumno XOR personal (nunca mezclar módulos).
   const mostrarPanelAlumno = isAlumno && !isUsuario
@@ -374,6 +377,14 @@ export default function DashboardPage() {
     return items
   }, [becaFirmaAutorizada, session?.alumno_ref])
 
+  const totalModulos = mostrarPanelAlumno ? navItemsAlumno.length : mostrarPanelAdmin ? navItemsAdmin.length : 0
+
+  const irArriba = () => window.scrollTo({ top: 0, behavior: 'smooth' })
+  const enfocarBuscador = () => {
+    irArriba()
+    document.querySelector<HTMLInputElement>('.dash-buscador-campo input')?.focus({ preventScroll: true })
+  }
+
   const subtituloDashboard = mostrarPanelAlumno
     ? 'Accede a tus portales en línea'
     : 'Selecciona un módulo para continuar'
@@ -382,6 +393,7 @@ export default function DashboardPage() {
     <ProtectedRoute>
       <div
         className={`dashboard-container dashboard-home${layoutPersonalizado ? ' dashboard-home--layout-5' : ''}`}
+        data-tema={tema === 'original' ? undefined : tema}
       >
         <div className="dashboard-home-bg" aria-hidden="true" />
         <TalleresMinimoPopup
@@ -488,6 +500,22 @@ export default function DashboardPage() {
                     <span className="dashboard-ciclo-vigente-nombre">{cicloVigenteNombre}</span>
                   </p>
                 )}
+                {tema === 'galaxia' && totalModulos ? (
+                  <p className="dash-tema-hud">
+                    <span><i aria-hidden />Sistemas en línea</span>
+                    <span>{totalModulos} {mostrarPanelAlumno ? 'portales' : 'módulos'}</span>
+                  </p>
+                ) : null}
+                {tema === 'arcade' ? (
+                  <p className="dash-tema-press" aria-hidden>
+                    PRESIONA START
+                  </p>
+                ) : null}
+                {mostrarPanelAlumno ? (
+                  <div className="dashboard-herramientas">
+                    <DashTemaSwitch tema={tema} onCambiar={setTema} />
+                  </div>
+                ) : null}
                 {mostrarPanelAdmin && navItemsAdmin.length ? (
                   <div className="dashboard-herramientas">
                     <DashboardBuscador
@@ -511,6 +539,7 @@ export default function DashboardPage() {
                         Cambiar orden
                       </button>
                     ) : null}
+                    <DashTemaSwitch tema={tema} onCambiar={setTema} />
                   </div>
                 ) : null}
               </div>
@@ -719,6 +748,35 @@ export default function DashboardPage() {
             <span>Cerrar sesión</span>
           </button>
         </nav>
+
+        {tema === 'oceano' && (mostrarPanelAdmin || mostrarPanelAlumno) ? (
+          <nav className="dash-tema-dock" aria-label="Accesos rápidos">
+            <button type="button" className="dash-tema-dock-i" onClick={irArriba}>
+              <span aria-hidden>🏠</span>
+              <small>Inicio</small>
+            </button>
+            {mostrarPanelAdmin && navItemsAdmin.length ? (
+              <button type="button" className="dash-tema-dock-i" onClick={enfocarBuscador}>
+                <span aria-hidden>🔎</span>
+                <small>Buscar</small>
+              </button>
+            ) : null}
+            {mostrarPanelAlumno ? (
+              <button type="button" className="dash-tema-dock-i" onClick={() => setAyudaAbierta(true)}>
+                <span aria-hidden>🛟</span>
+                <small>Ayuda</small>
+              </button>
+            ) : null}
+            <button type="button" className="dash-tema-dock-i" onClick={toggleMenu}>
+              <span aria-hidden>🐚</span>
+              <small>Menú</small>
+            </button>
+            <button type="button" className="dash-tema-dock-i" onClick={handleLogout}>
+              <span aria-hidden>👋</span>
+              <small>Salir</small>
+            </button>
+          </nav>
+        ) : null}
 
         {mostrarPanelAlumno && (
           <>
