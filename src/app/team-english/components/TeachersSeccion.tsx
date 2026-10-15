@@ -36,6 +36,7 @@ export default function TeachersSeccion({ snap, recargar, avisar }: SeccionProps
   const [verInactivas, setVerInactivas] = useState(false)
   const [abiertaId, setAbiertaId] = useState<number | null>(null)
   const [agregando, setAgregando] = useState(false)
+  const [verStickers, setVerStickers] = useState(false)
   const [vista, setVista] = useState<'tarjetas' | 'tabla'>('tarjetas')
 
   const lista = useMemo(() => {
@@ -70,6 +71,9 @@ export default function TeachersSeccion({ snap, recargar, avisar }: SeccionProps
             <button key={id} type="button" role="radio" aria-checked={vista === id} data-activo={vista === id || undefined} onClick={() => setVista(id)}>{txt}</button>
           ))}
         </div>
+        <button type="button" className="te-btn te-btn-ghost" onClick={() => setVerStickers(true)}>
+          🎨 Stickers{snap.stickers.length ? ` (${snap.stickers.length})` : ''}
+        </button>
         <button type="button" className="te-btn te-btn-primary" onClick={() => setAgregando(true)}>
           <Plus size={16} aria-hidden /> Agregar teacher
         </button>
@@ -107,7 +111,76 @@ export default function TeachersSeccion({ snap, recargar, avisar }: SeccionProps
 
       <PerfilTeacher teacher={abierta} snap={snap} onCerrar={() => setAbiertaId(null)} recargar={recargar} avisar={avisar} />
       <AgregarTeacher abierta={agregando} snap={snap} onCerrar={() => setAgregando(false)} recargar={recargar} avisar={avisar} />
+      <ColeccionStickers abierta={verStickers} snap={snap} onCerrar={() => setVerStickers(false)} recargar={recargar} avisar={avisar} />
     </>
+  )
+}
+
+function ColeccionStickers({ abierta, snap, onCerrar, recargar, avisar }: SeccionProps & { abierta: boolean; onCerrar: () => void }) {
+  const [subiendo, setSubiendo] = useState(false)
+
+  const subir = async (files: FileList | null) => {
+    if (!files?.length) return
+    setSubiendo(true)
+    let ok = 0
+    try {
+      for (const file of Array.from(files)) {
+        if (file.size > TE_STICKER_MAX_MB * 1024 * 1024) throw new Error(`«${file.name}» pesa más de ${TE_STICKER_MAX_MB} MB; usa una imagen más ligera.`)
+        await teSubir(snap.nivel, { tipo: 'sticker', archivo: file })
+        ok++
+      }
+      avisar(ok === 1 ? 'Sticker agregado a la colección.' : `${ok} stickers agregados a la colección.`)
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : 'Error', 'error')
+    } finally {
+      if (ok) await recargar()
+      setSubiendo(false)
+    }
+  }
+
+  const borrar = async (s: TeSticker) => {
+    const usan = snap.teachers.filter((t) => t.sticker_id === s.id).length
+    const aviso = usan ? `\n\n${usan === 1 ? 'Una teacher lo usa' : `${usan} teachers lo usan`}; vuelven a su emoji.` : ''
+    if (!window.confirm(`¿Borrar este sticker de la colección?${aviso}`)) return
+    try {
+      await teAccion(snap.nivel, 'eliminar_sticker', { id: s.id })
+      await recargar()
+      avisar('Sticker borrado.')
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : 'Error', 'error')
+    }
+  }
+
+  return (
+    <Hoja abierta={abierta} titulo="Colección de stickers" emoji="🎨" onCerrar={onCerrar}
+      pie={<button type="button" className="te-btn te-btn-ghost" onClick={onCerrar}>Listo</button>}>
+      <p className="te-nota">
+        Sube tus propios stickers (PNG, JPG, WebP o GIF, máx. {TE_STICKER_MAX_MB} MB; puedes elegir varios a la vez). Después,
+        en el perfil de cada teacher, en «Su sticker», eliges el que le toca.
+      </p>
+      <div className="te-emojis te-stickers-coleccion">
+        {snap.stickers.map((s) => {
+          const usan = snap.teachers.filter((t) => t.sticker_id === s.id)
+          return (
+            <div key={s.id} className="te-sticker-ficha">
+              <span className="te-emoji-propio" title={usan.length ? `Lo usa: ${usan.map((t) => t.apodo || t.nombre).join(', ')}` : 'Sin asignar'}>
+                <StickerImg stickerKey={s.key} alt={s.nombre || 'Sticker'} />
+              </span>
+              <button type="button" className="te-btn te-btn-ghost te-btn-sm te-peligro" aria-label={`Borrar sticker ${s.nombre || s.id}`} onClick={() => void borrar(s)}>
+                <Trash2 size={14} aria-hidden />
+              </button>
+            </div>
+          )
+        })}
+        <label className="te-emoji-subir" title="Subir stickers">
+          <input type="file" multiple accept={TE_STICKER_MIME.join(',')} className="te-oculto" disabled={subiendo}
+            onChange={(e) => { void subir(e.target.files); e.target.value = '' }} />
+          {subiendo ? <Loader2 size={18} className="te-spin" aria-hidden /> : <Plus size={18} aria-hidden />}
+          <span>Subir</span>
+        </label>
+      </div>
+      {!snap.stickers.length ? <p className="te-nota">Aún no hay stickers propios; el team usa los emojis.</p> : null}
+    </Hoja>
   )
 }
 

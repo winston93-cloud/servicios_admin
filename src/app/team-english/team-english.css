@@ -2140,6 +2140,16 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
 .te-avatar[data-sticker] img { object-fit: contain; padding: 12%; }
 .te-title-emoji .te-sticker-img { display: inline-block; width: 1em; height: 1em; vertical-align: -0.12em; }
 
+/* ── Colección de stickers (botón «🎨 Stickers» en Teachers) ── */
+.te-stickers-coleccion { gap: 0.75rem; align-items: center; }
+.te-sticker-ficha { display: flex; flex-direction: column; align-items: center; gap: 0.3rem; }
+.te-sticker-ficha .te-emoji-propio { width: 76px; height: 76px; border: 2px solid var(--te-borde); border-radius: 1rem; background: var(--te-hoja); }
+.te-stickers-coleccion .te-sticker-ficha button { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border-radius: 50%; }
+.te-stickers-coleccion .te-sticker-ficha button:hover { transform: none; }
+@media (max-width: 480px) {
+  .te-sticker-ficha .te-emoji-propio { width: 64px; height: 64px; }
+}
+
 /* ── Nombre en el catálogo (perfil) ── */
 .te-form-seccion { grid-column: 1 / -1; margin: 0; font-family: var(--te-display); font-weight: 700; font-size: 0.95rem; }
 .te-aviso-catalogo { grid-column: 1 / -1; margin: 0; padding: 0.55rem 0.8rem; border: 2px dashed var(--te-durazno-f); border-radius: 0.9rem; background: color-mix(in oklch, var(--te-durazno) 40%, var(--te-hoja)); font-size: 0.85rem; font-weight: 600; }
