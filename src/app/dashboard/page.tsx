@@ -494,12 +494,6 @@ export default function DashboardPage() {
                 </p>
                 <h1 className="dashboard-title">Servicios Administrativos</h1>
                 <p className="dashboard-subtitle">{subtituloDashboard}</p>
-                {mostrarPanelAlumno && cicloVigenteNombre && (
-                  <p className="dashboard-ciclo-vigente" role="status">
-                    <span className="dashboard-ciclo-vigente-label">Ciclo escolar vigente</span>
-                    <span className="dashboard-ciclo-vigente-nombre">{cicloVigenteNombre}</span>
-                  </p>
-                )}
                 {tema === 'galaxia' && totalModulos ? (
                   <p className="dash-tema-hud">
                     <span><i aria-hidden />Sistemas en línea</span>
@@ -512,7 +506,13 @@ export default function DashboardPage() {
                   </p>
                 ) : null}
                 {mostrarPanelAlumno ? (
-                  <div className="dashboard-herramientas">
+                  <div className="dashboard-herramientas dashboard-herramientas--papas">
+                    {cicloVigenteNombre ? (
+                      <p className="dashboard-ciclo-vigente" role="status">
+                        <span className="dashboard-ciclo-vigente-label">Ciclo escolar vigente</span>
+                        <span className="dashboard-ciclo-vigente-nombre">{cicloVigenteNombre}</span>
+                      </p>
+                    ) : null}
                     <DashTemaSwitch tema={tema} onCambiar={setTema} />
                   </div>
                 ) : null}
