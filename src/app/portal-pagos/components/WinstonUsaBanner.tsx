@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowRight, GraduationCap, PlayCircle } from 'lucide-react'
 import type { SeccionMatrizPortal, WinstonUsaPortalInfo } from '@/lib/portalPagosMatrizService'
 import { normalizarConceptoNo } from '@/lib/pagoReferenciaColegiatura'
@@ -24,6 +24,11 @@ function fechaLarga(iso: string): string {
   })
 }
 
+function conAutoplay(src: string): string {
+  if (!/youtube-nocookie\.com|player\.vimeo\.com/.test(src)) return src
+  return `${src}${src.includes('?') ? '&' : '?'}autoplay=1`
+}
+
 export default function WinstonUsaBanner({ alumnoId, info, seccion }: WinstonUsaBannerProps) {
   const [aviso, setAviso] = useState(false)
   const [verVideo, setVerVideo] = useState(false)
@@ -31,6 +36,15 @@ export default function WinstonUsaBanner({ alumnoId, info, seccion }: WinstonUsa
   const pendiente = seccion?.filas.find((f) => !f.pagado)
   const pagoPendiente = pendiente ? PAGO_USA[normalizarConceptoNo(pendiente.conceptoNo)] : undefined
   const video = useMemo(() => (info.videoUrl ? videoEmbed(info.videoUrl) : null), [info.videoUrl])
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const marcoRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!verVideo) return
+    marcoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    // Si el navegador no deja reproducir con sonido, quedan los controles para darle play.
+    videoRef.current?.play().catch(() => {})
+  }, [verVideo])
 
   const estado = pendiente
     ? `Pago ${pagoPendiente ?? ''} disponible: ${
@@ -97,17 +111,17 @@ export default function WinstonUsaBanner({ alumnoId, info, seccion }: WinstonUsa
       </div>
 
       {video && verVideo ? (
-        <div className="portal-usa-banner-video">
+        <div className="portal-usa-banner-video" ref={marcoRef}>
           {video.tipo === 'iframe' ? (
             <iframe
-              src={video.src}
+              src={conAutoplay(video.src)}
               title="Video Winston USA Program"
               allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen"
               allowFullScreen
               loading="lazy"
             />
           ) : (
-            <video src={video.src} controls playsInline preload="metadata" />
+            <video ref={videoRef} src={video.src} controls playsInline autoPlay preload="auto" />
           )}
         </div>
       ) : null}
