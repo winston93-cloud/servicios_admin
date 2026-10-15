@@ -16,10 +16,11 @@ interface WinstonUsaBannerProps {
   seccion: SeccionMatrizPortal | undefined
 }
 
-function fechaLarga(iso: string): string {
+function fechaLarga(iso: string, conAnio = false): string {
   return new Date(`${iso}T12:00:00Z`).toLocaleDateString('es-MX', {
     day: 'numeric',
     month: 'long',
+    ...(conAnio ? { year: 'numeric' } : {}),
     timeZone: 'UTC',
   })
 }
@@ -90,6 +91,11 @@ export default function WinstonUsaBanner({ alumnoId, info, seccion }: WinstonUsa
             fortalecer el expediente de tu hijo con proyección internacional.
           </p>
           <p className="portal-usa-banner-estado">{estado}</p>
+          {info.fechaCierre ? (
+            <p className="portal-usa-banner-cierre">
+              Inscripciones al programa hasta el {fechaLarga(info.fechaCierre, true)}.
+            </p>
+          ) : null}
         </div>
         <div className="portal-usa-banner-acciones">
           <button type="button" className="portal-usa-banner-cta" onClick={onClick}>

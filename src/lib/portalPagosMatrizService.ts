@@ -65,12 +65,14 @@ import {
 import {
   cicloCobraUsaEnUsd,
   esAlumnoPruebaUsa,
+  fechaCierreUsaCiclo,
   hoyMonterreyIso,
   notaConversionUsa,
   obtenerConfigUsaCiclo,
   obtenerVideoUsaCiclo,
   pagoUsaAbierto,
   pagoUsaDeConcepto,
+  usaCerradoANuevos,
 } from './winstonUsaProgramPagos'
 
 export interface FilaMatrizPortal {
@@ -116,6 +118,8 @@ export interface WinstonUsaPortalInfo {
   /** Próximo pago pendiente que aún no abre (YYYY-MM-DD) y su número. */
   proximaApertura: { pago: 1 | 2 | 3; fecha: string } | null
   videoUrl: string | null
+  /** Último día para entrar al programa (YYYY-MM-DD); null si ya lleva algún pago del ciclo. */
+  fechaCierre: string | null
 }
 
 const SECCION_COLEGIATURA = {
@@ -662,13 +666,16 @@ export async function construirMatrizPortalPagos(
       // Ciclo con montos USD: cada pago aparece desde su fecha de apertura (todos los abiertos a la vez).
       const configUsa = conceptosUsa.length > 0 ? await obtenerConfigUsaCiclo(supabase, ciclo.valor) : []
       const hoy = hoyMonterreyIso()
-      const filasUsa = cicloCobraUsaEnUsd(configUsa)
+      const usaIniciado = filasUsaRaw.some((f) => f.pagado)
+      const usaCerrado = !pruebaUsa && !usaIniciado && usaCerradoANuevos(ciclo.valor, hoy)
+      const filasUsaAbiertas = cicloCobraUsaEnUsd(configUsa)
         ? filasUsaRaw.filter((f) => {
             if (f.pagado || pruebaUsa) return true
             const pago = pagoUsaDeConcepto(f.conceptoNo)
             return pago != null && pagoUsaAbierto(configUsa.find((c) => c.pago === pago), hoy)
           })
         : filtrarFilasPorCandado(filasUsaRaw, slotsLineales(SECCION_USA.conceptos))
+      const filasUsa = usaCerrado ? [] : filasUsaAbiertas
 
       // No mostrar Cambridge/USA si el ciclo aún no tiene precio (antes inventaba $975)
       // ni renglones a $0 sin pago registrado.
@@ -689,7 +696,7 @@ export async function construirMatrizPortalPagos(
         })
       }
 
-      if (usaAbierto && cicloCobraUsaEnUsd(configUsa)) {
+      if (usaAbierto && !usaCerrado && cicloCobraUsaEnUsd(configUsa)) {
         const pagados = new Set(
           filasUsaRaw.filter((f) => f.pagado).map((f) => pagoUsaDeConcepto(f.conceptoNo))
         )
@@ -700,6 +707,7 @@ export async function construirMatrizPortalPagos(
           winstonUsa = {
             proximaApertura: proxima ? { pago: proxima.pago, fecha: proxima.fecha_apertura } : null,
             videoUrl: await obtenerVideoUsaCiclo(supabase, ciclo.valor),
+            fechaCierre: usaIniciado ? null : fechaCierreUsaCiclo(ciclo.valor),
           }
         }
       }

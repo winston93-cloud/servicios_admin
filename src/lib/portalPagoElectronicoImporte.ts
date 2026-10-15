@@ -11,12 +11,17 @@ import { normalizarConceptoNo } from '@/lib/pagoReferenciaColegiatura'
 import { esConceptoInscripcionReinscripcion } from '@/lib/nivelCobroElectronico'
 import { calcularReinscripcionDiferido } from '@/lib/portalReinscripcionService'
 import { omitirRecargosAdeudoEgresado } from '@/lib/adeudosEgresadosService'
+import { listarPagosColegiaturaAlumno } from '@/lib/pagoColegiaturaService'
+import { resumenAdeudoDobleTitulacionCiclo } from '@/lib/portalDobleTitulacionAdeudo'
 import {
   cicloCobraUsaEnUsd,
   esAlumnoPruebaUsa,
+  fechaCierreUsaCiclo,
+  fechaLargaUsa,
   obtenerConfigUsaCiclo,
   pagoUsaAbierto,
   pagoUsaDeConcepto,
+  usaCerradoANuevos,
 } from '@/lib/winstonUsaProgramPagos'
 
 export type ImporteElectronico = {
@@ -47,6 +52,19 @@ export async function resolverImportePagoElectronico(opts: {
       !pagoUsaAbierto(configUsa.find((c) => c.pago === pagoUsa))
     ) {
       throw new Error('Este pago de Winston USA Program aún no está disponible.')
+    }
+    if (usaCerradoANuevos(opts.cicloEscolar)) {
+      const pagos = await listarPagosColegiaturaAlumno(opts.alumno.alumno_id, opts.cicloEscolar)
+      const { tienePrograma } = resumenAdeudoDobleTitulacionCiclo(
+        pagos,
+        opts.alumno.alumno_ref,
+        opts.cicloEscolar
+      )
+      if (!tienePrograma) {
+        throw new Error(
+          `Las inscripciones a Winston USA Program de este ciclo cerraron el ${fechaLargaUsa(fechaCierreUsaCiclo(opts.cicloEscolar))}.`
+        )
+      }
     }
   }
 

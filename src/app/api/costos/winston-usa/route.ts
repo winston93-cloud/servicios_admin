@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { requireEmpleadoPortal } from '@/lib/portalApiEmpleadoAuth'
 import {
+  fechaAperturaDefaultUsa,
+  fechaCierreUsaCiclo,
   guardarConfigUsaCiclo,
   guardarVideoUsaCiclo,
   montoMxnDesdeUsd,
@@ -26,6 +28,8 @@ async function respuesta(ciclo: number, config: UsaPagoConfig[]) {
     })),
     tipoCambio,
     video_url: await obtenerVideoUsaCiclo(db, ciclo),
+    fecha_cierre: fechaCierreUsaCiclo(ciclo),
+    fecha_apertura_default: fechaAperturaDefaultUsa(ciclo),
   })
 }
 

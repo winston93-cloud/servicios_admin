@@ -1,4 +1,5 @@
 import type { AppDatabaseClient } from '@/lib/dbTypes'
+import { toCicloEscolar } from './ciclosEscolares'
 import { normalizarConceptoNo } from './pagoReferenciaColegiatura'
 
 /**
@@ -58,6 +59,33 @@ export function montoMxnDesdeUsd(usd: number, usdMxn: number): number {
 
 export function pagoUsaAbierto(config: UsaPagoConfig | undefined, hoy = hoyMonterreyIso()): boolean {
   return config != null && config.monto_usd > 0 && hoy >= config.fecha_apertura
+}
+
+/** Último día de febrero del año en que termina el ciclo; después ya no entra nadie nuevo al programa. */
+export function fechaCierreUsaCiclo(cicloEscolar: number): string {
+  const { anioFin } = toCicloEscolar(cicloEscolar)
+  const bisiesto = (anioFin % 4 === 0 && anioFin % 100 !== 0) || anioFin % 400 === 0
+  return `${anioFin}-02-${bisiesto ? '29' : '28'}`
+}
+
+/** «28 de febrero de 2027». */
+export function fechaLargaUsa(iso: string): string {
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString('es-MX', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+}
+
+/** El pago 1 abre por default el 1 de agosto del año en que inicia el ciclo. */
+export function fechaAperturaDefaultUsa(cicloEscolar: number): string {
+  return `${toCicloEscolar(cicloEscolar).anioInicio}-08-01`
+}
+
+/** Pasado el cierre solo siguen pagando quienes ya llevan al menos un pago del ciclo. */
+export function usaCerradoANuevos(cicloEscolar: number, hoy = hoyMonterreyIso()): boolean {
+  return hoy > fechaCierreUsaCiclo(cicloEscolar)
 }
 
 export async function obtenerConfigUsaCiclo(

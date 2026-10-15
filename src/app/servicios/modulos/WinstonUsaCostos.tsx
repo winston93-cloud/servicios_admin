@@ -22,6 +22,15 @@ function money(n: number): string {
   return n.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' })
 }
 
+function fechaLarga(iso: string): string {
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString('es-MX', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+}
+
 function formVacio(): Record<1 | 2 | 3, FormPago> {
   return {
     1: { monto_usd: '0', fecha_apertura: '' },
@@ -35,18 +44,27 @@ export default function WinstonUsaCostos({ ciclo }: { ciclo: number | null }) {
   const [filas, setFilas] = useState<PagoUsaFila[]>([])
   const [tipoCambio, setTipoCambio] = useState<TipoCambio>(null)
   const [videoUrl, setVideoUrl] = useState('')
+  const [fechaCierre, setFechaCierre] = useState<string | null>(null)
   const [cargando, setCargando] = useState(false)
   const [cargado, setCargado] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [mensaje, setMensaje] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const aplicar = (data: { pagos?: PagoUsaFila[]; tipoCambio?: TipoCambio; video_url?: string | null }) => {
+  const aplicar = (data: {
+    pagos?: PagoUsaFila[]
+    tipoCambio?: TipoCambio
+    video_url?: string | null
+    fecha_cierre?: string
+    fecha_apertura_default?: string
+  }) => {
     const pagos = data.pagos ?? []
     setVideoUrl(data.video_url ?? '')
     setFilas(pagos)
     setTipoCambio(data.tipoCambio ?? null)
+    setFechaCierre(data.fecha_cierre ?? null)
     const nuevo = formVacio()
+    nuevo[1].fecha_apertura = data.fecha_apertura_default ?? ''
     for (const p of pagos) {
       nuevo[p.pago] = { monto_usd: String(p.monto_usd), fecha_apertura: p.fecha_apertura }
     }
@@ -129,6 +147,13 @@ export default function WinstonUsaCostos({ ciclo }: { ciclo: number | null }) {
         del día en que paga (al peso hacia arriba). Cada pago aparece en el portal desde su fecha de
         apertura. Se muestra solo si «Winston USA Program» está abierto en Apertura de conceptos.
       </p>
+      {fechaCierre ? (
+        <p className="costos-field-hint">
+          Cierre automático: <strong>{fechaLarga(fechaCierre)}</strong> (último día de febrero, todos los
+          años). Después de esa fecha ya no se inscribe nadie nuevo; quien ya lleva algún pago puede
+          terminar los que le falten.
+        </p>
+      ) : null}
 
       {cargando ? (
         <p className="ciclos-crud-loading">
