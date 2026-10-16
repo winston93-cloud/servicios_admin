@@ -195,7 +195,7 @@ const OCULTOS_SARA = [
   'revision-pagados', // 25
 ] as const
 
-/** coordprim, coordkin, josefina: oculta 1,7-12,14,15,17-19,22,24,25. */
+/** coordkin: oculta 1,7-12,14,15,17-19,22,24,25. */
 const OCULTOS_COORD_JOSEFINA = [
   'desayunos', // 1
   'checador', // 7
@@ -214,7 +214,13 @@ const OCULTOS_COORD_JOSEFINA = [
   'revision-pagados', // 25
 ] as const
 
-/** asistente (dirección secundaria): mismo que josefina + oculta 5,13,21. */
+/** 2026-10-16 — coordprim (coordinación español primaria) y josefina (dirección secundaria) ven Checador. */
+const OCULTOS_CON_CHECADOR = OCULTOS_COORD_JOSEFINA.filter((id) => id !== 'checador')
+
+/** 2026-10-16 — coording (coordinación inglés primaria) ve Checador; kinder_ing sigue sin él. */
+const OCULTOS_COORDING = OCULTOS_COORDING_KINDER_ING.filter((id) => id !== 'checador')
+
+/** asistente (dirección secundaria): set de coordkin + oculta 5,13,21. Sin Checador. */
 const OCULTOS_ASISTENTE = [
   ...OCULTOS_COORD_JOSEFINA,
   'devoluciones', // 5
@@ -222,7 +228,7 @@ const OCULTOS_ASISTENTE = [
   'becas', // 21
 ] as const
 
-/** coordacademic: mismo que josefina + oculta 4,5,6,23. */
+/** coordacademic: set de coordkin + oculta 4,5,6,23. Sin Checador. */
 const OCULTOS_COORDACADEMIC = [
   ...OCULTOS_COORD_JOSEFINA,
   'prorrogas', // 4
@@ -389,15 +395,15 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   37: OCULTOS_RUBEN_ALAN_CARLOS, // carlos
   38: OCULTOS_RUBEN_ALAN_CARLOS, // alan
   3: OCULTOS_KARLA_M, // karla_m
-  10: OCULTOS_COORDING_KINDER_ING, // coording (inglés primaria)
+  10: OCULTOS_COORDING, // coording (inglés primaria) — Checador visible
   54: OCULTOS_COORDING_KINDER_ING, // kinder_ing (ex set visible de Fátima)
   6: OCULTOS_KEVIN, // kevin
   58: OCULTOS_LAURA_VINCULACION, // Laura Domínguez Vinculación
   12: OCULTOS_LAURA_VINCULACION, // diana — mismo set que Laura Vinculación
   40: OCULTOS_ENFERMERIA, // enfermeria
-  7: OCULTOS_COORD_JOSEFINA, // coordprim
+  7: OCULTOS_CON_CHECADOR, // coordprim (español primaria) — Checador visible
   8: OCULTOS_COORD_JOSEFINA, // coordkin
-  13: OCULTOS_COORD_JOSEFINA, // josefina
+  13: OCULTOS_CON_CHECADOR, // josefina (dirección secundaria) — Checador visible
   42: OCULTOS_COORDACADEMIC, // coordacademic
   60: OCULTOS_ASISTENTE, // asistente (dirección secundaria)
   11: OCULTOS_PSICOLOGIA, // psicologia (primaria)
