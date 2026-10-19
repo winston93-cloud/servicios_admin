@@ -252,6 +252,79 @@
   }
 }
 
+.portal-boletas-trimestre--doble {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.portal-boletas-trimestre--doble .portal-boletas-trimestre-info {
+  flex: 0 0 auto;
+}
+
+.portal-boletas-trimestre.is-parcial {
+  border-color: rgba(52, 211, 153, 0.3);
+}
+
+.portal-boletas-trimestre.is-parcial .portal-boletas-trimestre-estado {
+  color: #6ee7b7;
+  font-weight: 600;
+}
+
+.portal-boletas-materias {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portal-boletas-materia {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+  min-height: 64px;
+  padding: 0.65rem 0.85rem;
+  border-radius: 12px;
+  border: 1px dashed rgba(148, 163, 184, 0.3);
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.portal-boletas-materia.is-publicada {
+  border-style: solid;
+  border-color: rgba(52, 211, 153, 0.45);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.portal-boletas-materia-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.portal-boletas-materia-titulo {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+}
+
+.portal-boletas-materia-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.portal-boletas-materia.is-publicada .portal-boletas-materia-estado {
+  color: #6ee7b7;
+  font-weight: 600;
+}
+
 .portal-boletas-acciones {
   display: flex;
   flex-wrap: wrap;
@@ -314,6 +387,33 @@ html[data-theme='light'] .portal-boletas-trimestre.is-publicada .portal-boletas-
   color: #15803d;
 }
 
+html[data-theme='light'] .portal-boletas-materia {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+html[data-theme='light'] .portal-boletas-materia.is-publicada {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+html[data-theme='light'] .portal-boletas-materia-titulo {
+  color: #0f172a;
+}
+
+html[data-theme='light'] .portal-boletas-materia-estado {
+  color: #475569;
+}
+
+html[data-theme='light'] .portal-boletas-materia.is-publicada .portal-boletas-materia-estado,
+html[data-theme='light'] .portal-boletas-trimestre.is-parcial .portal-boletas-trimestre-estado {
+  color: #15803d;
+}
+
+html[data-theme='light'] .portal-boletas-trimestre.is-parcial {
+  border-color: #bbf7d0;
+}
+
 html[data-theme='light'] .portal-boletas-alerta {
   color: #991b1b;
   background: #fef2f2;
@@ -333,6 +433,10 @@ html[data-theme='light'] .portal-boletas-alerta {
 
   .portal-boletas-btn {
     flex: 1 1 auto;
+  }
+
+  .portal-boletas-materias {
+    grid-template-columns: 1fr;
   }
 }
 

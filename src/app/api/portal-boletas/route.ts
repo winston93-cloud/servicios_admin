@@ -36,11 +36,13 @@ export async function GET(request: Request) {
     const alcance = alcanceDeAlumno(auth.alumno)
     const trimestres = [1, 2, 3].map((t) => ({
       trimestre: t,
-      boletas: modulos
-        .filter((m) =>
-          publicaciones.some((p) => p.modulo === m && p.trimestre === t && publicacionAplica(p, alcance))
-        )
-        .map((m) => ({ modulo: m, etiqueta: ETIQUETA_MODULO_PAPA[m] })),
+      boletas: modulos.map((m) => ({
+        modulo: m,
+        etiqueta: ETIQUETA_MODULO_PAPA[m],
+        publicada: publicaciones.some(
+          (p) => p.modulo === m && p.trimestre === t && publicacionAplica(p, alcance)
+        ),
+      })),
     }))
 
     return NextResponse.json(

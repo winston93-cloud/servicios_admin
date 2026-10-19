@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import '../portal-boletas.css'
 
-type BoletaPortal = { modulo: string; etiqueta: string }
+type BoletaPortal = { modulo: string; etiqueta: string; publicada: boolean }
 
 type EstadoBoletas = {
   alumno: { nombre: string; nivel: number }
@@ -51,7 +51,7 @@ export default function PortalBoletasView() {
   }, [cargar])
 
   const video = useMemo(() => (estado?.videoUrl ? videoEmbed(estado.videoUrl) : null), [estado?.videoUrl])
-  const hayPublicadas = Boolean(estado?.trimestres.some((t) => t.boletas.length > 0))
+  const hayPublicadas = Boolean(estado?.trimestres.some((t) => t.boletas.some((b) => b.publicada)))
   const refFmt = session?.alumno_ref != null ? String(session.alumno_ref).padStart(5, '0') : '—'
   const cicloEtiqueta = estado?.ciclo.nombre ?? ''
 
@@ -149,13 +149,74 @@ export default function PortalBoletasView() {
             <>
               {!hayPublicadas && (
                 <p className="portal-boletas-vacio">
-                  Aquí podrás consultar y descargar la boleta de tu hijo(a) en cuanto la escuela la
-                  publique al cierre de cada trimestre.
+                  {(estado.trimestres[0]?.boletas.length ?? 0) > 1
+                    ? 'Aquí podrás consultar y descargar las boletas de Español e Inglés de tu hijo(a) en cuanto la escuela las publique al cierre de cada trimestre. Cada una se publica por separado.'
+                    : 'Aquí podrás consultar y descargar la boleta de tu hijo(a) en cuanto la escuela la publique al cierre de cada trimestre.'}
                 </p>
               )}
               <ListaAnimada ordenada className="portal-boletas-trimestres">
                 {estado.trimestres.map((t) => {
-                  const lista = t.boletas
+                  if (t.boletas.length > 1) {
+                    const publicadas = t.boletas.filter((b) => b.publicada).length
+                    const completa = publicadas === t.boletas.length
+                    return (
+                      <ItemAnimado
+                        key={t.trimestre}
+                        className={`portal-boletas-trimestre portal-boletas-trimestre--doble${
+                          completa ? ' is-publicada' : publicadas ? ' is-parcial' : ''
+                        }`}
+                      >
+                        <div className="portal-boletas-trimestre-info">
+                          <span className="portal-boletas-trimestre-titulo">Trimestre {t.trimestre}</span>
+                          <span className="portal-boletas-trimestre-estado">
+                            {completa ? (
+                              'Disponibles'
+                            ) : publicadas ? (
+                              `${publicadas} de ${t.boletas.length} disponibles`
+                            ) : (
+                              <>
+                                <Clock size={14} aria-hidden />
+                                Se publican al cierre del trimestre
+                              </>
+                            )}
+                          </span>
+                        </div>
+                        <ul className="portal-boletas-materias">
+                          {t.boletas.map((b) => (
+                            <li
+                              key={b.modulo}
+                              className={`portal-boletas-materia${b.publicada ? ' is-publicada' : ''}`}
+                            >
+                              <div className="portal-boletas-materia-info">
+                                <span className="portal-boletas-materia-titulo">Boleta de {b.etiqueta}</span>
+                                <span className="portal-boletas-materia-estado">
+                                  {b.publicada ? (
+                                    'Disponible'
+                                  ) : (
+                                    <>
+                                      <Clock size={13} aria-hidden />
+                                      Aún no publicada
+                                    </>
+                                  )}
+                                </span>
+                              </div>
+                              {b.publicada ? (
+                                <button
+                                  type="button"
+                                  className="portal-boletas-btn"
+                                  onClick={() => abrir(t.trimestre, b, true)}
+                                >
+                                  <FileText size={16} aria-hidden />
+                                  Ver boleta
+                                </button>
+                              ) : null}
+                            </li>
+                          ))}
+                        </ul>
+                      </ItemAnimado>
+                    )
+                  }
+                  const lista = t.boletas.filter((b) => b.publicada)
                   return (
                     <ItemAnimado
                       key={t.trimestre}
@@ -181,10 +242,10 @@ export default function PortalBoletasView() {
                               key={b.modulo}
                               type="button"
                               className="portal-boletas-btn"
-                              onClick={() => abrir(t.trimestre, b, lista.length > 1)}
+                              onClick={() => abrir(t.trimestre, b, false)}
                             >
                               <FileText size={16} aria-hidden />
-                              {lista.length > 1 ? `Boleta ${b.etiqueta}` : 'Ver boleta'}
+                              Ver boleta
                             </button>
                           ))}
                         </div>
