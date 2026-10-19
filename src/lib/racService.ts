@@ -858,7 +858,7 @@ export async function capturarCita(opts: {
   }
   const ciclo = await cicloRac()
   await assertAlumnoSecundaria(opts.alumnoId)
-  const agendaDireccion = opts.session.role === 'maestro' && Boolean(opts.fecha && opts.hora)
+  const agendaDireccion = Boolean(opts.fecha && opts.hora) && (await agendaEnDireccion(opts.session))
   const { data, error } = await db()
     .from('reporte_cita')
     .insert({
@@ -894,13 +894,27 @@ export async function capturarCita(opts: {
       mensaje: opts.mensaje,
       fecha: opts.fecha,
       hora: opts.hora,
-      maestro: opts.session.nombre || opts.session.usuario,
+      agendo: opts.session.nombre || opts.session.usuario,
+      quien: opts.session.role === 'maestro' ? 'Maestro' : 'Dirección',
     })
   }
   return { citaId, envio: await enviarCorreoCita(citaId) }
 }
 
-/** Citas de maestros → agenda de Dirección secundaria (con la asistente invitada). */
+/**
+ * Van a la agenda de Dirección las citas de maestros y las que agenda la propia Dirección o su asistente
+ * (la asistente entra con rol prefectura, igual que prefectura: se distingue por su correo).
+ */
+async function agendaEnDireccion(session: RacSesion): Promise<boolean> {
+  if (session.role === 'maestro') return true
+  if (session.role !== 'prefectura' && session.role !== 'direccion') return false
+  const { RAC_DIRECCION_SEC_CALENDAR, RAC_DIRECCION_SEC_INVITADOS } = await import('@/lib/racGoogleCalendar')
+  const { data } = await db().from('usuario').select('usuario_email').eq('usuario_id', session.id).maybeSingle()
+  const email = String(data?.usuario_email ?? '').trim().toLowerCase()
+  return [RAC_DIRECCION_SEC_CALENDAR, ...RAC_DIRECCION_SEC_INVITADOS].includes(email)
+}
+
+/** Citas → agenda de Dirección secundaria (con la asistente invitada). */
 async function agendarCitaDireccion(opts: {
   citaId: number
   alumnoId: number
@@ -908,7 +922,8 @@ async function agendarCitaDireccion(opts: {
   mensaje: string
   fecha: string
   hora: string
-  maestro: string
+  agendo: string
+  quien: 'Maestro' | 'Dirección'
 }) {
   const alumno = await cargarAlumno(opts.alumnoId)
   const nombre = alumno ? nombreAlumno(alumno) : `Alumno ${opts.alumnoId}`
@@ -918,10 +933,10 @@ async function agendarCitaDireccion(opts: {
     : ''
   const { crearCitaDireccionSec } = await import('@/lib/racGoogleCalendar')
   const cal = await crearCitaDireccionSec({
-    summary: `Cita papás — ${nombre}${grupo ? ` (${grupo})` : ''} · ${opts.maestro}`,
+    summary: `Cita papás — ${nombre}${grupo ? ` (${grupo})` : ''} · ${opts.agendo}`,
     description: [
-      `Citatorio ${etiquetaTipoCitatorio(opts.tipo)} agendado por maestro (RAC secundaria)`,
-      `Maestro: ${opts.maestro}`,
+      `Citatorio ${etiquetaTipoCitatorio(opts.tipo)} agendado por ${opts.quien.toLowerCase()} (RAC secundaria)`,
+      `${opts.quien}: ${opts.agendo}`,
       `Alumno: ${nombre}`,
       ref ? `No. control: ${ref}` : '',
       grupo ? `Grupo: ${grupo}` : '',
@@ -1382,7 +1397,7 @@ export async function accionCita(
       .select('perfil_id, cita_google_event_id')
       .maybeSingle()
     if (error) throw new Error(error.message)
-    if (detenida && n(detenida.perfil_id) === PERFIL_MAESTRO && detenida.cita_google_event_id) {
+    if (detenida && n(detenida.perfil_id) !== PERFIL_PSICOLOGIA && detenida.cita_google_event_id) {
       const { cancelarCitaDireccionSec } = await import('@/lib/racGoogleCalendar')
       await cancelarCitaDireccionSec(String(detenida.cita_google_event_id))
     }
@@ -1402,13 +1417,13 @@ export async function accionCita(
     citaRow &&
     opts?.fecha &&
     opts?.hora &&
-    n(citaRow.perfil_id) === PERFIL_MAESTRO &&
+    n(citaRow.perfil_id) !== PERFIL_PSICOLOGIA &&
     citaRow.cita_google_event_id
   ) {
     const { moverCitaDireccionSec } = await import('@/lib/racGoogleCalendar')
     await moverCitaDireccionSec(String(citaRow.cita_google_event_id), opts.fecha, opts.hora.slice(0, 5))
   }
-  if (citaRow && opts?.fecha && opts?.hora && n(citaRow.perfil_id) === 4) {
+  if (citaRow && opts?.fecha && opts?.hora && n(citaRow.perfil_id) === PERFIL_PSICOLOGIA) {
     await sincronizarCitaGoogleCalendar({
       citaId: id,
       alumnoId: n(citaRow.alumno_id),
@@ -1655,6 +1670,7 @@ async function sincronizarCitaGoogleCalendar(opts: {
 }
 
 const PERFIL_MAESTRO = 1
+const PERFIL_PSICOLOGIA = 4
 
 const PERFIL_ETIQUETA: Record<number, string> = {
   1: 'MAESTRO',
