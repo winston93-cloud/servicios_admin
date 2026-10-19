@@ -23,6 +23,10 @@ App: `~/Proyectos/uniformes` (Vercel `uniformes`). Uniformes se usa de 8:00 a 17
 Esquema: `migrations/20261019190000_uniformes_tablas.sql` (antes de copiar) y `migrations/20261019190100_uniformes_logica.sql` (después), generados con `scripts/generar-esquema-uniformes-winston.mjs`.  
 Copia y verificación fila por fila: `scripts/migrar-uniformes-a-winston.mjs`.
 
+Ajustes tras la validación de Connor (`migrations/20261019200000_uniformes_ajustes_post_migracion.sql`): el generador no copió
+permisos de funciones, así que se cerraron de nuevo las 4 internas de transferencias (`_transfer_*`, `_transferencia_recalcular_estado`);
+y `trg_pedido_desde_cotizacion_terminada` arma el nombre del alumno con `alumno_nombre` + apellidos (Winston no tiene `alumno_nombre_completo`).
+
 ## Respaldo
 
 `~/Respaldos/uniformes-insforge-20261019/` (JSON de las 46 tablas completas + PDF) y `~/Respaldos/uniformes-insforge-20261019-esquema.sql.gz`.
