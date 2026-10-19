@@ -858,7 +858,7 @@ export async function capturarCita(opts: {
   }
   const ciclo = await cicloRac()
   await assertAlumnoSecundaria(opts.alumnoId)
-  const agendaDireccion = Boolean(opts.fecha && opts.hora) && (await agendaEnDireccion(opts.session))
+  const agendaDireccion = Boolean(opts.fecha && opts.hora) && ROLES_AGENDA_DIRECCION.has(opts.session.role)
   const { data, error } = await db()
     .from('reporte_cita')
     .insert({
@@ -895,24 +895,14 @@ export async function capturarCita(opts: {
       fecha: opts.fecha,
       hora: opts.hora,
       agendo: opts.session.nombre || opts.session.usuario,
-      quien: opts.session.role === 'maestro' ? 'Maestro' : 'Dirección',
+      quien: opts.session.role === 'maestro' ? 'maestro' : 'personal de secundaria',
     })
   }
   return { citaId, envio: await enviarCorreoCita(citaId) }
 }
 
-/**
- * Van a la agenda de Dirección las citas de maestros y las que agenda la propia Dirección o su asistente
- * (la asistente entra con rol prefectura, igual que prefectura: se distingue por su correo).
- */
-async function agendaEnDireccion(session: RacSesion): Promise<boolean> {
-  if (session.role === 'maestro') return true
-  if (session.role !== 'prefectura' && session.role !== 'direccion') return false
-  const { RAC_DIRECCION_SEC_CALENDAR, RAC_DIRECCION_SEC_INVITADOS } = await import('@/lib/racGoogleCalendar')
-  const { data } = await db().from('usuario').select('usuario_email').eq('usuario_id', session.id).maybeSingle()
-  const email = String(data?.usuario_email ?? '').trim().toLowerCase()
-  return [RAC_DIRECCION_SEC_CALENDAR, ...RAC_DIRECCION_SEC_INVITADOS].includes(email)
-}
+/** La asistente de Dirección entra con rol prefectura. */
+const ROLES_AGENDA_DIRECCION = new Set<RacSesion['role']>(['maestro', 'prefectura', 'direccion'])
 
 /** Citas → agenda de Dirección secundaria (con la asistente invitada). */
 async function agendarCitaDireccion(opts: {
@@ -923,7 +913,7 @@ async function agendarCitaDireccion(opts: {
   fecha: string
   hora: string
   agendo: string
-  quien: 'Maestro' | 'Dirección'
+  quien: 'maestro' | 'personal de secundaria'
 }) {
   const alumno = await cargarAlumno(opts.alumnoId)
   const nombre = alumno ? nombreAlumno(alumno) : `Alumno ${opts.alumnoId}`
@@ -935,8 +925,8 @@ async function agendarCitaDireccion(opts: {
   const cal = await crearCitaDireccionSec({
     summary: `Cita papás — ${nombre}${grupo ? ` (${grupo})` : ''} · ${opts.agendo}`,
     description: [
-      `Citatorio ${etiquetaTipoCitatorio(opts.tipo)} agendado por ${opts.quien.toLowerCase()} (RAC secundaria)`,
-      `${opts.quien}: ${opts.agendo}`,
+      `Citatorio ${etiquetaTipoCitatorio(opts.tipo)} agendado por ${opts.quien} (RAC secundaria)`,
+      `Agendó: ${opts.agendo}`,
       `Alumno: ${nombre}`,
       ref ? `No. control: ${ref}` : '',
       grupo ? `Grupo: ${grupo}` : '',
