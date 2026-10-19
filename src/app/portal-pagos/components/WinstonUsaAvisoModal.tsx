@@ -176,14 +176,11 @@ export default function WinstonUsaAvisoModal({
               </div>
               <ul className="portal-usa-aviso-beneficios">
                 {BENEFICIOS.map(({ icono: Icono, titulo, texto }) => (
-                  <li key={titulo}>
+                  <li key={titulo} title={texto}>
                     <span className="portal-usa-aviso-beneficio-icono" aria-hidden>
-                      <Icono size={20} />
+                      <Icono size={15} />
                     </span>
-                    <span>
-                      <strong>{titulo}</strong>
-                      <small>{texto}</small>
-                    </span>
+                    <strong>{titulo}</strong>
                   </li>
                 ))}
               </ul>
