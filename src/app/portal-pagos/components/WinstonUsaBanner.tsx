@@ -125,13 +125,13 @@ export default function WinstonUsaBanner({ alumnoId, info, seccion }: WinstonUsa
             </div>
           ) : null}
           <p className="portal-usa-banner-estado">{estado}</p>
+        </div>
+        <div className="portal-usa-banner-acciones">
           {info.fechaCierre ? (
             <p className="portal-usa-banner-cierre">
               Inscripciones al programa hasta el {fechaLarga(info.fechaCierre, true)}.
             </p>
           ) : null}
-        </div>
-        <div className="portal-usa-banner-acciones">
           <button type="button" className="portal-usa-banner-cta" onClick={onClick}>
             {pendiente ? 'Conocer y pagar' : 'Conocer el programa'}
             <ArrowRight size={18} aria-hidden />
