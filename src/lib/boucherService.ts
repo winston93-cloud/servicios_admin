@@ -181,6 +181,30 @@ export async function obtenerPorcentajeBeca(
   return data?.beca_porcentaje != null ? Number(data.beca_porcentaje) : 0
 }
 
+/** «Beca Pemex 20%» de la beca Winston activa del ciclo; null si no tiene. Llamar después de obtenerPorcentajeBeca. */
+export async function obtenerEtiquetaBecaActiva(
+  supabase: AppDatabaseClient,
+  alumnoId: number,
+  cicloEscolar: number
+): Promise<string | null> {
+  const { data } = await supabase
+    .from('alumno_beca')
+    .select('beca_id, beca_porcentaje')
+    .eq('alumno_id', alumnoId)
+    .eq('beca_estatus', 1)
+    .eq('beca_ciclo_escolar', cicloEscolar)
+    .maybeSingle()
+  const pct = Number(data?.beca_porcentaje)
+  if (!data || !(pct > 0)) return null
+  const { data: tipo } = await supabase
+    .from('concepto_beca')
+    .select('beca_clase')
+    .eq('beca_id', data.beca_id)
+    .maybeSingle()
+  const clase = String(tipo?.beca_clase ?? '').trim()
+  return /[a-záéíóúñ]/i.test(clase) ? `Beca ${clase} ${pct}%` : `Beca ${pct}%`
+}
+
 /**
  * Pago 1/2/3 del Winston USA Program en MXN.
  * Ciclo con montos USD: USD × tipo de cambio del día, al peso hacia arriba (0 si no hay tipo de cambio).

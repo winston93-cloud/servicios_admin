@@ -5,6 +5,7 @@ import {
   calcularBoucher,
   calcularImporteConcepto,
   obtenerPrecioFila,
+  obtenerEtiquetaBecaActiva,
   obtenerPorcentajeBeca,
 } from './boucherService'
 import {
@@ -15,7 +16,7 @@ import {
   nivelPrecioBoucher,
 } from './boucherCore'
 import { calcularRecargoPesos } from './colegiaturaPrecioReglas'
-import { cargarCobroSep } from './becasSep/cobroSep'
+import { cargarCobroSep, obtenerEtiquetaBecaSep } from './becasSep/cobroSep'
 import {
   conceptoFacturaCambridge,
   rutasFacturaDesdeReferencia,
@@ -95,6 +96,8 @@ export interface FilaMatrizPortal {
   notaMonto?: string
   /** El importe cambia cada día: el baucher solo vale hoy. */
   vigenciaSoloHoy?: boolean
+  /** «Beca Pemex 20%» cuando la beca activa baja el monto de este concepto. */
+  notaBeca?: string
 }
 
 export interface SeccionMatrizPortal {
@@ -306,6 +309,10 @@ async function construirFilas(
   )
   // 2026-10-12 — Beca SEP del ciclo 23+ (alumno_beca_sep), igual que el baucher.
   const cobroSep = await cargarCobroSep(supabase, alumno.alumno_ref, ciclo.valor)
+  const [etiquetaBeca, etiquetaSep] = await Promise.all([
+    becaPct > 0 ? obtenerEtiquetaBecaActiva(supabase, alumno.alumno_id, ciclo.valor) : null,
+    cobroSep ? obtenerEtiquetaBecaSep(supabase, alumno.alumno_ref, ciclo.valor) : null,
+  ])
   const control = formatearAlumnoRefParaReferencia(alumno.alumno_ref)
   const filas: FilaMatrizPortal[] = []
 
@@ -340,16 +347,25 @@ async function construirFilas(
     }
 
     const correccion = correcciones.get(conceptoNo)
+    const optsImporte = {
+      alumnoRef: alumno.alumno_ref,
+      cicloEscolar: ciclo.valor,
+      alumnoNuevoIngreso: alumno.alumno_nuevo_ingreso,
+      alumnoAlta: alumno.alumno_alta ?? null,
+    }
     let importe =
       correccion != null
         ? correccion.monto
-        : calcularImporteConcepto(conceptoNo, precio, becaPct, planMeses, {
-            alumnoRef: alumno.alumno_ref,
-            cicloEscolar: ciclo.valor,
-            alumnoNuevoIngreso: alumno.alumno_nuevo_ingreso,
-            alumnoAlta: alumno.alumno_alta ?? null,
-            cobroSep,
-          })
+        : calcularImporteConcepto(conceptoNo, precio, becaPct, planMeses, { ...optsImporte, cobroSep })
+
+    let notaBeca: string | undefined
+    if (correccion == null && (etiquetaBeca || etiquetaSep)) {
+      const sinBeca = calcularImporteConcepto(conceptoNo, precio, 0, planMeses, optsImporte)
+      if (importe < sinBeca) {
+        const porSep = cobroSep?.[normalizarConceptoNo(conceptoNo)] != null
+        notaBeca = (porSep ? etiquetaSep : etiquetaBeca) ?? undefined
+      }
+    }
     importe = aplicarCargoExtraImporte(importe, conceptoNo, cargoExtraReg)
 
     // Saldo a favor (recargo cuota 00): después de beca/corrección; una sola colegiatura.
@@ -396,6 +412,7 @@ async function construirFilas(
       referenciaLinea,
       facturaPdf: null,
       facturaXml: null,
+      ...(notaBeca ? { notaBeca } : {}),
       ...(conversionUsa
         ? { notaMonto: notaConversionUsa(usd, tcUsa), vigenciaSoloHoy: true }
         : {}),

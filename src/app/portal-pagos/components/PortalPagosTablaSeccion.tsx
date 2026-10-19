@@ -102,8 +102,11 @@ export default function PortalPagosTablaSeccion({
                     <span className="portal-matriz-pagado">Pagado</span>
                   ) : (
                     <div className="portal-matriz-accion-grupo">
-                      <span className="portal-matriz-monto">
-                        {fila.importe != null ? formatearMontoPortal(fila.importe) : '—'}
+                      <span className="portal-matriz-monto-bloque">
+                        <span className="portal-matriz-monto">
+                          {fila.importe != null ? formatearMontoPortal(fila.importe) : '—'}
+                        </span>
+                        {fila.notaBeca && <span className="portal-matriz-beca-nota">{fila.notaBeca}</span>}
                       </span>
                       {fila.notaMonto && (
                         <span className="portal-matriz-recargo-nota">{fila.notaMonto}</span>
@@ -125,12 +128,15 @@ export default function PortalPagosTablaSeccion({
                     <span className="portal-matriz-pagado">Pagado</span>
                   ) : (
                     <div className="portal-matriz-accion-grupo">
-                      <span className="portal-matriz-monto">
-                        {fila.importeLinea != null
-                          ? formatearMontoPortal(fila.importeLinea)
-                          : fila.importe != null
-                            ? formatearMontoPortal(fila.importe)
-                            : '—'}
+                      <span className="portal-matriz-monto-bloque">
+                        <span className="portal-matriz-monto">
+                          {fila.importeLinea != null
+                            ? formatearMontoPortal(fila.importeLinea)
+                            : fila.importe != null
+                              ? formatearMontoPortal(fila.importe)
+                              : '—'}
+                        </span>
+                        {fila.notaBeca && <span className="portal-matriz-beca-nota">{fila.notaBeca}</span>}
                       </span>
                       {(fila.recargo ?? 0) > 0 && (
                         <span className="portal-matriz-recargo-nota">
@@ -200,6 +206,7 @@ export default function PortalPagosTablaSeccion({
                       ? formatearMontoPortal(fila.importe)
                       : '—'}
                 </p>
+                {fila.notaBeca && <p className="portal-matriz-beca-nota">{fila.notaBeca}</p>}
                 {(fila.recargo ?? 0) > 0 && (
                   <p className="portal-matriz-recargo-nota">
                     Ventanilla {fila.importe != null ? formatearMontoPortal(fila.importe) : '—'} ·

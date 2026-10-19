@@ -19217,6 +19217,26 @@ html[data-theme='light'] .portal-inscripciones-page {
   font-variant-numeric: tabular-nums;
 }
 
+.portal-matriz-monto-bloque {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.portal-matriz-beca-nota {
+  display: block;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #34d399;
+}
+
+html[data-theme='light'] .portal-matriz-beca-nota {
+  color: #047857;
+}
+
 .portal-matriz-recargo-nota {
   display: block;
   font-size: 0.72rem;

@@ -53,6 +53,23 @@ export function montosCobroSep(fila: FilaCobroSep | null | undefined): CobroSepP
   return Object.keys(out).length ? out : null
 }
 
+/** «Beca SEP 50%» si la Beca SEP del ciclo está activa; null si no (revertida cobra la beca del colegio). */
+export async function obtenerEtiquetaBecaSep(
+  db: AppDatabaseClient,
+  alumnoRef: number | string | null | undefined,
+  cicloValor: number | null | undefined
+): Promise<string | null> {
+  const { data } = await db
+    .from('alumno_beca_sep')
+    .select('estatus, porcentaje_sep')
+    .eq('alumno_ref', Number(alumnoRef))
+    .eq('ciclo_valor', Number(cicloValor))
+    .maybeSingle()
+  const pct = Number(data?.porcentaje_sep)
+  if (data?.estatus !== 'activa' || !(pct > 0)) return null
+  return `Beca SEP ${Number.isInteger(pct) ? pct : pct.toFixed(2)}%`
+}
+
 /**
  * Carga una vez por alumno y ciclo, antes de calcular los conceptos. Si falla la lectura, devuelve null y el
  * baucher cobra como antes (mejor que bloquear el pago).
