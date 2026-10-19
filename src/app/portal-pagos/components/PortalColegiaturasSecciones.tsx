@@ -231,6 +231,7 @@ export default function PortalColegiaturasSecciones({
             <PortalPagosTablaSeccion
               key={seccion.id}
               alumnoId={alumnoId}
+              planUsa={winstonUsa?.plan}
               seccion={seccion}
               generandoBoucher={generandoBoucher}
               onImprimirBoucher={(f) => void imprimirBoucher(f)}

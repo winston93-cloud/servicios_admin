@@ -12,6 +12,7 @@ import {
   Info,
   X,
 } from 'lucide-react'
+import type { WinstonUsaPortalInfo } from '@/lib/portalPagosMatrizService'
 
 interface WinstonUsaAvisoModalProps {
   abierto: boolean
@@ -23,6 +24,24 @@ interface WinstonUsaAvisoModalProps {
   textoContinuar?: string
   /** Sin pago abierto todavía: solo informa (botón «Entendido»). */
   notaSinPago?: string
+  plan?: WinstonUsaPortalInfo['plan']
+}
+
+function formatearUsd(n: number): string {
+  return `USD $${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+}
+
+function fechaCorta(iso: string): string {
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString('es-MX', {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  })
+}
+
+function listaUsd(montos: number[]): string {
+  const t = montos.map((m) => m.toLocaleString('en-US', { maximumFractionDigits: 2 }))
+  return t.length > 1 ? `${t.slice(0, -1).join(', ')} y ${t[t.length - 1]}` : (t[0] ?? '')
 }
 
 const BENEFICIOS = [
@@ -51,6 +70,7 @@ export default function WinstonUsaAvisoModal({
   onCancelar,
   textoContinuar = 'Continuar con el pago',
   notaSinPago,
+  plan = [],
 }: WinstonUsaAvisoModalProps) {
   const continuarRef = useRef<HTMLButtonElement>(null)
 
@@ -71,6 +91,8 @@ export default function WinstonUsaAvisoModal({
   if (!abierto) return null
 
   const primero = pago === 1
+  const total = plan.length || 3
+  const montoDe = (n: number) => plan.find((p) => p.pago === n)
 
   return (
     <div className="portal-doc-modal-overlay" role="presentation" onClick={onCancelar}>
@@ -99,7 +121,7 @@ export default function WinstonUsaAvisoModal({
           <h2 id="portal-usa-aviso-titulo" className="portal-usa-aviso-titulo">
             {primero ? 'Antes de continuar' : 'Pago siguiente'}
           </h2>
-          <ol className="portal-usa-aviso-pasos" aria-label={`Pago ${pago} de 3`}>
+          <ol className="portal-usa-aviso-pasos" aria-label={`Pago ${pago} de ${total}`}>
             {([1, 2, 3] as const).map((n) => (
               <li
                 key={n}
@@ -114,6 +136,7 @@ export default function WinstonUsaAvisoModal({
               >
                 <span>{n}</span>
                 Pago {n}
+                {montoDe(n) ? <em>{formatearUsd(montoDe(n)!.montoUsd)}</em> : null}
               </li>
             ))}
           </ol>
@@ -140,11 +163,27 @@ export default function WinstonUsaAvisoModal({
                   </li>
                 ))}
               </ul>
+              <div className="portal-usa-aviso-callout portal-usa-aviso-callout--fuerte">
+                <CalendarClock size={20} aria-hidden />
+                <p>
+                  <strong>
+                    El programa se cubre en {total} pagos
+                    {plan.length > 0 ? ` (USD ${listaUsd(plan.map((p) => p.montoUsd))})` : ''}.
+                  </strong>{' '}
+                  Este primer pago confirma el interés; los siguientes se habilitan aquí en su fecha
+                  {plan.length > 1
+                    ? ` (${plan
+                        .slice(1)
+                        .map((p) => `Pago ${p.pago}: ${fechaCorta(p.fecha)}`)
+                        .join(' · ')})`
+                    : ''}
+                  .
+                </p>
+              </div>
               <div className="portal-usa-aviso-callout">
                 <HeartHandshake size={20} aria-hidden />
                 <p>
                   <strong>No es obligatorio.</strong> Continúe solo si la familia desea participar.
-                  Este primer pago confirma el interés en el programa.
                 </p>
               </div>
             </>

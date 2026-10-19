@@ -19702,6 +19702,75 @@ html[data-theme='light'] .portal-doc-modal-xml {
   border: 0;
 }
 
+.portal-usa-banner-plan {
+  margin: 0.75rem 0 0;
+}
+
+.portal-usa-banner-plan-titulo {
+  margin: 0 0 0.45rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.portal-usa-banner-plan ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  max-width: 34rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portal-usa-banner-plan li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+}
+
+.portal-usa-banner-plan li strong {
+  font-size: 0.8rem;
+  color: #f8fafc;
+}
+
+.portal-usa-banner-plan li span {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fde68a;
+}
+
+.portal-usa-banner-plan li small {
+  font-size: 0.76rem;
+  line-height: 1.3;
+}
+
+.portal-usa-banner-plan li.is-abierto {
+  border-color: rgba(212, 175, 55, 0.6);
+  background: rgba(212, 175, 55, 0.14);
+}
+
+.portal-usa-banner-plan li.is-pagado {
+  border-color: rgba(127, 233, 251, 0.4);
+}
+
+.portal-usa-banner-plan li.is-pagado small {
+  color: #7fe9fb;
+  font-weight: 600;
+}
+
+.portal-usa-aviso-pasos li em {
+  font-style: normal;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
 .portal-matriz-seccion.portal-usa-resaltado {
   border-radius: 14px;
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.75);
@@ -19728,6 +19797,23 @@ html[data-theme='light'] .portal-doc-modal-xml {
 
   .portal-usa-banner-video {
     margin: 0 1.1rem 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .portal-usa-banner-plan ol {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-usa-banner-plan li {
+    flex-direction: row;
+    align-items: baseline;
+    flex-wrap: wrap;
+    column-gap: 0.6rem;
+  }
+
+  .portal-usa-banner-plan li small {
+    margin-left: auto;
   }
 }
 

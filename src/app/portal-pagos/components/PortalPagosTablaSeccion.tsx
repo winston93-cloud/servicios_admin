@@ -1,7 +1,11 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import type { FilaMatrizPortal, SeccionMatrizPortal } from '@/lib/portalPagosMatrizService'
+import type {
+  FilaMatrizPortal,
+  SeccionMatrizPortal,
+  WinstonUsaPortalInfo,
+} from '@/lib/portalPagosMatrizService'
 import { formatearMontoPortal } from '@/lib/portalPagosService'
 import { normalizarConceptoNo } from '@/lib/pagoReferenciaColegiatura'
 import { FileText, Printer, CreditCard, Code2 } from 'lucide-react'
@@ -19,6 +23,7 @@ interface PortalPagosTablaSeccionProps {
   onVerXml: (url: string, concepto: string) => void
   /** Para no repetir el aviso Winston USA Program si ya lo aceptó desde el botón del programa. */
   alumnoId?: number
+  planUsa?: WinstonUsaPortalInfo['plan']
 }
 
 export default function PortalPagosTablaSeccion({
@@ -29,6 +34,7 @@ export default function PortalPagosTablaSeccion({
   onVerPdf,
   onVerXml,
   alumnoId,
+  planUsa,
 }: PortalPagosTablaSeccionProps) {
   const [avisoUsa, setAvisoUsa] = useState<{ fila: FilaMatrizPortal; continuar: () => void } | null>(
     null
@@ -254,6 +260,7 @@ export default function PortalPagosTablaSeccion({
         abierto={avisoUsa != null}
         pago={avisoUsa ? PAGO_USA[normalizarConceptoNo(avisoUsa.fila.conceptoNo)] : 1}
         concepto={avisoUsa?.fila.conceptoClase ?? ''}
+        plan={planUsa}
         onCancelar={cerrarAvisoUsa}
         onContinuar={() => {
           const continuar = avisoUsa?.continuar

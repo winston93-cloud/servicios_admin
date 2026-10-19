@@ -25,6 +25,10 @@ function fechaLarga(iso: string, conAnio = false): string {
   })
 }
 
+function formatearUsd(n: number): string {
+  return `USD $${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+}
+
 function conAutoplay(src: string): string {
   if (!/youtube-nocookie\.com|player\.vimeo\.com/.test(src)) return src
   return `${src}${src.includes('?') ? '&' : '?'}autoplay=1`
@@ -47,8 +51,10 @@ export default function WinstonUsaBanner({ alumnoId, info, seccion }: WinstonUsa
     videoRef.current?.play().catch(() => {})
   }, [verVideo])
 
+  const hoyIso = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Monterrey' })
+  const totalPagos = info.plan.length || 3
   const estado = pendiente
-    ? `Pago ${pagoPendiente ?? ''} disponible: ${
+    ? `Pago ${pagoPendiente ?? ''} de ${totalPagos} disponible: ${
         pendiente.importe != null ? formatearMontoPortal(pendiente.importe) : ''
       } MXN`
     : info.proximaApertura
@@ -90,6 +96,34 @@ export default function WinstonUsaBanner({ alumnoId, info, seccion }: WinstonUsa
             Documentación académica estadounidense respaldada por una institución acreditada, para
             fortalecer el expediente de tu hijo con proyección internacional.
           </p>
+          {info.plan.length > 0 ? (
+            <div className="portal-usa-banner-plan">
+              <p className="portal-usa-banner-plan-titulo">
+                El programa se cubre en {info.plan.length} pagos; cada uno se habilita en su fecha:
+              </p>
+              <ol>
+                {info.plan.map((p) => {
+                  const abierto = !p.pagado && p.fecha <= hoyIso
+                  return (
+                    <li
+                      key={p.pago}
+                      className={p.pagado ? 'is-pagado' : abierto ? 'is-abierto' : undefined}
+                    >
+                      <strong>Pago {p.pago}</strong>
+                      <span>{formatearUsd(p.montoUsd)}</span>
+                      <small>
+                        {p.pagado
+                          ? 'Pagado'
+                          : abierto
+                            ? 'Disponible'
+                            : `Desde el ${fechaLarga(p.fecha)}`}
+                      </small>
+                    </li>
+                  )
+                })}
+              </ol>
+            </div>
+          ) : null}
           <p className="portal-usa-banner-estado">{estado}</p>
           {info.fechaCierre ? (
             <p className="portal-usa-banner-cierre">
@@ -135,6 +169,7 @@ export default function WinstonUsaBanner({ alumnoId, info, seccion }: WinstonUsa
       <WinstonUsaAvisoModal
         abierto={aviso}
         pago={pagoPendiente ?? info.proximaApertura?.pago ?? 1}
+        plan={info.plan}
         concepto={pendiente?.conceptoClase ?? 'Winston USA Program'}
         textoContinuar="Ir a los pagos del programa"
         notaSinPago={

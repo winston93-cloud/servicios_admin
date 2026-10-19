@@ -117,6 +117,8 @@ export interface MatrizPortalPagos {
 export interface WinstonUsaPortalInfo {
   /** Próximo pago pendiente que aún no abre (YYYY-MM-DD) y su número. */
   proximaApertura: { pago: 1 | 2 | 3; fecha: string } | null
+  /** Los 3 pagos del ciclo, para que el papá sepa desde el inicio que no es un solo pago. */
+  plan: { pago: 1 | 2 | 3; montoUsd: number; fecha: string; pagado: boolean }[]
   videoUrl: string | null
   /** Último día para entrar al programa (YYYY-MM-DD); null si ya lleva algún pago del ciclo. */
   fechaCierre: string | null
@@ -706,6 +708,15 @@ export async function construirMatrizPortalPagos(
         if (hayTablaUsa || proxima) {
           winstonUsa = {
             proximaApertura: proxima ? { pago: proxima.pago, fecha: proxima.fecha_apertura } : null,
+            plan: configUsa
+              .filter((c) => c.monto_usd > 0)
+              .sort((a, b) => a.pago - b.pago)
+              .map((c) => ({
+                pago: c.pago,
+                montoUsd: c.monto_usd,
+                fecha: c.fecha_apertura,
+                pagado: pagados.has(c.pago),
+              })),
             videoUrl: await obtenerVideoUsaCiclo(supabase, ciclo.valor),
             fechaCierre: usaIniciado ? null : fechaCierreUsaCiclo(ciclo.valor),
           }
