@@ -23,6 +23,8 @@ Key patterns:
 
 ## Consolidación NANOs InsForge → Winston Servicios
 
+Desde el 5 oct 2026 solo quedan 3 proyectos: **Winston Servicios**, **Reloj Checador** y **Uniformes**; los otros 10 NANOs ya se eliminaron (lo de «borrable» abajo es histórico).
+
 - **SSIW / entrega a pie:** repo externo `~/Proyectos/ssiw` (`ssiw.vercel.app`). Handoff desde este admin en `/ssiw/entrar`. Tablas `registro_salida_pie` y `entregas_alumnos` viven en **Winston Servicios** (`g4ta4bfg`). Cutover Vercel hecho; NANO `winston-ssiw` borrable tras smoke.
 - **Boletas:** tablas `boleta_*` + captura en Winston Servicios. Migración: `docs/MIGRACION-BOLETAS-WINSTON.md`. NANO InsForge **Boletas** (`5u3i4tmc`) **eliminado** (2026-09-17); arranca en producción en **noviembre 2026 con el 1er trimestre del ciclo 2026-2027**.
 - **Entersote / gym:** tabla `gym_estado` también en Winston Servicios; app local en PCs (sin repo).
@@ -31,6 +33,7 @@ Key patterns:
 - **Cheques:** tablas `ch_cheques`, `ch_cheques_ed`, `ch_cheques_sw`, `ch_cheques_se`, `ch_nombres`, `ch_conceptos`, `ch_subconceptos`, `cheques_banco` en Winston. Migración: `docs/MIGRACION-CHEQUES-WINSTON.md`. App: `~/Proyectos/cheques_new` (`cheques-new.vercel.app`). NANO **Cheques** (`3p3q5w7a`) borrable **solo tras smoke** OK (Mario).
 - **Open House / Sesiones Inf.:** tablas `inscripciones`, `sesiones`, `kommo_lead_tracking`, `campamento_verano`, `taller_ia` en Winston. Migración: `docs/MIGRACION-OPEN-HOUSE-WINSTON.md`. App: `~/Proyectos/open_house` (`open-house-chi.vercel.app`). NANO **Open_House** (`ebcv45bg`) borrable **solo tras smoke** OK (Mario).
 - **AgendaW (admisiones):** tablas `admission_*`, `blocked_dates`, `expediente_inicial`, `tour_recorridos`, `agendaw_wsp` en Winston (2026-10-05). Doc: `docs/AGENDAW_INSFORGE.md`. App: `~/Proyectos/agendaw` (`agendaw.vercel.app`). NANO **AgendaW** (`sr6a9iza`) **eliminado** (2026-10-05); respaldo `~/Respaldos/agendaw-insforge-20261005.sql.gz`.
+- **Uniformes:** 43 tablas (`pedidos`, `cotizaciones`, `costos`, `insumos`, `transferencias`, `devoluciones`, `auditoria`, etc.) + bucket privado `datos-fiscales-clientes` en Winston (2026-10-19). Usa `alumno`, `ciclos_escolares` y `usuario` **de Winston** (no se copiaron las suyas). Migración: `docs/MIGRACION-UNIFORMES-WINSTON.md`. App: `~/Proyectos/uniformes`. NANO **Uniformes** (`q488j9fg`) borrable **solo tras smoke** OK (Mario).
 - **Prórrogas y Ajustes:** app usa Winston (`pago_prorroga` + `alumno` / precios / becas). NANO **Prórrogas y Ajustes** (`nr8dsq6r`) ya eliminable (solo 1 tabla residual).
 
 ## Revisión diaria («Sonny, pendientes»)
