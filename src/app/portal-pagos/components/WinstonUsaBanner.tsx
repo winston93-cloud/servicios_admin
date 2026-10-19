@@ -99,7 +99,8 @@ export default function WinstonUsaBanner({ alumnoId, info, seccion }: WinstonUsa
           {info.plan.length > 0 ? (
             <div className="portal-usa-banner-plan">
               <p className="portal-usa-banner-plan-titulo">
-                El programa se cubre en {info.plan.length} pagos; cada uno se habilita en su fecha:
+                <strong>No es obligatorio.</strong> Si decides participar, se cubre en{' '}
+                {info.plan.length} pagos y cada uno se habilita en su fecha:
               </p>
               <ol>
                 {info.plan.map((p) => {

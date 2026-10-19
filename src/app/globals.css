@@ -19752,6 +19752,10 @@ html[data-theme='light'] .portal-doc-modal-xml {
   border: 0;
 }
 
+.portal-usa-banner-plan-titulo strong {
+  color: #fde68a;
+}
+
 .portal-usa-banner-plan-titulo {
   margin: 0.4rem 0 0.3rem;
   font-size: 0.78rem;
