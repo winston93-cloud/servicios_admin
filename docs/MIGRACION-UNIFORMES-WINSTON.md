@@ -27,7 +27,14 @@ Copia y verificación fila por fila: `scripts/migrar-uniformes-a-winston.mjs`.
 
 `~/Respaldos/uniformes-insforge-20261019/` (JSON de las 46 tablas completas + PDF) y `~/Respaldos/uniformes-insforge-20261019-esquema.sql.gz`.
 
-## Corte (fuera de horario)
+## Corte
+
+**Hecho el 19 oct 2026 ~13:05** (sin movimientos en Uniformes desde las 9:12): espejo idéntico, folios alineados
+(84 cotizaciones, 29 devoluciones), variables de Vercel en Winston y redeploy (`uniformes-mu.vercel.app`).
+Si alguna vez apareciera algo en el NANO viejo después del corte: `migrar-uniformes-a-winston.mjs --solo-faltantes`
+(solo inserta lo que falte; nunca pisa filas de Winston).
+
+Pasos usados:
 
 1. `node --env-file=.env.local scripts/corte-uniformes-a-winston.mjs --sincronizar` → debe terminar en «ESPEJO IDÉNTICO».
 2. `node --env-file=.env.local scripts/corte-uniformes-a-winston.mjs --vercel`.

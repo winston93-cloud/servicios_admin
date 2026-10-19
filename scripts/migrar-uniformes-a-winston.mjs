@@ -68,6 +68,8 @@ const TABLAS = {
 
 const args = process.argv.slice(2)
 const copiar = args.includes('--copiar')
+/** Después del corte: solo inserta lo que falte en Winston, sin pisar filas que ya cambiaron allá. */
+const soloFaltantes = args.includes('--solo-faltantes')
 const borrarSobrantes = args.includes('--borrar-sobrantes')
 const dirRespaldo = args.includes('--respaldo') ? args[args.indexOf('--respaldo') + 1] : null
 
@@ -143,6 +145,20 @@ if (copiar) {
     }
     if (sobran.length) console.log(`borradas en Winston ${t}: ${sobran.length} (ya no existen en Uniformes)`)
   }
+}
+
+if (soloFaltantes) {
+  for (const [t, pk] of Object.entries(TABLAS)) {
+    const actuales = new Set((await todas(destino, t, pk)).map((f) => String(f[pk])))
+    const filas = (await todas(origen, t, pk)).filter((f) => !actuales.has(String(f[pk])))
+    for (let i = 0; i < filas.length; i += 500) {
+      const { error } = await destino.from(t).insert(filas.slice(i, i + 500))
+      if (error) throw new Error(`${t}: ${error.message}`)
+    }
+    if (filas.length) console.log(`agregadas ${t}: ${filas.length}`)
+  }
+  console.log('faltantes revisados')
+  process.exit(0)
 }
 
 const ok = await verificar()
