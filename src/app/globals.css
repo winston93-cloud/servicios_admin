@@ -20007,6 +20007,19 @@ html[data-theme='light'] .portal-doc-modal-xml {
   color: var(--usa-oro-claro);
 }
 
+.portal-usa-aviso-opcional {
+  position: relative;
+  display: inline-block;
+  margin: 0.5rem 0 0;
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 233, 251, 0.55);
+  background: rgba(0, 227, 253, 0.12);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #e0fbff;
+}
+
 .portal-usa-aviso-pasos {
   position: relative;
   display: flex;

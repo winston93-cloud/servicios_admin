@@ -121,6 +121,7 @@ export default function WinstonUsaAvisoModal({
           <h2 id="portal-usa-aviso-titulo" className="portal-usa-aviso-titulo">
             {primero ? 'Antes de continuar' : 'Pago siguiente'}
           </h2>
+          <p className="portal-usa-aviso-opcional">Opcional · No es obligatorio</p>
           <ol className="portal-usa-aviso-pasos" aria-label={`Pago ${pago} de ${total}`}>
             {([1, 2, 3] as const).map((n) => (
               <li
@@ -150,19 +151,12 @@ export default function WinstonUsaAvisoModal({
                 estudios del alumno se integran a un proceso de reconocimiento académico que permite
                 contar con documentación estadounidense respaldada por una institución acreditada.
               </p>
-              <ul className="portal-usa-aviso-beneficios">
-                {BENEFICIOS.map(({ icono: Icono, titulo, texto }) => (
-                  <li key={titulo}>
-                    <span className="portal-usa-aviso-beneficio-icono" aria-hidden>
-                      <Icono size={20} />
-                    </span>
-                    <span>
-                      <strong>{titulo}</strong>
-                      <small>{texto}</small>
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <div className="portal-usa-aviso-callout">
+                <HeartHandshake size={20} aria-hidden />
+                <p>
+                  <strong>No es obligatorio.</strong> Continúe solo si la familia desea participar.
+                </p>
+              </div>
               <div className="portal-usa-aviso-callout portal-usa-aviso-callout--fuerte">
                 <CalendarClock size={20} aria-hidden />
                 <p>
@@ -180,12 +174,19 @@ export default function WinstonUsaAvisoModal({
                   .
                 </p>
               </div>
-              <div className="portal-usa-aviso-callout">
-                <HeartHandshake size={20} aria-hidden />
-                <p>
-                  <strong>No es obligatorio.</strong> Continúe solo si la familia desea participar.
-                </p>
-              </div>
+              <ul className="portal-usa-aviso-beneficios">
+                {BENEFICIOS.map(({ icono: Icono, titulo, texto }) => (
+                  <li key={titulo}>
+                    <span className="portal-usa-aviso-beneficio-icono" aria-hidden>
+                      <Icono size={20} />
+                    </span>
+                    <span>
+                      <strong>{titulo}</strong>
+                      <small>{texto}</small>
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </>
           ) : (
             <>
