@@ -9,3 +9,9 @@ const NIVELES_POR_USUARIO: Record<number, number[]> = {
 export function nivelesAlertaInscripcion(usuarioId: number): number[] {
   return NIVELES_POR_USUARIO[usuarioId] ?? []
 }
+
+export function usuariosAlertaInscripcion(): number[] {
+  return Object.keys(NIVELES_POR_USUARIO).map(Number)
+}
+
+export const TODOS_NIVELES_ALERTA_INSCRIPCION = [1, 2, 3, 4]

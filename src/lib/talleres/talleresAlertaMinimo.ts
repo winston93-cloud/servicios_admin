@@ -183,7 +183,7 @@ const NIVELES_AGENDAW = ['maternal_kinder', 'primaria', 'secundaria']
  * Sábado, domingo o día inhábil del calendario de AgendaW (`blocked_dates` sin horario en los tres
  * niveles). Si la consulta falla se asume laboral para no perder avisos entre semana.
  */
-async function esDiaInhabil(fecha: string): Promise<boolean> {
+export async function esDiaInhabil(fecha: string): Promise<boolean> {
   const dia = new Date(`${fecha}T12:00:00Z`).getUTCDay()
   if (dia === 0 || dia === 6) return true
   const { data, error } = await db()

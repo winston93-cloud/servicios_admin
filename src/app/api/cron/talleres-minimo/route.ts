@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { revisarAlertasMinimo } from '@/lib/talleres/talleresAlertaMinimo'
+import { revisarAvisosInscripcionSinPago } from '@/lib/inscripcionSinPagoAvisos'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -14,19 +15,26 @@ function autorizado(request: Request): boolean {
 }
 
 /**
- * Cron diario: recordatorio (notificación + correo) de talleres que siguen en su cupo mínimo.
+ * Cron diario (días hábiles): recordatorio (notificación + correo) de talleres que siguen en su cupo mínimo
+ * y de alumnos con más de 30 días de referencia sin pagar inscripción.
  * Header: Authorization: Bearer $CRON_SECRET
  */
 async function handle(request: Request) {
   if (!autorizado(request)) {
     return NextResponse.json({ ok: false, error: 'No autorizado' }, { status: 401 })
   }
-  try {
-    return NextResponse.json({ ok: true, ...(await revisarAlertasMinimo()) })
-  } catch (e) {
-    console.error('cron talleres-minimo:', e)
-    return NextResponse.json({ ok: false, error: 'Error al revisar talleres en mínimo' }, { status: 500 })
-  }
+  const [talleres, inscripcion] = await Promise.allSettled([revisarAlertasMinimo(), revisarAvisosInscripcionSinPago()])
+  if (talleres.status === 'rejected') console.error('cron talleres-minimo:', talleres.reason)
+  if (inscripcion.status === 'rejected') console.error('cron inscripcion-sin-pago:', inscripcion.reason)
+  const ok = talleres.status === 'fulfilled' && inscripcion.status === 'fulfilled'
+  return NextResponse.json(
+    {
+      ok,
+      ...(talleres.status === 'fulfilled' ? talleres.value : {}),
+      inscripcion: inscripcion.status === 'fulfilled' ? inscripcion.value : null,
+    },
+    { status: ok ? 200 : 500 }
+  )
 }
 
 export async function GET(request: Request) {

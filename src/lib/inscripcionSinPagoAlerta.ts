@@ -18,6 +18,7 @@ export type AlumnoSinPagoInscripcion = {
   alumno_ref: number
   nombre: string
   nivel: string
+  nivel_num: number
   grado: string
   /** `YYYY-MM-DD` en que se le dio referencia (`alumno_registro`). */
   referencia_desde: string
@@ -96,6 +97,7 @@ export async function alumnosSinPagoInscripcion(niveles: number[]): Promise<Alum
         String(a.alumno_apm ?? '')
       ),
       nivel: etiquetaNivelEscolar(nivelNum) || '',
+      nivel_num: nivelNum,
       grado: grupo ? `${grado} ${grupo}` : grado,
       referencia_desde: registro,
       dias,
