@@ -7,6 +7,7 @@ import { OctagonAlert, TriangleAlert, X } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import { PANEL_CONTROL_USUARIOS, type MedidorProceso, type PanelControlRespuesta } from '@/lib/panelControl/tipos'
+import type { PanelUniformesRespuesta } from '@/lib/panelControl/uniformes'
 import './panel-control-alerta.css'
 
 const REVISION_MS = 60_000
@@ -46,10 +47,20 @@ export default function PanelControlAlerta() {
   const revisar = useCallback(async () => {
     if (document.visibilityState !== 'visible') return
     try {
-      const res = await fetch('/api/panel-control', { cache: 'no-store', headers: portalSessionFetchHeaders() })
-      if (!res.ok) return
-      const json = (await res.json()) as PanelControlRespuesta
-      const actuales: Falla[] = [...json.medidores, ...(json.sistemas ?? [])]
+      const leer = async <T,>(url: string): Promise<T | null> => {
+        const res = await fetch(url, { cache: 'no-store', headers: portalSessionFetchHeaders() })
+        return res.ok ? ((await res.json()) as T) : null
+      }
+      const [servicios, uniformes] = await Promise.all([
+        leer<PanelControlRespuesta>('/api/panel-control').catch(() => null),
+        leer<PanelUniformesRespuesta>('/api/panel-control/uniformes').catch(() => null),
+      ])
+      if (!servicios && !uniformes) return
+      const actuales: Falla[] = [
+        ...(servicios?.medidores ?? []),
+        ...(servicios?.sistemas ?? []),
+        ...(uniformes?.medidores ?? []).map((m) => ({ ...m, nombre: `Uniformes · ${m.nombre}` })),
+      ]
         .filter((m) => m.estado === 'precaucion' || m.estado === 'alarma')
         .map(({ id, nombre, estado, resumen }) => ({ id, nombre, estado, resumen }))
         .sort((a, b) => (a.estado === b.estado ? 0 : a.estado === 'alarma' ? -1 : 1))
@@ -140,7 +151,7 @@ export default function PanelControlAlerta() {
             Entendido
           </button>
           <Link href="/panel-control" className="pca-boton pca-boton--pri" onClick={cerrar}>
-            Ver panel de control
+            Ver Main Control Room
           </Link>
         </footer>
       </div>

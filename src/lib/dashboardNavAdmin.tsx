@@ -517,8 +517,8 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   },
   {
     id: 'panel-control',
-    label: 'Panel de control',
-    desc: 'Los 8 procesos de la revisión diaria en vivo: barras por proceso y alarmas cada 30 segundos.',
+    label: 'Main Control Room',
+    desc: 'Procesos, sistemas y Uniformes en vivo: barras de salud por proceso y alarmas cada 30 segundos.',
     path: '/panel-control',
     accent: 'emerald',
     kicker: 'Sistemas',

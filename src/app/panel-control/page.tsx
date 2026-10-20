@@ -153,7 +153,7 @@ function PanelControlView() {
       <Marco onVolver={() => router.push('/dashboard')}>
         <div className="pc-vacio">
           <Lock size={26} aria-hidden />
-          <p>El panel de control solo está disponible para Sistemas.</p>
+          <p>El Main Control Room solo está disponible para Sistemas.</p>
         </div>
       </Marco>
     )
@@ -270,7 +270,7 @@ function Marco({
           <button type="button" className="pc-boton" onClick={onVolver}>
             <ArrowLeft size={16} aria-hidden /> Dashboard
           </button>
-          <h1 className="pc-titulo">Panel de control</h1>
+          <h1 className="pc-titulo">Main Control Room</h1>
           <div className="pc-topbar-der">
             {reloj}
             <ThemeToggle />

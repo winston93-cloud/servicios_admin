@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   const auth = requireEmpleadoPortal(request)
   if (!auth.ok) return auth.response
   if (!PANEL_CONTROL_USUARIOS.includes(Number(auth.session.usuario_id) || 0)) {
-    return NextResponse.json({ error: 'No tienes permiso para el panel de control.' }, { status: 403 })
+    return NextResponse.json({ error: 'No tienes permiso para el Main Control Room.' }, { status: 403 })
   }
   try {
     return NextResponse.json(await leerPanelUniformes(), { headers: { 'Cache-Control': 'no-store' } })
