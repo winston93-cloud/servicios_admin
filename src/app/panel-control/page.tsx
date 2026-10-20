@@ -19,6 +19,7 @@ import {
 import './panel-control.css'
 import PanelUniformes from './PanelUniformes'
 import { Electro, Tacometro, ZONAS_LIMITE } from './Instrumentos'
+import ModalAnalisis from './ModalAnalisis'
 
 const NOMBRES = ['Pagos', 'Facturación', 'RAC', 'Talleres', 'Open House', 'InsForge', 'Vercel', 'Desarrollo']
 
@@ -90,6 +91,8 @@ function PanelControlView() {
   const [siguiente, setSiguiente] = useState(0)
   const [reconocidas, setReconocidas] = useState<Set<string>>(() => new Set())
   const [elegido, setElegido] = useState<string | null>(null)
+  const [analisis, setAnalisis] = useState<{ id: string; codigo: string } | null>(null)
+  const cerrarAnalisis = useCallback(() => setAnalisis(null), [])
   const enCurso = useRef(false)
 
   const leer = useCallback(async () => {
@@ -274,6 +277,7 @@ function PanelControlView() {
             m={m}
             orden={i}
             codigo={`P-${String(i + 1).padStart(2, '0')}`}
+            onAnalizar={setAnalisis}
             cargando={!datos}
             elegido={m.id === seleccionado?.id}
             parpadea={m.estado === 'alarma' && !reconocidas.has(m.id)}
@@ -290,6 +294,7 @@ function PanelControlView() {
             m={m}
             orden={medidores.length + i}
             codigo={`S-${String(i + 1).padStart(2, '0')}`}
+            onAnalizar={setAnalisis}
             cargando={!datos}
             elegido={m.id === seleccionado?.id}
             parpadea={m.estado === 'alarma' && !reconocidas.has(m.id)}
@@ -302,10 +307,18 @@ function PanelControlView() {
 
       <p className="pc-leyenda">
         Cada barra es la salud de la infraestructura: responde a tiempo, sin fallos del sistema, con sus tareas al día,
-        tablas con índice y sin basura acumulada. Manda la pieza más débil. Toca un medidor para ver sus piezas.
+        tablas con índice y sin basura acumulada. Manda la pieza más débil. Toca un medidor para ver su análisis: qué es, por
+        qué marca su porcentaje y cómo se califica cada pieza.
       </p>
 
       <PanelUniformes />
+
+      {analisis && datos
+        ? (() => {
+            const m = todos.find((x) => x.id === analisis.id)
+            return m ? <ModalAnalisis m={m} codigo={analisis.codigo} leidoEn={datos.leidoEn} onCerrar={cerrarAnalisis} /> : null
+          })()
+        : null}
     </Marco>
   )
 }
@@ -438,10 +451,12 @@ function Medidor({
   elegido,
   parpadea,
   onElegir,
+  onAnalizar,
 }: {
   m: MedidorProceso
   orden: number
   codigo: string
+  onAnalizar: (a: { id: string; codigo: string }) => void
   cargando: boolean
   elegido: boolean
   parpadea: boolean
@@ -456,7 +471,11 @@ function Medidor({
       data-estado={m.estado}
       data-cargando={cargando || undefined}
       aria-pressed={elegido}
-      onClick={onElegir}
+      aria-haspopup="dialog"
+      onClick={() => {
+        onElegir()
+        if (!cargando) onAnalizar({ id: m.id, codigo })
+      }}
       style={{ '--i': orden } as React.CSSProperties}
       aria-label={`${m.nombre}: ${valor == null ? 'sin lectura' : `${valor}%`}, ${m.resumen}`}
     >

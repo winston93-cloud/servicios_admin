@@ -1092,9 +1092,7 @@
 .pc-taco[data-zona='precaucion'] .pc-taco-sub { color: #ffc94d; }
 .pc-taco[data-zona='alarma'] .pc-taco-sub { color: #ff6f61; }
 
-@media (max-width: 1100px) {
-  .pc-banco--sistemas .pc-placa-codigo { display: none; }
-}
+.pc-banco--sistemas .pc-placa-codigo { display: none; }
 
 @media (max-width: 900px) {
   .pc-consola { grid-template-columns: repeat(4, minmax(0, 1fr)); }

@@ -13,6 +13,7 @@ import {
 import type { PanelUniformesRespuesta } from '@/lib/panelControl/uniformes'
 import './panel-uniformes.css'
 import { Electro } from './Instrumentos'
+import ModalAnalisis from './ModalAnalisis'
 
 /** Banco de Uniformes: zona propia debajo del panel de Servicios, con su lectura y su detalle. */
 
@@ -49,6 +50,8 @@ export default function PanelUniformes() {
   const [datos, setDatos] = useState<PanelUniformesRespuesta | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [elegido, setElegido] = useState<string | null>(null)
+  const [analisis, setAnalisis] = useState<{ id: string; codigo: string } | null>(null)
+  const cerrarAnalisis = useCallback(() => setAnalisis(null), [])
   const enCurso = useRef(false)
 
   const leer = useCallback(async () => {
@@ -168,6 +171,7 @@ export default function PanelUniformes() {
             m={m}
             orden={i}
             codigo={`U-${String(i + 1).padStart(2, '0')}`}
+            onAnalizar={setAnalisis}
             cargando={!datos}
             elegido={m.id === seleccionado?.id}
             onElegir={() => setElegido(m.id)}
@@ -179,8 +183,23 @@ export default function PanelUniformes() {
 
       <p className="pc-leyenda">
         Uso, stock, funciones, eficiencia, enlace y almacenamiento de Uniformes, leídos de la base Winston Servicios y
-        de Vercel sin tocar la app. Manda la pieza más débil; toca un medidor para ver sus piezas.
+        de Vercel sin tocar la app. Manda la pieza más débil; toca un medidor para ver su análisis.
       </p>
+
+      {analisis && datos
+        ? (() => {
+            const m = medidores.find((x) => x.id === analisis.id)
+            return m ? (
+              <ModalAnalisis
+                m={{ ...m, nombre: `Uniformes · ${m.nombre}` }}
+                codigo={analisis.codigo}
+                leidoEn={datos.leidoEn}
+                acento="acero"
+                onCerrar={cerrarAnalisis}
+              />
+            ) : null
+          })()
+        : null}
     </section>
   )
 }
@@ -199,10 +218,12 @@ function Medidor({
   cargando,
   elegido,
   onElegir,
+  onAnalizar,
 }: {
   m: MedidorProceso
   orden: number
   codigo: string
+  onAnalizar: (a: { id: string; codigo: string }) => void
   cargando: boolean
   elegido: boolean
   onElegir: () => void
@@ -216,7 +237,11 @@ function Medidor({
       data-estado={m.estado}
       data-cargando={cargando || undefined}
       aria-pressed={elegido}
-      onClick={onElegir}
+      aria-haspopup="dialog"
+      onClick={() => {
+        onElegir()
+        if (!cargando) onAnalizar({ id: m.id, codigo })
+      }}
       style={{ '--i': orden } as React.CSSProperties}
       aria-label={`Uniformes ${m.nombre}: ${valor == null ? 'sin lectura' : `${valor}%`}, ${m.resumen}`}
     >
