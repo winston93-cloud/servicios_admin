@@ -58,6 +58,14 @@ const PRESUPUESTO_MS: Record<PiezaSonda, number> = {
 }
 const PRESUPUESTO_BASE_MS = 800
 
+/** Conexiones: hasta 90% en uso es normal; arriba de 90 entra en precaución y desde ~95 en alarma. */
+const CONEXIONES_LIMITE = 90
+
+function valorConexiones(uso: number): number {
+  if (uso <= CONEXIONES_LIMITE) return 100
+  return Math.max(0, Math.round(89 - (uso - CONEXIONES_LIMITE) * 6))
+}
+
 /** Horario de las tareas de vercel.json, en UTC. */
 const TAREAS: Record<TareaLatido, { nombre: string; horaUtc: number; dias: number[] }> = {
   'cron-talleres-minimo': { nombre: 'Tarea de las 8:00 (talleres)', horaUtc: 14, dias: [1, 2, 3, 4, 5] },
@@ -524,7 +532,7 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
         ? pieza({
             id: 'conexiones',
             nombre: 'Conexiones',
-            valor: Math.max(0, Math.round(100 - Math.max(0, (m.base.conexiones / m.base.max_conexiones) * 100 - 50) * 2)),
+            valor: valorConexiones((m.base.conexiones / m.base.max_conexiones) * 100),
             corto: `${Math.round((m.base.conexiones / m.base.max_conexiones) * 100)}% de conexiones en uso`,
             lectura: `${m.base.conexiones} de ${m.base.max_conexiones} en uso · base ${Math.round(m.base.bytes / 1024 / 1024)} MB`,
           })
