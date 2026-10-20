@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { cfgDesdeRequestSlug, jsonRacNivelError, requireRacNivelSession } from '@/lib/rac/racAuthNivel'
-import { puedeAccionCoordNivel, puedeVerVistaCoordNivel } from '@/lib/rac/racPermisosNivel'
+import {
+  puedeAccionCoordNivel,
+  puedeVerVistaCoordNivel,
+  suspensionSoloConductaNivel,
+} from '@/lib/rac/racPermisosNivel'
 import { getServiceForSlug } from '@/lib/rac/racServiceNivel'
 
 type Params = { params: Promise<{ slug: string }> }
@@ -25,7 +29,9 @@ export async function GET(req: Request, { params }: Params) {
     if (vista === 'suspensiones') {
       const confRaw = url.searchParams.get('confirmado')
       const confirmado = confRaw === '0' || confRaw === '1' ? confRaw : 'all'
-      return NextResponse.json({ filas: await svc.inboxSuspensiones(confirmado) })
+      return NextResponse.json({
+        filas: await svc.inboxSuspensiones(confirmado, suspensionSoloConductaNivel(session.role)),
+      })
     }
     if (vista === 'historial') {
       const h = await svc.historialAlumno(String(url.searchParams.get('q') ?? ''), session)
@@ -72,7 +78,9 @@ export async function POST(req: Request, { params }: Params) {
       )
     }
     if (body.entidad === 'suspension') {
-      return NextResponse.json(await svc.aplicarSuspension(id, String(body.fecha ?? '')))
+      return NextResponse.json(
+        await svc.aplicarSuspension(id, String(body.fecha ?? ''), suspensionSoloConductaNivel(session.role))
+      )
     }
     if (accion === 'editar') {
       return NextResponse.json(await svc.editarReportePendiente(id, String(body.mensaje ?? '')))

@@ -8,6 +8,7 @@ import {
   esPanelAdminNivel,
   etiquetaRolNivel,
   puedePdfNivel,
+  puedeSuspenderNivel,
   tabsDeRolNivel,
   tiposCapturaDeRolNivel,
   tiposCitaDeRolNivel,
@@ -474,7 +475,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
       )
     }
     // Reportar = reportes sin confirmar sin informes: Reportar + Informes = Listado sin confirmar.
-    if (ids.has('suspensiones') && ids.has('captura')) {
+    if (ids.has('suspensiones') && ids.has('captura') && esPanelAdminNivel(me.role, config)) {
       jobs.push(
         api<{ filas?: { tipo?: number }[] }>(`${base}?vista=pendientes&confirmado=0`)
           .then((d) => {
@@ -777,6 +778,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   }
 
   const esAdmin = Boolean(me && esPanelAdminNivel(me.role, config))
+  const puedeSuspender = Boolean(me && puedeSuspenderNivel(me.role, config))
   const esMaestro = me?.role === 'maestro'
   const unSoloGrupo = esMaestro && asignaciones.length === 1
   const sinAsignaciones = asignaciones.length === 0
@@ -1838,7 +1840,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                               ) : null}
                             </>
                           ) : null}
-                          {tab === 'suspensiones' && esAdmin ? (
+                          {tab === 'suspensiones' && puedeSuspender ? (
                             <button
                               type="button"
                               className="racn-btn primary"

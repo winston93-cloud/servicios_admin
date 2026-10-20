@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { jsonRacError, requireRacSession } from '@/lib/racAuth'
-import { esPanelAdminRac, puedeAccionCoord, puedeVerVistaCoord } from '@/lib/racPermisos'
+import { puedeAccionCoord, puedeSuspenderRac, puedeVerVistaCoord, suspensionSoloConductaRac } from '@/lib/racPermisos'
 import {
   accionCita,
   accionReporte,
@@ -30,7 +30,7 @@ export async function GET(req: Request) {
     if (vista === 'suspensiones') {
       const confRaw = url.searchParams.get('confirmado')
       const confirmado = confRaw === '0' || confRaw === '1' ? confRaw : 'all'
-      return NextResponse.json({ filas: await inboxSuspensiones(confirmado) })
+      return NextResponse.json({ filas: await inboxSuspensiones(confirmado, suspensionSoloConductaRac(session.role)) })
     }
     if (vista === 'historial') {
       const h = await historialAlumno(String(url.searchParams.get('q') ?? ''), session)
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
       )
     }
     if (body.entidad === 'suspension' && accion === 'directa') {
-      if (!esPanelAdminRac(session.role)) {
+      if (!puedeSuspenderRac(session.role)) {
         return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
       }
       return NextResponse.json(
@@ -92,7 +92,9 @@ export async function POST(req: Request) {
       )
     }
     if (body.entidad === 'suspension') {
-      return NextResponse.json(await aplicarSuspension(id, String(body.fecha ?? '')))
+      return NextResponse.json(
+        await aplicarSuspension(id, String(body.fecha ?? ''), suspensionSoloConductaRac(session.role))
+      )
     }
     if (accion === 'editar') {
       return NextResponse.json(await editarReportePendiente(id, String(body.mensaje ?? '')))

@@ -24,6 +24,7 @@ import {
 import { avisarStaffFalloEnvioRac } from '@/lib/racFalloEnvio'
 import { emisorDeMapa, resolverEmisoresRac } from '@/lib/racEmisor'
 import { filaPdfDesdeReporte, filtrarFilasPdf, ordenarFilasPdf, type FilaPdfReporte } from '@/lib/racPdf'
+import { RAC_TIPOS_SUSPENSION_CONDUCTA } from '@/lib/racPermisos'
 import { RacNivelAuthError, type RacSesionNivel } from './racAuthNivel'
 import type { RacNivelConfig } from './racNivelConfig'
 import { RAC_MATERNAL_KINDER, RAC_PRIMARIA } from './racNivelConfig'
@@ -1421,7 +1422,8 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .filter(Boolean)
   }
 
-  async function inboxSuspensiones(confirmado: 'all' | '0' | '1' = 'all') {
+  /** `soloConducta`: psicología solo ve suspensiones por conducta. */
+  async function inboxSuspensiones(confirmado: 'all' | '0' | '1' = 'all', soloConducta = false) {
     const ciclo = await cicloRac()
     let query = db()
       .from('reporte_suspension')
@@ -1459,6 +1461,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
         if (a && !esAlumnoDeNivel(n(a.alumno_nivel))) return null
         const r = rMap.get(n(s.reporte_id))
         const tipo = n(r?.reporte_tipo ?? 0)
+        if (soloConducta && !RAC_TIPOS_SUSPENSION_CONDUCTA.includes(tipo)) return null
         const materiaId = n(r?.materia_id)
         const materia = materiaId ? mMap.get(materiaId) ?? null : null
         const { seccion, seccionEtiqueta } =
@@ -1713,8 +1716,17 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     return enviarCorreoCita(id)
   }
 
-  async function aplicarSuspension(id: number, fecha: string) {
+  async function aplicarSuspension(id: number, fecha: string, soloConducta = false) {
     await assertRegistroDelNivel('reporte_suspension', id)
+    if (soloConducta) {
+      const { data: s } = await db().from('reporte_suspension').select('reporte_id').eq('suspension_id', id).maybeSingle()
+      const { data: r } = s
+        ? await db().from('reporte_escolar').select('reporte_tipo').eq('reporte_id', n(s.reporte_id)).maybeSingle()
+        : { data: null }
+      if (!RAC_TIPOS_SUSPENSION_CONDUCTA.includes(n(r?.reporte_tipo))) {
+        throw new RacNivelAuthError('Psicología solo aplica suspensiones por conducta', 403)
+      }
+    }
     const { error } = await db().from('reporte_suspension').update({ suspension_fecha: fecha }).eq('suspension_id', id)
     if (error) throw new Error(error.message)
     return enviarCorreoSuspension(id)

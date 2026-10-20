@@ -70,6 +70,7 @@ export function tabsDeRolNivel(
       { id: 'captura', label: 'Reportar' },
       { id: 'inbox', label: 'Aprobar reportes' },
       { id: 'citas', label: 'Citatorios' },
+      { id: 'suspensiones', label: 'Suspensión' },
       { id: 'informes', label: 'Avisos de atención' },
       { id: 'historial', label: 'Historial' },
     ]
@@ -138,6 +139,16 @@ export function tiposCitaDeRolNivel(role: RacRolNivel) {
   return [...RAC_TIPOS_CAPTURA_MAESTRO, ...RAC_TIPOS_PREFECTURA]
 }
 
+/** Psicología suspende, pero solo por conducta. */
+export function suspensionSoloConductaNivel(role: RacRolNivel): boolean {
+  return role === 'psicologia'
+}
+
+/** Quién puede aplicar la fecha de suspensión (psicología solo en conducta). */
+export function puedeSuspenderNivel(role: RacRolNivel, cfg?: Pick<RacNivelConfig, 'slug'>): boolean {
+  return esPanelAdmin(role, cfg) || role === 'psicologia'
+}
+
 export function puedePdfNivel(
   role: RacRolNivel,
   cfg?: Pick<RacNivelConfig, 'slug'>
@@ -171,6 +182,8 @@ export function puedeAccionCoordNivel(role: RacRolNivel, entidad: string, accion
       return accion === 'validar' || accion === 'editar' || accion === 'denegar' || accion === 'reenviar'
     }
     if (entidad === 'cita') return accion === 'reenviar' || accion === 'confirmar'
+    // Solo suspensiones de conducta: el servicio rechaza las demás.
+    if (entidad === 'suspension') return accion === 'aplicar'
     return false
   }
   if (entidad === 'suspension') return true

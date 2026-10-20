@@ -50,6 +50,7 @@ export function tabsDeRol(role: RacRol): { id: RacTab; label: string }[] {
       { id: 'captura', label: 'Reportar' },
       { id: 'inbox', label: 'Aprobar reportes' },
       { id: 'citas', label: 'Citatorios' },
+      { id: 'suspensiones', label: 'Suspensión' },
       { id: 'informes', label: 'Avisos de atención' },
       { id: 'historial', label: 'Historial' },
     ]
@@ -95,6 +96,19 @@ export function tiposCitaDeRol(role: RacRol) {
   return [...RAC_TIPOS_CAPTURA_MAESTRO, ...RAC_TIPOS_PREFECTURA]
 }
 
+/** Tipos de reporte cuyas suspensiones puede ver y aplicar psicología (conducta y suspensión directa). */
+export const RAC_TIPOS_SUSPENSION_CONDUCTA: readonly number[] = [RAC_TIPOS.conducta, RAC_TIPOS.suspensionDirecta]
+
+/** Psicología suspende, pero solo por conducta. */
+export function suspensionSoloConductaRac(role: RacRol): boolean {
+  return role === 'psicologia'
+}
+
+/** Quién puede aplicar fecha y crear suspensión directa (psicología solo en conducta). */
+export function puedeSuspenderRac(role: RacRol): boolean {
+  return esPanelAdmin(role) || role === 'psicologia'
+}
+
 export function puedePdfRac(role: RacRol): boolean {
   return esPanelAdmin(role)
 }
@@ -120,6 +134,8 @@ export function puedeAccionCoord(role: RacRol, entidad: string, accion: string):
       return accion === 'validar' || accion === 'editar' || accion === 'denegar' || accion === 'reenviar'
     }
     if (entidad === 'cita') return accion === 'reenviar' || accion === 'confirmar'
+    // Solo suspensiones de conducta: el servicio rechaza las demás.
+    if (entidad === 'suspension') return accion === 'aplicar' || accion === 'directa'
     return false
   }
   if (entidad === 'suspension') return true

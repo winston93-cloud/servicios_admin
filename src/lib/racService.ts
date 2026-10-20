@@ -4,7 +4,13 @@ import { fechaMxDeTimestamp } from '@/lib/rac/racFecha'
 import { grupoCoincide, letraDesdeGrupoNum } from '@/lib/boletasCiclo'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 import { RacAuthError, type RacSesion } from '@/lib/racAuth'
-import { historialSoloPropioRac, puedeCapturarTipo, puedeCitar, puedeInforme } from '@/lib/racPermisos'
+import {
+  RAC_TIPOS_SUSPENSION_CONDUCTA,
+  historialSoloPropioRac,
+  puedeCapturarTipo,
+  puedeCitar,
+  puedeInforme,
+} from '@/lib/racPermisos'
 import {
   RAC_NIVEL_SECUNDARIA,
   RAC_TIPOS,
@@ -1138,7 +1144,8 @@ export async function inboxCitas(
     .filter(Boolean)
 }
 
-export async function inboxSuspensiones(confirmado: 'all' | '0' | '1' = 'all') {
+/** `soloConducta`: psicología solo ve suspensiones por conducta (escalón de conducta o directa). */
+export async function inboxSuspensiones(confirmado: 'all' | '0' | '1' = 'all', soloConducta = false) {
   const ciclo = await cicloRac()
   let query = db()
     .from('reporte_suspension')
@@ -1166,6 +1173,7 @@ export async function inboxSuspensiones(confirmado: 'all' | '0' | '1' = 'all') {
       if (!a || n(a.alumno_nivel) !== RAC_NIVEL_SECUNDARIA) return null
       const r = rMap.get(n(s.reporte_id))
       if (n(r?.reporte_tipo) === RAC_TIPOS.suspensionDirecta && n(r?.reporte_status) !== 1) return null
+      if (soloConducta && !RAC_TIPOS_SUSPENSION_CONDUCTA.includes(n(r?.reporte_tipo))) return null
       return {
         suspension_id: n(s.suspension_id),
         alumno_ref: a.alumno_ref ?? null,
@@ -1427,14 +1435,25 @@ export async function accionCita(
   return enviarCorreoCita(id)
 }
 
-export async function aplicarSuspension(id: number, fecha: string) {
+export async function aplicarSuspension(id: number, fecha: string, soloConducta = false) {
   await assertRegistroSecundaria('reporte_suspension', id)
+  if (soloConducta) await assertSuspensionDeConducta(id)
   const { error } = await db().from('reporte_suspension').update({ suspension_fecha: fecha }).eq('suspension_id', id)
   if (error) throw new Error(error.message)
   return enviarCorreoSuspension(id)
 }
 
-/** Prefectura / dirección: suspensión por conducta sin pasar por el escalón I–II–III. */
+async function assertSuspensionDeConducta(id: number) {
+  const { data: s } = await db().from('reporte_suspension').select('reporte_id').eq('suspension_id', id).maybeSingle()
+  const { data: r } = s
+    ? await db().from('reporte_escolar').select('reporte_tipo').eq('reporte_id', n(s.reporte_id)).maybeSingle()
+    : { data: null }
+  if (!RAC_TIPOS_SUSPENSION_CONDUCTA.includes(n(r?.reporte_tipo))) {
+    throw new RacAuthError('Psicología solo aplica suspensiones por conducta', 403)
+  }
+}
+
+/** Prefectura / dirección / psicología: suspensión por conducta sin pasar por el escalón I–II–III. */
 export async function aplicarSuspensionDirecta(opts: {
   session: RacSesion
   alumnoId: number

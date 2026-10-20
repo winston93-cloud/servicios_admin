@@ -7,6 +7,7 @@ import {
   etiquetaRol,
   esPanelAdminRac,
   puedeFiltrarAsignaturaRac,
+  puedeSuspenderRac,
   tabsDeRol,
   tiposCapturaDeRol,
   tiposCitaDeRol,
@@ -461,7 +462,7 @@ export default function RacSecundariaPage() {
       )
     }
     // Reportar = reportes sin confirmar sin informes: Reportar + Informes = Listado sin confirmar.
-    if (ids.has('suspensiones') && ids.has('captura')) {
+    if (ids.has('suspensiones') && ids.has('captura') && esPanelAdminRac(me.role)) {
       jobs.push(
         api<{ filas?: { tipo?: number }[] }>('/api/rac/coordinacion?vista=pendientes&confirmado=0')
           .then((d) => {
@@ -780,6 +781,7 @@ export default function RacSecundariaPage() {
   }
 
   const esAdmin = Boolean(me && esPanelAdminRac(me.role))
+  const puedeSuspender = Boolean(me && puedeSuspenderRac(me.role))
   const tiposSelect = tiposCaptura
   const puedeSeleccionarMasivo = Boolean(
     (esAdmin && (tab === 'inbox' || tab === 'informes')) ||
@@ -1252,7 +1254,7 @@ export default function RacSecundariaPage() {
                   <option value="1">Confirmadas</option>
                 </select>
               </label>
-              {esAdmin ? (
+              {puedeSuspender ? (
                 <>
                   <button
                     type="button"
@@ -1672,7 +1674,7 @@ export default function RacSecundariaPage() {
                           ) : null}
                         </>
                       ) : null}
-                      {tab === 'suspensiones' && esAdmin ? (
+                      {tab === 'suspensiones' && puedeSuspender ? (
                         <button
                           type="button"
                           className="boletas-btn primary"
