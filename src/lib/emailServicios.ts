@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import { medirConSonda } from '@/lib/panelControl/sonda'
 
 /** Copia oculta en todos los envíos de correo masivo. */
 const COPIA_CORREO_SISTEMAS = 'sistemas.desarrollo@winston93.edu.mx'
@@ -205,7 +206,7 @@ export async function enviarCorreoMasivo(opts: {
 
   for (let intento = 0; intento < maxIntentos; intento++) {
     try {
-      const info = await transporter.sendMail(mailOptions)
+      const info = await medirConSonda('correo', () => transporter.sendMail(mailOptions))
       const accepted = (info.accepted ?? []).map(String)
       const rejected = (info.rejected ?? []).map(String)
 

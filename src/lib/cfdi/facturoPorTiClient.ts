@@ -1,4 +1,5 @@
 import { urlFacturoPorTiApi } from '../cfdiConfig'
+import { fetchConSonda } from '@/lib/panelControl/sonda'
 
 export interface FacturoPorTiRespuesta {
   ok: boolean
@@ -16,7 +17,7 @@ export async function timbrarConFacturoPorTi(
   bearer: string
 ): Promise<FacturoPorTiRespuesta> {
   const url = `${urlFacturoPorTiApi()}/servicios/timbrar/json`
-  const res = await fetch(url, {
+  const res = await fetchConSonda('pac', url, {
     method: 'POST',
     headers: {
       Accept: 'application/json',
@@ -74,7 +75,7 @@ export async function consultarTimbresFacturoPorTi(
   emisor: 'churchill' | 'educativo'
 ): Promise<FacturoPorTiTimbresRespuesta> {
   const url = `${urlFacturoPorTiApi()}/servicios/consultar/timbres`
-  const res = await fetch(url, {
+  const res = await fetchConSonda('pac', url, {
     method: 'GET',
     headers: {
       Accept: 'application/json',
@@ -122,7 +123,7 @@ export async function cancelarCfdiFacturoPorTi(
   bearer: string
 ): Promise<FacturoPorTiCancelacionRespuesta> {
   const url = `${urlFacturoPorTiApi()}/servicios/cancelar/csd`
-  const res = await fetch(url, {
+  const res = await fetchConSonda('pac', url, {
     method: 'POST',
     headers: {
       Accept: 'application/json',

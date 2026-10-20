@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { enviarRecordatoriosLiberacionDocumentosNi } from '@/lib/portalDocsRecordatorioLiberacion'
 import { enviarRecordatoriosTramitesAdministrativos } from '@/lib/controlEscolarTramitesService'
+import { registrarLatido } from '@/lib/panelControl/sonda'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -32,9 +33,11 @@ async function handle(request: Request) {
     return NextResponse.json({ ok: false, error: 'No autorizado' }, { status: 401 })
   }
 
+  const inicio = Date.now()
   try {
     const result = await enviarRecordatoriosLiberacionDocumentosNi()
     const tramites = await enviarRecordatoriosTramitesAdministrativos()
+    await registrarLatido('cron-recordatorio-liberacion-docs', result.ok && tramites.ok, Date.now() - inicio)
     return NextResponse.json(
       { ...result, tramites },
       { status: result.ok && tramites.ok ? 200 : 502 }
@@ -42,6 +45,7 @@ async function handle(request: Request) {
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Error en recordatorio'
     console.error('cron recordatorio-liberacion-docs:', e)
+    await registrarLatido('cron-recordatorio-liberacion-docs', false, Date.now() - inicio, message)
     return NextResponse.json({ ok: false, mensaje: message }, { status: 500 })
   }
 }

@@ -5,27 +5,32 @@ export const PANEL_CONTROL_REFRESCO_MS = 30_000
 
 export type EstadoMedidor = 'normal' | 'precaucion' | 'alarma' | 'sin-dato'
 
-/**
- * `alto-bueno`: rojo abajo, verde arriba (actividad, cumplimiento).
- * `bajo-bueno`: verde abajo, rojo arriba (uso de recursos).
- */
-export type SentidoMedidor = 'alto-bueno' | 'bajo-bueno'
+/** Salud 0–100: debajo del primero alarma, debajo del segundo precaución. */
+export const UMBRALES_SALUD: [number, number] = [60, 90]
+
+/** Una pieza de infraestructura de un proceso (pasarela, servicio externo, base, tarea programada). */
+export type PiezaMedida = {
+  id: string
+  nombre: string
+  /** Salud 0–100; null si no hubo actividad ni sonda. */
+  valor: number | null
+  estado: EstadoMedidor
+  /** Lectura corta: tiempo de respuesta, fallos, latido. */
+  lectura: string
+  /** Último fallo del sistema, si lo hubo. */
+  fallo?: string
+}
 
 export type MedidorProceso = {
   id: string
   nombre: string
-  /** Qué mide la barra, en una línea. */
+  /** Qué vigila el proceso, en una línea. */
   mide: string
-  /** 0–100; null si no hay lectura. */
+  /** Salud del proceso = la de su pieza más débil. */
   valor: number | null
-  sentido: SentidoMedidor
-  /** Límites de franja en la escala 0–100: [ámbar, verde] si alto-bueno; [ámbar, rojo] si bajo-bueno. */
-  umbrales: [number, number]
   estado: EstadoMedidor
-  /** Texto corto para la lectura digital cuando no es un porcentaje. */
-  lectura?: string
-  detalle: string[]
-  /** Causa de la alarma cuando no sale de la posición de la barra. */
+  piezas: PiezaMedida[]
+  /** Pieza que manda la lectura cuando no está en normal. */
   motivo?: string
 }
 
@@ -34,12 +39,7 @@ export type PanelControlRespuesta = {
   medidores: MedidorProceso[]
 }
 
-export function estadoPorValor(
-  valor: number | null,
-  sentido: SentidoMedidor,
-  [a, b]: [number, number]
-): EstadoMedidor {
+export function estadoPorValor(valor: number | null, [a, b]: [number, number] = UMBRALES_SALUD): EstadoMedidor {
   if (valor == null || !Number.isFinite(valor)) return 'sin-dato'
-  if (sentido === 'alto-bueno') return valor >= b ? 'normal' : valor >= a ? 'precaucion' : 'alarma'
-  return valor < a ? 'normal' : valor < b ? 'precaucion' : 'alarma'
+  return valor >= b ? 'normal' : valor >= a ? 'precaucion' : 'alarma'
 }

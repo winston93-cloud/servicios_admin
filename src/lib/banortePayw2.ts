@@ -6,6 +6,7 @@ import {
   usarProxyPayw2,
 } from './banorteConfig'
 import { obtenerDetalleErrorPayw2 } from './banortePaywErrors'
+import { fetchConSonda } from '@/lib/panelControl/sonda'
 
 export interface RespuestaPayw2 {
   headers: Record<string, string>
@@ -100,7 +101,7 @@ function pickHeaders(headers: Record<string, string>): RespuestaPayw2 {
 }
 
 async function postPayw2Direct(body: string): Promise<RespuestaPayw2> {
-  const res = await fetch(BANORTE_PAYW2_URL, {
+  const res = await fetchConSonda('banorte', BANORTE_PAYW2_URL, {
     method: 'POST',
     headers: {
       // Igual que cURL del proceso legacy (sin charset).
@@ -120,7 +121,7 @@ async function postPayw2Direct(body: string): Promise<RespuestaPayw2> {
 
 async function postPayw2ViaProxy(body: string): Promise<RespuestaPayw2> {
   const proxyUrl = urlProxyPayw2()
-  const res = await fetch(proxyUrl, {
+  const res = await fetchConSonda('banorte', proxyUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',

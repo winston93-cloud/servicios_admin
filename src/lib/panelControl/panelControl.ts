@@ -1,34 +1,31 @@
+import { connect as conectarTls } from 'node:tls'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
+import { urlFacturoPorTiApi } from '@/lib/cfdiConfig'
+import { BANORTE_PAYW2_URL } from '@/lib/banorteConfig'
 import {
   estadoPorValor,
   type MedidorProceso,
   type PanelControlRespuesta,
-  type SentidoMedidor,
+  type PiezaMedida,
 } from '@/lib/panelControl/tipos'
+import type { PiezaSonda, TareaLatido } from '@/lib/panelControl/sonda'
+
+type EventosPieza = {
+  ops: number
+  fallos: number
+  ms_prom: number | null
+  ms_p95: number | null
+  ultimo: string | null
+  ultimo_fallo: string | null
+}
+
+type Latido = { ultimo_intento: string; ultimo_ok: string | null; ok: boolean; ms: number; detalle: string | null }
 
 type Metricas = {
-  ahora: string
-  pagos: {
-    hoy: number
-    esperado: number
-    ultimo: string | null
-    banorte: number
-    openpay: number
-    efectivo: number
-    openpay_ok_24h: number
-    openpay_fallas_24h: number
-  }
-  facturacion: { total: number; facturados: number }
-  reportes: { validos: number; enviados: number; por_validar: number; hoy: number }
-  talleres: {
-    fecha: string | null
-    clases: number
-    con_lista: number
-    maestro_falto: number
-    alumnos: number
-    faltas: number
-  } | null
-  open_house: { edicion: string | null; registros: number; con_kommo: number; ultimas_24h: number } | null
+  piezas: Partial<Record<PiezaSonda, EventosPieza>>
+  openpay_webhook: { ops: number; fallos: number; ultimo: string | null; ultimo_fallo: string | null }
+  latidos: Partial<Record<TareaLatido, Latido>>
+  kommo: { registros: number; con_lead: number; recordatorios_atrasados: number; recordatorios_enviados_7d: number } | null
   base: { conexiones: number; max_conexiones: number; bytes: number }
 }
 
@@ -48,33 +45,81 @@ const APPS_PRODUCCION: { nombre: string; url: string }[] = [
   { nombre: 'Prórrogas y ajustes', url: 'https://prorrogas-ajustes.vercel.app' },
 ]
 
+/** Tiempo aceptable (p95 de operaciones reales) por pieza, en ms. El correo incluye la espera del límite de Gmail. */
+const PRESUPUESTO_MS: Record<PiezaSonda, number> = {
+  banorte: 8000,
+  'openpay-api': 4000,
+  pac: 8000,
+  'storage-cfdi': 3000,
+  correo: 15000,
+  'google-calendar': 4000,
+}
+const PRESUPUESTO_SONDA_MS = 1500
+const PRESUPUESTO_BASE_MS = 800
+const PRESUPUESTO_APP_MS = 2500
+
+/** Horario de las tareas de vercel.json, en UTC. */
+const TAREAS: Record<TareaLatido, { nombre: string; horaUtc: number; dias: number[] }> = {
+  'cron-talleres-minimo': { nombre: 'Tarea de las 8:00 (talleres)', horaUtc: 14, dias: [1, 2, 3, 4, 5] },
+  'cron-recordatorio-liberacion-docs': { nombre: 'Tarea de las 9:00 (control escolar)', horaUtc: 15, dias: [0, 1, 2, 3, 4, 5, 6] },
+}
+
 const VERCEL_PROYECTO = 'servicios-admin'
 const VERCEL_EQUIPO = 'mario-alejandro-galvan-escobedos-projects'
 
-type PingApp = { nombre: string; ok: boolean; ms: number; status: number }
+// ── Sondas activas (con caché para no golpear servicios externos en cada lectura) ──
 
-let cachePings: { en: number; datos: PingApp[] } | null = null
+type ResultadoSonda = { ok: boolean; ms: number; detalle?: string }
 
-async function pingApps(): Promise<PingApp[]> {
-  if (cachePings && Date.now() - cachePings.en < 25_000) return cachePings.datos
-  const datos = await Promise.all(
-    APPS_PRODUCCION.map(async ({ nombre, url }) => {
+const cacheSondas = new Map<string, { en: number; r: Promise<ResultadoSonda> }>()
+
+function conCache(clave: string, ttlMs: number, fn: () => Promise<ResultadoSonda>): Promise<ResultadoSonda> {
+  const c = cacheSondas.get(clave)
+  if (c && Date.now() - c.en < ttlMs) return c.r
+  const r = fn()
+  cacheSondas.set(clave, { en: Date.now(), r })
+  return r
+}
+
+/** Alcanzable = cualquier respuesta HTTP debajo de 500 (un 404 o 403 en la raíz también prueba que contesta). */
+function sondaHttp(url: string, ttlMs = 60_000): Promise<ResultadoSonda> {
+  return conCache(`http:${url}`, ttlMs, async () => {
+    const t = Date.now()
+    try {
+      const res = await fetch(url, { method: 'GET', redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(6000) })
+      return { ok: res.status < 500, ms: Date.now() - t, detalle: res.status >= 500 ? `HTTP ${res.status}` : undefined }
+    } catch (e) {
+      return { ok: false, ms: Date.now() - t, detalle: e instanceof Error ? e.message : 'Sin respuesta' }
+    }
+  })
+}
+
+/** Abre TLS con el servidor SMTP sin autenticarse (no gasta cupo de Gmail). */
+function sondaSmtp(): Promise<ResultadoSonda> {
+  return conCache('smtp', 60_000, () =>
+    new Promise<ResultadoSonda>((resolve) => {
       const t = Date.now()
-      try {
-        const res = await fetch(url, {
-          method: 'GET',
-          redirect: 'manual',
-          cache: 'no-store',
-          signal: AbortSignal.timeout(6000),
-        })
-        return { nombre, ok: res.status < 500, ms: Date.now() - t, status: res.status }
-      } catch {
-        return { nombre, ok: false, ms: Date.now() - t, status: 0 }
+      const socket = conectarTls({ host: 'smtp.gmail.com', port: 465, servername: 'smtp.gmail.com', timeout: 6000 })
+      const fin = (r: ResultadoSonda) => {
+        socket.destroy()
+        resolve(r)
       }
+      socket.once('secureConnect', () => fin({ ok: true, ms: Date.now() - t }))
+      socket.once('timeout', () => fin({ ok: false, ms: Date.now() - t, detalle: 'Tiempo agotado' }))
+      socket.once('error', (e) => fin({ ok: false, ms: Date.now() - t, detalle: e.message }))
     })
   )
-  cachePings = { en: Date.now(), datos }
-  return datos
+}
+
+type PingApp = { nombre: string; ok: boolean; ms: number }
+
+async function pingApps(): Promise<PingApp[]> {
+  return Promise.all(
+    APPS_PRODUCCION.map(async ({ nombre, url }) => {
+      const r = await sondaHttp(url, 25_000)
+      return { nombre, ok: r.ok, ms: r.ms }
+    })
+  )
 }
 
 type DeploysVercel = { total: number; listos: number; error: number; ultimo: { en: number; estado: string } | null }
@@ -85,11 +130,10 @@ async function deploysVercel(): Promise<DeploysVercel | null> {
   const token = process.env.VERCEL_API_TOKEN?.trim()
   if (!token) return null
   if (cacheDeploys && Date.now() - cacheDeploys.en < 60_000) return cacheDeploys.datos
-  const desde = Date.now() - 7 * 24 * 3600 * 1000
   const params = new URLSearchParams({
     app: VERCEL_PROYECTO,
     target: 'production',
-    since: String(desde),
+    since: String(Date.now() - 7 * 24 * 3600 * 1000),
     limit: '100',
     slug: process.env.VERCEL_TEAM_SLUG?.trim() || VERCEL_EQUIPO,
   })
@@ -116,258 +160,277 @@ async function deploysVercel(): Promise<DeploysVercel | null> {
   return datos
 }
 
-function pct(parte: number, total: number): number {
-  return Math.max(0, Math.min(100, Math.round((parte / total) * 100)))
+// ── Calificación ──
+
+/** 100 dentro del presupuesto; baja en línea recta hasta 0 al cuádruple. */
+function puntajeLatencia(ms: number, presupuesto: number): number {
+  if (ms <= presupuesto) return 100
+  return Math.max(0, Math.round(100 - ((ms - presupuesto) / (3 * presupuesto)) * 100))
 }
 
-function medidor(
-  base: Omit<MedidorProceso, 'estado'> & { estado?: MedidorProceso['estado'] }
-): MedidorProceso {
-  return { ...base, estado: base.estado ?? estadoPorValor(base.valor, base.sentido, base.umbrales) }
+/** 2.5 % de fallos ya es precaución; 10 % es alarma. */
+function puntajeFallos(fallos: number, ops: number): number {
+  if (!ops) return 100
+  return Math.max(0, Math.round(100 - (fallos / ops) * 100 * 4))
 }
 
-function hora(isoLocal: string | null): string {
-  if (!isoLocal) return '—'
-  return isoLocal.slice(11, 16)
+function minimo(...valores: (number | null | undefined)[]): number | null {
+  const v = valores.filter((x): x is number => typeof x === 'number' && Number.isFinite(x))
+  return v.length ? Math.min(...v) : null
 }
 
-function fechaCorta(ymd: string): string {
-  return new Date(`${ymd}T12:00:00`).toLocaleDateString('es-MX', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'short',
+function fallosDe(fallos: number, ops: number): string {
+  return `${fallos} ${fallos === 1 ? 'fallo' : 'fallos'} de ${ops} en 24 h`
+}
+
+function seg(ms: number): string {
+  return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${ms} ms`
+}
+
+function pieza(base: Omit<PiezaMedida, 'estado'>): PiezaMedida {
+  return { ...base, estado: estadoPorValor(base.valor) }
+}
+
+/** Pieza con operaciones reales (24 h) y, si hay, sonda activa. */
+function piezaServicio(
+  id: string,
+  nombre: string,
+  ev: EventosPieza | undefined,
+  presupuesto: number,
+  sonda?: ResultadoSonda
+): PiezaMedida {
+  const ops = Number(ev?.ops ?? 0)
+  const fallos = Number(ev?.fallos ?? 0)
+  const p95 = ev?.ms_p95 != null ? Number(ev.ms_p95) : null
+  const vEventos = ops ? minimo(puntajeFallos(fallos, ops), p95 != null ? puntajeLatencia(p95, presupuesto) : null) : null
+  const vSonda = sonda ? (sonda.ok ? puntajeLatencia(sonda.ms, PRESUPUESTO_SONDA_MS) : 0) : null
+  const partes: string[] = []
+  if (sonda) partes.push(sonda.ok ? `contesta en ${seg(sonda.ms)}` : 'no contesta')
+  partes.push(ops ? `${fallosDe(fallos, ops)}${p95 != null ? ` · p95 ${seg(p95)}` : ''}` : 'sin operaciones en 24 h')
+  return pieza({
+    id,
+    nombre,
+    valor: minimo(vEventos, vSonda),
+    lectura: partes.join(' · '),
+    fallo: sonda && !sonda.ok ? sonda.detalle : fallos ? ev?.ultimo_fallo ?? undefined : undefined,
   })
 }
 
-function hace(ms: number): string {
-  const min = Math.round((Date.now() - ms) / 60000)
-  if (min < 60) return `hace ${min} min`
-  const h = Math.round(min / 60)
-  if (h < 48) return `hace ${h} h`
-  return `hace ${Math.round(h / 24)} días`
+function ultimaEjecucionEsperada(horaUtc: number, dias: number[], ahora = new Date()): Date {
+  for (let d = 0; d < 8; d++) {
+    const c = new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate() - d, horaUtc))
+    if (c <= ahora && dias.includes(c.getUTCDay())) return c
+  }
+  return new Date(ahora.getTime() - 8 * 24 * 3600 * 1000)
 }
 
-function sinLectura(id: string, nombre: string, mide: string, sentido: SentidoMedidor, umbrales: [number, number], motivo: string): MedidorProceso {
-  return { id, nombre, mide, valor: null, sentido, umbrales, estado: 'alarma', detalle: [], motivo }
+function horaLocal(iso: string): string {
+  return new Date(iso).toLocaleString('es-MX', {
+    timeZone: 'America/Monterrey',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+}
+
+function piezaLatido(tarea: TareaLatido, l: Latido | undefined): PiezaMedida {
+  const { nombre, horaUtc, dias } = TAREAS[tarea]
+  if (!l) return pieza({ id: tarea, nombre, valor: null, lectura: 'sin latido todavía (empieza en su siguiente corrida)' })
+  const esperada = ultimaEjecucionEsperada(horaUtc, dias)
+  const margen = 20 * 60 * 1000
+  const intento = new Date(l.ultimo_intento).getTime()
+  const ultimoOk = l.ultimo_ok ? new Date(l.ultimo_ok).getTime() : 0
+  if (intento >= esperada.getTime() - margen && !l.ok) {
+    return pieza({ id: tarea, nombre, valor: 0, lectura: `falló ${horaLocal(l.ultimo_intento)}`, fallo: l.detalle ?? undefined })
+  }
+  if (ultimoOk < esperada.getTime() - margen && Date.now() > esperada.getTime() + margen) {
+    return pieza({
+      id: tarea,
+      nombre,
+      valor: 0,
+      lectura: `no corrió a su hora · último ok ${l.ultimo_ok ? horaLocal(l.ultimo_ok) : 'nunca'}`,
+    })
+  }
+  return pieza({ id: tarea, nombre, valor: 100, lectura: `corrió ${horaLocal(l.ultimo_ok ?? l.ultimo_intento)} en ${seg(l.ms)}` })
+}
+
+function proceso(id: string, nombre: string, mide: string, piezas: PiezaMedida[]): MedidorProceso {
+  const valor = minimo(...piezas.map((p) => p.valor))
+  const estado = estadoPorValor(valor)
+  const debil = piezas
+    .filter((p) => p.valor != null)
+    .sort((a, b) => (a.valor ?? 100) - (b.valor ?? 100))[0]
+  return {
+    id,
+    nombre,
+    mide,
+    valor,
+    estado,
+    piezas,
+    ...(debil && estado !== 'normal' && estado !== 'sin-dato'
+      ? { motivo: `${debil.nombre}: ${debil.fallo ?? debil.lectura}` }
+      : {}),
+  }
 }
 
 export async function leerPanelControl(): Promise<PanelControlRespuesta> {
-  const t0 = Date.now()
-  const [rpc, pings, deploys] = await Promise.allSettled([
-    createDbAdmin().rpc('panel_control_metricas'),
+  const baseInsforge = (process.env.NEXT_PUBLIC_INSFORGE_URL ?? process.env.INSFORGE_URL ?? '').replace(/\/$/, '')
+  const rpcMedido = (async () => {
+    const t = Date.now()
+    const r = await createDbAdmin().rpc('panel_control_metricas')
+    return { r, ms: Date.now() - t }
+  })()
+
+  const [rpc, apps, deploys, sBanorte, sOpenpay, sPac, sStorage, sCorreo, sGoogle] = await Promise.allSettled([
+    rpcMedido,
     pingApps(),
     deploysVercel(),
+    sondaHttp(new URL(BANORTE_PAYW2_URL).origin),
+    sondaHttp('https://api.openpay.mx'),
+    sondaHttp(urlFacturoPorTiApi()),
+    sondaHttp(baseInsforge || 'https://insforge.dev'),
+    sondaSmtp(),
+    sondaHttp('https://www.googleapis.com/calendar/v3/'),
   ])
-  const latenciaBase = Date.now() - t0
+  const valorDe = <T,>(r: PromiseSettledResult<T>): T | undefined => (r.status === 'fulfilled' ? r.value : undefined)
 
   let m: Metricas | null = null
-  let errorBase: string | null = null
-  if (rpc.status === 'fulfilled' && !rpc.value.error && rpc.value.data) {
-    m = rpc.value.data as Metricas
+  let msBase = 0
+  let errorBase = 'Sin respuesta'
+  if (rpc.status === 'fulfilled') {
+    msBase = rpc.value.ms
+    if (!rpc.value.r.error && rpc.value.r.data) m = rpc.value.r.data as Metricas
+    else errorBase = rpc.value.r.error?.message ?? errorBase
   } else {
-    errorBase =
-      rpc.status === 'rejected'
-        ? String((rpc.reason as Error)?.message ?? rpc.reason)
-        : rpc.value.error?.message ?? 'Sin datos'
+    errorBase = String((rpc.reason as Error)?.message ?? rpc.reason)
   }
 
-  const medidores: MedidorProceso[] = []
-  const sinBase = 'Sin respuesta de la base de datos'
+  const piezaBase = m
+    ? pieza({ id: 'base', nombre: 'Base de datos', valor: puntajeLatencia(msBase, PRESUPUESTO_BASE_MS), lectura: `contesta en ${seg(msBase)}` })
+    : pieza({ id: 'base', nombre: 'Base de datos', valor: 0, lectura: 'no contesta', fallo: errorBase })
 
-  if (m) {
-    const p = m.pagos
-    const pocoEsperado = p.esperado < 3
-    const valor = pocoEsperado ? 100 : pct(p.hoy, p.esperado)
-    const fallas = Number(p.openpay_fallas_24h) || 0
-    medidores.push(
-      medidor({
-        id: 'pagos',
-        nombre: 'Pagos',
-        mide: 'Pagos de hoy contra lo normal a esta hora',
-        valor,
-        sentido: 'alto-bueno',
-        umbrales: [30, 70],
-        lectura: `${p.hoy}`,
-        detalle: [
-          `Hoy ${p.hoy} pagos · lo normal a esta hora: ${p.esperado}${pocoEsperado ? ' (horario tranquilo)' : ''}`,
-          `Banorte ${p.banorte} · Openpay ${p.openpay} · Efectivo ${p.efectivo}`,
-          `Último pago ${hora(p.ultimo)} · Openpay 24 h: ${p.openpay_ok_24h} ok, ${fallas} fallas`,
-        ],
-        ...(fallas > 0 ? { estado: 'alarma' as const, motivo: `${fallas} avisos de Openpay fallaron en 24 h` } : {}),
-      })
-    )
+  const ev = m?.piezas ?? {}
+  const correo = piezaServicio('correo', 'Correo (Gmail)', ev.correo, PRESUPUESTO_MS.correo, valorDe(sCorreo))
+  const wh = m?.openpay_webhook
+  const avisosOpenpay = pieza({
+    id: 'openpay-avisos',
+    nombre: 'Avisos de Openpay',
+    valor: wh && wh.ops ? puntajeFallos(wh.fallos, wh.ops) : null,
+    lectura: wh?.ops ? fallosDe(wh.fallos, wh.ops) : 'sin avisos en 24 h',
+    fallo: wh?.fallos ? wh.ultimo_fallo ?? undefined : undefined,
+  })
 
-    const f = m.facturacion
-    medidores.push(
-      medidor({
-        id: 'facturacion',
-        nombre: 'Facturación CFDI',
-        mide: 'Pagos de los últimos 7 días ya facturados',
-        valor: f.total ? pct(f.facturados, f.total) : 100,
-        sentido: 'alto-bueno',
-        umbrales: [80, 90],
-        detalle: [`${f.facturados} de ${f.total} pagos facturados`, `${f.total - f.facturados} sin factura`],
-      })
-    )
+  const listaApps = valorDe(apps) ?? []
+  const appOpenHouse = listaApps.find((a) => a.nombre === 'Open House')
+  const k = m?.kommo
+  const atrasados = Number(k?.recordatorios_atrasados ?? 0)
 
-    const r = m.reportes
-    const porEnviar = r.validos + r.por_validar
-    medidores.push(
-      medidor({
-        id: 'reportes',
-        nombre: 'Reportes RAC',
-        mide: 'Reportes válidos ya enviados a papás (7 días)',
-        valor: porEnviar ? pct(r.enviados, porEnviar) : 100,
-        sentido: 'alto-bueno',
-        umbrales: [80, 95],
-        detalle: [
-          `${r.enviados} de ${r.validos} válidos enviados`,
-          `${r.por_validar} por validar · ${r.hoy} levantados hoy`,
-        ],
-      })
-    )
-
-    const t = m.talleres
-    if (t?.fecha) {
-      medidores.push(
-        medidor({
-          id: 'talleres',
-          nombre: 'Talleres',
-          mide: 'Asistencia del último día con clases',
-          valor: t.alumnos ? pct(t.alumnos - t.faltas, t.alumnos) : null,
-          sentido: 'alto-bueno',
-          umbrales: [60, 80],
-          detalle: [
-            `${fechaCorta(t.fecha)}: ${t.clases} clases, lista en ${t.con_lista}`,
-            `Asistieron ${t.alumnos - t.faltas} de ${t.alumnos}${t.maestro_falto ? ` · faltó maestro en ${t.maestro_falto}` : ''}`,
-          ],
+  const medidores: MedidorProceso[] = [
+    proceso('pagos', 'Pagos', 'Pasarelas de cobro y avisos de pago', [
+      piezaServicio('banorte', 'Banorte (tarjeta)', ev.banorte, PRESUPUESTO_MS.banorte, valorDe(sBanorte)),
+      piezaServicio('openpay-api', 'Openpay (SPEI)', ev['openpay-api'], PRESUPUESTO_MS['openpay-api'], valorDe(sOpenpay)),
+      avisosOpenpay,
+      piezaBase,
+    ]),
+    proceso('facturacion', 'Facturación CFDI', 'Timbrado con el PAC y archivo de facturas', [
+      piezaServicio('pac', 'PAC FacturoPorTi', ev.pac, PRESUPUESTO_MS.pac, valorDe(sPac)),
+      piezaServicio('storage-cfdi', 'Storage de facturas', ev['storage-cfdi'], PRESUPUESTO_MS['storage-cfdi'], valorDe(sStorage)),
+      piezaBase,
+    ]),
+    proceso('reportes', 'Reportes RAC', 'Envío de reportes y agenda de citas', [
+      correo,
+      piezaServicio('google-calendar', 'Google Calendar', ev['google-calendar'], PRESUPUESTO_MS['google-calendar'], valorDe(sGoogle)),
+      piezaBase,
+    ]),
+    proceso('talleres', 'Talleres', 'Registro de listas y alertas automáticas', [
+      piezaBase,
+      piezaLatido('cron-talleres-minimo', m?.latidos['cron-talleres-minimo']),
+      correo,
+    ]),
+    proceso('open-house', 'Open House', 'Registro, integración con Kommo y recordatorios', [
+      appOpenHouse
+        ? pieza({
+            id: 'app-open-house',
+            nombre: 'App de registro',
+            valor: appOpenHouse.ok ? puntajeLatencia(appOpenHouse.ms, PRESUPUESTO_APP_MS) : 0,
+            lectura: appOpenHouse.ok ? `contesta en ${seg(appOpenHouse.ms)}` : 'no contesta',
+          })
+        : pieza({ id: 'app-open-house', nombre: 'App de registro', valor: null, lectura: 'sin sonda' }),
+      pieza({
+        id: 'kommo',
+        nombre: 'Integración Kommo',
+        valor: k?.registros ? Math.round((k.con_lead / k.registros) * 100) : null,
+        lectura: k?.registros ? `${k.con_lead} de ${k.registros} registros de 7 días llegaron` : 'sin registros en 7 días',
+      }),
+      pieza({
+        id: 'recordatorios-oh',
+        nombre: 'Recordatorios programados',
+        valor: k ? (atrasados ? 0 : 100) : null,
+        lectura: atrasados ? `${atrasados} atrasados más de 2 h` : `al corriente · ${k?.recordatorios_enviados_7d ?? 0} enviados en 7 días`,
+      }),
+    ]),
+    proceso('insforge', 'InsForge', 'Base de datos: respuesta y conexiones', [
+      piezaBase,
+      m
+        ? pieza({
+            id: 'conexiones',
+            nombre: 'Conexiones',
+            valor: Math.max(0, Math.round(100 - Math.max(0, (m.base.conexiones / m.base.max_conexiones) * 100 - 50) * 2)),
+            lectura: `${m.base.conexiones} de ${m.base.max_conexiones} en uso · base ${Math.round(m.base.bytes / 1024 / 1024)} MB`,
+          })
+        : pieza({ id: 'conexiones', nombre: 'Conexiones', valor: null, lectura: 'sin lectura' }),
+    ]),
+    proceso('vercel', 'Vercel', 'Apps de producción y tareas programadas', [
+      (() => {
+        const caidas = listaApps.filter((a) => !a.ok)
+        return pieza({
+          id: 'apps',
+          nombre: 'Apps respondiendo',
+          valor: listaApps.length ? (caidas.length ? Math.round(100 - caidas.length * 25) : 100) : null,
+          lectura: listaApps.length ? `${listaApps.length - caidas.length} de ${listaApps.length}` : 'sin sonda',
+          fallo: caidas.length ? `Sin respuesta: ${caidas.map((a) => a.nombre).join(', ')}` : undefined,
         })
-      )
-    } else {
-      medidores.push(
-        medidor({
-          id: 'talleres',
-          nombre: 'Talleres',
-          mide: 'Asistencia del último día con clases',
+      })(),
+      (() => {
+        const lenta = [...listaApps].filter((a) => a.ok).sort((a, b) => b.ms - a.ms)[0]
+        return pieza({
+          id: 'apps-tiempo',
+          nombre: 'Tiempo de respuesta',
+          valor: lenta ? puntajeLatencia(lenta.ms, PRESUPUESTO_APP_MS) : null,
+          lectura: lenta ? `la más lenta: ${lenta.nombre}, ${seg(lenta.ms)}` : 'sin sonda',
+        })
+      })(),
+      piezaLatido('cron-recordatorio-liberacion-docs', m?.latidos['cron-recordatorio-liberacion-docs']),
+    ]),
+    (() => {
+      if (deploys.status === 'fulfilled' && deploys.value) {
+        const d = deploys.value
+        const terminados = d.listos + d.error
+        const ultimoFallo = d.ultimo?.estado === 'ERROR'
+        return proceso('desarrollo', 'Desarrollo', 'Deploys de producción', [
+          pieza({
+            id: 'deploys',
+            nombre: 'Deploys (7 días)',
+            valor: ultimoFallo ? 0 : terminados ? Math.round((d.listos / terminados) * 100) : 100,
+            lectura: `${d.total} deploys · ${d.error} con error`,
+            fallo: ultimoFallo ? 'El último deploy falló' : undefined,
+          }),
+        ])
+      }
+      return proceso('desarrollo', 'Desarrollo', 'Deploys de producción', [
+        pieza({
+          id: 'deploys',
+          nombre: 'Deploys (7 días)',
           valor: null,
-          sentido: 'alto-bueno',
-          umbrales: [60, 80],
-          detalle: ['Sin listas registradas'],
-        })
-      )
-    }
-
-    const o = m.open_house
-    medidores.push(
-      medidor({
-        id: 'open-house',
-        nombre: 'Open House',
-        mide: 'Registros con su lead en Kommo',
-        valor: o?.registros ? pct(o.con_kommo, o.registros) : null,
-        sentido: 'alto-bueno',
-        umbrales: [90, 98],
-        detalle: o?.edicion
-          ? [`Edición ${o.edicion}: ${o.registros} registros`, `${o.con_kommo} en Kommo · ${o.ultimas_24h} nuevos en 24 h`]
-          : ['Sin edición activa'],
-      })
-    )
-
-    const b = m.base
-    const usoBase = b.max_conexiones ? pct(b.conexiones, b.max_conexiones) : null
-    const lenta = latenciaBase > 3000
-    medidores.push(
-      medidor({
-        id: 'insforge',
-        nombre: 'InsForge',
-        mide: 'Uso de conexiones de la base de datos',
-        valor: usoBase,
-        sentido: 'bajo-bueno',
-        umbrales: [60, 85],
-        detalle: [
-          `${b.conexiones} de ${b.max_conexiones} conexiones`,
-          `Respuesta ${latenciaBase} ms · base ${Math.round(b.bytes / 1024 / 1024)} MB`,
-        ],
-        ...(lenta && estadoPorValor(usoBase, 'bajo-bueno', [60, 85]) === 'normal'
-          ? { estado: 'precaucion' as const, motivo: 'Respuesta lenta de la base' }
-          : {}),
-      })
-    )
-  } else {
-    const motivo = `${sinBase}: ${errorBase}`
-    medidores.push(
-      sinLectura('pagos', 'Pagos', 'Pagos de hoy contra lo normal a esta hora', 'alto-bueno', [30, 70], motivo),
-      sinLectura('facturacion', 'Facturación CFDI', 'Pagos de los últimos 7 días ya facturados', 'alto-bueno', [80, 90], motivo),
-      sinLectura('reportes', 'Reportes RAC', 'Reportes válidos ya enviados a papás (7 días)', 'alto-bueno', [80, 95], motivo),
-      sinLectura('talleres', 'Talleres', 'Asistencia del último día con clases', 'alto-bueno', [60, 80], motivo),
-      sinLectura('open-house', 'Open House', 'Registros con su lead en Kommo', 'alto-bueno', [90, 98], motivo),
-      { ...sinLectura('insforge', 'InsForge', 'Uso de conexiones de la base de datos', 'bajo-bueno', [60, 85], motivo), valor: 100 }
-    )
-  }
-
-  if (pings.status === 'fulfilled') {
-    const arriba = pings.value.filter((a) => a.ok)
-    const caidas = pings.value.filter((a) => !a.ok)
-    const lenta = [...pings.value].sort((a, b) => b.ms - a.ms)[0]
-    medidores.push(
-      medidor({
-        id: 'vercel',
-        nombre: 'Vercel',
-        mide: 'Apps de producción respondiendo',
-        valor: pct(arriba.length, pings.value.length),
-        sentido: 'alto-bueno',
-        umbrales: [85, 99],
-        detalle: [
-          `${arriba.length} de ${pings.value.length} apps responden`,
-          caidas.length
-            ? `Sin respuesta: ${caidas.map((a) => a.nombre).join(', ')}`
-            : lenta
-              ? `La más lenta: ${lenta.nombre} (${lenta.ms} ms)`
-              : '',
-        ].filter(Boolean),
-      })
-    )
-  } else {
-    medidores.push(
-      sinLectura('vercel', 'Vercel', 'Apps de producción respondiendo', 'alto-bueno', [85, 99], 'No se pudieron revisar las apps')
-    )
-  }
-
-  const nombreDev = 'Desarrollo'
-  const mideDev = 'Deploys de producción sin error (7 días)'
-  if (deploys.status === 'fulfilled' && deploys.value) {
-    const d = deploys.value
-    const terminados = d.listos + d.error
-    medidores.push(
-      medidor({
-        id: 'desarrollo',
-        nombre: nombreDev,
-        mide: mideDev,
-        valor: terminados ? pct(d.listos, terminados) : 100,
-        sentido: 'alto-bueno',
-        umbrales: [70, 90],
-        detalle: [
-          `${d.total} deploys · ${d.error} con error`,
-          d.ultimo ? `Último ${hace(d.ultimo.en)} · ${d.ultimo.estado === 'READY' ? 'Ready' : d.ultimo.estado.toLowerCase()}` : '',
-        ].filter(Boolean),
-        ...(d.ultimo?.estado === 'ERROR' ? { estado: 'alarma' as const, motivo: 'El último deploy falló' } : {}),
-      })
-    )
-  } else {
-    medidores.push({
-      id: 'desarrollo',
-      nombre: nombreDev,
-      mide: mideDev,
-      valor: null,
-      sentido: 'alto-bueno',
-      umbrales: [70, 90],
-      estado: 'sin-dato',
-      detalle: [
-        deploys.status === 'rejected'
-          ? `Vercel no respondió: ${String((deploys.reason as Error)?.message ?? '')}`
-          : 'Falta el token de lectura de Vercel',
-      ],
-    })
-  }
+          lectura:
+            deploys.status === 'rejected'
+              ? `Vercel no respondió: ${String((deploys.reason as Error)?.message ?? '')}`
+              : 'falta el token de lectura de Vercel',
+        }),
+      ])
+    })(),
+  ]
 
   return { leidoEn: new Date().toISOString(), medidores }
 }

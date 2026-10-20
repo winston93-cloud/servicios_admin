@@ -10,6 +10,7 @@ import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import {
   PANEL_CONTROL_REFRESCO_MS,
   PANEL_CONTROL_USUARIOS,
+  UMBRALES_SALUD,
   estadoPorValor,
   type EstadoMedidor,
   type MedidorProceso,
@@ -156,8 +157,10 @@ function PanelControlView() {
       </section>
 
       <p className="pc-leyenda">
-        La franja junto a cada barra marca las zonas: <b className="pc-ley pc-ley-normal">verde</b> normal,{' '}
-        <b className="pc-ley pc-ley-precaucion">ámbar</b> precaución, <b className="pc-ley pc-ley-alarma">rojo</b>{' '}
+        Cada barra es la salud de la infraestructura del proceso y la manda su pieza más débil: tiempo de respuesta,
+        fallos del sistema en 24 h (sin contar errores de datos de terceros) y que las tareas automáticas corran a su
+        hora. Zonas: <b className="pc-ley pc-ley-normal">verde</b> normal (90 o más),{' '}
+        <b className="pc-ley pc-ley-precaucion">ámbar</b> precaución (60 a 89), <b className="pc-ley pc-ley-alarma">rojo</b>{' '}
         alarma. Una lámpara que parpadea es una alarma nueva; «Reconocer alarmas» la deja fija.
       </p>
     </Marco>
@@ -178,10 +181,8 @@ const PLACEHOLDER: MedidorProceso[] = [
   nombre,
   mide: '',
   valor: null,
-  sentido: 'alto-bueno',
-  umbrales: [50, 80],
   estado: 'sin-dato',
-  detalle: [],
+  piezas: [],
 }))
 
 function Marco({
@@ -205,7 +206,7 @@ function Marco({
         <div className="pc-cabecera">
           <div className="pc-min0">
             <h1 className="pc-titulo">Panel de control</h1>
-            <p className="pc-lead">Los 8 procesos de la revisión diaria, leídos en vivo cada 30 segundos.</p>
+            <p className="pc-lead">Salud de la infraestructura de los 8 procesos, leída en vivo cada 30 segundos.</p>
           </div>
           {barra}
         </div>
@@ -259,24 +260,15 @@ function Reloj({
 
 const MARCAS = [0, 20, 40, 60, 80, 100]
 
-function zonas(m: MedidorProceso): { desde: number; hasta: number; estado: EstadoMedidor }[] {
-  const [a, b] = m.umbrales
-  return m.sentido === 'alto-bueno'
-    ? [
-        { desde: 0, hasta: a, estado: 'alarma' },
-        { desde: a, hasta: b, estado: 'precaucion' },
-        { desde: b, hasta: 100, estado: 'normal' },
-      ]
-    : [
-        { desde: 0, hasta: a, estado: 'normal' },
-        { desde: a, hasta: b, estado: 'precaucion' },
-        { desde: b, hasta: 100, estado: 'alarma' },
-      ]
-}
+const ZONAS: { desde: number; hasta: number; estado: EstadoMedidor }[] = [
+  { desde: 0, hasta: UMBRALES_SALUD[0], estado: 'alarma' },
+  { desde: UMBRALES_SALUD[0], hasta: UMBRALES_SALUD[1], estado: 'precaucion' },
+  { desde: UMBRALES_SALUD[1], hasta: 100, estado: 'normal' },
+]
 
 function Medidor({ m, cargando }: { m: MedidorProceso; cargando: boolean }) {
   const valor = m.valor == null ? null : Math.max(0, Math.min(100, m.valor))
-  const zona = estadoPorValor(valor, m.sentido, m.umbrales)
+  const zona = estadoPorValor(valor)
   return (
     <article className="pc-medidor" data-estado={m.estado} data-cargando={cargando || undefined}>
       <header className="pc-placa">
@@ -303,7 +295,7 @@ function Medidor({ m, cargando }: { m: MedidorProceso; cargando: boolean }) {
             ))}
           </div>
           <div className="pc-franjas" aria-hidden>
-            {zonas(m).map((z) => (
+            {ZONAS.map((z) => (
               <span
                 key={z.estado}
                 data-zona={z.estado}
@@ -324,16 +316,35 @@ function Medidor({ m, cargando }: { m: MedidorProceso; cargando: boolean }) {
             {valor == null ? null : <span className="pc-digital-unidad">%</span>}
           </div>
           {m.mide ? <p className="pc-mide">{m.mide}</p> : null}
-          {m.detalle.length ? (
-            <ul className="pc-detalle">
-              {m.detalle.map((d) => (
-                <li key={d}>{d}</li>
-              ))}
-            </ul>
-          ) : null}
           {m.motivo ? <p className="pc-motivo">{m.motivo}</p> : null}
         </div>
       </div>
+
+      {m.piezas.length ? (
+        <ul className="pc-piezas" aria-label={`Piezas de ${m.nombre}`}>
+          {m.piezas.map((p) => (
+            <li key={p.id} className="pc-pieza" data-estado={p.estado}>
+              <div className="pc-pieza-fila">
+                <span className="pc-pieza-nombre">{p.nombre}</span>
+                <span className="pc-pieza-valor">{p.valor == null ? '—' : `${p.valor}%`}</span>
+              </div>
+              <div
+                className="pc-mini"
+                role="meter"
+                aria-label={p.nombre}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={p.valor ?? undefined}
+                aria-valuetext={p.valor == null ? 'Sin lectura' : `${p.valor}%, ${ETIQUETA_ESTADO[p.estado]}`}
+              >
+                <span className="pc-mini-relleno" data-zona={p.estado} style={{ width: `${p.valor ?? 0}%` }} />
+              </div>
+              <p className="pc-pieza-lectura">{p.lectura}</p>
+              {p.fallo ? <p className="pc-pieza-fallo">{p.fallo}</p> : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </article>
   )
 }

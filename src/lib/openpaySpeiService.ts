@@ -1,5 +1,6 @@
 import type { OpenpayConfigServidor } from './portalPagosSpei'
 import { urlPdfSpeiOpenpay } from './portalPagosSpei'
+import { fetchConSonda } from '@/lib/panelControl/sonda'
 
 export interface CrearCargoSpeiParams {
   config: OpenpayConfigServidor
@@ -41,7 +42,7 @@ export async function crearCargoSpeiOpenpay(
   const url = `https://api.openpay.mx/v1/${config.merchantId}/charges`
   const auth = Buffer.from(`${config.secretKey}:`).toString('base64')
 
-  const res = await fetch(url, {
+  const res = await fetchConSonda('openpay-api', url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { revisarAlertasMinimo } from '@/lib/talleres/talleresAlertaMinimo'
 import { revisarAvisosInscripcionSinPago } from '@/lib/inscripcionSinPagoAvisos'
+import { registrarLatido } from '@/lib/panelControl/sonda'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -23,10 +24,17 @@ async function handle(request: Request) {
   if (!autorizado(request)) {
     return NextResponse.json({ ok: false, error: 'No autorizado' }, { status: 401 })
   }
+  const inicio = Date.now()
   const [talleres, inscripcion] = await Promise.allSettled([revisarAlertasMinimo(), revisarAvisosInscripcionSinPago()])
   if (talleres.status === 'rejected') console.error('cron talleres-minimo:', talleres.reason)
   if (inscripcion.status === 'rejected') console.error('cron inscripcion-sin-pago:', inscripcion.reason)
   const ok = talleres.status === 'fulfilled' && inscripcion.status === 'fulfilled'
+  await registrarLatido(
+    'cron-talleres-minimo',
+    ok,
+    Date.now() - inicio,
+    ok ? undefined : String((talleres.status === 'rejected' ? talleres.reason : inscripcion.status === 'rejected' ? inscripcion.reason : '') ?? '')
+  )
   return NextResponse.json(
     {
       ok,

@@ -1,5 +1,6 @@
 import type { AppInsforgeClient } from '@/lib/dbTypes'
 import { crearNombreArchivoFactura } from '@/lib/portalFacturaRutas'
+import { fetchConSonda } from '@/lib/panelControl/sonda'
 
 export const CFDI_BUCKET = 'cfdi'
 
@@ -85,7 +86,8 @@ async function subirClaveExacta(
   try {
     const form = new FormData()
     form.append('file', blob, key)
-    const put = await fetch(
+    const put = await fetchConSonda(
+      'storage-cfdi',
       `${baseUrl}/api/storage/buckets/${CFDI_BUCKET}/objects/${encodeURIComponent(key)}`,
       {
         method: 'PUT',

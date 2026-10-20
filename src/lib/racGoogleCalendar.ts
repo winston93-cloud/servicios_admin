@@ -6,6 +6,13 @@
  * - secundaria → GOOGLE_CALENDAR_PSICOLOGA_SECUNDARIA
  */
 import { google } from 'googleapis'
+import { esFalloHttp, medirConSonda } from '@/lib/panelControl/sonda'
+
+/** 404/400 (evento ya borrado, datos) no es falla de Google; red, 5xx y credenciales sí. */
+function falloGoogle(e: unknown): boolean {
+  const codigo = Number((e as { code?: unknown })?.code)
+  return !Number.isFinite(codigo) || esFalloHttp(codigo)
+}
 
 const SCOPES = ['https://www.googleapis.com/auth/calendar.events']
 
@@ -95,7 +102,7 @@ export async function createRacCitaCalendarEvent(
     startDate.setHours(hour, minute || 0, 0, 0)
     const endDate = new Date(startDate.getTime() + duration * 60 * 1000)
 
-    const response = await calendar.events.insert({
+    const response = await medirConSonda('google-calendar', () => calendar.events.insert({
       calendarId,
       requestBody: {
         summary: eventData.summary,
@@ -103,7 +110,7 @@ export async function createRacCitaCalendarEvent(
         start: { dateTime: formatLocal(startDate), timeZone: timezone },
         end: { dateTime: formatLocal(endDate), timeZone: timezone },
       },
-    })
+    }), falloGoogle)
     return { ok: true, eventId: response.data.id ?? undefined }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
@@ -140,7 +147,7 @@ export async function crearCitaDireccionSec(eventData: {
   if (!calendar) return { ok: false, skipped: true, error: 'Sin credenciales Google Service Account' }
   const { start, end } = rangoCita(eventData.date, eventData.time, eventData.durationMinutes ?? 45)
   try {
-    const response = await calendar.events.insert({
+    const response = await medirConSonda('google-calendar', () => calendar.events.insert({
       calendarId: RAC_DIRECCION_SEC_CALENDAR,
       sendUpdates: 'all',
       requestBody: {
@@ -150,7 +157,7 @@ export async function crearCitaDireccionSec(eventData: {
         end: { dateTime: formatLocal(end), timeZone: 'America/Monterrey' },
         attendees: RAC_DIRECCION_SEC_INVITADOS.map((email) => ({ email })),
       },
-    })
+    }), falloGoogle)
     return { ok: true, eventId: response.data.id ?? undefined }
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
@@ -169,7 +176,7 @@ export async function moverCitaDireccionSec(
   if (!calendar) return false
   const { start, end } = rangoCita(date, time, durationMinutes)
   try {
-    await calendar.events.patch({
+    await medirConSonda('google-calendar', () => calendar.events.patch({
       calendarId: RAC_DIRECCION_SEC_CALENDAR,
       eventId,
       sendUpdates: 'all',
@@ -177,7 +184,7 @@ export async function moverCitaDireccionSec(
         start: { dateTime: formatLocal(start), timeZone: 'America/Monterrey' },
         end: { dateTime: formatLocal(end), timeZone: 'America/Monterrey' },
       },
-    })
+    }), falloGoogle)
     return true
   } catch (e) {
     console.warn('[racGoogleCalendar] mover cita Dirección:', e instanceof Error ? e.message : e)
@@ -189,7 +196,7 @@ export async function cancelarCitaDireccionSec(eventId: string): Promise<boolean
   const calendar = calendarDireccion()
   if (!calendar) return false
   try {
-    await calendar.events.delete({ calendarId: RAC_DIRECCION_SEC_CALENDAR, eventId, sendUpdates: 'all' })
+    await medirConSonda('google-calendar', () => calendar.events.delete({ calendarId: RAC_DIRECCION_SEC_CALENDAR, eventId, sendUpdates: 'all' }), falloGoogle)
     return true
   } catch (e) {
     console.warn('[racGoogleCalendar] cancelar cita Dirección:', e instanceof Error ? e.message : e)
