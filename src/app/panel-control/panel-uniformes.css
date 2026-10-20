@@ -251,3 +251,40 @@
 @media (prefers-reduced-motion: reduce) {
   .pu-kpi::after { animation: none; }
 }
+
+/* ── Cabina doble: Uniformes como columna propia a la derecha ── */
+@media (min-width: 1500px) {
+  .pc-col-uniformes .pu-zona {
+    margin-top: 0;
+    padding: 0.7rem 0.75rem 0.75rem;
+  }
+  .pc-col-uniformes .pu-cabeza { margin-bottom: 0.5rem; gap: 0.6rem; }
+  .pc-col-uniformes .pu-insignia { width: 38px; height: 38px; }
+  .pc-col-uniformes .pu-titulo { font-size: 1.15rem; }
+  .pc-col-uniformes .pu-sub {
+    font-size: 0.7rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pc-col-uniformes .pu-estado { padding: 0.3rem 0.55rem; font-size: 0.66rem; }
+  .pc-col-uniformes .pu-franja { margin-bottom: 0.45rem; padding: 0.4rem 0.65rem; font-size: 0.76rem; line-height: 1.4; }
+  .pc-col-uniformes .pc-ecg { margin-bottom: 0.45rem; }
+  .pc-col-uniformes .pc-ecg-rotulo { width: 130px; }
+  .pc-col-uniformes .pc-ecg-detalle { display: none; }
+
+  .pc-col-uniformes .pu-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem; margin-bottom: 0.45rem; }
+  .pc-col-uniformes .pu-kpi { padding: 0.4rem 0.6rem; }
+  .pc-col-uniformes .pu-kpi-valor { font-size: 1.15rem; }
+
+  .pc-col-uniformes .pc-banco.pu-banco { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pc-col-uniformes .pc-instrumento { height: 84px; }
+}
+
+@media (min-width: 1500px) and (max-height: 900px) {
+  .pc-col-uniformes .pu-franja { -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+  .pc-col-uniformes .pu-kpi { padding: 0.3rem 0.55rem; }
+  .pc-col-uniformes .pu-kpi-valor { font-size: 1rem; }
+  .pc-col-uniformes .pu-kpi-detalle { display: none; }
+  .pc-col-uniformes .pc-instrumento { height: 62px; }
+}

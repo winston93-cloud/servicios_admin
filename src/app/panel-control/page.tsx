@@ -178,140 +178,145 @@ function PanelControlView() {
       onVolver={() => router.push('/dashboard')}
       reloj={<Reloj siguiente={siguiente} leidoEn={datos?.leidoEn ?? null} leyendo={leyendo} onLeer={() => void leer()} />}
     >
-      <section className="pc-general" data-estado={general} aria-live="polite">
-        <Radar medidores={todos} cargando={!datos} />
-        <div className="pc-general-texto pc-min0">
-          <p className="pc-general-titulo">
-            {general === 'sin-dato'
-              ? 'Leyendo la infraestructura…'
-              : general === 'normal'
-                ? 'Toda la infraestructura opera con normalidad'
-                : general === 'alarma'
-                  ? 'Alarma en la infraestructura'
-                  : 'Atención: hay piezas fuera de lo normal'}
-          </p>
-          {conProblema.length ? (
-            <ul className="pc-general-lista">
-              {conProblema.slice(0, 3).map((m) => (
-                <li key={m.id}>
-                  <b>{m.nombre}</b> · {m.resumen}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="pc-general-sub">
-              {datos
-                ? `${medidores.length} de ${medidores.length} procesos y ${sistemas.length} de ${sistemas.length} sistemas en verde: responden a tiempo, sin fallos y sin piezas flojas.`
-                : ' '}
+      <div className="pc-cabina">
+        <div className="pc-col-servicios">
+          <section className="pc-general" data-estado={general} aria-live="polite">
+            <Radar medidores={todos} cargando={!datos} />
+            <div className="pc-general-texto pc-min0">
+              <p className="pc-general-titulo">
+                {general === 'sin-dato'
+                  ? 'Leyendo la infraestructura…'
+                  : general === 'normal'
+                    ? 'Toda la infraestructura opera con normalidad'
+                    : general === 'alarma'
+                      ? 'Alarma en la infraestructura'
+                      : 'Atención: hay piezas fuera de lo normal'}
+              </p>
+              {conProblema.length ? (
+                <ul className="pc-general-lista">
+                  {conProblema.slice(0, 3).map((m) => (
+                    <li key={m.id}>
+                      <b>{m.nombre}</b> · {m.resumen}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="pc-general-sub">
+                  {datos
+                    ? `${medidores.length} de ${medidores.length} procesos y ${sistemas.length} de ${sistemas.length} sistemas en verde: responden a tiempo, sin fallos y sin piezas flojas.`
+                    : ' '}
+                </p>
+              )}
+            </div>
+            <div className="pc-cuenta" data-estado={general}>
+              <span className="pc-cuenta-num">
+                {datos ? enVerde : '--'}
+                <small>/{todos.length}</small>
+              </span>
+              <span className="pc-cuenta-txt">en verde</span>
+            </div>
+            {sinReconocer.length ? (
+              <button type="button" className="pc-reconocer" onClick={() => setReconocidas(new Set(enAlarma))}>
+                <BellOff size={16} aria-hidden />
+                Reconocer alarmas
+              </button>
+            ) : null}
+          </section>
+
+          <Electro
+            estado={general}
+            etiqueta="Pulso de la infraestructura"
+            detalle={datos ? `${todos.length} señales · lectura cada ${PANEL_CONTROL_REFRESCO_MS / 1000} s` : 'Conectando…'}
+          />
+
+          {error ? (
+            <p className="pc-error" role="alert">
+              {error} {datos ? 'Se muestran las últimas lecturas.' : ''}
             </p>
-          )}
+          ) : null}
+
+          <section className="pc-consola" aria-label="Consola principal">
+            <Tacometro
+              valor={consola.procesos.valor}
+              etiqueta="Procesos"
+              sub={consola.procesos.sub}
+              cargando={!datos}
+            />
+            <Tacometro
+              valor={consola.conexiones.valor}
+              etiqueta="Conexiones"
+              sub={consola.conexiones.sub}
+              zonas={ZONAS_LIMITE}
+              cargando={!datos}
+            />
+            <Tacometro
+              grande
+              valor={consola.salud}
+              etiqueta="Salud general"
+              sub="promedio de las 18 señales"
+              cargando={!datos}
+            />
+            <Tacometro
+              valor={consola.base.valor}
+              etiqueta="Respuesta de la base"
+              sub="Winston Servicios"
+              lectura={consola.base.lectura}
+              cargando={!datos}
+            />
+            <Tacometro
+              valor={consola.sistemas.valor}
+              etiqueta="Sistemas"
+              sub={consola.sistemas.sub}
+              cargando={!datos}
+            />
+          </section>
+
+          <h2 className="pc-banco-titulo">Procesos</h2>
+          <section className="pc-banco" aria-label="Medidores de los procesos">
+            {medidores.map((m, i) => (
+              <Medidor
+                key={m.id}
+                m={m}
+                orden={i}
+                codigo={`P-${String(i + 1).padStart(2, '0')}`}
+                onAnalizar={setAnalisis}
+                cargando={!datos}
+                elegido={m.id === seleccionado?.id}
+                parpadea={m.estado === 'alarma' && !reconocidas.has(m.id)}
+                onElegir={() => setElegido(m.id)}
+              />
+            ))}
+          </section>
+
+          <h2 className="pc-banco-titulo">Sistemas que más usan la base</h2>
+          <section className="pc-banco pc-banco--sistemas" aria-label="Medidores de los sistemas">
+            {sistemas.map((m, i) => (
+              <Medidor
+                key={m.id}
+                m={m}
+                orden={medidores.length + i}
+                codigo={`S-${String(i + 1).padStart(2, '0')}`}
+                onAnalizar={setAnalisis}
+                cargando={!datos}
+                elegido={m.id === seleccionado?.id}
+                parpadea={m.estado === 'alarma' && !reconocidas.has(m.id)}
+                onElegir={() => setElegido(m.id)}
+              />
+            ))}
+          </section>
+
+          {seleccionado && datos ? <Detalle m={seleccionado} /> : null}
+
+          <p className="pc-leyenda">
+            Cada barra es la salud de la infraestructura: responde a tiempo, sin fallos del sistema, con sus tareas al día,
+            tablas con índice y sin basura acumulada. Manda la pieza más débil. Toca un medidor para ver su análisis: qué es, por
+            qué marca su porcentaje y cómo se califica cada pieza.
+          </p>
         </div>
-        <div className="pc-cuenta" data-estado={general}>
-          <span className="pc-cuenta-num">
-            {datos ? enVerde : '--'}
-            <small>/{todos.length}</small>
-          </span>
-          <span className="pc-cuenta-txt">en verde</span>
-        </div>
-        {sinReconocer.length ? (
-          <button type="button" className="pc-reconocer" onClick={() => setReconocidas(new Set(enAlarma))}>
-            <BellOff size={16} aria-hidden />
-            Reconocer alarmas
-          </button>
-        ) : null}
-      </section>
-
-      <Electro
-        estado={general}
-        etiqueta="Pulso de la infraestructura"
-        detalle={datos ? `${todos.length} señales · lectura cada ${PANEL_CONTROL_REFRESCO_MS / 1000} s` : 'Conectando…'}
-      />
-
-      {error ? (
-        <p className="pc-error" role="alert">
-          {error} {datos ? 'Se muestran las últimas lecturas.' : ''}
-        </p>
-      ) : null}
-
-      <section className="pc-consola" aria-label="Consola principal">
-        <Tacometro
-          valor={consola.procesos.valor}
-          etiqueta="Procesos"
-          sub={consola.procesos.sub}
-          cargando={!datos}
-        />
-        <Tacometro
-          valor={consola.conexiones.valor}
-          etiqueta="Conexiones"
-          sub={consola.conexiones.sub}
-          zonas={ZONAS_LIMITE}
-          cargando={!datos}
-        />
-        <Tacometro
-          grande
-          valor={consola.salud}
-          etiqueta="Salud general"
-          sub="promedio de las 18 señales"
-          cargando={!datos}
-        />
-        <Tacometro
-          valor={consola.base.valor}
-          etiqueta="Respuesta de la base"
-          sub="Winston Servicios"
-          lectura={consola.base.lectura}
-          cargando={!datos}
-        />
-        <Tacometro
-          valor={consola.sistemas.valor}
-          etiqueta="Sistemas"
-          sub={consola.sistemas.sub}
-          cargando={!datos}
-        />
-      </section>
-
-      <h2 className="pc-banco-titulo">Procesos</h2>
-      <section className="pc-banco" aria-label="Medidores de los procesos">
-        {medidores.map((m, i) => (
-          <Medidor
-            key={m.id}
-            m={m}
-            orden={i}
-            codigo={`P-${String(i + 1).padStart(2, '0')}`}
-            onAnalizar={setAnalisis}
-            cargando={!datos}
-            elegido={m.id === seleccionado?.id}
-            parpadea={m.estado === 'alarma' && !reconocidas.has(m.id)}
-            onElegir={() => setElegido(m.id)}
-          />
-        ))}
-      </section>
-
-      <h2 className="pc-banco-titulo">Sistemas que más usan la base</h2>
-      <section className="pc-banco pc-banco--sistemas" aria-label="Medidores de los sistemas">
-        {sistemas.map((m, i) => (
-          <Medidor
-            key={m.id}
-            m={m}
-            orden={medidores.length + i}
-            codigo={`S-${String(i + 1).padStart(2, '0')}`}
-            onAnalizar={setAnalisis}
-            cargando={!datos}
-            elegido={m.id === seleccionado?.id}
-            parpadea={m.estado === 'alarma' && !reconocidas.has(m.id)}
-            onElegir={() => setElegido(m.id)}
-          />
-        ))}
-      </section>
-
-      {seleccionado && datos ? <Detalle m={seleccionado} /> : null}
-
-      <p className="pc-leyenda">
-        Cada barra es la salud de la infraestructura: responde a tiempo, sin fallos del sistema, con sus tareas al día,
-        tablas con índice y sin basura acumulada. Manda la pieza más débil. Toca un medidor para ver su análisis: qué es, por
-        qué marca su porcentaje y cómo se califica cada pieza.
-      </p>
-
-      <PanelUniformes />
+        <aside className="pc-col-uniformes" aria-label="Uniformes">
+          <PanelUniformes />
+        </aside>
+      </div>
 
       {analisis && datos
         ? (() => {
