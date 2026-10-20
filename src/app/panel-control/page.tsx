@@ -17,6 +17,7 @@ import {
   type PanelControlRespuesta,
 } from '@/lib/panelControl/tipos'
 import './panel-control.css'
+import PanelUniformes from './PanelUniformes'
 
 const NOMBRES = ['Pagos', 'Facturación', 'RAC', 'Talleres', 'Open House', 'InsForge', 'Vercel', 'Desarrollo']
 
@@ -247,6 +248,8 @@ function PanelControlView() {
         Cada barra es la salud de la infraestructura: responde a tiempo, sin fallos del sistema, con sus tareas al día,
         tablas con índice y sin basura acumulada. Manda la pieza más débil. Toca un medidor para ver sus piezas.
       </p>
+
+      <PanelUniformes />
     </Marco>
   )
 }

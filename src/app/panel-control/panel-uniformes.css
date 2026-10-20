@@ -1,0 +1,189 @@
+/* Banco de Uniformes — misma sala de control, zona propia en azul acero para distinguirla de Servicios. */
+
+.pu-zona {
+  --pu-acento: #3d9bff;
+  --pu-acento-suave: rgba(61, 155, 255, 0.14);
+  --pc-panel: #121a24;
+  --pc-panel-borde: #2a3a4f;
+  --pc-bisel: #04080e;
+  --pc-placa: #16273d;
+  --pc-placa-texto: #e3edf9;
+  --pc-lcd: #060b12;
+  position: relative;
+  margin-top: 1.75rem;
+  padding: 0.9rem clamp(0.6rem, 1.6vw, 1rem) 1rem;
+  border-radius: 12px;
+  border: 1px solid var(--pc-panel-borde);
+  border-top: 3px solid var(--pu-acento);
+  background:
+    radial-gradient(120% 60% at 0% 0%, var(--pu-acento-suave), transparent 60%),
+    repeating-linear-gradient(135deg, transparent 0 14px, rgba(61, 155, 255, 0.03) 14px 15px),
+    #0d131b;
+  overflow: hidden;
+}
+
+[data-theme='light'] .pu-zona {
+  --pu-acento: #1867c0;
+  --pu-acento-suave: rgba(24, 103, 192, 0.12);
+  --pc-panel: #e4ebf3;
+  --pc-panel-borde: #98a9bd;
+  --pc-bisel: #1f2a37;
+  --pc-placa: #1b2d45;
+  --pc-placa-texto: #eef4fb;
+  --pc-lcd: #0e1621;
+  background:
+    radial-gradient(120% 60% at 0% 0%, var(--pu-acento-suave), transparent 60%),
+    #d3dde8;
+}
+
+/* Barrido del radar sobre el borde superior: solo adorno, se apaga con «reducir movimiento». */
+.pu-zona::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -30%;
+  width: 30%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #bfe0ff, transparent);
+  animation: pu-barrido 6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes pu-barrido {
+  to { left: 100%; }
+}
+
+.pu-cabeza {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.7rem;
+}
+
+.pu-insignia {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 2px solid var(--pu-acento);
+  background: var(--pc-lcd);
+  color: var(--pu-acento);
+  box-shadow: 0 0 14px var(--pu-acento-suave), inset 0 0 10px var(--pu-acento-suave);
+}
+
+.pu-titulo {
+  margin: 0;
+  font: 700 clamp(1.05rem, 2.2vw, 1.4rem) / 1.1 var(--font-space-grotesk), system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pu-sub {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: var(--pc-suave);
+}
+
+.pu-estado {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--pc-panel-borde);
+  background: var(--pc-lcd);
+  font: 700 0.75rem var(--font-space-grotesk), system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pc-dig-verde);
+  white-space: nowrap;
+}
+.pu-estado[data-estado='precaucion'] { color: var(--pc-dig-ambar); }
+.pu-estado[data-estado='alarma'] { color: var(--pc-dig-rojo); }
+.pu-estado[data-estado='sin-dato'] { color: var(--pc-suave); }
+
+.pu-franja {
+  margin-bottom: 0.7rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--pc-panel-borde);
+  border-left: 5px solid var(--pc-verde);
+  background: var(--pc-panel);
+  font-size: 0.85rem;
+  color: var(--pc-suave);
+}
+.pu-franja[data-estado='precaucion'] { border-left-color: var(--pc-ambar); }
+.pu-franja[data-estado='alarma'] { border-left-color: var(--pc-rojo); }
+.pu-franja[data-estado='sin-dato'] { border-left-color: var(--pc-gris); }
+.pu-franja .pc-general-lista { margin: 0; }
+
+/* Lecturas digitales de un vistazo */
+.pu-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.7rem;
+}
+
+.pu-kpi {
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  border: 3px solid var(--pc-bisel);
+  background:
+    repeating-linear-gradient(0deg, var(--pc-lcd-raya) 0 1px, transparent 1px 3px),
+    var(--pc-lcd);
+}
+
+.pu-kpi-etiqueta {
+  font: 700 0.64rem / 1.1 var(--font-space-grotesk), system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8fb6de;
+}
+
+.pu-kpi-valor {
+  font: 600 clamp(1.05rem, 2.2vw, 1.45rem) / 1.1 var(--font-geist-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  color: #9fd2ff;
+  text-shadow: 0 0 10px rgba(61, 155, 255, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pu-kpi-detalle {
+  font-size: 0.7rem;
+  color: #7f97b1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pc-banco.pu-banco {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.pu-zona .pc-medidor[aria-pressed='true'] { border-color: var(--pu-acento); }
+.pu-zona .pc-medidor:focus-visible { outline-color: var(--pu-acento); }
+.pu-zona .pc-detalle-cabeza { border-bottom: 2px solid var(--pu-acento); }
+
+@media (max-width: 900px) {
+  .pc-banco.pu-banco { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pu-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .pu-cabeza { flex-wrap: wrap; }
+  .pu-estado { margin-left: 0; }
+  .pu-insignia { width: 38px; height: 38px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pu-zona::before { animation: none; display: none; }
+}
