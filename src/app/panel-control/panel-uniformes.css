@@ -40,7 +40,7 @@
 .pu-zona::before {
   content: '';
   position: absolute;
-  top: -3px;
+  top: 0;
   left: -30%;
   width: 30%;
   height: 3px;
@@ -186,4 +186,68 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pu-zona::before { animation: none; display: none; }
+}
+
+/* ── Cabina: pulso propio, visores HUD e insignia hexagonal (solo presentación) ── */
+.pu-zona {
+  clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+}
+.pu-insignia {
+  border: 0;
+  border-radius: 0;
+  clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%);
+  background: linear-gradient(160deg, rgba(61, 155, 255, 0.35), rgba(6, 11, 18, 0.95));
+  box-shadow: none;
+}
+.pu-zona .pc-ecg {
+  margin: 0 0 0.7rem;
+  border-color: rgba(61, 155, 255, 0.25);
+  background:
+    repeating-linear-gradient(90deg, rgba(61, 155, 255, 0.09) 0 1px, transparent 1px 14px),
+    repeating-linear-gradient(0deg, rgba(61, 155, 255, 0.09) 0 1px, transparent 1px 14px),
+    #030812;
+}
+.pu-zona .pc-ecg[data-estado='normal'] { --ecg: #6cc4ff; }
+.pu-zona .pc-placa-codigo { border-color: rgba(61, 155, 255, 0.4); color: #9fd2ff; }
+.pu-zona .pc-medidor[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 1px var(--pu-acento), inset 0 0 26px var(--pu-acento-suave);
+}
+.pu-zona .pc-medidor:hover { border-color: rgba(61, 155, 255, 0.4); }
+.pu-zona .pc-banco::before,
+.pu-zona .pc-banco::after { border-color: var(--pu-acento); }
+
+.pu-kpi {
+  position: relative;
+  border: 1px solid rgba(61, 155, 255, 0.3);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+.pu-kpi::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10px;
+  width: 38%;
+  height: 2px;
+  background: var(--pu-acento);
+  box-shadow: 0 0 10px var(--pu-acento);
+}
+.pu-kpi::after {
+  content: '';
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6cc4ff;
+  box-shadow: 0 0 6px #6cc4ff;
+  animation: pu-latido 2.4s ease-in-out infinite;
+}
+@keyframes pu-latido {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pu-kpi::after { animation: none; }
 }

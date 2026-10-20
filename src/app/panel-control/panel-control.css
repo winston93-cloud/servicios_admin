@@ -877,3 +877,245 @@
   .pc-columna,
   .pc-aguja { transition-delay: 0s; }
 }
+
+/* ── Nave: paneles con esquinas cortadas, líneas de barrido y códigos de telemetría ── */
+.pc-general,
+.pc-detalle,
+.pc-medidor {
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+.pc-medidor { position: relative; }
+.pc-medidor::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px);
+}
+.pc-medidor:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--pc-ambar); }
+.pc-medidor[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 1px var(--pc-hud), inset 0 0 26px var(--pc-hud-suave);
+}
+[data-theme='light'] .pc-medidor[aria-pressed='true'] { box-shadow: inset 0 0 0 1px var(--pc-hud); }
+
+.pc-placa-codigo {
+  margin-left: auto;
+  flex: none;
+  padding: 1px 4px;
+  border: 1px solid rgba(94, 231, 255, 0.3);
+  border-radius: 3px;
+  font: 600 0.56rem / 1.2 var(--font-geist-mono), ui-monospace, monospace;
+  letter-spacing: 0.04em;
+  color: #8fe9ff;
+  opacity: 0.8;
+}
+
+/* ── Electrocardiograma ── */
+.pc-ecg {
+  --ecg: #39ff8f;
+  --ecg-vel: 6s;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 0.6rem;
+  padding: 0.45rem 0.8rem;
+  border: 1px solid rgba(94, 231, 255, 0.18);
+  background:
+    repeating-linear-gradient(90deg, rgba(94, 231, 255, 0.07) 0 1px, transparent 1px 14px),
+    repeating-linear-gradient(0deg, rgba(94, 231, 255, 0.07) 0 1px, transparent 1px 14px),
+    #02060c;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+.pc-ecg[data-estado='precaucion'] { --ecg: #ffc94d; --ecg-vel: 3s; }
+.pc-ecg[data-estado='alarma'] {
+  --ecg: #ff5847;
+  --ecg-vel: 1.3s;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 88, 71, 0.09) 0 1px, transparent 1px 14px),
+    repeating-linear-gradient(0deg, rgba(255, 88, 71, 0.09) 0 1px, transparent 1px 14px),
+    #0d0405;
+}
+.pc-ecg[data-estado='sin-dato'] { --ecg: #6f7c90; }
+
+.pc-ecg-rotulo {
+  flex: none;
+  display: grid;
+  gap: 0.15rem;
+  width: 220px;
+  min-width: 0;
+}
+.pc-ecg-etiqueta {
+  font: 700 0.66rem / 1.1 var(--font-space-grotesk), system-ui, sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ecg);
+}
+.pc-ecg-detalle {
+  font: 500 0.66rem / 1.2 var(--font-geist-mono), ui-monospace, monospace;
+  color: #8e9bb2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pc-ecg-pantalla {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 88%, transparent);
+}
+.pc-ecg-cinta {
+  display: flex;
+  width: 200%;
+  height: 100%;
+  animation: pc-ecg-mover var(--ecg-vel) linear infinite;
+}
+.pc-ecg[data-estado='sin-dato'] .pc-ecg-cinta { transform: scaleY(0.12); animation: none; }
+.pc-ecg-svg { flex: none; width: 50%; height: 100%; overflow: visible; }
+.pc-ecg-svg path {
+  fill: none;
+  stroke: var(--ecg);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 4px var(--ecg));
+}
+@keyframes pc-ecg-mover { to { transform: translateX(-50%); } }
+
+/* ── Consola: tacómetros de carreras sobre fibra de carbono ── */
+.pc-consola {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.45fr 1fr 1fr;
+  align-items: end;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 1.7rem 1rem 0.9rem;
+  border: 1px solid rgba(94, 231, 255, 0.16);
+  background:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 4px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.3) 0 2px, transparent 2px 4px),
+    linear-gradient(180deg, #0c1322, #05080f);
+  clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+}
+.pc-consola::before {
+  content: 'Consola principal · telemetría';
+  position: absolute;
+  top: 0.55rem;
+  left: 1.1rem;
+  font: 700 0.62rem / 1 var(--font-space-grotesk), system-ui, sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8fe9ff;
+}
+.pc-consola::after {
+  content: '';
+  position: absolute;
+  top: 0.85rem;
+  right: 1rem;
+  left: 14.5rem;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(94, 231, 255, 0.3), transparent);
+}
+
+.pc-taco {
+  --z: #6f7c90;
+  --z-dig: #8e9bb2;
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  justify-items: center;
+  gap: 0.3rem;
+}
+.pc-taco[data-zona='normal'] { --z: #34cd69; --z-dig: #7cf59a; }
+.pc-taco[data-zona='precaucion'] { --z: #f1b42e; --z-dig: #ffc94d; }
+.pc-taco[data-zona='alarma'] { --z: #ff5847; --z-dig: #ff6f61; }
+
+.pc-taco-svg { width: min(100%, 158px); height: auto; overflow: visible; }
+.pc-taco[data-grande] .pc-taco-svg { width: min(100%, 236px); }
+
+.pc-taco-bisel { fill: #0b111d; stroke: #3d4c66; stroke-width: 3; }
+.pc-taco-cara { fill: #04070d; stroke: rgba(94, 231, 255, 0.12); stroke-width: 1; }
+.pc-taco-zona { fill: none; stroke-width: 3; }
+.pc-taco-zona[data-zona='normal'] { stroke: #34cd69; }
+.pc-taco-zona[data-zona='precaucion'] { stroke: #f1b42e; }
+.pc-taco-zona[data-zona='alarma'] { stroke: #ff5847; }
+.pc-taco-pista { fill: none; stroke: rgba(255, 255, 255, 0.06); stroke-width: 9; }
+.pc-taco-valor {
+  fill: none;
+  stroke: var(--z);
+  stroke-width: 9;
+  filter: drop-shadow(0 0 5px var(--z));
+  transition: stroke-dashoffset 1.4s cubic-bezier(0.2, 0.8, 0.2, 1), stroke 0.4s ease;
+}
+.pc-taco-marca { stroke: rgba(220, 230, 245, 0.45); stroke-width: 1.2; }
+.pc-taco-marca[data-mayor] { stroke: #e3e9f4; stroke-width: 2.4; }
+.pc-taco-marca[data-mayor][data-zona='alarma'] { stroke: #ff5847; }
+.pc-taco-num {
+  fill: #a9b8cf;
+  font: 600 11px var(--font-geist-mono), ui-monospace, monospace;
+}
+.pc-taco-aguja {
+  transform-box: view-box;
+  transform-origin: 100px 100px;
+  transition: transform 1.6s cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+.pc-taco-aguja polygon { fill: #ff3b2f; filter: drop-shadow(0 0 4px rgba(255, 59, 47, 0.8)); }
+.pc-taco-eje { fill: #1b2433; stroke: #56688a; stroke-width: 2; }
+.pc-taco-eje-luz { fill: #8fe9ff; filter: drop-shadow(0 0 3px #5ee7ff); }
+.pc-taco-lectura {
+  fill: var(--z-dig);
+  font: 600 25px var(--font-geist-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  filter: drop-shadow(0 0 6px var(--z));
+}
+.pc-taco-unidad { font-size: 12px; }
+
+.pc-taco-pie { display: grid; justify-items: center; gap: 0.1rem; text-align: center; min-width: 0; }
+.pc-taco-etiqueta {
+  font: 700 0.72rem / 1.1 var(--font-space-grotesk), system-ui, sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #e3e9f4;
+}
+.pc-taco[data-grande] .pc-taco-etiqueta { font-size: 0.86rem; color: #8fe9ff; }
+.pc-taco-sub {
+  max-width: 100%;
+  font-size: 0.7rem;
+  color: #8e9bb2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pc-taco[data-zona='precaucion'] .pc-taco-sub { color: #ffc94d; }
+.pc-taco[data-zona='alarma'] .pc-taco-sub { color: #ff6f61; }
+
+@media (max-width: 1100px) {
+  .pc-banco--sistemas .pc-placa-codigo { display: none; }
+}
+
+@media (max-width: 900px) {
+  .pc-consola { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .pc-taco[data-grande] { grid-column: 1 / -1; order: -1; }
+  .pc-ecg-rotulo { width: 150px; }
+}
+
+@media (max-width: 640px) {
+  .pc-placa-codigo { display: none; }
+  .pc-consola { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 1.6rem 0.6rem 0.8rem; gap: 0.6rem 0.4rem; }
+  .pc-consola::after { left: 13rem; }
+  .pc-taco[data-grande] .pc-taco-svg { width: min(100%, 200px); }
+  .pc-ecg { flex-wrap: wrap; gap: 0.3rem; }
+  .pc-ecg-rotulo { width: 100%; grid-auto-flow: column; grid-template-columns: auto minmax(0, 1fr); gap: 0.6rem; align-items: baseline; }
+  .pc-ecg-detalle { text-align: right; }
+  .pc-taco-etiqueta { font-size: 0.64rem; letter-spacing: 0.05em; }
+  .pc-ecg-pantalla { flex-basis: 100%; height: 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-ecg-cinta { animation: none; }
+  .pc-taco-aguja,
+  .pc-taco-valor { transition: none; }
+}

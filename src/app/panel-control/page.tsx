@@ -18,6 +18,7 @@ import {
 } from '@/lib/panelControl/tipos'
 import './panel-control.css'
 import PanelUniformes from './PanelUniformes'
+import { Electro, Tacometro, ZONAS_LIMITE } from './Instrumentos'
 
 const NOMBRES = ['Pagos', 'Facturación', 'RAC', 'Talleres', 'Open House', 'InsForge', 'Vercel', 'Desarrollo']
 
@@ -160,6 +161,7 @@ function PanelControlView() {
   }
 
   const enVerde = todos.filter((m) => m.estado === 'normal').length
+  const consola = leerConsola(medidores, sistemas)
   const general: EstadoMedidor = !datos
     ? 'sin-dato'
     : conProblema.some((m) => m.estado === 'alarma')
@@ -216,11 +218,53 @@ function PanelControlView() {
         ) : null}
       </section>
 
+      <Electro
+        estado={general}
+        etiqueta="Pulso de la infraestructura"
+        detalle={datos ? `${todos.length} señales · lectura cada ${PANEL_CONTROL_REFRESCO_MS / 1000} s` : 'Conectando…'}
+      />
+
       {error ? (
         <p className="pc-error" role="alert">
           {error} {datos ? 'Se muestran las últimas lecturas.' : ''}
         </p>
       ) : null}
+
+      <section className="pc-consola" aria-label="Consola principal">
+        <Tacometro
+          valor={consola.procesos.valor}
+          etiqueta="Procesos"
+          sub={consola.procesos.sub}
+          cargando={!datos}
+        />
+        <Tacometro
+          valor={consola.conexiones.valor}
+          etiqueta="Conexiones"
+          sub={consola.conexiones.sub}
+          zonas={ZONAS_LIMITE}
+          cargando={!datos}
+        />
+        <Tacometro
+          grande
+          valor={consola.salud}
+          etiqueta="Salud general"
+          sub="promedio de las 18 señales"
+          cargando={!datos}
+        />
+        <Tacometro
+          valor={consola.base.valor}
+          etiqueta="Respuesta de la base"
+          sub="Winston Servicios"
+          lectura={consola.base.lectura}
+          cargando={!datos}
+        />
+        <Tacometro
+          valor={consola.sistemas.valor}
+          etiqueta="Sistemas"
+          sub={consola.sistemas.sub}
+          cargando={!datos}
+        />
+      </section>
 
       <h2 className="pc-banco-titulo">Procesos</h2>
       <section className="pc-banco" aria-label="Medidores de los procesos">
@@ -229,6 +273,7 @@ function PanelControlView() {
             key={m.id}
             m={m}
             orden={i}
+            codigo={`P-${String(i + 1).padStart(2, '0')}`}
             cargando={!datos}
             elegido={m.id === seleccionado?.id}
             parpadea={m.estado === 'alarma' && !reconocidas.has(m.id)}
@@ -244,6 +289,7 @@ function PanelControlView() {
             key={m.id}
             m={m}
             orden={medidores.length + i}
+            codigo={`S-${String(i + 1).padStart(2, '0')}`}
             cargando={!datos}
             elegido={m.id === seleccionado?.id}
             parpadea={m.estado === 'alarma' && !reconocidas.has(m.id)}
@@ -360,9 +406,34 @@ function Radar({ medidores, cargando }: { medidores: MedidorProceso[]; cargando:
   )
 }
 
+/** Lo que muestran los tacómetros de la consola, sacado de las lecturas que ya llegaron. */
+function leerConsola(medidores: MedidorProceso[], sistemas: MedidorProceso[]) {
+  const peor = (lista: MedidorProceso[]) => {
+    const conValor = lista.filter((m) => m.valor != null)
+    if (!conValor.length) return { valor: null, sub: 'sin lectura' }
+    const m = conValor.reduce((a, b) => ((b.valor ?? 100) < (a.valor ?? 100) ? b : a))
+    return { valor: m.valor, sub: m.estado === 'normal' ? `${lista.length} de ${lista.length} en verde` : `manda ${m.nombre}` }
+  }
+  const valores = [...medidores, ...sistemas].map((m) => m.valor).filter((v): v is number => v != null)
+  const insforge = medidores.find((m) => m.id === 'insforge')
+  const piezaCon = insforge?.piezas.find((p) => p.id === 'conexiones')
+  const uso = piezaCon?.lectura.match(/(\d+) de (\d+) en uso/)
+  const base = insforge?.piezas.find((p) => p.id === 'base')
+  return {
+    procesos: peor(medidores),
+    sistemas: peor(sistemas),
+    salud: valores.length ? Math.round(valores.reduce((a, b) => a + b, 0) / valores.length) : null,
+    conexiones: uso
+      ? { valor: Math.round((Number(uso[1]) / Number(uso[2])) * 100), sub: `${uso[1]} de ${uso[2]} en uso` }
+      : { valor: null, sub: 'sin lectura' },
+    base: { valor: base?.valor ?? null, lectura: base?.lectura.replace(/^contesta en /, '') },
+  }
+}
+
 function Medidor({
   m,
   orden,
+  codigo,
   cargando,
   elegido,
   parpadea,
@@ -370,6 +441,7 @@ function Medidor({
 }: {
   m: MedidorProceso
   orden: number
+  codigo: string
   cargando: boolean
   elegido: boolean
   parpadea: boolean
@@ -393,6 +465,9 @@ function Medidor({
         <span className="pc-placa-texto">
           <span className="pc-placa-nombre">{NOMBRE_PLACA[m.id] ?? m.nombre}</span>
           {INFRA_PLACA[m.id] ? <span className="pc-placa-infra">{INFRA_PLACA[m.id]}</span> : null}
+        </span>
+        <span className="pc-placa-codigo" aria-hidden>
+          {codigo}
         </span>
       </span>
 

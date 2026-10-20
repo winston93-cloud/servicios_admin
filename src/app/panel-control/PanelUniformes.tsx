@@ -12,6 +12,7 @@ import {
 } from '@/lib/panelControl/tipos'
 import type { PanelUniformesRespuesta } from '@/lib/panelControl/uniformes'
 import './panel-uniformes.css'
+import { Electro } from './Instrumentos'
 
 /** Banco de Uniformes: zona propia debajo del panel de Servicios, con su lectura y su detalle. */
 
@@ -138,6 +139,12 @@ export default function PanelUniformes() {
         )}
       </div>
 
+      <Electro
+        estado={general}
+        etiqueta="Pulso de Uniformes"
+        detalle={datos ? `${medidores.length} señales · ventas, stock y enlace` : 'Conectando…'}
+      />
+
       {error ? (
         <p className="pc-error" role="alert">
           {error} {datos ? 'Se muestran las últimas lecturas.' : ''}
@@ -155,10 +162,12 @@ export default function PanelUniformes() {
       </div>
 
       <section className="pc-banco pu-banco" aria-label="Medidores de Uniformes">
-        {medidores.map((m) => (
+        {medidores.map((m, i) => (
           <Medidor
             key={m.id}
             m={m}
+            orden={i}
+            codigo={`U-${String(i + 1).padStart(2, '0')}`}
             cargando={!datos}
             elegido={m.id === seleccionado?.id}
             onElegir={() => setElegido(m.id)}
@@ -185,11 +194,15 @@ const KPIS_VACIOS = [
 
 function Medidor({
   m,
+  orden,
+  codigo,
   cargando,
   elegido,
   onElegir,
 }: {
   m: MedidorProceso
+  orden: number
+  codigo: string
   cargando: boolean
   elegido: boolean
   onElegir: () => void
@@ -204,6 +217,7 @@ function Medidor({
       data-cargando={cargando || undefined}
       aria-pressed={elegido}
       onClick={onElegir}
+      style={{ '--i': orden } as React.CSSProperties}
       aria-label={`Uniformes ${m.nombre}: ${valor == null ? 'sin lectura' : `${valor}%`}, ${m.resumen}`}
     >
       <span className="pc-placa">
@@ -211,6 +225,9 @@ function Medidor({
         <span className="pc-placa-texto">
           <span className="pc-placa-nombre">{m.nombre}</span>
           <span className="pc-placa-infra">{INFRA[m.id]}</span>
+        </span>
+        <span className="pc-placa-codigo" aria-hidden>
+          {codigo}
         </span>
       </span>
 
