@@ -18,12 +18,31 @@ import {
 } from '@/lib/panelControl/tipos'
 import './panel-control.css'
 
-const ETIQUETA_ESTADO: Record<EstadoMedidor, string> = {
-  normal: 'Normal',
-  precaucion: 'Precaución',
-  alarma: 'Alarma',
-  'sin-dato': 'Sin lectura',
+const NOMBRES = ['Pagos', 'Facturación', 'RAC', 'Talleres', 'Open House', 'InsForge', 'Vercel', 'Desarrollo']
+
+/** Nombre de placa: corto para que quepa entero en el banco. */
+const NOMBRE_PLACA: Record<string, string> = {
+  facturacion: 'Facturación',
+  reportes: 'RAC',
 }
+
+const PLACEHOLDER: MedidorProceso[] = NOMBRES.map((nombre, i) => ({
+  id: `p${i}`,
+  nombre,
+  mide: '',
+  valor: null,
+  estado: 'sin-dato',
+  piezas: [],
+  resumen: 'Leyendo…',
+}))
+
+const ZONAS: { desde: number; hasta: number; estado: EstadoMedidor }[] = [
+  { desde: 0, hasta: UMBRALES_SALUD[0], estado: 'alarma' },
+  { desde: UMBRALES_SALUD[0], hasta: UMBRALES_SALUD[1], estado: 'precaucion' },
+  { desde: UMBRALES_SALUD[1], hasta: 100, estado: 'normal' },
+]
+
+const MARCAS = [0, UMBRALES_SALUD[0], UMBRALES_SALUD[1], 100]
 
 export default function PanelControlPage() {
   return (
@@ -42,6 +61,7 @@ function PanelControlView() {
   const [leyendo, setLeyendo] = useState(false)
   const [siguiente, setSiguiente] = useState(0)
   const [reconocidas, setReconocidas] = useState<Set<string>>(() => new Set())
+  const [elegido, setElegido] = useState<string | null>(null)
   const enCurso = useRef(false)
 
   const leer = useCallback(async () => {
@@ -83,7 +103,7 @@ function PanelControlView() {
     }
   }, [permitido, leer])
 
-  const medidores = useMemo(() => datos?.medidores ?? [], [datos])
+  const medidores = useMemo(() => (datos?.medidores.length ? datos.medidores : PLACEHOLDER), [datos])
   const enAlarma = useMemo(() => medidores.filter((m) => m.estado === 'alarma').map((m) => m.id), [medidores])
 
   useEffect(() => {
@@ -94,6 +114,10 @@ function PanelControlView() {
   }, [enAlarma])
 
   const sinReconocer = enAlarma.filter((id) => !reconocidas.has(id))
+  const conProblema = medidores
+    .filter((m) => m.estado === 'alarma' || m.estado === 'precaucion')
+    .sort((a, b) => (a.valor ?? 100) - (b.valor ?? 100))
+  const seleccionado = medidores.find((m) => m.id === elegido) ?? conProblema[0] ?? medidores[0]
 
   if (!permitido) {
     return (
@@ -106,42 +130,51 @@ function PanelControlView() {
     )
   }
 
+  const general: EstadoMedidor = !datos
+    ? 'sin-dato'
+    : conProblema.some((m) => m.estado === 'alarma')
+      ? 'alarma'
+      : conProblema.length
+        ? 'precaucion'
+        : 'normal'
+
   return (
     <Marco
       onVolver={() => router.push('/dashboard')}
-      barra={
-        <Reloj
-          siguiente={siguiente}
-          leidoEn={datos?.leidoEn ?? null}
-          leyendo={leyendo}
-          onLeer={() => void leer()}
-        />
-      }
+      reloj={<Reloj siguiente={siguiente} leidoEn={datos?.leidoEn ?? null} leyendo={leyendo} onLeer={() => void leer()} />}
     >
-      <section className="pc-anunciador" aria-label="Panel de alarmas">
-        <div className="pc-anunciador-ventanas">
-          {(medidores.length ? medidores : PLACEHOLDER).map((m) => (
-            <div
-              key={m.id}
-              className="pc-ventana"
-              data-estado={m.estado}
-              data-parpadeo={m.estado === 'alarma' && !reconocidas.has(m.id) ? '' : undefined}
-              title={m.motivo ?? ETIQUETA_ESTADO[m.estado]}
-            >
-              <span className="pc-ventana-nombre">{m.nombre}</span>
-              <span className="pc-ventana-estado">{datos ? ETIQUETA_ESTADO[m.estado] : '—'}</span>
-            </div>
-          ))}
+      <section className="pc-general" data-estado={general} aria-live="polite">
+        <span className="pc-lampara pc-lampara-grande" data-estado={general} aria-hidden />
+        <div className="pc-general-texto pc-min0">
+          <p className="pc-general-titulo">
+            {general === 'sin-dato'
+              ? 'Leyendo la infraestructura…'
+              : general === 'normal'
+                ? 'Toda la infraestructura opera con normalidad'
+                : general === 'alarma'
+                  ? 'Alarma en la infraestructura'
+                  : 'Atención: hay piezas fuera de lo normal'}
+          </p>
+          {conProblema.length ? (
+            <ul className="pc-general-lista">
+              {conProblema.slice(0, 3).map((m) => (
+                <li key={m.id}>
+                  <b>{m.nombre}</b> · {m.resumen}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="pc-general-sub">
+              {datos ? '8 de 8 procesos en verde: responden a tiempo y sin fallos del sistema.' : ' '}
+            </p>
+          )}
         </div>
-        <button
-          type="button"
-          className="pc-reconocer"
-          disabled={!sinReconocer.length}
-          onClick={() => setReconocidas(new Set(enAlarma))}
-        >
-          <BellOff size={16} aria-hidden />
-          Reconocer alarmas
-        </button>
+        {sinReconocer.length ? (
+          <button type="button" className="pc-reconocer" onClick={() => setReconocidas(new Set(enAlarma))}>
+            <BellOff size={16} aria-hidden />
+            Reconocer alarmas
+          </button>
+        ) : null}
       </section>
 
       {error ? (
@@ -150,49 +183,37 @@ function PanelControlView() {
         </p>
       ) : null}
 
-      <section className="pc-tablero" aria-label="Medidores de los procesos" aria-busy={!datos}>
-        {(medidores.length ? medidores : PLACEHOLDER).map((m) => (
-          <Medidor key={m.id} m={m} cargando={!datos} />
+      <section className="pc-banco" aria-label="Medidores de los procesos">
+        {medidores.map((m) => (
+          <Medidor
+            key={m.id}
+            m={m}
+            cargando={!datos}
+            elegido={m.id === seleccionado?.id}
+            parpadea={m.estado === 'alarma' && !reconocidas.has(m.id)}
+            onElegir={() => setElegido(m.id)}
+          />
         ))}
       </section>
 
+      {seleccionado && datos ? <Detalle m={seleccionado} /> : null}
+
       <p className="pc-leyenda">
-        Cada barra es la salud de la infraestructura del proceso y la manda su pieza más débil: tiempo de respuesta,
-        fallos del sistema en 24 h (sin contar errores de datos de terceros) y que las tareas automáticas corran a su
-        hora. Zonas: <b className="pc-ley pc-ley-normal">verde</b> normal (90 o más),{' '}
-        <b className="pc-ley pc-ley-precaucion">ámbar</b> precaución (60 a 89), <b className="pc-ley pc-ley-alarma">rojo</b>{' '}
-        alarma. Una lámpara que parpadea es una alarma nueva; «Reconocer alarmas» la deja fija.
+        Cada barra es la salud de la infraestructura del proceso: responde a tiempo, sin fallos del sistema y con sus
+        tareas automáticas al día. Manda la pieza más débil. Toca un medidor para ver sus piezas.
       </p>
     </Marco>
   )
 }
 
-const PLACEHOLDER: MedidorProceso[] = [
-  'Pagos',
-  'Facturación CFDI',
-  'Reportes RAC',
-  'Talleres',
-  'Open House',
-  'InsForge',
-  'Vercel',
-  'Desarrollo',
-].map((nombre, i) => ({
-  id: `p${i}`,
-  nombre,
-  mide: '',
-  valor: null,
-  estado: 'sin-dato',
-  piezas: [],
-}))
-
 function Marco({
   children,
   onVolver,
-  barra,
+  reloj,
 }: {
   children: React.ReactNode
   onVolver: () => void
-  barra?: React.ReactNode
+  reloj?: React.ReactNode
 }) {
   return (
     <div className="pc-page">
@@ -201,15 +222,12 @@ function Marco({
           <button type="button" className="pc-boton" onClick={onVolver}>
             <ArrowLeft size={16} aria-hidden /> Dashboard
           </button>
-          <ThemeToggle />
-        </header>
-        <div className="pc-cabecera">
-          <div className="pc-min0">
-            <h1 className="pc-titulo">Panel de control</h1>
-            <p className="pc-lead">Salud de la infraestructura de los 8 procesos, leída en vivo cada 30 segundos.</p>
+          <h1 className="pc-titulo">Panel de control</h1>
+          <div className="pc-topbar-der">
+            {reloj}
+            <ThemeToggle />
           </div>
-          {barra}
-        </div>
+        </header>
         {children}
       </div>
     </div>
@@ -233,12 +251,12 @@ function Reloj({
     return () => window.clearInterval(t)
   }, [])
   const faltan = siguiente ? Math.max(0, Math.ceil((siguiente - ahora) / 1000)) : 0
-  const fmt = (d: Date, seg = true) =>
+  const fmt = (d: Date) =>
     d.toLocaleTimeString('es-MX', {
       timeZone: 'America/Monterrey',
       hour: '2-digit',
       minute: '2-digit',
-      ...(seg ? { second: '2-digit' } : {}),
+      second: '2-digit',
       hour12: false,
     })
   return (
@@ -247,104 +265,107 @@ function Reloj({
         {fmt(new Date(ahora))}
       </div>
       <div className="pc-reloj-info">
-        <span>Última lectura {leidoEn ? fmt(new Date(leidoEn)) : '—'}</span>
+        <span>Leído {leidoEn ? fmt(new Date(leidoEn)) : '—'}</span>
         <span>{leyendo ? 'Leyendo…' : `Siguiente en ${faltan} s`}</span>
       </div>
-      <button type="button" className="pc-boton" onClick={onLeer} disabled={leyendo}>
+      <button type="button" className="pc-boton pc-boton-icono" onClick={onLeer} disabled={leyendo} title="Leer ahora">
         <RefreshCw size={16} aria-hidden className={leyendo ? 'pc-girando' : undefined} />
-        Leer ahora
+        <span className="pc-solo-lector">Leer ahora</span>
       </button>
     </div>
   )
 }
 
-const MARCAS = [0, 20, 40, 60, 80, 100]
-
-const ZONAS: { desde: number; hasta: number; estado: EstadoMedidor }[] = [
-  { desde: 0, hasta: UMBRALES_SALUD[0], estado: 'alarma' },
-  { desde: UMBRALES_SALUD[0], hasta: UMBRALES_SALUD[1], estado: 'precaucion' },
-  { desde: UMBRALES_SALUD[1], hasta: 100, estado: 'normal' },
-]
-
-function Medidor({ m, cargando }: { m: MedidorProceso; cargando: boolean }) {
+function Medidor({
+  m,
+  cargando,
+  elegido,
+  parpadea,
+  onElegir,
+}: {
+  m: MedidorProceso
+  cargando: boolean
+  elegido: boolean
+  parpadea: boolean
+  onElegir: () => void
+}) {
   const valor = m.valor == null ? null : Math.max(0, Math.min(100, m.valor))
   const zona = estadoPorValor(valor)
   return (
-    <article className="pc-medidor" data-estado={m.estado} data-cargando={cargando || undefined}>
-      <header className="pc-placa">
-        <span className="pc-lampara" data-estado={m.estado} aria-hidden />
-        <h2>{m.nombre}</h2>
-        <span className="pc-placa-estado">{cargando ? '' : ETIQUETA_ESTADO[m.estado]}</span>
-      </header>
+    <button
+      type="button"
+      className="pc-medidor"
+      data-estado={m.estado}
+      data-cargando={cargando || undefined}
+      aria-pressed={elegido}
+      onClick={onElegir}
+      aria-label={`${m.nombre}: ${valor == null ? 'sin lectura' : `${valor}%`}, ${m.resumen}`}
+    >
+      <span className="pc-placa">
+        <span className="pc-lampara" data-estado={m.estado} data-parpadeo={parpadea || undefined} aria-hidden />
+        <span className="pc-placa-nombre">{NOMBRE_PLACA[m.id] ?? m.nombre}</span>
+      </span>
 
-      <div className="pc-cuerpo">
-        <div
-          className="pc-instrumento"
-          role="meter"
-          aria-label={`${m.nombre}: ${m.mide}`}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={valor ?? undefined}
-          aria-valuetext={valor == null ? 'Sin lectura' : `${valor}%, ${ETIQUETA_ESTADO[zona]}`}
-        >
-          <div className="pc-escala" aria-hidden>
-            {MARCAS.map((v) => (
-              <span key={v} style={{ bottom: `${v}%` }}>
-                {v}
-              </span>
-            ))}
-          </div>
-          <div className="pc-franjas" aria-hidden>
-            {ZONAS.map((z) => (
-              <span
-                key={z.estado}
-                data-zona={z.estado}
-                style={{ bottom: `${z.desde}%`, height: `${Math.max(0, z.hasta - z.desde)}%` }}
-              />
-            ))}
-          </div>
-          <div className="pc-tubo" aria-hidden>
-            <div className="pc-rayas" />
-            <div className="pc-columna" data-zona={zona} style={{ height: `${valor ?? 0}%` }} />
-            {valor != null ? <div className="pc-aguja" data-zona={zona} style={{ bottom: `${valor}%` }} /> : null}
-          </div>
-        </div>
-
-        <div className="pc-datos pc-min0">
-          <div className="pc-digital" data-zona={zona}>
-            <span className="pc-digital-valor">{valor == null ? '- - -' : valor}</span>
-            {valor == null ? null : <span className="pc-digital-unidad">%</span>}
-          </div>
-          {m.mide ? <p className="pc-mide">{m.mide}</p> : null}
-          {m.motivo ? <p className="pc-motivo">{m.motivo}</p> : null}
-        </div>
-      </div>
-
-      {m.piezas.length ? (
-        <ul className="pc-piezas" aria-label={`Piezas de ${m.nombre}`}>
-          {m.piezas.map((p) => (
-            <li key={p.id} className="pc-pieza" data-estado={p.estado}>
-              <div className="pc-pieza-fila">
-                <span className="pc-pieza-nombre">{p.nombre}</span>
-                <span className="pc-pieza-valor">{p.valor == null ? '—' : `${p.valor}%`}</span>
-              </div>
-              <div
-                className="pc-mini"
-                role="meter"
-                aria-label={p.nombre}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={p.valor ?? undefined}
-                aria-valuetext={p.valor == null ? 'Sin lectura' : `${p.valor}%, ${ETIQUETA_ESTADO[p.estado]}`}
-              >
-                <span className="pc-mini-relleno" data-zona={p.estado} style={{ width: `${p.valor ?? 0}%` }} />
-              </div>
-              <p className="pc-pieza-lectura">{p.lectura}</p>
-              {p.fallo ? <p className="pc-pieza-fallo">{p.fallo}</p> : null}
-            </li>
+      <span className="pc-instrumento" aria-hidden>
+        <span className="pc-escala">
+          {MARCAS.map((v) => (
+            <span key={v} style={{ bottom: `${v}%` }}>
+              {v}
+            </span>
           ))}
-        </ul>
-      ) : null}
-    </article>
+        </span>
+        <span className="pc-franjas">
+          {ZONAS.map((z) => (
+            <span key={z.estado} data-zona={z.estado} style={{ bottom: `${z.desde}%`, height: `${z.hasta - z.desde}%` }} />
+          ))}
+        </span>
+        <span className="pc-tubo">
+          <span className="pc-rayas" />
+          <span className="pc-columna" data-zona={zona} style={{ height: `${valor ?? 0}%` }} />
+          {valor != null ? <span className="pc-aguja" style={{ bottom: `${valor}%` }} /> : null}
+        </span>
+      </span>
+
+      <span className="pc-digital" data-zona={zona}>
+        <span className="pc-digital-valor">{valor == null ? '- - -' : valor}</span>
+        {valor == null ? null : <span className="pc-digital-unidad">%</span>}
+      </span>
+      <span className="pc-resumen">{m.resumen}</span>
+    </button>
+  )
+}
+
+function Detalle({ m }: { m: MedidorProceso }) {
+  return (
+    <section className="pc-detalle" data-estado={m.estado} aria-label={`Piezas de ${m.nombre}`}>
+      <header className="pc-detalle-cabeza">
+        <h2>{m.nombre}</h2>
+        <span>{m.mide}</span>
+      </header>
+      <ul className="pc-piezas">
+        {m.piezas.map((p) => (
+          <li key={p.id} className="pc-pieza" data-estado={p.estado}>
+            <div className="pc-pieza-fila">
+              <span className="pc-pieza-nombre">{p.nombre}</span>
+              <span className="pc-pieza-valor">{p.valor == null ? '—' : `${p.valor}%`}</span>
+            </div>
+            <div
+              className="pc-mini"
+              role="meter"
+              aria-label={p.nombre}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={p.valor ?? undefined}
+              aria-valuetext={p.valor == null ? 'Sin lectura' : `${p.valor}%, ${p.corto}`}
+            >
+              <span className="pc-mini-relleno" data-zona={p.estado} style={{ width: `${p.valor ?? 0}%` }} />
+            </div>
+            <p className="pc-pieza-corto">{p.corto === 'bien' ? 'Bien' : p.corto}</p>
+            <p className="pc-pieza-lectura">{p.lectura}</p>
+            {p.fallo ? <p className="pc-pieza-fallo">Último fallo: {p.fallo}</p> : null}
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }

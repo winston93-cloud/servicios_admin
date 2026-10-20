@@ -187,8 +187,17 @@ function seg(ms: number): string {
   return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${ms} ms`
 }
 
-function pieza(base: Omit<PiezaMedida, 'estado'>): PiezaMedida {
-  return { ...base, estado: estadoPorValor(base.valor) }
+function pieza(base: Omit<PiezaMedida, 'estado' | 'corto'> & { corto?: string }): PiezaMedida {
+  const estado = estadoPorValor(base.valor)
+  const corto = estado === 'normal' ? 'bien' : estado === 'sin-dato' ? 'sin lectura' : base.corto ?? base.lectura
+  return { ...base, estado, corto }
+}
+
+type Causa = { valor: number; corto: string }
+
+function peorCausa(causas: (Causa | null)[]): Causa | null {
+  const v = causas.filter((c): c is Causa => c != null)
+  return v.length ? v.reduce((a, b) => (b.valor < a.valor ? b : a)) : null
 }
 
 /** Pieza con operaciones reales (24 h) y, si hay, sonda activa. */
@@ -202,15 +211,19 @@ function piezaServicio(
   const ops = Number(ev?.ops ?? 0)
   const fallos = Number(ev?.fallos ?? 0)
   const p95 = ev?.ms_p95 != null ? Number(ev.ms_p95) : null
-  const vEventos = ops ? minimo(puntajeFallos(fallos, ops), p95 != null ? puntajeLatencia(p95, presupuesto) : null) : null
-  const vSonda = sonda ? (sonda.ok ? puntajeLatencia(sonda.ms, PRESUPUESTO_SONDA_MS) : 0) : null
+  const causa = peorCausa([
+    sonda ? (sonda.ok ? { valor: puntajeLatencia(sonda.ms, PRESUPUESTO_SONDA_MS), corto: `lento (contesta en ${seg(sonda.ms)})` } : { valor: 0, corto: 'no contesta' }) : null,
+    ops ? { valor: puntajeFallos(fallos, ops), corto: `${Math.round((fallos / ops) * 100)}% de operaciones fallan` } : null,
+    ops && p95 != null ? { valor: puntajeLatencia(p95, presupuesto), corto: `lento (tarda hasta ${seg(p95)})` } : null,
+  ])
   const partes: string[] = []
   if (sonda) partes.push(sonda.ok ? `contesta en ${seg(sonda.ms)}` : 'no contesta')
-  partes.push(ops ? `${fallosDe(fallos, ops)}${p95 != null ? ` · p95 ${seg(p95)}` : ''}` : 'sin operaciones en 24 h')
+  partes.push(ops ? `${fallosDe(fallos, ops)}${p95 != null ? ` · tarda hasta ${seg(p95)}` : ''}` : 'sin operaciones en 24 h')
   return pieza({
     id,
     nombre,
-    valor: minimo(vEventos, vSonda),
+    valor: causa?.valor ?? null,
+    corto: causa?.corto,
     lectura: partes.join(' · '),
     fallo: sonda && !sonda.ok ? sonda.detalle : fallos ? ev?.ultimo_fallo ?? undefined : undefined,
   })
@@ -242,13 +255,14 @@ function piezaLatido(tarea: TareaLatido, l: Latido | undefined): PiezaMedida {
   const intento = new Date(l.ultimo_intento).getTime()
   const ultimoOk = l.ultimo_ok ? new Date(l.ultimo_ok).getTime() : 0
   if (intento >= esperada.getTime() - margen && !l.ok) {
-    return pieza({ id: tarea, nombre, valor: 0, lectura: `falló ${horaLocal(l.ultimo_intento)}`, fallo: l.detalle ?? undefined })
+    return pieza({ id: tarea, nombre, valor: 0, corto: 'falló en su última corrida', lectura: `falló ${horaLocal(l.ultimo_intento)}`, fallo: l.detalle ?? undefined })
   }
   if (ultimoOk < esperada.getTime() - margen && Date.now() > esperada.getTime() + margen) {
     return pieza({
       id: tarea,
       nombre,
       valor: 0,
+      corto: 'no corrió a su hora',
       lectura: `no corrió a su hora · último ok ${l.ultimo_ok ? horaLocal(l.ultimo_ok) : 'nunca'}`,
     })
   }
@@ -261,17 +275,13 @@ function proceso(id: string, nombre: string, mide: string, piezas: PiezaMedida[]
   const debil = piezas
     .filter((p) => p.valor != null)
     .sort((a, b) => (a.valor ?? 100) - (b.valor ?? 100))[0]
-  return {
-    id,
-    nombre,
-    mide,
-    valor,
-    estado,
-    piezas,
-    ...(debil && estado !== 'normal' && estado !== 'sin-dato'
-      ? { motivo: `${debil.nombre}: ${debil.fallo ?? debil.lectura}` }
-      : {}),
-  }
+  const resumen =
+    estado === 'sin-dato'
+      ? 'Sin lectura todavía'
+      : estado === 'normal' || !debil
+        ? 'Todo bien'
+        : `${debil.nombre.replace(/\s*\(.*\)$/, '')}: ${debil.corto}`
+  return { id, nombre, mide, valor, estado, piezas, resumen }
 }
 
 export async function leerPanelControl(): Promise<PanelControlRespuesta> {
@@ -307,7 +317,13 @@ export async function leerPanelControl(): Promise<PanelControlRespuesta> {
   }
 
   const piezaBase = m
-    ? pieza({ id: 'base', nombre: 'Base de datos', valor: puntajeLatencia(msBase, PRESUPUESTO_BASE_MS), lectura: `contesta en ${seg(msBase)}` })
+    ? pieza({
+        id: 'base',
+        nombre: 'Base de datos',
+        valor: puntajeLatencia(msBase, PRESUPUESTO_BASE_MS),
+        corto: `lenta (contesta en ${seg(msBase)})`,
+        lectura: `contesta en ${seg(msBase)}`,
+      })
     : pieza({ id: 'base', nombre: 'Base de datos', valor: 0, lectura: 'no contesta', fallo: errorBase })
 
   const ev = m?.piezas ?? {}
@@ -317,6 +333,7 @@ export async function leerPanelControl(): Promise<PanelControlRespuesta> {
     id: 'openpay-avisos',
     nombre: 'Avisos de Openpay',
     valor: wh && wh.ops ? puntajeFallos(wh.fallos, wh.ops) : null,
+    corto: wh?.ops ? `${Math.round((wh.fallos / wh.ops) * 100)}% de avisos fallan` : undefined,
     lectura: wh?.ops ? fallosDe(wh.fallos, wh.ops) : 'sin avisos en 24 h',
     fallo: wh?.fallos ? wh.ultimo_fallo ?? undefined : undefined,
   })
@@ -354,6 +371,7 @@ export async function leerPanelControl(): Promise<PanelControlRespuesta> {
             id: 'app-open-house',
             nombre: 'App de registro',
             valor: appOpenHouse.ok ? puntajeLatencia(appOpenHouse.ms, PRESUPUESTO_APP_MS) : 0,
+            corto: appOpenHouse.ok ? `lenta (${seg(appOpenHouse.ms)})` : 'no contesta',
             lectura: appOpenHouse.ok ? `contesta en ${seg(appOpenHouse.ms)}` : 'no contesta',
           })
         : pieza({ id: 'app-open-house', nombre: 'App de registro', valor: null, lectura: 'sin sonda' }),
@@ -361,12 +379,14 @@ export async function leerPanelControl(): Promise<PanelControlRespuesta> {
         id: 'kommo',
         nombre: 'Integración Kommo',
         valor: k?.registros ? Math.round((k.con_lead / k.registros) * 100) : null,
+        corto: k ? `${k.registros - k.con_lead} registros no llegaron a Kommo` : undefined,
         lectura: k?.registros ? `${k.con_lead} de ${k.registros} registros de 7 días llegaron` : 'sin registros en 7 días',
       }),
       pieza({
         id: 'recordatorios-oh',
         nombre: 'Recordatorios programados',
         valor: k ? (atrasados ? 0 : 100) : null,
+        corto: `${atrasados} recordatorios atrasados`,
         lectura: atrasados ? `${atrasados} atrasados más de 2 h` : `al corriente · ${k?.recordatorios_enviados_7d ?? 0} enviados en 7 días`,
       }),
     ]),
@@ -377,6 +397,7 @@ export async function leerPanelControl(): Promise<PanelControlRespuesta> {
             id: 'conexiones',
             nombre: 'Conexiones',
             valor: Math.max(0, Math.round(100 - Math.max(0, (m.base.conexiones / m.base.max_conexiones) * 100 - 50) * 2)),
+            corto: `${Math.round((m.base.conexiones / m.base.max_conexiones) * 100)}% de conexiones en uso`,
             lectura: `${m.base.conexiones} de ${m.base.max_conexiones} en uso · base ${Math.round(m.base.bytes / 1024 / 1024)} MB`,
           })
         : pieza({ id: 'conexiones', nombre: 'Conexiones', valor: null, lectura: 'sin lectura' }),
@@ -388,6 +409,7 @@ export async function leerPanelControl(): Promise<PanelControlRespuesta> {
           id: 'apps',
           nombre: 'Apps respondiendo',
           valor: listaApps.length ? (caidas.length ? Math.round(100 - caidas.length * 25) : 100) : null,
+          corto: `${caidas.map((a) => a.nombre).join(', ')} no ${caidas.length === 1 ? 'contesta' : 'contestan'}`,
           lectura: listaApps.length ? `${listaApps.length - caidas.length} de ${listaApps.length}` : 'sin sonda',
           fallo: caidas.length ? `Sin respuesta: ${caidas.map((a) => a.nombre).join(', ')}` : undefined,
         })
@@ -398,6 +420,7 @@ export async function leerPanelControl(): Promise<PanelControlRespuesta> {
           id: 'apps-tiempo',
           nombre: 'Tiempo de respuesta',
           valor: lenta ? puntajeLatencia(lenta.ms, PRESUPUESTO_APP_MS) : null,
+          corto: lenta ? `${lenta.nombre} lenta (${seg(lenta.ms)})` : undefined,
           lectura: lenta ? `la más lenta: ${lenta.nombre}, ${seg(lenta.ms)}` : 'sin sonda',
         })
       })(),
@@ -413,6 +436,7 @@ export async function leerPanelControl(): Promise<PanelControlRespuesta> {
             id: 'deploys',
             nombre: 'Deploys (7 días)',
             valor: ultimoFallo ? 0 : terminados ? Math.round((d.listos / terminados) * 100) : 100,
+            corto: ultimoFallo ? 'el último deploy falló' : `${d.error} deploys fallaron`,
             lectura: `${d.total} deploys · ${d.error} con error`,
             fallo: ultimoFallo ? 'El último deploy falló' : undefined,
           }),

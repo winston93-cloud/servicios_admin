@@ -15,8 +15,10 @@ export type PiezaMedida = {
   /** Salud 0–100; null si no hubo actividad ni sonda. */
   valor: number | null
   estado: EstadoMedidor
-  /** Lectura corta: tiempo de respuesta, fallos, latido. */
+  /** Lectura con datos: tiempo de respuesta, fallos, latido. */
   lectura: string
+  /** Frase corta en lenguaje claro: «bien», «no contesta», «lento (9.4 s)». */
+  corto: string
   /** Último fallo del sistema, si lo hubo. */
   fallo?: string
 }
@@ -30,8 +32,8 @@ export type MedidorProceso = {
   valor: number | null
   estado: EstadoMedidor
   piezas: PiezaMedida[]
-  /** Pieza que manda la lectura cuando no está en normal. */
-  motivo?: string
+  /** Frase corta del estado: «Todo bien» o la pieza que falla y por qué. */
+  resumen: string
 }
 
 export type PanelControlRespuesta = {
