@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Clock, X } from 'lucide-react'
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import type { AlumnoSinPagoInscripcion } from '@/lib/inscripcionSinPagoAlerta'
+import { DIAS_AVISO_CONTROL_ESCOLAR } from '@/lib/inscripcionSinPagoNiveles'
 import './inscripcion-sin-pago-popup.css'
 
 function fechaCorta(iso: string): string {
@@ -11,12 +12,14 @@ function fechaCorta(iso: string): string {
   return `${d}/${m}/${y}`
 }
 
-/** Popup cada vez que se entra al dashboard mientras haya alumnos con más de 30 días sin pagar inscripción. */
+/** Popup cada vez que se entra al dashboard mientras haya alumnos sin pagar inscripción (15 días control escolar, 45 directoras). */
 export default function InscripcionSinPagoPopup({ activo }: { activo: boolean }) {
   const tituloId = useId()
   const cerrarRef = useRef<HTMLButtonElement>(null)
   const [alumnos, setAlumnos] = useState<AlumnoSinPagoInscripcion[]>([])
   const [ciclo, setCiclo] = useState('')
+  const [dias, setDias] = useState(0)
+  const [direccion, setDireccion] = useState(false)
   const [abierto, setAbierto] = useState(false)
 
   useEffect(() => {
@@ -24,10 +27,12 @@ export default function InscripcionSinPagoPopup({ activo }: { activo: boolean })
     let cancelado = false
     fetch('/api/control-escolar/alertas-inscripcion', { cache: 'no-store', headers: portalSessionFetchHeaders() })
       .then((r) => (r.ok ? r.json() : null))
-      .then((json: { ciclo?: string; alumnos?: AlumnoSinPagoInscripcion[] } | null) => {
+      .then((json: { ciclo?: string; dias?: number; etapa?: string; alumnos?: AlumnoSinPagoInscripcion[] } | null) => {
         if (cancelado || !json?.alumnos?.length) return
         setAlumnos(json.alumnos)
         setCiclo(json.ciclo ?? '')
+        setDias(Number(json.dias) || 0)
+        setDireccion(json.etapa === 'direccion')
         setAbierto(true)
       })
       .catch(() => {})
@@ -65,7 +70,7 @@ export default function InscripcionSinPagoPopup({ activo }: { activo: boolean })
             <Clock size={30} strokeWidth={2.4} />
           </span>
           <div className="tins-header-copy">
-            <p className="tins-kicker">Control escolar</p>
+            <p className="tins-kicker">{direccion ? 'Dirección' : 'Control escolar'}</p>
             <h2 id={tituloId} className="tins-title">
               {alumnos.length === 1
                 ? 'Un alumno no ha pagado su inscripción'
@@ -73,7 +78,8 @@ export default function InscripcionSinPagoPopup({ activo }: { activo: boolean })
             </h2>
             {ciclo ? <p className="tins-ciclo">Ciclo escolar {ciclo}</p> : null}
             <p className="tins-lead">
-              Más de 30 días desde el inicio del ciclo o, si su referencia se dio después, desde esa fecha.
+              Más de {dias} días desde el inicio del ciclo o, si su referencia se dio después, desde esa fecha.
+              {direccion ? ` Control escolar ya tiene el aviso desde los ${DIAS_AVISO_CONTROL_ESCOLAR} días.` : ''}
             </p>
           </div>
           <button ref={cerrarRef} type="button" className="tins-cerrar" onClick={cerrar} aria-label="Cerrar">

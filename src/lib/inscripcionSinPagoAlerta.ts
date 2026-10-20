@@ -5,8 +5,7 @@ import { pagoVigente } from '@/lib/reportes/pagoReporteHelpers'
 import { construirNombreCompleto, grupoALetra } from '@/lib/alumnoBusquedaServicios'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
-
-export const DIAS_SIN_PAGO_INSCRIPCION = 30
+import { DIAS_AVISO_CONTROL_ESCOLAR } from '@/lib/inscripcionSinPagoNiveles'
 
 export type CicloAlertaInscripcion = {
   valor: number
@@ -63,12 +62,13 @@ function diasEntre(desde: string, hasta: string): number {
 
 /**
  * Alumnos activos del ciclo actual sin inscripción pagada (concepto 13, o los dos diferidos 11 y 12) con más de
- * 30 días contados desde la más reciente entre el inicio del ciclo y el día en que se les dio referencia
+ * `diasMinimos` días (15 control escolar, 45 directoras) contados desde la más reciente entre el inicio del ciclo y el día en que se les dio referencia
  * (`alumno_registro`). Sin fecha de referencia no entran.
  */
 export async function alumnosSinPagoInscripcion(
   niveles: number[],
-  ciclo: CicloAlertaInscripcion
+  ciclo: CicloAlertaInscripcion,
+  diasMinimos: number = DIAS_AVISO_CONTROL_ESCOLAR
 ): Promise<AlumnoSinPagoInscripcion[]> {
   if (!niveles.length) return []
   const db = createDbAdmin()
@@ -113,7 +113,7 @@ export async function alumnosSinPagoInscripcion(
     const cuentaPor = registro > ciclo.inicio ? 'referencia' : 'ciclo'
     const cuentaDesde = cuentaPor === 'referencia' ? registro : ciclo.inicio
     const dias = diasEntre(cuentaDesde, hoy)
-    if (dias <= DIAS_SIN_PAGO_INSCRIPCION) continue
+    if (dias <= diasMinimos) continue
 
     const nivelNum = Number(a.alumno_nivel)
     const grupo = grupoALetra(a.alumno_grupo as string | number | null)

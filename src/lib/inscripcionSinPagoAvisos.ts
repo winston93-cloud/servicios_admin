@@ -9,9 +9,12 @@ import {
   type AlumnoSinPagoInscripcion,
 } from '@/lib/inscripcionSinPagoAlerta'
 import {
+  DIAS_AVISO_CONTROL_ESCOLAR,
+  DIAS_AVISO_DIRECCION,
   TODOS_NIVELES_ALERTA_INSCRIPCION,
-  nivelesAlertaInscripcion,
+  reglaAvisoInscripcion,
   usuariosAlertaInscripcion,
+  type EtapaAvisoInscripcion,
 } from '@/lib/inscripcionSinPagoNiveles'
 
 const DOMINIO_INSTITUCIONAL = '@winston93.edu.mx'
@@ -22,7 +25,14 @@ const INTERVALO_RECORDATORIO_MS = 23.5 * 60 * 60 * 1000
 const db = () => createDbAdmin()
 
 /** Alumnos que acaban de cumplir la regla (`nuevos`) y los que siguen sin pagar tras 24 h (`recordatorio`). */
-type Aviso = { ciclo: string; nuevos: AlumnoSinPagoInscripcion[]; recordatorio: AlumnoSinPagoInscripcion[] }
+type Aviso = {
+  ciclo: string
+  /** Umbral del escalón: 15 control escolar, 45 directoras. */
+  dias: number
+  etapa: EtapaAvisoInscripcion
+  nuevos: AlumnoSinPagoInscripcion[]
+  recordatorio: AlumnoSinPagoInscripcion[]
+}
 
 function totalAviso(a: Aviso): number {
   return a.nuevos.length + a.recordatorio.length
@@ -39,7 +49,7 @@ function asuntoAviso(a: Aviso): string {
   const todos = [...a.nuevos, ...a.recordatorio]
   return total === 1
     ? `Inscripción sin pagar${ciclo}: ${todos[0].nombre}`
-    : `${total} alumnos con más de un mes sin pagar inscripción${ciclo}`
+    : `${total} alumnos con más de ${a.dias} días sin pagar inscripción${ciclo}`
 }
 
 function lineaAlumno(a: AlumnoSinPagoInscripcion): string {
@@ -52,8 +62,8 @@ function mensajeAviso(a: Aviso): string {
   if (a.nuevos.length) {
     lineas.push(
       a.nuevos.length === 1
-        ? 'Este alumno ya lleva más de un mes sin pagar inscripción:'
-        : 'Estos alumnos ya llevan más de un mes sin pagar inscripción:'
+        ? `Este alumno ya lleva más de ${a.dias} días sin pagar inscripción:`
+        : `Estos alumnos ya llevan más de ${a.dias} días sin pagar inscripción:`
     )
     lineas.push(...a.nuevos.map((x) => `• ${lineaAlumno(x)}`))
   }
@@ -61,6 +71,7 @@ function mensajeAviso(a: Aviso): string {
     lineas.push(a.recordatorio.length === 1 ? 'Sigue sin pagar inscripción:' : 'Siguen sin pagar inscripción:')
     lineas.push(...a.recordatorio.map((x) => `• ${lineaAlumno(x)}`))
   }
+  if (a.etapa === 'direccion') lineas.push(`Control escolar tiene el aviso desde los ${DIAS_AVISO_CONTROL_ESCOLAR} días.`)
   return lineas.join('\n')
 }
 
@@ -100,10 +111,12 @@ function htmlCorreo(a: Aviso): string {
       <p style="margin:8px 0 0;"><span style="display:inline-block;padding:3px 12px;border-radius:999px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:0.85rem;font-weight:800;">Ciclo escolar ${escapeHtml(a.ciclo)}</span></p>
       <p style="margin:8px 0 0;color:#dbeafe;font-size:0.9rem;">${alumnos.length} ${
         alumnos.length === 1 ? 'alumno lleva' : 'alumnos llevan'
-      } más de un mes sin pagar inscripción</p>
+      } más de ${a.dias} días sin pagar inscripción</p>
     </td></tr>
     <tr><td style="background:#fff;padding:20px 16px;border:1px solid #e2e8f0;border-top:none;">
-      <p style="margin:0 0 14px;color:#334155;line-height:1.6;">Son alumnos activos del ciclo actual que llevan más de 30 días sin pagar su inscripción, contados desde el inicio del ciclo o, si su referencia se dio después, desde esa fecha.</p>
+      <p style="margin:0 0 14px;color:#334155;line-height:1.6;">Son alumnos activos del ciclo actual que llevan más de ${a.dias} días sin pagar su inscripción, contados desde el inicio del ciclo o, si su referencia se dio después, desde esa fecha.${
+        a.etapa === 'direccion' ? ` Control escolar tiene el aviso desde los ${DIAS_AVISO_CONTROL_ESCOLAR} días.` : ''
+      }</p>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;">${filas}</table>
       <p style="margin:20px 0 0;text-align:center;">
         <a href="${url}" style="display:inline-block;background:#1d4ed8;color:#fff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:10px;">Abrir Servicios Administrativos</a>
@@ -115,22 +128,29 @@ function htmlCorreo(a: Aviso): string {
 }
 
 /**
- * Compara los alumnos sin pago contra los ya avisados (inscripcion_alerta_sin_pago): los que pagaron o salieron
- * de la regla se borran; los nuevos se registran y se avisa; los que siguen reciben recordatorio cada 24 h.
- * Aviso = notificación del dashboard + correo institucional (control escolar su nivel; sistemas todos).
+ * Dos escalones sobre la misma lista (inscripcion_alerta_sin_pago):
+ * - control escolar (y sistemas): alumnos con más de 15 días, marca `alertado_at`;
+ * - directoras de cada nivel: los que pasan de 45 días, marca `direccion_alertado_at`.
+ * Los que pagaron o salieron de la regla se borran; los nuevos de cada escalón reciben aviso y los que siguen,
+ * recordatorio cada 24 h. Aviso = notificación del dashboard + correo institucional, cada quien su nivel.
  * Solo en días hábiles: en inhábiles no se toca nada y el siguiente día hábil sale el aviso pendiente.
  */
 export async function revisarAvisosInscripcionSinPago(): Promise<{ nuevos: number; recordatorios: number }> {
   if (await esDiaInhabil(hoyMexico())) return { nuevos: 0, recordatorios: 0 }
   const cicloActual = await cicloActualAlertaInscripcion()
   const ciclo = cicloActual.valor
-  const alumnos = await alumnosSinPagoInscripcion(TODOS_NIVELES_ALERTA_INSCRIPCION, cicloActual)
+  const alumnos = await alumnosSinPagoInscripcion(TODOS_NIVELES_ALERTA_INSCRIPCION, cicloActual, DIAS_AVISO_CONTROL_ESCOLAR)
   const actuales = new Set(alumnos.map((a) => a.alumno_id))
 
-  const { data: abiertas, error } = await db().from('inscripcion_alerta_sin_pago').select('alumno_id, alertado_at')
+  const { data: abiertas, error } = await db()
+    .from('inscripcion_alerta_sin_pago')
+    .select('alumno_id, alertado_at, direccion_alertado_at')
   if (error) throw new Error(`Avisos de inscripción: ${error.message}`)
   const avisadas = new Map(
-    ((abiertas ?? []) as Record<string, unknown>[]).map((r) => [Number(r.alumno_id), String(r.alertado_at ?? '')])
+    ((abiertas ?? []) as Record<string, unknown>[]).map((r) => [
+      Number(r.alumno_id),
+      { escolar: String(r.alertado_at ?? ''), direccion: r.direccion_alertado_at ? String(r.direccion_alertado_at) : null },
+    ])
   )
 
   const salieron = [...avisadas.keys()].filter((id) => !actuales.has(id))
@@ -140,8 +160,8 @@ export async function revisarAvisosInscripcionSinPago(): Promise<{ nuevos: numbe
   }
 
   const limite = new Date(Date.now() - INTERVALO_RECORDATORIO_MS).toISOString()
-  const nuevos: AlumnoSinPagoInscripcion[] = []
-  const recordatorio: AlumnoSinPagoInscripcion[] = []
+  const escolar = { nuevos: [] as AlumnoSinPagoInscripcion[], recordatorio: [] as AlumnoSinPagoInscripcion[] }
+  const direccion = { nuevos: [] as AlumnoSinPagoInscripcion[], recordatorio: [] as AlumnoSinPagoInscripcion[] }
   for (const a of alumnos) {
     const previo = avisadas.get(a.alumno_id)
     if (previo == null) {
@@ -149,8 +169,8 @@ export async function revisarAvisosInscripcionSinPago(): Promise<{ nuevos: numbe
         .from('inscripcion_alerta_sin_pago')
         .insert([{ alumno_id: a.alumno_id, ciclo_escolar: ciclo, alumno_nivel: a.nivel_num }])
       // Si otra petición ya lo registró (PK), ella manda el aviso.
-      if (!iErr) nuevos.push(a)
-    } else if (previo && new Date(previo).getTime() <= Date.parse(limite)) {
+      if (!iErr) escolar.nuevos.push(a)
+    } else if (previo.escolar && new Date(previo.escolar).getTime() <= Date.parse(limite)) {
       // Solo la petición que logra mover alertado_at manda el recordatorio.
       const { data: tomado, error: uErr } = await db()
         .from('inscripcion_alerta_sin_pago')
@@ -158,27 +178,53 @@ export async function revisarAvisosInscripcionSinPago(): Promise<{ nuevos: numbe
         .eq('alumno_id', a.alumno_id)
         .lte('alertado_at', limite)
         .select('alumno_id')
-      if (!uErr && tomado?.length) recordatorio.push(a)
+      if (!uErr && tomado?.length) escolar.recordatorio.push(a)
+    }
+
+    if (a.dias <= DIAS_AVISO_DIRECCION) continue
+    const previoDireccion = previo?.direccion ?? null
+    if (previoDireccion == null) {
+      const { data: tomado, error: uErr } = await db()
+        .from('inscripcion_alerta_sin_pago')
+        .update({ direccion_alertado_at: new Date().toISOString() })
+        .eq('alumno_id', a.alumno_id)
+        .is('direccion_alertado_at', null)
+        .select('alumno_id')
+      if (!uErr && tomado?.length) direccion.nuevos.push(a)
+    } else if (new Date(previoDireccion).getTime() <= Date.parse(limite)) {
+      const { data: tomado, error: uErr } = await db()
+        .from('inscripcion_alerta_sin_pago')
+        .update({ direccion_alertado_at: new Date().toISOString() })
+        .eq('alumno_id', a.alumno_id)
+        .lte('direccion_alertado_at', limite)
+        .select('alumno_id')
+      if (!uErr && tomado?.length) direccion.recordatorio.push(a)
     }
   }
-  if (!nuevos.length && !recordatorio.length) return { nuevos: 0, recordatorios: 0 }
+  const porEtapa = { 'control-escolar': escolar, direccion } as const
+  const nuevos = escolar.nuevos.length + direccion.nuevos.length
+  const recordatorios = escolar.recordatorio.length + direccion.recordatorio.length
+  if (!nuevos && !recordatorios) return { nuevos: 0, recordatorios: 0 }
 
-  const ids = usuariosAlertaInscripcion()
   const { data: usuarios, error: uErr } = await db()
     .from('usuario')
     .select('usuario_id, usuario_email')
-    .in('usuario_id', ids)
+    .in('usuario_id', usuariosAlertaInscripcion())
     .eq('usuario_status', 1)
-  if (uErr) throw new Error(`Usuarios de control escolar: ${uErr.message}`)
+  if (uErr) throw new Error(`Usuarios del aviso de inscripción: ${uErr.message}`)
 
   await Promise.all(
     ((usuarios ?? []) as Record<string, unknown>[]).map(async (u) => {
       const usuarioId = Number(u.usuario_id) || 0
-      const niveles = nivelesAlertaInscripcion(usuarioId)
+      const regla = reglaAvisoInscripcion(usuarioId)
+      if (!regla) return
+      const lista = porEtapa[regla.etapa]
       const aviso: Aviso = {
         ciclo: cicloActual.nombre,
-        nuevos: nuevos.filter((a) => niveles.includes(a.nivel_num)),
-        recordatorio: recordatorio.filter((a) => niveles.includes(a.nivel_num)),
+        dias: regla.dias,
+        etapa: regla.etapa,
+        nuevos: lista.nuevos.filter((a) => regla.niveles.includes(a.nivel_num)),
+        recordatorio: lista.recordatorio.filter((a) => regla.niveles.includes(a.nivel_num)),
       }
       if (!totalAviso(aviso)) return
       const r = await crearNotificacionEmpleado({ usuarioId, asunto: asuntoAviso(aviso), mensaje: mensajeAviso(aviso) })
@@ -189,7 +235,7 @@ export async function revisarAvisosInscripcionSinPago(): Promise<{ nuevos: numbe
       if (!envio.ok) console.error('Aviso inscripción (correo):', usuarioId, envio.error)
     })
   )
-  return { nuevos: nuevos.length, recordatorios: recordatorio.length }
+  return { nuevos, recordatorios }
 }
 
 /** Para `after()`: nunca lanza. */

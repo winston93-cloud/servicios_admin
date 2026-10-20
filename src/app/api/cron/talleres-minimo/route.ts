@@ -17,7 +17,7 @@ function autorizado(request: Request): boolean {
 
 /**
  * Cron diario (días hábiles): recordatorio (notificación + correo) de talleres que siguen en su cupo mínimo
- * y de alumnos con más de 30 días de referencia sin pagar inscripción.
+ * y de alumnos sin pagar inscripción (15 días control escolar, 45 directoras).
  * Header: Authorization: Bearer $CRON_SECRET
  */
 async function handle(request: Request) {
