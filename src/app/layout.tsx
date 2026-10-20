@@ -6,6 +6,7 @@ import "./facturacion/facturacion-totality-overrides.css";
 import "./admin-totality-overrides.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import PanelControlAlerta from "@/components/PanelControlAlerta";
 import { DEFAULT_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
 
 const geistSans = Geist({
@@ -64,6 +65,7 @@ export default function RootLayout({
               data-admin-theme="totality-festival"
             >
               {children}
+              <PanelControlAlerta />
             </div>
           </AuthProvider>
         </ThemeProvider>
