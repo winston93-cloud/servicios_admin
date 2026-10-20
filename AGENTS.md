@@ -36,6 +36,10 @@ Desde el 5 oct 2026 solo quedan 3 proyectos: **Winston Servicios**, **Reloj Chec
 - **Uniformes:** 43 tablas (`pedidos`, `cotizaciones`, `costos`, `insumos`, `transferencias`, `devoluciones`, `auditoria`, etc.) + bucket privado `datos-fiscales-clientes` en Winston (2026-10-19). Usa `alumno`, `ciclos_escolares` y `usuario` **de Winston** (no se copiaron las suyas). Migración: `docs/MIGRACION-UNIFORMES-WINSTON.md`. App: `~/Proyectos/uniformes`. NANO **Uniformes** (`q488j9fg`) borrable **solo tras smoke** OK (Mario).
 - **Prórrogas y Ajustes:** app usa Winston (`pago_prorroga` + `alumno` / precios / becas). NANO **Prórrogas y Ajustes** (`nr8dsq6r`) ya eliminable (solo 1 tabla residual).
 
+## Panel de control (`/panel-control`, solo Mario)
+
+Tablero tipo sala de control con los 8 procesos de la revisión diaria (pagos, facturación, RAC, talleres, Open House, InsForge, Vercel, desarrollo): barra vertical por proceso con franjas verde/ámbar/rojo, panel de alarmas que parpadea hasta «Reconocer», lectura cada 30 s. Datos de base en la función `panel_control_metricas()` (solo llave admin); Vercel = las apps de producción responden; Desarrollo = deploys de producción vía API de Vercel (env `VERCEL_API_TOKEN`; sin él queda «Sin lectura»). Código en `src/lib/panelControl/`. Decisión de Mario (20 oct 2026): barras, solo él, página propia, 30 s, claro y oscuro.
+
 ## Revisión diaria («Sonny, pendientes»)
 
 La revisión diaria se hace todos los días, haya o no pendientes: está en `revisiones-diarias-servicios-admin.md` (almacén personal de agente de Mario) con el check y la bitácora por día. Los pendientes van aparte en `pendientes-servicios-admin.md` (mismo almacén). Cuando Mario diga «Sonny, pendientes»: correr la revisión del día, anotarla en la bitácora y darle el resumen, y después los pendientes. Esos archivos no van al repo (traen datos de familias).

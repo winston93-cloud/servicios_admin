@@ -4,6 +4,7 @@ import { urlProrrogasAjustesApp } from '@/lib/prorrogasAjustesConfig'
 import { urlCchicApp } from '@/lib/cchicConfig'
 import { urlChequesApp, urlContratosApp, urlSsiwEntregaLogin, urlUsaProgramApp } from '@/lib/dashboardModulosConfig'
 import { ACCESOS_USUARIOS_PERMITIDOS } from '@/lib/accesos/accesosTypes'
+import { PANEL_CONTROL_USUARIOS } from '@/lib/panelControl/tipos'
 import { BENEFICIOS_EXTERNOS_USUARIOS, urlRevisionBecaSep } from '@/lib/beneficiosExternos/config'
 
 export type DashboardAdminNavItem = {
@@ -511,6 +512,26 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
         <rect x="3" y="11" width="18" height="11" rx="2" />
         <path d="M7 11V7a5 5 0 0 1 10 0v4" />
         <circle cx="12" cy="16" r="1.5" />
+      </svg>
+    ),
+  },
+  {
+    id: 'panel-control',
+    label: 'Panel de control',
+    desc: 'Los 8 procesos de la revisión diaria en vivo: barras por proceso y alarmas cada 30 segundos.',
+    path: '/panel-control',
+    accent: 'emerald',
+    kicker: 'Sistemas',
+    tags: ['Monitoreo', 'Alarmas', 'En vivo'],
+    badge: 'Nuevo',
+    soloUsuarios: PANEL_CONTROL_USUARIOS,
+    fijoParaUsuarios: PANEL_CONTROL_USUARIOS,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <path d="M7.5 17V11" />
+        <path d="M12 17V7" />
+        <path d="M16.5 17v-3.5" />
       </svg>
     ),
   },
