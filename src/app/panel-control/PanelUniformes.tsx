@@ -19,6 +19,7 @@ import ModalAnalisis from './ModalAnalisis'
 
 const MEDIDORES: [string, string, string][] = [
   ['u-uso', 'Uso', 'Ventas y operaciones'],
+  ['u-pantalla', 'Pantalla', 'Lo que ve el usuario'],
   ['u-stock', 'Stock', 'Existencias'],
   ['u-funciones', 'Funciones', 'Venta y auditoría'],
   ['u-eficiencia', 'Eficiencia', 'Base e índices'],

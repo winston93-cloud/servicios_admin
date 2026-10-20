@@ -50,6 +50,17 @@ type MetricasUniformes = {
     bucket_archivos: number
     bucket_bytes: number
   }
+  pantalla?: {
+    errores_24h: number
+    silenciosos_24h: number
+    avisos_24h: number
+    ultimos: { en: string; tipo: string; pantalla: string; mensaje: string; usuario: string | null }[]
+    avisos_frecuentes: { mensaje: string; n: number }[]
+  }
+  limite?: {
+    catalogo: { tabla: string; filas: number } | null
+    pedidos_sucursal: number | null
+  }
   /** Por tabla: [vivos, muertos, lecturas completas, lecturas por índice]. */
   tablas: Record<string, [number, number, number, number]>
 }
@@ -242,6 +253,51 @@ async function leerSinCache(): Promise<PanelUniformesRespuesta> {
         }),
       ]
     : [sinLectura('hoy', 'Ventas de hoy'), sinLectura('bitacora', 'Bitácora de auditoría')])
+
+  // Pantalla: lo que ve el usuario y nunca llega a la base
+  const pa = m?.pantalla
+  const lim = m?.limite
+  const ultimoDe = (tipos: string[]) => pa?.ultimos.find((e) => tipos.includes(e.tipo))
+  const describir = (e: { en: string; pantalla: string; mensaje: string; usuario: string | null } | undefined) =>
+    e ? `${horaLocal(e.en)} · ${e.pantalla}${e.usuario ? ` · ${e.usuario}` : ''}: ${e.mensaje}` : undefined
+  const filasMayor = Math.max(num(lim?.catalogo?.filas), num(lim?.pedidos_sucursal))
+  const pantalla = proceso('u-pantalla', 'Pantalla', 'Errores, fallas silenciosas y avisos que ve el usuario', pa
+    ? [
+        pieza({
+          id: 'errores',
+          nombre: 'Errores en pantalla',
+          valor: Math.max(0, 100 - num(pa.errores_24h) * 15),
+          corto: `${pa.errores_24h} ${num(pa.errores_24h) === 1 ? 'error' : 'errores'} en 24 h`,
+          lectura: num(pa.errores_24h) ? `${pa.errores_24h} en 24 h` : 'ningún error en 24 h',
+          fallo: describir(ultimoDe(['error'])),
+        }),
+        pieza({
+          id: 'silenciosos',
+          nombre: 'Fallas silenciosas',
+          valor: num(pa.silenciosos_24h) ? Math.max(0, 70 - (num(pa.silenciosos_24h) - 1) * 15) : 100,
+          corto: `${pa.silenciosos_24h} acciones descartadas sin guardar`,
+          lectura: num(pa.silenciosos_24h)
+            ? `${pa.silenciosos_24h} en 24 h (p. ej. talla sin precio en el catálogo)`
+            : 'ninguna acción descartada en 24 h',
+          fallo: describir(ultimoDe(['silencioso'])),
+        }),
+        pieza({
+          id: 'avisos',
+          nombre: 'Avisos al usuario',
+          valor: 100,
+          lectura: num(pa.avisos_24h)
+            ? `${pa.avisos_24h} en 24 h · más frecuente: «${pa.avisos_frecuentes[0]?.mensaje ?? ''}» (${pa.avisos_frecuentes[0]?.n ?? 0})`
+            : 'ningún aviso de validación en 24 h',
+        }),
+        pieza({
+          id: 'limite',
+          nombre: 'Límite de 1000 filas',
+          valor: filasMayor <= 700 ? 100 : Math.max(0, Math.round(100 - ((filasMayor - 700) / 300) * 100)),
+          corto: `una consulta sin paginar va en ${mil(filasMayor)} de 1 000 filas`,
+          lectura: `tabla sin paginar más grande: ${lim?.catalogo ? `${lim.catalogo.tabla} (${mil(num(lim.catalogo.filas))})` : '—'} · pedidos por sucursal: ${mil(num(lim?.pedidos_sucursal))}`,
+        }),
+      ]
+    : [sinLectura('errores', 'Errores en pantalla')])
 
   // Stock
   const stock = proceso('u-stock', 'Stock', 'Existencias, ubicaciones y pedidos coherentes', st
@@ -461,6 +517,6 @@ async function leerSinCache(): Promise<PanelUniformesRespuesta> {
   return {
     leidoEn: new Date().toISOString(),
     kpis,
-    medidores: [uso, stock, funciones, eficiencia, enlace, almacenamiento],
+    medidores: [uso, pantalla, stock, funciones, eficiencia, enlace, almacenamiento],
   }
 }

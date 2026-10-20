@@ -166,7 +166,7 @@
 }
 
 .pc-banco.pu-banco {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
 .pu-zona .pc-medidor[aria-pressed='true'] { border-color: var(--pu-acento); }
@@ -174,7 +174,7 @@
 .pu-zona .pc-detalle-cabeza { border-bottom: 2px solid var(--pu-acento); }
 
 @media (max-width: 900px) {
-  .pc-banco.pu-banco { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pc-banco.pu-banco { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .pu-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -277,7 +277,7 @@
   .pc-col-uniformes .pu-kpi { padding: 0.4rem 0.6rem; }
   .pc-col-uniformes .pu-kpi-valor { font-size: 1.15rem; }
 
-  .pc-col-uniformes .pc-banco.pu-banco { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pc-col-uniformes .pc-banco.pu-banco { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .pc-col-uniformes .pc-instrumento { min-height: 84px; }
 }
 
