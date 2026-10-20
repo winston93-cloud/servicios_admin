@@ -24,12 +24,16 @@ const NOMBRES = ['Pagos', 'Facturación', 'RAC', 'Talleres', 'Open House', 'InsF
 const NOMBRE_PLACA: Record<string, string> = {
   facturacion: 'Facturación',
   reportes: 'RAC',
+  'control-escolar': 'Control escolar',
+  caja: 'Caja',
+  acceso: 'Acceso',
+  'portal-inscripcion': 'Inscripción',
 }
 
 /** Proyecto de la plataforma que mide el medidor, bajo su nombre. */
 const INFRA_PLACA: Record<string, string> = {
   insforge: 'Winston Servicios',
-  vercel: '12 apps de producción',
+  vercel: '12 apps',
   desarrollo: 'servicios-admin',
 }
 
@@ -44,6 +48,19 @@ const PLACEHOLDER: MedidorProceso[] = NOMBRES.map((nombre, i) => ({
   piezas: [],
   resumen: 'Leyendo…',
 }))
+
+const SISTEMAS_PLACEHOLDER: MedidorProceso[] = [
+  ['control-escolar', 'Control escolar'],
+  ['boletas', 'Boletas'],
+  ['caja', 'Caja de servicios'],
+  ['becas', 'Becas'],
+  ['acceso', 'Control de acceso'],
+  ['workshops', 'Workshops'],
+  ['ssiw', 'SSIW'],
+  ['cheques', 'Cheques'],
+  ['prorrogas', 'Prórrogas'],
+  ['portal-inscripcion', 'Portal de inscripción'],
+].map(([id, nombre]) => ({ id, nombre, mide: '', valor: null, estado: 'sin-dato', piezas: [], resumen: 'Leyendo…' }))
 
 const ZONAS: { desde: number; hasta: number; estado: EstadoMedidor }[] = [
   { desde: 0, hasta: UMBRALES_SALUD[0], estado: 'alarma' },
@@ -113,7 +130,9 @@ function PanelControlView() {
   }, [permitido, leer])
 
   const medidores = useMemo(() => (datos?.medidores.length ? datos.medidores : PLACEHOLDER), [datos])
-  const enAlarma = useMemo(() => medidores.filter((m) => m.estado === 'alarma').map((m) => m.id), [medidores])
+  const sistemas = useMemo(() => (datos?.sistemas?.length ? datos.sistemas : SISTEMAS_PLACEHOLDER), [datos])
+  const todos = useMemo(() => [...medidores, ...sistemas], [medidores, sistemas])
+  const enAlarma = useMemo(() => todos.filter((m) => m.estado === 'alarma').map((m) => m.id), [todos])
 
   useEffect(() => {
     setReconocidas((prev) => {
@@ -123,10 +142,10 @@ function PanelControlView() {
   }, [enAlarma])
 
   const sinReconocer = enAlarma.filter((id) => !reconocidas.has(id))
-  const conProblema = medidores
+  const conProblema = todos
     .filter((m) => m.estado === 'alarma' || m.estado === 'precaucion')
     .sort((a, b) => (a.valor ?? 100) - (b.valor ?? 100))
-  const seleccionado = medidores.find((m) => m.id === elegido) ?? conProblema[0] ?? medidores[0]
+  const seleccionado = todos.find((m) => m.id === elegido) ?? conProblema[0] ?? medidores[0]
 
   if (!permitido) {
     return (
@@ -174,7 +193,9 @@ function PanelControlView() {
             </ul>
           ) : (
             <p className="pc-general-sub">
-              {datos ? '8 de 8 procesos en verde: responden a tiempo y sin fallos del sistema.' : ' '}
+              {datos
+                ? `${medidores.length} de ${medidores.length} procesos y ${sistemas.length} de ${sistemas.length} sistemas en verde: responden a tiempo, sin fallos y sin piezas flojas.`
+                : ' '}
             </p>
           )}
         </div>
@@ -192,8 +213,23 @@ function PanelControlView() {
         </p>
       ) : null}
 
+      <h2 className="pc-banco-titulo">Procesos</h2>
       <section className="pc-banco" aria-label="Medidores de los procesos">
         {medidores.map((m) => (
+          <Medidor
+            key={m.id}
+            m={m}
+            cargando={!datos}
+            elegido={m.id === seleccionado?.id}
+            parpadea={m.estado === 'alarma' && !reconocidas.has(m.id)}
+            onElegir={() => setElegido(m.id)}
+          />
+        ))}
+      </section>
+
+      <h2 className="pc-banco-titulo">Sistemas que más usan la base</h2>
+      <section className="pc-banco pc-banco--sistemas" aria-label="Medidores de los sistemas">
+        {sistemas.map((m) => (
           <Medidor
             key={m.id}
             m={m}
@@ -208,8 +244,8 @@ function PanelControlView() {
       {seleccionado && datos ? <Detalle m={seleccionado} /> : null}
 
       <p className="pc-leyenda">
-        Cada barra es la salud de la infraestructura del proceso: responde a tiempo, sin fallos del sistema y con sus
-        tareas automáticas al día. Manda la pieza más débil. Toca un medidor para ver sus piezas.
+        Cada barra es la salud de la infraestructura: responde a tiempo, sin fallos del sistema, con sus tareas al día,
+        tablas con índice y sin basura acumulada. Manda la pieza más débil. Toca un medidor para ver sus piezas.
       </p>
     </Marco>
   )

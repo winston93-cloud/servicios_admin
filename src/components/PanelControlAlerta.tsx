@@ -49,7 +49,7 @@ export default function PanelControlAlerta() {
       const res = await fetch('/api/panel-control', { cache: 'no-store', headers: portalSessionFetchHeaders() })
       if (!res.ok) return
       const json = (await res.json()) as PanelControlRespuesta
-      const actuales: Falla[] = json.medidores
+      const actuales: Falla[] = [...json.medidores, ...(json.sistemas ?? [])]
         .filter((m) => m.estado === 'precaucion' || m.estado === 'alarma')
         .map(({ id, nombre, estado, resumen }) => ({ id, nombre, estado, resumen }))
         .sort((a, b) => (a.estado === b.estado ? 0 : a.estado === 'alarma' ? -1 : 1))

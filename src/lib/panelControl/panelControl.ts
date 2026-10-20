@@ -24,6 +24,8 @@ type Metricas = {
   latidos: Partial<Record<TareaLatido, Latido>>
   kommo: { registros: number; con_lead: number; recordatorios_atrasados: number; recordatorios_enviados_7d: number } | null
   base: { conexiones: number; max_conexiones: number; bytes: number }
+  /** Por tabla: [vivos, muertos, lecturas completas, lecturas por índice] (solo tablas de 1 000 registros o más). */
+  tablas?: Record<string, [number, number, number, number]>
 }
 
 /**
@@ -61,6 +63,58 @@ const TAREAS: Record<TareaLatido, { nombre: string; horaUtc: number; dias: numbe
   'cron-talleres-minimo': { nombre: 'Tarea de las 8:00 (talleres)', horaUtc: 14, dias: [1, 2, 3, 4, 5] },
   'cron-recordatorio-liberacion-docs': { nombre: 'Tarea de las 9:00 (control escolar)', horaUtc: 15, dias: [0, 1, 2, 3, 4, 5, 6] },
 }
+
+/** Los 10 sistemas que más usan la base Winston Servicios (medido el 20 oct 2026; Uniformes es de Connor). */
+const SISTEMAS: { id: string; nombre: string; mide: string; app?: string; tablas: RegExp }[] = [
+  {
+    id: 'control-escolar',
+    nombre: 'Control escolar',
+    mide: 'Alumnos, familias, contactos y expedientes',
+    app: 'Servicios Admin',
+    tablas: /^(alumno|alumno_familiar|alumno_contacto|alumno_contacto_auditoria|alumno_detalles|alumno_dato_medico|alumno_situacion_delicada|alumno_foto|alumno_caso_especial|alumno_cambio_ciclo_respaldo|ce_tramite_administrativo|reporte_suspension|suspension_envio_log)$/,
+  },
+  { id: 'boletas', nombre: 'Boletas', mide: 'Captura, promedios y publicación de boletas', app: 'Servicios Admin', tablas: /^(boleta_.*|promedio_ciclo)$/ },
+  {
+    id: 'caja',
+    nombre: 'Caja de servicios',
+    mide: 'Cobros internos y vouchers',
+    app: 'Servicios Admin',
+    tablas: /^(pago_interno.*|concepto_interno|pago_boucher_precio|concepto_boucher|alumno_cargo_extra)$/,
+  },
+  {
+    id: 'becas',
+    nombre: 'Becas',
+    mide: 'Renovaciones, solicitudes, documentos y firmas',
+    app: 'Becas renovación',
+    tablas: /^(becas_.*|alumno_beca.*|concepto_beca|becario_bitacora)$/,
+  },
+  {
+    id: 'acceso',
+    nombre: 'Control de acceso',
+    mide: 'Entradas con QR y autorizaciones',
+    app: 'Reloj checador',
+    tablas: /^(control_acceso_dia|acceso_autorizado.*|autorizacion_entrada)$/,
+  },
+  {
+    id: 'workshops',
+    nombre: 'Workshops',
+    mide: 'Sesiones, asistencia, jueces y evaluaciones',
+    tablas: /^(workshop_.*|academic_workshops|judges|participants|teams|evaluation_scores|judge_rubric_documents|presentaciones)$/,
+  },
+  { id: 'ssiw', nombre: 'SSIW', mide: 'Entrega de alumnos y salida a pie', app: 'SSIW', tablas: /^(entregas_alumnos|registro_salida_pie)$/ },
+  { id: 'cheques', nombre: 'Cheques', mide: 'Cheques, beneficiarios y conceptos', app: 'Cheques', tablas: /^(ch_.*|cheques_banco)$/ },
+  { id: 'prorrogas', nombre: 'Prórrogas', mide: 'Prórrogas y ajustes de pago', app: 'Prórrogas y ajustes', tablas: /^pago_prorroga$/ },
+  {
+    id: 'portal-inscripcion',
+    nombre: 'Portal de inscripción',
+    mide: 'Inscripción en línea, documentos y avisos',
+    app: 'Servicios Admin',
+    tablas: /^(portal_(?!news).*|a_inscritos|iwc_gral_ins|inscripcion_alerta_sin_pago)$/,
+  },
+]
+
+/** Debajo de esto leer la tabla completa es rápido y no se califica el uso de índices. */
+const TABLA_GRANDE = 10_000
 
 const VERCEL_PROYECTO = 'servicios-admin'
 const VERCEL_EQUIPO = 'mario-alejandro-galvan-escobedos-projects'
@@ -287,6 +341,74 @@ function proceso(id: string, nombre: string, mide: string, piezas: PiezaMedida[]
   return { id, nombre, mide, valor, estado, piezas, resumen }
 }
 
+type Tabla = { nombre: string; vivos: number; muertos: number; completas: number; indice: number }
+
+function tablasDe(m: Metricas | null, rx: RegExp): Tabla[] {
+  return Object.entries(m?.tablas ?? {})
+    .filter(([nombre]) => rx.test(nombre))
+    .map(([nombre, [vivos, muertos, completas, indice]]) => ({
+      nombre,
+      vivos: Number(vivos) || 0,
+      muertos: Number(muertos) || 0,
+      completas: Number(completas) || 0,
+      indice: Number(indice) || 0,
+    }))
+}
+
+/** Tablas grandes que se leen completas en vez de por índice: tornillo flojo que vuelve lento al sistema. */
+function piezaIndices(m: Metricas | null, tablas: Tabla[]): PiezaMedida {
+  if (!m?.tablas) return pieza({ id: 'indices', nombre: 'Índices', valor: null, lectura: 'sin lectura' })
+  const grandes = tablas
+    .filter((t) => t.vivos >= TABLA_GRANDE)
+    .map((t) => ({ ...t, pct: Math.round((t.completas / Math.max(1, t.completas + t.indice)) * 100) }))
+    .sort((a, b) => b.pct - a.pct)
+  if (!grandes.length) {
+    return pieza({ id: 'indices', nombre: 'Índices', valor: 100, lectura: 'tablas chicas: leerlas completas es rápido' })
+  }
+  const floja = grandes[0]
+  const valor = Math.max(0, Math.min(100, 100 - Math.max(0, floja.pct - 10)))
+  return pieza({
+    id: 'indices',
+    nombre: 'Índices',
+    valor,
+    corto: `${floja.nombre} se lee completa el ${floja.pct}% de las veces`,
+    lectura:
+      valor >= 90
+        ? `${grandes.length} ${grandes.length === 1 ? 'tabla grande usa' : 'tablas grandes usan'} su índice`
+        : `${floja.nombre} (${floja.vivos.toLocaleString('es-MX')} registros) se lee completa el ${floja.pct}% de las veces: le falta un índice`,
+  })
+}
+
+/** Registros muertos sin purgar: válvula que hay que limpiar antes de que el sistema se haga lento. */
+function piezaLimpieza(m: Metricas | null, tablas: Tabla[]): PiezaMedida {
+  if (!m?.tablas) return pieza({ id: 'limpieza', nombre: 'Limpieza', valor: null, lectura: 'sin lectura' })
+  if (!tablas.length) return pieza({ id: 'limpieza', nombre: 'Limpieza', valor: 100, lectura: 'tablas chicas, nada que purgar' })
+  const sucia = tablas
+    .map((t) => ({ ...t, pct: Math.round((t.muertos / Math.max(1, t.vivos + t.muertos)) * 100) }))
+    .sort((a, b) => b.pct - a.pct)[0]
+  const valor = Math.max(0, Math.min(100, 100 - Math.max(0, sucia.pct - 20) * 2))
+  return pieza({
+    id: 'limpieza',
+    nombre: 'Limpieza',
+    valor,
+    corto: `${sucia.nombre} con ${sucia.pct}% de registros muertos`,
+    lectura: valor >= 90 ? `${tablas.length} tablas al día (la más alta: ${sucia.pct}% muertos)` : `${sucia.nombre}: ${sucia.pct}% de registros muertos sin purgar`,
+  })
+}
+
+function piezaApp(nombre: string, lista: EstadoApp[], disponible: boolean): PiezaMedida {
+  const app = lista.find((a) => a.nombre === nombre)
+  if (!disponible || !app) return pieza({ id: 'app', nombre: `App (${nombre})`, valor: null, lectura: 'sin lectura de Vercel' })
+  const bien = ESTADOS_SIRVIENDO.has(app.estado ?? '')
+  return pieza({
+    id: 'app',
+    nombre: `App (${nombre})`,
+    valor: bien ? 100 : 0,
+    corto: 'su deploy en producción no está listo',
+    lectura: `deploy en producción: ${estadoLegible(app.estado)}`,
+  })
+}
+
 let cacheLectura: { en: number; r: Promise<PanelControlRespuesta> } | null = null
 
 /** Una sola lectura cada 30 s aunque estén abiertos el panel y el aviso en varias pestañas. */
@@ -453,5 +575,14 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
     })(),
   ]
 
-  return { leidoEn: new Date().toISOString(), medidores }
+  const sistemas = SISTEMAS.map((sis) => {
+    const tablas = tablasDe(m, sis.tablas)
+    return proceso(sis.id, sis.nombre, sis.mide, [
+      ...(sis.app ? [piezaApp(sis.app, listaApps, apps.status === 'fulfilled' && apps.value != null)] : []),
+      piezaIndices(m, tablas),
+      piezaLimpieza(m, tablas),
+    ])
+  })
+
+  return { leidoEn: new Date().toISOString(), medidores, sistemas }
 }

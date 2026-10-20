@@ -38,7 +38,10 @@ export type MedidorProceso = {
 
 export type PanelControlRespuesta = {
   leidoEn: string
+  /** Los 8 procesos. */
   medidores: MedidorProceso[]
+  /** Los 10 sistemas que más usan la base. */
+  sistemas: MedidorProceso[]
 }
 
 export function estadoPorValor(valor: number | null, [a, b]: [number, number] = UMBRALES_SALUD): EstadoMedidor {

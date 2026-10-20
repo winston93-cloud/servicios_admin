@@ -234,6 +234,31 @@
   background: var(--pc-bisel);
 }
 
+.pc-banco-titulo {
+  margin: 0.7rem 0 0.35rem;
+  font: 700 0.72rem / 1 var(--font-space-grotesk), system-ui, sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pc-suave);
+}
+
+.pc-banco--sistemas {
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+}
+
+.pc-banco--sistemas .pc-instrumento {
+  height: 96px;
+}
+
+.pc-banco--sistemas .pc-placa-nombre {
+  font-size: 0.66rem;
+  letter-spacing: 0;
+}
+
+.pc-banco--sistemas .pc-digital-valor {
+  font-size: 1.15rem;
+}
+
 .pc-medidor {
   min-width: 0;
   display: flex;
@@ -259,7 +284,8 @@
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  min-height: 40px;
+  height: 46px;
+  overflow: hidden;
   padding: 0.35rem 0.55rem;
   background: var(--pc-placa);
   color: var(--pc-placa-texto);
@@ -275,7 +301,9 @@
 .pc-placa-infra {
   font: 500 0.64rem / 1.25 var(--font-inter, system-ui), sans-serif;
   opacity: 0.72;
-  overflow-wrap: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pc-placa-nombre {
@@ -294,7 +322,7 @@
   grid-template-columns: 20px 6px 30px;
   justify-content: center;
   gap: 3px;
-  height: 190px;
+  height: 128px;
   padding: 6px 0;
 }
 
@@ -529,10 +557,12 @@
 /* ── Responsivo ── */
 @media (max-width: 1100px) {
   .pc-reloj-info { display: none; }
+  .pc-banco--sistemas { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
 
 @media (max-width: 900px) {
-  .pc-banco { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .pc-banco,
+  .pc-banco--sistemas { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 @media (max-width: 640px) {
@@ -542,9 +572,11 @@
   .pc-general { flex-wrap: wrap; padding: 0.65rem 0.75rem; }
   .pc-reconocer { width: 100%; }
   .pc-banco { gap: 0.35rem; padding: 0.35rem; }
-  .pc-instrumento { height: 130px; grid-template-columns: 16px 5px 24px; }
+  .pc-instrumento,
+  .pc-banco--sistemas .pc-instrumento { height: 110px; grid-template-columns: 16px 5px 24px; }
+  .pc-banco--sistemas .pc-placa-nombre { font-size: 0.6rem; }
   .pc-escala span { font-size: 0.55rem; }
-  .pc-placa { min-height: 36px; padding: 0.3rem 0.4rem; }
+  .pc-placa { height: 40px; padding: 0.3rem 0.4rem; }
   .pc-placa-nombre { font-size: 0.6rem; letter-spacing: 0; }
   .pc-placa-infra { font-size: 0.56rem; }
   .pc-placa { gap: 0.3rem; }
@@ -557,6 +589,9 @@
 
 @media (max-width: 480px) {
   .pc-reloj-hora { font-size: 1rem; }
+  .pc-placa-nombre,
+  .pc-banco--sistemas .pc-placa-nombre { font-size: 0.54rem; }
+  .pc-placa .pc-lampara { width: 8px; height: 8px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
