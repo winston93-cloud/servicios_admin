@@ -1,6 +1,9 @@
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import {
   estadoPorValor,
+  type Diagnostico,
+  type EstadoMedidor,
+  type LineaDiagnostico,
   type MedidorProceso,
   type PanelControlRespuesta,
   type PiezaMedida,
@@ -226,6 +229,14 @@ function puntajeLatencia(ms: number, presupuesto: number): number {
 }
 
 /** 2.5 % de fallos ya es precaución; 10 % es alarma. */
+const linea = (texto: string, estado: EstadoMedidor): LineaDiagnostico => ({ texto, estado })
+const noAplica = (texto = 'No aplica') => linea(texto, 'sin-dato')
+const diag = (operatividad: LineaDiagnostico, eficiencia: LineaDiagnostico, errores: LineaDiagnostico): Diagnostico => ({
+  operatividad,
+  eficiencia,
+  errores,
+})
+
 function puntajeFallos(fallos: number, ops: number): number {
   if (!ops) return 100
   return Math.max(0, Math.round(100 - (fallos / ops) * 100 * 4))
@@ -267,6 +278,7 @@ function piezaServicio(id: string, nombre: string, ev: EventosPieza | undefined,
     ops && p95 != null ? { valor: puntajeLatencia(p95, presupuesto), corto: `lento (tarda hasta ${seg(p95)})` } : null,
   ])
   const lectura = ops ? `${fallosDe(fallos, ops)}${p95 != null ? ` · tarda hasta ${seg(p95)}` : ''}` : 'sin operaciones en 24 h'
+  const exitos = ops - fallos
   return pieza({
     id,
     nombre,
@@ -274,6 +286,25 @@ function piezaServicio(id: string, nombre: string, ev: EventosPieza | undefined,
     corto: causa?.corto,
     lectura,
     fallo: fallos ? ev?.ultimo_fallo ?? undefined : undefined,
+    diag: ops
+      ? diag(
+          exitos > 0
+            ? linea(`Operando: ${exitos} de ${ops} operaciones salieron bien en 24 h`, 'normal')
+            : linea(`No opera: sus ${ops} operaciones de 24 h fallaron`, 'alarma'),
+          p95 != null
+            ? linea(
+                `Tarda hasta ${seg(p95)}${ev?.ms_prom != null ? `, en promedio ${seg(Number(ev.ms_prom))}` : ''} (aceptable: ${seg(presupuesto)})`,
+                estadoPorValor(puntajeLatencia(p95, presupuesto)),
+              )
+            : noAplica('Sin tiempos registrados'),
+          fallos
+            ? linea(
+                `${fallos} ${fallos === 1 ? 'error' : 'errores'} del sistema en 24 h${ev?.ultimo_fallo ? ` · último: ${ev.ultimo_fallo}` : ''}`,
+                estadoPorValor(puntajeFallos(fallos, ops)),
+              )
+            : linea('Sin errores en las últimas 24 h', 'normal'),
+        )
+      : diag(noAplica('Sin uso en 24 h: nadie lo ocupó, no hay qué medir'), noAplica('Sin datos'), linea('Sin errores en las últimas 24 h', 'normal')),
   })
 }
 
@@ -297,13 +328,32 @@ function horaLocal(iso: string): string {
 
 function piezaLatido(tarea: TareaLatido, l: Latido | undefined): PiezaMedida {
   const { nombre, horaUtc, dias } = TAREAS[tarea]
-  if (!l) return pieza({ id: tarea, nombre, valor: null, lectura: 'sin latido todavía (empieza en su siguiente corrida)' })
+  if (!l)
+    return pieza({
+      id: tarea,
+      nombre,
+      valor: null,
+      lectura: 'sin latido todavía (empieza en su siguiente corrida)',
+      diag: diag(noAplica('Aún no corre: empieza en su siguiente horario'), noAplica('Sin datos'), noAplica('Sin datos')),
+    })
   const esperada = ultimaEjecucionEsperada(horaUtc, dias)
   const margen = 20 * 60 * 1000
   const intento = new Date(l.ultimo_intento).getTime()
   const ultimoOk = l.ultimo_ok ? new Date(l.ultimo_ok).getTime() : 0
   if (intento >= esperada.getTime() - margen && !l.ok) {
-    return pieza({ id: tarea, nombre, valor: 0, corto: 'falló en su última corrida', lectura: `falló ${horaLocal(l.ultimo_intento)}`, fallo: l.detalle ?? undefined })
+    return pieza({
+      id: tarea,
+      nombre,
+      valor: 0,
+      corto: 'falló en su última corrida',
+      lectura: `falló ${horaLocal(l.ultimo_intento)}`,
+      fallo: l.detalle ?? undefined,
+      diag: diag(
+        linea(`Corrió ${horaLocal(l.ultimo_intento)} pero falló`, 'alarma'),
+        linea(`Tardó ${seg(l.ms)}`, 'sin-dato'),
+        linea(`Error en su última corrida${l.detalle ? `: ${l.detalle}` : ''}`, 'alarma'),
+      ),
+    })
   }
   if (ultimoOk < esperada.getTime() - margen && Date.now() > esperada.getTime() + margen) {
     return pieza({
@@ -312,9 +362,24 @@ function piezaLatido(tarea: TareaLatido, l: Latido | undefined): PiezaMedida {
       valor: 0,
       corto: 'no corrió a su hora',
       lectura: `no corrió a su hora · último ok ${l.ultimo_ok ? horaLocal(l.ultimo_ok) : 'nunca'}`,
+      diag: diag(
+        linea('No corrió a su hora', 'alarma'),
+        noAplica('Sin corrida que medir'),
+        linea(`Último ok: ${l.ultimo_ok ? horaLocal(l.ultimo_ok) : 'nunca'}`, 'alarma'),
+      ),
     })
   }
-  return pieza({ id: tarea, nombre, valor: 100, lectura: `corrió ${horaLocal(l.ultimo_ok ?? l.ultimo_intento)} en ${seg(l.ms)}` })
+  return pieza({
+    id: tarea,
+    nombre,
+    valor: 100,
+    lectura: `corrió ${horaLocal(l.ultimo_ok ?? l.ultimo_intento)} en ${seg(l.ms)}`,
+    diag: diag(
+      linea(`Operando: corrió a su hora (${horaLocal(l.ultimo_ok ?? l.ultimo_intento)})`, 'normal'),
+      linea(`Tardó ${seg(l.ms)}`, 'normal'),
+      linea('Sin errores en su última corrida', 'normal'),
+    ),
+  })
 }
 
 /** Con un deploy publicándose, producción sigue sirviendo el anterior. */
@@ -374,7 +439,17 @@ function piezaIndices(m: Metricas | null, tablas: Tabla[]): PiezaMedida {
     .map((t) => ({ ...t, pct: Math.round((t.completas / Math.max(1, t.completas + t.indice)) * 100) }))
     .sort((a, b) => b.pct - a.pct)
   if (!grandes.length) {
-    return pieza({ id: 'indices', nombre: 'Índices', valor: 100, lectura: 'tablas chicas: leerlas completas es rápido' })
+    return pieza({
+      id: 'indices',
+      nombre: 'Índices',
+      valor: 100,
+      lectura: 'tablas chicas: leerlas completas es rápido',
+      diag: diag(
+        linea(`Operando: ${tablas.length} ${tablas.length === 1 ? 'tabla' : 'tablas'} en uso`, 'normal'),
+        linea('Tablas chicas: leerlas completas es rápido', 'normal'),
+        noAplica('No aplica: mide rendimiento, no errores'),
+      ),
+    })
   }
   const floja = grandes[0]
   const valor = Math.max(0, Math.min(100, 100 - Math.max(0, floja.pct - 10)))
@@ -382,6 +457,11 @@ function piezaIndices(m: Metricas | null, tablas: Tabla[]): PiezaMedida {
     id: 'indices',
     nombre: 'Índices',
     valor,
+    diag: diag(
+      linea(`Operando: ${grandes.length} ${grandes.length === 1 ? 'tabla grande' : 'tablas grandes'} en uso`, 'normal'),
+      linea(`${floja.nombre} usa su índice el ${100 - floja.pct}% de las veces`, estadoPorValor(valor)),
+      noAplica('No aplica: mide rendimiento, no errores'),
+    ),
     corto: `${floja.nombre} se lee completa el ${floja.pct}% de las veces`,
     lectura:
       valor >= 90
@@ -402,6 +482,11 @@ function piezaLimpieza(m: Metricas | null, tablas: Tabla[]): PiezaMedida {
     id: 'limpieza',
     nombre: 'Limpieza',
     valor,
+    diag: diag(
+      linea(`Operando: ${tablas.length} ${tablas.length === 1 ? 'tabla' : 'tablas'} con datos`, 'normal'),
+      linea(`La más cargada: ${sucia.nombre} con ${sucia.pct}% de registros muertos (tolerable hasta 20%)`, estadoPorValor(valor)),
+      noAplica('No aplica: mide mantenimiento, no errores'),
+    ),
     corto: `${sucia.nombre} con ${sucia.pct}% de registros muertos`,
     lectura: valor >= 90 ? `${tablas.length} tablas al día (la más alta: ${sucia.pct}% muertos)` : `${sucia.nombre}: ${sucia.pct}% de registros muertos sin purgar`,
   })
@@ -415,9 +500,19 @@ function piezaApp(nombre: string, lista: EstadoApp[], disponible: boolean): Piez
     id: 'app',
     nombre: `App (${nombre})`,
     valor: bien ? 100 : 0,
+    diag: diagApp(app.estado),
     corto: 'su deploy en producción no está listo',
     lectura: `deploy en producción: ${estadoLegible(app.estado)}`,
   })
+}
+
+function diagApp(estado: string | null): Diagnostico {
+  const bien = ESTADOS_SIRVIENDO.has(estado ?? '')
+  return diag(
+    bien ? linea(`Operando: en línea (${estadoLegible(estado)})`, 'normal') : linea(`Fuera de línea: ${estadoLegible(estado)}`, 'alarma'),
+    noAplica('Se mide en Vercel sin tocar la app'),
+    estado === 'ERROR' ? linea('Su última publicación terminó con error', 'alarma') : linea('Sin errores en su publicación', 'normal'),
+  )
 }
 
 let cacheLectura: { en: number; r: Promise<PanelControlRespuesta> } | null = null
@@ -461,8 +556,20 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
         valor: puntajeLatencia(msBase, PRESUPUESTO_BASE_MS),
         corto: `lenta (contesta en ${seg(msBase)})`,
         lectura: `contesta en ${seg(msBase)}`,
+        diag: diag(
+          linea('Operando: contesta', 'normal'),
+          linea(`Contesta en ${seg(msBase)} (aceptable: ${seg(PRESUPUESTO_BASE_MS)})`, estadoPorValor(puntajeLatencia(msBase, PRESUPUESTO_BASE_MS))),
+          linea('Sin errores en esta lectura', 'normal'),
+        ),
       })
-    : pieza({ id: 'base', nombre: 'Base de datos', valor: 0, lectura: 'no contesta', fallo: errorBase })
+    : pieza({
+        id: 'base',
+        nombre: 'Base de datos',
+        valor: 0,
+        lectura: 'no contesta',
+        fallo: errorBase,
+        diag: diag(linea('No contesta', 'alarma'), noAplica('Sin respuesta que medir'), linea(`Error: ${errorBase}`, 'alarma')),
+      })
 
   const ev = m?.piezas ?? {}
   const correo = piezaServicio('correo', 'Correo (Gmail)', ev.correo, PRESUPUESTO_MS.correo)
@@ -473,6 +580,18 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
     valor: wh && wh.ops ? puntajeFallos(wh.fallos, wh.ops) : null,
     corto: wh?.ops ? `${Math.round((wh.fallos / wh.ops) * 100)}% de avisos fallan` : undefined,
     lectura: wh?.ops ? fallosDe(wh.fallos, wh.ops) : 'sin avisos en 24 h',
+    diag: wh?.ops
+      ? diag(
+          linea(`Operando: ${wh.ops - wh.fallos} de ${wh.ops} avisos recibidos bien en 24 h`, wh.ops > wh.fallos ? 'normal' : 'alarma'),
+          noAplica('Se mide la entrega, no el tiempo'),
+          wh.fallos
+            ? linea(
+                `${wh.fallos} ${wh.fallos === 1 ? 'aviso falló' : 'avisos fallaron'} en 24 h${wh.ultimo_fallo ? ` · último: ${wh.ultimo_fallo}` : ''}`,
+                estadoPorValor(puntajeFallos(wh.fallos, wh.ops)),
+              )
+            : linea('Sin errores en las últimas 24 h', 'normal'),
+        )
+      : diag(noAplica('Sin avisos en 24 h: no hubo pagos SPEI'), noAplica('Sin datos'), linea('Sin errores en las últimas 24 h', 'normal')),
     fallo: wh?.fallos ? wh.ultimo_fallo ?? undefined : undefined,
   })
 
@@ -512,6 +631,7 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
             valor: ESTADOS_SIRVIENDO.has(appOpenHouse.estado ?? '') ? 100 : 0,
             corto: 'su deploy en producción no está listo',
             lectura: `deploy en producción: ${estadoLegible(appOpenHouse.estado)}`,
+            diag: diagApp(appOpenHouse.estado),
           })
         : pieza({ id: 'app-open-house', nombre: 'App de registro', valor: null, lectura: 'falta el token de lectura de Vercel' }),
       pieza({
@@ -520,6 +640,18 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
         valor: k?.registros ? Math.round((k.con_lead / k.registros) * 100) : null,
         corto: k ? `${k.registros - k.con_lead} registros no llegaron a Kommo` : undefined,
         lectura: k?.registros ? `${k.con_lead} de ${k.registros} registros de 7 días llegaron` : 'sin registros en 7 días',
+        diag: k?.registros
+          ? diag(
+              linea(`Operando: ${k.registros} registros en 7 días`, 'normal'),
+              linea(
+                `${Math.round((k.con_lead / k.registros) * 100)}% llegaron a Kommo como prospecto`,
+                estadoPorValor(Math.round((k.con_lead / k.registros) * 100)),
+              ),
+              k.registros - k.con_lead
+                ? linea(`${k.registros - k.con_lead} no llegaron a Kommo (7 días)`, estadoPorValor(Math.round((k.con_lead / k.registros) * 100)))
+                : linea('Sin errores: todos llegaron', 'normal'),
+            )
+          : diag(noAplica('Sin registros en 7 días'), noAplica('Sin datos'), linea('Sin errores', 'normal')),
       }),
       pieza({
         id: 'recordatorios-oh',
@@ -527,6 +659,13 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
         valor: k ? (atrasados ? 0 : 100) : null,
         corto: `${atrasados} recordatorios atrasados`,
         lectura: atrasados ? `${atrasados} atrasados más de 2 h` : `al corriente · ${k?.recordatorios_enviados_7d ?? 0} enviados en 7 días`,
+        diag: k
+          ? diag(
+              linea(`Operando: ${k.recordatorios_enviados_7d} enviados en 7 días`, 'normal'),
+              atrasados ? linea(`${atrasados} con más de 2 h de atraso`, 'alarma') : linea('Al corriente, ninguno atrasado', 'normal'),
+              atrasados ? linea(`${atrasados} sin enviar a tiempo`, 'alarma') : linea('Sin errores', 'normal'),
+            )
+          : undefined,
       }),
     ]),
     proceso('insforge', 'InsForge', 'Base de datos del proyecto Winston Servicios: respuesta y conexiones', [
@@ -538,6 +677,16 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
             valor: valorConexiones((m.base.conexiones / m.base.max_conexiones) * 100),
             corto: `${Math.round((m.base.conexiones / m.base.max_conexiones) * 100)}% de conexiones en uso`,
             lectura: `${m.base.conexiones} de ${m.base.max_conexiones} en uso · base ${Math.round(m.base.bytes / 1024 / 1024)} MB`,
+            diag: diag(
+              m.base.conexiones < m.base.max_conexiones
+                ? linea('Operando: acepta conexiones nuevas', 'normal')
+                : linea('Llena: rechaza conexiones nuevas', 'alarma'),
+              linea(
+                `${m.base.conexiones} de ${m.base.max_conexiones} en uso (${Math.round((m.base.conexiones / m.base.max_conexiones) * 100)}%)`,
+                estadoPorValor(valorConexiones((m.base.conexiones / m.base.max_conexiones) * 100)),
+              ),
+              m.base.conexiones < m.base.max_conexiones ? linea('Sin rechazos: hay lugar', 'normal') : linea('Rechazando conexiones', 'alarma'),
+            ),
           })
         : pieza({ id: 'conexiones', nombre: 'Conexiones', valor: null, lectura: 'sin lectura' }),
     ]),
@@ -553,6 +702,16 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
             ? `Vercel no respondió: ${String((apps.reason as Error)?.message ?? '')}`
             : 'falta el token de lectura de Vercel',
         fallo: caidas.length ? caidas.map((a) => `${a.nombre}: ${estadoLegible(a.estado)}`).join(' · ') : undefined,
+        diag: listaApps.length
+          ? diag(
+              linea(
+                `Operando: ${listaApps.length - caidas.length} de ${listaApps.length} apps en línea`,
+                caidas.length ? estadoPorValor(Math.max(0, 100 - caidas.length * 25)) : 'normal',
+              ),
+              noAplica('Se mide en Vercel sin tocar las apps'),
+              caidas.length ? linea(`Fuera de línea: ${caidas.map((a) => a.nombre).join(', ')}`, 'alarma') : linea('Sin errores: todas publicadas', 'normal'),
+            )
+          : undefined,
       }),
       piezaLatido('cron-recordatorio-liberacion-docs', m?.latidos['cron-recordatorio-liberacion-docs']),
     ]),
@@ -569,6 +728,18 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
             corto: ultimoFallo ? 'el último deploy falló' : `${d.error} deploys fallaron`,
             lectura: `${d.total} deploys · ${d.error} con error`,
             fallo: ultimoFallo ? 'El último deploy falló' : undefined,
+            diag: diag(
+              ultimoFallo
+                ? linea('El último deploy falló: producción sigue con el anterior', 'alarma')
+                : linea('Operando: el último deploy quedó publicado', 'normal'),
+              linea(
+                `${d.listos} de ${terminados || d.total} deploys terminaron bien (7 días)`,
+                estadoPorValor(terminados ? Math.round((d.listos / terminados) * 100) : 100),
+              ),
+              d.error
+                ? linea(`${d.error} ${d.error === 1 ? 'deploy' : 'deploys'} con error en 7 días`, ultimoFallo ? 'alarma' : 'precaucion')
+                : linea('Sin errores en 7 días', 'normal'),
+            ),
           }),
         ])
       }

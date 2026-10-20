@@ -21,6 +21,16 @@ export type PiezaMedida = {
   corto: string
   /** Último fallo del sistema, si lo hubo. */
   fallo?: string
+  /** Diagnóstico para la ventana de análisis: si opera, qué tan eficiente y errores recientes. */
+  diag?: Diagnostico
+}
+
+export type LineaDiagnostico = { texto: string; estado: EstadoMedidor }
+
+export type Diagnostico = {
+  operatividad: LineaDiagnostico
+  eficiencia: LineaDiagnostico
+  errores: LineaDiagnostico
 }
 
 export type MedidorProceso = {

@@ -1,4 +1,4 @@
-import { UMBRALES_SALUD, type MedidorProceso, type PiezaMedida } from './tipos'
+import { UMBRALES_SALUD, type Diagnostico, type MedidorProceso, type PiezaMedida } from './tipos'
 
 /* Textos de la ventana de análisis: qué es cada medidor y cómo se califica cada pieza. Deben seguir las reglas de panelControl.ts y uniformes.ts. */
 
@@ -108,4 +108,26 @@ export function porQueMarca(m: MedidorProceso): string {
     ? ` ${resto.every((p) => (p.valor ?? 0) >= UMBRALES_SALUD[1]) ? `Lo demás está bien (${lista(resto.map((p) => p.nombre))}).` : `También vigila ${lista(resto.filter((p) => (p.valor ?? 100) < UMBRALES_SALUD[1]).map((p) => `${p.nombre} (${p.valor}%)`))}.`}`
     : ''
   return `Marca ${v}% porque la pieza más débil es ${peor.nombre}: ${peor.corto === 'bien' ? peor.lectura : peor.corto}. El medidor lo manda siempre la pieza más débil. ${zona}${restoTxt}${notaSin}`
+}
+
+/** Diagnóstico de la pieza; si el servidor no lo trae (p. ej. Uniformes), se arma con su estado y su lectura. */
+export function diagnosticoPieza(p: PiezaMedida): Diagnostico {
+  if (p.diag) return p.diag
+  const operatividad =
+    p.estado === 'normal'
+      ? { texto: 'Operando con normalidad', estado: p.estado }
+      : p.estado === 'precaucion'
+        ? { texto: 'Opera, con detalles por revisar', estado: p.estado }
+        : p.estado === 'alarma'
+          ? { texto: 'Con falla', estado: p.estado }
+          : { texto: 'Sin lectura por ahora', estado: p.estado }
+  return {
+    operatividad,
+    eficiencia: { texto: p.lectura, estado: p.estado },
+    errores: p.fallo
+      ? { texto: p.fallo, estado: 'alarma' }
+      : p.estado === 'alarma'
+        ? { texto: p.corto, estado: 'alarma' }
+        : { texto: 'Sin errores detectados', estado: 'normal' },
+  }
 }

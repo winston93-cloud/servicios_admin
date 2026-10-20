@@ -277,19 +277,69 @@
 .pma-pieza-lectura { color: var(--pma-suave); }
 .pma-pieza-lectura b { color: var(--pma-texto); }
 .pma-pieza-fallo { margin-top: 0.2rem; color: var(--pma-rojo); font-weight: 600; }
+/* Diagnóstico: operatividad, eficiencia y errores, cada uno con su color */
+.pma-diag {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.15rem 0 0;
+}
+.pma-diag-fila {
+  --d: var(--pma-suave);
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border-left: 2px solid var(--d);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--d) 12%, transparent), transparent 80%);
+}
+.pma-diag-fila[data-estado='normal'] { --d: var(--pma-verde); }
+.pma-diag-fila[data-estado='precaucion'] { --d: var(--pma-ambar); }
+.pma-diag-fila[data-estado='alarma'] { --d: var(--pma-rojo); }
+.pma-diag-fila dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font: 700 0.62rem / 1.2 var(--font-space-grotesk), system-ui, sans-serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--d);
+}
+.pma-diag-fila dd {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--pma-texto);
+  overflow-wrap: anywhere;
+}
+.pma-diag-fila[data-estado='sin-dato'] dd { color: var(--pma-suave); }
+
 .pma-pieza-regla {
   margin-top: 0.45rem;
-  padding-top: 0.45rem;
+  padding-top: 0.35rem;
   border-top: 1px dashed rgba(255, 255, 255, 0.1);
   color: #b9c6da;
 }
-.pma-pieza-regla span {
-  display: block;
-  margin-bottom: 0.15rem;
+.pma-pieza-regla summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 32px;
+  cursor: pointer;
+  list-style: none;
   font: 700 0.6rem / 1 var(--font-space-grotesk), system-ui, sans-serif;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--pma-acento);
+}
+.pma-pieza-regla summary::-webkit-details-marker { display: none; }
+.pma-pieza-regla summary::after { content: '+'; margin-left: 0.2rem; font-size: 0.8rem; }
+.pma-pieza-regla[open] summary::after { content: '−'; }
+.pma-pieza-regla summary:focus-visible { outline: 2px solid var(--pma-acento); outline-offset: 2px; }
+.pma-pieza-regla p { margin: 0.15rem 0 0; }
+
+@media (max-width: 480px) {
+  .pma-diag-fila { grid-template-columns: minmax(0, 1fr); gap: 0.1rem; }
 }
 
 .pma-pie {

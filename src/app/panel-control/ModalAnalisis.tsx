@@ -2,9 +2,9 @@
 
 import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Cpu, X } from 'lucide-react'
+import { Activity, Cpu, Gauge, Power, ShieldAlert, X } from 'lucide-react'
 import { UMBRALES_SALUD, type MedidorProceso } from '@/lib/panelControl/tipos'
-import { DESCRIPCION_MEDIDOR, porQueMarca, reglaPieza } from '@/lib/panelControl/explicaciones'
+import { DESCRIPCION_MEDIDOR, diagnosticoPieza, porQueMarca, reglaPieza } from '@/lib/panelControl/explicaciones'
 import { Tacometro } from './Instrumentos'
 import './modal-analisis.css'
 
@@ -97,6 +97,7 @@ export default function ModalAnalisis({
           <ul className="pma-piezas">
             {m.piezas.map((p, i) => {
               const regla = reglaPieza(m.id, p)
+              const d = diagnosticoPieza(p)
               return (
                 <li key={p.id} className="pma-pieza" data-estado={p.estado} style={{ '--i': i } as React.CSSProperties}>
                   <div className="pma-pieza-fila">
@@ -107,14 +108,29 @@ export default function ModalAnalisis({
                   <div className="pma-barra" aria-hidden>
                     <span style={{ width: `${p.valor ?? 0}%` }} />
                   </div>
-                  <p className="pma-pieza-lectura">
-                    <b>{p.corto === 'bien' ? 'Bien' : p.corto}</b> · {p.lectura}
-                  </p>
-                  {p.fallo ? <p className="pma-pieza-fallo">Último fallo: {p.fallo}</p> : null}
+                  <dl className="pma-diag">
+                    {(
+                      [
+                        ['Operatividad', d.operatividad, Power],
+                        ['Eficiencia', d.eficiencia, Gauge],
+                        ['Errores', d.errores, ShieldAlert],
+                      ] as const
+                    ).map(([etiqueta, l, Icono]) => (
+                      <div key={etiqueta} className="pma-diag-fila" data-estado={l.estado}>
+                        <dt>
+                          <Icono size={14} aria-hidden /> {etiqueta}
+                        </dt>
+                        <dd>{l.texto}</dd>
+                      </div>
+                    ))}
+                  </dl>
                   {regla ? (
-                    <p className="pma-pieza-regla">
-                      <span>Cómo se califica</span> {regla}
-                    </p>
+                    <details className="pma-pieza-regla">
+                      <summary>
+                        <Activity size={12} aria-hidden /> Cómo se califica
+                      </summary>
+                      <p>{regla}</p>
+                    </details>
                   ) : null}
                 </li>
               )
