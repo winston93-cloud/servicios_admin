@@ -6,8 +6,15 @@
   align-items: flex-start;
   justify-content: center;
   gap: 12px;
-  width: min(720px, 100%);
+  width: min(1040px, 100%);
   margin: 22px auto 0;
+}
+
+/* Buscador, «Cambiar orden» y «Estilo» en una sola línea mientras quepan. */
+@media (min-width: 901px) {
+  .dashboard-herramientas:not(.dashboard-herramientas--papas) { flex-wrap: nowrap; }
+  .dashboard-herramientas .dash-buscador { flex: 1 1 auto; }
+  .dashboard-herramientas > :not(.dash-buscador) { flex: 0 0 auto; }
 }
 
 .dash-buscador {

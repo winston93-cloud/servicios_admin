@@ -185,12 +185,14 @@ export default function DashboardPage() {
   const [accesosDb, setAccesosDb] = useState<{ uid: number; modulos: string[] | null } | null>(null)
   const [busqueda, setBusqueda] = useState('')
   const [popupAbierto, setPopupAbierto] = useState<DashboardAdminNavItem['popup'] | null>(null)
-  const [tema, setTema] = useDashTema()
+  const [temaElegido, setTema] = useDashTema()
   const [avisoTalleresTerminado, setAvisoTalleresTerminado] = useState(false)
 
   // Solo un panel: alumno XOR personal (nunca mezclar módulos).
   const mostrarPanelAlumno = isAlumno && !isUsuario
   const mostrarPanelAdmin = isUsuario && !isAlumno
+  // El selector de estilo es solo del personal; las familias siempre ven el original.
+  const tema = mostrarPanelAdmin ? temaElegido : 'original'
 
   // Sesión inválida o rol desconocido → pedir credenciales de nuevo.
   useEffect(() => {
@@ -527,7 +529,6 @@ export default function DashboardPage() {
                         <span className="dashboard-ciclo-vigente-nombre">{cicloVigenteNombre}</span>
                       </p>
                     ) : null}
-                    <DashTemaSwitch tema={tema} onCambiar={setTema} />
                   </div>
                 ) : null}
                 {mostrarPanelAdmin && navItemsAdmin.length ? (

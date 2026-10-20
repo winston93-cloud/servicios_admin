@@ -69,7 +69,7 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 - **CSS raíz:** `src/app/pos/pos-totality-theme.css` + `src/app/admin-totality-overrides.css` + `src/app/facturacion/facturacion-totality-overrides.css`.
 - **Módulo `/servicios`:** claro con **UI UX PRO MAX** (navy + slate); oscuro con **Totality Festival** (`servicios-original-theme.css`, `servicios-totality-alumno.css`, `servicios-totality-dark.css`). Mismo `ThemeToggle`.
 - **Responsivo:** todo el proyecto debe verse y usarse bien en **PC y móvil** (ver `.cursor/rules/responsive-design.mdc`).
-- **Estilos del dashboard principal (`/dashboard`, personal y papás):** selector «Estilo» con distintivo «Nuevo» (`DashboardTemas.tsx`, `dashboard-temas.css`). Por default «Original» (el de siempre); además los 5 de Team English (Kawaii, Acuario, Nave espacial, Diario de campo, Arcade), en claro y oscuro. Se guarda por dispositivo (`servicios-admin-dashboard-tema`). Solo la pantalla de inicio: los 34 sistemas no cambian (decisión de Mario, 15 oct 2026).
+- **Estilos del dashboard principal (`/dashboard`, solo personal desde el 20 oct 2026; las familias siempre ven «Original»):** selector «Estilo» con distintivo «Nuevo» (`DashboardTemas.tsx`, `dashboard-temas.css`), en la misma línea que el buscador y «Cambiar orden». Por default «Original» (el de siempre); además los 5 de Team English (Kawaii, Acuario, Nave espacial, Diario de campo, Arcade), en claro y oscuro. Se guarda por dispositivo (`servicios-admin-dashboard-tema`). Solo la pantalla de inicio: los 34 sistemas no cambian (decisión de Mario, 15 oct 2026).
 - **Excluidos (sin cambio de diseño ni toggle):**
   - AgendaW: `/admin` y rutas de directoras (`agendaw`).
   - Open House: `open_house/app/admin`.
