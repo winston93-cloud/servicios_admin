@@ -278,7 +278,7 @@
   .pc-col-uniformes .pu-kpi-valor { font-size: 1.15rem; }
 
   .pc-col-uniformes .pc-banco.pu-banco { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .pc-col-uniformes .pc-instrumento { height: 84px; }
+  .pc-col-uniformes .pc-instrumento { min-height: 84px; }
 }
 
 @media (min-width: 1500px) and (max-height: 900px) {
@@ -286,5 +286,15 @@
   .pc-col-uniformes .pu-kpi { padding: 0.3rem 0.55rem; }
   .pc-col-uniformes .pu-kpi-valor { font-size: 1rem; }
   .pc-col-uniformes .pu-kpi-detalle { display: none; }
-  .pc-col-uniformes .pc-instrumento { height: 62px; }
+  .pc-col-uniformes .pc-instrumento { min-height: 52px; }
+}
+
+/* Cabina doble: la columna de Uniformes termina a la misma altura que la de Servicios; sus medidores crecen para llenarla. */
+@media (min-width: 1500px) {
+  .pc-cabina { align-items: stretch; }
+  .pc-col-uniformes { display: flex; flex-direction: column; }
+  .pc-col-uniformes .pu-zona { flex: 1 1 auto; display: flex; flex-direction: column; }
+  .pc-col-uniformes .pc-banco.pu-banco { flex: 1 1 auto; grid-auto-rows: 1fr; }
+  .pc-col-uniformes .pc-medidor { min-height: 0; }
+  .pc-col-uniformes .pc-instrumento { flex: 1 1 auto; height: auto; min-height: 62px; }
 }
