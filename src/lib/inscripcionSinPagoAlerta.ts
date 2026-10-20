@@ -1,5 +1,5 @@
 import { createDbAdmin } from '@/lib/insforgeAdmin'
-import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
+import { obtenerCicloEscolarActual, resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 import { fetchPagosPorConceptosCiclo } from '@/lib/reportes/fetchDb'
 import { pagoVigente } from '@/lib/reportes/pagoReporteHelpers'
 import { construirNombreCompleto, grupoALetra } from '@/lib/alumnoBusquedaServicios'
@@ -7,6 +7,17 @@ import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
 import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 
 export const DIAS_SIN_PAGO_INSCRIPCION = 30
+
+/** Ciclo marcado como actual (`es_actual`): valor (23…) y etiqueta (`2026-2027`). */
+export async function cicloActualAlertaInscripcion(): Promise<{ valor: number; nombre: string }> {
+  const actual = await obtenerCicloEscolarActual()
+  const valor =
+    actual?.valor != null && Number.isFinite(Number(actual.valor))
+      ? Number(actual.valor)
+      : await resolverCicloEscolarSistemaValor()
+  const nombre = String(actual?.nombre ?? '').trim() || `${valor + 2003}-${valor + 2004}`
+  return { valor, nombre }
+}
 
 /** Referencias dadas desde la temporada de admisiones del ciclo anterior (1 de enero de su año de inicio). */
 function inicioVentanaReferencia(ciclo: number): string {
@@ -39,9 +50,12 @@ function diasEntre(desde: string, hasta: string): number {
  * Alumnos activos del ciclo actual (referencia dada desde el ciclo anterior), con más de 30 días desde que se les dio referencia
  * y sin inscripción pagada (concepto 13, o los dos diferidos 11 y 12).
  */
-export async function alumnosSinPagoInscripcion(niveles: number[]): Promise<AlumnoSinPagoInscripcion[]> {
+export async function alumnosSinPagoInscripcion(
+  niveles: number[],
+  cicloValor?: number
+): Promise<AlumnoSinPagoInscripcion[]> {
   if (!niveles.length) return []
-  const ciclo = await resolverCicloEscolarSistemaValor()
+  const ciclo = cicloValor ?? (await resolverCicloEscolarSistemaValor())
   const db = createDbAdmin()
 
   const alumnos: Record<string, unknown>[] = []

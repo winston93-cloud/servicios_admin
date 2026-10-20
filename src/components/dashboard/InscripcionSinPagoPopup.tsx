@@ -16,6 +16,7 @@ export default function InscripcionSinPagoPopup({ activo }: { activo: boolean })
   const tituloId = useId()
   const cerrarRef = useRef<HTMLButtonElement>(null)
   const [alumnos, setAlumnos] = useState<AlumnoSinPagoInscripcion[]>([])
+  const [ciclo, setCiclo] = useState('')
   const [abierto, setAbierto] = useState(false)
 
   useEffect(() => {
@@ -23,9 +24,10 @@ export default function InscripcionSinPagoPopup({ activo }: { activo: boolean })
     let cancelado = false
     fetch('/api/control-escolar/alertas-inscripcion', { cache: 'no-store', headers: portalSessionFetchHeaders() })
       .then((r) => (r.ok ? r.json() : null))
-      .then((json: { alumnos?: AlumnoSinPagoInscripcion[] } | null) => {
+      .then((json: { ciclo?: string; alumnos?: AlumnoSinPagoInscripcion[] } | null) => {
         if (cancelado || !json?.alumnos?.length) return
         setAlumnos(json.alumnos)
+        setCiclo(json.ciclo ?? '')
         setAbierto(true)
       })
       .catch(() => {})
@@ -69,6 +71,7 @@ export default function InscripcionSinPagoPopup({ activo }: { activo: boolean })
                 ? 'Un alumno no ha pagado su inscripción'
                 : `${alumnos.length} alumnos no han pagado su inscripción`}
             </h2>
+            {ciclo ? <p className="tins-ciclo">Ciclo escolar {ciclo}</p> : null}
             <p className="tins-lead">Ya pasó más de un mes desde que se les dio número de referencia.</p>
           </div>
           <button ref={cerrarRef} type="button" className="tins-cerrar" onClick={cerrar} aria-label="Cerrar">
