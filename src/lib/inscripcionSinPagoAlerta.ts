@@ -8,9 +8,6 @@ import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 
 export const DIAS_SIN_PAGO_INSCRIPCION = 30
 
-/** Alumnos de prueba (siguen activos aunque se les cambie la referencia). */
-const ALUMNOS_PRUEBA = new Set([2680, 2683])
-
 /** Referencias dadas desde la temporada de admisiones del ciclo anterior (1 de enero de su año de inicio). */
 function inicioVentanaReferencia(ciclo: number): string {
   return `${ciclo - 1 + 2003}-01-01`
@@ -78,8 +75,7 @@ export async function alumnosSinPagoInscripcion(niveles: number[]): Promise<Alum
   const out: (AlumnoSinPagoInscripcion & { orden: number[] })[] = []
   for (const a of alumnos) {
     const ref = Number(a.alumno_ref)
-    if (!(ref > 0) || ALUMNOS_PRUEBA.has(Number(a.alumno_id))) continue
-    if (String(a.alumno_nombre ?? '').trim().toUpperCase() === 'PRUEBA') continue
+    if (!(ref > 0)) continue
     const conceptos = conceptosPorRef.get(String(ref).padStart(5, '0')) ?? new Set<string>()
     if (conceptos.has('13') || (conceptos.has('11') && conceptos.has('12'))) continue
 
