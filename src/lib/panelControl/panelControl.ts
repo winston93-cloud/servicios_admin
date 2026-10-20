@@ -32,19 +32,20 @@ type Metricas = {
  * Apps de producción cuyo estado se lee de la API de Vercel (nunca se les hace petición).
  * Fuera: las de prueba y el portal de Desayunos (`services`, apagado a propósito).
  */
-const APPS_PRODUCCION: { nombre: string; url: string }[] = [
-  { nombre: 'Servicios Admin', url: 'https://servicios.winston93.edu.mx/login' },
-  { nombre: 'Uniformes', url: 'https://uniformes-mu.vercel.app' },
-  { nombre: 'Reloj checador', url: 'https://winston-registro.vercel.app' },
-  { nombre: 'Becas renovación', url: 'https://becas-renovacion.vercel.app' },
-  { nombre: 'Winston USA Program', url: 'https://winston-usa-program.vercel.app' },
-  { nombre: 'AgendaW', url: 'https://agendaw.vercel.app' },
-  { nombre: 'Open House', url: 'https://open-house-chi.vercel.app' },
-  { nombre: 'Cheques', url: 'https://cheques-new.vercel.app' },
-  { nombre: 'Caja chica', url: 'https://cchic.vercel.app' },
-  { nombre: 'SSIW', url: 'https://ssiw.vercel.app' },
-  { nombre: 'Contratos', url: 'https://contratos-chi.vercel.app' },
-  { nombre: 'Prórrogas y ajustes', url: 'https://prorrogas-ajustes.vercel.app' },
+/** `proyecto` = nombre en Vercel; mientras publica, el deploy nuevo aún no trae el dominio y se reconoce por él. */
+const APPS_PRODUCCION: { nombre: string; url: string; proyecto: string }[] = [
+  { nombre: 'Servicios Admin', url: 'https://servicios.winston93.edu.mx/login', proyecto: 'servicios-admin' },
+  { nombre: 'Uniformes', url: 'https://uniformes-mu.vercel.app', proyecto: 'uniformes' },
+  { nombre: 'Reloj checador', url: 'https://winston-registro.vercel.app', proyecto: 'winston-control' },
+  { nombre: 'Becas renovación', url: 'https://becas-renovacion.vercel.app', proyecto: 'becas-renovacion' },
+  { nombre: 'Winston USA Program', url: 'https://winston-usa-program.vercel.app', proyecto: 'winston-usa-program' },
+  { nombre: 'AgendaW', url: 'https://agendaw.vercel.app', proyecto: 'agendaw' },
+  { nombre: 'Open House', url: 'https://open-house-chi.vercel.app', proyecto: 'open-house' },
+  { nombre: 'Cheques', url: 'https://cheques-new.vercel.app', proyecto: 'cheques-new' },
+  { nombre: 'Caja chica', url: 'https://cchic.vercel.app', proyecto: 'cchic' },
+  { nombre: 'SSIW', url: 'https://ssiw.vercel.app', proyecto: 'ssiw' },
+  { nombre: 'Contratos', url: 'https://contratos-chi.vercel.app', proyecto: 'contratos' },
+  { nombre: 'Prórrogas y ajustes', url: 'https://prorrogas-ajustes.vercel.app', proyecto: 'prorrogas-ajustes' },
 ]
 
 /** Tiempo aceptable (p95 de operaciones reales) por pieza, en ms. El correo incluye la espera del límite de Gmail. */
@@ -154,18 +155,20 @@ async function estadoApps(): Promise<EstadoApp[] | null> {
   if (!res.ok) throw new Error(`Vercel respondió ${res.status}`)
   const json = (await res.json()) as {
     projects?: {
+      name?: string
       targets?: { production?: { alias?: string[]; readyState?: string } }
       latestDeployments?: { target?: string | null; readyState?: string; alias?: string[] }[]
     }[]
   }
   const proyectos = json.projects ?? []
-  const datos = APPS_PRODUCCION.map(({ nombre, url }) => {
+  const datos = APPS_PRODUCCION.map(({ nombre, url, proyecto }) => {
     const host = new URL(url).host
-    const p = proyectos.find(
-      (x) =>
-        x.targets?.production?.alias?.includes(host) ||
-        x.latestDeployments?.some((d) => d.target === 'production' && d.alias?.includes(host))
-    )
+    const p =
+      proyectos.find(
+        (x) =>
+          x.targets?.production?.alias?.includes(host) ||
+          x.latestDeployments?.some((d) => d.target === 'production' && d.alias?.includes(host))
+      ) ?? proyectos.find((x) => x.name === proyecto)
     const estado =
       p?.targets?.production?.readyState ??
       p?.latestDeployments?.find((d) => d.target === 'production')?.readyState ??
