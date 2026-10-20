@@ -8,15 +8,23 @@ import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
 
 export const DIAS_SIN_PAGO_INSCRIPCION = 30
 
+/** Alumnos de prueba (siguen activos aunque se les cambie la referencia). */
+const ALUMNOS_PRUEBA = new Set([2680, 2683])
+
+/** Referencias dadas desde la temporada de admisiones del ciclo anterior (1 de enero de su año de inicio). */
+function inicioVentanaReferencia(ciclo: number): string {
+  return `${ciclo - 1 + 2003}-01-01`
+}
+
 export type AlumnoSinPagoInscripcion = {
   alumno_id: number
   alumno_ref: number
   nombre: string
   nivel: string
   grado: string
-  /** `YYYY-MM-DD` en que se le dio referencia (`alumno_registro`); null si no se capturó. */
-  referencia_desde: string | null
-  dias: number | null
+  /** `YYYY-MM-DD` en que se le dio referencia (`alumno_registro`). */
+  referencia_desde: string
+  dias: number
   /** Pagó solo un diferido (11 o 12) de la inscripción. */
   pago_parcial: boolean
 }
@@ -65,16 +73,19 @@ export async function alumnosSinPagoInscripcion(niveles: number[]): Promise<Alum
   }
 
   const hoy = hoyMonterrey()
+  const desdeVentana = inicioVentanaReferencia(ciclo)
   const out: (AlumnoSinPagoInscripcion & { orden: number[] })[] = []
   for (const a of alumnos) {
     const ref = Number(a.alumno_ref)
-    if (!(ref > 0)) continue
+    if (!(ref > 0) || ALUMNOS_PRUEBA.has(Number(a.alumno_id))) continue
+    if (String(a.alumno_nombre ?? '').trim().toUpperCase() === 'PRUEBA') continue
     const conceptos = conceptosPorRef.get(String(ref).padStart(5, '0')) ?? new Set<string>()
     if (conceptos.has('13') || (conceptos.has('11') && conceptos.has('12'))) continue
 
     const registro = a.alumno_registro ? String(a.alumno_registro).slice(0, 10) : null
-    const dias = registro ? diasEntre(registro, hoy) : null
-    if (dias != null && dias <= DIAS_SIN_PAGO_INSCRIPCION) continue
+    if (!registro || registro < desdeVentana) continue
+    const dias = diasEntre(registro, hoy)
+    if (dias <= DIAS_SIN_PAGO_INSCRIPCION) continue
 
     const nivelNum = Number(a.alumno_nivel)
     const grupo = grupoALetra(a.alumno_grupo as string | number | null)

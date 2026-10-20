@@ -84,17 +84,13 @@ export default function InscripcionSinPagoPopup({ activo }: { activo: boolean })
                 <span className="tins-item-meta">
                   {[`Ref. ${a.alumno_ref}`, a.nivel, a.grado].filter(Boolean).join(' · ')}
                 </span>
-                <span className="tins-item-meta">
-                  {a.referencia_desde ? `Referencia desde ${fechaCorta(a.referencia_desde)}` : 'Sin fecha de referencia'}
-                </span>
+                <span className="tins-item-meta">Referencia desde {fechaCorta(a.referencia_desde)}</span>
               </div>
               <div className="tins-item-dias">
-                {a.dias != null ? (
-                  <span className="tins-item-nums">
-                    <b>{a.dias.toLocaleString('es-MX')}</b>
-                    <small>días</small>
-                  </span>
-                ) : null}
+                <span className="tins-item-nums">
+                  <b>{a.dias.toLocaleString('es-MX')}</b>
+                  <small>días</small>
+                </span>
                 <span className="tins-item-estado">{a.pago_parcial ? 'Solo un diferido' : 'Sin pagar'}</span>
               </div>
             </li>
