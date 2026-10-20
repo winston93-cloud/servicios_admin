@@ -30,8 +30,8 @@ import { nivelesAlertaInscripcion } from '@/lib/inscripcionSinPagoNiveles'
 import DashboardBuscador from '@/components/dashboard/DashboardBuscador'
 import { DashTemaSwitch, useDashTema } from '@/components/dashboard/DashboardTemas'
 import { buscarModulos } from '@/lib/dashboardBusqueda'
-import { CircleHelp, Gauge, ListOrdered, SearchX } from 'lucide-react'
-import Link from 'next/link'
+import { CircleHelp, ListOrdered, SearchX } from 'lucide-react'
+import SalaControlBoton from '@/components/dashboard/SalaControlBoton'
 import { PANEL_CONTROL_USUARIOS } from '@/lib/panelControl/tipos'
 import { familiaVeBeneficiosExternos } from '@/lib/beneficiosExternos/config'
 import dynamic from 'next/dynamic'
@@ -457,10 +457,7 @@ export default function DashboardPage() {
               Bienvenido, {session?.displayName ?? user?.usuario_nombre_completo}
             </span>
             {mostrarPanelAdmin && PANEL_CONTROL_USUARIOS.includes(usuarioIdAdmin) ? (
-              <Link href="/panel-control" className="dashboard-sala-btn" aria-label="Sala de Control Principal">
-                <Gauge size={18} strokeWidth={2} aria-hidden />
-                <span className="dashboard-sala-btn-txt">Sala de Control Principal</span>
-              </Link>
+<SalaControlBoton />
             ) : null}
             {mostrarPanelAdmin ? <DashboardNotificacionesBell /> : null}
             <ThemeToggle />

@@ -3934,6 +3934,22 @@ html[data-theme='dark'] .dashboard-home .theme-toggle-track {
 .dashboard-sala-btn:focus-visible { outline: 2px solid #34d399; outline-offset: 2px; }
 html[data-theme='light'] .dashboard-sala-btn { border-color: rgba(5, 150, 105, 0.45); background: rgba(16, 185, 129, 0.1); color: #065f46; }
 html[data-theme='light'] .dashboard-sala-btn:hover { background: rgba(16, 185, 129, 0.18); }
+/* El color sigue el estado general del panel: verde, ámbar, rojo; gris mientras no hay lectura. */
+.dashboard-sala-btn[data-estado='sin-lectura'] { border-color: rgba(148, 163, 184, 0.4); background: rgba(148, 163, 184, 0.1); color: #cbd5e1; }
+.dashboard-sala-btn[data-estado='precaucion'] { border-color: rgba(251, 191, 36, 0.6); background: rgba(245, 158, 11, 0.16); color: #fde68a; }
+.dashboard-sala-btn[data-estado='precaucion']:hover { background: rgba(245, 158, 11, 0.26); }
+.dashboard-sala-btn[data-estado='alarma'] { border-color: rgba(248, 113, 113, 0.7); background: rgba(239, 68, 68, 0.18); color: #fecaca; animation: dashboard-sala-pulso 1.6s ease-in-out infinite; }
+.dashboard-sala-btn[data-estado='alarma']:hover { background: rgba(239, 68, 68, 0.28); }
+html[data-theme='light'] .dashboard-sala-btn[data-estado='sin-lectura'] { border-color: rgba(100, 116, 139, 0.4); background: rgba(100, 116, 139, 0.08); color: #334155; }
+html[data-theme='light'] .dashboard-sala-btn[data-estado='precaucion'] { border-color: rgba(217, 119, 6, 0.55); background: rgba(245, 158, 11, 0.14); color: #92400e; }
+html[data-theme='light'] .dashboard-sala-btn[data-estado='alarma'] { border-color: rgba(220, 38, 38, 0.55); background: rgba(239, 68, 68, 0.12); color: #991b1b; }
+@keyframes dashboard-sala-pulso {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
+  50% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-sala-btn[data-estado='alarma'] { animation: none; }
+}
 @media (max-width: 900px) {
   .dashboard-sala-btn { padding: 0; width: var(--touch-min, 44px); justify-content: center; }
   .dashboard-sala-btn-txt { display: none; }

@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import { PANEL_CONTROL_USUARIOS, type MedidorProceso, type PanelControlRespuesta } from '@/lib/panelControl/tipos'
 import type { PanelUniformesRespuesta } from '@/lib/panelControl/uniformes'
+import { publicarEstadoPanel } from '@/lib/panelControl/estadoGlobal'
 import './panel-control-alerta.css'
 
 const REVISION_MS = 60_000
@@ -64,6 +65,9 @@ export default function PanelControlAlerta() {
         .filter((m) => m.estado === 'precaucion' || m.estado === 'alarma')
         .map(({ id, nombre, estado, resumen }) => ({ id, nombre, estado, resumen }))
         .sort((a, b) => (a.estado === b.estado ? 0 : a.estado === 'alarma' ? -1 : 1))
+      publicarEstadoPanel(
+        actuales.some((f) => f.estado === 'alarma') ? 'alarma' : actuales.length ? 'precaucion' : 'normal',
+      )
       const vistas = leerVistas()
       const vigentes = vistas.filter((v) => actuales.some((f) => clave(f) === v))
       if (vigentes.length !== vistas.length) guardarVistas(vigentes)
