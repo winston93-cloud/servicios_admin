@@ -1,50 +1,63 @@
-/* Panel de control — sala de control: banco de medidores, lámparas y detalle por pieza. */
+/* Main Control Room — cabina cinematográfica: espacio profundo, radar, medidores que brillan y detalle por pieza. */
 
 .pc-page {
-  --pc-fondo: #0b0e0c;
-  --pc-panel: #151a17;
-  --pc-panel-borde: #29312c;
-  --pc-bisel: #040605;
-  --pc-placa: #222a25;
-  --pc-placa-texto: #e2e8df;
-  --pc-texto: #dfe6dc;
-  --pc-suave: #97a39a;
-  --pc-lcd: #070a08;
+  --pc-fondo: #04060c;
+  --pc-panel: #0c121e;
+  --pc-panel-borde: #1f2b40;
+  --pc-bisel: #02040a;
+  --pc-placa: #131b2b;
+  --pc-placa-texto: #e6edf8;
+  --pc-texto: #e3e9f4;
+  --pc-suave: #8e9bb2;
+  --pc-lcd: #03060c;
+  --pc-hud: #5ee7ff;
+  --pc-hud-suave: rgba(94, 231, 255, 0.16);
   --pc-lcd-raya: rgba(255, 255, 255, 0.06);
   --pc-verde: #34cd69;
   --pc-ambar: #f1b42e;
   --pc-rojo: #ff5847;
   --pc-gris: #4f5a53;
-  --pc-boton: #1c231f;
-  --pc-boton-borde: #39433d;
+  --pc-boton: #0f1626;
+  --pc-boton-borde: #2b3a55;
   --pc-dig-verde: #7cf59a;
   --pc-dig-ambar: #ffc94d;
   --pc-dig-rojo: #ff6f61;
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
   min-height: 100dvh;
-  background: var(--pc-fondo);
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -8%, rgba(76, 92, 214, 0.28), transparent 70%),
+    radial-gradient(ellipse 45% 35% at 92% 30%, rgba(0, 170, 210, 0.1), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 4% 70%, rgba(120, 60, 200, 0.1), transparent 70%),
+    var(--pc-fondo);
   color: var(--pc-texto);
   font-family: var(--font-inter), Inter, system-ui, sans-serif;
   overflow-x: clip;
 }
 
 [data-theme='light'] .pc-page {
-  --pc-fondo: #cfd6cc;
-  --pc-panel: #e6ebe2;
-  --pc-panel-borde: #a3ad9f;
-  --pc-bisel: #2e3430;
-  --pc-placa: #232927;
-  --pc-placa-texto: #f1f3ee;
-  --pc-texto: #1b221e;
-  --pc-suave: #48534d;
-  --pc-lcd: #111713;
+  --pc-fondo: #dbe3ec;
+  --pc-panel: #eef2f7;
+  --pc-panel-borde: #aab6c7;
+  --pc-bisel: #1a2233;
+  --pc-placa: #1b2438;
+  --pc-placa-texto: #eef3fa;
+  --pc-texto: #152033;
+  --pc-suave: #46536a;
+  --pc-lcd: #0c1220;
+  --pc-hud: #0a7ea6;
+  --pc-hud-suave: rgba(10, 126, 166, 0.14);
   --pc-lcd-raya: rgba(255, 255, 255, 0.07);
   --pc-verde: #1d9a4a;
   --pc-ambar: #d6950a;
   --pc-rojo: #cf3427;
   --pc-gris: #8a948d;
-  --pc-boton: #f4f6f1;
-  --pc-boton-borde: #8f9a8b;
+  --pc-boton: #f6f8fb;
+  --pc-boton-borde: #94a3b8;
+  background:
+    radial-gradient(ellipse 70% 45% at 50% -8%, rgba(120, 150, 230, 0.32), transparent 70%),
+    linear-gradient(180deg, #e3eaf2, #d3dce7);
 }
 
 .pc-shell {
@@ -601,4 +614,266 @@
   .pc-medidor { transition: none; }
   .pc-girando { animation: none; }
   .pc-lampara[data-parpadeo] { animation: none; outline: 2px solid var(--pc-rojo); outline-offset: 2px; }
+}
+
+/* ── Cabina cinematográfica ── */
+
+/* Campo de estrellas (solo oscuro): dos capas que titilan a destiempo. */
+.pc-page::before,
+.pc-page::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-repeat: repeat;
+}
+.pc-page::before {
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgba(255, 255, 255, 0.85), transparent 60%),
+    radial-gradient(1px 1px at 27% 64%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(1px 1px at 41% 33%, rgba(190, 220, 255, 0.75), transparent 60%),
+    radial-gradient(1.5px 1.5px at 58% 81%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(1px 1px at 69% 12%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(1px 1px at 83% 47%, rgba(190, 230, 255, 0.8), transparent 60%),
+    radial-gradient(1px 1px at 94% 88%, rgba(255, 255, 255, 0.55), transparent 60%),
+    radial-gradient(1px 1px at 6% 92%, rgba(255, 255, 255, 0.6), transparent 60%);
+  background-size: 420px 420px;
+  animation: pc-titilar 7s ease-in-out infinite;
+}
+.pc-page::after {
+  background-image:
+    radial-gradient(1px 1px at 18% 42%, rgba(255, 255, 255, 0.5), transparent 60%),
+    radial-gradient(1.5px 1.5px at 36% 9%, rgba(170, 210, 255, 0.75), transparent 60%),
+    radial-gradient(1px 1px at 52% 57%, rgba(255, 255, 255, 0.45), transparent 60%),
+    radial-gradient(1px 1px at 74% 73%, rgba(255, 255, 255, 0.6), transparent 60%),
+    radial-gradient(1px 1px at 89% 21%, rgba(255, 255, 255, 0.5), transparent 60%);
+  background-size: 290px 290px;
+  animation: pc-titilar 11s ease-in-out -4s infinite;
+}
+[data-theme='light'] .pc-page::before,
+[data-theme='light'] .pc-page::after { display: none; }
+
+@keyframes pc-titilar {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.35; }
+}
+
+.pc-titulo {
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 18px rgba(94, 231, 255, 0.35);
+}
+[data-theme='light'] .pc-titulo { text-shadow: none; }
+
+.pc-reloj-hora { text-shadow: 0 0 10px rgba(124, 245, 154, 0.55); }
+
+/* Franja de estado con radar */
+.pc-general {
+  position: relative;
+  overflow: hidden;
+  gap: 1.1rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid var(--pc-panel-borde);
+  border-left-width: 1px;
+  background:
+    linear-gradient(100deg, var(--pc-hud-suave), transparent 55%),
+    var(--pc-panel);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.pc-general::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--pc-verde), transparent);
+  opacity: 0.8;
+}
+.pc-general[data-estado='precaucion']::after { background: linear-gradient(90deg, transparent, var(--pc-ambar), transparent); }
+.pc-general[data-estado='alarma']::after { background: linear-gradient(90deg, transparent, var(--pc-rojo), transparent); }
+.pc-general[data-estado='sin-dato']::after { background: linear-gradient(90deg, transparent, var(--pc-gris), transparent); }
+
+.pc-general-titulo { font-size: clamp(1.05rem, 2.2vw, 1.4rem); }
+.pc-general[data-estado='normal'] .pc-general-titulo { text-shadow: 0 0 16px rgba(52, 205, 105, 0.35); }
+.pc-general[data-estado='alarma'] .pc-general-titulo { color: var(--pc-rojo); }
+[data-theme='light'] .pc-general .pc-general-titulo { text-shadow: none; }
+
+.pc-radar {
+  position: relative;
+  flex: none;
+  width: 104px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 1px solid rgba(94, 231, 255, 0.45);
+  background:
+    linear-gradient(transparent calc(50% - 0.5px), rgba(94, 231, 255, 0.22) calc(50% - 0.5px), rgba(94, 231, 255, 0.22) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+    linear-gradient(90deg, transparent calc(50% - 0.5px), rgba(94, 231, 255, 0.22) calc(50% - 0.5px), rgba(94, 231, 255, 0.22) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+    repeating-radial-gradient(circle, transparent 0 calc(25% - 1px), rgba(94, 231, 255, 0.2) calc(25% - 1px) 25%),
+    radial-gradient(circle, rgba(10, 40, 60, 0.9), rgba(2, 8, 16, 0.95));
+  box-shadow: 0 0 22px rgba(94, 231, 255, 0.18), inset 0 0 18px rgba(94, 231, 255, 0.12);
+  overflow: hidden;
+}
+[data-theme='light'] .pc-radar {
+  border-color: rgba(10, 126, 166, 0.5);
+  box-shadow: none;
+}
+.pc-radar-barrido {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(94, 231, 255, 0.55), rgba(94, 231, 255, 0.12) 40deg, transparent 75deg);
+  animation: pc-barrido 5s linear infinite;
+}
+.pc-radar[data-cargando] .pc-radar-barrido { animation-duration: 1.4s; }
+@keyframes pc-barrido { to { transform: rotate(360deg); } }
+
+.pc-radar-punto {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: var(--pc-gris);
+}
+.pc-radar-punto[data-estado='normal'] { background: #7cf59a; box-shadow: 0 0 6px #34cd69; }
+.pc-radar-punto[data-estado='precaucion'] { background: #ffc94d; box-shadow: 0 0 8px #f1b42e; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; }
+.pc-radar-punto[data-estado='alarma'] {
+  background: #ff6f61;
+  box-shadow: 0 0 10px #ff5847;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  animation: pc-eco 1.2s ease-out infinite;
+}
+@keyframes pc-eco {
+  0% { box-shadow: 0 0 0 0 rgba(255, 88, 71, 0.8); }
+  100% { box-shadow: 0 0 0 10px rgba(255, 88, 71, 0); }
+}
+
+.pc-cuenta {
+  flex: none;
+  display: grid;
+  justify-items: end;
+  gap: 0.1rem;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  color: var(--pc-dig-verde);
+}
+.pc-cuenta[data-estado='precaucion'] { color: var(--pc-dig-ambar); }
+.pc-cuenta[data-estado='alarma'] { color: var(--pc-dig-rojo); }
+.pc-cuenta[data-estado='sin-dato'] { color: var(--pc-suave); }
+.pc-cuenta-num {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 600;
+  line-height: 1;
+  text-shadow: 0 0 18px currentColor;
+}
+.pc-cuenta-num small { font-size: 0.45em; opacity: 0.7; text-shadow: none; }
+.pc-cuenta-txt {
+  font: 700 0.66rem / 1 var(--font-space-grotesk), system-ui, sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pc-suave);
+}
+[data-theme='light'] .pc-cuenta { color: var(--pc-verde); }
+[data-theme='light'] .pc-cuenta[data-estado='precaucion'] { color: var(--pc-ambar); }
+[data-theme='light'] .pc-cuenta[data-estado='alarma'] { color: var(--pc-rojo); }
+[data-theme='light'] .pc-cuenta-num { text-shadow: none; }
+
+/* Bancos con esquinas de mira */
+.pc-banco {
+  position: relative;
+  border: 1px solid rgba(94, 231, 255, 0.14);
+  background: rgba(2, 5, 12, 0.78);
+  box-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.9);
+}
+.pc-banco::before,
+.pc-banco::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  border: 2px solid var(--pc-hud);
+  opacity: 0.75;
+}
+.pc-banco::before { top: -2px; left: -2px; border-right: 0; border-bottom: 0; border-top-left-radius: 8px; }
+.pc-banco::after { bottom: -2px; right: -2px; border-left: 0; border-top: 0; border-bottom-right-radius: 8px; }
+[data-theme='light'] .pc-banco { background: var(--pc-bisel); border-color: transparent; box-shadow: none; }
+
+.pc-banco-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--pc-hud);
+}
+.pc-banco-titulo::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--pc-hud-suave), transparent);
+}
+
+/* Medidores: arranque escalonado y brillo */
+.pc-medidor {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 40%), var(--pc-panel);
+  transition: border-color 0.15s ease, transform 0.12s ease, box-shadow 0.2s ease;
+}
+.pc-medidor:hover { border-color: rgba(94, 231, 255, 0.35); }
+.pc-medidor[aria-pressed='true'] {
+  border-color: var(--pc-hud);
+  box-shadow: 0 0 0 1px rgba(94, 231, 255, 0.25), 0 0 22px rgba(94, 231, 255, 0.2);
+}
+[data-theme='light'] .pc-medidor[aria-pressed='true'] { box-shadow: none; }
+
+.pc-columna { transition-delay: calc(var(--i, 0) * 60ms); }
+.pc-aguja { transition-delay: calc(var(--i, 0) * 60ms); }
+.pc-columna[data-zona='normal'] { box-shadow: 0 0 14px rgba(52, 205, 105, 0.55), inset 0 0 8px rgba(255, 255, 255, 0.18); }
+.pc-columna[data-zona='precaucion'] { box-shadow: 0 0 14px rgba(241, 180, 46, 0.6), inset 0 0 8px rgba(255, 255, 255, 0.2); }
+.pc-columna[data-zona='alarma'] { box-shadow: 0 0 16px rgba(255, 88, 71, 0.7), inset 0 0 8px rgba(255, 255, 255, 0.2); }
+.pc-aguja { filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.8)); }
+.pc-tubo { overflow: visible; }
+
+.pc-digital-valor,
+.pc-digital-unidad { text-shadow: 0 0 12px currentColor; }
+.pc-medidor:not([data-cargando]) .pc-digital {
+  animation: pc-encender 0.7s ease-out both;
+  animation-delay: calc(var(--i, 0) * 60ms + 0.5s);
+}
+@keyframes pc-encender {
+  0% { opacity: 0.25; filter: brightness(0.6); }
+  60% { opacity: 1; filter: brightness(1.6); }
+  100% { opacity: 1; filter: none; }
+}
+[data-theme='light'] .pc-columna[data-zona] { box-shadow: none; }
+[data-theme='light'] .pc-aguja { filter: none; }
+
+.pc-detalle {
+  border-color: rgba(94, 231, 255, 0.18);
+  box-shadow: 0 18px 40px -26px rgba(0, 0, 0, 0.9);
+}
+[data-theme='light'] .pc-detalle { border-color: var(--pc-panel-borde); box-shadow: none; }
+
+@media (max-width: 640px) {
+  .pc-general { gap: 0.75rem; }
+  .pc-radar { width: 72px; }
+  .pc-radar-punto { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; }
+  .pc-general-texto { flex: 1 1 calc(100% - 180px); }
+  .pc-cuenta-num { font-size: 1.7rem; }
+}
+
+@media (max-width: 420px) {
+  .pc-cuenta { order: 3; flex-direction: row; justify-items: start; grid-auto-flow: column; align-items: baseline; gap: 0.5rem; }
+  .pc-general-texto { flex-basis: calc(100% - 90px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pc-page::before,
+  .pc-page::after,
+  .pc-radar-barrido,
+  .pc-radar-punto[data-estado='alarma'],
+  .pc-medidor:not([data-cargando]) .pc-digital { animation: none; }
+  .pc-columna,
+  .pc-aguja { transition-delay: 0s; }
 }

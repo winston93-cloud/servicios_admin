@@ -159,6 +159,7 @@ function PanelControlView() {
     )
   }
 
+  const enVerde = todos.filter((m) => m.estado === 'normal').length
   const general: EstadoMedidor = !datos
     ? 'sin-dato'
     : conProblema.some((m) => m.estado === 'alarma')
@@ -173,7 +174,7 @@ function PanelControlView() {
       reloj={<Reloj siguiente={siguiente} leidoEn={datos?.leidoEn ?? null} leyendo={leyendo} onLeer={() => void leer()} />}
     >
       <section className="pc-general" data-estado={general} aria-live="polite">
-        <span className="pc-lampara pc-lampara-grande" data-estado={general} aria-hidden />
+        <Radar medidores={todos} cargando={!datos} />
         <div className="pc-general-texto pc-min0">
           <p className="pc-general-titulo">
             {general === 'sin-dato'
@@ -200,6 +201,13 @@ function PanelControlView() {
             </p>
           )}
         </div>
+        <div className="pc-cuenta" data-estado={general}>
+          <span className="pc-cuenta-num">
+            {datos ? enVerde : '--'}
+            <small>/{todos.length}</small>
+          </span>
+          <span className="pc-cuenta-txt">en verde</span>
+        </div>
         {sinReconocer.length ? (
           <button type="button" className="pc-reconocer" onClick={() => setReconocidas(new Set(enAlarma))}>
             <BellOff size={16} aria-hidden />
@@ -216,10 +224,11 @@ function PanelControlView() {
 
       <h2 className="pc-banco-titulo">Procesos</h2>
       <section className="pc-banco" aria-label="Medidores de los procesos">
-        {medidores.map((m) => (
+        {medidores.map((m, i) => (
           <Medidor
             key={m.id}
             m={m}
+            orden={i}
             cargando={!datos}
             elegido={m.id === seleccionado?.id}
             parpadea={m.estado === 'alarma' && !reconocidas.has(m.id)}
@@ -230,10 +239,11 @@ function PanelControlView() {
 
       <h2 className="pc-banco-titulo">Sistemas que más usan la base</h2>
       <section className="pc-banco pc-banco--sistemas" aria-label="Medidores de los sistemas">
-        {sistemas.map((m) => (
+        {sistemas.map((m, i) => (
           <Medidor
             key={m.id}
             m={m}
+            orden={medidores.length + i}
             cargando={!datos}
             elegido={m.id === seleccionado?.id}
             parpadea={m.estado === 'alarma' && !reconocidas.has(m.id)}
@@ -324,14 +334,42 @@ function Reloj({
   )
 }
 
+/** Radar de la franja de estado: un punto por medidor (procesos adentro, sistemas afuera) con su color. */
+function Radar({ medidores, cargando }: { medidores: MedidorProceso[]; cargando: boolean }) {
+  const procesos = medidores.filter((m) => IDS.includes(m.id))
+  const sistemas = medidores.filter((m) => !IDS.includes(m.id))
+  const puntos = [
+    ...procesos.map((m, i) => ({ m, angulo: (i / procesos.length) * 360 + 20, radio: 22 })),
+    ...sistemas.map((m, i) => ({ m, angulo: (i / sistemas.length) * 360, radio: 39 })),
+  ]
+  return (
+    <div className="pc-radar" data-cargando={cargando || undefined} aria-hidden>
+      <span className="pc-radar-barrido" />
+      {puntos.map(({ m, angulo, radio }) => {
+        const rad = (angulo * Math.PI) / 180
+        return (
+          <span
+            key={m.id}
+            className="pc-radar-punto"
+            data-estado={m.estado}
+            style={{ left: `${50 + radio * Math.cos(rad)}%`, top: `${50 + radio * Math.sin(rad)}%` }}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
 function Medidor({
   m,
+  orden,
   cargando,
   elegido,
   parpadea,
   onElegir,
 }: {
   m: MedidorProceso
+  orden: number
   cargando: boolean
   elegido: boolean
   parpadea: boolean
@@ -347,6 +385,7 @@ function Medidor({
       data-cargando={cargando || undefined}
       aria-pressed={elegido}
       onClick={onElegir}
+      style={{ '--i': orden } as React.CSSProperties}
       aria-label={`${m.nombre}: ${valor == null ? 'sin lectura' : `${valor}%`}, ${m.resumen}`}
     >
       <span className="pc-placa">
