@@ -44,7 +44,7 @@ function asuntoAviso(a: Aviso): string {
 
 function lineaAlumno(a: AlumnoSinPagoInscripcion): string {
   const estado = a.pago_parcial ? 'pagó solo un diferido' : 'sin pagar'
-  return `${a.nombre} (ref. ${a.alumno_ref}, ${[a.nivel, a.grado].filter(Boolean).join(' ')}): ${a.dias} días con referencia, ${estado}`
+  return `${a.nombre} (ref. ${a.alumno_ref}, ${[a.nivel, a.grado].filter(Boolean).join(' ')}): ${a.dias} días ${a.cuenta_por === 'referencia' ? 'desde su referencia' : 'desde el inicio de ciclo'}, ${estado}`
 }
 
 function mensajeAviso(a: Aviso): string {
@@ -52,8 +52,8 @@ function mensajeAviso(a: Aviso): string {
   if (a.nuevos.length) {
     lineas.push(
       a.nuevos.length === 1
-        ? 'Este alumno ya lleva más de un mes con referencia sin pagar inscripción:'
-        : 'Estos alumnos ya llevan más de un mes con referencia sin pagar inscripción:'
+        ? 'Este alumno ya lleva más de un mes sin pagar inscripción:'
+        : 'Estos alumnos ya llevan más de un mes sin pagar inscripción:'
     )
     lineas.push(...a.nuevos.map((x) => `• ${lineaAlumno(x)}`))
   }
@@ -100,10 +100,10 @@ function htmlCorreo(a: Aviso): string {
       <p style="margin:8px 0 0;"><span style="display:inline-block;padding:3px 12px;border-radius:999px;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:0.85rem;font-weight:800;">Ciclo escolar ${escapeHtml(a.ciclo)}</span></p>
       <p style="margin:8px 0 0;color:#dbeafe;font-size:0.9rem;">${alumnos.length} ${
         alumnos.length === 1 ? 'alumno lleva' : 'alumnos llevan'
-      } más de un mes con referencia sin pagar inscripción</p>
+      } más de un mes sin pagar inscripción</p>
     </td></tr>
     <tr><td style="background:#fff;padding:20px 16px;border:1px solid #e2e8f0;border-top:none;">
-      <p style="margin:0 0 14px;color:#334155;line-height:1.6;">Son alumnos activos del ciclo actual a quienes se les dio número de referencia hace más de 30 días y todavía no pagan su inscripción.</p>
+      <p style="margin:0 0 14px;color:#334155;line-height:1.6;">Son alumnos activos del ciclo actual que llevan más de 30 días sin pagar su inscripción, contados desde el inicio del ciclo o, si su referencia se dio después, desde esa fecha.</p>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #bfdbfe;border-radius:12px;background:#eff6ff;">${filas}</table>
       <p style="margin:20px 0 0;text-align:center;">
         <a href="${url}" style="display:inline-block;background:#1d4ed8;color:#fff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:10px;">Abrir Servicios Administrativos</a>
@@ -124,7 +124,7 @@ export async function revisarAvisosInscripcionSinPago(): Promise<{ nuevos: numbe
   if (await esDiaInhabil(hoyMexico())) return { nuevos: 0, recordatorios: 0 }
   const cicloActual = await cicloActualAlertaInscripcion()
   const ciclo = cicloActual.valor
-  const alumnos = await alumnosSinPagoInscripcion(TODOS_NIVELES_ALERTA_INSCRIPCION, ciclo)
+  const alumnos = await alumnosSinPagoInscripcion(TODOS_NIVELES_ALERTA_INSCRIPCION, cicloActual)
   const actuales = new Set(alumnos.map((a) => a.alumno_id))
 
   const { data: abiertas, error } = await db().from('inscripcion_alerta_sin_pago').select('alumno_id, alertado_at')

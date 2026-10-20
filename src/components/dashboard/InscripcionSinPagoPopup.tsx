@@ -11,7 +11,7 @@ function fechaCorta(iso: string): string {
   return `${d}/${m}/${y}`
 }
 
-/** Popup cada vez que se entra al dashboard mientras haya alumnos con más de 30 días de referencia sin pagar inscripción. */
+/** Popup cada vez que se entra al dashboard mientras haya alumnos con más de 30 días sin pagar inscripción. */
 export default function InscripcionSinPagoPopup({ activo }: { activo: boolean }) {
   const tituloId = useId()
   const cerrarRef = useRef<HTMLButtonElement>(null)
@@ -72,7 +72,9 @@ export default function InscripcionSinPagoPopup({ activo }: { activo: boolean })
                 : `${alumnos.length} alumnos no han pagado su inscripción`}
             </h2>
             {ciclo ? <p className="tins-ciclo">Ciclo escolar {ciclo}</p> : null}
-            <p className="tins-lead">Ya pasó más de un mes desde que se les dio número de referencia.</p>
+            <p className="tins-lead">
+              Más de 30 días desde el inicio del ciclo o, si su referencia se dio después, desde esa fecha.
+            </p>
           </div>
           <button ref={cerrarRef} type="button" className="tins-cerrar" onClick={cerrar} aria-label="Cerrar">
             <X size={22} aria-hidden />
@@ -87,7 +89,9 @@ export default function InscripcionSinPagoPopup({ activo }: { activo: boolean })
                 <span className="tins-item-meta">
                   {[`Ref. ${a.alumno_ref}`, a.nivel, a.grado].filter(Boolean).join(' · ')}
                 </span>
-                <span className="tins-item-meta">Referencia desde {fechaCorta(a.referencia_desde)}</span>
+                <span className="tins-item-meta">
+                  {a.cuenta_por === 'referencia' ? 'Referencia desde' : 'Inicio de ciclo'} {fechaCorta(a.cuenta_desde)}
+                </span>
               </div>
               <div className="tins-item-dias">
                 <span className="tins-item-nums">

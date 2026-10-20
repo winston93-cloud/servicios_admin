@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   if (!niveles.length) return NextResponse.json({ alumnos: [] })
   try {
     const ciclo = await cicloActualAlertaInscripcion()
-    const alumnos = await alumnosSinPagoInscripcion(niveles, ciclo.valor)
+    const alumnos = await alumnosSinPagoInscripcion(niveles, ciclo)
     after(revisarAvisosInscripcionSinPagoSeguro)
     return NextResponse.json({ ciclo: ciclo.nombre, alumnos })
   } catch (e) {
