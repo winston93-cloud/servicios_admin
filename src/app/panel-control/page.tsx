@@ -26,8 +26,17 @@ const NOMBRE_PLACA: Record<string, string> = {
   reportes: 'RAC',
 }
 
+/** Proyecto de la plataforma que mide el medidor, bajo su nombre. */
+const INFRA_PLACA: Record<string, string> = {
+  insforge: 'Winston Servicios',
+  vercel: '12 apps de producción',
+  desarrollo: 'servicios-admin',
+}
+
+const IDS = ['pagos', 'facturacion', 'reportes', 'talleres', 'open-house', 'insforge', 'vercel', 'desarrollo']
+
 const PLACEHOLDER: MedidorProceso[] = NOMBRES.map((nombre, i) => ({
-  id: `p${i}`,
+  id: IDS[i],
   nombre,
   mide: '',
   valor: null,
@@ -303,7 +312,10 @@ function Medidor({
     >
       <span className="pc-placa">
         <span className="pc-lampara" data-estado={m.estado} data-parpadeo={parpadea || undefined} aria-hidden />
-        <span className="pc-placa-nombre">{NOMBRE_PLACA[m.id] ?? m.nombre}</span>
+        <span className="pc-placa-texto">
+          <span className="pc-placa-nombre">{NOMBRE_PLACA[m.id] ?? m.nombre}</span>
+          {INFRA_PLACA[m.id] ? <span className="pc-placa-infra">{INFRA_PLACA[m.id]}</span> : null}
+        </span>
       </span>
 
       <span className="pc-instrumento" aria-hidden>

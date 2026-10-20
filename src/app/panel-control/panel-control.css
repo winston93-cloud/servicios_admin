@@ -265,6 +265,19 @@
   color: var(--pc-placa-texto);
 }
 
+.pc-placa-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.pc-placa-infra {
+  font: 500 0.64rem / 1.25 var(--font-inter, system-ui), sans-serif;
+  opacity: 0.72;
+  overflow-wrap: normal;
+}
+
 .pc-placa-nombre {
   min-width: 0;
   font: 700 0.74rem / 1.15 var(--font-space-grotesk), system-ui, sans-serif;
@@ -533,6 +546,7 @@
   .pc-escala span { font-size: 0.55rem; }
   .pc-placa { min-height: 36px; padding: 0.3rem 0.4rem; }
   .pc-placa-nombre { font-size: 0.6rem; letter-spacing: 0; }
+  .pc-placa-infra { font-size: 0.56rem; }
   .pc-placa { gap: 0.3rem; }
   .pc-lampara { width: 10px; height: 10px; }
   .pc-digital { margin: 0 0.3rem; padding: 0.2rem; }

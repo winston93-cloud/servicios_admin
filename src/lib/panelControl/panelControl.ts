@@ -396,7 +396,7 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
         lectura: atrasados ? `${atrasados} atrasados más de 2 h` : `al corriente · ${k?.recordatorios_enviados_7d ?? 0} enviados en 7 días`,
       }),
     ]),
-    proceso('insforge', 'InsForge', 'Base de datos: respuesta y conexiones', [
+    proceso('insforge', 'InsForge', 'Base de datos del proyecto Winston Servicios: respuesta y conexiones', [
       piezaBase,
       m
         ? pieza({
@@ -428,7 +428,7 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
         const d = deploys.value
         const terminados = d.listos + d.error
         const ultimoFallo = d.ultimo?.estado === 'ERROR'
-        return proceso('desarrollo', 'Desarrollo', 'Deploys de producción', [
+        return proceso('desarrollo', 'Desarrollo', 'Deploys de producción del proyecto servicios-admin', [
           pieza({
             id: 'deploys',
             nombre: 'Deploys (7 días)',
@@ -439,7 +439,7 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
           }),
         ])
       }
-      return proceso('desarrollo', 'Desarrollo', 'Deploys de producción', [
+      return proceso('desarrollo', 'Desarrollo', 'Deploys de producción del proyecto servicios-admin', [
         pieza({
           id: 'deploys',
           nombre: 'Deploys (7 días)',
