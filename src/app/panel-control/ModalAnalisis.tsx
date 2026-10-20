@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { Activity, Cpu, Gauge, Power, ShieldAlert, X } from 'lucide-react'
 import { UMBRALES_SALUD, type MedidorProceso } from '@/lib/panelControl/tipos'
 import { DESCRIPCION_MEDIDOR, diagnosticoPieza, porQueMarca, reglaPieza } from '@/lib/panelControl/explicaciones'
-import { Tacometro } from './Instrumentos'
+import { Tacometro, type Zona } from './Instrumentos'
 import './modal-analisis.css'
 
 const ESTADO_TXT = { normal: 'En verde', precaucion: 'Precaución', alarma: 'Alarma', 'sin-dato': 'Sin lectura' } as const
@@ -16,12 +16,18 @@ export default function ModalAnalisis({
   codigo,
   leidoEn,
   acento = 'cian',
+  instrumento,
+  porQue,
   onCerrar,
 }: {
   m: MedidorProceso
   codigo: string
   leidoEn?: string | null
   acento?: 'cian' | 'acero'
+  /** Reloj propio (p. ej. conexiones en uso) en lugar de la salud del medidor. */
+  instrumento?: { valor: number | null; etiqueta: string; lectura?: string; zonas?: Zona[] }
+  /** Explicación propia cuando el valor no es «la pieza más débil» (p. ej. un promedio). */
+  porQue?: string
   onCerrar: () => void
 }) {
   const tituloId = useId()
@@ -76,7 +82,11 @@ export default function ModalAnalisis({
         <div className="pma-cuerpo">
           <div className="pma-resumen">
             <div className="pma-reloj">
-              <Tacometro grande valor={m.valor} etiqueta="Salud" sub={m.mide} />
+              {instrumento ? (
+                <Tacometro grande {...instrumento} sub={m.mide} />
+              ) : (
+                <Tacometro grande valor={m.valor} etiqueta="Salud" sub={m.mide} />
+              )}
             </div>
             <div className="pma-textos">
               <section className="pma-bloque">
@@ -84,9 +94,18 @@ export default function ModalAnalisis({
                 <p>{descripcion}</p>
               </section>
               <section className="pma-bloque pma-bloque--ia">
-                <h3>Por qué marca {m.valor == null ? 'sin lectura' : `${m.valor}%`}</h3>
+                <h3>
+                  Por qué marca{' '}
+                  {instrumento
+                    ? instrumento.valor == null
+                      ? 'sin lectura'
+                      : instrumento.lectura ?? `${instrumento.valor}%`
+                    : m.valor == null
+                      ? 'sin lectura'
+                      : `${m.valor}%`}
+                </h3>
                 <p className="pma-dictamen">
-                  {porQueMarca(m)}
+                  {porQue ?? porQueMarca(m)}
                   <span className="pma-cursor" aria-hidden />
                 </p>
               </section>

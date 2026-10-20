@@ -493,36 +493,45 @@ function piezaTimbrado(id: string, nombre: string, t: Timbrado | undefined, disp
   const sis24 = err24 - datos24
   const total24 = ok24 + err24
   const valor = puntajeFallos(sis7, total7)
-  const aciertos = Math.round((ok7 / total7) * 100)
+  const intentosSistema = ok7 + sis7
+  const eficiencia = intentosSistema ? Math.round((ok7 / intentosSistema) * 100) : 100
+  const deDatos = (n: number) => (n ? ` · ${n} por datos mal capturados del cliente (no cuentan)` : '')
   const ultimo = t?.ultimo_error ? ` · último: ${t.ultimo_error}` : ''
   return pieza({
     id,
     nombre,
     valor,
     corto: `${sis7} ${sis7 === 1 ? 'error' : 'errores'} del sistema en 7 días`,
-    lectura: `${ok7} de ${total7} timbrados en 7 días · ${err7} ${err7 === 1 ? 'error' : 'errores'} (${datos7} por datos del cliente)`,
-    fallo: err7 ? t?.ultimo_error ?? undefined : undefined,
+    lectura: `${ok7} timbrados en 7 días · ${sis7} ${sis7 === 1 ? 'error' : 'errores'} del sistema${datos7 ? ` · ${datos7} por datos del cliente` : ''}`,
+    fallo: sis7 ? t?.ultimo_error ?? undefined : undefined,
     diag: diag(
-      !ok7
-        ? linea(`No timbra: sus ${total7} intentos de 7 días fallaron`, 'alarma')
+      !ok7 && sis7
+        ? linea(`No timbra: sus ${sis7} intentos de 7 días fallaron por el sistema`, 'alarma')
         : total24
-          ? linea(`Operando: ${ok24} de ${total24} timbrados bien en 24 h`, ok24 ? 'normal' : 'alarma')
+          ? linea(`Operando: ${ok24} ${ok24 === 1 ? 'factura timbrada' : 'facturas timbradas'} en 24 h${deDatos(datos24)}`, ok24 || !sis24 ? 'normal' : 'alarma')
           : linea(`Operando: sin timbres en 24 h · último ${t?.ultimo ? horaLocal(t.ultimo) : 'sin fecha'}`, 'normal'),
-      linea(`Aciertos en 7 días: ${aciertos}% (${ok7} de ${total7})`, estadoPorValor(aciertos)),
-      err24
-        ? linea(
-            `${err24} en 24 h: ${datos24} por datos del cliente y ${sis24} del sistema${ultimo}`,
-            sis24 ? estadoPorValor(puntajeFallos(sis24, total24)) : 'precaucion',
-          )
-        : linea(
-            `Sin errores en 24 h · en 7 días: ${err7} (${datos7} por datos del cliente, ${sis7} del sistema)`,
-            sis7 ? estadoPorValor(valor) : 'normal',
-          ),
+      linea(`Eficiencia del sistema en 7 días: ${eficiencia}% (${ok7} de ${intentosSistema})${deDatos(datos7)}`, estadoPorValor(valor)),
+      sis24
+        ? linea(`${sis24} ${sis24 === 1 ? 'error' : 'errores'} del sistema en 24 h${ultimo}`, estadoPorValor(puntajeFallos(sis24, total24)))
+        : sis7
+          ? linea(`Sin errores del sistema en 24 h · ${sis7} en 7 días`, estadoPorValor(valor))
+          : linea(`Sin errores del sistema en 7 días${deDatos(datos7)}`, 'normal'),
     ),
   })
 }
 
-function proceso(id: string, nombre: string, mide: string, piezas: PiezaMedida[]): MedidorProceso {
+function bienDe(e: EventosPieza | undefined): string {
+  const ops = Number(e?.ops ?? 0)
+  return ops ? `${ops - Number(e?.fallos ?? 0)}/${ops} ok` : 'sin uso'
+}
+
+function latidoDe(l: Latido | undefined): string {
+  return !l ? 'sin latido' : l.ok ? 'ok' : 'falló'
+}
+
+const compacto = new Intl.NumberFormat('es-MX', { notation: 'compact', maximumFractionDigits: 1 })
+
+function proceso(id: string, nombre: string, mide: string, piezas: PiezaMedida[], info?: string[]): MedidorProceso {
   const valor = minimo(...piezas.map((p) => p.valor))
   const estado = estadoPorValor(valor)
   const debil = piezas
@@ -534,7 +543,7 @@ function proceso(id: string, nombre: string, mide: string, piezas: PiezaMedida[]
       : estado === 'normal' || !debil
         ? 'Todo bien'
         : `${debil.nombre.replace(/\s*\(.*\)$/, '')}: ${debil.corto}`
-  return { id, nombre, mide, valor, estado, piezas, resumen }
+  return { id, nombre, mide, valor, estado, piezas, resumen, ...(info?.length ? { info } : {}) }
 }
 
 type Tabla = { nombre: string; vivos: number; muertos: number; completas: number; indice: number }
@@ -721,13 +730,22 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
   const k = m?.kommo
   const atrasados = Number(k?.recordatorios_atrasados ?? 0)
 
+  const vigencias = {
+    selloEdu: vigenciaDe(process.env.FACTUROPORTI_EDUCATIVO_CSD, 'falta el sello en el servidor'),
+    selloIwc: vigenciaDe(process.env.FACTUROPORTI_CHURCHILL_CSD, 'falta el sello en el servidor'),
+    firmaEdu: m ? vigenciaDe(m.fiel?.EDUCATIVO, 'sin e.firma cargada') : ({ error: 'sin lectura' } as Vigencia),
+    firmaIwc: m ? vigenciaDe(m.fiel?.WINSTON, 'sin e.firma cargada') : ({ error: 'sin lectura' } as Vigencia),
+  }
+  const diasFirmas = Object.values(vigencias).flatMap((v) => ('error' in v ? [] : [diasHastaVencimiento(v.hasta)]))
+  const timbres = (rfc: string) => (m?.timbrado ? String(Number(m.timbrado[rfc]?.ok_7d ?? 0)) : '—')
+
   const medidores: MedidorProceso[] = [
     proceso('pagos', 'Pagos', 'Pasarelas de cobro y avisos de pago', [
       piezaServicio('banorte', 'Banorte (tarjeta)', ev.banorte, PRESUPUESTO_MS.banorte),
       piezaServicio('openpay-api', 'Openpay (SPEI)', ev['openpay-api'], PRESUPUESTO_MS['openpay-api']),
       avisosOpenpay,
       piezaBase,
-    ]),
+    ], [`Banorte ${bienDe(ev.banorte)}`, `SPEI ${bienDe(ev['openpay-api'])}`]),
     proceso('facturacion', 'Facturación CFDI', 'Timbrado, sellos y e.firmas de ambos planteles', [
       piezaTimbrado('timbrado-educativo', 'Timbrado Educativo Winston', m?.timbrado?.[CFDI_EMISOR_EDUCATIVO_RFC], !!m?.timbrado),
       piezaTimbrado('timbrado-churchill', 'Timbrado Winston Churchill', m?.timbrado?.[CFDI_EMISOR_CHURCHILL_RFC], !!m?.timbrado),
@@ -736,43 +754,46 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
         'Sello digital Educativo',
         'timbrar facturas',
         'Tramitar el sello nuevo en el SAT y cargarlo en Vercel',
-        vigenciaDe(process.env.FACTUROPORTI_EDUCATIVO_CSD, 'falta el sello en el servidor'),
+        vigencias.selloEdu,
       ),
       piezaVigencia(
         'sello-churchill',
         'Sello digital Churchill',
         'timbrar facturas',
         'Tramitar el sello nuevo en el SAT y cargarlo en Vercel',
-        vigenciaDe(process.env.FACTUROPORTI_CHURCHILL_CSD, 'falta el sello en el servidor'),
+        vigencias.selloIwc,
       ),
       piezaVigencia(
         'efirma-educativo',
         'e.firma Educativo',
         'firmar ante el SAT y renovar el sello',
         'Renovar la e.firma en el SAT y volver a cargarla',
-        m ? vigenciaDe(m.fiel?.EDUCATIVO, 'sin e.firma cargada') : { error: 'sin lectura' },
+        vigencias.firmaEdu,
       ),
       piezaVigencia(
         'efirma-churchill',
         'e.firma Churchill',
         'firmar ante el SAT y renovar el sello',
         'Renovar la e.firma en el SAT y volver a cargarla',
-        m ? vigenciaDe(m.fiel?.WINSTON, 'sin e.firma cargada') : { error: 'sin lectura' },
+        vigencias.firmaIwc,
       ),
       piezaServicio('pac', 'PAC FacturoPorTi', ev.pac, PRESUPUESTO_MS.pac),
       piezaServicio('storage-cfdi', 'Storage de facturas', ev['storage-cfdi'], PRESUPUESTO_MS['storage-cfdi']),
       piezaBase,
+    ], [
+      `IEW ${timbres(CFDI_EMISOR_EDUCATIVO_RFC)} · IWC ${timbres(CFDI_EMISOR_CHURCHILL_RFC)}`,
+      diasFirmas.length ? `Firma vence: ${Math.min(...diasFirmas)} d` : 'Firmas sin lectura',
     ]),
     proceso('reportes', 'Reportes RAC', 'Envío de reportes y agenda de citas', [
       correo,
       piezaServicio('google-calendar', 'Google Calendar', ev['google-calendar'], PRESUPUESTO_MS['google-calendar']),
       piezaBase,
-    ]),
+    ], [`Correo ${bienDe(ev.correo)}`, `Calendar ${bienDe(ev['google-calendar'])}`]),
     proceso('talleres', 'Talleres', 'Registro de listas y alertas automáticas', [
       piezaBase,
       piezaLatido('cron-talleres-minimo', m?.latidos['cron-talleres-minimo']),
       correo,
-    ]),
+    ], [`Tarea 8:00: ${latidoDe(m?.latidos['cron-talleres-minimo'])}`, `Correo ${bienDe(ev.correo)}`]),
     proceso('open-house', 'Open House', 'Registro, integración con Kommo y recordatorios', [
       appOpenHouse
         ? pieza({
@@ -817,7 +838,7 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
             )
           : undefined,
       }),
-    ]),
+    ], k ? [`Kommo ${k.con_lead}/${k.registros} (7 d)`, `${k.recordatorios_enviados_7d} avisos (7 d)`] : undefined),
     proceso('insforge', 'InsForge', 'Base de datos del proyecto Winston Servicios: respuesta y conexiones', [
       piezaBase,
       m
@@ -839,7 +860,7 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
             ),
           })
         : pieza({ id: 'conexiones', nombre: 'Conexiones', valor: null, lectura: 'sin lectura' }),
-    ]),
+    ], m ? [`${m.base.conexiones}/${m.base.max_conexiones} conexiones`, `${Math.round(m.base.bytes / 1024 / 1024)} MB · ${seg(msBase)}`] : undefined),
     proceso('vercel', 'Vercel', 'Apps de producción y tareas programadas', [
       pieza({
         id: 'apps',
@@ -864,6 +885,9 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
           : undefined,
       }),
       piezaLatido('cron-recordatorio-liberacion-docs', m?.latidos['cron-recordatorio-liberacion-docs']),
+    ], [
+      listaApps.length ? `${listaApps.length - caidas.length}/${listaApps.length} apps ok` : 'Apps sin lectura',
+      `Tarea 9:00: ${latidoDe(m?.latidos['cron-recordatorio-liberacion-docs'])}`,
     ]),
     (() => {
       if (deploys.status === 'fulfilled' && deploys.value) {
@@ -891,7 +915,7 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
                 : linea('Sin errores en 7 días', 'normal'),
             ),
           }),
-        ])
+        ], [`${d.total} deploys (7 d)`, `${d.error} con error`])
       }
       return proceso('desarrollo', 'Desarrollo', 'Deploys de producción del proyecto servicios-admin', [
         pieza({
@@ -913,7 +937,7 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
       ...(sis.app ? [piezaApp(sis.app, listaApps, apps.status === 'fulfilled' && apps.value != null)] : []),
       piezaIndices(m, tablas),
       piezaLimpieza(m, tablas),
-    ])
+    ], m?.tablas ? [`${tablas.length} tablas · ${compacto.format(tablas.reduce((a, t) => a + t.vivos, 0))} registros`] : undefined)
   })
 
   return { leidoEn: new Date().toISOString(), medidores, sistemas }

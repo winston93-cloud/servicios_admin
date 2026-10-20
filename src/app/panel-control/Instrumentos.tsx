@@ -21,7 +21,7 @@ const arco = (r: number, desde: number, hasta: number) => {
   return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${grande} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`
 }
 
-type Zona = { desde: number; hasta: number; estado: EstadoMedidor }
+export type Zona = { desde: number; hasta: number; estado: EstadoMedidor }
 
 const ZONAS_SALUD: Zona[] = [
   { desde: 0, hasta: UMBRALES_SALUD[0], estado: 'alarma' },

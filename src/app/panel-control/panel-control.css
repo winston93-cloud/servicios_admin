@@ -449,6 +449,19 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.pc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  margin: -0.15rem 0.45rem 0;
+  padding-top: 0.25rem;
+  border-top: 1px dashed var(--pc-panel-borde);
+  font: 500 0.64rem / 1.3 ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  color: var(--pc-suave);
+  text-align: center;
+}
+.pc-info > span { overflow-wrap: anywhere; }
 .pc-medidor[data-estado='precaucion'] .pc-resumen { color: var(--pc-ambar); }
 .pc-medidor[data-estado='alarma'] .pc-resumen { color: var(--pc-rojo); }
 
@@ -598,6 +611,7 @@
   .pc-digital-valor { font-size: 1.15rem; }
   .pc-digital-unidad { font-size: 0.7rem; }
   .pc-resumen { font-size: 0.64rem; padding: 0 0.3rem; }
+  .pc-info { margin-inline: 0.25rem; font-size: 0.56rem; }
 }
 
 @media (max-width: 480px) {
@@ -1199,6 +1213,7 @@
   .pc-digital-valor { font-size: 1.1rem; }
   .pc-banco--sistemas .pc-digital-valor { font-size: 0.95rem; }
   .pc-resumen { min-height: 1.3em; -webkit-line-clamp: 1; }
+  .pc-info { font-size: 0.58rem; }
 }
 
 @media (min-width: 1500px) {
@@ -1206,4 +1221,88 @@
   .pc-col-uniformes .pc-placa-nombre { font-size: 0.58rem; letter-spacing: 0; }
   .pc-banco--sistemas .pc-placa,
   .pc-col-uniformes .pc-placa { padding-inline: 0.4rem; gap: 0.3rem; }
+}
+
+/* ── Encabezado de la zona Winston Servicios (par del de Uniformes) ── */
+.pc-zona-cabeza {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.7rem;
+}
+.pc-insignia {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: #5ee7ff;
+  clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%);
+  background: linear-gradient(160deg, rgba(94, 231, 255, 0.35), rgba(6, 11, 18, 0.95));
+}
+.pc-zona-titulo {
+  margin: 0;
+  font: 700 clamp(1.05rem, 2.2vw, 1.4rem) / 1.1 var(--font-space-grotesk), system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #5ee7ff;
+  text-shadow: 0 0 12px rgba(94, 231, 255, 0.45);
+}
+.pc-zona-sub {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: var(--pc-suave);
+}
+.pc-zona-estado {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--pc-panel-borde);
+  background: var(--pc-lcd);
+  font: 700 0.75rem var(--font-space-grotesk), system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pc-dig-verde);
+}
+.pc-zona-estado[data-estado='precaucion'] { color: var(--pc-dig-ambar); }
+.pc-zona-estado[data-estado='alarma'] { color: var(--pc-dig-rojo); }
+.pc-zona-estado[data-estado='sin-dato'] { color: var(--pc-suave); }
+[data-theme='light'] .pc-zona-titulo { color: #0b6f86; text-shadow: none; }
+[data-theme='light'] .pc-insignia { color: #0b6f86; background: linear-gradient(160deg, rgba(11, 111, 134, 0.22), rgba(11, 111, 134, 0.06)); }
+
+@media (max-width: 640px) {
+  .pc-zona-cabeza { flex-wrap: wrap; gap: 0.5rem; }
+  .pc-insignia { width: 38px; height: 38px; }
+  .pc-zona-sub { font-size: 0.72rem; }
+}
+
+@media (min-width: 1500px) and (max-height: 900px) {
+  .pc-zona-cabeza { margin-bottom: 0.4rem; }
+  .pc-zona-sub { display: none; }
+}
+
+/* ── Relojes de la consola: se tocan para abrir su análisis ── */
+.pc-taco-btn {
+  min-width: 0;
+  min-height: var(--touch-min, 44px);
+  margin: 0;
+  padding: 0.2rem 0;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+.pc-taco-btn:disabled { cursor: default; }
+.pc-taco-btn:not(:disabled):hover { transform: translateY(-2px); filter: drop-shadow(0 0 10px rgba(94, 231, 255, 0.35)); }
+.pc-taco-btn:focus-visible { outline: 2px solid #5ee7ff; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .pc-taco-btn { transition: none; }
+  .pc-taco-btn:not(:disabled):hover { transform: none; }
 }

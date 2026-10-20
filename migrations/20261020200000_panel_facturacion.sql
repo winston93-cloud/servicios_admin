@@ -1,5 +1,6 @@
 -- Panel de control: Facturación con timbrado por plantel (aciertos y errores de 7 días; los errores por datos del
--- cliente se separan de los del sistema) y el certificado público de la e.firma de cada plantel para leer su vigencia.
+-- cliente se separan de los del sistema: mensaje del PAC sobre el receptor, o intento sin RFC del cliente porque la familia
+-- no capturó sus datos fiscales completos) y el certificado público de la e.firma de cada plantel para leer su vigencia.
 -- Solo lee; mismo tope de 3 s.
 CREATE OR REPLACE FUNCTION public.panel_control_metricas()
  RETURNS jsonb
@@ -71,7 +72,10 @@ timbrado AS (
     max(t.creado_en) FILTER (WHERE t.estado = 'error') AS ultimo_error_en,
     (array_agg(left(t.pac_mensaje, 160) ORDER BY t.creado_en DESC) FILTER (WHERE t.estado = 'error'))[1] AS ultimo_error
   FROM (
-    SELECT c.*, coalesce(c.pac_mensaje, '') ~* 'receptor|c[oó]digo postal|usocfdi|r[eé]gimen|domicilio ?fiscal|\mrfc\M|\mnombre\M' AS dato
+    SELECT c.*, (
+      coalesce(trim(c.receptor_rfc), '') = ''
+      OR coalesce(c.pac_mensaje, '') ~* 'receptor|c[oó]digo postal|usocfdi|r[eé]gimen|domicilio ?fiscal|\mrfc\M|\mnombre\M'
+    ) AS dato
     FROM cfdi_timbrado c
     WHERE c.creado_en > now() - interval '7 days' AND c.estado IN ('timbrado', 'error')
   ) t

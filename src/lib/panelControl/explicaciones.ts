@@ -22,6 +22,11 @@ export const DESCRIPCION_MEDIDOR: Record<string, string> = {
   cheques: 'Cheques: emisión y control de cheques por empresa, con su app.',
   prorrogas: 'Prórrogas y ajustes de pago a familias, con su app.',
   'portal-inscripcion': 'Portal de inscripción: reinscripciones y altas que hacen los papás en línea.',
+  'consola-procesos': 'Reloj de la consola que resume los 8 procesos de la escuela (pagos, facturación, RAC, talleres, Open House, InsForge, Vercel y desarrollo): marca lo del proceso más débil.',
+  'consola-sistemas': 'Reloj de la consola que resume los 10 sistemas que más usan la base Winston Servicios: marca lo del sistema más débil.',
+  'consola-salud': 'El reloj grande: el pulso de toda la infraestructura de Winston Servicios, promedio de los 8 procesos y los 10 sistemas.',
+  'consola-conexiones': 'Cuántas conexiones tiene abiertas la base Winston Servicios contra el máximo que acepta. Si se llena, los sistemas dejan de poder leer y guardar.',
+  'consola-base': 'Qué tan rápido contesta la base Winston Servicios en InsForge a la lectura del panel.',
   'u-uso': 'Tienda de uniformes: ventas, devoluciones y operaciones, y que cada movimiento quede en la bitácora.',
   'u-stock': 'Existencias por talla y sucursal: sin stock negativo, sin tallas repetidas, pedidos coherentes y transferencias al día.',
   'u-funciones': 'Las funciones de la base con las que la app vende y devuelve, y los triggers que auditan cada cambio.',
@@ -38,8 +43,8 @@ const REGLA_PIEZA: Record<string, string> = {
   'openpay-api': servicio('4 s'),
   pac: servicio('8 s'),
   'storage-cfdi': servicio('3 s'),
-  'timbrado-educativo': 'Califica los errores del sistema de los últimos 7 días: 2.5% ya es precaución y 10% alarma. Los errores por datos fiscales del cliente (RFC, nombre, código postal, régimen, uso de CFDI) se cuentan y se muestran, pero no bajan la calificación porque no son falla del sistema.',
-  'timbrado-churchill': 'Califica los errores del sistema de los últimos 7 días: 2.5% ya es precaución y 10% alarma. Los errores por datos fiscales del cliente (RFC, nombre, código postal, régimen, uso de CFDI) se cuentan y se muestran, pero no bajan la calificación porque no son falla del sistema.',
+  'timbrado-educativo': 'Califica solo los errores del sistema de los últimos 7 días: 2.5% ya es precaución y 10% alarma. Si el papá capturó mal o incompletos sus datos fiscales (RFC, nombre, código postal, régimen, uso de CFDI), el error no es de nuestra infraestructura: se cuenta aparte y no baja la calificación.',
+  'timbrado-churchill': 'Califica solo los errores del sistema de los últimos 7 días: 2.5% ya es precaución y 10% alarma. Si el papá capturó mal o incompletos sus datos fiscales (RFC, nombre, código postal, régimen, uso de CFDI), el error no es de nuestra infraestructura: se cuenta aparte y no baja la calificación.',
   'sello-educativo': 'Sello digital (CSD) con el que se timbra. 100 con más de 90 días de vigencia; de 90 a 31 días precaución; 30 días o menos alarma; vencido 0. Se lee del certificado público, sin tocar al SAT ni al PAC.',
   'sello-churchill': 'Sello digital (CSD) con el que se timbra. 100 con más de 90 días de vigencia; de 90 a 31 días precaución; 30 días o menos alarma; vencido 0. Se lee del certificado público, sin tocar al SAT ni al PAC.',
   'efirma-educativo': 'e.firma (FIEL): sin ella vigente no se puede renovar el sello. 100 con más de 90 días de vigencia; de 90 a 31 días precaución; 30 días o menos alarma; vencido 0. Se lee del certificado público, sin tocar al SAT ni al PAC.',
@@ -83,6 +88,9 @@ const REGLA_PIEZA: Record<string, string> = {
 }
 
 export function reglaPieza(medidorId: string, p: PiezaMedida): string | null {
+  if (medidorId === 'consola-procesos' || medidorId === 'consola-sistemas' || medidorId === 'consola-salud') {
+    return 'Es un medidor del banco: lo manda su pieza más débil. Tócalo en el banco para ver cada una de sus piezas.'
+  }
   return REGLA_PIEZA[`${medidorId}:${p.id}`] ?? REGLA_PIEZA[p.id] ?? null
 }
 

@@ -44,6 +44,8 @@ export type MedidorProceso = {
   piezas: PiezaMedida[]
   /** Frase corta del estado: «Todo bien» o la pieza que falla y por qué. */
   resumen: string
+  /** Datos clave en el medidor (máx. 2 líneas cortas), estén bien o mal. */
+  info?: string[]
 }
 
 export type PanelControlRespuesta = {
