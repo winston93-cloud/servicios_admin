@@ -38,7 +38,7 @@ function diasEntre(desde: string, hasta: string): number {
 }
 
 /**
- * Alumnos del ciclo actual, no dados de baja, con más de 30 días desde que se les dio referencia
+ * Alumnos activos del ciclo actual (referencia dada desde el ciclo anterior), con más de 30 días desde que se les dio referencia
  * y sin inscripción pagada (concepto 13, o los dos diferidos 11 y 12).
  */
 export async function alumnosSinPagoInscripcion(niveles: number[]): Promise<AlumnoSinPagoInscripcion[]> {
@@ -52,7 +52,8 @@ export async function alumnosSinPagoInscripcion(niveles: number[]): Promise<Alum
       .from('alumno')
       .select('alumno_id, alumno_ref, alumno_nombre, alumno_app, alumno_apm, alumno_nivel, alumno_grado, alumno_grupo, alumno_registro')
       .eq('alumno_ciclo_escolar', ciclo)
-      .neq('alumno_status', 0)
+      // 1 activo; 2 inactivo = nuevo ingreso que aún no paga inscripción (pasa a 1 al pagarla).
+      .in('alumno_status', [1, 2])
       .in('alumno_nivel', niveles)
       .order('alumno_id')
       .range(desde, desde + 999)
