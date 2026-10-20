@@ -37,7 +37,7 @@ async function handle(request: Request) {
   try {
     const result = await enviarRecordatoriosLiberacionDocumentosNi()
     const tramites = await enviarRecordatoriosTramitesAdministrativos()
-    await registrarLatido('cron-recordatorio-liberacion-docs', result.ok && tramites.ok, Date.now() - inicio)
+    registrarLatido('cron-recordatorio-liberacion-docs', result.ok && tramites.ok, Date.now() - inicio)
     return NextResponse.json(
       { ...result, tramites },
       { status: result.ok && tramites.ok ? 200 : 502 }
@@ -45,7 +45,7 @@ async function handle(request: Request) {
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Error en recordatorio'
     console.error('cron recordatorio-liberacion-docs:', e)
-    await registrarLatido('cron-recordatorio-liberacion-docs', false, Date.now() - inicio, message)
+    registrarLatido('cron-recordatorio-liberacion-docs', false, Date.now() - inicio, message)
     return NextResponse.json({ ok: false, mensaje: message }, { status: 500 })
   }
 }

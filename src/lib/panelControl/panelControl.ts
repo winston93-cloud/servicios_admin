@@ -1,7 +1,4 @@
-import { connect as conectarTls } from 'node:tls'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
-import { urlFacturoPorTiApi } from '@/lib/cfdiConfig'
-import { BANORTE_PAYW2_URL } from '@/lib/banorteConfig'
 import {
   estadoPorValor,
   type MedidorProceso,
@@ -29,7 +26,10 @@ type Metricas = {
   base: { conexiones: number; max_conexiones: number; bytes: number }
 }
 
-/** Apps de producción en Vercel que se revisan. Fuera: las de prueba y el portal de Desayunos (`services`, apagado a propósito con 503). */
+/**
+ * Apps de producción cuyo estado se lee de la API de Vercel (nunca se les hace petición).
+ * Fuera: las de prueba y el portal de Desayunos (`services`, apagado a propósito).
+ */
 const APPS_PRODUCCION: { nombre: string; url: string }[] = [
   { nombre: 'Servicios Admin', url: 'https://servicios.winston93.edu.mx/login' },
   { nombre: 'Uniformes', url: 'https://uniformes-mu.vercel.app' },
@@ -54,9 +54,7 @@ const PRESUPUESTO_MS: Record<PiezaSonda, number> = {
   correo: 15000,
   'google-calendar': 4000,
 }
-const PRESUPUESTO_SONDA_MS = 1500
 const PRESUPUESTO_BASE_MS = 800
-const PRESUPUESTO_APP_MS = 2500
 
 /** Horario de las tareas de vercel.json, en UTC. */
 const TAREAS: Record<TareaLatido, { nombre: string; horaUtc: number; dias: number[] }> = {
@@ -67,59 +65,53 @@ const TAREAS: Record<TareaLatido, { nombre: string; horaUtc: number; dias: numbe
 const VERCEL_PROYECTO = 'servicios-admin'
 const VERCEL_EQUIPO = 'mario-alejandro-galvan-escobedos-projects'
 
-// ── Sondas activas (con caché para no golpear servicios externos en cada lectura) ──
+// ── Lecturas (solo pasivas: nada de peticiones a las pasarelas, al PAC, a Gmail ni a las apps) ──
 
-type ResultadoSonda = { ok: boolean; ms: number; detalle?: string }
+type EstadoApp = { nombre: string; estado: string | null }
 
-const cacheSondas = new Map<string, { en: number; r: Promise<ResultadoSonda> }>()
-
-function conCache(clave: string, ttlMs: number, fn: () => Promise<ResultadoSonda>): Promise<ResultadoSonda> {
-  const c = cacheSondas.get(clave)
-  if (c && Date.now() - c.en < ttlMs) return c.r
-  const r = fn()
-  cacheSondas.set(clave, { en: Date.now(), r })
-  return r
+function tokenVercel(): string | null {
+  return process.env.VERCEL_API_TOKEN?.trim() || null
 }
 
-/** Alcanzable = cualquier respuesta HTTP debajo de 500 (un 404 o 403 en la raíz también prueba que contesta). */
-function sondaHttp(url: string, ttlMs = 60_000): Promise<ResultadoSonda> {
-  return conCache(`http:${url}`, ttlMs, async () => {
-    const t = Date.now()
-    try {
-      const res = await fetch(url, { method: 'GET', redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(6000) })
-      return { ok: res.status < 500, ms: Date.now() - t, detalle: res.status >= 500 ? `HTTP ${res.status}` : undefined }
-    } catch (e) {
-      return { ok: false, ms: Date.now() - t, detalle: e instanceof Error ? e.message : 'Sin respuesta' }
-    }
+function equipoVercel(): string {
+  return process.env.VERCEL_TEAM_SLUG?.trim() || VERCEL_EQUIPO
+}
+
+let cacheApps: { en: number; datos: EstadoApp[] } | null = null
+
+/** Estado del deploy de producción de cada app según la API de Vercel (solo lectura del tablero de Vercel). */
+async function estadoApps(): Promise<EstadoApp[] | null> {
+  const token = tokenVercel()
+  if (!token) return null
+  if (cacheApps && Date.now() - cacheApps.en < 60_000) return cacheApps.datos
+  const res = await fetch(`https://api.vercel.com/v9/projects?limit=100&slug=${encodeURIComponent(equipoVercel())}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+    signal: AbortSignal.timeout(8000),
   })
-}
-
-/** Abre TLS con el servidor SMTP sin autenticarse (no gasta cupo de Gmail). */
-function sondaSmtp(): Promise<ResultadoSonda> {
-  return conCache('smtp', 60_000, () =>
-    new Promise<ResultadoSonda>((resolve) => {
-      const t = Date.now()
-      const socket = conectarTls({ host: 'smtp.gmail.com', port: 465, servername: 'smtp.gmail.com', timeout: 6000 })
-      const fin = (r: ResultadoSonda) => {
-        socket.destroy()
-        resolve(r)
-      }
-      socket.once('secureConnect', () => fin({ ok: true, ms: Date.now() - t }))
-      socket.once('timeout', () => fin({ ok: false, ms: Date.now() - t, detalle: 'Tiempo agotado' }))
-      socket.once('error', (e) => fin({ ok: false, ms: Date.now() - t, detalle: e.message }))
-    })
-  )
-}
-
-type PingApp = { nombre: string; ok: boolean; ms: number }
-
-async function pingApps(): Promise<PingApp[]> {
-  return Promise.all(
-    APPS_PRODUCCION.map(async ({ nombre, url }) => {
-      const r = await sondaHttp(url, 25_000)
-      return { nombre, ok: r.ok, ms: r.ms }
-    })
-  )
+  if (!res.ok) throw new Error(`Vercel respondió ${res.status}`)
+  const json = (await res.json()) as {
+    projects?: {
+      targets?: { production?: { alias?: string[]; readyState?: string } }
+      latestDeployments?: { target?: string | null; readyState?: string; alias?: string[] }[]
+    }[]
+  }
+  const proyectos = json.projects ?? []
+  const datos = APPS_PRODUCCION.map(({ nombre, url }) => {
+    const host = new URL(url).host
+    const p = proyectos.find(
+      (x) =>
+        x.targets?.production?.alias?.includes(host) ||
+        x.latestDeployments?.some((d) => d.target === 'production' && d.alias?.includes(host))
+    )
+    const estado =
+      p?.targets?.production?.readyState ??
+      p?.latestDeployments?.find((d) => d.target === 'production')?.readyState ??
+      null
+    return { nombre, estado: estado ? estado.toUpperCase() : null }
+  })
+  cacheApps = { en: Date.now(), datos }
+  return datos
 }
 
 type DeploysVercel = { total: number; listos: number; error: number; ultimo: { en: number; estado: string } | null }
@@ -127,7 +119,7 @@ type DeploysVercel = { total: number; listos: number; error: number; ultimo: { e
 let cacheDeploys: { en: number; datos: DeploysVercel } | null = null
 
 async function deploysVercel(): Promise<DeploysVercel | null> {
-  const token = process.env.VERCEL_API_TOKEN?.trim()
+  const token = tokenVercel()
   if (!token) return null
   if (cacheDeploys && Date.now() - cacheDeploys.en < 60_000) return cacheDeploys.datos
   const params = new URLSearchParams({
@@ -135,7 +127,7 @@ async function deploysVercel(): Promise<DeploysVercel | null> {
     target: 'production',
     since: String(Date.now() - 7 * 24 * 3600 * 1000),
     limit: '100',
-    slug: process.env.VERCEL_TEAM_SLUG?.trim() || VERCEL_EQUIPO,
+    slug: equipoVercel(),
   })
   const res = await fetch(`https://api.vercel.com/v6/deployments?${params}`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -200,32 +192,23 @@ function peorCausa(causas: (Causa | null)[]): Causa | null {
   return v.length ? v.reduce((a, b) => (b.valor < a.valor ? b : a)) : null
 }
 
-/** Pieza con operaciones reales (24 h) y, si hay, sonda activa. */
-function piezaServicio(
-  id: string,
-  nombre: string,
-  ev: EventosPieza | undefined,
-  presupuesto: number,
-  sonda?: ResultadoSonda
-): PiezaMedida {
+/** Pieza medida solo con sus operaciones reales de las últimas 24 h. */
+function piezaServicio(id: string, nombre: string, ev: EventosPieza | undefined, presupuesto: number): PiezaMedida {
   const ops = Number(ev?.ops ?? 0)
   const fallos = Number(ev?.fallos ?? 0)
   const p95 = ev?.ms_p95 != null ? Number(ev.ms_p95) : null
   const causa = peorCausa([
-    sonda ? (sonda.ok ? { valor: puntajeLatencia(sonda.ms, PRESUPUESTO_SONDA_MS), corto: `lento (contesta en ${seg(sonda.ms)})` } : { valor: 0, corto: 'no contesta' }) : null,
     ops ? { valor: puntajeFallos(fallos, ops), corto: `${Math.round((fallos / ops) * 100)}% de operaciones fallan` } : null,
     ops && p95 != null ? { valor: puntajeLatencia(p95, presupuesto), corto: `lento (tarda hasta ${seg(p95)})` } : null,
   ])
-  const partes: string[] = []
-  if (sonda) partes.push(sonda.ok ? `contesta en ${seg(sonda.ms)}` : 'no contesta')
-  partes.push(ops ? `${fallosDe(fallos, ops)}${p95 != null ? ` · tarda hasta ${seg(p95)}` : ''}` : 'sin operaciones en 24 h')
+  const lectura = ops ? `${fallosDe(fallos, ops)}${p95 != null ? ` · tarda hasta ${seg(p95)}` : ''}` : 'sin operaciones en 24 h'
   return pieza({
     id,
     nombre,
     valor: causa?.valor ?? null,
     corto: causa?.corto,
-    lectura: partes.join(' · '),
-    fallo: sonda && !sonda.ok ? sonda.detalle : fallos ? ev?.ultimo_fallo ?? undefined : undefined,
+    lectura,
+    fallo: fallos ? ev?.ultimo_fallo ?? undefined : undefined,
   })
 }
 
@@ -269,6 +252,26 @@ function piezaLatido(tarea: TareaLatido, l: Latido | undefined): PiezaMedida {
   return pieza({ id: tarea, nombre, valor: 100, lectura: `corrió ${horaLocal(l.ultimo_ok ?? l.ultimo_intento)} en ${seg(l.ms)}` })
 }
 
+/** Con un deploy publicándose, producción sigue sirviendo el anterior. */
+const ESTADOS_SIRVIENDO = new Set(['READY', 'BUILDING', 'QUEUED', 'INITIALIZING'])
+
+function estadoLegible(estado: string | null): string {
+  switch (estado) {
+    case 'READY':
+      return 'listo'
+    case 'ERROR':
+      return 'con error'
+    case 'BUILDING':
+    case 'QUEUED':
+    case 'INITIALIZING':
+      return 'publicándose'
+    case 'CANCELED':
+      return 'cancelado'
+    default:
+      return 'no encontrado'
+  }
+}
+
 function proceso(id: string, nombre: string, mide: string, piezas: PiezaMedida[]): MedidorProceso {
   const valor = minimo(...piezas.map((p) => p.valor))
   const estado = estadoPorValor(valor)
@@ -284,25 +287,27 @@ function proceso(id: string, nombre: string, mide: string, piezas: PiezaMedida[]
   return { id, nombre, mide, valor, estado, piezas, resumen }
 }
 
-export async function leerPanelControl(): Promise<PanelControlRespuesta> {
-  const baseInsforge = (process.env.NEXT_PUBLIC_INSFORGE_URL ?? process.env.INSFORGE_URL ?? '').replace(/\/$/, '')
+let cacheLectura: { en: number; r: Promise<PanelControlRespuesta> } | null = null
+
+/** Una sola lectura cada 30 s aunque estén abiertos el panel y el aviso en varias pestañas. */
+export function leerPanelControl(): Promise<PanelControlRespuesta> {
+  if (cacheLectura && Date.now() - cacheLectura.en < 30_000) return cacheLectura.r
+  const r = leerPanelControlSinCache()
+  cacheLectura = { en: Date.now(), r }
+  r.catch(() => {
+    cacheLectura = null
+  })
+  return r
+}
+
+async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
   const rpcMedido = (async () => {
     const t = Date.now()
     const r = await createDbAdmin().rpc('panel_control_metricas')
     return { r, ms: Date.now() - t }
   })()
 
-  const [rpc, apps, deploys, sBanorte, sOpenpay, sPac, sStorage, sCorreo, sGoogle] = await Promise.allSettled([
-    rpcMedido,
-    pingApps(),
-    deploysVercel(),
-    sondaHttp(new URL(BANORTE_PAYW2_URL).origin),
-    sondaHttp('https://api.openpay.mx'),
-    sondaHttp(urlFacturoPorTiApi()),
-    sondaHttp(baseInsforge || 'https://insforge.dev'),
-    sondaSmtp(),
-    sondaHttp('https://www.googleapis.com/calendar/v3/'),
-  ])
+  const [rpc, apps, deploys] = await Promise.allSettled([rpcMedido, estadoApps(), deploysVercel()])
   const valorDe = <T,>(r: PromiseSettledResult<T>): T | undefined => (r.status === 'fulfilled' ? r.value : undefined)
 
   let m: Metricas | null = null
@@ -327,7 +332,7 @@ export async function leerPanelControl(): Promise<PanelControlRespuesta> {
     : pieza({ id: 'base', nombre: 'Base de datos', valor: 0, lectura: 'no contesta', fallo: errorBase })
 
   const ev = m?.piezas ?? {}
-  const correo = piezaServicio('correo', 'Correo (Gmail)', ev.correo, PRESUPUESTO_MS.correo, valorDe(sCorreo))
+  const correo = piezaServicio('correo', 'Correo (Gmail)', ev.correo, PRESUPUESTO_MS.correo)
   const wh = m?.openpay_webhook
   const avisosOpenpay = pieza({
     id: 'openpay-avisos',
@@ -339,25 +344,26 @@ export async function leerPanelControl(): Promise<PanelControlRespuesta> {
   })
 
   const listaApps = valorDe(apps) ?? []
+  const caidas = listaApps.filter((a) => !ESTADOS_SIRVIENDO.has(a.estado ?? ''))
   const appOpenHouse = listaApps.find((a) => a.nombre === 'Open House')
   const k = m?.kommo
   const atrasados = Number(k?.recordatorios_atrasados ?? 0)
 
   const medidores: MedidorProceso[] = [
     proceso('pagos', 'Pagos', 'Pasarelas de cobro y avisos de pago', [
-      piezaServicio('banorte', 'Banorte (tarjeta)', ev.banorte, PRESUPUESTO_MS.banorte, valorDe(sBanorte)),
-      piezaServicio('openpay-api', 'Openpay (SPEI)', ev['openpay-api'], PRESUPUESTO_MS['openpay-api'], valorDe(sOpenpay)),
+      piezaServicio('banorte', 'Banorte (tarjeta)', ev.banorte, PRESUPUESTO_MS.banorte),
+      piezaServicio('openpay-api', 'Openpay (SPEI)', ev['openpay-api'], PRESUPUESTO_MS['openpay-api']),
       avisosOpenpay,
       piezaBase,
     ]),
     proceso('facturacion', 'Facturación CFDI', 'Timbrado con el PAC y archivo de facturas', [
-      piezaServicio('pac', 'PAC FacturoPorTi', ev.pac, PRESUPUESTO_MS.pac, valorDe(sPac)),
-      piezaServicio('storage-cfdi', 'Storage de facturas', ev['storage-cfdi'], PRESUPUESTO_MS['storage-cfdi'], valorDe(sStorage)),
+      piezaServicio('pac', 'PAC FacturoPorTi', ev.pac, PRESUPUESTO_MS.pac),
+      piezaServicio('storage-cfdi', 'Storage de facturas', ev['storage-cfdi'], PRESUPUESTO_MS['storage-cfdi']),
       piezaBase,
     ]),
     proceso('reportes', 'Reportes RAC', 'Envío de reportes y agenda de citas', [
       correo,
-      piezaServicio('google-calendar', 'Google Calendar', ev['google-calendar'], PRESUPUESTO_MS['google-calendar'], valorDe(sGoogle)),
+      piezaServicio('google-calendar', 'Google Calendar', ev['google-calendar'], PRESUPUESTO_MS['google-calendar']),
       piezaBase,
     ]),
     proceso('talleres', 'Talleres', 'Registro de listas y alertas automáticas', [
@@ -370,11 +376,11 @@ export async function leerPanelControl(): Promise<PanelControlRespuesta> {
         ? pieza({
             id: 'app-open-house',
             nombre: 'App de registro',
-            valor: appOpenHouse.ok ? puntajeLatencia(appOpenHouse.ms, PRESUPUESTO_APP_MS) : 0,
-            corto: appOpenHouse.ok ? `lenta (${seg(appOpenHouse.ms)})` : 'no contesta',
-            lectura: appOpenHouse.ok ? `contesta en ${seg(appOpenHouse.ms)}` : 'no contesta',
+            valor: ESTADOS_SIRVIENDO.has(appOpenHouse.estado ?? '') ? 100 : 0,
+            corto: 'su deploy en producción no está listo',
+            lectura: `deploy en producción: ${estadoLegible(appOpenHouse.estado)}`,
           })
-        : pieza({ id: 'app-open-house', nombre: 'App de registro', valor: null, lectura: 'sin sonda' }),
+        : pieza({ id: 'app-open-house', nombre: 'App de registro', valor: null, lectura: 'falta el token de lectura de Vercel' }),
       pieza({
         id: 'kommo',
         nombre: 'Integración Kommo',
@@ -403,27 +409,18 @@ export async function leerPanelControl(): Promise<PanelControlRespuesta> {
         : pieza({ id: 'conexiones', nombre: 'Conexiones', valor: null, lectura: 'sin lectura' }),
     ]),
     proceso('vercel', 'Vercel', 'Apps de producción y tareas programadas', [
-      (() => {
-        const caidas = listaApps.filter((a) => !a.ok)
-        return pieza({
-          id: 'apps',
-          nombre: 'Apps respondiendo',
-          valor: listaApps.length ? (caidas.length ? Math.round(100 - caidas.length * 25) : 100) : null,
-          corto: `${caidas.map((a) => a.nombre).join(', ')} no ${caidas.length === 1 ? 'contesta' : 'contestan'}`,
-          lectura: listaApps.length ? `${listaApps.length - caidas.length} de ${listaApps.length}` : 'sin sonda',
-          fallo: caidas.length ? `Sin respuesta: ${caidas.map((a) => a.nombre).join(', ')}` : undefined,
-        })
-      })(),
-      (() => {
-        const lenta = [...listaApps].filter((a) => a.ok).sort((a, b) => b.ms - a.ms)[0]
-        return pieza({
-          id: 'apps-tiempo',
-          nombre: 'Tiempo de respuesta',
-          valor: lenta ? puntajeLatencia(lenta.ms, PRESUPUESTO_APP_MS) : null,
-          corto: lenta ? `${lenta.nombre} lenta (${seg(lenta.ms)})` : undefined,
-          lectura: lenta ? `la más lenta: ${lenta.nombre}, ${seg(lenta.ms)}` : 'sin sonda',
-        })
-      })(),
+      pieza({
+        id: 'apps',
+        nombre: 'Apps en producción',
+        valor: listaApps.length ? Math.max(0, 100 - caidas.length * 25) : null,
+        corto: `${caidas.map((a) => a.nombre).join(', ')} sin deploy listo`,
+        lectura: listaApps.length
+          ? `${listaApps.length - caidas.length} de ${listaApps.length} con su deploy listo`
+          : apps.status === 'rejected'
+            ? `Vercel no respondió: ${String((apps.reason as Error)?.message ?? '')}`
+            : 'falta el token de lectura de Vercel',
+        fallo: caidas.length ? caidas.map((a) => `${a.nombre}: ${estadoLegible(a.estado)}`).join(' · ') : undefined,
+      }),
       piezaLatido('cron-recordatorio-liberacion-docs', m?.latidos['cron-recordatorio-liberacion-docs']),
     ]),
     (() => {

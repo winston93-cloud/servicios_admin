@@ -12,18 +12,46 @@ export type PiezaSonda =
 /** Tareas programadas con latido. */
 export type TareaLatido = 'cron-talleres-minimo' | 'cron-recordatorio-liberacion-docs'
 
-/** Anota la operación con tope de 1.5 s; nunca lanza ni detiene la operación medida. */
-export async function registrarSonda(pieza: PiezaSonda, ok: boolean, ms: number, detalle?: string): Promise<void> {
+const TOPE_ANOTACION_MS = 1500
+const PAUSA_TRAS_FALLO_MS = 5 * 60 * 1000
+let pausadoHasta = 0
+
+function apagado(): boolean {
+  return process.env.PANEL_CONTROL_SONDAS === 'off' || Date.now() < pausadoHasta
+}
+
+/**
+ * Corre la anotación fuera del camino de la operación: nadie la espera. En Vercel se cuelga de
+ * `waitUntil` del request para que termine después de responder; si falla o tarda, se pausa 5 min.
+ */
+function enSegundoPlano(tarea: () => PromiseLike<unknown>): void {
+  if (apagado()) return
+  const p = Promise.race([
+    Promise.resolve().then(tarea),
+    new Promise((_, rechazar) => setTimeout(() => rechazar(new Error('tope')), TOPE_ANOTACION_MS)),
+  ]).then(
+    (r) => {
+      if (r && typeof r === 'object' && 'error' in r && r.error) pausadoHasta = Date.now() + PAUSA_TRAS_FALLO_MS
+    },
+    () => {
+      pausadoHasta = Date.now() + PAUSA_TRAS_FALLO_MS
+    }
+  )
   try {
-    await Promise.race([
-      createDbAdmin()
-        .from('panel_sonda_evento')
-        .insert([{ pieza, ok, ms: Math.max(0, Math.round(ms)), detalle: detalle?.slice(0, 300) ?? null }]),
-      new Promise((resolve) => setTimeout(resolve, 1500)),
-    ])
-  } catch {
-    // La anotación nunca debe afectar el cobro, el timbrado ni el correo.
-  }
+    const ctx = (globalThis as { [k: symbol]: { get?: () => { waitUntil?: (p: Promise<unknown>) => void } } | undefined })[
+      Symbol.for('@vercel/request-context')
+    ]
+    ctx?.get?.()?.waitUntil?.(p)
+  } catch {}
+}
+
+/** Anota la operación en segundo plano; nunca lanza, no espera y no detiene la operación medida. */
+export function registrarSonda(pieza: PiezaSonda, ok: boolean, ms: number, detalle?: string): void {
+  enSegundoPlano(() =>
+    createDbAdmin()
+      .from('panel_sonda_evento')
+      .insert([{ pieza, ok, ms: Math.max(0, Math.round(ms)), detalle: detalle?.slice(0, 300) ?? null }])
+  )
 }
 
 /**
@@ -38,10 +66,10 @@ export async function fetchConSonda(pieza: PiezaSonda, input: string, init?: Req
   const t = Date.now()
   try {
     const res = await fetch(input, init)
-    await registrarSonda(pieza, !esFalloHttp(res.status), Date.now() - t, esFalloHttp(res.status) ? `HTTP ${res.status}` : undefined)
+    registrarSonda(pieza, !esFalloHttp(res.status), Date.now() - t, esFalloHttp(res.status) ? `HTTP ${res.status}` : undefined)
     return res
   } catch (e) {
-    await registrarSonda(pieza, false, Date.now() - t, e instanceof Error ? e.message : String(e))
+    registrarSonda(pieza, false, Date.now() - t, e instanceof Error ? e.message : String(e))
     throw e
   }
 }
@@ -55,19 +83,23 @@ export async function medirConSonda<T>(
   const t = Date.now()
   try {
     const r = await operacion()
-    await registrarSonda(pieza, true, Date.now() - t)
+    registrarSonda(pieza, true, Date.now() - t)
     return r
   } catch (e) {
-    const fallo = esFallo(e)
-    await registrarSonda(pieza, !fallo, Date.now() - t, fallo ? (e instanceof Error ? e.message : String(e)) : undefined)
+    let fallo = true
+    try {
+      fallo = esFallo(e)
+    } catch {}
+    registrarSonda(pieza, !fallo, Date.now() - t, fallo ? (e instanceof Error ? e.message : String(e)) : undefined)
     throw e
   }
 }
 
-export async function registrarLatido(tarea: TareaLatido, ok: boolean, ms: number, detalle?: string) {
+/** Latido de una tarea programada, en segundo plano. */
+export function registrarLatido(tarea: TareaLatido, ok: boolean, ms: number, detalle?: string): void {
   const ahora = new Date().toISOString()
-  try {
-    await createDbAdmin()
+  enSegundoPlano(() =>
+    createDbAdmin()
       .from('panel_latido')
       .upsert(
         [
@@ -82,7 +114,5 @@ export async function registrarLatido(tarea: TareaLatido, ok: boolean, ms: numbe
         ],
         { onConflict: 'tarea' }
       )
-  } catch {
-    // El latido nunca debe tumbar la tarea.
-  }
+  )
 }

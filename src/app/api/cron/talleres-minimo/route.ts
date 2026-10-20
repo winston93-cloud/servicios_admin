@@ -29,7 +29,7 @@ async function handle(request: Request) {
   if (talleres.status === 'rejected') console.error('cron talleres-minimo:', talleres.reason)
   if (inscripcion.status === 'rejected') console.error('cron inscripcion-sin-pago:', inscripcion.reason)
   const ok = talleres.status === 'fulfilled' && inscripcion.status === 'fulfilled'
-  await registrarLatido(
+  registrarLatido(
     'cron-talleres-minimo',
     ok,
     Date.now() - inicio,
