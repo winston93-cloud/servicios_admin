@@ -58,12 +58,12 @@ const PRESUPUESTO_MS: Record<PiezaSonda, number> = {
 }
 const PRESUPUESTO_BASE_MS = 800
 
-/** Conexiones: hasta 90% en uso es normal; arriba de 90 entra en precaución y desde ~95 en alarma. */
-const CONEXIONES_LIMITE = 90
+/** Conexiones: hasta 80% en uso es normal; de 80 a 90 precaución y desde 90 alarma (al 100% la base rechaza conexiones). */
+const CONEXIONES_PRECAUCION = 80
 
 function valorConexiones(uso: number): number {
-  if (uso <= CONEXIONES_LIMITE) return 100
-  return Math.max(0, Math.round(89 - (uso - CONEXIONES_LIMITE) * 6))
+  if (uso < CONEXIONES_PRECAUCION) return 100
+  return Math.max(0, Math.round(89 - (uso - CONEXIONES_PRECAUCION) * 3))
 }
 
 /** Horario de las tareas de vercel.json, en UTC. */
