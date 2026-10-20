@@ -32,16 +32,15 @@ type Metricas = {
   base: { conexiones: number; max_conexiones: number; bytes: number }
 }
 
-/** Apps de producción en Vercel que se revisan; las de prueba no cuentan. */
+/** Apps de producción en Vercel que se revisan. Fuera: las de prueba y el portal de Desayunos (`services`, apagado a propósito con 503). */
 const APPS_PRODUCCION: { nombre: string; url: string }[] = [
-  { nombre: 'Servicios Admin', url: 'https://servicios-admin.vercel.app' },
+  { nombre: 'Servicios Admin', url: 'https://servicios.winston93.edu.mx/login' },
   { nombre: 'Uniformes', url: 'https://uniformes-mu.vercel.app' },
   { nombre: 'Reloj checador', url: 'https://winston-registro.vercel.app' },
   { nombre: 'Becas renovación', url: 'https://becas-renovacion.vercel.app' },
   { nombre: 'Winston USA Program', url: 'https://winston-usa-program.vercel.app' },
   { nombre: 'AgendaW', url: 'https://agendaw.vercel.app' },
   { nombre: 'Open House', url: 'https://open-house-chi.vercel.app' },
-  { nombre: 'Desayunos (services)', url: 'https://services-iota-blond.vercel.app' },
   { nombre: 'Cheques', url: 'https://cheques-new.vercel.app' },
   { nombre: 'Caja chica', url: 'https://cchic.vercel.app' },
   { nombre: 'SSIW', url: 'https://ssiw.vercel.app' },

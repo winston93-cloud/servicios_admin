@@ -38,7 +38,7 @@ Desde el 5 oct 2026 solo quedan 3 proyectos: **Winston Servicios**, **Reloj Chec
 
 ## Panel de control (`/panel-control`, solo Mario)
 
-Tablero tipo sala de control con los 8 procesos de la revisión diaria (pagos, facturación, RAC, talleres, Open House, InsForge, Vercel, desarrollo): barra vertical por proceso con franjas verde/ámbar/rojo, panel de alarmas que parpadea hasta «Reconocer», lectura cada 30 s. Datos de base en la función `panel_control_metricas()` (solo llave admin); Vercel = las apps de producción responden; Desarrollo = deploys de producción vía API de Vercel (env `VERCEL_API_TOKEN`; sin él queda «Sin lectura»). Código en `src/lib/panelControl/`. Decisión de Mario (20 oct 2026): barras, solo él, página propia, 30 s, claro y oscuro.
+Tablero tipo sala de control con los 8 procesos de la revisión diaria (pagos, facturación, RAC, talleres, Open House, InsForge, Vercel, desarrollo): barra vertical por proceso con franjas verde/ámbar/rojo, panel de alarmas que parpadea hasta «Reconocer», lectura cada 30 s. Datos de base en la función `panel_control_metricas()` (solo llave admin); Vercel = las 12 apps de producción responden (sin el portal `services`, apagado a propósito); Desarrollo = deploys de producción vía API de Vercel (env `VERCEL_API_TOKEN`; sin él queda «Sin lectura»). Código en `src/lib/panelControl/`. Decisión de Mario (20 oct 2026): barras, solo él, página propia, 30 s, claro y oscuro.
 
 ## Revisión diaria («Sonny, pendientes»)
 
