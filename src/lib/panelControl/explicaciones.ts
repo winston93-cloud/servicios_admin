@@ -4,7 +4,8 @@ import { UMBRALES_SALUD, type Diagnostico, type MedidorProceso, type PiezaMedida
 
 export const DESCRIPCION_MEDIDOR: Record<string, string> = {
   pagos: 'Cobros en línea de colegiaturas y servicios: tarjeta con Banorte, transferencias SPEI con Openpay y los avisos de pago que Openpay manda de regreso.',
-  facturacion: 'Timbrado de facturas CFDI con el PAC FacturoPorTi y el archivo privado donde se guardan el XML y el PDF de cada factura.',
+  facturacion:
+    'Facturación de los dos planteles (Instituto Educativo Winston e Instituto Winston Churchill): aciertos y errores del timbrado, vigencia del sello digital con el que se timbra y de la e.firma con la que se renueva, el PAC FacturoPorTi y el archivo privado de XML y PDF.',
   reportes: 'Reportes RAC: los correos que salen a las familias y la agenda de citas en Google Calendar.',
   talleres: 'Talleres: registro de listas y la alerta automática de grupos debajo del mínimo, con su correo.',
   'open-house': 'Open House y sesiones informativas: la app de registro, el envío de prospectos a Kommo y los recordatorios programados.',
@@ -37,6 +38,12 @@ const REGLA_PIEZA: Record<string, string> = {
   'openpay-api': servicio('4 s'),
   pac: servicio('8 s'),
   'storage-cfdi': servicio('3 s'),
+  'timbrado-educativo': 'Califica los errores del sistema de los últimos 7 días: 2.5% ya es precaución y 10% alarma. Los errores por datos fiscales del cliente (RFC, nombre, código postal, régimen, uso de CFDI) se cuentan y se muestran, pero no bajan la calificación porque no son falla del sistema.',
+  'timbrado-churchill': 'Califica los errores del sistema de los últimos 7 días: 2.5% ya es precaución y 10% alarma. Los errores por datos fiscales del cliente (RFC, nombre, código postal, régimen, uso de CFDI) se cuentan y se muestran, pero no bajan la calificación porque no son falla del sistema.',
+  'sello-educativo': 'Sello digital (CSD) con el que se timbra. 100 con más de 90 días de vigencia; de 90 a 31 días precaución; 30 días o menos alarma; vencido 0. Se lee del certificado público, sin tocar al SAT ni al PAC.',
+  'sello-churchill': 'Sello digital (CSD) con el que se timbra. 100 con más de 90 días de vigencia; de 90 a 31 días precaución; 30 días o menos alarma; vencido 0. Se lee del certificado público, sin tocar al SAT ni al PAC.',
+  'efirma-educativo': 'e.firma (FIEL): sin ella vigente no se puede renovar el sello. 100 con más de 90 días de vigencia; de 90 a 31 días precaución; 30 días o menos alarma; vencido 0. Se lee del certificado público, sin tocar al SAT ni al PAC.',
+  'efirma-churchill': 'e.firma (FIEL): sin ella vigente no se puede renovar el sello. 100 con más de 90 días de vigencia; de 90 a 31 días precaución; 30 días o menos alarma; vencido 0. Se lee del certificado público, sin tocar al SAT ni al PAC.',
   correo: servicio('15 s (incluye la espera por el límite de envío de Gmail)'),
   'google-calendar': servicio('4 s'),
   'openpay-avisos': 'Avisos de pago que Openpay manda al sistema en 24 h: cada 1% que falla resta 4 puntos. Sin avisos no hay lectura.',

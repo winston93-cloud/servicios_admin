@@ -43,7 +43,7 @@ export function alertaPorDias(dias: number): Exclude<CsdAlertaNivel, 'sin_csd' |
   return 'ok'
 }
 
-function formatearFechaMx(d: Date): string {
+export function formatearFechaMx(d: Date): string {
   return d.toLocaleDateString('es-MX', {
     timeZone: 'UTC',
     day: 'numeric',
@@ -52,7 +52,7 @@ function formatearFechaMx(d: Date): string {
   })
 }
 
-function parsearCsd(b64: string): { desde: Date; hasta: Date } {
+export function parsearCsd(b64: string): { desde: Date; hasta: Date } {
   const der = Buffer.from(b64.replace(/\s/g, ''), 'base64')
   const cert = new X509Certificate(der)
   const desde = new Date(cert.validFrom)

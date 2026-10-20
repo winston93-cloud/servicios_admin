@@ -9,6 +9,8 @@ import {
   type PiezaMedida,
 } from '@/lib/panelControl/tipos'
 import type { PiezaSonda, TareaLatido } from '@/lib/panelControl/sonda'
+import { CFDI_EMISOR_CHURCHILL_RFC, CFDI_EMISOR_EDUCATIVO_RFC } from '@/lib/cfdiConfig'
+import { diasHastaVencimiento, formatearFechaMx, parsearCsd } from '@/lib/cfdi/csdVencimientos'
 
 type EventosPieza = {
   ops: number
@@ -29,6 +31,22 @@ type Metricas = {
   base: { conexiones: number; max_conexiones: number; bytes: number }
   /** Por tabla: [vivos, muertos, lecturas completas, lecturas por índice] (solo tablas de 1 000 registros o más). */
   tablas?: Record<string, [number, number, number, number]>
+  /** Por RFC emisor, últimos 7 días; `err_datos_*` = errores por datos fiscales del cliente (no son falla del sistema). */
+  timbrado?: Record<string, Timbrado>
+  /** Certificado público (.cer en base64) de la e.firma de cada plantel, solo para leer su vigencia. */
+  fiel?: Record<string, string>
+}
+
+type Timbrado = {
+  ok_24h: number
+  err_24h: number
+  err_datos_24h: number
+  ok_7d: number
+  err_7d: number
+  err_datos_7d: number
+  ultimo: string | null
+  ultimo_error_en: string | null
+  ultimo_error: string | null
 }
 
 /**
@@ -402,6 +420,108 @@ function estadoLegible(estado: string | null): string {
   }
 }
 
+/** Más de 90 días = 100; de 90 a 31 precaución (89 a 60); 30 días o menos alarma; vencido = 0. */
+function valorVigencia(dias: number): number {
+  if (dias > 90) return 100
+  if (dias > 30) return 60 + Math.round(((dias - 30) / 60) * 29)
+  return Math.max(0, Math.round((dias / 30) * 59))
+}
+
+type Vigencia = { desde: Date; hasta: Date } | { error: string }
+
+function vigenciaDe(b64: string | undefined, falta: string): Vigencia {
+  if (!b64?.trim()) return { error: falta }
+  try {
+    return parsearCsd(b64)
+  } catch {
+    return { error: 'certificado ilegible' }
+  }
+}
+
+/** Sello digital (CSD, con el que se timbra) o e.firma (FIEL, con la que se firma ante el SAT y se renueva el sello). */
+function piezaVigencia(id: string, nombre: string, uso: string, renovar: string, v: Vigencia): PiezaMedida {
+  if ('error' in v) {
+    return pieza({
+      id,
+      nombre,
+      valor: null,
+      lectura: v.error,
+      diag: diag(noAplica(`Sin lectura: ${v.error}`), noAplica('Sin datos'), noAplica('Sin datos')),
+    })
+  }
+  const dias = diasHastaVencimiento(v.hasta)
+  const valor = valorVigencia(dias)
+  const estado = estadoPorValor(valor)
+  const vence = formatearFechaMx(v.hasta)
+  return pieza({
+    id,
+    nombre,
+    valor,
+    corto: dias < 0 ? 'vencido' : `vence en ${dias} días`,
+    lectura: dias < 0 ? `venció el ${vence}` : `vence el ${vence} · faltan ${dias} días`,
+    fallo: dias < 0 ? `Vencido: ya no sirve para ${uso}` : undefined,
+    diag: diag(
+      dias < 0
+        ? linea(`Vencido desde el ${vence}: ya no sirve para ${uso}`, 'alarma')
+        : linea(`Operando: vigente desde el ${formatearFechaMx(v.desde)}, sirve para ${uso}`, 'normal'),
+      linea(dias < 0 ? `Venció hace ${-dias} días` : `Vence el ${vence}: faltan ${dias} días (margen sano: más de 90)`, estado),
+      dias <= 90 ? linea(`${renovar} antes del ${vence}`, estado) : linea('Sin pendientes: vigente con margen', 'normal'),
+    ),
+  })
+}
+
+/** Califica solo los errores del sistema; los de datos fiscales del cliente se muestran aparte. */
+function piezaTimbrado(id: string, nombre: string, t: Timbrado | undefined, disponible: boolean): PiezaMedida {
+  if (!disponible) return pieza({ id, nombre, valor: null, lectura: 'sin lectura' })
+  const ok7 = Number(t?.ok_7d ?? 0)
+  const err7 = Number(t?.err_7d ?? 0)
+  const datos7 = Number(t?.err_datos_7d ?? 0)
+  const sis7 = err7 - datos7
+  const total7 = ok7 + err7
+  if (!total7) {
+    return pieza({
+      id,
+      nombre,
+      valor: null,
+      lectura: 'sin timbres en 7 días',
+      diag: diag(noAplica('Sin timbres en 7 días: no hay qué medir'), noAplica('Sin datos'), linea('Sin errores en 7 días', 'normal')),
+    })
+  }
+  const ok24 = Number(t?.ok_24h ?? 0)
+  const err24 = Number(t?.err_24h ?? 0)
+  const datos24 = Number(t?.err_datos_24h ?? 0)
+  const sis24 = err24 - datos24
+  const total24 = ok24 + err24
+  const valor = puntajeFallos(sis7, total7)
+  const aciertos = Math.round((ok7 / total7) * 100)
+  const ultimo = t?.ultimo_error ? ` · último: ${t.ultimo_error}` : ''
+  return pieza({
+    id,
+    nombre,
+    valor,
+    corto: `${sis7} ${sis7 === 1 ? 'error' : 'errores'} del sistema en 7 días`,
+    lectura: `${ok7} de ${total7} timbrados en 7 días · ${err7} ${err7 === 1 ? 'error' : 'errores'} (${datos7} por datos del cliente)`,
+    fallo: err7 ? t?.ultimo_error ?? undefined : undefined,
+    diag: diag(
+      !ok7
+        ? linea(`No timbra: sus ${total7} intentos de 7 días fallaron`, 'alarma')
+        : total24
+          ? linea(`Operando: ${ok24} de ${total24} timbrados bien en 24 h`, ok24 ? 'normal' : 'alarma')
+          : linea(`Operando: sin timbres en 24 h · último ${t?.ultimo ? horaLocal(t.ultimo) : 'sin fecha'}`, 'normal'),
+      linea(`Aciertos en 7 días: ${aciertos}% (${ok7} de ${total7})`, estadoPorValor(aciertos)),
+      err24
+        ? linea(
+            `${err24} en 24 h: ${datos24} por datos del cliente y ${sis24} del sistema${ultimo}`,
+            sis24 ? estadoPorValor(puntajeFallos(sis24, total24)) : 'precaucion',
+          )
+        : linea(
+            `Sin errores en 24 h · en 7 días: ${err7} (${datos7} por datos del cliente, ${sis7} del sistema)`,
+            sis7 ? estadoPorValor(valor) : 'normal',
+          ),
+    ),
+  })
+}
+
 function proceso(id: string, nombre: string, mide: string, piezas: PiezaMedida[]): MedidorProceso {
   const valor = minimo(...piezas.map((p) => p.valor))
   const estado = estadoPorValor(valor)
@@ -608,7 +728,37 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
       avisosOpenpay,
       piezaBase,
     ]),
-    proceso('facturacion', 'Facturación CFDI', 'Timbrado con el PAC y archivo de facturas', [
+    proceso('facturacion', 'Facturación CFDI', 'Timbrado, sellos y e.firmas de ambos planteles', [
+      piezaTimbrado('timbrado-educativo', 'Timbrado Educativo Winston', m?.timbrado?.[CFDI_EMISOR_EDUCATIVO_RFC], !!m?.timbrado),
+      piezaTimbrado('timbrado-churchill', 'Timbrado Winston Churchill', m?.timbrado?.[CFDI_EMISOR_CHURCHILL_RFC], !!m?.timbrado),
+      piezaVigencia(
+        'sello-educativo',
+        'Sello digital Educativo',
+        'timbrar facturas',
+        'Tramitar el sello nuevo en el SAT y cargarlo en Vercel',
+        vigenciaDe(process.env.FACTUROPORTI_EDUCATIVO_CSD, 'falta el sello en el servidor'),
+      ),
+      piezaVigencia(
+        'sello-churchill',
+        'Sello digital Churchill',
+        'timbrar facturas',
+        'Tramitar el sello nuevo en el SAT y cargarlo en Vercel',
+        vigenciaDe(process.env.FACTUROPORTI_CHURCHILL_CSD, 'falta el sello en el servidor'),
+      ),
+      piezaVigencia(
+        'efirma-educativo',
+        'e.firma Educativo',
+        'firmar ante el SAT y renovar el sello',
+        'Renovar la e.firma en el SAT y volver a cargarla',
+        m ? vigenciaDe(m.fiel?.EDUCATIVO, 'sin e.firma cargada') : { error: 'sin lectura' },
+      ),
+      piezaVigencia(
+        'efirma-churchill',
+        'e.firma Churchill',
+        'firmar ante el SAT y renovar el sello',
+        'Renovar la e.firma en el SAT y volver a cargarla',
+        m ? vigenciaDe(m.fiel?.WINSTON, 'sin e.firma cargada') : { error: 'sin lectura' },
+      ),
       piezaServicio('pac', 'PAC FacturoPorTi', ev.pac, PRESUPUESTO_MS.pac),
       piezaServicio('storage-cfdi', 'Storage de facturas', ev['storage-cfdi'], PRESUPUESTO_MS['storage-cfdi']),
       piezaBase,
