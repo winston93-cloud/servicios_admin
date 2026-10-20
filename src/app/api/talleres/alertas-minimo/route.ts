@@ -5,7 +5,7 @@ import { gruposDelUsuario, gruposEnMinimo, revisarAlertasMinimoSeguro } from '@/
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-/** Grupos en su cupo mínimo del nivel del usuario (popup del dashboard). De paso sincroniza avisos por correo/notificación. */
+/** Grupos debajo de su cupo mínimo del nivel del usuario (popup del dashboard). De paso sincroniza avisos por correo/notificación. */
 export async function GET(request: Request) {
   const auth = await requireAdminTalleres(request)
   if (!auth.ok) return auth.response

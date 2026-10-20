@@ -6,7 +6,7 @@ import { MODULO_TALLERES } from '@/lib/talleres/talleresApi'
 import { hoyMexico } from '@/lib/talleres/talleresAsistenciaService'
 import { snapshotTalleres } from '@/lib/talleres/talleresService'
 import {
-  enMinimo,
+  debajoDelMinimo,
   etiquetaNivel,
   nombreMaestroTaller,
   nombreTallerCompleto,
@@ -48,13 +48,13 @@ export type GrupoEnMinimo = {
 
 const db = () => createDbAdmin()
 
-/** Grupos activos del ciclo actual con inscritos ≤ cupo mínimo. */
+/** Grupos activos del ciclo actual con menos inscritos que su cupo mínimo (estar justo en el mínimo no avisa). */
 export async function gruposEnMinimo(): Promise<{ ciclo: number; grupos: GrupoEnMinimo[] }> {
   const snap = await snapshotTalleres()
   const tPorId = new Map(snap.talleres.map((t) => [t.id, t]))
   const mPorId = new Map(snap.maestros.map((m) => [m.id, m]))
   const grupos = snap.asignaciones
-    .filter(enMinimo)
+    .filter(debajoDelMinimo)
     .map((a) => {
       const t = tPorId.get(a.taller_id)
       const m = mPorId.get(a.maestro_id)
@@ -92,11 +92,10 @@ async function destinatariosTalleres(): Promise<{ usuarioId: number; email: stri
 
 function lineaGrupo(g: GrupoEnMinimo): string {
   const faltan = g.cupo_min - g.inscritos
-  const estado = faltan > 0 ? `faltan ${faltan} para el mínimo` : 'en el mínimo'
-  return `${g.taller}${g.maestro ? ` — ${g.maestro}` : ''} (${g.niveles}): ${g.inscritos} inscritos, mínimo ${g.cupo_min} · ${estado}`
+  return `${g.taller}${g.maestro ? ` — ${g.maestro}` : ''} (${g.niveles}): ${g.inscritos} inscritos, mínimo ${g.cupo_min} · ${faltan === 1 ? 'falta 1' : `faltan ${faltan}`} para el mínimo`
 }
 
-/** Grupos que entraron al mínimo (`nuevos`) y los que siguen en él tras 24 h (`recordatorio`). */
+/** Grupos que bajaron del mínimo (`nuevos`) y los que siguen debajo tras 24 h (`recordatorio`). */
 type Aviso = { nuevos: GrupoEnMinimo[]; recordatorio: GrupoEnMinimo[] }
 
 function totalAviso(a: Aviso): number {
@@ -107,21 +106,21 @@ function asuntoAviso(a: Aviso): string {
   const total = totalAviso(a)
   if (!a.nuevos.length) {
     return total === 1
-      ? `🔔 Recordatorio: ${a.recordatorio[0].taller} sigue en el mínimo`
-      : `🔔 Recordatorio: ${total} talleres siguen en el mínimo de inscritos`
+      ? `🔔 Recordatorio: ${a.recordatorio[0].taller} sigue debajo del mínimo`
+      : `🔔 Recordatorio: ${total} talleres siguen debajo del mínimo de inscritos`
   }
   const todos = [...a.nuevos, ...a.recordatorio]
-  return total === 1 ? `⚠ Taller en mínimo: ${todos[0].taller}` : `⚠ ${total} talleres en el mínimo de inscritos`
+  return total === 1 ? `⚠ Taller debajo del mínimo: ${todos[0].taller}` : `⚠ ${total} talleres debajo del mínimo de inscritos`
 }
 
 function mensajeAviso(a: Aviso): string {
   const lineas: string[] = []
   if (a.nuevos.length) {
-    lineas.push(a.nuevos.length === 1 ? 'Este grupo llegó a su cupo mínimo:' : 'Estos grupos llegaron a su cupo mínimo:')
+    lineas.push(a.nuevos.length === 1 ? 'Este grupo quedó debajo de su cupo mínimo:' : 'Estos grupos quedaron debajo de su cupo mínimo:')
     lineas.push(...a.nuevos.map((g) => `• ${lineaGrupo(g)}`))
   }
   if (a.recordatorio.length) {
-    lineas.push(a.recordatorio.length === 1 ? 'Sigue en su cupo mínimo:' : 'Siguen en su cupo mínimo:')
+    lineas.push(a.recordatorio.length === 1 ? 'Sigue debajo de su cupo mínimo:' : 'Siguen debajo de su cupo mínimo:')
     lineas.push(...a.recordatorio.map((g) => `• ${lineaGrupo(g)}`))
   }
   lineas.push('Revíselos en Talleres y Clases Especiales.')
@@ -146,7 +145,7 @@ function htmlCorreoMinimo(a: Aviso): string {
         <td style="padding:10px 12px;border-bottom:1px solid #fecaca;text-align:center;white-space:nowrap;">
           <strong style="color:#dc2626;font-size:1.1rem;">${g.inscritos}</strong>
           <span style="color:#64748b;"> / mín. ${g.cupo_min}</span><br>
-          <span style="color:#b91c1c;font-size:0.78rem;font-weight:700;">${faltan > 0 ? `Faltan ${faltan}` : 'En el mínimo'}</span>
+          <span style="color:#b91c1c;font-size:0.78rem;font-weight:700;">${faltan === 1 ? 'Falta 1' : `Faltan ${faltan}`}</span>
         </td>
       </tr>`
     })
@@ -157,20 +156,20 @@ function htmlCorreoMinimo(a: Aviso): string {
 <body style="margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#f1f5f9;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;margin:0 auto;padding:24px 16px;">
     <tr><td style="background:linear-gradient(135deg,#991b1b 0%,#dc2626 100%);border-radius:16px 16px 0 0;padding:22px 20px;text-align:center;">
-      <p style="margin:0;color:#fff;font-size:1.25rem;font-weight:800;">${soloRecordatorio ? '🔔 Recordatorio: talleres en el mínimo' : '⚠ Talleres en el mínimo de inscritos'}</p>
+      <p style="margin:0;color:#fff;font-size:1.25rem;font-weight:800;">${soloRecordatorio ? '🔔 Recordatorio: talleres debajo del mínimo' : '⚠ Talleres debajo del mínimo de inscritos'}</p>
       <p style="margin:6px 0 0;color:#fee2e2;font-size:0.9rem;">${
         soloRecordatorio
-          ? `${grupos.length} ${grupos.length === 1 ? 'grupo sigue' : 'grupos siguen'} en su cupo mínimo`
-          : `${grupos.length} ${grupos.length === 1 ? 'grupo está' : 'grupos están'} en su cupo mínimo`
+          ? `${grupos.length} ${grupos.length === 1 ? 'grupo sigue' : 'grupos siguen'} debajo de su cupo mínimo`
+          : `${grupos.length} ${grupos.length === 1 ? 'grupo está' : 'grupos están'} debajo de su cupo mínimo`
       }</p>
     </td></tr>
     <tr><td style="background:#fff;padding:20px 16px;border:1px solid #e2e8f0;border-top:none;">
-      <p style="margin:0 0 14px;color:#334155;line-height:1.6;">Estos grupos tienen igual o menos alumnos inscritos que su mínimo para abrir. Revise si se mantienen, se fusionan o se cierran.</p>
+      <p style="margin:0 0 14px;color:#334155;line-height:1.6;">Estos grupos tienen menos alumnos inscritos que su mínimo para abrir. Revise si se mantienen, se fusionan o se cierran.</p>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #fecaca;border-radius:12px;background:#fef2f2;">${filas}</table>
       <p style="margin:20px 0 0;text-align:center;">
         <a href="${url}" style="display:inline-block;background:#dc2626;color:#fff;text-decoration:none;font-weight:700;padding:12px 22px;border-radius:10px;">Ver en Talleres</a>
       </p>
-      <p style="margin:18px 0 0;color:#94a3b8;font-size:0.78rem;text-align:center;">Aviso automático de Servicios Administrativos. Se repite cada 24 horas mientras el grupo siga en su mínimo.</p>
+      <p style="margin:18px 0 0;color:#94a3b8;font-size:0.78rem;text-align:center;">Aviso automático de Servicios Administrativos. Se repite cada 24 horas mientras el grupo siga debajo de su mínimo.</p>
     </td></tr>
   </table>
 </body></html>`
@@ -203,9 +202,9 @@ export async function esDiaInhabil(fecha: string): Promise<boolean> {
 const INTERVALO_RECORDATORIO_MS = 23.5 * 60 * 60 * 1000
 
 /**
- * Compara los grupos en mínimo contra los ya avisados (taller_alerta_minimo):
- * los que salieron del mínimo se borran; los que entraron se registran y se avisa; los que siguen
- * en mínimo reciben recordatorio cada 24 h. Aviso = notificación del dashboard + correo institucional
+ * Compara los grupos debajo del mínimo contra los ya avisados (taller_alerta_minimo):
+ * los que ya llegaron al mínimo se borran; los que bajaron se registran y se avisa; los que siguen
+ * debajo reciben recordatorio cada 24 h. Aviso = notificación del dashboard + correo institucional
  * a quienes ven Talleres (directoras y control escolar, solo su nivel).
  * Solo en días laborales: en inhábiles no se toca nada y el siguiente día hábil sale el aviso pendiente.
  */

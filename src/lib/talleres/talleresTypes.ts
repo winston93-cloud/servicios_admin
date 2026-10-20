@@ -171,6 +171,11 @@ export function enMinimo(a: Pick<TallerAsignacion, 'cupo_min' | 'inscritos'>): b
   return Boolean(a.cupo_min) && a.inscritos <= (a.cupo_min ?? 0)
 }
 
+/** Menos inscritos que el cupo mínimo: lo único que dispara correos, notificaciones y el aviso del dashboard. */
+export function debajoDelMinimo(a: Pick<TallerAsignacion, 'cupo_min' | 'inscritos'>): boolean {
+  return Boolean(a.cupo_min) && a.inscritos < (a.cupo_min ?? 0)
+}
+
 /** lleno ≥ máx · bajo ≤ mínimo (en el mínimo) · casi ≥ 85 % del máx · ok · libre (sin cupo definido). */
 export function estadoCupo(a: Pick<TallerAsignacion, 'cupo' | 'cupo_min' | 'inscritos'>): EstadoCupo {
   if (a.cupo && a.inscritos >= a.cupo) return 'lleno'

@@ -7,7 +7,7 @@ import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import type { GrupoEnMinimo } from '@/lib/talleres/talleresAlertaMinimo'
 import './talleres-minimo-popup.css'
 
-/** Popup cada vez que se entra al dashboard mientras haya talleres en su cupo mínimo (solo quien ve Talleres). */
+/** Popup cada vez que se entra al dashboard mientras haya talleres debajo de su cupo mínimo (solo quien ve Talleres). */
 export default function TalleresMinimoPopup({
   activo,
   onTerminado,
@@ -69,8 +69,6 @@ export default function TalleresMinimoPopup({
 
   if (!abierto || !grupos.length) return null
 
-  const debajo = grupos.filter((g) => g.inscritos < g.cupo_min).length
-
   return (
     <div className="tmin-root" role="presentation">
       <button type="button" className="tmin-backdrop" aria-label="Cerrar aviso" onClick={cerrar} />
@@ -82,11 +80,10 @@ export default function TalleresMinimoPopup({
           <div className="tmin-header-copy">
             <p className="tmin-kicker">Alerta de Talleres</p>
             <h2 id={tituloId} className="tmin-title">
-              {grupos.length === 1 ? 'Un taller está en su mínimo' : `${grupos.length} talleres están en su mínimo`}
+              {grupos.length === 1 ? 'Un taller está debajo del mínimo' : `${grupos.length} talleres están debajo del mínimo`}
             </h2>
             <p className="tmin-lead">
-              Tienen igual o menos alumnos inscritos que su cupo mínimo
-              {debajo ? ` (${debajo} ya por debajo)` : ''}.
+              Tienen menos alumnos inscritos que su cupo mínimo para abrir.
             </p>
           </div>
           <button ref={cerrarRef} type="button" className="tmin-cerrar" onClick={cerrar} aria-label="Cerrar">
@@ -109,7 +106,7 @@ export default function TalleresMinimoPopup({
                     <b>{g.inscritos}</b>
                     <small>/ mín. {g.cupo_min}</small>
                   </span>
-                  <span className="tmin-item-estado">{faltan > 0 ? `Faltan ${faltan}` : 'En el mínimo'}</span>
+                  <span className="tmin-item-estado">{faltan === 1 ? 'Falta 1' : `Faltan ${faltan}`}</span>
                 </div>
               </li>
             )
