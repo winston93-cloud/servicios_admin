@@ -25,6 +25,8 @@ import DashboardAyudaModal from '@/components/dashboard/DashboardAyudaModal'
 import DashboardOrdenModal from '@/components/dashboard/DashboardOrdenModal'
 import DashboardNotificacionesBell from '@/components/dashboard/DashboardNotificacionesBell'
 import TalleresMinimoPopup from '@/components/dashboard/TalleresMinimoPopup'
+import InscripcionSinPagoPopup from '@/components/dashboard/InscripcionSinPagoPopup'
+import { nivelesAlertaInscripcion } from '@/lib/inscripcionSinPagoNiveles'
 import DashboardBuscador from '@/components/dashboard/DashboardBuscador'
 import { DashTemaSwitch, useDashTema } from '@/components/dashboard/DashboardTemas'
 import { buscarModulos } from '@/lib/dashboardBusqueda'
@@ -184,6 +186,7 @@ export default function DashboardPage() {
   const [busqueda, setBusqueda] = useState('')
   const [popupAbierto, setPopupAbierto] = useState<DashboardAdminNavItem['popup'] | null>(null)
   const [tema, setTema] = useDashTema()
+  const [avisoTalleresTerminado, setAvisoTalleresTerminado] = useState(false)
 
   // Solo un panel: alumno XOR personal (nunca mezclar módulos).
   const mostrarPanelAlumno = isAlumno && !isUsuario
@@ -385,6 +388,9 @@ export default function DashboardPage() {
     document.querySelector<HTMLInputElement>('.dash-buscador-campo input')?.focus({ preventScroll: true })
   }
 
+  const avisoTalleresActivo =
+    mostrarPanelAdmin && navItemsAdmin.some((i) => i.id === 'talleres-clases-especiales')
+
   const subtituloDashboard = mostrarPanelAlumno
     ? 'Accede a tus portales en línea'
     : 'Selecciona un módulo para continuar'
@@ -397,7 +403,15 @@ export default function DashboardPage() {
       >
         <div className="dashboard-home-bg" aria-hidden="true" />
         <TalleresMinimoPopup
-          activo={mostrarPanelAdmin && navItemsAdmin.some((i) => i.id === 'talleres-clases-especiales')}
+          activo={avisoTalleresActivo}
+          onTerminado={() => setAvisoTalleresTerminado(true)}
+        />
+        <InscripcionSinPagoPopup
+          activo={
+            mostrarPanelAdmin &&
+            nivelesAlertaInscripcion(usuarioIdAdmin).length > 0 &&
+            (!avisoTalleresActivo || avisoTalleresTerminado)
+          }
         />
 
         {/* Header */}

@@ -8,12 +8,21 @@ import type { GrupoEnMinimo } from '@/lib/talleres/talleresAlertaMinimo'
 import './talleres-minimo-popup.css'
 
 /** Popup cada vez que se entra al dashboard mientras haya talleres en su cupo mínimo (solo quien ve Talleres). */
-export default function TalleresMinimoPopup({ activo }: { activo: boolean }) {
+export default function TalleresMinimoPopup({
+  activo,
+  onTerminado,
+}: {
+  activo: boolean
+  /** Se llama cuando no hay aviso que mostrar o al cerrarlo (para encadenar otros avisos del dashboard). */
+  onTerminado?: () => void
+}) {
   const router = useRouter()
   const tituloId = useId()
   const cerrarRef = useRef<HTMLButtonElement>(null)
   const [grupos, setGrupos] = useState<GrupoEnMinimo[]>([])
   const [abierto, setAbierto] = useState(false)
+  const onTerminadoRef = useRef(onTerminado)
+  onTerminadoRef.current = onTerminado
 
   useEffect(() => {
     if (!activo) return
@@ -21,17 +30,26 @@ export default function TalleresMinimoPopup({ activo }: { activo: boolean }) {
     fetch('/api/talleres/alertas-minimo', { cache: 'no-store', headers: portalSessionFetchHeaders() })
       .then((r) => (r.ok ? r.json() : null))
       .then((json: { grupos?: GrupoEnMinimo[] } | null) => {
-        if (cancelado || !json?.grupos?.length) return
+        if (cancelado) return
+        if (!json?.grupos?.length) {
+          onTerminadoRef.current?.()
+          return
+        }
         setGrupos(json.grupos)
         setAbierto(true)
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelado) onTerminadoRef.current?.()
+      })
     return () => {
       cancelado = true
     }
   }, [activo])
 
-  const cerrar = useCallback(() => setAbierto(false), [])
+  const cerrar = useCallback(() => {
+    setAbierto(false)
+    onTerminadoRef.current?.()
+  }, [])
 
   useEffect(() => {
     if (!abierto) return
