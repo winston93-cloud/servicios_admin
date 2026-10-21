@@ -20,7 +20,7 @@ export async function qrAccesoPngDataUrl(
 }
 
 export async function hojaQrAccesoPdf(codigo: string) {
-  const { jsPDF } = await import('jspdf')
+  const { default: jsPDF } = await import('jspdf')
   const dataUrl = await qrAccesoPngDataUrl(codigo)
   const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' })
   const lado = ladoQrHojaCartaIn()

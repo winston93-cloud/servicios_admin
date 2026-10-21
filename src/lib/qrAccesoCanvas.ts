@@ -62,8 +62,7 @@ export async function dibujarQrAccesoEnCanvas(
   codigo: string,
   ladoPx = QR_ACCESO_CANVAS_PX
 ): Promise<void> {
-  const mod = await import('qrcode')
-  const QRCode = (mod as { default?: typeof mod }).default ?? mod
+  const QRCode = (await import('qrcode')).default
   await QRCode.toCanvas(canvas, codigo, {
     errorCorrectionLevel: 'H',
     margin: 4,

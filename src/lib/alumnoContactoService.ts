@@ -71,9 +71,10 @@ export function snapshotsPersonaAutorizadaIguales(
 }
 
 export async function listarPersonasAutorizadas(
-  alumnoId: number
+  alumnoId: number,
+  db: AppDatabaseClient = supabase
 ): Promise<AlumnoContactoRegistro[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('alumno_contacto')
     .select(SELECT_CONTACTO)
     .eq('alumno_id', alumnoId)
