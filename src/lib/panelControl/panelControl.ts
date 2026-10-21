@@ -77,6 +77,7 @@ const PRESUPUESTO_MS: Record<PiezaSonda, number> = {
   'storage-cfdi': 3000,
   correo: 15000,
   'google-calendar': 4000,
+  'google-classroom': 15000,
 }
 const PRESUPUESTO_BASE_MS = 800
 
@@ -953,6 +954,9 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
       ...(sis.app ? [piezaApp(sis.app, listaApps, apps.status === 'fulfilled' && apps.value != null)] : []),
       piezaIndices(m, tablas),
       piezaLimpieza(m, tablas),
+      ...(sis.id === 'boletas'
+        ? [piezaServicio('google-classroom', 'Google Classroom', ev['google-classroom'], PRESUPUESTO_MS['google-classroom'])]
+        : []),
     ], m?.tablas ? [`${tablas.length} tablas · ${compacto.format(tablas.reduce((a, t) => a + t.vivos, 0))} registros`] : undefined)
   })
 

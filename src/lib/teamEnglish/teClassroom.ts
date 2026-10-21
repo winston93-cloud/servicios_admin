@@ -35,7 +35,7 @@ const CO_MAESTRAS = ['coordinacioninglesprimaria@winston93.edu.mx', 'sistemas.de
 /** Cuentas que se retiran de las clases en la siguiente sincronización. */
 const CO_MAESTRAS_RETIRAR: string[] = []
 
-function clienteClassroom(email: string, scopes: string[] = SCOPES): classroom_v1.Classroom {
+export function clienteClassroom(email: string, scopes: string[] = SCOPES): classroom_v1.Classroom {
   const sa = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
   const key = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, '\n')
   if (!sa || !key) throw new TeError('Falta configurar la cuenta de servicio de Google.', 500)

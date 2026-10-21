@@ -8,6 +8,7 @@ export type PiezaSonda =
   | 'storage-cfdi'
   | 'correo'
   | 'google-calendar'
+  | 'google-classroom'
 
 /** Tareas programadas con latido. */
 export type TareaLatido = 'cron-talleres-minimo' | 'cron-recordatorio-liberacion-docs'

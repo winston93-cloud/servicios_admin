@@ -309,10 +309,13 @@ export default function KiCaptura({
   avisoNoEditable,
   onCambio,
   alumnosVacio,
+  claveRefresco,
 }: {
   api: KiCapturaApi
   /** Cambia cuando cambian grado/grupo/trimestre para recargar. */
   claveRecarga: string
+  /** Cambia cuando llegan datos nuevos de fuera: refresca lista y boleta abierta sin cerrarla ni pisar cambios sin guardar. */
+  claveRefresco?: number
   editable: boolean
   avisoNoEditable?: ReactNode
   /** Tras guardar (para refrescar avance en el padre). */
@@ -365,6 +368,29 @@ export default function KiCaptura({
       vivo = false
     }
   }, [claveRecarga])
+
+  const abiertoRef = useRef<{ id: number | null; sucio: boolean }>({ id: null, sucio: false })
+  useEffect(() => {
+    abiertoRef.current = { id: alumnoId, sucio }
+  })
+
+  useEffect(() => {
+    if (!claveRefresco) return
+    let vivo = true
+    void recargarLista().catch(() => null)
+    const { id, sucio: conCambios } = abiertoRef.current
+    if (id != null && !conCambios) {
+      apiRef.current
+        .abrir(id)
+        .then((d) => {
+          if (vivo && abiertoRef.current.id === id && !abiertoRef.current.sucio) setData(d)
+        })
+        .catch(() => null)
+    }
+    return () => {
+      vivo = false
+    }
+  }, [claveRefresco, recargarLista])
 
   useEffect(() => {
     if (!sucio) return

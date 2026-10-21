@@ -31,6 +31,7 @@ import {
 } from './boletasPrimariaService'
 import { generarPdfPrimariaEs } from './boletasPrimariaEsService'
 import { generarPdfPrimariaEn } from './boletasPrimariaEnService'
+import { ligarAlumnoClassroom, resumenClassroom, sincronizarClassroomGrupo } from './boletasPrimariaEnClassroom'
 
 /** Handlers de Primaria Español / Inglés: dirección (sesión admin de boletas) y portal de docentes. */
 
@@ -339,10 +340,28 @@ export function rutasPortalPrimaria(idioma: IdiomaPrimaria) {
     }
   }
 
+  /** Inglés: trae Classroom (solo mientras el grupo se puede editar) o liga a mano un alumno de Classroom. */
+  const classroom = async (ctx: ContextoCaptura, body: Record<string, unknown>) => {
+    const grupo = { ciclo: ctx.ciclo, trimestre: ctx.trimestre, grado: ctx.grado, grupo: ctx.grupo }
+    if (body.accion === 'ligar') {
+      assertEditable(ctx)
+      const alumnoId = Number(body.alumnoId ?? 0)
+      if (alumnoId) await assertAlumnoDelGrupo(ctx, alumnoId)
+      await ligarAlumnoClassroom(String(body.googleId ?? ''), alumnoId, ctx.sesion.nombre)
+    }
+    const resumen = ctx.editable
+      ? await sincronizarClassroomGrupo({ ...grupo, forzar: body.accion === 'ligar' || body.forzar === true })
+      : await resumenClassroom(grupo)
+    return jsonOk({ classroom: resumen, congelado: !ctx.editable, alumnos: await alumnos(ctx) })
+  }
+
   /** Enviar el grupo a dirección. Si faltan calificaciones, avisa (409) salvo que venga `forzar`. */
   const POST = async (req: Request, p: Params) => {
     try {
       const body = (await req.json().catch(() => ({}))) as Record<string, unknown>
+      if (idioma === 'en' && (body.accion === 'classroom' || body.accion === 'ligar')) {
+        return await classroom(await contexto(p, req, body as Raw), body)
+      }
       if (body.accion !== 'enviar') return NextResponse.json({ error: 'accion inválida' }, { status: 400 })
       const ctx = await contexto(p, req, body as Raw)
       assertEditable(ctx)

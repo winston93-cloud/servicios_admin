@@ -2,6 +2,7 @@ import { createBoletasDb } from './boletasInsforge'
 import { entregaVacia, listarEntregas, type BoletaEntrega } from './boletasEntrega'
 import { listarPublicaciones, type BoletaPublicacion } from './boletasPortal'
 import { docentesPorGrupoKinder } from './boletasKinderDocentesGrupo'
+import { celdasClassroomAlumno, marcarAjustesClassroom, type ClassroomCelda } from './boletasPrimariaEnClassroom'
 import {
   BOLETAS_NIVEL_PRIMARIA,
   PRIMARIA_CALIF_HINT,
@@ -41,6 +42,8 @@ export type PrimariaCaptura = {
   materias: (PrimariaMateria & { calificacion: string })[]
   /** Solo inglés: días de clase y faltas del trimestre. */
   asistencia: PrimariaAsistencia | null
+  /** Solo inglés: lo que dio Classroom por materia. */
+  classroom?: Map<number, ClassroomCelda>
 }
 
 export type PrimariaProgreso = { capturadas: number; total: number }
@@ -83,9 +86,10 @@ export async function obtenerCapturaPrimaria(
   validarPeriodoPrimaria(bimestre, ciclo)
   const alumno = await cargarAlumnoPrimaria(alumnoId)
   const materias = await materiasActivasPrimaria(idioma, alumno.grado_ui)
-  const [mapa, asistencia] = await Promise.all([
+  const [mapa, asistencia, classroom] = await Promise.all([
     mapaCalifsPrimaria(idioma, alumnoId, ciclo, [bimestre], materias.map((m) => m.id)),
     idioma === 'en' ? asistenciaPrimariaEn(alumnoId, ciclo, [bimestre]) : Promise.resolve(null),
+    idioma === 'en' ? celdasClassroomAlumno(alumnoId, bimestre, ciclo) : Promise.resolve(undefined),
   ])
   return {
     idioma,
@@ -94,7 +98,17 @@ export async function obtenerCapturaPrimaria(
     ciclo,
     materias: materias.map((m) => ({ ...m, calificacion: mapa.get(`${bimestre}-${m.id}`) ?? '' })),
     asistencia: asistencia ? (asistencia.get(bimestre) ?? { school_days: '', days_absent: '' }) : null,
+    classroom,
   }
+}
+
+function detalleFila(m: PrimariaMateria & { calificacion: string }, celda: ClassroomCelda | undefined): string | undefined {
+  const origen = !celda
+    ? ''
+    : m.calificacion === celda.valor
+      ? 'Desde Classroom'
+      : `Ajustada aquí · en Classroom: ${celda.valor}`
+  return [m.nombreAlt, origen].filter(Boolean).join(' · ') || undefined
 }
 
 /** Forma que usa la pantalla de captura compartida (modo por secciones). */
@@ -116,7 +130,7 @@ export function capturaParaUiPrimaria(c: PrimariaCaptura) {
           .map((m) => ({
             id: m.id,
             nombre: m.nombre,
-            detalle: m.nombreAlt || undefined,
+            detalle: detalleFila(m, c.classroom?.get(m.id)),
             formato: s.formato === 'escala' ? ('escala' as const) : ('decimal' as const),
             enPromedio: m.enPromedio,
             calificacion: m.calificacion,
@@ -162,6 +176,7 @@ export async function guardarCapturaPrimaria(
   const alumno = await cargarAlumnoPrimaria(alumnoId)
   const materias = await materiasActivasPrimaria(idioma, alumno.grado_ui)
   let saved = await guardarCalifsPrimaria({ idioma, alumnoId, bimestre, ciclo, materias, valores: input.valores })
+  if (idioma === 'en' && saved) await marcarAjustesClassroom(alumnoId, bimestre, ciclo)
 
   if (asistencia) {
     const { error } = await createBoletasDb()

@@ -10,6 +10,7 @@ import KiCaptura, {
   type KiCapturaData,
 } from '@/app/boletas/kinder-ingles/components/KiCaptura'
 import { kiApi } from '@/app/boletas/kinder-ingles/components/kiApi'
+import ClassroomBarra from './ClassroomBarra'
 import type { BoletaEntrega } from '@/lib/boletasEntrega'
 import type { GrupoCaptura, ModuloCaptura } from '@/lib/boletasCapturaGrupos'
 import { ArrowLeft, CheckCircle2, LogOut, Send } from 'lucide-react'
@@ -176,6 +177,7 @@ function GrupoTeacher({
   const [estado, setEstado] = useState<EstadoGrupo | null>(null)
   const [alumnos, setAlumnos] = useState<KiAlumno[]>([])
   const [recarga, setRecarga] = useState(0)
+  const [refresco, setRefresco] = useState(0)
   const [enviando, setEnviando] = useState(false)
   const [msg, setMsg] = useState('')
   const [err, setErr] = useState('')
@@ -288,9 +290,22 @@ function GrupoTeacher({
         )}
       </div>
 
+      {grupo.modulo === 'primaria-en' && (
+        <ClassroomBarra
+          key={qs}
+          url={url}
+          grado={grupo.grado}
+          grupo={grupo.grupo}
+          trimestre={trimestre}
+          alumnos={alumnos}
+          onDatos={() => setRefresco((n) => n + 1)}
+        />
+      )}
+
       <KiCaptura
         api={api}
         claveRecarga={`${qs}-${recarga}`}
+        claveRefresco={refresco}
         editable={Boolean(estado?.editable)}
         onCambio={setAlumnos}
         avisoNoEditable={
