@@ -126,7 +126,8 @@ function LoginPanel({ onOk }: { onOk: () => void }) {
       </form>
       <RacGoogleSignIn authUrl={`${API}/auth/google`} onOk={onOk} classPrefix="boletas" />
       <p className="boletas-login-google-hint">
-        Google: <strong>direccion.secundaria@</strong>, <strong>dg@</strong> y <strong>sistemas.desarrollo@</strong>.
+        Google: <strong>direccion.secundaria@</strong>, <strong>asistente.secundaria@</strong>, <strong>dg@</strong> y{' '}
+        <strong>sistemas.desarrollo@</strong>.
       </p>
     </div>
   )

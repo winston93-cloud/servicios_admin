@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           error:
-            'Este correo no tiene acceso Google a boletas. Solo dg@winston93.edu.mx y sistemas.desarrollo@winston93.edu.mx (como dirección en todos los niveles).',
+            'Este correo no tiene acceso Google a boletas. Entran las cuentas de dirección de cada nivel, dg@ y sistemas.desarrollo@.',
         },
         { status: 403 }
       )
