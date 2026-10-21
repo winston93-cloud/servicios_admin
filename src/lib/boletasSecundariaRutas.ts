@@ -29,6 +29,7 @@ import {
   listarMaestrosSec,
   listarMateriasSec,
   materiaSec,
+  materiasActivasSec,
   maestroTieneClaseSec,
   promediosSec,
   tableroSec,
@@ -36,7 +37,7 @@ import {
   type SecMateria,
   type SecPeriodo,
 } from './boletasSecundariaService'
-import { celdasClassroomSec, marcarAjustesClassroomSec, resumenClassroomSec, sincronizarClassroomSec } from './boletasSecundariaClassroom'
+import { celdasClassroomSec, claseDeMateria, marcarAjustesClassroomSec, resumenClassroomSec, sincronizarClassroomSec } from './boletasSecundariaClassroom'
 import { ligarAlumnoClassroom, type ClassroomCelda } from './boletasPrimariaEnClassroom'
 import { fijarTrimestreFechas, obtenerTrimestreFechas } from './boletasTrimestreFechas'
 import { resolverCicloEscolarSistemaValor } from './ciclosEscolaresService'
@@ -345,6 +346,60 @@ export function rutasDireccionSecundaria() {
           esGradoSecundaria(grado) && esGrupoSecundaria(grupo) ? alumnosGrupoSec(ciclo, grado, grupo) : Promise.resolve([]),
         ])
         return jsonOk({ grupos, alumnos: lista.map((a) => ({ alumno_id: a.alumno_id, nombre: a.nombre })) })
+      } catch (e) {
+        return jsonError(e, 400)
+      }
+    },
+    /**
+     * Antes de imprimir: trae de Classroom todas las materias del grupo (solo las que siguen en captura, con las
+     * mismas reglas del portal) y dice cuántos alumnos tienen calificación del trimestre en cada una.
+     */
+    POST: async (req: Request) => {
+      try {
+        await admin(req)
+        const body = (await req.json().catch(() => ({}))) as Row
+        const ciclo = cicloDe(body.ciclo)
+        const trimestre = trimestreValido(body.trimestre)
+        const grado = Number(body.grado)
+        const grupo = String(body.grupo ?? '').toUpperCase()
+        if (trimestre == null) throw new Error('Trimestre inválido (1 a 3).')
+        if (!esGradoSecundaria(grado) || !esGrupoSecundaria(grupo)) throw new Error('Grado o grupo inválido.')
+        const actual = ciclo === (await resolverCicloEscolarSistemaValor())
+        const materias = await materiasActivasSec(grado)
+        const materiasRes: {
+          id: number
+          nombre: string
+          conCalif: number
+          total: number
+          classroom: 'leida' | 'congelada' | 'sin-clase' | 'error' | 'no-aplica'
+          aviso: string | null
+        }[] = []
+        const procesar = async (m: SecMateria) => {
+          const c: Clase = { materia: m, grupo, trimestre }
+          let classroom: (typeof materiasRes)[number]['classroom'] = 'no-aplica'
+          let aviso: string | null = null
+          if (actual && claseDeMateria(m.nombre)) {
+            try {
+              if ((await estadoClase(ciclo, c)).editable) {
+                const r = await sincronizarClassroomSec({ ciclo, trimestre, materiaId: m.id, grupo, materia: m })
+                classroom = r.clases.length ? 'leida' : 'sin-clase'
+                aviso = r.aviso
+              } else {
+                classroom = 'congelada'
+              }
+            } catch (e) {
+              classroom = 'error'
+              aviso = e instanceof Error ? e.message : 'No se pudo leer Classroom.'
+            }
+          }
+          const hoja = await hojaSec({ ciclo, materiaId: m.id, grado, grupo, trimestre })
+          const conCalif = hoja.filas.filter((f) => f.cal[trimestre - 1] !== '').length
+          materiasRes.push({ id: m.id, nombre: m.nombre, conCalif, total: hoja.filas.length, classroom, aviso })
+        }
+        for (let i = 0; i < materias.length; i += 4) await Promise.all(materias.slice(i, i + 4).map(procesar))
+        const orden = new Map(materias.map((m, i) => [m.id, i]))
+        materiasRes.sort((a, b) => (orden.get(a.id) ?? 0) - (orden.get(b.id) ?? 0))
+        return jsonOk({ materias: materiasRes })
       } catch (e) {
         return jsonError(e, 400)
       }

@@ -2,12 +2,29 @@
 
 import { kiApi } from '@/app/boletas/kinder-ingles/components/kiApi'
 import type { SecGrupo } from '@/lib/boletasSecundariaService'
-import { FileText, Files } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { FileText, Files, RefreshCw } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 
 const API = '/api/boletas-secundaria'
 
 type Alumno = { alumno_id: number; nombre: string }
+
+type MateriaRevisada = {
+  id: number
+  nombre: string
+  conCalif: number
+  total: number
+  classroom: 'leida' | 'congelada' | 'sin-clase' | 'error' | 'no-aplica'
+  aviso: string | null
+}
+
+const ORIGEN: Record<MateriaRevisada['classroom'], string> = {
+  leida: 'Classroom leído',
+  congelada: 'enviada o publicada',
+  'sin-clase': 'sin clase en Classroom',
+  error: 'Classroom no respondió',
+  'no-aplica': 'se captura a mano',
+}
 
 /** Boletas en PDF por grado y grupo: una por alumno o todo el grupo en un solo archivo. */
 export default function SecBoletas({ ciclo, trimestre }: { ciclo: number; trimestre: number }) {
@@ -15,6 +32,8 @@ export default function SecBoletas({ ciclo, trimestre }: { ciclo: number; trimes
   const [sel, setSel] = useState<{ grado: number; grupo: string } | null>(null)
   const [alumnos, setAlumnos] = useState<Alumno[] | null>(null)
   const [err, setErr] = useState('')
+  const [revision, setRevision] = useState<MateriaRevisada[] | null>(null)
+  const [revisando, setRevisando] = useState(false)
 
   useEffect(() => {
     let vivo = true
@@ -37,6 +56,37 @@ export default function SecBoletas({ ciclo, trimestre }: { ciclo: number; trimes
       vivo = false
     }
   }, [ciclo, sel])
+
+  const revisar = useCallback(
+    async (grado: number, grupo: string, vivo: () => boolean = () => true) => {
+      setRevisando(true)
+      setRevision(null)
+      try {
+        const d = await kiApi<{ materias: MateriaRevisada[] }>(`${API}/alumnos`, {
+          method: 'POST',
+          body: JSON.stringify({ ciclo, trimestre, grado, grupo }),
+        })
+        if (vivo()) setRevision(d.materias)
+      } catch (e) {
+        if (vivo()) setErr(e instanceof Error ? e.message : 'No se pudieron revisar las calificaciones.')
+      } finally {
+        if (vivo()) setRevisando(false)
+      }
+    },
+    [ciclo, trimestre]
+  )
+
+  useEffect(() => {
+    if (!sel) return
+    let vivo = true
+    void revisar(sel.grado, sel.grupo, () => vivo)
+    return () => {
+      vivo = false
+    }
+  }, [sel, revisar])
+
+  const faltan = (revision ?? []).filter((m) => m.conCalif < m.total)
+  const listo = !revisando && Boolean(alumnos?.length)
 
   const grados = [...new Set((grupos ?? []).map((g) => g.grado))].sort()
   const delGrado = (grupos ?? []).filter((g) => g.grado === sel?.grado)
@@ -98,15 +148,53 @@ export default function SecBoletas({ ciclo, trimestre }: { ciclo: number; trimes
                 {alumnos ? `${alumnos.length} alumnos` : 'Cargando alumnos…'} · boletas hasta el trimestre {trimestre}
               </p>
             </div>
+            <button
+              type="button"
+              className="ki-btn ghost"
+              disabled={revisando}
+              onClick={() => sel && void revisar(sel.grado, sel.grupo)}
+            >
+              <RefreshCw size={16} aria-hidden /> {revisando ? 'Trayendo de Classroom…' : 'Volver a traer'}
+            </button>
             <a
               className="ki-btn primary"
               href={pdf({ grado: sel.grado, grupo: sel.grupo })}
               target="_blank"
               rel="noopener noreferrer"
-              aria-disabled={!alumnos?.length}
+              aria-disabled={!listo}
             >
               <Files size={16} aria-hidden /> Ver todo el grupo en PDF
             </a>
+          </div>
+
+          <div className="sb-revision" aria-live="polite">
+            {revisando && (
+              <p className="ki-hint">
+                Trayendo de Classroom las calificaciones del trimestre {trimestre} de todas las materias del grupo; tarda
+                unos segundos.
+              </p>
+            )}
+            {revision && faltan.length === 0 && (
+              <p className="ki-msg is-ok">Todas las materias tienen calificación del trimestre {trimestre}.</p>
+            )}
+            {revision && faltan.length > 0 && (
+              <>
+                <p className="ki-msg is-warn">
+                  {faltan.length} de {revision.length} materias están incompletas: en la boleta saldrán en blanco y el
+                  promedio todavía no es el final.
+                </p>
+                <ul className="sb-faltan">
+                  {faltan.map((m) => (
+                    <li key={m.id} title={m.aviso ?? undefined}>
+                      <b>{m.nombre}</b>
+                      <span>
+                        {m.conCalif} de {m.total} · {ORIGEN[m.classroom]}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
 
           {alumnos && alumnos.length === 0 && <p className="ki-hint">Este grupo no tiene alumnos activos.</p>}
@@ -116,7 +204,13 @@ export default function SecBoletas({ ciclo, trimestre }: { ciclo: number; trimes
                 <li key={a.alumno_id}>
                   <span className="sb-n">{i + 1}</span>
                   <span className="sb-nombre">{a.nombre}</span>
-                  <a className="ki-btn ghost" href={pdf({ alumnoId: a.alumno_id })} target="_blank" rel="noopener noreferrer">
+                  <a
+                    className="ki-btn ghost"
+                    href={pdf({ alumnoId: a.alumno_id })}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-disabled={!listo}
+                  >
                     <FileText size={16} aria-hidden /> Ver boleta
                   </a>
                 </li>

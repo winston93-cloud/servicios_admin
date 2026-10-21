@@ -1061,9 +1061,48 @@ html:not([data-theme='light']) .sc-g-C {
   min-height: var(--touch-min, 44px);
 }
 
-.sb-cabeza .ki-btn[aria-disabled='true'] {
+.sb-boletas .ki-btn[aria-disabled='true'] {
   opacity: 0.5;
   pointer-events: none;
+}
+
+.sb-revision {
+  margin-bottom: 0.75rem;
+}
+
+.sb-revision .ki-msg.is-ok {
+  background: var(--ki-ok-tono);
+  color: var(--ki-ok);
+}
+
+.sb-revision .ki-msg.is-warn {
+  background: var(--ki-aviso-tono);
+  color: var(--ki-aviso);
+}
+
+.sb-faltan {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: 0.4rem 1rem;
+}
+
+.sb-faltan li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  background: var(--ki-renglon);
+  min-width: 0;
+}
+
+.sb-faltan span {
+  color: var(--ki-mute);
+  font-size: 0.9rem;
 }
 
 .sb-lista {
