@@ -14,12 +14,16 @@ import {
   leerOrdenDashboard,
 } from '@/lib/dashboardNavOrder'
 import { useAuth } from '@/contexts/AuthContext'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
 import DashboardModuleCard from '@/components/dashboard/DashboardModuleCard'
 import Image from 'next/image'
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  esStaffPreviewPanelPadres,
+  puedeVerModuloPortalAutorizados,
+} from '@/lib/portalPadresPreview'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import DashboardAyudaModal from '@/components/dashboard/DashboardAyudaModal'
 import DashboardOrdenModal from '@/components/dashboard/DashboardOrdenModal'
@@ -143,6 +147,99 @@ const NAV_ITEMS_ALUMNO: DashboardNavItem[] = [
   },
 ]
 
+/** Preview 29905 / staff: módulo local (sin redirect SSIW). */
+const NAV_ITEM_SALIDA_PIE_LOCAL: DashboardNavItem = {
+  label: 'Salida a pie',
+  desc: 'Registra los días en que el alumno sale a pie',
+  path: '/portal-salida-pie',
+  accent: 'emerald',
+  icon: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="5" r="2"/>
+      <path d="M12 7v6"/>
+      <path d="M9 13l3 8 3-8"/>
+      <path d="M8 11h8"/>
+      <path d="M5 21h14"/>
+    </svg>
+  ),
+}
+
+const NAV_ITEM_AUTORIZADOS: DashboardNavItem = {
+  label: 'Personas autorizadas',
+  desc: 'Quién puede recoger al alumno de forma habitual',
+  path: '/portal-autorizados',
+  accent: 'rose',
+  icon: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  ),
+}
+
+const NAV_ITEM_QR_ACCESO: DashboardNavItem = {
+  label: 'QR de acceso',
+  desc: 'Muestra el código de entrada al plantel para el kiosk',
+  path: '/portal-qr-acceso',
+  accent: 'emerald',
+  icon: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <path d="M14 14h3v3h-3z" />
+      <path d="M21 14v7h-4" />
+      <path d="M14 21h.01" />
+    </svg>
+  ),
+}
+
+const NAV_ITEM_PANEL_PADRES: DashboardAdminNavItem = {
+  id: 'panel-padres-preview',
+  label: 'Panel papás',
+  desc: 'Vista interna del portal de familias. Los papás aún no ven los módulos nuevos.',
+  path: '/dashboard?vista=padres',
+  accent: 'rose',
+  kicker: 'Interno',
+  badge: 'Preview',
+  tags: ['Padres', 'Autorizados'],
+  icon: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+      <circle cx="9" cy="7" r="4"/>
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  ),
+}
+
+function tarjetaPreviewPadres(
+  id: string,
+  item: DashboardNavItem
+): DashboardAdminNavItem {
+  return {
+    id,
+    label: item.label,
+    desc: item.desc,
+    path: item.path,
+    accent: item.accent,
+    icon: item.icon,
+    kicker: 'Interno',
+    badge: 'Preview',
+    tags: ['Padres'],
+  }
+}
+
+/** Kevin y Mario: mismas tarjetas del preview papás, en su dashboard de personal. */
+const NAV_ITEMS_PADRES_STAFF: DashboardAdminNavItem[] = [
+  NAV_ITEM_PANEL_PADRES,
+  tarjetaPreviewPadres('preview-salida-pie', NAV_ITEM_SALIDA_PIE_LOCAL),
+  tarjetaPreviewPadres('preview-autorizados', NAV_ITEM_AUTORIZADOS),
+  tarjetaPreviewPadres('preview-qr-acceso', NAV_ITEM_QR_ACCESO),
+]
+
 // 2026-10-12 — Cuestionario de Beneficios externos para familias (detrás de un interruptor).
 const NAV_ITEM_BENEFICIOS_EXTERNOS: DashboardNavItem = {
   label: 'Beneficios externos',
@@ -175,9 +272,10 @@ const NAV_ITEM_BECAS_FIRMA: DashboardNavItem = {
   ),
 }
 
-export default function DashboardPage() {
+function DashboardPageInner() {
   const { user, session, logout, isAlumno, isUsuario, loading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [cicloVigenteNombre, setCicloVigenteNombre] = useState<string | null>(null)
   const [ayudaAbierta, setAyudaAbierta] = useState(false)
@@ -190,10 +288,12 @@ export default function DashboardPage() {
   const [temaElegido, setTema] = useDashTema()
   const [avisoTalleresTerminado, setAvisoTalleresTerminado] = useState(false)
 
-  // Solo un panel: alumno XOR personal (nunca mezclar módulos).
-  const mostrarPanelAlumno = isAlumno && !isUsuario
-  const mostrarPanelAdmin = isUsuario && !isAlumno
-  // El selector de estilo es solo del personal; las familias siempre ven el original.
+  // Solo un panel: alumno XOR personal (nunca mezclar módulos),
+  // salvo preview interno de Kevin/Mario sobre el panel papás.
+  const previewPadres =
+    esStaffPreviewPanelPadres(session) && searchParams.get('vista') === 'padres'
+  const mostrarPanelAlumno = (isAlumno && !isUsuario) || previewPadres
+  const mostrarPanelAdmin = isUsuario && !isAlumno && !previewPadres
   const tema = mostrarPanelAdmin ? temaElegido : 'original'
 
   // Sesión inválida o rol desconocido → pedir credenciales de nuevo.
@@ -345,9 +445,14 @@ export default function DashboardPage() {
   const navItemsAdmin = useMemo(() => {
     if (accesosDb?.uid !== usuarioIdAdmin) return []
     const base = filtrarNavItemsAdminPorUsuario(NAV_ITEMS_ADMIN, usuarioIdAdmin, accesosDb.modulos)
-    if (!layoutPersonalizado) return base
-    return aplicarOrdenDashboard(base, ordenIds)
-  }, [usuarioIdAdmin, accesosDb, layoutPersonalizado, ordenIds])
+    const ordenados = layoutPersonalizado ? aplicarOrdenDashboard(base, ordenIds) : base
+    if (!esStaffPreviewPanelPadres(session)) return ordenados
+    const idsPreview = new Set(NAV_ITEMS_PADRES_STAFF.map((item) => item.id))
+    return [
+      ...NAV_ITEMS_PADRES_STAFF,
+      ...ordenados.filter((item) => !idsPreview.has(item.id)),
+    ]
+  }, [usuarioIdAdmin, accesosDb, layoutPersonalizado, ordenIds, session])
 
   const modulosVisibles = useMemo(
     () => buscarModulos(navItemsAdmin, busqueda).map((r) => r.item),
@@ -378,11 +483,15 @@ export default function DashboardPage() {
     [navItemsAdmin]
   )
   const navItemsAlumno = useMemo(() => {
-    const items = [...NAV_ITEMS_ALUMNO]
+    const verPadresNuevos = puedeVerModuloPortalAutorizados(session)
+    const items = NAV_ITEMS_ALUMNO.map((item) =>
+      item.label === 'Salida a pie' && verPadresNuevos ? NAV_ITEM_SALIDA_PIE_LOCAL : item
+    )
     if (becaFirmaAutorizada) items.push(NAV_ITEM_BECAS_FIRMA)
     if (familiaVeBeneficiosExternos(session?.alumno_ref)) items.push(NAV_ITEM_BENEFICIOS_EXTERNOS)
+    if (verPadresNuevos) items.push(NAV_ITEM_AUTORIZADOS, NAV_ITEM_QR_ACCESO)
     return items
-  }, [becaFirmaAutorizada, session?.alumno_ref])
+  }, [becaFirmaAutorizada, session])
 
   const totalModulos = mostrarPanelAlumno ? navItemsAlumno.length : mostrarPanelAdmin ? navItemsAdmin.length : 0
 
@@ -519,6 +628,19 @@ export default function DashboardPage() {
                   <p className="dash-tema-hud">
                     <span><i aria-hidden />Sistemas en línea</span>
                     <span>{totalModulos} {mostrarPanelAlumno ? 'portales' : 'módulos'}</span>
+                  </p>
+                ) : null}
+                {previewPadres ? (
+                  <p className="portal-autorizados-banner dashboard-preview-padres" role="status">
+                    Vista interna del panel de papás (Kevin, Mario y no. 29905 · LAURA PRUEBA PRUEBA). El resto de
+                    familias todavía no ven «Salida a pie» local, «Personas autorizadas» ni «QR de acceso».{' '}
+                    <button
+                      type="button"
+                      className="dashboard-preview-padres-link"
+                      onClick={() => navigate('/dashboard')}
+                    >
+                      Volver al panel del personal
+                    </button>
                   </p>
                 ) : null}
                 {tema === 'arcade' ? (
@@ -841,5 +963,20 @@ export default function DashboardPage() {
 
       </div>
     </ProtectedRoute>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="portal-access-loading">
+          <div className="portal-access-loading-spinner" />
+          <p>Cargando…</p>
+        </div>
+      }
+    >
+      <DashboardPageInner />
+    </Suspense>
   )
 }

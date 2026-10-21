@@ -25,6 +25,9 @@ export const PORTALES_ALUMNO = [
   '/portal-boletas',
   '/proximamente',
   '/ssiw',
+  '/portal-autorizados',
+  '/portal-qr-acceso',
+  '/portal-salida-pie',
 ] as const
 
 /**
