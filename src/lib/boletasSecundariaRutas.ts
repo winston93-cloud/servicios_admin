@@ -35,6 +35,9 @@ import {
   type SecMateria,
   type SecPeriodo,
 } from './boletasSecundariaService'
+import { celdasClassroomSec, marcarAjustesClassroomSec, resumenClassroomSec, sincronizarClassroomSec } from './boletasSecundariaClassroom'
+import { ligarAlumnoClassroom, type ClassroomCelda } from './boletasPrimariaEnClassroom'
+import { fijarTrimestreFechas, obtenerTrimestreFechas } from './boletasTrimestreFechas'
 import { resolverCicloEscolarSistemaValor } from './ciclosEscolaresService'
 
 /** Handlers de Boletas Secundaria: portal de maestros (sesión de captura) y dirección (sesión admin de boletas). */
@@ -85,9 +88,15 @@ function assertEditable(e: Estado): void {
   }
 }
 
-function respuestaHoja(hoja: Awaited<ReturnType<typeof hojaSec>>, estado: Estado | null, abierto?: number) {
+function respuestaHoja(
+  hoja: Awaited<ReturnType<typeof hojaSec>>,
+  estado: Estado | null,
+  abierto?: number,
+  classroom?: Record<number, ClassroomCelda>
+) {
   return {
     abierto,
+    classroom: classroom ?? {},
     materia: hoja.materia,
     grado: hoja.grado,
     grupo: hoja.grupo,
@@ -186,12 +195,13 @@ export function rutasPortalSecundaria() {
       }
       const c = await claseDe({ materiaId: q('materiaId'), grupo: q('grupo'), trimestre: q('trimestre') })
       await assertClaseDelMaestro(s, c)
-      const [hoja, estado] = await Promise.all([
+      const [hoja, estado, classroom] = await Promise.all([
         hojaSec({ ciclo, materiaId: c.materia.id, grado: c.materia.grado, grupo: c.grupo, trimestre: c.trimestre }),
         estadoClase(ciclo, c),
+        celdasClassroomSec({ ciclo, trimestre: c.trimestre, materiaId: c.materia.id }),
       ])
       const enPeriodo = Boolean(s.supervisor) || c.trimestre === abierto
-      return jsonOk(respuestaHoja(hoja, { ...estado, editable: estado.editable && enPeriodo }, abierto))
+      return jsonOk(respuestaHoja(hoja, { ...estado, editable: estado.editable && enPeriodo }, abierto, classroom))
     } catch (e) {
       return jsonError(e, 400)
     }
@@ -219,17 +229,38 @@ export function rutasPortalSecundaria() {
       assertAbierto(s, abierto, c.trimestre)
       assertEditable(await estadoClase(ciclo, c))
       const alumnos = await alumnosGrupoSec(ciclo, c.materia.grado, c.grupo)
-      const r = await guardarHojaSec({
-        ciclo,
-        materiaId: c.materia.id,
-        trimestre: c.trimestre,
-        alumnos,
-        cambios: cambiosDe(body.cambios) as { alumnoId: number }[],
-      })
+      const cambios = cambiosDe(body.cambios) as { alumnoId: number }[]
+      const r = await guardarHojaSec({ ciclo, materiaId: c.materia.id, trimestre: c.trimestre, alumnos, cambios })
+      await marcarAjustesClassroomSec({ ciclo, trimestre: c.trimestre, materiaId: c.materia.id, cambios })
       return jsonOk({ ok: true, ...r })
     } catch (e) {
       return jsonError(e, 400)
     }
+  }
+
+  /**
+   * Classroom de la materia y grupo: lo trae en vivo mientras el trimestre esté abierto y sin enviar; después
+   * solo devuelve la última lectura. `ligar` une a mano un alumno de Classroom con el del grupo.
+   */
+  const classroom = async (s: BoletasCapturaSesion, body: Row) => {
+    const ciclo = await resolverCicloEscolarSistemaValor()
+    const abierto = await trimestreAbierto(ciclo)
+    const c = await claseDe(body)
+    await assertClaseDelMaestro(s, c)
+    const estado = await estadoClase(ciclo, c)
+    const vivo = estado.editable && (Boolean(s.supervisor) || c.trimestre === abierto)
+    const clave = { ciclo, trimestre: c.trimestre, materiaId: c.materia.id, grupo: c.grupo }
+    if (body.accion === 'ligar') {
+      if (!vivo) throw prohibido('Esta materia ya no está en captura; no se pueden ligar alumnos.')
+      const alumnoId = Number(body.alumnoId)
+      const alumnos = await alumnosGrupoSec(ciclo, c.materia.grado, c.grupo)
+      if (!alumnos.some((a) => a.alumno_id === alumnoId)) throw new Error('Ese alumno no es de este grupo.')
+      await ligarAlumnoClassroom(String(body.googleId ?? ''), alumnoId, s.nombre)
+    }
+    const resumen = vivo
+      ? await sincronizarClassroomSec({ ...clave, materia: c.materia, forzar: body.forzar === true || body.accion === 'ligar' })
+      : await resumenClassroomSec(clave)
+    return jsonOk({ classroom: resumen, congelado: !vivo })
   }
 
   /** Enviar la materia del grupo a dirección. Si faltan datos avisa (409) salvo que venga `forzar`. */
@@ -237,6 +268,7 @@ export function rutasPortalSecundaria() {
     try {
       const s = await sesionPortal(p, req)
       const body = await cuerpo(req)
+      if (body.accion === 'classroom' || body.accion === 'ligar') return await classroom(s, body)
       if (body.accion !== 'enviar') return NextResponse.json({ error: 'accion inválida' }, { status: 400 })
       const ciclo = await resolverCicloEscolarSistemaValor()
       const abierto = await trimestreAbierto(ciclo)
@@ -311,11 +343,12 @@ export function rutasDireccionSecundaria() {
           return jsonOk({ mes: Number(q('mes')), filas: await comprensionSec({ ciclo, grado: c.materia.grado, grupo: c.grupo, mes: Number(q('mes')) }) })
         }
         const c = await claseDe({ materiaId: q('materiaId'), grupo: q('grupo'), trimestre: q('trimestre') })
-        const [h, estado] = await Promise.all([
+        const [h, estado, classroom] = await Promise.all([
           hojaSec({ ciclo, materiaId: c.materia.id, grado: c.materia.grado, grupo: c.grupo, trimestre: c.trimestre }),
           estadoClase(ciclo, c),
+          celdasClassroomSec({ ciclo, trimestre: c.trimestre, materiaId: c.materia.id }),
         ])
-        return jsonOk(respuestaHoja(h, { ...estado, editable: !estado.publicada }))
+        return jsonOk(respuestaHoja(h, { ...estado, editable: !estado.publicada }, undefined, classroom))
       } catch (e) {
         return jsonError(e, 400)
       }
@@ -336,13 +369,9 @@ export function rutasDireccionSecundaria() {
           throw prohibido('Ese trimestre ya está publicado a papás. Retíralo primero para corregir.')
         }
         const alumnos = await alumnosGrupoSec(ciclo, c.materia.grado, c.grupo)
-        const r = await guardarHojaSec({
-          ciclo,
-          materiaId: c.materia.id,
-          trimestre: c.trimestre,
-          alumnos,
-          cambios: cambiosDe(body.cambios) as { alumnoId: number }[],
-        })
+        const cambios = cambiosDe(body.cambios) as { alumnoId: number }[]
+        const r = await guardarHojaSec({ ciclo, materiaId: c.materia.id, trimestre: c.trimestre, alumnos, cambios })
+        await marcarAjustesClassroomSec({ ciclo, trimestre: c.trimestre, materiaId: c.materia.id, cambios })
         return jsonOk({ ok: true, ...r })
       } catch (e) {
         return jsonError(e, 400)
@@ -478,13 +507,17 @@ export function rutasDireccionSecundaria() {
     },
   }
 
-  /** Trimestre abierto a captura de maestros (0 = cerrada). */
+  /** Trimestre abierto a captura de maestros (0 = cerrada) y fechas de cada trimestre (para Classroom). */
   const periodo = {
     GET: async (req: Request) => {
       try {
         await admin(req)
         const ciclo = cicloDe(new URL(req.url).searchParams.get('ciclo'))
-        return jsonOk(await obtenerCapturaPeriodo(ciclo, MODULO_SECUNDARIA))
+        const [actual, fechas] = await Promise.all([
+          obtenerCapturaPeriodo(ciclo, MODULO_SECUNDARIA),
+          obtenerTrimestreFechas(ciclo, MODULO_SECUNDARIA),
+        ])
+        return jsonOk({ ...actual, fechas })
       } catch (e) {
         return jsonError(e, 400)
       }
@@ -493,14 +526,14 @@ export function rutasDireccionSecundaria() {
       try {
         const session = await admin(req)
         const body = await cuerpo(req)
-        return jsonOk(
-          await fijarCapturaPeriodo({
-            ciclo: cicloDe(body.ciclo),
-            modulo: MODULO_SECUNDARIA,
-            trimestre: Number(body.trimestre),
-            por: session.nombre || session.usuario,
-          })
-        )
+        const ciclo = cicloDe(body.ciclo)
+        const por = session.nombre || session.usuario
+        if (body.accion === 'fechas') {
+          const fechas = await fijarTrimestreFechas({ ciclo, modulo: MODULO_SECUNDARIA, fechas: body.fechas, por })
+          return jsonOk({ ...(await obtenerCapturaPeriodo(ciclo, MODULO_SECUNDARIA)), fechas })
+        }
+        const actual = await fijarCapturaPeriodo({ ciclo, modulo: MODULO_SECUNDARIA, trimestre: Number(body.trimestre), por })
+        return jsonOk({ ...actual, fechas: await obtenerTrimestreFechas(ciclo, MODULO_SECUNDARIA) })
       } catch (e) {
         return jsonError(e, 400)
       }

@@ -43,28 +43,28 @@ export function letraGrupoSec(n: number): string {
   return ({ 1: 'A', 2: 'B', 3: 'C' } as Record<number, string>)[n] ?? ''
 }
 
-// ── Calificación: entero 5–10 o «-» (legacy: «-» se guarda como 0 y cuenta como 0 en promedios) ──
+// ── Calificación: 5–10 con un decimal o «-» (legacy: «-» se guarda como 0 y cuenta como 0 en promedios) ──
 
 export const SIN_CALIFICACION = '-'
 
-/** '' = sin capturar; '-' ; o '5'…'10'. null = inválida. Acepta «0», «10.0», «9,0». */
+/** '' = sin capturar; '-' ; o '5'…'10' con un decimal (más decimales se truncan). null = inválida. Acepta «0», «10.0», «8,7». */
 export function normalizarCalifSec(raw: unknown): string | null {
   const s = String(raw ?? '').trim().replace(',', '.')
   if (!s) return ''
   if (/^-+$/.test(s)) return SIN_CALIFICACION
-  if (!/^\d{1,2}(\.0+)?$/.test(s)) return null
+  if (!/^\d{1,2}(\.\d+)?$/.test(s)) return null
   const n = Number(s)
   if (n === 0) return SIN_CALIFICACION
-  return n >= 5 && n <= 10 ? String(n) : null
+  return n >= 5 && n <= 10 ? String(truncar(n, 1)) : null
 }
 
-/** Valor guardado en `calificacion_puntos` → lo que ve la hoja ('', '-', '5'…'10'). */
+/** Valor guardado en `calificacion_puntos` → lo que ve la hoja ('', '-', '5'…'10' con un decimal). */
 export function califDesdeBd(v: unknown): string {
   if (v == null) return ''
   const n = Number(String(v).trim().replace(',', '.'))
   if (!Number.isFinite(n)) return ''
   if (n === 0) return SIN_CALIFICACION
-  return String(Math.trunc(n))
+  return String(truncar(n, 1))
 }
 
 export function califABd(v: string): string {

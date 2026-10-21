@@ -6,7 +6,16 @@ import { useEffect, useState } from 'react'
 
 const API = '/api/boletas-secundaria/periodo'
 
-type Periodo = { trimestre: number; actualizadoPor: string; actualizadoAt: string | null }
+type Fechas = { trimestre: number; inicio: string; fin: string }
+type Periodo = { trimestre: number; actualizadoPor: string; actualizadoAt: string | null; fechas: Fechas[] }
+type Borrador = Record<number, { inicio: string; fin: string }>
+
+function borradorDe(fechas: Fechas[]): Borrador {
+  return Object.fromEntries([1, 2, 3].map((t) => {
+    const f = fechas.find((x) => x.trimestre === t)
+    return [t, { inicio: f?.inicio ?? '', fin: f?.fin ?? '' }]
+  }))
+}
 
 const OPCIONES = [
   { valor: 0, etiqueta: 'Cerrada' },
@@ -37,6 +46,8 @@ export default function SecPeriodo({
   const [periodo, setPeriodo] = useState<Periodo | null>(null)
   const [guardando, setGuardando] = useState(false)
   const [err, setErr] = useState('')
+  const [borrador, setBorrador] = useState<Borrador>(() => borradorDe([]))
+  const [msgFechas, setMsgFechas] = useState('')
 
   useEffect(() => {
     if (!esActual) return
@@ -46,6 +57,7 @@ export default function SecPeriodo({
       .then((p) => {
         if (!vivo) return
         setPeriodo(p)
+        setBorrador(borradorDe(p.fechas ?? []))
         if (p.trimestre) onAbierto?.(p.trimestre)
       })
       .catch((e) => vivo && setErr(e instanceof Error ? e.message : 'No se pudo cargar la captura.'))
@@ -72,6 +84,25 @@ export default function SecPeriodo({
       setGuardando(false)
     }
   }
+
+  async function guardarFechas() {
+    setGuardando(true)
+    setErr('')
+    setMsgFechas('')
+    try {
+      const fechas = [1, 2, 3].map((t) => ({ trimestre: t, ...borrador[t] }))
+      const p = await kiApi<Periodo>(API, { method: 'POST', body: JSON.stringify({ ciclo, accion: 'fechas', fechas }) })
+      setPeriodo(p)
+      setBorrador(borradorDe(p.fechas))
+      setMsgFechas('Fechas guardadas.')
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'No se pudieron guardar las fechas.')
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  const faltanFechas = periodo ? [1, 2, 3].filter((t) => !periodo.fechas?.some((f) => f.trimestre === t)) : []
 
   if (!esActual) {
     return (
@@ -114,6 +145,47 @@ export default function SecPeriodo({
         <p className="ki-msg is-error" role="alert">
           {err}
         </p>
+      )}
+      {periodo && (
+        <details className="sd-fechas" open={faltanFechas.length > 0 || undefined}>
+          <summary>
+            Fechas de los trimestres (Classroom)
+            {faltanFechas.length > 0 && <span className="sd-fechas-falta">Falta el {faltanFechas.join(', ')}</span>}
+          </summary>
+          <p className="ki-hint">
+            Las calificaciones de Classroom solo cuentan las tareas con fecha de entrega (o de creación) dentro del trimestre.
+          </p>
+          <div className="sd-fechas-filas">
+            {[1, 2, 3].map((t) => (
+              <fieldset key={t} className="sd-fechas-fila">
+                <legend>Trimestre {t}</legend>
+                <label>
+                  Inicio
+                  <input
+                    type="date"
+                    value={borrador[t].inicio}
+                    onChange={(e) => setBorrador((b) => ({ ...b, [t]: { ...b[t], inicio: e.target.value } }))}
+                  />
+                </label>
+                <label>
+                  Fin
+                  <input
+                    type="date"
+                    value={borrador[t].fin}
+                    min={borrador[t].inicio || undefined}
+                    onChange={(e) => setBorrador((b) => ({ ...b, [t]: { ...b[t], fin: e.target.value } }))}
+                  />
+                </label>
+              </fieldset>
+            ))}
+          </div>
+          <div className="sd-fechas-acciones">
+            <button type="button" className="ki-btn primary" disabled={guardando} onClick={() => void guardarFechas()}>
+              Guardar fechas
+            </button>
+            {msgFechas && <span className="ki-hint" role="status">{msgFechas}</span>}
+          </div>
+        </details>
       )}
     </section>
   )

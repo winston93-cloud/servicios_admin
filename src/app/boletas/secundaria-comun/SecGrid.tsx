@@ -21,6 +21,7 @@ export type SecGridCol = {
   /** Texto capturado → valor canónico ('' = vacío). null = inválido. */
   normalizar: (raw: string) => string | null
   numerico?: boolean
+  decimal?: boolean
   maxLength: number
 }
 
@@ -361,7 +362,7 @@ export default function SecGrid({ filas, columnas, editable, guardar, controlRef
                             }}
                             value={raw}
                             maxLength={col.maxLength}
-                            inputMode={col.numerico ? 'numeric' : 'text'}
+                            inputMode={col.decimal ? 'decimal' : col.numerico ? 'numeric' : 'text'}
                             autoCapitalize={col.numerico ? 'off' : 'characters'}
                             autoComplete="off"
                             spellCheck={false}

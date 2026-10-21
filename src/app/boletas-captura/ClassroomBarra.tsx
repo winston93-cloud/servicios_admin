@@ -1,6 +1,5 @@
 'use client'
 
-import type { KiAlumno } from '@/app/boletas/kinder-ingles/components/KiCaptura'
 import { kiApi } from '@/app/boletas/kinder-ingles/components/kiApi'
 import type { ClassroomResumen } from '@/lib/boletasPrimariaEnClassroom'
 import { Link2, RefreshCw } from 'lucide-react'
@@ -8,7 +7,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 const CADA_MS = 3 * 60 * 1000
 
-type Respuesta = { classroom: ClassroomResumen | null; congelado: boolean; alumnos: KiAlumno[] }
+type AlumnoLista = { alumno_id: number; nombre: string }
+type Respuesta = { classroom: ClassroomResumen | null; congelado: boolean }
 
 function hora(iso: string): string {
   const d = new Date(iso)
@@ -17,20 +17,20 @@ function hora(iso: string): string {
     : d.toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', timeZone: 'America/Monterrey' })
 }
 
-/** Primaria Inglés: trae las calificaciones del trimestre desde Classroom al abrir el grupo y cada 3 min con la pestaña visible. */
+/** Trae las calificaciones del trimestre desde Classroom al abrir la hoja y cada 3 min con la pestaña visible. */
 export default function ClassroomBarra({
   url,
-  grado,
-  grupo,
-  trimestre,
+  params,
   alumnos,
+  nota,
   onDatos,
 }: {
   url: string
-  grado: number
-  grupo: string
-  trimestre: number
-  alumnos: KiAlumno[]
+  /** Lo que identifica la hoja en el POST (grado/grupo/trimestre o materiaId/grupo/trimestre). */
+  params: Record<string, string | number>
+  alumnos: AlumnoLista[]
+  /** Qué se llena desde Classroom y qué se captura a mano. */
+  nota: string
   onDatos: () => void
 }) {
   const [resumen, setResumen] = useState<ClassroomResumen | null>(null)
@@ -43,6 +43,7 @@ export default function ClassroomBarra({
   useEffect(() => {
     onDatosRef.current = onDatos
   })
+  const paramsKey = JSON.stringify(params)
 
   const pedir = useCallback(
     async (extra: Record<string, unknown> = {}) => {
@@ -52,7 +53,7 @@ export default function ClassroomBarra({
       try {
         const r = await kiApi<Respuesta>(url, {
           method: 'POST',
-          body: JSON.stringify({ accion: 'classroom', grado, grupo, trimestre, ...extra }),
+          body: JSON.stringify({ accion: 'classroom', ...(JSON.parse(paramsKey) as object), ...extra }),
         })
         setResumen(r.classroom)
         setCongelado(r.congelado)
@@ -63,7 +64,7 @@ export default function ClassroomBarra({
         setCargando(false)
       }
     },
-    [url, grado, grupo, trimestre]
+    [url, paramsKey]
   )
 
   useEffect(() => {
@@ -94,7 +95,7 @@ export default function ClassroomBarra({
           <strong>Classroom</strong>
           {r
             ? ` · ${congelado ? 'congelado desde el envío; última lectura' : 'actualizado'} ${hora(r.sincronizadoEn)}` +
-              (r.clases.length ? ` · ${r.clases.length} clases · ${r.calificaciones} calificaciones` : '')
+              (r.clases.length ? ` · ${r.clases.length === 1 ? '1 clase' : `${r.clases.length} clases`} · ${r.calificaciones} calificaciones` : '')
             : cargando
               ? ' · leyendo calificaciones…'
               : ''}
@@ -108,12 +109,7 @@ export default function ClassroomBarra({
       </div>
       {r?.aviso && <p className="ki-msg is-error">{r.aviso}</p>}
       {err && <p className="ki-msg is-error">{err}</p>}
-      {!congelado && r && r.clases.length > 0 && (
-        <p className="ki-hint bc-classroom-nota">
-          Las calificaciones de materias cambian solas cuando cambian en Classroom. Si ajustas una aquí, se queda hasta que
-          vuelva a cambiar en Classroom. Mindfulness, Faith, skills y asistencia se capturan aquí.
-        </p>
-      )}
+      {!congelado && r && r.clases.length > 0 && <p className="ki-hint bc-classroom-nota">{nota}</p>}
       {!congelado && r && r.sinLigar.length > 0 && (
         <details className="bc-classroom-ligar">
           <summary>

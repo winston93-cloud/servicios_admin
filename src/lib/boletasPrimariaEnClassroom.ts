@@ -52,7 +52,7 @@ const CLASES: { clave: Clave; re: RegExp; materias: RegExp }[] = [
   { clave: 'listening', re: /LISTENING/, materias: /LISTENING/ },
 ]
 
-function mayus(s: unknown): string {
+export function mayus(s: unknown): string {
   return String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
 }
 
@@ -100,7 +100,7 @@ export function promedioClassroom(gb: Gradebook | undefined, tareas: Tarea[], no
   return (calificadas.reduce((s, t) => s + (notas.get(t.id) ?? 0), 0) / posibles) * 100
 }
 
-async function todas<T>(pagina: (token?: string) => Promise<{ items?: T[] | null; next?: string | null }>): Promise<T[]> {
+export async function todas<T>(pagina: (token?: string) => Promise<{ items?: T[] | null; next?: string | null }>): Promise<T[]> {
   const out: T[] = []
   let token: string | undefined
   for (let i = 0; i < 50; i++) {
@@ -157,12 +157,14 @@ async function leerClase(cr: classroom_v1.Classroom, c: classroom_v1.Schema$Cour
   }
 }
 
+export type AlumnoConNombre = Pick<PrimariaAlumno, 'alumno_id' | 'nombres' | 'app' | 'apm'>
+
 /** Empareja por nombre dentro del grupo; solo si hay un único candidato. */
-function emparejarPorNombre(nombre: string, alumnos: PrimariaAlumno[], usados: Set<number>): number | null {
+export function emparejarPorNombre(nombre: string, alumnos: AlumnoConNombre[], usados: Set<number>): number | null {
   const n = llano(nombre)
   if (!n) return null
   const libres = alumnos.filter((a) => !usados.has(a.alumno_id))
-  const unico = (lista: PrimariaAlumno[]) => (lista.length === 1 ? lista[0].alumno_id : null)
+  const unico = (lista: AlumnoConNombre[]) => (lista.length === 1 ? lista[0].alumno_id : null)
   const exacto = libres.filter((a) =>
     [`${a.nombres} ${a.app} ${a.apm}`, `${a.nombres} ${a.app}`, `${a.app} ${a.apm} ${a.nombres}`].some((k) => llano(k) === n)
   )
@@ -181,7 +183,7 @@ async function teacherDelGrupo(grado: number, grupo: string): Promise<{ nombre: 
   return t ? { nombre: t.apodo || t.nombre, email: t.email! } : null
 }
 
-function esFalloGoogle(e: unknown): boolean {
+export function esFalloGoogle(e: unknown): boolean {
   const code = Number((e as { code?: unknown; status?: unknown })?.code ?? (e as { status?: unknown })?.status ?? 0)
   return !code || code >= 500 || code === 401 || code === 403
 }

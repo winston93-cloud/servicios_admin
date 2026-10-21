@@ -294,10 +294,9 @@ function GrupoTeacher({
         <ClassroomBarra
           key={qs}
           url={url}
-          grado={grupo.grado}
-          grupo={grupo.grupo}
-          trimestre={trimestre}
+          params={{ grado: grupo.grado, grupo: grupo.grupo, trimestre }}
           alumnos={alumnos}
+          nota="Las calificaciones de materias cambian solas cuando cambian en Classroom. Si ajustas una aquí, se queda hasta que vuelva a cambiar en Classroom. Mindfulness, Faith, skills y asistencia se capturan aquí."
           onDatos={() => setRefresco((n) => n + 1)}
         />
       )}

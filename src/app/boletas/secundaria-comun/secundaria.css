@@ -1001,6 +1001,124 @@ html:not([data-theme='light']) .sc-g-C {
   margin: 0 0 1rem;
 }
 
+.sc-cr {
+  white-space: nowrap;
+}
+
+.sc-cr.is-ajustada {
+  color: var(--ki-accent);
+  font-weight: 700;
+}
+
+.sc-cr-marca {
+  font-size: 0.75em;
+  font-weight: 600;
+}
+
+.sd-fechas {
+  flex-basis: 100%;
+  min-width: 0;
+  border-top: 1px dashed var(--ki-line);
+  padding-top: 0.6rem;
+}
+
+.sd-fechas summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--touch-min, 44px);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.sd-fechas-falta {
+  font-size: var(--ki-step-small);
+  font-weight: 600;
+  color: var(--ki-accent);
+}
+
+.sd-fechas .ki-hint {
+  margin: 0 0 0.6rem;
+}
+
+.sd-fechas-filas {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.sd-fechas-fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.5rem 0.75rem 0.75rem;
+  border: 1px solid var(--ki-line);
+  border-radius: 12px;
+  background: var(--ki-hoja);
+}
+
+.sd-fechas-fila legend {
+  padding: 0 0.3rem;
+  font-weight: 700;
+  font-size: var(--ki-step-small);
+}
+
+.sd-fechas-fila label {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  font-size: var(--ki-step-small);
+  color: var(--ki-mute);
+}
+
+.sd-fechas-fila input {
+  min-width: 0;
+  width: 100%;
+  min-height: var(--touch-min, 44px);
+  padding: 0 0.5rem;
+  border: 1px solid var(--ki-line);
+  border-radius: 8px;
+  background: var(--ki-hoja);
+  color: var(--ki-ink);
+  font: inherit;
+  color-scheme: light dark;
+}
+
+.sd-fechas-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.sd-fechas-acciones .ki-btn {
+  min-height: var(--touch-min, 44px);
+}
+
+@media (max-width: 1024px) {
+  .sd-fechas-filas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .sd-fechas-fila {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sd-fechas-fila input {
+    font-size: 16px;
+  }
+
+  .sd-fechas-acciones .ki-btn {
+    width: 100%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sg-gira,
   .sc-clase {

@@ -13,7 +13,7 @@ export const DESCRIPCION_MEDIDOR: Record<string, string> = {
   vercel: 'Las 12 apps de la escuela publicadas en Vercel y la tarea programada de recordatorios de documentos.',
   desarrollo: 'Las publicaciones (deploys) a producción del proyecto servicios-admin en los últimos 7 días.',
   'control-escolar': 'Control escolar: alumnos, inscripciones, grupos y expedientes. Se mide su app y cómo usa sus tablas en la base.',
-  boletas: 'Boletas de calificaciones de kinder, primaria y secundaria: captura de maestros, publicación a papás y PDF; en Primaria Inglés, además, la lectura de calificaciones de Google Classroom.',
+  boletas: 'Boletas de calificaciones de kinder, primaria y secundaria: captura de maestros, publicación a papás y PDF; en Primaria Inglés y Secundaria, además, la lectura de calificaciones de Google Classroom.',
   caja: 'Caja de servicios: cobros, recibos y pagos de colegiaturas y servicios.',
   becas: 'Becas: renovaciones, solicitudes, permisos y bitácora, con su app de renovación.',
   acceso: 'Control de acceso y reloj checador: entradas y salidas registradas.',

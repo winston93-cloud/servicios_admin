@@ -1,7 +1,9 @@
 'use client'
 
+import ClassroomBarra from '@/app/boletas-captura/ClassroomBarra'
 import { kiApi } from '@/app/boletas/kinder-ingles/components/kiApi'
 import type { BoletaEntrega } from '@/lib/boletasEntrega'
+import type { ClassroomCelda } from '@/lib/boletasPrimariaEnClassroom'
 import {
   COMPRENSION_ESCALA,
   COMPRENSION_MESES,
@@ -32,6 +34,15 @@ type HojaResp = {
   editable: boolean
   /** Trimestre abierto a captura de maestros (0 = cerrada); solo viene en el portal. */
   abierto?: number
+  /** Lo que dio Classroom por alumno en este trimestre. */
+  classroom?: Record<number, ClassroomCelda>
+}
+
+const NOTA_CLASSROOM =
+  'La calificación cambia sola cuando cambia en Classroom (÷ 10, truncada a un decimal, mínimo 5; solo tareas calificadas y devueltas dentro de las fechas del trimestre). Si la ajustas aquí, se queda hasta que vuelva a cambiar en Classroom. Faltas y conducta se capturan aquí.'
+
+function mismoValor(a: string, b: string): boolean {
+  return a !== '' && b !== '' && Number(a) === Number(b)
 }
 
 export type SecClaseControl = {
@@ -64,9 +75,10 @@ const COLS_CALIF = (trimestre: number): SecGridCol[] => [
   {
     key: 'cal',
     titulo: `Calif. T${trimestre}`,
-    ayuda: 'Calificación entera de 5 a 10, o «-» (también puedes escribir 0) si no aplica.',
+    ayuda: 'Calificación de 5 a 10 con un decimal (p. ej. 8.7), o «-» (también puedes escribir 0) si no aplica.',
     normalizar: (raw) => normalizarCalifSec(raw),
     numerico: true,
+    decimal: true,
     maxLength: 4,
   },
   {
@@ -179,12 +191,14 @@ export default function SecClase(props: Props) {
   const [enviando, setEnviando] = useState(false)
   const [vigentes, setVigentes] = useState<Record<number, Record<string, string>>>({})
   const grid = useRef<SecGridControl | null>(null)
+  const silencioso = useRef(false)
   const extraKey = JSON.stringify(extra ?? {})
   const extraQs = useMemo(() => JSON.parse(extraKey) as Record<string, string | number>, [extraKey])
 
   useEffect(() => {
     let vivo = true
-    setCargando(true)
+    if (!silencioso.current) setCargando(true)
+    silencioso.current = false
     setErr('')
     const params =
       tab === 'calif'
@@ -214,6 +228,13 @@ export default function SecClase(props: Props) {
 
   useImperativeHandle(props.controlRef, () => ({ puedeSalir }), [puedeSalir])
 
+  /** Llegaron calificaciones de Classroom: guarda lo que se esté escribiendo y recarga sin quitar la hoja. */
+  const recargarDeClassroom = useCallback(async () => {
+    if (grid.current) await grid.current.guardarPendientes()
+    silencioso.current = true
+    setCarga((n) => n + 1)
+  }, [])
+
   async function ir(fn: () => void) {
     if (await puedeSalir()) {
       setMsg('')
@@ -237,6 +258,9 @@ export default function SecClase(props: Props) {
     [comp]
   )
   const calDe = useMemo(() => new Map((hoja?.filas ?? []).map((f) => [f.alumno_id, f.cal])), [hoja])
+  const crDe = hoja?.classroom ?? {}
+  const conClassroom = Object.keys(crDe).length > 0
+  const alumnosLista = useMemo(() => (hoja?.filas ?? []).map((f) => ({ alumno_id: f.alumno_id, nombre: f.nombre })), [hoja])
 
   const guardarCalif = useCallback(
     async (cambios: SecGridCambio[]) => {
@@ -393,6 +417,16 @@ export default function SecClase(props: Props) {
 
       <div className="sc-cuerpo">
         {tab === 'calif' && hoja && <Estado hoja={hoja} modo={modo} />}
+        {tab === 'calif' && modo === 'maestro' && hoja && hoja.trimestre === trimestre && (
+          <ClassroomBarra
+            key={`cr-${materiaId}-${grupo}-${trimestre}`}
+            url={url}
+            params={{ materiaId, grupo, trimestre }}
+            alumnos={alumnosLista}
+            nota={NOTA_CLASSROOM}
+            onDatos={() => void recargarDeClassroom()}
+          />
+        )}
         {(msg || err) && (
           <p className={`ki-msg${err ? ' is-error' : ''}`} role={err ? 'alert' : 'status'}>
             {err || msg}
@@ -417,9 +451,14 @@ export default function SecClase(props: Props) {
                 tituloEdicion={`Trimestre ${trimestre}`}
                 extra={{
                   titulo: 'Referencia',
-                  span: 3,
+                  span: conClassroom ? 4 : 3,
                   encabezados: (
                     <>
+                      {conClassroom && (
+                        <th scope="col" className="sg-th-ro" title="Lo que da Classroom este trimestre (solo lectura)">
+                          Classroom
+                        </th>
+                      )}
                       {otros.map((t) => (
                         <th key={t} scope="col" className="sg-th-ro" title={`Calificación del trimestre ${t} (solo lectura)`}>
                           T{t}
@@ -433,8 +472,19 @@ export default function SecClase(props: Props) {
                   celdas: (f, vig) => {
                     const cal = [...(calDe.get(f.id) ?? ['', '', ''])]
                     cal[trimestre - 1] = vig.cal ?? ''
+                    const cr = crDe[f.id]
+                    const ajustada = cr != null && !mismoValor(vig.cal ?? '', cr.valor)
                     return (
                       <>
+                        {conClassroom && (
+                          <td
+                            className={`sg-ro-celda sc-cr${ajustada ? ' is-ajustada' : ''}`}
+                            title={cr ? (ajustada ? `Ajustada aquí · en Classroom: ${cr.valor}` : 'Igual que en Classroom') : 'Sin calificación en Classroom'}
+                          >
+                            {cr?.valor ?? '·'}
+                            {ajustada && <span className="sc-cr-marca"> · ajustada</span>}
+                          </td>
+                        )}
                         {otros.map((t) => (
                           <td key={t} className="sg-ro-celda">
                             {cal[t - 1] || '·'}
