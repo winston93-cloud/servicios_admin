@@ -8,9 +8,10 @@ import { kiApi } from '@/app/boletas/kinder-ingles/components/kiApi'
 import { cicloEscolarActualBoletas, etiquetaCicloBoletas, opcionesCicloBoletas } from '@/lib/boletasCiclo'
 import { SECUNDARIA_GRADOS, etiquetaGradoSec } from '@/lib/boletasSecundariaCatalog'
 import type { SecClase as SecClaseTipo } from '@/lib/boletasSecundariaService'
-import { ArrowLeft, BookOpen, ClipboardCheck, Copy, ExternalLink, Inbox, LogOut, Medal, Users, type LucideIcon } from 'lucide-react'
+import { ArrowLeft, BookOpen, ClipboardCheck, Copy, ExternalLink, FileText, Inbox, LogOut, Medal, Users, type LucideIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import SecBoletas from './SecBoletas'
 import SecClase, { type SecClaseControl } from './SecClase'
 import SecEntregas from './SecEntregas'
 import SecPeriodo from './SecPeriodo'
@@ -32,9 +33,9 @@ type Me = {
   ciclos?: { valor: number; etiqueta: string }[]
 }
 
-type Vista = 'menu' | 'entregas' | 'captura' | 'promedios' | 'maestros' | 'materias'
+type Vista = 'menu' | 'entregas' | 'captura' | 'boletas' | 'promedios' | 'maestros' | 'materias'
 
-const VISTAS: Vista[] = ['menu', 'entregas', 'captura', 'promedios', 'maestros', 'materias']
+const VISTAS: Vista[] = ['menu', 'entregas', 'captura', 'boletas', 'promedios', 'maestros', 'materias']
 
 const PORTAL = '/boletas-captura/secundaria'
 const API = '/api/boletas-secundaria'
@@ -51,6 +52,12 @@ const MENU: { vista: Exclude<Vista, 'menu'>; titulo: string; desc: string; icon:
     titulo: 'Revisar y corregir',
     desc: 'La hoja de cualquier materia y grupo; puedes corregir aunque el maestro ya la haya enviado.',
     icon: ClipboardCheck,
+  },
+  {
+    vista: 'boletas',
+    titulo: 'Mostrar Boleta',
+    desc: 'Por grado y grupo: la boleta en PDF de cada alumno o la de todo el grupo en un solo archivo.',
+    icon: FileText,
   },
   {
     vista: 'promedios',
@@ -76,6 +83,7 @@ const TITULO: Record<Vista, string> = {
   menu: 'Secundaria',
   entregas: 'Entregas y publicación',
   captura: 'Revisar y corregir',
+  boletas: 'Mostrar Boleta',
   promedios: 'Promedios y medallas',
   maestros: 'Maestros y asignaciones',
   materias: 'Materias',
@@ -382,9 +390,9 @@ export default function SecDireccion() {
   const filtros = (
     <div className="ki-paper bm-panel ki-filtros-solos" style={{ marginBottom: '1rem' }}>
       <div className="ki-filters bm-filters">
-        {vista === 'entregas' && (
+        {(vista === 'entregas' || vista === 'boletas') && (
           <label>
-            Trimestre
+            {vista === 'boletas' ? 'Boleta hasta el trimestre' : 'Trimestre'}
             <select
               value={trimestre}
               onChange={(e) => {
@@ -471,6 +479,13 @@ export default function SecDireccion() {
           <>
             {filtros}
             <Revisar ciclo={ciclo} trimestre={trimestre} setTrimestre={setTrimestre} sel={sel} setSel={setSel} controlRef={clase} />
+          </>
+        )}
+
+        {vista === 'boletas' && (
+          <>
+            {filtros}
+            <SecBoletas ciclo={ciclo} trimestre={trimestre} />
           </>
         )}
 

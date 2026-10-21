@@ -24,6 +24,7 @@ import {
   guardarHojaSec,
   guardarMaestroSec,
   guardarMateriaSec,
+  gruposConAlumnosSec,
   hojaSec,
   listarMaestrosSec,
   listarMateriasSec,
@@ -330,6 +331,26 @@ export function rutasDireccionSecundaria() {
     },
   }
 
+  /** Grupos con alumnos del ciclo y, con grado + grupo, su lista (para ver boletas en PDF). */
+  const alumnos = {
+    GET: async (req: Request) => {
+      try {
+        await admin(req)
+        const url = new URL(req.url)
+        const ciclo = cicloDe(url.searchParams.get('ciclo'))
+        const grado = Number(url.searchParams.get('grado'))
+        const grupo = String(url.searchParams.get('grupo') ?? '').toUpperCase()
+        const [grupos, lista] = await Promise.all([
+          gruposConAlumnosSec(ciclo),
+          esGradoSecundaria(grado) && esGrupoSecundaria(grupo) ? alumnosGrupoSec(ciclo, grado, grupo) : Promise.resolve([]),
+        ])
+        return jsonOk({ grupos, alumnos: lista.map((a) => ({ alumno_id: a.alumno_id, nombre: a.nombre })) })
+      } catch (e) {
+        return jsonError(e, 400)
+      }
+    },
+  }
+
   /** La dirección corrige aunque el maestro ya haya enviado; no después de publicar. */
   const hoja = {
     GET: async (req: Request) => {
@@ -540,5 +561,5 @@ export function rutasDireccionSecundaria() {
     },
   }
 
-  return { clases, hoja, entregas, promedios, catalogo, maestros, periodo }
+  return { clases, alumnos, hoja, entregas, promedios, catalogo, maestros, periodo }
 }

@@ -16,6 +16,8 @@ import {
   grupoNumeroSec,
   listarMaestrosSec,
   nombreMaestro,
+  normalizarCalifSec,
+  redondearCalifSec,
   truncar,
   type SecMateria,
 } from './boletasSecundariaService'
@@ -76,9 +78,14 @@ export function leerNombreClaseSec(nombre: string): { grado: number; grupos: str
   return { grado: Number(g[1]) - 6, grupos: [...new Set(g[2].split(''))], trimestre: t ? Number(t[1]) : null }
 }
 
-/** De 0–100 a la boleta de secundaria: ÷ 10, truncada a un decimal, de 5 a 10. */
+/** De 0–100 a la escala de Classroom que se muestra de referencia: ÷ 10, truncada a un decimal, de 5 a 10. */
 export function aEscalaSec(porcentaje: number): string {
   return String(truncar(Math.min(10, Math.max(CALIF_MIN, porcentaje / 10)), 1))
+}
+
+/** Lo que va a la boleta: el valor de Classroom redondeado al entero (.5 sube, .4 baja). */
+export function califBoletaDeClassroom(valorClassroom: string): string {
+  return String(redondearCalifSec(Number(valorClassroom)))
 }
 
 type Gradebook = { calculationType?: string; gradeCategories?: { id?: string; weight?: number }[] }
@@ -361,7 +368,7 @@ export async function sincronizarClassroomSec(input: Clave & { materia: SecMater
         materia_id: materia.id,
         calificacion_bimestre: trimestre,
         calificacion_ciclo_escolar: ciclo,
-        calificacion_puntos: v.valor,
+        calificacion_puntos: califBoletaDeClassroom(v.valor),
         calificacion_registro: ahora,
       })),
       { onConflict: 'alumno_id,materia_id,calificacion_bimestre,calificacion_ciclo_escolar' }
@@ -414,8 +421,8 @@ export async function marcarAjustesClassroomSec(input: Omit<Clave, 'grupo'> & { 
       const id = Number(c.alumnoId)
       const celda = celdas[id]
       if (!celda) return null
-      const v = String(c.cal ?? '').trim().replace(',', '.')
-      const origen = v !== '' && Number(v) === Number(celda.valor) ? 'classroom' : 'manual'
+      const v = normalizarCalifSec(c.cal) ?? ''
+      const origen = v !== '' && Number(v) === Number(califBoletaDeClassroom(celda.valor)) ? 'classroom' : 'manual'
       return origen === celda.origen
         ? null
         : { alumno_id: id, materia_id: input.materiaId, bimestre: input.trimestre, ciclo: input.ciclo, valor_classroom: celda.valor, origen, updated_at: ahora }

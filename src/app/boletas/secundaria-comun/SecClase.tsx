@@ -16,6 +16,7 @@ import {
   normalizarConducta,
   normalizarFaltas,
   promedioMateriaBoleta,
+  redondearCalifSec,
 } from '@/lib/boletasSecundariaCatalog'
 import type { SecFilaComprension, SecFilaHoja, SecMateria } from '@/lib/boletasSecundariaService'
 import { CheckCircle2, Lock, Send, Undo2 } from 'lucide-react'
@@ -39,10 +40,10 @@ type HojaResp = {
 }
 
 const NOTA_CLASSROOM =
-  'La calificación cambia sola cuando cambia en Classroom (÷ 10, truncada a un decimal, mínimo 5; solo tareas calificadas y devueltas dentro de las fechas del trimestre). Si la ajustas aquí, se queda hasta que vuelva a cambiar en Classroom. Faltas y conducta se capturan aquí.'
+  'La calificación cambia sola cuando cambia en Classroom. La columna Classroom muestra su promedio ÷ 10 con un decimal (mínimo 5; solo tareas calificadas y devueltas dentro de las fechas del trimestre); en la boleta va redondeado al entero: .5 sube, .4 baja. Si la ajustas aquí, se queda hasta que vuelva a cambiar en Classroom. Faltas y conducta se capturan aquí.'
 
-function mismoValor(a: string, b: string): boolean {
-  return a !== '' && b !== '' && Number(a) === Number(b)
+function igualAClassroom(cal: string, classroom: string): boolean {
+  return cal !== '' && classroom !== '' && Number(cal) === redondearCalifSec(Number(classroom))
 }
 
 export type SecClaseControl = {
@@ -77,7 +78,7 @@ const COLS_CALIF = (trimestre: number): SecGridCol[] => [
   {
     key: 'cal',
     titulo: `Calif. T${trimestre}`,
-    ayuda: 'Calificación de 5 a 10 con un decimal (p. ej. 8.7), o «-» (también puedes escribir 0) si no aplica.',
+    ayuda: 'Calificación entera de 5 a 10 (si escribes decimales se redondea: 8.5 → 9, 8.4 → 8), o «-» (también puedes escribir 0) si no aplica.',
     normalizar: (raw) => normalizarCalifSec(raw),
     numerico: true,
     decimal: true,
@@ -485,13 +486,19 @@ export default function SecClase(props: Props) {
                     const cal = [...(calDe.get(f.id) ?? ['', '', ''])]
                     cal[trimestre - 1] = vig.cal ?? ''
                     const cr = crDe[f.id]
-                    const ajustada = cr != null && !mismoValor(vig.cal ?? '', cr.valor)
+                    const ajustada = cr != null && !igualAClassroom(vig.cal ?? '', cr.valor)
                     return (
                       <>
                         {conClassroom && (
                           <td
                             className={`sg-ro-celda sc-cr${ajustada ? ' is-ajustada' : ''}`}
-                            title={cr ? (ajustada ? `Ajustada aquí · en Classroom: ${cr.valor}` : 'Igual que en Classroom') : 'Sin calificación en Classroom'}
+                            title={
+                              cr
+                                ? ajustada
+                                  ? `Ajustada aquí · en Classroom: ${cr.valor} (en boleta sería ${redondearCalifSec(Number(cr.valor))})`
+                                  : `Classroom ${cr.valor} → boleta ${redondearCalifSec(Number(cr.valor))}`
+                                : 'Sin calificación en Classroom'
+                            }
                           >
                             {cr?.valor ?? '·'}
                             {ajustada && <span className="sc-cr-marca"> · ajustada</span>}
