@@ -287,6 +287,8 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
     null
   )
   const [fechaSusp, setFechaSusp] = useState('')
+  const [diasSusp, setDiasSusp] = useState(1)
+  const [obsSusp, setObsSusp] = useState('')
   const [detalleVista, setDetalleVista] = useState<Record<string, unknown> | null>(null)
   const [edicionReporte, setEdicionReporte] = useState<Record<string, unknown> | null>(null)
   const [guardandoEdicion, setGuardandoEdicion] = useState(false)
@@ -680,7 +682,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
     entidad: string,
     id: number,
     accion: string,
-    extra?: { fecha?: string; hora?: string; mensaje?: string }
+    extra?: { fecha?: string; hora?: string; mensaje?: string; dias?: number; observaciones?: string }
   ) {
     setBusy(true)
     try {
@@ -1696,7 +1698,12 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                         )}
                       </td>
                     ) : null}
-                        <td>{String(row.fecha ?? '—')}</td>
+                        <td>
+                          {String(row.fecha || '—')}
+                          {tab === 'suspensiones' && row.fecha && Number(row.dias) > 1 ? (
+                            <span className="racn-mini"> · {Number(row.dias)} días</span>
+                          ) : null}
+                        </td>
                         {tab === 'inbox' || tab === 'informes' || tab === 'citas' || tab === 'historial' ? (
                           <>
                             <td>
@@ -1846,7 +1853,9 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                               className="racn-btn primary"
                               disabled={busy}
                               onClick={() => {
-                                setFechaSusp(siguienteDiaHabil())
+                                setFechaSusp(String(row.fecha ?? '') || siguienteDiaHabil())
+                            setDiasSusp(Math.max(1, Number(row.dias) || 1))
+                            setObsSusp(String(row.observaciones ?? ''))
                                 setSuspAplicar({
                                   id: Number(row.suspension_id),
                                   nombre: String(row.nombre ?? ''),
@@ -2042,8 +2051,37 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                     autoFocus
                   />
                 </label>
+                <label>
+                  Días
+                  <input
+                    type="number"
+                    min={1}
+                    max={30}
+                    inputMode="numeric"
+                    value={diasSusp}
+                    onChange={(e) => setDiasSusp(Number(e.target.value))}
+                    required
+                  />
+                </label>
               </div>
-              {fechaSusp ? <p className="racn-mini">{fechaLargaEs(fechaSusp)}</p> : null}
+              {fechaSusp ? (
+                <p className="racn-mini">
+                  {diasSusp > 1 ? `${diasSusp} días a partir del ${fechaLargaEs(fechaSusp)}` : fechaLargaEs(fechaSusp)}
+                </p>
+              ) : null}
+              <label className="racn-msg">
+                Observaciones para la familia (opcional)
+                <textarea
+                  value={obsSusp}
+                  onChange={(e) => setObsSusp(e.target.value)}
+                  rows={4}
+                  maxLength={3000}
+                  lang="es"
+                  spellCheck
+                  autoCorrect="on"
+                  placeholder="Explica a la familia la situación o detalles de la suspensión; la verán en el correo."
+                />
+              </label>
               <div className="racn-actions">
                 <button type="button" className="racn-btn ghost" onClick={() => setSuspAplicar(null)}>
                   Cancelar
@@ -2051,9 +2089,13 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                 <button
                   type="button"
                   className="racn-btn primary"
-                  disabled={busy || !fechaSusp}
+                  disabled={busy || !fechaSusp || !(diasSusp >= 1 && diasSusp <= 30)}
                   onClick={() =>
-                    void accionCoord('suspension', suspAplicar.id, 'aplicar', { fecha: fechaSusp })
+                    void accionCoord('suspension', suspAplicar.id, 'aplicar', {
+                      fecha: fechaSusp,
+                      dias: diasSusp,
+                      observaciones: obsSusp,
+                    })
                   }
                 >
                   Aplicar fecha

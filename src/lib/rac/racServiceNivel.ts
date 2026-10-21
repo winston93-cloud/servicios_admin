@@ -1,4 +1,10 @@
 import { createHash, randomBytes } from 'crypto'
+import {
+  htmlObservacionesSuspension,
+  textoDiasSuspension,
+  validarDiasSuspension,
+  validarObservacionesSuspension,
+} from '@/lib/racSuspensionTexto'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { fechaMxDeTimestamp } from '@/lib/rac/racFecha'
 import { grupoCoincide, letraDesdeGrupoNum } from '@/lib/boletasCiclo'
@@ -1032,9 +1038,10 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       titulo: subjectClean,
       enlace,
       cuerpoHtml: `<p>Estimada familia:</p>
-      <p>El alumno <b>${escapeHtml(nombreAlumno(alumno))}</b> queda suspendido el día
-      <b>${escapeHtml(String(s.suspension_fecha ?? ''))}</b> por acumular el límite de avisos y reportes
-      ${escapeHtml(etiquetaTipoCitatorio(tipo).toLowerCase())}${seccionTxt}.</p>`,
+      <p>El alumno <b>${escapeHtml(nombreAlumno(alumno))}</b> queda suspendido
+      <b>${escapeHtml(textoDiasSuspension(s))}</b> por acumular el límite de avisos y reportes
+      ${escapeHtml(etiquetaTipoCitatorio(tipo).toLowerCase())}${seccionTxt}.</p>
+      ${htmlObservacionesSuspension(s, escapeHtml)}`,
     })
     const envio = await enviarAvisoRac({ to, subject: subjectClean, html, panel: cfg.slug })
     if (envio.ok) {
@@ -1488,6 +1495,8 @@ export function createRacNivelService(cfg: RacNivelConfig) {
               ? `Límite académico en ${seccionEtiqueta} (1 aviso + 3 reportes). La directora aplica la fecha de esta sección.`
               : '',
           fecha: s.suspension_fecha ? String(s.suspension_fecha).slice(0, 10) : '',
+          dias: Math.max(1, n(s.suspension_dias, 1)),
+          observaciones: String(s.suspension_observaciones ?? ''),
           enviada: n(s.suspension_enviada) === 1,
         }
       })
@@ -1716,7 +1725,15 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     return enviarCorreoCita(id)
   }
 
-  async function aplicarSuspension(id: number, fecha: string, soloConducta = false) {
+  async function aplicarSuspension(
+    id: number,
+    fecha: string,
+    soloConducta = false,
+    extra: { dias?: unknown; observaciones?: unknown } = {}
+  ) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) throw new Error('Fecha de suspensión no válida.')
+    const dias = validarDiasSuspension(extra.dias)
+    const observaciones = validarObservacionesSuspension(extra.observaciones)
     await assertRegistroDelNivel('reporte_suspension', id)
     if (soloConducta) {
       const { data: s } = await db().from('reporte_suspension').select('reporte_id').eq('suspension_id', id).maybeSingle()
@@ -1727,7 +1744,10 @@ export function createRacNivelService(cfg: RacNivelConfig) {
         throw new RacNivelAuthError('Psicología solo aplica suspensiones por conducta', 403)
       }
     }
-    const { error } = await db().from('reporte_suspension').update({ suspension_fecha: fecha }).eq('suspension_id', id)
+    const { error } = await db()
+      .from('reporte_suspension')
+      .update({ suspension_fecha: fecha, suspension_dias: dias, suspension_observaciones: observaciones })
+      .eq('suspension_id', id)
     if (error) throw new Error(error.message)
     return enviarCorreoSuspension(id)
   }

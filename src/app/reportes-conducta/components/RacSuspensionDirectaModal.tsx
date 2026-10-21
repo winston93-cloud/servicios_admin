@@ -46,6 +46,7 @@ export default function RacSuspensionDirectaModal({ onClose, onGuardado }: Props
   const [mensaje, setMensaje] = useState('')
   const [fecha, setFecha] = useState(hoyLocal)
   const [dias, setDias] = useState(1)
+  const [observaciones, setObservaciones] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
 
@@ -98,6 +99,7 @@ export default function RacSuspensionDirectaModal({ onClose, onGuardado }: Props
           mensaje,
           fecha,
           dias,
+          observaciones,
         }),
       })
       const data = await leerJson(res)
@@ -209,6 +211,19 @@ export default function RacSuspensionDirectaModal({ onClose, onGuardado }: Props
             spellCheck
             autoCorrect="on"
             placeholder="Describe lo ocurrido; la familia verá este texto."
+          />
+        </label>
+        <label className="rac-msg">
+          Observaciones para la familia (opcional)
+          <textarea
+            value={observaciones}
+            onChange={(e) => setObservaciones(e.target.value)}
+            rows={3}
+            maxLength={3000}
+            lang="es"
+            spellCheck
+            autoCorrect="on"
+            placeholder="Detalles o indicaciones para la familia; la verán en el correo."
           />
         </label>
         {error ? (

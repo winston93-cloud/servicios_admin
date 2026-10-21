@@ -60,6 +60,7 @@ export async function POST(req: Request) {
       alumnoId?: number
       motivo?: number
       dias?: number
+      observaciones?: string
     }
     const entidad = body.entidad === 'cita' ? 'cita' : body.entidad === 'suspension' ? 'suspension' : 'reporte'
     const accion = String(body.accion ?? '')
@@ -88,12 +89,16 @@ export async function POST(req: Request) {
           mensaje: String(body.mensaje ?? ''),
           fecha: String(body.fecha ?? ''),
           dias: Number(body.dias),
+          observaciones: body.observaciones,
         })
       )
     }
     if (body.entidad === 'suspension') {
       return NextResponse.json(
-        await aplicarSuspension(id, String(body.fecha ?? ''), suspensionSoloConductaRac(session.role))
+        await aplicarSuspension(id, String(body.fecha ?? ''), suspensionSoloConductaRac(session.role), {
+          dias: body.dias,
+          observaciones: body.observaciones,
+        })
       )
     }
     if (accion === 'editar') {

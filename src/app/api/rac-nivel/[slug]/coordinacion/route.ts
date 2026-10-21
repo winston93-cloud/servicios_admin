@@ -61,6 +61,8 @@ export async function POST(req: Request, { params }: Params) {
       fecha?: string
       hora?: string
       mensaje?: string
+      dias?: number
+      observaciones?: string
     }
     const entidad = body.entidad === 'cita' ? 'cita' : body.entidad === 'suspension' ? 'suspension' : 'reporte'
     const accion = String(body.accion ?? '')
@@ -79,7 +81,10 @@ export async function POST(req: Request, { params }: Params) {
     }
     if (body.entidad === 'suspension') {
       return NextResponse.json(
-        await svc.aplicarSuspension(id, String(body.fecha ?? ''), suspensionSoloConductaNivel(session.role))
+        await svc.aplicarSuspension(id, String(body.fecha ?? ''), suspensionSoloConductaNivel(session.role), {
+          dias: body.dias,
+          observaciones: body.observaciones,
+        })
       )
     }
     if (accion === 'editar') {
