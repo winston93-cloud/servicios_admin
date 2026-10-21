@@ -52,6 +52,7 @@ type MetricasUniformes = {
   }
   pantalla?: {
     errores_24h: number
+    red_24h?: number
     silenciosos_24h: number
     avisos_24h: number
     ultimos: { en: string; tipo: string; pantalla: string; mensaje: string; usuario: string | null }[]
@@ -266,10 +267,19 @@ async function leerSinCache(): Promise<PanelUniformesRespuesta> {
         pieza({
           id: 'errores',
           nombre: 'Errores en pantalla',
-          valor: Math.max(0, 100 - num(pa.errores_24h) * 15),
-          corto: `${pa.errores_24h} ${num(pa.errores_24h) === 1 ? 'error' : 'errores'} en 24 h`,
-          lectura: num(pa.errores_24h) ? `${pa.errores_24h} en 24 h` : 'ningún error en 24 h',
+          valor: Math.max(30, 100 - num(pa.errores_24h) * 12),
+          corto: `${pa.errores_24h} ${num(pa.errores_24h) === 1 ? 'incidente' : 'incidentes'} en 24 h`,
+          lectura: num(pa.errores_24h) ? `${pa.errores_24h} ${num(pa.errores_24h) === 1 ? 'incidente' : 'incidentes'} en 24 h` : 'ningún error en 24 h',
           fallo: describir(ultimoDe(['error'])),
+        }),
+        pieza({
+          id: 'red',
+          nombre: 'Cortes de red',
+          valor: num(pa.red_24h) < 10 ? 100 : 70,
+          corto: `${num(pa.red_24h)} consultas cortadas por la red del navegador`,
+          lectura: num(pa.red_24h)
+            ? `${num(pa.red_24h)} en 24 h (internet del usuario o pestaña cerrada a media carga)`
+            : 'ningún corte de red en 24 h',
         }),
         pieza({
           id: 'silenciosos',
