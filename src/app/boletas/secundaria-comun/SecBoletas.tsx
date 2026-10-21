@@ -3,9 +3,10 @@
 import { kiApi } from '@/app/boletas/kinder-ingles/components/kiApi'
 import type { SecGrupo } from '@/lib/boletasSecundariaService'
 import { FileText, Files, RefreshCw } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 const API = '/api/boletas-secundaria'
+const CADA_MS = 3 * 60 * 1000
 
 type Alumno = { alumno_id: number; nombre: string }
 
@@ -34,6 +35,9 @@ export default function SecBoletas({ ciclo, trimestre }: { ciclo: number; trimes
   const [err, setErr] = useState('')
   const [revision, setRevision] = useState<MateriaRevisada[] | null>(null)
   const [revisando, setRevisando] = useState(false)
+  const [enFondo, setEnFondo] = useState(false)
+  const [leidoEn, setLeidoEn] = useState<Date | null>(null)
+  const ultimo = useRef(0)
 
   useEffect(() => {
     let vivo = true
@@ -58,19 +62,29 @@ export default function SecBoletas({ ciclo, trimestre }: { ciclo: number; trimes
   }, [ciclo, sel])
 
   const revisar = useCallback(
-    async (grado: number, grupo: string, vivo: () => boolean = () => true) => {
-      setRevisando(true)
-      setRevision(null)
+    async (grado: number, grupo: string, vivo: () => boolean = () => true, fondo = false) => {
+      ultimo.current = Date.now()
+      if (fondo) setEnFondo(true)
+      else {
+        setRevisando(true)
+        setRevision(null)
+      }
       try {
         const d = await kiApi<{ materias: MateriaRevisada[] }>(`${API}/alumnos`, {
           method: 'POST',
           body: JSON.stringify({ ciclo, trimestre, grado, grupo }),
         })
-        if (vivo()) setRevision(d.materias)
+        if (vivo()) {
+          setRevision(d.materias)
+          setLeidoEn(new Date())
+        }
       } catch (e) {
-        if (vivo()) setErr(e instanceof Error ? e.message : 'No se pudieron revisar las calificaciones.')
+        if (vivo() && !fondo) setErr(e instanceof Error ? e.message : 'No se pudieron revisar las calificaciones.')
       } finally {
-        if (vivo()) setRevisando(false)
+        if (vivo()) {
+          setRevisando(false)
+          setEnFondo(false)
+        }
       }
     },
     [ciclo, trimestre]
@@ -80,8 +94,17 @@ export default function SecBoletas({ ciclo, trimestre }: { ciclo: number; trimes
     if (!sel) return
     let vivo = true
     void revisar(sel.grado, sel.grupo, () => vivo)
+    const tick = () => {
+      if (document.visibilityState === 'visible' && Date.now() - ultimo.current >= CADA_MS) {
+        void revisar(sel.grado, sel.grupo, () => vivo, true)
+      }
+    }
+    const id = window.setInterval(tick, 30 * 1000)
+    document.addEventListener('visibilitychange', tick)
     return () => {
       vivo = false
+      window.clearInterval(id)
+      document.removeEventListener('visibilitychange', tick)
     }
   }, [sel, revisar])
 
@@ -147,11 +170,18 @@ export default function SecBoletas({ ciclo, trimestre }: { ciclo: number; trimes
               <p className="ki-hint">
                 {alumnos ? `${alumnos.length} alumnos` : 'Cargando alumnos…'} · boletas hasta el trimestre {trimestre}
               </p>
+              <p className="ki-hint">
+                {enFondo
+                  ? 'Actualizando de Classroom…'
+                  : leidoEn
+                    ? `Classroom leído a las ${leidoEn.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })} · se actualiza cada 3 min`
+                    : null}
+              </p>
             </div>
             <button
               type="button"
               className="ki-btn ghost"
-              disabled={revisando}
+              disabled={revisando || enFondo}
               onClick={() => sel && void revisar(sel.grado, sel.grupo)}
             >
               <RefreshCw size={16} aria-hidden /> {revisando ? 'Trayendo de Classroom…' : 'Volver a traer'}
