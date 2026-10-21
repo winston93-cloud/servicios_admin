@@ -188,7 +188,8 @@ export default function SecBoletas({ ciclo, trimestre }: { ciclo: number; trimes
                     <li key={m.id} title={m.aviso ?? undefined}>
                       <b>{m.nombre}</b>
                       <span>
-                        {m.conCalif} de {m.total} · {ORIGEN[m.classroom]}
+                        {m.conCalif} de {m.total} ·{' '}
+                        {m.classroom === 'leida' && m.conCalif === 0 ? 'aún sin calificar en Classroom' : ORIGEN[m.classroom]}
                       </span>
                     </li>
                   ))}
