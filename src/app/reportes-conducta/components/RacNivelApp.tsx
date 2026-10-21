@@ -2,7 +2,7 @@
 
 import ThemeToggle from '@/components/ThemeToggle'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
-import { RAC_TIPOS } from '@/lib/racCatalogo'
+import { RAC_TIPOS, rolPuedeSaltarAvisoRac } from '@/lib/racCatalogo'
 import type { RacNivelConfig } from '@/lib/rac/racNivelConfig'
 import type { RacRolNivel } from '@/lib/rac/racNivelConfig'
 import {
@@ -2006,7 +2006,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                       : 'Envía un informe sin afectar el número de reportes del alumno.'}
                 </p>
               ) : null}
-              {modo === 'reporte' && me?.role === 'psicologia' && tipo === RAC_TIPOS.conducta ? (
+              {modo === 'reporte' && rolPuedeSaltarAvisoRac(me?.role) && tipo === RAC_TIPOS.conducta ? (
                 <label className="rac-saltar-aviso">
                   <input type="checkbox" checked={saltarAviso} onChange={(e) => setSaltarAviso(e.target.checked)} />
                   <span>

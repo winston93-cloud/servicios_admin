@@ -84,11 +84,15 @@ export function etiquetaEscalon(tipo: number, no: number): string {
 }
 
 /**
- * Psicología (los 3 niveles) puede registrar una conducta directo como Reporte I cuando al alumno le toca aviso;
- * el aviso sigue disponible si no marca la opción.
+ * Psicología y maestros (los 3 niveles) pueden registrar una conducta directo como Reporte I cuando al alumno le
+ * toca aviso; el aviso sigue disponible si no marcan la opción.
  */
+export function rolPuedeSaltarAvisoRac(role: string | undefined): boolean {
+  return role === 'psicologia' || role === 'maestro'
+}
+
 export function puedeSaltarAvisoRac(role: string, tipo: number, pedido?: boolean): boolean {
-  return Boolean(pedido) && role === 'psicologia' && tipo === RAC_TIPOS.conducta
+  return Boolean(pedido) && rolPuedeSaltarAvisoRac(role) && tipo === RAC_TIPOS.conducta
 }
 
 /**

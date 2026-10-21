@@ -1149,6 +1149,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
         reporte_mdv: token,
       }
       if (materiaId) insert.materia_id = materiaId
+      if (puedeSaltarAvisoRac(opts.session.role, opts.tipo, opts.saltarAviso)) insert.reporte_saltar_aviso = 1
       const { data, error } = await client.from('reporte_escolar').insert(insert).select('reporte_id').maybeSingle()
       if (error && esChoqueEscalon(error) && intento < 2) continue
       if (error || !data) throw new Error(error?.message || 'No se pudo guardar el reporte')
@@ -1648,6 +1649,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
           .reduce((acc, x) => Math.max(acc, n(x.reporte_no)), 0)
       }
       noFinal = reporteNo === 3 ? 0 : reporteNo + pivot
+      if (noFinal === 0 && n(r.reporte_saltar_aviso) === 1) noFinal = 1
       const cicloFinal = reporteNo === 3 ? reporteCiclo + 1 : reporteCiclo
       const { data: upd, error: errUpd } = await client
         .from('reporte_escolar')

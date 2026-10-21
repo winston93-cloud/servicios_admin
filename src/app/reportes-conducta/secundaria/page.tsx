@@ -1,7 +1,7 @@
 'use client'
 
 import ThemeToggle from '@/components/ThemeToggle'
-import { etiquetaGradoStaffSecundaria, RAC_TIPOS } from '@/lib/racCatalogo'
+import { etiquetaGradoStaffSecundaria, RAC_TIPOS, rolPuedeSaltarAvisoRac } from '@/lib/racCatalogo'
 import { etiquetaTabConteo, opcionesMotivo, origenReporteRac } from '@/lib/racUi'
 import {
   etiquetaRol,
@@ -1815,7 +1815,7 @@ export default function RacSecundariaPage() {
                   : 'Envía un informe sin afectar el número de reportes del alumno.'}
               </p>
             ) : null}
-            {modo === 'reporte' && me?.role === 'psicologia' && tipo === RAC_TIPOS.conducta ? (
+            {modo === 'reporte' && rolPuedeSaltarAvisoRac(me?.role) && tipo === RAC_TIPOS.conducta ? (
               <label className="rac-saltar-aviso">
                 <input type="checkbox" checked={saltarAviso} onChange={(e) => setSaltarAviso(e.target.checked)} />
                 <span>
