@@ -185,6 +185,8 @@ export default function SecClase(props: Props) {
   const [comp, setComp] = useState<SecFilaComprension[] | null>(null)
   const [compEditable, setCompEditable] = useState(true)
   const [carga, setCarga] = useState(0)
+  /** Sube cada vez que llega la hoja; la tabla se rearma con los datos ya cargados, no antes. */
+  const [version, setVersion] = useState(0)
   const [cargando, setCargando] = useState(true)
   const [err, setErr] = useState('')
   const [msg, setMsg] = useState('')
@@ -207,6 +209,7 @@ export default function SecClase(props: Props) {
     kiApi<HojaResp & { filas: SecFilaComprension[] }>(`${url}?${qs(params)}`)
       .then((d) => {
         if (!vivo) return
+        setVersion((v) => v + 1)
         if (tab === 'calif') setHoja(d as HojaResp)
         else {
           setComp(d.filas)
@@ -441,7 +444,7 @@ export default function SecClase(props: Props) {
           ) : (
             <>
               <SecGrid
-                key={`c-${materiaId}-${grupo}-${trimestre}-${carga}`}
+                key={`c-${materiaId}-${grupo}-${trimestre}-${version}`}
                 filas={filasCalif}
                 columnas={columnas}
                 editable={hoja.editable}
@@ -543,7 +546,7 @@ export default function SecClase(props: Props) {
                 </div>
               )}
               <SecGrid
-                key={`r-${materiaId}-${grupo}-${mes}-${carga}`}
+                key={`r-${materiaId}-${grupo}-${mes}-${version}`}
                 filas={filasComp}
                 columnas={COLS_COMPRENSION}
                 editable={compEditable}
