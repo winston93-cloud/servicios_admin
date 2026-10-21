@@ -11,12 +11,21 @@ type AlumnoBusqueda = {
   alumno_apm: string | null
   alumno_nombre: string | null
   alumno_grado?: number | string | null
+  alumno_nivel?: number | string | null
 }
 
 type Props = {
   onClose: () => void
   onGuardado: (resultado: { envio?: { ok?: boolean; error?: string } }) => void
+  /** Secundaria: `/api/rac`; Primaria y Maternal/Kinder: `/api/rac-nivel/<slug>`. */
+  apiBase?: string
+  /** Estilos del panel: `rac` (Secundaria) o `racn` (Primaria, Maternal/Kinder). */
+  prefijo?: 'rac' | 'racn'
+  etiquetaGrado?: (a: AlumnoBusqueda) => string
 }
+
+const gradoSecundaria = (a: AlumnoBusqueda) =>
+  a.alumno_grado != null ? etiquetaGradoStaffSecundaria(Number(a.alumno_grado)) : ''
 
 function hoyLocal(): string {
   const d = new Date()
@@ -36,7 +45,15 @@ async function leerJson(res: Response): Promise<Record<string, unknown>> {
   }
 }
 
-export default function RacSuspensionDirectaModal({ onClose, onGuardado }: Props) {
+export default function RacSuspensionDirectaModal({
+  onClose,
+  onGuardado,
+  apiBase = '/api/rac',
+  prefijo = 'rac',
+  etiquetaGrado = gradoSecundaria,
+}: Props) {
+  const btn = prefijo === 'racn' ? 'racn-btn' : 'boletas-btn'
+  const filtros = prefijo === 'racn' ? 'racn-filters' : 'boletas-filters'
   const [q, setQ] = useState('')
   const [alumnos, setAlumnos] = useState<AlumnoBusqueda[]>([])
   const [buscando, setBuscando] = useState(false)
@@ -60,7 +77,7 @@ export default function RacSuspensionDirectaModal({ onClose, onGuardado }: Props
       void (async () => {
         setBuscando(true)
         try {
-          const res = await fetch(`/api/rac/coordinacion?vista=historial&q=${encodeURIComponent(term)}`, {
+          const res = await fetch(`${apiBase}/coordinacion?vista=historial&q=${encodeURIComponent(term)}`, {
             credentials: 'include',
           })
           const data = await leerJson(res)
@@ -75,7 +92,7 @@ export default function RacSuspensionDirectaModal({ onClose, onGuardado }: Props
       })()
     }, 280)
     return () => window.clearTimeout(t)
-  }, [q, alumno])
+  }, [q, alumno, apiBase])
 
   async function guardar() {
     setError('')
@@ -87,7 +104,7 @@ export default function RacSuspensionDirectaModal({ onClose, onGuardado }: Props
     if (!window.confirm(`¿Suspender a ${nombreDe(alumno)} ${texto}? Se enviará el aviso a la familia.`)) return
     setGuardando(true)
     try {
-      const res = await fetch('/api/rac/coordinacion', {
+      const res = await fetch(`${apiBase}/coordinacion`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -113,14 +130,14 @@ export default function RacSuspensionDirectaModal({ onClose, onGuardado }: Props
   }
 
   return (
-    <div className="rac-modal" role="dialog" aria-modal="true" aria-labelledby="rac-susp-directa-title">
-      <div className="rac-modal-card">
+    <div className={`${prefijo}-modal`} role="dialog" aria-modal="true" aria-labelledby="rac-susp-directa-title">
+      <div className={`${prefijo}-modal-card`}>
         <h3 id="rac-susp-directa-title">Suspensión directa por conducta</h3>
-        <p className="rac-mini">
+        <p className={`${prefijo}-mini`}>
           No suma al conteo de reportes de conducta. Al guardar se envía el aviso a la familia con el enlace
           para confirmar de enterado.
         </p>
-        <div className="boletas-filters">
+        <div className={filtros}>
           <label className="rac-autocomplete">
             Alumno
             <input
@@ -162,9 +179,7 @@ export default function RacSuspensionDirectaModal({ onClose, onGuardado }: Props
                         <strong>{nombreDe(a)}</strong>
                         <span>
                           Control {a.alumno_ref ?? '—'}
-                          {a.alumno_grado != null
-                            ? ` · ${etiquetaGradoStaffSecundaria(Number(a.alumno_grado))}`
-                            : ''}
+                          {etiquetaGrado(a) ? ` · ${etiquetaGrado(a)}` : ''}
                         </span>
                       </button>
                     </li>
@@ -200,7 +215,7 @@ export default function RacSuspensionDirectaModal({ onClose, onGuardado }: Props
             />
           </label>
         </div>
-        <label className="rac-msg">
+        <label className={`${prefijo}-msg`}>
           Descripción de la falta
           <textarea
             value={mensaje}
@@ -213,7 +228,7 @@ export default function RacSuspensionDirectaModal({ onClose, onGuardado }: Props
             placeholder="Describe lo ocurrido; la familia verá este texto."
           />
         </label>
-        <label className="rac-msg">
+        <label className={`${prefijo}-msg`}>
           Observaciones para la familia (opcional)
           <textarea
             value={observaciones}
@@ -227,15 +242,15 @@ export default function RacSuspensionDirectaModal({ onClose, onGuardado }: Props
           />
         </label>
         {error ? (
-          <p className="rac-mini" role="alert" style={{ color: 'var(--rac-danger, #b91c1c)' }}>
+          <p className={`${prefijo}-mini`} role="alert" style={{ color: 'var(--rac-danger, #b91c1c)' }}>
             {error}
           </p>
         ) : null}
-        <div className="rac-actions">
-          <button type="button" className="boletas-btn ghost" onClick={onClose} disabled={guardando}>
+        <div className={`${prefijo}-actions`}>
+          <button type="button" className={`${btn} ghost`} onClick={onClose} disabled={guardando}>
             Cancelar
           </button>
-          <button type="button" className="boletas-btn danger" disabled={guardando} onClick={() => void guardar()}>
+          <button type="button" className={`${btn} danger`} disabled={guardando} onClick={() => void guardar()}>
             <Send size={16} aria-hidden />
             {guardando ? 'Guardando…' : 'Suspender y avisar'}
           </button>

@@ -2,6 +2,7 @@
 
 import ThemeToggle from '@/components/ThemeToggle'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
+import { RAC_TIPOS } from '@/lib/racCatalogo'
 import type { RacNivelConfig } from '@/lib/rac/racNivelConfig'
 import type { RacRolNivel } from '@/lib/rac/racNivelConfig'
 import {
@@ -36,6 +37,7 @@ import '../reportes-conducta.css'
 import { limpiarSesionGoogleCliente } from '@/lib/racLogoutClient'
 import RacGoogleSignIn from './RacGoogleSignIn'
 import RacDetalleModal from './RacDetalleModal'
+import RacSuspensionDirectaModal from './RacSuspensionDirectaModal'
 import { fechaLargaEs, siguienteDiaHabil } from '../fechaSuspension'
 
 type Me = {
@@ -270,6 +272,8 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   const [tab, setTab] = useState<RacTabNivel>('captura')
   const [asigKey, setAsigKey] = useState('')
   const [tipo, setTipo] = useState(1)
+  const [saltarAviso, setSaltarAviso] = useState(false)
+  const [suspDirectaAbierta, setSuspDirectaAbierta] = useState(false)
   const [filas, setFilas] = useState<AlumnoFila[]>([])
   const [lista, setLista] = useState<Record<string, unknown>[]>([])
   const [q, setQ] = useState('')
@@ -629,6 +633,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
           tipo: modo === 'cita' ? tipoCita : tipo,
           motivo,
           mensaje,
+          saltarAviso: modo === 'reporte' && saltarAviso,
           fecha: fechaCita,
           hora: horaCita,
         }),
@@ -1227,6 +1232,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                               onClick={() => {
                                 setModal(a)
                                 setModo('reporte')
+                                setSaltarAviso(false)
                                 setMensaje('')
                                 setMotivo(opcionesMotivo(tipo)[0]?.valor ?? 1)
                               }}
@@ -1398,6 +1404,21 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                     <option value="1">Confirmadas</option>
                   </select>
                 </label>
+                {puedeSuspender ? (
+                  <>
+                    <button
+                      type="button"
+                      className="racn-btn danger"
+                      disabled={busy}
+                      onClick={() => setSuspDirectaAbierta(true)}
+                    >
+                      Nueva suspensión directa
+                    </button>
+                    <p className="racn-mini">
+                      Por conducta, sin esperar al Reporte III. No suma al conteo de reportes del alumno.
+                    </p>
+                  </>
+                ) : null}
               </div>
             ) : null}
             {tab === 'historial' ? (
@@ -1933,6 +1954,24 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
         ) : null}
 
         {detalleVista ? <RacDetalleModal row={detalleVista} onClose={() => setDetalleVista(null)} /> : null}
+        {suspDirectaAbierta ? (
+          <RacSuspensionDirectaModal
+            apiBase={config.apiBase}
+            prefijo="racn"
+            etiquetaGrado={(a) => (a.alumno_grado != null ? etiquetaGradoEscolar(a.alumno_nivel, a.alumno_grado) : '')}
+            onClose={() => setSuspDirectaAbierta(false)}
+            onGuardado={(r) => {
+              setSuspDirectaAbierta(false)
+              setMsg(
+                r.envio && r.envio.ok === false
+                  ? `Suspensión guardada, pero el correo a la familia no salió: ${r.envio.error || 'error de envío'}. Puedes reenviarlo con «Aplicar fecha».`
+                  : 'Suspensión guardada y aviso enviado a la familia.'
+              )
+              void cargarVista('suspensiones')
+              void cargarConteosTabs()
+            }}
+          />
+        ) : null}
         {edicionReporte ? (
           <RacDetalleModal
             row={edicionReporte}
@@ -1966,6 +2005,15 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                       ? 'Informe de desempeño (académico o conducta). Se envía directo a la familia sin afectar el número de reportes del alumno.'
                       : 'Envía un informe sin afectar el número de reportes del alumno.'}
                 </p>
+              ) : null}
+              {modo === 'reporte' && me?.role === 'psicologia' && tipo === RAC_TIPOS.conducta ? (
+                <label className="rac-saltar-aviso">
+                  <input type="checkbox" checked={saltarAviso} onChange={(e) => setSaltarAviso(e.target.checked)} />
+                  <span>
+                    Saltar el aviso y registrar como <b>Reporte I</b>
+                    <small>Solo cambia algo si al alumno le toca aviso; sin marcar, se envía el aviso de conducta como siempre.</small>
+                  </span>
+                </label>
               ) : null}
               <div className="racn-filters">
                 {modo === 'reporte' || (modo === 'informe' && me?.role === 'psicologia') ? (

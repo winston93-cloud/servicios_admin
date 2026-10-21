@@ -134,3 +134,27 @@ html[data-theme='light'] .rac-suggest {
   color: var(--muted, #94a3b8);
   max-width: 52ch;
 }
+
+/* Psicología: saltar el aviso de conducta y registrar como Reporte I */
+.rac-saltar-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  margin: 0 0 12px;
+  cursor: pointer;
+}
+
+.rac-saltar-aviso input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.rac-saltar-aviso small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: var(--muted, #94a3b8);
+}

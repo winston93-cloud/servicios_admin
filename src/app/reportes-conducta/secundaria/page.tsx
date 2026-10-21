@@ -1,7 +1,7 @@
 'use client'
 
 import ThemeToggle from '@/components/ThemeToggle'
-import { etiquetaGradoStaffSecundaria } from '@/lib/racCatalogo'
+import { etiquetaGradoStaffSecundaria, RAC_TIPOS } from '@/lib/racCatalogo'
 import { etiquetaTabConteo, opcionesMotivo, origenReporteRac } from '@/lib/racUi'
 import {
   etiquetaRol,
@@ -206,6 +206,7 @@ export default function RacSecundariaPage() {
   const [tab, setTab] = useState<Tab>('captura')
   const [asigKey, setAsigKey] = useState('')
   const [tipo, setTipo] = useState(1)
+  const [saltarAviso, setSaltarAviso] = useState(false)
   const [filas, setFilas] = useState<AlumnoFila[]>([])
   const [lista, setLista] = useState<Record<string, unknown>[]>([])
   const [q, setQ] = useState('')
@@ -628,6 +629,7 @@ export default function RacSecundariaPage() {
           tipo: modo === 'cita' ? tipoCita : tipo,
           motivo,
           mensaje,
+          saltarAviso: modo === 'reporte' && saltarAviso,
           fecha: fechaCita,
           hora: horaCita,
         }),
@@ -1125,6 +1127,7 @@ export default function RacSecundariaPage() {
                         onClick={() => {
                           setModal(a)
                           setModo('reporte')
+                          setSaltarAviso(false)
                           setMensaje('')
                           setMotivo(opcionesMotivo(tipo)[0]?.valor ?? 1)
                         }}
@@ -1811,6 +1814,15 @@ export default function RacSecundariaPage() {
                   ? 'Elige el Motivo que verá la familia. El detalle de la situación va en Observaciones. No afecta el escalón de reportes.'
                   : 'Envía un informe sin afectar el número de reportes del alumno.'}
               </p>
+            ) : null}
+            {modo === 'reporte' && me?.role === 'psicologia' && tipo === RAC_TIPOS.conducta ? (
+              <label className="rac-saltar-aviso">
+                <input type="checkbox" checked={saltarAviso} onChange={(e) => setSaltarAviso(e.target.checked)} />
+                <span>
+                  Saltar el aviso y registrar como <b>Reporte I</b>
+                  <small>Solo cambia algo si al alumno le toca aviso; sin marcar, se envía el aviso de conducta como siempre.</small>
+                </span>
+              </label>
             ) : null}
             <div className="boletas-filters">
               {modo === 'reporte' || (modo === 'informe' && me?.role === 'psicologia') ? (

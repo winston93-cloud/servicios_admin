@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { cfgDesdeRequestSlug, jsonRacNivelError, requireRacNivelSession } from '@/lib/rac/racAuthNivel'
 import {
   puedeAccionCoordNivel,
+  puedeSuspenderNivel,
   puedeVerVistaCoordNivel,
   suspensionSoloConductaNivel,
 } from '@/lib/rac/racPermisosNivel'
@@ -63,6 +64,8 @@ export async function POST(req: Request, { params }: Params) {
       mensaje?: string
       dias?: number
       observaciones?: string
+      alumnoId?: number
+      motivo?: number
     }
     const entidad = body.entidad === 'cita' ? 'cita' : body.entidad === 'suspension' ? 'suspension' : 'reporte'
     const accion = String(body.accion ?? '')
@@ -76,6 +79,22 @@ export async function POST(req: Request, { params }: Params) {
           fecha: body.fecha,
           hora: body.hora,
           mensaje: body.mensaje,
+        })
+      )
+    }
+    if (body.entidad === 'suspension' && accion === 'directa') {
+      if (!puedeSuspenderNivel(session.role, cfg)) {
+        return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+      }
+      return NextResponse.json(
+        await svc.aplicarSuspensionDirecta({
+          session,
+          alumnoId: Number(body.alumnoId),
+          motivo: Number(body.motivo),
+          mensaje: String(body.mensaje ?? ''),
+          fecha: String(body.fecha ?? ''),
+          dias: body.dias,
+          observaciones: body.observaciones,
         })
       )
     }

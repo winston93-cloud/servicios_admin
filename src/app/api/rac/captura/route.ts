@@ -56,6 +56,7 @@ export async function POST(req: Request) {
       mensaje?: string
       fecha?: string
       hora?: string
+      saltarAviso?: boolean
     }
     const accion = body.accion ?? 'reporte'
     if (accion === 'informe') {
@@ -87,6 +88,7 @@ export async function POST(req: Request) {
       tipo: Number(body.tipo ?? 1),
       motivo: Number(body.motivo ?? 1),
       mensaje: String(body.mensaje ?? ''),
+      saltarAviso: body.saltarAviso === true,
     })
     return NextResponse.json({ ok: true, ...data })
   } catch (e) {

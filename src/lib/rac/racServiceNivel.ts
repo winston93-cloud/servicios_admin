@@ -19,6 +19,7 @@ import {
   fraseRegistroAvisoRac,
   maxReporteNoEscalon,
   motivoReporte,
+  puedeSaltarAvisoRac,
 } from '@/lib/racCatalogo'
 import {
   asuntoReporte,
@@ -1019,6 +1020,24 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     if (!to.length) return { ok: false, error: 'La familia no tiene correo registrado' }
     const enlace = urlPublicaRac(String(r?.reporte_mdv ?? ''), 5)
     const tipo = n(r?.reporte_tipo ?? 2)
+    if (tipo === RAC_TIPOS.suspensionDirecta) {
+      const subject = 'Aviso de suspensión'
+      const html = htmlCorreoRac({
+        titulo: subject,
+        enlace,
+        cuerpoHtml: `<p>Estimada familia:</p>
+      <p>El alumno <b>${escapeHtml(nombreAlumno(alumno))}</b> queda suspendido
+      <b>${escapeHtml(textoDiasSuspension(s))}</b> por motivo de conducta
+      (<b>${escapeHtml(motivoReporte(RAC_TIPOS.suspensionDirecta, n(r?.reporte_motivo)))}</b>):</p>
+      <p>${escapeHtml(String(r?.reporte_mensaje ?? ''))}</p>
+      ${htmlObservacionesSuspension(s, escapeHtml)}`,
+      })
+      const envio = await enviarAvisoRac({ to, subject, html, panel: cfg.slug })
+      if (envio.ok) {
+        await client.from('reporte_suspension').update({ suspension_enviada: 1 }).eq('suspension_id', suspensionId)
+      }
+      return envio
+    }
     let seccionEtiqueta = ''
     if (tipo === RAC_TIPOS.academico && r?.materia_id) {
       const { data: materia } = await client
@@ -1057,6 +1076,8 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     tipo: number
     motivo: number
     mensaje: string
+    /** Psicología, conducta: si toca aviso, registrar directo como Reporte I. */
+    saltarAviso?: boolean
   }) {
     const { fisica } = await listarAsignaciones(opts.session)
     if (!puedeCapturarTipoNivel(opts.session.role, opts.tipo, fisica, cfg)) {
@@ -1101,6 +1122,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
         reporteCiclo += 1
         reporteNo = opts.tipo > 2 ? 1 : 0
       }
+      if (reporteNo === 0 && puedeSaltarAvisoRac(opts.session.role, opts.tipo, opts.saltarAviso)) reporteNo = 1
       return { reporteCiclo, reporteNo }
     }
 
@@ -1448,7 +1470,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
       .in('alumno_id', alumnoIds.length ? alumnoIds : [0])
     const { data: reps } = await db()
       .from('reporte_escolar')
-      .select('reporte_id, reporte_tipo, materia_id')
+      .select('reporte_id, reporte_tipo, materia_id, reporte_motivo, reporte_mensaje, reporte_status')
       .in('reporte_id', reporteIds.length ? reporteIds : [0])
     const materiaIds = [
       ...new Set((reps ?? []).map((r) => n(r.materia_id)).filter((id) => id > 0)),
@@ -1468,14 +1490,17 @@ export function createRacNivelService(cfg: RacNivelConfig) {
         if (a && !esAlumnoDeNivel(n(a.alumno_nivel))) return null
         const r = rMap.get(n(s.reporte_id))
         const tipo = n(r?.reporte_tipo ?? 0)
+        const directa = tipo === RAC_TIPOS.suspensionDirecta
+        if (directa && n(r?.reporte_status) !== 1) return null
         if (soloConducta && !RAC_TIPOS_SUSPENSION_CONDUCTA.includes(tipo)) return null
         const materiaId = n(r?.materia_id)
         const materia = materiaId ? mMap.get(materiaId) ?? null : null
         const { seccion, seccionEtiqueta } =
           tipo === RAC_TIPOS.academico ? seccionAcademicaDeMateria(materia) : { seccion: null, seccionEtiqueta: '' }
         const tipoBase = etiquetaTipoCitatorio(tipo)
-        const tipoEtiqueta =
-          tipo === RAC_TIPOS.academico && seccionEtiqueta
+        const tipoEtiqueta = directa
+          ? 'Suspensión directa por conducta'
+          : tipo === RAC_TIPOS.academico && seccionEtiqueta
             ? `${tipoBase} · ${seccionEtiqueta}`
             : tipoBase
         return {
@@ -1490,8 +1515,10 @@ export function createRacNivelService(cfg: RacNivelConfig) {
           materia_id: materiaId || null,
           seccion,
           seccionEtiqueta,
-          mensaje:
-            tipo === RAC_TIPOS.academico && seccionEtiqueta
+          directa,
+          mensaje: directa
+            ? `${motivoReporte(RAC_TIPOS.suspensionDirecta, n(r?.reporte_motivo))} · ${String(r?.reporte_mensaje ?? '')}`
+            : tipo === RAC_TIPOS.academico && seccionEtiqueta
               ? `Límite académico en ${seccionEtiqueta} (1 aviso + 3 reportes). La directora aplica la fecha de esta sección.`
               : '',
           fecha: s.suspension_fecha ? String(s.suspension_fecha).slice(0, 10) : '',
@@ -1752,6 +1779,67 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     return enviarCorreoSuspension(id)
   }
 
+  /** Dirección / coordinación / psicología: suspensión por conducta sin pasar por el escalón. */
+  async function aplicarSuspensionDirecta(opts: {
+    session: RacSesionNivel
+    alumnoId: number
+    motivo: number
+    mensaje: string
+    fecha: string
+    dias: unknown
+    observaciones?: unknown
+  }) {
+    const mensaje = opts.mensaje.trim()
+    if (!mensaje) throw new Error('Describe el motivo de la suspensión.')
+    if (mensaje.length > 5000) throw new Error('El mensaje es demasiado largo.')
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(opts.fecha)) throw new Error('Fecha de suspensión no válida.')
+    const dias = validarDiasSuspension(opts.dias)
+    const observaciones = validarObservacionesSuspension(opts.observaciones)
+    const motivo = [1, 2, 3].includes(opts.motivo) ? opts.motivo : 1
+    await cargarAlumno(opts.alumnoId)
+    const ciclo = await cicloRac()
+    const client = db()
+
+    const { data: rep, error: errRep } = await client
+      .from('reporte_escolar')
+      .insert({
+        alumno_id: opts.alumnoId,
+        perfil_id: opts.session.perfil,
+        usuario_id: opts.session.id,
+        reporte_tipo: RAC_TIPOS.suspensionDirecta,
+        reporte_motivo: motivo,
+        reporte_no: 0,
+        reporte_mensaje: mensaje,
+        reporte_status: 1,
+        reporte_ciclo: 0,
+        reporte_ciclo_escolar: ciclo,
+        reporte_mdv: mdv('sus'),
+      })
+      .select('reporte_id')
+      .maybeSingle()
+    if (errRep || !rep) throw new Error(errRep?.message || 'No se pudo guardar la suspensión')
+    const reporteId = n(rep.reporte_id)
+
+    const { data: susp, error: errSusp } = await client
+      .from('reporte_suspension')
+      .insert({
+        alumno_id: opts.alumnoId,
+        reporte_id: reporteId,
+        suspension_ciclo_escolar: ciclo,
+        suspension_fecha: opts.fecha,
+        suspension_dias: dias,
+        suspension_observaciones: observaciones,
+      })
+      .select('suspension_id')
+      .maybeSingle()
+    if (errSusp || !susp) {
+      await client.from('reporte_escolar').update({ reporte_status: 0 }).eq('reporte_id', reporteId)
+      throw new Error(errSusp?.message || 'No se pudo guardar la suspensión')
+    }
+    const envio = await enviarCorreoSuspension(n(susp.suspension_id))
+    return { suspensionId: n(susp.suspension_id), envio }
+  }
+
   async function materiaIdsPermitidasHistorialMaestro(
     session: RacSesionNivel
   ): Promise<number[] | null> {
@@ -2006,6 +2094,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     accionReporte,
     accionCita,
     aplicarSuspension,
+    aplicarSuspensionDirecta,
     editarReportePendiente,
     historialAlumno,
     historialDetalleAlumno,

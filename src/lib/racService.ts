@@ -27,6 +27,7 @@ import {
   etiquetaTipoReporte,
   fraseRegistroAvisoRac,
   motivoReporte,
+  puedeSaltarAvisoRac,
 } from '@/lib/racCatalogo'
 import {
   asuntoReporte,
@@ -717,6 +718,8 @@ export async function capturarReporte(opts: {
   tipo: number
   motivo: number
   mensaje: string
+  /** Psicología, conducta: si toca aviso, registrar directo como Reporte I. */
+  saltarAviso?: boolean
 }) {
   const { fisica, asignaciones } = await listarAsignaciones(opts.session)
   if (!puedeCapturarTipo(opts.session.role, opts.tipo, fisica)) {
@@ -757,6 +760,7 @@ export async function capturarReporte(opts: {
       reporteCiclo += 1
       reporteNo = opts.tipo > 2 ? 1 : 0
     }
+    if (reporteNo === 0 && puedeSaltarAvisoRac(opts.session.role, opts.tipo, opts.saltarAviso)) reporteNo = 1
     return { reporteCiclo, reporteNo }
   }
 

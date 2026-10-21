@@ -183,7 +183,7 @@ export function puedeAccionCoordNivel(role: RacRolNivel, entidad: string, accion
     }
     if (entidad === 'cita') return accion === 'reenviar' || accion === 'confirmar'
     // Solo suspensiones de conducta: el servicio rechaza las demás.
-    if (entidad === 'suspension') return accion === 'aplicar'
+    if (entidad === 'suspension') return accion === 'aplicar' || accion === 'directa'
     return false
   }
   if (entidad === 'suspension') return true
