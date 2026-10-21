@@ -60,6 +60,8 @@ type Props = {
   materia: string
   grupo: string
   etiqueta: string
+  /** Maestros asignados a esta materia y grupo. */
+  maestros?: string[]
   comprension: boolean
   trimestre: number
   onTrimestre: (t: number) => void
@@ -351,6 +353,13 @@ export default function SecClase(props: Props) {
             {modo === 'direccion' ? 'Revisión de dirección' : 'Captura'}
             {hoja ? ` · Ciclo ${hoja.ciclo.etiqueta}` : ''}
           </p>
+          {props.maestros && (
+            <p className="sc-maestros">
+              {props.maestros.length
+                ? `${props.maestros.length === 1 ? 'Maestro' : 'Maestros'}: ${props.maestros.join(', ')}`
+                : 'Sin maestro asignado'}
+            </p>
+          )}
         </div>
         {hermanas.length > 1 && (
           <div className="sc-hermanas" role="tablist" aria-label="Cambiar de grupo en esta materia">

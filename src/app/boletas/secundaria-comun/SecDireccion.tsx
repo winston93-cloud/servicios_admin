@@ -257,6 +257,7 @@ function Revisar({
           materia={actual.materia}
           grupo={actual.grupo}
           etiqueta={actual.etiqueta}
+          maestros={actual.maestros}
           comprension={actual.comprension}
           trimestre={trimestre}
           onTrimestre={setTrimestre}

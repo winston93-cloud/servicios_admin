@@ -67,6 +67,14 @@ html:not([data-theme='light']) .sc-g-C {
   color: var(--ki-mute);
 }
 
+.sc-maestros {
+  margin: 0.2rem 0 0;
+  font-size: var(--ki-step-small);
+  font-weight: 700;
+  color: var(--ki-ink);
+  overflow-wrap: anywhere;
+}
+
 .sc-materia {
   overflow-wrap: anywhere;
 }

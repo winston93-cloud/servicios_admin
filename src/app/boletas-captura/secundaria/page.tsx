@@ -228,6 +228,7 @@ export default function PortalSecundariaPage() {
               materia={actual.materia}
               grupo={actual.grupo}
               etiqueta={actual.etiqueta}
+              maestros={actual.maestros}
               comprension={actual.comprension}
               trimestre={trimestre ?? 1}
               onTrimestre={setTrimestre}
