@@ -63,7 +63,7 @@ const REGLA_PIEZA: Record<string, string> = {
   deploys: 'Publicaciones de 7 días: porcentaje que terminaron bien. Si la última falló, vale 0.',
   kommo: 'Porcentaje de registros de los últimos 7 días que llegaron a Kommo como prospecto.',
   'recordatorios-oh': 'Vale 100 si ningún recordatorio lleva más de 2 h atrasado; 0 si hay atrasados.',
-  indices: 'Tablas de 10 000 registros o más: porcentaje de veces que se leen completas en vez de usar su índice (contado desde que se arregló cada tabla). Hasta 10% no resta; cada punto arriba resta 1.',
+  indices: 'Tablas de 10 000 registros o más: porcentaje de veces que se leen completas en vez de usar su índice (contado desde que se arregló cada tabla). Hasta 10% no resta; cada punto arriba resta 1. No se califica hasta juntar 50 lecturas desde su último arreglo (con menos, un solo escaneo daría 100%).',
   limpieza: 'Registros muertos (borrados o editados sin purgar) contra los vivos: hasta 20% no resta; cada punto arriba resta 2.',
   'u-uso:hoy': 'Informativo: muestra la actividad del día, siempre vale 100.',
   'u-uso:semana': 'Informativo: muestra la actividad de la semana, siempre vale 100.',

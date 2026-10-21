@@ -145,6 +145,8 @@ const SISTEMAS: { id: string; nombre: string; mide: string; app?: string; tablas
 
 /** Debajo de esto leer la tabla completa es rápido y no se califica el uso de índices. */
 const TABLA_GRANDE = 10_000
+/** Con menos lecturas (desde su último arreglo) el porcentaje no dice nada: un solo escaneo daría 100%. */
+const LECTURAS_MINIMAS = 50
 
 const VERCEL_PROYECTO = 'servicios-admin'
 const VERCEL_EQUIPO = 'mario-alejandro-galvan-escobedos-projects'
@@ -563,10 +565,24 @@ function tablasDe(m: Metricas | null, rx: RegExp): Tabla[] {
 /** Tablas grandes que se leen completas en vez de por índice: tornillo flojo que vuelve lento al sistema. */
 function piezaIndices(m: Metricas | null, tablas: Tabla[]): PiezaMedida {
   if (!m?.tablas) return pieza({ id: 'indices', nombre: 'Índices', valor: null, lectura: 'sin lectura' })
-  const grandes = tablas
-    .filter((t) => t.vivos >= TABLA_GRANDE)
+  const grandesTodas = tablas.filter((t) => t.vivos >= TABLA_GRANDE)
+  const grandes = grandesTodas
+    .filter((t) => t.completas + t.indice >= LECTURAS_MINIMAS)
     .map((t) => ({ ...t, pct: Math.round((t.completas / Math.max(1, t.completas + t.indice)) * 100) }))
     .sort((a, b) => b.pct - a.pct)
+  if (!grandes.length && grandesTodas.length) {
+    return pieza({
+      id: 'indices',
+      nombre: 'Índices',
+      valor: 100,
+      lectura: `pocas lecturas todavía para calificar (menos de ${LECTURAS_MINIMAS})`,
+      diag: diag(
+        linea(`Operando: ${grandesTodas.length} ${grandesTodas.length === 1 ? 'tabla grande' : 'tablas grandes'} con poco uso`, 'normal'),
+        linea(`Se califica al juntar ${LECTURAS_MINIMAS} lecturas desde su último arreglo`, 'normal'),
+        noAplica('No aplica: mide rendimiento, no errores'),
+      ),
+    })
+  }
   if (!grandes.length) {
     return pieza({
       id: 'indices',
