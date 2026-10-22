@@ -72,6 +72,41 @@ export function urlSsiwEntregaLogin(): string {
   return `${urlSsiwApp()}/entrega/login`
 }
 
+/** Kiosk / admin de registro QR (qr-entrada). */
+export function urlQrEntradaApp(): string {
+  const explicit = process.env.NEXT_PUBLIC_QR_ENTRADA_URL?.trim()
+  if (explicit) return explicit.replace(/\/$/, '')
+  return 'https://winston-registro.vercel.app'
+}
+
+export function urlLoginQrEntrada(): string {
+  return `${urlQrEntradaApp()}/login`
+}
+
+/**
+ * Dirección y sistemas/DG que ven la tarjeta y entran al admin con SSO.
+ * 7 coordprim, 8 coordkin, 10 coording, 13 josefina/secundaria, 54 kinder inglés;
+ * 2 laura, 6 kevin, 17 mario, 59 santiago (DG).
+ */
+export const QR_ENTRADA_SSO_USUARIOS = [2, 6, 7, 8, 10, 13, 17, 54, 59] as const
+
+const NIVEL_SSO_QR_ENTRADA: Record<number, '' | 'educativo' | '3' | '4'> = {
+  8: 'educativo',
+  54: 'educativo',
+  7: '3',
+  10: '3',
+  13: '4',
+}
+
+export function puedeSsoQrEntrada(usuarioId: number | null | undefined): boolean {
+  const uid = Number(usuarioId) || 0
+  return uid > 0 && (QR_ENTRADA_SSO_USUARIOS as readonly number[]).includes(uid)
+}
+
+export function nivelSsoQrEntrada(usuarioId: number): '' | 'educativo' | '3' | '4' {
+  return NIVEL_SSO_QR_ENTRADA[usuarioId] ?? ''
+}
+
 /** Programa USA / Winston–Hökku Academy (usa-program en Vercel). */
 export function urlUsaProgramApp(): string {
   const explicit = process.env.NEXT_PUBLIC_USA_PROGRAM_URL?.trim()

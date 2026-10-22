@@ -327,6 +327,34 @@ function DashboardPageInner() {
       setIsMenuOpen(false)
       return
     }
+    if (item.id === 'registro-entrada-salida') {
+      setIsMenuOpen(false)
+      const login = item.href ? `${item.href.replace(/\/$/, '')}/login` : ''
+      const tab = window.open('about:blank', '_blank')
+      if (tab) tab.opener = null
+      void (async () => {
+        const abrir = (url: string) => {
+          if (tab) tab.location.replace(url)
+          else window.open(url, '_blank', 'noopener,noreferrer')
+        }
+        try {
+          const res = await fetch('/api/qr-entrada/sso', {
+            method: 'POST',
+            credentials: 'same-origin',
+          })
+          const data = (await res.json().catch(() => ({}))) as {
+            ok?: boolean
+            url?: string
+            fallback?: string
+          }
+          abrir(data.ok && data.url ? data.url : data.fallback || login)
+        } catch {
+          if (login) abrir(login)
+          else if (tab) tab.close()
+        }
+      })()
+      return
+    }
     abrirNavItem(item, router.push, {
       usuario: user?.usuario_username ?? session?.usuario_username ?? null,
     })

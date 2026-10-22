@@ -50,6 +50,11 @@ export const DASHBOARD_MODULE_PREVIEWS: Record<string, DashboardModulePreview> =
       'Panel de Winston–Hökku Academy: captura inscritos, sincroniza las tres parcialidades en USD, envía cartas de bienvenida y cierra el expediente en Drive.',
     highlights: ['Pagos USD $100 / $125 / $125', 'Cartas y alertas', 'Archivo documental'],
   },
+  'Registro de entrada/salida': {
+    synopsis:
+      'Panel de dirección: autorizaciones de entrada tarde del día y registro QR de alumnos, sin volver a iniciar sesión.',
+    highlights: ['Autorizaciones', 'Entrada y salida', 'Acceso directo'],
+  },
   'Agenda psicólogas': {
     synopsis:
       'Calendario del área de psicología: agenda citas, organiza horarios y da visibilidad al seguimiento socioemocional de la comunidad.',
