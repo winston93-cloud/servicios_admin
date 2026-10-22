@@ -327,7 +327,7 @@ function DashboardPageInner() {
       setIsMenuOpen(false)
       return
     }
-    if (item.id === 'registro-entrada-salida') {
+    if (item.id === 'registro-entrada-salida-direcciones') {
       setIsMenuOpen(false)
       const login = item.href ? `${item.href.replace(/\/$/, '')}/login` : ''
       const tab = window.open('about:blank', '_blank')

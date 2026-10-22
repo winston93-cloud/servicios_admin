@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import type { DashboardModuleAccent } from '@/components/dashboard/DashboardModuleCard'
 import { urlProrrogasAjustesApp } from '@/lib/prorrogasAjustesConfig'
 import { urlCchicApp } from '@/lib/cchicConfig'
-import { urlChequesApp, urlContratosApp, urlQrEntradaApp, urlSsiwEntregaLogin, urlUsaProgramApp, QR_ENTRADA_SSO_USUARIOS } from '@/lib/dashboardModulosConfig'
+import { urlChequesApp, urlContratosApp, urlLoginQrEntrada, urlQrEntradaApp, urlSsiwEntregaLogin, urlUsaProgramApp, QR_ENTRADA_SSO_USUARIOS } from '@/lib/dashboardModulosConfig'
 import { ACCESOS_USUARIOS_PERMITIDOS } from '@/lib/accesos/accesosTypes'
 import { BENEFICIOS_EXTERNOS_USUARIOS, urlRevisionBecaSep } from '@/lib/beneficiosExternos/config'
 
@@ -45,6 +45,17 @@ const ICON_DESAYUNOS = (
     <path d="M8 3.5v2" />
     <path d="M12 2.5v2.5" />
     <path d="M16 3.5v2" />
+  </svg>
+)
+
+const ICON_QR_REGISTRO = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <path d="M14 14h3v3h-3z" />
+    <path d="M21 14v7h-4" />
+    <path d="M14 21h.01" />
   </svg>
 )
 
@@ -536,24 +547,28 @@ export const NAV_ITEMS_ADMIN: DashboardAdminNavItem[] = [
   {
     id: 'registro-entrada-salida',
     label: 'Registro de entrada/salida',
+    desc: 'Registro del acceso de entradas y salidas de los alumnos mediante código QR.',
+    href: urlLoginQrEntrada(),
+    accent: 'emerald',
+    kicker: 'Alumnos',
+    tags: ['Código QR', 'Entradas', 'Salidas'],
+    badge: 'Nuevo',
+    // Kevin y Mario: esta card abre el login normal del kiosk.
+    fijoParaUsuarios: [6, 17],
+    icon: ICON_QR_REGISTRO,
+  },
+  {
+    id: 'registro-entrada-salida-direcciones',
+    label: 'Registro de entrada/salida (direcciones)',
     desc: 'Autorizaciones de entrada tarde y consulta del registro QR de alumnos.',
     href: urlQrEntradaApp(),
     accent: 'emerald',
     kicker: 'Dirección',
     tags: ['Autorizaciones', 'Entrada', 'Salida'],
     badge: 'Nuevo',
-    // Solo direcciones + sistemas/DG. La tarjeta abre el admin con SSO (sin login extra).
+    // Direcciones + sistemas/DG. Entra al admin con SSO (sin login extra).
     fijoParaUsuarios: QR_ENTRADA_SSO_USUARIOS,
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" />
-        <path d="M14 14h3v3h-3z" />
-        <path d="M21 14v7h-4" />
-        <path d="M14 21h.01" />
-      </svg>
-    ),
+    icon: ICON_QR_REGISTRO,
   },
   {
     id: 'team-english',

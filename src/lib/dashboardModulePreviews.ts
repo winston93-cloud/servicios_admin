@@ -52,6 +52,11 @@ export const DASHBOARD_MODULE_PREVIEWS: Record<string, DashboardModulePreview> =
   },
   'Registro de entrada/salida': {
     synopsis:
+      'Kiosk de acceso QR: entra con el login del sistema de registro de entradas y salidas de alumnos.',
+    highlights: ['Código QR', 'Entradas y salidas', 'Login del kiosk'],
+  },
+  'Registro de entrada/salida (direcciones)': {
+    synopsis:
       'Panel de dirección: autorizaciones de entrada tarde del día y registro QR de alumnos, sin volver a iniciar sesión.',
     highlights: ['Autorizaciones', 'Entrada y salida', 'Acceso directo'],
   },
