@@ -521,6 +521,12 @@ function DashboardPageInner() {
     return items
   }, [becaFirmaAutorizada, session])
 
+  const modulosNuevos = navItemsAdmin.filter((i) => i.badge === 'Nuevo').length
+  const fechaHoy = (() => {
+    const f = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
+    return f.charAt(0).toUpperCase() + f.slice(1)
+  })()
+
   const avisoTalleresActivo =
     mostrarPanelAdmin && navItemsAdmin.some((i) => i.id === 'talleres-clases-especiales')
 
@@ -579,6 +585,7 @@ function DashboardPageInner() {
               className="dashboard-header-logo dashboard-header-logo--educativo"
               priority
             />
+            <span className="dashboard-header-nombre">Servicios Administrativos</span>
           </div>
 
           <div className="dashboard-user-info">
@@ -642,6 +649,19 @@ function DashboardPageInner() {
                 <p className="dashboard-greeting">
                   {saludo}, <span className="dashboard-greeting-name">{primerNombre}</span>
                 </p>
+                {tema !== 'original' && navItemsAdmin.length ? (
+                  <p className="dash-tema-dato">
+                    {fechaHoy} · {navItemsAdmin.length} sistemas
+                    {modulosNuevos ? (
+                      <>
+                        {' · '}
+                        <span className="dash-tema-dato-nuevos">
+                          {modulosNuevos} {modulosNuevos === 1 ? 'nuevo' : 'nuevos'}
+                        </span>
+                      </>
+                    ) : null}
+                  </p>
+                ) : null}
                 <h1 className="dashboard-title">Servicios Administrativos</h1>
                 <p className="dashboard-subtitle">{subtituloDashboard}</p>
                 {previewPadres ? (

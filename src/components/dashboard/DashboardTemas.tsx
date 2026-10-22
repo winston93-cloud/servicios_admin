@@ -8,11 +8,11 @@ export type DashTema = 'original' | 'institucional' | 'campus' | 'ejecutivo' | '
 /** «original» es el diseño de siempre; Institucional y Campus usan los colores y la tipografía de la marca. */
 export const DASH_TEMAS: { id: DashTema; nombre: string; sub: string }[] = [
   { id: 'original', nombre: 'Original', sub: 'El diseño de siempre' },
-  { id: 'institucional', nombre: 'Institucional', sub: 'Azules Winston con tipografía Poppins' },
-  { id: 'campus', nombre: 'Campus', sub: 'Banda azul rey con naranja y lima de la marca' },
-  { id: 'ejecutivo', nombre: 'Ejecutivo', sub: 'Grafito y blanco, minimalista' },
-  { id: 'editorial', nombre: 'Editorial', sub: 'Papel cálido y títulos serif, como un informe' },
-  { id: 'pizarra', nombre: 'Pizarra', sub: 'Gris azulado con acento verde azulado' },
+  { id: 'institucional', nombre: 'Institucional', sub: 'Hoja blanca sobre marco azul Winston, Poppins' },
+  { id: 'campus', nombre: 'Campus', sub: 'Azul rey de la marca en tintes, lima en lo nuevo' },
+  { id: 'ejecutivo', nombre: 'Ejecutivo', sub: 'Tinta sobre gris, sin color, como un libro mayor' },
+  { id: 'editorial', nombre: 'Editorial', sub: 'Saludo en serif y paneles tonales' },
+  { id: 'pizarra', nombre: 'Contraste', sub: 'Planos por luz, sin bordes, cian Winston' },
 ]
 
 const CLAVE = 'servicios-admin-dashboard-tema'
