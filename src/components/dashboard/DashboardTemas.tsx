@@ -3,16 +3,16 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react'
 import { Check, Palette } from 'lucide-react'
 
-export type DashTema = 'original' | 'institucional' | 'campus' | 'ejecutivo' | 'editorial' | 'pizarra'
+export type DashTema = 'original' | 'institucional' | 'campus' | 'bauhaus' | 'revista' | 'aurora'
 
-/** «original» es el diseño de siempre; Institucional y Campus usan los colores y la tipografía de la marca. */
+/** «original» es el diseño de siempre; Institucional y Campus son de la marca (Poppins y sus colores). */
 export const DASH_TEMAS: { id: DashTema; nombre: string; sub: string }[] = [
   { id: 'original', nombre: 'Original', sub: 'El diseño de siempre' },
-  { id: 'institucional', nombre: 'Institucional', sub: 'Hoja blanca sobre marco azul Winston, Poppins' },
-  { id: 'campus', nombre: 'Campus', sub: 'Azul rey de la marca en tintes, lima en lo nuevo' },
-  { id: 'ejecutivo', nombre: 'Ejecutivo', sub: 'Tinta sobre gris, sin color, como un libro mayor' },
-  { id: 'editorial', nombre: 'Editorial', sub: 'Saludo en serif y paneles tonales' },
-  { id: 'pizarra', nombre: 'Contraste', sub: 'Planos por luz, sin bordes, cian Winston' },
+  { id: 'institucional', nombre: 'Institucional', sub: 'Las barras inclinadas de la marca sobre corte azul' },
+  { id: 'campus', nombre: 'Campus', sub: 'Azul rey con bloques naranja, lima y gris' },
+  { id: 'bauhaus', nombre: 'Bauhaus', sub: 'Círculos, cuadros y colores primarios' },
+  { id: 'revista', nombre: 'Revista', sub: 'Portada editorial con número gigante' },
+  { id: 'aurora', nombre: 'Aurora', sub: 'Luces de colores y tarjetas de cristal' },
 ]
 
 const CLAVE = 'servicios-admin-dashboard-tema'

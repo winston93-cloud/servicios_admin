@@ -646,6 +646,15 @@ function DashboardPageInner() {
               </div>
 
               <div className="dashboard-heading">
+                {tema !== 'original' && navItemsAdmin.length ? (
+                  <span className="dash-tema-deco" aria-hidden>
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                    <b>{navItemsAdmin.length}</b>
+                  </span>
+                ) : null}
                 <p className="dashboard-greeting">
                   {saludo}, <span className="dashboard-greeting-name">{primerNombre}</span>
                 </p>

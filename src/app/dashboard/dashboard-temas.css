@@ -1,12 +1,13 @@
 /* Estilos del dashboard (selector «Estilo»), solo en /dashboard y solo para el personal.
    El atributo data-tema solo existe fuera de «Original». `:not(#dash-tema)` sube la especificidad
    por encima del tema Totality del shell sin usar !important.
-   Los 5 estilos siguen las reglas de pantalla de app de TasteSkill 2.1: color en los datos y no en el
-   marco, íconos sin cuadro teñido, sin degradados ni sombras en reposo, oscuros neutros. */
+   Institucional y Campus salen de las piezas de marca (Poppins, azules, lima, naranja, gris);
+   Bauhaus, Revista y Aurora son composiciones propias. Cada uno con su decoración (.dash-tema-deco). */
 
 .dashboard-home .dashboard-heading { position: relative; z-index: 35; }
 .dashboard-header-nombre,
-.dash-tema-dato { display: none; }
+.dash-tema-dato,
+.dash-tema-deco { display: none; }
 
 /* ─── Selector (también en Original) ─── */
 .dash-tema { position: relative; flex: 0 0 auto; }
@@ -124,11 +125,11 @@ html[data-theme='light'] .dash-tema-op[aria-checked='true'] { background: rgba(3
   background: var(--m-punto);
 }
 .dash-tema-muestra[data-muestra='original'] { --m-fondo: #0f1d35; --m-hoja: #1c2a44; --m-punto: #00e3fd; }
-.dash-tema-muestra[data-muestra='institucional'] { --m-fondo: #e9eef5; --m-hoja: #ffffff; --m-borde: #d5dde8; --m-punto: #08498a; }
-.dash-tema-muestra[data-muestra='campus'] { --m-fondo: #f3f6fc; --m-hoja: #ffffff; --m-borde: #d6e1f5; --m-punto: #0b4eb9; }
-.dash-tema-muestra[data-muestra='ejecutivo'] { --m-fondo: #f2f4f7; --m-hoja: #ffffff; --m-borde: #e2e2e2; --m-punto: #141414; }
-.dash-tema-muestra[data-muestra='editorial'] { --m-fondo: #ffffff; --m-hoja: #f4f3ef; --m-punto: #1b6e66; }
-.dash-tema-muestra[data-muestra='pizarra'] { --m-fondo: #0c0d0f; --m-hoja: #1a1c20; --m-punto: #0bb1db; }
+.dash-tema-muestra[data-muestra='institucional'] { --m-fondo: linear-gradient(118deg, #ececec 0 55%, #0b4eb9 55%); --m-hoja: #08498a; --m-punto: #d4ec51; }
+.dash-tema-muestra[data-muestra='campus'] { --m-fondo: #0b4eb9; --m-hoja: #f5a100; --m-punto: #d4ec51; }
+.dash-tema-muestra[data-muestra='bauhaus'] { --m-fondo: #f3ede1; --m-hoja: #1f4fa3; --m-punto: #d93a2b; }
+.dash-tema-muestra[data-muestra='revista'] { --m-fondo: #f6f2ea; --m-hoja: #141414; --m-punto: #d9480f; }
+.dash-tema-muestra[data-muestra='aurora'] { --m-fondo: radial-gradient(circle at 20% 20%, #0bb1db, transparent 60%), radial-gradient(circle at 80% 30%, #7b5cff, transparent 60%), #060913; --m-hoja: rgba(255, 255, 255, 0.18); --m-punto: #d4ec51; }
 
 /* Papás: ciclo vigente y Estilo en una sola fila, misma altura y forma */
 .dashboard-herramientas--papas { align-items: center; gap: 12px 14px; margin-top: 28px; }
@@ -151,7 +152,7 @@ html[data-theme='light'] .dash-tema-op[aria-checked='true'] { background: rgba(3
 
 /* ════════════════════ Base común de los 5 estilos ════════════════════ */
 .dashboard-home[data-tema]:not(#dash-tema) {
-  --dt-texto: var(--font-inter), 'Inter', system-ui, sans-serif;
+  --dt-texto: var(--dt-f-poppins), 'Poppins', system-ui, sans-serif;
   --dt-display: var(--dt-texto);
   --dt-num: var(--dt-texto);
   --dt-radio: 8px;
@@ -498,254 +499,538 @@ html[data-theme='light'] .dash-tema-op[aria-checked='true'] { background: rgba(3
 .dashboard-home[data-tema]:not(#dash-tema) .dashboard-menu-item-icon { border: 0; background: none; color: var(--dt-icono); box-shadow: none; }
 .dashboard-home[data-tema]:not(#dash-tema) :is(.dashboard-sidebar-close, .dashboard-sidebar-logout) { border: 1px solid var(--dt-borde); border-radius: var(--dt-radio-btn); background: var(--dt-hoja); color: var(--dt-tinta); }
 
-/* ════════════════════ Institucional · hoja enmarcada ════════════════════
-   El marco (encabezado y fondo) es un gris azulado sacado del azul Winston; la página es una hoja
-   blanca con 16 px de esquina. El azul de la marca solo queda en los escudos y en un subrayado de 2 px
-   bajo el nombre del sistema. */
+/* ─── Decoración del encabezado: a un lado del saludo en PC, franja arriba en móvil ─── */
+.dashboard-home[data-tema]:not(#dash-tema) .dashboard-heading { display: grid; grid-template-columns: minmax(0, 1fr); column-gap: 40px; }
+.dashboard-home[data-tema]:not(#dash-tema) .dashboard-heading > * { grid-column: 1 / -1; }
+.dashboard-home[data-tema]:not(#dash-tema) .dash-tema-deco { display: block; position: relative; grid-row: 1; height: var(--deco-hm, 150px); margin-bottom: 16px; pointer-events: none; }
+.dashboard-home[data-tema]:not(#dash-tema) .dashboard-greeting { grid-row: 2; }
+.dashboard-home[data-tema]:not(#dash-tema) .dash-tema-dato { grid-row: 3; }
+.dashboard-home[data-tema]:not(#dash-tema) .dashboard-herramientas { grid-row: 4; }
+.dashboard-home[data-tema]:not(#dash-tema) .dash-tema-deco > * { position: absolute; display: none; }
+@media (min-width: 901px) {
+  .dashboard-home[data-tema]:not(#dash-tema) .dashboard-heading { grid-template-columns: minmax(0, 1fr) minmax(0, var(--deco-w, 44%)); }
+  .dashboard-home[data-tema]:not(#dash-tema) .dashboard-greeting { grid-column: 1; grid-row: 1; align-self: end; }
+  .dashboard-home[data-tema]:not(#dash-tema) .dash-tema-dato { grid-column: 1; grid-row: 2; align-self: start; }
+  .dashboard-home[data-tema]:not(#dash-tema) .dash-tema-deco { grid-column: 2; grid-row: 1 / span 2; height: var(--deco-h, 230px); margin: 0; }
+  .dashboard-home[data-tema]:not(#dash-tema) .dashboard-herramientas { grid-row: 3; margin-top: 28px; }
+}
+
+/* ════════════════════ Institucional · las barras de la marca ════════════════════
+   Fondo gris con el corte diagonal azul rey; las cuatro barras inclinadas de la paleta
+   (navy, navy→cian, chartreuse, lima) junto al saludo, como en las piezas de Mercadotecnia. */
 .dashboard-home[data-tema='institucional']:not(#dash-tema) {
-  --dt-texto: var(--dt-f-poppins), 'Poppins', system-ui, sans-serif;
-  --dt-papel: #eef2f7;
-  --dt-hoja: #ffffff;
-  --dt-hoja-2: #f4f6f9;
-  --dt-hover: #ffffff;
-  --dt-borde: #e3e8ef;
-  --dt-linea: #c3ccd8;
-  --dt-tinta: #121a26;
-  --dt-suave: #566173;
-  --dt-tenue: #7c8697;
-  --dt-acento: #08498a;
-  --dt-nuevo-bg: #e5edf7;
-  --dt-nuevo-txt: #08498a;
-  --dt-nuevo-dato: #08498a;
-}
-html:not([data-theme='light']) .dashboard-home[data-tema='institucional']:not(#dash-tema) {
-  --dt-papel: #0d0f12;
-  --dt-hoja: #16191d;
-  --dt-hoja-2: #1d2126;
-  --dt-hover: #1a1d22;
-  --dt-borde: #262a30;
-  --dt-linea: #3a4049;
-  --dt-tinta: #f1f3f6;
-  --dt-suave: #a4acb8;
-  --dt-tenue: #808896;
-  --dt-acento: #0bb1db;
-  --dt-sobre-primario: #0d0f12;
-  --dt-nuevo-bg: #0f2f3a;
-  --dt-nuevo-txt: #7fdcf2;
-  --dt-nuevo-dato: #7fdcf2;
-}
-.dashboard-home[data-tema='institucional']:not(#dash-tema) .dashboard-header { border-bottom: 0; }
-.dashboard-home[data-tema='institucional']:not(#dash-tema) .dashboard-header-nombre { box-shadow: inset 0 -2px 0 var(--dt-acento); }
-.dashboard-home[data-tema='institucional']:not(#dash-tema) .dashboard-main {
-  min-height: calc(100vh - 72px);
-  margin: 0 8px 8px;
-  width: auto;
-  border: 1px solid var(--dt-borde);
-  border-radius: 16px;
-  background: var(--dt-hoja);
-}
-.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-nav-item { background: var(--dt-hoja); }
-
-/* ════════════════════ Campus · escalera de azul rey ════════════════════
-   Un solo tono, el azul rey de la marca: lleno solo en marcas chicas (íconos, el botón principal) y
-   en tintes pálidos en áreas (etiquetas, tarjeta señalada). La lima de la marca marca lo nuevo. */
-.dashboard-home[data-tema='campus']:not(#dash-tema) {
-  --dt-texto: var(--dt-f-poppins), 'Poppins', system-ui, sans-serif;
-  --dt-papel: #f5f8fd;
-  --dt-hoja: #ffffff;
-  --dt-hoja-2: #eef3fc;
-  --dt-hover: #f8fafe;
-  --dt-borde: #e1e7f1;
-  --dt-linea: #b9cbec;
-  --dt-tinta: #0f1a2e;
-  --dt-suave: #4f5b70;
-  --dt-tenue: #77839a;
-  --dt-acento: #0b4eb9;
-  --dt-icono: #0b4eb9;
-  --dt-primario: #0b4eb9;
-  --dt-sobre-primario: #ffffff;
-  --dt-etiqueta-bg: #edf2fc;
-  --dt-etiqueta-txt: #0a3a85;
-  --dt-nuevo-bg: #d4ec51;
-  --dt-nuevo-txt: #2a3300;
-  --dt-nuevo-dato: #0b4eb9;
-  --dt-radio-etiqueta: 999px;
-}
-html:not([data-theme='light']) .dashboard-home[data-tema='campus']:not(#dash-tema) {
-  --dt-papel: #0c0e12;
-  --dt-hoja: #14171c;
-  --dt-hoja-2: #1b2130;
-  --dt-hover: #171c25;
-  --dt-borde: #242a33;
-  --dt-linea: #3b5585;
-  --dt-tinta: #eef2f9;
-  --dt-suave: #a3adbd;
-  --dt-tenue: #7f899a;
-  --dt-acento: #7aa7f5;
-  --dt-icono: #7aa7f5;
-  --dt-primario: #7aa7f5;
-  --dt-sobre-primario: #0a1530;
-  --dt-etiqueta-bg: #18233a;
-  --dt-etiqueta-txt: #b9cff7;
-  --dt-nuevo-bg: #d4ec51;
-  --dt-nuevo-txt: #1f2600;
-  --dt-nuevo-dato: #d4ec51;
-}
-.dashboard-home[data-tema='campus']:not(#dash-tema) .dashboard-header { background: var(--dt-hoja); }
-.dashboard-home[data-tema='campus']:not(#dash-tema) .dashboard-greeting { font-size: clamp(26px, 3vw, 32px); }
-.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-buscador-campo:focus-within { border-color: var(--dt-acento); }
-
-/* ════════════════════ Ejecutivo · libro mayor acromático ════════════════════
-   Nada de color en el marco: todo en tinta sobre un gris azulado de libro contable. Los números de
-   catálogo van en Geist Mono como columna de libro; el único tono es la señal de lo nuevo. */
-.dashboard-home[data-tema='ejecutivo']:not(#dash-tema) {
-  --dt-texto: var(--font-geist-sans), 'Geist', system-ui, sans-serif;
-  --dt-num: var(--font-geist-mono), ui-monospace, monospace;
-  --dt-papel: #f2f4f7;
-  --dt-hoja: #ffffff;
-  --dt-hoja-2: #eeeeee;
-  --dt-hover: #ffffff;
-  --dt-borde: #e4e4e4;
-  --dt-linea: #a8a8a8;
-  --dt-tinta: #0a0a0a;
-  --dt-suave: #5c5c5c;
-  --dt-tenue: #7a7a7a;
-  --dt-icono: #0a0a0a;
-  --dt-nuevo-bg: transparent;
-  --dt-nuevo-txt: #1d5fbf;
-  --dt-nuevo-dato: #1d5fbf;
-}
-html:not([data-theme='light']) .dashboard-home[data-tema='ejecutivo']:not(#dash-tema) {
-  --dt-papel: #0a0a0a;
-  --dt-hoja: #141414;
-  --dt-hoja-2: #1f1f1f;
-  --dt-hover: #181818;
-  --dt-borde: #262626;
-  --dt-linea: #5a5a5a;
-  --dt-tinta: #f5f5f5;
-  --dt-suave: #a3a3a3;
-  --dt-tenue: #8a8a8a;
-  --dt-icono: #f5f5f5;
-  --dt-nuevo-txt: #7eb0f5;
-  --dt-nuevo-dato: #7eb0f5;
-}
-.dashboard-home[data-tema='ejecutivo']:not(#dash-tema) .dashboard-greeting { font-size: 24px; letter-spacing: -0.02em; }
-.dashboard-home[data-tema='ejecutivo']:not(#dash-tema) .dash-module-badge { padding: 0; }
-.dashboard-home[data-tema='ejecutivo']:not(#dash-tema) .dash-module-badge:not(.dash-module-badge--external)::before { content: '▲ '; font-size: 8px; vertical-align: 1px; }
-.dashboard-home[data-tema='ejecutivo']:not(#dash-tema) .dash-module-tag { padding: 0; background: none; }
-.dashboard-home[data-tema='ejecutivo']:not(#dash-tema) .dash-module-tag + .dash-module-tag::before { content: '·'; margin-right: 6px; color: var(--dt-tenue); }
-.dashboard-home[data-tema='ejecutivo']:not(#dash-tema) .dash-module-tags { gap: 6px; }
-/* ════════════════════ Editorial · saludo tipografiado ════════════════════
-   Columna centrada de 1100 px; el saludo en Instrument Serif es el título. Las tarjetas son paneles
-   tonales un paso fuera del blanco, con esquina suave; el verde azulado ocupa menos del 2 %. */
-.dashboard-home[data-tema='editorial']:not(#dash-tema) {
-  --dt-texto: var(--dt-f-instrument), 'Instrument Sans', var(--font-inter), system-ui, sans-serif;
-  --dt-display: var(--dt-f-serif), 'Instrument Serif', Georgia, serif;
-  --dt-papel: #ffffff;
-  --dt-hoja: #f6f5f2;
-  --dt-hoja-2: #ecebe6;
-  --dt-hover: #f1f0ec;
-  --dt-borde: #ecebe7;
-  --dt-linea: #d9d8d3;
-  --dt-tinta: #1f201d;
-  --dt-suave: #5e5e5b;
-  --dt-tenue: #7c7c78;
-  --dt-acento: #1b6e66;
-  --dt-etiqueta-bg: #ffffff;
-  --dt-nuevo-bg: #ffffff;
-  --dt-nuevo-txt: #1b6e66;
-  --dt-nuevo-dato: #1b6e66;
-  --dt-radio: 22px;
-  --dt-radio-btn: 999px;
-  --dt-radio-etiqueta: 999px;
-}
-html:not([data-theme='light']) .dashboard-home[data-tema='editorial']:not(#dash-tema) {
-  --dt-papel: #121211;
-  --dt-hoja: #1c1b19;
-  --dt-hoja-2: #2a2926;
-  --dt-hover: #22211e;
-  --dt-borde: #262522;
-  --dt-linea: #45433e;
-  --dt-tinta: #f1efe9;
-  --dt-suave: #aaa69d;
-  --dt-tenue: #8d8a82;
-  --dt-acento: #6cc3b6;
-  --dt-etiqueta-bg: #2a2926;
-  --dt-nuevo-bg: #173430;
-  --dt-nuevo-txt: #8fd8cc;
-  --dt-nuevo-dato: #8fd8cc;
-}
-.dashboard-home[data-tema='editorial']:not(#dash-tema) .dashboard-main-stage { max-width: 1100px; }
-.dashboard-home[data-tema='editorial']:not(#dash-tema).dashboard-home--layout-5 .dashboard-main-stage { max-width: min(1560px, 100%); }
-.dashboard-home[data-tema='editorial']:not(#dash-tema) .dashboard-main { padding-top: 64px; }
-.dashboard-home[data-tema='editorial']:not(#dash-tema) .dashboard-heading { margin-bottom: 28px; }
-.dashboard-home[data-tema='editorial']:not(#dash-tema) .dashboard-greeting { font-size: clamp(36px, 5vw, 52px); font-weight: 400; line-height: 1.05; letter-spacing: -0.01em; }
-.dashboard-home[data-tema='editorial']:not(#dash-tema) .dash-tema-dato { margin-top: 12px; font-size: 15px; }
-.dashboard-home[data-tema='editorial']:not(#dash-tema) .dashboard-nav-grid { gap: 16px; }
-.dashboard-home[data-tema='editorial']:not(#dash-tema) .dash-module-top { padding: 22px 22px 20px 20px; }
-.dashboard-home[data-tema='editorial']:not(#dash-tema) .dash-module-order { top: 20px; right: 22px; }
-.dashboard-home[data-tema='editorial']:not(#dash-tema) .dash-buscador-campo { padding-inline: 4px; }
-.dashboard-home[data-tema='editorial']:not(#dash-tema) .dashboard-header-nombre { font-family: var(--dt-display); font-size: 20px; font-weight: 400; }
-
-/* ════════════════════ Contraste (id «pizarra») · plano por luz ════════════════════
-   Sin bordes ni sombras: la altura se lee solo por luminosidad (fondo, tarjeta, panel interior).
-   El botón principal es la inversión (blanco sobre negro); el cian Winston solo marca lo nuevo. */
-.dashboard-home[data-tema='pizarra']:not(#dash-tema) {
   --dt-papel: #ececec;
   --dt-hoja: #ffffff;
-  --dt-hoja-2: #f2f2f2;
-  --dt-hover: #fafafa;
-  --dt-borde: transparent;
-  --dt-linea: transparent;
-  --dt-tinta: #0a0a0a;
-  --dt-suave: #525252;
-  --dt-tenue: #6e6e6e;
-  --dt-icono: #0a0a0a;
-  --dt-nuevo-bg: #e0f4fa;
-  --dt-nuevo-txt: #05576d;
-  --dt-nuevo-dato: #0784a6;
-  --dt-radio: 20px;
-  --dt-radio-btn: 999px;
+  --dt-hoja-2: #f1f4f8;
+  --dt-hover: #ffffff;
+  --dt-borde: #dfe4ea;
+  --dt-linea: #08498a;
+  --dt-tinta: #0a2342;
+  --dt-suave: #4a5a70;
+  --dt-tenue: #6f7d92;
+  --dt-primario: #08498a;
+  --dt-sobre-primario: #ffffff;
+  --dt-etiqueta-bg: #eef3f9;
+  --dt-etiqueta-txt: #08498a;
+  --dt-nuevo-bg: #d4ec51;
+  --dt-nuevo-txt: #1f2a00;
+  --dt-nuevo-dato: #08498a;
+  --dt-radio: 18px;
+  --dt-radio-btn: 12px;
   --dt-radio-etiqueta: 999px;
+  --corte: #0b4eb9;
+  background: linear-gradient(118deg, var(--dt-papel) 0 63%, var(--corte) 63%) fixed;
 }
-html:not([data-theme='light']) .dashboard-home[data-tema='pizarra']:not(#dash-tema) {
-  --dt-papel: #0c0d0f;
-  --dt-hoja: #16181b;
-  --dt-hoja-2: #26292d;
-  --dt-hover: #1c1f23;
-  --dt-tinta: #ffffff;
-  --dt-suave: #b4b4b4;
-  --dt-tenue: #949494;
-  --dt-icono: #ffffff;
-  --dt-nuevo-bg: #26292d;
-  --dt-nuevo-txt: #4fd0f0;
-  --dt-nuevo-dato: #4fd0f0;
+html:not([data-theme='light']) .dashboard-home[data-tema='institucional']:not(#dash-tema) {
+  --dt-papel: #0b1424;
+  --dt-hoja: #12203a;
+  --dt-hoja-2: #1a2b4c;
+  --dt-hover: #152643;
+  --dt-borde: #23375c;
+  --dt-linea: #0bb1db;
+  --dt-tinta: #eef4ff;
+  --dt-suave: #a9bbd6;
+  --dt-tenue: #8698b6;
+  --dt-primario: #0bb1db;
+  --dt-sobre-primario: #04223a;
+  --dt-etiqueta-bg: #1a2b4c;
+  --dt-etiqueta-txt: #9fe3f5;
+  --dt-nuevo-dato: #d4ec51;
+  --corte: #0a3a8c;
 }
-.dashboard-home[data-tema='pizarra']:not(#dash-tema) .dashboard-header { border-bottom: 0; }
-.dashboard-home[data-tema='pizarra']:not(#dash-tema) .dashboard-header-nombre { border-left-color: var(--dt-hoja-2); }
-.dashboard-home[data-tema='pizarra']:not(#dash-tema) :is(.dashboard-hamburger-btn, .dashboard-logout-btn, .dash-notif-bell, .theme-toggle, .dashboard-orden-btn, .dash-tema-btn, .dash-buscador-campo) { border-color: transparent; background: var(--dt-hoja); }
-.dashboard-home[data-tema='pizarra']:not(#dash-tema) :is(.dashboard-hamburger-btn, .dashboard-logout-btn, .dash-notif-bell, .theme-toggle, .dashboard-orden-btn, .dash-tema-btn):hover { background: var(--dt-hoja-2); }
-.dashboard-home[data-tema='pizarra']:not(#dash-tema) .dash-buscador-campo:focus-within { border-color: var(--dt-tinta); }
-.dashboard-home[data-tema='pizarra']:not(#dash-tema) .dash-nav-item:is(:hover, .is-previewing, :focus-within) { box-shadow: none; }
-.dashboard-home[data-tema='pizarra']:not(#dash-tema) .dash-module-preview-inner { border-top: 0; }
-.dashboard-home[data-tema='pizarra']:not(#dash-tema) :is(.dash-buscador-lista, .dash-tema-pop) { border-color: transparent; }
-.dashboard-home[data-tema='pizarra']:not(#dash-tema) .dash-nav-desc { color: var(--dt-suave); }
-.dashboard-home[data-tema='pizarra']:not(#dash-tema) .dash-module-top { padding: 20px 22px 20px 20px; }
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dashboard-header {
+  border-bottom: 5px solid transparent;
+  border-image: linear-gradient(90deg, #08498a 0 25%, #0bb1db 25% 50%, #a8cf45 50% 75%, #d4ec51 75%) 1;
+  background: var(--dt-hoja);
+}
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dashboard-header-nombre { border-left-color: var(--dt-borde); color: var(--dt-tinta); font-weight: 700; }
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dashboard-greeting { font-size: clamp(32px, 4vw, 50px); font-weight: 700; letter-spacing: -0.025em; }
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dashboard-greeting-name { color: #08498a; }
+html:not([data-theme='light']) .dashboard-home[data-tema='institucional']:not(#dash-tema) .dashboard-greeting-name { color: #0bb1db; }
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-tema-deco i {
+  display: block;
+  height: 21%;
+  border-radius: 14px;
+  box-shadow: 0 12px 26px -10px rgba(4, 20, 50, 0.45);
+}
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-tema-deco i:nth-child(1) { top: 2%; left: 10%; width: 90%; background: #08498a; transform: rotate(7deg); }
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-tema-deco i:nth-child(2) { top: 28%; left: 0; width: 86%; background: linear-gradient(90deg, #08498a, #0bb1db); transform: rotate(3deg); }
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-tema-deco i:nth-child(3) { top: 52%; left: 2%; width: 90%; background: #a8cf45; transform: rotate(2deg); }
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-tema-deco i:nth-child(4) { top: 76%; left: 4%; width: 88%; background: #d4ec51; transform: rotate(-1deg); }
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-tema-deco b {
+  display: flex;
+  align-items: center;
+  top: 2%;
+  left: 10%;
+  width: 90%;
+  height: 21%;
+  padding-left: 7%;
+  color: #ffffff;
+  font-size: clamp(16px, 1.8vw, 24px);
+  font-weight: 500;
+  transform: rotate(7deg);
+}
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-tema-deco b::after { content: '\00a0sistemas Winston'; }
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-buscador-campo { border-color: transparent; box-shadow: 0 6px 18px -10px rgba(4, 20, 50, 0.35); }
+.dashboard-home[data-tema='institucional']:not(#dash-tema) :is(.dashboard-orden-btn, .dash-tema-btn) { border-color: transparent; box-shadow: 0 6px 18px -10px rgba(4, 20, 50, 0.35); }
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-nav-item:nth-child(4n + 1) { --ic: #08498a; --ic-f: #ffffff; }
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-nav-item:nth-child(4n + 2) { --ic: #0bb1db; --ic-f: #ffffff; }
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-nav-item:nth-child(4n + 3) { --ic: #a8cf45; --ic-f: #0a2342; }
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-nav-item:nth-child(4n + 4) { --ic: #d4ec51; --ic-f: #0a2342; }
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-nav-item {
+  border-color: transparent;
+  box-shadow: 0 1px 2px rgba(10, 35, 66, 0.06), 0 10px 26px -14px rgba(10, 35, 66, 0.28);
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-nav-item:is(:hover, .is-previewing, :focus-within) {
+  transform: translateY(-4px) rotate(-0.6deg);
+  border-color: transparent;
+  box-shadow: 0 0 0 2px var(--ic), 0 22px 40px -18px rgba(10, 35, 66, 0.45);
+}
+.dashboard-home[data-tema='institucional']:not(#dash-tema) :is(.dash-nav-item, .dash-nav-item.is-previewing) .dash-module-icon {
+  width: 46px;
+  min-width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: var(--ic);
+  color: var(--ic-f);
+  transform: rotate(-6deg);
+}
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-module-order {
+  top: 14px;
+  right: 16px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--dt-hoja-2);
+  color: var(--dt-tinta);
+  font-weight: 600;
+  line-height: 24px;
+  text-align: center;
+}
+.dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-module-kicker { color: var(--dt-linea); font-weight: 600; }
+
+/* ════════════════════ Campus · bloques de color sobre azul rey ════════════════════
+   Toda la página en azul rey; cada sistema es un bloque sólido (naranja, blanco, lima, gris) con
+   el marco blanco desfasado de las piezas de marca, que se acomoda al señalarlo. */
+.dashboard-home[data-tema='campus']:not(#dash-tema) {
+  --dt-papel: #0b4eb9;
+  --dt-hoja: #ffffff;
+  --dt-hoja-2: #eef2f8;
+  --dt-hover: #ffffff;
+  --dt-borde: #d5ddeb;
+  --dt-linea: #08498a;
+  --dt-tinta: #0a2350;
+  --dt-suave: #43506a;
+  --dt-tenue: #6b7891;
+  --dt-primario: #0a2350;
+  --dt-sobre-primario: #ffffff;
+  --dt-nuevo-bg: #0a2350;
+  --dt-nuevo-txt: #ffffff;
+  --dt-nuevo-dato: #d4ec51;
+  --dt-radio: 6px;
+  --dt-radio-btn: 8px;
+  --dt-radio-etiqueta: 4px;
+  --deco-w: 46%;
+}
+html:not([data-theme='light']) .dashboard-home[data-tema='campus']:not(#dash-tema) { --dt-papel: #072e70; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dashboard-header { border-bottom: 0; background: #08498a; }
+html:not([data-theme='light']) .dashboard-home[data-tema='campus']:not(#dash-tema) .dashboard-header { background: #041d48; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dashboard-header-nombre { border-left-color: rgba(255, 255, 255, 0.3); color: #ffffff; font-weight: 700; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dashboard-header :is(.dashboard-hamburger-btn, .dashboard-logout-btn, .dash-notif-bell, .theme-toggle) { border-color: rgba(255, 255, 255, 0.28); background: rgba(255, 255, 255, 0.1); color: #ffffff; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dashboard-header :is(.theme-toggle-label, .theme-toggle-icon) { color: #ffffff; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dashboard-greeting { color: #ffffff; font-size: clamp(34px, 4.6vw, 58px); font-weight: 800; line-height: 1.02; letter-spacing: -0.03em; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dashboard-greeting-name { color: #d4ec51; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-tema-dato { color: rgba(255, 255, 255, 0.86); }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-tema-deco i { display: block; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-tema-deco i:nth-child(1) { left: 0; bottom: 0; width: 30%; height: 70%; background: #f5a100; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-tema-deco i:nth-child(2) { left: 5%; top: 4%; width: 22%; height: 52%; border: 1.5px solid rgba(255, 255, 255, 0.9); }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-tema-deco i:nth-child(3) { right: 0; bottom: 0; width: 32%; height: 48%; background: #e5e5e5; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-tema-deco i:nth-child(4) { right: 5%; top: 14%; width: 22%; height: 52%; border: 1.5px solid rgba(255, 255, 255, 0.9); }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-tema-deco b {
+  display: block;
+  left: 36%;
+  top: 10%;
+  color: #ffffff;
+  font-size: clamp(64px, 8vw, 112px);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+}
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-tema-deco b::after { content: 'sistemas'; display: block; margin-top: 6px; color: #d4ec51; font-size: 16px; font-weight: 600; letter-spacing: 0; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-buscador-campo { border-color: transparent; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) :is(.dashboard-orden-btn, .dash-tema-btn) { border-color: transparent; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dashboard-nav-grid { gap: 22px 18px; padding-top: 10px; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-nav-item:nth-child(4n + 1) { --bloque: #f5a100; --tinta-b: #1d1300; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-nav-item:nth-child(4n + 2) { --bloque: #ffffff; --tinta-b: #0a2350; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-nav-item:nth-child(4n + 3) { --bloque: #d4ec51; --tinta-b: #1f2a00; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-nav-item:nth-child(4n + 4) { --bloque: #e5e5e5; --tinta-b: #0a2350; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-nav-item {
+  overflow: visible;
+  border: 0;
+  background: var(--bloque);
+  color: var(--tinta-b);
+  transition: transform 0.22s ease;
+}
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-nav-item::after {
+  content: '';
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: auto;
+  height: auto;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--dt-radio);
+  background: none;
+  opacity: 1;
+  transform: translate(9px, -9px);
+  pointer-events: none;
+  transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-nav-item:is(:hover, .is-previewing, :focus-within) { transform: translate(-3px, 3px); border-color: transparent; background: var(--bloque); box-shadow: none; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-nav-item:is(:hover, .is-previewing, :focus-within)::after { transform: translate(0, 0); }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-nav-item :is(.dash-nav-title, .dash-nav-arrow, .dash-module-preview-synopsis) { color: var(--tinta-b); }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-nav-item :is(.dash-nav-desc, .dash-module-kicker, .dash-module-preview-kicker, .dash-module-preview-highlights li) { color: color-mix(in srgb, var(--tinta-b) 76%, transparent); }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-nav-title { font-size: 17px; font-weight: 700; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-module-tag { background: color-mix(in srgb, var(--tinta-b) 10%, transparent); color: var(--tinta-b); }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-module-badge--external { background: color-mix(in srgb, var(--tinta-b) 12%, transparent); color: var(--tinta-b); }
+.dashboard-home[data-tema='campus']:not(#dash-tema) :is(.dash-nav-item, .dash-nav-item.is-previewing) .dash-module-icon {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--tinta-b) 10%, transparent);
+  color: var(--tinta-b);
+}
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-module-order { top: 10px; right: 16px; color: color-mix(in srgb, var(--tinta-b) 30%, transparent); font-size: 30px; font-weight: 800; letter-spacing: -0.03em; }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-module-preview-inner { border-top-color: color-mix(in srgb, var(--tinta-b) 18%, transparent); }
+.dashboard-home[data-tema='campus']:not(#dash-tema) .dash-module-preview-dot { background: var(--tinta-b); }
+
+/* ════════════════════ Bauhaus · geometría y primarios ════════════════════
+   Papel crema, líneas negras gruesas y sombra plana desplazada; cada sistema lleva su figura
+   (círculo rojo, cuadro azul, cuarto de círculo amarillo) y el encabezado una composición. */
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) {
+  --dt-papel: #f3ede1;
+  --dt-hoja: #fbf8f1;
+  --dt-hoja-2: #ebe3d3;
+  --dt-hover: #fbf8f1;
+  --dt-borde: #141414;
+  --dt-linea: #141414;
+  --dt-tinta: #141414;
+  --dt-suave: #3f3a33;
+  --dt-tenue: #5f584d;
+  --dt-primario: #d93a2b;
+  --dt-sobre-primario: #ffffff;
+  --dt-nuevo-bg: #f2b705;
+  --dt-nuevo-txt: #141414;
+  --dt-nuevo-dato: #d93a2b;
+  --dt-etiqueta-bg: transparent;
+  --dt-radio: 0px;
+  --dt-radio-btn: 0px;
+  --dt-radio-etiqueta: 0px;
+  --rojo: #d93a2b;
+  --azul: #1f4fa3;
+  --amarillo: #f2b705;
+}
+html:not([data-theme='light']) .dashboard-home[data-tema='bauhaus']:not(#dash-tema) {
+  --dt-papel: #16140f;
+  --dt-hoja: #201d17;
+  --dt-hoja-2: #2b2720;
+  --dt-hover: #201d17;
+  --dt-borde: #f3ede1;
+  --dt-linea: #f3ede1;
+  --dt-tinta: #f3ede1;
+  --dt-suave: #d3cab8;
+  --dt-tenue: #ada48f;
+  --dt-nuevo-dato: #ff6b5b;
+  --rojo: #e24a3b;
+  --azul: #3d72d6;
+}
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dashboard-header { border-bottom: 3px solid var(--dt-tinta); background: var(--dt-papel); }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dashboard-header-nombre { border-left: 3px solid var(--dt-tinta); font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) :is(.dashboard-hamburger-btn, .dashboard-logout-btn, .dash-notif-bell, .theme-toggle, .dashboard-orden-btn, .dash-tema-btn, .dash-buscador-campo) { border: 2px solid var(--dt-tinta); box-shadow: 3px 3px 0 var(--dt-tinta); }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dashboard-greeting { font-size: clamp(36px, 5vw, 64px); font-weight: 800; line-height: 0.98; letter-spacing: -0.04em; }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dashboard-greeting-name { color: var(--rojo); }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-tema-dato { font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; font-size: 12.5px; }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-tema-deco i { display: block; }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-tema-deco i:nth-child(1) { right: 4%; top: 0; height: 92%; aspect-ratio: 1; border-radius: 50%; background: var(--amarillo); }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-tema-deco i:nth-child(2) { left: 14%; top: 34%; height: 52%; aspect-ratio: 1; background: var(--azul); }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-tema-deco i:nth-child(3) { left: 34%; bottom: 0; height: 36%; aspect-ratio: 2; border-radius: 999px 999px 0 0; background: var(--rojo); }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-tema-deco i:nth-child(4) { left: 0; top: 18%; width: 64%; height: 10px; background: var(--dt-tinta); transform: rotate(-14deg); transform-origin: left; }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-tema-deco b {
+  display: block;
+  right: 4%;
+  top: 0;
+  height: 92%;
+  aspect-ratio: 1;
+  padding-top: 26%;
+  color: #141414;
+  font-size: clamp(44px, 5vw, 72px);
+  font-weight: 800;
+  line-height: 0.9;
+  text-align: center;
+}
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-tema-deco b::after { content: 'sistemas'; display: block; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dashboard-nav-grid { gap: 20px; }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-nav-item {
+  border: 2.5px solid var(--dt-tinta);
+  box-shadow: 6px 6px 0 var(--dt-tinta);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-nav-item:is(:hover, .is-previewing, :focus-within) { transform: translate(-3px, -3px); border-color: var(--dt-tinta); box-shadow: 9px 9px 0 var(--dt-tinta); }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-nav-item:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--dt-tinta); }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-nav-item:nth-child(3n + 1) { --fig: var(--rojo); --fig-f: #ffffff; --fig-r: 50%; }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-nav-item:nth-child(3n + 2) { --fig: var(--azul); --fig-f: #ffffff; --fig-r: 0; }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-nav-item:nth-child(3n + 3) { --fig: var(--amarillo); --fig-f: #141414; --fig-r: 46px 0 0 0; }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) :is(.dash-nav-item, .dash-nav-item.is-previewing) .dash-module-icon {
+  width: 46px;
+  min-width: 46px;
+  height: 46px;
+  border-radius: var(--fig-r);
+  background: var(--fig);
+  color: var(--fig-f);
+}
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-module-order { top: -2px; right: -2px; min-width: 30px; height: 30px; padding: 0 6px; background: var(--dt-tinta); color: var(--dt-papel); font-size: 13px; font-weight: 700; line-height: 30px; text-align: center; }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-nav-title { font-size: 17px; font-weight: 700; }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-module-kicker { color: var(--dt-tinta); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-module-tag { border: 1.5px solid var(--dt-tinta); color: var(--dt-tinta); }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-module-badge { border: 1.5px solid #141414; border-radius: 0; }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-nav-arrow { color: var(--dt-tinta); }
+.dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-module-preview-dot { width: 7px; height: 7px; margin-top: 5px; border-radius: 0; background: var(--fig); }
+
+/* ════════════════════ Revista · portada editorial ════════════════════
+   Saludo en serif enorme con el número de sistemas como cifra de portada; el primer sistema
+   va como nota principal y el resto como índice con filete negro arriba. */
+.dashboard-home[data-tema='revista']:not(#dash-tema) {
+  --dt-display: var(--dt-f-serif), 'Instrument Serif', Georgia, serif;
+  --dt-papel: #f6f2ea;
+  --dt-hoja: #f6f2ea;
+  --dt-hoja-2: #ebe5d8;
+  --dt-hover: #f6f2ea;
+  --dt-borde: #141414;
+  --dt-linea: #141414;
+  --dt-tinta: #141414;
+  --dt-suave: #4a463f;
+  --dt-tenue: #6b655a;
+  --dt-nuevo-bg: transparent;
+  --dt-nuevo-txt: #c2410c;
+  --dt-nuevo-dato: #c2410c;
+  --dt-etiqueta-bg: transparent;
+  --dt-radio: 0px;
+  --dt-radio-btn: 0px;
+  --acento: #c2410c;
+  --deco-w: 38%;
+}
+html:not([data-theme='light']) .dashboard-home[data-tema='revista']:not(#dash-tema) {
+  --dt-papel: #12110f;
+  --dt-hoja: #12110f;
+  --dt-hoja-2: #1f1d1a;
+  --dt-hover: #12110f;
+  --dt-borde: #f1ece2;
+  --dt-linea: #f1ece2;
+  --dt-tinta: #f1ece2;
+  --dt-suave: #c4bdaf;
+  --dt-tenue: #9c9586;
+  --dt-nuevo-txt: #ff8a4c;
+  --dt-nuevo-dato: #ff8a4c;
+  --acento: #ff8a4c;
+}
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dashboard-header { border-bottom: 4px double var(--dt-tinta); }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dashboard-header-nombre { border-left-color: var(--dt-tinta); font-family: var(--dt-display); font-size: 24px; font-style: italic; font-weight: 400; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dashboard-greeting { font-family: var(--dt-display); font-size: clamp(48px, 7vw, 96px); font-weight: 400; line-height: 0.92; letter-spacing: -0.02em; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dashboard-greeting-name { color: var(--acento); font-style: italic; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-tema-dato { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--dt-tinta); font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-tema-deco b {
+  display: block;
+  right: 0;
+  bottom: -6px;
+  color: var(--acento);
+  font-family: var(--dt-display);
+  font-size: clamp(150px, 17vw, 250px);
+  font-weight: 400;
+  line-height: 0.8;
+  letter-spacing: -0.04em;
+}
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-tema-deco b::before { content: 'Esta edición'; position: absolute; top: -26px; right: 4px; color: var(--dt-tinta); font-family: var(--dt-texto); font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-tema-deco b::after { content: 'sistemas'; position: absolute; right: 6px; bottom: -20px; color: var(--dt-tinta); font-family: var(--dt-display); font-size: 22px; font-style: italic; letter-spacing: 0; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) :is(.dashboard-orden-btn, .dash-tema-btn) { border: 1px solid var(--dt-tinta); background: transparent; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-buscador-campo { border: 0; border-bottom: 2px solid var(--dt-tinta); background: transparent; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dashboard-herramientas { margin-top: 44px; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dashboard-nav-grid { gap: 10px 32px; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-nav-item {
+  border: 0;
+  border-top: 2px solid var(--dt-tinta);
+  background: transparent;
+}
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-nav-item:is(:hover, .is-previewing, :focus-within) { border-color: var(--acento); background: transparent; box-shadow: none; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-nav-item:is(:hover, .is-previewing, :focus-within) .dash-nav-title { color: var(--acento); }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-module-icon-wrap { display: none; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-module-top { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'body action'; padding: 18px 0 22px; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-module-body { padding-right: 56px; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-nav-title { font-family: var(--dt-display); font-size: 28px; font-weight: 400; line-height: 1.05; letter-spacing: -0.01em; transition: color 0.16s ease; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-module-kicker { color: var(--acento); font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-module-badge { padding: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-module-badge--external { background: none; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-module-tag { padding: 0; font-style: italic; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-module-tag + .dash-module-tag::before { content: '/ '; color: var(--dt-tenue); font-style: normal; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-module-order { top: 14px; right: 0; color: var(--dt-tinta); font-family: var(--dt-display); font-size: 40px; font-style: italic; font-weight: 400; line-height: 1; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-module-preview-inner { padding-left: 0; padding-right: 0; }
+.dashboard-home[data-tema='revista']:not(#dash-tema) .dash-module-preview-cta { background: var(--dt-tinta); color: var(--dt-papel); }
+@media (min-width: 641px) {
+  .dashboard-home[data-tema='revista']:not(#dash-tema) .dash-nav-item:first-child { grid-column: span 2; }
+  .dashboard-home[data-tema='revista']:not(#dash-tema) .dash-nav-item:first-child .dash-nav-title { font-size: clamp(40px, 4.4vw, 60px); line-height: 0.98; }
+  .dashboard-home[data-tema='revista']:not(#dash-tema) .dash-nav-item:first-child .dash-nav-desc { max-width: 40ch; font-size: 17px; }
+  .dashboard-home[data-tema='revista']:not(#dash-tema) .dash-nav-item:first-child .dash-module-order { font-size: 72px; color: var(--acento); }
+}
+
+/* ════════════════════ Aurora · luces de colores y cristal ════════════════════
+   Fondo con auroras en los colores Winston (cian, lima, naranja) más un violeta, moviéndose
+   lento; tarjetas de cristal y saludo con degradado. */
+.dashboard-home[data-tema='aurora']:not(#dash-tema) {
+  --dt-papel: #060913;
+  --dt-hoja: rgba(255, 255, 255, 0.055);
+  --dt-hoja-2: rgba(255, 255, 255, 0.1);
+  --dt-hover: rgba(255, 255, 255, 0.085);
+  --dt-borde: rgba(255, 255, 255, 0.12);
+  --dt-linea: rgba(127, 227, 255, 0.55);
+  --dt-tinta: #f4f7ff;
+  --dt-suave: #b6bfd6;
+  --dt-tenue: #8c96b0;
+  --dt-primario: #f4f7ff;
+  --dt-sobre-primario: #060913;
+  --dt-nuevo-bg: linear-gradient(90deg, #d4ec51, #7fe3ff);
+  --dt-nuevo-txt: #07101f;
+  --dt-nuevo-dato: #d4ec51;
+  --dt-radio: 22px;
+  --dt-radio-btn: 14px;
+  --dt-radio-etiqueta: 999px;
+  --solido: #10162a;
+  --aurora-o: 0.6;
+  --saludo: linear-gradient(90deg, #7fe3ff, #c7b8ff 50%, #e6f59a);
+}
+html[data-theme='light'] .dashboard-home[data-tema='aurora']:not(#dash-tema) {
+  --dt-papel: #eef1f8;
+  --dt-hoja: rgba(255, 255, 255, 0.6);
+  --dt-hoja-2: rgba(255, 255, 255, 0.85);
+  --dt-hover: rgba(255, 255, 255, 0.78);
+  --dt-borde: rgba(255, 255, 255, 0.95);
+  --dt-linea: rgba(11, 120, 170, 0.45);
+  --dt-tinta: #0d1530;
+  --dt-suave: #47526f;
+  --dt-tenue: #616b88;
+  --dt-primario: #0d1530;
+  --dt-sobre-primario: #ffffff;
+  --dt-nuevo-dato: #0784a6;
+  --solido: #ffffff;
+  --aurora-o: 0.38;
+  --saludo: linear-gradient(90deg, #0784a6, #5b3fd9 50%, #4f6b00);
+}
+.dashboard-home[data-tema='aurora']:not(#dash-tema) .dashboard-home-bg {
+  display: block;
+  position: fixed;
+  inset: -15%;
+  z-index: 0;
+  opacity: var(--aurora-o);
+  background:
+    radial-gradient(38% 34% at 16% 18%, #0bb1db, transparent 70%),
+    radial-gradient(34% 30% at 84% 12%, #7b5cff, transparent 70%),
+    radial-gradient(36% 32% at 72% 84%, #d4ec51, transparent 70%),
+    radial-gradient(30% 28% at 26% 88%, #f5a100, transparent 70%);
+  filter: blur(50px);
+  pointer-events: none;
+  animation: dt-aurora 26s ease-in-out infinite alternate;
+}
+@keyframes dt-aurora {
+  from { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  to { transform: translate3d(4%, -3%, 0) rotate(8deg) scale(1.08); }
+}
+.dashboard-home[data-tema='aurora']:not(#dash-tema) :is(.dashboard-header, .dashboard-main) { position: relative; z-index: 1; }
+.dashboard-home[data-tema='aurora']:not(#dash-tema) .dashboard-header { border-bottom-color: var(--dt-borde); background: color-mix(in srgb, var(--dt-papel) 55%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.dashboard-home[data-tema='aurora']:not(#dash-tema) .dashboard-greeting {
+  background: var(--saludo);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: clamp(36px, 4.8vw, 62px);
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+.dashboard-home[data-tema='aurora']:not(#dash-tema) .dash-tema-deco b {
+  display: block;
+  right: 2%;
+  bottom: 0;
+  color: transparent;
+  font-size: clamp(120px, 14vw, 200px);
+  font-weight: 700;
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+  -webkit-text-stroke: 1.5px color-mix(in srgb, var(--dt-tinta) 45%, transparent);
+}
+.dashboard-home[data-tema='aurora']:not(#dash-tema) .dash-tema-deco b::after { content: 'sistemas'; display: block; margin-top: 8px; color: var(--dt-suave); font-size: 15px; font-weight: 500; letter-spacing: 0.02em; text-align: right; -webkit-text-stroke: 0; }
+.dashboard-home[data-tema='aurora']:not(#dash-tema) :is(.dashboard-hamburger-btn, .dashboard-logout-btn, .dash-notif-bell, .theme-toggle, .dashboard-orden-btn, .dash-tema-btn, .dash-buscador-campo) { -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.dashboard-home[data-tema='aurora']:not(#dash-tema) :is(.dash-tema-pop, .dash-buscador-lista) { background: var(--solido); }
+.dashboard-home[data-tema='aurora']:not(#dash-tema) .dash-buscador { --db-bg-pop: var(--solido); }
+.dashboard-home[data-tema='aurora']:not(#dash-tema) .dashboard-nav-grid { gap: 16px; }
+.dashboard-home[data-tema='aurora']:not(#dash-tema) .dash-nav-item {
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+.dashboard-home[data-tema='aurora']:not(#dash-tema) .dash-nav-item:is(:hover, .is-previewing, :focus-within) {
+  transform: translateY(-3px);
+  box-shadow: 0 0 0 1px var(--dt-linea), 0 22px 50px -22px rgba(11, 177, 219, 0.7);
+}
+.dashboard-home[data-tema='aurora']:not(#dash-tema) :is(.dash-nav-item, .dash-nav-item.is-previewing) .dash-module-icon {
+  width: 46px;
+  min-width: 46px;
+  height: 46px;
+  border: 1px solid var(--dt-borde);
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(127, 227, 255, 0.28), rgba(199, 184, 255, 0.28));
+  color: var(--dt-tinta);
+}
+.dashboard-home[data-tema='aurora']:not(#dash-tema) .dash-module-badge:not(.dash-module-badge--external) { background: var(--dt-nuevo-bg); }
+.dashboard-home[data-tema='aurora']:not(#dash-tema) .dash-module-preview-dot { background: #7fe3ff; }
 
 /* ─── Responsivo ─── */
 @media (max-width: 899px) {
-  .dashboard-home[data-tema]:not(#dash-tema) .dashboard-main { padding: 24px 16px 56px; }
-  .dashboard-home[data-tema='institucional']:not(#dash-tema) .dashboard-main { margin: 0 6px 6px; padding-inline: 14px; border-radius: 14px; }
-  .dashboard-home[data-tema='editorial']:not(#dash-tema) .dashboard-main { padding-top: 32px; }
+  .dashboard-home[data-tema]:not(#dash-tema) .dashboard-main { padding: 20px 16px 56px; }
+  .dashboard-home[data-tema]:not(#dash-tema) .dashboard-mobile-logos { display: none; }
 }
 @media (max-width: 768px) {
   .dashboard-home[data-tema]:not(#dash-tema) .dash-module-top { grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: 'icon body action'; padding: 16px; }
   .dashboard-home[data-tema]:not(#dash-tema) .dash-module-action { grid-column: auto; align-self: center; width: auto; }
   .dashboard-home[data-tema]:not(#dash-tema) .dash-module-body { padding-right: 8px; }
   .dashboard-home[data-tema]:not(#dash-tema) .dash-module-tags { display: none; }
+  .dashboard-home[data-tema='revista']:not(#dash-tema) .dash-module-top { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'body action'; padding: 16px 0 18px; }
+  .dashboard-home[data-tema='revista']:not(#dash-tema) .dash-module-body { padding-right: 44px; }
 }
 @media (max-width: 640px) {
-  .dashboard-home[data-tema]:not(#dash-tema) .dashboard-herramientas { gap: 8px; }
+  .dashboard-home[data-tema]:not(#dash-tema) .dashboard-herramientas { flex-direction: row; flex-wrap: wrap; align-items: stretch; gap: 8px; }
   .dashboard-home[data-tema]:not(#dash-tema) .dashboard-herramientas > * { min-width: 0; max-width: 100%; }
   .dashboard-home[data-tema]:not(#dash-tema) .dash-buscador { flex: 1 1 100%; }
   .dashboard-home[data-tema]:not(#dash-tema) .dash-buscador-campo input { font-size: 16px; }
@@ -753,12 +1038,25 @@ html:not([data-theme='light']) .dashboard-home[data-tema='pizarra']:not(#dash-te
   .dashboard-home[data-tema]:not(#dash-tema) :is(.dashboard-orden-btn, .dash-tema) { flex: 1 1 0; }
   .dashboard-home[data-tema]:not(#dash-tema) .dash-tema-btn { width: 100%; }
   .dashboard-home[data-tema]:not(#dash-tema) .dash-tema-btn-txt small { display: none; }
-  .dashboard-home[data-tema='editorial']:not(#dash-tema) .dashboard-greeting { font-size: 34px; }
-  .dashboard-home[data-tema='editorial']:not(#dash-tema) .dash-module-top { padding: 18px; }
+  .dashboard-home[data-tema='institucional']:not(#dash-tema) { --deco-hm: 132px; }
+  .dashboard-home[data-tema='campus']:not(#dash-tema) { --deco-hm: 140px; }
+  .dashboard-home[data-tema='bauhaus']:not(#dash-tema) { --deco-hm: 150px; }
+  .dashboard-home[data-tema='revista']:not(#dash-tema) { --deco-hm: 150px; }
+  .dashboard-home[data-tema='aurora']:not(#dash-tema) { --deco-hm: 120px; }
+  .dashboard-home[data-tema='revista']:not(#dash-tema) .dash-tema-deco b { right: auto; left: 0; font-size: 150px; }
+  .dashboard-home[data-tema='revista']:not(#dash-tema) .dash-tema-deco b::before { right: auto; left: 4px; }
+  .dashboard-home[data-tema='revista']:not(#dash-tema) .dash-tema-deco b::after { right: -96px; bottom: 14px; }
+  .dashboard-home[data-tema='aurora']:not(#dash-tema) .dash-tema-deco b { right: auto; left: 0; font-size: 110px; }
+  .dashboard-home[data-tema='aurora']:not(#dash-tema) .dash-tema-deco b::after { position: absolute; left: calc(100% + 10px); bottom: 10px; margin: 0; }
+  .dashboard-home[data-tema='campus']:not(#dash-tema) .dash-nav-item::after { transform: translate(6px, -6px); }
+  .dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-tema-deco b { padding-top: 30%; font-size: 36px; }
+  .dashboard-home[data-tema='bauhaus']:not(#dash-tema) .dash-tema-deco b::after { font-size: 9px; }
+  .dashboard-home[data-tema='campus']:not(#dash-tema) .dashboard-nav-grid { padding-right: 6px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dash-tema-pop,
-  .dashboard-home[data-tema]:not(#dash-tema) :is(.dash-nav-item, .dash-nav-arrow) { animation: none; transition: none; }
+  .dashboard-home[data-tema]:not(#dash-tema) :is(.dash-nav-item, .dash-nav-item::after, .dash-nav-arrow, .dashboard-home-bg) { animation: none; transition: none; }
+  .dashboard-home[data-tema]:not(#dash-tema) .dash-nav-item:is(:hover, .is-previewing, :focus-within) { transform: none; }
   .dashboard-home[data-tema]:not(#dash-tema) .dash-nav-item:is(:hover, .is-previewing) .dash-nav-arrow { transform: none; }
 }
