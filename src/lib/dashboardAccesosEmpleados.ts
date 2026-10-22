@@ -195,7 +195,7 @@ const OCULTOS_SARA = [
   'revision-pagados', // 25
 ] as const
 
-/** coordkin: oculta 1,7-12,14,15,17-19,22,24,25. */
+/** Set base (coordkin antes de Checador): oculta 1,7-12,14,15,17-19,22,24,25. */
 const OCULTOS_COORD_JOSEFINA = [
   'desayunos', // 1
   'checador', // 7
@@ -214,7 +214,7 @@ const OCULTOS_COORD_JOSEFINA = [
   'revision-pagados', // 25
 ] as const
 
-/** 2026-10-16 — coordprim (coordinación español primaria) y josefina (dirección secundaria) ven Checador. */
+/** 2026-10-16/22 — coordprim, josefina y coordkin (dirección kinder) ven Checador. */
 const OCULTOS_CON_CHECADOR = OCULTOS_COORD_JOSEFINA.filter((id) => id !== 'checador')
 
 /** 2026-10-16 — coording (coordinación inglés primaria) ve Checador; kinder_ing sigue sin él. */
@@ -402,7 +402,7 @@ export const DASHBOARD_MODULOS_OCULTOS: Record<number, readonly string[]> = {
   12: OCULTOS_LAURA_VINCULACION, // diana — mismo set que Laura Vinculación
   40: OCULTOS_ENFERMERIA, // enfermeria
   7: OCULTOS_CON_CHECADOR, // coordprim (español primaria) — Checador visible
-  8: OCULTOS_COORD_JOSEFINA, // coordkin
+  8: OCULTOS_CON_CHECADOR, // coordkin (dirección kinder) — Checador visible
   13: OCULTOS_CON_CHECADOR, // josefina (dirección secundaria) — Checador visible
   42: OCULTOS_COORDACADEMIC, // coordacademic
   60: OCULTOS_ASISTENTE, // asistente (dirección secundaria)
