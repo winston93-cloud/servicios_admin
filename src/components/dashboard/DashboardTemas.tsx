@@ -3,16 +3,16 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type KeyboardEvent } from 'react'
 import { Check, Palette } from 'lucide-react'
 
-export type DashTema = 'original' | 'kawaii' | 'oceano' | 'galaxia' | 'bosque' | 'arcade'
+export type DashTema = 'original' | 'institucional' | 'campus' | 'ejecutivo' | 'editorial' | 'pizarra'
 
-/** Mismos estilos de estructura que Team English; «original» es el diseño de siempre. */
-export const DASH_TEMAS: { id: DashTema; nombre: string; emoji: string; sub: string }[] = [
-  { id: 'original', nombre: 'Original', emoji: '🌘', sub: 'El diseño de siempre' },
-  { id: 'kawaii', nombre: 'Kawaii', emoji: '🌈', sub: 'Cuaderno de stickers pastel' },
-  { id: 'oceano', nombre: 'Acuario', emoji: '🐬', sub: 'Burbujas y menú abajo, como el celular' },
-  { id: 'galaxia', nombre: 'Nave espacial', emoji: '🚀', sub: 'Panel de control con módulos en línea' },
-  { id: 'bosque', nombre: 'Diario de campo', emoji: '🍄', sub: 'Libreta con notas y cinta' },
-  { id: 'arcade', nombre: 'Arcade', emoji: '🕹️', sub: 'Videojuego retro' },
+/** «original» es el diseño de siempre; Institucional y Campus usan los colores y la tipografía de la marca. */
+export const DASH_TEMAS: { id: DashTema; nombre: string; sub: string }[] = [
+  { id: 'original', nombre: 'Original', sub: 'El diseño de siempre' },
+  { id: 'institucional', nombre: 'Institucional', sub: 'Azules Winston con tipografía Poppins' },
+  { id: 'campus', nombre: 'Campus', sub: 'Banda azul rey con naranja y lima de la marca' },
+  { id: 'ejecutivo', nombre: 'Ejecutivo', sub: 'Grafito y blanco, minimalista' },
+  { id: 'editorial', nombre: 'Editorial', sub: 'Papel cálido y títulos serif, como un informe' },
+  { id: 'pizarra', nombre: 'Pizarra', sub: 'Gris azulado con acento verde azulado' },
 ]
 
 const CLAVE = 'servicios-admin-dashboard-tema'
@@ -121,9 +121,7 @@ export function DashTemaSwitch({ tema, onCambiar }: { tema: DashTema; onCambiar:
                 className="dash-tema-op"
                 onClick={() => onCambiar(t.id)}
               >
-                <span className="dash-tema-muestra" data-muestra={t.id} aria-hidden>
-                  {t.emoji}
-                </span>
+                <span className="dash-tema-muestra" data-muestra={t.id} aria-hidden />
                 <span className="dash-tema-op-txt">
                   <b>{t.nombre}</b>
                   <small>{t.sub}</small>

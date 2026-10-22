@@ -521,14 +521,6 @@ function DashboardPageInner() {
     return items
   }, [becaFirmaAutorizada, session])
 
-  const totalModulos = mostrarPanelAlumno ? navItemsAlumno.length : mostrarPanelAdmin ? navItemsAdmin.length : 0
-
-  const irArriba = () => window.scrollTo({ top: 0, behavior: 'smooth' })
-  const enfocarBuscador = () => {
-    irArriba()
-    document.querySelector<HTMLInputElement>('.dash-buscador-campo input')?.focus({ preventScroll: true })
-  }
-
   const avisoTalleresActivo =
     mostrarPanelAdmin && navItemsAdmin.some((i) => i.id === 'talleres-clases-especiales')
 
@@ -652,12 +644,6 @@ function DashboardPageInner() {
                 </p>
                 <h1 className="dashboard-title">Servicios Administrativos</h1>
                 <p className="dashboard-subtitle">{subtituloDashboard}</p>
-                {tema === 'galaxia' && totalModulos ? (
-                  <p className="dash-tema-hud">
-                    <span><i aria-hidden />Sistemas en línea</span>
-                    <span>{totalModulos} {mostrarPanelAlumno ? 'portales' : 'módulos'}</span>
-                  </p>
-                ) : null}
                 {previewPadres ? (
                   <p className="portal-autorizados-banner dashboard-preview-padres" role="status">
                     Vista interna del panel de papás (Kevin, Mario y no. 29905 · LAURA PRUEBA PRUEBA). El resto de
@@ -669,11 +655,6 @@ function DashboardPageInner() {
                     >
                       Volver al panel del personal
                     </button>
-                  </p>
-                ) : null}
-                {tema === 'arcade' ? (
-                  <p className="dash-tema-press" aria-hidden>
-                    PRESIONA START
                   </p>
                 ) : null}
                 {mostrarPanelAlumno ? (
@@ -918,35 +899,6 @@ function DashboardPageInner() {
             <span>Cerrar sesión</span>
           </button>
         </nav>
-
-        {tema === 'oceano' && (mostrarPanelAdmin || mostrarPanelAlumno) ? (
-          <nav className="dash-tema-dock" aria-label="Accesos rápidos">
-            <button type="button" className="dash-tema-dock-i" onClick={irArriba}>
-              <span aria-hidden>🏠</span>
-              <small>Inicio</small>
-            </button>
-            {mostrarPanelAdmin && navItemsAdmin.length ? (
-              <button type="button" className="dash-tema-dock-i" onClick={enfocarBuscador}>
-                <span aria-hidden>🔎</span>
-                <small>Buscar</small>
-              </button>
-            ) : null}
-            {mostrarPanelAlumno ? (
-              <button type="button" className="dash-tema-dock-i" onClick={() => setAyudaAbierta(true)}>
-                <span aria-hidden>🛟</span>
-                <small>Ayuda</small>
-              </button>
-            ) : null}
-            <button type="button" className="dash-tema-dock-i" onClick={toggleMenu}>
-              <span aria-hidden>🐚</span>
-              <small>Menú</small>
-            </button>
-            <button type="button" className="dash-tema-dock-i" onClick={handleLogout}>
-              <span aria-hidden>👋</span>
-              <small>Salir</small>
-            </button>
-          </nav>
-        ) : null}
 
         {mostrarPanelAlumno && (
           <>
