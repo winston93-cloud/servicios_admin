@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  ArrowLeft,
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -18,8 +17,11 @@ import { useAuth } from '@/contexts/AuthContext'
 import {
   esStaffPreviewPanelPadres,
   PORTAL_AUTORIZADOS_PREVIEW_REFS,
+  esRefPreviewPortalAutorizados,
   puedeVerModuloPortalAutorizados,
 } from '@/lib/portalPadresPreview'
+import { dataTemaPadres, PortalPadresTopbar } from '@/components/portal/PortalPadresTopbar'
+import { useDashTema } from '@/components/dashboard/DashboardTemas'
 import {
   bloqueadoDespuesDeLaUna,
   DIAS_SEMANA_PIE,
@@ -28,7 +30,6 @@ import {
   type DiaSemanaPie,
 } from '@/lib/diasSemanaPie'
 import type { RegistroSalidaPie } from '@/lib/registroSalidaPieService'
-import ThemeToggle from '@/components/ThemeToggle'
 import { usePortalToast } from '@/components/PortalToast'
 
 type AlumnoSalida = {
@@ -104,11 +105,11 @@ function fechaEventualValida(fecha: Date): boolean {
 export default function PortalSalidaPieView() {
   const router = useRouter()
   const { session } = useAuth()
+  const [tema] = useDashTema()
   const esStaff = esStaffPreviewPanelPadres(session)
   const permitido = puedeVerModuloPortalAutorizados(session)
   const { toast, host } = usePortalToast()
 
-  const [refBusqueda, setRefBusqueda] = useState(String(PORTAL_AUTORIZADOS_PREVIEW_REFS[0] ?? ''))
   const [alumno, setAlumno] = useState<AlumnoSalida | null>(null)
   const [registros, setRegistros] = useState<RegistroSalidaPie[]>([])
   const [cargando, setCargando] = useState(true)
@@ -179,7 +180,8 @@ export default function PortalSalidaPieView() {
   }, [permitido, esStaff, session?.alumno_id, cargar, router])
 
   const cancelaciones = permanente?.cancelaciones_usadas ?? 0
-  const sinCancelaciones = cancelaciones >= 5
+  const sinTopeCancelaciones = esRefPreviewPortalAutorizados(alumno?.alumnoRef)
+  const sinCancelaciones = !sinTopeCancelaciones && cancelaciones >= 5
   const cancelPct = Math.min(100, Math.round((cancelaciones / 5) * 100))
 
   const post = async (body: Record<string, unknown>, okMsg: string): Promise<boolean> => {
@@ -191,7 +193,7 @@ export default function PortalSalidaPieView() {
         body: JSON.stringify({
           ...body,
           alumnoId: alumno?.alumnoId,
-          alumnoRef: alumno?.alumnoRef ?? refBusqueda.trim(),
+          alumnoRef: alumno?.alumnoRef ?? PORTAL_AUTORIZADOS_PREVIEW_REFS[0],
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -217,7 +219,10 @@ export default function PortalSalidaPieView() {
       return
     }
     if (activo) {
-      if (!window.confirm(`¿Desactivar ${dia}? Cuenta como 1 de 5 cancelaciones.`)) return
+      const aviso = sinTopeCancelaciones
+        ? `¿Desactivar ${dia}?`
+        : `¿Desactivar ${dia}? Cuenta como 1 de 5 cancelaciones.`
+      if (!window.confirm(aviso)) return
     }
     void post(
       { accion: activo ? 'desactivar-dia' : 'activar-dia', dia },
@@ -248,17 +253,14 @@ export default function PortalSalidaPieView() {
   const volverDashboard = esStaff ? '/dashboard?vista=padres' : '/dashboard'
 
   return (
-    <div className="dashboard-container dashboard-home portal-inscripciones-page portal-autorizados-page portal-salida-pie-page portal-padres-mod">
+    <div
+      className="dashboard-container dashboard-home dashboard-home--papas portal-inscripciones-page portal-autorizados-page portal-salida-pie-page portal-padres-mod"
+      data-tema={dataTemaPadres(tema)}
+    >
       <div className="dashboard-home-bg" aria-hidden />
       <div className="dashboard-main portal-inscripciones-main">
         <header className="portal-padres-encabezado">
-          <div className="portal-autorizados-topbar">
-            <button type="button" className="servicios-back-btn" onClick={() => router.push(volverDashboard)}>
-              <ArrowLeft size={16} aria-hidden />
-              Volver al inicio
-            </button>
-            <ThemeToggle />
-          </div>
+          <PortalPadresTopbar volver={volverDashboard} />
           <p className="portal-inscripciones-kicker">Salida del plantel</p>
           <h1 className="dashboard-title portal-inscripciones-titulo">Salida a pie</h1>
           <p className="portal-padres-lead">
@@ -277,34 +279,6 @@ export default function PortalSalidaPieView() {
           </nav>
         </header>
 
-        {esStaff ? (
-          <form
-            className="portal-padres-buscar"
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (!refBusqueda.trim()) return
-              void cargar({ alumnoRef: refBusqueda.trim() })
-            }}
-          >
-            <label htmlFor="portal_salida_ref" className="servicios-sr-only">
-              Número de control
-            </label>
-            <input
-              id="portal_salida_ref"
-              className="alumno-form-input"
-              inputMode="numeric"
-              value={refBusqueda}
-              onChange={(e) => setRefBusqueda(e.target.value)}
-              placeholder="No. de control"
-              autoComplete="off"
-            />
-            <button type="submit" className="portal-autorizados-btn-pri" disabled={cargando}>
-              {cargando ? <Loader2 size={18} className="alumno-form-guardar-btn-icon" /> : null}
-              Abrir
-            </button>
-          </form>
-        ) : null}
-
         {cargando && !alumno ? (
           <div className="portal-padres-cargando" role="status">
             <Loader2 size={20} className="portal-inscripciones-spin" aria-hidden />
@@ -321,26 +295,32 @@ export default function PortalSalidaPieView() {
                     <h2 id="sp-perm-titulo">Cada semana</h2>
                     <span className="pa-conteo">{diasActivos.size}</span>
                   </div>
-                  <p>Activa los días fijos. Desactivar cuenta como cancelación.</p>
+                  <p>
+                    {sinTopeCancelaciones
+                      ? 'Activa o desactiva los días fijos.'
+                      : 'Activa los días fijos. Desactivar cuenta como cancelación.'}
+                  </p>
                 </div>
               </div>
 
-              <div
-                className={`portal-salida-pie-meter${sinCancelaciones ? ' is-max' : ''}`}
-                role="status"
-                aria-label={`Cancelaciones usadas: ${cancelaciones} de 5`}
-              >
-                <div className="portal-salida-pie-meter-top">
-                  <span>Cancelaciones</span>
-                  <strong>
-                    {cancelaciones}
-                    <span aria-hidden>/5</span>
-                  </strong>
+              {sinTopeCancelaciones ? null : (
+                <div
+                  className={`portal-salida-pie-meter${sinCancelaciones ? ' is-max' : ''}`}
+                  role="status"
+                  aria-label={`Cancelaciones usadas: ${cancelaciones} de 5`}
+                >
+                  <div className="portal-salida-pie-meter-top">
+                    <span>Cancelaciones</span>
+                    <strong>
+                      {cancelaciones}
+                      <span aria-hidden>/5</span>
+                    </strong>
+                  </div>
+                  <div className="portal-salida-pie-meter-track" aria-hidden>
+                    <span style={{ width: `${cancelPct}%` }} />
+                  </div>
                 </div>
-                <div className="portal-salida-pie-meter-track" aria-hidden>
-                  <span style={{ width: `${cancelPct}%` }} />
-                </div>
-              </div>
+              )}
 
               <div className="portal-salida-pie-dias" role="list">
                 {DIAS_SEMANA_PIE.map(({ value, label }) => {

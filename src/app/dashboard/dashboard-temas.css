@@ -591,6 +591,7 @@ html:not([data-theme='light']) .dashboard-home[data-tema='institucional']:not(#d
   transform: rotate(7deg);
 }
 .dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-tema-deco b::after { content: '\00a0sistemas Winston'; }
+.dashboard-home--papas[data-tema='institucional']:not(#dash-tema) .dash-tema-deco b::after { content: '\00a0portales'; }
 .dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-buscador-campo { border-color: transparent; box-shadow: 0 6px 18px -10px rgba(4, 20, 50, 0.35); }
 .dashboard-home[data-tema='institucional']:not(#dash-tema) :is(.dashboard-orden-btn, .dash-tema-btn) { border-color: transparent; box-shadow: 0 6px 18px -10px rgba(4, 20, 50, 0.35); }
 .dashboard-home[data-tema='institucional']:not(#dash-tema) .dash-nav-item:nth-child(4n + 1) { --ic: #08498a; --ic-f: #ffffff; }

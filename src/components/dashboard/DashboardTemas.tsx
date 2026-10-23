@@ -5,14 +5,22 @@ import { Check, Palette } from 'lucide-react'
 
 export type DashTema = 'original' | 'institucional' | 'campus' | 'bauhaus' | 'revista' | 'aurora'
 
+export type DashTemaOpcion = { id: DashTema; nombre: string; sub: string }
+
 /** «original» es el diseño de siempre; Institucional y Campus son de la marca (Poppins y sus colores). */
-export const DASH_TEMAS: { id: DashTema; nombre: string; sub: string }[] = [
+export const DASH_TEMAS: DashTemaOpcion[] = [
   { id: 'original', nombre: 'Original', sub: 'El diseño de siempre' },
   { id: 'institucional', nombre: 'Institucional', sub: 'Las barras inclinadas de la marca sobre corte azul' },
   { id: 'campus', nombre: 'Campus', sub: 'Azul rey con bloques naranja, lima y gris' },
   { id: 'bauhaus', nombre: 'Bauhaus', sub: 'Círculos, cuadros y colores primarios' },
   { id: 'revista', nombre: 'Revista', sub: 'Portada editorial con número gigante' },
   { id: 'aurora', nombre: 'Aurora', sub: 'Luces de colores y tarjetas de cristal' },
+]
+
+/** Panel papás de prueba: Original + Institucional (cambia el inicio y las vistas nuevas). */
+export const DASH_TEMAS_PADRES: DashTemaOpcion[] = [
+  DASH_TEMAS[0],
+  DASH_TEMAS[1],
 ]
 
 const CLAVE = 'servicios-admin-dashboard-tema'
@@ -50,12 +58,23 @@ export function useDashTema(): [DashTema, (t: DashTema) => void] {
   return [tema, cambiar]
 }
 
-export function DashTemaSwitch({ tema, onCambiar }: { tema: DashTema; onCambiar: (t: DashTema) => void }) {
+export function DashTemaSwitch({
+  tema,
+  onCambiar,
+  temas = DASH_TEMAS,
+  nota = 'Solo cambia esta pantalla de inicio. Se combina con claro/oscuro y se guarda en este dispositivo.',
+}: {
+  tema: DashTema
+  onCambiar: (t: DashTema) => void
+  temas?: readonly DashTemaOpcion[]
+  nota?: string
+}) {
   const [abierto, setAbierto] = useState(false)
   const id = useId()
   const caja = useRef<HTMLDivElement>(null)
   const lista = useRef<HTMLDivElement>(null)
-  const actual = DASH_TEMAS.find((t) => t.id === tema) ?? DASH_TEMAS[0]
+  const catalogo = temas.length ? temas : DASH_TEMAS
+  const actual = catalogo.find((t) => t.id === tema) ?? catalogo[0]
 
   useEffect(() => {
     if (!abierto) return
@@ -82,8 +101,8 @@ export function DashTemaSwitch({ tema, onCambiar }: { tema: DashTema; onCambiar:
     const paso = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0
     if (!paso) return
     e.preventDefault()
-    const i = DASH_TEMAS.findIndex((t) => t.id === tema)
-    const sig = DASH_TEMAS[(i + paso + DASH_TEMAS.length) % DASH_TEMAS.length]
+    const i = catalogo.findIndex((t) => t.id === tema)
+    const sig = catalogo[(i + paso + catalogo.length) % catalogo.length]
     onCambiar(sig.id)
     requestAnimationFrame(() => lista.current?.querySelector<HTMLButtonElement>(`[data-tema-op="${sig.id}"]`)?.focus())
   }
@@ -110,7 +129,7 @@ export function DashTemaSwitch({ tema, onCambiar }: { tema: DashTema; onCambiar:
         <div className="dash-tema-pop" id={id}>
           <p className="dash-tema-pop-titulo">Elige el estilo de tu panel</p>
           <div className="dash-tema-lista" role="radiogroup" aria-label="Estilo del panel" ref={lista} onKeyDown={mover}>
-            {DASH_TEMAS.map((t) => (
+            {catalogo.map((t) => (
               <button
                 key={t.id}
                 type="button"
@@ -130,7 +149,7 @@ export function DashTemaSwitch({ tema, onCambiar }: { tema: DashTema; onCambiar:
               </button>
             ))}
           </div>
-          <p className="dash-tema-pop-nota">Solo cambia esta pantalla de inicio. Se combina con claro/oscuro y se guarda en este dispositivo.</p>
+          <p className="dash-tema-pop-nota">{nota}</p>
         </div>
       ) : null}
     </div>

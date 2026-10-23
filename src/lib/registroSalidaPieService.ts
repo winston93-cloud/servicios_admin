@@ -5,6 +5,7 @@ import {
   instanteMexico,
   type DiaSemanaPie,
 } from './diasSemanaPie'
+import { esRefPreviewPortalAutorizados } from './portalPadresPreview'
 
 export type RegistroSalidaPie = {
   id: number
@@ -120,7 +121,8 @@ export async function toggleDiaPermanente(
 
   if (!actual) return { ok: false, mensaje: 'No hay registro permanente activo.' }
   if (!dias.includes(dia)) return { ok: false, mensaje: 'Ese día no está activo.' }
-  if ((actual.cancelaciones_usadas || 0) >= 5) {
+  const sinTopeCancelaciones = esRefPreviewPortalAutorizados(ref)
+  if (!sinTopeCancelaciones && (actual.cancelaciones_usadas || 0) >= 5) {
     return { ok: false, mensaje: 'Ya usó las 5 cancelaciones permitidas.' }
   }
   const nuevos = dias.filter((d) => d !== dia)
@@ -129,7 +131,9 @@ export async function toggleDiaPermanente(
     .from('registro_salida_pie')
     .update({
       dias_semana: nuevos.length > 0 ? nuevos : null,
-      cancelaciones_usadas: (actual.cancelaciones_usadas || 0) + 1,
+      cancelaciones_usadas: sinTopeCancelaciones
+        ? actual.cancelaciones_usadas || 0
+        : (actual.cancelaciones_usadas || 0) + 1,
     })
     .eq('id', actual.id)
     .select(SELECT)

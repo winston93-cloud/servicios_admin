@@ -21,6 +21,7 @@ import DashboardModuleCard from '@/components/dashboard/DashboardModuleCard'
 import Image from 'next/image'
 import { Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
+  esPanelPadresPrueba,
   esStaffPreviewPanelPadres,
   puedeVerModuloPortalAutorizados,
 } from '@/lib/portalPadresPreview'
@@ -32,7 +33,8 @@ import TalleresMinimoPopup from '@/components/dashboard/TalleresMinimoPopup'
 import InscripcionSinPagoPopup from '@/components/dashboard/InscripcionSinPagoPopup'
 import { nivelesAlertaInscripcion } from '@/lib/inscripcionSinPagoNiveles'
 import DashboardBuscador from '@/components/dashboard/DashboardBuscador'
-import { DashTemaSwitch, useDashTema } from '@/components/dashboard/DashboardTemas'
+import { DASH_TEMAS_PADRES, DashTemaSwitch, useDashTema } from '@/components/dashboard/DashboardTemas'
+import { temaVistaPadres } from '@/components/portal/PortalPadresTopbar'
 import { buscarModulos } from '@/lib/dashboardBusqueda'
 import { CircleHelp, ListOrdered, SearchX } from 'lucide-react'
 import SalaControlBoton from '@/components/dashboard/SalaControlBoton'
@@ -62,6 +64,8 @@ type DashboardNavItem = {
   path?: string
   href?: string
   popup?: DashboardAdminNavItem['popup']
+  kicker?: string
+  tags?: string[]
 }
 
 function abrirNavItemAlumno(item: DashboardNavItem, push: (path: string) => void) {
@@ -153,6 +157,8 @@ const NAV_ITEM_SALIDA_PIE_LOCAL: DashboardNavItem = {
   desc: 'Registra los días en que el alumno sale a pie',
   path: '/portal-salida-pie',
   accent: 'emerald',
+  kicker: 'Salida',
+  tags: ['Días', 'Caminando'],
   icon: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="5" r="2"/>
@@ -169,6 +175,8 @@ const NAV_ITEM_AUTORIZADOS: DashboardNavItem = {
   desc: 'Quién puede recoger al alumno de forma habitual',
   path: '/portal-autorizados',
   accent: 'rose',
+  kicker: 'Recogida',
+  tags: ['Habitual', 'Un día'],
   icon: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -184,6 +192,8 @@ const NAV_ITEM_QR_ACCESO: DashboardNavItem = {
   desc: 'Muestra el código de entrada al plantel para el kiosk',
   path: '/portal-qr-acceso',
   accent: 'emerald',
+  kicker: 'Acceso',
+  tags: ['Código', 'Plantel'],
   icon: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -199,12 +209,11 @@ const NAV_ITEM_QR_ACCESO: DashboardNavItem = {
 const NAV_ITEM_PANEL_PADRES: DashboardAdminNavItem = {
   id: 'panel-padres-preview',
   label: 'Panel papás',
-  desc: 'Vista interna del portal de familias. Los papás aún no ven los módulos nuevos.',
+  desc: 'Ver el panel como lo ve la familia de prueba.',
   path: '/dashboard?vista=padres',
   accent: 'rose',
-  kicker: 'Interno',
-  badge: 'Preview',
-  tags: ['Padres', 'Autorizados'],
+  kicker: 'Familias',
+  tags: ['Padres'],
   icon: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
       <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -226,9 +235,8 @@ function tarjetaPreviewPadres(
     path: item.path,
     accent: item.accent,
     icon: item.icon,
-    kicker: 'Interno',
-    badge: 'Preview',
-    tags: ['Padres'],
+    kicker: item.kicker ?? 'Familias',
+    tags: item.tags ?? ['Padres'],
   }
 }
 
@@ -294,7 +302,12 @@ function DashboardPageInner() {
     esStaffPreviewPanelPadres(session) && searchParams.get('vista') === 'padres'
   const mostrarPanelAlumno = (isAlumno && !isUsuario) || previewPadres
   const mostrarPanelAdmin = isUsuario && !isAlumno && !previewPadres
-  const tema = mostrarPanelAdmin ? temaElegido : 'original'
+  const panelPadresPrueba = esPanelPadresPrueba(session, previewPadres)
+  const tema = mostrarPanelAdmin
+    ? temaElegido
+    : panelPadresPrueba
+      ? temaVistaPadres(temaElegido)
+      : 'original'
 
   // Sesión inválida o rol desconocido → pedir credenciales de nuevo.
   useEffect(() => {
@@ -521,7 +534,12 @@ function DashboardPageInner() {
     return items
   }, [becaFirmaAutorizada, session])
 
-  const modulosNuevos = navItemsAdmin.filter((i) => i.badge === 'Nuevo').length
+  const totalPanel = mostrarPanelAlumno ? navItemsAlumno.length : navItemsAdmin.length
+  const modulosNuevos = mostrarPanelAlumno
+    ? navItemsAlumno.filter((i) =>
+        ['Salida a pie', 'Personas autorizadas', 'QR de acceso'].includes(i.label)
+      ).length
+    : navItemsAdmin.filter((i) => i.badge === 'Nuevo').length
   const fechaHoy = (() => {
     const f = new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
     return f.charAt(0).toUpperCase() + f.slice(1)
@@ -537,7 +555,7 @@ function DashboardPageInner() {
   return (
     <ProtectedRoute>
       <div
-        className={`dashboard-container dashboard-home${layoutPersonalizado ? ' dashboard-home--layout-5' : ''}`}
+        className={`dashboard-container dashboard-home${layoutPersonalizado ? ' dashboard-home--layout-5' : ''}${mostrarPanelAlumno ? ' dashboard-home--papas' : ''}`}
         data-tema={tema === 'original' ? undefined : tema}
       >
         <div className="dashboard-home-bg" aria-hidden="true" />
@@ -646,21 +664,21 @@ function DashboardPageInner() {
               </div>
 
               <div className="dashboard-heading">
-                {tema !== 'original' && navItemsAdmin.length ? (
+                {tema !== 'original' && totalPanel ? (
                   <span className="dash-tema-deco" aria-hidden>
                     <i />
                     <i />
                     <i />
                     <i />
-                    <b>{navItemsAdmin.length}</b>
+                    <b>{totalPanel}</b>
                   </span>
                 ) : null}
                 <p className="dashboard-greeting">
                   {saludo}, <span className="dashboard-greeting-name">{primerNombre}</span>
                 </p>
-                {tema !== 'original' && navItemsAdmin.length ? (
+                {tema !== 'original' && totalPanel ? (
                   <p className="dash-tema-dato">
-                    {fechaHoy} · {navItemsAdmin.length} sistemas
+                    {fechaHoy} · {totalPanel} {mostrarPanelAlumno ? 'portales' : 'sistemas'}
                     {modulosNuevos ? (
                       <>
                         {' · '}
@@ -673,19 +691,6 @@ function DashboardPageInner() {
                 ) : null}
                 <h1 className="dashboard-title">Servicios Administrativos</h1>
                 <p className="dashboard-subtitle">{subtituloDashboard}</p>
-                {previewPadres ? (
-                  <p className="portal-autorizados-banner dashboard-preview-padres" role="status">
-                    Vista interna del panel de papás (Kevin, Mario y no. 29905 · LAURA PRUEBA PRUEBA). El resto de
-                    familias todavía no ven «Salida a pie» local, «Personas autorizadas» ni «QR de acceso».{' '}
-                    <button
-                      type="button"
-                      className="dashboard-preview-padres-link"
-                      onClick={() => navigate('/dashboard')}
-                    >
-                      Volver al panel del personal
-                    </button>
-                  </p>
-                ) : null}
                 {mostrarPanelAlumno ? (
                   <div className="dashboard-herramientas dashboard-herramientas--papas">
                     {cicloVigenteNombre ? (
@@ -693,6 +698,14 @@ function DashboardPageInner() {
                         <span className="dashboard-ciclo-vigente-label">Ciclo escolar vigente</span>
                         <span className="dashboard-ciclo-vigente-nombre">{cicloVigenteNombre}</span>
                       </p>
+                    ) : null}
+                    {panelPadresPrueba ? (
+                      <DashTemaSwitch
+                        tema={tema}
+                        onCambiar={setTema}
+                        temas={DASH_TEMAS_PADRES}
+                        nota="Cambia el panel y las pantallas nuevas (Salida a pie, Personas autorizadas y QR). Se guarda en este dispositivo."
+                      />
                     ) : null}
                   </div>
                 ) : null}
@@ -741,7 +754,20 @@ function DashboardPageInner() {
                 className={`dashboard-nav-grid${layoutPersonalizado ? ' dashboard-nav-grid--cols-5' : ''}`}
               >
                 {mostrarPanelAlumno
-                  ? navItemsAlumno.map((item, index) => (
+                  ? navItemsAlumno.map((item, index) =>
+                      tema === 'institucional' ? (
+                        <DashboardModuleCard
+                          key={navItemKey(item)}
+                          order={index + 1}
+                          label={item.label}
+                          desc={item.desc}
+                          accent={item.accent}
+                          icon={item.icon}
+                          kicker={item.kicker}
+                          tags={item.tags}
+                          onActivate={() => handleNavItemAlumno(item)}
+                        />
+                      ) : (
                       <div
                         key={navItemKey(item)}
                         className="dash-nav-item"
@@ -765,7 +791,8 @@ function DashboardPageInner() {
                           <ChevronRight />
                         </div>
                       </div>
-                    ))
+                      )
+                    )
                   : mostrarPanelAdmin
                     ? modulosVisibles.map((item, index) => (
                       <DashboardModuleCard
@@ -857,7 +884,7 @@ function DashboardPageInner() {
             <button
               type="button"
               className="dashboard-menu-item dashboard-menu-item--inicio"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate(previewPadres ? '/dashboard?vista=padres' : '/dashboard')}
             >
               <div className="dashboard-menu-item-icon" aria-hidden>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
@@ -870,6 +897,26 @@ function DashboardPageInner() {
                 <p>Panel principal</p>
               </div>
             </button>
+            {previewPadres ? (
+              <button
+                type="button"
+                className="dashboard-menu-item"
+                onClick={() => navigate('/dashboard')}
+              >
+                <div className="dashboard-menu-item-icon" aria-hidden>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                  </svg>
+                </div>
+                <div className="dashboard-menu-text">
+                  <h4>Panel del personal</h4>
+                  <p>Volver a tus sistemas</p>
+                </div>
+              </button>
+            ) : null}
             {mostrarPanelAlumno
               ? navItemsAlumno.map((item) => (
                   <button

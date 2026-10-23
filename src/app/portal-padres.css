@@ -27,6 +27,23 @@
   margin-bottom: 12px;
 }
 
+.portal-padres-topbar-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.portal-autorizados-topbar .dash-tema {
+  flex: 0 1 auto;
+}
+
+.portal-autorizados-topbar .dash-tema-btn {
+  width: auto;
+  min-height: 44px;
+}
+
 .portal-autorizados-banner {
   margin: 12px 0 0;
   padding: 12px 14px;
@@ -1696,6 +1713,144 @@ html[data-theme='light'] .portal-salida-pie-cal-dia.is-sel {
     left: 12px;
     width: auto;
   }
+}
+
+@media (max-width: 640px) {
+  .portal-padres-topbar-acciones {
+    width: 100%;
+  }
+
+  .portal-autorizados-topbar .dash-tema {
+    flex: 1 1 auto;
+  }
+
+  .portal-autorizados-topbar .dash-tema-btn {
+    width: 100%;
+  }
+}
+
+/* Institucional — piel de marca en el panel papás y las 3 vistas nuevas. */
+.portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) {
+  font-family: var(--dt-f-poppins), 'Poppins', system-ui, sans-serif;
+}
+
+.portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-inscripciones-main {
+  padding-top: 8px;
+}
+
+.portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-padres-encabezado {
+  padding-bottom: 16px;
+  border-bottom: 5px solid transparent;
+  border-image: linear-gradient(90deg, #08498a 0 25%, #0bb1db 25% 50%, #a8cf45 50% 75%, #d4ec51 75%) 1;
+}
+
+.portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-inscripciones-kicker {
+  color: #08498a;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+html:not([data-theme='light']) .portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-inscripciones-kicker {
+  color: #0bb1db;
+}
+
+.portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-inscripciones-titulo,
+.portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .dashboard-title {
+  color: #0a2342;
+  font-family: var(--dt-f-poppins), 'Poppins', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-shadow: none;
+}
+
+html:not([data-theme='light']) .portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-inscripciones-titulo,
+html:not([data-theme='light']) .portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .dashboard-title {
+  color: #eef4ff;
+}
+
+.portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-padres-lead {
+  color: #4a5a70;
+  max-width: 36rem;
+}
+
+html:not([data-theme='light']) .portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-padres-lead {
+  color: #a9bbd6;
+}
+
+.portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-padres-modulo {
+  border: 0;
+  background: #ffffff;
+  color: #0a2342;
+  box-shadow: 0 8px 20px -14px rgba(10, 35, 66, 0.4);
+}
+
+.portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-padres-modulo.is-on {
+  background: #08498a;
+  color: #ffffff;
+}
+
+html:not([data-theme='light']) .portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-padres-modulo {
+  background: #12203a;
+  color: #eef4ff;
+}
+
+html:not([data-theme='light']) .portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-padres-modulo.is-on {
+  background: #0bb1db;
+  color: #04223a;
+}
+
+.portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-padres-modulo:hover {
+  background: #d4ec51;
+  color: #1f2a00;
+  border-color: transparent;
+}
+
+.portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) :is(
+  .portal-autorizados-card,
+  .portal-qr-acceso-card,
+  .pa-bloque,
+  .portal-padres-alumno,
+  .portal-salida-pie-card
+) {
+  border: 0;
+  background: #ffffff;
+  box-shadow: 0 10px 28px -16px rgba(10, 35, 66, 0.35);
+}
+
+html:not([data-theme='light']) .portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) :is(
+  .portal-autorizados-card,
+  .portal-qr-acceso-card,
+  .pa-bloque,
+  .portal-padres-alumno,
+  .portal-salida-pie-card
+) {
+  background: #12203a;
+}
+
+.portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-autorizados-btn-pri,
+.portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .servicios-back-btn {
+  background: #08498a;
+  border-color: transparent;
+  color: #ffffff;
+}
+
+html:not([data-theme='light']) .portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-autorizados-btn-pri,
+html:not([data-theme='light']) .portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .servicios-back-btn {
+  background: #0bb1db;
+  color: #04223a;
+}
+
+.portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-salida-pie-dia.is-on,
+.portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-autorizados-item--activa {
+  border-color: #08498a;
+  background: rgba(8, 73, 138, 0.1);
+}
+
+html:not([data-theme='light']) .portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-salida-pie-dia.is-on,
+html:not([data-theme='light']) .portal-padres-mod.dashboard-home[data-tema='institucional']:not(#dash-tema) .portal-autorizados-item--activa {
+  border-color: #0bb1db;
+  background: rgba(11, 177, 219, 0.16);
 }
 
 @media (prefers-reduced-motion: reduce) {

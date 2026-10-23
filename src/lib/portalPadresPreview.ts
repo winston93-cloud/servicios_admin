@@ -47,12 +47,18 @@ export function puedeVerPanelPadresPreview(
   return esStaffPreviewPanelPadres(session)
 }
 
+export function esRefPreviewPortalAutorizados(
+  alumnoRef: number | string | null | undefined
+): boolean {
+  const ref = Number(alumnoRef)
+  return Number.isFinite(ref) && PORTAL_AUTORIZADOS_PREVIEW_REF_SET.has(ref)
+}
+
 export function esAlumnoPreviewPortalAutorizados(
   session: Pick<AuthSession, 'role' | 'alumno_ref'> | null | undefined
 ): boolean {
   if (!session || session.role !== 'alumno') return false
-  const ref = Number(session.alumno_ref)
-  return Number.isFinite(ref) && PORTAL_AUTORIZADOS_PREVIEW_REF_SET.has(ref)
+  return esRefPreviewPortalAutorizados(session.alumno_ref)
 }
 
 /** Tarjeta y ruta `/portal-autorizados`. Papás solo cuando el flag esté en 1. */
@@ -69,4 +75,13 @@ export function puedeUsarApiPortalAutorizados(
   session: AuthSession | null | undefined
 ): boolean {
   return puedeVerModuloPortalAutorizados(session)
+}
+
+/** Panel papás de prueba (Kevin/Mario en ?vista=padres o familia 29905). */
+export function esPanelPadresPrueba(
+  session: AuthSession | null | undefined,
+  vistaPadres = false
+): boolean {
+  if (vistaPadres && esStaffPreviewPanelPadres(session)) return true
+  return esAlumnoPreviewPortalAutorizados(session)
 }

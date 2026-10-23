@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter, Space_Grotesk } from "next/font/google";
+import { Geist, Geist_Mono, Inter, Poppins, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import "./portal-padres.css";
+import "./dashboard/dashboard-temas.css";
 import "./pos/pos-totality-theme.css";
 import "./facturacion/facturacion-totality-overrides.css";
 import "./admin-totality-overrides.css";
@@ -32,6 +33,14 @@ const inter = Inter({
   display: "swap",
 });
 
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--dt-f-poppins",
+  display: "swap",
+  preload: false,
+});
+
 export const metadata: Metadata = {
   title: "Servicios Administrativos",
   description: "Sistema administrativo escolar Winston",
@@ -56,7 +65,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeBootstrap }} />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${inter.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${inter.variable} ${poppins.variable} antialiased`}
         suppressHydrationWarning
       >
         <ThemeProvider>

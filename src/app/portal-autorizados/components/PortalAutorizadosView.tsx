@@ -4,7 +4,6 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  ArrowLeft,
   CalendarPlus,
   Footprints,
   Loader2,
@@ -21,10 +20,11 @@ import {
   PORTAL_AUTORIZADOS_PREVIEW_REFS,
   puedeVerModuloPortalAutorizados,
 } from '@/lib/portalPadresPreview'
+import { dataTemaPadres, PortalPadresTopbar } from '@/components/portal/PortalPadresTopbar'
+import { useDashTema } from '@/components/dashboard/DashboardTemas'
 import type { AlumnoContactoRegistro } from '@/lib/alumnoContactoService'
 import type { AlumnoCasoEspecialRegistro } from '@/lib/alumnoCasoEspecialService'
 import { hoyMexicoIso } from '@/lib/alumnoCasoEspecialService'
-import ThemeToggle from '@/components/ThemeToggle'
 import { usePortalToast } from '@/components/PortalToast'
 
 type AlumnoPortalAutorizados = {
@@ -93,6 +93,7 @@ function partesFechaBadge(iso: string): { dia: string; mes: string } {
 export default function PortalAutorizadosView() {
   const router = useRouter()
   const { session } = useAuth()
+  const [tema] = useDashTema()
   const esStaff = esStaffPreviewPanelPadres(session)
   const permitido = puedeVerModuloPortalAutorizados(session)
   const { toast, host } = usePortalToast()
@@ -100,7 +101,6 @@ export default function PortalAutorizadosView() {
   toastRef.current = toast
   const tituloModalId = useId()
 
-  const [refBusqueda, setRefBusqueda] = useState(String(PORTAL_AUTORIZADOS_PREVIEW_REFS[0] ?? ''))
   const [alumno, setAlumno] = useState<AlumnoPortalAutorizados | null>(null)
   const [autorizados, setAutorizados] = useState<AlumnoContactoRegistro[]>([])
   const [especiales, setEspeciales] = useState<AlumnoCasoEspecialRegistro[]>([])
@@ -185,7 +185,7 @@ export default function PortalAutorizadosView() {
         body: JSON.stringify({
           ...body,
           alumnoId: alumno?.alumnoId,
-          alumnoRef: alumno?.alumnoRef ?? refBusqueda.trim(),
+          alumnoRef: alumno?.alumnoRef ?? PORTAL_AUTORIZADOS_PREVIEW_REFS[0],
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -295,21 +295,14 @@ export default function PortalAutorizadosView() {
   const volverDashboard = esStaff ? '/dashboard?vista=padres' : '/dashboard'
 
   return (
-    <div className="dashboard-container dashboard-home portal-inscripciones-page portal-autorizados-page portal-padres-mod">
+    <div
+      className="dashboard-container dashboard-home dashboard-home--papas portal-inscripciones-page portal-autorizados-page portal-padres-mod"
+      data-tema={dataTemaPadres(tema)}
+    >
       <div className="dashboard-home-bg" aria-hidden />
       <div className="dashboard-main portal-inscripciones-main">
         <header className="portal-padres-encabezado">
-          <div className="portal-autorizados-topbar">
-            <button
-              type="button"
-              className="servicios-back-btn"
-              onClick={() => router.push(volverDashboard)}
-            >
-              <ArrowLeft size={16} aria-hidden />
-              Volver al inicio
-            </button>
-            <ThemeToggle />
-          </div>
+          <PortalPadresTopbar volver={volverDashboard} />
           <p className="portal-inscripciones-kicker">Recogida del alumno</p>
           <h1 className="dashboard-title portal-inscripciones-titulo">Personas autorizadas</h1>
           <p className="portal-padres-lead">
@@ -327,34 +320,6 @@ export default function PortalAutorizadosView() {
             </span>
           </nav>
         </header>
-
-        {esStaff ? (
-          <form
-            className="portal-padres-buscar"
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (!refBusqueda.trim()) return
-              void cargar({ alumnoRef: refBusqueda.trim() })
-            }}
-          >
-            <label htmlFor="portal_autorizados_ref" className="servicios-sr-only">
-              Número de control
-            </label>
-            <input
-              id="portal_autorizados_ref"
-              className="alumno-form-input"
-              inputMode="numeric"
-              value={refBusqueda}
-              onChange={(e) => setRefBusqueda(e.target.value)}
-              placeholder="No. de control"
-              autoComplete="off"
-            />
-            <button type="submit" className="portal-autorizados-btn-pri" disabled={cargando}>
-              {cargando ? <Loader2 size={18} className="alumno-form-guardar-btn-icon" /> : null}
-              Abrir
-            </button>
-          </form>
-        ) : null}
 
         {cargando && !alumno ? (
           <div className="portal-padres-cargando" role="status">

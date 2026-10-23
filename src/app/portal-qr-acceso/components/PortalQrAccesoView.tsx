@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  ArrowLeft,
   CalendarPlus,
   Expand,
   FileDown,
@@ -19,7 +18,8 @@ import {
   PORTAL_AUTORIZADOS_PREVIEW_REFS,
   puedeVerModuloPortalAutorizados,
 } from '@/lib/portalPadresPreview'
-import ThemeToggle from '@/components/ThemeToggle'
+import { dataTemaPadres, PortalPadresTopbar } from '@/components/portal/PortalPadresTopbar'
+import { useDashTema } from '@/components/dashboard/DashboardTemas'
 import { dibujarQrAccesoEnCanvas } from '@/lib/qrAccesoCanvas'
 import { hojaQrAccesoPdf, qrAccesoPngDataUrl } from '@/lib/qrAccesoHoja'
 
@@ -39,10 +39,9 @@ export default function PortalQrAccesoView() {
   const router = useRouter()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { session } = useAuth()
+  const [tema] = useDashTema()
   const esStaff = esStaffPreviewPanelPadres(session)
   const permitido = puedeVerModuloPortalAutorizados(session)
-
-  const [refBusqueda, setRefBusqueda] = useState(String(PORTAL_AUTORIZADOS_PREVIEW_REFS[0] ?? ''))
   const [codigo, setCodigo] = useState<string | null>(null)
   const [alumno, setAlumno] = useState<AlumnoQr | null>(null)
   const [cargando, setCargando] = useState(true)
@@ -75,7 +74,7 @@ export default function PortalQrAccesoView() {
       router.replace('/dashboard')
       return
     }
-    void cargar(esStaff ? refBusqueda : undefined)
+    void cargar(esStaff ? String(PORTAL_AUTORIZADOS_PREVIEW_REFS[0] ?? '') : undefined)
     // Solo al entrar: el staff puede cambiar de ficha con el formulario.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permitido, esStaff, cargar, router])
@@ -156,21 +155,14 @@ export default function PortalQrAccesoView() {
   const ocupadoHoja = accionHoja !== null
 
   return (
-    <div className="dashboard-container dashboard-home portal-inscripciones-page portal-autorizados-page portal-qr-acceso-page portal-padres-mod">
+    <div
+      className="dashboard-container dashboard-home dashboard-home--papas portal-inscripciones-page portal-autorizados-page portal-qr-acceso-page portal-padres-mod"
+      data-tema={dataTemaPadres(tema)}
+    >
       <div className="dashboard-home-bg" aria-hidden />
       <div className="dashboard-main portal-inscripciones-main">
         <header className="portal-padres-encabezado">
-          <div className="portal-autorizados-topbar">
-            <button
-              type="button"
-              className="servicios-back-btn"
-              onClick={() => router.push(volverDashboard)}
-            >
-              <ArrowLeft size={16} aria-hidden />
-              Volver al inicio
-            </button>
-            <ThemeToggle />
-          </div>
+          <PortalPadresTopbar volver={volverDashboard} />
           <p className="portal-inscripciones-kicker">Acceso al plantel</p>
           <h1 className="dashboard-title portal-inscripciones-titulo">QR de acceso</h1>
           <p className="portal-padres-lead">
@@ -186,41 +178,7 @@ export default function PortalQrAccesoView() {
               Permiso especial por un día
             </Link>
           </nav>
-          {esStaff ? (
-            <p className="portal-autorizados-banner" role="status">
-              Vista interna. El QR en vivo está habilitado para el no. de control 29905; el resto
-              de papás todavía no lo ve.
-            </p>
-          ) : null}
         </header>
-
-        {esStaff ? (
-          <form
-            className="portal-padres-buscar"
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (!refBusqueda.trim()) return
-              void cargar(refBusqueda.trim())
-            }}
-          >
-            <label htmlFor="portal_qr_ref" className="servicios-sr-only">
-              Número de control
-            </label>
-            <input
-              id="portal_qr_ref"
-              className="alumno-form-input"
-              inputMode="numeric"
-              value={refBusqueda}
-              onChange={(e) => setRefBusqueda(e.target.value)}
-              placeholder="No. de control"
-              autoComplete="off"
-            />
-            <button type="submit" className="portal-autorizados-btn-pri" disabled={cargando}>
-              {cargando ? <Loader2 size={18} className="alumno-form-guardar-btn-icon" /> : null}
-              Ver QR
-            </button>
-          </form>
-        ) : null}
 
         {cargando && !codigo ? (
           <div className="portal-padres-cargando" role="status">
