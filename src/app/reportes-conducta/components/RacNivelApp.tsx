@@ -811,7 +811,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
   )
   const capturaConInformeYCita =
     esAdmin || me?.role === 'psicologia' || me?.role === 'maestro'
-  const capturaConInforme = capturaConInformeYCita
+  const capturaConInforme = capturaConInformeYCita || me?.role === 'estancia'
   /** Retardo en Maternal/Kinder: escalón I–V (resto de tipos/niveles siguen en 3). */
   const retardoMkCinco = config.slug === 'maternal-kinder' && tipo === 6
   const puedePdf = Boolean(me && puedePdfNivel(me.role, config))
@@ -939,7 +939,7 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
         : 'Captura de reportes y seguimiento de citas.'
     }
     if (me.role === 'estancia') {
-      return 'Estancia: elige grado y grupo (4° a 6°) para reportar conducta. Psicología valida antes de avisar a la familia.'
+      return 'Estancia: elige grado y grupo (1° a 6°) para reportar conducta o mandar un informe. Psicología valida los reportes antes de avisar a la familia.'
     }
     return `Panel de ${config.etiquetaOperaciones.toLowerCase()}/dirección/coordinación: listado, suspensión, citatorios, informes, captura e impresión.`
   }, [me, config])
@@ -1159,10 +1159,12 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
                         title={
                           capturaConInformeYCita
                             ? 'Reporte: afecta el escalón. Informe: sin afectar el No de reportes. Citar: citatorio.'
-                            : 'Reporte: afecta el escalón.'
+                            : capturaConInforme
+                              ? 'Reporte: afecta el escalón. Informe: sin afectar el No de reportes.'
+                              : 'Reporte: afecta el escalón.'
                         }
                       >
-                        {capturaConInformeYCita ? 'Reporte | Informe | Cita' : 'Reporte'}
+                        {capturaConInformeYCita ? 'Reporte | Informe | Cita' : capturaConInforme ? 'Reporte | Informe' : 'Reporte'}
                       </th>
                     </tr>
                   </thead>

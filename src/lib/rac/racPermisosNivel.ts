@@ -36,7 +36,7 @@ export function historialSoloPropioNivel(role: RacRolNivel): boolean {
   return role === 'estancia'
 }
 
-/** Estancia atiende de 4° de primaria en adelante; no opera en maternal/kinder. */
+/** Estancia atiende toda la primaria (1° a 6°); no opera en maternal/kinder. */
 export function puedeCapturarGradoNivel(
   role: RacRolNivel,
   cfg: Pick<RacNivelConfig, 'slug'>,
@@ -44,7 +44,7 @@ export function puedeCapturarGradoNivel(
   grado: number
 ): boolean {
   if (role !== 'estancia') return true
-  return cfg.slug === 'primaria' && nivelEscolar === 3 && grado >= 4
+  return cfg.slug === 'primaria' && nivelEscolar === 3 && grado >= 1 && grado <= 6
 }
 
 /** En maternal/kinder no opera la cuenta de prefecta; admin = dirección/coordinación. */
@@ -130,10 +130,6 @@ export function puedeCapturarTipoNivel(
   cfg?: Pick<RacNivelConfig, 'slug'>
 ): boolean {
   return tiposCapturaDeRolNivel(role, fisica, cfg).some((t) => t.valor === tipo)
-}
-
-export function puedeInformeNivel(role: RacRolNivel): boolean {
-  return role !== 'estancia'
 }
 
 export function puedeCitarNivel(role: RacRolNivel): boolean {

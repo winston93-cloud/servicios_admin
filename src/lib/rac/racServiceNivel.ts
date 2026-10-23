@@ -49,7 +49,6 @@ import {
   puedeCapturarGradoNivel,
   puedeCapturarTipoNivel,
   puedeCitarNivel,
-  puedeInformeNivel,
 } from './racPermisosNivel'
 
 const PERFIL_ETIQUETA: Record<number, string> = {
@@ -1330,10 +1329,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     motivo?: number
   }) {
     const ciclo = await cicloRac()
-    if (!puedeInformeNivel(opts.session.role)) {
-      throw new RacNivelAuthError('Tu cuenta no captura informes', 403)
-    }
-    await cargarAlumno(opts.alumnoId)
+    await cargarAlumnoDeSesion(opts.alumnoId, opts.session)
     const psico = opts.session.role === 'psicologia'
     const motivoPsico = n(opts.motivo)
     const insert: Record<string, unknown> = {
