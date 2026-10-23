@@ -142,7 +142,7 @@ export default function TalleresCatalogo({
                   <td className="tl-acciones">
                     <button
                       type="button"
-                      className="tl-icon-btn"
+                      className="tl-icon-btn tl-edit"
                       aria-label={`Editar ${t.nombre}`}
                       onClick={() =>
                         setBorrador({

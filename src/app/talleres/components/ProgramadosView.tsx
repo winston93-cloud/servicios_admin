@@ -422,7 +422,7 @@ export default function ProgramadosView({
                         {f.a.notas ? <p className="tl-horario-nota">{f.a.notas}</p> : null}
                       </div>
                       <div className="tl-acciones">
-                        <button type="button" className="tl-icon-btn" aria-label={`Editar ${f.taller}`} onClick={() => onEditar(f.a)}>
+                        <button type="button" className="tl-icon-btn tl-edit" aria-label={`Editar ${f.taller}`} onClick={() => onEditar(f.a)}>
                           <Pencil size={16} aria-hidden />
                         </button>
                         <button type="button" className="tl-icon-btn tl-danger" aria-label={`Eliminar ${f.taller}`} onClick={() => onEliminar(f.a)}>

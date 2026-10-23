@@ -126,7 +126,7 @@ export default function MaestrosCatalogo({
                   <td className="tl-acciones">
                     <button
                       type="button"
-                      className="tl-icon-btn"
+                      className="tl-icon-btn tl-edit"
                       aria-label={`Editar ${nombreMaestroTaller(m)}`}
                       onClick={() =>
                         setBorrador({

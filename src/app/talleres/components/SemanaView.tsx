@@ -507,7 +507,7 @@ function TablaNivel({
                       })}
                       <td className="tl-horario-acc">
                         <div className="tl-acciones">
-                          <button type="button" className="tl-icon-btn" aria-label={`Editar ${t ? nombreTallerCompleto(t) : 'taller'}`} onClick={() => onEditar(a)}>
+                          <button type="button" className="tl-icon-btn tl-edit" aria-label={`Editar ${t ? nombreTallerCompleto(t) : 'taller'}`} onClick={() => onEditar(a)}>
                             <Pencil size={16} aria-hidden />
                           </button>
                           <button type="button" className="tl-icon-btn tl-danger" aria-label={`Eliminar ${t ? nombreTallerCompleto(t) : 'taller'}`} onClick={() => onEliminar(a)}>

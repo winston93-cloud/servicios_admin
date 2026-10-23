@@ -13,6 +13,8 @@
   --tl-accent-ink: #001f24;
   --tl-gold: #fff6df;
   --tl-danger: #ff7a90;
+  --tl-edit: #00e3fd;
+  --tl-icon-ink: #0a0b0f;
   --tl-ok: #34d399;
   position: relative;
   min-height: 100vh;
@@ -35,6 +37,8 @@
   --tl-accent-ink: #ffffff;
   --tl-gold: #13233a;
   --tl-danger: #c0264a;
+  --tl-edit: #0a66c2;
+  --tl-icon-ink: #ffffff;
   --tl-ok: #0f8a5f;
 }
 
@@ -318,8 +322,24 @@
 }
 
 .tl-icon-btn:hover { color: var(--tl-accent); border-color: var(--tl-border-strong); }
-.tl-icon-btn.tl-danger:hover { color: var(--tl-danger); border-color: var(--tl-danger); }
+.tl-icon-btn.tl-edit,
+.tl-icon-btn.tl-danger {
+  --tl-icon-tono: var(--tl-edit);
+  color: var(--tl-icon-tono);
+  border-color: color-mix(in srgb, var(--tl-icon-tono) 50%, transparent);
+  background: color-mix(in srgb, var(--tl-icon-tono) 13%, transparent);
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.tl-icon-btn.tl-danger { --tl-icon-tono: var(--tl-danger); }
+.tl-icon-btn.tl-edit:hover:not(:disabled),
+.tl-icon-btn.tl-danger:hover:not(:disabled) {
+  color: var(--tl-icon-ink);
+  border-color: var(--tl-icon-tono);
+  background: var(--tl-icon-tono);
+}
 .tl-icon-btn:disabled { opacity: 0.5; }
+.tl-icon-btn.tl-edit:disabled,
+.tl-icon-btn.tl-danger:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .tl-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 
