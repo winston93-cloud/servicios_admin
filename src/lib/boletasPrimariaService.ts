@@ -3,6 +3,7 @@ import { entregaVacia, listarEntregas, type BoletaEntrega } from './boletasEntre
 import { listarPublicaciones, type BoletaPublicacion } from './boletasPortal'
 import { docentesPorGrupoKinder } from './boletasKinderDocentesGrupo'
 import { celdasClassroomAlumno, marcarAjustesClassroom, type ClassroomCelda } from './boletasPrimariaEnClassroom'
+import { celdasClassroomAlumnoEs, marcarAjustesClassroomEs } from './boletasPrimariaEsClassroom'
 import {
   BOLETAS_NIVEL_PRIMARIA,
   PRIMARIA_CALIF_HINT,
@@ -42,7 +43,7 @@ export type PrimariaCaptura = {
   materias: (PrimariaMateria & { calificacion: string })[]
   /** Solo inglés: días de clase y faltas del trimestre. */
   asistencia: PrimariaAsistencia | null
-  /** Solo inglés: lo que dio Classroom por materia. */
+  /** Lo que dio Classroom por materia. */
   classroom?: Map<number, ClassroomCelda>
 }
 
@@ -89,7 +90,7 @@ export async function obtenerCapturaPrimaria(
   const [mapa, asistencia, classroom] = await Promise.all([
     mapaCalifsPrimaria(idioma, alumnoId, ciclo, [bimestre], materias.map((m) => m.id)),
     idioma === 'en' ? asistenciaPrimariaEn(alumnoId, ciclo, [bimestre]) : Promise.resolve(null),
-    idioma === 'en' ? celdasClassroomAlumno(alumnoId, bimestre, ciclo) : Promise.resolve(undefined),
+    idioma === 'en' ? celdasClassroomAlumno(alumnoId, bimestre, ciclo) : celdasClassroomAlumnoEs(alumnoId, bimestre, ciclo),
   ])
   return {
     idioma,
@@ -176,7 +177,7 @@ export async function guardarCapturaPrimaria(
   const alumno = await cargarAlumnoPrimaria(alumnoId)
   const materias = await materiasActivasPrimaria(idioma, alumno.grado_ui)
   let saved = await guardarCalifsPrimaria({ idioma, alumnoId, bimestre, ciclo, materias, valores: input.valores })
-  if (idioma === 'en' && saved) await marcarAjustesClassroom(alumnoId, bimestre, ciclo)
+  if (saved) await (idioma === 'en' ? marcarAjustesClassroom : marcarAjustesClassroomEs)(alumnoId, bimestre, ciclo)
 
   if (asistencia) {
     const { error } = await createBoletasDb()

@@ -30,6 +30,7 @@ import KiEntregas from '../kinder-ingles/components/KiEntregas'
 import KiTeachers from '../kinder-ingles/components/KiTeachers'
 import { kiApi } from '../kinder-ingles/components/kiApi'
 import PrimariaCatalogo from './PrimariaCatalogo'
+import PrimariaFechas from './PrimariaFechas'
 import '../boletas-login-google.css'
 import '../boletas-modulos-ui.css'
 import '../kinder-ingles/kinder-ingles.css'
@@ -432,6 +433,7 @@ export default function PrimariaDireccion({ idioma }: { idioma: IdiomaPrimaria }
             <div className="ki-paper bm-panel ki-filtros-solos">
               <div className="ki-filters bm-filters">{filtrosPeriodo}</div>
             </div>
+            {idioma === 'es' && <PrimariaFechas ciclo={ciclo} />}
             <KiEntregas
               ciclo={ciclo}
               trimestre={trimestre}

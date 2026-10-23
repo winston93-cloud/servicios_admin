@@ -290,13 +290,17 @@ function GrupoTeacher({
         )}
       </div>
 
-      {grupo.modulo === 'primaria-en' && (
+      {(grupo.modulo === 'primaria-en' || grupo.modulo === 'primaria-es') && (
         <ClassroomBarra
           key={qs}
           url={url}
           params={{ grado: grupo.grado, grupo: grupo.grupo, trimestre }}
           alumnos={alumnos}
-          nota="Las calificaciones de materias cambian solas cuando cambian en Classroom. Si ajustas una aquí, se queda hasta que vuelva a cambiar en Classroom. Mindfulness, Faith, skills y asistencia se capturan aquí."
+          nota={
+            grupo.modulo === 'primaria-en'
+              ? 'Las calificaciones de materias cambian solas cuando cambian en Classroom. Si ajustas una aquí, se queda hasta que vuelva a cambiar en Classroom. Mindfulness, Faith, skills y asistencia se capturan aquí.'
+              : 'Español, Matemáticas y las materias de tus clases de Classroom cambian solas cuando cambian allá (solo cuentan las tareas con fecha dentro del trimestre). Si ajustas una aquí, se queda hasta que vuelva a cambiar en Classroom. Inglés, Artes, Educación Física, Computación, Robótica, Edu. Financiera y habilidades se capturan aquí.'
+          }
           onDatos={() => setRefresco((n) => n + 1)}
         />
       )}
