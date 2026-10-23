@@ -25,6 +25,7 @@ import {
   nivelGradoDesdeAlumno,
   obtenerSiguienteFolioPago,
   reglaSeriePagoInterno,
+  registrarEventoPagoInterno,
   registrarIntentoPagoInterno,
   resolverPlantelFolioPagoInterno,
   resolverPrecioInterno,
@@ -79,6 +80,7 @@ export default function PagosInternosModulo() {
 
   const [guardando, setGuardando] = useState(false)
   const guardandoRef = useRef(false)
+  const folioFuenteRef = useRef<'servidor' | 'cliente' | null>(null)
   const [mensaje, setMensaje] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -122,6 +124,30 @@ export default function PagosInternosModulo() {
       mensaje: mensajeIntento,
     })
 
+  /** Hoja del talón usada (o no) para un pago: el vale impreso no lleva folio. */
+  const anotarImpresion = (
+    tipo: 'impresion' | 'reimpresion' | 'sin_impresion',
+    etapa: EtapaIntentoPagoInterno,
+    pago: { pago_id: number; pago_folio: number; alumno_id?: number | null; concepto_id?: number | null; pago_importe?: number | null },
+    detalle?: Record<string, unknown>
+  ) =>
+    registrarEventoPagoInterno({
+      tipo,
+      etapa,
+      usuario: user?.usuario_username ?? null,
+      alumno_id: pago.alumno_id ?? null,
+      concepto_id: pago.concepto_id ?? null,
+      importe: pago.pago_importe ?? null,
+      plantel_serie: tipo === 'reimpresion' ? null : plantelSerieActual,
+      tipo_serie: null,
+      regla_serie: tipo === 'reimpresion' ? null : reglaSerieActual,
+      folio_mostrado: null,
+      pago_id: pago.pago_id,
+      folio: pago.pago_folio,
+      mensaje: null,
+      detalle,
+    })
+
   const refrescarFolio = useCallback(
     async (plantel: PlantelPagosInternos, tipoSerie: TipoSerieFolioPagoInterno = 'general') => {
       try {
@@ -133,6 +159,7 @@ export default function PagosInternosModulo() {
           const res = (await r.json()) as { ok?: boolean; folio?: number }
           if (res.ok && res.folio != null) {
             setFolio(res.folio)
+            folioFuenteRef.current = 'servidor'
             return
           }
         }
@@ -140,6 +167,7 @@ export default function PagosInternosModulo() {
         /* fallback cliente */
       }
       setFolio(await obtenerSiguienteFolioPago(plantel, tipoSerie))
+      folioFuenteRef.current = 'cliente'
     },
     []
   )
@@ -300,8 +328,12 @@ export default function PagosInternosModulo() {
         pago.concepto_otro ?? undefined
       )
       if (datos) imprimirValePagoInterno(datos)
+      anotarImpresion(datos ? 'reimpresion' : 'sin_impresion', 'reimpresion', pago, {
+        pago_cancelado: Boolean(pago.pago_cancelado),
+      })
       setMensaje(`Reimpresión folio ${pago.pago_folio} (sin nuevo registro).`)
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- anotarImpresion solo anota en segundo plano
     [alumnoSeleccionado, cicloPago, prepararValeImpresion]
   )
 
@@ -322,14 +354,16 @@ export default function PagosInternosModulo() {
           pagoActualizado.concepto_otro ?? undefined
         )
         if (datos) imprimirValePagoInterno(datos)
+        anotarImpresion(datos ? 'reimpresion' : 'sin_impresion', 'edicion', pagoActualizado)
         setMensaje(`Pago folio ${pagoActualizado.pago_folio} actualizado e impreso.`)
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- anotarImpresion solo anota en segundo plano
     [alumnoSeleccionado, cicloPago, cargarDatosAlumno, prepararValeImpresion]
   )
 
   const onConfirmarCancelacion = useCallback(
-    async (modo: ModoCancelacionPagoInterno) => {
+    async (modo: ModoCancelacionPagoInterno, nota: string) => {
       if (!pagoCancelar) return
       setCancelando(true)
       setError(null)
@@ -341,11 +375,13 @@ export default function PagosInternosModulo() {
                 pagoId: pagoCancelar.pago_id,
                 motivo: 'admin',
                 usuario: user?.usuario_username,
+                nota,
               })
             : await cancelarPagoInternoYRecorrer({
                 pagoId: pagoCancelar.pago_id,
                 motivo: 'recorrido',
                 usuario: user?.usuario_username,
+                nota,
               })
 
         if (!res.ok) {
@@ -441,6 +477,7 @@ export default function PagosInternosModulo() {
       usuario: user?.usuario_username ?? null,
       regla_serie: reglaSerieActual,
       folio_mostrado: folio === '' ? null : Number(folio),
+      folio_fuente: folioFuenteRef.current,
     }
     let registrado: { pago_id: number; pago_folio: number } | null = null
 
@@ -564,6 +601,19 @@ export default function PagosInternosModulo() {
       ])
       const vales = [valeCuota, valeManuales].filter(Boolean) as DatosValePagoInterno[]
       if (vales.length) imprimirVariosValesPagoInterno(vales)
+      const combo = { combo: true, vales_en_una_impresion: vales.length }
+      anotarImpresion(valeCuota ? 'impresion' : 'sin_impresion', 'combo_cuota', {
+        ...resCuota,
+        alumno_id: alumnoId,
+        concepto_id: CONCEPTO_ID_CUOTA_PADRES,
+        pago_importe: partes.cuota,
+      }, combo)
+      anotarImpresion(valeManuales ? 'impresion' : 'sin_impresion', 'combo_manuales', {
+        ...resManuales,
+        alumno_id: alumnoId,
+        concepto_id: CONCEPTO_ID_MANUALES,
+        pago_importe: partes.manuales,
+      }, combo)
       return
     }
 
@@ -606,6 +656,12 @@ export default function PagosInternosModulo() {
       conceptoOtro
     )
     if (vale) imprimirValePagoInterno(vale)
+    anotarImpresion(vale ? 'impresion' : 'sin_impresion', 'cobro', {
+      ...res,
+      alumno_id: alumnoId,
+      concepto_id: conceptoId,
+      pago_importe: Number(importe),
+    })
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       setError(
@@ -671,7 +727,12 @@ export default function PagosInternosModulo() {
       pago_ciclo_escolar: cicloPago,
       plantel_serie: plantelCuota,
       tipo_serie_folio: 'cuota_padres',
-      contexto: { usuario: user?.usuario_username ?? null, regla_serie: reglaSerieActual, folio_mostrado: null },
+      contexto: {
+        usuario: user?.usuario_username ?? null,
+        regla_serie: reglaSerieActual,
+        folio_mostrado: null,
+        folio_fuente: folioFuenteRef.current,
+      },
     })
     if (!res.ok) {
       setError(res.mensaje)
@@ -701,6 +762,12 @@ export default function PagosInternosModulo() {
       cicloPago
     )
     if (vale) imprimirValePagoInterno(vale)
+    anotarImpresion(vale ? 'impresion' : 'sin_impresion', 'cuota_rapida', {
+      ...res,
+      alumno_id: alumnoId,
+      concepto_id: conceptoCuota.concepto_id,
+      pago_importe: monto,
+    })
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       setError(
@@ -1063,7 +1130,7 @@ export default function PagosInternosModulo() {
         onCerrar={() => {
           if (!cancelando) setPagoCancelar(null)
         }}
-        onConfirmar={(modo) => void onConfirmarCancelacion(modo)}
+        onConfirmar={(modo, nota) => void onConfirmarCancelacion(modo, nota)}
       />
 
       <PagosInternosEditarModal

@@ -23,7 +23,7 @@ interface Props {
   conceptoEtiqueta?: string
   procesando?: boolean
   onCerrar: () => void
-  onConfirmar: (modo: ModoCancelacionPagoInterno) => void
+  onConfirmar: (modo: ModoCancelacionPagoInterno, nota: string) => void
 }
 
 export default function PagosInternosCancelarModal({
@@ -40,10 +40,12 @@ export default function PagosInternosCancelarModal({
   const [mostrarPin, setMostrarPin] = useState(false)
   const [validandoPin, setValidandoPin] = useState(false)
   const [errorPin, setErrorPin] = useState<string | null>(null)
+  const [nota, setNota] = useState('')
 
   useEffect(() => {
     if (!abierto) {
       setModo(null)
+      setNota('')
       setPin('')
       setMostrarPin(false)
       setErrorPin(null)
@@ -79,7 +81,7 @@ export default function PagosInternosCancelarModal({
         return
       }
       setPin('')
-      onConfirmar(modo)
+      onConfirmar(modo, nota.trim())
     } finally {
       setValidandoPin(false)
     }
@@ -170,6 +172,19 @@ export default function PagosInternosCancelarModal({
             <span className="pi-cancel-option__check" aria-hidden />
           </button>
         </div>
+
+        <label className="pi-pin-field">
+          <span>Motivo (opcional)</span>
+          <input
+            type="text"
+            className="pi-input"
+            maxLength={150}
+            placeholder="Ej. la impresora atoró la hoja, se cobró dos veces…"
+            value={nota}
+            disabled={ocupado}
+            onChange={(e) => setNota(e.target.value)}
+          />
+        </label>
 
         <label className="pi-pin-field">
           <span>PIN de acceso</span>

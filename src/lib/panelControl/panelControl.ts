@@ -304,6 +304,8 @@ type ConsecutivoPagos = {
   intentos_7d: number
   altas_7d: number
   altas_sin_usuario_7d: number
+  reimpresiones_7d?: number
+  cobros_sin_impresion_7d?: number
 }
 
 const NOMBRE_SERIE: Record<string, string> = {
@@ -345,7 +347,7 @@ function piezaFoliosCaja(c: ConsecutivoPagos | undefined): PiezaMedida {
     lectura: `${tramos || 'sin cobros'} (${c.dias} d)${c.apartados ? ` · ${c.apartados} apartados` : ''}`,
     diag: diag(
       linea(
-        `Operando: ${c.altas_7d} cobros en 7 días${c.altas_sin_usuario_7d ? ` (${c.altas_sin_usuario_7d} sin usuario)` : ''}`,
+        `Operando: ${c.altas_7d} cobros en 7 días${c.altas_sin_usuario_7d ? ` (${c.altas_sin_usuario_7d} sin usuario)` : ''} · talón: ${c.reimpresiones_7d ?? 0} ${c.reimpresiones_7d === 1 ? 'reimpresión' : 'reimpresiones'}, ${c.cobros_sin_impresion_7d ?? 0} sin imprimir`,
         'normal',
       ),
       c.intentos_7d
