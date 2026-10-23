@@ -89,6 +89,20 @@ function valorConexiones(uso: number): number {
   return Math.max(0, Math.round(89 - (uso - CONEXIONES_PRECAUCION) * 3))
 }
 
+/**
+ * A la entrada de la escuela los grupos de conexiones crecen unos segundos y luego se encogen solos:
+ * se califica con la menor de las dos últimas lecturas (si la anterior tiene menos de 5 min),
+ * así la precaución o la alarma solo salen si el uso sigue alto en dos lecturas seguidas.
+ */
+let ultimaConexiones: { en: number; uso: number } | null = null
+
+function usoConexionesCalificado(uso: number): { uso: number; pico: boolean } {
+  const previa = ultimaConexiones && Date.now() - ultimaConexiones.en < 5 * 60_000 ? ultimaConexiones.uso : null
+  ultimaConexiones = { en: Date.now(), uso }
+  if (previa == null || previa >= uso) return { uso, pico: false }
+  return { uso: previa, pico: valorConexiones(uso) < valorConexiones(previa) }
+}
+
 /** Horario de las tareas de vercel.json, en UTC. */
 const TAREAS: Record<TareaLatido, { nombre: string; horaUtc: number; dias: number[] }> = {
   'cron-talleres-minimo': { nombre: 'Tarea de las 8:00 (talleres)', horaUtc: 14, dias: [1, 2, 3, 4, 5] },
@@ -695,6 +709,9 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
     errorBase = String((rpc.reason as Error)?.message ?? rpc.reason)
   }
 
+  const usoConexiones = m ? (m.base.conexiones / m.base.max_conexiones) * 100 : 0
+  const conexiones = m ? usoConexionesCalificado(usoConexiones) : { uso: 0, pico: false }
+
   const piezaBase = m
     ? pieza({
         id: 'base',
@@ -862,16 +879,19 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
         ? pieza({
             id: 'conexiones',
             nombre: 'Conexiones',
-            valor: valorConexiones((m.base.conexiones / m.base.max_conexiones) * 100),
-            corto: `${Math.round((m.base.conexiones / m.base.max_conexiones) * 100)}% de conexiones en uso`,
+            valor: valorConexiones(conexiones.uso),
+            corto: conexiones.pico
+              ? `Pico de ${Math.round(usoConexiones)}%: se califica si sigue en la próxima lectura`
+              : `${Math.round(usoConexiones)}% de conexiones en uso`,
             lectura: `${m.base.conexiones} de ${m.base.max_conexiones} en uso · base ${Math.round(m.base.bytes / 1024 / 1024)} MB`,
             diag: diag(
               m.base.conexiones < m.base.max_conexiones
                 ? linea('Operando: acepta conexiones nuevas', 'normal')
                 : linea('Llena: rechaza conexiones nuevas', 'alarma'),
               linea(
-                `${m.base.conexiones} de ${m.base.max_conexiones} en uso (${Math.round((m.base.conexiones / m.base.max_conexiones) * 100)}%)`,
-                estadoPorValor(valorConexiones((m.base.conexiones / m.base.max_conexiones) * 100)),
+                `${m.base.conexiones} de ${m.base.max_conexiones} en uso (${Math.round(usoConexiones)}%)` +
+                  (conexiones.pico ? ' · pico: la lectura anterior estaba más baja' : ''),
+                estadoPorValor(valorConexiones(conexiones.uso)),
               ),
               m.base.conexiones < m.base.max_conexiones ? linea('Sin rechazos: hay lugar', 'normal') : linea('Rechazando conexiones', 'alarma'),
             ),
