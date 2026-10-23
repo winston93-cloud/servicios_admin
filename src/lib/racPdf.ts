@@ -31,7 +31,7 @@ export type FilaPdfReporte = {
   nivel?: number
 }
 
-function logoBase64(): string | null {
+export function logoBase64(): string | null {
   try {
     // Mismo asset horizontal que secundaria_2.0 (logo_full 688×311).
     const buf = readFileSync(join(process.cwd(), 'public/bauchers/logo_full.png'))

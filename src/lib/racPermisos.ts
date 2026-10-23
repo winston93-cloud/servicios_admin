@@ -6,7 +6,20 @@ import {
   RAC_TIPOS_PREFECTURA,
 } from '@/lib/racUi'
 
-export type RacTab = 'captura' | 'inbox' | 'citas' | 'suspensiones' | 'prefectura' | 'historial' | 'informes'
+export type RacTab =
+  | 'captura'
+  | 'inbox'
+  | 'citas'
+  | 'suspensiones'
+  | 'prefectura'
+  | 'historial'
+  | 'informes'
+  | 'kardex'
+
+/** Kardex por grado y grupo: Prefectura, Asistente de dirección (rol prefectura) y Dirección. */
+export function puedeKardexRac(role: RacRol): boolean {
+  return role === 'prefectura' || role === 'direccion'
+}
 
 export function etiquetaRol(role: RacRol): string {
   if (role === 'maestro') return 'Maestro'
@@ -63,6 +76,7 @@ export function tabsDeRol(role: RacRol): { id: RacTab; label: string }[] {
     { id: 'informes', label: 'Informes' },
     { id: 'captura', label: 'Reportar' },
     { id: 'historial', label: 'Impresión' },
+    ...(puedeKardexRac(role) ? [{ id: 'kardex' as const, label: 'Kardex' }] : []),
   ]
 }
 

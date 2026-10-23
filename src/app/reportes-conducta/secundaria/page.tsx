@@ -24,6 +24,7 @@ import { limpiarSesionGoogleCliente } from '@/lib/racLogoutClient'
 import RacGoogleSignIn from '../components/RacGoogleSignIn'
 import RacDetalleModal from '../components/RacDetalleModal'
 import RacSuspensionDirectaModal from '../components/RacSuspensionDirectaModal'
+import RacKardexTab, { type KardexGrupoOpcion } from '../components/RacKardexTab'
 import { fechaLargaEs, siguienteDiaHabil } from '../fechaSuspension'
 
 type Rol = 'maestro' | 'coordinacion' | 'psicologia' | 'prefectura' | 'direccion' | 'estancia'
@@ -320,6 +321,20 @@ export default function RacSecundariaPage() {
   )
   const tabs = me ? tabsDeRol(me.role) : []
   const tiposCita = me ? tiposCitaDeRol(me.role) : []
+  const gruposKardex = useMemo<KardexGrupoOpcion[]>(() => {
+    const porClave = new Map<string, KardexGrupoOpcion>()
+    for (const a of asignaciones) {
+      if (!a.materia_grado || !a.grupo_letra) continue
+      const clave = `${a.materia_grado}|${a.grupo_letra}`
+      if (porClave.has(clave)) continue
+      porClave.set(clave, {
+        clave,
+        etiqueta: `${etiquetaGradoStaffSecundaria(a.materia_grado)} ${a.grupo_letra}`,
+        query: `grado=${a.materia_grado}&grupo=${encodeURIComponent(a.grupo_letra)}`,
+      })
+    }
+    return [...porClave.values()].sort((x, y) => x.clave.localeCompare(y.clave))
+  }, [asignaciones])
 
   const refreshMe = useCallback(async () => {
     try {
@@ -985,6 +1000,8 @@ export default function RacSecundariaPage() {
       </nav>
 
       {msg ? <p className="boletas-msg">{msg}</p> : null}
+
+      {tab === 'kardex' ? <RacKardexTab apiBase="/api/rac" grupos={gruposKardex} /> : null}
 
       {(tab === 'captura' || tab === 'prefectura') && (
         <section className="boletas-panel">

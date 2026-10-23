@@ -8,7 +8,15 @@ import {
 } from '@/lib/racSuspensionTexto'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { fechaMxDeTimestamp } from '@/lib/rac/racFecha'
-import { grupoCoincide, letraDesdeGrupoNum } from '@/lib/boletasCiclo'
+import { etiquetaCicloBoletas, grupoCoincide, letraDesdeGrupoNum } from '@/lib/boletasCiclo'
+import {
+  KARDEX_TIPOS_REPORTE,
+  construirKardexAlumno,
+  renglonesConductual,
+  type KardexGrupo,
+  type KardexRenglonDef,
+  type KardexReporte,
+} from '@/lib/rac/racKardex'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 import { RacAuthError, type RacSesion } from '@/lib/racAuth'
 import {
@@ -23,6 +31,7 @@ import {
   RAC_TIPOS,
   etiquetaDepartamentoRac,
   etiquetaEscalon,
+  etiquetaGradoStaffSecundaria,
   etiquetaTipoCitatorio,
   etiquetaTipoReporte,
   fraseRegistroAvisoRac,
@@ -389,6 +398,87 @@ export async function listarGrupoCaptura(opts: {
       materia_grado: grado,
     },
     filas,
+  }
+}
+
+/** Kardex de un grupo (o de un alumno del grupo): una fila por materia del grado + conductual. */
+export async function kardexGrupo(opts: { grado: number; grupoLetra: string; alumnoId?: number }): Promise<KardexGrupo> {
+  const grado = n(opts.grado)
+  const grupoLetra = String(opts.grupoLetra ?? '').trim().toUpperCase()
+  if (!(grado >= 1 && grado <= 3) || !/^[A-F]$/.test(grupoLetra)) throw new RacAuthError('Elige grado y grupo', 400)
+  const ciclo = await cicloRac()
+  const grupoEtiqueta = `${etiquetaGradoStaffSecundaria(grado)} ${grupoLetra}`
+  let alumnos = await alumnosDeGrupo(grado, grupoLetra, ciclo)
+  if (opts.alumnoId) alumnos = alumnos.filter((a) => a.alumno_id === n(opts.alumnoId))
+  const ids = alumnos.map((a) => a.alumno_id)
+
+  const reportes: KardexReporte[] = []
+  for (let i = 0; i < ids.length; i += 100) {
+    const { data, error } = await db()
+      .from('reporte_escolar')
+      .select('alumno_id, reporte_tipo, reporte_no, reporte_ciclo, materia_id, reporte_registro')
+      .in('alumno_id', ids.slice(i, i + 100))
+      .in('reporte_tipo', [...KARDEX_TIPOS_REPORTE])
+      .eq('reporte_status', 1)
+      .eq('reporte_ciclo_escolar', ciclo)
+      .limit(5000)
+    if (error) throw new Error(error.message)
+    for (const r of data ?? []) {
+      reportes.push({
+        alumno_id: n(r.alumno_id),
+        reporte_tipo: n(r.reporte_tipo),
+        reporte_no: n(r.reporte_no),
+        reporte_ciclo: n(r.reporte_ciclo),
+        materia_id: n(r.materia_id),
+        reporte_registro: r.reporte_registro,
+      })
+    }
+  }
+
+  const materias = await materiasSecundariaGrado(grado)
+  const conocidas = new Set(materias.map((m) => m.materia_id))
+  const otras = [
+    ...new Set(
+      reportes
+        .filter((r) => (r.reporte_tipo === RAC_TIPOS.academico || r.reporte_tipo === RAC_TIPOS.informeAcademico) && r.materia_id > 0)
+        .map((r) => r.materia_id)
+        .filter((id) => !conocidas.has(id))
+    ),
+  ]
+  if (otras.length) {
+    const { data } = await db().from('boleta_materia').select('materia_id, materia_nombre').in('materia_id', otras)
+    for (const m of data ?? []) materias.push({ materia_id: n(m.materia_id), materia_nombre: String(m.materia_nombre ?? '') })
+  }
+  const academico: KardexRenglonDef[] = materias.map((m) => ({
+    clave: `m${m.materia_id}`,
+    etiqueta: m.materia_nombre.trim().toUpperCase(),
+    tipo: RAC_TIPOS.academico,
+    materiaIds: [m.materia_id],
+    conAviso: true,
+    maxReportes: 3,
+  }))
+  const conductual = renglonesConductual()
+
+  return {
+    ciclo,
+    cicloEtiqueta: etiquetaCicloBoletas(ciclo),
+    nivelEtiqueta: 'Secundaria',
+    grupoEtiqueta,
+    fechaCorte: fechaMxDeTimestamp(new Date().toISOString()),
+    columnasConductual: 3,
+    alumnos: alumnos.map((a) =>
+      construirKardexAlumno({
+        alumno: {
+          alumno_id: a.alumno_id,
+          alumno_ref: String(a.alumno_ref ?? '').trim(),
+          nombre: nombreAlumno(a),
+          grupoEtiqueta,
+        },
+        academico,
+        conductual,
+        reportes,
+      })
+    ),
   }
 }
 

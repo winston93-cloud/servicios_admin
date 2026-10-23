@@ -7,8 +7,17 @@ import {
 } from '@/lib/racSuspensionTexto'
 import { createDbAdmin } from '@/lib/insforgeAdmin'
 import { fechaMxDeTimestamp } from '@/lib/rac/racFecha'
-import { grupoCoincide, letraDesdeGrupoNum } from '@/lib/boletasCiclo'
+import { etiquetaCicloBoletas, grupoCoincide, letraDesdeGrupoNum } from '@/lib/boletasCiclo'
 import { etiquetaGradoEscolar } from '@/lib/gradoEscolar'
+import { etiquetaNivelEscolar } from '@/lib/nivelEscolar'
+import {
+  KARDEX_TIPOS_REPORTE,
+  construirKardexAlumno,
+  renglonesConductual,
+  type KardexGrupo,
+  type KardexRenglonDef,
+  type KardexReporte,
+} from './racKardex'
 import { resolverCicloEscolarSistemaValor } from '@/lib/ciclosEscolaresService'
 import { MATERIA_SLOT_EN, MATERIA_SLOT_ES } from '@/lib/catalogoMaestrosConstants'
 import {
@@ -783,6 +792,133 @@ export function createRacNivelService(cfg: RacNivelConfig) {
         materia_grado: grado,
       },
       filas,
+    }
+  }
+
+  /**
+   * Kardex de un grupo (o de un alumno del grupo). Español (Maestro/a) e Inglés (Teacher) van en un renglón
+   * cada uno con todas sus materias legacy, igual que su escalón; las demás materias del grado, una por renglón.
+   */
+  async function kardexGrupo(opts: {
+    nivelEscolar: number
+    grado: number
+    grupoLetra: string
+    alumnoId?: number
+  }): Promise<KardexGrupo> {
+    const nivelEscolar = n(opts.nivelEscolar)
+    const grado = n(opts.grado)
+    const grupoLetra = String(opts.grupoLetra ?? '').trim().toUpperCase()
+    if (!esAlumnoDeNivel(nivelEscolar)) throw new RacNivelAuthError('Grupo no corresponde a este nivel', 400)
+    if (!(grado >= 1 && grado <= 6) || !(grupoLetra === GRUPO_SALON || /^[A-F]$/.test(grupoLetra))) {
+      throw new RacNivelAuthError('Elige grado y grupo', 400)
+    }
+    const ciclo = await cicloRac()
+    const grupoEtiqueta = etiquetaAsignacionGrupo(cfg, grado, nivelEscolar, grupoLetra)
+    let alumnos = await alumnosDeGrupo(grado, grupoLetra, ciclo, nivelEscolar)
+    if (opts.alumnoId) alumnos = alumnos.filter((a) => a.alumno_id === n(opts.alumnoId))
+    const ids = alumnos.map((a) => a.alumno_id)
+
+    const reportes: KardexReporte[] = []
+    for (let i = 0; i < ids.length; i += 100) {
+      const { data, error } = await db()
+        .from('reporte_escolar')
+        .select('alumno_id, reporte_tipo, reporte_no, reporte_ciclo, materia_id, reporte_registro')
+        .in('alumno_id', ids.slice(i, i + 100))
+        .in('reporte_tipo', [...KARDEX_TIPOS_REPORTE])
+        .eq('reporte_status', 1)
+        .eq('reporte_ciclo_escolar', ciclo)
+        .limit(5000)
+      if (error) throw new Error(error.message)
+      for (const r of data ?? []) {
+        reportes.push({
+          alumno_id: n(r.alumno_id),
+          reporte_tipo: n(r.reporte_tipo),
+          reporte_no: n(r.reporte_no),
+          reporte_ciclo: n(r.reporte_ciclo),
+          materia_id: n(r.materia_id),
+          reporte_registro: r.reporte_registro,
+        })
+      }
+    }
+
+    const { es: idsEs, en: idsEn } = await idsMateriasSeccionAcademica(nivelEscolar, grado, ids, ciclo)
+    const { data: matsGrado, error: errMat } = await db()
+      .from('boleta_materia')
+      .select('materia_id, materia_nombre, materia_orden')
+      .eq('materia_nivel', nivelEscolar)
+      .eq('materia_grado', grado)
+      .order('materia_orden', { ascending: true })
+    if (errMat) throw new Error(errMat.message)
+
+    const cubiertas = new Set([...idsEs, ...idsEn])
+    const academico: KardexRenglonDef[] = [
+      {
+        clave: 'es',
+        etiqueta: 'ESPAÑOL (MAESTRO/A)',
+        tipo: RAC_TIPOS.academico,
+        materiaIds: idsEs,
+        conAviso: true,
+        maxReportes: 3,
+      },
+      {
+        clave: 'en',
+        etiqueta: 'INGLÉS (TEACHER)',
+        tipo: RAC_TIPOS.academico,
+        materiaIds: idsEn,
+        conAviso: true,
+        maxReportes: 3,
+      },
+    ]
+    const otrasMaterias = new Map<number, string>()
+    for (const m of matsGrado ?? []) {
+      const id = n(m.materia_id)
+      if (!cubiertas.has(id)) otrasMaterias.set(id, String(m.materia_nombre ?? ''))
+    }
+    const sueltas = [
+      ...new Set(
+        reportes
+          .filter((r) => r.materia_id > 0 && !cubiertas.has(r.materia_id) && !otrasMaterias.has(r.materia_id))
+          .filter((r) => r.reporte_tipo === RAC_TIPOS.academico || r.reporte_tipo === RAC_TIPOS.informeAcademico)
+          .map((r) => r.materia_id)
+      ),
+    ]
+    if (sueltas.length) {
+      const { data } = await db().from('boleta_materia').select('materia_id, materia_nombre').in('materia_id', sueltas)
+      for (const m of data ?? []) otrasMaterias.set(n(m.materia_id), String(m.materia_nombre ?? ''))
+    }
+    for (const [id, nombre] of otrasMaterias) {
+      academico.push({
+        clave: `m${id}`,
+        etiqueta: nombre.trim().toUpperCase(),
+        tipo: RAC_TIPOS.academico,
+        materiaIds: [id],
+        conAviso: true,
+        maxReportes: 3,
+      })
+    }
+    const maternalKinder = cfg.slug === 'maternal-kinder'
+    const conductual = renglonesConductual({ maternalKinder })
+
+    return {
+      ciclo,
+      cicloEtiqueta: etiquetaCicloBoletas(ciclo),
+      nivelEtiqueta: etiquetaNivelEscolar(nivelEscolar) || cfg.titulo,
+      grupoEtiqueta,
+      fechaCorte: fechaMxDeTimestamp(new Date().toISOString()),
+      columnasConductual: maternalKinder ? 5 : 3,
+      alumnos: alumnos.map((a) =>
+        construirKardexAlumno({
+          alumno: {
+            alumno_id: a.alumno_id,
+            alumno_ref: String(a.alumno_ref ?? '').trim(),
+            nombre: nombreAlumno(a),
+            grupoEtiqueta,
+          },
+          academico,
+          conductual,
+          reportes,
+        })
+      ),
     }
   }
 
@@ -2102,6 +2238,7 @@ export function createRacNivelService(cfg: RacNivelConfig) {
     historialDetalleAlumno,
     datosPdfPendientes,
     datosPdfHistorial,
+    kardexGrupo,
   }
 }
 

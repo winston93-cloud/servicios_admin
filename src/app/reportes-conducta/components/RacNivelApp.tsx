@@ -38,6 +38,7 @@ import { limpiarSesionGoogleCliente } from '@/lib/racLogoutClient'
 import RacGoogleSignIn from './RacGoogleSignIn'
 import RacDetalleModal from './RacDetalleModal'
 import RacSuspensionDirectaModal from './RacSuspensionDirectaModal'
+import RacKardexTab, { type KardexGrupoOpcion } from './RacKardexTab'
 import { fechaLargaEs, siguienteDiaHabil } from '../fechaSuspension'
 
 type Me = {
@@ -342,6 +343,21 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
     [me, fisica, config]
   )
   const tabs = me ? tabsDeRolNivel(me.role, config) : []
+  const gruposKardex = useMemo<KardexGrupoOpcion[]>(() => {
+    const porClave = new Map<string, KardexGrupoOpcion>()
+    for (const a of asignaciones) {
+      const nivel = a.materia_nivel ?? config.nivelesEscolares[0]
+      if (!a.materia_grado || !a.grupo_letra) continue
+      const clave = `${nivel}|${a.materia_grado}|${a.grupo_letra}`
+      if (porClave.has(clave)) continue
+      porClave.set(clave, {
+        clave,
+        etiqueta: a.etiqueta_grupo || `${a.materia_grado}° ${a.grupo_letra}`,
+        query: `nivelEscolar=${nivel}&grado=${a.materia_grado}&grupo=${encodeURIComponent(a.grupo_letra)}`,
+      })
+    }
+    return [...porClave.values()]
+  }, [asignaciones, config.nivelesEscolares])
   const tiposCita = me ? tiposCitaDeRolNivel(me.role) : []
 
   const refreshMe = useCallback(async () => {
@@ -1051,6 +1067,8 @@ export default function RacNivelApp({ config, themeClass }: RacNivelAppProps) {
         </nav>
 
         {msg ? <p className="racn-msg">{msg}</p> : null}
+
+        {tab === 'kardex' ? <RacKardexTab apiBase={config.apiBase} grupos={gruposKardex} /> : null}
 
         {(tab === 'captura' || tab === 'control_escolar') && (
           <section className="racn-panel racn-panel--captura">

@@ -105,6 +105,10 @@ Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACI
 9. Retirar credenciales del PHP en GitLab/servidor.
 10. Confirmar `/portal-facturacion` como única vía de datos fiscales de papás.
 
+## Reportes académicos y de conducta — Kardex
+
+Pestaña «Kardex» (la última) en `/reportes-conducta/secundaria` (prefectura y asistente de secundaria, dirección) y en los módulos de primaria y maternal-kinder (dirección y coordinaciones de inglés): pedido de Prefectura Secundaria (23 oct 2026). Select de grado y grupo, botón «Kardex de todo el grupo» (PDF, una hoja por alumno) y botón «Kardex» por alumno, con colores que contrastan; lista con buscador, orden «Más atención primero», filtro «Solo con reportes» y tabla desplegable por alumno. Renglones: todas las materias del grado (en primaria y kinder, Español e Inglés como sección, igual que el escalón) y Conducta, Uniforme, Vialidad y Retardo; columnas Informes (tipo 5, solo académico), Aviso, Rep. I–III (retardo de maternal-kinder hasta V) y Vuelta («2da vuelta»…; las fechas son siempre de la última vuelta). Uniforme, vialidad y retardo no tienen aviso (empiezan en Reporte I): la celda va con «—». Solo reportes validados del ciclo actual. Lógica pura en `src/lib/rac/racKardex.ts`, PDF en `racKardexPdf.ts`, `kardexGrupo` en `racService.ts` y `racServiceNivel.ts`, APIs `/api/rac/kardex` y `/api/rac-nivel/[slug]/kardex`, UI `RacKardexTab.tsx` + `rac-kardex.css`.
+
 ## Boletas secundaria + hub Becas
 
 - **Hub:** `/becas` (5 cards: Renovaciones, Solicitudes, Permisos, Bitácora, Boletas secundaria). La tarjeta **Becas** del dashboard apunta aquí.

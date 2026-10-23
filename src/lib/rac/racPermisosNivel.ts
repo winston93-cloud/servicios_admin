@@ -15,6 +15,12 @@ export type RacTabNivel =
   | 'control_escolar'
   | 'historial'
   | 'informes'
+  | 'kardex'
+
+/** Kardex por grado y grupo: solo Dirección (directoras y coordinación de inglés del nivel). */
+export function puedeKardexNivel(role: RacRolNivel): boolean {
+  return role === 'direccion'
+}
 
 export function etiquetaRolNivel(role: RacRolNivel, cfg: RacNivelConfig): string {
   if (role === 'maestro') return 'Maestro(a)'
@@ -90,6 +96,7 @@ export function tabsDeRolNivel(
     { id: 'informes', label: 'Informes' },
     { id: 'captura', label: 'Reportar' },
     { id: 'historial', label: 'Impresión' },
+    ...(puedeKardexNivel(role) ? [{ id: 'kardex' as const, label: 'Kardex' }] : []),
   ]
 }
 
