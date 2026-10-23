@@ -103,6 +103,19 @@ function usoConexionesCalificado(uso: number): { uso: number; pico: boolean } {
   return { uso: previa, pico: valorConexiones(uso) < valorConexiones(previa) }
 }
 
+/**
+ * La respuesta de la base es una sola lectura (la de esta consulta) y a veces trae el arranque de la conexión:
+ * igual que las conexiones, se califica con la menor de las dos últimas lecturas (si la anterior tiene menos de 5 min).
+ */
+let ultimaBase: { en: number; ms: number } | null = null
+
+function msBaseCalificado(ms: number): { ms: number; pico: number | null } {
+  const previa = ultimaBase && Date.now() - ultimaBase.en < 5 * 60_000 ? ultimaBase.ms : null
+  ultimaBase = { en: Date.now(), ms }
+  if (previa == null || previa >= ms) return { ms, pico: null }
+  return { ms: previa, pico: ms }
+}
+
 /** Horario de las tareas de vercel.json, en UTC. */
 const TAREAS: Record<TareaLatido, { nombre: string; horaUtc: number; dias: number[] }> = {
   'cron-talleres-minimo': { nombre: 'Tarea de las 8:00 (talleres)', horaUtc: 14, dias: [1, 2, 3, 4, 5] },
@@ -776,8 +789,9 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
   let m: Metricas | null = null
   let msBase = 0
   let errorBase = 'Sin respuesta'
+  let picoBase: number | null = null
   if (rpc.status === 'fulfilled') {
-    msBase = rpc.value.ms
+    ;({ ms: msBase, pico: picoBase } = msBaseCalificado(rpc.value.ms))
     if (!rpc.value.r.error && rpc.value.r.data) m = rpc.value.r.data as Metricas
     else errorBase = rpc.value.r.error?.message ?? errorBase
   } else {
@@ -796,7 +810,10 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
         lectura: `contesta en ${seg(msBase)}`,
         diag: diag(
           linea('Operando: contesta', 'normal'),
-          linea(`Contesta en ${seg(msBase)} (aceptable: ${seg(PRESUPUESTO_BASE_MS)})`, estadoPorValor(puntajeLatencia(msBase, PRESUPUESTO_BASE_MS))),
+          linea(
+            `Contesta en ${seg(msBase)} (aceptable: ${seg(PRESUPUESTO_BASE_MS)})${picoBase != null ? `; un pico de ${seg(picoBase)} en la última lectura no cuenta` : ''}`,
+            estadoPorValor(puntajeLatencia(msBase, PRESUPUESTO_BASE_MS))
+          ),
           linea('Sin errores en esta lectura', 'normal'),
         ),
       })
