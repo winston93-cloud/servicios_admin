@@ -17,6 +17,7 @@ import CursoDelDia from './CursoDelDia'
 import MisCursos, { borradorDeSugerido, type BorradorCurso } from './MisCursos'
 import MuroReconocimientos from './MuroReconocimientos'
 import PlanSemana from './PlanSemana'
+import TeacherNotificacionesBell from './TeacherNotificacionesBell'
 import '../team-english.css'
 import '../team-english-temas.css'
 
@@ -88,6 +89,7 @@ export default function PortalTeacherPage() {
             <span className="te-marca"><span aria-hidden>{skinDe(skin).emoji}</span> Team English</span>
           </span>
           <div className="te-topbar-der">
+            {data ? <TeacherNotificacionesBell /> : null}
             {data ? (
               <button type="button" className="te-btn te-btn-ghost te-btn-sm" onClick={() => void salir()}>
                 <LogOut size={14} aria-hidden /> Salir

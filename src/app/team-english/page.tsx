@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import ThemeToggle from '@/components/ThemeToggle'
+import DashboardNotificacionesBell from '@/components/dashboard/DashboardNotificacionesBell'
 import { portalSessionFetchHeaders } from '@/lib/portalSessionFetch'
 import {
   calcularDesempeno,
@@ -159,6 +160,7 @@ function TeamEnglish() {
             <ArrowLeft size={16} aria-hidden /> {seccion ? 'Team English' : 'Dashboard'}
           </button>
           <div className="te-topbar-der">
+            <DashboardNotificacionesBell />
             <button type="button" className="te-icon-btn" onClick={() => void recargar()} aria-label="Recargar" disabled={cargando}>
               <RefreshCw size={16} aria-hidden className={cargando ? 'te-spin' : undefined} />
             </button>

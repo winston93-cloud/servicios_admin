@@ -2165,3 +2165,36 @@ textarea.te-input { resize: vertical; line-height: 1.45; }
   .te-skin-pop { animation: none; }
   .te-page { transition: none; }
 }
+
+/* Campanita en la barra de Team English (coordinación y teachers); el panel sale en body con las clases dash-notif. */
+.te-topbar .dash-notif-bell {
+  border: 2px solid var(--te-borde);
+  border-radius: 999px;
+  background: var(--te-hoja);
+  color: var(--te-tinta);
+  box-shadow: 2px 2px 0 var(--te-sombra);
+}
+.te-topbar .dash-notif-bell:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--te-sombra); background: var(--te-hoja); }
+.te-topbar .dash-notif-bell:focus-visible { outline: 3px solid var(--te-lavanda-f); outline-offset: 3px; }
+.te-topbar .dash-notif-badge { box-shadow: 0 0 0 2px var(--te-hoja); }
+.te-notif-bell:not([data-urgente]) .dash-notif-badge { background: #d97706; }
+.te-notif-bell[data-urgente] { animation: te-notif-pulso 1.6s ease-in-out infinite; }
+@keyframes te-notif-pulso {
+  0%, 100% { box-shadow: 2px 2px 0 var(--te-sombra), 0 0 0 0 rgba(220, 38, 38, 0.45); }
+  50% { box-shadow: 2px 2px 0 var(--te-sombra), 0 0 0 6px rgba(220, 38, 38, 0); }
+}
+.dash-notif-item-btn.te-notif-item[data-urgencia='aviso'] { background: rgba(245, 158, 11, 0.14); border-left: 4px solid #f59e0b; }
+.dash-notif-item-btn.te-notif-item[data-urgencia='urgente'] { background: rgba(239, 68, 68, 0.16); border-left: 4px solid #ef4444; }
+.dash-notif-item-btn.te-notif-item[data-urgencia='aviso'] .dash-notif-item-title svg { color: #fbbf24; }
+.dash-notif-item-btn.te-notif-item[data-urgencia='urgente'] .dash-notif-item-title svg { color: #f87171; }
+.dash-notif-item-btn.te-notif-item[data-urgencia='urgente'] .dash-notif-item-title { color: #fecaca; }
+html[data-theme='light'] .dash-notif-item-btn.te-notif-item[data-urgencia='aviso'] { background: #fffbeb; }
+html[data-theme='light'] .dash-notif-item-btn.te-notif-item[data-urgencia='urgente'] { background: #fef2f2; }
+html[data-theme='light'] .dash-notif-item-btn.te-notif-item[data-urgencia='aviso'] .dash-notif-item-title svg { color: #b45309; }
+html[data-theme='light'] .dash-notif-item-btn.te-notif-item[data-urgencia='urgente'] .dash-notif-item-title svg { color: #dc2626; }
+html[data-theme='light'] .dash-notif-item-btn.te-notif-item[data-urgencia='urgente'] .dash-notif-item-title { color: #991b1b; }
+.dash-notif-item-btn.te-notif-item p { -webkit-line-clamp: unset; display: block; }
+.te-notif-sim { font-size: 0.8rem; padding: 0.6rem 0.9rem; border-bottom: 1px dashed rgba(148, 163, 184, 0.35); }
+@media (prefers-reduced-motion: reduce) {
+  .te-notif-bell[data-urgente] { animation: none; }
+}
