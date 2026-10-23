@@ -17,21 +17,29 @@ export const DASH_TEMAS: DashTemaOpcion[] = [
   { id: 'aurora', nombre: 'Aurora', sub: 'Luces de colores y tarjetas de cristal' },
 ]
 
-/** Panel papás de prueba: Original + Institucional (cambia el inicio y las vistas nuevas). */
+/** Pantallas nuevas de papás (Salida a pie, Personas autorizadas, QR): solo tienen Original e Institucional. */
 export const DASH_TEMAS_PADRES: DashTemaOpcion[] = [
   DASH_TEMAS[0],
   DASH_TEMAS[1],
 ]
 
-const CLAVE = 'servicios-admin-dashboard-tema'
+export const DASH_TEMA_DEFAULT: DashTema = 'institucional'
+
+const CLAVE = 'servicios-admin-dashboard-tema-v2'
+/** Antes el default era Original: de la clave vieja solo se respeta un estilo elegido distinto a Original. */
+const CLAVE_ANTERIOR = 'servicios-admin-dashboard-tema'
 const EVENTO = 'dash-tema'
+
+const esTema = (v: string | null): v is DashTema => DASH_TEMAS.some((t) => t.id === v)
 
 function leer(): DashTema {
   try {
     const v = window.localStorage.getItem(CLAVE)
-    return DASH_TEMAS.some((t) => t.id === v) ? (v as DashTema) : 'original'
+    if (esTema(v)) return v
+    const previo = window.localStorage.getItem(CLAVE_ANTERIOR)
+    return esTema(previo) && previo !== 'original' ? previo : DASH_TEMA_DEFAULT
   } catch {
-    return 'original'
+    return DASH_TEMA_DEFAULT
   }
 }
 
@@ -46,7 +54,7 @@ function suscribir(cb: () => void): () => void {
 
 /** Estilo del dashboard en este navegador (localStorage, independiente del claro/oscuro). */
 export function useDashTema(): [DashTema, (t: DashTema) => void] {
-  const tema = useSyncExternalStore(suscribir, leer, () => 'original' as DashTema)
+  const tema = useSyncExternalStore(suscribir, leer, () => DASH_TEMA_DEFAULT)
   const cambiar = (t: DashTema) => {
     try {
       window.localStorage.setItem(CLAVE, t)

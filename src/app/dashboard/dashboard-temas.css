@@ -1061,3 +1061,9 @@ html[data-theme='light'] .dashboard-home[data-tema='aurora']:not(#dash-tema) {
   .dashboard-home[data-tema]:not(#dash-tema) .dash-nav-item:is(:hover, .is-previewing, :focus-within) { transform: none; }
   .dashboard-home[data-tema]:not(#dash-tema) .dash-nav-item:is(:hover, .is-previewing) .dash-nav-arrow { transform: none; }
 }
+
+/* Panel de papás: cuenta portales, no sistemas. */
+.dashboard-home--papas[data-tema='campus']:not(#dash-tema) .dash-tema-deco b::after,
+.dashboard-home--papas[data-tema='bauhaus']:not(#dash-tema) .dash-tema-deco b::after,
+.dashboard-home--papas[data-tema='revista']:not(#dash-tema) .dash-tema-deco b::after,
+.dashboard-home--papas[data-tema='aurora']:not(#dash-tema) .dash-tema-deco b::after { content: 'portales'; }

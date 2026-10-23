@@ -20,11 +20,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import DashboardModuleCard from '@/components/dashboard/DashboardModuleCard'
 import Image from 'next/image'
 import { Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import {
-  esPanelPadresPrueba,
-  esStaffPreviewPanelPadres,
-  puedeVerModuloPortalAutorizados,
-} from '@/lib/portalPadresPreview'
+import { esStaffPreviewPanelPadres, puedeVerModuloPortalAutorizados } from '@/lib/portalPadresPreview'
 import { obtenerCicloEscolarActual } from '@/lib/ciclosEscolaresService'
 import DashboardAyudaModal from '@/components/dashboard/DashboardAyudaModal'
 import DashboardOrdenModal from '@/components/dashboard/DashboardOrdenModal'
@@ -33,8 +29,7 @@ import TalleresMinimoPopup from '@/components/dashboard/TalleresMinimoPopup'
 import InscripcionSinPagoPopup from '@/components/dashboard/InscripcionSinPagoPopup'
 import { nivelesAlertaInscripcion } from '@/lib/inscripcionSinPagoNiveles'
 import DashboardBuscador from '@/components/dashboard/DashboardBuscador'
-import { DASH_TEMAS_PADRES, DashTemaSwitch, useDashTema } from '@/components/dashboard/DashboardTemas'
-import { temaVistaPadres } from '@/components/portal/PortalPadresTopbar'
+import { DashTemaSwitch, useDashTema } from '@/components/dashboard/DashboardTemas'
 import { buscarModulos } from '@/lib/dashboardBusqueda'
 import { CircleHelp, ListOrdered, SearchX } from 'lucide-react'
 import SalaControlBoton from '@/components/dashboard/SalaControlBoton'
@@ -302,12 +297,7 @@ function DashboardPageInner() {
     esStaffPreviewPanelPadres(session) && searchParams.get('vista') === 'padres'
   const mostrarPanelAlumno = (isAlumno && !isUsuario) || previewPadres
   const mostrarPanelAdmin = isUsuario && !isAlumno && !previewPadres
-  const panelPadresPrueba = esPanelPadresPrueba(session, previewPadres)
-  const tema = mostrarPanelAdmin
-    ? temaElegido
-    : panelPadresPrueba
-      ? temaVistaPadres(temaElegido)
-      : 'original'
+  const tema = temaElegido
 
   // Sesión inválida o rol desconocido → pedir credenciales de nuevo.
   useEffect(() => {
@@ -699,14 +689,12 @@ function DashboardPageInner() {
                         <span className="dashboard-ciclo-vigente-nombre">{cicloVigenteNombre}</span>
                       </p>
                     ) : null}
-                    {panelPadresPrueba ? (
-                      <DashTemaSwitch
-                        tema={tema}
-                        onCambiar={setTema}
-                        temas={DASH_TEMAS_PADRES}
-                        nota="Cambia el panel y las pantallas nuevas (Salida a pie, Personas autorizadas y QR). Se guarda en este dispositivo."
-                      />
-                    ) : null}
+                    <DashTemaSwitch
+                      tema={tema}
+                      onCambiar={setTema}
+                      nota="Cambia tu pantalla de inicio. Se combina con claro/oscuro y se guarda en este dispositivo."
+                    />
+
                   </div>
                 ) : null}
                 {mostrarPanelAdmin && navItemsAdmin.length ? (

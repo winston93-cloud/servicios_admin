@@ -11,14 +11,15 @@ import {
 } from '@/components/dashboard/DashboardTemas'
 
 const NOTA_PADRES =
-  'Cambia el panel y las pantallas nuevas (Salida a pie, Personas autorizadas y QR). Se guarda en este dispositivo.'
+  'Estas pantallas se ven en Original o Institucional; los demás estilos se eligen en tu inicio. Se guarda en este dispositivo.'
 
+/** Estas pantallas solo tienen Original e Institucional: cualquier otro estilo del inicio se ve como Institucional. */
 export function temaVistaPadres(tema: DashTema): DashTema {
-  return tema === 'institucional' ? 'institucional' : 'original'
+  return tema === 'original' ? 'original' : 'institucional'
 }
 
 export function dataTemaPadres(tema: DashTema): DashTema | undefined {
-  return tema === 'institucional' ? 'institucional' : undefined
+  return tema === 'original' ? undefined : 'institucional'
 }
 
 export function PortalPadresTopbar({ volver }: { volver: string }) {
