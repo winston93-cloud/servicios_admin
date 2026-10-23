@@ -94,7 +94,27 @@
   padding: 0 12px;
 }
 
-.rk select option {
+html .rk select {
+  color-scheme: dark;
+  background-color: #161a24;
+  color: #f4efe0;
+}
+
+html .rk select option,
+html .rk select optgroup {
+  background-color: #161a24;
+  color: #f4efe0;
+}
+
+html[data-theme='light'] body .rk select {
+  color-scheme: light;
+  background-color: #f4f6fa;
+  color: #13233a;
+}
+
+html[data-theme='light'] body .rk select option,
+html[data-theme='light'] body .rk select optgroup {
+  background-color: #ffffff;
   color: #13233a;
 }
 
