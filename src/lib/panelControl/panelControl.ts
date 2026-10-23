@@ -296,6 +296,68 @@ function pieza(base: Omit<PiezaMedida, 'estado' | 'corto'> & { corto?: string })
   return { ...base, estado, corto }
 }
 
+type ConsecutivoPagos = {
+  dias: number
+  series: { serie: string; desde: number; hasta: number; pagos: number; huecos: number[]; cruces: number[]; repetidos: number[] }[]
+  apartados: number
+  intentos_24h: number
+  intentos_7d: number
+  altas_7d: number
+  altas_sin_usuario_7d: number
+}
+
+const NOMBRE_SERIE: Record<string, string> = {
+  winston_general: 'Winston',
+  educativo_general: 'Educativo',
+  winston_cuota: 'Cuota Winston',
+  educativo_cuota: 'Cuota Educativo',
+}
+
+/**
+ * Folios de caja (pagos internos, `pago_interno_consecutivo`): repetido = alarma (30); hueco o cruce
+ * entre planteles = precaución (70); cobro que no se completó en 24 h = precaución (85).
+ */
+function piezaFoliosCaja(c: ConsecutivoPagos | undefined): PiezaMedida {
+  if (!c) return pieza({ id: 'folios-caja', nombre: 'Folios de caja', valor: null, lectura: 'sin lectura' })
+  const lista = (campo: 'huecos' | 'cruces' | 'repetidos') =>
+    c.series.filter((s) => s[campo].length).map((s) => `${NOMBRE_SERIE[s.serie] ?? s.serie} ${s[campo].join(', ')}`)
+  const repetidos = lista('repetidos')
+  const huecos = lista('huecos')
+  const cruces = lista('cruces')
+  const valor = repetidos.length ? 30 : huecos.length || cruces.length ? 70 : c.intentos_24h ? 85 : 100
+  const corto = repetidos.length
+    ? `Folio repetido: ${repetidos[0]}`
+    : cruces.length
+      ? `Folio de otro plantel: ${cruces[0]}`
+      : huecos.length
+        ? `Folio brincado: ${huecos[0]}`
+        : `${c.intentos_24h} ${c.intentos_24h === 1 ? 'cobro no se completó' : 'cobros no se completaron'} en 24 h`
+  const tramos = c.series
+    .filter((s) => s.serie.endsWith('_general'))
+    .map((s) => `${NOMBRE_SERIE[s.serie]} ${s.desde}–${s.hasta}`)
+    .join(' · ')
+  const problemas = [...repetidos.map((x) => `repetido ${x}`), ...cruces.map((x) => `de otro plantel ${x}`), ...huecos.map((x) => `brincado ${x}`)]
+  return pieza({
+    id: 'folios-caja',
+    nombre: 'Folios de caja',
+    valor,
+    corto,
+    lectura: `${tramos || 'sin cobros'} (${c.dias} d)${c.apartados ? ` · ${c.apartados} apartados` : ''}`,
+    diag: diag(
+      linea(
+        `Operando: ${c.altas_7d} cobros en 7 días${c.altas_sin_usuario_7d ? ` (${c.altas_sin_usuario_7d} sin usuario)` : ''}`,
+        'normal',
+      ),
+      c.intentos_7d
+        ? linea(`${c.intentos_7d} ${c.intentos_7d === 1 ? 'cobro no se completó' : 'cobros no se completaron'} en 7 días (${c.intentos_24h} en 24 h)`, c.intentos_24h ? 'precaucion' : 'normal')
+        : linea('Todos los cobros se completaron en 7 días', 'normal'),
+      problemas.length
+        ? linea(`Folios: ${problemas.slice(0, 4).join(' · ')}${problemas.length > 4 ? ` y ${problemas.length - 4} más` : ''}`, estadoPorValor(valor))
+        : linea(`Consecutivo completo en las 4 series${c.apartados ? ` · ${c.apartados} pagos apartados (9xxxxx) esperan folio` : ''}`, 'normal'),
+    ),
+  })
+}
+
 type Causa = { valor: number; corto: string }
 
 function peorCausa(causas: (Causa | null)[]): Causa | null {
@@ -695,7 +757,18 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
     return { r, ms: Date.now() - t }
   })()
 
-  const [rpc, apps, deploys] = await Promise.allSettled([rpcMedido, estadoApps(), deploysVercel()])
+  const consecutivoRpc = (async () => {
+    const r = await createDbAdmin().rpc('pago_interno_consecutivo', { p_dias: 45 })
+    if (r.error) throw new Error(r.error.message)
+    return r.data as ConsecutivoPagos
+  })()
+
+  const [rpc, apps, deploys, consecutivo] = await Promise.allSettled([
+    rpcMedido,
+    estadoApps(),
+    deploysVercel(),
+    consecutivoRpc,
+  ])
   const valorDe = <T,>(r: PromiseSettledResult<T>): T | undefined => (r.status === 'fulfilled' ? r.value : undefined)
 
   let m: Metricas | null = null
@@ -737,6 +810,8 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
   const ev = m?.piezas ?? {}
   const correo = piezaServicio('correo', 'Correo (Gmail)', ev.correo, PRESUPUESTO_MS.correo)
   const wh = m?.openpay_webhook
+  const foliosCaja = piezaFoliosCaja(valorDe(consecutivo))
+
   const avisosOpenpay = pieza({
     id: 'openpay-avisos',
     nombre: 'Avisos de Openpay',
@@ -774,10 +849,11 @@ async function leerPanelControlSinCache(): Promise<PanelControlRespuesta> {
   const timbres = (rfc: string) => (m?.timbrado ? String(Number(m.timbrado[rfc]?.ok_7d ?? 0)) : '—')
 
   const medidores: MedidorProceso[] = [
-    proceso('pagos', 'Pagos', 'Pasarelas de cobro y avisos de pago', [
+    proceso('pagos', 'Pagos', 'Pasarelas de cobro, avisos de pago y folios de caja', [
       piezaServicio('banorte', 'Banorte (tarjeta)', ev.banorte, PRESUPUESTO_MS.banorte),
       piezaServicio('openpay-api', 'Openpay (SPEI)', ev['openpay-api'], PRESUPUESTO_MS['openpay-api']),
       avisosOpenpay,
+      foliosCaja,
       piezaBase,
     ], [`Banorte ${bienDe(ev.banorte)}`, `SPEI ${bienDe(ev['openpay-api'])}`]),
     proceso('facturacion', 'Facturación CFDI', 'Timbrado, sellos y e.firmas de ambos planteles', [

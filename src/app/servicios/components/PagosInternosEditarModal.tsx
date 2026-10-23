@@ -4,6 +4,7 @@ import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Eye, EyeOff, Loader2, Pencil, Printer, Save, X } from 'lucide-react'
 import { ALUMNO_REF_EXTERNO } from '@/lib/alumnoBusquedaServicios'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   actualizarPagoInterno,
   esConceptoCuotaPadresMasManuales,
@@ -49,6 +50,7 @@ export default function PagosInternosEditarModal({
   onCerrar,
   onGuardado,
 }: Props) {
+  const { user } = useAuth()
   const tituloId = useId()
   const [conceptoId, setConceptoId] = useState(0)
   const [conceptoOtro, setConceptoOtro] = useState('')
@@ -155,6 +157,7 @@ export default function PagosInternosEditarModal({
         pago_importe: Number(importe),
         pago_fecha: fechaPago,
         pago_ciclo_escolar: cicloPago,
+        usuario: user?.usuario_username,
       })
       if (!res.ok) {
         setError(res.mensaje)

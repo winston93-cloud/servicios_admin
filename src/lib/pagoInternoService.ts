@@ -16,6 +16,7 @@ import {
   plantelSerieDesdeFolio,
   pagoPerteneceAPlantelSerie,
   type PlantelPagosInternos,
+  type ReglaSeriePagoInterno,
   type TipoSerieFolioPagoInterno,
   PAGO_INTERNO_FOLIO_EDUCATIVO_INICIAL,
   PAGO_INTERNO_FOLIO_EDUCATIVO_TECHO,
@@ -86,6 +87,7 @@ export {
   plantelPagoDesdeNivel,
   plantelSerieDesdeFolio,
   pagoPerteneceAPlantelSerie,
+  reglaSeriePagoInterno,
   resolverPlantelFolioPagoInterno,
   PAGO_INTERNO_FOLIO_CUOTA_EDUCATIVO_INICIAL,
   PAGO_INTERNO_FOLIO_CUOTA_EDUCATIVO_TECHO,
@@ -101,6 +103,7 @@ export {
   PAGO_INTERNO_WINSTON_TALON_ACTUAL_DESDE,
   type AccesoPagosInternosUsuario,
   type PlantelPagosInternos,
+  type ReglaSeriePagoInterno,
   type TipoSerieFolioPagoInterno,
 } from './pagoInternoPlantel'
 
@@ -834,6 +837,41 @@ export interface CrearPagoInternoPayload {
    * Usar en el registro espejo para evitar recursión.
    */
   omitir_espejo_hermanos?: boolean
+  /** Quién cobra y con qué regla/folio en pantalla (va a `pago_interno_bitacora`). */
+  contexto?: ContextoCobroPagoInterno
+}
+
+export type ContextoCobroPagoInterno = {
+  usuario?: string | null
+  regla_serie?: ReglaSeriePagoInterno | null
+  folio_mostrado?: number | null
+}
+
+export type EtapaIntentoPagoInterno = 'cobro' | 'combo_cuota' | 'combo_manuales' | 'cuota_rapida' | 'excepcion'
+
+/**
+ * Anota un cobro que no se completó (lo que vio la cajera). Nunca se espera ni truena:
+ * la bitácora no debe estorbar al cobro.
+ */
+export function registrarIntentoPagoInterno(datos: {
+  usuario?: string | null
+  etapa: EtapaIntentoPagoInterno
+  alumno_id?: number | null
+  concepto_id?: number | null
+  importe?: number | null
+  plantel_serie?: PlantelPagosInternos | null
+  tipo_serie?: TipoSerieFolioPagoInterno | null
+  regla_serie?: ReglaSeriePagoInterno | null
+  folio_mostrado?: number | null
+  pago_id?: number | null
+  folio?: number | null
+  mensaje: string
+}): void {
+  void Promise.resolve(supabase.rpc('registrar_intento_pago_interno', { p: datos }))
+    .then((r) => {
+      if (r?.error) console.warn('registrarIntentoPagoInterno:', r.error.message)
+    })
+    .catch(() => {})
 }
 
 export type HermanoMismoNivelCuota = {
@@ -1055,6 +1093,12 @@ export async function crearPagoInterno(
     pago_ciclo_escolar: payload.pago_ciclo_escolar,
     pago_registro: ahora,
     pago_actualizacion: ahora,
+    pago_usuario: payload.contexto?.usuario?.trim() || null,
+    pago_plantel_serie: payload.plantel_serie,
+    pago_tipo_serie: tipoSerie,
+    pago_regla_serie: payload.contexto?.regla_serie ?? null,
+    pago_folio_mostrado: payload.contexto?.folio_mostrado ?? null,
+    pago_origen: payload.omitir_espejo_hermanos ? 'espejo_hermanos' : 'cobro',
   })
 
   if (error) {
@@ -1092,6 +1136,7 @@ export async function crearPagoInterno(
         plantel_serie: payload.plantel_serie,
         tipo_serie_folio: 'cuota_padres',
         omitir_espejo_hermanos: true,
+        contexto: payload.contexto,
       })
       if (espejo.ok) hermanosCuota += 1
     }
@@ -1246,6 +1291,13 @@ export type ActualizarPagoInternoPayload = {
   pago_importe: number
   pago_fecha: string
   pago_ciclo_escolar: number
+  /** Usuario que edita (bitácora). */
+  usuario?: string | null
+}
+
+/** Columnas que marcan quién movió el pago en esta escritura (la bitácora solo atribuye si cambian). */
+function marcaModifico(usuario: string | null | undefined, origen: string, ahora: string) {
+  return { pago_modifico: usuario?.trim() || null, pago_modifico_en: ahora, pago_origen: origen }
 }
 
 /**
@@ -1300,6 +1352,7 @@ export async function actualizarPagoInterno(
       pago_fecha: fecha,
       pago_ciclo_escolar: ciclo,
       pago_actualizacion: ahora,
+      ...marcaModifico(payload.usuario, 'edicion', ahora),
     })
     .eq('pago_id', pagoId)
     .eq('pago_cancelado', 0)
@@ -1346,6 +1399,7 @@ export async function actualizarPagoInterno(
 export async function cancelarPagoInternoSolo(opts: {
   pagoId: number
   motivo?: string
+  usuario?: string | null
 }): Promise<ResultadoCancelacionPagoInterno> {
   const { data: pago, error } = await supabase
     .from('pago_interno')
@@ -1370,6 +1424,7 @@ export async function cancelarPagoInternoSolo(opts: {
     .update({
       pago_cancelado: 1,
       pago_actualizacion: ahora,
+      ...marcaModifico(opts.usuario, 'cancelacion', ahora),
     })
     .eq('pago_folio', folio)
     .eq('pago_cancelado', 0)
@@ -1403,6 +1458,7 @@ export async function cancelarPagoInternoSolo(opts: {
 export async function cancelarPagoInternoYRecorrer(opts: {
   pagoId: number
   motivo?: string
+  usuario?: string | null
 }): Promise<ResultadoCancelacionPagoInterno> {
   const { data: pago, error } = await supabase
     .from('pago_interno')
@@ -1486,6 +1542,7 @@ export async function cancelarPagoInternoYRecorrer(opts: {
       .update({
         pago_folio: Number(fila.pago_folio) + 1,
         pago_actualizacion: ahora,
+        ...marcaModifico(opts.usuario, 'recorrido', ahora),
       })
       .eq('pago_id', fila.pago_id)
       .eq('pago_cancelado', 0)
@@ -1512,6 +1569,8 @@ export async function cancelarPagoInternoYRecorrer(opts: {
     pago_ciclo_escolar: reg.pago_ciclo_escolar,
     pago_registro: ahora,
     pago_actualizacion: ahora,
+    pago_usuario: opts.usuario?.trim() || null,
+    pago_origen: 'stub_recorrido',
   })
 
   if (insErr) {

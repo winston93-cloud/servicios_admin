@@ -216,3 +216,15 @@ export function resolverPlantelFolioPagoInterno(opts: {
   }
   return plantelPagoDesdeNivel(Number(opts.alumnoNivel) || 0)
 }
+
+/** Qué regla de `resolverPlantelFolioPagoInterno` decidió la serie (se guarda en la bitácora). */
+export type ReglaSeriePagoInterno = 'externo' | 'usuario_winston' | 'nivel'
+
+export function reglaSeriePagoInterno(opts: {
+  alumnoRef: string | number | null | undefined
+  usuarioUsername: string | null | undefined
+}): ReglaSeriePagoInterno {
+  if (esAlumnoRefExterno(opts.alumnoRef)) return 'externo'
+  const u = (opts.usuarioUsername ?? '').trim().toLowerCase()
+  return USUARIOS_FOLIO_SIEMPRE_WINSTON.has(u) ? 'usuario_winston' : 'nivel'
+}

@@ -24,10 +24,13 @@ import {
   mensajeManualesRequiereCuotaPadres,
   nivelGradoDesdeAlumno,
   obtenerSiguienteFolioPago,
+  reglaSeriePagoInterno,
+  registrarIntentoPagoInterno,
   resolverPlantelFolioPagoInterno,
   resolverPrecioInterno,
   resolverPreciosCuotaYManuales,
   type ConceptoInterno,
+  type EtapaIntentoPagoInterno,
   type ModoCancelacionPagoInterno,
   type PagoInternoRegistro,
   type PlantelPagosInternos,
@@ -93,6 +96,31 @@ export default function PagosInternosModulo() {
     if (esConceptoSerieCuotaPadres(conceptoId)) return 'cuota_padres'
     return 'general'
   }, [conceptoId])
+
+  const reglaSerieActual = reglaSeriePagoInterno({
+    alumnoRef: alumnoSeleccionado?.alumno_ref,
+    usuarioUsername: user?.usuario_username,
+  })
+
+  const anotarIntento = (
+    etapa: EtapaIntentoPagoInterno,
+    mensajeIntento: string,
+    extra?: { concepto_id?: number; importe?: number; tipo_serie?: TipoSerieFolioPagoInterno; pago_id?: number; folio?: number }
+  ) =>
+    registrarIntentoPagoInterno({
+      usuario: user?.usuario_username ?? null,
+      etapa,
+      alumno_id: alumnoId,
+      concepto_id: extra?.concepto_id ?? conceptoId,
+      importe: extra?.importe ?? (importe === '' ? null : Number(importe)),
+      plantel_serie: plantelSerieActual,
+      tipo_serie: extra?.tipo_serie ?? tipoSerieFolioActual,
+      regla_serie: reglaSerieActual,
+      folio_mostrado: folio === '' ? null : Number(folio),
+      pago_id: extra?.pago_id ?? null,
+      folio: extra?.folio ?? null,
+      mensaje: mensajeIntento,
+    })
 
   const refrescarFolio = useCallback(
     async (plantel: PlantelPagosInternos, tipoSerie: TipoSerieFolioPagoInterno = 'general') => {
@@ -312,10 +340,12 @@ export default function PagosInternosModulo() {
             ? await cancelarPagoInternoSolo({
                 pagoId: pagoCancelar.pago_id,
                 motivo: 'admin',
+                usuario: user?.usuario_username,
               })
             : await cancelarPagoInternoYRecorrer({
                 pagoId: pagoCancelar.pago_id,
                 motivo: 'recorrido',
+                usuario: user?.usuario_username,
               })
 
         if (!res.ok) {
@@ -343,6 +373,7 @@ export default function PagosInternosModulo() {
       refrescarFolio,
       plantelSerieActual,
       tipoSerieFolioActual,
+      user?.usuario_username,
     ]
   )
 
@@ -406,6 +437,13 @@ export default function PagosInternosModulo() {
     setMensaje(null)
     setError(null)
 
+    const contexto = {
+      usuario: user?.usuario_username ?? null,
+      regla_serie: reglaSerieActual,
+      folio_mostrado: folio === '' ? null : Number(folio),
+    }
+    let registrado: { pago_id: number; pago_folio: number } | null = null
+
     try {
     const cuotaEnCiclo = await alumnoTieneCuotaPadresPagada(alumnoId, cicloPago)
     setCuotaPadresPagada(cuotaEnCiclo)
@@ -454,11 +492,18 @@ export default function PagosInternosModulo() {
         pago_ciclo_escolar: cicloPago,
         plantel_serie: plantelSerieActual,
         tipo_serie_folio: 'cuota_padres',
+        contexto: { ...contexto, folio_mostrado: null },
       })
       if (!resCuota.ok) {
         setError(resCuota.mensaje)
+        anotarIntento('combo_cuota', resCuota.mensaje, {
+          concepto_id: CONCEPTO_ID_CUOTA_PADRES,
+          importe: partes.cuota,
+          tipo_serie: 'cuota_padres',
+        })
         return
       }
+      registrado = resCuota
 
       const resManuales = await crearPagoInterno({
         alumno_id: alumnoId,
@@ -469,11 +514,19 @@ export default function PagosInternosModulo() {
         pago_ciclo_escolar: cicloPago,
         plantel_serie: plantelSerieActual,
         tipo_serie_folio: 'general',
+        contexto: { ...contexto, folio_mostrado: null },
       })
       if (!resManuales.ok) {
         setError(
           `Cuota registrada (folio ${resCuota.pago_folio}), pero falló manuales: ${resManuales.mensaje}`
         )
+        anotarIntento('combo_manuales', resManuales.mensaje, {
+          concepto_id: CONCEPTO_ID_MANUALES,
+          importe: partes.manuales,
+          tipo_serie: 'general',
+          pago_id: resCuota.pago_id,
+          folio: resCuota.pago_folio,
+        })
         await refrescarFolio(plantelSerieActual, tipoSerieFolioActual)
         if (alumnoSeleccionado) {
           await cargarDatosAlumno(alumnoSeleccionado.alumno_ref, cicloPago)
@@ -524,12 +577,15 @@ export default function PagosInternosModulo() {
       pago_ciclo_escolar: cicloPago,
       plantel_serie: plantelSerieActual,
       tipo_serie_folio: tipoSerieFolioActual,
+      contexto,
     })
 
     if (!res.ok) {
       setError(res.mensaje)
+      anotarIntento('cobro', res.mensaje)
       return
     }
+    registrado = res
 
     setMensaje(
       `Pago registrado. Folio ${res.pago_folio}.${
@@ -550,6 +606,17 @@ export default function PagosInternosModulo() {
       conceptoOtro
     )
     if (vale) imprimirValePagoInterno(vale)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      setError(
+        registrado
+          ? `El pago sí quedó registrado (folio ${registrado.pago_folio}), pero falló después: ${msg}. No lo vuelvas a cobrar; reimprime desde la lista.`
+          : `No se pudo registrar el pago: ${msg}`
+      )
+      anotarIntento('excepcion', msg, {
+        pago_id: registrado?.pago_id,
+        folio: registrado?.pago_folio,
+      })
     } finally {
       guardandoRef.current = false
       setGuardando(false)
@@ -566,6 +633,7 @@ export default function PagosInternosModulo() {
     setGuardando(true)
     setMensaje(null)
     setError(null)
+    let registrado: { pago_id: number; pago_folio: number } | null = null
     try {
     const conceptoCuota =
       conceptosOrdenados.find((c) => c.concepto_id === CONCEPTO_ID_CUOTA_PADRES) ??
@@ -603,11 +671,18 @@ export default function PagosInternosModulo() {
       pago_ciclo_escolar: cicloPago,
       plantel_serie: plantelCuota,
       tipo_serie_folio: 'cuota_padres',
+      contexto: { usuario: user?.usuario_username ?? null, regla_serie: reglaSerieActual, folio_mostrado: null },
     })
     if (!res.ok) {
       setError(res.mensaje)
+      anotarIntento('cuota_rapida', res.mensaje, {
+        concepto_id: conceptoCuota.concepto_id,
+        importe: monto,
+        tipo_serie: 'cuota_padres',
+      })
       return
     }
+    registrado = res
     setMensaje(
       `Cuota de padres registrada. Folio ${res.pago_folio}.${
         res.hermanos_cuota
@@ -626,6 +701,18 @@ export default function PagosInternosModulo() {
       cicloPago
     )
     if (vale) imprimirValePagoInterno(vale)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      setError(
+        registrado
+          ? `La cuota sí quedó registrada (folio ${registrado.pago_folio}), pero falló después: ${msg}. No la vuelvas a cobrar; reimprime desde la lista.`
+          : `No se pudo registrar la cuota: ${msg}`
+      )
+      anotarIntento('excepcion', msg, {
+        tipo_serie: 'cuota_padres',
+        pago_id: registrado?.pago_id,
+        folio: registrado?.pago_folio,
+      })
     } finally {
       guardandoRef.current = false
       setGuardando(false)

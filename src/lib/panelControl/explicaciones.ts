@@ -3,7 +3,7 @@ import { UMBRALES_SALUD, type Diagnostico, type MedidorProceso, type PiezaMedida
 /* Textos de la ventana de análisis: qué es cada medidor y cómo se califica cada pieza. Deben seguir las reglas de panelControl.ts y uniformes.ts. */
 
 export const DESCRIPCION_MEDIDOR: Record<string, string> = {
-  pagos: 'Cobros en línea de colegiaturas y servicios: tarjeta con Banorte, transferencias SPEI con Openpay y los avisos de pago que Openpay manda de regreso.',
+  pagos: 'Cobros en línea de colegiaturas y servicios: tarjeta con Banorte, transferencias SPEI con Openpay y los avisos de pago que Openpay manda de regreso; más el consecutivo de los folios de caja de ambos planteles.',
   facturacion:
     'Facturación de los dos planteles (Instituto Educativo Winston e Instituto Winston Churchill): aciertos y errores del timbrado, vigencia del sello digital con el que se timbra y de la e.firma con la que se renueva, el PAC FacturoPorTi y el archivo privado de XML y PDF.',
   reportes: 'Reportes RAC: los correos que salen a las familias y la agenda de citas en Google Calendar.',
@@ -54,6 +54,7 @@ const REGLA_PIEZA: Record<string, string> = {
   'google-calendar': servicio('4 s'),
   'google-classroom': servicio('15 s (lee todas las clases del trimestre de un grupo)'),
   'openpay-avisos': 'Avisos de pago que Openpay manda al sistema en 24 h: cada 1% que falla resta 4 puntos. Sin avisos no hay lectura.',
+  'folios-caja': 'Consecutivo de los recibos de caja (pagos internos) de los últimos 45 días en sus 4 series: Winston y Educativo, general y cuota de padres. Un folio repetido es alarma (30); un folio brincado o uno que ocupó un pago del otro plantel es precaución (70); un cobro que no se completó en las últimas 24 h es precaución (85). Los pagos apartados (9xxxxx) solo se informan. Cada movimiento queda en la bitácora de pagos internos.',
   base: 'Tiempo que tarda la base en contestar la lectura del panel. Hasta 0.8 s vale 100; si tarda más baja poco a poco hasta 0.',
   conexiones: 'Conexiones abiertas de los sistemas (sin los procesos internos de la base) contra el máximo de la base: debajo de 80% vale 100, de 80 a 90% entra en precaución y desde 90% en alarma (al 100% la base rechaza conexiones). Se califica con la menor de las dos últimas lecturas: un pico de unos segundos, como a la entrada de la escuela, no prende la alarma si en la siguiente lectura ya bajó.',
   'cron-talleres-minimo': 'Latido de la tarea programada: 100 si corrió a su hora y salió bien; 0 si falló o no corrió (con 20 min de margen).',

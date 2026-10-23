@@ -48,6 +48,10 @@ Estilo «cabina cinematográfica» (Mario, 20 oct 2026: «que sea inspirador»):
 
 La revisión diaria se hace todos los días, haya o no pendientes: está en `revisiones-diarias-servicios-admin.md` (almacén personal de agente de Mario) con el check y la bitácora por día. Los pendientes van aparte en `pendientes-servicios-admin.md` (mismo almacén). Cuando Mario diga «Sonny, pendientes»: correr la revisión del día, anotarla en la bitácora y darle el resumen, y después los pendientes. Esos archivos no van al repo (traen datos de familias).
 
+## Pagos internos (caja) — bitácora de folios
+
+Series de folio en `src/lib/pagoInternoPlantel.ts` (Winston y Educativo × general y cuota de padres). Tras la auditoría con recibos del 23 oct 2026 (Mario; el consecutivo Winston se rompió con cobros a «Externo» 11404, el registro comodín de aspirantes que no son alumnos), **todo movimiento de `pago_interno` queda en `pago_interno_bitacora`** por disparador (alta, edición, folio, cancelación, baja; antes/después, serie según el sistema), con el contexto que guarda caja en el pago: `pago_usuario`, `pago_plantel_serie`, `pago_tipo_serie`, `pago_regla_serie` (externo / usuario_winston / nivel), `pago_folio_mostrado`, `pago_origen`; quien edita, cancela o recorre se anota en `pago_modifico` + `pago_modifico_en` (la bitácora solo atribuye si cambian en esa escritura). Cobros que no se completan van a `pago_interno_intento` vía RPC `registrar_intento_pago_interno` (nunca se espera); si algo truena después de guardar, caja avisa «sí quedó registrado, no lo vuelvas a cobrar». Ambas tablas solo servidor (`TABLAS_SOLO_SERVIDOR` del proxy). `pago_interno_consecutivo(dias)` revisa huecos, repetidos y cruces entre planteles; es la pieza «Folios de caja» del medidor Pagos del panel y un punto de la revisión diaria. Migración `20261023100000_pago_interno_bitacora.sql`. Solo registra: no cambia cómo se asignan los folios; la regla de Externo y la de «Juanita/Laura siempre Winston» están por decidir con Mario con estos datos.
+
 ## Facturación CFDI — estado y pendientes
 
 Módulo en `/facturacion` (rama `desayunos`). Roadmap detallado: `docs/FACTURACION-CFDI-ROADMAP.md`.

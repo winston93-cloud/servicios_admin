@@ -36,7 +36,7 @@ export function requireInsforgeAdminEnv() {
 }
 
 /** Tablas que solo se tocan desde sus APIs dedicadas (con su propia autorización). */
-const TABLAS_SOLO_SERVIDOR = ['acceso_autorizado']
+const TABLAS_SOLO_SERVIDOR = ['acceso_autorizado', 'pago_interno_bitacora', 'pago_interno_intento']
 
 /**
  * 2026-10-12 - Seguridad: el proxy usa la API key de administrador (se salta RLS), así que solo el personal
